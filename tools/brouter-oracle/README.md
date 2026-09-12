@@ -19,7 +19,7 @@ The plan defines three levels of parity for the Dart port. Each has a tool here:
 | Level | What has to match | Tool |
 |---|---|---|
 | **L1** | byte-identical `util`/`codec` round trips and rd5 decoding | `dump/run_dump.sh dump-microcache` — decoded nodes, links, way/node tag bitmaps (as hex), geometry bytes and transfer nodes for one micro-cache |
-| **L2** | profile evaluation equal to within 1e-6 | `dump/run_dump.sh eval-profile` — every cost variable a `.brf` produces for a list of tag sets, forward and reverse |
+| **L2** | profile evaluation bit-identical (the plan said 1e-6; the port meets the stricter target) | `dump/run_dump.sh eval-profile` — every cost variable a `.brf` produces for a list of tag sets, forward and reverse; `way-tags` builds the corpus from the tiles |
 | **L3** | identical coordinates, length, ascent and messages for 200+ routing cases | `gen_corpus.py` / `run_corpus.py` / `check_corpus.py` plus `corpus/` |
 
 The Dart port reproduces the same JSON and the same numbers; the golden tests in
@@ -45,7 +45,8 @@ tools/brouter-oracle/
 ├── dump/
 │   ├── Dump.java        single-file Java tool on the upstream public API
 │   ├── run_dump.sh      compiles it once into .cache/ and runs it
-│   └── samples/         tags.txt + the JSON two profiles and two tiles produce
+│   └── samples/         tags.txt, tags-large.txt (the way-tag corpus), node-tags-large.txt, tags-units.txt
+│                        + the JSON two profiles and two tiles produce
 └── .cache/              everything downloaded or built (git-ignored)
 ```
 
@@ -223,7 +224,22 @@ bare profile name inside `brouter/profiles`.
 # R2 (mapaccess) parity:
 ./dump/run_dump.sh osmfile-index W20_N30                                   # header, file index, per-cell sizes and crcs
 ./dump/run_dump.sh nodes-cache-walk -16.92 32.65 -16.77 32.72 --steps 400  # NodesCache walk mirroring RoutingEngine
+
+# R3 (expressions) parity:
+./dump/run_dump.sh way-tags W20_N30 > dump/samples/tags-large.txt          # every distinct way tag set of a tile
+./dump/run_dump.sh eval-profile trekking dump/samples/tags-large.txt --compact --bits   # float-bit-exact variable dumps
+./dump/run_dump.sh math-vectors <out.json>                                  # JVM float parse/format/arith vectors
+./dump/run_dump.sh nodes-cache-walk -16.92 32.65 -16.77 32.72 --profile trekking
 ./dump/run_dump.sh eval-profile trekking dump/samples/tags.txt
+
+# R3 (expressions) parity:
+./dump/run_dump.sh way-tags W20_N30 > way-W20_N30.txt                      # every distinct way tag string of the tile
+./dump/run_dump.sh way-tags W20_N30 --kind node                            # ... node tag strings
+./dump/run_dump.sh eval-profile trekking dump/samples/tags-large.txt --compact --encode   # float bits, de-duplicated
+./dump/run_dump.sh eval-profile trekking dump/samples/tags.txt --bits      # float bits per case
+./dump/run_dump.sh eval-profile trekking dump/samples/node-tags-large.txt --compact --context node --way-tags "highway=residential surface=asphalt"
+./dump/run_dump.sh nodes-cache-walk -16.92 32.65 -16.77 32.72 --steps 400 --profile trekking   # the real profile
+./dump/run_dump.sh math-vectors <out-dir>                                  # JVM float semantics as bit patterns
 ```
 
 **`dump-microcache <tile> <lon> <lat>`** opens the rd5 through
@@ -253,6 +269,44 @@ back out of it, the keys it did not recognise, and every variable that has a
 value — 65 of them for `trekking`. Floats are printed with `Float.toString`, so
 the Dart side can compare exact `float` bit patterns rather than doubles.
 
+Three R3 options change the output format (the default format above is
+unchanged): `--bits` prints every variable as the hex of
+`Float.floatToIntBits` and lists every existing variable (NaN included);
+`--compact` additionally de-duplicates the per-case variable vectors
+(`"vectors"` plus a `[forward, reverse]` index pair per case, no tags -- the
+case order is the order of the tags file), which keeps a 35 000-line corpus
+at 0.5–2 MB per profile; `--encode` adds the encoded hex / decoded string of
+every case. `--context node --way-tags "<tags>"` evaluates the node context
+(hash size 0, like `ProfileCache`) after evaluating its foreign way context
+with the given way; the "reverse" direction then means
+`nodeaccessgranted=yes`. Both new formats also print `usedTagList()`.
+
+**`way-tags <tile> [--kind way|node]`** decodes every micro-cache of the tile
+(no validator) and prints every distinct way tag string
+(`getKeyValueDescription`, forward direction) or node tag string, one per
+line, sorted. `dump/samples/tags-large.txt` is the union of both tiles
+(35 099 way tag sets), `node-tags-large.txt` the node tag sets (769).
+`tags-units.txt` lists unit-carrying values (`12'6"`, `5000lbs`, `10mph`...)
+for `BExpressionContext.addLookupValue`'s conversion; it needs a lookup table
+with `*` values, i.e. the upstream test table in
+`app/packages/brouter_dart/test/fixtures/` (the shipped `lookups.dat` has
+none), see the header of the file.
+
+**`math-vectors <outdir>`** writes `float.json`: `Float.parseFloat`
+(including decimal strings on float midpoints), `Float.toString`, float
+`+ - * /`, int/float conversions, `String.format("%3.1f")`,
+`Integer.parseInt`, `Arrays.hashCode(float[])`, `Character.isWhitespace` and
+`String.split` results as bit patterns, for the Dart emulation in
+`app/packages/brouter_dart/lib/src/jfloat.dart`. Notable: JDK 17's
+`Float.toString` (the pre-JDK-19 `FloatingDecimal.dtoa`) prints a different
+last digit than exact arithmetic for 4 of the 17 353 sampled floats, because
+its `long` branch overflows; the Dart port reproduces that.
+
+**`nodes-cache-walk ... --profile <brf>`** parses the real profile instead
+of the one-line "every way" profile (and does not call `setAllTagsUsed`,
+like `RoutingEngine`), so the walk sees the filtered graph; the JSON then
+carries a `"profile"` entry.
+
 ### What the upstream API does and does not allow
 
 Everything the tool needs is public in 1.7.10. Three limits are worth recording
@@ -277,8 +331,11 @@ for whoever writes the Dart equivalent:
 
 `dump/samples/` holds `tags.txt` (21 representative way tag sets, from
 `highway=cycleway surface=asphalt` to `highway=motorway` and `route=ferry`),
-`eval-trekking.json` and `eval-gravel.json`, and three micro-cache dumps: Funchal
-raw, Funchal filtered through `trekking`, and Reykjavík raw.
+`eval-trekking.json` and `eval-gravel.json`, three micro-cache dumps: Funchal
+raw, Funchal filtered through `trekking`, and Reykjavík raw, and the R3
+corpora `tags-large.txt`, `node-tags-large.txt` and `tags-units.txt`. The
+R3 evaluation vectors themselves live with the tests
+(`app/packages/brouter_dart/test/vectors/expressions/`).
 
 ## Caveats
 

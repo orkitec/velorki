@@ -4,11 +4,9 @@ import 'dart:io';
 
 import '../codec/data_buffers.dart';
 import '../codec/micro_cache.dart';
-import '../codec/tag_value_validator.dart';
 import '../codec/waypoint_matcher.dart';
+import '../expressions/b_expression_context_way.dart';
 import '../jvm.dart';
-import '../util/byte_array_unifier.dart';
-import '../util/i_byte_array_unifier.dart';
 import 'matched_waypoint.dart';
 import 'osm_file.dart';
 import 'osm_link.dart';
@@ -20,41 +18,31 @@ import 'waypoint_matcher_impl.dart';
 
 /// Efficient cache or osmnodes
 ///
-/// Upstream takes a `BExpressionContextWay` (the expressions module, track
-/// R3) which serves three roles here: it carries `meta.lookupVersion` /
-/// `meta.lookupMinorVersion`, it is the `TagValueValidator` of the decoders,
-/// and it is the `IByteArrayUnifier` for link descriptions. The port takes the
-/// validator (null = raw decode, every way kept, the way `dump-microcache`
-/// works without `--profile`) plus the two version numbers; when the validator
-/// also implements [IByteArrayUnifier] it is used for the descriptions, else a
-/// plain [ByteArrayUnifier] is (upstream would NPE with a null context).
+/// The `BExpressionContextWay` is, exactly like upstream, the
+/// `TagValueValidator` of the decoders (`OsmFile.createMicroCache`), the
+/// `IByteArrayUnifier` of the link descriptions (`OsmNode.parseNodeBody`) and
+/// the source of `meta.lookupVersion` / `meta.lookupMinorVersion` for
+/// `PhysicalFile`.
 class NodesCache {
   NodesCache(
     Directory segmentDir,
-    TagValueValidator? ctxWay,
+    BExpressionContextWay ctxWay,
     bool forceSecondaryData,
     int maxmem,
     NodesCache? oldCache,
-    bool detailed, {
-    int lookupVersion = -1,
-    int lookupMinorVersion = -1,
-  }) : _maxmemtiles = maxmem ~/ 8,
-       _segmentDir = segmentDir,
-       _expCtxWay = ctxWay,
-       _unifier = ctxWay is IByteArrayUnifier
-           ? ctxWay as IByteArrayUnifier
-           : ByteArrayUnifier(16384, false),
-       // ignore: prefer_initializing_formals
-       _lookupVersion = lookupVersion,
-       // ignore: prefer_initializing_formals
-       _lookupMinorVersion = lookupMinorVersion,
-       _forceSecondaryData = forceSecondaryData,
-       _detailed = detailed,
-       _directWeaving = !disableDirectWeaving {
+    bool detailed,
+  ) : _maxmemtiles = maxmem ~/ 8,
+      _segmentDir = segmentDir,
+      _expCtxWay = ctxWay,
+      _lookupVersion = ctxWay.meta!.lookupVersion,
+      _lookupMinorVersion = ctxWay.meta!.lookupMinorVersion,
+      _forceSecondaryData = forceSecondaryData,
+      _detailed = detailed,
+      _directWeaving = !disableDirectWeaving {
     nodesMap = OsmNodesMap();
     nodesMap.maxmem = (2 * maxmem) ~/ 3;
 
-    ctxWay?.setDecodeForbidden(detailed);
+    ctxWay.setDecodeForbidden(detailed);
 
     firstFileAccessFailed = false;
     firstFileAccessName = null;
@@ -105,8 +93,7 @@ class NodesCache {
   Directory? _secondarySegmentsDir;
 
   late OsmNodesMap nodesMap;
-  final TagValueValidator? _expCtxWay;
-  final IByteArrayUnifier _unifier;
+  final BExpressionContextWay _expCtxWay;
   final int _lookupVersion;
   final int _lookupMinorVersion;
   final bool _forceSecondaryData;
@@ -261,7 +248,7 @@ class NodesCache {
 
     final id = node.getIdFromPos();
     if (segment.getAndClear(id)) {
-      node.parseNodeBody(segment, nodesMap, _unifier);
+      node.parseNodeBody(segment, nodesMap, _expCtxWay);
     }
 
     if (_garbageCollectionEnabled) {

@@ -1,0 +1,772 @@
+# Every distinct node tag string of the oracle tiles W20_N30 and W25_N60 (way-tags --kind node), sorted.
+# node tags of W20_N30.rd5: 446 distinct strings from 16340 node descriptions (72598 nodes, 129 micro-caches, lookups 11.2)
+# node tags of W25_N60.rd5: 484 distinct strings from 21573 node descriptions (143381 nodes, 2584 micro-caches, lookups 11.2)
+access=destination
+access=destination surface=unknown
+access=destination surface=unpaved
+access=destination wheelchair=no
+access=no
+access=no hgv=yes
+access=permissive
+access=permissive direction=unknown
+access=permissive surface=unknown
+access=permit
+access=private
+access=private surface=asphalt
+access=private surface=unknown
+access=unknown
+access=yes
+access=yes motor_vehicle=yes
+access=yes surface=paved
+access=yes surface=unknown
+access=yes wheelchair=no
+access=yes wheelchair=yes
+barrier=bar
+barrier=block
+barrier=block access=no
+barrier=block access=no bicycle=yes foot=yes
+barrier=block access=no bicycle=yes foot=yes horse=no
+barrier=block access=no foot=yes
+barrier=block access=permissive bicycle=yes foot=yes motor_vehicle=no horse=no
+barrier=block access=permissive motor_vehicle=no
+barrier=block access=yes bicycle=yes foot=yes motor_vehicle=no
+barrier=block access=yes motor_vehicle=no
+barrier=block bicycle=yes foot=yes
+barrier=block bicycle=yes foot=yes horse=yes
+barrier=block bicycle=yes foot=yes motor_vehicle=no
+barrier=block bicycle=yes foot=yes motor_vehicle=no horse=no
+barrier=block bicycle=yes foot=yes motor_vehicle=no horse=yes
+barrier=block bicycle=yes foot=yes motor_vehicle=no wheelchair=yes
+barrier=block bicycle=yes foot=yes vehicle=no
+barrier=block bicycle=yes motor_vehicle=no
+barrier=block foot=yes
+barrier=block foot=yes horse=yes
+barrier=block motor_vehicle=no
+barrier=block motor_vehicle=yes
+barrier=bollard
+barrier=bollard access=no
+barrier=bollard access=no bicycle=yes foot=yes
+barrier=bollard access=yes foot=yes motor_vehicle=no vehicle=no
+barrier=bollard access=yes foot=yes motor_vehicle=no vehicle=no wheelchair=yes
+barrier=bollard bicycle=no foot=yes
+barrier=bollard bicycle=yes foot=yes
+barrier=bollard bicycle=yes foot=yes horse=no
+barrier=bollard bicycle=yes foot=yes horse=yes
+barrier=bollard bicycle=yes foot=yes motor_vehicle=no
+barrier=bollard bicycle=yes foot=yes motor_vehicle=yes horse=yes
+barrier=bollard bicycle=yes foot=yes vehicle=no
+barrier=bollard foot=no
+barrier=bollard motor_vehicle=no
+barrier=bollard vehicle=private
+barrier=bump_gate bicycle=yes foot=yes horse=yes
+barrier=cattle_grid
+barrier=cattle_grid access=yes
+barrier=cattle_grid bicycle=yes foot=yes
+barrier=cattle_grid bicycle=yes foot=yes motor_vehicle=yes motorcycle=yes
+barrier=cattle_grid bicycle=yes foot=yes motorcar=yes motorcycle=yes
+barrier=cattle_grid bicycle=yes foot=yes motorcycle=yes
+barrier=cattle_grid foot=yes
+barrier=cattle_grid vehicle=yes
+barrier=chain
+barrier=chain access=no foot=yes
+barrier=chain access=private
+barrier=chain bicycle=no foot=no
+barrier=chain bicycle=no foot=unknown motor_vehicle=no horse=no
+barrier=chain bicycle=no foot=yes motor_vehicle=no horse=no
+barrier=chain bicycle=yes foot=yes
+barrier=chain bicycle=yes foot=yes horse=yes
+barrier=chain bicycle=yes foot=yes vehicle=no
+barrier=chain foot=yes
+barrier=chain vehicle=no
+barrier=cycle_barrier
+barrier=cycle_barrier access=no bicycle=yes foot=yes
+barrier=cycle_barrier access=yes
+barrier=cycle_barrier access=yes bicycle=yes
+barrier=cycle_barrier access=yes bicycle=yes foot=yes
+barrier=cycle_barrier bicycle=designated foot=designated wheelchair=yes
+barrier=cycle_barrier bicycle=yes
+barrier=cycle_barrier bicycle=yes foot=yes
+barrier=cycle_barrier bicycle=yes foot=yes horse=yes
+barrier=cycle_barrier bicycle=yes foot=yes wheelchair=yes
+barrier=cycle_barrier foot=yes
+barrier=cycle_barrier wheelchair=no
+barrier=door entrance=main
+barrier=door entrance=yes
+barrier=entrance
+barrier=entrance access=destination
+barrier=entrance bicycle=no foot=no
+barrier=entrance bicycle=no foot=yes
+barrier=entrance bicycle=yes foot=yes
+barrier=entrance entrance=main
+barrier=entrance foot=yes
+barrier=entrance foot=yes motorcar=yes
+barrier=fence
+barrier=fence access=no
+barrier=fence bicycle=yes foot=yes vehicle=no
+barrier=full-height_turnstile entrance=exit access=destination
+barrier=gate
+barrier=gate access=agricultural
+barrier=gate access=destination
+barrier=gate access=destination bicycle=yes foot=yes
+barrier=gate access=destination bicycle=yes foot=yes motor_vehicle=yes horse=yes
+barrier=gate access=destination foot=yes
+barrier=gate access=no
+barrier=gate access=no bicycle=designated foot=designated
+barrier=gate access=no bicycle=no foot=no motor_vehicle=no horse=no
+barrier=gate access=no bicycle=private foot=private motor_vehicle=private wheelchair=yes
+barrier=gate access=no bicycle=yes foot=yes horse=yes
+barrier=gate access=no foot=destination motor_vehicle=private
+barrier=gate access=no foot=private
+barrier=gate access=no foot=yes
+barrier=gate access=no foot=yes motor_vehicle=no wheelchair=limited
+barrier=gate access=no foot=yes wheelchair=no
+barrier=gate access=no hgv=yes
+barrier=gate access=no noexit=yes
+barrier=gate access=permissive
+barrier=gate access=permissive bicycle=no foot=permissive motor_vehicle=no horse=no
+barrier=gate access=permissive bicycle=no foot=yes
+barrier=gate access=permissive bicycle=permissive foot=permissive motor_vehicle=permissive
+barrier=gate access=permissive bicycle=yes foot=yes
+barrier=gate access=permissive bicycle=yes foot=yes motorcar=yes motorcycle=yes horse=yes
+barrier=gate access=permissive foot=yes
+barrier=gate access=permissive foot=yes motor_vehicle=no vehicle=no
+barrier=gate access=permit bicycle=unknown foot=unknown motor_vehicle=permit horse=unknown
+barrier=gate access=private
+barrier=gate access=private bicycle=no foot=no
+barrier=gate access=private bicycle=no foot=no motorcar=no
+barrier=gate access=private bicycle=no foot=yes
+barrier=gate access=private bicycle=permissive foot=permissive
+barrier=gate access=private bicycle=private foot=private motor_vehicle=no horse=no
+barrier=gate access=private bicycle=yes foot=yes
+barrier=gate access=private bicycle=yes foot=yes motorcar=yes motorcycle=yes
+barrier=gate access=private foot=no
+barrier=gate access=private foot=private
+barrier=gate access=private foot=yes
+barrier=gate access=private motorcar=yes
+barrier=gate access=private vehicle=private
+barrier=gate access=private vehicle=yes
+barrier=gate access=private wheelchair=limited
+barrier=gate access=yes
+barrier=gate access=yes bicycle=no foot=yes
+barrier=gate access=yes foot=yes
+barrier=gate access=yes foot=yes vehicle=no
+barrier=gate access=yes motor_vehicle=no
+barrier=gate access=yes motor_vehicle=no wheelchair=limited
+barrier=gate access=yes motor_vehicle=private
+barrier=gate bicycle=no
+barrier=gate bicycle=no foot=destination
+barrier=gate bicycle=no foot=no
+barrier=gate bicycle=no foot=no motorcar=no motorcycle=no horse=no
+barrier=gate bicycle=no foot=yes
+barrier=gate bicycle=no foot=yes motor_vehicle=no
+barrier=gate bicycle=no foot=yes motor_vehicle=no horse=no
+barrier=gate bicycle=no foot=yes motorcar=no motorcycle=no horse=no
+barrier=gate bicycle=no foot=yes wheelchair=no
+barrier=gate bicycle=no motorcar=no motorcycle=no horse=no
+barrier=gate bicycle=permissive foot=permissive wheelchair=no
+barrier=gate bicycle=yes foot=no
+barrier=gate bicycle=yes foot=yes
+barrier=gate bicycle=yes foot=yes horse=no
+barrier=gate bicycle=yes foot=yes horse=yes
+barrier=gate bicycle=yes foot=yes motor_vehicle=no
+barrier=gate bicycle=yes foot=yes motorcar=yes
+barrier=gate bicycle=yes foot=yes motorcar=yes horse=yes
+barrier=gate bicycle=yes foot=yes motorcar=yes motor_vehicle=private motorcycle=yes
+barrier=gate bicycle=yes foot=yes motorcar=yes motorcycle=yes
+barrier=gate bicycle=yes foot=yes motorcar=yes motorcycle=yes horse=yes
+barrier=gate direction=unknown
+barrier=gate entrance=main
+barrier=gate entrance=main foot=yes
+barrier=gate entrance=yes access=destination
+barrier=gate entrance=yes access=yes
+barrier=gate foot=no
+barrier=gate foot=no motorcar=yes motorcycle=yes
+barrier=gate foot=permissive motor_vehicle=no
+barrier=gate foot=private
+barrier=gate foot=yes
+barrier=gate foot=yes horse=yes
+barrier=gate foot=yes motor_vehicle=no
+barrier=gate foot=yes motor_vehicle=unknown
+barrier=gate foot=yes motorcar=yes motorcycle=yes
+barrier=gate foot=yes wheelchair=yes
+barrier=gate horse=no wheelchair=yes
+barrier=gate horse=yes
+barrier=gate motor_vehicle=no
+barrier=gate motor_vehicle=private
+barrier=gate motor_vehicle=yes
+barrier=gate motorcar=no
+barrier=gate motorcar=no motorcycle=no
+barrier=gate motorcar=yes
+barrier=gate motorcar=yes motorcycle=no
+barrier=gate vehicle=permissive
+barrier=gate wheelchair=no
+barrier=gate wheelchair=yes
+barrier=hampshire_gate foot=yes
+barrier=height_restrictor
+barrier=height_restrictor access=yes motorcar=yes motorcycle=yes vehicle=yes
+barrier=horse_stile
+barrier=jersey_barrier
+barrier=jersey_barrier bicycle=designated foot=designated motor_vehicle=no
+barrier=jersey_barrier bicycle=yes foot=yes motor_vehicle=no horse=yes
+barrier=jersey_barrier noexit=yes direction=backward
+barrier=kerb
+barrier=kerb kerb=flush
+barrier=kerb kerb=lowered
+barrier=kerb kerb=raised
+barrier=kerb kerb=unknown
+barrier=kerb wheelchair=no
+barrier=kissing_gate
+barrier=lift_gate
+barrier=lift_gate access=destination
+barrier=lift_gate access=destination bicycle=no foot=no
+barrier=lift_gate access=destination bicycle=no foot=no motorcar=no
+barrier=lift_gate access=destination bicycle=no foot=no motorcar=no motorcycle=no horse=no
+barrier=lift_gate access=destination bicycle=yes foot=yes
+barrier=lift_gate access=no
+barrier=lift_gate access=no bicycle=yes foot=yes
+barrier=lift_gate access=no bicycle=yes foot=yes motor_vehicle=no
+barrier=lift_gate access=permissive
+barrier=lift_gate access=permit
+barrier=lift_gate access=permit foot=no motor_vehicle=no
+barrier=lift_gate access=permit foot=yes motor_vehicle=yes
+barrier=lift_gate access=private
+barrier=lift_gate access=private bicycle=no foot=no
+barrier=lift_gate access=private bicycle=yes foot=yes
+barrier=lift_gate access=private bicycle=yes foot=yes motorcar=yes motorcycle=yes
+barrier=lift_gate access=private foot=no
+barrier=lift_gate access=private foot=yes
+barrier=lift_gate access=yes
+barrier=lift_gate access=yes bicycle=yes foot=yes motor_vehicle=no vehicle=no wheelchair=yes
+barrier=lift_gate access=yes foot=yes surface=paved
+barrier=lift_gate bicycle=designated foot=designated motor_vehicle=no
+barrier=lift_gate bicycle=no foot=destination motor_vehicle=destination horse=no
+barrier=lift_gate bicycle=no foot=no
+barrier=lift_gate bicycle=no foot=yes
+barrier=lift_gate bicycle=yes foot=yes
+barrier=lift_gate bicycle=yes foot=yes motor_vehicle=designated
+barrier=lift_gate bicycle=yes foot=yes motor_vehicle=no
+barrier=lift_gate bicycle=yes foot=yes motor_vehicle=no horse=yes
+barrier=lift_gate bicycle=yes foot=yes motor_vehicle=private
+barrier=lift_gate bicycle=yes foot=yes motor_vehicle=yes
+barrier=lift_gate bicycle=yes foot=yes motorcar=yes motorcycle=yes horse=yes
+barrier=lift_gate bicycle=yes foot=yes vehicle=private
+barrier=lift_gate bicycle=yes foot=yes vehicle=unknown
+barrier=lift_gate foot=yes motorcar=yes motorcycle=yes
+barrier=lift_gate motor_vehicle=designated
+barrier=lift_gate motor_vehicle=permissive
+barrier=lift_gate motor_vehicle=private
+barrier=lift_gate motorcar=yes
+barrier=lift_gate motorcar=yes motorcycle=yes
+barrier=lift_gate vehicle=private
+barrier=lift_gate vehicle=unknown
+barrier=log
+barrier=log access=no
+barrier=log foot=yes
+barrier=stile
+barrier=stile foot=yes
+barrier=swing_gate
+barrier=swing_gate access=no
+barrier=swing_gate access=no bicycle=yes foot=yes
+barrier=swing_gate access=permissive
+barrier=swing_gate access=permissive bicycle=yes foot=yes
+barrier=swing_gate access=private
+barrier=swing_gate access=unknown
+barrier=swing_gate access=yes foot=yes motor_vehicle=no vehicle=no wheelchair=yes
+barrier=swing_gate bicycle=yes foot=yes motor_vehicle=no
+barrier=swing_gate bicycle=yes foot=yes motor_vehicle=no wheelchair=yes
+barrier=swing_gate foot=yes
+barrier=turnstile
+barrier=turnstile access=destination
+barrier=turnstile bicycle=no foot=no
+barrier=unknown
+barrier=unknown bicycle=yes foot=yes
+barrier=unknown motor_vehicle=no vehicle=no
+barrier=yes
+barrier=yes access=no
+barrier=yes bicycle=yes foot=yes
+barrier=yes bicycle=yes foot=yes motor_vehicle=no
+barrier=yes motor_vehicle=no
+bicycle=no foot=yes
+bicycle=yes foot=yes
+bicycle=yes foot=yes motorcar=yes motorcycle=yes horse=yes
+bicycle=yes traffic_calming=bump surface=paved direction=both
+crossing=marked traffic_calming=choker
+crossing=uncontrolled
+crossing=uncontrolled traffic_calming=choker
+crossing=uncontrolled traffic_calming=hump surface=asphalt direction=both
+crossing=uncontrolled traffic_calming=table
+crossing=uncontrolled traffic_calming=unknown surface=asphalt direction=both
+crossing=unknown
+crossing=unmarked
+crossing=unmarked traffic_calming=choker
+crossing=unmarked traffic_calming=choker kerb=lowered
+crossing=yes traffic_calming=choker
+direction=backward
+direction=forward
+direction=unknown
+entrance=emergency
+entrance=exit
+entrance=garage
+entrance=main
+entrance=main access=destination
+entrance=main access=private
+entrance=main access=yes
+entrance=main access=yes foot=yes
+entrance=main access=yes wheelchair=yes
+entrance=main bicycle=yes foot=yes
+entrance=main foot=yes
+entrance=main wheelchair=yes
+entrance=secondary
+entrance=secondary access=permissive
+entrance=secondary access=permit
+entrance=secondary access=yes foot=yes
+entrance=secondary access=yes wheelchair=yes
+entrance=secondary foot=yes
+entrance=service
+entrance=service access=private
+entrance=shop
+entrance=shop access=destination wheelchair=yes
+entrance=shop access=yes
+entrance=shop access=yes foot=yes
+entrance=staircase
+entrance=staircase access=private
+entrance=unknown
+entrance=unknown access=yes foot=yes
+entrance=unknown access=yes wheelchair=yes
+entrance=yes
+entrance=yes access=destination
+entrance=yes access=destination wheelchair=yes
+entrance=yes access=no
+entrance=yes access=permissive traffic_signals=signal
+entrance=yes access=permit
+entrance=yes access=private
+entrance=yes access=private foot=yes
+entrance=yes access=private surface=unknown
+entrance=yes access=yes
+entrance=yes access=yes foot=yes
+entrance=yes access=yes foot=yes wheelchair=yes
+entrance=yes access=yes surface=unknown
+entrance=yes access=yes wheelchair=no
+entrance=yes access=yes wheelchair=yes
+entrance=yes bicycle=yes foot=yes
+entrance=yes foot=yes
+entrance=yes wheelchair=no
+entrance=yes wheelchair=yes
+estimated_crossing_class=0
+estimated_crossing_class=0 barrier=gate
+estimated_crossing_class=0 crossing=uncontrolled traffic_calming=unknown surface=asphalt direction=both
+estimated_crossing_class=1
+estimated_crossing_class=1 barrier=swing_gate access=no
+estimated_crossing_class=1 crossing=unknown
+estimated_crossing_class=2
+estimated_crossing_class=2 traffic_calming=rumble_strip direction=forward
+estimated_crossing_class=2 traffic_calming=table
+estimated_crossing_class=2 traffic_calming=table surface=asphalt
+estimated_crossing_class=3
+estimated_crossing_class=3 crossing=unknown
+estimated_crossing_class=4
+estimated_crossing_class=4 crossing=unknown
+estimated_crossing_class=4 traffic_calming=rumble_strip
+estimated_crossing_class=5
+estimated_crossing_class=6
+foot=yes
+foot=yes ford=yes
+foot=yes motorcar=no
+foot=yes waterway=waterfall ford=yes
+ford=stepping_stones
+ford=yes
+highway=bus_stop
+highway=bus_stop direction=unknown
+highway=bus_stop estimated_crossing_class=1
+highway=bus_stop estimated_crossing_class=2
+highway=bus_stop estimated_crossing_class=5
+highway=bus_stop surface=asphalt
+highway=bus_stop wheelchair=designated
+highway=bus_stop wheelchair=no
+highway=bus_stop wheelchair=yes
+highway=crossing
+highway=crossing bicycle=yes
+highway=crossing bicycle=yes kerb=lowered
+highway=crossing bicycle=yes traffic_calming=table
+highway=crossing crossing=marked
+highway=crossing crossing=marked bicycle=yes
+highway=crossing crossing=marked bicycle=yes surface=paved
+highway=crossing crossing=marked bicycle=yes traffic_calming=hump
+highway=crossing crossing=marked bicycle=yes traffic_calming=island
+highway=crossing crossing=marked bicycle=yes traffic_calming=table
+highway=crossing crossing=marked kerb=flush
+highway=crossing crossing=marked kerb=lowered
+highway=crossing crossing=marked kerb=raised
+highway=crossing crossing=marked surface=paved
+highway=crossing crossing=marked traffic_calming=bump
+highway=crossing crossing=marked traffic_calming=choked_table
+highway=crossing crossing=marked traffic_calming=choker
+highway=crossing crossing=marked traffic_calming=hump
+highway=crossing crossing=marked traffic_calming=hump kerb=flush
+highway=crossing crossing=marked traffic_calming=hump kerb=lowered
+highway=crossing crossing=marked traffic_calming=hump surface=asphalt
+highway=crossing crossing=marked traffic_calming=hump surface=paved
+highway=crossing crossing=marked traffic_calming=island
+highway=crossing crossing=marked traffic_calming=table
+highway=crossing crossing=marked traffic_calming=table kerb=flush
+highway=crossing crossing=marked traffic_calming=table kerb=lowered
+highway=crossing crossing=marked traffic_calming=table surface=paved
+highway=crossing crossing=marked traffic_calming=unknown
+highway=crossing crossing=marked traffic_calming=yes
+highway=crossing crossing=traffic_signals
+highway=crossing crossing=traffic_signals bicycle=yes
+highway=crossing crossing=traffic_signals bicycle=yes kerb=flush
+highway=crossing crossing=traffic_signals bicycle=yes traffic_signals:direction=both kerb=flush
+highway=crossing crossing=traffic_signals kerb=flush
+highway=crossing crossing=traffic_signals kerb=lowered
+highway=crossing crossing=traffic_signals kerb=raised
+highway=crossing crossing=traffic_signals traffic_calming=hump
+highway=crossing crossing=traffic_signals traffic_calming=hump surface=paved
+highway=crossing crossing=traffic_signals traffic_calming=island
+highway=crossing crossing=traffic_signals traffic_calming=table
+highway=crossing crossing=traffic_signals traffic_calming=table surface=paved
+highway=crossing crossing=traffic_signals wheelchair=yes
+highway=crossing crossing=traffic_signals wheelchair=yes kerb=lowered
+highway=crossing crossing=uncontrolled
+highway=crossing crossing=uncontrolled bicycle=yes
+highway=crossing crossing=uncontrolled bicycle=yes traffic_calming=choker surface=asphalt
+highway=crossing crossing=uncontrolled bicycle=yes traffic_calming=hump kerb=flush surface=paved
+highway=crossing crossing=uncontrolled bicycle=yes traffic_calming=hump surface=asphalt
+highway=crossing crossing=uncontrolled bicycle=yes traffic_calming=hump surface=paved
+highway=crossing crossing=uncontrolled bicycle=yes traffic_calming=table
+highway=crossing crossing=uncontrolled bicycle=yes wheelchair=no
+highway=crossing crossing=uncontrolled bicycle=yes wheelchair=yes
+highway=crossing crossing=uncontrolled foot=designated
+highway=crossing crossing=uncontrolled kerb=flush
+highway=crossing crossing=uncontrolled kerb=flush surface=paved
+highway=crossing crossing=uncontrolled kerb=lowered
+highway=crossing crossing=uncontrolled kerb=raised
+highway=crossing crossing=uncontrolled noexit=yes
+highway=crossing crossing=uncontrolled surface=asphalt
+highway=crossing crossing=uncontrolled surface=paved
+highway=crossing crossing=uncontrolled surface=unknown
+highway=crossing crossing=uncontrolled traffic_calming=bump
+highway=crossing crossing=uncontrolled traffic_calming=bump kerb=raised
+highway=crossing crossing=uncontrolled traffic_calming=choker
+highway=crossing crossing=uncontrolled traffic_calming=choker kerb=flush
+highway=crossing crossing=uncontrolled traffic_calming=hump
+highway=crossing crossing=uncontrolled traffic_calming=hump kerb=lowered surface=asphalt
+highway=crossing crossing=uncontrolled traffic_calming=hump surface=asphalt
+highway=crossing crossing=uncontrolled traffic_calming=hump surface=asphalt direction=both
+highway=crossing crossing=uncontrolled traffic_calming=hump surface=paved
+highway=crossing crossing=uncontrolled traffic_calming=hump wheelchair=no kerb=flush
+highway=crossing crossing=uncontrolled traffic_calming=table
+highway=crossing crossing=uncontrolled traffic_calming=table kerb=flush
+highway=crossing crossing=uncontrolled traffic_calming=table kerb=flush surface=asphalt
+highway=crossing crossing=uncontrolled traffic_calming=table kerb=lowered
+highway=crossing crossing=uncontrolled traffic_calming=table kerb=raised
+highway=crossing crossing=uncontrolled traffic_calming=table surface=asphalt direction=both
+highway=crossing crossing=uncontrolled traffic_calming=table surface=paved
+highway=crossing crossing=uncontrolled traffic_calming=table surface=unknown direction=both
+highway=crossing crossing=uncontrolled traffic_calming=table wheelchair=no kerb=raised
+highway=crossing crossing=uncontrolled traffic_calming=table wheelchair=yes
+highway=crossing crossing=uncontrolled traffic_calming=table wheelchair=yes direction=both
+highway=crossing crossing=uncontrolled traffic_calming=unknown
+highway=crossing crossing=uncontrolled traffic_calming=unknown kerb=flush
+highway=crossing crossing=uncontrolled traffic_calming=unknown surface=asphalt direction=both
+highway=crossing crossing=uncontrolled traffic_calming=unknown surface=paved
+highway=crossing crossing=uncontrolled traffic_calming=yes
+highway=crossing crossing=uncontrolled wheelchair=half
+highway=crossing crossing=uncontrolled wheelchair=half kerb=lowered
+highway=crossing crossing=uncontrolled wheelchair=half kerb=raised
+highway=crossing crossing=uncontrolled wheelchair=limited
+highway=crossing crossing=uncontrolled wheelchair=limited kerb=flush
+highway=crossing crossing=uncontrolled wheelchair=limited kerb=lowered
+highway=crossing crossing=uncontrolled wheelchair=no
+highway=crossing crossing=uncontrolled wheelchair=no kerb=lowered
+highway=crossing crossing=uncontrolled wheelchair=no kerb=raised
+highway=crossing crossing=uncontrolled wheelchair=yes
+highway=crossing crossing=uncontrolled wheelchair=yes kerb=flush
+highway=crossing crossing=uncontrolled wheelchair=yes kerb=lowered
+highway=crossing crossing=uncontrolled wheelchair=yes kerb=raised
+highway=crossing crossing=unknown
+highway=crossing crossing=unknown traffic_calming=hump
+highway=crossing crossing=unmarked
+highway=crossing crossing=unmarked bicycle=yes
+highway=crossing crossing=unmarked bicycle=yes surface=asphalt
+highway=crossing crossing=unmarked bicycle=yes traffic_calming=hump
+highway=crossing crossing=unmarked bicycle=yes traffic_calming=table
+highway=crossing crossing=unmarked horse=yes
+highway=crossing crossing=unmarked kerb=flush
+highway=crossing crossing=unmarked kerb=lowered
+highway=crossing crossing=unmarked kerb=raised
+highway=crossing crossing=unmarked kerb=unknown
+highway=crossing crossing=unmarked surface=asphalt
+highway=crossing crossing=unmarked traffic_calming=choker
+highway=crossing crossing=unmarked traffic_calming=choker kerb=flush
+highway=crossing crossing=unmarked traffic_calming=choker surface=paved
+highway=crossing crossing=unmarked traffic_calming=cushion
+highway=crossing crossing=unmarked traffic_calming=hump
+highway=crossing crossing=unmarked traffic_calming=hump surface=paved
+highway=crossing crossing=unmarked traffic_calming=island
+highway=crossing crossing=unmarked traffic_calming=table
+highway=crossing crossing=unmarked traffic_calming=table kerb=flush
+highway=crossing crossing=unmarked traffic_calming=table kerb=lowered
+highway=crossing crossing=unmarked traffic_calming=table surface=paved
+highway=crossing crossing=unmarked wheelchair=yes
+highway=crossing crossing=zebra
+highway=crossing crossing=zebra bicycle=yes
+highway=crossing crossing=zebra bicycle=yes kerb=flush
+highway=crossing crossing=zebra bicycle=yes kerb=lowered
+highway=crossing crossing=zebra bicycle=yes traffic_calming=table kerb=flush
+highway=crossing crossing=zebra kerb=flush
+highway=crossing crossing=zebra kerb=flush surface=paved
+highway=crossing crossing=zebra kerb=lowered
+highway=crossing crossing=zebra kerb=raised
+highway=crossing crossing=zebra traffic_calming=choked_table kerb=flush
+highway=crossing crossing=zebra traffic_calming=choker
+highway=crossing crossing=zebra traffic_calming=hump surface=asphalt
+highway=crossing crossing=zebra traffic_calming=hump surface=paved
+highway=crossing crossing=zebra traffic_calming=table
+highway=crossing crossing=zebra traffic_calming=table kerb=flush
+highway=crossing estimated_crossing_class=0
+highway=crossing estimated_crossing_class=0 crossing=marked
+highway=crossing estimated_crossing_class=0 crossing=marked kerb=lowered
+highway=crossing estimated_crossing_class=0 crossing=marked kerb=raised
+highway=crossing estimated_crossing_class=0 crossing=marked traffic_calming=hump
+highway=crossing estimated_crossing_class=0 crossing=marked traffic_calming=table
+highway=crossing estimated_crossing_class=0 crossing=traffic_signals
+highway=crossing estimated_crossing_class=0 crossing=traffic_signals bicycle=no
+highway=crossing estimated_crossing_class=0 crossing=traffic_signals bicycle=yes
+highway=crossing estimated_crossing_class=0 crossing=traffic_signals kerb=flush
+highway=crossing estimated_crossing_class=0 crossing=traffic_signals kerb=lowered
+highway=crossing estimated_crossing_class=0 crossing=traffic_signals kerb=raised
+highway=crossing estimated_crossing_class=0 crossing=traffic_signals traffic_calming=table
+highway=crossing estimated_crossing_class=0 crossing=traffic_signals traffic_calming=table kerb=lowered
+highway=crossing estimated_crossing_class=0 crossing=traffic_signals traffic_signals:direction=both
+highway=crossing estimated_crossing_class=0 crossing=traffic_signals traffic_signals:direction=forward
+highway=crossing estimated_crossing_class=0 crossing=traffic_signals traffic_signals:direction=forward traffic_signals=signal
+highway=crossing estimated_crossing_class=0 crossing=traffic_signals wheelchair=half kerb=lowered
+highway=crossing estimated_crossing_class=0 crossing=traffic_signals wheelchair=no kerb=lowered
+highway=crossing estimated_crossing_class=0 crossing=traffic_signals wheelchair=yes
+highway=crossing estimated_crossing_class=0 crossing=traffic_signals wheelchair=yes kerb=flush
+highway=crossing estimated_crossing_class=0 crossing=traffic_signals wheelchair=yes kerb=lowered
+highway=crossing estimated_crossing_class=0 crossing=uncontrolled
+highway=crossing estimated_crossing_class=0 crossing=uncontrolled bicycle=yes
+highway=crossing estimated_crossing_class=0 crossing=uncontrolled bicycle=yes traffic_calming=table
+highway=crossing estimated_crossing_class=0 crossing=uncontrolled foot=yes traffic_calming=table
+highway=crossing estimated_crossing_class=0 crossing=uncontrolled kerb=flush
+highway=crossing estimated_crossing_class=0 crossing=uncontrolled kerb=lowered
+highway=crossing estimated_crossing_class=0 crossing=uncontrolled kerb=raised
+highway=crossing estimated_crossing_class=0 crossing=uncontrolled traffic_calming=hump
+highway=crossing estimated_crossing_class=0 crossing=uncontrolled traffic_calming=table
+highway=crossing estimated_crossing_class=0 crossing=uncontrolled traffic_calming=table kerb=flush
+highway=crossing estimated_crossing_class=0 crossing=uncontrolled traffic_calming=table kerb=lowered
+highway=crossing estimated_crossing_class=0 crossing=uncontrolled traffic_calming=table surface=asphalt direction=both
+highway=crossing estimated_crossing_class=0 crossing=uncontrolled traffic_calming=table wheelchair=yes
+highway=crossing estimated_crossing_class=0 crossing=uncontrolled traffic_calming=unknown surface=asphalt direction=both
+highway=crossing estimated_crossing_class=0 crossing=uncontrolled wheelchair=half
+highway=crossing estimated_crossing_class=0 crossing=uncontrolled wheelchair=no
+highway=crossing estimated_crossing_class=0 crossing=uncontrolled wheelchair=yes
+highway=crossing estimated_crossing_class=0 crossing=uncontrolled wheelchair=yes kerb=lowered
+highway=crossing estimated_crossing_class=0 crossing=unknown
+highway=crossing estimated_crossing_class=0 crossing=unmarked
+highway=crossing estimated_crossing_class=0 crossing=zebra
+highway=crossing estimated_crossing_class=0 crossing=zebra kerb=flush
+highway=crossing estimated_crossing_class=1
+highway=crossing estimated_crossing_class=1 crossing=marked
+highway=crossing estimated_crossing_class=1 crossing=marked kerb=lowered
+highway=crossing estimated_crossing_class=1 crossing=marked traffic_calming=bump
+highway=crossing estimated_crossing_class=1 crossing=marked traffic_calming=hump
+highway=crossing estimated_crossing_class=1 crossing=uncontrolled
+highway=crossing estimated_crossing_class=1 crossing=uncontrolled traffic_calming=table
+highway=crossing estimated_crossing_class=1 crossing=unknown
+highway=crossing estimated_crossing_class=1 crossing=unmarked
+highway=crossing estimated_crossing_class=1 crossing=unmarked bicycle=yes
+highway=crossing estimated_crossing_class=1 crossing=unmarked kerb=flush
+highway=crossing estimated_crossing_class=1 crossing=unmarked traffic_calming=hump
+highway=crossing estimated_crossing_class=2
+highway=crossing estimated_crossing_class=2 crossing=marked
+highway=crossing estimated_crossing_class=2 crossing=marked traffic_calming=table
+highway=crossing estimated_crossing_class=2 crossing=uncontrolled
+highway=crossing estimated_crossing_class=2 crossing=uncontrolled bicycle=yes
+highway=crossing estimated_crossing_class=2 crossing=uncontrolled bicycle=yes kerb=flush
+highway=crossing estimated_crossing_class=2 crossing=uncontrolled traffic_calming=table kerb=flush
+highway=crossing estimated_crossing_class=2 crossing=unmarked
+highway=crossing estimated_crossing_class=2 crossing=unmarked bicycle=yes
+highway=crossing estimated_crossing_class=2 crossing=unmarked kerb=flush
+highway=crossing estimated_crossing_class=2 crossing=unmarked kerb=lowered
+highway=crossing estimated_crossing_class=3
+highway=crossing estimated_crossing_class=3 crossing=marked
+highway=crossing estimated_crossing_class=3 crossing=marked bicycle=yes
+highway=crossing estimated_crossing_class=3 crossing=marked traffic_calming=table
+highway=crossing estimated_crossing_class=3 crossing=uncontrolled
+highway=crossing estimated_crossing_class=3 crossing=uncontrolled bicycle=yes
+highway=crossing estimated_crossing_class=3 crossing=uncontrolled traffic_calming=table
+highway=crossing estimated_crossing_class=3 crossing=unmarked
+highway=crossing estimated_crossing_class=3 crossing=unmarked bicycle=yes
+highway=crossing estimated_crossing_class=3 crossing=unmarked kerb=lowered
+highway=crossing estimated_crossing_class=3 crossing=unmarked traffic_calming=table
+highway=crossing estimated_crossing_class=4
+highway=crossing estimated_crossing_class=4 crossing=marked
+highway=crossing estimated_crossing_class=4 crossing=marked bicycle=yes
+highway=crossing estimated_crossing_class=4 crossing=marked kerb=lowered
+highway=crossing estimated_crossing_class=4 crossing=marked traffic_calming=hump
+highway=crossing estimated_crossing_class=4 crossing=marked traffic_calming=table
+highway=crossing estimated_crossing_class=4 crossing=uncontrolled
+highway=crossing estimated_crossing_class=4 crossing=uncontrolled kerb=lowered
+highway=crossing estimated_crossing_class=4 crossing=uncontrolled traffic_calming=table
+highway=crossing estimated_crossing_class=4 crossing=unknown
+highway=crossing estimated_crossing_class=4 crossing=unmarked
+highway=crossing estimated_crossing_class=4 crossing=unmarked bicycle=yes traffic_calming=table
+highway=crossing estimated_crossing_class=5 crossing=marked
+highway=crossing estimated_crossing_class=5 crossing=marked bicycle=yes
+highway=crossing estimated_crossing_class=5 crossing=marked traffic_calming=unknown
+highway=crossing estimated_crossing_class=5 crossing=uncontrolled
+highway=crossing estimated_crossing_class=5 crossing=unmarked
+highway=crossing estimated_crossing_class=5 crossing=unmarked bicycle=yes traffic_calming=table
+highway=crossing estimated_crossing_class=6 crossing=unmarked traffic_calming=table
+highway=crossing kerb=flush
+highway=crossing kerb=lowered
+highway=crossing kerb=raised
+highway=crossing traffic_calming=hump
+highway=crossing traffic_calming=hump horse=yes
+highway=crossing traffic_calming=hump surface=paved
+highway=crossing traffic_calming=table
+highway=crossing traffic_calming=table horse=yes
+highway=crossing traffic_calming=yes
+highway=elevator
+highway=elevator access=destination
+highway=elevator access=yes
+highway=elevator access=yes bicycle=yes wheelchair=yes
+highway=emergency_bay
+highway=emergency_bay direction=backward
+highway=emergency_bay direction=forward
+highway=give_way
+highway=give_way crossing=uncontrolled direction=backward
+highway=give_way direction=backward
+highway=give_way direction=forward
+highway=give_way estimated_crossing_class=2
+highway=milestone
+highway=milestone estimated_crossing_class=1
+highway=mini_roundabout
+highway=mini_roundabout direction=unknown
+highway=mini_roundabout estimated_crossing_class=3 direction=unknown
+highway=motorway_junction
+highway=motorway_junction estimated_crossing_class=1
+highway=motorway_junction estimated_crossing_class=2
+highway=motorway_junction estimated_crossing_class=5
+highway=passing_place
+highway=passing_place estimated_crossing_class=1
+highway=rest_area
+highway=speed_camera
+highway=speed_camera direction=forward
+highway=speed_camera direction=unknown
+highway=stop
+highway=stop direction=backward
+highway=stop direction=forward
+highway=stop direction=unknown
+highway=stop estimated_crossing_class=2
+highway=stop estimated_crossing_class=4
+highway=stop traffic_sign:direction=forward
+highway=street_lamp
+highway=traffic_signals
+highway=traffic_signals bicycle=yes traffic_signals:direction=forward traffic_signals=signal
+highway=traffic_signals crossing=no traffic_signals:direction=forward
+highway=traffic_signals crossing=traffic_signals
+highway=traffic_signals crossing=traffic_signals traffic_signals:direction=backward
+highway=traffic_signals crossing=traffic_signals traffic_signals:direction=forward
+highway=traffic_signals direction=backward
+highway=traffic_signals direction=unknown
+highway=traffic_signals estimated_crossing_class=0
+highway=traffic_signals estimated_crossing_class=0 crossing=traffic_signals
+highway=traffic_signals estimated_crossing_class=0 crossing=traffic_signals traffic_signals:direction=both traffic_signals=signal
+highway=traffic_signals estimated_crossing_class=0 crossing=traffic_signals traffic_signals:direction=both traffic_signals=signal wheelchair=yes kerb=lowered
+highway=traffic_signals estimated_crossing_class=0 crossing=traffic_signals traffic_signals=signal
+highway=traffic_signals estimated_crossing_class=0 traffic_signals:direction=backward
+highway=traffic_signals estimated_crossing_class=0 traffic_signals:direction=both traffic_signals=signal
+highway=traffic_signals estimated_crossing_class=0 traffic_signals:direction=forward traffic_signals=signal
+highway=traffic_signals traffic_signals:direction=backward direction=unknown
+highway=traffic_signals traffic_signals:direction=backward traffic_signals=signal
+highway=traffic_signals traffic_signals:direction=backward traffic_signals=signal direction=unknown
+highway=traffic_signals traffic_signals:direction=both
+highway=traffic_signals traffic_signals:direction=both traffic_signals=signal
+highway=traffic_signals traffic_signals:direction=forward
+highway=traffic_signals traffic_signals:direction=forward direction=unknown
+highway=traffic_signals traffic_signals:direction=forward traffic_signals=signal
+highway=traffic_signals traffic_signals:direction=forward traffic_signals=tram_priority
+highway=traffic_signals traffic_signals=blinker
+highway=traffic_signals traffic_signals=signal
+highway=traffic_signals traffic_signals=signal direction=forward
+highway=trailhead
+highway=trailhead access=no
+highway=trailhead access=permissive
+highway=trailhead estimated_crossing_class=1
+highway=turning_circle
+highway=turning_circle access=private
+highway=turning_circle direction=unknown
+highway=turning_circle estimated_crossing_class=0
+highway=turning_circle estimated_crossing_class=1
+highway=turning_circle noexit=yes
+highway=turning_circle surface=unknown
+highway=turning_circle surface=unpaved
+highway=turning_loop
+highway=unknown
+highway=unknown direction=backward
+highway=unknown direction=forward
+kerb=flush
+kerb=lowered
+kerb=raised
+noexit=yes
+railway=unknown
+surface=asphalt
+traffic_calming=bump
+traffic_calming=bump direction=both
+traffic_calming=bump direction=forward
+traffic_calming=bump surface=asphalt direction=both
+traffic_calming=bump surface=asphalt direction=forward
+traffic_calming=bump surface=unknown
+traffic_calming=bump surface=unknown direction=both
+traffic_calming=bump surface=unknown direction=forward
+traffic_calming=chicane
+traffic_calming=chicane surface=asphalt direction=both
+traffic_calming=choker
+traffic_calming=choker direction=both
+traffic_calming=choker surface=paved
+traffic_calming=cushion
+traffic_calming=cushion direction=backward
+traffic_calming=cushion direction=both
+traffic_calming=cushion direction=forward
+traffic_calming=cushion surface=unknown direction=backward
+traffic_calming=cushion surface=unknown direction=both
+traffic_calming=cushion surface=unknown direction=forward
+traffic_calming=hump
+traffic_calming=hump direction=both
+traffic_calming=hump direction=forward
+traffic_calming=hump surface=asphalt
+traffic_calming=hump surface=asphalt direction=both
+traffic_calming=hump surface=asphalt direction=forward
+traffic_calming=hump surface=paved
+traffic_calming=hump surface=paved direction=forward
+traffic_calming=hump surface=unknown direction=both
+traffic_calming=island
+traffic_calming=rumble_strip
+traffic_calming=rumble_strip direction=backward
+traffic_calming=rumble_strip direction=forward
+traffic_calming=table
+traffic_calming=table surface=paved
+traffic_calming=table surface=paved direction=both
+traffic_calming=table surface=paved direction=forward
+traffic_calming=unknown
+traffic_calming=unknown direction=both
+traffic_calming=unknown surface=paved
+traffic_calming=yes
+traffic_sign:direction=backward
+traffic_sign:direction=forward
+traffic_signals=signal
+waterway=unknown
+waterway=waterfall
+waterway=waterfall ford=yes
+waterway=weir
+waterway=weir ford=yes
+wheelchair=limited
+wheelchair=limited waterway=waterfall
+wheelchair=no
+wheelchair=no direction=unknown
+wheelchair=no waterway=waterfall
+wheelchair=yes

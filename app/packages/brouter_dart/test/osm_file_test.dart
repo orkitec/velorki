@@ -122,7 +122,7 @@ void main() {
       test('NodesCache: empty squares give no segment, elevation type', () {
         final cache = NodesCache(
           segmentsDir,
-          null,
+          allWaysValidator(),
           false,
           64 << 20,
           null,
@@ -146,7 +146,14 @@ void main() {
   }
 
   test('a missing tile is reported through first_file_access_*', () {
-    final cache = NodesCache(segmentsDir, null, false, 64 << 20, null, false);
+    final cache = NodesCache(
+      segmentsDir,
+      allWaysValidator(),
+      false,
+      64 << 20,
+      null,
+      false,
+    );
     // E0_N0 is not in the segments dir
     expect(cache.loadSegmentFor(180500000, 90500000), 0);
     expect(cache.firstFileAccessFailed, isTrue);
@@ -162,7 +169,14 @@ void main() {
     );
     expect(mwp.crosspoint, isNull);
     cache.close();
-    final fresh = NodesCache(segmentsDir, null, false, 64 << 20, null, false);
+    final fresh = NodesCache(
+      segmentsDir,
+      allWaysValidator(),
+      false,
+      64 << 20,
+      null,
+      false,
+    );
     expect(
       () => fresh.matchWaypointsToNodes([mwp], 250.0, OsmNodePairSet(10)),
       throwsA(
@@ -180,7 +194,7 @@ void main() {
     expect(
       () => NodesCache(
         Directory('/nonexistent/segments'),
-        null,
+        allWaysValidator(),
         false,
         1,
         null,

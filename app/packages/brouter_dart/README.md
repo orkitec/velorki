@@ -104,9 +104,10 @@ needs threads).
   produces) and were checked bit-identical against 2 000 000 JVM samples; for
   `|x| >= 90112` the port falls back to `dart:math` (last-ulp differences
   possible). `JMath.atan2`/`atan` are fdlibm, which is what `Math.atan2` calls on
-  every platform. `Math.sqrt` is IEEE-exact in both VMs. `Math.exp` (used by the
-  expressions module) is also a HotSpot intrinsic and will need the same
-  treatment in track R3.
+  every platform. `Math.sqrt` is IEEE-exact in both VMs. The expressions
+  module calls no transcendental function at all (see R3); `Math.exp`/`log`/
+  `pow` first appear in `brouter-core` (track R4) and are HotSpot intrinsics
+  that will need the same treatment then.
 * `DataInputStream`/`DataOutputStream` (in-memory, big-endian; with
   `readDouble`/`writeDouble` and `writeStringBytes` = `DataOutput.writeBytes(String)`
   for `MatchedWaypoint`) and a `PriorityQueue` with `java.util.PriorityQueue`
@@ -162,9 +163,10 @@ cache exactly as stored in the rd5, crc footer included):
   `dump-microcache` (`OsmNode.parseNodeBody`) does and compares it with the
   committed `tools/brouter-oracle/dump/samples/microcache-*.json` (id, position,
   elevation, node tags, turn restrictions, and per link target, direction,
-  description bitmap and geometry bytes; the decoded way-tag strings need the
-  expressions module and are compared in R3), and re-encodes the cache: the
-  result is byte-identical to the data in the rd5, in Java and in Dart.
+  description bitmap and geometry bytes; the decoded way-tag strings are
+  compared in `test/expressions_microcache_test.dart` since R3), and
+  re-encodes the cache: the result is byte-identical to the data in the rd5,
+  in Java and in Dart.
 
 ## Track R2: `brouter-mapaccess`
 
@@ -174,7 +176,7 @@ cache exactly as stored in the rd5, crc footer included):
 |---|---|---|
 | `PhysicalFile` | `physical_file.dart` | one synchronous `dart:io` `RandomAccessFile` per rd5 (`setPositionSync` + `readIntoSync` loop = `seek` + `readFully`), no mmap, never a whole file; `ra`, `fileIndex`, `fileHeaderCrcs` are public (package-private upstream); `headerLookupVersion` keeps the version the tile was built with (11 for the 1.7.10 tiles, `lookups.dat` is 11.2; only the major number is compared, exactly like upstream, and only when a version other than -1 is passed); `checkVersionIntegrity`/`checkFileIntegrity` ported, `main` not; `readFullySync()` is a top-level helper |
 | `OsmFile` | `osm_file.dart` | the two `createMicroCache` overloads are `createMicroCache(ilon, ilat, ...)` and `createMicroCacheForIdx(lonIdx, latIdx, ..., reallyDecode, hollowNodes)`; `fileOffset`/`posIdx` getters added for the index test |
-| `NodesCache` | `nodes_cache.dart` | takes a `TagValueValidator?` plus `lookupVersion`/`lookupMinorVersion` named parameters instead of the `BExpressionContextWay` (R3); a validator that also implements `IByteArrayUnifier` is used for the link descriptions, else a `ByteArrayUnifier(16384)` (upstream NPEs on a null context); `first_file_access_*` are `firstFileAccessFailed`/`firstFileAccessName`; `Boolean.getBoolean("disableDirectWeaving")` is the static `NodesCache.disableDirectWeaving`, read per instance in the constructor; no `storageconfig.txt` (see skipped) |
+| `NodesCache` | `nodes_cache.dart` | takes the real `BExpressionContextWay` (R3): it is the `TagValueValidator` of the decoders, the `IByteArrayUnifier` of the link descriptions and the source of `meta.lookupVersion`/`lookupMinorVersion`, exactly like upstream (R2 had a `TagValueValidator?` seam here); `first_file_access_*` are `firstFileAccessFailed`/`firstFileAccessName`; `Boolean.getBoolean("disableDirectWeaving")` is the static `NodesCache.disableDirectWeaving`, read per instance in the constructor; no `storageconfig.txt` (see skipped) |
 | `OsmNode` | `osm_node.dart` | `OsmNode([ilon, ilat])` and `OsmNode.fromId(id)`; the position overload of `addLink` is `addLinkTo`; **`==` is not overridden**: upstream's `equals`/`hashCode` (by position) are only consumed by `OsmNodesMap`'s hash map and are passed to it as `OsmNode.posEquals`/`posHashCode`, so `==` on nodes stays Java `==` (identity) and the many reference comparisons of the port need no `identical()` |
 | `OsmLink` | `osm_link.dart` | `n1`, `n2`, `previous`, `next` are public (protected upstream); `OsmLink([source, target])` covers both constructors; `source` parameters are nullable (`new OsmLink(null, n1)` in the router) |
 | `OsmLinkHolder`, `OsmPos` | `osm_link_holder.dart`, `osm_pos.dart` | abstract classes |
@@ -246,17 +248,23 @@ Two oracle commands were added to `tools/brouter-oracle/dump/Dump.java`
   `collectOutreachers` with a destination and cost bound plus `canEscape`, and
   the records again; phase 4 another reset and `getStartNode`. The way context
   is `lookups.dat` with a one-line profile (`assign costfactor = 1`, so
-  `accessType` is 2 for every way) and `setAllTagsUsed()`; the Dart side uses
-  the equivalent `AllWaysValidator` (`test/mapaccess_support.dart`).
+  `accessType` is 2 for every way) and `setAllTagsUsed()`; the Dart side
+  builds the same thing with the ported `BExpressionContextWay`
+  (`allWaysValidator()` in `test/mapaccess_support.dart`). With `--profile
+  trekking` (R3) the real profile is parsed instead, without
+  `setAllTagsUsed`, like `RoutingEngine`.
 
-`test/vectors/mapaccess/` holds the two index dumps and 12 walks (532 KB):
+`test/vectors/mapaccess/` holds the two index dumps and 14 walks (630 KB):
 four per tile with direct weaving (64 MB, `cleanupMode` 2, plus one with
 mode 0 and one with mode 1; `funchal`, `camacha`, `machico`, `reykjavik`,
 `reykjanes`, `mosfellsbaer`, and `portosanto`/`keflavik` whose waypoints lie in
-different degree squares) and two per tile without direct weaving with
+different degree squares), two per tile without direct weaving with
 `maxmem` 200 000 and 400 steps, which is small enough that the garbage
 collection enables, collects, cleans ghosts and doubles its budget inside the
-walk. `test/nodes_cache_walk_test.dart` replays each walk with the Dart classes
+walk, and one per tile with the real `trekking` profile (`*-trekking.json`,
+400 steps: inaccessible ways drop out of the graph, unused tags are filtered
+from the link descriptions, `checkStartWay` is consulted).
+`test/nodes_cache_walk_test.dart` replays each walk with the Dart classes
 and compares the whole JSON, first difference by path; `test/osm_file_test.dart`
 compares the index dumps and additionally decodes every micro-cache of both
 tiles (`MicroCache2` path, crc footer checked, `checkFileIntegrity`). Everything
@@ -272,4 +280,161 @@ The tiles are not committed (1.5 + 2.7 MB). The tests read them from
 first), and skip with a message when they are absent. The walks are bound to
 the tile snapshot in `tools/brouter-oracle/tiles.sha256` like the corpus.
 
-Run: `dart test` (about 3 s), `dart analyze`, `dart format --set-exit-if-changed .`.
+## Track R3: `brouter-expressions`
+
+`lib/src/expressions/`, all 10 upstream classes plus `ProfileCache` of
+`brouter-core`:
+
+| Java | Dart | Lines | Notes |
+|---|---|---:|---|
+| `BExpressionContext` | `b_expression_context.dart` | 1184 | abstract, implements `IByteArrayUnifier`; overloads renamed: `encode(int[])` is `encodeLookupData`, `decode(int[], boolean, byte[])` is `decodeInto`, `evaluate(int[])` is `evaluateLookupData`, `getLookupValue(boolean, byte[], int)` is `getLookupValueOf`, `addLookupValue(String, int)` is `addLookupValueIndex`, `getVariableValue(int)` is `getVariableValueByIdx`; `parseFile(File, ...)` reads the file (UTF-8) and hands the text to `parseProfile(name, text, readOnlyContext, keyValues)` for profiles held in memory (app assets); `Boolean.getBoolean("disableExpressionCache")`/`"showErrors"` are the statics `disableExpressionCache`/`showErrors`; `dumpStatistics()` returns the lines instead of printing; read-only accessors `lookupCount`, `lookupName`, `lookupValueNames`, `variableNames`, `modelClass`, `context` were added for the tests (upstream has no way to enumerate the tables) |
+| `BExpression` | `b_expression.dart` | 450 | |
+| `BExpressionContextWay` | `b_expression_context_way.dart` | 104 | `implements TagValueValidator`; the two constructors are `BExpressionContextWay(meta, [hashSize = 4096])` |
+| `BExpressionContextNode` | `b_expression_context_node.dart` | 18 | same constructor shape |
+| `BExpressionMetaData` | `b_expression_meta_data.dart` | 107 | `readMetaData(File)` plus `readMetaDataLines(Iterable<String>)`; `readJavaLines` splits like `BufferedReader.readLine` |
+| `BExpressionLookupValue` | `b_expression_lookup_value.dart` | 44 | `equals(String)` is `==` |
+| `CacheNode`, `VarWrapper` | `cache_node.dart`, `var_wrapper.dart` | 33, 30 | `Arrays.equals(float[])` compares `floatToIntBits` |
+| `ProfileComparator` | `profile_comparator.dart` | 65 | `testContext(...)` returns the printed lines and takes a `JavaRandom`; no `main` |
+| `IntegrityCheckProfile` | `integrity_check_profile.dart` | 43 | `integrityTestProfiles` returns the printed lines; no `main` |
+| `ProfileCache` (`btools.router`) | `profile_cache.dart` | 204 | the `RoutingContext` fields it touches are the `ProfileCacheClient` interface (R4's `RoutingContext` implements it); `System.getProperty("profileBaseDir")`/`Boolean.getBoolean("debugProfileCache")` are statics; the diagnostics go to `ProfileCache.log`; `lastModified() + checksum << 24` keeps upstream's precedence (`(lastModified + checksum) << 24`) |
+
+Nothing of the module is skipped. `java.util.HashMap` iteration order is
+irrelevant here (`variableName(idx)` looks up a unique index; `_parseFile`
+iterates the injected `keyValues` in map order, which only decides variable
+indices, never values).
+
+### JVM emulation added for R3 (`lib/src/jfloat.dart`, 1033 lines)
+
+`brouter-expressions` calls **no transcendental function** (no `Math.exp`,
+`log`, `pow`, `sin`; only `Math.abs` on a float), so no intrinsic had to be
+transcribed. What it does need, and what `run_dump.sh math-vectors`
+(`test/vectors/expressions/float.json.gz`, `test/jfloat_test.dart`) verifies:
+
+* **`float` arithmetic.** `variableData`, the cached result vectors and the
+  build-in variables are `Float32List`s; `numberValue` and every intermediate
+  is a double holding a float value; `add`/`sub`/`multiply`/`divide` round
+  through `f32()` (double arithmetic on two floats followed by one rounding to
+  float is the IEEE float result). `int / 100f` is `f32(f32(i) / 100.0)`,
+  `(int) (Math.abs(f) * 100f)` is `d2i(f32(...))`, the `1000 + (int)...`
+  addition wraps with `i32`. 3000 random `+ - * /` pairs (incl. NaN, inf,
+  subnormals), 3000 int/float and 3000 float/int conversions: all identical.
+* **`Float.parseFloat`** (`javaParseFloat`): the JDK grammar (`String.trim`,
+  sign, `NaN`/`Infinity`, hex floats, `1.`/`.5`/`1.e5`, trailing `f`/`d`,
+  exponent overflow rules, `NumberFormatException`) and correct rounding of
+  the exact decimal with `BigInt`. `double.parse` + `f32` rounds twice and is
+  wrong when the double lands on a float midpoint; the vector has 2100 decimal
+  strings on, just above and just below float midpoints plus every numeric
+  token of the seven profiles and 3000 random strings: 5341 parses identical,
+  all rejections identical.
+* **`Float.toString`** (`javaFloatToString`): JDK 17 still uses the old
+  `FloatingDecimal.dtoa` (the `Double.toString` rewrite is JDK 19), which is
+  not always the shortest repr, **and** its `int`/`long` branches overflow for
+  some values (`b + m > tens`; "same bugs, too" in the JDK source), which
+  changes the last digit -- 4 of 17 353 sample floats (all near 2^85, e.g.
+  `7.5339564E25` where exact arithmetic gives `...65E25`). The port transcribes
+  `dtoa` with all three branches (32-bit wrapping, 64-bit wrapping, exact
+  `BigInt` for the `FDBigInteger` path), `estimateDecExp` (its double
+  arithmetic is plain IEEE), `roundup` and `getChars`: 17 353 of 17 353
+  identical (every `k/100f` for k <= 5000, 3000 more `int/100f`, 8000 random
+  normal floats, 300 subnormals, 1000 random bit patterns, the specials).
+  `getKeyValueDescription` uses it for numeric (`*`) lookup values, which end
+  up in the routing messages.
+* **`String.format(Locale.US, "%3.1f", f)`** (`javaFormatFixed`): the float is
+  promoted to double, `dtoa` runs in non-compatible mode on the double bits,
+  `FormattedFloatingDecimal.applyPrecision` rounds half-up on the decimal
+  digits, `fillDecimal` + `Formatter.addZeros` format: 5224 of 5224 identical
+  (all `k/100f` ties like `0.05f`, `k/1000f`, feet/inch/mph products, random).
+* `Integer.parseInt` (ASCII digits only -- the JDK also takes other Unicode
+  decimal digits, no tag value has them), `String.split` with the unit
+  separators (trailing empty strings dropped, `"ft".split("ft")` is empty),
+  `String.trim` (chars <= U+0020), `Character.isWhitespace` (checked for every
+  code unit below U+3100), `Arrays.hashCode(float[])`, `java.util.Random`
+  (`JavaRandom`, the 48-bit LCG, for `generateRandomValues`).
+
+### Upstream behaviour worth knowing
+
+* `getKeyValueDescription` lists the tags in lookup order, not input order.
+* A parse error is reported at the line **after** the offending token when
+  the token ends at a newline (`linenr` counts the newline first).
+* `setVariableValue(name, value, create = true)` after `parseFile` NPEs
+  (`lastAssignedExpression` is null by then); the router never does that.
+* `encode()` throws `assertion failed encoding` for numeric values of
+  21474836.48 and more (`1000 + (int) (v * 100f)` overflows); values up to
+  10 000 000 are fine.
+* `evaluate(inverse, ab)` on a `null`/empty description crashes in the
+  uncached (node) path; the router never passes one.
+* The shipped `lookups.dat` 11.2 has **no** `*` (numeric) lookup; the unit
+  conversion and `Float.toString` paths are exercised with the upstream test
+  table `test/fixtures/lookups_test.dat` (11.1, with `depth`/`maxheight`/
+  `maxdraft`/`maxweight *`) and its profiles `soft_test.brf`
+  (`v:maxspeed`) / `profile_test.brf` (constant folding, injected values),
+  copied from `brouter-expressions/src/test/resources`.
+
+## Parity proof (L2)
+
+Oracle side (`tools/brouter-oracle/dump/Dump.java`, all additive, the four
+existing commands and their committed samples are byte-identical --
+re-checked after the change): `way-tags <tile> [--kind node]` prints every
+distinct way (node) tag string of a tile through
+`getKeyValueDescription`; `eval-profile ... --compact [--encode]` and
+`--bits` print float bit patterns (`Float.floatToIntBits`) instead of
+`Float.toString`, de-duplicated per profile; `--context node --way-tags`
+evaluates the node context after its foreign way context; `nodes-cache-walk
+--profile`; `math-vectors`.
+
+`tools/brouter-oracle/dump/samples/tags-large.txt` is the union of both
+tiles: **35 099 distinct way tag sets** (18 824 Madeira + 17 730 SW Iceland,
+from 271 184 link descriptions); `node-tags-large.txt` has 769 distinct node
+tag sets. `test/vectors/expressions/` (1.2 MB, the larger files gzipped)
+holds, per profile, the way corpus evaluated forward and reverse
+(`eval-<profile>-way.json.gz`: every existing variable of the context --
+build-ins, way-context and global -- as hex float bits, de-duplicated into
+vectors; the trekking file also carries the encoded bytes and decoded
+string of every case) and the node corpus with `nodeaccessgranted` no/yes
+after the way `highway=residential surface=asphalt`
+(`eval-<profile>-node.json`), plus `eval-trekking-node-motorway.json` (node
+context after a way with costfactor >= 10000), `eval-trekking-bits.json`
+(the 20 `tags.txt` sets), `eval-profile_test-bits.json`,
+`eval-soft_test-units.json` (78 unit strings: `12'6"`, `5000lbs`, `3ft6in`,
+`50cm`, `10mph`, `3fathom`, ...) and `eval-soft_test-node.json.gz`.
+
+`test/eval_profile_corpus_test.dart` re-encodes every line (bytes and decoded
+string identical for all 35 099), evaluates it in both directions with the
+Dart `BExpressionContextWay` and compares **every variable bit for bit**
+(`floatToIntBits`, NaN canonicalised):
+
+| Profile | Variables (way / node) | Distinct result vectors (way / node) | Result |
+|---|---:|---:|---|
+| trekking | 65 / 34 | 585 / 10 | identical |
+| fastbike | 56 / 31 | 706 / 10 | identical |
+| fastbike-lowtraffic | 56 / 31 | 691 / 10 | identical |
+| fastbike-verylowtraffic | 55 / 29 | 557 / 8 | identical |
+| gravel | 65 / 28 | 2066 / 18 | identical |
+| mtb | 129 / 67 | 1277 / 12 | identical |
+| shortest | 24 / 11 | 168 / 8 | identical |
+
+70 198 way evaluations and 1 538 node evaluations per profile, no case
+matches only to a tolerance. `usedTagList()` (which lookups the parser marks
+as used after constant folding, i.e. what the decoders keep) is identical for
+all 14 contexts, as are the parsed `expressionNodeCount`s of
+`profile_test.brf` (144 optimised / 311 unoptimised, the upstream test's
+numbers). The two committed `Float.toString` samples (`eval-trekking.json`,
+`eval-gravel.json`) are reproduced exactly as well (a `Float.toString` string
+parses back to the same float, so that comparison is bit-exact too).
+
+`test/expressions_microcache_test.dart` decodes the Funchal cell with the real
+trekking context as validator and unifier and reproduces
+`dump-microcache --profile trekking` (8 779 -> 8 627 nodes, data size, and for
+the 20 sampled nodes every link's target, direction, filtered description
+bytes, way tag string and geometry), and the way tag strings of the two raw
+dumps. `test/nodes_cache_walk_test.dart` replays the two `--profile trekking`
+walks (400 steps each) with the real context through `NodesCache`: identical.
+
+`test/expressions_test.dart` covers the `lookups.dat` parse (11.2 and the
+11.1 test table, aliases, contexts), encode/decode round trips, the upstream
+`ConstantOptimizerTest` (10 000 `JavaRandom(17464)` samples), the
+`ProfileComparator` on both contexts, injected key/values, `---model:`,
+foreign (`way:`) variables, `v:` lookups, `noStartWay` comments and
+`checkStartWay`, `accessType`, `unify`, and the parse errors.
+
+Run: `dart test` (about 8 s), `dart analyze`, `dart format --set-exit-if-changed .`.

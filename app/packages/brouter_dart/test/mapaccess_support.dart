@@ -37,28 +37,45 @@ Map<String, dynamic> loadMapaccessVector(String name) =>
     jsonDecode(File('test/vectors/mapaccess/$name').readAsStringSync())
         as Map<String, dynamic>;
 
-/// What `nodes-cache-walk` builds on the Java side: a `BExpressionContextWay`
-/// with `lookups.dat`, a profile of just `assign costfactor = 1` (accessType 2
-/// for every way, no `noStartWay`) and `setAllTagsUsed()`.
-class AllWaysValidator implements TagValueValidator, IByteArrayUnifier {
-  final ByteArrayUnifier _unifier = ByteArrayUnifier(16384, false);
+/// The repo's profiles directory (`brouter/profiles`, used in place like the
+/// oracle does), overridable with `BROUTER_PROFILES_DIR`.
+final Directory profilesDir = Directory(
+  Platform.environment['BROUTER_PROFILES_DIR'] ?? '../../../brouter/profiles',
+);
 
-  @override
-  int accessType(Uint8List tagValueSet) => 2;
+File get lookupsFile => File('${profilesDir.path}/lookups.dat');
 
-  @override
-  Uint8List unify(Uint8List ab, int offset, int len) =>
-      _unifier.unify(ab, offset, len);
-
-  @override
-  bool isLookupIdxUsed(int idx) => true;
-
-  @override
-  void setDecodeForbidden(bool decodeForbidden) {}
-
-  @override
-  bool checkStartWay(Uint8List ab) => true;
+/// What `nodes-cache-walk` builds on the Java side without `--profile`: a
+/// `BExpressionContextWay` with `lookups.dat`, a profile of just
+/// `assign costfactor = 1` (accessType 2 for every way, no `noStartWay`) and
+/// `setAllTagsUsed()`.
+BExpressionContextWay allWaysValidator() {
+  final meta = BExpressionMetaData();
+  final ctx = BExpressionContextWay(meta);
+  meta.readMetaData(lookupsFile);
+  ctx.parseProfile(
+    'allways.brf',
+    '---context:way\nassign costfactor = 1\n',
+    'global',
+  );
+  ctx.setAllTagsUsed();
+  return ctx;
 }
+
+/// A way context with `lookups.dat` and a real profile of `brouter/profiles`
+/// (`trekking` or `trekking.brf`), parsed like `RoutingEngine` does (no
+/// `setAllTagsUsed`).
+BExpressionContextWay profileWayContext(String profile, {int hashSize = 4096}) {
+  final meta = BExpressionMetaData();
+  final ctx = BExpressionContextWay(meta, hashSize);
+  meta.readMetaData(lookupsFile);
+  ctx.parseFile(profileFile(profile), 'global');
+  return ctx;
+}
+
+File profileFile(String profile) => File(
+  '${profilesDir.path}/${profile.endsWith('.brf') ? profile : '$profile.brf'}',
+);
 
 int toIlon(double lon) => d2i((lon + 180.0) * 1000000.0 + 0.5);
 int toIlat(double lat) => d2i((lat + 90.0) * 1000000.0 + 0.5);
@@ -225,23 +242,19 @@ Map<String, Object?> runWalk(Map<String, dynamic> v) {
   final collectMaxCost = v['collectMaxCost'] as int;
   final lookupVersion = v['lookupVersion'] as int;
   final lookupMinorVersion = v['lookupMinorVersion'] as int;
+  final profile = v['profile'] as String?;
 
   NodesCache.disableDirectWeaving = !directWeaving;
-  final ctxWay = AllWaysValidator();
+  final BExpressionContextWay ctxWay = profile == null
+      ? allWaysValidator()
+      : profileWayContext(profile);
+  expect(ctxWay.meta!.lookupVersion, lookupVersion);
+  expect(ctxWay.meta!.lookupMinorVersion, lookupMinorVersion);
   final gd = GeometryDecoder();
   final out = <String, Object?>{};
 
   // phase 1: matchWaypointsToNodes
-  final cache = NodesCache(
-    segmentsDir,
-    ctxWay,
-    false,
-    maxmem,
-    null,
-    false,
-    lookupVersion: lookupVersion,
-    lookupMinorVersion: lookupMinorVersion,
-  );
+  final cache = NodesCache(segmentsDir, ctxWay, false, maxmem, null, false);
   final list = [_mwp('from', from[0], from[1]), _mwp('to', to[0], to[1])];
   final islands = OsmNodePairSet(500);
   final ok = cache.matchWaypointsToNodes(list, 250.0, islands);
@@ -263,16 +276,7 @@ Map<String, Object?> runWalk(Map<String, dynamic> v) {
   }
 
   // phase 2: reset, graph nodes, obtain + expand
-  final cache2 = NodesCache(
-    segmentsDir,
-    ctxWay,
-    false,
-    maxmem,
-    cache,
-    false,
-    lookupVersion: lookupVersion,
-    lookupMinorVersion: lookupMinorVersion,
-  );
+  final cache2 = NodesCache(segmentsDir, ctxWay, false, maxmem, cache, false);
   cache2.nodesMap.cleanupMode = cleanupMode;
   final statusAfterReset2 = cache2.formatStatus();
   final graphNodes = <OsmNode>[];
@@ -357,16 +361,7 @@ Map<String, Object?> runWalk(Map<String, dynamic> v) {
   };
 
   // phase 4: fresh reset and getStartNode
-  final cache3 = NodesCache(
-    segmentsDir,
-    ctxWay,
-    false,
-    maxmem,
-    cache2,
-    false,
-    lookupVersion: lookupVersion,
-    lookupMinorVersion: lookupMinorVersion,
-  );
+  final cache3 = NodesCache(segmentsDir, ctxWay, false, maxmem, cache2, false);
   cache3.nodesMap.cleanupMode = cleanupMode;
   final statusAfterReset3 = cache3.formatStatus();
   final start = cache3.getStartNode(list[0].node1!.getIdFromPos());

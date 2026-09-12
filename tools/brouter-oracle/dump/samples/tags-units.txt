@@ -1,0 +1,89 @@
+# Way tag sets with the numeric "*" lookups (depth, maxheight, maxdraft, maxweight) of the upstream test
+# table app/packages/brouter_dart/test/fixtures/lookups_test.dat (the shipped lookups.dat 11.2 has no "*"
+# values), exercising BExpressionContext.addLookupValue's unit conversion (values are encoded as
+# 1000 + 100 * value and decoded with Float.toString). Values cannot contain spaces here (eval-profile
+# splits lines on whitespace). Run with:
+#   dump/run_dump.sh eval-profile ../../app/packages/brouter_dart/test/fixtures/soft_test.brf dump/samples/tags-units.txt \
+#       --bits --lookups ../../app/packages/brouter_dart/test/fixtures/lookups_test.dat
+# Values of 21474836.48 and more overflow the int in "1000 + (int) (value * 100f)" and make upstream's
+# encode() throw ("assertion failed encoding"), so none is listed.
+highway=residential maxheight=default
+highway=residential maxheight=below_default
+highway=residential maxheight=3.5
+highway=residential maxheight=3,5
+highway=residential maxheight=3.5m
+highway=residential maxheight=5.1m
+highway=residential maxheight=4
+highway=residential maxheight=4.0
+highway=residential maxheight=350cm
+highway=residential maxheight=12ft
+highway=residential maxheight=12ft6in
+highway=residential maxheight=12'6"
+highway=residential maxheight=12'
+highway=residential maxheight=13'11''
+highway=residential maxheight=1'6"
+highway=residential maxheight=13feet
+highway=residential maxheight=13foot
+highway=residential maxheight=150in
+highway=residential maxheight=150"
+highway=residential maxheight=~3m
+highway=residential maxheight=3m-4m
+highway=residential maxheight=1.4-1.6m
+highway=residential maxheight=-3.2
+highway=residential maxheight=>3.2
+highway=residential maxheight=3.2metre
+highway=residential maxheight=3.2meters
+highway=residential maxheight=3.20(signed)
+highway=residential maxheight=none
+highway=residential maxheight=unsigned
+highway=residential maxheight=0
+highway=residential maxheight=0.29
+highway=residential maxheight=0.57
+highway=residential maxheight=99999
+highway=residential maxheight=2.2352
+highway=residential maxheight=3_5
+highway=residential maxheight=1e2
+highway=residential maxheight=10000000
+highway=residential maxheight=4.35
+highway=residential maxheight=9.95
+highway=residential maxheight=2.5t
+highway=residential maxweight=7.5
+highway=residential maxweight=7.5t
+highway=residential maxweight=7,5t
+highway=residential maxweight=5000lbs
+highway=residential maxweight=5000kg
+highway=residential maxweight=5.5st
+highway=residential maxweight=3t
+highway=residential maxweight=44000lbs
+highway=residential maxweight=none
+highway=residential maxweight=12.5t;2.5t
+highway=residential maxweight=10kph
+highway=residential maxweight=10mph
+highway=residential maxweight=10knots
+highway=residential maxweight=3fathom
+highway=residential maxweight=2fm
+highway=residential maxweight=30km/h
+highway=residential maxweight=30kmh
+highway=residential maxweight=3.5kg
+highway=residential maxweight=5(10)
+highway=residential maxweight=5.5ton
+highway=residential maxweight=1’5”
+highway=residential maxweight=1’
+route=ferry maxdraft=~3m-4m
+route=ferry maxdraft=2.4
+route=ferry maxdraft=-2.4
+route=ferry depth=1'6"
+route=ferry depth=6feet
+route=ferry depth=6ft
+route=ferry depth=6ft4in
+route=ferry depth=15fathom
+route=ferry depth=0.5m
+route=ferry depth=50cm
+highway=track maxheight=3.5 maxweight=7.5t depth=1'6" maxdraft=2.4
+# v:maxspeed (soft_test.brf) and enumerated maxspeed values
+highway=residential oneway=yes maxspeed=30
+highway=residential oneway=yes maxspeed=32
+highway=residential maxspeed=50 maxheight=3.5
+highway=residential maxspeed=30mph maxheight=12'6"
+highway=motorway maxspeed=120
+highway=residential bicycle=yes

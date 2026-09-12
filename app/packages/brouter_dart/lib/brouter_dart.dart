@@ -1,8 +1,9 @@
 /// brouter_dart: a pure-Dart port of the BRouter routing runtime.
 ///
 /// Track R1: the `brouter-util` and `brouter-codec` modules; track R2:
-/// `brouter-mapaccess`. See README.md for the class list and the JVM
-/// emulation caveats.
+/// `brouter-mapaccess`; track R3: `brouter-expressions` (plus `ProfileCache`
+/// of `brouter-core`). See README.md for the class list and the JVM emulation
+/// caveats.
 library;
 
 export 'src/codec/data_buffers.dart';
@@ -16,6 +17,18 @@ export 'src/codec/tag_value_coder.dart';
 export 'src/codec/tag_value_validator.dart';
 export 'src/codec/tag_value_wrapper.dart';
 export 'src/codec/waypoint_matcher.dart';
+export 'src/expressions/b_expression.dart';
+export 'src/expressions/b_expression_context.dart';
+export 'src/expressions/b_expression_context_node.dart';
+export 'src/expressions/b_expression_context_way.dart';
+export 'src/expressions/b_expression_lookup_value.dart';
+export 'src/expressions/b_expression_meta_data.dart';
+export 'src/expressions/cache_node.dart';
+export 'src/expressions/integrity_check_profile.dart';
+export 'src/expressions/profile_cache.dart';
+export 'src/expressions/profile_comparator.dart';
+export 'src/expressions/var_wrapper.dart';
+export 'src/jfloat.dart';
 export 'src/jmath.dart';
 export 'src/jvm.dart';
 export 'src/mapaccess/direct_weaver.dart';

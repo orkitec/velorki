@@ -89,3 +89,15 @@ double doubleOf(Object? d) => longBitsToDouble(bitsOf(d));
 /// A description of a double mismatch that shows both representations.
 String describeDouble(double v) =>
     '${v.toString()} (0x${doubleToRawLongBits(v).toUnsigned(64).toRadixString(16)})';
+
+/// Loads `test/vectors/expressions/<name>`; a `<name>.gz` is decompressed
+/// (the larger R3 vectors are committed gzipped).
+Map<String, dynamic> loadExpressionsVector(String name) =>
+    jsonDecode(loadVectorText('expressions/$name')) as Map<String, dynamic>;
+
+String loadVectorText(String name) {
+  final plain = File('test/vectors/$name');
+  if (plain.existsSync()) return plain.readAsStringSync();
+  final gz = File('test/vectors/$name.gz');
+  return utf8.decode(gzip.decode(gz.readAsBytesSync()));
+}

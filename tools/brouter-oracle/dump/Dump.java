@@ -10,10 +10,36 @@
 //       it with its links, way tag strings and node tag strings as JSON.
 //
 //   eval-profile <profile.brf> <tagsfile> [--lookups <lookups.dat>]
+//                [--bits | --compact] [--context node --way-tags "<tags>"]
 //       Build a btools.expressions.BExpressionContextWay from lookups.dat plus
 //       the profile, then evaluate every line of the tags file
 //       ("highway=residential surface=asphalt ...") and print all cost
 //       variables the profile produces, forward and reverse, as JSON.
+//       --bits prints every variable as the hex of Float.floatToIntBits instead
+//       of Float.toString (the R3 bit-identical target); --compact additionally
+//       de-duplicates the per-case variable vectors ("vectors" + a [forward,
+//       reverse] index pair per case, no tags: the case order is the order of
+//       the tags file) and lists every existing variable, NaN included, so
+//       that tens of thousands of tag sets stay small; --encode adds the
+//       "encoded" list (per case the encoded hex, or [hex, decoded] when the
+//       decoded string differs from the input line, or [hex, decoded,
+//       unknownKeys...]). --context node evaluates the node context (its
+//       foreign way context is first evaluated with --way-tags, default
+//       "highway=residential"); the "reverse" direction then means
+//       nodeaccessgranted=yes. Both new modes also print usedTagList().
+//
+//   way-tags <tile.rd5> [--kind way|node] [--lookups <lookups.dat>]
+//       Decode every micro-cache of the tile (no validator) and print every
+//       distinct way tag string (BExpressionContextWay.getKeyValueDescription,
+//       forward direction) -- or with --kind node every distinct node tag
+//       string -- one per line, sorted, as a tags file for eval-profile.
+//
+//   math-vectors <outdir>
+//       Write <outdir>/float.json: JVM float semantics the expressions module
+//       depends on (Float.parseFloat incl. decimal strings on float midpoints,
+//       Float.toString, float add/sub/mul/div, int/float conversions,
+//       String.format("%3.1f"), Integer.parseInt, Arrays.hashCode(float[]),
+//       Character.isWhitespace) as bit patterns for the Dart emulation.
 //
 //   codec-vectors <outdir>
 //       Write deterministic L1 test vectors for the brouter-util and
@@ -42,6 +68,7 @@
 //
 //   nodes-cache-walk <segmentsDir> <lon> <lat> <lon2> <lat2> [--maxmem <bytes>]
 //                    [--no-direct-weaving] [--cleanup-mode <n>] [--steps <n>]
+//                    [--profile <file.brf>]
 //       Exercise btools.mapaccess.NodesCache the way RoutingEngine does: match
 //       the two waypoints (matchWaypointsToNodes), reset the cache, obtain the
 //       matched graph nodes and expand their link targets, breadth-first walk
@@ -50,7 +77,10 @@
 //       nodes (links, geometry, transfer nodes, turn restrictions), one record
 //       per walked node and the cache's memory accounting (formatStatus).
 //       The way context is lookups.dat only (no profile) with all tags used:
-//       every way is kept, accessType 2.
+//       every way is kept, accessType 2. With --profile the real profile is
+//       parsed instead (no setAllTagsUsed, exactly like RoutingEngine), so
+//       inaccessible ways drop out and unused tags are filtered from the
+//       descriptions; the JSON then carries a "profile" entry.
 //
 // Everything is written to stdout as one JSON document; diagnostics go to stderr.
 
@@ -73,6 +103,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -104,6 +137,8 @@ import btools.util.MixCoderDataInputStream;
 import btools.util.MixCoderDataOutputStream;
 import btools.util.SortedHeap;
 import btools.util.TinyDenseLongMap;
+import btools.expressions.BExpressionContext;
+import btools.expressions.BExpressionContextNode;
 import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
 import btools.mapaccess.GeometryDecoder;
@@ -142,6 +177,10 @@ public class Dump {
       osmFileIndex(args);
     } else if ("nodes-cache-walk".equals(cmd)) {
       nodesCacheWalk(args);
+    } else if ("way-tags".equals(cmd)) {
+      wayTags(args);
+    } else if ("math-vectors".equals(cmd)) {
+      mathVectors(args);
     } else {
       usage();
       System.exit(2);
@@ -151,12 +190,14 @@ public class Dump {
   private static void usage() {
     System.err.println("usage:");
     System.err.println("  Dump dump-microcache <tile.rd5> <lon> <lat> [--profile <f.brf>] [--geometry] [--limit <n>]");
-    System.err.println("  Dump eval-profile <profile.brf> <tagsfile> [--lookups <lookups.dat>]");
+    System.err.println("  Dump eval-profile <profile.brf> <tagsfile> [--lookups <lookups.dat>] [--bits | --compact [--encode]] [--context node --way-tags \"<tags>\"]");
+    System.err.println("  Dump way-tags <tile.rd5> [--kind way|node] [--lookups <lookups.dat>]");
+    System.err.println("  Dump math-vectors <outdir>");
     System.err.println("  Dump codec-vectors <outdir>");
     System.err.println("  Dump microcache-bytes <tile.rd5> <lon> <lat> <outfile>");
     System.err.println("  Dump microcache-listing <tile.rd5> <lon> <lat> [--bodies <n>]");
     System.err.println("  Dump osmfile-index <tile.rd5>");
-    System.err.println("  Dump nodes-cache-walk <segmentsDir> <lon> <lat> <lon2> <lat2> [--maxmem <bytes>] [--no-direct-weaving] [--cleanup-mode <n>] [--steps <n>] [--lookups <lookups.dat>]");
+    System.err.println("  Dump nodes-cache-walk <segmentsDir> <lon> <lat> <lon2> <lat2> [--maxmem <bytes>] [--no-direct-weaving] [--cleanup-mode <n>] [--steps <n>] [--lookups <lookups.dat>] [--profile <file.brf>]");
   }
 
   private static String opt(String[] args, String name, String dflt) {
@@ -358,6 +399,10 @@ public class Dump {
       "uphillmaxslopecost", "downhillmaxslopecost"};
 
   private static void evalProfile(String[] args) throws Exception {
+    if (flag(args, "--bits") || flag(args, "--compact") || opt(args, "--context", null) != null) {
+      evalProfile2(args);
+      return;
+    }
     File profile = new File(args[1]);
     File tagsFile = new File(args[2]);
     String lookupsOpt = opt(args, "--lookups", null);
@@ -448,6 +493,496 @@ public class Dump {
     System.out.print(sb);
   }
 
+
+  private static final String[] BUILT_IN_NODE = {"initialcost"};
+
+  /** The names eval-profile reports: the build-in variables plus every `assign <name>` of the profile. */
+  private static Set<String> assignedNames(File profile, String[] builtIn) throws IOException {
+    Set<String> names = new LinkedHashSet<>();
+    for (String b : builtIn) names.add(b);
+    BufferedReader pr = new BufferedReader(new FileReader(profile));
+    for (String line; (line = pr.readLine()) != null; ) {
+      int c = line.indexOf('#');
+      if (c >= 0) line = line.substring(0, c);
+      Matcher m = ASSIGN.matcher(line);
+      if (m.find()) names.add(m.group(1));
+    }
+    pr.close();
+    return names;
+  }
+
+  private static List<String> readTagLines(File tagsFile) throws IOException {
+    List<String> lines = new ArrayList<>();
+    BufferedReader tr = new BufferedReader(new FileReader(tagsFile));
+    for (String line; (line = tr.readLine()) != null; ) {
+      String t = line.trim();
+      if (t.isEmpty() || t.startsWith("#")) continue;
+      lines.add(t);
+    }
+    tr.close();
+    return lines;
+  }
+
+  /** createNewLookupData + addLookupValue for every key=value of the line; unknown keys are collected. */
+  private static int[] tagsToLookupData(BExpressionContext ctx, String line, List<String> unknown) {
+    int[] lookupData = ctx.createNewLookupData();
+    for (String tok : line.split("\\s+")) {
+      int eq = tok.indexOf('=');
+      if (eq <= 0) continue;
+      String k = tok.substring(0, eq);
+      String v = tok.substring(eq + 1);
+      if (ctx.getLookupNameIdx(k) < 0) {
+        unknown.add(k);
+        continue;
+      }
+      ctx.addLookupValue(k, v, lookupData);
+    }
+    return lookupData;
+  }
+
+  private static String bitsHex(float v) {
+    return String.format("%08x", Float.floatToIntBits(v));
+  }
+
+  /** eval-profile with --bits / --compact / --context node: float bit patterns, optional de-duplication. */
+  private static void evalProfile2(String[] args) throws Exception {
+    File profile = new File(args[1]);
+    File tagsFile = new File(args[2]);
+    String lookupsOpt = opt(args, "--lookups", null);
+    File lookups = lookupsOpt != null ? new File(lookupsOpt)
+                                      : new File(profile.getParentFile(), "lookups.dat");
+    if (!lookups.exists()) {
+      System.err.println("lookups.dat not found (tried " + lookups + "); pass --lookups <path>");
+      System.exit(2);
+    }
+    boolean compact = flag(args, "--compact");
+    boolean withEncode = flag(args, "--encode");
+    String context = opt(args, "--context", "way");
+    boolean nodeContext = "node".equals(context);
+    if (!nodeContext && !"way".equals(context)) {
+      System.err.println("--context must be way or node");
+      System.exit(2);
+    }
+    String wayTagsLine = opt(args, "--way-tags", "highway=residential");
+
+    BExpressionMetaData meta = new BExpressionMetaData();
+    BExpressionContextWay ctxWay = new BExpressionContextWay(meta);
+    BExpressionContextNode ctxNode = nodeContext ? new BExpressionContextNode(0, meta) : null; // hashSize 0 like ProfileCache
+    if (ctxNode != null) ctxNode.setForeignContext(ctxWay);
+    meta.readMetaData(lookups);
+    ctxWay.parseFile(profile, "global");
+    if (ctxNode != null) ctxNode.parseFile(profile, "global");
+    BExpressionContext ctx = nodeContext ? ctxNode : ctxWay;
+
+    Set<String> names = assignedNames(profile, nodeContext ? BUILT_IN_NODE : BUILT_IN);
+    // a variable exists when getVariableValue does not return the default for two different defaults
+    List<String> vars = new ArrayList<>();
+    for (String n : names) {
+      if (ctx.getVariableValue(n, 0f) == 0f && ctx.getVariableValue(n, 1f) == 1f) continue;
+      vars.add(n);
+    }
+
+    byte[] wayAb = null;
+    List<String> wayUnknown = new ArrayList<>();
+    if (nodeContext) {
+      wayAb = ctxWay.encode(tagsToLookupData(ctxWay, wayTagsLine, wayUnknown));
+      ctxWay.evaluate(false, wayAb);
+    }
+
+    List<String> lines = readTagLines(tagsFile);
+
+    StringBuilder sb = new StringBuilder();
+    sb.append("{\n");
+    kv(sb, 1, "tool", "eval-profile"); sb.append(",\n");
+    kv(sb, 1, "profile", profile.getName()); sb.append(",\n");
+    kv(sb, 1, "lookups", lookups.getName()); sb.append(",\n");
+    kv(sb, 1, "lookupVersion", meta.lookupVersion); sb.append(",\n");
+    kv(sb, 1, "lookupMinorVersion", meta.lookupMinorVersion); sb.append(",\n");
+    kv(sb, 1, "context", context); sb.append(",\n");
+    kv(sb, 1, "format", compact ? "compact" : "bits"); sb.append(",\n");
+    kv(sb, 1, "tagsFile", tagsFile.getName()); sb.append(",\n");
+    kv(sb, 1, "caseCount", lines.size()); sb.append(",\n");
+    kv(sb, 1, "usedTags", ctx.usedTagList()); sb.append(",\n");
+    if (nodeContext) {
+      kv(sb, 1, "wayTags", wayTagsLine); sb.append(",\n");
+      sb.append("  \"wayUnknownKeys\": ").append(jsonStrings(wayUnknown)).append(",\n");
+      kv(sb, 1, "wayEncoded", wayAb == null ? null : hex(wayAb)); sb.append(",\n");
+      kv(sb, 1, "wayDecoded", wayAb == null ? null : ctxWay.getKeyValueDescription(false, wayAb)); sb.append(",\n");
+      kv(sb, 1, "wayUsedTags", ctxWay.usedTagList()); sb.append(",\n");
+      kv(sb, 1, "wayCostfactor", bitsHex(ctxWay.getCostfactor())); sb.append(",\n");
+    }
+    sb.append("  \"variables\": ").append(jsonStrings(vars)).append(",\n");
+
+    Map<String, Integer> vectors = new LinkedHashMap<>();
+    StringBuilder cases = new StringBuilder();
+    StringBuilder encodes = new StringBuilder();
+    for (int li = 0; li < lines.size(); li++) {
+      String line = lines.get(li);
+      List<String> unknown = new ArrayList<>();
+      int[] lookupData = tagsToLookupData(ctx, line, unknown);
+      byte[] ab = ctx.encode(lookupData);
+      String decoded = ab == null ? null : ctx.getKeyValueDescription(false, ab);
+
+      if (li > 0) cases.append(",\n");
+      if (compact) {
+        cases.append("   [");
+        if (withEncode) {
+          if (li > 0) encodes.append(",\n");
+          if (ab == null) {
+            encodes.append("   null");
+          } else if (decoded.equals(line) && unknown.isEmpty()) {
+            encodes.append("   ").append(quote(hex(ab)));
+          } else {
+            List<String> e = new ArrayList<>();
+            e.add(hex(ab));
+            e.add(decoded);
+            e.addAll(unknown);
+            encodes.append("   ").append(jsonStrings(e));
+          }
+        }
+      } else {
+        cases.append("   {");
+        cases.append("\"tags\": ").append(quote(line));
+        cases.append(", \"unknownKeys\": ").append(jsonStrings(unknown));
+        cases.append(", \"encoded\": ").append(ab == null ? "null" : quote(hex(ab)));
+        cases.append(", \"decoded\": ").append(decoded == null ? "null" : quote(decoded));
+      }
+      for (boolean inverse : new boolean[]{false, true}) {
+        if (ab == null) {
+          // nothing encodable (all keys unknown): upstream would crash decoding an empty array
+          cases.append(compact ? (inverse ? ", null" : "null") : (inverse ? ", \"reverse\": null" : ", \"forward\": null"));
+          continue;
+        }
+        ctx.evaluate(inverse, ab);
+        if (compact) {
+          StringBuilder vec = new StringBuilder();
+          for (String n : vars) {
+            if (vec.length() > 0) vec.append(' ');
+            vec.append(bitsHex(ctx.getVariableValue(n, Float.NaN)));
+          }
+          String key = vec.toString();
+          Integer idx = vectors.get(key);
+          if (idx == null) {
+            idx = vectors.size();
+            vectors.put(key, idx);
+          }
+          if (inverse) cases.append(", ");
+          cases.append(idx);
+        } else {
+          cases.append(", \"").append(inverse ? "reverse" : "forward").append("\": {");
+          boolean first = true;
+          for (String n : vars) {
+            if (!first) cases.append(", ");
+            first = false;
+            cases.append(quote(n)).append(": ").append(quote(bitsHex(ctx.getVariableValue(n, Float.NaN))));
+          }
+          cases.append("}");
+        }
+      }
+      cases.append(compact ? "]" : "}");
+    }
+    if (compact && withEncode) {
+      sb.append("  \"encoded\": [\n").append(encodes).append("\n  ],\n");
+    }
+    if (compact) {
+      sb.append("  \"vectors\": [\n");
+      boolean first = true;
+      for (String v : vectors.keySet()) {
+        if (!first) sb.append(",\n");
+        first = false;
+        sb.append("   ").append(quote(v));
+      }
+      sb.append("\n  ],\n");
+    }
+    sb.append("  \"cases\": [\n").append(cases).append("\n  ]\n}\n");
+    System.out.print(sb);
+  }
+
+  // ------------------------------------------------------------ way-tags ----
+
+  /** Every distinct way (or node) tag string of a tile, one per line, sorted. */
+  private static void wayTags(String[] args) throws Exception {
+    File rd5 = new File(args[1]);
+    String kind = opt(args, "--kind", "way");
+    boolean nodeKind = "node".equals(kind);
+    String lookupsOpt = opt(args, "--lookups", null);
+    if (lookupsOpt == null) { System.err.println("--lookups <lookups.dat> is required"); System.exit(2); }
+    Matcher m = Pattern.compile("([EW])(\\d+)_([NS])(\\d+)\\.rd5").matcher(rd5.getName());
+    if (!m.matches()) { System.err.println("tile name must look like W20_N30.rd5"); System.exit(2); }
+    int lonBase = Integer.parseInt(m.group(2)) * (m.group(1).equals("W") ? -1 : 1) + 180;
+    int latBase = Integer.parseInt(m.group(4)) * (m.group(3).equals("S") ? -1 : 1) + 90;
+
+    BExpressionMetaData meta = new BExpressionMetaData();
+    BExpressionContextWay ctxWay = new BExpressionContextWay(meta);
+    BExpressionContextNode ctxNode = new BExpressionContextNode(meta);
+    meta.readMetaData(new File(lookupsOpt));
+
+    DataBuffers dataBuffers = new DataBuffers();
+    PhysicalFile pf = new PhysicalFile(rd5, dataBuffers, meta.lookupVersion, meta.lookupMinorVersion);
+    int div = pf.divisor;
+    TreeSet<String> set = new TreeSet<>();
+    long nodes = 0, described = 0, cells = 0;
+    for (int lonDegree = lonBase; lonDegree < lonBase + 5; lonDegree++) {
+      for (int latDegree = latBase; latDegree < latBase + 5; latDegree++) {
+        OsmFile osmf = new OsmFile(pf, lonDegree, latDegree, dataBuffers);
+        if (!osmf.hasData()) continue;
+        for (int subIdx = 0; subIdx < div * div; subIdx++) {
+          int lonIdx = lonDegree * div + subIdx % div;
+          int latIdx = latDegree * div + subIdx / div;
+          MicroCache segment = osmf.createMicroCache(lonIdx, latIdx, dataBuffers, null, null, true, null);
+          int size = segment.getSize();
+          if (size == 0) continue;
+          cells++;
+          OsmNodesMap nodesMap = new OsmNodesMap();
+          for (int i = 0; i < size; i++) {
+            long id = segment.getIdForIndex(i);
+            OsmNode node = new OsmNode(id);
+            if (!segment.getAndClear(id)) continue;
+            node.parseNodeBody(segment, nodesMap, ctxWay);
+            nodes++;
+            if (nodeKind) {
+              if (node.nodeDescription != null) {
+                set.add(ctxNode.getKeyValueDescription(false, node.nodeDescription));
+                described++;
+              }
+            } else {
+              for (OsmLink link = node.firstlink; link != null; link = link.getNext(node)) {
+                byte[] d = link.descriptionBitmap;
+                if (d == null) continue;
+                set.add(ctxWay.getKeyValueDescription(false, d));
+                described++;
+              }
+            }
+          }
+        }
+      }
+    }
+    pf.close();
+    StringBuilder sb = new StringBuilder();
+    sb.append("# ").append(kind).append(" tags of ").append(rd5.getName()).append(": ").append(set.size())
+      .append(" distinct strings from ").append(described).append(nodeKind ? " node descriptions" : " link descriptions")
+      .append(" (").append(nodes).append(" nodes, ").append(cells).append(" micro-caches, lookups ")
+      .append(meta.lookupVersion).append('.').append(meta.lookupMinorVersion).append(")\n");
+    for (String s : set) sb.append(s).append('\n');
+    System.out.print(sb);
+  }
+
+  // -------------------------------------------------------- math vectors ----
+
+  private static String floatEntry(float v) {
+    return "[" + Float.floatToRawIntBits(v) + ", " + quote(Float.toString(v)) + "]";
+  }
+
+  private static void mathVectors(String[] args) throws Exception {
+    File outDir = new File(args[1]);
+    outDir.mkdirs();
+    Random rnd = new Random(20260912);
+    StringBuilder sb = new StringBuilder();
+    sb.append("{\n");
+    kv(sb, 1, "tool", "math-vectors"); sb.append(",\n");
+    kv(sb, 1, "seed", 20260912); sb.append(",\n");
+
+    // --- Float.parseFloat: strings -> bits (null = NumberFormatException)
+    List<String> strings = new ArrayList<>();
+    for (String s : new String[]{
+        "0", "0.0", "1", "1.0", "-1", "+1", "-0", "-0.0", "0.1", "0.2", "0.3", "0.7", "1.1", "1.15", "0.225", "0.01", "0.005", "0.333", "0.3333",
+        "9999", "10000", "100000", "1000000", "1e6", "1E6", "1e-3", "1.5e2", "1.5E-2", ".5", "5.", "+.5", "-.5", "00012", "1.50", "3.4028235e38",
+        "3.4028236e38", "3.4028237e38", "3.40282356e38", "1e39", "-1e39", "1.17549435e-38", "1.1754942e-38", "1.4e-45", "1.5e-45", "7e-46", "7.1e-46", "1e-46", "0.7e-45",
+        "1.00000005960464477539", "1.000000059604644775390625", "1.0000000596046447753906251", "1.00000005960464477539062", "1.00000017881393421514957253748434595763683319091796875",
+        "1.000000178813934215149572537484345957636833190917968750001", "1.00000017881393421514957253748434595763683319091796874999",
+        "16777217", "16777219", "16777218.5", "16777216.5", "33554434", "33554435", "0.100000001490116119384765625", "0.1000000014901161193847656251",
+        "2.2250738585072012e-308", "4.9e-324", "1e-400", "1e400", "NaN", "Infinity", "-Infinity", "+Infinity", "infinity", "nan", "1.5f", "1.5F", "1.5d", "1.5D",
+        "0x1p3", "0x1.8p1", " 1 ", "\t2\n", "", " ", "abc", "1e", "e5", "1.2.3", "1,5", "30_mph", "1_000", "--1", "1-", "0x", "1e+", "1e+5", "1e-", "+-1", "1e05", "1.e5", ".e5",
+        "residential", "yes", "30", "50", "5.1m", "3ft", "2'6\"", "100000000000000000000", "123456789", "1234567890", "12345678901234567890", "0.000001", "0.0000001", "1e-7", "1e7", "12345678"}) {
+      strings.add(s);
+    }
+    for (int i = 0; i < 3000; i++) {
+      StringBuilder d = new StringBuilder();
+      if (rnd.nextInt(4) == 0) d.append('-');
+      int nd = 1 + rnd.nextInt(9);
+      for (int k = 0; k < nd; k++) d.append((char) ('0' + rnd.nextInt(10)));
+      if (rnd.nextBoolean()) {
+        d.append('.');
+        int nf = rnd.nextInt(10);
+        for (int k = 0; k < nf; k++) d.append((char) ('0' + rnd.nextInt(10)));
+      }
+      if (rnd.nextInt(3) == 0) {
+        d.append(rnd.nextBoolean() ? 'e' : 'E');
+        if (rnd.nextBoolean()) d.append(rnd.nextBoolean() ? '-' : '+');
+        d.append(rnd.nextInt(50));
+      }
+      strings.add(d.toString());
+    }
+    // decimal strings exactly on, just above and just below a float midpoint
+    for (int i = 0; i < 700; i++) {
+      float f = Float.intBitsToFloat(rnd.nextInt() & 0x7fffffff);
+      if (Float.isNaN(f) || Float.isInfinite(f)) continue;
+      if (i % 2 == 0) f = Float.intBitsToFloat(rnd.nextInt(0x4f000000)); // more mid-range values
+      float up = Math.nextUp(f);
+      if (Float.isInfinite(up)) continue;
+      java.math.BigDecimal mid = new java.math.BigDecimal(f).add(new java.math.BigDecimal(up)).divide(new java.math.BigDecimal(2));
+      String ms = mid.toPlainString();
+      strings.add(ms);
+      strings.add(ms + "1");
+      java.math.BigDecimal below = mid.subtract(java.math.BigDecimal.ONE.scaleByPowerOfTen(-(mid.scale() + 3)));
+      strings.add(below.toPlainString());
+      if (rnd.nextInt(5) == 0) strings.add(mid.toString());
+    }
+    sb.append("  \"parseFloat\": [\n");
+    for (int i = 0; i < strings.size(); i++) {
+      if (i > 0) sb.append(",\n");
+      String s = strings.get(i);
+      sb.append("   [").append(quote(s)).append(", ");
+      try {
+        float f = Float.parseFloat(s);
+        sb.append(Float.floatToRawIntBits(f)).append(", ").append(quote(Float.toString(f)));
+      } catch (NumberFormatException e) {
+        sb.append("null, null");
+      }
+      sb.append("]");
+    }
+    sb.append("\n  ],\n");
+
+    // --- Float.toString: bits -> string
+    List<Float> floats = new ArrayList<>();
+    for (float f : new float[]{0f, -0f, 1f, -1f, Float.MAX_VALUE, -Float.MAX_VALUE, Float.MIN_VALUE, Float.MIN_NORMAL, Float.NaN, Float.POSITIVE_INFINITY, Float.NEGATIVE_INFINITY,
+        1e7f, 9999999f, 9999999.5f, 1e-3f, 0.001f, 0.00099999f, 1e-4f, 0.1f, 0.2f, 0.3f, 1.1f, 1e10f, 1e-10f, 123456.7f, 1234567f, 12345678f, 1.0E-5f, 2e23f, 1e23f, 8.816207E-4f, 1.0E-44f, 2.0E-45f,
+        3.3f, 3.5f, 0.29f, 5.1f, 2.2352f, 1.4f, 1.6f, 100f, 0.5f, 0.05f, 33.333336f, 0.33333334f, 16777216f, 16777218f, 2147483647f, 1.9f, 4.35f, 9.5f, 1.17549435E-38f}) {
+      floats.add(f);
+    }
+    for (int k = 0; k <= 5000; k++) floats.add(k / 100f);
+    for (int i = 0; i < 2000; i++) floats.add((rnd.nextInt() & 0x7fffffff) / 100f);
+    for (int i = 0; i < 1000; i++) floats.add(rnd.nextInt(1000000) / 100f);
+    for (int i = 0; i < 8000; i++) {
+      int exp = 1 + rnd.nextInt(254);
+      int bits = (rnd.nextBoolean() ? 0x80000000 : 0) | (exp << 23) | rnd.nextInt(1 << 23);
+      floats.add(Float.intBitsToFloat(bits));
+    }
+    for (int i = 0; i < 300; i++) floats.add(Float.intBitsToFloat(rnd.nextInt(1 << 23))); // subnormals
+    for (int i = 0; i < 1000; i++) floats.add(Float.intBitsToFloat(rnd.nextInt())); // anything incl. NaN payloads
+    sb.append("  \"toString\": [\n");
+    for (int i = 0; i < floats.size(); i++) {
+      if (i > 0) sb.append(",\n");
+      sb.append("   ").append(floatEntry(floats.get(i)));
+    }
+    sb.append("\n  ],\n");
+
+    // --- float arithmetic: [a, b, a+b, a-b, a*b, a/b] as raw bits
+    sb.append("  \"arith\": [\n");
+    for (int i = 0; i < 3000; i++) {
+      float a, b;
+      switch (i % 4) {
+        case 0: a = Float.intBitsToFloat(rnd.nextInt()); b = Float.intBitsToFloat(rnd.nextInt()); break;
+        case 1: a = rnd.nextInt(20000) / 100f; b = rnd.nextInt(20000) / 100f; break;
+        case 2: a = (rnd.nextFloat() - 0.5f) * 1e5f; b = (rnd.nextFloat() - 0.5f) * 10f; break;
+        default: a = floats.get(rnd.nextInt(floats.size())); b = floats.get(rnd.nextInt(floats.size())); break;
+      }
+      if (i > 0) sb.append(",\n");
+      sb.append("   [").append(Float.floatToRawIntBits(a)).append(", ").append(Float.floatToRawIntBits(b)).append(", ")
+        .append(Float.floatToRawIntBits(a + b)).append(", ").append(Float.floatToRawIntBits(a - b)).append(", ")
+        .append(Float.floatToRawIntBits(a * b)).append(", ").append(Float.floatToRawIntBits(a / b)).append("]");
+    }
+    sb.append("\n  ],\n");
+
+    // --- int <-> float: [i, bits(i / 100f), bits((float) i)] and [bits(f), (int) (Math.abs(f) * 100f), (int) f]
+    sb.append("  \"intToFloat\": [\n");
+    for (int i = 0; i < 3000; i++) {
+      int v = i < 1500 ? rnd.nextInt() : (i < 2500 ? rnd.nextInt(200000) : rnd.nextInt(1 << 25) + (1 << 24));
+      if (i > 0) sb.append(",\n");
+      sb.append("   [").append(v).append(", ").append(Float.floatToRawIntBits(v / 100f)).append(", ").append(Float.floatToRawIntBits((float) v)).append("]");
+    }
+    sb.append("\n  ],\n");
+    sb.append("  \"floatToInt\": [\n");
+    for (int i = 0; i < 3000; i++) {
+      float f = i < 1000 ? Float.intBitsToFloat(rnd.nextInt()) : (i < 2000 ? rnd.nextInt(100000) / 100f : (rnd.nextFloat() - 0.5f) * 1e10f);
+      if (i == 2999) f = Float.NaN;
+      if (i == 2998) f = Float.POSITIVE_INFINITY;
+      if (i == 2997) f = -3e9f;
+      if (i > 0) sb.append(",\n");
+      sb.append("   [").append(Float.floatToRawIntBits(f)).append(", ").append((int) (Math.abs(f) * 100f)).append(", ").append((int) f).append("]");
+    }
+    sb.append("\n  ],\n");
+
+    // --- String.format(Locale.US, "%3.1f", f): bits -> string
+    List<Float> fmt = new ArrayList<>();
+    for (int k = 0; k <= 2000; k++) fmt.add(k / 100f);
+    for (int k = 0; k <= 200; k++) fmt.add(k / 1000f);
+    for (int i = 0; i < 1500; i++) fmt.add(rnd.nextFloat() * 10000f);
+    for (int i = 0; i < 300; i++) fmt.add(Float.intBitsToFloat(rnd.nextInt() & 0x7fffffff));
+    for (int i = 0; i < 300; i++) fmt.add(rnd.nextInt(3000) * 0.3048f);
+    for (int i = 0; i < 300; i++) fmt.add((rnd.nextInt(3000) + rnd.nextInt(12) / 12f) * 0.3048f);
+    for (int i = 0; i < 300; i++) fmt.add(rnd.nextInt(30000) / 100f);
+    for (int i = 0; i < 300; i++) fmt.add(rnd.nextInt(200) * 1.609344f);
+    for (float f : new float[]{0.05f, 0.15f, 0.25f, 0.35f, 0.45f, 1.05f, 2.5f, 0.95f, 9.95f, 99.95f, 0.049999f, 1e10f, 1e-10f, -0.05f, -1.25f, Float.NaN, Float.POSITIVE_INFINITY, Float.NEGATIVE_INFINITY, Float.MAX_VALUE, Float.MIN_VALUE, 0f, -0f}) fmt.add(f);
+    sb.append("  \"format1\": [\n");
+    for (int i = 0; i < fmt.size(); i++) {
+      if (i > 0) sb.append(",\n");
+      float f = fmt.get(i);
+      sb.append("   [").append(Float.floatToRawIntBits(f)).append(", ").append(quote(String.format(java.util.Locale.US, "%3.1f", f))).append("]");
+    }
+    sb.append("\n  ],\n");
+
+    // --- Integer.parseInt: string -> value or null
+    sb.append("  \"parseInt\": [\n");
+    String[] ints = {"0", "1", "-1", "+1", "007", "2147483647", "2147483648", "-2147483648", "-2147483649", "12345678901", "", " ", " 1", "1 ", "1.0", "1e3", "abc", "-", "+", "--1", "+-1", "6", "12", "٣", "1_0", "0x10", "99999999999999999999"};
+    for (int i = 0; i < ints.length; i++) {
+      if (i > 0) sb.append(",\n");
+      sb.append("   [").append(quote(ints[i])).append(", ");
+      try {
+        sb.append(Integer.parseInt(ints[i]));
+      } catch (NumberFormatException e) {
+        sb.append("null");
+      }
+      sb.append("]");
+    }
+    sb.append("\n  ],\n");
+
+    // --- Arrays.hashCode(float[]): [[bits...], hash]
+    sb.append("  \"arraysHashCode\": [\n");
+    for (int i = 0; i < 200; i++) {
+      int n = rnd.nextInt(45);
+      float[] a = new float[n];
+      for (int k = 0; k < n; k++) a[k] = k % 3 == 0 ? Float.intBitsToFloat(rnd.nextInt()) : rnd.nextInt(2000) / 100f;
+      if (i == 0) a = new float[]{Float.NaN, Float.intBitsToFloat(0x7fc00001), Float.intBitsToFloat(0xffc00000), -0f, 0f};
+      if (i > 0) sb.append(",\n");
+      sb.append("   [[");
+      for (int k = 0; k < a.length; k++) {
+        if (k > 0) sb.append(", ");
+        sb.append(Float.floatToRawIntBits(a[k]));
+      }
+      sb.append("], ").append(Arrays.hashCode(a)).append("]");
+    }
+    sb.append("\n  ],\n");
+
+    // --- Character.isWhitespace: every code unit below 0x3100 that is whitespace
+    sb.append("  \"isWhitespace\": [");
+    boolean first = true;
+    for (int c = 0; c < 0x3100; c++) {
+      if (Character.isWhitespace((char) c)) {
+        if (!first) sb.append(", ");
+        first = false;
+        sb.append(c);
+      }
+    }
+    sb.append("],\n");
+
+    // --- String.trim / split as used by the value conversion: [s, trimmed, split-on-"ft" pieces]
+    sb.append("  \"split\": [\n");
+    String[] splits = {"5ft", "5ft6in", "ft6", "ft", "5ft6ft", "5", "", "ftft", "5ftft", "a't", "1'6\"", "'6", "5'", "'", "50cm", "cm", "5 ft", "5kg", "kg5", "t", "5t", "5.5st", "st"};
+    for (int i = 0; i < splits.length; i++) {
+      if (i > 0) sb.append(",\n");
+      String s = splits[i];
+      sb.append("   [").append(quote(s)).append(", ").append(quote(s.trim()));
+      for (String sep : new String[]{"ft", "'", "cm", "t", "st", "kg"}) {
+        String[] sa = s.split(sep);
+        sb.append(", ").append(jsonStrings(Arrays.asList(sa)));
+      }
+      sb.append("]");
+    }
+    sb.append("\n  ]\n}\n");
+    writeFile(new File(outDir, "float.json"), sb.toString());
+    System.err.println("wrote " + new File(outDir, "float.json"));
+  }
 
   // ------------------------------------------------- raw micro-cache bytes --
 
@@ -846,11 +1381,19 @@ public class Dump {
     BExpressionMetaData meta = new BExpressionMetaData();
     BExpressionContextWay ctxWay = new BExpressionContextWay(meta); // registers itself; readMetaData finishes it
     meta.readMetaData(new File(lookupsOpt));
-    File allWays = File.createTempFile("allways", ".brf");
-    allWays.deleteOnExit();
-    writeFile(allWays, "---context:way\nassign costfactor = 1\n");
-    ctxWay.parseFile(allWays, "global");
-    ctxWay.setAllTagsUsed();
+    String profileOpt = opt(args, "--profile", null);
+    if (profileOpt != null) {
+      // the real thing: RoutingEngine parses the profile and does not call
+      // setAllTagsUsed (unless processUnusedTags), so unused tags are filtered
+      // from the descriptions and inaccessible ways drop out
+      ctxWay.parseFile(new File(profileOpt), "global");
+    } else {
+      File allWays = File.createTempFile("allways", ".brf");
+      allWays.deleteOnExit();
+      writeFile(allWays, "---context:way\nassign costfactor = 1\n");
+      ctxWay.parseFile(allWays, "global");
+      ctxWay.setAllTagsUsed();
+    }
 
     GeometryDecoder gd = new GeometryDecoder();
     StringBuilder sb = new StringBuilder();
@@ -866,6 +1409,7 @@ public class Dump {
     kv(sb, 1, "collectMaxCost", collectMaxCost); sb.append(",\n");
     kv(sb, 1, "lookupVersion", meta.lookupVersion); sb.append(",\n");
     kv(sb, 1, "lookupMinorVersion", meta.lookupMinorVersion); sb.append(",\n");
+    if (profileOpt != null) { kv(sb, 1, "profile", new File(profileOpt).getName()); sb.append(",\n"); }
 
     // phase 1: RoutingEngine.matchWaypointsToNodes = resetCache(false) + NodesCache.matchWaypointsToNodes
     NodesCache cache = new NodesCache(segDir, ctxWay, false, maxmem, null, false);
