@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Follow stack logs.  Usage: bin/logs [service ...]   (default: all services)
+. "$(dirname "$0")/_common.sh"
+
+if [ "$#" -gt 0 ]; then
+  compose logs -f --tail=200 "$@"
+else
+  compose --profile api logs -f --tail=200
+fi

@@ -1,0 +1,17 @@
+name: velorki_fit
+description: Garmin FIT activity and course files for Velorki. Pure Dart, no Flutter dependency.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.3
+
+dependencies:
+  fit_sdk: ^0.3.0
+  velorki_geo:
+    path: ../velorki_geo
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.0

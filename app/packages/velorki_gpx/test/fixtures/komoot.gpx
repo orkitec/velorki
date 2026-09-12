@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd" version="1.1" creator="komoot.de">
+  <metadata>
+    <name>Feierabendrunde am Ammersee</name>
+    <author>
+      <link href="https://www.komoot.de">
+        <text>komoot</text>
+        <type>text/html</type>
+      </link>
+    </author>
+  </metadata>
+  <trk>
+    <name>Feierabendrunde am Ammersee</name>
+    <trkseg>
+      <trkpt lat="48.014290" lon="11.150160">
+        <ele>533.021973</ele>
+        <time>2024-06-12T16:04:41.000Z</time>
+      </trkpt>
+      <trkpt lat="48.014336" lon="11.150221">
+        <ele>533.100000</ele>
+        <time>2024-06-12T16:04:46.000Z</time>
+      </trkpt>
+      <trkpt lat="48.014401" lon="11.150302">
+        <ele>533.200000</ele>
+        <time>2024-06-12T16:04:51.000Z</time>
+      </trkpt>
+    </trkseg>
+  </trk>
+</gpx>

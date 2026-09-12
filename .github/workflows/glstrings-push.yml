@@ -1,0 +1,24 @@
+name: glstrings push sources
+
+# Pushes the English source strings to GL Strings (Applanga) whenever they
+# change on main. Needs the APPLANGA_ACCESS_TOKEN secret; forks without it
+# skip the job.
+on:
+  push:
+    branches: [main]
+    paths: ["app/lib/l10n/app_en.arb"]
+  workflow_dispatch:
+
+jobs:
+  push:
+    if: ${{ github.repository_owner == 'orkitec' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: applanga/setup-applanga-cli@v1.0.3
+        with:
+          version: 1.0.*
+      - name: Push sources
+        env:
+          APPLANGA_ACCESS_TOKEN: ${{ secrets.APPLANGA_ACCESS_TOKEN }}
+        run: applanga push --force

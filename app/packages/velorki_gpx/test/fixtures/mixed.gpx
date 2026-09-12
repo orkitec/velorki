@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="handwritten"
+     xmlns="http://www.topografix.com/GPX/1/1"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+  <metadata>
+    <name>Isar loop</name>
+    <desc>A route, a track and a waypoint in one file.</desc>
+  </metadata>
+  <wpt lat="48.1351" lon="11.5820">
+    <ele>519.0</ele>
+    <time>2024-05-01T07:55:00Z</time>
+    <name>Marienplatz</name>
+    <desc>Start</desc>
+    <sym>Flag, Blue</sym>
+    <type>landmark</type>
+  </wpt>
+  <wpt lat="48.1500" lon="11.6000">
+    <name>Brunnen</name>
+    <sym>Water Source</sym>
+  </wpt>
+  <rte>
+    <name>Planned way home</name>
+    <desc>Two turn points.</desc>
+    <rtept lat="48.1400" lon="11.5900">
+      <ele>520.5</ele>
+    </rtept>
+    <rtept lat="48.1450" lon="11.5950"/>
+  </rte>
+  <trk>
+    <name>Morning ride</name>
+    <desc>Recorded.</desc>
+    <type>cycling</type>
+    <trkseg>
+      <trkpt lat="48.1351" lon="11.5820">
+        <ele>519.0</ele>
+        <time>2024-05-01T08:00:00Z</time>
+      </trkpt>
+      <trkpt lat="48.1352" lon="11.5821">
+        <ele>519.5</ele>
+        <time>2024-05-01T08:00:05Z</time>
+      </trkpt>
+    </trkseg>
+    <trkseg>
+      <trkpt lat="48.1400" lon="11.5900">
+        <ele>525.0</ele>
+        <time>2024-05-01T08:10:00Z</time>
+      </trkpt>
+    </trkseg>
+  </trk>
+</gpx>

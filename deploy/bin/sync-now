@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Trigger a segment sync immediately instead of waiting for SYNC_INTERVAL.
+#
+# This runs one extra pass inside the already-running updater container. If the
+# periodic pass happens to be running, the flock makes this a no-op rather than
+# letting two writers race.
+. "$(dirname "$0")/_common.sh"
+
+echo "==> running one sync pass in velorki-brouter-updater"
+compose exec -T brouter-updater /usr/local/bin/sync.sh once

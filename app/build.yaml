@@ -1,0 +1,8 @@
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          # Text storage keeps timestamps timezone-safe and is drift's
+          # recommendation for new databases; it is fixed for schema v1.
+          store_date_time_values_as_text: true

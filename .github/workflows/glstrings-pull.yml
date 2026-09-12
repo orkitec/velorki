@@ -1,0 +1,33 @@
+name: glstrings pull translations
+
+# Pulls finished translations from GL Strings (Applanga) into the ARB files and
+# opens a pull request. Weekly and on demand. Translations never land on main
+# without review.
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  pull:
+    if: ${{ github.repository_owner == 'orkitec' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: applanga/setup-applanga-cli@v1.0.3
+        with:
+          version: 1.0.*
+      - name: Pull translations
+        env:
+          APPLANGA_ACCESS_TOKEN: ${{ secrets.APPLANGA_ACCESS_TOKEN }}
+        run: applanga pull
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          branch: glstrings/translations
+          title: Update translations
+          commit-message: Update translations from GL Strings
+          body: Translations pulled from GL Strings. Review and merge.
+          delete-branch: true

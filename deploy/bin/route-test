@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# End-to-end check: request a real route through Caddy, i.e. exactly the path a
+# Velorki client takes. Prints the distance the router came back with.
+#
+# Usage: bin/route-test [profile] [lonlats]
+#   defaults: trekking, a short hop across Zurich (needs tile E5_N45)
+. "$(dirname "$0")/_common.sh"
+load_env
+
+PROFILE="${1:-trekking}"
+LONLATS="${2:-8.5,47.4|8.51,47.41}"
+
+if [ -z "${DOMAIN:-}" ]; then
+  echo "error: DOMAIN is not set in .env" >&2
+  exit 1
+fi
+
+URL="https://$DOMAIN/brouter?lonlats=$LONLATS&profile=$PROFILE&alternativeidx=0&format=geojson"
+echo "==> GET $URL"
+
+tmp="$(mktemp)"
+trap 'rm -f "$tmp"' EXIT
+
+code="$(curl -sS -o "$tmp" -w '%{http_code}' --max-time 40 --get \
+          --data-urlencode "lonlats=$LONLATS" \
+          --data-urlencode "profile=$PROFILE" \
+          --data-urlencode "alternativeidx=0" \
+          --data-urlencode "format=geojson" \
+          "https://$DOMAIN/brouter" || echo 000)"
+
+if [ "$code" != "200" ]; then
+  echo "FAIL: HTTP $code" >&2
+  head -c 800 "$tmp" >&2; echo >&2
+  echo >&2
+  echo "Hints:" >&2
+  echo "  * 502  -> brouter container is down:   docker compose ps" >&2
+  echo "  * 400  -> the tile covering these coordinates is not mirrored yet;" >&2
+  echo "            check SEGMENT_FILTER and 'bin/logs brouter-updater'" >&2
+  exit 1
+fi
+
+if ! grep -q '"FeatureCollection"' "$tmp"; then
+  echo "FAIL: response is not GeoJSON" >&2
+  head -c 800 "$tmp" >&2; echo >&2
+  exit 1
+fi
+
+python3 - "$tmp" <<'PY' 2>/dev/null || echo "OK: got a GeoJSON route ($(wc -c < "$tmp") bytes)"
+import json, sys
+d = json.load(open(sys.argv[1]))
+p = d["features"][0]["properties"]
+print("OK: %s m, %s s, profile=%s" % (
+    p.get("track-length", "?"), p.get("total-time", "?"), p.get("name", "?")))
+PY

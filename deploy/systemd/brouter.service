@@ -1,0 +1,40 @@
+[Unit]
+Description=BRouter routing server (Velorki)
+Documentation=https://github.com/abrensch/brouter
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=brouter
+Group=brouter
+WorkingDirectory=/opt/brouter
+
+# Upstream's server.sh hardcodes -Xmx128M, so we invoke the JVM directly.
+# btools.server.RouteServer <segmentdir> <profiledir> <customprofiledir> <port> <maxthreads>
+Environment=JAVA_OPTS=-Xmx512M
+Environment=SEGMENTSPATH=/opt/brouter/segments4
+Environment=PROFILESPATH=/opt/brouter/profiles2
+Environment=CUSTOMPROFILESPATH=/opt/brouter/customprofiles
+Environment=BROUTER_PORT=17777
+Environment=BROUTER_MAXTHREADS=2
+
+ExecStart=/bin/sh -c 'exec java $JAVA_OPTS -DmaxRunningTime=300 -DuseRFCMimeType=false \
+  -cp /opt/brouter/brouter.jar btools.server.RouteServer \
+  "$SEGMENTSPATH" "$PROFILESPATH" "$CUSTOMPROFILESPATH" "$BROUTER_PORT" "$BROUTER_MAXTHREADS"'
+
+Restart=on-failure
+RestartSec=10
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/brouter/segments4 /opt/brouter/customprofiles
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

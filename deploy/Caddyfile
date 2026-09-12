@@ -1,0 +1,50 @@
+# Velorki reverse proxy.
+#
+# {$DOMAIN} and {$ACME_EMAIL} are substituted from the container environment,
+# which docker-compose.yml populates from .env.
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode gzip
+
+	# --- BRouter routing API -------------------------------------------
+	# BRouter's HTTP API lives at /brouter (it routes on any URL carrying
+	# both `lonlats` and `profile`), plus /brouter/profile and
+	# /brouter/suspects.
+	handle /brouter* {
+		# The mobile app does not need CORS, and neither does the share page
+		# (it is served from this same origin). This single header is here so
+		# a browser-based debug tool or a third-party client can call the
+		# routing API directly; nothing else CORS-related is exposed.
+		header Access-Control-Allow-Origin "*"
+
+		reverse_proxy brouter:17777 {
+			transport http {
+				dial_timeout            5s
+				response_header_timeout 30s
+				read_timeout            30s
+				write_timeout           30s
+			}
+		}
+	}
+
+	# --- everything else: the Velorki API -------------------------------
+	handle {
+		reverse_proxy api:8080 {
+			transport http {
+				dial_timeout            5s
+				response_header_timeout 30s
+				read_timeout            30s
+				write_timeout           30s
+			}
+		}
+	}
+
+	log {
+		output stderr
+		format console
+	}
+}

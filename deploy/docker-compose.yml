@@ -1,0 +1,125 @@
+# Velorki self-hosting stack: TLS terminator + BRouter routing server +
+# segment mirror, with an optional API service.
+#
+#   docker compose up -d                 # caddy + brouter + brouter-updater
+#   docker compose --profile api up -d   # ...and the Velorki API as a container
+#
+# On the official Velorki VPS the API is NOT run here: Orkify deploys it as a
+# plain Node process from ../api. That is why the `api` service sits behind a
+# compose profile - see README.md, "Running the API".
+
+name: velorki
+
+services:
+  # --------------------------------------------------------------- caddy ---
+  # Public entrypoint. Terminates TLS (automatic Let's Encrypt certificates for
+  # $DOMAIN), proxies /brouter* to the routing server and everything else to
+  # the API.
+  caddy:
+    image: caddy:2
+    container_name: velorki-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data       # certificates + ACME account key - BACK THIS UP
+      - caddy_config:/config
+    depends_on:
+      - brouter
+    # NOTE: deliberately no depends_on for `api`. It lives in a profile, and
+    # Caddy resolves a static upstream lazily at request time, so a missing
+    # api container just yields 502 on the API routes rather than blocking boot.
+
+  # ------------------------------------------------------------- brouter ---
+  # The BRouter routing engine. Built from the upstream repo at the pinned tag
+  # because upstream publishes no prebuilt image - see ../brouter/Dockerfile.
+  brouter:
+    build:
+      context: ../brouter
+      dockerfile: Dockerfile
+      args:
+        BROUTER_VERSION: ${BROUTER_VERSION:-v1.7.10}
+    image: velorki/brouter:${BROUTER_VERSION:-v1.7.10}
+    container_name: velorki-brouter
+    restart: unless-stopped
+    environment:
+      # Honoured by ../brouter/entrypoint.sh. (Upstream's own server.sh would
+      # overwrite this, which is why we ship our own entrypoint.)
+      JAVA_OPTS: ${JAVA_OPTS:--Xmx512M}
+    expose:
+      - "17777"   # internal only: never published to the host
+    volumes:
+      - brouter_segments:/segments4:ro          # written by brouter-updater
+      - ../brouter/profiles:/profiles2:ro       # lookups.dat + *.brf
+    mem_limit: 1g
+    healthcheck:
+      # A real route across Zurich (tile E5_N45). This stays unhealthy until the
+      # first sync has fetched that tile - expected on a fresh install.
+      test: ["CMD", "wget", "-qO-", "http://localhost:17777/brouter?lonlats=8.5,47.4|8.51,47.41&profile=trekking&alternativeidx=0&format=geojson"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 120s
+
+  # ----------------------------------------------------- brouter-updater ---
+  # Mirrors the .rd5 segment tiles from brouter.de into the brouter_segments
+  # volume, then sleeps SYNC_INTERVAL and repeats. Safe to interrupt.
+  brouter-updater:
+    build:
+      context: ../brouter/updater
+      dockerfile: Dockerfile
+    image: velorki/brouter-updater:1
+    container_name: velorki-brouter-updater
+    restart: unless-stopped
+    environment:
+      SEGMENTS_URL: ${SEGMENTS_URL:-https://brouter.de/brouter/segments4/}
+      SEGMENTS_DIR: /segments4
+      SEGMENT_FILTER: ${SEGMENT_FILTER:-*}
+      SYNC_INTERVAL: ${SYNC_INTERVAL:-7d}
+      MANIFEST_SHA256: ${MANIFEST_SHA256:-0}
+      BROUTER_VERSION: ${BROUTER_VERSION:-v1.7.10}
+    volumes:
+      - brouter_segments:/segments4   # read-write here, read-only in brouter
+    mem_limit: 256m
+
+  # ----------------------------------------------------------------- api ---
+  # Velorki API. Only started with `--profile api`.
+  api:
+    profiles: ["api"]
+    container_name: velorki-api
+    restart: unless-stopped
+    # DEFAULT: build the API from the monorepo checkout.
+    build:
+      context: ../api
+    # TO USE THE PREBUILT IMAGE INSTEAD: comment out the two `build:` lines
+    # above and uncomment the line below, then set API_TAG in .env.
+    # image: ghcr.io/orkitec/velorki-api:${API_TAG:-latest}
+    env_file: .env
+    environment:
+      BROUTER_URL: http://brouter:17777
+      PORT: "8080"
+      TRUST_PROXY: "1"   # sit behind Caddy: honour X-Forwarded-For / -Proto
+    expose:
+      - "8080"
+    volumes:
+      - api_data:/app/data   # share-link SQLite etc. - BACK THIS UP
+    depends_on:
+      - brouter
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  caddy_data:
+  caddy_config:
+  brouter_segments:
+  api_data:

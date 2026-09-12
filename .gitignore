@@ -1,0 +1,44 @@
+# OS / editors
+.DS_Store
+*.swp
+.idea/
+.vscode/
+*.iml
+
+# Flutter / Dart
+**/.dart_tool/
+**/build/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/*.g.dart
+**/*.freezed.dart
+**/*.drift.dart
+**/pubspec.lock
+!app/pubspec.lock
+app/env/local.json
+app/android/key.properties
+app/android/**/*.jks
+app/android/**/*.keystore
+app/ios/Runner/GoogleService-Info.plist
+app/android/app/google-services.json
+app/ios/Pods/
+app/ios/.symlinks/
+app/ios/Flutter/Generated.xcconfig
+app/ios/Flutter/flutter_export_environment.sh
+app/fastlane/report.xml
+app/fastlane/*.cer
+app/fastlane/*.p12
+
+# Node
+node_modules/
+api/dist/
+api/data/
+api/.env
+api/coverage/
+
+# Deploy
+deploy/.env
+deploy/segments/
+
+# Misc
+*.log

@@ -1,0 +1,23 @@
+include: package:flutter_lints/flutter.yaml
+
+# riverpod_lint ships as an analysis_server_plugin since 3.1, so it is declared
+# here instead of being a dev_dependency (custom_lint is no longer involved).
+plugins:
+  riverpod_lint: ^3.1.9
+
+analyzer:
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - lib/l10n/generated/**
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "**/*.drift.dart"
+  errors:
+    invalid_annotation_target: ignore
+
+linter:
+  rules:
+    - prefer_single_quotes
+    - unawaited_futures

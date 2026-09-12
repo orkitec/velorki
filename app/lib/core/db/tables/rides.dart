@@ -1,0 +1,32 @@
+import 'package:drift/drift.dart';
+
+import 'routes.dart';
+
+@DataClassName('RideRow')
+class Rides extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  DateTimeColumn get startedAt => dateTime()();
+  DateTimeColumn get endedAt => dateTime()();
+  RealColumn get distanceM => real()();
+  IntColumn get movingTimeS => integer()();
+  IntColumn get elapsedTimeS => integer()();
+  RealColumn get ascentM => real()();
+  RealColumn get descentM => real()();
+  RealColumn get avgSpeedMps => real()();
+  RealColumn get maxSpeedMps => real()();
+
+  /// Deleting the followed route keeps the ride; the link is simply cleared.
+  TextColumn get routeId =>
+      text().nullable().references(Routes, #id, onDelete: KeyAction.setNull)();
+
+  /// Packed track including timestamps; the recording journal uses the same
+  /// layout so finalising a ride is a copy.
+  BlobColumn get geometry => blob()();
+  TextColumn get pausesJson => text()();
+  TextColumn get uploadsJson => text().nullable()();
+  TextColumn get notes => text().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}

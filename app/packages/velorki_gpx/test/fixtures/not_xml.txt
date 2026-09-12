@@ -1,0 +1,3 @@
+this file is definitely not xml, it is a shopping list:
+- inner tube
+- chain lube

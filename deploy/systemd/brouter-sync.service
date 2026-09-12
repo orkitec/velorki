@@ -1,0 +1,25 @@
+[Unit]
+Description=Mirror BRouter segment tiles (Velorki)
+Documentation=https://brouter.de/brouter/segments4/
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=brouter
+Group=brouter
+Environment=SEGMENTS_URL=https://brouter.de/brouter/segments4/
+Environment=SEGMENTS_DIR=/opt/brouter/segments4
+# Space-separated globs; "*" is the whole planet.
+Environment=SEGMENT_FILTER=*
+Environment=BROUTER_VERSION=v1.7.10
+ExecStart=/opt/brouter/bin/sync.sh once
+
+# A planet pass can take hours on a cold cache.
+TimeoutStartSec=6h
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/brouter/segments4

@@ -1,0 +1,18 @@
+name: velorki_gpx
+description: GPX 1.1 reading and writing for Velorki, wrapping package:gpx. Pure Dart, no Flutter dependency.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.3
+
+dependencies:
+  gpx: ^2.5.0
+  velorki_geo:
+    path: ../velorki_geo
+  xml: ^7.0.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.0

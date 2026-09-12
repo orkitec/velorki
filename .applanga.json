@@ -1,0 +1,23 @@
+{
+  "app": {
+    "base_language": "en",
+    "pull": {
+      "target": [
+        {
+          "file_format": "arb",
+          "exclude_languages": ["en"],
+          "path": "./app/lib/l10n/app_<language>.arb"
+        }
+      ]
+    },
+    "push": {
+      "source": [
+        {
+          "file_format": "arb",
+          "language": "en",
+          "path": "./app/lib/l10n/app_en.arb"
+        }
+      ]
+    }
+  }
+}

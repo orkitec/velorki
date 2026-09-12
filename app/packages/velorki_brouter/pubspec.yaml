@@ -1,0 +1,19 @@
+name: velorki_brouter
+description: >-
+  BRouter routing backend for Velorki - HTTP client, GeoJSON and messages
+  parser. Pure Dart, no Flutter dependency.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.3
+
+dependencies:
+  http: ^1.2.0
+  velorki_geo:
+    path: ../velorki_geo
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.0

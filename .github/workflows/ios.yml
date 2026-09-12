@@ -1,0 +1,32 @@
+name: ios (manual)
+
+# iOS builds normally happen on the maintainer's Mac with fastlane, because
+# macOS runners cost ten times Linux minutes. This manual workflow exists for
+# release candidates when no Mac is at hand. It produces an unsigned archive
+# unless the signing secrets are configured.
+on:
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version-file: app/pubspec.yaml
+          cache: true
+      - run: flutter pub get
+      - run: dart run build_runner build
+      - run: flutter gen-l10n
+      - run: flutter build ios --release --no-codesign --dart-define-from-file=env/ci.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: velorki-ios-unsigned
+          path: app/build/ios/iphoneos
+          retention-days: 7

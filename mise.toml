@@ -1,0 +1,10 @@
+# Toolchain pins for contributors using mise (https://mise.jdx.dev).
+# Flutter also reads app/.fvmrc for fvm users; keep both in sync.
+[tools]
+flutter = "3.47.4"
+java = "temurin-17.0.20+101"
+node = "26"
+
+[env]
+ANDROID_HOME = "{{env.HOME}}/Android/Sdk"
+ANDROID_SDK_ROOT = "{{env.HOME}}/Android/Sdk"
