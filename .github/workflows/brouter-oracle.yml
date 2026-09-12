@@ -1,0 +1,109 @@
+name: brouter-oracle
+
+# Track R0: keep the BRouter test oracle honest.
+#
+# Downloads the pinned BRouter 1.7.10 release and the two rd5 tiles the corpus
+# was recorded against, starts the RouteServer and replays corpus/index.json.
+#
+# brouter.de rebuilds segments4 nightly, so the tiles will eventually stop
+# matching tiles.sha256. That is not a failure of the port: the job then warns,
+# uploads what it has and exits 0 with regeneration instructions.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Sundays 04:17 UTC, after the nightly segment rebuild on brouter.de.
+    - cron: "17 4 * * 0"
+
+defaults:
+  run:
+    working-directory: tools/brouter-oracle
+
+jobs:
+  corpus:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Fetch the pinned BRouter release and the rd5 tiles
+        id: fetch
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          ./fetch.sh
+          rc=$?
+          set -e
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          if [ "$rc" = "3" ]; then
+            echo "tiles_changed=true" >> "$GITHUB_OUTPUT"
+          elif [ "$rc" != "0" ]; then
+            exit "$rc"
+          fi
+
+      - name: Skip -- brouter.de rebuilt the segments
+        if: steps.fetch.outputs.tiles_changed == 'true'
+        run: |
+          {
+            echo "### BRouter oracle skipped"
+            echo
+            echo "The rd5 tiles downloaded from brouter.de no longer match"
+            echo "\`tools/brouter-oracle/tiles.sha256\`. brouter.de rebuilds"
+            echo "\`segments4\` every night, so the recorded corpus is bound to a"
+            echo "data snapshot that is now gone. This is **not** a routing"
+            echo "regression."
+            echo
+            echo "Recorded checksums:"
+            echo '```'
+            cat tiles.sha256
+            echo '```'
+            echo "Checksums now:"
+            echo '```'
+            ( cd .cache/segments4 && sha256sum ./*.rd5 )
+            echo '```'
+            echo
+            echo "To re-bind the corpus to the current snapshot:"
+            echo '```sh'
+            echo "cd tools/brouter-oracle"
+            echo "./fetch.sh                       # ignore the exit code 3"
+            echo "(cd .cache/segments4 && sha256sum *.rd5) > tiles.sha256"
+            echo "# update the sizes and the index timestamp in tiles.txt and README.md"
+            echo "./serve.sh"
+            echo "python3 gen_corpus.py && python3 run_corpus.py"
+            echo "./stop.sh"
+            echo "# commit corpus/ together with the new tiles.sha256"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::warning title=BRouter oracle skipped::rd5 tiles changed upstream; see the job summary for how to regenerate the corpus"
+
+      - name: Start the RouteServer
+        if: steps.fetch.outputs.tiles_changed != 'true'
+        run: ./serve.sh
+
+      - name: Replay the corpus
+        id: check
+        if: steps.fetch.outputs.tiles_changed != 'true'
+        run: python3 check_corpus.py --out .cache/check-diff.txt --bodies
+
+      - name: Stop the RouteServer
+        if: always() && steps.fetch.outputs.tiles_changed != 'true'
+        run: ./stop.sh || true
+
+      - name: Upload the diff
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: brouter-oracle-diff
+          if-no-files-found: ignore
+          retention-days: 30
+          path: |
+            tools/brouter-oracle/.cache/check-diff.txt
+            tools/brouter-oracle/.cache/check-bodies/
+            tools/brouter-oracle/.cache/routeserver.log
+            tools/brouter-oracle/.cache/routeserver.cmdline

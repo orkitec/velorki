@@ -88,7 +88,7 @@ checked 2026-09-12.
 | output | `format=geojson` | |
 | round trip | `engineMode=4` | the numeric `BROUTER_ENGINEMODE_ROUNDTRIP`; there is **no** `engineMode=roundtrip` |
 | round-trip size | `roundTripDistance=<metres>` | camelCase; **metres, not kilometres**, and it is the *radius* of the generated circle, not the route length. Server default 1500. |
-| round-trip heading | `roundTripStartDirection=<deg>` | `direction`/`heading` exist but set the generic start direction |
+| round-trip heading | `direction=<deg>` | without it BRouter chooses a random bearing; `roundTripStartDirection` does not exist in 1.7.10 |
 | generated points | `roundTripPoints=3..20` | default 5 |
 | no way back | `allowSamewayback=0\|1` | lower-case `w` and `b` |
 | avoid areas | `nogos=lon,lat,radius[,weight]\|...` | radius in metres |

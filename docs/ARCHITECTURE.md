@@ -246,7 +246,7 @@ file-based only; Garmin developer access has been paused since 2026.
 `LoopRequest{start, via[], targetM, profile, prefs{hills, surface,
 avoidTraffic}}` three strategies generate candidates:
 
-- `RoundtripStrategy` — BRouter's round-trip mode (`engineMode=4`, `roundTripDistance` is a radius in metres, route ≈ (π+2)·radius, `roundTripStartDirection`) in 8 directions, then
+- `RoundtripStrategy` — BRouter's round-trip mode (`engineMode=4`, `roundTripDistance` is a radius in metres, route ≈ (π+2)·radius, `direction` (always sent; BRouter randomises the bearing otherwise)) in 8 directions, then
   the best two re-issued with the distance scaled by target/actual.
 - `ViaOutAndBackStrategy` — start → via → start with `allowSamewayback=false`.
   If the result is too short, a synthetic bearing point perpendicular to the

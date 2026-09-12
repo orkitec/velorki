@@ -95,7 +95,7 @@ void main() {
       expect(uri.queryParameters['engineMode'], '4');
       expect(uri.queryParameters['lonlats'], '11.575612,48.137213');
       expect(uri.queryParameters['roundTripDistance'], '7800');
-      expect(uri.queryParameters['roundTripStartDirection'], '135');
+      expect(uri.queryParameters['direction'], '135');
     });
 
     test('only the start point is sent even with extra points', () {
@@ -104,10 +104,7 @@ void main() {
       );
       expect(uri.queryParameters['lonlats'], '11.575612,48.137213');
       expect(uri.queryParameters.containsKey('roundTripDistance'), isFalse);
-      expect(
-        uri.queryParameters.containsKey('roundTripStartDirection'),
-        isFalse,
-      );
+      expect(uri.queryParameters.containsKey('direction'), isFalse);
     });
 
     test('the direction is normalised into 0..359', () {
@@ -118,7 +115,7 @@ void main() {
           roundTripDirectionDeg: -45,
         ),
       );
-      expect(uri.queryParameters['roundTripStartDirection'], '315');
+      expect(uri.queryParameters['direction'], '315');
     });
 
     test('roundTripPoints is sent when the backend configures it', () {

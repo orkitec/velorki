@@ -1,0 +1,22 @@
+# One line per way, "key=value" pairs separated by spaces.
+# Keys must exist in lookups.dat; unknown keys are reported in "unknownKeys".
+highway=residential surface=asphalt
+highway=residential surface=cobblestone maxspeed=30
+highway=primary surface=asphalt maxspeed=70 lit=yes
+highway=secondary surface=asphalt bicycle=yes
+highway=tertiary surface=gravel
+highway=unclassified surface=compacted smoothness=good
+highway=track tracktype=grade1 surface=compacted
+highway=track tracktype=grade3 surface=ground
+highway=track tracktype=grade5 surface=dirt
+highway=path surface=ground sac_scale=hiking
+highway=path bicycle=designated surface=fine_gravel
+highway=cycleway surface=asphalt
+highway=cycleway surface=gravel oneway=yes
+highway=footway bicycle=yes surface=paving_stones
+highway=steps
+highway=service surface=asphalt access=private
+highway=motorway
+highway=living_street surface=sett
+highway=residential surface=asphalt oneway=yes cycleway=opposite
+route=ferry

@@ -1,0 +1,3775 @@
+{
+ "generator": "gen_corpus.py",
+ "seed": 20260912,
+ "brouter_version": "v1.7.10",
+ "note": "Deterministic corpus. Valid only for the rd5 snapshot recorded in tiles.sha256; see README.md.",
+ "profiles": [
+  "trekking",
+  "fastbike",
+  "fastbike-lowtraffic",
+  "gravel",
+  "mtb",
+  "shortest"
+ ],
+ "counts": {
+  "pair": 120,
+  "triple": 40,
+  "nogo": 24,
+  "roundtrip": 16,
+  "total": 200
+ },
+ "cases": [
+  {
+   "id": "pair-000",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "trekking",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.863901,
+     32.647377
+    ],
+    [
+     -16.887019,
+     32.651685
+    ]
+   ],
+   "query": "lonlats=-16.863901,32.647377%7C-16.887019,32.651685&profile=trekking&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-001",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "trekking",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -21.929265,
+     64.090946
+    ],
+    [
+     -21.945417,
+     64.084525
+    ]
+   ],
+   "query": "lonlats=-21.929265,64.090946%7C-21.945417,64.084525&profile=trekking&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-002",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "trekking",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.834669,
+     32.763553
+    ],
+    [
+     -16.856731,
+     32.788391
+    ]
+   ],
+   "query": "lonlats=-16.834669,32.763553%7C-16.856731,32.788391&profile=trekking&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-003",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "trekking",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -21.941036,
+     64.067219
+    ],
+    [
+     -21.979597,
+     64.054096
+    ]
+   ],
+   "query": "lonlats=-21.941036,64.067219%7C-21.979597,64.054096&profile=trekking&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-004",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "trekking",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.846432,
+     32.778514
+    ],
+    [
+     -16.85134,
+     32.78571
+    ]
+   ],
+   "query": "lonlats=-16.846432,32.778514%7C-16.85134,32.78571&profile=trekking&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-005",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "trekking",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -22.117246,
+     64.025978
+    ],
+    [
+     -22.080427,
+     64.033481
+    ]
+   ],
+   "query": "lonlats=-22.117246,64.025978%7C-22.080427,64.033481&profile=trekking&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-006",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "trekking",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -16.762455,
+     32.708864
+    ],
+    [
+     -16.772241,
+     32.702403
+    ]
+   ],
+   "query": "lonlats=-16.762455,32.708864%7C-16.772241,32.702403&profile=trekking&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-007",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "trekking",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -21.814715,
+     64.131005
+    ],
+    [
+     -21.780633,
+     64.128263
+    ]
+   ],
+   "query": "lonlats=-21.814715,64.131005%7C-21.780633,64.128263&profile=trekking&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-008",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "trekking",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -16.791179,
+     32.68905
+    ],
+    [
+     -16.764626,
+     32.707709
+    ]
+   ],
+   "query": "lonlats=-16.791179,32.68905%7C-16.764626,32.707709&profile=trekking&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-009",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "trekking",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -21.780159,
+     64.127179
+    ],
+    [
+     -21.849967,
+     64.127944
+    ]
+   ],
+   "query": "lonlats=-21.780159,64.127179%7C-21.849967,64.127944&profile=trekking&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-010",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "trekking",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -16.788112,
+     32.688603
+    ],
+    [
+     -16.803719,
+     32.67561
+    ]
+   ],
+   "query": "lonlats=-16.788112,32.688603%7C-16.803719,32.67561&profile=trekking&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-011",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "trekking",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -21.818211,
+     64.130781
+    ],
+    [
+     -21.764,
+     64.133001
+    ]
+   ],
+   "query": "lonlats=-21.818211,64.130781%7C-21.764,64.133001&profile=trekking&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-012",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "trekking",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -16.926961,
+     32.639229
+    ],
+    [
+     -16.917815,
+     32.642005
+    ]
+   ],
+   "query": "lonlats=-16.926961,32.639229%7C-16.917815,32.642005&profile=trekking&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-013",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "trekking",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -21.991084,
+     64.052548
+    ],
+    [
+     -22.037998,
+     64.04141
+    ]
+   ],
+   "query": "lonlats=-21.991084,64.052548%7C-22.037998,64.04141&profile=trekking&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-014",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "trekking",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -17.034147,
+     32.669049
+    ],
+    [
+     -17.027577,
+     32.674162
+    ]
+   ],
+   "query": "lonlats=-17.034147,32.669049%7C-17.027577,32.674162&profile=trekking&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-015",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "trekking",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -22.415503,
+     63.962905
+    ],
+    [
+     -22.468902,
+     63.964272
+    ]
+   ],
+   "query": "lonlats=-22.415503,63.962905%7C-22.468902,63.964272&profile=trekking&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-016",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "trekking",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -16.767435,
+     32.706499
+    ],
+    [
+     -16.785359,
+     32.690315
+    ]
+   ],
+   "query": "lonlats=-16.767435,32.706499%7C-16.785359,32.690315&profile=trekking&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-017",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "trekking",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -21.90577,
+     64.114257
+    ],
+    [
+     -21.913842,
+     64.143495
+    ]
+   ],
+   "query": "lonlats=-21.90577,64.114257%7C-21.913842,64.143495&profile=trekking&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-018",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "trekking",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -16.901213,
+     32.650492
+    ],
+    [
+     -16.932795,
+     32.638198
+    ]
+   ],
+   "query": "lonlats=-16.901213,32.650492%7C-16.932795,32.638198&profile=trekking&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-019",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "trekking",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -21.84823,
+     64.128542
+    ],
+    [
+     -21.892747,
+     64.101037
+    ]
+   ],
+   "query": "lonlats=-21.84823,64.128542%7C-21.892747,64.101037&profile=trekking&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-020",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "fastbike",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.775948,
+     32.698909
+    ],
+    [
+     -16.804647,
+     32.675887
+    ]
+   ],
+   "query": "lonlats=-16.775948,32.698909%7C-16.804647,32.675887&profile=fastbike&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-021",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "fastbike",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -21.939711,
+     64.074991
+    ],
+    [
+     -21.944387,
+     64.08398
+    ]
+   ],
+   "query": "lonlats=-21.939711,64.074991%7C-21.944387,64.08398&profile=fastbike&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-022",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "fastbike",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -17.050658,
+     32.666744
+    ],
+    [
+     -17.060603,
+     32.671154
+    ]
+   ],
+   "query": "lonlats=-17.050658,32.666744%7C-17.060603,32.671154&profile=fastbike&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-023",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "fastbike",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -21.939711,
+     64.074991
+    ],
+    [
+     -21.954136,
+     64.066909
+    ]
+   ],
+   "query": "lonlats=-21.939711,64.074991%7C-21.954136,64.066909&profile=fastbike&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-024",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "fastbike",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.823849,
+     32.756645
+    ],
+    [
+     -16.830901,
+     32.76278
+    ]
+   ],
+   "query": "lonlats=-16.823849,32.756645%7C-16.830901,32.76278&profile=fastbike&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-025",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "fastbike",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -21.757898,
+     64.138472
+    ],
+    [
+     -21.729849,
+     64.156601
+    ]
+   ],
+   "query": "lonlats=-21.757898,64.138472%7C-21.729849,64.156601&profile=fastbike&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-026",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "fastbike",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -16.88001,
+     32.798011
+    ],
+    [
+     -16.854269,
+     32.79215
+    ]
+   ],
+   "query": "lonlats=-16.88001,32.798011%7C-16.854269,32.79215&profile=fastbike&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-027",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "fastbike",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -21.914422,
+     64.121019
+    ],
+    [
+     -21.868585,
+     64.133377
+    ]
+   ],
+   "query": "lonlats=-21.914422,64.121019%7C-21.868585,64.133377&profile=fastbike&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-028",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "fastbike",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -16.814542,
+     32.66004
+    ],
+    [
+     -16.796466,
+     32.684086
+    ]
+   ],
+   "query": "lonlats=-16.814542,32.66004%7C-16.796466,32.684086&profile=fastbike&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-029",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "fastbike",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -21.900136,
+     64.117379
+    ],
+    [
+     -21.92729,
+     64.128188
+    ]
+   ],
+   "query": "lonlats=-21.900136,64.117379%7C-21.92729,64.128188&profile=fastbike&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-030",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "fastbike",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -16.846508,
+     32.653642
+    ],
+    [
+     -16.856232,
+     32.648299
+    ]
+   ],
+   "query": "lonlats=-16.846508,32.653642%7C-16.856232,32.648299&profile=fastbike&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-031",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "fastbike",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -22.007006,
+     64.049665
+    ],
+    [
+     -22.034537,
+     64.041737
+    ]
+   ],
+   "query": "lonlats=-22.007006,64.049665%7C-22.034537,64.041737&profile=fastbike&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-032",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "fastbike",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -16.835515,
+     32.654049
+    ],
+    [
+     -16.804554,
+     32.6646
+    ]
+   ],
+   "query": "lonlats=-16.835515,32.654049%7C-16.804554,32.6646&profile=fastbike&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-033",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "fastbike",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -22.468902,
+     63.964272
+    ],
+    [
+     -22.505142,
+     63.970106
+    ]
+   ],
+   "query": "lonlats=-22.468902,63.964272%7C-22.505142,63.970106&profile=fastbike&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-034",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "fastbike",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -16.935556,
+     32.639071
+    ],
+    [
+     -16.906694,
+     32.646996
+    ]
+   ],
+   "query": "lonlats=-16.935556,32.639071%7C-16.906694,32.646996&profile=fastbike&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-035",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "fastbike",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -21.706818,
+     64.165432
+    ],
+    [
+     -21.720737,
+     64.160411
+    ]
+   ],
+   "query": "lonlats=-21.706818,64.165432%7C-21.720737,64.160411&profile=fastbike&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-036",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "fastbike",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -16.866612,
+     32.794773
+    ],
+    [
+     -16.85467,
+     32.789898
+    ]
+   ],
+   "query": "lonlats=-16.866612,32.794773%7C-16.85467,32.789898&profile=fastbike&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-037",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "fastbike",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -21.88639,
+     64.140395
+    ],
+    [
+     -21.868585,
+     64.133377
+    ]
+   ],
+   "query": "lonlats=-21.88639,64.140395%7C-21.868585,64.133377&profile=fastbike&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-038",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "fastbike",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -17.000308,
+     32.668072
+    ],
+    [
+     -16.991503,
+     32.660905
+    ]
+   ],
+   "query": "lonlats=-17.000308,32.668072%7C-16.991503,32.660905&profile=fastbike&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-039",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "fastbike",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -21.777033,
+     64.127718
+    ],
+    [
+     -21.73584,
+     64.153868
+    ]
+   ],
+   "query": "lonlats=-21.777033,64.127718%7C-21.73584,64.153868&profile=fastbike&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-040",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.858465,
+     32.648232
+    ],
+    [
+     -16.839902,
+     32.656096
+    ]
+   ],
+   "query": "lonlats=-16.858465,32.648232%7C-16.839902,32.656096&profile=fastbike-lowtraffic&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-041",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -21.926626,
+     64.143269
+    ],
+    [
+     -21.906684,
+     64.142941
+    ]
+   ],
+   "query": "lonlats=-21.926626,64.143269%7C-21.906684,64.142941&profile=fastbike-lowtraffic&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-042",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.826537,
+     32.756166
+    ],
+    [
+     -16.794727,
+     32.73571
+    ]
+   ],
+   "query": "lonlats=-16.826537,32.756166%7C-16.794727,32.73571&profile=fastbike-lowtraffic&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-043",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -22.548813,
+     63.995015
+    ],
+    [
+     -22.557809,
+     64.002157
+    ]
+   ],
+   "query": "lonlats=-22.548813,63.995015%7C-22.557809,64.002157&profile=fastbike-lowtraffic&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-044",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.85148,
+     32.65058
+    ],
+    [
+     -16.86214,
+     32.646477
+    ]
+   ],
+   "query": "lonlats=-16.85148,32.65058%7C-16.86214,32.646477&profile=fastbike-lowtraffic&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-045",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -21.941382,
+     64.067107
+    ],
+    [
+     -21.922446,
+     64.095925
+    ]
+   ],
+   "query": "lonlats=-21.941382,64.067107%7C-21.922446,64.095925&profile=fastbike-lowtraffic&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-046",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -16.972317,
+     32.645945
+    ],
+    [
+     -16.961252,
+     32.64574
+    ]
+   ],
+   "query": "lonlats=-16.972317,32.645945%7C-16.961252,32.64574&profile=fastbike-lowtraffic&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-047",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -22.557809,
+     64.002157
+    ],
+    [
+     -22.550771,
+     63.995049
+    ]
+   ],
+   "query": "lonlats=-22.557809,64.002157%7C-22.550771,63.995049&profile=fastbike-lowtraffic&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-048",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -16.77058,
+     32.703977
+    ],
+    [
+     -16.793791,
+     32.686554
+    ]
+   ],
+   "query": "lonlats=-16.77058,32.703977%7C-16.793791,32.686554&profile=fastbike-lowtraffic&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-049",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -22.548631,
+     63.990801
+    ],
+    [
+     -22.511499,
+     63.971494
+    ]
+   ],
+   "query": "lonlats=-22.548631,63.990801%7C-22.511499,63.971494&profile=fastbike-lowtraffic&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-050",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -17.049014,
+     32.666148
+    ],
+    [
+     -17.021802,
+     32.672883
+    ]
+   ],
+   "query": "lonlats=-17.049014,32.666148%7C-17.021802,32.672883&profile=fastbike-lowtraffic&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-051",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -21.939633,
+     64.069013
+    ],
+    [
+     -21.962733,
+     64.061736
+    ]
+   ],
+   "query": "lonlats=-21.939633,64.069013%7C-21.962733,64.061736&profile=fastbike-lowtraffic&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-052",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -17.045435,
+     32.668732
+    ],
+    [
+     -17.024829,
+     32.675266
+    ]
+   ],
+   "query": "lonlats=-17.045435,32.668732%7C-17.024829,32.675266&profile=fastbike-lowtraffic&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-053",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -21.925259,
+     64.094312
+    ],
+    [
+     -21.924215,
+     64.124348
+    ]
+   ],
+   "query": "lonlats=-21.925259,64.094312%7C-21.924215,64.124348&profile=fastbike-lowtraffic&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-054",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -16.812485,
+     32.65956
+    ],
+    [
+     -16.842682,
+     32.65418
+    ]
+   ],
+   "query": "lonlats=-16.812485,32.65956%7C-16.842682,32.65418&profile=fastbike-lowtraffic&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-055",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -21.762946,
+     64.134902
+    ],
+    [
+     -21.783907,
+     64.128779
+    ]
+   ],
+   "query": "lonlats=-21.762946,64.134902%7C-21.783907,64.128779&profile=fastbike-lowtraffic&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-056",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -16.80008,
+     32.681061
+    ],
+    [
+     -16.790608,
+     32.689297
+    ]
+   ],
+   "query": "lonlats=-16.80008,32.681061%7C-16.790608,32.689297&profile=fastbike-lowtraffic&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-057",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -21.927749,
+     64.092053
+    ],
+    [
+     -21.90613,
+     64.107359
+    ]
+   ],
+   "query": "lonlats=-21.927749,64.092053%7C-21.90613,64.107359&profile=fastbike-lowtraffic&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-058",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -16.811979,
+     32.662303
+    ],
+    [
+     -16.794997,
+     32.684431
+    ]
+   ],
+   "query": "lonlats=-16.811979,32.662303%7C-16.794997,32.684431&profile=fastbike-lowtraffic&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-059",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -21.924407,
+     64.145475
+    ],
+    [
+     -21.90577,
+     64.114257
+    ]
+   ],
+   "query": "lonlats=-21.924407,64.145475%7C-21.90577,64.114257&profile=fastbike-lowtraffic&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-060",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "gravel",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.966059,
+     32.647452
+    ],
+    [
+     -16.930146,
+     32.639104
+    ]
+   ],
+   "query": "lonlats=-16.966059,32.647452%7C-16.930146,32.639104&profile=gravel&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-061",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "gravel",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -21.861852,
+     64.130221
+    ],
+    [
+     -21.917985,
+     64.121411
+    ]
+   ],
+   "query": "lonlats=-21.861852,64.130221%7C-21.917985,64.121411&profile=gravel&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-062",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "gravel",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.852196,
+     32.649949
+    ],
+    [
+     -16.892678,
+     32.649619
+    ]
+   ],
+   "query": "lonlats=-16.852196,32.649949%7C-16.892678,32.649619&profile=gravel&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-063",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "gravel",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -21.909121,
+     64.143132
+    ],
+    [
+     -21.922519,
+     64.122292
+    ]
+   ],
+   "query": "lonlats=-21.909121,64.143132%7C-21.922519,64.122292&profile=gravel&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-064",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "gravel",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -17.021802,
+     32.672883
+    ],
+    [
+     -17.061577,
+     32.671086
+    ]
+   ],
+   "query": "lonlats=-17.021802,32.672883%7C-17.061577,32.671086&profile=gravel&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-065",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "gravel",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -21.977625,
+     64.055139
+    ],
+    [
+     -21.956244,
+     64.066776
+    ]
+   ],
+   "query": "lonlats=-21.977625,64.055139%7C-21.956244,64.066776&profile=gravel&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-066",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "gravel",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -17.021802,
+     32.672883
+    ],
+    [
+     -17.062298,
+     32.672606
+    ]
+   ],
+   "query": "lonlats=-17.021802,32.672883%7C-17.062298,32.672606&profile=gravel&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-067",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "gravel",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -21.847066,
+     64.128467
+    ],
+    [
+     -21.893994,
+     64.102133
+    ]
+   ],
+   "query": "lonlats=-21.847066,64.128467%7C-21.893994,64.102133&profile=gravel&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-068",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "gravel",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -16.917834,
+     32.644866
+    ],
+    [
+     -16.893498,
+     32.649396
+    ]
+   ],
+   "query": "lonlats=-16.917834,32.644866%7C-16.893498,32.649396&profile=gravel&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-069",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "gravel",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -21.847066,
+     64.128467
+    ],
+    [
+     -21.81185,
+     64.134048
+    ]
+   ],
+   "query": "lonlats=-21.847066,64.128467%7C-21.81185,64.134048&profile=gravel&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-070",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "gravel",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -16.875448,
+     32.648178
+    ],
+    [
+     -16.863901,
+     32.647377
+    ]
+   ],
+   "query": "lonlats=-16.875448,32.648178%7C-16.863901,32.647377&profile=gravel&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-071",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "gravel",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -21.893188,
+     64.140274
+    ],
+    [
+     -21.900478,
+     64.120373
+    ]
+   ],
+   "query": "lonlats=-21.893188,64.140274%7C-21.900478,64.120373&profile=gravel&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-072",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "gravel",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -16.79777,
+     32.683655
+    ],
+    [
+     -16.811979,
+     32.662303
+    ]
+   ],
+   "query": "lonlats=-16.79777,32.683655%7C-16.811979,32.662303&profile=gravel&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-073",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "gravel",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -21.927749,
+     64.092053
+    ],
+    [
+     -21.914422,
+     64.121019
+    ]
+   ],
+   "query": "lonlats=-21.927749,64.092053%7C-21.914422,64.121019&profile=gravel&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-074",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "gravel",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -16.793914,
+     32.686747
+    ],
+    [
+     -16.819779,
+     32.659917
+    ]
+   ],
+   "query": "lonlats=-16.793914,32.686747%7C-16.819779,32.659917&profile=gravel&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-075",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "gravel",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -22.549888,
+     63.983964
+    ],
+    [
+     -22.543916,
+     63.973571
+    ]
+   ],
+   "query": "lonlats=-22.549888,63.983964%7C-22.543916,63.973571&profile=gravel&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-076",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "gravel",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -16.80416,
+     32.670006
+    ],
+    [
+     -16.798377,
+     32.684575
+    ]
+   ],
+   "query": "lonlats=-16.80416,32.670006%7C-16.798377,32.684575&profile=gravel&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-077",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "gravel",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -21.919755,
+     64.099722
+    ],
+    [
+     -21.929265,
+     64.090946
+    ]
+   ],
+   "query": "lonlats=-21.919755,64.099722%7C-21.929265,64.090946&profile=gravel&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-078",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "gravel",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -16.804892,
+     32.675421
+    ],
+    [
+     -16.797711,
+     32.684573
+    ]
+   ],
+   "query": "lonlats=-16.804892,32.675421%7C-16.797711,32.684573&profile=gravel&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-079",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "gravel",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -21.915039,
+     64.143638
+    ],
+    [
+     -21.905212,
+     64.120775
+    ]
+   ],
+   "query": "lonlats=-21.915039,64.143638%7C-21.905212,64.120775&profile=gravel&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-080",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "mtb",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.773732,
+     32.703111
+    ],
+    [
+     -16.766881,
+     32.71728
+    ]
+   ],
+   "query": "lonlats=-16.773732,32.703111%7C-16.766881,32.71728&profile=mtb&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-081",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "mtb",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -21.899088,
+     64.118851
+    ],
+    [
+     -21.909121,
+     64.143132
+    ]
+   ],
+   "query": "lonlats=-21.899088,64.118851%7C-21.909121,64.143132&profile=mtb&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-082",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "mtb",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.761992,
+     32.709205
+    ],
+    [
+     -16.777039,
+     32.697742
+    ]
+   ],
+   "query": "lonlats=-16.761992,32.709205%7C-16.777039,32.697742&profile=mtb&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-083",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "mtb",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -22.515865,
+     63.970811
+    ],
+    [
+     -22.554138,
+     63.998441
+    ]
+   ],
+   "query": "lonlats=-22.515865,63.970811%7C-22.554138,63.998441&profile=mtb&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-084",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "mtb",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.76791,
+     32.718263
+    ],
+    [
+     -16.772335,
+     32.701755
+    ]
+   ],
+   "query": "lonlats=-16.76791,32.718263%7C-16.772335,32.701755&profile=mtb&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-085",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "mtb",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -21.96418,
+     64.060207
+    ],
+    [
+     -21.995716,
+     64.051944
+    ]
+   ],
+   "query": "lonlats=-21.96418,64.060207%7C-21.995716,64.051944&profile=mtb&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-086",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "mtb",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -16.803217,
+     32.675913
+    ],
+    [
+     -16.804588,
+     32.668193
+    ]
+   ],
+   "query": "lonlats=-16.803217,32.675913%7C-16.804588,32.668193&profile=mtb&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-087",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "mtb",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -21.957837,
+     64.063585
+    ],
+    [
+     -21.944387,
+     64.08398
+    ]
+   ],
+   "query": "lonlats=-21.957837,64.063585%7C-21.944387,64.08398&profile=mtb&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-088",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "mtb",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -16.930947,
+     32.637986
+    ],
+    [
+     -16.9021,
+     32.650963
+    ]
+   ],
+   "query": "lonlats=-16.930947,32.637986%7C-16.9021,32.650963&profile=mtb&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-089",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "mtb",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -22.531925,
+     63.972354
+    ],
+    [
+     -22.548631,
+     63.990801
+    ]
+   ],
+   "query": "lonlats=-22.531925,63.972354%7C-22.548631,63.990801&profile=mtb&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-090",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "mtb",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -16.873801,
+     32.648598
+    ],
+    [
+     -16.903127,
+     32.650393
+    ]
+   ],
+   "query": "lonlats=-16.873801,32.648598%7C-16.903127,32.650393&profile=mtb&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-091",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "mtb",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -22.415503,
+     63.962905
+    ],
+    [
+     -22.445143,
+     63.961596
+    ]
+   ],
+   "query": "lonlats=-22.415503,63.962905%7C-22.445143,63.961596&profile=mtb&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-092",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "mtb",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -16.853726,
+     32.791855
+    ],
+    [
+     -16.88001,
+     32.798011
+    ]
+   ],
+   "query": "lonlats=-16.853726,32.791855%7C-16.88001,32.798011&profile=mtb&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-093",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "mtb",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -22.415503,
+     63.962905
+    ],
+    [
+     -22.366056,
+     63.971815
+    ]
+   ],
+   "query": "lonlats=-22.415503,63.962905%7C-22.366056,63.971815&profile=mtb&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-094",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "mtb",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -16.955551,
+     32.644883
+    ],
+    [
+     -16.966422,
+     32.647377
+    ]
+   ],
+   "query": "lonlats=-16.955551,32.644883%7C-16.966422,32.647377&profile=mtb&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-095",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "mtb",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -21.938629,
+     64.067552
+    ],
+    [
+     -21.956547,
+     64.066243
+    ]
+   ],
+   "query": "lonlats=-21.938629,64.067552%7C-21.956547,64.066243&profile=mtb&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-096",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "mtb",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -16.906674,
+     32.649529
+    ],
+    [
+     -16.897932,
+     32.651308
+    ]
+   ],
+   "query": "lonlats=-16.906674,32.649529%7C-16.897932,32.651308&profile=mtb&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-097",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "mtb",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -21.862971,
+     64.130661
+    ],
+    [
+     -21.924757,
+     64.125876
+    ]
+   ],
+   "query": "lonlats=-21.862971,64.130661%7C-21.924757,64.125876&profile=mtb&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-098",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "mtb",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -16.811289,
+     32.658335
+    ],
+    [
+     -16.842571,
+     32.655752
+    ]
+   ],
+   "query": "lonlats=-16.811289,32.658335%7C-16.842571,32.655752&profile=mtb&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-099",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "mtb",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -21.979597,
+     64.054096
+    ],
+    [
+     -21.938629,
+     64.067552
+    ]
+   ],
+   "query": "lonlats=-21.979597,64.054096%7C-21.938629,64.067552&profile=mtb&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-100",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "shortest",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -17.061901,
+     32.671813
+    ],
+    [
+     -17.026193,
+     32.674308
+    ]
+   ],
+   "query": "lonlats=-17.061901,32.671813%7C-17.026193,32.674308&profile=shortest&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-101",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "shortest",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -21.92809,
+     64.1418
+    ],
+    [
+     -21.905212,
+     64.120775
+    ]
+   ],
+   "query": "lonlats=-21.92809,64.1418%7C-21.905212,64.120775&profile=shortest&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-102",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "shortest",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.841191,
+     32.771266
+    ],
+    [
+     -16.862286,
+     32.791083
+    ]
+   ],
+   "query": "lonlats=-16.841191,32.771266%7C-16.862286,32.791083&profile=shortest&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-103",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "shortest",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -22.531925,
+     63.972354
+    ],
+    [
+     -22.473518,
+     63.966194
+    ]
+   ],
+   "query": "lonlats=-22.531925,63.972354%7C-22.473518,63.966194&profile=shortest&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-104",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "shortest",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.80416,
+     32.670006
+    ],
+    [
+     -16.789273,
+     32.688971
+    ]
+   ],
+   "query": "lonlats=-16.80416,32.670006%7C-16.789273,32.688971&profile=shortest&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "pair-105",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "shortest",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -22.394626,
+     63.964981
+    ],
+    [
+     -22.445143,
+     63.961596
+    ]
+   ],
+   "query": "lonlats=-22.394626,63.964981%7C-22.445143,63.961596&profile=shortest&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-106",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "shortest",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -16.79336,
+     32.688221
+    ],
+    [
+     -16.766377,
+     32.714946
+    ]
+   ],
+   "query": "lonlats=-16.79336,32.688221%7C-16.766377,32.714946&profile=shortest&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-107",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "shortest",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -21.780159,
+     64.127179
+    ],
+    [
+     -21.814715,
+     64.131005
+    ]
+   ],
+   "query": "lonlats=-21.780159,64.127179%7C-21.814715,64.131005&profile=shortest&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-108",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "shortest",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -16.857111,
+     32.647675
+    ],
+    [
+     -16.87967,
+     32.650489
+    ]
+   ],
+   "query": "lonlats=-16.857111,32.647675%7C-16.87967,32.650489&profile=shortest&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-109",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "shortest",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -21.767596,
+     64.13115
+    ],
+    [
+     -21.720737,
+     64.160411
+    ]
+   ],
+   "query": "lonlats=-21.767596,64.13115%7C-21.720737,64.160411&profile=shortest&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "pair-110",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "shortest",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -16.804519,
+     32.671551
+    ],
+    [
+     -16.810844,
+     32.660907
+    ]
+   ],
+   "query": "lonlats=-16.804519,32.671551%7C-16.810844,32.660907&profile=shortest&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-111",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "shortest",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -22.548631,
+     63.990801
+    ],
+    [
+     -22.52411,
+     63.972882
+    ]
+   ],
+   "query": "lonlats=-22.548631,63.990801%7C-22.52411,63.972882&profile=shortest&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-112",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "shortest",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -16.803719,
+     32.67561
+    ],
+    [
+     -16.794997,
+     32.684431
+    ]
+   ],
+   "query": "lonlats=-16.803719,32.67561%7C-16.794997,32.684431&profile=shortest&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-113",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "shortest",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -21.939711,
+     64.074991
+    ],
+    [
+     -21.904279,
+     64.105437
+    ]
+   ],
+   "query": "lonlats=-21.939711,64.074991%7C-21.904279,64.105437&profile=shortest&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-114",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "shortest",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -16.792626,
+     32.734634
+    ],
+    [
+     -16.766645,
+     32.715054
+    ]
+   ],
+   "query": "lonlats=-16.792626,32.734634%7C-16.766645,32.715054&profile=shortest&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "pair-115",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "shortest",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -21.902981,
+     64.105555
+    ],
+    [
+     -21.941725,
+     64.081185
+    ]
+   ],
+   "query": "lonlats=-21.902981,64.105555%7C-21.941725,64.081185&profile=shortest&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-116",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "shortest",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -16.840331,
+     32.768166
+    ],
+    [
+     -16.851981,
+     32.789977
+    ]
+   ],
+   "query": "lonlats=-16.840331,32.768166%7C-16.851981,32.789977&profile=shortest&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-117",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "shortest",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -22.52411,
+     63.972882
+    ],
+    [
+     -22.549924,
+     63.985153
+    ]
+   ],
+   "query": "lonlats=-22.52411,63.972882%7C-22.549924,63.985153&profile=shortest&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-118",
+   "kind": "pair",
+   "region": "madeira",
+   "profile": "shortest",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -17.04309,
+     32.671002
+    ],
+    [
+     -17.029729,
+     32.671752
+    ]
+   ],
+   "query": "lonlats=-17.04309,32.671002%7C-17.029729,32.671752&profile=shortest&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "pair-119",
+   "kind": "pair",
+   "region": "iceland",
+   "profile": "shortest",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -22.095276,
+     64.029655
+    ],
+    [
+     -22.117246,
+     64.025978
+    ]
+   ],
+   "query": "lonlats=-22.095276,64.029655%7C-22.117246,64.025978&profile=shortest&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "triple-000",
+   "kind": "triple",
+   "region": "madeira",
+   "profile": "trekking",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.79777,
+     32.683655
+    ],
+    [
+     -16.790608,
+     32.689297
+    ],
+    [
+     -16.804554,
+     32.6646
+    ]
+   ],
+   "query": "lonlats=-16.79777,32.683655%7C-16.790608,32.689297%7C-16.804554,32.6646&profile=trekking&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "triple-001",
+   "kind": "triple",
+   "region": "iceland",
+   "profile": "fastbike",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -22.549888,
+     63.983964
+    ],
+    [
+     -22.546605,
+     63.975151
+    ],
+    [
+     -22.511499,
+     63.971494
+    ]
+   ],
+   "query": "lonlats=-22.549888,63.983964%7C-22.546605,63.975151%7C-22.511499,63.971494&profile=fastbike&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "triple-002",
+   "kind": "triple",
+   "region": "madeira",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -16.969924,
+     32.64522
+    ],
+    [
+     -16.930146,
+     32.639104
+    ],
+    [
+     -16.904305,
+     32.648637
+    ]
+   ],
+   "query": "lonlats=-16.969924,32.64522%7C-16.930146,32.639104%7C-16.904305,32.648637&profile=fastbike-lowtraffic&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "triple-003",
+   "kind": "triple",
+   "region": "iceland",
+   "profile": "gravel",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -22.034537,
+     64.041737
+    ],
+    [
+     -21.991084,
+     64.052548
+    ],
+    [
+     -21.956547,
+     64.066243
+    ]
+   ],
+   "query": "lonlats=-22.034537,64.041737%7C-21.991084,64.052548%7C-21.956547,64.066243&profile=gravel&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "triple-004",
+   "kind": "triple",
+   "region": "madeira",
+   "profile": "mtb",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.867257,
+     32.648665
+    ],
+    [
+     -16.837955,
+     32.655691
+    ],
+    [
+     -16.804519,
+     32.671551
+    ]
+   ],
+   "query": "lonlats=-16.867257,32.648665%7C-16.837955,32.655691%7C-16.804519,32.671551&profile=mtb&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "triple-005",
+   "kind": "triple",
+   "region": "iceland",
+   "profile": "shortest",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -21.941036,
+     64.067219
+    ],
+    [
+     -21.945417,
+     64.084525
+    ],
+    [
+     -21.963973,
+     64.060519
+    ]
+   ],
+   "query": "lonlats=-21.941036,64.067219%7C-21.945417,64.084525%7C-21.963973,64.060519&profile=shortest&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "triple-006",
+   "kind": "triple",
+   "region": "madeira",
+   "profile": "trekking",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -17.024829,
+     32.675266
+    ],
+    [
+     -17.055721,
+     32.669828
+    ],
+    [
+     -17.020553,
+     32.668417
+    ]
+   ],
+   "query": "lonlats=-17.024829,32.675266%7C-17.055721,32.669828%7C-17.020553,32.668417&profile=trekking&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "triple-007",
+   "kind": "triple",
+   "region": "iceland",
+   "profile": "fastbike",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -21.90613,
+     64.107359
+    ],
+    [
+     -21.852376,
+     64.12642
+    ],
+    [
+     -21.905039,
+     64.114671
+    ]
+   ],
+   "query": "lonlats=-21.90613,64.107359%7C-21.852376,64.12642%7C-21.905039,64.114671&profile=fastbike&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "triple-008",
+   "kind": "triple",
+   "region": "madeira",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.858465,
+     32.648232
+    ],
+    [
+     -16.821028,
+     32.658648
+    ],
+    [
+     -16.812485,
+     32.65956
+    ]
+   ],
+   "query": "lonlats=-16.858465,32.648232%7C-16.821028,32.658648%7C-16.812485,32.65956&profile=fastbike-lowtraffic&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "triple-009",
+   "kind": "triple",
+   "region": "iceland",
+   "profile": "gravel",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -22.549924,
+     63.985153
+    ],
+    [
+     -22.515865,
+     63.970811
+    ],
+    [
+     -22.471404,
+     63.965458
+    ]
+   ],
+   "query": "lonlats=-22.549924,63.985153%7C-22.515865,63.970811%7C-22.471404,63.965458&profile=gravel&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "triple-010",
+   "kind": "triple",
+   "region": "madeira",
+   "profile": "mtb",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -16.836248,
+     32.765538
+    ],
+    [
+     -16.852568,
+     32.788039
+    ],
+    [
+     -16.830901,
+     32.76278
+    ]
+   ],
+   "query": "lonlats=-16.836248,32.765538%7C-16.852568,32.788039%7C-16.830901,32.76278&profile=mtb&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "triple-011",
+   "kind": "triple",
+   "region": "iceland",
+   "profile": "shortest",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -21.926626,
+     64.143269
+    ],
+    [
+     -21.862971,
+     64.130661
+    ],
+    [
+     -21.913842,
+     64.143495
+    ]
+   ],
+   "query": "lonlats=-21.926626,64.143269%7C-21.862971,64.130661%7C-21.913842,64.143495&profile=shortest&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "triple-012",
+   "kind": "triple",
+   "region": "madeira",
+   "profile": "trekking",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.86269,
+     32.646549
+    ],
+    [
+     -16.871429,
+     32.64803
+    ],
+    [
+     -16.842682,
+     32.65418
+    ]
+   ],
+   "query": "lonlats=-16.86269,32.646549%7C-16.871429,32.64803%7C-16.842682,32.65418&profile=trekking&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "triple-013",
+   "kind": "triple",
+   "region": "iceland",
+   "profile": "fastbike",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -21.926626,
+     64.143269
+    ],
+    [
+     -21.922519,
+     64.122292
+    ],
+    [
+     -21.927036,
+     64.131834
+    ]
+   ],
+   "query": "lonlats=-21.926626,64.143269%7C-21.922519,64.122292%7C-21.927036,64.131834&profile=fastbike&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "triple-014",
+   "kind": "triple",
+   "region": "madeira",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -16.924209,
+     32.642152
+    ],
+    [
+     -16.935556,
+     32.639071
+    ],
+    [
+     -16.907644,
+     32.64887
+    ]
+   ],
+   "query": "lonlats=-16.924209,32.642152%7C-16.935556,32.639071%7C-16.907644,32.64887&profile=fastbike-lowtraffic&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "triple-015",
+   "kind": "triple",
+   "region": "iceland",
+   "profile": "gravel",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -21.919755,
+     64.099722
+    ],
+    [
+     -21.941036,
+     64.067219
+    ],
+    [
+     -21.940136,
+     64.076591
+    ]
+   ],
+   "query": "lonlats=-21.919755,64.099722%7C-21.941036,64.067219%7C-21.940136,64.076591&profile=gravel&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "triple-016",
+   "kind": "triple",
+   "region": "madeira",
+   "profile": "mtb",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.821255,
+     32.755736
+    ],
+    [
+     -16.792626,
+     32.734634
+    ],
+    [
+     -16.770182,
+     32.724153
+    ]
+   ],
+   "query": "lonlats=-16.821255,32.755736%7C-16.792626,32.734634%7C-16.770182,32.724153&profile=mtb&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "triple-017",
+   "kind": "triple",
+   "region": "iceland",
+   "profile": "shortest",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -21.923745,
+     64.135644
+    ],
+    [
+     -21.906647,
+     64.102529
+    ],
+    [
+     -21.941725,
+     64.081185
+    ]
+   ],
+   "query": "lonlats=-21.923745,64.135644%7C-21.906647,64.102529%7C-21.941725,64.081185&profile=shortest&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "triple-018",
+   "kind": "triple",
+   "region": "madeira",
+   "profile": "trekking",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -16.88182,
+     32.649855
+    ],
+    [
+     -16.869103,
+     32.64819
+    ],
+    [
+     -16.900023,
+     32.65104
+    ]
+   ],
+   "query": "lonlats=-16.88182,32.649855%7C-16.869103,32.64819%7C-16.900023,32.65104&profile=trekking&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "triple-019",
+   "kind": "triple",
+   "region": "iceland",
+   "profile": "fastbike",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -21.939181,
+     64.086166
+    ],
+    [
+     -21.907634,
+     64.11346
+    ],
+    [
+     -21.925259,
+     64.094312
+    ]
+   ],
+   "query": "lonlats=-21.939181,64.086166%7C-21.907634,64.11346%7C-21.925259,64.094312&profile=fastbike&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "triple-020",
+   "kind": "triple",
+   "region": "madeira",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.88001,
+     32.798011
+    ],
+    [
+     -16.850415,
+     32.783716
+    ],
+    [
+     -16.872286,
+     32.7942
+    ]
+   ],
+   "query": "lonlats=-16.88001,32.798011%7C-16.850415,32.783716%7C-16.872286,32.7942&profile=fastbike-lowtraffic&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "triple-021",
+   "kind": "triple",
+   "region": "iceland",
+   "profile": "gravel",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -21.955189,
+     64.066912
+    ],
+    [
+     -21.963973,
+     64.060519
+    ],
+    [
+     -21.941036,
+     64.067219
+    ]
+   ],
+   "query": "lonlats=-21.955189,64.066912%7C-21.963973,64.060519%7C-21.941036,64.067219&profile=gravel&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "triple-022",
+   "kind": "triple",
+   "region": "madeira",
+   "profile": "mtb",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -16.818065,
+     32.659171
+    ],
+    [
+     -16.808636,
+     32.662283
+    ],
+    [
+     -16.842682,
+     32.65418
+    ]
+   ],
+   "query": "lonlats=-16.818065,32.659171%7C-16.808636,32.662283%7C-16.842682,32.65418&profile=mtb&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "triple-023",
+   "kind": "triple",
+   "region": "iceland",
+   "profile": "shortest",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -21.919013,
+     64.144398
+    ],
+    [
+     -21.909002,
+     64.110992
+    ],
+    [
+     -21.861852,
+     64.130221
+    ]
+   ],
+   "query": "lonlats=-21.919013,64.144398%7C-21.909002,64.110992%7C-21.861852,64.130221&profile=shortest&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "triple-024",
+   "kind": "triple",
+   "region": "madeira",
+   "profile": "trekking",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.87723,
+     32.648292
+    ],
+    [
+     -16.849303,
+     32.651607
+    ],
+    [
+     -16.871429,
+     32.64803
+    ]
+   ],
+   "query": "lonlats=-16.87723,32.648292%7C-16.849303,32.651607%7C-16.871429,32.64803&profile=trekking&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "triple-025",
+   "kind": "triple",
+   "region": "iceland",
+   "profile": "fastbike",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -21.852376,
+     64.12642
+    ],
+    [
+     -21.908321,
+     64.11202
+    ],
+    [
+     -21.917985,
+     64.121411
+    ]
+   ],
+   "query": "lonlats=-21.852376,64.12642%7C-21.908321,64.11202%7C-21.917985,64.121411&profile=fastbike&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "triple-026",
+   "kind": "triple",
+   "region": "madeira",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -16.86214,
+     32.646477
+    ],
+    [
+     -16.852196,
+     32.649949
+    ],
+    [
+     -16.839239,
+     32.655792
+    ]
+   ],
+   "query": "lonlats=-16.86214,32.646477%7C-16.852196,32.649949%7C-16.839239,32.655792&profile=fastbike-lowtraffic&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "triple-027",
+   "kind": "triple",
+   "region": "iceland",
+   "profile": "gravel",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -21.922474,
+     64.137799
+    ],
+    [
+     -21.867532,
+     64.133175
+    ],
+    [
+     -21.90849,
+     64.109113
+    ]
+   ],
+   "query": "lonlats=-21.922474,64.137799%7C-21.867532,64.133175%7C-21.90849,64.109113&profile=gravel&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "triple-028",
+   "kind": "triple",
+   "region": "madeira",
+   "profile": "mtb",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.771349,
+     32.702826
+    ],
+    [
+     -16.797416,
+     32.680611
+    ],
+    [
+     -16.774789,
+     32.702674
+    ]
+   ],
+   "query": "lonlats=-16.771349,32.702826%7C-16.797416,32.680611%7C-16.774789,32.702674&profile=mtb&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "triple-029",
+   "kind": "triple",
+   "region": "iceland",
+   "profile": "shortest",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -22.007006,
+     64.049665
+    ],
+    [
+     -21.991084,
+     64.052548
+    ],
+    [
+     -21.96418,
+     64.060207
+    ]
+   ],
+   "query": "lonlats=-22.007006,64.049665%7C-21.991084,64.052548%7C-21.96418,64.060207&profile=shortest&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "triple-030",
+   "kind": "triple",
+   "region": "madeira",
+   "profile": "trekking",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -16.966608,
+     32.646382
+    ],
+    [
+     -16.991274,
+     32.664499
+    ],
+    [
+     -17.031887,
+     32.670203
+    ]
+   ],
+   "query": "lonlats=-16.966608,32.646382%7C-16.991274,32.664499%7C-17.031887,32.670203&profile=trekking&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "triple-031",
+   "kind": "triple",
+   "region": "iceland",
+   "profile": "fastbike",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -22.185232,
+     64.011698
+    ],
+    [
+     -22.117246,
+     64.025978
+    ],
+    [
+     -22.080427,
+     64.033481
+    ]
+   ],
+   "query": "lonlats=-22.185232,64.011698%7C-22.117246,64.025978%7C-22.080427,64.033481&profile=fastbike&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "triple-032",
+   "kind": "triple",
+   "region": "madeira",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.966059,
+     32.647452
+    ],
+    [
+     -16.948702,
+     32.640979
+    ],
+    [
+     -16.965171,
+     32.644203
+    ]
+   ],
+   "query": "lonlats=-16.966059,32.647452%7C-16.948702,32.640979%7C-16.965171,32.644203&profile=fastbike-lowtraffic&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "triple-033",
+   "kind": "triple",
+   "region": "iceland",
+   "profile": "gravel",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -21.955189,
+     64.066912
+    ],
+    [
+     -21.943614,
+     64.083852
+    ],
+    [
+     -21.939062,
+     64.070135
+    ]
+   ],
+   "query": "lonlats=-21.955189,64.066912%7C-21.943614,64.083852%7C-21.939062,64.070135&profile=gravel&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "triple-034",
+   "kind": "triple",
+   "region": "madeira",
+   "profile": "mtb",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -16.8041,
+     32.665825
+    ],
+    [
+     -16.797134,
+     32.680752
+    ],
+    [
+     -16.772197,
+     32.702035
+    ]
+   ],
+   "query": "lonlats=-16.8041,32.665825%7C-16.797134,32.680752%7C-16.772197,32.702035&profile=mtb&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "triple-035",
+   "kind": "triple",
+   "region": "iceland",
+   "profile": "shortest",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -21.814715,
+     64.131005
+    ],
+    [
+     -21.789322,
+     64.128783
+    ],
+    [
+     -21.849967,
+     64.127944
+    ]
+   ],
+   "query": "lonlats=-21.814715,64.131005%7C-21.789322,64.128783%7C-21.849967,64.127944&profile=shortest&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "triple-036",
+   "kind": "triple",
+   "region": "madeira",
+   "profile": "trekking",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.826863,
+     32.658832
+    ],
+    [
+     -16.796198,
+     32.682369
+    ],
+    [
+     -16.792588,
+     32.688955
+    ]
+   ],
+   "query": "lonlats=-16.826863,32.658832%7C-16.796198,32.682369%7C-16.792588,32.688955&profile=trekking&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "triple-037",
+   "kind": "triple",
+   "region": "iceland",
+   "profile": "fastbike",
+   "alternativeidx": 1,
+   "waypoints": [
+    [
+     -21.900136,
+     64.117379
+    ],
+    [
+     -21.915039,
+     64.143638
+    ],
+    [
+     -21.905039,
+     64.114671
+    ]
+   ],
+   "query": "lonlats=-21.900136,64.117379%7C-21.915039,64.143638%7C-21.905039,64.114671&profile=fastbike&alternativeidx=1&format=geojson"
+  },
+  {
+   "id": "triple-038",
+   "kind": "triple",
+   "region": "madeira",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 2,
+   "waypoints": [
+    [
+     -16.786866,
+     32.734337
+    ],
+    [
+     -16.767797,
+     32.706057
+    ],
+    [
+     -16.790895,
+     32.735662
+    ]
+   ],
+   "query": "lonlats=-16.786866,32.734337%7C-16.767797,32.706057%7C-16.790895,32.735662&profile=fastbike-lowtraffic&alternativeidx=2&format=geojson"
+  },
+  {
+   "id": "triple-039",
+   "kind": "triple",
+   "region": "iceland",
+   "profile": "gravel",
+   "alternativeidx": 3,
+   "waypoints": [
+    [
+     -22.471404,
+     63.965458
+    ],
+    [
+     -22.540781,
+     63.973152
+    ],
+    [
+     -22.511499,
+     63.971494
+    ]
+   ],
+   "query": "lonlats=-22.471404,63.965458%7C-22.540781,63.973152%7C-22.511499,63.971494&profile=gravel&alternativeidx=3&format=geojson"
+  },
+  {
+   "id": "nogo-000",
+   "kind": "nogo",
+   "region": "madeira",
+   "profile": "trekking",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.839044,
+     32.655749
+    ],
+    [
+     -16.80416,
+     32.670006
+    ]
+   ],
+   "nogos": "-16.821602,32.662878,120",
+   "query": "lonlats=-16.839044,32.655749%7C-16.80416,32.670006&nogos=-16.821602,32.662878,120&profile=trekking&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "nogo-001",
+   "kind": "nogo",
+   "region": "iceland",
+   "profile": "fastbike",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -22.473518,
+     63.966194
+    ],
+    [
+     -22.394626,
+     63.964981
+    ]
+   ],
+   "nogos": "-22.434072,63.965587,200",
+   "query": "lonlats=-22.473518,63.966194%7C-22.394626,63.964981&nogos=-22.434072,63.965587,200&profile=fastbike&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "nogo-002",
+   "kind": "nogo",
+   "region": "madeira",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.8798,
+     32.651012
+    ],
+    [
+     -16.84376,
+     32.653593
+    ]
+   ],
+   "nogos": "-16.86178,32.652303,350",
+   "query": "lonlats=-16.8798,32.651012%7C-16.84376,32.653593&nogos=-16.86178,32.652303,350&profile=fastbike-lowtraffic&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "nogo-003",
+   "kind": "nogo",
+   "region": "iceland",
+   "profile": "gravel",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -21.899088,
+     64.118851
+    ],
+    [
+     -21.93451,
+     64.088672
+    ]
+   ],
+   "nogos": "-21.916799,64.103762,120",
+   "query": "lonlats=-21.899088,64.118851%7C-21.93451,64.088672&nogos=-21.916799,64.103762,120&profile=gravel&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "nogo-004",
+   "kind": "nogo",
+   "region": "madeira",
+   "profile": "mtb",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.836946,
+     32.655399
+    ],
+    [
+     -16.859113,
+     32.648459
+    ]
+   ],
+   "nogos": "-16.84803,32.651929,200",
+   "query": "lonlats=-16.836946,32.655399%7C-16.859113,32.648459&nogos=-16.84803,32.651929,200&profile=mtb&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "nogo-005",
+   "kind": "nogo",
+   "region": "iceland",
+   "profile": "shortest",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -21.923528,
+     64.135063
+    ],
+    [
+     -21.903693,
+     64.142377
+    ]
+   ],
+   "nogos": "-21.913611,64.13872,350",
+   "query": "lonlats=-21.923528,64.135063%7C-21.903693,64.142377&nogos=-21.913611,64.13872,350&profile=shortest&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "nogo-006",
+   "kind": "nogo",
+   "region": "madeira",
+   "profile": "trekking",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.836248,
+     32.765538
+    ],
+    [
+     -16.846432,
+     32.778514
+    ]
+   ],
+   "nogos": "-16.84134,32.772026,120",
+   "query": "lonlats=-16.836248,32.765538%7C-16.846432,32.778514&nogos=-16.84134,32.772026,120&profile=trekking&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "nogo-007",
+   "kind": "nogo",
+   "region": "iceland",
+   "profile": "fastbike",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -21.720737,
+     64.160411
+    ],
+    [
+     -21.762946,
+     64.134902
+    ]
+   ],
+   "nogos": "-21.741841,64.147656,200",
+   "query": "lonlats=-21.720737,64.160411%7C-21.762946,64.134902&nogos=-21.741841,64.147656,200&profile=fastbike&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "nogo-008",
+   "kind": "nogo",
+   "region": "madeira",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.836946,
+     32.655399
+    ],
+    [
+     -16.858717,
+     32.648216
+    ]
+   ],
+   "nogos": "-16.847831,32.651808,350",
+   "query": "lonlats=-16.836946,32.655399%7C-16.858717,32.648216&nogos=-16.847831,32.651808,350&profile=fastbike-lowtraffic&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "nogo-009",
+   "kind": "nogo",
+   "region": "iceland",
+   "profile": "gravel",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -21.783907,
+     64.128779
+    ],
+    [
+     -21.73584,
+     64.153868
+    ]
+   ],
+   "nogos": "-21.759873,64.141323,120",
+   "query": "lonlats=-21.783907,64.128779%7C-21.73584,64.153868&nogos=-21.759873,64.141323,120&profile=gravel&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "nogo-010",
+   "kind": "nogo",
+   "region": "madeira",
+   "profile": "mtb",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.804892,
+     32.675421
+    ],
+    [
+     -16.839044,
+     32.655749
+    ]
+   ],
+   "nogos": "-16.821968,32.665585,200",
+   "query": "lonlats=-16.804892,32.675421%7C-16.839044,32.655749&nogos=-16.821968,32.665585,200&profile=mtb&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "nogo-011",
+   "kind": "nogo",
+   "region": "iceland",
+   "profile": "shortest",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -22.049147,
+     64.039156
+    ],
+    [
+     -22.028069,
+     64.043179
+    ]
+   ],
+   "nogos": "-22.038608,64.041168,350",
+   "query": "lonlats=-22.049147,64.039156%7C-22.028069,64.043179&nogos=-22.038608,64.041168,350&profile=shortest&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "nogo-012",
+   "kind": "nogo",
+   "region": "madeira",
+   "profile": "trekking",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.960609,
+     32.644126
+    ],
+    [
+     -16.943291,
+     32.637359
+    ]
+   ],
+   "nogos": "-16.95195,32.640743,120",
+   "query": "lonlats=-16.960609,32.644126%7C-16.943291,32.637359&nogos=-16.95195,32.640743,120&profile=trekking&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "nogo-013",
+   "kind": "nogo",
+   "region": "iceland",
+   "profile": "fastbike",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -22.445143,
+     63.961596
+    ],
+    [
+     -22.468902,
+     63.964272
+    ]
+   ],
+   "nogos": "-22.457023,63.962934,200",
+   "query": "lonlats=-22.445143,63.961596%7C-22.468902,63.964272&nogos=-22.457023,63.962934,200&profile=fastbike&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "nogo-014",
+   "kind": "nogo",
+   "region": "madeira",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.761992,
+     32.709205
+    ],
+    [
+     -16.775412,
+     32.700259
+    ]
+   ],
+   "nogos": "-16.768702,32.704732,350",
+   "query": "lonlats=-16.761992,32.709205%7C-16.775412,32.700259&nogos=-16.768702,32.704732,350&profile=fastbike-lowtraffic&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "nogo-015",
+   "kind": "nogo",
+   "region": "iceland",
+   "profile": "gravel",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -21.93451,
+     64.088672
+    ],
+    [
+     -21.941725,
+     64.081185
+    ]
+   ],
+   "nogos": "-21.938118,64.084929,120",
+   "query": "lonlats=-21.93451,64.088672%7C-21.941725,64.081185&nogos=-21.938118,64.084929,120&profile=gravel&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "nogo-016",
+   "kind": "nogo",
+   "region": "madeira",
+   "profile": "mtb",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.921432,
+     32.643778
+    ],
+    [
+     -16.907644,
+     32.64887
+    ]
+   ],
+   "nogos": "-16.914538,32.646324,200",
+   "query": "lonlats=-16.921432,32.643778%7C-16.907644,32.64887&nogos=-16.914538,32.646324,200&profile=mtb&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "nogo-017",
+   "kind": "nogo",
+   "region": "iceland",
+   "profile": "shortest",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -21.777033,
+     64.127718
+    ],
+    [
+     -21.84823,
+     64.128542
+    ]
+   ],
+   "nogos": "-21.812632,64.12813,350",
+   "query": "lonlats=-21.777033,64.127718%7C-21.84823,64.128542&nogos=-21.812632,64.12813,350&profile=shortest&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "nogo-018",
+   "kind": "nogo",
+   "region": "madeira",
+   "profile": "trekking",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.770053,
+     32.723619
+    ],
+    [
+     -16.77271,
+     32.703986
+    ]
+   ],
+   "nogos": "-16.771382,32.713802,120",
+   "query": "lonlats=-16.770053,32.723619%7C-16.77271,32.703986&nogos=-16.771382,32.713802,120&profile=trekking&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "nogo-019",
+   "kind": "nogo",
+   "region": "iceland",
+   "profile": "fastbike",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -21.945417,
+     64.084525
+    ],
+    [
+     -21.892747,
+     64.101037
+    ]
+   ],
+   "nogos": "-21.919082,64.092781,200",
+   "query": "lonlats=-21.945417,64.084525%7C-21.892747,64.101037&nogos=-21.919082,64.092781,200&profile=fastbike&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "nogo-020",
+   "kind": "nogo",
+   "region": "madeira",
+   "profile": "fastbike-lowtraffic",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.8041,
+     32.665825
+    ],
+    [
+     -16.802905,
+     32.677336
+    ]
+   ],
+   "nogos": "-16.803503,32.67158,350",
+   "query": "lonlats=-16.8041,32.665825%7C-16.802905,32.677336&nogos=-16.803503,32.67158,350&profile=fastbike-lowtraffic&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "nogo-021",
+   "kind": "nogo",
+   "region": "iceland",
+   "profile": "gravel",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -21.90613,
+     64.107359
+    ],
+    [
+     -21.905212,
+     64.120775
+    ]
+   ],
+   "nogos": "-21.905671,64.114067,120",
+   "query": "lonlats=-21.90613,64.107359%7C-21.905212,64.120775&nogos=-21.905671,64.114067,120&profile=gravel&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "nogo-022",
+   "kind": "nogo",
+   "region": "madeira",
+   "profile": "mtb",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -16.881199,
+     32.649935
+    ],
+    [
+     -16.849303,
+     32.651607
+    ]
+   ],
+   "nogos": "-16.865251,32.650771,200",
+   "query": "lonlats=-16.881199,32.649935%7C-16.849303,32.651607&nogos=-16.865251,32.650771,200&profile=mtb&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "nogo-023",
+   "kind": "nogo",
+   "region": "iceland",
+   "profile": "shortest",
+   "alternativeidx": 0,
+   "waypoints": [
+    [
+     -22.415503,
+     63.962905
+    ],
+    [
+     -22.468902,
+     63.964272
+    ]
+   ],
+   "nogos": "-22.442203,63.963589,350",
+   "query": "lonlats=-22.415503,63.962905%7C-22.468902,63.964272&nogos=-22.442203,63.963589,350&profile=shortest&alternativeidx=0&format=geojson"
+  },
+  {
+   "id": "roundtrip-000",
+   "kind": "roundtrip",
+   "region": "madeira",
+   "profile": "trekking",
+   "waypoints": [
+    [
+     -16.9085,
+     32.6485
+    ]
+   ],
+   "roundTripDistance": 1200,
+   "direction": 0,
+   "roundTripPoints": 5,
+   "query": "lonlats=-16.9085,32.6485&profile=trekking&format=geojson&engineMode=4&roundTripDistance=1200&direction=0&roundTripPoints=5"
+  },
+  {
+   "id": "roundtrip-001",
+   "kind": "roundtrip",
+   "region": "iceland",
+   "profile": "fastbike",
+   "waypoints": [
+    [
+     -21.9266,
+     64.1417
+    ]
+   ],
+   "roundTripDistance": 1800,
+   "direction": 0,
+   "roundTripPoints": 5,
+   "query": "lonlats=-21.9266,64.1417&profile=fastbike&format=geojson&engineMode=4&roundTripDistance=1800&direction=0&roundTripPoints=5"
+  },
+  {
+   "id": "roundtrip-002",
+   "kind": "roundtrip",
+   "region": "madeira",
+   "profile": "fastbike-lowtraffic",
+   "waypoints": [
+    [
+     -16.7683,
+     32.7175
+    ]
+   ],
+   "roundTripDistance": 2500,
+   "direction": 90,
+   "roundTripPoints": 5,
+   "query": "lonlats=-16.7683,32.7175&profile=fastbike-lowtraffic&format=geojson&engineMode=4&roundTripDistance=2500&direction=90&roundTripPoints=5"
+  },
+  {
+   "id": "roundtrip-003",
+   "kind": "roundtrip",
+   "region": "iceland",
+   "profile": "gravel",
+   "waypoints": [
+    [
+     -21.9414,
+     64.0671
+    ]
+   ],
+   "roundTripDistance": 3000,
+   "direction": 90,
+   "roundTripPoints": 5,
+   "query": "lonlats=-21.9414,64.0671&profile=gravel&format=geojson&engineMode=4&roundTripDistance=3000&direction=90&roundTripPoints=5"
+  },
+  {
+   "id": "roundtrip-004",
+   "kind": "roundtrip",
+   "region": "madeira",
+   "profile": "mtb",
+   "waypoints": [
+    [
+     -16.9085,
+     32.6485
+    ]
+   ],
+   "roundTripDistance": 1200,
+   "direction": 180,
+   "roundTripPoints": 5,
+   "query": "lonlats=-16.9085,32.6485&profile=mtb&format=geojson&engineMode=4&roundTripDistance=1200&direction=180&roundTripPoints=5"
+  },
+  {
+   "id": "roundtrip-005",
+   "kind": "roundtrip",
+   "region": "iceland",
+   "profile": "shortest",
+   "waypoints": [
+    [
+     -21.9266,
+     64.1417
+    ]
+   ],
+   "roundTripDistance": 1800,
+   "direction": 180,
+   "roundTripPoints": 5,
+   "query": "lonlats=-21.9266,64.1417&profile=shortest&format=geojson&engineMode=4&roundTripDistance=1800&direction=180&roundTripPoints=5"
+  },
+  {
+   "id": "roundtrip-006",
+   "kind": "roundtrip",
+   "region": "madeira",
+   "profile": "trekking",
+   "waypoints": [
+    [
+     -16.7683,
+     32.7175
+    ]
+   ],
+   "roundTripDistance": 2500,
+   "direction": 270,
+   "roundTripPoints": 5,
+   "query": "lonlats=-16.7683,32.7175&profile=trekking&format=geojson&engineMode=4&roundTripDistance=2500&direction=270&roundTripPoints=5"
+  },
+  {
+   "id": "roundtrip-007",
+   "kind": "roundtrip",
+   "region": "iceland",
+   "profile": "fastbike",
+   "waypoints": [
+    [
+     -21.9414,
+     64.0671
+    ]
+   ],
+   "roundTripDistance": 3000,
+   "direction": 270,
+   "roundTripPoints": 5,
+   "query": "lonlats=-21.9414,64.0671&profile=fastbike&format=geojson&engineMode=4&roundTripDistance=3000&direction=270&roundTripPoints=5"
+  },
+  {
+   "id": "roundtrip-008",
+   "kind": "roundtrip",
+   "region": "madeira",
+   "profile": "fastbike-lowtraffic",
+   "waypoints": [
+    [
+     -16.9085,
+     32.6485
+    ]
+   ],
+   "roundTripDistance": 1200,
+   "direction": 0,
+   "roundTripPoints": 5,
+   "query": "lonlats=-16.9085,32.6485&profile=fastbike-lowtraffic&format=geojson&engineMode=4&roundTripDistance=1200&direction=0&roundTripPoints=5"
+  },
+  {
+   "id": "roundtrip-009",
+   "kind": "roundtrip",
+   "region": "iceland",
+   "profile": "gravel",
+   "waypoints": [
+    [
+     -21.9266,
+     64.1417
+    ]
+   ],
+   "roundTripDistance": 1800,
+   "direction": 0,
+   "roundTripPoints": 5,
+   "query": "lonlats=-21.9266,64.1417&profile=gravel&format=geojson&engineMode=4&roundTripDistance=1800&direction=0&roundTripPoints=5"
+  },
+  {
+   "id": "roundtrip-010",
+   "kind": "roundtrip",
+   "region": "madeira",
+   "profile": "mtb",
+   "waypoints": [
+    [
+     -16.7683,
+     32.7175
+    ]
+   ],
+   "roundTripDistance": 2500,
+   "direction": 90,
+   "roundTripPoints": 5,
+   "query": "lonlats=-16.7683,32.7175&profile=mtb&format=geojson&engineMode=4&roundTripDistance=2500&direction=90&roundTripPoints=5"
+  },
+  {
+   "id": "roundtrip-011",
+   "kind": "roundtrip",
+   "region": "iceland",
+   "profile": "shortest",
+   "waypoints": [
+    [
+     -21.9414,
+     64.0671
+    ]
+   ],
+   "roundTripDistance": 3000,
+   "direction": 90,
+   "roundTripPoints": 5,
+   "query": "lonlats=-21.9414,64.0671&profile=shortest&format=geojson&engineMode=4&roundTripDistance=3000&direction=90&roundTripPoints=5"
+  },
+  {
+   "id": "roundtrip-012",
+   "kind": "roundtrip",
+   "region": "madeira",
+   "profile": "trekking",
+   "waypoints": [
+    [
+     -16.9085,
+     32.6485
+    ]
+   ],
+   "roundTripDistance": 1200,
+   "direction": 180,
+   "roundTripPoints": 5,
+   "query": "lonlats=-16.9085,32.6485&profile=trekking&format=geojson&engineMode=4&roundTripDistance=1200&direction=180&roundTripPoints=5"
+  },
+  {
+   "id": "roundtrip-013",
+   "kind": "roundtrip",
+   "region": "iceland",
+   "profile": "fastbike",
+   "waypoints": [
+    [
+     -21.9266,
+     64.1417
+    ]
+   ],
+   "roundTripDistance": 1800,
+   "direction": 180,
+   "roundTripPoints": 5,
+   "query": "lonlats=-21.9266,64.1417&profile=fastbike&format=geojson&engineMode=4&roundTripDistance=1800&direction=180&roundTripPoints=5"
+  },
+  {
+   "id": "roundtrip-014",
+   "kind": "roundtrip",
+   "region": "madeira",
+   "profile": "fastbike-lowtraffic",
+   "waypoints": [
+    [
+     -16.7683,
+     32.7175
+    ]
+   ],
+   "roundTripDistance": 2500,
+   "direction": 270,
+   "roundTripPoints": 5,
+   "query": "lonlats=-16.7683,32.7175&profile=fastbike-lowtraffic&format=geojson&engineMode=4&roundTripDistance=2500&direction=270&roundTripPoints=5"
+  },
+  {
+   "id": "roundtrip-015",
+   "kind": "roundtrip",
+   "region": "iceland",
+   "profile": "gravel",
+   "waypoints": [
+    [
+     -21.9414,
+     64.0671
+    ]
+   ],
+   "roundTripDistance": 3000,
+   "direction": 270,
+   "roundTripPoints": 5,
+   "query": "lonlats=-21.9414,64.0671&profile=gravel&format=geojson&engineMode=4&roundTripDistance=3000&direction=270&roundTripPoints=5"
+  }
+ ]
+}

@@ -1,0 +1,73 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "creator": "BRouter-1.7.10",
+        "name": "brouter_gravel_3",
+        "track-length": "1231",
+        "filtered ascend": "1",
+        "plain-ascend": "0",
+        "total-time": "168",
+        "total-energy": "25245",
+        "cost": "5015",
+        "messages": [
+          ["Longitude", "Latitude", "Elevation", "Distance", "CostPerKm", "ElevCost", "TurnCost", "NodeCost", "InitialCost", "WayTags", "NodeTags", "Time", "Energy"],
+          ["-22549935", "63983962", "4", "2", "3603", "0", "5", "0", "0", "highway=service service=parking_aisle", "", "0", "61"],
+          ["-22549950", "63983872", "4", "10", "2882", "0", "54", "87", "0", "highway=path surface=asphalt foot=designated bicycle=designated segregated=no oneway=no", "barrier=cycle_barrier bicycle=yes foot=yes", "1", "258"],
+          ["-22550042", "63983472", "4", "46", "2882", "0", "18", "20", "0", "highway=path surface=asphalt foot=designated bicycle=designated segregated=no oneway=no", "highway=crossing crossing=uncontrolled", "7", "1173"],
+          ["-22550035", "63983420", "4", "6", "2882", "0", "0", "20", "0", "highway=path surface=asphalt foot=designated bicycle=designated segregated=no oneway=no", "highway=crossing crossing=uncontrolled", "8", "1293"],
+          ["-22548100", "63978249", "4", "586", "2882", "0", "1", "20", "0", "highway=path surface=asphalt foot=designated bicycle=designated segregated=no oneway=no", "highway=crossing crossing=marked", "89", "13358"],
+          ["-22545252", "63974099", "4", "488", "2882", "0", "1", "0", "0", "highway=path surface=asphalt foot=designated bicycle=designated segregated=no oneway=no", "", "155", "23340"],
+          ["-22545223", "63974057", "4", "5", "3123", "0", "1", "20", "20", "highway=footway surface=asphalt bicycle=designated footway=crossing", "highway=crossing crossing=marked", "156", "23442"],
+          ["-22545191", "63974010", "4", "5", "3123", "0", "0", "0", "0", "highway=footway surface=asphalt bicycle=designated footway=crossing", "", "156", "23545"],
+          ["-22543916", "63973571", "4", "83", "2882", "0", "22", "0", "20", "highway=path surface=asphalt foot=designated bicycle=designated segregated=no oneway=no", "", "168", "25245"]
+        ],
+        "times": [0.137,0.41,1.723,5.957,6.622,7.155,7.555,7.821,8.622,16.655,29.12,35.299,41.284,55.868,66.89,77.062,89.04,95.277,101.668,105.48,111.341,121.437,125.395,134.952,137.137,155.576,156.258,156.941,157.488,157.898,158.307,159.4,160.22,161.039,162.405,165.683,168.279]
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-22.549888, 63.983964, 4.25],
+          [-22.549935, 63.983962, 4.25],
+          [-22.549950, 63.983872, 4.0],
+          [-22.549933, 63.983584, 4.0],
+          [-22.549972, 63.983543, 4.0],
+          [-22.550026, 63.983516, 4.0],
+          [-22.550046, 63.983493, 4.0],
+          [-22.550042, 63.983472, 4.0],
+          [-22.550035, 63.983420, 4.0],
+          [-22.549953, 63.982820, 3.0],
+          [-22.549700, 63.982050, 4.0],
+          [-22.549575, 63.981712, 5.0],
+          [-22.549401, 63.981399, 5.5],
+          [-22.548954, 63.980478, 4.75],
+          [-22.548783, 63.979704, 4.0],
+          [-22.548389, 63.979037, 4.0],
+          [-22.548100, 63.978249, 4.0],
+          [-22.547979, 63.977836, 4.0],
+          [-22.547892, 63.977416, 4.0],
+          [-22.547760, 63.977174, 4.0],
+          [-22.547555, 63.976802, 4.0],
+          [-22.547227, 63.976150, 4.0],
+          [-22.547100, 63.975899, 4.0],
+          [-22.546699, 63.975293, 4.0],
+          [-22.546605, 63.975151, 4.0],
+          [-22.545252, 63.974099, 4.0],
+          [-22.545223, 63.974057, 4.0],
+          [-22.545191, 63.974010, 4.0],
+          [-22.545167, 63.973979, 4.0],
+          [-22.545130, 63.973957, 4.0],
+          [-22.545066, 63.973949, 4.0],
+          [-22.544903, 63.973947, 4.0],
+          [-22.544779, 63.973935, 4.0],
+          [-22.544663, 63.973910, 4.0],
+          [-22.544508, 63.973856, 4.0],
+          [-22.544165, 63.973702, 4.0],
+          [-22.543916, 63.973571, 4.0]
+        ]
+      }
+    }
+  ]
+}

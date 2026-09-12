@@ -1,0 +1,13 @@
+# rd5 segment tiles used by the BRouter oracle corpus.
+#
+# Source index: https://brouter.de/brouter/segments4/
+# Index timestamp of the listing these were taken from: 12-Sep-2026 01:03 (CET,
+# map snapshot time; the directory itself was last touched 12-Sep-2026 03:13).
+#
+# Selection rule: the two smallest tiles in the live index that still carry a
+# real, connected road network. Both are island tiles, so the network is fully
+# contained in the tile and no neighbouring segment is needed.
+#
+# Format: <tile>  <bytes-at-selection-time>  <area>
+W20_N30   1527283   Madeira and Porto Santo (PT) -- lon -20..-15, lat 30..35
+W25_N60   2655536   South-west Iceland incl. Reykjavik and Reykjanes -- lon -25..-20, lat 60..65

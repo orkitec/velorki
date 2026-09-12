@@ -1,0 +1,57 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "creator": "BRouter-1.7.10",
+        "name": "brouter_fastbike-lowtraffic_1",
+        "track-length": "987",
+        "filtered ascend": "7",
+        "plain-ascend": "5",
+        "total-time": "186",
+        "total-energy": "18589",
+        "cost": "2004",
+        "messages": [
+          ["Longitude", "Latitude", "Elevation", "Distance", "CostPerKm", "ElevCost", "TurnCost", "NodeCost", "InitialCost", "WayTags", "NodeTags", "Time", "Energy"],
+          ["-22556906", "64001425", "6", "93", "1200", "0", "0", "0", "0", "reversedirection=yes highway=residential surface=asphalt oneway=no", "highway=crossing crossing=marked", "14", "1454"],
+          ["-22555731", "64000514", "7", "117", "1200", "0", "0", "0", "0", "reversedirection=yes highway=residential surface=asphalt oneway=no", "highway=crossing crossing=marked kerb=lowered", "35", "3564"],
+          ["-22554551", "63999497", "9", "128", "1200", "0", "3", "0", "0", "reversedirection=yes highway=residential surface=asphalt oneway=no", "highway=crossing crossing=marked", "60", "6092"],
+          ["-22553386", "63997059", "13", "279", "1200", "0", "1", "0", "0", "reversedirection=yes highway=residential surface=asphalt oneway=no", "", "118", "11858"],
+          ["-22550872", "63997248", "11", "125", "1200", "0", "86", "0", "0", "highway=residential", "", "144", "14402"],
+          ["-22550771", "63995049", "11", "245", "1200", "0", "101", "0", "0", "reversedirection=yes highway=residential", "", "185", "18589"]
+        ],
+        "times": [0,6.523,14.543,24.456,27.353,31.994,35.641,36.528,47.759,58,60.919,68.918,83.805,103.816,110.942,118.571,120.55,144.009,153.348,169.721,174.853,178.372,180.017,185.873]
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-22.557809, 64.002157, 7.25],
+          [-22.557413, 64.001835, 7.0],
+          [-22.556906, 64.001425, 6.75],
+          [-22.556390, 64.001011, 7.5],
+          [-22.556224, 64.000886, 7.5],
+          [-22.555957, 64.000685, 7.5],
+          [-22.555731, 64.000514, 7.25],
+          [-22.555680, 64.000476, 7.5],
+          [-22.555064, 64.000002, 7.75],
+          [-22.554605, 63.999612, 8.5],
+          [-22.554551, 63.999497, 9.0],
+          [-22.554432, 63.999161, 9.0],
+          [-22.554138, 63.998441, 11.75],
+          [-22.553863, 63.997669, 13.25],
+          [-22.553690, 63.997356, 13.25],
+          [-22.553386, 63.997059, 13.75],
+          [-22.553236, 63.997084, 14.5],
+          [-22.550872, 63.997248, 11.25],
+          [-22.550827, 63.996652, 10.0],
+          [-22.550792, 63.995784, 10.5],
+          [-22.550790, 63.995540, 11.0],
+          [-22.550789, 63.995372, 11.0],
+          [-22.550788, 63.995290, 11.0],
+          [-22.550771, 63.995049, 11.75]
+        ]
+      }
+    }
+  ]
+}

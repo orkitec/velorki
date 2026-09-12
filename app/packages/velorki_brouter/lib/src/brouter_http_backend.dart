@@ -27,8 +27,10 @@ import 'routing_exception.dart';
 ///   not the length of the route. The server default is 1500. (The value is
 ///   handed straight to `CheapRuler.destination`, whose distance argument is
 ///   metres.) Kilometres would be off by a factor of 1000.
-/// * `roundTripStartDirection` — degrees clockwise from north. `direction` and
-///   `heading` also exist but set the generic start direction instead.
+/// * `direction` — start bearing in degrees clockwise from north. Without it
+///   BRouter picks a random direction (`Math.random()`), so always send one for
+///   reproducible results. (`roundTripStartDirection` does not exist in 1.7.10;
+///   verified against the jar's `RoutingParamCollector`.)
 /// * `roundTripPoints` — 3..20 generated points, default 5.
 /// * `allowSamewayback=0|1` — lower-case `w` and `b`.
 /// * `nogos=lon,lat,radius[,weight]|...` — radius in metres.
@@ -103,7 +105,7 @@ class BRouterHttpBackend implements RoutingBackend {
       }
       if (q.roundTripDirectionDeg != null) {
         final dir = (q.roundTripDirectionDeg! % 360 + 360) % 360;
-        params['roundTripStartDirection'] = '${dir.round()}';
+        params['direction'] = '${dir.round()}';
       }
       if (roundTripPoints != null) {
         params['roundTripPoints'] = '$roundTripPoints';
