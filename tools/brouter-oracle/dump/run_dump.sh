@@ -7,6 +7,8 @@
 #   ./dump/run_dump.sh codec-vectors <outdir>
 #   ./dump/run_dump.sh microcache-bytes <tile.rd5|tilename> <lon> <lat> <outfile>
 #   ./dump/run_dump.sh microcache-listing <tile.rd5|tilename> <lon> <lat> [--bodies <n>]
+#   ./dump/run_dump.sh osmfile-index <tile.rd5|tilename>
+#   ./dump/run_dump.sh nodes-cache-walk [<segmentsdir>] <lon> <lat> <lon2> <lat2> [--maxmem <bytes>] [--no-direct-weaving] [--cleanup-mode <n>] [--steps <n>]
 #
 # A bare tile name (W20_N30) is resolved inside .cache/segments4, a bare profile
 # name (trekking) inside brouter/profiles -- the profiles are used in place, the
@@ -56,7 +58,7 @@ case "$cmd" in
   codec-vectors)
     args=( codec-vectors "$@" )
     ;;
-  microcache-bytes|microcache-listing)
+  microcache-bytes|microcache-listing|osmfile-index)
     tile="${1:-}"; shift || true
     case "$tile" in
       */*|*.rd5) ;;
@@ -64,8 +66,16 @@ case "$cmd" in
     esac
     args=( "$cmd" "$tile" "$@" )
     ;;
+  nodes-cache-walk)
+    # a segments dir may be given first; a bare number means "use .cache/segments4"
+    case "${1:-}" in
+      -*|[0-9]*) segdir="$SEGMENTS_DIR" ;;
+      *) segdir="${1:-$SEGMENTS_DIR}"; shift || true ;;
+    esac
+    args=( nodes-cache-walk "$segdir" "$@" --lookups "$PROFILES_DIR/lookups.dat" )
+    ;;
   *)
-    echo "usage: run_dump.sh {dump-microcache|eval-profile|codec-vectors|microcache-bytes|microcache-listing} ..." >&2; exit 2 ;;
+    echo "usage: run_dump.sh {dump-microcache|eval-profile|codec-vectors|microcache-bytes|microcache-listing|osmfile-index|nodes-cache-walk} ..." >&2; exit 2 ;;
 esac
 
 exec "$JAVA" -Xmx256M -cp "$BROUTER_JAR:$CLASSES" Dump "${args[@]}"

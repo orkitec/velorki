@@ -1,7 +1,8 @@
 /// brouter_dart: a pure-Dart port of the BRouter routing runtime.
 ///
-/// Track R1: the `brouter-util` and `brouter-codec` modules. See README.md for
-/// the class list and the JVM emulation caveats.
+/// Track R1: the `brouter-util` and `brouter-codec` modules; track R2:
+/// `brouter-mapaccess`. See README.md for the class list and the JVM
+/// emulation caveats.
 library;
 
 export 'src/codec/data_buffers.dart';
@@ -17,6 +18,23 @@ export 'src/codec/tag_value_wrapper.dart';
 export 'src/codec/waypoint_matcher.dart';
 export 'src/jmath.dart';
 export 'src/jvm.dart';
+export 'src/mapaccess/direct_weaver.dart';
+export 'src/mapaccess/geometry_decoder.dart';
+export 'src/mapaccess/matched_waypoint.dart';
+export 'src/mapaccess/nodes_cache.dart';
+export 'src/mapaccess/nodes_list.dart';
+export 'src/mapaccess/osm_file.dart';
+export 'src/mapaccess/osm_link.dart';
+export 'src/mapaccess/osm_link_holder.dart';
+export 'src/mapaccess/osm_node.dart';
+export 'src/mapaccess/osm_node_pair_set.dart';
+export 'src/mapaccess/osm_nodes_map.dart';
+export 'src/mapaccess/osm_pos.dart';
+export 'src/mapaccess/osm_transfer_node.dart';
+export 'src/mapaccess/physical_file.dart';
+export 'src/mapaccess/rd5_diff_tool.dart';
+export 'src/mapaccess/turn_restriction.dart';
+export 'src/mapaccess/waypoint_matcher_impl.dart';
 export 'src/util/bit_coder_context.dart';
 export 'src/util/byte_array_unifier.dart';
 export 'src/util/byte_data_reader.dart';

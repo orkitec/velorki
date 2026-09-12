@@ -219,6 +219,10 @@ bare profile name inside `brouter/profiles`.
 ./dump/run_dump.sh codec-vectors <out-dir>                       # JSON test vectors for util + codec classes
 ./dump/run_dump.sh microcache-bytes W20_N30 -16.9085 32.6485 <out.bin>   # raw encoded micro-cache
 ./dump/run_dump.sh microcache-listing W20_N30 -16.9085 32.6485   # node/link listing the Dart decoder must reproduce
+
+# R2 (mapaccess) parity:
+./dump/run_dump.sh osmfile-index W20_N30                                   # header, file index, per-cell sizes and crcs
+./dump/run_dump.sh nodes-cache-walk -16.92 32.65 -16.77 32.72 --steps 400  # NodesCache walk mirroring RoutingEngine
 ./dump/run_dump.sh eval-profile trekking dump/samples/tags.txt
 ```
 

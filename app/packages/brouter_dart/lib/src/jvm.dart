@@ -118,8 +118,33 @@ double toDegrees(double angrad) => angrad * 57.29577951308232;
 /// `Math.toRadians`.
 double toRadians(double angdeg) => angdeg * 0.017453292519943295;
 
+/// `Double.doubleToLongBits` (a NaN is canonicalised to 0x7ff8000000000000).
+int doubleToLongBits(double d) =>
+    d.isNaN ? 0x7ff8000000000000 : doubleToRawLongBits(d);
+
+/// `Double.compare`: -0.0 sorts before 0.0 and NaN after everything.
+int javaDoubleCompare(double d1, double d2) {
+  if (d1 < d2) return -1;
+  if (d1 > d2) return 1;
+  final thisBits = doubleToLongBits(d1);
+  final anotherBits = doubleToLongBits(d2);
+  return thisBits == anotherBits ? 0 : (thisBits < anotherBits ? -1 : 1);
+}
+
+/// Thrown where Java would throw `java.io.IOException`.
+class IOException implements Exception {
+  IOException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => 'IOException: $message';
+}
+
 /// Thrown where Java would throw `java.io.EOFException`.
-class EofException implements Exception {
+class EofException extends IOException {
+  EofException() : super('EOFException');
+
   @override
   String toString() => 'EOFException';
 }
@@ -170,6 +195,9 @@ class DataInputStream {
     _pos += ta.length;
   }
 
+  /// `DataInput.readDouble`.
+  double readDouble() => longBitsToDouble(readLong());
+
   int available() => _ab.length - _pos;
 }
 
@@ -207,6 +235,16 @@ class DataOutputStream {
 
   void writeBytes(Uint8List sa, [int offset = 0, int? len]) {
     _out.add(Uint8List.sublistView(sa, offset, offset + (len ?? sa.length)));
+  }
+
+  /// `DataOutput.writeDouble`.
+  void writeDouble(double v) => writeLong(doubleToLongBits(v));
+
+  /// `DataOutput.writeBytes(String)`: the low byte of every char.
+  void writeStringBytes(String s) {
+    for (final c in s.codeUnits) {
+      _out.addByte(c & 0xff);
+    }
   }
 
   /// The bytes written so far (a copy).
@@ -262,5 +300,187 @@ class PriorityQueue<T> {
       }
     }
     return res;
+  }
+}
+
+class _JEntry<K, V> {
+  _JEntry(this.hash, this.key, this.value);
+
+  final int hash;
+  final K key;
+  V value;
+  _JEntry<K, V>? next;
+}
+
+/// A hash map with the iteration order of `java.util.HashMap` (bucket order,
+/// insertion order inside a bucket, buckets split in place on resize).
+///
+/// Only [values] depends on it, but `OsmNodesMap.collectOutreachers` walks the
+/// hollow-node map in that order and its `nodesCreated` count depends on the
+/// order (which links are already gone when a node is reached). Bins with
+/// eight or more entries, which the JDK converts into red-black trees whose
+/// `next` order then depends on identity hash codes, are not emulated: their
+/// order is not reproducible between two JVM runs either.
+///
+/// The two functions stand in for the key's `hashCode()` (must return a Java
+/// `int`) and `equals()`.
+class JavaHashMap<K, V> {
+  JavaHashMap(int initialCapacity, this._hashCode, this._equals)
+    : _threshold = _tableSizeFor(initialCapacity);
+
+  final int Function(K key) _hashCode;
+  final bool Function(K a, K b) _equals;
+  List<_JEntry<K, V>?>? _table;
+  int _size = 0;
+  int _threshold;
+
+  int get length => _size;
+
+  static int _tableSizeFor(int cap) {
+    var n = 1;
+    while (n < cap) {
+      n <<= 1;
+    }
+    return n;
+  }
+
+  int _hash(K key) {
+    final h = i32(_hashCode(key));
+    return h ^ ushr32(h, 16);
+  }
+
+  V? get(K key) {
+    final tab = _table;
+    if (tab == null) return null;
+    final hash = _hash(key);
+    var e = tab[(tab.length - 1) & hash];
+    while (e != null) {
+      if (e.hash == hash && _equals(e.key, key)) return e.value;
+      e = e.next;
+    }
+    return null;
+  }
+
+  /// Returns the previous value for an equal key (the stored key is kept).
+  V? put(K key, V value) {
+    final tab = _table ?? _resize();
+    final hash = _hash(key);
+    final i = (tab.length - 1) & hash;
+    var e = tab[i];
+    if (e == null) {
+      tab[i] = _JEntry(hash, key, value);
+    } else {
+      for (;;) {
+        if (e!.hash == hash && _equals(e.key, key)) {
+          final old = e.value;
+          e.value = value;
+          return old;
+        }
+        if (e.next == null) {
+          e.next = _JEntry(hash, key, value);
+          break;
+        }
+        e = e.next;
+      }
+    }
+    if (++_size > _threshold) _resize();
+    return null;
+  }
+
+  V? remove(K key) {
+    final tab = _table;
+    if (tab == null) return null;
+    final hash = _hash(key);
+    final i = (tab.length - 1) & hash;
+    _JEntry<K, V>? prev;
+    var e = tab[i];
+    while (e != null) {
+      if (e.hash == hash && _equals(e.key, key)) {
+        if (prev == null) {
+          tab[i] = e.next;
+        } else {
+          prev.next = e.next;
+        }
+        _size--;
+        return e.value;
+      }
+      prev = e;
+      e = e.next;
+    }
+    return null;
+  }
+
+  List<_JEntry<K, V>?> _resize() {
+    final oldTab = _table;
+    final oldCap = oldTab == null ? 0 : oldTab.length;
+    final oldThr = _threshold;
+    int newCap;
+    var newThr = 0;
+    if (oldCap > 0) {
+      newCap = oldCap << 1;
+      if (oldCap >= 16) newThr = oldThr << 1;
+    } else if (oldThr > 0) {
+      newCap = oldThr;
+    } else {
+      newCap = 16;
+      newThr = 12;
+    }
+    if (newThr == 0) newThr = (newCap * 0.75).toInt();
+    _threshold = newThr;
+    final newTab = List<_JEntry<K, V>?>.filled(newCap, null);
+    _table = newTab;
+    if (oldTab != null) {
+      for (var j = 0; j < oldCap; j++) {
+        var e = oldTab[j];
+        if (e == null) continue;
+        oldTab[j] = null;
+        if (e.next == null) {
+          newTab[e.hash & (newCap - 1)] = e;
+          continue;
+        }
+        _JEntry<K, V>? loHead, loTail, hiHead, hiTail;
+        do {
+          final next = e!.next;
+          if ((e.hash & oldCap) == 0) {
+            if (loTail == null) {
+              loHead = e;
+            } else {
+              loTail.next = e;
+            }
+            loTail = e;
+          } else {
+            if (hiTail == null) {
+              hiHead = e;
+            } else {
+              hiTail.next = e;
+            }
+            hiTail = e;
+          }
+          e = next;
+        } while (e != null);
+        if (loTail != null) {
+          loTail.next = null;
+          newTab[j] = loHead;
+        }
+        if (hiTail != null) {
+          hiTail.next = null;
+          newTab[j + oldCap] = hiHead;
+        }
+      }
+    }
+    return newTab;
+  }
+
+  /// `values()` in `HashMap` iteration order.
+  Iterable<V> get values sync* {
+    final tab = _table;
+    if (tab == null) return;
+    for (var i = 0; i < tab.length; i++) {
+      var e = tab[i];
+      while (e != null) {
+        yield e.value;
+        e = e.next;
+      }
+    }
   }
 }

@@ -34,6 +34,24 @@
 //       of the first n nodes, and the result of re-encoding the cache with
 //       MicroCache2.encodeMicroCache.
 //
+//   osmfile-index <tile.rd5>
+//       The rd5 header as PhysicalFile reads it (file index, header crcs,
+//       creation time, divisor, elevation type, lookup version) and, per
+//       degree square, every non-empty micro-cache with its encoded size and
+//       Crc32 (OsmFile.getDataInputForSubIdx). L2-mapaccess target.
+//
+//   nodes-cache-walk <segmentsDir> <lon> <lat> <lon2> <lat2> [--maxmem <bytes>]
+//                    [--no-direct-weaving] [--cleanup-mode <n>] [--steps <n>]
+//       Exercise btools.mapaccess.NodesCache the way RoutingEngine does: match
+//       the two waypoints (matchWaypointsToNodes), reset the cache, obtain the
+//       matched graph nodes and expand their link targets, breadth-first walk
+//       <steps> nodes from the first one (obtainNonHollowNode on every link
+//       target), reset again and getStartNode. Prints the matches, the full
+//       nodes (links, geometry, transfer nodes, turn restrictions), one record
+//       per walked node and the cache's memory accounting (formatStatus).
+//       The way context is lookups.dat only (no profile) with all tags used:
+//       every way is kept, accessType 2.
+//
 // Everything is written to stdout as one JSON document; diagnostics go to stderr.
 
 import java.io.BufferedReader;
@@ -46,8 +64,11 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Random;
@@ -86,9 +107,12 @@ import btools.util.TinyDenseLongMap;
 import btools.expressions.BExpressionContextWay;
 import btools.expressions.BExpressionMetaData;
 import btools.mapaccess.GeometryDecoder;
+import btools.mapaccess.MatchedWaypoint;
+import btools.mapaccess.NodesCache;
 import btools.mapaccess.OsmFile;
 import btools.mapaccess.OsmLink;
 import btools.mapaccess.OsmNode;
+import btools.mapaccess.OsmNodePairSet;
 import btools.mapaccess.OsmNodesMap;
 import btools.mapaccess.OsmTransferNode;
 import btools.mapaccess.PhysicalFile;
@@ -114,6 +138,10 @@ public class Dump {
       microCacheBytes(args);
     } else if ("microcache-listing".equals(cmd)) {
       microCacheListing(args);
+    } else if ("osmfile-index".equals(cmd)) {
+      osmFileIndex(args);
+    } else if ("nodes-cache-walk".equals(cmd)) {
+      nodesCacheWalk(args);
     } else {
       usage();
       System.exit(2);
@@ -127,6 +155,8 @@ public class Dump {
     System.err.println("  Dump codec-vectors <outdir>");
     System.err.println("  Dump microcache-bytes <tile.rd5> <lon> <lat> <outfile>");
     System.err.println("  Dump microcache-listing <tile.rd5> <lon> <lat> [--bodies <n>]");
+    System.err.println("  Dump osmfile-index <tile.rd5>");
+    System.err.println("  Dump nodes-cache-walk <segmentsDir> <lon> <lat> <lon2> <lat2> [--maxmem <bytes>] [--no-direct-weaving] [--cleanup-mode <n>] [--steps <n>] [--lookups <lookups.dat>]");
   }
 
   private static String opt(String[] args, String name, String dflt) {
@@ -563,6 +593,408 @@ public class Dump {
     }
     sb.append("\n  ]\n}\n");
     System.out.print(sb);
+  }
+
+
+  // ------------------------------------------------------ mapaccess (R2) ----
+
+  /** The 25-entry file index and the trailer, read the way PhysicalFile does (its fields are package-private). */
+  private static void osmFileIndex(String[] args) throws Exception {
+    File rd5 = new File(args[1]);
+    String name = rd5.getName();
+    // W20_N30.rd5 -> lonBase = 160 (degrees east of -180), latBase = 120
+    Matcher m = Pattern.compile("([EW])(\\d+)_([NS])(\\d+)\\.rd5").matcher(name);
+    if (!m.matches()) { System.err.println("tile name must look like W20_N30.rd5"); System.exit(2); }
+    int lon = Integer.parseInt(m.group(2)) * (m.group(1).equals("W") ? -1 : 1);
+    int lat = Integer.parseInt(m.group(4)) * (m.group(3).equals("S") ? -1 : 1);
+    int lonBase = lon + 180;
+    int latBase = lat + 90;
+
+    byte[] head = new byte[200];
+    long len;
+    try (java.io.RandomAccessFile raf = new java.io.RandomAccessFile(rd5, "r")) {
+      raf.readFully(head, 0, 200);
+      len = raf.length();
+    }
+    ByteDataReader dis = new ByteDataReader(head);
+    long[] fileIndex = new long[25];
+    int headerVersion = -1;
+    for (int i = 0; i < 25; i++) {
+      long lv = dis.readLong();
+      if (i == 0) headerVersion = (short) (lv >> 48);
+      fileIndex[i] = lv & 0xffffffffffffL;
+    }
+    int[] headerCrcs = null;
+    long pos = fileIndex[24];
+    if (len != pos) {
+      int extraLen = 8 + 26 * 4;
+      if ((len - pos) > extraLen) extraLen++;
+      byte[] extra = new byte[extraLen];
+      try (java.io.RandomAccessFile raf = new java.io.RandomAccessFile(rd5, "r")) {
+        raf.seek(pos);
+        raf.readFully(extra, 0, extraLen);
+      }
+      ByteDataReader r = new ByteDataReader(extra);
+      r.readLong(); // creationTime
+      r.readInt();  // top index crc
+      headerCrcs = new int[25];
+      for (int i = 0; i < 25; i++) headerCrcs[i] = r.readInt();
+    }
+
+    DataBuffers dataBuffers = new DataBuffers();
+    PhysicalFile pf = new PhysicalFile(rd5, dataBuffers, -1, -1);
+    int div = pf.divisor;
+
+    StringBuilder sb = new StringBuilder();
+    sb.append("{\n");
+    kv(sb, 1, "tool", "osmfile-index"); sb.append(",\n");
+    kv(sb, 1, "file", name); sb.append(",\n");
+    kv(sb, 1, "length", len); sb.append(",\n");
+    kv(sb, 1, "headerLookupVersion", headerVersion); sb.append(",\n");
+    kv(sb, 1, "checkVersionIntegrity", PhysicalFile.checkVersionIntegrity(rd5)); sb.append(",\n");
+    kv(sb, 1, "creationTime", pf.creationTime); sb.append(",\n");
+    kv(sb, 1, "divisor", div); sb.append(",\n");
+    kv(sb, 1, "elevationType", pf.elevationType); sb.append(",\n");
+    kv(sb, 1, "lonBase", lonBase); sb.append(",\n");
+    kv(sb, 1, "latBase", latBase); sb.append(",\n");
+    sb.append("  \"fileIndex\": ").append(longs(fileIndex)).append(",\n");
+    sb.append("  \"fileHeaderCrcs\": ").append(headerCrcs == null ? "null" : ints(headerCrcs)).append(",\n");
+    sb.append("  \"squares\": [\n");
+    byte[] buf = new byte[4 * 1024 * 1024];
+    for (int lonDegree = lonBase; lonDegree < lonBase + 5; lonDegree++) {
+      for (int latDegree = latBase; latDegree < latBase + 5; latDegree++) {
+        int tileIndex = (lonDegree % 5) * 5 + (latDegree % 5);
+        OsmFile osmf = new OsmFile(pf, lonDegree, latDegree, dataBuffers);
+        if (tileIndex > 0 || lonDegree > lonBase) sb.append(",\n");
+        sb.append("   {\"tileIndex\": ").append(tileIndex)
+          .append(", \"lonDegree\": ").append(lonDegree)
+          .append(", \"latDegree\": ").append(latDegree)
+          .append(", \"hasData\": ").append(osmf.hasData())
+          .append(", \"fileOffset\": ").append(tileIndex > 0 ? fileIndex[tileIndex - 1] : 200L)
+          .append(", \"elevationType\": ").append((int) pf.elevationType); // OsmFile copies it for every square of a present file
+        if (osmf.hasData()) {
+          int count = 0;
+          long total = 0;
+          StringBuilder caches = new StringBuilder();
+          for (int subIdx = 0; subIdx < div * div; subIdx++) {
+            int size = osmf.getDataInputForSubIdx(subIdx, buf);
+            if (size == 0) continue;
+            if (size > buf.length) throw new IllegalStateException("cache larger than 4 MB");
+            if (count > 0) caches.append(", ");
+            caches.append('"').append(subIdx).append(' ').append(size).append(' ').append(Crc32.crc(buf, 0, size)).append('"');
+            count++;
+            total += size;
+          }
+          sb.append(", \"cacheCount\": ").append(count).append(", \"cacheBytes\": ").append(total);
+          sb.append(", \"caches\": [").append(caches).append("]");
+        }
+        sb.append("}");
+      }
+    }
+    sb.append("\n  ]\n}\n");
+    System.out.print(sb);
+    pf.close();
+  }
+
+  private static MatchedWaypoint mwp(String name, double lon, double lat) {
+    MatchedWaypoint w = new MatchedWaypoint();
+    w.waypoint = new OsmNode(toIlon(lon), toIlat(lat));
+    w.name = name;
+    return w;
+  }
+
+  private static String posJson(OsmNode n) {
+    return n == null ? "null" : "{\"ilon\": " + n.ilon + ", \"ilat\": " + n.ilat + "}";
+  }
+
+  private static String mwpJson(MatchedWaypoint w, boolean withNearest) {
+    StringBuilder sb = new StringBuilder("{");
+    sb.append("\"name\": ").append(quote(w.name));
+    sb.append(", \"waypoint\": ").append(posJson(w.waypoint));
+    sb.append(", \"crosspoint\": ").append(posJson(w.crosspoint));
+    sb.append(", \"node1\": ").append(posJson(w.node1));
+    sb.append(", \"node2\": ").append(posJson(w.node2));
+    sb.append(", \"radius\": ").append(quote(hexd(w.radius)));
+    sb.append(", \"directionToNext\": ").append(quote(hexd(w.directionToNext)));
+    sb.append(", \"directionDiff\": ").append(quote(hexd(w.directionDiff)));
+    sb.append(", \"wpttype\": ").append(w.wpttype);
+    if (withNearest) {
+      sb.append(", \"wayNearest\": [");
+      for (int i = 0; i < w.wayNearest.size(); i++) {
+        if (i > 0) sb.append(", ");
+        sb.append(mwpJson(w.wayNearest.get(i), false));
+      }
+      sb.append("]");
+    }
+    return sb.append("}").toString();
+  }
+
+  /** A full node: everything OsmNode/OsmLink/TurnRestriction/GeometryDecoder expose. */
+  private static String nodeJson(OsmNode node, GeometryDecoder gd) {
+    StringBuilder sb = new StringBuilder("{");
+    sb.append("\"id64\": ").append(node.getIdFromPos());
+    sb.append(", \"ilon\": ").append(node.ilon);
+    sb.append(", \"ilat\": ").append(node.ilat);
+    sb.append(", \"selev\": ").append(node.selev);
+    sb.append(", \"hollow\": ").append(node.isHollow());
+    sb.append(", \"visitID\": ").append(node.visitID);
+    sb.append(", \"nodeDescription\": ").append(node.nodeDescription == null ? "null" : quote(hex(node.nodeDescription)));
+    sb.append(", \"turnRestrictions\": [");
+    boolean first = true;
+    for (TurnRestriction tr = node.firstRestriction; tr != null; tr = tr.next) {
+      if (!first) sb.append(", ");
+      first = false;
+      sb.append("{\"isPositive\": ").append(tr.isPositive)
+        .append(", \"exceptions\": ").append(tr.exceptions)
+        .append(", \"fromLon\": ").append(tr.fromLon)
+        .append(", \"fromLat\": ").append(tr.fromLat)
+        .append(", \"toLon\": ").append(tr.toLon)
+        .append(", \"toLat\": ").append(tr.toLat)
+        .append("}");
+    }
+    sb.append("], \"links\": [");
+    first = true;
+    for (OsmLink link = node.firstlink; link != null; link = link.getNext(node)) {
+      OsmNode target = link.getTarget(node);
+      boolean reverse = link.isReverse(node);
+      if (!first) sb.append(", ");
+      first = false;
+      int targetLinks = 0;
+      for (OsmLink tl = target.firstlink; tl != null; tl = tl.getNext(target)) targetLinks++;
+      sb.append("{\"targetIlon\": ").append(target.ilon)
+        .append(", \"targetIlat\": ").append(target.ilat)
+        .append(", \"targetSelev\": ").append(target.selev)
+        .append(", \"targetHollow\": ").append(target.isHollow())
+        .append(", \"targetVisitID\": ").append(target.visitID)
+        .append(", \"targetLinks\": ").append(targetLinks)
+        .append(", \"reverse\": ").append(reverse)
+        .append(", \"bidirectional\": ").append(link.isBidirectional())
+        .append(", \"linkIsNode\": ").append(link instanceof OsmNode);
+      byte[] d = link.descriptionBitmap;
+      sb.append(", \"descriptionBitmap\": ").append(d == null ? "null" : quote(hex(d)));
+      byte[] g = link.geometry;
+      sb.append(", \"geometryBytes\": ").append(g == null ? "null" : quote(hex(g)));
+      sb.append(", \"transferNodes\": [");
+      if (g != null) {
+        boolean firstT = true;
+        for (OsmTransferNode tn = gd.decodeGeometry(g, node, target, reverse); tn != null; tn = tn.next) {
+          if (!firstT) sb.append(", ");
+          firstT = false;
+          sb.append("{\"ilon\": ").append(tn.ilon).append(", \"ilat\": ").append(tn.ilat).append(", \"selev\": ").append(tn.selev).append("}");
+        }
+      }
+      sb.append("]}");
+    }
+    return sb.append("]}").toString();
+  }
+
+  /** One compact record per walked node: id, selev, link count, hollow targets, crc of all link data. */
+  private static String walkRecord(OsmNode n, GeometryDecoder gd, ByteDataWriter w, byte[] buf) {
+    w.reset(buf);
+    int nlinks = 0;
+    int nhollow = 0;
+    for (OsmLink link = n.firstlink; link != null; link = link.getNext(n)) {
+      OsmNode t = link.getTarget(n);
+      boolean reverse = link.isReverse(n);
+      nlinks++;
+      if (t.isHollow()) nhollow++;
+      w.writeLong(t.getIdFromPos());
+      w.writeBoolean(reverse);
+      w.writeBoolean(link.isBidirectional());
+      w.writeShort(t.selev);
+      w.writeVarBytes(link.descriptionBitmap);
+      w.writeVarBytes(link.geometry);
+      if (link.geometry != null) {
+        for (OsmTransferNode tn = gd.decodeGeometry(link.geometry, n, t, reverse); tn != null; tn = tn.next) {
+          w.writeInt(tn.ilon);
+          w.writeInt(tn.ilat);
+          w.writeShort(tn.selev);
+        }
+      }
+    }
+    for (TurnRestriction tr = n.firstRestriction; tr != null; tr = tr.next) {
+      w.writeBoolean(tr.isPositive);
+      w.writeShort(tr.exceptions);
+      w.writeInt(tr.fromLon); w.writeInt(tr.fromLat); w.writeInt(tr.toLon); w.writeInt(tr.toLat);
+    }
+    byte[] data = w.toByteArray();
+    return n.getIdFromPos() + " " + n.selev + " " + n.visitID + " " + nlinks + " " + nhollow + " " + Crc32.crc(data, 0, data.length);
+  }
+
+  private static void nodesCacheWalk(String[] args) throws Exception {
+    File segDir = new File(args[1]);
+    double lon = Double.parseDouble(args[2]);
+    double lat = Double.parseDouble(args[3]);
+    double lon2 = Double.parseDouble(args[4]);
+    double lat2 = Double.parseDouble(args[5]);
+    long maxmem = Long.parseLong(opt(args, "--maxmem", String.valueOf(64L * 1024L * 1024L)));
+    boolean noDirect = flag(args, "--no-direct-weaving");
+    int cleanupMode = Integer.parseInt(opt(args, "--cleanup-mode", "2"));
+    int steps = Integer.parseInt(opt(args, "--steps", "200"));
+    int collectMaxCost = Integer.parseInt(opt(args, "--collect-max-cost", "1500"));
+    String lookupsOpt = opt(args, "--lookups", null);
+    if (lookupsOpt == null) { System.err.println("--lookups <lookups.dat> is required"); System.exit(2); }
+    if (noDirect) System.setProperty("disableDirectWeaving", "true");
+
+    // lookups.dat only, no profile: every way is kept (accessType 2), all tag
+    // indexes are "used" so nothing is filtered out of the descriptions.
+    // A way context needs a parsed expression list before accessType() can be
+    // called, so a minimal profile is used: costfactor 1 for every way (so
+    // accessType is always 2, nothing is filtered, no noStartWay), plus
+    // setAllTagsUsed() so the decoder keeps every tag of every description.
+    // The Dart tests reproduce that with a trivial TagValueValidator.
+    BExpressionMetaData meta = new BExpressionMetaData();
+    BExpressionContextWay ctxWay = new BExpressionContextWay(meta); // registers itself; readMetaData finishes it
+    meta.readMetaData(new File(lookupsOpt));
+    File allWays = File.createTempFile("allways", ".brf");
+    allWays.deleteOnExit();
+    writeFile(allWays, "---context:way\nassign costfactor = 1\n");
+    ctxWay.parseFile(allWays, "global");
+    ctxWay.setAllTagsUsed();
+
+    GeometryDecoder gd = new GeometryDecoder();
+    StringBuilder sb = new StringBuilder();
+    sb.append("{\n");
+    kv(sb, 1, "tool", "nodes-cache-walk"); sb.append(",\n");
+    kv(sb, 1, "segmentsDir", segDir.getName()); sb.append(",\n");
+    kv(sb, 1, "from", lon + "," + lat); sb.append(",\n");
+    kv(sb, 1, "to", lon2 + "," + lat2); sb.append(",\n");
+    kv(sb, 1, "maxmem", maxmem); sb.append(",\n");
+    kv(sb, 1, "directWeaving", !noDirect); sb.append(",\n");
+    kv(sb, 1, "cleanupMode", cleanupMode); sb.append(",\n");
+    kv(sb, 1, "steps", steps); sb.append(",\n");
+    kv(sb, 1, "collectMaxCost", collectMaxCost); sb.append(",\n");
+    kv(sb, 1, "lookupVersion", meta.lookupVersion); sb.append(",\n");
+    kv(sb, 1, "lookupMinorVersion", meta.lookupMinorVersion); sb.append(",\n");
+
+    // phase 1: RoutingEngine.matchWaypointsToNodes = resetCache(false) + NodesCache.matchWaypointsToNodes
+    NodesCache cache = new NodesCache(segDir, ctxWay, false, maxmem, null, false);
+    List<MatchedWaypoint> list = new ArrayList<>();
+    list.add(mwp("from", lon, lat));
+    list.add(mwp("to", lon2, lat2));
+    OsmNodePairSet islands = new OsmNodePairSet(500);
+    boolean ok = cache.matchWaypointsToNodes(list, 250., islands);
+    sb.append("  \"match\": {\"ok\": ").append(ok);
+    sb.append(", \"firstFileAccessFailed\": ").append(cache.first_file_access_failed);
+    sb.append(", \"firstFileAccessName\": ").append(quote(cache.first_file_access_name));
+    sb.append(", \"status\": ").append(quote(cache.formatStatus()));
+    sb.append(", \"nodesCreated\": ").append(cache.nodesMap.nodesCreated);
+    sb.append(", \"elevationType\": ").append(cache.getElevationType(toIlon(lon), toIlat(lat)));
+    sb.append(", \"waypoints\": [");
+    for (int i = 0; i < list.size(); i++) {
+      if (i > 0) sb.append(", ");
+      sb.append(mwpJson(list.get(i), true));
+    }
+    sb.append("]},\n");
+    if (!ok) {
+      sb.append("  \"expand\": null, \"walk\": null, \"startNode\": null\n}\n");
+      System.out.print(sb);
+      cache.close();
+      return;
+    }
+
+    // phase 2: findTrack = resetCache(false), cleanupMode, getGraphNode + obtainNonHollowNode + expandHollowLinkTargets
+    NodesCache cache2 = new NodesCache(segDir, ctxWay, false, maxmem, cache, false);
+    cache2.nodesMap.cleanupMode = cleanupMode;
+    sb.append("  \"expand\": {\"statusAfterReset\": ").append(quote(cache2.formatStatus()));
+    sb.append(", \"nodes\": [\n");
+    // all graph nodes first (hollow, in the map), then obtain + expand: the
+    // order RoutingEngine._findTrack uses, and the only one that works with
+    // direct weaving (a proxy created after its cell was woven stays hollow)
+    List<OsmNode> graphNodes = new ArrayList<>();
+    for (MatchedWaypoint w : list) {
+      graphNodes.add(cache2.getGraphNode(w.node1));
+      graphNodes.add(cache2.getGraphNode(w.node2));
+    }
+    OsmNode walkStart = graphNodes.get(0);
+    boolean firstN = true;
+    for (OsmNode n : graphNodes) {
+      boolean obtained = cache2.obtainNonHollowNode(n);
+      cache2.expandHollowLinkTargets(n);
+      if (!firstN) sb.append(",\n");
+      firstN = false;
+      sb.append("   {\"obtained\": ").append(obtained).append(", \"node\": ").append(nodeJson(n, gd)).append("}");
+    }
+    sb.append("\n  ], \"status\": ").append(quote(cache2.formatStatus()));
+    sb.append(", \"nodesCreated\": ").append(cache2.nodesMap.nodesCreated).append("},\n");
+
+    // phase 3: breadth-first over `steps` nodes, obtaining every link target
+    Deque<OsmNode> queue = new ArrayDeque<>();
+    Set<Long> seen = new HashSet<>();
+    queue.add(walkStart);
+    seen.add(walkStart.getIdFromPos());
+    List<String> records = new ArrayList<>();
+    List<OsmNode> walked = new ArrayList<>();
+    byte[] recordBuf = new byte[1 << 20];
+    ByteDataWriter w = new ByteDataWriter(recordBuf);
+    int obtainedCount = 0, failedCount = 0;
+    while (!queue.isEmpty() && records.size() < steps) {
+      OsmNode n = queue.poll();
+      for (OsmLink link = n.firstlink; link != null; link = link.getNext(n)) {
+        OsmNode t = link.getTarget(n);
+        boolean got = cache2.obtainNonHollowNode(t);
+        if (got) obtainedCount++; else failedCount++;
+        if (got && seen.add(t.getIdFromPos())) queue.add(t);
+      }
+      records.add(walkRecord(n, gd, w, recordBuf));
+      walked.add(n);
+    }
+    ByteDataWriter all = new ByteDataWriter(new byte[records.size() * 128 + 16]);
+    for (String r : records) for (byte b : r.getBytes(StandardCharsets.US_ASCII)) all.writeByte(b);
+    byte[] allBytes = all.toByteArray();
+    sb.append("  \"walk\": {\"visited\": ").append(records.size());
+    sb.append(", \"queued\": ").append(queue.size());
+    sb.append(", \"obtained\": ").append(obtainedCount);
+    sb.append(", \"failed\": ").append(failedCount);
+    sb.append(", \"crc\": ").append(Crc32.crc(allBytes, 0, allBytes.length));
+    sb.append(", \"status\": ").append(quote(cache2.formatStatus()));
+    sb.append(", \"nodesCreated\": ").append(cache2.nodesMap.nodesCreated);
+    sb.append(", \"records\": ").append(arr(quoteAll(records), true)).append("},\n");
+
+    // phase 3b: the memory-panic path of RoutingEngine: collectOutreachers with a
+    // destination and a cost bound (nodes further away vanish), then canEscape
+    OsmNodesMap nm = cache2.nodesMap;
+    nm.destination = graphNodes.get(2); // node1 of "to"
+    nm.currentMaxCost = collectMaxCost;
+    nm.currentPathCost = 0;
+    int nodesCreatedBefore = nm.nodesCreated;
+    nm.collectOutreachers();
+    int nodesCreatedCollected = nm.nodesCreated;
+    boolean escStart = nm.canEscape(walkStart);
+    boolean escEnd = nm.canEscape(graphNodes.get(2));
+    nm.clearTemp();
+    List<String> records2 = new ArrayList<>();
+    for (OsmNode n : walked) records2.add(walkRecord(n, gd, w, recordBuf));
+    all = new ByteDataWriter(new byte[records2.size() * 128 + 16]);
+    for (String r : records2) for (byte b : r.getBytes(StandardCharsets.US_ASCII)) all.writeByte(b);
+    allBytes = all.toByteArray();
+    sb.append("  \"collect\": {\"nodesCreatedBefore\": ").append(nodesCreatedBefore);
+    sb.append(", \"nodesCreated\": ").append(nodesCreatedCollected);
+    sb.append(", \"canEscapeStart\": ").append(escStart);
+    sb.append(", \"canEscapeEnd\": ").append(escEnd);
+    sb.append(", \"nodesCreatedAfterEscape\": ").append(nm.nodesCreated);
+    sb.append(", \"lastVisitID\": ").append(nm.lastVisitID);
+    sb.append(", \"baseID\": ").append(nm.baseID);
+    sb.append(", \"crc\": ").append(Crc32.crc(allBytes, 0, allBytes.length));
+    sb.append(", \"records\": ").append(arr(quoteAll(records2), true)).append("},\n");
+
+    // phase 4: a fresh reset (reusing the file cache / ghosting virgin caches) and getStartNode
+    NodesCache cache3 = new NodesCache(segDir, ctxWay, false, maxmem, cache2, false);
+    cache3.nodesMap.cleanupMode = cleanupMode;
+    String statusAfterReset3 = cache3.formatStatus();
+    OsmNode start = cache3.getStartNode(list.get(0).node1.getIdFromPos());
+    sb.append("  \"startNode\": {\"statusAfterReset\": ").append(quote(statusAfterReset3));
+    sb.append(", \"node\": ").append(start == null ? "null" : nodeJson(start, gd));
+    sb.append(", \"status\": ").append(quote(cache3.formatStatus()));
+    sb.append(", \"nodesCreated\": ").append(cache3.nodesMap.nodesCreated).append("}\n}\n");
+    System.out.print(sb);
+    cache3.close();
+  }
+
+  private static List<String> quoteAll(List<String> xs) {
+    List<String> out = new ArrayList<>(xs.size());
+    for (String x : xs) out.add(quote(x));
+    return out;
   }
 
   // ------------------------------------------------------- codec vectors ----

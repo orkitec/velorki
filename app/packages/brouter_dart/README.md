@@ -84,6 +84,18 @@ needs threads).
   constant.
 * Java `float` is `f32()` (a `Float32List` round trip). **No class of util or
   codec uses `float`**; the helper is for the later modules.
+* `Double.compare` is `javaDoubleCompare()` (-0.0 before 0.0, NaN last) and
+  `Double.doubleToLongBits` is `doubleToLongBits()` (canonical NaN).
+* `java.io.IOException` is `IOException` (`EofException` extends it); Java
+  `RuntimeException`s are Dart `Error`s (`StateError`, `ArgumentError`).
+* `JavaHashMap<K, V>` (in `jvm.dart`) is a hash map with the iteration order of
+  `java.util.HashMap`: bucket order, insertion order inside a bucket, buckets
+  split in place on resize. `OsmNodesMap` uses it because
+  `collectOutreachers()` walks the hollow-node map in that order and its
+  `nodesCreated` count depends on it. Bins of eight or more entries, which the
+  JDK turns into red-black trees whose `next` order then depends on identity
+  hash codes, are not emulated -- that order is not reproducible between two
+  JVM runs either.
 * `Math.sin`, `Math.cos`, `Math.atan2`: see `jmath.dart`. On HotSpot `sin` and
   `cos` are JIT intrinsics from Intel's LIBM and agree bit for bit neither with
   fdlibm (`StrictMath`) nor with the C library the Dart VM calls (60 of the 1800
@@ -95,9 +107,10 @@ needs threads).
   every platform. `Math.sqrt` is IEEE-exact in both VMs. `Math.exp` (used by the
   expressions module) is also a HotSpot intrinsic and will need the same
   treatment in track R3.
-* `DataInputStream`/`DataOutputStream` (in-memory, big-endian) and a
-  `PriorityQueue` with `java.util.PriorityQueue` poll semantics live in
-  `jvm.dart` for the stream coders and `TagValueCoder`.
+* `DataInputStream`/`DataOutputStream` (in-memory, big-endian; with
+  `readDouble`/`writeDouble` and `writeStringBytes` = `DataOutput.writeBytes(String)`
+  for `MatchedWaypoint`) and a `PriorityQueue` with `java.util.PriorityQueue`
+  poll semantics live in `jvm.dart` for the stream coders and `TagValueCoder`.
 
 ### Upstream behaviour worth knowing
 
@@ -153,4 +166,110 @@ cache exactly as stored in the rd5, crc footer included):
   expressions module and are compared in R3), and re-encodes the cache: the
   result is byte-identical to the data in the rd5, in Java and in Dart.
 
-Run: `dart test` (about 5 s), `dart analyze`, `dart format --set-exit-if-changed .`.
+## Track R2: `brouter-mapaccess`
+
+`lib/src/mapaccess/`, 17 of the 20 upstream classes:
+
+| Java | Dart | Notes |
+|---|---|---|
+| `PhysicalFile` | `physical_file.dart` | one synchronous `dart:io` `RandomAccessFile` per rd5 (`setPositionSync` + `readIntoSync` loop = `seek` + `readFully`), no mmap, never a whole file; `ra`, `fileIndex`, `fileHeaderCrcs` are public (package-private upstream); `headerLookupVersion` keeps the version the tile was built with (11 for the 1.7.10 tiles, `lookups.dat` is 11.2; only the major number is compared, exactly like upstream, and only when a version other than -1 is passed); `checkVersionIntegrity`/`checkFileIntegrity` ported, `main` not; `readFullySync()` is a top-level helper |
+| `OsmFile` | `osm_file.dart` | the two `createMicroCache` overloads are `createMicroCache(ilon, ilat, ...)` and `createMicroCacheForIdx(lonIdx, latIdx, ..., reallyDecode, hollowNodes)`; `fileOffset`/`posIdx` getters added for the index test |
+| `NodesCache` | `nodes_cache.dart` | takes a `TagValueValidator?` plus `lookupVersion`/`lookupMinorVersion` named parameters instead of the `BExpressionContextWay` (R3); a validator that also implements `IByteArrayUnifier` is used for the link descriptions, else a `ByteArrayUnifier(16384)` (upstream NPEs on a null context); `first_file_access_*` are `firstFileAccessFailed`/`firstFileAccessName`; `Boolean.getBoolean("disableDirectWeaving")` is the static `NodesCache.disableDirectWeaving`, read per instance in the constructor; no `storageconfig.txt` (see skipped) |
+| `OsmNode` | `osm_node.dart` | `OsmNode([ilon, ilat])` and `OsmNode.fromId(id)`; the position overload of `addLink` is `addLinkTo`; **`==` is not overridden**: upstream's `equals`/`hashCode` (by position) are only consumed by `OsmNodesMap`'s hash map and are passed to it as `OsmNode.posEquals`/`posHashCode`, so `==` on nodes stays Java `==` (identity) and the many reference comparisons of the port need no `identical()` |
+| `OsmLink` | `osm_link.dart` | `n1`, `n2`, `previous`, `next` are public (protected upstream); `OsmLink([source, target])` covers both constructors; `source` parameters are nullable (`new OsmLink(null, n1)` in the router) |
+| `OsmLinkHolder`, `OsmPos` | `osm_link_holder.dart`, `osm_pos.dart` | abstract classes |
+| `OsmTransferNode`, `TurnRestriction`, `NodesList` | same names | |
+| `OsmNodePairSet` | `osm_node_pair_set.dart` | |
+| `OsmNodesMap` | `osm_nodes_map.dart` | `hmap` is a `JavaHashMap` (see above); `minVisitIdInSubtree` stays recursive and catches `StackOverflowError` like upstream (the depth at which the two VMs overflow differs; none of the oracle walks gets near it); the test `main` is not ported |
+| `MatchedWaypoint` | `matched_waypoint.dart` | `WAYPOINT_TYPE_*` are `waypointType*`; streams through `DataInputStream`/`DataOutputStream` |
+| `GeometryDecoder` | `geometry_decoder.dart` | the 128-node pool and the last-result cache (by geometry identity) are kept: a returned chain is overwritten by the next call, exactly like upstream |
+| `DirectWeaver` | `direct_weaver.dart` | **used**: `NodesCache.directWeaving` defaults to true in 1.7.10, so this is the decoder the router runs; `MicroCache2` decoding is only used with `-DdisableDirectWeaving=true`, by `AreaReader` and by the dump tools. Both paths are parity-proven (below) |
+| `WaypointMatcherImpl` | `waypoint_matcher_impl.dart` | lives in mapaccess upstream, so it is ported here (not R4); `Collections.sort` is replaced by a stable insertion sort (`List.sort` is not stable; the list never exceeds six entries); the comparator uses `javaDoubleCompare`; the `_w_`/`_w2_` names use `OsmNode.posHashCode` |
+| `Rd5DiffTool` | `rd5_diff_tool.dart` | **stub**, every method throws `UnimplementedError` with a TODO: 637 lines of streaming file IO for `.df5` delta files that only the Android `DownloadWorker` calls; the plan defers delta updates to R5 |
+
+Skipped: `Rd5DiffManager` and `Rd5DiffValidator` (server-side batch tools that
+build/validate delta files for a whole segment directory, MD5 of whole files),
+`StorageConfigHelper` (reads the Android app's `storageconfig.txt` for a
+secondary segment directory and a maptool directory; `NodesCache` therefore
+has no secondary directory -- upstream with a null directory would look the
+file up relative to the working directory, which no caller wants).
+
+### Memory strategy
+
+The accounting is upstream's, number for number, and the oracle's
+`formatStatus()` (`collecting`, `noGhosts`, `cacheSum`, `cacheSumClean`,
+`ghostSum`, `ghostWakeup`) is compared after every phase of every walk:
+
+* `NodesCache(maxmem)`: `maxmemtiles = maxmem / 8` is the budget for decoded
+  `MicroCache` bytes (`cacheSum += segment.getDataSize()` per created cache),
+  `nodesMap.maxmem = 2 * maxmem / 3` the budget for woven nodes
+  (`isInMemoryBounds`: `nodesCreated * 95 + paths * 200`, grown from 4 MB in
+  1.9 MB steps). The router passes `memoryclass * 1 MB` (64 by default).
+* When `cacheSum` reaches `maxmemtiles` the next cache creation runs
+  `checkEnableCacheCleaning`: first `collectAll()` on every cache (the
+  "collect unreferenced" pass: `MicroCache.collect(0)` drops every node body
+  already consumed by `getAndClear`, clears `virgin`) and enables garbage
+  collection -- from then on every `obtainNonHollowNode` collects its segment
+  once half of it is consumed; the second time it drops the ghosts and doubles
+  `maxmemtiles`.
+* A `NodesCache(oldCache)` reuses the file handles, the `DataBuffers` and, in
+  the same detail mode, the `OsmFile` rows: still-virgin caches become ghosts
+  (`setGhostState`, counted in `ghostSum`), consumed ones are dropped; a ghost
+  that is needed again is revived (`unGhost`, `ghostWakeup`).
+* With direct weaving (the router's mode) a decoded cell is
+  `MicroCache.emptyNonVirgin` with data size 0, so `cacheSum` stays 0, nothing
+  is ever ghosted and the memory pressure is handled entirely on the node
+  graph: `collectOutreachers()` (vanish nodes further from the destination than
+  the remaining cost allows) and `canEscape()`, both in the walks.
+* Nothing is cached at the byte level yet; the plan's raw-bytes LRU is R5.
+
+## Parity proof (L2-mapaccess)
+
+Two oracle commands were added to `tools/brouter-oracle/dump/Dump.java`
+(`run_dump.sh` resolves bare tile names and the segments directory):
+
+* `osmfile-index <tile>`: the rd5 header the way `PhysicalFile` reads it (file
+  index, header crcs, creation time, divisor, elevation type, lookup version)
+  and, per degree square, every non-empty micro-cache with its encoded size and
+  Crc32 through `OsmFile.getDataInputForSubIdx`.
+* `nodes-cache-walk [<segmentsDir>] <lon> <lat> <lon2> <lat2> [--maxmem <bytes>]
+  [--no-direct-weaving] [--cleanup-mode <n>] [--steps <n>] [--collect-max-cost <n>]`:
+  drives `NodesCache` the way `RoutingEngine` does. Phase 1
+  `matchWaypointsToNodes` (fresh cache, `WaypointMatcherImpl`, 250 m); phase 2
+  a reset cache (`oldCache`, ghost state), `getGraphNode` for all four matched
+  nodes, then `obtainNonHollowNode` + `expandHollowLinkTargets` and a full dump
+  of each node (links with target position/elevation/hollow state/visit id/link
+  count, description and geometry bytes, transfer nodes from `GeometryDecoder`,
+  turn restrictions); phase 3 a breadth-first walk over `steps` nodes calling
+  `obtainNonHollowNode` on every link target, one record per node (`id selev
+  visitID links hollowTargets crc-of-all-link-data`); phase 3b
+  `collectOutreachers` with a destination and cost bound plus `canEscape`, and
+  the records again; phase 4 another reset and `getStartNode`. The way context
+  is `lookups.dat` with a one-line profile (`assign costfactor = 1`, so
+  `accessType` is 2 for every way) and `setAllTagsUsed()`; the Dart side uses
+  the equivalent `AllWaysValidator` (`test/mapaccess_support.dart`).
+
+`test/vectors/mapaccess/` holds the two index dumps and 12 walks (532 KB):
+four per tile with direct weaving (64 MB, `cleanupMode` 2, plus one with
+mode 0 and one with mode 1; `funchal`, `camacha`, `machico`, `reykjavik`,
+`reykjanes`, `mosfellsbaer`, and `portosanto`/`keflavik` whose waypoints lie in
+different degree squares) and two per tile without direct weaving with
+`maxmem` 200 000 and 400 steps, which is small enough that the garbage
+collection enables, collects, cleans ghosts and doubles its budget inside the
+walk. `test/nodes_cache_walk_test.dart` replays each walk with the Dart classes
+and compares the whole JSON, first difference by path; `test/osm_file_test.dart`
+compares the index dumps and additionally decodes every micro-cache of both
+tiles (`MicroCache2` path, crc footer checked, `checkFileIntegrity`). Everything
+is identical: node ids, coordinates, elevations, link targets and order,
+description/geometry bytes, transfer nodes, turn restrictions, visit ids after
+the peninsula cleanup, the waypoint matches (crosspoints, radii and directions
+as raw double bits, `wayNearest` lists), `nodesCreated` before/after
+`collectOutreachers`, and the cache status strings.
+
+The tiles are not committed (1.5 + 2.7 MB). The tests read them from
+`BROUTER_SEGMENTS_DIR`, by default `tools/brouter-oracle/.cache/segments4`
+(`tools/brouter-oracle/fetch.sh` downloads and checksums them; CI runs it
+first), and skip with a message when they are absent. The walks are bound to
+the tile snapshot in `tools/brouter-oracle/tiles.sha256` like the corpus.
+
+Run: `dart test` (about 3 s), `dart analyze`, `dart format --set-exit-if-changed .`.
