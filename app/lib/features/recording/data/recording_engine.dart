@@ -200,7 +200,19 @@ class RecordingEngine {
     ];
   }
 
-  Future<void> _writeState() => store.writeState(_state);
+  /// State writes are serialised: a tick (auto-pause) and a fix (resume) can
+  /// both request one in the same event loop turn, and two concurrent
+  /// temp-file renames would race. Each write captures the state as it was
+  /// when requested, so the last write always reflects the latest state.
+  Future<void> _pendingWrite = Future<void>.value();
+
+  Future<void> _writeState() {
+    final state = _state;
+    _pendingWrite = _pendingWrite
+        .catchError((Object _) {})
+        .then((_) => store.writeState(state));
+    return _pendingWrite;
+  }
 
   void _emit({RecordingStatus? status}) {
     final points = _pending.isEmpty

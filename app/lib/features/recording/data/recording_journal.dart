@@ -206,9 +206,13 @@ class RecordingStore {
   ///
   /// The file is written to a temporary name and renamed, so a kill in the
   /// middle never leaves half a JSON document behind.
+  int _stateWrites = 0;
+
   Future<void> writeState(RecordingState state) async {
     await ensureDirectory();
-    final temporary = File('${stateFile.path}.tmp');
+    // A unique temporary name per write, so two writers can never rename
+    // each other's file away.
+    final temporary = File('${stateFile.path}.${_stateWrites++}.tmp');
     await temporary.writeAsString(jsonEncode(state.toJson()), flush: true);
     await temporary.rename(stateFile.path);
   }
