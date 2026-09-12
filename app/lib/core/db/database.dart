@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'daos/offline_regions_dao.dart';
 import 'daos/rides_dao.dart';
 import 'daos/routes_dao.dart';
 import 'tables/offline_regions.dart';
@@ -22,7 +23,7 @@ part 'database.g.dart';
 
 @DriftDatabase(
   tables: [Routes, Rides, OfflineRegions, RoutingTiles],
-  daos: [RoutesDao, RidesDao],
+  daos: [RoutesDao, RidesDao, OfflineRegionsDao],
 )
 class VelorkiDatabase extends _$VelorkiDatabase {
   VelorkiDatabase(super.e);
@@ -64,3 +65,7 @@ RoutesDao routesDao(Ref ref) => ref.watch(velorkiDatabaseProvider).routesDao;
 
 @Riverpod(keepAlive: true)
 RidesDao ridesDao(Ref ref) => ref.watch(velorkiDatabaseProvider).ridesDao;
+
+@Riverpod(keepAlive: true)
+OfflineRegionsDao offlineRegionsDao(Ref ref) =>
+    ref.watch(velorkiDatabaseProvider).offlineRegionsDao;

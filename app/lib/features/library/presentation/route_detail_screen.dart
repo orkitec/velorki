@@ -1,0 +1,147 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:velorki_geo/velorki_geo.dart';
+
+import '../../../app/router.dart';
+import '../../../l10n/generated/app_localizations.dart';
+import '../../map/domain/map_controller.dart';
+import '../../planner/application/planner_controller.dart';
+import '../../planner/application/planner_map_binding.dart';
+import '../../planner/data/route_repository.dart';
+import '../../planner/domain/elevation_profile.dart';
+import '../../planner/domain/saved_route.dart';
+import '../../planner/presentation/elevation_profile_chart.dart';
+import '../../planner/presentation/planner_map_host.dart';
+import '../../planner/presentation/route_format.dart';
+import '../../planner/presentation/route_stats_row.dart';
+import '../../planner/presentation/surface_stats_bar.dart';
+import '../../shared/presentation/placeholder_body.dart';
+
+/// One saved route: map preview, statistics, elevation profile.
+class RouteDetailScreen extends ConsumerStatefulWidget {
+  /// Creates the detail screen for the route with [routeId].
+  const RouteDetailScreen({required this.routeId, super.key});
+
+  /// Id of the route in the `routes` table.
+  final String routeId;
+
+  @override
+  ConsumerState<RouteDetailScreen> createState() => _RouteDetailScreenState();
+}
+
+class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
+  MapController? _map;
+  String? _shownRouteId;
+
+  // Called from the map widget's build, so it must not call setState.
+  void _onMapReady(MapController controller) {
+    _map = controller;
+    _shownRouteId = null;
+    final route = ref.read(savedRouteProvider(widget.routeId)).value;
+    if (route != null) unawaited(_showOnMap(route));
+  }
+
+  Future<void> _showOnMap(SavedRoute route) async {
+    final map = _map;
+    if (map == null || _shownRouteId == route.id) return;
+    _shownRouteId = route.id;
+    final positions = route.geometry.map((p) => p.pos).toList(growable: false);
+    if (positions.isEmpty) return;
+    await map.setRouteLine(mainRouteLineId, positions);
+    await map.fitBounds(BoundingBox.fromPoints(positions));
+  }
+
+  void _openInPlanner(SavedRoute route) {
+    ref.read(plannerControllerProvider.notifier).loadSavedRoute(route);
+    context.go(plannerRoute);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final route = ref.watch(savedRouteProvider(widget.routeId));
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(route.value?.name ?? l10n.tabLibrary),
+        leading: BackButton(onPressed: () => context.go(libraryRoute)),
+      ),
+      body: route.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => PlaceholderBody(
+          icon: Icons.error_outline,
+          message: error.toString(),
+        ),
+        data: (saved) {
+          if (saved == null) {
+            return PlaceholderBody(
+              icon: Icons.help_outline,
+              message: l10n.routeDetailNotFound,
+            );
+          }
+          unawaited(_showOnMap(saved));
+          final geometry = saved.geometry;
+          return ListView(
+            padding: const EdgeInsets.only(bottom: 24),
+            children: [
+              SizedBox(
+                height: 220,
+                child: PlannerMapHost(onMapReady: _onMapReady),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      l10n.libraryRouteSubtitle(
+                        formatDate(l10n, saved.createdAt),
+                        profileLabel(l10n, saved.profile),
+                        formatHeight(l10n, saved.ascentM),
+                      ),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 12),
+                    RouteStatsRow(
+                      distanceM: saved.distanceM,
+                      ascentM: saved.ascentM,
+                      descentM: saved.descentM,
+                      duration: saved.estimatedTime,
+                    ),
+                    const SizedBox(height: 20),
+                    ElevationProfileChart(samples: elevationProfile(geometry)),
+                    const SizedBox(height: 20),
+                    SurfaceStatsBar(stats: saved.surfaceStats),
+                    const SizedBox(height: 20),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        FilledButton.icon(
+                          onPressed: () => _openInPlanner(saved),
+                          icon: const Icon(Icons.route_outlined),
+                          label: Text(l10n.routeDetailOpenInPlanner),
+                        ),
+                        Tooltip(
+                          message: l10n.routeDetailExportSoon,
+                          child: OutlinedButton.icon(
+                            onPressed: null,
+                            icon: const Icon(Icons.ios_share),
+                            label: Text(l10n.routeDetailExport),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}

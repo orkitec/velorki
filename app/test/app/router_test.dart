@@ -7,14 +7,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/router.dart';
 import 'package:velorki/app/theme.dart';
+import 'package:velorki/core/db/database.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
 
 Future<void> _pumpShell(WidgetTester tester) async {
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
+  // The library tab reads the database; give it one that needs no platform.
+  final db = VelorkiDatabase.memory();
+  addTearDown(db.close);
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        velorkiDatabaseProvider.overrideWithValue(db),
+      ],
       child: MaterialApp.router(
         theme: buildLightTheme(),
         localizationsDelegates: const [
@@ -57,10 +64,7 @@ void main() {
     for (final label in ['Plan', 'Record', 'Library', 'Settings']) {
       expect(find.widgetWithText(NavigationDestination, label), findsOneWidget);
     }
-    expect(
-      find.text('Route planning arrives with the map milestone.'),
-      findsOneWidget,
-    );
+    expect(find.text('Tap the map to set a start.'), findsOneWidget);
   });
 
   testWidgets('switches between all four branches', (tester) async {
@@ -73,21 +77,26 @@ void main() {
     );
 
     await _tapTab(tester, 'Library');
-    expect(
-      find.text('Saved routes and rides will be listed here.'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('No saved routes yet.'), findsOneWidget);
 
     await _tapTab(tester, 'Settings');
     expect(find.text('Server URLs'), findsOneWidget);
+    // The About section sits below the fold as the settings list grows.
+    await tester.scrollUntilVisible(
+      find.text('© OpenStreetMap contributors'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('© OpenStreetMap contributors'), findsOneWidget);
     expect(find.text('Version 0.1.0+1'), findsOneWidget);
 
     await _tapTab(tester, 'Plan');
-    expect(
-      find.text('Route planning arrives with the map milestone.'),
-      findsOneWidget,
-    );
+    expect(find.text('Tap the map to set a start.'), findsOneWidget);
+
+    // Unmount so the library's database stream can finish closing; drift
+    // schedules a zero-duration timer when its last listener goes away.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
   });
 
   testWidgets('editing a server URL is stored in the overrides', (

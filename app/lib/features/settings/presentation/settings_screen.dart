@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/app_config.dart';
+import '../../../features/map/presentation/map_strings.dart';
+import '../../../features/map/presentation/offline_regions_screen.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../data/package_info_provider.dart';
 
@@ -18,6 +20,7 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         children: const [
           _SectionHeader.advanced(),
+          _OfflineMapsTile(),
           _ServerUrlsSection(),
           Divider(height: 32),
           _SectionHeader.about(),
@@ -46,6 +49,27 @@ class _SectionHeader extends StatelessWidget {
         style: theme.textTheme.titleSmall?.copyWith(
           color: theme.colorScheme.primary,
         ),
+      ),
+    );
+  }
+}
+
+/// Entry point into the map feature's offline regions screen.
+///
+/// Pushed with the root [Navigator] rather than go_router: offline maps are a
+/// detail of the map feature and do not need a route of their own.
+class _OfflineMapsTile extends StatelessWidget {
+  const _OfflineMapsTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: const Icon(Icons.download_for_offline_outlined),
+      title: const Text(MapStrings.offlineRegionsTitle),
+      subtitle: const Text(MapStrings.offlineRegionsSubtitle),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const OfflineRegionsScreen()),
       ),
     );
   }

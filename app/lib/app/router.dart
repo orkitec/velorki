@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../features/library/presentation/library_screen.dart';
+import '../features/library/presentation/route_detail_screen.dart';
 import '../features/planner/presentation/planner_screen.dart';
 import '../features/recording/presentation/recording_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
@@ -14,6 +15,12 @@ const String plannerRoute = '/plan';
 const String recordingRoute = '/record';
 const String libraryRoute = '/library';
 const String settingsRoute = '/settings';
+
+/// Route detail, relative to [libraryRoute].
+const String routeDetailPath = 'route/:id';
+
+/// The location of the detail screen for the saved route [id].
+String routeDetailLocation(String id) => '$libraryRoute/route/$id';
 
 @Riverpod(keepAlive: true)
 GoRouter router(Ref ref) => createRouter();
@@ -49,6 +56,14 @@ GoRouter createRouter({String initialLocation = plannerRoute}) {
               GoRoute(
                 path: libraryRoute,
                 builder: (context, state) => const LibraryScreen(),
+                routes: [
+                  GoRoute(
+                    path: routeDetailPath,
+                    builder: (context, state) => RouteDetailScreen(
+                      routeId: state.pathParameters['id'] ?? '',
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
