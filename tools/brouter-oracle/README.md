@@ -214,6 +214,11 @@ bare profile name inside `brouter/profiles`.
 ```sh
 ./dump/run_dump.sh dump-microcache W20_N30 -16.9085 32.6485 --limit 20 --geometry
 ./dump/run_dump.sh dump-microcache W20_N30 -16.9085 32.6485 --profile trekking
+
+# L1 vectors and raw caches for the Dart port (app/packages/brouter_dart):
+./dump/run_dump.sh codec-vectors <out-dir>                       # JSON test vectors for util + codec classes
+./dump/run_dump.sh microcache-bytes W20_N30 -16.9085 32.6485 <out.bin>   # raw encoded micro-cache
+./dump/run_dump.sh microcache-listing W20_N30 -16.9085 32.6485   # node/link listing the Dart decoder must reproduce
 ./dump/run_dump.sh eval-profile trekking dump/samples/tags.txt
 ```
 

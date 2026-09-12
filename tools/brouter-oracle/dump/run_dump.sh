@@ -4,6 +4,9 @@
 #
 #   ./dump/run_dump.sh dump-microcache <tile.rd5|tilename> <lon> <lat> [--profile <f.brf>] [--geometry]
 #   ./dump/run_dump.sh eval-profile <profile.brf|name> <tagsfile>
+#   ./dump/run_dump.sh codec-vectors <outdir>
+#   ./dump/run_dump.sh microcache-bytes <tile.rd5|tilename> <lon> <lat> <outfile>
+#   ./dump/run_dump.sh microcache-listing <tile.rd5|tilename> <lon> <lat> [--bodies <n>]
 #
 # A bare tile name (W20_N30) is resolved inside .cache/segments4, a bare profile
 # name (trekking) inside brouter/profiles -- the profiles are used in place, the
@@ -50,8 +53,19 @@ case "$cmd" in
     esac
     args=( eval-profile "$prof" "$@" --lookups "$PROFILES_DIR/lookups.dat" )
     ;;
+  codec-vectors)
+    args=( codec-vectors "$@" )
+    ;;
+  microcache-bytes|microcache-listing)
+    tile="${1:-}"; shift || true
+    case "$tile" in
+      */*|*.rd5) ;;
+      *) tile="$SEGMENTS_DIR/$tile.rd5" ;;
+    esac
+    args=( "$cmd" "$tile" "$@" )
+    ;;
   *)
-    echo "usage: run_dump.sh {dump-microcache|eval-profile} ..." >&2; exit 2 ;;
+    echo "usage: run_dump.sh {dump-microcache|eval-profile|codec-vectors|microcache-bytes|microcache-listing} ..." >&2; exit 2 ;;
 esac
 
 exec "$JAVA" -Xmx256M -cp "$BROUTER_JAR:$CLASSES" Dump "${args[@]}"
