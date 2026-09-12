@@ -3,13 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/links/link_opener.dart';
 import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/domain/saved_route.dart';
 import '../application/connections_controller.dart';
 import '../application/route_sender.dart';
 import '../common/data/connected_accounts_repository.dart';
-import '../common/data/link_opener.dart';
 import '../common/domain/connected_account.dart';
 import '../common/domain/integration_exception.dart';
 import 'connections_section.dart';

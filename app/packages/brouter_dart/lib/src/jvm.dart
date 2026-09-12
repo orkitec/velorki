@@ -52,6 +52,12 @@ double frem(double a, double b) => a.remainder(b);
 const int intMaxValue = 0x7fffffff;
 const int intMinValue = -0x80000000;
 
+/// `Short.MIN_VALUE` (BRouter's "no elevation" marker).
+const int shortMinValue = -32768;
+
+/// `Float.MAX_VALUE`.
+const double floatMaxValue = 3.4028234663852886e38;
+
 /// `Long.MAX_VALUE` / `Long.MIN_VALUE`.
 const int longMaxValue = 0x7fffffffffffffff;
 const int longMinValue = -0x8000000000000000;
@@ -483,4 +489,50 @@ class JavaHashMap<K, V> {
       }
     }
   }
+
+  /// `entrySet()` in `HashMap` iteration order.
+  Iterable<MapEntry<K, V>> get entries sync* {
+    final tab = _table;
+    if (tab == null) return;
+    for (var i = 0; i < tab.length; i++) {
+      var e = tab[i];
+      while (e != null) {
+        yield MapEntry<K, V>(e.key, e.value);
+        e = e.next;
+      }
+    }
+  }
+
+  /// `keySet()` in `HashMap` iteration order.
+  Iterable<K> get keys => entries.map((e) => e.key);
+
+  bool containsKey(K key) {
+    final tab = _table;
+    if (tab == null) return false;
+    final hash = _hash(key);
+    var e = tab[(tab.length - 1) & hash];
+    while (e != null) {
+      if (e.hash == hash && _equals(e.key, key)) return true;
+      e = e.next;
+    }
+    return false;
+  }
+
+  /// A `HashMap<String, V>` with `String.hashCode`/`equals`.
+  static JavaHashMap<String, V> ofStrings<V>([int initialCapacity = 16]) =>
+      JavaHashMap<String, V>(
+        initialCapacity,
+        javaStringHashCode,
+        (a, b) => a == b,
+      );
+}
+
+/// `String.hashCode()`: `s[0]*31^(n-1) + ... + s[n-1]` over the UTF-16 code
+/// units, wrapping to a Java `int`.
+int javaStringHashCode(String s) {
+  var h = 0;
+  for (final c in s.codeUnits) {
+    h = (31 * h + c).toSigned(32);
+  }
+  return h;
 }

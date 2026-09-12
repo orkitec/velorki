@@ -765,6 +765,40 @@ _Dtoa _doubleConverter(double d, bool isCompatibleFormat) {
   return buf;
 }
 
+
+/// `Double.parseDouble(s)`: the JDK grammar of [javaParseFloat] (`String.trim`,
+/// sign, `NaN`/`Infinity`, trailing `f`/`d`, exponent) with a correctly
+/// rounded double result (`double.parse` is correctly rounded for decimal
+/// strings). Hexadecimal floating literals are not supported here; the
+/// router only parses coordinates, radii and weights with it.
+double javaParseDouble(String input) {
+  final s = javaTrim(input);
+  if (s.isEmpty) throw NumberFormatException('empty String');
+  var i = 0;
+  var negative = false;
+  if (s[0] == '-' || s[0] == '+') {
+    negative = s[0] == '-';
+    i = 1;
+  }
+  final rest = s.substring(i);
+  if (rest == 'NaN') return double.nan;
+  if (rest == 'Infinity') {
+    return negative ? double.negativeInfinity : double.infinity;
+  }
+  if (rest.startsWith('0x') || rest.startsWith('0X')) {
+    throw UnsupportedError('hexadecimal floating literal: "$input"');
+  }
+  final m = RegExp(
+    r'^(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?[fFdD]?$',
+  ).firstMatch(rest);
+  if (m == null) throw NumberFormatException('For input string: "$input"');
+  var mant = m.group(1)!;
+  if (mant.endsWith('.')) mant = mant.substring(0, mant.length - 1);
+  if (mant.startsWith('.')) mant = '0$mant';
+  final v = double.parse('$mant${m.group(2) ?? ''}');
+  return negative ? -v : v;
+}
+
 /// `Float.toString((float) v)` of JDK 17.
 String javaFloatToString(double v) {
   if (v.isNaN) return 'NaN';
@@ -780,6 +814,121 @@ String javaDoubleToString(double d) {
   if (d.isInfinite) return d > 0 ? 'Infinity' : '-Infinity';
   if (d == 0) return doubleToRawLongBits(d) < 0 ? '-0.0' : '0.0';
   return _doubleConverter(d, true).getChars();
+}
+
+
+/// `new DecimalFormat("0.###")` (`Locale.ENGLISH`) applied to a `double`:
+/// `DigitList.set` takes the `FloatingDecimal` digits of the value (the
+/// `Double.toString` digits, with the "rounded up" and "exact" flags) and
+/// rounds them `HALF_EVEN` to [maxFraction] decimals, `subformat` prints at
+/// least one integer digit, no grouping and no trailing zeros.
+/// `FormatJson` prints the travel times with it (`float` promoted to double).
+String javaDecimalFormat(double number, {int maxFraction = 3}) {
+  if (number.isNaN) return '\u{FFFD}'; // DecimalFormatSymbols.getNaN(), never printed by the router
+  var isNegative = number < 0.0 || (number == 0.0 && 1 / number < 0.0);
+  if (isNegative) number = -number;
+  if (number.isInfinite) return isNegative ? '-∞' : '∞';
+  final sb = StringBuffer();
+  // DigitList.set(isNegative, double, maximumDigits, fixedPoint = true)
+  List<int> digits;
+  var decimalAt = 0;
+  var count = 0;
+  if (number == 0) {
+    digits = const <int>[];
+  } else {
+    final fd = _doubleConverter(number, true);
+    digits = List<int>.generate(
+      fd.nDigits,
+      (i) => fd.digits[fd.firstDigitIndex + i] - 0x30,
+      growable: true,
+    );
+    count = digits.length;
+    decimalAt = fd.decExponent;
+    final roundedUp = fd.decimalDigitsRoundedUp;
+    final exact = fd.exactDecimalConversion;
+    if (-decimalAt > maxFraction) {
+      count = 0;
+    } else if (-decimalAt == maxFraction) {
+      if (_shouldRoundUpHalfEven(digits, count, 0, roundedUp, exact)) {
+        count = 1;
+        decimalAt++;
+        digits = <int>[1];
+      } else {
+        count = 0;
+      }
+    } else {
+      while (count > 1 && digits[count - 1] == 0) {
+        count--;
+      }
+      var maximumDigits = maxFraction + decimalAt;
+      if (maximumDigits >= 0 && maximumDigits < count) {
+        if (_shouldRoundUpHalfEven(digits, count, maximumDigits, roundedUp, exact)) {
+          for (;;) {
+            maximumDigits--;
+            if (maximumDigits < 0) {
+              digits[0] = 1;
+              decimalAt++;
+              maximumDigits = 0;
+              break;
+            }
+            digits[maximumDigits]++;
+            if (digits[maximumDigits] <= 9) break;
+          }
+          maximumDigits++;
+        }
+        count = maximumDigits;
+        while (count > 1 && digits[count - 1] == 0) {
+          count--;
+        }
+      }
+    }
+  }
+  if (count == 0) decimalAt = 0; // isZero: normalise
+  if (isNegative) sb.write('-');
+  // subformat: minimumIntegerDigits 1, maximumFractionDigits maxFraction
+  var intCount = 1;
+  if (decimalAt > 0 && intCount < decimalAt) intCount = decimalAt;
+  var digitIndex = 0;
+  for (var i = intCount - 1; i >= 0; i--) {
+    if (i < decimalAt && digitIndex < count) {
+      sb.writeCharCode(0x30 + digits[digitIndex++]);
+    } else {
+      sb.write('0');
+    }
+  }
+  final fractionPresent = digitIndex < count;
+  if (fractionPresent) sb.write('.');
+  for (var i = 0; i < maxFraction; i++) {
+    if (digitIndex >= count) break;
+    if (-1 - i > decimalAt - 1) {
+      sb.write('0');
+      continue;
+    }
+    sb.writeCharCode(0x30 + digits[digitIndex++]);
+  }
+  return sb.toString();
+}
+
+/// `DigitList.shouldRoundUp` for `RoundingMode.HALF_EVEN`.
+bool _shouldRoundUpHalfEven(
+  List<int> digits,
+  int count,
+  int maximumDigits,
+  bool alreadyRounded,
+  bool valueExactAsDecimal,
+) {
+  if (digits[maximumDigits] > 5) return true;
+  if (digits[maximumDigits] == 5) {
+    if (maximumDigits == count - 1) {
+      if (alreadyRounded) return false;
+      if (!valueExactAsDecimal) return true;
+      return maximumDigits > 0 && (digits[maximumDigits - 1] % 2 != 0);
+    }
+    for (var i = maximumDigits + 1; i < count; i++) {
+      if (digits[i] != 0) return true;
+    }
+  }
+  return false;
 }
 
 /// `String.format(Locale.US, "%.<prec>f", d)` (a `float` argument is promoted

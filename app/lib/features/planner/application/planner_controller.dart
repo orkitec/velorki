@@ -79,6 +79,20 @@ class PlannerController extends _$PlannerController {
     _setWaypoints(next);
   }
 
+  /// Replaces the whole plan with [waypoints], undoably.
+  ///
+  /// The assistant hands its resolved start, vias and destination over this
+  /// way: one undo entry for the whole change rather than one per point, and
+  /// a single routing request after the usual debounce.
+  void setWaypoints(List<Waypoint> waypoints) {
+    if (waypoints.isEmpty) {
+      clear();
+      return;
+    }
+    _pushUndo();
+    _setWaypoints(waypoints);
+  }
+
   /// Rides the route the other way round.
   void reverse() {
     if (state.waypoints.length < 2) return;

@@ -84,6 +84,9 @@ class FakeRelayClient extends RelayClient {
     this.refreshedStravaTokens,
     this.rwgpsTokens,
     this.failure,
+    this.planEvents = const <PlanEvent>[],
+    this.planFailure,
+    this.shareLink,
   }) : super('https://relay.test');
 
   /// What [exchangeStravaCode] answers.
@@ -97,6 +100,21 @@ class FakeRelayClient extends RelayClient {
 
   /// Thrown by every method when set.
   RelayException? failure;
+
+  /// The events `planStream` yields, in order.
+  List<PlanEvent> planEvents = const <PlanEvent>[];
+
+  /// Thrown by `planStream` before the stream opens, when set.
+  RelayException? planFailure;
+
+  /// Every `/ai/plan` request, in order.
+  final List<PlanCall> planCalls = <PlanCall>[];
+
+  /// What `createShare` answers.
+  ShareLink? shareLink;
+
+  /// Every `POST /share`, in order.
+  final List<ShareCall> shareCalls = <ShareCall>[];
 
   /// The codes that were exchanged, in order.
   final List<String> exchangedCodes = <String>[];
@@ -126,6 +144,50 @@ class FakeRelayClient extends RelayClient {
   }
 
   @override
+  Stream<PlanEvent> planStream({
+    required String step,
+    required String prompt,
+    String locale = 'en',
+    PlanUnits units = PlanUnits.metric,
+    PlanContext? context,
+    RouteSummary? routeSummary,
+    String? appUserId,
+  }) async* {
+    planCalls.add(
+      PlanCall(
+        step: step,
+        prompt: prompt,
+        locale: locale,
+        context: context,
+        routeSummary: routeSummary,
+      ),
+    );
+    final error = planFailure ?? failure;
+    if (error != null) throw error;
+    for (final event in planEvents) {
+      yield event;
+    }
+  }
+
+  @override
+  Future<ShareLink> createShare({
+    required String name,
+    required String gpx,
+    required ShareSummary summary,
+    ShareKind kind = ShareKind.route,
+  }) async {
+    if (failure != null) throw failure!;
+    shareCalls.add(
+      ShareCall(name: name, gpx: gpx, summary: summary, kind: kind),
+    );
+    return shareLink ??
+        const ShareLink(
+          id: '7Kq2mZ0aTb',
+          url: 'https://velorki.app/s/7Kq2mZ0aTb',
+        );
+  }
+
+  @override
   Future<RwgpsTokens> exchangeRwgpsCode({
     required String code,
     required String redirectUri,
@@ -147,4 +209,54 @@ Future<IntegrationException> integrationFailure(
     return e;
   }
   throw StateError('expected an IntegrationException');
+}
+
+/// One `POST /ai/plan` the fake relay saw.
+class PlanCall {
+  /// Records a request.
+  const PlanCall({
+    required this.step,
+    required this.prompt,
+    required this.locale,
+    this.context,
+    this.routeSummary,
+  });
+
+  /// `plan` or `describe`.
+  final String step;
+
+  /// The rider's text.
+  final String prompt;
+
+  /// The BCP47 tag the answer was asked for in.
+  final String locale;
+
+  /// The rough position, when consent allowed one.
+  final PlanContext? context;
+
+  /// The route summary of a `describe` request.
+  final RouteSummary? routeSummary;
+}
+
+/// One `POST /share` the fake relay saw.
+class ShareCall {
+  /// Records a share.
+  const ShareCall({
+    required this.name,
+    required this.gpx,
+    required this.summary,
+    required this.kind,
+  });
+
+  /// The title of the share page.
+  final String name;
+
+  /// The stored GPX document.
+  final String gpx;
+
+  /// The headline numbers.
+  final ShareSummary summary;
+
+  /// Route or ride.
+  final ShareKind kind;
 }

@@ -1224,5 +1224,567 @@
   "routeDetailSend": "Send",
   "@routeDetailSend": {
     "description": "Button on the route detail that opens the 'send to a service' menu"
+  },
+  "plusTitle": "Velorki Plus",
+  "@plusTitle": {
+    "description": "Name of the subscription, used as a screen and tile title"
+  },
+  "plusIntro": "Everything that runs on your phone is free. Plus pays for the parts that need our servers or a partner account.",
+  "@plusIntro": {
+    "description": "First paragraph of the paywall"
+  },
+  "plusIncludes": "What Plus includes",
+  "@plusIncludes": {
+    "description": "Heading above the list of gated features on the paywall"
+  },
+  "plusFeatureAiAssistant": "AI assistant",
+  "@plusFeatureAiAssistant": {
+    "description": "Paywall feature: the assistant"
+  },
+  "plusFeatureAiAssistantBody": "Describe the ride you want; Velorki turns it into a route and plans it on your phone.",
+  "@plusFeatureAiAssistantBody": {
+    "description": "Paywall feature detail: the assistant"
+  },
+  "plusFeatureStrava": "Strava connection",
+  "@plusFeatureStrava": {
+    "description": "Paywall feature: Strava"
+  },
+  "plusFeatureStravaBody": "Upload recorded rides and import your Strava routes.",
+  "@plusFeatureStravaBody": {
+    "description": "Paywall feature detail: Strava"
+  },
+  "plusFeatureRwgps": "Ride with GPS connection",
+  "@plusFeatureRwgps": {
+    "description": "Paywall feature: Ride with GPS"
+  },
+  "plusFeatureRwgpsBody": "Send routes and trips both ways.",
+  "@plusFeatureRwgpsBody": {
+    "description": "Paywall feature detail: Ride with GPS"
+  },
+  "plusFeatureLinkSharing": "Link sharing",
+  "@plusFeatureLinkSharing": {
+    "description": "Paywall feature: share links"
+  },
+  "plusFeatureLinkSharingBody": "Turn a route or a ride into a link anyone can open in a browser.",
+  "@plusFeatureLinkSharingBody": {
+    "description": "Paywall feature detail: share links"
+  },
+  "plusFreeAnyway": "Planning, recording, smart loops, offline maps and GPX/FIT files stay free, with or without Plus.",
+  "@plusFreeAnyway": {
+    "description": "Reassurance under the feature list on the paywall"
+  },
+  "plusUnavailableTitle": "Not available in this build",
+  "@plusUnavailableTitle": {
+    "description": "Paywall heading when no store is configured"
+  },
+  "plusUnavailableBody": "This build of Velorki has no store configured, so Velorki Plus cannot be bought here. Everything that runs on the phone works as usual.",
+  "@plusUnavailableBody": {
+    "description": "Paywall body when no store is configured, e.g. a fork or a CI build"
+  },
+  "plusLoadingPrices": "Asking the store for prices…",
+  "@plusLoadingPrices": {
+    "description": "Shown while the offering is being fetched"
+  },
+  "plusPricesFailed": "The store could not be reached: {message}",
+  "@plusPricesFailed": {
+    "description": "Shown when the offering could not be fetched",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "network error"
+      }
+    }
+  },
+  "plusNoPackages": "The store has no Velorki Plus subscription configured yet.",
+  "@plusNoPackages": {
+    "description": "Shown when the current offering is empty"
+  },
+  "plusPricePeriod": "{price} {period}",
+  "@plusPricePeriod": {
+    "description": "Price of a package with its billing period",
+    "placeholders": {
+      "price": {
+        "type": "String",
+        "example": "€2.99"
+      },
+      "period": {
+        "type": "String",
+        "example": "per month"
+      }
+    }
+  },
+  "plusPeriodWeek": "per week",
+  "@plusPeriodWeek": {
+    "description": "Billing period of a weekly package"
+  },
+  "plusPeriodMonth": "per month",
+  "@plusPeriodMonth": {
+    "description": "Billing period of a monthly package"
+  },
+  "plusPeriodTwoMonths": "every two months",
+  "@plusPeriodTwoMonths": {
+    "description": "Billing period of a two-month package"
+  },
+  "plusPeriodThreeMonths": "every three months",
+  "@plusPeriodThreeMonths": {
+    "description": "Billing period of a quarterly package"
+  },
+  "plusPeriodSixMonths": "every six months",
+  "@plusPeriodSixMonths": {
+    "description": "Billing period of a six-month package"
+  },
+  "plusPeriodYear": "per year",
+  "@plusPeriodYear": {
+    "description": "Billing period of an annual package"
+  },
+  "plusPeriodLifetime": "once",
+  "@plusPeriodLifetime": {
+    "description": "Billing period of a one-off purchase"
+  },
+  "plusTrialNote": "Starts with a {days}-day free trial.",
+  "@plusTrialNote": {
+    "description": "Trial note under a package that has a free introductory phase",
+    "placeholders": {
+      "days": {
+        "type": "int",
+        "example": "7"
+      }
+    }
+  },
+  "plusTrialNoteGeneric": "Starts with a free trial.",
+  "@plusTrialNoteGeneric": {
+    "description": "Trial note when the trial length is unknown"
+  },
+  "plusIntroNote": "Starts at {price}.",
+  "@plusIntroNote": {
+    "description": "Note under a package whose introductory phase is discounted rather than free",
+    "placeholders": {
+      "price": {
+        "type": "String",
+        "example": "€0.99"
+      }
+    }
+  },
+  "plusSubscribe": "Subscribe",
+  "@plusSubscribe": {
+    "description": "Purchase button on the paywall"
+  },
+  "plusPurchaseThanks": "Velorki Plus is active. Thank you!",
+  "@plusPurchaseThanks": {
+    "description": "Snack bar after a successful purchase"
+  },
+  "plusPurchaseFailed": "The purchase did not go through: {message}",
+  "@plusPurchaseFailed": {
+    "description": "Snack bar after a failed purchase",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "the store is unavailable"
+      }
+    }
+  },
+  "plusRestore": "Restore purchases",
+  "@plusRestore": {
+    "description": "Restore button, required by both stores"
+  },
+  "plusRestoreHint": "Already subscribed? Restoring works without an account.",
+  "@plusRestoreHint": {
+    "description": "Hint under the restore button"
+  },
+  "plusRestored": "Your subscription was restored.",
+  "@plusRestored": {
+    "description": "Snack bar when a restore found a subscription"
+  },
+  "plusRestoreNothing": "The store found no purchase to restore.",
+  "@plusRestoreNothing": {
+    "description": "Snack bar when a restore found nothing"
+  },
+  "plusRestoreFailed": "Restoring failed: {message}",
+  "@plusRestoreFailed": {
+    "description": "Snack bar when the restore call itself failed",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "the store is unavailable"
+      }
+    }
+  },
+  "plusTerms": "Terms of use",
+  "@plusTerms": {
+    "description": "Link to the terms on the paywall"
+  },
+  "plusPrivacy": "Privacy policy",
+  "@plusPrivacy": {
+    "description": "Link to the privacy policy on the paywall"
+  },
+  "plusLegal": "The subscription renews automatically at the end of each period unless it is cancelled at least 24 hours before. Payment is taken by the App Store or Google Play, where the subscription can be managed or cancelled at any time. A free trial that is not cancelled becomes a paid subscription.",
+  "@plusLegal": {
+    "description": "Auto-renewal legal copy required by the stores"
+  },
+  "plusActive": "Active",
+  "@plusActive": {
+    "description": "Subscription status in settings"
+  },
+  "plusInactive": "Not active",
+  "@plusInactive": {
+    "description": "Subscription status in settings"
+  },
+  "plusRenewsOn": "Renews on {date}",
+  "@plusRenewsOn": {
+    "description": "Settings subtitle for a subscription that will renew",
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "example": "12 Oct 2026"
+      }
+    }
+  },
+  "plusEndsOn": "Ends on {date}",
+  "@plusEndsOn": {
+    "description": "Settings subtitle for a subscription that was cancelled",
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "example": "12 Oct 2026"
+      }
+    }
+  },
+  "plusManage": "Manage",
+  "@plusManage": {
+    "description": "Opens the store's own subscription page"
+  },
+  "plusManageFailed": "Could not open the store's subscription page.",
+  "@plusManageFailed": {
+    "description": "Snack bar when the store page could not be opened"
+  },
+  "plusSeeDetails": "See Velorki Plus",
+  "@plusSeeDetails": {
+    "description": "Button on the upsell card that opens the paywall"
+  },
+  "settingsSubscription": "Subscription",
+  "@settingsSubscription": {
+    "description": "Settings section header above the Plus tile"
+  },
+  "assistantAction": "Ask",
+  "@assistantAction": {
+    "description": "Planner button that opens the assistant sheet"
+  },
+  "assistantTitle": "Ask for a route",
+  "@assistantTitle": {
+    "description": "Title of the assistant sheet"
+  },
+  "assistantIntro": "Describe the ride you have in mind. Velorki turns it into a request and plans the route on your phone.",
+  "@assistantIntro": {
+    "description": "Subtitle of the assistant sheet"
+  },
+  "assistantHint": "A hilly 60 km loop from here past the lake",
+  "@assistantHint": {
+    "description": "Hint text of the assistant's text field"
+  },
+  "assistantExamples": "For example",
+  "@assistantExamples": {
+    "description": "Heading above the example prompts"
+  },
+  "assistantExampleFlatLoop": "A flat 30 km loop from here",
+  "@assistantExampleFlatLoop": {
+    "description": "Example prompt"
+  },
+  "assistantExampleQuietRide": "60 km to Freiburg on quiet roads",
+  "@assistantExampleQuietRide": {
+    "description": "Example prompt"
+  },
+  "assistantExampleGravel": "A gravel loop of about 80 km with a café stop",
+  "@assistantExampleGravel": {
+    "description": "Example prompt"
+  },
+  "assistantSend": "Ask",
+  "@assistantSend": {
+    "description": "Submit button of the assistant sheet"
+  },
+  "assistantThinking": "Thinking…",
+  "@assistantThinking": {
+    "description": "Status while the relay is streaming"
+  },
+  "assistantResolving": "Looking up the places…",
+  "@assistantResolving": {
+    "description": "Status while place names are geocoded"
+  },
+  "assistantSummaryLoop": "Loop of about {distance}",
+  "@assistantSummaryLoop": {
+    "description": "Summary of a resolved loop request",
+    "placeholders": {
+      "distance": {
+        "type": "String",
+        "example": "60 km"
+      }
+    }
+  },
+  "assistantSummaryRoute": "Route of about {distance}",
+  "@assistantSummaryRoute": {
+    "description": "Summary of a resolved point-to-point request",
+    "placeholders": {
+      "distance": {
+        "type": "String",
+        "example": "60 km"
+      }
+    }
+  },
+  "assistantStartHere": "Starting where you are",
+  "@assistantStartHere": {
+    "description": "Summary line when the route starts at the device position"
+  },
+  "assistantStartAt": "Starting at {name}",
+  "@assistantStartAt": {
+    "description": "Summary line when the route starts at a named place",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Freiburg"
+      }
+    }
+  },
+  "assistantChoose": "Which {name}?",
+  "@assistantChoose": {
+    "description": "Heading above the chooser chips for an ambiguous place name",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Neustadt"
+      }
+    }
+  },
+  "assistantLoopStarted": "Looking for loops…",
+  "@assistantLoopStarted": {
+    "description": "Snack bar when the loop search was started from the assistant"
+  },
+  "assistantRouteHandedOver": "The route is on the map.",
+  "@assistantRouteHandedOver": {
+    "description": "Snack bar when the waypoints were handed to the planner"
+  },
+  "assistantNotEntitled": "The AI assistant is part of Velorki Plus.",
+  "@assistantNotEntitled": {
+    "description": "Shown in the sheet when the rider is not entitled"
+  },
+  "assistantConsentNeeded": "The assistant needs your consent before it can send anything.",
+  "@assistantConsentNeeded": {
+    "description": "Shown when consent was refused"
+  },
+  "assistantRateLimited": "Too many requests. Try again in {seconds} seconds.",
+  "@assistantRateLimited": {
+    "description": "Shown when the relay rate limited the request",
+    "placeholders": {
+      "seconds": {
+        "type": "int",
+        "example": "60"
+      }
+    }
+  },
+  "assistantRateLimitedSoon": "Too many requests. Try again in a little while.",
+  "@assistantRateLimitedSoon": {
+    "description": "Rate limit message without a retry delay"
+  },
+  "assistantFailed": "The assistant could not answer: {message}",
+  "@assistantFailed": {
+    "description": "Shown when the relay failed",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "the model is unavailable"
+      }
+    }
+  },
+  "assistantNoRelay": "This build of Velorki has no server configured, so the assistant is unavailable.",
+  "@assistantNoRelay": {
+    "description": "Shown in a build with an empty VELORKI_API_URL"
+  },
+  "assistantNoGeocoder": "No place search is configured, so place names cannot be looked up.",
+  "@assistantNoGeocoder": {
+    "description": "Shown in a build with an empty VELORKI_PHOTON_URL"
+  },
+  "assistantLowConfidence": "I am not sure I understood. {notes}",
+  "@assistantLowConfidence": {
+    "description": "Shown when the model reported a low confidence",
+    "placeholders": {
+      "notes": {
+        "type": "String",
+        "example": "No distance was given."
+      }
+    }
+  },
+  "assistantLowConfidenceNoNotes": "I am not sure I understood that. Try naming a distance and a place.",
+  "@assistantLowConfidenceNoNotes": {
+    "description": "Low-confidence message when the model added no note"
+  },
+  "assistantPlaceNotFound": "I could not find “{name}”. Try another spelling or a nearby town.",
+  "@assistantPlaceNotFound": {
+    "description": "Shown when the geocoder found nothing for a place name",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Lac de Nulle Part"
+      }
+    }
+  },
+  "assistantStartUnknown": "I need to know where to start. Turn on location, or name a starting place.",
+  "@assistantStartUnknown": {
+    "description": "Shown when the start position is unknown"
+  },
+  "assistantRetry": "Try again",
+  "@assistantRetry": {
+    "description": "Button that clears the assistant error and lets the rider edit the prompt"
+  },
+  "aiConsentTitle": "Before the assistant asks",
+  "@aiConsentTitle": {
+    "description": "Title of the one-time AI consent dialog"
+  },
+  "aiConsentBody": "What you type is sent to the Velorki server, which forwards it to our AI provider. Nothing else goes with it: no name, no account, no route history.",
+  "@aiConsentBody": {
+    "description": "First paragraph of the AI consent dialog"
+  },
+  "aiConsentLocationBody": "If you allow it, your position is sent as well, rounded to about one kilometre, so “from here” means something.",
+  "@aiConsentLocationBody": {
+    "description": "Second paragraph of the AI consent dialog"
+  },
+  "aiConsentAllowWithLocation": "Allow, with my rough position",
+  "@aiConsentAllowWithLocation": {
+    "description": "Consent dialog: allow text and rounded position"
+  },
+  "aiConsentAllowTextOnly": "Allow, text only",
+  "@aiConsentAllowTextOnly": {
+    "description": "Consent dialog: allow text but no position"
+  },
+  "aiConsentDeny": "Not now",
+  "@aiConsentDeny": {
+    "description": "Consent dialog: refuse"
+  },
+  "aiConsentRevokeHint": "This can be changed in Settings at any time.",
+  "@aiConsentRevokeHint": {
+    "description": "Footer of the AI consent dialog"
+  },
+  "settingsAi": "AI assistant",
+  "@settingsAi": {
+    "description": "Settings section header for the assistant"
+  },
+  "settingsAiConsent": "What is sent",
+  "@settingsAiConsent": {
+    "description": "Settings tile showing the AI consent state"
+  },
+  "settingsAiConsentNotAsked": "You have not been asked yet.",
+  "@settingsAiConsentNotAsked": {
+    "description": "AI consent state: never asked"
+  },
+  "settingsAiConsentDenied": "Nothing. The assistant is switched off.",
+  "@settingsAiConsentDenied": {
+    "description": "AI consent state: denied"
+  },
+  "settingsAiConsentTextOnly": "Your text only.",
+  "@settingsAiConsentTextOnly": {
+    "description": "AI consent state: text only"
+  },
+  "settingsAiConsentWithLocation": "Your text and your rough position (about 1 km).",
+  "@settingsAiConsentWithLocation": {
+    "description": "AI consent state: text and rounded position"
+  },
+  "settingsAiChange": "Change",
+  "@settingsAiChange": {
+    "description": "Button that reopens the AI consent dialog"
+  },
+  "settingsAiReport": "Report AI output",
+  "@settingsAiReport": {
+    "description": "Settings tile that opens a mail to support about an AI answer"
+  },
+  "settingsAiReportSubtitle": "Tell us about an answer that was wrong or inappropriate.",
+  "@settingsAiReportSubtitle": {
+    "description": "Subtitle of the report tile"
+  },
+  "settingsAiReportFailed": "Could not open a mail app.",
+  "@settingsAiReportFailed": {
+    "description": "Snack bar when the mailto link could not be opened"
+  },
+  "describeAction": "Describe this route",
+  "@describeAction": {
+    "description": "Button on the route detail that asks the model for a description"
+  },
+  "describeTitle": "Description",
+  "@describeTitle": {
+    "description": "Title of the route description sheet"
+  },
+  "describeRunning": "Writing…",
+  "@describeRunning": {
+    "description": "Status while the description is streaming"
+  },
+  "describeSave": "Save as description",
+  "@describeSave": {
+    "description": "Button that writes the generated text to the route"
+  },
+  "describeSaved": "The description was saved.",
+  "@describeSaved": {
+    "description": "Snack bar after saving a description"
+  },
+  "describeFailed": "The description could not be written: {message}",
+  "@describeFailed": {
+    "description": "Shown when the describe call failed",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "the model is unavailable"
+      }
+    }
+  },
+  "describeAgain": "Write again",
+  "@describeAgain": {
+    "description": "Button that runs the description again"
+  },
+  "shareLinkAction": "Share link",
+  "@shareLinkAction": {
+    "description": "Button that creates a public link for a route or ride"
+  },
+  "shareLinkTitle": "Share link",
+  "@shareLinkTitle": {
+    "description": "Title of the share link sheet"
+  },
+  "shareLinkCreating": "Creating the link…",
+  "@shareLinkCreating": {
+    "description": "Status while the relay is storing the file"
+  },
+  "shareLinkBody": "Anyone with this link can see the route on a map and download the GPX. Viewing needs no account.",
+  "@shareLinkBody": {
+    "description": "Explanation in the share link sheet"
+  },
+  "shareLinkCopy": "Copy link",
+  "@shareLinkCopy": {
+    "description": "Copies the share URL to the clipboard"
+  },
+  "shareLinkCopied": "Link copied.",
+  "@shareLinkCopied": {
+    "description": "Snack bar after copying the share URL"
+  },
+  "shareLinkShare": "Share",
+  "@shareLinkShare": {
+    "description": "Hands the share URL to the system share sheet"
+  },
+  "shareLinkFailed": "The link could not be created: {message}",
+  "@shareLinkFailed": {
+    "description": "Shown when POST /share failed",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "the server is unavailable"
+      }
+    }
+  },
+  "shareLinkExpires": "The link stops working on {date}.",
+  "@shareLinkExpires": {
+    "description": "Tells when a share link expires",
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "example": "12 Sept 2027"
+      }
+    }
+  },
+  "shareLinkPlus": "Link sharing is part of Velorki Plus.",
+  "@shareLinkPlus": {
+    "description": "Shown when an unentitled rider taps Share link"
   }
 }

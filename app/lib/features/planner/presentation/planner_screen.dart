@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
+import '../../assistant/domain/intent_resolver.dart';
+import '../../assistant/presentation/assistant_sheet.dart';
 import '../../map/domain/map_controller.dart';
 import '../../search/domain/search_result.dart';
 import '../../search/presentation/search_field.dart';
@@ -92,6 +94,27 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
   /// Opens the smart loop sheet, handing it the planner's map so it can draw
   /// its candidates on it.
   Future<void> _smartLoop() => showSmartLoopSheet(context, map: _map);
+
+  /// Opens the assistant, then shows whatever it produced.
+  ///
+  /// A loop request is already running as a loop search when the sheet
+  /// closes, so the loop sheet opens on top of it and shows the candidates as
+  /// they arrive; a point-to-point route is simply on the map.
+  Future<void> _ask() async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final intent = await showAssistantSheet(context, map: _map);
+    if (!mounted || intent == null) return;
+    if (intent is LoopIntent) {
+      await _smartLoop();
+      return;
+    }
+    if (intent is RouteIntent) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.assistantRouteHandedOver)),
+      );
+    }
+  }
 
   Future<void> _save() async {
     final state = ref.read(plannerControllerProvider);
@@ -213,6 +236,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
                     state: state,
                     onAlternatives: _loadAlternatives,
                     onSmartLoop: _smartLoop,
+                    onAsk: _ask,
                     onSave: _save,
                   ),
                 ],
@@ -399,12 +423,14 @@ class _PlannerActions extends ConsumerWidget {
     required this.state,
     required this.onAlternatives,
     required this.onSmartLoop,
+    required this.onAsk,
     required this.onSave,
   });
 
   final PlannerState state;
   final Future<void> Function() onAlternatives;
   final Future<void> Function() onSmartLoop;
+  final Future<void> Function() onAsk;
   final Future<void> Function() onSave;
 
   @override
@@ -449,6 +475,11 @@ class _PlannerActions extends ConsumerWidget {
           onPressed: () => unawaited(onSmartLoop()),
           icon: const Icon(Icons.loop),
           label: Text(l10n.loopAction),
+        ),
+        TextButton.icon(
+          onPressed: () => unawaited(onAsk()),
+          icon: const Icon(Icons.auto_awesome),
+          label: Text(l10n.assistantAction),
         ),
         FilledButton.icon(
           onPressed: state.canSave ? () => unawaited(onSave()) : null,

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:velorki_api/velorki_api.dart' show ShareKind;
 
 import '../../../app/router.dart';
 import '../../../core/files/track_exporter.dart';
@@ -12,6 +13,7 @@ import '../../map/domain/map_controller.dart';
 import '../../planner/presentation/planner_map_host.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../shared/presentation/placeholder_body.dart';
+import '../../sharing/presentation/share_link_button.dart';
 import '../data/ride_repository.dart';
 import '../domain/ride.dart';
 import 'recording_format.dart';
@@ -228,6 +230,14 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                               unawaited(_export(saved, TrackFormat.fit)),
                           icon: const Icon(Icons.ios_share),
                           label: Text(l10n.rideDetailExportFit),
+                        ),
+                        ShareLinkButton(
+                          name: saved.name,
+                          points: saved.points,
+                          kind: ShareKind.ride,
+                          distanceM: stats.distanceM,
+                          ascentM: stats.ascentM,
+                          duration: stats.elapsedTime,
                         ),
                       ],
                     ),

@@ -15,6 +15,8 @@ import '../features/integrations/common/data/oauth_flow.dart';
 import '../features/map/presentation/map_view.dart';
 import '../features/planner/presentation/planner_map_host.dart';
 import '../features/recording/data/recording_recovery.dart';
+import '../features/sharing/application/share_link_listener.dart';
+import '../features/subscription/application/subscription_controller.dart';
 import 'app.dart';
 import 'app_config.dart';
 
@@ -51,9 +53,18 @@ Future<void> bootstrap() async {
   // arrive: on Android the app can be resumed by the callback intent itself.
   container.read(oauthDeepLinksProvider);
 
+  // Configures RevenueCat and keeps the Plus entitlement in step with it;
+  // nothing waits for the store, the gated screens simply react when the
+  // answer arrives.
+  startSubscriptions(container);
+
   // Attached before the first frame so a file the app was launched with is
   // not missed.
   listenForIncomingImports(container);
+
+  // The other half of the deep-link stream: velorki://share/<id> fetches the
+  // shared GPX and sends it into the same import preview.
+  listenForShareLinks(container);
 
   runApp(
     UncontrolledProviderScope(container: container, child: const VelorkiApp()),

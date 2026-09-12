@@ -10,6 +10,7 @@ import '../features/planner/presentation/planner_screen.dart';
 import '../features/recording/presentation/recording_screen.dart';
 import '../features/recording/presentation/ride_detail_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
+import '../features/subscription/presentation/paywall_screen.dart';
 import '../l10n/generated/app_localizations.dart';
 
 part 'router.g.dart';
@@ -22,6 +23,10 @@ const String settingsRoute = '/settings';
 /// The import preview, outside the tab shell so it covers whichever tab is
 /// showing when a file arrives. The [ImportCandidate] travels in `extra`.
 const String importRoute = '/import';
+
+/// The paywall, also outside the shell: every gated feature pushes it from
+/// whichever tab the rider is on, and it comes back with a Back button.
+const String paywallRoute = '/plus';
 
 /// Route detail, relative to [libraryRoute].
 const String routeDetailPath = 'route/:id';
@@ -39,6 +44,10 @@ GoRouter createRouter({String initialLocation = plannerRoute}) {
     navigatorKey: GlobalKey<NavigatorState>(debugLabel: 'root'),
     initialLocation: initialLocation,
     routes: [
+      GoRoute(
+        path: paywallRoute,
+        builder: (context, state) => const PaywallScreen(),
+      ),
       GoRoute(
         path: importRoute,
         builder: (context, state) =>

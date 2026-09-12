@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:velorki_api/velorki_api.dart' show ShareKind;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/router.dart';
 import '../../../core/files/track_exporter.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../assistant/presentation/describe_route_sheet.dart';
 import '../../integrations/presentation/route_send_menu.dart';
 import '../../map/domain/map_controller.dart';
 import '../../planner/application/planner_controller.dart';
@@ -21,6 +23,7 @@ import '../../planner/presentation/route_format.dart';
 import '../../planner/presentation/route_stats_row.dart';
 import '../../planner/presentation/surface_stats_bar.dart';
 import '../../shared/presentation/placeholder_body.dart';
+import '../../sharing/presentation/share_link_button.dart';
 
 /// One saved route: map preview, statistics, elevation profile.
 class RouteDetailScreen extends ConsumerStatefulWidget {
@@ -123,6 +126,14 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
                       ),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
+                    if (saved.description != null &&
+                        saved.description!.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        saved.description!,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     RouteStatsRow(
                       distanceM: saved.distanceM,
@@ -172,6 +183,14 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
                           route: saved,
                           onExportGpx: () => _export(saved, TrackFormat.gpx),
                         ),
+                        ShareLinkButton(
+                          name: saved.name,
+                          points: geometry,
+                          kind: ShareKind.route,
+                          distanceM: saved.distanceM,
+                          ascentM: saved.ascentM,
+                        ),
+                        DescribeRouteButton(route: saved),
                       ],
                     ),
                   ],

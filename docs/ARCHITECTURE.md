@@ -87,7 +87,7 @@ Key packages are pinned to exact versions at M0: flutter_riverpod 3, go_router
 maplibre_gl 0.27, geolocator 14, flutter_foreground_task 9, permission_handler
 12, wakelock_plus, gpx 2.5.0, fit_sdk 0.3.0, xml 6, file_picker 10, share_plus
 11, receive_sharing_intent 1.9.0, app_links 7, flutter_web_auth_2 5,
-url_launcher, dio 5, purchases_flutter 9, fl_chart 1, uuid 4, mocktail 1.
+url_launcher, dio 5, purchases_flutter 10, fl_chart 1, uuid 4, mocktail 1.
 
 Deliberately not used: `strava_client` (it expects the client secret inside the
 app; we write a six-endpoint client instead) and `latlong2` (we have our own

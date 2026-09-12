@@ -4,11 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
-import '../../../core/permissions/location_permission.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../map/data/position_provider.dart';
 import '../../map/domain/map_controller.dart';
-import '../../map/presentation/location_rationale_dialog.dart';
+import '../../map/presentation/device_position_request.dart';
 import '../../planner/application/planner_controller.dart';
 import '../../planner/domain/route_profile.dart';
 import '../../planner/presentation/route_format.dart';
@@ -124,24 +122,8 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
       case LoopStartChoice.mapCentre:
         return widget.preview.map?.center;
       case LoopStartChoice.myPosition:
-        return _devicePosition();
+        return requestDevicePosition(context, ref);
     }
-  }
-
-  /// Asks for when-in-use location the way the map's locate button does: the
-  /// in-app rationale first, then the system prompt, then one fix.
-  Future<LatLng?> _devicePosition() async {
-    final permissions = ref.read(locationPermissionControllerProvider.notifier);
-    var status = await permissions.refresh();
-    if (status == LocationPermissionStatus.denied) {
-      if (!mounted) return null;
-      if (!await showLocationRationaleDialog(context)) return null;
-      status = await permissions.requestWhenInUse();
-    }
-    if (status != LocationPermissionStatus.granted) return null;
-    final source = ref.read(positionSourceProvider);
-    final fix = await source.current() ?? await source.lastKnown();
-    return fix == null ? null : LatLng(fix.latitude, fix.longitude);
   }
 
   Future<void> _generate({bool newSeed = false}) async {

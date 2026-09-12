@@ -34,6 +34,10 @@ abstract class SavedRoute with _$SavedRoute {
     required RoutingOptions options,
     String? description,
     SurfaceStats? surfaceStats,
+
+    /// Whether [description] was written by the model rather than by the
+    /// rider. Shown next to the text and re-set when it is written again.
+    @Default(false) bool aiDescriptionGenerated,
   }) = _SavedRoute;
 
   const SavedRoute._();

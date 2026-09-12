@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/app_config.dart';
+import '../../../features/assistant/presentation/ai_settings_section.dart';
 import '../../../features/integrations/presentation/connections_section.dart';
 import '../../../features/map/presentation/map_strings.dart';
 import '../../../features/map/presentation/offline_regions_screen.dart';
+import '../../../features/subscription/presentation/plus_settings_section.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../data/package_info_provider.dart';
 
@@ -20,8 +22,14 @@ class SettingsScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(l10n.tabSettings)),
       body: ListView(
         children: const [
+          _SectionHeader.subscription(),
+          PlusSettingsSection(),
+          Divider(height: 32),
           _SectionHeader.connections(),
           ConnectionsSection(),
+          Divider(height: 32),
+          _SectionHeader.ai(),
+          AiSettingsSection(),
           Divider(height: 32),
           _SectionHeader.advanced(),
           _OfflineMapsTile(),
@@ -37,7 +45,9 @@ class SettingsScreen extends ConsumerWidget {
 }
 
 class _SectionHeader extends StatelessWidget {
+  const _SectionHeader.subscription() : _section = _Section.subscription;
   const _SectionHeader.connections() : _section = _Section.connections;
+  const _SectionHeader.ai() : _section = _Section.ai;
   const _SectionHeader.advanced() : _section = _Section.advanced;
   const _SectionHeader.about() : _section = _Section.about;
 
@@ -51,7 +61,9 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
       child: Text(
         switch (_section) {
+          _Section.subscription => l10n.settingsSubscription,
           _Section.connections => l10n.settingsConnections,
+          _Section.ai => l10n.settingsAi,
           _Section.advanced => l10n.settingsAdvanced,
           _Section.about => l10n.settingsAbout,
         },
@@ -63,7 +75,7 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-enum _Section { connections, advanced, about }
+enum _Section { subscription, connections, ai, advanced, about }
 
 /// Entry point into the map feature's offline regions screen.
 ///

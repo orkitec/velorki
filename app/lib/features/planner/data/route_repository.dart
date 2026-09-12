@@ -162,6 +162,27 @@ class RouteRepository {
   /// Deletes the route with [id].
   Future<void> delete(String id) => _dao.deleteRoute(id);
 
+  /// Writes the route's description.
+  ///
+  /// [aiGenerated] records that the model wrote it, which the detail screen
+  /// shows and which keeps the column honest for anyone auditing what was
+  /// generated. An unknown id changes nothing.
+  Future<void> setDescription(
+    String id,
+    String description, {
+    bool aiGenerated = false,
+  }) async {
+    final row = await _dao.routeById(id);
+    if (row == null) return;
+    await _dao.updateRoute(
+      row.copyWith(
+        description: Value(description),
+        aiDescriptionGenerated: aiGenerated,
+        updatedAt: _clock(),
+      ),
+    );
+  }
+
   /// Gives the route with [id] a new [name].
   Future<void> rename(String id, String name) async {
     final row = await _dao.routeById(id);
@@ -191,6 +212,7 @@ class RouteRepository {
     waypoints: decodeWaypoints(row.waypointsJson),
     options: decodeOptions(row.routingOptionsJson),
     surfaceStats: decodeSurfaceStats(row.surfaceStatsJson),
+    aiDescriptionGenerated: row.aiDescriptionGenerated,
   );
 
   /// Maps the domain model into a row for `INSERT OR REPLACE`.
@@ -217,6 +239,7 @@ class RouteRepository {
           ? null
           : jsonEncode(encodeSurfaceStats(route.surfaceStats!)),
     ),
+    aiDescriptionGenerated: Value(route.aiDescriptionGenerated),
   );
 
   BoundingBox _boundsOf(List<Waypoint> waypoints) => waypoints.isEmpty

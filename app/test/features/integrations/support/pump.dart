@@ -10,7 +10,7 @@ import 'package:velorki/core/plus/plus_gate.dart';
 import 'package:velorki/features/integrations/application/connections_controller.dart';
 import 'package:velorki/features/integrations/common/data/connected_accounts_repository.dart';
 import 'package:velorki/features/integrations/common/data/integration_connector.dart';
-import 'package:velorki/features/integrations/common/data/link_opener.dart';
+import 'package:velorki/core/links/link_opener.dart';
 import 'package:velorki/features/integrations/common/data/secure_key_value_store.dart';
 import 'package:velorki/features/integrations/common/domain/connected_account.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';

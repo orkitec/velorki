@@ -5,12 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../subscription/presentation/plus_upsell_card.dart';
 import '../application/connections_controller.dart';
 import '../common/data/connected_accounts_repository.dart';
 import '../common/domain/connected_account.dart';
 import '../common/domain/integration_exception.dart';
 import 'integration_labels.dart';
-import 'plus_feature_card.dart';
 
 /// The Plus feature that gates [service].
 PlusFeature plusFeatureFor(IntegrationService service) => switch (service) {
@@ -20,9 +20,9 @@ PlusFeature plusFeatureFor(IntegrationService service) => switch (service) {
 
 /// Settings → Connections: one tile per partner service.
 ///
-/// Both connections are Velorki Plus features. Until the paywall lands in M6
-/// an unentitled rider sees the placeholder card and disabled buttons rather
-/// than a purchase flow that does not exist yet.
+/// Both connections are Velorki Plus features, so an unentitled rider sees
+/// the upsell card, which leads to the paywall, and disabled Connect
+/// buttons.
 class ConnectionsSection extends ConsumerWidget {
   /// Creates the section.
   const ConnectionsSection({super.key});
@@ -36,7 +36,7 @@ class ConnectionsSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (gated) PlusFeatureCard(body: l10n.connectionsPlusBody),
+        if (gated) PlusUpsellCard(body: l10n.connectionsPlusBody),
         for (final service in IntegrationService.values)
           ConnectionTile(service: service),
       ],

@@ -11,6 +11,11 @@ import 'package:velorki/core/db/database.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
 
 Future<void> _pumpShell(WidgetTester tester) async {
+  // The settings tab is long — subscription, connections, AI, advanced,
+  // about — so the shell is pumped on a tall surface rather than scrolled to
+  // every assertion.
+  await tester.binding.setSurfaceSize(const Size(1000, 2000));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
   // The library tab reads the database; give it one that needs no platform.

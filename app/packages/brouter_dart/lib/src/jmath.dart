@@ -1,5 +1,5 @@
-/// Java `Math.sin`, `Math.cos`, `Math.atan2` and `Math.atan` with the bit-exact
-/// results of the HotSpot JVM.
+/// Java `Math.sin`, `Math.cos`, `Math.exp`, `Math.atan2` and `Math.atan` with
+/// the bit-exact results of the HotSpot JVM.
 ///
 /// `Math.sin`/`Math.cos` are JIT intrinsics on HotSpot (x86_64 and aarch64
 /// share the algorithm), derived from Intel's LIBM: `x = N * pi/32 + r`, a
@@ -407,6 +407,217 @@ class JMath {
     s += polslo;
     s += polshi;
     return s + resHi;
+  }
+
+
+  // ---- HotSpot Math.exp intrinsic (Intel LIBM) ----------------------------
+
+  // StubRoutines::x86::_cv / _shifter of macroAssembler_x86_exp.cpp (jdk17u):
+  // 64/ln2, ln2/64 in two parts, the polynomial coefficients and the
+  // 1.5 * 2^52 rounding shifter.
+  static final double _expL2e64 = longBitsToDouble(0x40571547652b82fe);
+  static final double _expLn2hi64 = longBitsToDouble(0x3f862e42fefa0000);
+  static final double _expLn2lo64 = longBitsToDouble(0x3d1cf79abc9e3b3a);
+  static final double _expHalf = longBitsToDouble(0x3fdffffffffffffe);
+  static final double _expC6 = longBitsToDouble(0x3f56c15ce3289860);
+  static final double _expC4 = longBitsToDouble(0x3fa55555555b9e25);
+  static final double _expC5 = longBitsToDouble(0x3f811115c090cf0f);
+  static final double _expC3 = longBitsToDouble(0x3fc5555555548ba1);
+  static final double _expShifter = longBitsToDouble(0x4338000000000000);
+
+  /// `_Tbl_addr`: per j = 0..63 the low part `T_lo[j]` (a double) and the
+  /// mantissa bits of `T_hi[j] = 2^(j/64)` (exponent field zero; the
+  /// intrinsic ORs the exponent in), as the four 32-bit words of the stub.
+  static const List<int> _expTblWords = <int>[
+    0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x0e03754d, //
+    0x3cad7bbf, 0x3e778060, 0x00002c9a, 0x3567f613, 0x3c8cd252, //
+    0xd3158574, 0x000059b0, 0x61e6c861, 0x3c60f74e, 0x18759bc8, //
+    0x00008745, 0x5d837b6c, 0x3c979aa6, 0x6cf9890f, 0x0000b558, //
+    0x702f9cd1, 0x3c3ebe3d, 0x32d3d1a2, 0x0000e3ec, 0x1e63bcd8, //
+    0x3ca3516e, 0xd0125b50, 0x00011301, 0x26f0387b, 0x3ca4c554, //
+    0xaea92ddf, 0x0001429a, 0x62523fb6, 0x3ca95153, 0x3c7d517a, //
+    0x000172b8, 0x3f1353bf, 0x3c8b898c, 0xeb6fcb75, 0x0001a35b, //
+    0x3e3a2f5f, 0x3c9aecf7, 0x3168b9aa, 0x0001d487, 0x44a6c38d, //
+    0x3c8a6f41, 0x88628cd6, 0x0002063b, 0xe3a8a894, 0x3c968efd, //
+    0x6e756238, 0x0002387a, 0x981fe7f2, 0x3c80472b, 0x65e27cdd, //
+    0x00026b45, 0x6d09ab31, 0x3c82f7e1, 0xf51fdee1, 0x00029e9d, //
+    0x720c0ab3, 0x3c8b3782, 0xa6e4030b, 0x0002d285, 0x4db0abb6, //
+    0x3c834d75, 0x0a31b715, 0x000306fe, 0x5dd3f84a, 0x3c8fdd39, //
+    0xb26416ff, 0x00033c08, 0xcc187d29, 0x3ca12f8c, 0x373aa9ca, //
+    0x000371a7, 0x738b5e8b, 0x3ca7d229, 0x34e59ff6, 0x0003a7db, //
+    0xa72a4c6d, 0x3c859f48, 0x4c123422, 0x0003dea6, 0x259d9205, //
+    0x3ca8b846, 0x21f72e29, 0x0004160a, 0x60c2ac12, 0x3c4363ed, //
+    0x6061892d, 0x00044e08, 0xdaa10379, 0x3c6ecce1, 0xb5c13cd0, //
+    0x000486a2, 0xbb7aafb0, 0x3c7690ce, 0xd5362a27, 0x0004bfda, //
+    0x9b282a09, 0x3ca083cc, 0x769d2ca6, 0x0004f9b2, 0xc1aae707, //
+    0x3ca509b0, 0x569d4f81, 0x0005342b, 0x18fdd78e, 0x3c933505, //
+    0x36b527da, 0x00056f47, 0xe21c5409, 0x3c9063e1, 0xdd485429, //
+    0x0005ab07, 0x2b64c035, 0x3c9432e6, 0x15ad2148, 0x0005e76f, //
+    0x99f08c0a, 0x3ca01284, 0xb03a5584, 0x0006247e, 0x0073dc06, //
+    0x3c99f087, 0x82552224, 0x00066238, 0x0da05571, 0x3c998d4d, //
+    0x667f3bcc, 0x0006a09e, 0x86ce4786, 0x3ca52bb9, 0x3c651a2e, //
+    0x0006dfb2, 0x206f0dab, 0x3ca32092, 0xe8ec5f73, 0x00071f75, //
+    0x8e17a7a6, 0x3ca06122, 0x564267c8, 0x00075feb, 0x461e9f86, //
+    0x3ca244ac, 0x73eb0186, 0x0007a114, 0xabd66c55, 0x3c65ebe1, //
+    0x36cf4e62, 0x0007e2f3, 0xbbff67d0, 0x3c96fe9f, 0x994cce12, //
+    0x00082589, 0x14c801df, 0x3c951f14, 0x9b4492ec, 0x000868d9, //
+    0xc1f0eab4, 0x3c8db72f, 0x422aa0db, 0x0008ace5, 0x59f35f44, //
+    0x3c7bf683, 0x99157736, 0x0008f1ae, 0x9c06283c, 0x3ca360ba, //
+    0xb0cdc5e4, 0x00093737, 0x20f962aa, 0x3c95e8d1, 0x9fde4e4f, //
+    0x00097d82, 0x2b91ce27, 0x3c71affc, 0x82a3f090, 0x0009c491, //
+    0x589a2ebd, 0x3c9b6d34, 0x7b5de564, 0x000a0c66, 0x9ab89880, //
+    0x3c95277c, 0xb23e255c, 0x000a5503, 0x6e735ab3, 0x3c846984, //
+    0x5579fdbf, 0x000a9e6b, 0x92cb3387, 0x3c8c1a77, 0x995ad3ad, //
+    0x000ae89f, 0xdc2d1d96, 0x3ca22466, 0xb84f15fa, 0x000b33a2, //
+    0xb19505ae, 0x3ca1112e, 0xf2fb5e46, 0x000b7f76, 0x0a5fddcd, //
+    0x3c74ffd7, 0x904bc1d2, 0x000bcc1e, 0x30af0cb3, 0x3c736eae, //
+    0xdd85529c, 0x000c199b, 0xd10959ac, 0x3c84e08f, 0x2e57d14b, //
+    0x000c67f1, 0x6c921968, 0x3c676b2c, 0xdcef9069, 0x000cb720, //
+    0x36df99b3, 0x3c937009, 0x4a07897b, 0x000d072d, 0xa63d07a7, //
+    0x3c74a385, 0xdcfba487, 0x000d5818, 0xd5c192ac, 0x3c8e5a50, //
+    0x03db3285, 0x000da9e6, 0x1c4a9792, 0x3c98bb73, 0x337b9b5e, //
+    0x000dfc97, 0x603a88d3, 0x3c74b604, 0xe78b3ff6, 0x000e502e, //
+    0x92094926, 0x3c916f27, 0xa2a490d9, 0x000ea4af, 0x41aa2008, //
+    0x3c8ec3bc, 0xee615a27, 0x000efa1b, 0x31d185ee, 0x3c8a64a9, //
+    0x5b6e4540, 0x000f5076, 0x4d91cd9d, 0x3c77893b, 0x819e90d8, //
+    0x000fa7c1,
+  ];
+
+  static final List<double> _expTlo = List<double>.generate(
+    64,
+    (j) => longBitsToDouble(
+      (_expTblWords[4 * j + 1] << 32) | _expTblWords[4 * j],
+    ),
+    growable: false,
+  );
+
+  static final List<int> _expThiBits = List<int>.generate(
+    64,
+    (j) => (_expTblWords[4 * j + 3] << 32) | _expTblWords[4 * j + 2],
+    growable: false,
+  );
+
+  static const int _mask64 = 0xffffffffffffffff;
+
+  /// `Math.exp(x)`: a transcription of `MacroAssembler::fast_exp`
+  /// (macroAssembler_x86_exp.cpp of jdk17u, the 64-bit stub), the LIBM
+  /// table-driven algorithm `e^x = 2^n * T[j] * (1 + P(y))` with K = 64,
+  /// including its overflow/underflow branch (`L_2TAG_PACKET_1_0_2`, which
+  /// assembles subnormal results with integer arithmetic on the bit
+  /// patterns) and the special cases. Unlike sin/cos every path is ported.
+  static double exp(double x) {
+    final bits = doubleToRawLongBits(x);
+    final hiWord = (bits >> 32) & 0xffffffff; // Address(rsp, 12)
+    final loWord = bits & 0xffffffff; // Address(rsp, 8)
+    var eax = ((bits >> 48) & 0xffff) & 32767; // pextrw(eax, xmm0, 3)
+    var edx = 16527 - eax;
+    eax -= 15504;
+    edx = (edx | eax) & 0xffffffff;
+    if (edx >= 0x80000000) {
+      // L_2TAG_PACKET_0_0_2: |x| < 2^-54 or |x| >= 1024
+      final ax = hiWord & 0x7fffffff;
+      if (ax >= 1083179008) {
+        // L_2TAG_PACKET_8_0_2
+        if (ax >= 2146435072) {
+          // L_2TAG_PACKET_9_0_2: infinities and NaNs
+          if (ax > 2146435072 || loWord != 0) return x + x; // NaN
+          return hiWord == 2146435072 ? double.infinity : 0.0;
+        }
+        // XMAX * XMAX (overflow) or XMIN * XMIN (underflow)
+        return hiWord < 0x80000000 ? double.infinity : 0.0;
+      }
+      return x + 1.0;
+    }
+
+    // range reduction: n = round(x * 64/ln2), j = n mod 64, N = n div 64
+    final y = x * _expL2e64;
+    final ys = y + _expShifter;
+    final nd = ys - _expShifter;
+    final n = (doubleToRawLongBits(ys) & 0xffffffff).toSigned(32);
+    final j = n & 63;
+    final nhi = n >> 6;
+    final u = n & 0xffffffc0; // pand mmask (low dword, high dword zero)
+    final expBits = ((u + 0xffc0) << 46) & _mask64; // paddq bias, psllq 46
+    final r1 = x - nd * _expLn2hi64;
+    final r = r1 - nd * _expLn2lo64;
+    final c6r = _expC6 * r;
+    final c4r = _expC4 * r;
+    final r2 = r * r;
+    final r3 = r * r2;
+    final p5 = _expC5 + c6r;
+    final p3 = _expC3 + c4r;
+    final r5 = r3 * r2;
+    final r2h = r2 * _expHalf;
+    var t1 = r + _expTlo[j];
+    final q5 = r5 * p5;
+    final q3 = r3 * p3;
+    t1 = t1 + q5;
+    final tBits = _expThiBits[j] | expBits; // por(xmm2, xmm7)
+    var t0 = q3 + t1;
+    t0 = t0 + r2h;
+    edx = (nhi + 894) & 0xffffffff;
+    if (edx <= 1916) {
+      final t = longBitsToDouble(tBits);
+      return t0 * t + t;
+    }
+
+    // L_2TAG_PACKET_1_0_2: 2^N out of the normal range
+    edx = (-1022 - nhi) & 0xffffffff;
+    final mask4 = edx > 63 ? 0 : (_mask64 << edx) & _mask64; // psllq(xmm4, edx)
+    final ecx = nhi;
+    eax = nhi >> 1;
+    var x3Bits = ((eax & 0xffff) << 52) & _mask64; // pinsrw word 3, psllq 4
+    // psubd(xmm2, xmm3): 32-bit lanes
+    final t2Bits =
+        ((((tBits >> 32) & 0xffffffff) - ((x3Bits >> 32) & 0xffffffff)) &
+                0xffffffff) <<
+            32 |
+        (tBits & 0xffffffff);
+    final t2 = longBitsToDouble(t2Bits);
+    var res = t0 * t2;
+    if (edx.toSigned(32) > 52) {
+      // L_2TAG_PACKET_2_0_2
+      x3Bits = _paddd(x3Bits, 0x3ff0000000000000);
+      res = res + t2;
+      return res * longBitsToDouble(x3Bits);
+    }
+    final x4Bits = mask4 & t2Bits;
+    final x4 = longBitsToDouble(x4Bits);
+    x3Bits = _paddd(x3Bits, 0x3ff0000000000000);
+    final x3 = longBitsToDouble(x3Bits);
+    final tlow = t2 - x4;
+    res = res + tlow;
+    if (ecx >= 1023) {
+      // L_2TAG_PACKET_3_0_2 (an overflow flag is raised, the value is returned)
+      return (res + x4) * x3;
+    }
+    final sign = ((doubleToRawLongBits(res) >> 48) & 0xffff) & 32768;
+    edx |= sign;
+    if (edx == 0) {
+      // L_2TAG_PACKET_4_0_2
+      return (res + x4) * x3;
+    }
+    final saved = res;
+    res = (res + x4) * x3;
+    final ex = ((doubleToRawLongBits(res) >> 48) & 0xffff) & 32752;
+    if (ex != 0) return res;
+    // L_2TAG_PACKET_5_0_2: subnormal result, exact assembly on the bit patterns
+    final aBits = doubleToRawLongBits(saved * x3);
+    final bBits = doubleToRawLongBits(x4 * x3);
+    final s = ((aBits ^ bBits) < 0) ? _mask64 : 0; // psrad 31, pshufd 85
+    var out = aBits & 0x7fffffffffffffff; // psllq 1, psrlq 1
+    out ^= s;
+    out = (out + (s == 0 ? 0 : 1)) & _mask64; // paddq(xmm0, xmm6 >>> 63)
+    out = (out + bBits) & _mask64;
+    return longBitsToDouble(out);
+  }
+
+  /// `paddd`: 32-bit lane addition of two 64-bit lanes.
+  static int _paddd(int a, int b) {
+    final lo = ((a & 0xffffffff) + (b & 0xffffffff)) & 0xffffffff;
+    final hi = (((a >> 32) & 0xffffffff) + ((b >> 32) & 0xffffffff)) &
+        0xffffffff;
+    return (hi << 32) | lo;
   }
 
   // ---- fdlibm atan / atan2 ------------------------------------------------
