@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Written by flutter_launcher_icons from pubspec.yaml; the seed colour
+         of the app theme (lib/app/theme.dart). -->
+    <color name="ic_launcher_background">#1B7F5A</color>
+    <!-- The window behind the Flutter UI while the engine starts, so the app
+         opens on Velorki green instead of a white or black flash. Same value
+         as the icon background on purpose. -->
+    <color name="velorki_splash_background">#1B7F5A</color>
+</resources>

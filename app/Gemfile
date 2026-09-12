@@ -1,0 +1,8 @@
+# fastlane and its dependencies. Bundler looks for the Gemfile in the
+# directory fastlane runs from, which is `app/`, one level above
+# `app/fastlane/`.
+#
+#   cd app && bundle install && bundle exec fastlane android internal
+source "https://rubygems.org"
+
+gem "fastlane", "~> 2.228"

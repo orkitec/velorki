@@ -12,6 +12,7 @@ import '../common/domain/connected_account.dart';
 import '../common/domain/external_route.dart';
 import '../common/domain/integration_exception.dart';
 import 'integration_labels.dart';
+import 'strava_brand.dart';
 
 /// The routes of a connected partner account, with an Import action each.
 ///
@@ -148,16 +149,31 @@ class _ExternalRoutesScreenState extends ConsumerState<ExternalRoutesScreen> {
       );
     }
     final fetchedAt = _fetchedAt;
+    // Strava's API terms ask for their credit wherever their data is shown,
+    // so the footer exists for Strava even before a fetch time is known.
+    final strava = widget.service == IntegrationService.strava;
+    final hasFooter = fetchedAt != null || strava;
     return ListView.separated(
-      itemCount: _routes.length + (fetchedAt == null ? 0 : 1),
+      itemCount: _routes.length + (hasFooter ? 1 : 0),
       separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, index) {
-        if (fetchedAt != null && index == _routes.length) {
+        if (hasFooter && index == _routes.length) {
           return Padding(
             padding: const EdgeInsets.all(16),
-            child: Text(
-              l10n.externalRoutesFetchedAt(formatDate(l10n, fetchedAt)),
-              style: Theme.of(context).textTheme.bodySmall,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (fetchedAt != null)
+                  Text(
+                    l10n.externalRoutesFetchedAt(formatDate(l10n, fetchedAt)),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                if (strava)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 12),
+                    child: PoweredByStrava(),
+                  ),
+              ],
             ),
           );
         }

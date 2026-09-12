@@ -19,10 +19,15 @@ import '../features/sharing/application/share_link_listener.dart';
 import '../features/subscription/application/subscription_controller.dart';
 import 'app.dart';
 import 'app_config.dart';
+import 'licenses.dart';
 
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
   initLogging();
+
+  // Map data, tiles, routing and search are not pub packages, so their
+  // licences have to be added to the ones Flutter collects by itself.
+  registerVelorkiLicenses();
 
   final prefs = await SharedPreferences.getInstance();
 

@@ -2,14 +2,10 @@ import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../domain/plus_subscription.dart';
 
-/// The URL of the terms of use shown on the paywall.
-///
-/// A placeholder page under the project's own domain; the store review needs
-/// a reachable link and this is where it will live.
-const String velorkiTermsUrl = 'https://velorki.app/terms';
-
-/// The URL of the privacy policy shown on the paywall.
-const String velorkiPrivacyUrl = 'https://velorki.app/privacy';
+// The paywall's terms and privacy links; they are the same pages the About
+// section and the store listings point at.
+export '../../../core/links/velorki_urls.dart'
+    show velorkiPrivacyUrl, velorkiTermsUrl;
 
 /// Google Play's subscription management page.
 const String playSubscriptionsUrl =

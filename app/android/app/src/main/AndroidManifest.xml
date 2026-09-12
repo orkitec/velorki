@@ -13,10 +13,18 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Rides, routes and the OAuth tokens in the keystore stay on the device:
+         android:allowBackup="false" keeps them out of Google's cloud backup
+         (and out of any backup at all on Android 11 and below, which is why no
+         android:fullBackupContent rules are needed). Android 12+ ignores
+         allowBackup for device-to-device transfer, so @xml/data_extraction_rules
+         excludes everything there as well. -->
     <application
         android:label="Velorki"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules">
         <activity
             android:name=".MainActivity"
             android:exported="true"

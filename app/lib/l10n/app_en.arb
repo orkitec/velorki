@@ -79,6 +79,42 @@
   "@settingsVersionUnknown": {
     "description": "Shown when the package version cannot be read"
   },
+  "settingsLicenses": "Open-source licences",
+  "@settingsLicenses": {
+    "description": "About tile that opens the list of bundled licences"
+  },
+  "settingsLicensesSubtitle": "The software and the map data Velorki is built on.",
+  "@settingsLicensesSubtitle": {
+    "description": "Subtitle of the open-source licences tile"
+  },
+  "settingsLegalese": "Velorki is open source under the Apache License 2.0. Map data © OpenStreetMap contributors.",
+  "@settingsLegalese": {
+    "description": "Legal line at the bottom of the licence page"
+  },
+  "settingsPrivacyPolicy": "Privacy policy",
+  "@settingsPrivacyPolicy": {
+    "description": "About tile that opens the privacy policy in the browser"
+  },
+  "settingsTerms": "Terms of use",
+  "@settingsTerms": {
+    "description": "About tile that opens the terms of use in the browser"
+  },
+  "settingsReportProblem": "Report a problem",
+  "@settingsReportProblem": {
+    "description": "About tile that opens the issue tracker"
+  },
+  "settingsReportProblemSubtitle": "Open an issue on GitHub.",
+  "@settingsReportProblemSubtitle": {
+    "description": "Subtitle of the report a problem tile"
+  },
+  "settingsOpenFailed": "Could not open the page.",
+  "@settingsOpenFailed": {
+    "description": "Snack bar when a link from the About section could not be opened"
+  },
+  "poweredByStrava": "Powered by Strava",
+  "@poweredByStrava": {
+    "description": "Strava's required credit wherever their data is shown. Do not translate."
+  },
   "commonCancel": "Cancel",
   "@commonCancel": {
     "description": "Button that dismisses a dialog without doing anything"

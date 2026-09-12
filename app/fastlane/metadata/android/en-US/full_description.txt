@@ -1,0 +1,51 @@
+Velorki plans bike routes, builds loops and records your rides. It runs on
+OpenStreetMap data with bike-specific routing, and the whole app is open
+source.
+
+PLANNING
+• Tap waypoints on the map and get a route for the bike you are on: trekking,
+  road, gravel or mountain bike.
+• Alternatives for every route, an elevation profile, and a breakdown of the
+  surfaces you will ride on.
+• Loops: say how far you want to ride and, if you like, one place to pass, and
+  Velorki proposes round trips that come back to where you started.
+• Search for places, save routes to your library, and download map regions to
+  use without a connection.
+
+RECORDING
+• Records with the screen off and keeps recording if the app is closed.
+• Distance, time, speed and ascent while you ride, with auto-pause and a
+  notification that shows the ride in progress.
+• Follow a planned route, then review and edit the ride afterwards.
+
+FILES
+• Open GPX and FIT files from your files app, from mail, from a browser or
+  through the share sheet.
+• Export routes and rides as GPX or FIT and hand them to Komoot, Garmin
+  Connect, Strava or anything else that reads those formats.
+
+FREE, AND VELORKI PLUS
+Everything that runs on the phone is free: planning, loops, recording, the
+library, offline map regions, and GPX and FIT import and export.
+
+Velorki Plus is a subscription for the parts that need a server or an account
+with another service:
+• Strava: upload a recorded ride, import your Strava routes.
+• Ride with GPS: routes and trips, both directions.
+• The assistant: describe the ride you want in a sentence and get a route.
+• Share links for routes and rides.
+
+Velorki Plus is offered with a free trial and renews until you cancel it in
+Google Play. Terms: https://velorki.app/terms
+
+PRIVACY
+There is no account and no sign-up. Routes, rides and settings stay on your
+phone. Nothing goes to Strava or Ride with GPS until you connect the account
+and ask for it. The assistant asks for your consent before any text leaves the
+device, and the position it sends is rounded to about a kilometre.
+Privacy policy: https://velorki.app/privacy
+
+Map data © OpenStreetMap contributors. Routing by BRouter, map tiles by
+OpenFreeMap, place search by Photon, cycling overlay by CyclOSM.
+
+Source code: https://github.com/orkitec/velorki

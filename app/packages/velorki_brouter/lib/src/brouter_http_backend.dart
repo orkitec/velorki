@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import 'brouter_query.dart';
 import 'route_query.dart';
 import 'route_result.dart';
 import 'routing_backend.dart';
@@ -73,64 +74,14 @@ class BRouterHttpBackend implements RoutingBackend {
   Uri get baseUri => _base;
 
   /// Builds the request URL for [q]. Public so it can be asserted in tests.
-  Uri buildUri(RouteQuery q) {
-    if (q.points.isEmpty) {
-      throw const RoutingException(
-        kind: RoutingErrorKind.invalid,
-        message: 'a route query needs at least one point',
-      );
-    }
-    if (!q.roundTrip && q.points.length < 2) {
-      throw const RoutingException(
-        kind: RoutingErrorKind.invalid,
-        message: 'a point-to-point query needs at least two points',
-      );
-    }
-
-    final lonlats = (q.roundTrip ? [q.points.first] : q.points)
-        .map((p) => '${_fmt(p.lon)},${_fmt(p.lat)}')
-        .join('|');
-
-    final params = <String, String>{
-      'lonlats': lonlats,
-      'profile': q.profile,
-      'alternativeidx': '${q.alternativeIdx}',
-      'format': 'geojson',
-    };
-
-    if (q.roundTrip) {
-      params['engineMode'] = '4';
-      if (q.roundTripDistanceM != null) {
-        params['roundTripDistance'] = '${q.roundTripDistanceM!.round()}';
-      }
-      if (q.roundTripDirectionDeg != null) {
-        final dir = (q.roundTripDirectionDeg! % 360 + 360) % 360;
-        params['direction'] = '${dir.round()}';
-      }
-      if (roundTripPoints != null) {
-        params['roundTripPoints'] = '$roundTripPoints';
-      }
-    }
-    if (!q.allowSameWayBack) {
-      params['allowSamewayback'] = '0';
-    }
-    if (q.nogos.isNotEmpty) {
-      params['nogos'] = q.nogos
-          .map(
-            (n) => n.weight == null
-                ? '${_fmt(n.center.lon)},${_fmt(n.center.lat)},'
-                      '${_fmt(n.radiusM)}'
-                : '${_fmt(n.center.lon)},${_fmt(n.center.lat)},'
-                      '${_fmt(n.radiusM)},${_fmt(n.weight!)}',
-          )
-          .join('|');
-    }
-
-    return _base.replace(
-      path: '${_base.path}/brouter',
-      queryParameters: params,
-    );
-  }
+  ///
+  /// The parameters come from the shared [buildQueryParams], which
+  /// `LocalRoutingBackend` also uses — that is what makes an on-device route
+  /// identical to a server route.
+  Uri buildUri(RouteQuery q) => _base.replace(
+    path: '${_base.path}/brouter',
+    queryParameters: buildQueryParams(q, roundTripPoints: roundTripPoints),
+  );
 
   @override
   Future<RouteResult> route(RouteQuery q, {CancelToken? cancel}) async {
@@ -186,7 +137,7 @@ class BRouterHttpBackend implements RoutingBackend {
     if (!text.startsWith('{')) {
       // BRouter reports routing failures as HTTP 200 with a plain-text body.
       throw RoutingException(
-        kind: _classifyErrorText(text),
+        kind: classifyBRouterError(text),
         message: text.isEmpty ? 'empty answer from BRouter' : text,
         statusCode: statusCode,
       );
@@ -216,26 +167,6 @@ class BRouterHttpBackend implements RoutingBackend {
     if (_ownsClient) _client.close();
   }
 
-  static const List<String> _noRouteMarkers = <String>[
-    'no track found',
-    'no route',
-    'island',
-    'not mapped',
-    'unreachable',
-    'no datafile',
-    'no elevation',
-    'too far',
-    'operation killed',
-  ];
-
-  static RoutingErrorKind _classifyErrorText(String text) {
-    final lower = text.toLowerCase();
-    for (final marker in _noRouteMarkers) {
-      if (lower.contains(marker)) return RoutingErrorKind.noRoute;
-    }
-    return RoutingErrorKind.invalid;
-  }
-
   static Uri _normalizeBase(String baseUrl) {
     final uri = Uri.parse(baseUrl.trim());
     var path = uri.path;
@@ -243,16 +174,5 @@ class BRouterHttpBackend implements RoutingBackend {
       path = path.substring(0, path.length - 1);
     }
     return uri.replace(path: path, query: '', fragment: '');
-  }
-
-  /// BRouter's coordinate resolution is 1e-6 degrees, so six decimals is
-  /// exact; trailing zeros are trimmed to keep the URL readable.
-  static String _fmt(double v) {
-    var s = v.toStringAsFixed(6);
-    if (s.contains('.')) {
-      s = s.replaceFirst(RegExp(r'0+$'), '');
-      if (s.endsWith('.')) s = s.substring(0, s.length - 1);
-    }
-    return s;
   }
 }

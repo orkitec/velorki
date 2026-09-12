@@ -10,7 +10,7 @@ import '../../../features/map/presentation/map_strings.dart';
 import '../../../features/map/presentation/offline_regions_screen.dart';
 import '../../../features/subscription/presentation/plus_settings_section.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../data/package_info_provider.dart';
+import 'about_section.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -36,7 +36,7 @@ class SettingsScreen extends ConsumerWidget {
           _ServerUrlsSection(),
           Divider(height: 32),
           _SectionHeader.about(),
-          _AboutSection(),
+          AboutSection(),
           SizedBox(height: 24),
         ],
       ),
@@ -214,36 +214,6 @@ class _UrlFieldState extends State<_UrlField> {
           unawaited(widget.onChanged(_controller.text));
         },
       ),
-    );
-  }
-}
-
-class _AboutSection extends ConsumerWidget {
-  const _AboutSection();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final info = ref.watch(packageInfoProvider);
-    return Column(
-      children: [
-        ListTile(
-          leading: const Icon(Icons.info_outline),
-          title: Text(l10n.appName),
-          subtitle: Text(
-            info.when(
-              data: (i) =>
-                  l10n.settingsVersion('${i.version}+${i.buildNumber}'),
-              loading: () => l10n.settingsVersionUnknown,
-              error: (_, _) => l10n.settingsVersionUnknown,
-            ),
-          ),
-        ),
-        ListTile(
-          leading: const Icon(Icons.map_outlined),
-          title: Text(l10n.osmAttribution),
-        ),
-      ],
     );
   }
 }

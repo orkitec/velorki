@@ -1,0 +1,128 @@
+# Velorki release lanes.
+#
+# Android is built and uploaded from Linux or CI; iOS needs the MacBook with
+# Xcode. Nothing here creates certificates, accounts or store entries — see
+# fastlane/README.md for what has to be set up by hand first.
+#
+# All paths are derived from this file's location, so a lane behaves the same
+# whatever directory it is invoked from.
+
+APP_DIR      = File.expand_path("..", __dir__)            # app/
+ANDROID_DIR  = File.join(APP_DIR, "android")
+IOS_DIR      = File.join(APP_DIR, "ios")
+AAB_PATH     = File.join(APP_DIR, "build/app/outputs/bundle/release/app-release.aab")
+# dart-defines for the release build. `env/prod.json` is not committed; it is
+# restored from a secret in CI (see .github/workflows/release.yml) and kept in
+# the password manager otherwise.
+ENV_FILE     = ENV["VELORKI_ENV_FILE"] || File.join(APP_DIR, "env/prod.json")
+
+default_platform(:android)
+
+# Flutter's Gradle plugin reads --dart-define values from the `dart-defines`
+# Gradle property: a comma-separated list of individually base64-encoded
+# "KEY=value" pairs. This turns env/prod.json into that list so a Gradle build
+# carries the same configuration as `flutter build --dart-define-from-file`.
+def dart_defines_property
+  require "json"
+  require "base64"
+  UI.user_error!("Missing #{ENV_FILE}") unless File.exist?(ENV_FILE)
+  JSON.parse(File.read(ENV_FILE))
+      .map { |key, value| Base64.strict_encode64("#{key}=#{value}") }
+      .join(",")
+end
+
+platform :android do
+  desc "Build a signed AAB and upload it to the Play internal testing track"
+  lane :internal do
+    UI.user_error!("Set PLAY_SERVICE_ACCOUNT_JSON_PATH") if ENV["PLAY_SERVICE_ACCOUNT_JSON_PATH"].to_s.empty?
+    UI.user_error!("android/key.properties is missing (upload keystore)") unless File.exist?(File.join(ANDROID_DIR, "key.properties"))
+
+    gradle(
+      task: "bundle",
+      build_type: "Release",
+      project_dir: ANDROID_DIR,
+      properties: {
+        "dart-defines" => dart_defines_property,
+        # Play rejects a build number it has already seen; CI passes its run
+        # number, a local build falls back to the pubspec's.
+        "version-code" => ENV["BUILD_NUMBER"],
+      }.compact,
+    )
+
+    upload_to_play_store(
+      track: "internal",
+      aab: AAB_PATH,
+      json_key: ENV["PLAY_SERVICE_ACCOUNT_JSON_PATH"],
+      release_status: "completed",
+      # The listing is still written by hand in the Play Console; turn these
+      # off once fastlane/metadata/android is the source of truth.
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      skip_upload_changelogs: true,
+    )
+  end
+
+  desc "Promote the newest internal build to the closed test track"
+  lane :promote_closed do
+    upload_to_play_store(
+      track: "internal",
+      track_promote_to: "alpha",
+      json_key: ENV["PLAY_SERVICE_ACCOUNT_JSON_PATH"],
+      skip_upload_aab: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      skip_upload_changelogs: true,
+    )
+  end
+end
+
+platform :ios do
+  desc "Build and upload a build to TestFlight"
+  lane :beta do
+    setup_ci if ENV["CI"]
+    # Signing identities come from the private match repository; readonly so a
+    # build never creates or revokes a certificate by accident.
+    match(type: "appstore", readonly: true)
+    build_ios_app(
+      workspace: File.join(IOS_DIR, "Runner.xcworkspace"),
+      scheme: "Runner",
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: File.join(APP_DIR, "build/ios/ipa"),
+    )
+    upload_to_testflight(
+      api_key_path: ENV["APP_STORE_CONNECT_API_KEY_PATH"],
+      skip_waiting_for_build_processing: true,
+      # No account, so no demo credentials; the review notes explain it.
+      distribute_external: false,
+    )
+  end
+
+  desc "Build and upload a build to App Store Connect for review"
+  lane :release do
+    setup_ci if ENV["CI"]
+    match(type: "appstore", readonly: true)
+    build_ios_app(
+      workspace: File.join(IOS_DIR, "Runner.xcworkspace"),
+      scheme: "Runner",
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: File.join(APP_DIR, "build/ios/ipa"),
+    )
+    upload_to_app_store(
+      api_key_path: ENV["APP_STORE_CONNECT_API_KEY_PATH"],
+      # The App Privacy answers, the age rating and the export compliance
+      # question are answered in App Store Connect, not here; see
+      # docs/STORE_CHECKLIST.md.
+      submit_for_review: false,
+      automatic_release: false,
+      precheck_include_in_app_purchases: false,
+      skip_screenshots: true,
+      # fastlane/metadata/ios is a draft; flip this to false when the copy has
+      # been reviewed.
+      skip_metadata: true,
+    )
+  end
+end

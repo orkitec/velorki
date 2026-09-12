@@ -29,6 +29,11 @@ If you connect Strava or RideWithGPS, the access tokens for those accounts are
 stored in the phone's secure storage (Keychain on iOS, Keystore on Android) and
 stay there.
 
+On Android, the app is excluded from Google's cloud backup and from
+device-to-device transfer, so your rides and your access tokens are not copied
+off the phone by the system either. Moving to a new phone means exporting what
+you want to keep as GPX or FIT files.
+
 ## What leaves your device, and when
 
 ### Routing
@@ -87,9 +92,15 @@ No identifier of you or your phone is put into the prompt. The model returns a
 structured request — a distance, a shape, place names, preferences. The actual
 routing then happens in the app; the model never sees your route.
 
-Our AI provider is **[provider name and jurisdiction to be filled in before
-publication]**. We do not permit the provider to train models on this data,
-where that is offered as an option.
+Our AI provider is **OpenAI (or the provider configured by the operator)**.
+The assistant runs on a hosted model that our relay reaches over an
+OpenAI-compatible interface: the official Velorki build sends prompts to
+OpenAI, and anyone who self-hosts Velorki can point the relay at a different
+provider or at their own model, in which case that operator's policy is the
+one that applies. We do not permit the provider to train models on this data,
+where that is offered as an option. The provider's jurisdiction is **to be
+filled in before publication**, together with the legal basis for the
+transfer.
 
 Data from Strava is never sent to the AI provider.
 

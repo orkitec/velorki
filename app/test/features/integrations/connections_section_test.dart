@@ -4,6 +4,7 @@ import 'package:velorki/app/app_config.dart';
 import 'package:velorki/features/integrations/common/domain/connected_account.dart';
 import 'package:velorki/features/integrations/common/domain/integration_exception.dart';
 import 'package:velorki/features/integrations/presentation/connections_section.dart';
+import 'package:velorki/features/integrations/presentation/strava_brand.dart';
 
 import 'support/pump.dart';
 
@@ -23,15 +24,16 @@ void main() {
     expect(find.text('Strava'), findsOneWidget);
     expect(find.text('Ride with GPS'), findsOneWidget);
     expect(find.text('Not connected'), findsNWidgets(2));
-    // Strava's brand guidelines require this wording verbatim.
-    expect(find.text('Connect with Strava'), findsOneWidget);
     expect(find.text('Connect with Ride with GPS'), findsOneWidget);
     expect(find.text('Velorki Plus'), findsNothing);
 
-    final button = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'Connect with Strava'),
+    // Strava's official button carries the artwork; the wording lives in its
+    // accessibility label, which their guidelines require verbatim.
+    final strava = tester.widget<StravaConnectButton>(
+      find.byType(StravaConnectButton),
     );
-    expect(button.onPressed, isNotNull);
+    expect(strava.label, 'Connect with Strava');
+    expect(strava.onPressed, isNotNull);
   });
 
   testWidgets('without the entitlement the buttons are dead and the Plus '
@@ -44,10 +46,14 @@ void main() {
 
     expect(find.text('Velorki Plus'), findsOneWidget);
     expect(find.textContaining('part of Velorki Plus'), findsOneWidget);
-    final button = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'Connect with Strava'),
+    final strava = tester.widget<StravaConnectButton>(
+      find.byType(StravaConnectButton),
     );
-    expect(button.onPressed, isNull);
+    expect(strava.onPressed, isNull);
+    final rwgps = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Connect with Ride with GPS'),
+    );
+    expect(rwgps.onPressed, isNull);
   });
 
   testWidgets('a build without a relay says so instead of offering a button', (
@@ -77,7 +83,7 @@ void main() {
 
     expect(find.text('Steffen Römer'), findsOneWidget);
     expect(find.text('Disconnect'), findsOneWidget);
-    expect(find.text('Connect with Strava'), findsNothing);
+    expect(find.byType(StravaConnectButton), findsNothing);
   });
 
   testWidgets('connecting stores the account and updates the tile', (
@@ -86,7 +92,7 @@ void main() {
     final harness = await pumpIntegrations(tester, const ConnectionsSection());
     harness.connectors[IntegrationService.strava]!.account = _strava;
 
-    await tester.tap(find.text('Connect with Strava'));
+    await tester.tap(find.byType(StravaConnectButton));
     await tester.pumpAndSettle();
 
     expect(harness.connectors[IntegrationService.strava]!.connects, 1);
@@ -99,11 +105,11 @@ void main() {
     harness.connectors[IntegrationService.strava]!.failure =
         const IntegrationException.cancelled();
 
-    await tester.tap(find.text('Connect with Strava'));
+    await tester.tap(find.byType(StravaConnectButton));
     await tester.pumpAndSettle();
 
     expect(find.byType(SnackBar), findsNothing);
-    expect(find.text('Connect with Strava'), findsOneWidget);
+    expect(find.byType(StravaConnectButton), findsOneWidget);
   });
 
   testWidgets('a failed authorisation is reported in a snack bar', (
@@ -145,7 +151,7 @@ void main() {
     expect(harness.connectors[IntegrationService.strava]!.revokes, 1);
     expect(harness.store.values, isEmpty);
     expect(find.text('Strava disconnected'), findsOneWidget);
-    expect(find.text('Connect with Strava'), findsOneWidget);
+    expect(find.byType(StravaConnectButton), findsOneWidget);
   });
 
   testWidgets('cancelling the disconnect dialog keeps the account', (

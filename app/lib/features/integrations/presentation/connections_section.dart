@@ -11,6 +11,7 @@ import '../common/data/connected_accounts_repository.dart';
 import '../common/domain/connected_account.dart';
 import '../common/domain/integration_exception.dart';
 import 'integration_labels.dart';
+import 'strava_brand.dart';
 
 /// The Plus feature that gates [service].
 PlusFeature plusFeatureFor(IntegrationService service) => switch (service) {
@@ -101,40 +102,60 @@ class ConnectionTile extends ConsumerWidget {
     final entitled = ref.watch(plusFeatureProvider(plusFeatureFor(service)));
     final configured = ref.watch(integrationConfiguredProvider(service));
     final busy = ref.watch(integrationBusyProvider(service));
+    final connect = entitled && configured
+        ? () => unawaited(_connect(context, ref))
+        : null;
+    // Strava's button is their artwork at its own width, which does not fit
+    // into a list tile's trailing slot, so it sits under the tile instead.
+    final branded = service == IntegrationService.strava;
 
-    return ListTile(
-      leading: Icon(
-        service == IntegrationService.strava
-            ? Icons.directions_bike_outlined
-            : Icons.map_outlined,
-      ),
-      title: Text(serviceLabel(l10n, service)),
-      subtitle: Text(
-        !configured
-            ? l10n.connectionsUnavailable
-            : account == null
-            ? l10n.connectionsNotConnected
-            : account.athleteName ?? l10n.connectionsConnected,
-      ),
-      trailing: busy
-          ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : account != null
-          ? TextButton(
-              onPressed: () => unawaited(_disconnect(context, ref)),
-              child: Text(l10n.connectionsDisconnect),
-            )
-          // TODO(M7): replace with Strava's official "Connect with Strava"
-          // button asset; the wording here is already the required one.
-          : FilledButton.tonal(
-              onPressed: entitled && configured
-                  ? () => unawaited(_connect(context, ref))
-                  : null,
-              child: Text(connectLabel(l10n, service)),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ListTile(
+          leading: Icon(
+            service == IntegrationService.strava
+                ? Icons.directions_bike_outlined
+                : Icons.map_outlined,
+          ),
+          title: Text(serviceLabel(l10n, service)),
+          subtitle: Text(
+            !configured
+                ? l10n.connectionsUnavailable
+                : account == null
+                ? l10n.connectionsNotConnected
+                : account.athleteName ?? l10n.connectionsConnected,
+          ),
+          trailing: busy
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : account != null
+              ? TextButton(
+                  onPressed: () => unawaited(_disconnect(context, ref)),
+                  child: Text(l10n.connectionsDisconnect),
+                )
+              : branded
+              ? null
+              : FilledButton.tonal(
+                  onPressed: connect,
+                  child: Text(connectLabel(l10n, service)),
+                ),
+        ),
+        if (branded && !busy && account == null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: StravaConnectButton(
+                label: connectLabel(l10n, service),
+                onPressed: connect,
+              ),
             ),
+          ),
+      ],
     );
   }
 }

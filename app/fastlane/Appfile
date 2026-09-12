@@ -1,0 +1,24 @@
+# Identities fastlane signs and uploads with.
+#
+# Everything secret comes from the environment, so this file is safe to commit
+# and a fork can point it at its own accounts without editing Ruby:
+#
+#   PLAY_SERVICE_ACCOUNT_JSON_PATH  path to the Play service account JSON
+#   FASTLANE_APPLE_ID               Apple ID of the App Store Connect user
+#   APPLE_TEAM_ID                   10-character developer team id
+#   ITC_TEAM_ID                     App Store Connect team id (numeric)
+#
+# See fastlane/README.md for what has to exist in the two consoles first.
+
+for_platform :android do
+  package_name(ENV["ANDROID_PACKAGE_NAME"] || "com.orkitec.velorki")
+  json_key_file(ENV["PLAY_SERVICE_ACCOUNT_JSON_PATH"])
+end
+
+for_platform :ios do
+  app_identifier(ENV["IOS_BUNDLE_ID"] || "com.orkitec.velorki")
+  # Placeholders: fill in from the Apple Developer account, or export them.
+  apple_id(ENV["FASTLANE_APPLE_ID"] || "REPLACE-ME@orkitec.com")
+  team_id(ENV["APPLE_TEAM_ID"] || "REPLACEME")           # Developer Portal
+  itc_team_id(ENV["ITC_TEAM_ID"] || "")                  # App Store Connect
+end

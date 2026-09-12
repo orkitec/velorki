@@ -1,0 +1,1 @@
+bike,cycling,route planner,bicycle,gpx,fit,ride tracker,openstreetmap,offline maps,loop
