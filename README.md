@@ -14,8 +14,24 @@ link sharing. The code for all of it is here, so you can also run your own.
 
 ## Status
 
-Early development. Nothing to install yet. Follow the milestones in
-`docs/ARCHITECTURE.md`.
+All planned features are implemented and unit-tested; nothing is in the
+stores yet. What exists today:
+
+- Planning on OpenStreetMap with bike-specific routing, alternatives,
+  elevation profile and surface statistics; smart loops with a scoring of
+  candidates; GPX and FIT import and export; ride recording that survives the
+  app being killed; Strava and RideWithGPS connections; a subscription with
+  an AI assistant and link sharing.
+- Routing runs either on a self-hosted BRouter server or **on the device**:
+  `app/packages/brouter_dart` is a Dart port of the BRouter engine that
+  reproduces the Java server byte for byte on a recorded corpus, with map
+  tiles downloaded per region.
+- Verified on the Android emulator: planning through a server, planning on
+  the device after a tile download, recording and import screens.
+
+Not yet done: the servers are not deployed, the store accounts and partner
+API registrations are missing, and nothing has run on a real phone or on
+iOS. `docs/OPEN_ITEMS.md` lists every such item.
 
 ## Layout
 
