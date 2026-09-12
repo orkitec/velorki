@@ -16,7 +16,7 @@ import 'osm_track.dart';
 import 'routing_context.dart';
 
 class FormatJson extends Formatter {
-  FormatJson(RoutingContext rc) : super(rc);
+  FormatJson(RoutingContext super.rc);
 
   @override
   String format(OsmTrack t) {

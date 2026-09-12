@@ -82,9 +82,8 @@ class OsmPathElement implements OsmPos {
     return d2i(
       math.max(
         1.0,
-        javaRound(
-          CheapRuler.distance(_ilon, _ilat, p.getILon(), p.getILat()),
-        ).toDouble(),
+        javaRound(CheapRuler.distance(_ilon, _ilat, p.getILon(), p.getILat()))
+            .toDouble(),
       ),
     );
   }
@@ -94,7 +93,12 @@ class OsmPathElement implements OsmPos {
   /// construct a path element from a path
   static OsmPathElement create(OsmPath path) {
     final n = path.getTargetNode();
-    final pe = createAt(n.getILon(), n.getILat(), n.getSElev(), path.originElement);
+    final pe = createAt(
+      n.getILon(),
+      n.getILat(),
+      n.getSElev(),
+      path.originElement,
+    );
     pe.cost = path.cost;
     pe.message = path.message;
     return pe;

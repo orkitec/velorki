@@ -15,11 +15,11 @@ final class KinematicPrePath extends OsmPrePath {
 
   @override
   void initPrePath(OsmPath origin, RoutingContext rc) {
-    var description = link.descriptionBitmap;
-    if (description == null) {
-      //throw new IllegalArgumentException("null description for: " + link);
-      description = targetNode.descriptionBitmap ?? defaultDescription();
-    }
+    //throw new IllegalArgumentException("null description for: " + link);
+    final description =
+        link.descriptionBitmap ??
+        targetNode.descriptionBitmap ??
+        defaultDescription();
 
     // extract the 3 positions of the first section
     final lon0 = origin.originLon;

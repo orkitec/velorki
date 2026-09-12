@@ -2,9 +2,12 @@
 ///
 /// Track R1: the `brouter-util` and `brouter-codec` modules; track R2:
 /// `brouter-mapaccess`; track R3: `brouter-expressions` (plus `ProfileCache`
-/// of `brouter-core`). See README.md for the class list and the JVM emulation
-/// caveats.
+/// of `brouter-core`); track R4: `brouter-core` (the routing engine) and the
+/// [BRouter] API. See README.md for the class list and the JVM emulation
+/// caveats. `package:brouter_dart/isolate.dart` has the [RoutingWorker].
 library;
+
+export 'src/brouter.dart';
 
 export 'src/codec/data_buffers.dart';
 export 'src/codec/integer_fifo3_pass.dart';
@@ -17,6 +20,38 @@ export 'src/codec/tag_value_coder.dart';
 export 'src/codec/tag_value_validator.dart';
 export 'src/codec/tag_value_wrapper.dart';
 export 'src/codec/waypoint_matcher.dart';
+export 'src/core/area_info.dart';
+export 'src/core/area_reader.dart';
+export 'src/core/format_csv.dart';
+export 'src/core/format_gpx.dart';
+export 'src/core/format_json.dart';
+export 'src/core/format_kml.dart';
+export 'src/core/formatter.dart';
+export 'src/core/kinematic_model.dart';
+export 'src/core/kinematic_no_cost_model.dart';
+export 'src/core/kinematic_no_cost_path.dart';
+export 'src/core/kinematic_path.dart';
+export 'src/core/kinematic_pre_path.dart';
+export 'src/core/message_data.dart';
+export 'src/core/osm_node_named.dart';
+export 'src/core/osm_nogo_polygon.dart';
+export 'src/core/osm_path.dart';
+export 'src/core/osm_path_element.dart';
+export 'src/core/osm_path_model.dart';
+export 'src/core/osm_pre_path.dart';
+export 'src/core/osm_track.dart';
+export 'src/core/routing_context.dart';
+export 'src/core/routing_engine.dart';
+export 'src/core/routing_helper.dart';
+export 'src/core/routing_island_exception.dart';
+export 'src/core/routing_param_collector.dart';
+export 'src/core/search_boundary.dart';
+export 'src/core/std_model.dart';
+export 'src/core/std_path.dart';
+export 'src/core/suspect_info.dart';
+export 'src/core/voice_hint.dart';
+export 'src/core/voice_hint_list.dart';
+export 'src/core/voice_hint_processor.dart';
 export 'src/expressions/b_expression.dart';
 export 'src/expressions/b_expression_context.dart';
 export 'src/expressions/b_expression_context_node.dart';

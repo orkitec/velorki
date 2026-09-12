@@ -20,7 +20,8 @@ final class StdPath extends OsmPath {
 
   double _totalTime = 0; // travel time (seconds), float
   double _totalEnergy = 0; // total route energy (Joule), float
-  double _elevationBuffer = 0; // just another elevation buffer (for travel time), float
+  double _elevationBuffer =
+      0; // just another elevation buffer (for travel time), float
 
   int _uphillcostdiv = 0;
   int _downhillcostdiv = 0;
@@ -141,12 +142,24 @@ final class StdPath extends OsmPath {
               classIndex + 26,
             );
             var additionalTurnCost = 0;
-            if (crossingClass == '1') additionalTurnCost = rc.costToLeftFromHClass1;
-            if (crossingClass == '2') additionalTurnCost = rc.costToLeftFromHClass2;
-            if (crossingClass == '3') additionalTurnCost = rc.costToLeftFromHClass3;
-            if (crossingClass == '4') additionalTurnCost = rc.costToLeftFromHClass4;
-            if (crossingClass == '5') additionalTurnCost = rc.costToLeftFromHClass5;
-            if (crossingClass == '6') additionalTurnCost = rc.costToLeftFromHClass6;
+            if (crossingClass == '1') {
+              additionalTurnCost = rc.costToLeftFromHClass1;
+            }
+            if (crossingClass == '2') {
+              additionalTurnCost = rc.costToLeftFromHClass2;
+            }
+            if (crossingClass == '3') {
+              additionalTurnCost = rc.costToLeftFromHClass3;
+            }
+            if (crossingClass == '4') {
+              additionalTurnCost = rc.costToLeftFromHClass4;
+            }
+            if (crossingClass == '5') {
+              additionalTurnCost = rc.costToLeftFromHClass5;
+            }
+            if (crossingClass == '6') {
+              additionalTurnCost = rc.costToLeftFromHClass6;
+            }
             turncost += additionalTurnCost;
           }
         }
@@ -175,12 +188,24 @@ final class StdPath extends OsmPath {
               classIndex + 26,
             );
             var additionalTurnCost = 0;
-            if (crossingClass == '1') additionalTurnCost = rc.costToRightFromHClass1;
-            if (crossingClass == '2') additionalTurnCost = rc.costToRightFromHClass2;
-            if (crossingClass == '3') additionalTurnCost = rc.costToRightFromHClass3;
-            if (crossingClass == '4') additionalTurnCost = rc.costToRightFromHClass4;
-            if (crossingClass == '5') additionalTurnCost = rc.costToRightFromHClass5;
-            if (crossingClass == '6') additionalTurnCost = rc.costToRightFromHClass6;
+            if (crossingClass == '1') {
+              additionalTurnCost = rc.costToRightFromHClass1;
+            }
+            if (crossingClass == '2') {
+              additionalTurnCost = rc.costToRightFromHClass2;
+            }
+            if (crossingClass == '3') {
+              additionalTurnCost = rc.costToRightFromHClass3;
+            }
+            if (crossingClass == '4') {
+              additionalTurnCost = rc.costToRightFromHClass4;
+            }
+            if (crossingClass == '5') {
+              additionalTurnCost = rc.costToRightFromHClass5;
+            }
+            if (crossingClass == '6') {
+              additionalTurnCost = rc.costToRightFromHClass6;
+            }
             turncost += additionalTurnCost;
           }
         }
@@ -244,7 +269,9 @@ final class StdPath extends OsmPath {
               f32(
                 _fmax(
                       0.0,
-                      f32(f32(reduce.toDouble()) - f32(fdist * downhillmaxslope)),
+                      f32(
+                        f32(reduce.toDouble()) - f32(fdist * downhillmaxslope),
+                      ),
                     ) /
                     f32(downhillmaxslopecostdiv.toDouble()),
               ),

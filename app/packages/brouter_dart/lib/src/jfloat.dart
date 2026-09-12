@@ -765,7 +765,6 @@ _Dtoa _doubleConverter(double d, bool isCompatibleFormat) {
   return buf;
 }
 
-
 /// `Double.parseDouble(s)`: the JDK grammar of [javaParseFloat] (`String.trim`,
 /// sign, `NaN`/`Infinity`, trailing `f`/`d`, exponent) with a correctly
 /// rounded double result (`double.parse` is correctly rounded for decimal
@@ -788,9 +787,8 @@ double javaParseDouble(String input) {
   if (rest.startsWith('0x') || rest.startsWith('0X')) {
     throw UnsupportedError('hexadecimal floating literal: "$input"');
   }
-  final m = RegExp(
-    r'^(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?[fFdD]?$',
-  ).firstMatch(rest);
+  final m = RegExp(r'^(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?[fFdD]?$')
+      .firstMatch(rest);
   if (m == null) throw NumberFormatException('For input string: "$input"');
   var mant = m.group(1)!;
   if (mant.endsWith('.')) mant = mant.substring(0, mant.length - 1);
@@ -815,7 +813,6 @@ String javaDoubleToString(double d) {
   if (d == 0) return doubleToRawLongBits(d) < 0 ? '-0.0' : '0.0';
   return _doubleConverter(d, true).getChars();
 }
-
 
 /// `new DecimalFormat("0.###")` (`Locale.ENGLISH`) applied to a `double`:
 /// `DigitList.set` takes the `FloatingDecimal` digits of the value (the
@@ -862,7 +859,13 @@ String javaDecimalFormat(double number, {int maxFraction = 3}) {
       }
       var maximumDigits = maxFraction + decimalAt;
       if (maximumDigits >= 0 && maximumDigits < count) {
-        if (_shouldRoundUpHalfEven(digits, count, maximumDigits, roundedUp, exact)) {
+        if (_shouldRoundUpHalfEven(
+          digits,
+          count,
+          maximumDigits,
+          roundedUp,
+          exact,
+        )) {
           for (;;) {
             maximumDigits--;
             if (maximumDigits < 0) {

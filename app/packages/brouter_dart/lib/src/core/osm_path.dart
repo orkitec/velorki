@@ -180,7 +180,9 @@ abstract class OsmPath implements OsmLinkHolder {
     if (newClassifier != 0.0 &&
         lastClassifier != 0.0 &&
         (classifierDiff > 0.0005 || classifierDiff < -0.0005)) {
-      final initialcost = rc.inverseDirection ? lastInitialCost : newInitialCost;
+      final initialcost = rc.inverseDirection
+          ? lastInitialCost
+          : newInitialCost;
       if (initialcost >= 1000000.0) {
         cost = -1;
         return;
@@ -311,7 +313,12 @@ abstract class OsmPath implements OsmLinkHolder {
           }
 
           if (rc.checkPendingEndpoint()) {
-            dist = rc.calcDistance(rc.ilonshortest, rc.ilatshortest, lon2, lat2);
+            dist = rc.calcDistance(
+              rc.ilonshortest,
+              rc.ilatshortest,
+              lon2,
+              lat2,
+            );
             if (rc.shortestmatch) {
               stopAtEndpoint = true;
               ele2 = interpolateEle(ele1, ele2, rc.wayfraction);
@@ -329,7 +336,9 @@ abstract class OsmPath implements OsmLinkHolder {
       if (isStartpoint) {
         if (rc.startDirectionValid) {
           final dir = rc.startDirection! * CheapRuler.degToRad;
-          final lonlat2m = CheapRuler.getLonLatToMeterScales((lon0 + lat1) >> 1);
+          final lonlat2m = CheapRuler.getLonLatToMeterScales(
+            (lon0 + lat1) >> 1,
+          );
           lon0 = lon1 - d2i(1000.0 * JMath.sin(dir) / lonlat2m[0]);
           lat0 = lat1 - d2i(1000.0 * JMath.cos(dir) / lonlat2m[1]);
         } else {

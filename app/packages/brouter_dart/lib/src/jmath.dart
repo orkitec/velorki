@@ -409,7 +409,6 @@ class JMath {
     return s + resHi;
   }
 
-
   // ---- HotSpot Math.exp intrinsic (Intel LIBM) ----------------------------
 
   // StubRoutines::x86::_cv / _shifter of macroAssembler_x86_exp.cpp (jdk17u):
@@ -485,9 +484,8 @@ class JMath {
 
   static final List<double> _expTlo = List<double>.generate(
     64,
-    (j) => longBitsToDouble(
-      (_expTblWords[4 * j + 1] << 32) | _expTblWords[4 * j],
-    ),
+    (j) =>
+        longBitsToDouble((_expTblWords[4 * j + 1] << 32) | _expTblWords[4 * j]),
     growable: false,
   );
 
@@ -615,8 +613,8 @@ class JMath {
   /// `paddd`: 32-bit lane addition of two 64-bit lanes.
   static int _paddd(int a, int b) {
     final lo = ((a & 0xffffffff) + (b & 0xffffffff)) & 0xffffffff;
-    final hi = (((a >> 32) & 0xffffffff) + ((b >> 32) & 0xffffffff)) &
-        0xffffffff;
+    final hi =
+        (((a >> 32) & 0xffffffff) + ((b >> 32) & 0xffffffff)) & 0xffffffff;
     return (hi << 32) | lo;
   }
 

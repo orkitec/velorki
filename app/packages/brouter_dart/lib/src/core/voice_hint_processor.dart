@@ -102,7 +102,9 @@ final class VoiceHintProcessor {
             // add a badWay
             for (final badWay in input.badWays!) {
               if (!badWay.isBadOneway()) {
-                roundAboutTurnAngle = f32(roundAboutTurnAngle + badWay.turnangle);
+                roundAboutTurnAngle = f32(
+                  roundAboutTurnAngle + badWay.turnangle,
+                );
               }
             }
           }
@@ -159,7 +161,9 @@ final class VoiceHintProcessor {
         continue;
       }
 
-      final inputNext = hintIdx + 1 < inputs.length ? inputs[hintIdx + 1] : null;
+      final inputNext = hintIdx + 1 < inputs.length
+          ? inputs[hintIdx + 1]
+          : null;
 
       var maxPrioAll = -1; // max prio of all detours
       var maxPrioCandidates = -1; // max prio of real candidates
@@ -186,14 +190,16 @@ final class VoiceHintProcessor {
 
           if (badWay.isBadOneway()) {
             if (minAbsAngeRaw == 180.0) {
-              minAbsAngeRaw = turnAngle.abs(); // disable hasSomethingMoreStraight
+              minAbsAngeRaw = turnAngle
+                  .abs(); // disable hasSomethingMoreStraight
             }
             continue; // ignore wrong oneways
           }
 
           if (f32(badTurn.abs() - turnAngle.abs()) > 80.0) {
             if (minAbsAngeRaw == 180.0) {
-              minAbsAngeRaw = turnAngle.abs(); // disable hasSomethingMoreStraight
+              minAbsAngeRaw = turnAngle
+                  .abs(); // disable hasSomethingMoreStraight
             }
             continue; // ways from the back should not trigger a slight turn
           }
@@ -419,7 +425,8 @@ final class VoiceHintProcessor {
                 inputLastSaved.distanceToNext += input.distanceToNext;
               }
             }
-          } else if ((input.goodWay!.getPrio() == 29 && input.maxBadPrio == 30) &&
+          } else if ((input.goodWay!.getPrio() == 29 &&
+                  input.maxBadPrio == 30) &&
               checkForNextNoneMotorway(inputs, hintIdx, 3)) {
             // leave motorway
             if (input.cmd == VoiceHint.kr || input.cmd == VoiceHint.tslr) {
@@ -449,11 +456,10 @@ final class VoiceHintProcessor {
             }
           }
         } else if (input.distanceToNext < catchingRange) {
-          var dist = input.distanceToNext;
           var angles = input.angle;
           var save = false;
 
-          dist += nextInput.distanceToNext;
+          // double dist = input.distanceToNext + nextInput.distanceToNext; (unused upstream)
           angles = f32(angles + nextInput.angle);
 
           if ((input.cmd == VoiceHint.c ||
@@ -481,7 +487,8 @@ final class VoiceHintProcessor {
                 inputLastSaved.distanceToNext += input.distanceToNext;
               }
             }
-          } else if ((input.goodWay!.getPrio() == 29 && input.maxBadPrio == 30)) {
+          } else if ((input.goodWay!.getPrio() == 29 &&
+              input.maxBadPrio == 30)) {
             // leave motorway
             if (input.cmd == VoiceHint.kr || input.cmd == VoiceHint.tslr) {
               input.cmd = VoiceHint.er;
@@ -542,7 +549,11 @@ final class VoiceHintProcessor {
     return results;
   }
 
-  bool checkForNextNoneMotorway(List<VoiceHint> inputs, int offset, int testsize) {
+  bool checkForNextNoneMotorway(
+    List<VoiceHint> inputs,
+    int offset,
+    int testsize,
+  ) {
     for (var i = 1; i < testsize + 1 && offset + i < inputs.length; i++) {
       final prio = inputs[offset + i].goodWay!.getPrio();
       if (prio < 29) return true;
@@ -551,7 +562,11 @@ final class VoiceHintProcessor {
     return false;
   }
 
-  bool checkStraightHold(VoiceHint input, VoiceHint? inputLastSaved, double minRange) {
+  bool checkStraightHold(
+    VoiceHint input,
+    VoiceHint? inputLastSaved,
+    double minRange,
+  ) {
     if (input.indexInTrack == 0) return false;
 
     var badOneWay = false;

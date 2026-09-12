@@ -174,12 +174,18 @@ final class KinematicNoCostPath extends OsmPath {
     return cost + distanceCost;
   }
 
-  double evolveDistance(KinematicNoCostModel km, double dist, double deltaH, double fAir) {
+  double evolveDistance(
+    KinematicNoCostModel km,
+    double dist,
+    double deltaH,
+    double fAir,
+  ) {
     // elevation force
     final fh = deltaH * km.totalweight * 9.81 / dist;
 
     final effectiveSpeedLimit = km.getEffectiveSpeedLimit();
-    final emax = 0.5 * km.totalweight * effectiveSpeedLimit * effectiveSpeedLimit;
+    final emax =
+        0.5 * km.totalweight * effectiveSpeedLimit * effectiveSpeedLimit;
     if (emax <= 0.0) {
       return -1.0;
     }
@@ -215,12 +221,28 @@ final class KinematicNoCostPath extends OsmPath {
         final b = 2.0 * fAir / km.totalweight;
         final x0 = deltaEkin / f;
         final x0b = x0 * b;
-        x = x0 * (1.0 - x0b * (0.5 + x0b * (0.333333333 - x0b * 0.25))); // = ln( delta_ekin*b/f + 1.) / b;
+        x =
+            x0 *
+            (1.0 -
+                x0b *
+                    (0.5 +
+                        x0b *
+                            (0.333333333 -
+                                x0b *
+                                    0.25))); // = ln( delta_ekin*b/f + 1.) / b;
         final maxstep = math.min(50.0, d);
         if (x >= maxstep) {
           x = maxstep;
           final xb = x * b;
-          deltaEkin = x * f * (1.0 + xb * (0.5 + xb * (0.166666667 + xb * 0.0416666667))); // = f/b* exp(xb-1)
+          deltaEkin =
+              x *
+              f *
+              (1.0 +
+                  xb *
+                      (0.5 +
+                          xb *
+                              (0.166666667 +
+                                  xb * 0.0416666667))); // = f/b* exp(xb-1)
           _ekin += deltaEkin;
         } else {
           _ekin = etarget;

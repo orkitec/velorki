@@ -105,9 +105,9 @@ needs threads).
   `|x| >= 90112` the port falls back to `dart:math` (last-ulp differences
   possible). `JMath.atan2`/`atan` are fdlibm, which is what `Math.atan2` calls on
   every platform. `Math.sqrt` is IEEE-exact in both VMs. The expressions
-  module calls no transcendental function at all (see R3); `Math.exp`/`log`/
-  `pow` first appear in `brouter-core` (track R4) and are HotSpot intrinsics
-  that will need the same treatment then.
+  module calls no transcendental function at all (see R3); `brouter-core`
+  (track R4) adds `Math.exp`, transcribed the same way (`JMath.exp`, see R4);
+  `log`/`pow` are not used by the runtime.
 * `DataInputStream`/`DataOutputStream` (in-memory, big-endian; with
   `readDouble`/`writeDouble` and `writeStringBytes` = `DataOutput.writeBytes(String)`
   for `MatchedWaypoint`) and a `PriorityQueue` with `java.util.PriorityQueue`
@@ -437,4 +437,139 @@ walks (400 steps each) with the real context through `NodesCache`: identical.
 foreign (`way:`) variables, `v:` lookups, `noStartWay` comments and
 `checkStartWay`, `accessType`, `unify`, and the parse errors.
 
-Run: `dart test` (about 8 s), `dart analyze`, `dart format --set-exit-if-changed .`.
+Run (R1-R3): `dart test`, `dart analyze`, `dart format --set-exit-if-changed .`.
+
+## Track R4: `brouter-core`
+
+`lib/src/core/`, all 33 remaining upstream classes (`ProfileCache` was ported
+in R3), one file per class:
+
+| Java | Dart | Lines | Notes |
+|---|---|---:|---|
+| `RoutingEngine` | `routing_engine.dart` | 2806 | the search. `run()`/`doRun`/`doRouting`/`doRoundTrip`/`doGetInfo`/`doSearch` and the `findTrack` chain are `async`: every `yieldInterval` (2000) node expansions of `_findTrack` the optional `yieldHook` is awaited and `progressListener` called, which is how the `RoutingWorker` isolate cancels cooperatively (`terminate()` then throws upstream's "operation killed by thread-priority-watchdog"); without a hook nothing suspends. Overloads renamed: `findTrack(refTracks, lastTracks)` stays, `findTrack(operationName, ...)` is `findTrackSegment`, the two `getStartPath` are `_getStartPathForWaypoint`/`_getStartPath`. `maxRunningTime` keeps the `> 0` guard (0 = no timeout, the oracle's `-DmaxRunningTime=0`). Not a `Thread`; no `debug.txt`/`stacks.txt`/`StackSampler`; `logInfo` goes to the optional `infoLog` sink; `System.getProperty("reportFormat")` is the static `reportFormat`; `Math.random()` (round trips without `direction`) is `dart:math` `Random`; the outfile/logfile writing of the CLI mode is kept |
+| `RoutingContext` | `routing_context.dart` | 703 | implements `ProfileCacheClient`; `setModel(className)` resolves the three upstream model class names instead of reflection; `localFunction` is a non-null `String` (`''` for Java `null`, reported as "unknown"); `Integer` fields are `int?`; `setWaypoint(wp, endpoint, [pendingEndpoint])` covers both overloads; `createPath(OsmLink)` is `createStartPath`; the `snake_Case` fields are camelCase (`considerCrossing`, `costToLeftFromHClass1`, `sCx`, `defaultCr`) |
+| `RoutingParamCollector` | `routing_param_collector.dart` | 455 | the parameter map is a `JavaHashMap<String, String>` (`HashMap` iteration order decides which of two conflicting keys wins); `URLDecoder.decode` is `javaUrlDecode`, `StringTokenizer` a local helper, `String.split` the `javaSplit` of R3 (trailing empties dropped), `Double.parseDouble` is `javaParseDouble` (new in jfloat: the JDK grammar, `double.parse` for the value; no hex floats) |
+| `OsmPath` | `osm_path.dart` | 537 | abstract; the two `init` overloads are `initLink(link)` and `initFrom(origin, link, refTrack, detailMode, rc)`; `int += double` is `d2i(cost + nogoCost)`; `interpolateEle` casts through `d2i` then `toShort`; the start-direction faking uses `JMath.sin`/`cos` |
+| `StdPath` | `std_path.dart` | 484 | every `float` operation rounds through `f32()`, in particular the elevation-hysteresis update `ehbd += -delta_h_micros - dist * downhillcutoff` (float arithmetic with both ints converted to float first, then `(int)`), `Math.min(int, float)`, `elevationCost` and `linkelevationcost += elevationCost`, and `sectionCost += dist * costfactor + 0.5f`; `calcIncline` uses `JMath.exp`; `Math.min`/`max` on floats are local helpers with Java's NaN rule |
+| `KinematicPath`, `KinematicModel`, `KinematicPrePath` | same names | 333, 153, 63 | car model, `---model:btools.router.KinematicModel`; `JMath.exp` in the turn-angle decay; the two floating angles are `f32`; `getParam` writes `Float.toString` back into the params like upstream. Not exercised by the corpus (no car profile) |
+| `KinematicNoCostModel`, `KinematicNoCostPath` | same names | 153, 329 | upstream copies of the two above with three lines changed; generated the same way |
+| `OsmPathModel`, `OsmPrePath`, `StdModel` | same names | 20, 25, 35 | |
+| `OsmPathElement` | `osm_path_element.dart` | 148 | `create(OsmPath)` and `createAt(ilon, ilat, selev, origin)`; `setTime`/`setEnergy`/`setAngle` round to float |
+| `MessageData` | `message_data.dart` | 130 | `toMessage()` computes `(int) (costfactor * 1000 + 0.5f)` in float and truncates `ele / 4` like Java int division; `clone()` is `copy()` |
+| `OsmTrack` | `osm_track.dart` | 621 | `version` is the upstream tag without `v` (the jar's implementation version); `OsmPathElementHolder` is top-level; `readBinary`/`writeBinary` use whole-file `DataInputStream`/`DataOutputStream`; `appendTrack` and `getTotalSeconds` keep the float arithmetic |
+| `Formatter` | `formatter.dart` | 526 | `formatPos` transcribed; `getFormattedTime3` formats the UTC timestamp by hand; `JStringBuilder` provides `deleteCharAt(lastIndexOf(","))` |
+| `FormatJson` | `format_json.dart` | 313 | **byte-exact** against the corpus: doubles appended to the builder go through `javaDoubleToString`, the `showspeed` float hack through `javaFloatToString`, `times` through `javaDecimalFormat` (`DecimalFormat("0.###")`, below); `formatAsWaypoint` ported |
+| `FormatGpx`, `FormatKml`, `FormatCsv` | same names | 622, 131, 40 | ported mechanically, **unverified** (the corpus only records `format=geojson`); `String.format("%6s;%6d;...")` is `padLeft`; the two `formatWaypointGpx` overloads are `formatWaypointGpx` (node) and `formatMatchedWaypointGpx` |
+| `VoiceHint`, `VoiceHintList`, `VoiceHintProcessor` | same names | 246, 59, 599 | float sums (`angle`, `roundAboutTurnAngle`, `tmpangle`, `angles`) round through `f32`; the `Float.MAX_VALUE` sentinel is `floatMaxValue`; `setTransportMode(int)` is `setTransportModeValue`. **Unverified**: the corpus runs `timode=0`, so no detours are registered and `processVoiceHints` returns before any hint is built |
+| `OsmNodeNamed` | `osm_node_named.dart` | 104 | `OsmNodeNamed([OsmNode? n])`; the int products of `distanceWithinRadius` wrap with `mul32` |
+| `OsmNogoPolygon` | `osm_nogo_polygon.dart` | 459 | `Point` is top-level; long/int arithmetic kept (`~/` for the long divisions of the collinear case, `mul32`/`i32` for the int products of `distanceWithinPolygon`) |
+| `AreaInfo`, `AreaReader` | same names | 74, 358 | only used by `getRandomDirectionFromData`; `Collections.sort` is a stable merge sort |
+| `SearchBoundary`, `SuspectInfo`, `RoutingIslandException` | same names | 82, 58, 6 | `RoutingIslandException` is an `Error` |
+| `RoutingHelper` | `routing_helper.dart` | 37 | no secondary/maptool directory (`StorageConfigHelper` is not ported, see R2) |
+
+Around the port:
+
+* `lib/src/brouter.dart`: `BRouter(segmentsDir, profilesDir)` with
+  `routeQuery(String query)` -- the exact `RouteServer.run` +
+  `ServerHandler` flow (`getUrlParams`, `memoryclass = 128`,
+  `profileBaseDir`, `getWayPointList`, `engineMode`, `setParams`,
+  `RoutingEngine(...).doRun(maxRunningTime)`, `formatTrack`) -- and the typed
+  `route(RoutingRequest) -> RoutingResult` (`toQuery()` builds the same query
+  string; the result carries the GeoJSON plus parsed coordinates, lengths,
+  ascends, messages and times). Errors are `RoutingException` with
+  `getErrorMessage()`.
+* `lib/isolate.dart`: `RoutingWorker.spawn/route/routeQuery/cancel/dispose`
+  in a worker isolate, progress callbacks, cooperative cancel through the
+  engine's yield hook (a plain port listener, not `await for`, which would
+  pause the port during a route). `test/routing_worker_test.dart` runs it on
+  the plain VM.
+
+### JVM emulation added for R4
+
+* **`Math.exp`** (`JMath.exp`, jmath.dart): the only transcendental function
+  of the module (`StdPath.calcIncline`, the foot-mode Tobler function and
+  the kinematic turn decay; there is no `log`/`pow`). It decides every
+  `time`/`energy` value of the messages and the `times` array, so it is a
+  transcription of HotSpot's x86_64 intrinsic `MacroAssembler::fast_exp`
+  (macroAssembler_x86_exp.cpp of jdk17u, Intel LIBM: `e^x = 2^N * T[j] *
+  (1 + P(r))` with a 64-entry table, no FMA) including the
+  over/underflow branch that assembles subnormal results with integer
+  arithmetic on the bit patterns, and the special cases. Verified
+  bit-identical on 17 611 JVM samples (`run_dump.sh core-vectors`,
+  `test/vectors/core/core.json.gz`, `test/core_numerics_test.dart`): every
+  `-k/100` for `k <= 6000`, the Tobler/kinematic argument ranges, random
+  arguments over the whole normal range, the subnormal-result range
+  `[-746, -708]`, the overflow/underflow edges and the `2^-54`/`1024`
+  branch points. (Upstream's aarch64 build has no exp intrinsic and calls
+  fdlibm, so a server on ARM would differ in the last ulp; the oracle is
+  x86_64.)
+* **`DecimalFormat("0.###")`** (`javaDecimalFormat`, jfloat.dart) for the
+  travel times: `DigitList.set` on the `FloatingDecimal` digits (the R3
+  `dtoa` port already carried the `decimalDigitsRoundedUp`/`exactDecimalConversion`
+  flags) with `HALF_EVEN` rounding and `subformat`; 39 550 float samples
+  identical, ties included.
+* **`Double.toString`** (`javaDoubleToString`, already in R3) for the
+  elevations (`selev / 4.`) and other doubles the formatters append:
+  15 402 samples identical.
+* `javaParseDouble` (`Double.parseDouble`), `javaUrlDecode`,
+  `javaStringHashCode` (`String.hashCode`, for `getKeyValueChecksum` and the
+  parameter `HashMap`), `JavaHashMap.entries/keys/containsKey/ofStrings`,
+  `shortMinValue`, `floatMaxValue`.
+* The `float` fields of the paths and messages follow the R3 rule (double
+  holding a float value, `f32()` after each float operation, `int op float`
+  converts the int first); `Math.round` is `javaRound`, casts are
+  `d2i`/`d2l`/`toShort`.
+
+## Parity proof (L3)
+
+`test/corpus_parity_test.dart` routes all 200 cases of
+`tools/brouter-oracle/corpus` (`requests.json` query strings; the tiles from
+`BROUTER_SEGMENTS_DIR`, skipped when absent; the profiles from
+`brouter/profiles`) through `BRouter.routeQuery` and compares the produced
+GeoJSON with `corpus/responses/<id>.geojson` **byte for byte** (on a
+mismatch it first compares coordinates, `track-length`, `filtered ascend`,
+`plain-ascend`, `cost`, `messages`, `times`, `total-time`, `total-energy`
+field by field, then reports the first differing byte offset with a
+context snippet). `BROUTER_CORPUS_ONLY=<id prefix>` restricts the run.
+
+Result: **200 of 200 identical** on the first complete run -- 120 `pair`
+(6 profiles x `alternativeidx` 0-3), 40 `triple`, 24 `nogo`, 16
+`roundtrip` (`engineMode=4`, `roundTripDistance`, `direction`,
+`roundTripPoints=5`); trekking, fastbike, fastbike-lowtraffic, gravel, mtb
+and shortest; 47 160 coordinates, every message row and every travel time.
+The whole corpus takes about 41 s (`dart test`), i.e. the search, the
+`float` cost arithmetic, `Math.exp`, the elevation filtering, the
+alternatives' reference-track penalty, nogo handling and the deterministic
+round-trip point generation (`buildPointsFromCircle` from `direction`, no
+`Math.random`) all match.
+
+Speed (this laptop, x86_64, the same cases, medians of 5 after warm-up;
+JVM = the oracle `RouteServer` after JIT warm-up):
+
+| Case | Links processed | Dart | JVM |
+|---|---:|---:|---:|
+| pair-000 (trekking, 3.6 km) | 14 823 | 69 ms | 33 ms |
+| triple-000 (trekking, via) | 7 780 | 50 ms | 24 ms |
+| nogo-000 (trekking) | 18 549 | 86 ms | 37 ms |
+| roundtrip-000 (trekking, 5 points) | 73 022 | 447 ms | 204 ms |
+| roundtrip-007 (the longest body) | 72 852 | 305 ms | 132 ms |
+
+About 2x the JIT-warm JVM, with the R5 byte-level cache still missing
+(every request re-decodes its micro-caches from the rd5).
+
+### What is not covered
+
+* `FormatGpx`/`FormatKml`/`FormatCsv` and the voice hints
+  (`timode > 0`) are ported but have no oracle vectors yet.
+* `getRandomDirectionFromData` (round trips without `direction`) and the
+  `AreaReader` behind it; `rawTrackPath` (`OsmTrack.readBinary`, the
+  incremental recalculation of the Android app), `doGetInfo`
+  (`engineMode` 2/3), `doSearch`, `correctMisplacedViaPoints`
+  (`snapPathConnection`, false in all shipped profiles), `allowSamewayback`,
+  polygon/polyline nogos, `nogoLats/Lons/Radi`, `straight`, `pois`,
+  `heading`, `exportWaypoints` and `profile:` parameters run through the
+  same code paths but are not in the corpus.
+* The kinematic (car) model.
+
+Run: `dart test` (about 50 s with the tiles, 8 s without), `dart analyze`,
+`dart format --set-exit-if-changed .`.

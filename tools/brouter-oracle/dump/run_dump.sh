@@ -6,6 +6,7 @@
 #   ./dump/run_dump.sh eval-profile <profile.brf|name> <tagsfile> [--bits | --compact] [--context node --way-tags "<tags>"]
 #   ./dump/run_dump.sh way-tags <tile.rd5|tilename> [--kind way|node]
 #   ./dump/run_dump.sh math-vectors <outdir>
+#   ./dump/run_dump.sh core-vectors <outdir>
 #   ./dump/run_dump.sh codec-vectors <outdir>
 #   ./dump/run_dump.sh microcache-bytes <tile.rd5|tilename> <lon> <lat> <outfile>
 #   ./dump/run_dump.sh microcache-listing <tile.rd5|tilename> <lon> <lat> [--bodies <n>]
@@ -57,7 +58,7 @@ case "$cmd" in
     esac
     args=( eval-profile "$prof" "$@" --lookups "$PROFILES_DIR/lookups.dat" )
     ;;
-  codec-vectors|math-vectors)
+  codec-vectors|math-vectors|core-vectors)
     args=( "$cmd" "$@" )
     ;;
   way-tags)
@@ -95,7 +96,7 @@ case "$cmd" in
     args=( nodes-cache-walk "$segdir" "${rest[@]}" --lookups "$PROFILES_DIR/lookups.dat" )
     ;;
   *)
-    echo "usage: run_dump.sh {dump-microcache|eval-profile|codec-vectors|math-vectors|way-tags|microcache-bytes|microcache-listing|osmfile-index|nodes-cache-walk} ..." >&2; exit 2 ;;
+    echo "usage: run_dump.sh {dump-microcache|eval-profile|codec-vectors|math-vectors|core-vectors|way-tags|microcache-bytes|microcache-listing|osmfile-index|nodes-cache-walk} ..." >&2; exit 2 ;;
 esac
 
 exec "$JAVA" -Xmx256M -cp "$BROUTER_JAR:$CLASSES" Dump "${args[@]}"

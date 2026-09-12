@@ -8,7 +8,7 @@ import 'osm_track.dart';
 import 'routing_context.dart';
 
 class FormatKml extends Formatter {
-  FormatKml(RoutingContext rc) : super(rc);
+  FormatKml(RoutingContext super.rc);
 
   @override
   String format(OsmTrack t) {
@@ -89,7 +89,11 @@ class FormatKml extends Formatter {
     return sb.toString();
   }
 
-  void _createFolder(StringBuffer sb, String type, List<MatchedWaypoint> waypoints) {
+  void _createFolder(
+    StringBuffer sb,
+    String type,
+    List<MatchedWaypoint> waypoints,
+  ) {
     sb.write('    <Folder>\n');
     sb.write('      <name>$type</name>\n');
     for (var i = 0; i < waypoints.length; i++) {
@@ -99,7 +103,11 @@ class FormatKml extends Formatter {
     sb.write('    </Folder>\n');
   }
 
-  void _createViaFolder(StringBuffer sb, String type, List<OsmNodeNamed> waypoints) {
+  void _createViaFolder(
+    StringBuffer sb,
+    String type,
+    List<OsmNodeNamed> waypoints,
+  ) {
     if (waypoints.isEmpty) return;
     sb.write('    <Folder>\n');
     sb.write('      <name>$type</name>\n');

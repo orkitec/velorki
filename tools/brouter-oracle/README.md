@@ -230,6 +230,10 @@ bare profile name inside `brouter/profiles`.
 ./dump/run_dump.sh eval-profile trekking dump/samples/tags-large.txt --compact --bits   # float-bit-exact variable dumps
 ./dump/run_dump.sh math-vectors <out.json>                                  # JVM float parse/format/arith vectors
 ./dump/run_dump.sh nodes-cache-walk -16.92 32.65 -16.77 32.72 --profile trekking
+
+# R4 (core) parity: the Dart engine replays corpus/requests.json and must reproduce
+# corpus/responses/*.geojson byte for byte (app/packages/brouter_dart/test/corpus_parity_test.dart).
+./dump/run_dump.sh core-vectors <out.json>                                  # JVM exp/DecimalFormat/Double.toString vectors
 ./dump/run_dump.sh eval-profile trekking dump/samples/tags.txt
 
 # R3 (expressions) parity:

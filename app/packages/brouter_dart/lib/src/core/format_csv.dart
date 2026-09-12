@@ -5,7 +5,7 @@ import 'osm_track.dart';
 import 'routing_context.dart';
 
 class FormatCsv extends Formatter {
-  FormatCsv(RoutingContext rc) : super(rc);
+  FormatCsv(RoutingContext super.rc);
 
   @override
   String format(OsmTrack t) {

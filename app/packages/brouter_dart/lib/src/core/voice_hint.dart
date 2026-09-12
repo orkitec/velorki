@@ -205,7 +205,9 @@ class VoiceHint {
   }
 
   String formatGeometry() {
-    final oldPrio = oldWay == null ? 0.0 : f32(oldWay!.priorityclassifier.toDouble());
+    final oldPrio = oldWay == null
+        ? 0.0
+        : f32(oldWay!.priorityclassifier.toDouble());
     final sb = StringBuffer();
     sb.write(' ');
     sb.write(d2i(oldPrio));

@@ -127,9 +127,7 @@ class OsmNogoPolygon extends OsmNodeNamed {
 
     ilon = cx;
     ilat = cy;
-    radius =
-        rad * 1.001 +
-        1.0; // ensure the outside-of-enclosing-circle test in RoutingContext.calcDistance() is not passed by segments ending very close to the radius due to limited numerical precision
+    radius = rad * 1.001 + 1.0; // ensure the outside-of-enclosing-circle test in RoutingContext.calcDistance() is not passed by segments ending very close to the radius due to limited numerical precision
   }
 
   /// tests whether a segment defined by lon and lat of two points does either
@@ -377,7 +375,12 @@ class OsmNogoPolygon extends OsmNodeNamed {
   ///
   /// Returns 0=disjoint (no intersect), 1=intersect in unique point I0,
   /// 2=overlap in segment from I0 to I1
-  static int _intersect2D2Segments(Point s1p0, Point s1p1, Point s2p0, Point s2p1) {
+  static int _intersect2D2Segments(
+    Point s1p0,
+    Point s1p1,
+    Point s2p0,
+    Point s2p1,
+  ) {
     final ux = s1p1.x - s1p0.x; // vector u = S1P1-S1P0 (segment 1)
     final uy = s1p1.y - s1p0.y;
     final vx = s2p1.x - s2p0.x; // vector v = S2P1-S2P0 (segment 2)
@@ -400,7 +403,9 @@ class OsmNogoPolygon extends OsmNodeNamed {
       final dv = ((vx == 0) && (vy == 0));
       if (du && dv) {
         // both segments are points
-        return (wx == 0 && wy == 0) ? 0 : 1; // return 0 if they are distinct points
+        return (wx == 0 && wy == 0)
+            ? 0
+            : 1; // return 0 if they are distinct points
       }
       if (du) {
         // S1 is a single point
@@ -412,7 +417,9 @@ class OsmNogoPolygon extends OsmNodeNamed {
       }
       // they are collinear segments - get  overlap (or not)
       double t0, t1; // endpoints of S1 in eqn for S2
-      final w2x = i32(s1p1.x - s2p0.x); // vector w2 = S1P1-S2P0 (from start of segment 2 to end of segment 1)
+      final w2x = i32(
+        s1p1.x - s2p0.x,
+      ); // vector w2 = S1P1-S2P0 (from start of segment 2 to end of segment 1)
       final w2y = i32(s1p1.y - s2p0.y);
       if (vx != 0) {
         t0 = (wx ~/ vx).toDouble(); // long division

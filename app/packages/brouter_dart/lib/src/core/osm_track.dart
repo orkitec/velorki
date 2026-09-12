@@ -7,7 +7,6 @@ import 'dart:typed_data';
 
 import '../jvm.dart';
 import '../mapaccess/matched_waypoint.dart';
-import '../mapaccess/osm_node.dart';
 import '../mapaccess/osm_pos.dart';
 import '../util/compact_long_map.dart';
 import '../util/frozen_long_map.dart';
@@ -123,11 +122,9 @@ final class OsmTrack {
   OsmPathElement? lastorigin;
 
   void appendDetours(OsmTrack source) {
-    if (_detourMap == null) {
-      _detourMap = source._detourMap == null
-          ? null
-          : CompactLongMap<OsmPathElementHolder>();
-    }
+    _detourMap ??= source._detourMap == null
+        ? null
+        : CompactLongMap<OsmPathElementHolder>();
     if (source._detourMap != null) {
       final pos = nodes.length - source.nodes.length + 1;
       OsmPathElement? origin;
@@ -254,7 +251,8 @@ final class OsmTrack {
           final ep = MatchedWaypoint.readFromStream(dis);
           final dlon = ep.waypoint!.ilon - newEp.ilon;
           final dlat = ep.waypoint!.ilat - newEp.ilat;
-          final targetMatch = dlon < 20 && dlon > -20 && dlat < 20 && dlat > -20;
+          final targetMatch =
+              dlon < 20 && dlon > -20 && dlat < 20 && dlat > -20;
           if (debugInfo != null) {
             debugInfo.write(
               'target-delta = $dlon/$dlat targetMatch=$targetMatch',
@@ -367,7 +365,9 @@ final class OsmTrack {
     final c0 = ourSize > 0 ? nodes[ourSize - 1].cost : 0;
     for (i = 0; i < t.nodes.length; i++) {
       final e = t.nodes[i];
-      if (i == 0 && ourSize > 0 && nodes[ourSize - 1].getSElev() == shortMinValue) {
+      if (i == 0 &&
+          ourSize > 0 &&
+          nodes[ourSize - 1].getSElev() == shortMinValue) {
         nodes[ourSize - 1].setSElev(e.getSElev());
       }
       if (i > 0 || ourSize == 0) {
@@ -375,7 +375,8 @@ final class OsmTrack {
         e.setEnergy(f32(e.getEnergy() + e0));
         e.cost = e.cost + c0;
         if (e.message != null) {
-          if (!(e.message!.lon == e.getILon() && e.message!.lat == e.getILat())) {
+          if (!(e.message!.lon == e.getILon() &&
+              e.message!.lat == e.getILat())) {
             e.message!.lon = e.getILon();
             e.message!.lat = e.getILat();
           }
@@ -488,7 +489,7 @@ final class OsmTrack {
       return;
     }
     var nodeNr = nodes.length - 1;
-    var node = nodes[nodeNr];
+    OsmPathElement? node = nodes[nodeNr];
     while (node != null) {
       node = node.origin;
     }
@@ -521,7 +522,8 @@ final class OsmTrack {
             rc.turnInstructionMode == 2 ||
             rc.turnInstructionMode == 9) {
           final mwpt = getMatchedWaypoint(nodeNr);
-          if (mwpt != null && mwpt.wpttype == MatchedWaypoint.waypointTypeDirect) {
+          if (mwpt != null &&
+              mwpt.wpttype == MatchedWaypoint.waypointTypeDirect) {
             input.cmd = VoiceHint.bl;
             input.angle = f32(
               nodeNr == 0

@@ -41,6 +41,12 @@
 //       String.format("%3.1f"), Integer.parseInt, Arrays.hashCode(float[]),
 //       Character.isWhitespace) as bit patterns for the Dart emulation.
 //
+//   core-vectors <outdir>
+//       Write <outdir>/core.json: the JVM numerics brouter-core (track R4)
+//       depends on -- Math.exp bit patterns (a HotSpot LIBM intrinsic on
+//       x86_64), DecimalFormat("0.###") of float travel times, and
+//       Double.toString of the elevation values the GeoJSON formatter prints.
+//
 //   codec-vectors <outdir>
 //       Write deterministic L1 test vectors for the brouter-util and
 //       brouter-codec classes (BitCoderContext, StatCoderContext, Crc32,
@@ -181,6 +187,8 @@ public class Dump {
       wayTags(args);
     } else if ("math-vectors".equals(cmd)) {
       mathVectors(args);
+    } else if ("core-vectors".equals(cmd)) {
+      coreVectors(args);
     } else {
       usage();
       System.exit(2);
@@ -193,6 +201,7 @@ public class Dump {
     System.err.println("  Dump eval-profile <profile.brf> <tagsfile> [--lookups <lookups.dat>] [--bits | --compact [--encode]] [--context node --way-tags \"<tags>\"]");
     System.err.println("  Dump way-tags <tile.rd5> [--kind way|node] [--lookups <lookups.dat>]");
     System.err.println("  Dump math-vectors <outdir>");
+    System.err.println("  Dump core-vectors <outdir>");
     System.err.println("  Dump codec-vectors <outdir>");
     System.err.println("  Dump microcache-bytes <tile.rd5> <lon> <lat> <outfile>");
     System.err.println("  Dump microcache-listing <tile.rd5> <lon> <lat> [--bodies <n>]");
@@ -771,6 +780,98 @@ public class Dump {
 
   private static String floatEntry(float v) {
     return "[" + Float.floatToRawIntBits(v) + ", " + quote(Float.toString(v)) + "]";
+  }
+
+
+  // ---- brouter-core numerics (track R4) ---------------------------------------
+
+  /** Math.exp, DecimalFormat("0.###") and Double.toString as the routing engine and FormatJson use them. */
+  private static void coreVectors(String[] args) throws Exception {
+    File outDir = new File(args[1]);
+    outDir.mkdirs();
+    Random rnd = new Random(20260912);
+    StringBuilder sb = new StringBuilder();
+    sb.append("{\n");
+    kv(sb, 1, "tool", "core-vectors"); sb.append(",\n");
+    kv(sb, 1, "vm", System.getProperty("java.vm.name") + " " + System.getProperty("java.version") + " " + System.getProperty("os.arch")); sb.append(",\n");
+
+    // --- Math.exp: "hex(x) hex(exp(x))"
+    List<Double> xs = new ArrayList<>();
+    double[] specials = {0.0, -0.0, Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.MIN_VALUE, -Double.MIN_VALUE,
+      Double.MIN_NORMAL, -Double.MIN_NORMAL, 0x1.0p-55, -0x1.0p-55, 0x1.fffffffffffffp-55, 0x1.0p-54, -0x1.0p-54, 0x1.0p-53, 0x1.0p-30, 1e-300, 1e-10,
+      1.0, -1.0, 0.5, -0.5, 2.0, 10.0, -10.0, 100.0, -100.0, 700.0, -700.0, 709.0, 709.78, 709.782712893383973096, 709.7827128933840, 709.79, 710.0,
+      -708.0, -708.39, -708.3964185322641, -708.4, -709.0, -740.0, -745.0, -745.1, -745.13, -745.133219101941108420, -745.1332191019412, -745.14, -746.0, -800.0, -1000.0,
+      991.0, 992.0, 1000.0, 1023.0, 1023.9, 1023.99999, 1024.0, -1024.0, -1023.99, 2000.0, -2000.0, 1e10, -1e10, 1e300, -1e300, 3.0e2, -3.0e2,
+      -0.01, -0.02, -0.03, -0.1, -0.25, -0.33, -0.5, -0.75, -1.5, -2.5, -3.5, -4.0, -5.0, -6.0, -7.0, -8.0, -9.0, -12.0, -15.0, -20.0, -25.0, -30.0, -40.0, -50.0,
+      0.6931471805599453, -0.6931471805599453, 0.34657359027997264, 0.010830424696249144, 0.005415212348124572, -0.005415212348124572,
+      0x1.62e42fefa39efp-1, 0x1.62e42fefa39efp0, 0x1.62e42fefa39efp1, 0x1.62e42fefa39efp5, 0x1.62e42fefa39efp9, -0x1.62e42fefa39efp9, -0x1.62e42fefa39efp5,
+      -1022 * 0.6931471805599453, -1023 * 0.6931471805599453, -1024 * 0.6931471805599453, -1074 * 0.6931471805599453, -1075 * 0.6931471805599453,
+      1023 * 0.6931471805599453, 1024 * 0.6931471805599453};
+    for (double d : specials) xs.add(d);
+    // the arguments StdPath.calcIncline really produces: -dist / 100. for integer distances
+    for (int k = 1; k <= 6000; k++) xs.add(-k / 100.);
+    for (int k = 6007; k <= 200000; k += 97) xs.add(-k / 100.);
+    // Tobler (foot): -3.5 * |incline + 0.05|
+    for (int i = 0; i < 400; i++) xs.add(-3.5 * Math.abs((rnd.nextDouble() - 0.5) * 2 + 0.05));
+    // KinematicPath: -distanceTime / turnAngleDecayTime
+    for (int i = 0; i < 400; i++) xs.add(-(rnd.nextDouble() * 60) / 5.);
+    for (int i = 0; i < 2000; i++) xs.add((rnd.nextDouble() - 0.5) * 2);
+    for (int i = 0; i < 2000; i++) xs.add((rnd.nextDouble() - 0.5) * 40);
+    for (int i = 0; i < 1500; i++) xs.add((rnd.nextDouble() - 0.5) * 1420);
+    for (int i = 0; i < 1500; i++) xs.add(-708 - rnd.nextDouble() * 38);   // subnormal results
+    for (int i = 0; i < 300; i++) xs.add(-745.13 - rnd.nextDouble() * 0.02);  // around the underflow edge
+    for (int i = 0; i < 300; i++) xs.add(709.78 + rnd.nextDouble() * 0.01);   // around the overflow edge
+    for (int i = 0; i < 300; i++) xs.add(1023 + rnd.nextDouble());            // just below the 1024 branch
+    for (int i = 0; i < 300; i++) xs.add(Math.pow(2, -60 + rnd.nextDouble() * 10) * (rnd.nextBoolean() ? 1 : -1)); // around the 2^-54 branch
+    for (int i = 0; i < 500; i++) xs.add(Double.longBitsToDouble(rnd.nextLong()));
+    List<String> ex = new ArrayList<>();
+    for (double x : xs) ex.add(quote(hexd(x) + " " + hexd(Math.exp(x))));
+    sb.append("  \"exp\": ").append(arr(ex, true)).append(",\n");
+
+    // --- DecimalFormat("0.###", Locale.ENGLISH).format((double) f): "hex(floatbits) formatted"
+    java.text.DecimalFormat df = (java.text.DecimalFormat) java.text.NumberFormat.getInstance(java.util.Locale.ENGLISH);
+    df.applyPattern("0.###");
+    List<Float> fs = new ArrayList<>();
+    float[] fspecials = {0f, -0f, 1f, -1f, 0.5f, 0.0625f, 0.0005f, 0.00049f, 0.00051f, 0.001f, 0.0015f, 0.0025f, 0.0035f, 0.9995f, 0.9994f, 0.9996f, 1.0005f, 1.0015f, 1.2345f, 1.2335f,
+      2.5f, 12.3455f, 999.9995f, 1183.4f, 1234.5675f, 1234.5685f, 0.1f, 0.2f, 0.3f, 100000.5f, 16777216f, 16777217f, 1e7f, 1.5e7f, 3.4028235e38f, 1e-3f, 1e-4f, 5e-4f, 4.9999e-4f, 5.0001e-4f,
+      0.125f, 0.375f, 0.625f, 0.875f, 1.0625f, 7.4375f, 99.9995f, 0.0015f, 0.9375f, 123456.78f, 3599.9995f};
+    for (float f : fspecials) fs.add(f);
+    for (int k = 0; k <= 4000; k++) fs.add(k / 8f);        // dyadic values, exact ties at the 4th decimal (x.xxx5 for k odd multiples of ... )
+    for (int k = 0; k <= 20000; k++) fs.add(k / 16f);
+    for (int k = 1; k <= 3000; k++) fs.add(k * 0.001f);
+    for (int k = 1; k <= 3000; k++) fs.add(k * 0.0005f);
+    for (int i = 0; i < 4000; i++) fs.add(rnd.nextFloat() * 20000f);
+    for (int i = 0; i < 2000; i++) fs.add(rnd.nextFloat() * 100f);
+    for (int i = 0; i < 2000; i++) fs.add(rnd.nextFloat());
+    for (int i = 0; i < 500; i++) fs.add(Float.intBitsToFloat(rnd.nextInt() & 0x7fffffff));
+    for (int i = 0; i < 1000; i++) { float t = 0; for (int j = 0; j < 50; j++) t += rnd.nextFloat() * 20f; fs.add(t); }  // summed travel times
+    List<String> dfs = new ArrayList<>();
+    for (float f : fs) {
+      if (Float.isNaN(f) || Float.isInfinite(f)) continue;
+      dfs.add(quote(Integer.toHexString(Float.floatToRawIntBits(f)) + " " + df.format((double) f)));
+    }
+    sb.append("  \"decimalFormat\": ").append(arr(dfs, true)).append(",\n");
+
+    // --- Double.toString of selev / 4. and of the speed hack ((int) (speed * 10)) / 10.f: "hex(bits) string"
+    List<String> ds = new ArrayList<>();
+    for (int k = -4000; k <= 36000; k += 3) ds.add(quote(hexd(k / 4.) + " " + Double.toString(k / 4.)));
+    for (int k = -32768; k <= 32767; k += 977) ds.add(quote(hexd(k / 4.) + " " + Double.toString(k / 4.)));
+    for (int i = 0; i < 1500; i++) { double d = (rnd.nextDouble() - 0.3) * Math.pow(10, rnd.nextInt(12) - 4); ds.add(quote(hexd(d) + " " + Double.toString(d))); }
+    for (int i = 0; i < 500; i++) { double d = Double.longBitsToDouble(rnd.nextLong()); if (Double.isNaN(d) || Double.isInfinite(d)) continue; ds.add(quote(hexd(d) + " " + Double.toString(d))); }
+    sb.append("  \"doubleToString\": ").append(arr(ds, true)).append(",\n");
+
+    // --- float speed hack of FormatJson/FormatGpx: "hex(dist) hex(dtbits) string" of (((int) (speed * 10)) / 10.f) with speed = (3.6f * dist) / dt + 0.5
+    List<String> sp = new ArrayList<>();
+    for (int i = 0; i < 2000; i++) {
+      int dist = 1 + rnd.nextInt(500);
+      float dt = rnd.nextFloat() * 200f + 0.01f;
+      double speed = ((3.6f * dist) / dt + 0.5);
+      sp.add(quote(dist + " " + Integer.toHexString(Float.floatToRawIntBits(dt)) + " " + (((int) (speed * 10)) / 10.f)));
+    }
+    sb.append("  \"speedHack\": ").append(arr(sp, true)).append("\n");
+    sb.append("}\n");
+    writeFile(new File(outDir, "core.json"), sb.toString());
+    System.err.println("wrote " + new File(outDir, "core.json"));
   }
 
   private static void mathVectors(String[] args) throws Exception {
