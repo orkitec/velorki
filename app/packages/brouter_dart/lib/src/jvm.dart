@@ -70,11 +70,24 @@ double f32(double v) {
   return _f32[0];
 }
 
+/// The same round trip through a buffer held in a local: a top-level
+/// `final` is lazily initialised and every access re-checks that (about
+/// 1.2 ns per call in AOT, measured in R5); the hot float paths fetch
+/// `RoutingContext.f32buf` once per section instead.
+extension FloatRounding on Float32List {
+  double f32(double v) {
+    this[0] = v;
+    return this[0];
+  }
+}
+
 /// Java `(int) d` for a double: NaN gives 0, out-of-range saturates.
+/// (The saturation checks come first: a NaN fails both, and `isNaN` on the
+/// common path was measurably slower in AOT -- R5.)
 int d2i(double d) {
-  if (d.isNaN) return 0;
   if (d >= 2147483647.0) return intMaxValue;
   if (d <= -2147483648.0) return intMinValue;
+  if (d.isNaN) return 0;
   return d.truncate();
 }
 
@@ -86,18 +99,22 @@ int d2l(double d) {
   return d.truncate();
 }
 
-final ByteData _bits = ByteData(8);
+// Two views of one 8-byte buffer (host endianness on both sides, so the bit
+// pattern is exact; the explicit big-endian `ByteData` round trip of R1 did
+// the same with two byte swaps per call -- `javaRound` is on the hot path).
+final Float64List _bitsAsDouble = Float64List(1);
+final Int64List _bitsAsInt = Int64List.view(_bitsAsDouble.buffer);
 
 /// `Double.doubleToRawLongBits`.
 int doubleToRawLongBits(double d) {
-  _bits.setFloat64(0, d, Endian.big);
-  return _bits.getInt64(0, Endian.big);
+  _bitsAsDouble[0] = d;
+  return _bitsAsInt[0];
 }
 
 /// `Double.longBitsToDouble`.
 double longBitsToDouble(int bits) {
-  _bits.setInt64(0, bits, Endian.big);
-  return _bits.getFloat64(0, Endian.big);
+  _bitsAsInt[0] = bits;
+  return _bitsAsDouble[0];
 }
 
 /// `Math.round(double)` as implemented by OpenJDK (the bit-twiddling version

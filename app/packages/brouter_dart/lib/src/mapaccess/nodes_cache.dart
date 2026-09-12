@@ -14,6 +14,7 @@ import 'osm_node.dart';
 import 'osm_node_pair_set.dart';
 import 'osm_nodes_map.dart';
 import 'physical_file.dart';
+import 'raw_cell_cache.dart';
 import 'waypoint_matcher_impl.dart';
 
 /// Efficient cache or osmnodes
@@ -30,15 +31,17 @@ class NodesCache {
     bool forceSecondaryData,
     int maxmem,
     NodesCache? oldCache,
-    bool detailed,
-  ) : _maxmemtiles = maxmem ~/ 8,
-      _segmentDir = segmentDir,
-      _expCtxWay = ctxWay,
-      _lookupVersion = ctxWay.meta!.lookupVersion,
-      _lookupMinorVersion = ctxWay.meta!.lookupMinorVersion,
-      _forceSecondaryData = forceSecondaryData,
-      _detailed = detailed,
-      _directWeaving = !disableDirectWeaving {
+    bool detailed, {
+    RawCellCache? rawCache,
+  }) : _maxmemtiles = maxmem ~/ 8,
+       _rawCache = rawCache ?? oldCache?._rawCache,
+       _segmentDir = segmentDir,
+       _expCtxWay = ctxWay,
+       _lookupVersion = ctxWay.meta!.lookupVersion,
+       _lookupMinorVersion = ctxWay.meta!.lookupMinorVersion,
+       _forceSecondaryData = forceSecondaryData,
+       _detailed = detailed,
+       _directWeaving = !disableDirectWeaving {
     nodesMap = OsmNodesMap();
     nodesMap.maxmem = (2 * maxmem) ~/ 3;
 
@@ -101,6 +104,10 @@ class NodesCache {
 
   late Map<String, PhysicalFile?> _fileCache;
   late DataBuffers _dataBuffers;
+
+  /// The R5 byte-level cache in front of the rd5 reads (see [RawCellCache]);
+  /// a reset cache (`oldCache`) inherits it.
+  final RawCellCache? _rawCache;
 
   late List<List<OsmFile>?> _fileRows;
 
@@ -421,7 +428,13 @@ class NodesCache {
       _fileCache[filenameBase] = ra;
     }
     ra = _fileCache[filenameBase];
-    final osmf = OsmFile(ra, lonDegree, latDegree, _dataBuffers);
+    final osmf = OsmFile(
+      ra,
+      lonDegree,
+      latDegree,
+      _dataBuffers,
+      rawCache: _rawCache,
+    );
 
     if (firstFileAccessName == null) {
       firstFileAccessName = _currentFileName;

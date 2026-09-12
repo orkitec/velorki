@@ -69,12 +69,13 @@ final class StdPath extends OsmPath {
     int lastpriorityclassifier,
   ) {
     final w = rc.expctxWay!;
+    final fb = rc.f32buf;
     // calculate the costfactor inputs
     final turncostbase = w.getTurncost();
-    final uphillcutoff = f32(w.getUphillcutoff() * 10000);
-    final downhillcutoff = f32(w.getDownhillcutoff() * 10000);
-    final uphillmaxslope = f32(w.getUphillmaxslope() * 10000);
-    final downhillmaxslope = f32(w.getDownhillmaxslope() * 10000);
+    final uphillcutoff = fb.f32(w.getUphillcutoff() * 10000);
+    final downhillcutoff = fb.f32(w.getDownhillcutoff() * 10000);
+    final uphillmaxslope = fb.f32(w.getUphillmaxslope() * 10000);
+    final downhillmaxslope = fb.f32(w.getDownhillmaxslope() * 10000);
     var cfup = w.getUphillCostfactor();
     var cfdown = w.getDownhillCostfactor();
     final cf = w.getCostfactor();
@@ -108,7 +109,7 @@ final class StdPath extends OsmPath {
     }
 
     final dist = d2i(distance); // legacy arithmetics needs int
-    final fdist = f32(dist.toDouble()); // dist promoted to float
+    final fdist = fb.f32(dist.toDouble()); // dist promoted to float
 
     // penalty for turning angle
     var turncost = d2i(
@@ -214,7 +215,7 @@ final class StdPath extends OsmPath {
 
     if (message != null) {
       message!.linkturncost += turncost;
-      message!.turnangle = f32(angle);
+      message!.turnangle = fb.f32(angle);
     }
 
     var sectionCost = turncost.toDouble();
@@ -226,15 +227,20 @@ final class StdPath extends OsmPath {
     final deltaHMicros = d2i(1000000.0 * deltaH);
     // ehbd += -delta_h_micros - dist * downhillcutoff (float arithmetic, then (int))
     _ehbd = d2i(
-      f32(
-        f32(_ehbd.toDouble()) +
-            f32(f32((-deltaHMicros).toDouble()) - f32(fdist * downhillcutoff)),
+      fb.f32(
+        fb.f32(_ehbd.toDouble()) +
+            fb.f32(
+              fb.f32((-deltaHMicros).toDouble()) -
+                  fb.f32(fdist * downhillcutoff),
+            ),
       ),
     );
     _ehbu = d2i(
-      f32(
-        f32(_ehbu.toDouble()) +
-            f32(f32(deltaHMicros.toDouble()) - f32(fdist * uphillcutoff)),
+      fb.f32(
+        fb.f32(_ehbu.toDouble()) +
+            fb.f32(
+              fb.f32(deltaHMicros.toDouble()) - fb.f32(fdist * uphillcutoff),
+            ),
       ),
     );
 
@@ -245,7 +251,9 @@ final class StdPath extends OsmPath {
       var excess = _ehbd - rc.elevationpenaltybuffer;
       var reduce = mul32(dist, rc.elevationbufferreduce);
       if (reduce > excess) {
-        downweight = f32(f32(excess.toDouble()) / f32(reduce.toDouble()));
+        downweight = fb.f32(
+          fb.f32(excess.toDouble()) / fb.f32(reduce.toDouble()),
+        );
         reduce = excess;
       }
       excess = _ehbd - rc.elevationmaxbuffer;
@@ -255,25 +263,29 @@ final class StdPath extends OsmPath {
       _ehbd -= reduce;
       var elevationCost = 0.0;
       if (_downhillcostdiv > 0) {
-        elevationCost = f32(
+        elevationCost = fb.f32(
           elevationCost +
-              f32(
-                _fmin(f32(reduce.toDouble()), f32(fdist * downhillmaxslope)) /
-                    f32(_downhillcostdiv.toDouble()),
+              fb.f32(
+                _fmin(
+                      fb.f32(reduce.toDouble()),
+                      fb.f32(fdist * downhillmaxslope),
+                    ) /
+                    fb.f32(_downhillcostdiv.toDouble()),
               ),
         );
       }
       if (downhillmaxslopecostdiv > 0) {
-        elevationCost = f32(
+        elevationCost = fb.f32(
           elevationCost +
-              f32(
+              fb.f32(
                 _fmax(
                       0.0,
-                      f32(
-                        f32(reduce.toDouble()) - f32(fdist * downhillmaxslope),
+                      fb.f32(
+                        fb.f32(reduce.toDouble()) -
+                            fb.f32(fdist * downhillmaxslope),
                       ),
                     ) /
-                    f32(downhillmaxslopecostdiv.toDouble()),
+                    fb.f32(downhillmaxslopecostdiv.toDouble()),
               ),
         );
       }
@@ -281,7 +293,9 @@ final class StdPath extends OsmPath {
         sectionCost += elevationCost;
         if (message != null) {
           message!.linkelevationcost = d2i(
-            f32(f32(message!.linkelevationcost.toDouble()) + elevationCost),
+            fb.f32(
+              fb.f32(message!.linkelevationcost.toDouble()) + elevationCost,
+            ),
           );
         }
       }
@@ -296,7 +310,9 @@ final class StdPath extends OsmPath {
       var excess = _ehbu - rc.elevationpenaltybuffer;
       var reduce = mul32(dist, rc.elevationbufferreduce);
       if (reduce > excess) {
-        upweight = f32(f32(excess.toDouble()) / f32(reduce.toDouble()));
+        upweight = fb.f32(
+          fb.f32(excess.toDouble()) / fb.f32(reduce.toDouble()),
+        );
         reduce = excess;
       }
       excess = _ehbu - rc.elevationmaxbuffer;
@@ -306,23 +322,29 @@ final class StdPath extends OsmPath {
       _ehbu -= reduce;
       var elevationCost = 0.0;
       if (_uphillcostdiv > 0) {
-        elevationCost = f32(
+        elevationCost = fb.f32(
           elevationCost +
-              f32(
-                _fmin(f32(reduce.toDouble()), f32(fdist * uphillmaxslope)) /
-                    f32(_uphillcostdiv.toDouble()),
+              fb.f32(
+                _fmin(
+                      fb.f32(reduce.toDouble()),
+                      fb.f32(fdist * uphillmaxslope),
+                    ) /
+                    fb.f32(_uphillcostdiv.toDouble()),
               ),
         );
       }
       if (uphillmaxslopecostdiv > 0) {
-        elevationCost = f32(
+        elevationCost = fb.f32(
           elevationCost +
-              f32(
+              fb.f32(
                 _fmax(
                       0.0,
-                      f32(f32(reduce.toDouble()) - f32(fdist * uphillmaxslope)),
+                      fb.f32(
+                        fb.f32(reduce.toDouble()) -
+                            fb.f32(fdist * uphillmaxslope),
+                      ),
                     ) /
-                    f32(uphillmaxslopecostdiv.toDouble()),
+                    fb.f32(uphillmaxslopecostdiv.toDouble()),
               ),
         );
       }
@@ -330,7 +352,9 @@ final class StdPath extends OsmPath {
         sectionCost += elevationCost;
         if (message != null) {
           message!.linkelevationcost = d2i(
-            f32(f32(message!.linkelevationcost.toDouble()) + elevationCost),
+            fb.f32(
+              fb.f32(message!.linkelevationcost.toDouble()) + elevationCost,
+            ),
           );
         }
       }
@@ -339,19 +363,19 @@ final class StdPath extends OsmPath {
     }
 
     // get the effective costfactor (slope dependent)
-    final costfactor = f32(
-      f32(
-            f32(cfup * upweight) +
-                f32(cf * f32(f32(1.0 - upweight) - downweight)),
+    final costfactor = fb.f32(
+      fb.f32(
+            fb.f32(cfup * upweight) +
+                fb.f32(cf * fb.f32(fb.f32(1.0 - upweight) - downweight)),
           ) +
-          f32(cfdown * downweight),
+          fb.f32(cfdown * downweight),
     );
 
     if (message != null) {
       message!.costfactor = costfactor;
     }
 
-    sectionCost += f32(f32(fdist * costfactor) + 0.5);
+    sectionCost += fb.f32(fb.f32(fdist * costfactor) + 0.5);
 
     return sectionCost;
   }

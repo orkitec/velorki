@@ -3,7 +3,7 @@
 // `RoutingWorker` isolate, and prints medians and RSS.
 //
 //   dart run tool/bench.dart [--runs N] [--only <id prefix>] [--no-worker]
-//       [--memoryclass N]
+//       [--memoryclass N] [--no-rawcache] [--retain-rawcache]
 //
 // Needs the two rd5 tiles (`BROUTER_SEGMENTS_DIR`, default the oracle cache)
 // and the profiles (`BROUTER_PROFILES_DIR`, default `brouter/profiles`).
@@ -84,6 +84,8 @@ Future<void> main(List<String> args) async {
   String? only;
   var worker = true;
   var memoryclass = 128;
+  var rawCacheBytes = RawCellCache.defaultMaxBytes;
+  var retainRawCache = false;
   for (var i = 0; i < args.length; i++) {
     switch (args[i]) {
       case '--runs':
@@ -94,6 +96,10 @@ Future<void> main(List<String> args) async {
         worker = false;
       case '--memoryclass':
         memoryclass = int.parse(args[++i]);
+      case '--no-rawcache':
+        rawCacheBytes = 0;
+      case '--retain-rawcache':
+        retainRawCache = true;
     }
   }
   final selected = [
@@ -102,10 +108,13 @@ Future<void> main(List<String> args) async {
   ];
 
   final router = BRouter(segmentsDir: segmentsDir, profilesDir: profilesDir)
-    ..memoryclass = memoryclass;
+    ..memoryclass = memoryclass
+    ..rawCache = RawCellCache(maxBytes: rawCacheBytes)
+    ..retainRawCache = retainRawCache;
 
   stdout.writeln(
     'brouter_dart bench: $runs warm runs per case, memoryclass=$memoryclass, '
+    'rawCache=${rawCacheBytes >> 20} MB${retainRawCache ? ' retained' : ''}, '
     'segments=${segmentsDir.path}',
   );
   stdout.writeln('rss at start: ${_mb(ProcessInfo.currentRss)}');
@@ -129,6 +138,7 @@ Future<void> main(List<String> args) async {
     }
     final result = RoutingResult.parse(body);
     final times = <int>[];
+    if (kProfile) Prof.reset();
     for (var r = 0; r < runs; r++) {
       final sw = Stopwatch()..start();
       final b = await router.routeQuery(c.query);
@@ -137,6 +147,10 @@ Future<void> main(List<String> args) async {
         stdout.writeln('${c.id}: non-deterministic output on run $r');
       }
       times.add(sw.elapsedMicroseconds);
+    }
+    if (kProfile) {
+      stdout.writeln('${c.id} profile (sum of $runs runs):');
+      stdout.writeln(Prof.report(times.reduce((a, b) => a + b)));
     }
     final linksProcessed = router.currentEngine?.getLinksProcessed() ?? links;
     results[c.id] = {
@@ -164,6 +178,8 @@ Future<void> main(List<String> args) async {
       segmentsDir: segmentsDir,
       profilesDir: profilesDir,
       memoryclass: memoryclass,
+      rawCacheBytes: rawCacheBytes,
+      retainRawCache: retainRawCache,
     );
     for (final c in selected) {
       final r = results[c.id];

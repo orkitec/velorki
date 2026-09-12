@@ -49,6 +49,8 @@ class _Init {
     this.profilesDir,
     this.memoryclass,
     this.yieldInterval,
+    this.retainRawCache,
+    this.rawCacheBytes,
   );
 
   final SendPort port;
@@ -56,6 +58,8 @@ class _Init {
   final String profilesDir;
   final int memoryclass;
   final int yieldInterval;
+  final bool retainRawCache;
+  final int rawCacheBytes;
 }
 
 class RoutingWorker {
@@ -81,12 +85,25 @@ class RoutingWorker {
   int? _current;
   bool _disposed = false;
 
+  /// `RoutingContext.memoryclass` (MB) for a normal and for a large device.
+  static const int defaultMemoryclass = 64;
+  static const int largeDeviceMemoryclass = 128;
+
   /// Starts the worker isolate.
+  ///
+  /// [memoryclass] is upstream's `maxmem` choice in MB (the node-graph
+  /// budget of `NodesCache`; the server uses 128): by default 64, or 128
+  /// when [largeDevice] is set (the plan's >= 6 GB devices); an explicit
+  /// value wins. [rawCacheBytes] bounds the byte-level cell cache, which is
+  /// released after every route unless [retainRawCache] is set.
   static Future<RoutingWorker> spawn({
     required Directory segmentsDir,
     required Directory profilesDir,
-    int memoryclass = 128,
+    int? memoryclass,
+    bool largeDevice = false,
     int yieldInterval = 2000,
+    bool retainRawCache = false,
+    int rawCacheBytes = RawCellCache.defaultMaxBytes,
   }) async {
     final fromWorker = ReceivePort();
     final ready = Completer<SendPort>();
@@ -104,8 +121,11 @@ class RoutingWorker {
         fromWorker.sendPort,
         segmentsDir.path,
         profilesDir.path,
-        memoryclass,
+        memoryclass ??
+            (largeDevice ? largeDeviceMemoryclass : defaultMemoryclass),
         yieldInterval,
+        retainRawCache,
+        rawCacheBytes,
       ),
       debugName: 'brouter_dart RoutingWorker',
     );
@@ -119,14 +139,20 @@ class RoutingWorker {
     RoutingRequest request, {
     void Function(RoutingProgress progress)? onProgress,
   }) async {
-    final body = await routeQuery(request.toQuery(), onProgress: onProgress);
+    final body = await routeQuery(
+      request.toQuery(),
+      onProgress: onProgress,
+      memoryclass: request.memoryclass,
+    );
     return RoutingResult.parse(body);
   }
 
-  /// Runs a server-style query string (see `BRouter.routeQuery`).
+  /// Runs a server-style query string (see `BRouter.routeQuery`);
+  /// [memoryclass] overrides the worker's for this request.
   Future<String> routeQuery(
     String query, {
     void Function(RoutingProgress progress)? onProgress,
+    int? memoryclass,
   }) {
     if (_disposed) throw StateError('RoutingWorker is disposed');
     final id = _nextId++;
@@ -144,6 +170,7 @@ class RoutingWorker {
         'cmd': 'route',
         'id': id,
         'query': query,
+        'memoryclass': memoryclass,
       });
       try {
         await completer.future;
@@ -217,7 +244,9 @@ void _workerMain(_Init init) {
           profilesDir: Directory(init.profilesDir),
         )
         ..memoryclass = init.memoryclass
-        ..yieldInterval = init.yieldInterval;
+        ..yieldInterval = init.yieldInterval
+        ..retainRawCache = init.retainRawCache
+        ..rawCache = RawCellCache(maxBytes: init.rawCacheBytes);
   var cancelled = false;
   int? currentId;
   router.yieldHook = () => Future<void>.delayed(Duration.zero);
@@ -235,11 +264,11 @@ void _workerMain(_Init init) {
 
   // A plain listener, not `await for`: that would pause the port while a
   // route is in progress and a `cancel` could never reach the engine.
-  Future<void> route(int id, String query) async {
+  Future<void> route(int id, String query, int? memoryclass) async {
     currentId = id;
     cancelled = false;
     try {
-      final body = await router.routeQuery(query);
+      final body = await router.routeQuery(query, memoryclass: memoryclass);
       if (cancelled) {
         init.port.send(<String, Object?>{'type': 'cancelled', 'id': id});
       } else {
@@ -270,7 +299,9 @@ void _workerMain(_Init init) {
     final m = message as Map<Object?, Object?>;
     switch (m['cmd']) {
       case 'route':
-        unawaited(route(m['id'] as int, m['query'] as String));
+        unawaited(
+          route(m['id'] as int, m['query'] as String, m['memoryclass'] as int?),
+        );
         break;
       case 'cancel':
         if (currentId == m['id']) {

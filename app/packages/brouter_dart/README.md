@@ -223,7 +223,9 @@ The accounting is upstream's, number for number, and the oracle's
   is ever ghosted and the memory pressure is handled entirely on the node
   graph: `collectOutreachers()` (vanish nodes further from the destination than
   the remaining cost allows) and `canEscape()`, both in the walks.
-* Nothing is cached at the byte level yet; the plan's raw-bytes LRU is R5.
+* Byte level: the plan's raw-bytes LRU is `RawCellCache` (R5, below), in
+  front of `OsmFile.getDataInputForSubIdx`; the decoding above it is
+  unchanged.
 
 ## Parity proof (L2-mapaccess)
 
@@ -554,8 +556,8 @@ JVM = the oracle `RouteServer` after JIT warm-up):
 | roundtrip-000 (trekking, 5 points) | 73 022 | 447 ms | 204 ms |
 | roundtrip-007 (the longest body) | 72 852 | 305 ms | 132 ms |
 
-About 2x the JIT-warm JVM, with the R5 byte-level cache still missing
-(every request re-decodes its micro-caches from the rd5).
+About 2x the JIT-warm JVM at the end of R4; the R5 numbers (JIT and AOT,
+before/after) are in the next section.
 
 ### What is not covered
 
@@ -573,3 +575,160 @@ About 2x the JIT-warm JVM, with the R5 byte-level cache still missing
 
 Run: `dart test` (about 50 s with the tiles, 8 s without), `dart analyze`,
 `dart format --set-exit-if-changed .`.
+
+## Track R5: performance and memory
+
+Rule of the track: every step was checked against the L3 corpus (200 of 200
+byte-identical, `test/corpus_parity_test.dart`) before it stayed.
+
+### Tools
+
+* `dart run tool/bench.dart [--runs N] [--only <id prefix>] [--no-worker]
+  [--memoryclass N] [--no-rawcache] [--retain-rawcache]`: routes a fixed set
+  (`pair-000`, `pair-005` = the longest corpus pair, `triple-031`,
+  `nogo-000`, `roundtrip-000`, `roundtrip-003` = the longest round trip,
+  Funchal -> Porto Moniz across Madeira (67 km, 237 641 links) and
+  Reykjavik -> Keflavik (49 km, 298 918 links)) once cold and N times warm
+  through `BRouter` and again through the `RoutingWorker` isolate (message
+  costs included), prints medians/minimums, `ProcessInfo.currentRss`/`maxRss`
+  and checks that every run produces the same bytes. `dart compile exe
+  tool/bench.dart` gives the AOT figures a release app runs with.
+* `dart run tool/profile.dart [--top N] [--callers <name>]... [--callees
+  <name>]... [--memory] [--vm-flag <flag>]... -- <bench args>`: a sampling CPU
+  profile of the bench through the VM service (`getCpuSamples`, raw JSON-RPC
+  over a `dart:io` WebSocket, no packages): exclusive/inclusive tables, the
+  callers of a leaf function, the leaf distribution inside a subtree, and
+  with `--memory` the main isolate's peak heap (`getMemoryUsage` polled every
+  20 ms). JIT only: the SDK's `dartaotruntime` is a product build without a
+  VM service (`--aot` is implemented but refused by that runtime).
+* `-DBROUTER_PROFILE=true` (`lib/src/profile.dart`, `kProfile`): Stopwatch
+  counters around cell reads, direct weaving, `createPath`, the expression
+  cache, `collectOutreachers`, waypoint matching, `_compileTrack` and
+  formatting; dead code otherwise. The bench prints them per case.
+* `BROUTER_MEMORYCLASS=64 dart test test/corpus_parity_test.dart` runs the
+  corpus with another `memoryclass` (the app worker's default is 64, the
+  server's 128): still 200 of 200 identical.
+
+### Baseline (before R5)
+
+This laptop (x86_64, ~4 GHz), medians of 5 warm runs on an idle machine
+(the first attempts were skewed by an unrelated Gradle build; the minimum of
+the runs was used to spot that). "Direct" is `BRouter.routeQuery` in the main
+isolate, "worker" the same through `RoutingWorker`.
+
+| Case | Links | JIT direct | JIT worker | AOT direct |
+|---|---:|---:|---:|---:|
+| pair-000 (trekking, 3.6 km) | 13 621 | 70 ms | 68 | 80 |
+| pair-005 (trekking alt 1, 7.6 km) | 3 855 | 27 | 25 | 28 |
+| triple-031 (fastbike alt 3, 14.5 km) | 163 466 | 431 | 436 | 503 |
+| nogo-000 (trekking, 5.9 km) | 17 468 | 74 | 74 | 87 |
+| roundtrip-000 (trekking, 5 points, 9.9 km) | 72 688 | 405 | 399 | 513 |
+| roundtrip-003 (gravel, 20 km) | 200 941 | 598 | 595 | 778 |
+| Funchal -> Porto Moniz (trekking, 67 km) | 237 641 | 751 | 773 | 932 |
+| Reykjavik -> Keflavik (trekking, 49 km) | 298 918 | 697 | 720 | 881 |
+
+### Where the time goes
+
+Sampling profile of the Madeira route (JIT, 4 runs, `--callees`); the
+`kProfile` counters agree (3 warm runs: 12 `findTrack` passes -- pass0,
+pass1 and the re-tracking pass per segment -- 740 253 expansions, 862 089
+`createPath`, 702 cells woven):
+
+* `createPath` / `OsmPath.addAddionalPenalty`: ~50 % (`processWaySection`
+  8 %, `CheapAngleMeter.calcAngle` 2.5 %, `RoutingContext.calcDistance`
+  2.2 %, the `float` emulation `f32` 2.5 % and `d2i` 2 %, geometry decoding
+  `GeometryDecoder`/`ByteDataReader` 3.5 %, `BExpressionContext.evaluate`
+  1 %). The expression cache works: 1 269 522 requests, 0 misses when warm,
+  84 % of them the same-array fast path.
+* direct weaving: ~25 % (`decodeVarBits`, `decodeBit`, `_fillBuffer`,
+  `decodePredictedValue`, the tag dictionary with `unify`/`accessType`,
+  node/link/geometry allocation). Every pass re-weaves its cells: that is
+  upstream's design (the decoded graph is the `NodesCache` that each pass
+  replaces).
+* the search loop itself (`_findTrack` without callees, heap operations):
+  ~8 %; `SortedHeap` 3.5 %.
+* `_compileTrack`: 3.4 % on the long routes (see B), formatting 1.5 %,
+  waypoint matching 1 %.
+* cell reads: **0.3 %** -- 723 reads, 11.4 MB, 8 ms for three 67 km routes
+  (the page cache is warm; `RandomAccessFile` seek + read is not the
+  bottleneck on this machine). The 23 % "libc" the first profile showed was
+  the JIT waiting for the kernel compiler at startup, not routing.
+* GC: 46 scavenges, 76 ms, per three long routes (`--verbose-gc`); one
+  mark-sweep. Not a factor.
+
+### What was done, in order, with its effect
+
+| Step | Change | Effect (JIT / AOT, long routes) |
+|---|---|---|
+| A | `RawCellCache` (`lib/src/mapaccess/raw_cell_cache.dart`): an LRU of the still-encoded cells keyed by file id and position, bounded (16 MB), owned by `BRouter`, handed through `RoutingEngine.rawCache` -> `NodesCache(rawCache:)` -> `OsmFile(rawCache:)`; a hit copies the cell into the decoder's io buffer instead of `seek` + `readFully`. Released after every route (`BRouter.retainRawCache`, `RoutingWorker.spawn(retainRawCache:, rawCacheBytes:)` keep it across routes). Within a route it hits 3 of the 4 passes. | not measurable here (the reads were 0.3 %); kept for the plan's design (flash, no syscalls per pass) |
+| B | `_compileTrack`: the elements are collected and reversed once instead of `nodes.insert(0, e)` per element (quadratic, and every shifted element passed a covariant list-store check: `Lists.copy` + `Type Test OsmPathElement` = 4.3 % of samples) | -3 to -4 % / same |
+| C | `BitCoderContext` read path: `_b` never holds more than 31 bits in read mode (`fillBuffer` stops at 24..31, `decodeBit` refills 8), so every `ushr32`/`shr32`/`i32` wrap was a no-op and is now plain 64-bit arithmetic; the write path keeps `_b` as an unsigned 32-bit value; the varbits tables are held per instance instead of behind a lazily initialised static. `javaRound`: `doubleToRawLongBits` through `Float64List`/`Int64List` views instead of a big-endian `ByteData` round trip (two byte swaps per call). | -5 to -8 % / -5 to -8 % (A+B+C together: JIT 751 -> 684 ms, AOT 932 -> 834 ms) |
+| D | `StdPath.processWaySection` (57 `f32` calls per way section) rounds through a `Float32List` fetched once from `RoutingContext.f32buf` (`FloatRounding.f32` in jvm.dart): a top-level `final` is lazily initialised and every access re-checks that, 2.6 ns vs 1.4 ns per call in an AOT micro-benchmark. `OsmLink.getTarget`/`getNext` load `n2` once. | JIT +-0 / AOT -8 to -12 % (834 -> 733 ms) |
+| E | `d2i`: saturation checks before `isNaN` (a NaN fails both), 9 % faster in the micro-benchmark, same results | ~0.4 % |
+
+Tried and dropped: `d2i` with one range check and `toInt()` (20 % slower:
+`truncate()` is the intrinsic). Checked and left alone: the cooperative
+yield already only awaits every `yieldInterval` (2000) expansions through a
+counter (`_findTrack` self time is 1-3 %, the async machinery does not show
+up); `SortedHeap`'s generic `List<V?>` stores (`Type Test OsmPath?`, 0.8 %);
+the `JavaHashMap` closure calls of `OsmNodesMap` (0.3 %); `List<int>` /
+string / `Map<String, ...>` in hot paths -- none found (`lookupData` is an
+`Int32List`, `getKeyValueDescription` strings are only built in the detail
+pass). The remaining time is the `float` emulation, `sqrt`, the bit decoding
+and the allocation pattern of the mechanical port; the Dart compilers are
+not HotSpot, and nothing structural is left without deviating from upstream.
+
+### Result
+
+Same machine and method, after R5 (`memoryclass` 128, raw cache on):
+
+| Case | JIT direct | JIT worker | AOT direct | AOT worker | JVM (R4) |
+|---|---:|---:|---:|---:|---:|
+| pair-000 | 69 ms (70) | 103* | 72 (80) | 72 | 33 |
+| pair-005 | 25 (27) | 23 | 23 (28) | 23 | |
+| triple-031 | 407 (431) | 403 | 421 (503) | 432 | |
+| nogo-000 | 68 (74) | 67 | 74 (87) | 76 | 37 |
+| roundtrip-000 | 370 (405) | 375 | 410 (513) | 420 | 204 |
+| roundtrip-003 | 555 (598) | 565 | 591 (778) | 604 | |
+| Funchal -> Porto Moniz | 680 (751) | 692 | 741 (932) | 744 | |
+| Reykjavik -> Keflavik | 646 (697) | 668 | 701 (881) | 703 | |
+
+(baseline in parentheses; * the first case of a fresh JIT worker isolate is
+cold, its AOT counterpart is not). JIT 4-12 % faster, AOT 10-20 % faster,
+the worker adds nothing measurable. Against the JIT-warm JVM of R4 the port
+is still 1.9-2.1x (pair-000 69 vs 33 ms, roundtrip-000 370 vs 204 ms).
+
+Plan targets: the 67 km trekking route takes 0.74 s in AOT on this laptop.
+A mid-range 2023 Android SoC is roughly 2-3x slower single-threaded than
+this machine, which projects to 1.5-2.2 s for the "60 km trekking route in
+under 3 s" target; that has not been measured on a device here.
+
+### Memory
+
+* Main isolate heap during the longest routes (`tool/profile.dart --memory`,
+  JIT, includes the JIT's code objects): peak 64.5 MB used / 70 MB capacity
+  for Funchal -> Porto Moniz, 77 MB / 80 MB for Reykjavik -> Keflavik; the
+  same with `memoryclass` 64 (the node graph never reaches the bound on
+  these routes: `collectOutreachers` ran twice per 67 km route, memory panic
+  mode never). AOT process RSS peak for the whole bench including the worker
+  isolate: 75.9 MB (55 MB after the runs). Under the 150 MB target.
+* `maxmem` hook: `RoutingWorker.spawn(memoryclass:, largeDevice:)` -- 64 MB
+  by default, 128 MB with `largeDevice: true` (the plan's >= 6 GB devices),
+  an explicit value wins; `RoutingRequest.memoryclass` /
+  `BRouter.routeQuery(memoryclass:)` override it per request. `BRouter`
+  itself keeps the server's 128 (the oracle contract). With 64 the corpus
+  is still 200 of 200 identical.
+* `RawCellCache` is bounded by `maxBytes` (16 MB) with LRU eviction, holds
+  copies (never the io buffer), and `BRouter.routeQuery` clears it in
+  `finally` unless `retainRawCache` is set.
+* Not done: an accounting of the Dart object sizes against upstream's
+  `nodesCreated * 95 + paths * 200` (an `OsmNode` is ~136 bytes here with
+  8-byte fields, so the graph is about 1.4x the accounted figure; with
+  `memoryclass` 64 that bounds it at ~60 MB, with 128 at ~120 MB before the
+  panic mode).
+
+`test/raw_cell_cache_test.dart` covers the cache (bounds, LRU order, copy
+semantics, identical bytes with the cache off, retention across routes).
+
+Run: `dart test` (444 tests, about 50 s with the tiles), `dart analyze`,
+`dart format --set-exit-if-changed .`; `dart run tool/bench.dart`.

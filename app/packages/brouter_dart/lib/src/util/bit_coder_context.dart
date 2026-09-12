@@ -4,14 +4,47 @@ import 'dart:typed_data';
 
 import '../jvm.dart';
 
+/// R5 note on the buffer word `_b`: upstream keeps it in a Java `int`. In
+/// read mode it never holds more than 31 valid bits (`fillBuffer` stops at
+/// 24..31 bits, `decodeBit` refills with 8), so it is never negative and every
+/// `>>>` is a plain `>>`, every `int` wrap a no-op; the decoders below use
+/// plain 64-bit arithmetic with the same results. In write mode `_b` can use
+/// all 32 bits, so the encoders keep it as an unsigned 32-bit value
+/// (`& 0xffffffff` where upstream wraps) and `_flushBuffer` shifts unsigned.
 class BitCoderContext {
-  BitCoderContext(Uint8List ab) : _ab = ab, _idxMax = ab.length - 1;
+  BitCoderContext(Uint8List ab)
+    : _ab = ab,
+      _idxMax = ab.length - 1,
+      _vlValues = _tables.vlValues,
+      _vlLength = _tables.vlLength,
+      _vcValues = _tables.vcValues,
+      _vcLength = _tables.vcLength,
+      _reverseByte = _tables.reverseByte;
+
+  /// The context `_Tables._build` uses while the tables are being built
+  /// (the table-free `encodeVarBits2`/`decodeVarBits2` only).
+  BitCoderContext._forTables(Uint8List ab, _Tables t)
+    : _ab = ab,
+      _idxMax = ab.length - 1,
+      _vlValues = t.vlValues,
+      _vlLength = t.vlLength,
+      _vcValues = t.vcValues,
+      _vcLength = t.vcLength,
+      _reverseByte = t.reverseByte;
 
   Uint8List _ab;
   int _idxMax;
   int _idx = -1;
   int _bits = 0; // bits left in buffer
-  int _b = 0; // buffer word (a Java int)
+  int _b = 0; // buffer word (a Java int, see above)
+
+  // the lookup tables, held per instance so the hot decoders skip the lazy
+  // static initialisation check
+  final Int32List _vlValues;
+  final Int32List _vlLength;
+  final Int32List _vcValues;
+  final Int32List _vcLength;
+  final Int32List _reverseByte;
 
   /// The lookup tables of the Java static initializer. Built together on the
   /// first access of any of them (Java initialises the class eagerly; Dart
@@ -21,9 +54,6 @@ class BitCoderContext {
 
   static Int32List get vlValues => _tables.vlValues;
   static Int32List get vlLength => _tables.vlLength;
-  static Int32List get _vcValues => _tables.vcValues;
-  static Int32List get _vcLength => _tables.vcLength;
-  static Int32List get _reverseByte => _tables.reverseByte;
 
   /// `reset()` and `reset(byte[] ab)`.
   void reset([Uint8List? ab]) {
@@ -56,7 +86,7 @@ class BitCoderContext {
   void encodeVarBits(int value) {
     if ((value & 0xfff) == value) {
       _flushBuffer();
-      _b = i32(_b | shl32(_vcValues[value], _bits));
+      _b = (_b | (_vcValues[value] << _bits)) & 0xffffffff;
       _bits += _vcLength[value];
     } else {
       encodeVarBits2(value); // slow fallback for large values
@@ -74,34 +104,34 @@ class BitCoderContext {
   int decodeVarBits() {
     _fillBuffer();
     final b12 = _b & 0xfff;
-    final len = vlLength[b12];
+    final len = _vlLength[b12];
     if (len <= 12) {
-      _b = ushr32(_b, len);
+      _b >>= len;
       _bits -= len;
-      return vlValues[b12]; // full value lookup
+      return _vlValues[b12]; // full value lookup
     }
     if (len <= 23) {
       // only length lookup
       final len2 = len >> 1;
-      _b = ushr32(_b, len2 + 1);
-      var mask = ushr32(-1, 32 - len2);
+      _b >>= len2 + 1;
+      var mask = (1 << len2) - 1; // -1 >>> (32 - len2), len2 in 6..11
       mask = i32(mask + (_b & mask));
-      _b = ushr32(_b, len2);
+      _b >>= len2;
       _bits -= len;
       return mask;
     }
     if ((_b & 0xffffff) != 0) {
       // here we just know len in [25..47]
       // ( fillBuffer guarantees only 24 bits! )
-      _b = ushr32(_b, 12);
-      final len3 = 1 + (vlLength[_b & 0xfff] >> 1);
-      _b = ushr32(_b, len3);
+      _b >>= 12;
+      final len3 = 1 + (_vlLength[_b & 0xfff] >> 1);
+      _b >>= len3;
       final len2 = 11 + len3;
       _bits -= len2 + 1;
       _fillBuffer();
-      var mask = ushr32(-1, 32 - len2);
+      var mask = (1 << len2) - 1; // -1 >>> (32 - len2), len2 in 12..23
       mask = i32(mask + (_b & mask));
-      _b = ushr32(_b, len2);
+      _b >>= len2;
       _bits -= len2;
       return mask;
     }
@@ -111,11 +141,11 @@ class BitCoderContext {
   void encodeBit(bool value) {
     if (_bits > 31) {
       _ab[++_idx] = _b & 0xff;
-      _b = ushr32(_b, 8);
+      _b >>= 8;
       _bits -= 8;
     }
     if (value) {
-      _b = i32(_b | shl32(1, _bits));
+      _b = (_b | (1 << _bits)) & 0xffffffff;
     }
     _bits++;
   }
@@ -123,10 +153,10 @@ class BitCoderContext {
   bool decodeBit() {
     if (_bits == 0) {
       _bits = 8;
-      _b = _ab[++_idx] & 0xff;
+      _b = _ab[++_idx];
     }
     final value = (_b & 1) != 0;
-    _b = ushr32(_b, 1);
+    _b >>= 1;
     _bits--;
     return value;
   }
@@ -155,10 +185,10 @@ class BitCoderContext {
     while ((value | im) <= max) {
       if (_bits == 0) {
         _bits = 8;
-        _b = _ab[++_idx] & 0xff;
+        _b = _ab[++_idx];
       }
       if ((_b & 1) != 0) value |= im;
-      _b = ushr32(_b, 1);
+      _b >>= 1;
       _bits--;
       im = shl32(im, 1);
     }
@@ -167,9 +197,9 @@ class BitCoderContext {
 
   int decodeBits(int count) {
     _fillBuffer();
-    final mask = ushr32(-1, 32 - count);
+    final mask = 0xffffffff >> ((32 - count) & 31); // -1 >>> (32 - count)
     final value = _b & mask;
-    _b = ushr32(_b, count);
+    _b >>= count;
     _bits -= count;
     return value;
   }
@@ -179,21 +209,21 @@ class BitCoderContext {
     var value = 0;
     while (count > 8) {
       value = i32(shl32(value, 8) | _reverseByte[_b & 0xff]);
-      _b = shr32(_b, 8);
+      _b >>= 8;
       count -= 8;
       _bits -= 8;
       _fillBuffer();
     }
     value = i32(shl32(value, count) | (_reverseByte[_b & 0xff] >> (8 - count)));
     _bits -= count;
-    _b = shr32(_b, count);
+    _b >>= count;
     return value;
   }
 
   void _fillBuffer() {
     while (_bits < 24) {
       if (_idx++ < _idxMax) {
-        _b = i32(_b | shl32(_ab[_idx] & 0xff, _bits));
+        _b |= _ab[_idx] << _bits;
       }
       _bits += 8;
     }
@@ -202,7 +232,7 @@ class BitCoderContext {
   void _flushBuffer() {
     while (_bits > 7) {
       _ab[++_idx] = _b & 0xff;
-      _b = ushr32(_b, 8);
+      _b >>= 8;
       _bits -= 8;
     }
   }
@@ -230,8 +260,8 @@ class BitCoderContext {
   void setReadingBitPosition(int pos) {
     _idx = ushr32(pos, 3);
     _bits = (_idx << 3) + 8 - pos;
-    _b = _ab[_idx] & 0xff;
-    _b = ushr32(_b, 8 - _bits);
+    _b = _ab[_idx];
+    _b >>= 8 - _bits;
   }
 }
 
@@ -249,7 +279,7 @@ class _Tables {
   /// Only the table-free `encodeVarBits2`/`decodeVarBits2` are used here.
   static _Tables _build() {
     final t = _Tables._();
-    final bc = BitCoderContext(Uint8List(4));
+    final bc = BitCoderContext._forTables(Uint8List(4), t);
     for (var i = 0; i < 4096; i++) {
       bc.reset();
       bc._bits = 14;

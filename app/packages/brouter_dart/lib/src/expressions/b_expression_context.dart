@@ -12,6 +12,7 @@ import 'dart:typed_data';
 
 import '../jfloat.dart';
 import '../jvm.dart';
+import '../profile.dart';
 import '../util/bit_coder_context.dart';
 import '../util/crc32.dart';
 import '../util/i_byte_array_unifier.dart';
@@ -418,6 +419,7 @@ abstract class BExpressionContext implements IByteArrayUnifier {
   /// `evaluate(boolean inverseDirection, byte[] ab)`.
   void evaluate(bool inverseDirection, Uint8List ab) {
     _requests++;
+    if (kProfile) Prof.evalRequests++;
     _lookupDataValid = false; // this is an assertion for a nasty pifall
 
     final cache = _cache;
@@ -442,6 +444,7 @@ abstract class BExpressionContext implements IByteArrayUnifier {
 
     if (cn == null) {
       _cachemisses++;
+      if (kProfile) Prof.evalMisses++;
 
       cn = cache.removeLru() as CacheNode?;
       cn ??= CacheNode();
@@ -473,7 +476,10 @@ abstract class BExpressionContext implements IByteArrayUnifier {
       }
       cn.vars = vw.vars;
     } else {
-      if (identical(ab, cn.ab)) _requests2++;
+      if (identical(ab, cn.ab)) {
+        _requests2++;
+        if (kProfile) Prof.evalSame++;
+      }
 
       cache.touch(cn);
     }

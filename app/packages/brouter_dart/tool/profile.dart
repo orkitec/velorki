@@ -2,7 +2,12 @@
 // packages: a raw JSON-RPC WebSocket from `dart:io`), JIT or AOT.
 //
 //   dart run tool/profile.dart [--aot] [--top N] [--period us]
-//       [--callers <name substring>]... -- <bench args>
+//       [--callers <name substring>]... [--callees <name substring>]...
+//       [--vm-flag <flag>]... [--memory] -- <bench args>
+//
+// `--memory` polls `getMemoryUsage` of the main isolate every 20 ms while
+// the bench runs and reports the peak heap usage/capacity (JIT; the heap is
+// the same in AOT apart from the JIT's code objects).
 //
 // JIT: runs `dart --enable-vm-service --profiler tool/bench.dart <args>`.
 // AOT: `dart compile aot-snapshot tool/bench.dart` into a temp dir and runs it
@@ -19,6 +24,9 @@ Future<void> main(List<String> args) async {
   var top = 40;
   var period = 250;
   final callers = <String>[];
+  final callees = <String>[];
+  final extraVmFlags = <String>[];
+  var memory = false;
   final benchArgs = <String>['--no-worker'];
   var i = 0;
   for (; i < args.length; i++) {
@@ -34,6 +42,12 @@ Future<void> main(List<String> args) async {
       period = int.parse(args[++i]);
     } else if (a == '--callers') {
       callers.add(args[++i]);
+    } else if (a == '--callees') {
+      callees.add(args[++i]);
+    } else if (a == '--vm-flag') {
+      extraVmFlags.add(args[++i]);
+    } else if (a == '--memory') {
+      memory = true;
     } else {
       benchArgs.add(a);
     }
@@ -48,6 +62,7 @@ Future<void> main(List<String> args) async {
     '--sample-buffer-duration=600',
     '--pause-isolates-on-exit',
     '--disable-service-auth-codes',
+    ...extraVmFlags,
   ];
   late Process process;
   Directory? tmp;
@@ -84,9 +99,8 @@ Future<void> main(List<String> args) async {
   process.stderr.transform(utf8.decoder).listen(stderr.write);
   process.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen(
     (line) {
-      final m = RegExp(
-        r'Dart VM service is listening on (http://\S+)',
-      ).firstMatch(line);
+      final m = RegExp(r'Dart VM service is listening on (http://\S+)')
+          .firstMatch(line);
       if (m != null && !uriCompleter.isCompleted) {
         uriCompleter.complete(Uri.parse(m.group(1)!));
         return;
@@ -138,14 +152,36 @@ Future<void> main(List<String> args) async {
     for (final iso in (vm['isolates'] as List).cast<Map<String, dynamic>>()) {
       if (iso['name'] == 'main') isolateId = iso['id'] as String;
     }
-    if (isolateId == null) await Future<void>.delayed(Duration(milliseconds: 100));
+    if (isolateId == null) {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
   }
-  // wait for PauseExit
+  // wait for PauseExit, polling the heap meanwhile
+  var peakUsage = 0;
+  var peakCapacity = 0;
+  var peakExternal = 0;
   for (;;) {
     final iso = await call('getIsolate', {'isolateId': isolateId});
     final pause = iso['pauseEvent'] as Map<String, dynamic>?;
     if (pause != null && pause['kind'] == 'PauseExit') break;
-    await Future<void>.delayed(const Duration(milliseconds: 200));
+    if (memory) {
+      final mu = await call('getMemoryUsage', {'isolateId': isolateId});
+      final usage = mu['heapUsage'] as int;
+      final capacity = mu['heapCapacity'] as int;
+      final external = mu['externalUsage'] as int;
+      if (usage > peakUsage) peakUsage = usage;
+      if (capacity > peakCapacity) peakCapacity = capacity;
+      if (external > peakExternal) peakExternal = external;
+    }
+    await Future<void>.delayed(Duration(milliseconds: memory ? 20 : 200));
+  }
+  if (memory) {
+    String mb(int b) => '${(b / 1048576).toStringAsFixed(1)} MB';
+    stdout.writeln();
+    stdout.writeln(
+      'main isolate heap peak: used ${mb(peakUsage)}, capacity '
+      '${mb(peakCapacity)}, external ${mb(peakExternal)}',
+    );
   }
 
   final samples = await call('getCpuSamples', {
@@ -217,6 +253,36 @@ Future<void> main(List<String> args) async {
     final sorted = counts.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     for (final e in sorted.take(25)) {
+      stdout.writeln('${pct(e.value).padLeft(6)}  ${e.key}');
+    }
+  }
+
+  // leaf breakdown inside the subtree of the functions matching --callees
+  for (final pattern in callees) {
+    final counts = <String, int>{};
+    var matched = 0;
+    for (final s in sampleList) {
+      final stack = (s['stack'] as List).cast<int>();
+      if (stack.isEmpty) continue;
+      var inside = false;
+      for (final f in stack) {
+        if (names[f].contains(pattern)) {
+          inside = true;
+          break;
+        }
+      }
+      if (!inside) continue;
+      matched++;
+      final leaf = names[stack[0]];
+      counts[leaf] = (counts[leaf] ?? 0) + 1;
+    }
+    stdout.writeln();
+    stdout.writeln(
+      'Leaf frames inside "$pattern" ($matched samples, ${pct(matched)}):',
+    );
+    final sorted = counts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    for (final e in sorted.take(30)) {
       stdout.writeln('${pct(e.value).padLeft(6)}  ${e.key}');
     }
   }

@@ -10,11 +10,13 @@ import '../codec/stat_coder_context.dart';
 import '../codec/tag_value_validator.dart';
 import '../codec/waypoint_matcher.dart';
 import '../jvm.dart';
+import '../profile.dart';
 import '../util/byte_data_reader.dart';
 import '../util/crc32.dart';
 import 'direct_weaver.dart';
 import 'osm_nodes_map.dart';
 import 'physical_file.dart';
+import 'raw_cell_cache.dart';
 
 /// cache for a single square
 class OsmFile {
@@ -22,8 +24,9 @@ class OsmFile {
     PhysicalFile? rafile,
     this.lonDegree,
     this.latDegree,
-    DataBuffers dataBuffers,
-  ) {
+    DataBuffers dataBuffers, {
+    RawCellCache? rawCache,
+  }) : _rawCache = rawCache {
     final lonMod5 = rem(lonDegree, 5);
     final latMod5 = rem(latDegree, 5);
     final tileIndex = lonMod5 * 5 + latMod5;
@@ -38,6 +41,7 @@ class OsmFile {
 
       final iobuffer = dataBuffers.iobuffer;
       filename = rafile.fileName;
+      if (rawCache != null) _rawFileId = rawCache.fileId(rafile.fileName);
 
       final index = rafile.fileIndex;
       _fileOffset = tileIndex > 0 ? index[tileIndex - 1] : 200;
@@ -66,6 +70,10 @@ class OsmFile {
 
   RandomAccessFile? _is;
   int _fileOffset = 0;
+
+  /// The R5 byte-level cache (null: every cell is read from the file).
+  final RawCellCache? _rawCache;
+  int _rawFileId = 0;
 
   Int32List? _posIdx;
   List<MicroCache?>? _microCaches;
@@ -138,10 +146,32 @@ class OsmFile {
     final endPos = _getPosIdx(subIdx);
     final size = endPos - startPos;
     if (size > 0) {
-      _is!.setPositionSync(_fileOffset + startPos);
-      if (size <= iobuffer.length) {
-        readFullySync(_is!, iobuffer, 0, size);
+      if (kProfile) {
+        Prof.read.start();
+        Prof.reads++;
+        Prof.readBytes += size;
       }
+      final position = _fileOffset + startPos;
+      final rawCache = _rawCache;
+      if (rawCache != null && size <= iobuffer.length) {
+        final key = RawCellCache.key(_rawFileId, position);
+        if (rawCache.copyInto(key, iobuffer, size)) {
+          if (kProfile) {
+            Prof.readHits++;
+            Prof.read.stop();
+          }
+          return size;
+        }
+        _is!.setPositionSync(position);
+        readFullySync(_is!, iobuffer, 0, size);
+        rawCache.put(key, iobuffer, size);
+      } else {
+        _is!.setPositionSync(position);
+        if (size <= iobuffer.length) {
+          readFullySync(_is!, iobuffer, 0, size);
+        }
+      }
+      if (kProfile) Prof.read.stop();
     }
     return size;
   }
@@ -190,6 +220,10 @@ class OsmFile {
           waypointMatcher,
         );
       }
+      if (kProfile) {
+        Prof.weave.start();
+        Prof.weaves++;
+      }
       DirectWeaver(
         bc,
         dataBuffers,
@@ -200,6 +234,7 @@ class OsmFile {
         waypointMatcher,
         hollowNodes,
       );
+      if (kProfile) Prof.weave.stop();
       return MicroCache.emptyNonVirgin;
     } finally {
       // crc check only if the buffer has not been fully read

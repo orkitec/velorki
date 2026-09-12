@@ -16,6 +16,7 @@ import '../expressions/b_expression_context_way.dart';
 import '../expressions/profile_cache.dart';
 import '../jfloat.dart';
 import '../jvm.dart';
+import '../profile.dart';
 import '../mapaccess/geometry_decoder.dart';
 import '../mapaccess/matched_waypoint.dart';
 import '../mapaccess/osm_link.dart';
@@ -675,6 +676,10 @@ final class RoutingContext implements ProfileCacheClient {
 
   OsmPathModel? pm;
 
+  /// A one-element `Float32List` for the `float` rounding of the hot path
+  /// code (`FloatRounding.f32`, see jvm.dart).
+  final Float32List f32buf = Float32List(1);
+
   OsmPrePath? createPrePath(OsmPath origin, OsmLink link) {
     final p = pm!.createPrePath();
     if (p != null) {
@@ -697,8 +702,13 @@ final class RoutingContext implements ProfileCacheClient {
     OsmTrack? refTrack,
     bool detailMode,
   ) {
+    if (kProfile) {
+      Prof.createPath.start();
+      Prof.paths++;
+    }
     final p = pm!.createPath();
     p.initFrom(origin, link, refTrack, detailMode, this);
+    if (kProfile) Prof.createPath.stop();
     return p;
   }
 }

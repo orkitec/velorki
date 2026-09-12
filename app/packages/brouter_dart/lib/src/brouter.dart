@@ -18,6 +18,8 @@ import 'core/routing_param_collector.dart';
 import 'expressions/profile_cache.dart';
 import 'jfloat.dart';
 import 'jvm.dart';
+import 'mapaccess/raw_cell_cache.dart';
+import 'profile.dart';
 
 /// A waypoint in degrees.
 class LonLat {
@@ -58,6 +60,7 @@ class RoutingRequest {
     this.maxRunningTimeMillis = 0,
     this.turnInstructionMode,
     this.profileParams = const <String, String>{},
+    this.memoryclass,
   });
 
   /// Waypoints (two or more; one for a round trip).
@@ -94,6 +97,10 @@ class RoutingRequest {
 
   /// `profile:<name>=<value>` overrides.
   final Map<String, String> profileParams;
+
+  /// `RoutingContext.memoryclass` for this request (MB of node-graph budget,
+  /// `maxmem = memoryclass * 1 MB`); null: the router's default.
+  final int? memoryclass;
 
   /// The query string upstream's server would receive for this request.
   String toQuery() {
@@ -196,8 +203,16 @@ class BRouter {
   /// timeout like the oracle's `-DmaxRunningTime=0`.
   int maxRunningTimeMillis = 0;
 
-  /// `RoutingContext.memoryclass` of the server handler.
+  /// `RoutingContext.memoryclass` of the server handler (the app's worker
+  /// chooses 64 or 128 by device class, see `RoutingWorker.spawn`).
   int memoryclass = 128;
+
+  /// The byte-level cell cache in front of the rd5 reads (track R5): bounded
+  /// by [RawCellCache.maxBytes], shared by every pass of a route and by
+  /// consecutive routes while [retainRawCache] is set, otherwise released
+  /// after every route.
+  RawCellCache rawCache = RawCellCache();
+  bool retainRawCache = false;
 
   /// Awaited every ~2000 node expansions of a search when set (see
   /// `RoutingEngine.yieldHook`).
@@ -214,6 +229,7 @@ class BRouter {
     final body = await routeQuery(
       request.toQuery(),
       maxRunningTimeMillis: request.maxRunningTimeMillis,
+      memoryclass: request.memoryclass,
     );
     return RoutingResult.parse(body);
   }
@@ -224,7 +240,11 @@ class BRouter {
   /// through `ProfileCache` with `profileBaseDir` = [profilesDir], and the
   /// track is formatted in the requested `format` (geojson, gpx, kml, csv).
   /// Throws [RoutingException] with the engine's error message.
-  Future<String> routeQuery(String query, {int? maxRunningTimeMillis}) async {
+  Future<String> routeQuery(
+    String query, {
+    int? maxRunningTimeMillis,
+    int? memoryclass,
+  }) async {
     final url = query.startsWith('/') ? query : '/brouter?$query';
     final routingParamCollector = RoutingParamCollector();
     final params = routingParamCollector.getUrlParams(url);
@@ -236,7 +256,7 @@ class BRouter {
 
     // ServerHandler.readRoutingContext
     final rc = RoutingContext();
-    rc.memoryclass = memoryclass;
+    rc.memoryclass = memoryclass ?? this.memoryclass;
     rc.localFunction = params.get('profile')!;
 
     final wplist = routingParamCollector.getWayPointList(params.get('lonlats'));
@@ -252,11 +272,13 @@ class BRouter {
     cr.yieldHook = yieldHook;
     cr.yieldInterval = yieldInterval;
     cr.progressListener = progressListener;
+    cr.rawCache = rawCache;
     currentEngine = cr;
     try {
       await cr.doRun(maxRunningTimeMillis ?? this.maxRunningTimeMillis);
     } finally {
       currentEngine = null;
+      if (!retainRawCache) rawCache.clear();
     }
 
     if (cr.getErrorMessage() != null) {
@@ -267,7 +289,10 @@ class BRouter {
       return cr.getFoundInfo() ?? '';
     }
     final track = cr.getFoundTrack();
-    return _formatTrack(rc, params, track);
+    if (kProfile) Prof.format.start();
+    final body = _formatTrack(rc, params, track);
+    if (kProfile) Prof.format.stop();
+    return body;
   }
 
   /// `ServerHandler.formatTrack`.

@@ -22,6 +22,7 @@ import 'dart:math' as math;
 import '../expressions/profile_cache.dart';
 import '../jfloat.dart';
 import '../jvm.dart';
+import '../profile.dart';
 import '../mapaccess/matched_waypoint.dart';
 import '../mapaccess/nodes_cache.dart';
 import '../mapaccess/osm_link.dart';
@@ -29,6 +30,7 @@ import '../mapaccess/osm_link_holder.dart';
 import '../mapaccess/osm_node.dart';
 import '../mapaccess/osm_node_pair_set.dart';
 import '../mapaccess/osm_pos.dart';
+import '../mapaccess/raw_cell_cache.dart';
 import '../util/cheap_angle_meter.dart';
 import '../util/cheap_ruler.dart';
 import '../util/compact_long_map.dart';
@@ -129,6 +131,10 @@ class RoutingEngine {
   /// Called every [yieldInterval] expansions with the links processed so far
   /// and the size of the open set.
   void Function(int linksProcessed, int openSetSize)? progressListener;
+
+  /// The R5 byte-level cell cache handed to every `NodesCache` of this
+  /// engine (null: no byte-level caching, upstream behaviour).
+  RawCellCache? rawCache;
 
   RoutingEngine(
     String? outfileBase,
@@ -631,6 +637,7 @@ class RoutingEngine {
         rc,
         brouterEngineModeRoundTrip,
       );
+      re.rawCache = rawCache;
       rc.useDynamicDistance = true;
       re._matchWaypointsToNodes(listStart);
       re._resetCache(true);
@@ -1769,6 +1776,15 @@ class RoutingEngine {
 
   // geometric position matching finding the nearest routable way-section
   void _matchWaypointsToNodes(List<MatchedWaypoint> unmatchedWaypoints) {
+    if (kProfile) Prof.match.start();
+    try {
+      _matchWaypointsToNodes0(unmatchedWaypoints);
+    } finally {
+      if (kProfile) Prof.match.stop();
+    }
+  }
+
+  void _matchWaypointsToNodes0(List<MatchedWaypoint> unmatchedWaypoints) {
     _resetCache(false);
     final useDynamicDistance = routingContext.useDynamicDistance;
     final bAddBeeline = routingContext.buildBeelineOnRange;
@@ -2032,6 +2048,7 @@ class RoutingEngine {
       maxmem,
       nodesCache,
       detailed,
+      rawCache: rawCache,
     );
     _islandNodePairs.clearTempPairs();
   }
@@ -2131,6 +2148,7 @@ class RoutingEngine {
       routingContext.cleanNogoList(wpts2);
 
       final detailed = _guideTrack != null;
+      if (kProfile) Prof.segments++;
       _resetCache(detailed);
       nodesCache!.nodesMap.cleanupMode = detailed
           ? 0
@@ -2278,6 +2296,7 @@ class RoutingEngine {
         }
       }
 
+      if (kProfile) Prof.expansions++;
       if (++_expansions % yieldInterval == 0) {
         final pl = progressListener;
         if (pl != null) pl(_linksProcessed, _openSet.getSize());
@@ -2313,7 +2332,12 @@ class RoutingEngine {
               final nodesBefore = nc.nodesMap.nodesCreated;
               final pathsBefore = _openSet.getSize();
 
+              if (kProfile) {
+                Prof.collect.start();
+                Prof.collects++;
+              }
               nc.nodesMap.collectOutreachers();
+              if (kProfile) Prof.collect.stop();
               for (;;) {
                 final p3 = _openSet.popLowestKeyValue();
                 if (p3 == null) break;
@@ -2411,7 +2435,9 @@ class RoutingEngine {
             _logInfo(
               'found track at cost ${path.cost} nodesVisited = $nodesVisited',
             );
+            if (kProfile) Prof.compile.start();
             final t = _compileTrack(path, verbose);
+            if (kProfile) Prof.compile.stop();
             t.showspeed = routingContext.showspeed;
             t.showSpeedProfile = routingContext.showSpeedProfile;
             return t;
@@ -2664,6 +2690,10 @@ class RoutingEngine {
 
     var distance = 0;
 
+    // R5: upstream inserts every element at index 0 (quadratic, and every
+    // shifted element passes a covariant list-store check); the elements are
+    // collected and reversed once instead, same order.
+    final backwards = <OsmPathElement>[];
     OsmPathElement? e = element;
     while (e != null) {
       if (_guideTrack != null && e.message == null) {
@@ -2680,13 +2710,16 @@ class RoutingEngine {
         e.setEnergy(f32(totalEnergy - e.getEnergy()));
         track.nodes.add(e);
       } else {
-        track.nodes.insert(0, e);
+        backwards.add(e);
       }
 
       if (nextElement != null) {
         distance += e.calcDistance(nextElement);
       }
       e = nextElement;
+    }
+    if (backwards.isNotEmpty) {
+      track.nodes.addAll(backwards.reversed);
     }
     track.distance = distance;
     _logInfo('track-length = ${track.distance}');

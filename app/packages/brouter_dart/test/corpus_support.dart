@@ -45,8 +45,13 @@ List<CorpusCase> loadCorpus() {
   ];
 }
 
+/// `BROUTER_MEMORYCLASS` overrides the server's 128 (e.g. 64, the app
+/// worker's default) to check that the corpus is unchanged with it.
 BRouter oracleRouter() =>
-    BRouter(segmentsDir: segmentsDir, profilesDir: profilesDir);
+    BRouter(segmentsDir: segmentsDir, profilesDir: profilesDir)
+      ..memoryclass = int.parse(
+        Platform.environment['BROUTER_MEMORYCLASS'] ?? '128',
+      );
 
 /// The first differing byte offset with a context snippet, or null.
 String? firstDifference(List<int> actual, List<int> expected) {

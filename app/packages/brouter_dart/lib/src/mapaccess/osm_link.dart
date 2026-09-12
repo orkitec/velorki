@@ -38,12 +38,14 @@ class OsmLink {
 
   /// Get the relevant target-node for the given source
   OsmNode getTarget(OsmNode? source) {
-    return n2 != source && n2 != null ? n2! : n1!;
+    final n2 = this.n2;
+    return n2 != null && n2 != source ? n2 : n1!;
   }
 
   /// Get the relevant next-pointer for the given source
   OsmLink? getNext(OsmNode? source) {
-    return n2 != source && n2 != null ? next : previous;
+    final n2 = this.n2;
+    return n2 != null && n2 != source ? next : previous;
   }
 
   /// Reset this link for the given direction

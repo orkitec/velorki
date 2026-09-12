@@ -8,6 +8,7 @@
 library;
 
 export 'src/brouter.dart';
+export 'src/profile.dart';
 
 export 'src/codec/data_buffers.dart';
 export 'src/codec/integer_fifo3_pass.dart';
@@ -80,6 +81,7 @@ export 'src/mapaccess/osm_nodes_map.dart';
 export 'src/mapaccess/osm_pos.dart';
 export 'src/mapaccess/osm_transfer_node.dart';
 export 'src/mapaccess/physical_file.dart';
+export 'src/mapaccess/raw_cell_cache.dart';
 export 'src/mapaccess/rd5_diff_tool.dart';
 export 'src/mapaccess/turn_restriction.dart';
 export 'src/mapaccess/waypoint_matcher_impl.dart';
