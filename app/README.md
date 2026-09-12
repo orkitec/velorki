@@ -4,7 +4,7 @@ Flutter app for iOS and Android plus the pure-Dart packages under `packages/`.
 
 ## Toolchain
 
-- `mise install` in the repository root installs Flutter 3.47.4, Java 17 and
+- `mise install` in the repository root installs Flutter 3.47.4, Java 21 and
   Node. Or use fvm with `.fvmrc`.
 - Android SDK without Android Studio: unpack the command-line tools into
   `~/Android/Sdk/cmdline-tools/latest`, then
