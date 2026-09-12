@@ -44,6 +44,6 @@ be exercised on the Linux build machine. Ordered by what unblocks the most.
 - **Tile downloads in the background**: the rd5 download runs while the app is open and stops when it is killed (the `.part` file resumes on the next attempt). An Android `dataSync` foreground service with a progress notification, and iOS background URLSession, are the next step for 250 MB tiles.
 - **Wi-Fi-only downloads**: `connectivity_plus` is not a dependency, so the app cannot tell Wi-Fi from mobile data; the download screen says so instead of offering a switch that would not work. Add the package, then a "Wi-Fi only" preference next to the routing preference.
 - **rd5 format-version check**: every downloaded tile records the mirror's `formatVersion`, but `CompositeRoutingBackend.requiredFormatVersion` is left unset because nothing in the app knows which rd5 version this build of `brouter_dart` reads. Switch it on in R5, when the engine reports its own.
-- On-device routing R5: performance work, delta updates, on-device by default with the server as the fallback.
+- On-device routing: R5 performance work is done (about half the JVM's speed, heap 65-77 MB); remaining are a measurement on a mid-range phone (target: a 60 km route under 3 s), rd5 delta updates, excluding the segments directory from iOS backup, and the format-version check below.
 - The tile grid overlay on the map (the plan's third download entry point); the viewport and the planner's missing-tiles banner are wired.
 - Photon self-hosting; rd5 delta updates (`Rd5DiffTool` stub); cloud sync.
