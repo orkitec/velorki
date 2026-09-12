@@ -25,7 +25,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version-file: app/pubspec.yaml
+          flutter-version: 3.47.4  # keep in sync with mise.toml and app/.fvmrc
           cache: true
       - run: flutter pub get
       - run: dart run build_runner build
