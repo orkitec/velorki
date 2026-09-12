@@ -9,6 +9,7 @@ import '../../../core/db/daos/rides_dao.dart';
 import '../../../core/db/database.dart';
 import '../../../core/geo/ride_stats.dart';
 import '../domain/ride.dart';
+import '../domain/ride_upload.dart';
 
 /// Reads and writes the `rides` table in the recorder's terms.
 class RideRepository {
@@ -74,6 +75,41 @@ class RideRepository {
     return ride;
   }
 
+  /// Remembers where the ride with [rideId] was uploaded to.
+  ///
+  /// One entry per service, merged into whatever is already there, so a Strava
+  /// upload does not forget a Ride with GPS one. Writing the column rather
+  /// than the whole row keeps the geometry out of the statement.
+  ///
+  /// An unknown id changes nothing.
+  Future<void> recordUpload(
+    String rideId, {
+    required String serviceId,
+    required RideUpload upload,
+  }) async {
+    final row = await _dao.rideById(rideId);
+    if (row == null) return;
+    final merged = <String, RideUpload>{
+      ...decodeRideUploads(row.uploadsJson),
+      serviceId: upload,
+    };
+    await _dao.setRideUploads(rideId, encodeRideUploads(merged));
+  }
+
+  /// Forgets the upload record of [serviceId], which is what a failed retry
+  /// of a ride that was never accepted should leave behind.
+  Future<void> clearUpload(String rideId, {required String serviceId}) async {
+    final row = await _dao.rideById(rideId);
+    if (row == null) return;
+    final remaining = <String, RideUpload>{
+      ...decodeRideUploads(row.uploadsJson),
+    }..remove(serviceId);
+    await _dao.setRideUploads(
+      rideId,
+      remaining.isEmpty ? null : encodeRideUploads(remaining),
+    );
+  }
+
   /// Maps a database row into the domain model.
   Ride toDomain(RideRow row) => Ride(
     id: row.id,
@@ -94,6 +130,7 @@ class RideRepository {
     geometry: Uint8List.fromList(row.geometry),
     routeId: row.routeId,
     pauses: decodeRidePauses(row.pausesJson),
+    uploads: decodeRideUploads(row.uploadsJson),
     notes: row.notes,
   );
 
@@ -113,6 +150,9 @@ class RideRepository {
     routeId: Value(ride.routeId),
     geometry: ride.geometry,
     pausesJson: encodeRidePauses(ride.pauses),
+    uploadsJson: Value(
+      ride.uploads.isEmpty ? null : encodeRideUploads(ride.uploads),
+    ),
     notes: Value(ride.notes),
   );
 

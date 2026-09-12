@@ -130,6 +130,30 @@ class RouteRepository {
     return saved;
   }
 
+  /// Records which partner service a route came from, and when it was read.
+  ///
+  /// `external_fetched_at` exists for Strava's seven-day cache rule: data read
+  /// from Strava may be kept for a week, after which it has to be fetched
+  /// again or dropped. Writing the two columns separately keeps the geometry
+  /// out of the statement and leaves [saveImportedRoute] unaware of partner
+  /// services.
+  ///
+  /// An unknown id changes nothing.
+  Future<void> markExternal(
+    String routeId, {
+    required Map<String, Object?> externalIds,
+    DateTime? fetchedAt,
+  }) async {
+    final row = await _dao.routeById(routeId);
+    if (row == null) return;
+    await _dao.updateRoute(
+      row.copyWith(
+        externalIdsJson: Value(jsonEncode(externalIds)),
+        externalFetchedAt: Value(fetchedAt ?? _clock()),
+      ),
+    );
+  }
+
   /// Writes [route] back exactly as it is, which is what the undo of a delete
   /// needs.
   Future<void> restore(SavedRoute route) =>

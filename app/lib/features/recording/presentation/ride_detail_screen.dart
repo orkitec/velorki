@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router.dart';
 import '../../../core/files/track_exporter.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../integrations/presentation/ride_upload_menu.dart';
 import '../../map/domain/map_controller.dart';
 import '../../planner/presentation/planner_map_host.dart';
 import '../../planner/presentation/route_format.dart';
@@ -109,6 +110,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
         title: Text(ride.value?.name ?? l10n.tabRecord),
         leading: BackButton(onPressed: () => context.go(recordingRoute)),
         actions: [
+          if (ride.value != null) RideUploadMenu(ride: ride.value!),
           if (ride.value != null)
             PopupMenuButton<_RideAction>(
               onSelected: (action) => unawaited(switch (action) {

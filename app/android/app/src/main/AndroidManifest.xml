@@ -38,13 +38,19 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- OAuth callbacks (velorki://oauth/<service>) and shared route
-                 links. A custom scheme needs no android:autoVerify. -->
+            <!-- Shared route links (velorki://s/<id>). A custom scheme needs
+                 no android:autoVerify. The OAuth host is deliberately left to
+                 flutter_web_auth_2's CallbackActivity below: two activities
+                 matching the same URI would make Android ask the user which
+                 one should open it. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="velorki"/>
+                <!-- Share links (velorki://share/<id>) and short links; the
+                     oauth host belongs to flutter_web_auth_2's CallbackActivity. -->
+                <data android:scheme="velorki" android:host="share"/>
+                <data android:scheme="velorki" android:host="s"/>
             </intent-filter>
             <!-- Open GPX and FIT files from file managers, mail, browsers and
                  the share sheet. Senders are inconsistent about MIME types, so
@@ -89,6 +95,21 @@
                 <data android:mimeType="application/octet-stream" />
                 <data android:mimeType="application/xml" />
                 <data android:mimeType="text/xml" />
+            </intent-filter>
+        </activity>
+        <!-- flutter_web_auth_2: catches velorki://oauth/<service>?code=...
+             and hands it back to the pending authentication session. Required
+             by the plugin; android:exported and the empty android:taskAffinity
+             are its documented setup. -->
+        <activity
+            android:name="com.linusu.flutter_web_auth_2.CallbackActivity"
+            android:exported="true"
+            android:taskAffinity="">
+            <intent-filter android:label="flutter_web_auth_2">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="velorki" android:host="oauth" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

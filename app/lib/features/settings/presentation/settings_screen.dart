@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/app_config.dart';
+import '../../../features/integrations/presentation/connections_section.dart';
 import '../../../features/map/presentation/map_strings.dart';
 import '../../../features/map/presentation/offline_regions_screen.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -19,6 +20,9 @@ class SettingsScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(l10n.tabSettings)),
       body: ListView(
         children: const [
+          _SectionHeader.connections(),
+          ConnectionsSection(),
+          Divider(height: 32),
           _SectionHeader.advanced(),
           _OfflineMapsTile(),
           _ServerUrlsSection(),
@@ -33,10 +37,11 @@ class SettingsScreen extends ConsumerWidget {
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader.advanced() : _about = false;
-  const _SectionHeader.about() : _about = true;
+  const _SectionHeader.connections() : _section = _Section.connections;
+  const _SectionHeader.advanced() : _section = _Section.advanced;
+  const _SectionHeader.about() : _section = _Section.about;
 
-  final bool _about;
+  final _Section _section;
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +50,11 @@ class _SectionHeader extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
       child: Text(
-        _about ? l10n.settingsAbout : l10n.settingsAdvanced,
+        switch (_section) {
+          _Section.connections => l10n.settingsConnections,
+          _Section.advanced => l10n.settingsAdvanced,
+          _Section.about => l10n.settingsAbout,
+        },
         style: theme.textTheme.titleSmall?.copyWith(
           color: theme.colorScheme.primary,
         ),
@@ -53,6 +62,8 @@ class _SectionHeader extends StatelessWidget {
     );
   }
 }
+
+enum _Section { connections, advanced, about }
 
 /// Entry point into the map feature's offline regions screen.
 ///

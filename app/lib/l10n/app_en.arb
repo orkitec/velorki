@@ -2,397 +2,1227 @@
   "@@locale": "en",
   "appName": "Velorki",
   "tabPlan": "Plan",
-  "@tabPlan": { "description": "Bottom navigation tab: route planning" },
+  "@tabPlan": {
+    "description": "Bottom navigation tab: route planning"
+  },
   "tabRecord": "Record",
-  "@tabRecord": { "description": "Bottom navigation tab: ride recording" },
+  "@tabRecord": {
+    "description": "Bottom navigation tab: ride recording"
+  },
   "tabLibrary": "Library",
-  "@tabLibrary": { "description": "Bottom navigation tab: saved routes and rides" },
+  "@tabLibrary": {
+    "description": "Bottom navigation tab: saved routes and rides"
+  },
   "tabSettings": "Settings",
-  "@tabSettings": { "description": "Bottom navigation tab: settings" },
+  "@tabSettings": {
+    "description": "Bottom navigation tab: settings"
+  },
   "osmAttribution": "© OpenStreetMap contributors",
-  "@osmAttribution": { "description": "Map attribution, required by the ODbL. Keep the wording." },
+  "@osmAttribution": {
+    "description": "Map attribution, required by the ODbL. Keep the wording."
+  },
   "plannerPlaceholder": "Route planning arrives with the map milestone.",
-  "@plannerPlaceholder": { "description": "Placeholder body of the empty Plan tab" },
+  "@plannerPlaceholder": {
+    "description": "Placeholder body of the empty Plan tab"
+  },
   "recordingPlaceholder": "Ride recording arrives with the recording milestone.",
-  "@recordingPlaceholder": { "description": "Placeholder body of the empty Record tab" },
+  "@recordingPlaceholder": {
+    "description": "Placeholder body of the empty Record tab"
+  },
   "libraryPlaceholder": "Saved routes and rides will be listed here.",
-  "@libraryPlaceholder": { "description": "Placeholder body of the empty Library tab" },
+  "@libraryPlaceholder": {
+    "description": "Placeholder body of the empty Library tab"
+  },
   "settingsAdvanced": "Advanced",
-  "@settingsAdvanced": { "description": "Settings section header for expert options" },
+  "@settingsAdvanced": {
+    "description": "Settings section header for expert options"
+  },
   "settingsServerUrls": "Server URLs",
-  "@settingsServerUrls": { "description": "Settings subsection for overriding the built-in server addresses" },
+  "@settingsServerUrls": {
+    "description": "Settings subsection for overriding the built-in server addresses"
+  },
   "settingsServerUrlsHint": "Leave a field empty to use the address this build ships with.",
-  "@settingsServerUrlsHint": { "description": "Explanation below the server URL fields" },
+  "@settingsServerUrlsHint": {
+    "description": "Explanation below the server URL fields"
+  },
   "settingsBrouterUrl": "BRouter URL",
-  "@settingsBrouterUrl": { "description": "Label of the routing server address field" },
+  "@settingsBrouterUrl": {
+    "description": "Label of the routing server address field"
+  },
   "settingsPhotonUrl": "Photon URL",
-  "@settingsPhotonUrl": { "description": "Label of the geocoder address field" },
+  "@settingsPhotonUrl": {
+    "description": "Label of the geocoder address field"
+  },
   "settingsApiUrl": "API URL",
-  "@settingsApiUrl": { "description": "Label of the Velorki relay address field" },
+  "@settingsApiUrl": {
+    "description": "Label of the Velorki relay address field"
+  },
   "settingsResetServerUrls": "Reset to defaults",
-  "@settingsResetServerUrls": { "description": "Button that clears all server URL overrides" },
+  "@settingsResetServerUrls": {
+    "description": "Button that clears all server URL overrides"
+  },
   "settingsAbout": "About",
-  "@settingsAbout": { "description": "Settings section header for version and attribution" },
+  "@settingsAbout": {
+    "description": "Settings section header for version and attribution"
+  },
   "settingsVersion": "Version {version}",
   "@settingsVersion": {
     "description": "App version shown in the About tile",
-    "placeholders": { "version": { "type": "String", "example": "0.1.0+1" } }
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "0.1.0+1"
+      }
+    }
   },
   "settingsVersionUnknown": "Version unavailable",
-  "@settingsVersionUnknown": { "description": "Shown when the package version cannot be read" },
+  "@settingsVersionUnknown": {
+    "description": "Shown when the package version cannot be read"
+  },
   "commonCancel": "Cancel",
-  "@commonCancel": { "description": "Button that dismisses a dialog without doing anything" },
+  "@commonCancel": {
+    "description": "Button that dismisses a dialog without doing anything"
+  },
   "commonSave": "Save",
-  "@commonSave": { "description": "Button that confirms a save dialog" },
+  "@commonSave": {
+    "description": "Button that confirms a save dialog"
+  },
   "commonUndo": "Undo",
-  "@commonUndo": { "description": "Action of a snack bar that reverts the last action" },
+  "@commonUndo": {
+    "description": "Action of a snack bar that reverts the last action"
+  },
   "commonDelete": "Delete",
-  "@commonDelete": { "description": "Button or menu item that deletes an item" },
+  "@commonDelete": {
+    "description": "Button or menu item that deletes an item"
+  },
   "commonRename": "Rename",
-  "@commonRename": { "description": "Menu item that opens the rename dialog" },
+  "@commonRename": {
+    "description": "Menu item that opens the rename dialog"
+  },
   "commonRetry": "Retry",
-  "@commonRetry": { "description": "Button that runs the failed operation again" },
+  "@commonRetry": {
+    "description": "Button that runs the failed operation again"
+  },
   "profileTrekking": "Trekking",
-  "@profileTrekking": { "description": "Routing profile for everyday touring bikes" },
+  "@profileTrekking": {
+    "description": "Routing profile for everyday touring bikes"
+  },
   "profileFastbike": "Fast",
-  "@profileFastbike": { "description": "Routing profile for road bikes that prefers fast, paved roads" },
+  "@profileFastbike": {
+    "description": "Routing profile for road bikes that prefers fast, paved roads"
+  },
   "profileGravel": "Gravel",
-  "@profileGravel": { "description": "Routing profile that seeks unpaved but rideable tracks" },
+  "@profileGravel": {
+    "description": "Routing profile that seeks unpaved but rideable tracks"
+  },
   "profileMtb": "MTB",
-  "@profileMtb": { "description": "Routing profile for mountain bikes, short for mountain bike" },
+  "@profileMtb": {
+    "description": "Routing profile for mountain bikes, short for mountain bike"
+  },
   "profileShortest": "Shortest",
-  "@profileShortest": { "description": "Routing profile that minimises distance regardless of comfort" },
+  "@profileShortest": {
+    "description": "Routing profile that minimises distance regardless of comfort"
+  },
   "plannerEmptyState": "Tap the map to set a start.",
-  "@plannerEmptyState": { "description": "Hint in the planner bottom sheet while no waypoint is set" },
+  "@plannerEmptyState": {
+    "description": "Hint in the planner bottom sheet while no waypoint is set"
+  },
   "plannerEmptyStateDetail": "Tap again to add more points, long-press the map to insert a point in between.",
-  "@plannerEmptyStateDetail": { "description": "Second line of the planner empty state explaining the map gestures" },
+  "@plannerEmptyStateDetail": {
+    "description": "Second line of the planner empty state explaining the map gestures"
+  },
   "plannerOnePointHint": "Tap the map again to add a destination.",
-  "@plannerOnePointHint": { "description": "Hint shown once a start point is set but no destination" },
+  "@plannerOnePointHint": {
+    "description": "Hint shown once a start point is set but no destination"
+  },
   "plannerNoRoutingServer": "No routing server configured, set one in Settings → Advanced.",
-  "@plannerNoRoutingServer": { "description": "Banner shown when the BRouter URL is empty so no route can be computed" },
+  "@plannerNoRoutingServer": {
+    "description": "Banner shown when the BRouter URL is empty so no route can be computed"
+  },
   "plannerRoutingFailed": "Routing failed: {message}",
   "@plannerRoutingFailed": {
     "description": "Snack bar shown when the routing server rejected the request",
-    "placeholders": { "message": { "type": "String", "example": "no route found" } }
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "no route found"
+      }
+    }
   },
   "plannerRouting": "Routing…",
-  "@plannerRouting": { "description": "Progress label while a route is being computed" },
+  "@plannerRouting": {
+    "description": "Progress label while a route is being computed"
+  },
   "plannerProfile": "Profile",
-  "@plannerProfile": { "description": "Label of the routing profile chooser" },
+  "@plannerProfile": {
+    "description": "Label of the routing profile chooser"
+  },
   "plannerUndo": "Undo",
-  "@plannerUndo": { "description": "Planner button that takes back the last waypoint change" },
+  "@plannerUndo": {
+    "description": "Planner button that takes back the last waypoint change"
+  },
   "plannerReverse": "Reverse",
-  "@plannerReverse": { "description": "Planner button that swaps start and destination" },
+  "@plannerReverse": {
+    "description": "Planner button that swaps start and destination"
+  },
   "plannerClear": "Clear",
-  "@plannerClear": { "description": "Planner button that removes all waypoints" },
+  "@plannerClear": {
+    "description": "Planner button that removes all waypoints"
+  },
   "plannerAlternatives": "Alternatives",
-  "@plannerAlternatives": { "description": "Planner button that asks the routing server for alternative routes" },
+  "@plannerAlternatives": {
+    "description": "Planner button that asks the routing server for alternative routes"
+  },
   "plannerSave": "Save",
-  "@plannerSave": { "description": "Planner button that stores the current route in the library" },
+  "@plannerSave": {
+    "description": "Planner button that stores the current route in the library"
+  },
   "plannerMainRoute": "Main",
-  "@plannerMainRoute": { "description": "Chip label for the first, best-ranked route of the routing server" },
+  "@plannerMainRoute": {
+    "description": "Chip label for the first, best-ranked route of the routing server"
+  },
   "plannerAlternativeIndex": "Alt {index}",
   "@plannerAlternativeIndex": {
     "description": "Chip label for one of the alternative routes, short for alternative",
-    "placeholders": { "index": { "type": "int", "example": "2" } }
+    "placeholders": {
+      "index": {
+        "type": "int",
+        "example": "2"
+      }
+    }
   },
   "plannerAlternativesFailed": "No alternatives available.",
-  "@plannerAlternativesFailed": { "description": "Snack bar shown when the routing server returned no alternative routes" },
+  "@plannerAlternativesFailed": {
+    "description": "Snack bar shown when the routing server returned no alternative routes"
+  },
   "plannerSaveDialogTitle": "Save route",
-  "@plannerSaveDialogTitle": { "description": "Title of the dialog that names a route before saving it" },
+  "@plannerSaveDialogTitle": {
+    "description": "Title of the dialog that names a route before saving it"
+  },
   "plannerRouteNameLabel": "Name",
-  "@plannerRouteNameLabel": { "description": "Label of the route name text field" },
+  "@plannerRouteNameLabel": {
+    "description": "Label of the route name text field"
+  },
   "plannerDefaultRouteName": "Route {date}",
   "@plannerDefaultRouteName": {
     "description": "Name a route is given when the user does not type one",
-    "placeholders": { "date": { "type": "String", "example": "12 Sept 2026" } }
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "example": "12 Sept 2026"
+      }
+    }
   },
   "plannerRouteSaved": "Route saved",
-  "@plannerRouteSaved": { "description": "Snack bar confirming that a route was written to the library" },
+  "@plannerRouteSaved": {
+    "description": "Snack bar confirming that a route was written to the library"
+  },
   "plannerSetAsStart": "Set as start",
-  "@plannerSetAsStart": { "description": "Chip that turns the searched place into the start of a new route" },
+  "@plannerSetAsStart": {
+    "description": "Chip that turns the searched place into the start of a new route"
+  },
   "statDistance": "Distance",
-  "@statDistance": { "description": "Label of the route length figure" },
+  "@statDistance": {
+    "description": "Label of the route length figure"
+  },
   "statAscent": "Ascent",
-  "@statAscent": { "description": "Label of the total metres climbed" },
+  "@statAscent": {
+    "description": "Label of the total metres climbed"
+  },
   "statDescent": "Descent",
-  "@statDescent": { "description": "Label of the total metres descended" },
+  "@statDescent": {
+    "description": "Label of the total metres descended"
+  },
   "statDuration": "Est. time",
-  "@statDuration": { "description": "Label of the estimated riding time, short for estimated time" },
+  "@statDuration": {
+    "description": "Label of the estimated riding time, short for estimated time"
+  },
   "valueKilometers": "{value} km",
   "@valueKilometers": {
     "description": "A distance in kilometres",
-    "placeholders": { "value": { "type": "String", "example": "42.5" } }
+    "placeholders": {
+      "value": {
+        "type": "String",
+        "example": "42.5"
+      }
+    }
   },
   "valueMeters": "{value} m",
   "@valueMeters": {
     "description": "A height in metres",
-    "placeholders": { "value": { "type": "String", "example": "430" } }
+    "placeholders": {
+      "value": {
+        "type": "String",
+        "example": "430"
+      }
+    }
   },
   "valueHoursMinutes": "{hours} h {minutes} min",
   "@valueHoursMinutes": {
     "description": "A duration of an hour or more",
     "placeholders": {
-      "hours": { "type": "int", "example": "2" },
-      "minutes": { "type": "int", "example": "35" }
+      "hours": {
+        "type": "int",
+        "example": "2"
+      },
+      "minutes": {
+        "type": "int",
+        "example": "35"
+      }
     }
   },
   "valueMinutes": "{minutes} min",
   "@valueMinutes": {
     "description": "A duration below one hour",
-    "placeholders": { "minutes": { "type": "int", "example": "35" } }
+    "placeholders": {
+      "minutes": {
+        "type": "int",
+        "example": "35"
+      }
+    }
   },
   "labelWithPercent": "{label} {percent}",
   "@labelWithPercent": {
     "description": "A named share of the route, e.g. 'Cycleway 42%'",
     "placeholders": {
-      "label": { "type": "String", "example": "Cycleway" },
-      "percent": { "type": "String", "example": "42%" }
+      "label": {
+        "type": "String",
+        "example": "Cycleway"
+      },
+      "percent": {
+        "type": "String",
+        "example": "42%"
+      }
     }
   },
   "surfaceTitle": "Surface",
-  "@surfaceTitle": { "description": "Heading above the paved/unpaved bar" },
+  "@surfaceTitle": {
+    "description": "Heading above the paved/unpaved bar"
+  },
   "surfacePaved": "Paved",
-  "@surfacePaved": { "description": "Share of the route on a hard surface" },
+  "@surfacePaved": {
+    "description": "Share of the route on a hard surface"
+  },
   "surfaceUnpaved": "Unpaved",
-  "@surfaceUnpaved": { "description": "Share of the route on gravel, dirt or grass" },
+  "@surfaceUnpaved": {
+    "description": "Share of the route on gravel, dirt or grass"
+  },
   "surfaceUnknown": "Unknown",
-  "@surfaceUnknown": { "description": "Share of the route whose surface the map data does not say" },
+  "@surfaceUnknown": {
+    "description": "Share of the route whose surface the map data does not say"
+  },
   "surfaceCycleway": "Cycleway",
-  "@surfaceCycleway": { "description": "Share of the route on cycling infrastructure" },
+  "@surfaceCycleway": {
+    "description": "Share of the route on cycling infrastructure"
+  },
   "surfaceBusy": "Busy roads",
-  "@surfaceBusy": { "description": "Share of the route on primary or trunk roads" },
+  "@surfaceBusy": {
+    "description": "Share of the route on primary or trunk roads"
+  },
   "surfaceUnavailable": "No surface data for this route.",
-  "@surfaceUnavailable": { "description": "Shown when the routing answer carried no way tags" },
+  "@surfaceUnavailable": {
+    "description": "Shown when the routing answer carried no way tags"
+  },
   "elevationTitle": "Elevation",
-  "@elevationTitle": { "description": "Heading above the elevation profile chart" },
+  "@elevationTitle": {
+    "description": "Heading above the elevation profile chart"
+  },
   "elevationUnavailable": "No elevation data for this route.",
-  "@elevationUnavailable": { "description": "Shown instead of the chart when the geometry has no heights" },
+  "@elevationUnavailable": {
+    "description": "Shown instead of the chart when the geometry has no heights"
+  },
   "elevationPoint": "{distance} · {elevation}",
   "@elevationPoint": {
     "description": "Read-out of the point the user touched in the elevation chart",
     "placeholders": {
-      "distance": { "type": "String", "example": "12.4 km" },
-      "elevation": { "type": "String", "example": "430 m" }
+      "distance": {
+        "type": "String",
+        "example": "12.4 km"
+      },
+      "elevation": {
+        "type": "String",
+        "example": "430 m"
+      }
     }
   },
   "searchHint": "Search for a place",
-  "@searchHint": { "description": "Placeholder text of the planner search field" },
+  "@searchHint": {
+    "description": "Placeholder text of the planner search field"
+  },
   "searchClear": "Clear search",
-  "@searchClear": { "description": "Tooltip of the button that empties the search field" },
+  "@searchClear": {
+    "description": "Tooltip of the button that empties the search field"
+  },
   "searchNoResults": "Nothing found.",
-  "@searchNoResults": { "description": "Shown when the geocoder returned no place for the query" },
+  "@searchNoResults": {
+    "description": "Shown when the geocoder returned no place for the query"
+  },
   "searchFailed": "Search failed.",
-  "@searchFailed": { "description": "Shown when the geocoder could not be reached" },
+  "@searchFailed": {
+    "description": "Shown when the geocoder could not be reached"
+  },
   "searchUnavailable": "No search server configured, set one in Settings → Advanced.",
-  "@searchUnavailable": { "description": "Shown when the Photon URL is empty so no search is possible" },
+  "@searchUnavailable": {
+    "description": "Shown when the Photon URL is empty so no search is possible"
+  },
   "libraryEmpty": "No saved routes yet.",
-  "@libraryEmpty": { "description": "Empty state of the library list" },
+  "@libraryEmpty": {
+    "description": "Empty state of the library list"
+  },
   "libraryEmptyDetail": "Plan a route in the Plan tab and save it.",
-  "@libraryEmptyDetail": { "description": "Second line of the library empty state" },
+  "@libraryEmptyDetail": {
+    "description": "Second line of the library empty state"
+  },
   "libraryRouteSubtitle": "{date} · {distance} · ↑{ascent}",
   "@libraryRouteSubtitle": {
     "description": "Second line of a route row: date, length and metres climbed",
     "placeholders": {
-      "date": { "type": "String", "example": "12 Sept 2026" },
-      "distance": { "type": "String", "example": "42.5 km" },
-      "ascent": { "type": "String", "example": "430 m" }
+      "date": {
+        "type": "String",
+        "example": "12 Sept 2026"
+      },
+      "distance": {
+        "type": "String",
+        "example": "42.5 km"
+      },
+      "ascent": {
+        "type": "String",
+        "example": "430 m"
+      }
     }
   },
   "libraryRouteDeleted": "{name} deleted",
   "@libraryRouteDeleted": {
     "description": "Snack bar confirming a deletion, with an undo action",
-    "placeholders": { "name": { "type": "String", "example": "Route 12 Sept 2026" } }
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Route 12 Sept 2026"
+      }
+    }
   },
   "libraryRenameTitle": "Rename route",
-  "@libraryRenameTitle": { "description": "Title of the dialog that renames a saved route" },
+  "@libraryRenameTitle": {
+    "description": "Title of the dialog that renames a saved route"
+  },
   "routeDetailNotFound": "This route no longer exists.",
-  "@routeDetailNotFound": { "description": "Shown when a route detail link points at a deleted route" },
+  "@routeDetailNotFound": {
+    "description": "Shown when a route detail link points at a deleted route"
+  },
   "routeDetailOpenInPlanner": "Open in planner",
-  "@routeDetailOpenInPlanner": { "description": "Button that loads the saved route back into the planner" },
+  "@routeDetailOpenInPlanner": {
+    "description": "Button that loads the saved route back into the planner"
+  },
   "routeDetailExport": "Export",
-  "@routeDetailExport": { "description": "Button that will export the route as a file" },
+  "@routeDetailExport": {
+    "description": "Button that will export the route as a file"
+  },
   "libraryImportFile": "Import file",
-  "@libraryImportFile": { "description": "Library app bar action that picks a GPX or FIT file to import" },
+  "@libraryImportFile": {
+    "description": "Library app bar action that picks a GPX or FIT file to import"
+  },
   "importTitle": "Import",
-  "@importTitle": { "description": "Title of the screen that previews a file before it is saved" },
+  "@importTitle": {
+    "description": "Title of the screen that previews a file before it is saved"
+  },
   "importNothing": "There is nothing to import.",
-  "@importNothing": { "description": "Shown when the import screen is opened without a file" },
+  "@importNothing": {
+    "description": "Shown when the import screen is opened without a file"
+  },
   "importNameLabel": "Name",
-  "@importNameLabel": { "description": "Label of the field that names the imported route or ride" },
+  "@importNameLabel": {
+    "description": "Label of the field that names the imported route or ride"
+  },
   "importSaveAs": "Save as",
-  "@importSaveAs": { "description": "Label above the Route / Ride choice on the import screen" },
+  "@importSaveAs": {
+    "description": "Label above the Route / Ride choice on the import screen"
+  },
   "importKindRoute": "Route",
-  "@importKindRoute": { "description": "Import choice: save the file as a planned route" },
+  "@importKindRoute": {
+    "description": "Import choice: save the file as a planned route"
+  },
   "importKindRide": "Ride",
-  "@importKindRide": { "description": "Import choice: save the file as a recorded ride" },
-  "importSummary": "{format} \u00b7 {points} points",
+  "@importKindRide": {
+    "description": "Import choice: save the file as a recorded ride"
+  },
+  "importSummary": "{format} · {points} points",
   "@importSummary": {
     "description": "Subtitle of the import preview: the detected format and how many points were found",
     "placeholders": {
-      "format": { "type": "String", "example": "GPX" },
-      "points": { "type": "int", "example": "1204" }
+      "format": {
+        "type": "String",
+        "example": "GPX"
+      },
+      "points": {
+        "type": "int",
+        "example": "1204"
+      }
     }
   },
   "importFormatGpx": "GPX",
-  "@importFormatGpx": { "description": "Name of the GPX file format. Keep the acronym." },
+  "@importFormatGpx": {
+    "description": "Name of the GPX file format. Keep the acronym."
+  },
   "importFormatFit": "FIT",
-  "@importFormatFit": { "description": "Name of the Garmin FIT file format. Keep the acronym." },
-  "importTimeSpan": "{start} \u2013 {end}",
+  "@importFormatFit": {
+    "description": "Name of the Garmin FIT file format. Keep the acronym."
+  },
+  "importTimeSpan": "{start} – {end}",
   "@importTimeSpan": {
     "description": "When the imported ride was recorded: first and last timestamp",
     "placeholders": {
-      "start": { "type": "String", "example": "Sep 12, 2026 09:14" },
-      "end": { "type": "String", "example": "Sep 12, 2026 12:02" }
+      "start": {
+        "type": "String",
+        "example": "Sep 12, 2026 09:14"
+      },
+      "end": {
+        "type": "String",
+        "example": "Sep 12, 2026 12:02"
+      }
     }
   },
   "importNoTime": "The file carries no timestamps.",
-  "@importNoTime": { "description": "Shown on the import screen when the file has no times, so it is a route" },
+  "@importNoTime": {
+    "description": "Shown on the import screen when the file has no times, so it is a route"
+  },
   "importSavedRoute": "{name} added to the library",
   "@importSavedRoute": {
     "description": "Snack bar confirming that an imported file became a route",
-    "placeholders": { "name": { "type": "String", "example": "Isar loop" } }
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Isar loop"
+      }
+    }
   },
   "importSavedRide": "{name} added to your rides",
   "@importSavedRide": {
     "description": "Snack bar confirming that an imported file became a ride",
-    "placeholders": { "name": { "type": "String", "example": "Morning ride" } }
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Morning ride"
+      }
+    }
   },
   "importFailedUnknown": "That is not a GPX or FIT file.",
-  "@importFailedUnknown": { "description": "Error shown when the file sniffer recognised neither format" },
+  "@importFailedUnknown": {
+    "description": "Error shown when the file sniffer recognised neither format"
+  },
   "importFailedMalformed": "That file could not be read.",
-  "@importFailedMalformed": { "description": "Error shown when a GPX or FIT file is damaged" },
+  "@importFailedMalformed": {
+    "description": "Error shown when a GPX or FIT file is damaged"
+  },
   "importFailedEmpty": "That file has no track points.",
-  "@importFailedEmpty": { "description": "Error shown when a readable file contains no geometry" },
+  "@importFailedEmpty": {
+    "description": "Error shown when a readable file contains no geometry"
+  },
   "importFailedUnreadable": "That file could not be opened.",
-  "@importFailedUnreadable": { "description": "Error shown when the file itself could not be read from disk" },
+  "@importFailedUnreadable": {
+    "description": "Error shown when the file itself could not be read from disk"
+  },
   "importSaveFailed": "The import could not be saved.",
-  "@importSaveFailed": { "description": "Error shown when writing the imported route or ride to the database failed" },
+  "@importSaveFailed": {
+    "description": "Error shown when writing the imported route or ride to the database failed"
+  },
   "exportGpxRoute": "GPX route",
-  "@exportGpxRoute": { "description": "Export menu item: a GPX file holding a <rte> element" },
+  "@exportGpxRoute": {
+    "description": "Export menu item: a GPX file holding a <rte> element"
+  },
   "exportGpxTrack": "GPX track",
-  "@exportGpxTrack": { "description": "Export menu item: a GPX file holding a <trk> element" },
+  "@exportGpxTrack": {
+    "description": "Export menu item: a GPX file holding a <trk> element"
+  },
   "exportFitCourse": "FIT course",
-  "@exportFitCourse": { "description": "Export menu item: a Garmin FIT course, what a head unit navigates" },
+  "@exportFitCourse": {
+    "description": "Export menu item: a Garmin FIT course, what a head unit navigates"
+  },
   "exportFitActivity": "FIT activity",
-  "@exportFitActivity": { "description": "Export menu item: a Garmin FIT activity, a ride that happened" },
+  "@exportFitActivity": {
+    "description": "Export menu item: a Garmin FIT activity, a ride that happened"
+  },
   "exportFailed": "The file could not be exported.",
-  "@exportFailed": { "description": "Snack bar shown when writing or sharing an export failed" },
+  "@exportFailed": {
+    "description": "Snack bar shown when writing or sharing an export failed"
+  },
   "recordingIdleTitle": "Ready to ride",
-  "@recordingIdleTitle": { "description": "Headline of the record tab while nothing is being recorded" },
+  "@recordingIdleTitle": {
+    "description": "Headline of the record tab while nothing is being recorded"
+  },
   "recordingIdleHint": "The track is written to the phone while you ride, even with the screen off.",
-  "@recordingIdleHint": { "description": "Explanation below the start button" },
+  "@recordingIdleHint": {
+    "description": "Explanation below the start button"
+  },
   "recordingStart": "Start ride",
-  "@recordingStart": { "description": "Button that begins recording a ride" },
+  "@recordingStart": {
+    "description": "Button that begins recording a ride"
+  },
   "recordingPause": "Pause",
-  "@recordingPause": { "description": "Button that suspends the recording" },
+  "@recordingPause": {
+    "description": "Button that suspends the recording"
+  },
   "recordingResume": "Resume",
-  "@recordingResume": { "description": "Button that continues a paused recording" },
+  "@recordingResume": {
+    "description": "Button that continues a paused recording"
+  },
   "recordingFinish": "Finish",
-  "@recordingFinish": { "description": "Button that ends the recording and saves the ride" },
+  "@recordingFinish": {
+    "description": "Button that ends the recording and saves the ride"
+  },
   "recordingStatusRecording": "Recording",
-  "@recordingStatusRecording": { "description": "Status line while fixes are being recorded" },
+  "@recordingStatusRecording": {
+    "description": "Status line while fixes are being recorded"
+  },
   "recordingStatusPaused": "Paused",
-  "@recordingStatusPaused": { "description": "Status line while the rider has paused the recording" },
+  "@recordingStatusPaused": {
+    "description": "Status line while the rider has paused the recording"
+  },
   "recordingStatusAutoPaused": "Auto-paused",
-  "@recordingStatusAutoPaused": { "description": "Status line while the recording paused itself because the bike stopped" },
+  "@recordingStatusAutoPaused": {
+    "description": "Status line while the recording paused itself because the bike stopped"
+  },
   "recordingFollowRoute": "Follow a route",
-  "@recordingFollowRoute": { "description": "Label of the picker that puts a saved route on the map while recording" },
+  "@recordingFollowRoute": {
+    "description": "Label of the picker that puts a saved route on the map while recording"
+  },
   "recordingFollowNone": "No route",
-  "@recordingFollowNone": { "description": "Entry of the route picker that follows no route" },
+  "@recordingFollowNone": {
+    "description": "Entry of the route picker that follows no route"
+  },
   "recordingKeepScreenOn": "Keep screen on",
-  "@recordingKeepScreenOn": { "description": "Switch that stops the display from sleeping while recording" },
+  "@recordingKeepScreenOn": {
+    "description": "Switch that stops the display from sleeping while recording"
+  },
   "recordingNotificationTitle": "Recording a ride",
-  "@recordingNotificationTitle": { "description": "First line of the Android notification of the recording service" },
+  "@recordingNotificationTitle": {
+    "description": "First line of the Android notification of the recording service"
+  },
   "recordingRecentRides": "Recent rides",
-  "@recordingRecentRides": { "description": "Heading above the list of the last recorded rides" },
+  "@recordingRecentRides": {
+    "description": "Heading above the list of the last recorded rides"
+  },
   "recordingNoRides": "No rides yet.",
-  "@recordingNoRides": { "description": "Empty state of the rides list" },
+  "@recordingNoRides": {
+    "description": "Empty state of the rides list"
+  },
   "recordingLocationDenied": "Velorki needs location access to record a ride.",
-  "@recordingLocationDenied": { "description": "Shown when the location permission was refused for good" },
+  "@recordingLocationDenied": {
+    "description": "Shown when the location permission was refused for good"
+  },
   "recordingLocationServiceOff": "Switch the device location on to record a ride.",
-  "@recordingLocationServiceOff": { "description": "Shown when the device location service is off" },
+  "@recordingLocationServiceOff": {
+    "description": "Shown when the device location service is off"
+  },
   "recordingNotificationDenied": "Without the notification permission Android stops the recording when you leave the app.",
-  "@recordingNotificationDenied": { "description": "Shown when the notification permission was refused" },
+  "@recordingNotificationDenied": {
+    "description": "Shown when the notification permission was refused"
+  },
   "recordingOpenSettings": "Settings",
-  "@recordingOpenSettings": { "description": "Snack bar action that opens the system settings page of the app" },
+  "@recordingOpenSettings": {
+    "description": "Snack bar action that opens the system settings page of the app"
+  },
   "recordingBatteryTitle": "Keep recording in the background",
-  "@recordingBatteryTitle": { "description": "Title of the dialog that explains the battery optimisation exemption" },
+  "@recordingBatteryTitle": {
+    "description": "Title of the dialog that explains the battery optimisation exemption"
+  },
   "recordingBatteryBody": "Android may stop the recording while the phone sleeps. Letting Velorki ignore battery optimisation keeps the track complete. You are asked only once.",
-  "@recordingBatteryBody": { "description": "Body of the battery optimisation dialog, shown before the system prompt" },
+  "@recordingBatteryBody": {
+    "description": "Body of the battery optimisation dialog, shown before the system prompt"
+  },
   "recordingBatteryAllow": "Allow",
-  "@recordingBatteryAllow": { "description": "Button that opens the system battery optimisation prompt" },
+  "@recordingBatteryAllow": {
+    "description": "Button that opens the system battery optimisation prompt"
+  },
   "recordingBatteryLater": "Not now",
-  "@recordingBatteryLater": { "description": "Button that skips the battery optimisation prompt" },
+  "@recordingBatteryLater": {
+    "description": "Button that skips the battery optimisation prompt"
+  },
   "recordingRecoveryTitle": "Unfinished ride",
-  "@recordingRecoveryTitle": { "description": "Title of the dialog shown when a recording was interrupted" },
+  "@recordingRecoveryTitle": {
+    "description": "Title of the dialog shown when a recording was interrupted"
+  },
   "recordingRecoveryBody": "A ride from {date} was never finished. {distance} and {duration} are saved. Continue it or finish it now?",
   "@recordingRecoveryBody": {
     "description": "Body of the recovery dialog, with what the journal holds",
     "placeholders": {
-      "date": { "type": "String", "example": "12 Sept 2026" },
-      "distance": { "type": "String", "example": "42.5 km" },
-      "duration": { "type": "String", "example": "2 h 35 min" }
+      "date": {
+        "type": "String",
+        "example": "12 Sept 2026"
+      },
+      "distance": {
+        "type": "String",
+        "example": "42.5 km"
+      },
+      "duration": {
+        "type": "String",
+        "example": "2 h 35 min"
+      }
     }
   },
   "recordingRecoveryResume": "Resume",
-  "@recordingRecoveryResume": { "description": "Recovery dialog button that continues the interrupted recording" },
+  "@recordingRecoveryResume": {
+    "description": "Recovery dialog button that continues the interrupted recording"
+  },
   "recordingRecoveryFinish": "Finish",
-  "@recordingRecoveryFinish": { "description": "Recovery dialog button that saves the interrupted recording as a ride" },
+  "@recordingRecoveryFinish": {
+    "description": "Recovery dialog button that saves the interrupted recording as a ride"
+  },
   "recordingRecoveryDiscard": "Discard",
-  "@recordingRecoveryDiscard": { "description": "Recovery dialog button that throws the interrupted recording away" },
+  "@recordingRecoveryDiscard": {
+    "description": "Recovery dialog button that throws the interrupted recording away"
+  },
   "recordingFailed": "Recording could not be started: {message}",
   "@recordingFailed": {
     "description": "Snack bar shown when the platform refused to start the recorder",
-    "placeholders": { "message": { "type": "String", "example": "service timeout" } }
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "service timeout"
+      }
+    }
   },
   "recordingNothingRecorded": "Nothing was recorded.",
-  "@recordingNothingRecorded": { "description": "Snack bar shown when a ride is finished before a single fix arrived" },
+  "@recordingNothingRecorded": {
+    "description": "Snack bar shown when a ride is finished before a single fix arrived"
+  },
   "recordingRideName": "Ride {date}",
   "@recordingRideName": {
     "description": "Name a recorded ride is given until the rider renames it",
-    "placeholders": { "date": { "type": "String", "example": "12 Sept 2026" } }
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "example": "12 Sept 2026"
+      }
+    }
   },
   "statSpeed": "Speed",
-  "@statSpeed": { "description": "Label of the current speed figure" },
+  "@statSpeed": {
+    "description": "Label of the current speed figure"
+  },
   "statAvgSpeed": "Avg",
-  "@statAvgSpeed": { "description": "Label of the average speed figure, short for average" },
+  "@statAvgSpeed": {
+    "description": "Label of the average speed figure, short for average"
+  },
   "statMaxSpeed": "Max",
-  "@statMaxSpeed": { "description": "Label of the highest speed figure, short for maximum" },
+  "@statMaxSpeed": {
+    "description": "Label of the highest speed figure, short for maximum"
+  },
   "statMovingTime": "Moving",
-  "@statMovingTime": { "description": "Label of the time spent riding, as opposed to standing" },
+  "@statMovingTime": {
+    "description": "Label of the time spent riding, as opposed to standing"
+  },
   "statElapsed": "Time",
-  "@statElapsed": { "description": "Label of the wall-clock time since the ride started" },
+  "@statElapsed": {
+    "description": "Label of the wall-clock time since the ride started"
+  },
   "valueKilometersPerHour": "{value} km/h",
   "@valueKilometersPerHour": {
     "description": "A speed in kilometres per hour",
-    "placeholders": { "value": { "type": "String", "example": "24.3" } }
+    "placeholders": {
+      "value": {
+        "type": "String",
+        "example": "24.3"
+      }
+    }
   },
   "rideDetailNotFound": "This ride no longer exists.",
-  "@rideDetailNotFound": { "description": "Shown when a ride detail link points at a deleted ride" },
+  "@rideDetailNotFound": {
+    "description": "Shown when a ride detail link points at a deleted ride"
+  },
   "rideDetailRenameTitle": "Rename ride",
-  "@rideDetailRenameTitle": { "description": "Title of the dialog that renames a recorded ride" },
+  "@rideDetailRenameTitle": {
+    "description": "Title of the dialog that renames a recorded ride"
+  },
   "rideDetailExportGpx": "Export GPX track",
-  "@rideDetailExportGpx": { "description": "Menu item that shares the ride as a GPX track file" },
+  "@rideDetailExportGpx": {
+    "description": "Menu item that shares the ride as a GPX track file"
+  },
   "rideDetailExportFit": "Export FIT activity",
-  "@rideDetailExportFit": { "description": "Menu item that shares the ride as a FIT activity file" },
+  "@rideDetailExportFit": {
+    "description": "Menu item that shares the ride as a FIT activity file"
+  },
   "rideDetailExportFailed": "Export failed: {message}",
   "@rideDetailExportFailed": {
     "description": "Snack bar shown when writing or sharing the export file failed",
-    "placeholders": { "message": { "type": "String", "example": "no space left" } }
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "no space left"
+      }
+    }
   },
   "rideDeleted": "{name} deleted",
   "@rideDeleted": {
     "description": "Snack bar confirming that a ride was deleted, with an undo action",
-    "placeholders": { "name": { "type": "String", "example": "Ride 12 Sept 2026" } }
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Ride 12 Sept 2026"
+      }
+    }
   },
   "rideSubtitle": "{date} · {distance} · {duration}",
   "@rideSubtitle": {
     "description": "Second line of a ride row: date, distance and moving time",
     "placeholders": {
-      "date": { "type": "String", "example": "12 Sept 2026" },
-      "distance": { "type": "String", "example": "42.5 km" },
-      "duration": { "type": "String", "example": "2 h 35 min" }
+      "date": {
+        "type": "String",
+        "example": "12 Sept 2026"
+      },
+      "distance": {
+        "type": "String",
+        "example": "42.5 km"
+      },
+      "duration": {
+        "type": "String",
+        "example": "2 h 35 min"
+      }
     }
+  },
+  "loopAction": "Loop",
+  "@loopAction": {
+    "description": "Planner button that opens the smart loop sheet"
+  },
+  "loopTitle": "Smart loop",
+  "@loopTitle": {
+    "description": "Title of the sheet that generates round trips"
+  },
+  "loopIntro": "A round trip from a start, roughly the distance you pick.",
+  "@loopIntro": {
+    "description": "One-line explanation under the smart loop title"
+  },
+  "loopStart": "Start",
+  "@loopStart": {
+    "description": "Label of the chooser for where the loop begins"
+  },
+  "loopStartMyPosition": "My position",
+  "@loopStartMyPosition": {
+    "description": "Loop start option: the device's own GPS position"
+  },
+  "loopStartMapCentre": "Map centre",
+  "@loopStartMapCentre": {
+    "description": "Loop start option: the point the map is currently centred on"
+  },
+  "loopStartWaypoint": "First waypoint",
+  "@loopStartWaypoint": {
+    "description": "Loop start option: the first waypoint of the route being planned"
+  },
+  "loopVia": "Via",
+  "@loopVia": {
+    "description": "Label of the optional places the loop should pass"
+  },
+  "loopViaHint": "Optional: up to two places the loop rides past.",
+  "@loopViaHint": {
+    "description": "Explanation under the via place search in the loop sheet"
+  },
+  "loopViaRemove": "Remove {name}",
+  "@loopViaRemove": {
+    "description": "Tooltip of the button that takes a via place off the loop",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Starnberger See"
+      }
+    }
+  },
+  "loopDistance": "Distance",
+  "@loopDistance": {
+    "description": "Label of the target distance slider"
+  },
+  "loopHills": "Hills",
+  "@loopHills": {
+    "description": "Label of the climbing preference chooser"
+  },
+  "loopHillsAvoid": "Avoid",
+  "@loopHillsAvoid": {
+    "description": "Climbing preference: keep the loop as flat as possible"
+  },
+  "loopHillsNeutral": "Neutral",
+  "@loopHillsNeutral": {
+    "description": "Climbing preference: no opinion about climbing"
+  },
+  "loopHillsSeek": "Seek",
+  "@loopHillsSeek": {
+    "description": "Climbing preference: climbing is wanted"
+  },
+  "loopSurfaceMixed": "Mixed",
+  "@loopSurfaceMixed": {
+    "description": "Surface preference: tarmac with some gravel is fine"
+  },
+  "loopSurfaceGravel": "Gravel",
+  "@loopSurfaceGravel": {
+    "description": "Surface preference: unpaved tracks are wanted"
+  },
+  "loopAvoidBusy": "Avoid busy roads",
+  "@loopAvoidBusy": {
+    "description": "Switch that weighs primary and trunk roads double against a loop"
+  },
+  "loopGenerate": "Generate",
+  "@loopGenerate": {
+    "description": "Button that starts the loop search"
+  },
+  "loopRegenerate": "Regenerate",
+  "@loopRegenerate": {
+    "description": "Button that runs the same loop search again with different candidates"
+  },
+  "loopStop": "Stop",
+  "@loopStop": {
+    "description": "Button that cancels a running loop search"
+  },
+  "loopSearching": "Looking for loops…",
+  "@loopSearching": {
+    "description": "Progress label while loop candidates are being routed"
+  },
+  "loopNoneFound": "No loop found, try a shorter distance or another via.",
+  "@loopNoneFound": {
+    "description": "Shown when the loop search finished without a single routable candidate"
+  },
+  "loopFailed": "Loop search failed: {message}",
+  "@loopFailed": {
+    "description": "Shown when the loop search could not be run at all",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "position not mapped"
+      }
+    }
+  },
+  "loopNoStart": "No start point yet: search for a place or tap the map.",
+  "@loopNoStart": {
+    "description": "Shown when the loop sheet has no position to start a loop from"
+  },
+  "loopPositionUnavailable": "Your position is not available.",
+  "@loopPositionUnavailable": {
+    "description": "Shown when the device could not produce a GPS fix for the loop start"
+  },
+  "loopUseThis": "Use this loop",
+  "@loopUseThis": {
+    "description": "Button that hands the selected loop to the planner"
+  },
+  "loopCandidateTitle": "Loop {index}",
+  "@loopCandidateTitle": {
+    "description": "Heading of one loop candidate card, numbered from one",
+    "placeholders": {
+      "index": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "loopRepeated": "Repeated",
+  "@loopRepeated": {
+    "description": "Share of a loop that is ridden twice, shown as a chip on a candidate card"
+  },
+  "loopScore": "Score {value}",
+  "@loopScore": {
+    "description": "The loop's ranking score, lower is better",
+    "placeholders": {
+      "value": {
+        "type": "String",
+        "example": "1.24"
+      }
+    }
+  },
+  "loopAdopted": "Loop opened in the planner",
+  "@loopAdopted": {
+    "description": "Snack bar confirming that the chosen loop is now the planned route"
+  },
+  "settingsConnections": "Connections",
+  "@settingsConnections": {
+    "description": "Settings section header for the Strava and Ride with GPS accounts"
+  },
+  "connectionsPlusTitle": "Velorki Plus",
+  "@connectionsPlusTitle": {
+    "description": "Title of the placeholder card shown where a Plus feature is gated"
+  },
+  "connectionsPlusBody": "Connecting Strava and Ride with GPS is part of Velorki Plus. Everything that runs on the phone stays free.",
+  "@connectionsPlusBody": {
+    "description": "Explanation on the Plus placeholder card in the Connections section"
+  },
+  "connectionsUnavailable": "Not available in this build",
+  "@connectionsUnavailable": {
+    "description": "Shown on a connection tile when the build has no relay or client id"
+  },
+  "serviceStrava": "Strava",
+  "@serviceStrava": {
+    "description": "Name of the Strava service. Do not translate."
+  },
+  "serviceRwgps": "Ride with GPS",
+  "@serviceRwgps": {
+    "description": "Name of the Ride with GPS service. Do not translate."
+  },
+  "connectionsConnectStrava": "Connect with Strava",
+  "@connectionsConnectStrava": {
+    "description": "Button that starts the Strava authorisation. Strava requires this exact wording."
+  },
+  "connectionsConnectRwgps": "Connect with Ride with GPS",
+  "@connectionsConnectRwgps": {
+    "description": "Button that starts the Ride with GPS authorisation"
+  },
+  "connectionsDisconnect": "Disconnect",
+  "@connectionsDisconnect": {
+    "description": "Button that forgets a connected partner account"
+  },
+  "connectionsConnected": "Connected",
+  "@connectionsConnected": {
+    "description": "Subtitle of a connection tile when no athlete name is known"
+  },
+  "connectionsNotConnected": "Not connected",
+  "@connectionsNotConnected": {
+    "description": "Subtitle of a connection tile with no account"
+  },
+  "connectionsConnectFailed": "Could not connect: {message}",
+  "@connectionsConnectFailed": {
+    "description": "Snack bar shown when an authorisation failed",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "the relay could not be reached"
+      }
+    }
+  },
+  "connectionsDisconnectTitle": "Disconnect {service}?",
+  "@connectionsDisconnectTitle": {
+    "description": "Title of the confirmation dialog before disconnecting",
+    "placeholders": {
+      "service": {
+        "type": "String",
+        "example": "Strava"
+      }
+    }
+  },
+  "connectionsDisconnectBody": "Velorki forgets the access token. Routes and rides already in the library stay.",
+  "@connectionsDisconnectBody": {
+    "description": "Body of the disconnect confirmation dialog"
+  },
+  "connectionsDisconnected": "{service} disconnected",
+  "@connectionsDisconnected": {
+    "description": "Snack bar confirming a disconnect",
+    "placeholders": {
+      "service": {
+        "type": "String",
+        "example": "Strava"
+      }
+    }
+  },
+  "rideDetailUpload": "Upload",
+  "@rideDetailUpload": {
+    "description": "Menu that offers sending the ride to a connected service"
+  },
+  "rideDetailUploadTo": "Upload to {service}",
+  "@rideDetailUploadTo": {
+    "description": "Menu item that uploads the ride to one service",
+    "placeholders": {
+      "service": {
+        "type": "String",
+        "example": "Strava"
+      }
+    }
+  },
+  "rideDetailViewOnStrava": "View on Strava",
+  "@rideDetailViewOnStrava": {
+    "description": "Opens the activity that was created on Strava"
+  },
+  "rideDetailOpenOn": "Open on {service}",
+  "@rideDetailOpenOn": {
+    "description": "Opens the ride on the service it was already uploaded to",
+    "placeholders": {
+      "service": {
+        "type": "String",
+        "example": "Ride with GPS"
+      }
+    }
+  },
+  "rideDetailUploading": "Uploading to {service}…",
+  "@rideDetailUploading": {
+    "description": "Progress message while a ride is being uploaded",
+    "placeholders": {
+      "service": {
+        "type": "String",
+        "example": "Strava"
+      }
+    }
+  },
+  "rideDetailUploaded": "Uploaded to {service}",
+  "@rideDetailUploaded": {
+    "description": "Snack bar confirming a finished upload",
+    "placeholders": {
+      "service": {
+        "type": "String",
+        "example": "Strava"
+      }
+    }
+  },
+  "rideDetailUploadFailed": "Upload failed: {message}",
+  "@rideDetailUploadFailed": {
+    "description": "Snack bar shown when an upload did not work",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "Strava rejected the upload"
+      }
+    }
+  },
+  "routeDetailSendToRwgps": "Send to Ride with GPS",
+  "@routeDetailSendToRwgps": {
+    "description": "Menu item that uploads the saved route to Ride with GPS"
+  },
+  "routeDetailSendToStrava": "Send to Strava",
+  "@routeDetailSendToStrava": {
+    "description": "Menu item that explains how a route reaches Strava"
+  },
+  "routeDetailSendToStravaTitle": "Strava cannot receive routes",
+  "@routeDetailSendToStravaTitle": {
+    "description": "Title of the dialog explaining why a route cannot be sent to Strava"
+  },
+  "routeDetailSendToStravaBody": "Strava's API can read routes but not create them. Velorki exports a GPX file instead: share it, then import it on strava.com.",
+  "@routeDetailSendToStravaBody": {
+    "description": "Body of the dialog explaining why a route cannot be sent to Strava"
+  },
+  "routeDetailSendToStravaAction": "Export GPX",
+  "@routeDetailSendToStravaAction": {
+    "description": "Button that exports the route as a GPX file for Strava"
+  },
+  "routeDetailSent": "Sent to {service}",
+  "@routeDetailSent": {
+    "description": "Snack bar confirming that a route reached a service",
+    "placeholders": {
+      "service": {
+        "type": "String",
+        "example": "Ride with GPS"
+      }
+    }
+  },
+  "routeDetailSendFailed": "Could not send the route: {message}",
+  "@routeDetailSendFailed": {
+    "description": "Snack bar shown when sending a route failed",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "the service could not be reached"
+      }
+    }
+  },
+  "routeDetailOpenSent": "Open",
+  "@routeDetailOpenSent": {
+    "description": "Snack bar action that opens the route that was just created"
+  },
+  "libraryImportFromStrava": "Import from Strava",
+  "@libraryImportFromStrava": {
+    "description": "Library menu item that opens the list of Strava routes"
+  },
+  "libraryImportFromRwgps": "Import from Ride with GPS",
+  "@libraryImportFromRwgps": {
+    "description": "Library menu item that opens the list of Ride with GPS routes"
+  },
+  "externalRoutesTitle": "{service} routes",
+  "@externalRoutesTitle": {
+    "description": "Title of the screen listing a partner account's routes",
+    "placeholders": {
+      "service": {
+        "type": "String",
+        "example": "Strava"
+      }
+    }
+  },
+  "externalRoutesEmpty": "No routes in this {service} account.",
+  "@externalRoutesEmpty": {
+    "description": "Shown when the partner account has no routes",
+    "placeholders": {
+      "service": {
+        "type": "String",
+        "example": "Strava"
+      }
+    }
+  },
+  "externalRoutesNotConnected": "Connect {service} in Settings → Connections first.",
+  "@externalRoutesNotConnected": {
+    "description": "Shown when the route list is opened without a connection",
+    "placeholders": {
+      "service": {
+        "type": "String",
+        "example": "Strava"
+      }
+    }
+  },
+  "externalRoutesFailed": "Could not load the routes: {message}",
+  "@externalRoutesFailed": {
+    "description": "Shown when the route list could not be read",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "Strava is rate limiting Velorki"
+      }
+    }
+  },
+  "externalRoutesImport": "Import",
+  "@externalRoutesImport": {
+    "description": "Button that copies one partner route into the library"
+  },
+  "externalRoutesImported": "{name} imported",
+  "@externalRoutesImported": {
+    "description": "Snack bar confirming that a partner route was imported",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Sunday loop"
+      }
+    }
+  },
+  "externalRoutesImportFailed": "Import failed: {message}",
+  "@externalRoutesImportFailed": {
+    "description": "Snack bar shown when importing a partner route failed",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "the GPX could not be read"
+      }
+    }
+  },
+  "externalRoutesRefresh": "Refresh",
+  "@externalRoutesRefresh": {
+    "description": "Button that fetches the partner route list again"
+  },
+  "externalRoutesFetchedAt": "Read {date}",
+  "@externalRoutesFetchedAt": {
+    "description": "Tells when the cached partner route list was fetched",
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "example": "12 Sept 2026"
+      }
+    }
+  },
+  "externalRouteSubtitle": "{distance} · {ascent} · {date}",
+  "@externalRouteSubtitle": {
+    "description": "Second line of a partner route row",
+    "placeholders": {
+      "distance": {
+        "type": "String",
+        "example": "42.5 km"
+      },
+      "ascent": {
+        "type": "String",
+        "example": "620 m"
+      },
+      "date": {
+        "type": "String",
+        "example": "12 Sept 2026"
+      }
+    }
+  },
+  "integrationsOpenFailed": "Could not open {url}",
+  "@integrationsOpenFailed": {
+    "description": "Snack bar shown when a browser link could not be opened",
+    "placeholders": {
+      "url": {
+        "type": "String",
+        "example": "https://www.strava.com/activities/1"
+      }
+    }
+  },
+  "routeDetailSend": "Send",
+  "@routeDetailSend": {
+    "description": "Button on the route detail that opens the 'send to a service' menu"
   }
 }

@@ -213,6 +213,27 @@ class PlannerController extends _$PlannerController {
     );
   }
 
+  /// Puts an already computed route on the map.
+  ///
+  /// Nothing is routed: [result] is shown as it came back, with [waypoints] as
+  /// the points it was computed from, so the user can look at it, save it to
+  /// the library or edit it — the first edit re-routes as usual. The smart
+  /// loop sheet hands its chosen candidate over this way.
+  void loadComputedRoute({
+    required RouteResult result,
+    required List<Waypoint> waypoints,
+    required RoutingOptions options,
+  }) {
+    _debounce?.cancel();
+    _pending?.cancel('computed route loaded');
+    _pending = null;
+    state = PlannerState(
+      waypoints: normalizeWaypointKinds(waypoints),
+      options: options,
+      route: AsyncData<RouteResult?>(result),
+    );
+  }
+
   /// Remembers which library row the plan belongs to after a save.
   void markSaved(String id, String name) {
     state = state.copyWith(savedRouteId: id, savedRouteName: name);

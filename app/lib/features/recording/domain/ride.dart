@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../core/geo/ride_stats.dart';
+import 'ride_upload.dart';
 
 /// One interval during which the recording was paused.
 class RidePause {
@@ -88,6 +89,7 @@ class Ride {
     required this.geometry,
     this.routeId,
     this.pauses = const <RidePause>[],
+    this.uploads = const <String, RideUpload>{},
     this.notes,
   });
 
@@ -115,6 +117,9 @@ class Ride {
   /// Every pause, in order.
   final List<RidePause> pauses;
 
+  /// Where this ride was uploaded to, keyed by [IntegrationService.id].
+  final Map<String, RideUpload> uploads;
+
   /// Free text the rider added.
   final String? notes;
 
@@ -134,8 +139,15 @@ class Ride {
     return track.isEmpty ? null : BoundingBox.fromPoints(track);
   }
 
+  /// The upload record for the service [serviceId], when there is one.
+  RideUpload? uploadFor(String serviceId) => uploads[serviceId];
+
   /// A copy with the given fields replaced.
-  Ride copyWith({String? name, String? notes}) => Ride(
+  Ride copyWith({
+    String? name,
+    String? notes,
+    Map<String, RideUpload>? uploads,
+  }) => Ride(
     id: id,
     name: name ?? this.name,
     startedAt: startedAt,
@@ -144,6 +156,7 @@ class Ride {
     geometry: geometry,
     routeId: routeId,
     pauses: pauses,
+    uploads: uploads ?? this.uploads,
     notes: notes ?? this.notes,
   );
 

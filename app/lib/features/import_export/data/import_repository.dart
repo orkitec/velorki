@@ -33,21 +33,42 @@ class ImportRepository {
 
   /// Saves [track] as a `routes` row called [name].
   ///
-  /// The `source` follows the format, so the library can tell a GPX import
-  /// from a FIT one and the Strava rules stay applicable to Strava imports
-  /// only.
+  /// Without a [source] the format decides it, so the library can tell a GPX
+  /// import from a FIT one. A route that came out of a partner service passes
+  /// [RouteSource.strava] or [RouteSource.rwgps] instead, which is what later
+  /// rules key off — AI descriptions are disabled for Strava-sourced routes,
+  /// and Strava's seven-day cache rule applies to them.
+  ///
+  /// [externalIds] and [externalFetchedAt] record where it came from; they are
+  /// written after the row exists, so an import without them is unchanged.
   Future<SavedRoute> saveAsRoute({
     required String name,
     required ImportedTrack track,
-  }) => _routes.saveImportedRoute(
-    name: name,
-    points: track.points,
-    source: switch (track.format) {
-      ImportFormat.gpx => RouteSource.importedGpx,
-      ImportFormat.fit => RouteSource.importedFit,
-    },
-    description: track.description,
-  );
+    RouteSource? source,
+    Map<String, Object?>? externalIds,
+    DateTime? externalFetchedAt,
+  }) async {
+    final saved = await _routes.saveImportedRoute(
+      name: name,
+      points: track.points,
+      source: source ?? sourceForFormat(track.format),
+      description: track.description,
+    );
+    if (externalIds != null && externalIds.isNotEmpty) {
+      await _routes.markExternal(
+        saved.id,
+        externalIds: externalIds,
+        fetchedAt: externalFetchedAt ?? _clock(),
+      );
+    }
+    return saved;
+  }
+
+  /// The source a plain file import gets.
+  static RouteSource sourceForFormat(ImportFormat format) => switch (format) {
+    ImportFormat.gpx => RouteSource.importedGpx,
+    ImportFormat.fit => RouteSource.importedFit,
+  };
 
   /// Saves [track] as a `rides` row called [name] and returns it.
   ///

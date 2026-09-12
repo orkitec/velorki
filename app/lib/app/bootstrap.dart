@@ -10,6 +10,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/files/track_exporter.dart';
 import '../core/files/track_exporter_impl.dart';
 import '../features/import_export/application/incoming_import_listener.dart';
+import '../features/integrations/common/data/external_route_cache.dart';
+import '../features/integrations/common/data/oauth_flow.dart';
 import '../features/map/presentation/map_view.dart';
 import '../features/planner/presentation/planner_map_host.dart';
 import '../features/recording/data/recording_recovery.dart';
@@ -39,6 +41,15 @@ Future<void> bootstrap() async {
   // Looks for a ride that was left unfinished by a crash or a force quit; the
   // record tab awaits the same future and offers Resume or Finish.
   unawaited(RecordingRecovery.checkOnLaunch());
+
+  // Strava's API terms allow its data to be cached for seven days. Enforcing
+  // that at launch means the rule holds even for an app that is never opened
+  // on the Strava screen again.
+  unawaited(container.read(externalRouteListCacheProvider).purgeExpired());
+
+  // Subscribes the OAuth flows to the deep-link stream before anything can
+  // arrive: on Android the app can be resumed by the callback intent itself.
+  container.read(oauthDeepLinksProvider);
 
   // Attached before the first frame so a file the app was launched with is
   // not missed.

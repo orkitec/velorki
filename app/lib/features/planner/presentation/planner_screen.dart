@@ -8,6 +8,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../map/domain/map_controller.dart';
 import '../../search/domain/search_result.dart';
 import '../../search/presentation/search_field.dart';
+import '../../smart_loop/presentation/smart_loop_sheet.dart';
 import '../application/planner_controller.dart';
 import '../application/planner_map_binding.dart';
 import '../data/route_repository.dart';
@@ -87,6 +88,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
       SnackBar(content: Text(l10n.plannerAlternativesFailed)),
     );
   }
+
+  /// Opens the smart loop sheet, handing it the planner's map so it can draw
+  /// its candidates on it.
+  Future<void> _smartLoop() => showSmartLoopSheet(context, map: _map);
 
   Future<void> _save() async {
     final state = ref.read(plannerControllerProvider);
@@ -207,6 +212,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
                   _PlannerActions(
                     state: state,
                     onAlternatives: _loadAlternatives,
+                    onSmartLoop: _smartLoop,
                     onSave: _save,
                   ),
                 ],
@@ -392,11 +398,13 @@ class _PlannerActions extends ConsumerWidget {
   const _PlannerActions({
     required this.state,
     required this.onAlternatives,
+    required this.onSmartLoop,
     required this.onSave,
   });
 
   final PlannerState state;
   final Future<void> Function() onAlternatives;
+  final Future<void> Function() onSmartLoop;
   final Future<void> Function() onSave;
 
   @override
@@ -436,6 +444,11 @@ class _PlannerActions extends ConsumerWidget {
                 )
               : const Icon(Icons.alt_route),
           label: Text(l10n.plannerAlternatives),
+        ),
+        TextButton.icon(
+          onPressed: () => unawaited(onSmartLoop()),
+          icon: const Icon(Icons.loop),
+          label: Text(l10n.loopAction),
         ),
         FilledButton.icon(
           onPressed: state.canSave ? () => unawaited(onSave()) : null,

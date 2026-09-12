@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../import_export/presentation/import_file_action.dart';
+import '../../integrations/presentation/import_from_service_menu.dart';
 import '../../planner/data/route_repository.dart';
 import '../../planner/domain/saved_route.dart';
 import '../../planner/presentation/route_format.dart';
@@ -25,7 +26,7 @@ class LibraryScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.tabLibrary),
-        actions: const [ImportFileButton()],
+        actions: const [ImportFromServiceButton(), ImportFileButton()],
       ),
       body: routes.when(
         loading: () => const Center(child: CircularProgressIndicator()),

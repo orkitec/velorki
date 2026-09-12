@@ -32,6 +32,12 @@ class RidesDao extends DatabaseAccessor<VelorkiDatabase> with _$RidesDaoMixin {
     rides,
   )..where((t) => t.id.equals(id))).write(RidesCompanion(name: Value(name)));
 
+  /// Replaces the `uploads_json` column of [id]; `null` clears it.
+  Future<int> setRideUploads(String id, String? uploadsJson) =>
+      (update(rides)..where((t) => t.id.equals(id))).write(
+        RidesCompanion(uploadsJson: Value(uploadsJson)),
+      );
+
   Future<int> deleteRide(String id) =>
       (delete(rides)..where((t) => t.id.equals(id))).go();
 

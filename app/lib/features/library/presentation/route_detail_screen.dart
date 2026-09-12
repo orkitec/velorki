@@ -8,6 +8,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 import '../../../app/router.dart';
 import '../../../core/files/track_exporter.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../integrations/presentation/route_send_menu.dart';
 import '../../map/domain/map_controller.dart';
 import '../../planner/application/planner_controller.dart';
 import '../../planner/application/planner_map_binding.dart';
@@ -166,6 +167,10 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
                               child: Text(l10n.exportFitCourse),
                             ),
                           ],
+                        ),
+                        RouteSendMenu(
+                          route: saved,
+                          onExportGpx: () => _export(saved, TrackFormat.gpx),
                         ),
                       ],
                     ),
