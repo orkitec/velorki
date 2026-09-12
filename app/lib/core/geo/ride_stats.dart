@@ -75,6 +75,12 @@ class RideStats {
     return seconds <= 0 ? 0 : distanceM / seconds;
   }
 
+  /// Whether the track carried timestamps at all.
+  ///
+  /// A file can be a bare list of coordinates; then there is no ride to
+  /// measure, only a line on the map.
+  bool get hasTime => startedAt != null && endedAt != null;
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -274,4 +280,95 @@ RideStats computeRideStats(
     accumulator.add(point);
   }
   return accumulator.stats;
+}
+
+/// What is left of a track that carries no timestamps: a line and its climb.
+///
+/// A planned or imported *route* has no ride in it — no times, so no moving
+/// time, no speed and no pauses to segment it by. Measuring it with
+/// [RideStatsAccumulator] would report zero distance, because the accumulator
+/// treats a segment it cannot time as a break; this is the honest answer for
+/// that case instead.
+@immutable
+class RouteGeometryStats {
+  /// Creates a set of geometry statistics.
+  const RouteGeometryStats({
+    this.distanceM = 0,
+    this.ascentM = 0,
+    this.descentM = 0,
+  });
+
+  /// Great-circle length of the line in metres.
+  final double distanceM;
+
+  /// Metres climbed, with [elevationHysteresisM] of hysteresis.
+  final double ascentM;
+
+  /// Metres descended, with [elevationHysteresisM] of hysteresis.
+  final double descentM;
+
+  @override
+  String toString() =>
+      'RouteGeometryStats(${distanceM.toStringAsFixed(1)} m, '
+      '+${ascentM.toStringAsFixed(1)} -${descentM.toStringAsFixed(1)} m)';
+}
+
+/// Length and elevation gain of [points], ignoring their timestamps.
+///
+/// The elevation uses the same anchor-and-hysteresis rule as
+/// [RideStatsAccumulator], so a route and a ride over the same line report the
+/// same climb. Points without an elevation are skipped rather than read as
+/// zero.
+RouteGeometryStats computeRouteGeometryStats(
+  List<TrackPoint> points, {
+  double hysteresisM = elevationHysteresisM,
+}) {
+  if (points.isEmpty) return const RouteGeometryStats();
+
+  double? anchor;
+  var ascent = 0.0;
+  var descent = 0.0;
+  for (final point in points) {
+    final ele = point.ele;
+    if (ele == null || !ele.isFinite) continue;
+    if (anchor == null) {
+      anchor = ele;
+      continue;
+    }
+    final delta = ele - anchor;
+    if (delta >= hysteresisM) {
+      ascent += delta;
+      anchor = ele;
+    } else if (delta <= -hysteresisM) {
+      descent += -delta;
+      anchor = ele;
+    }
+  }
+
+  return RouteGeometryStats(
+    distanceM: polylineLengthMeters(
+      points.map((p) => p.pos).toList(growable: false),
+    ),
+    ascentM: ascent,
+    descentM: descent,
+  );
+}
+
+/// The statistics of a track that came out of a file.
+///
+/// A file with timestamps is measured exactly like a recorded ride, pause gaps
+/// and GPS jumps included, so an imported ride and a recorded one are
+/// comparable. A file without timestamps carries no ride at all: its distance
+/// and its climb then come from the geometry
+/// ([computeRouteGeometryStats]) and every duration stays zero.
+RideStats computeImportedStats(List<TrackPoint> points) {
+  final ridden = computeRideStats(points);
+  if (ridden.hasTime) return ridden;
+  final geometry = computeRouteGeometryStats(points);
+  return RideStats(
+    distanceM: geometry.distanceM,
+    ascentM: geometry.ascentM,
+    descentM: geometry.descentM,
+    pointCount: points.length,
+  );
 }

@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:velorki_geo/velorki_geo.dart';
 
-import 'ride_stats.dart';
+import '../../../core/geo/ride_stats.dart';
 
 /// One interval during which the recording was paused.
 class RidePause {

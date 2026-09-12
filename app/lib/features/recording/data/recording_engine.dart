@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../../core/geo/ride_stats.dart';
 import '../domain/recording_snapshot.dart';
 import '../domain/recording_state.dart';
 import '../domain/ride.dart';
-import '../domain/ride_stats.dart';
 import 'recording_journal.dart';
 
 /// The recorder itself: fixes in, journal and statistics out.

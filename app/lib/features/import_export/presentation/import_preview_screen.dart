@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/router.dart';
-import '../../../core/geo/track_stats.dart';
+import '../../../core/geo/ride_stats.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/domain/map_controller.dart';
 import '../../planner/application/planner_map_binding.dart';
@@ -140,7 +140,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
     ImportCandidate candidate,
   ) {
     final track = candidate.track;
-    final stats = computeTrackStats(track.points);
+    final stats = computeImportedStats(track.points);
     final duration = stats.hasTime
         ? stats.movingTime
         : RouteProfile.trekking.estimatedTime(stats.distanceM);
@@ -220,7 +220,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
     );
   }
 
-  String _timeLine(AppLocalizations l10n, TrackStats stats) {
+  String _timeLine(AppLocalizations l10n, RideStats stats) {
     final start = stats.startedAt;
     final end = stats.endedAt;
     if (start == null || end == null) return l10n.importNoTime;

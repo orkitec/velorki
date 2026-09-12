@@ -7,8 +7,8 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../core/db/daos/rides_dao.dart';
 import '../../../core/db/database.dart';
+import '../../../core/geo/ride_stats.dart';
 import '../domain/ride.dart';
-import '../domain/ride_stats.dart';
 
 /// Reads and writes the `rides` table in the recorder's terms.
 class RideRepository {

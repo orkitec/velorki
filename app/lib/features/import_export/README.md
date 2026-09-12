@@ -67,8 +67,14 @@ span, and saves through `ImportRepository`:
   `source: importedGpx | importedFit`, waypoints defaulting to the first and
   last point;
 * **ride** → a `rides` row with the statistics from
-  `lib/core/geo/track_stats.dart` (moving time at a 1 km/h threshold, ascent
-  and descent with 3 m hysteresis).
+  `lib/core/geo/ride_stats.dart` — the same code the recorder runs live, so an
+  imported ride is measured exactly like a recorded one: moving time at a
+  1 km/h threshold, ascent and descent with 3 m hysteresis, fixes implying more
+  than 30 m/s dropped as GPS jumps, and a gap of more than 30 s treated as a
+  break that contributes neither distance nor moving time. A file without
+  timestamps has no ride in it, so `computeImportedStats` falls back to
+  `computeRouteGeometryStats`: distance and climb from the geometry, every
+  duration zero.
 
 ## Export
 

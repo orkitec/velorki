@@ -5,7 +5,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../core/db/daos/rides_dao.dart';
 import '../../../core/db/database.dart';
-import '../../../core/geo/track_stats.dart';
+import '../../../core/geo/ride_stats.dart';
 import '../../planner/data/route_repository.dart';
 import '../../planner/domain/saved_route.dart';
 import '../domain/imported_track.dart';
@@ -51,10 +51,12 @@ class ImportRepository {
 
   /// Saves [track] as a `rides` row called [name] and returns it.
   ///
-  /// Every statistic comes from [computeTrackStats], so an imported ride is
-  /// measured exactly like a recorded one. A file without timestamps still
-  /// imports: it gets a zero moving time and the current instant as its start,
-  /// which is the honest answer for a track that never said when it happened.
+  /// Every statistic comes from [computeImportedStats], so an imported ride is
+  /// measured with the very same rules as a recorded one — pause gaps and
+  /// implausible jumps included. A file without timestamps still imports: it
+  /// keeps its distance and its climb but gets a zero moving time and the
+  /// current instant as its start, which is the honest answer for a track that
+  /// never said when it happened.
   Future<RideRow> saveAsRide({
     required String name,
     required ImportedTrack track,
@@ -62,7 +64,7 @@ class ImportRepository {
     if (track.points.isEmpty) {
       throw ArgumentError.value(track, 'track', 'an imported ride is empty');
     }
-    final stats = computeTrackStats(track.points);
+    final stats = computeImportedStats(track.points);
     final startedAt = stats.startedAt ?? _clock();
     final row = RideRow(
       id: _uuid.v4(),

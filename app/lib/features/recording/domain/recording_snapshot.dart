@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
-import 'ride_stats.dart';
+import '../../../core/geo/ride_stats.dart';
 
 /// What the recorder is doing.
 enum RecordingStatus {

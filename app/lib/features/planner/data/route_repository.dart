@@ -9,7 +9,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../core/db/daos/routes_dao.dart';
 import '../../../core/db/database.dart';
-import '../../../core/geo/track_stats.dart';
+import '../../../core/geo/ride_stats.dart';
 import '../domain/route_profile.dart';
 import '../domain/routing_options.dart';
 import '../domain/saved_route.dart';
@@ -105,7 +105,7 @@ class RouteRepository {
     }
     final now = _clock();
     final existing = id == null ? null : await _dao.routeById(id);
-    final elevation = elevationChange(points);
+    final geometry = computeRouteGeometryStats(points);
     final ends = normalizeWaypointKinds([
       Waypoint(pos: points.first.pos),
       if (points.length > 1) Waypoint(pos: points.last.pos),
@@ -118,9 +118,9 @@ class RouteRepository {
       profile: options.profile,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
-      distanceM: trackDistanceMeters(points),
-      ascentM: elevation.ascentM,
-      descentM: elevation.descentM,
+      distanceM: geometry.distanceM,
+      ascentM: geometry.ascentM,
+      descentM: geometry.descentM,
       bounds: BoundingBox.fromPoints(points.map((p) => p.pos)),
       geometryBlob: PackedTrack.encode(points),
       waypoints: waypoints ?? ends,

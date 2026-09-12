@@ -4,9 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/geo/ride_stats.dart';
 import '../domain/recording_snapshot.dart';
 import '../domain/recording_state.dart';
-import '../domain/ride_stats.dart';
 import 'recording_journal.dart';
 
 /// What the launch check found.
