@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="RideWithGPS">
+  <metadata>
+    <name>Starnberger See loop</name>
+  </metadata>
+  <wpt lat="47.998000" lon="11.340000">
+    <name>Start</name>
+  </wpt>
+  <rte>
+    <name>Starnberger See loop</name>
+    <rtept lat="47.998000" lon="11.340000"><ele>590.0</ele></rtept>
+    <rtept lat="48.002000" lon="11.345000"><ele>594.0</ele></rtept>
+    <rtept lat="48.006000" lon="11.351000"><ele>601.0</ele></rtept>
+    <rtept lat="48.010000" lon="11.356000"><ele>598.0</ele></rtept>
+  </rte>
+</gpx>

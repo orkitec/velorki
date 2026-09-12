@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../features/import_export/domain/imported_track.dart';
+import '../features/import_export/presentation/import_preview_screen.dart';
 import '../features/library/presentation/library_screen.dart';
 import '../features/library/presentation/route_detail_screen.dart';
 import '../features/planner/presentation/planner_screen.dart';
 import '../features/recording/presentation/recording_screen.dart';
+import '../features/recording/presentation/ride_detail_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../l10n/generated/app_localizations.dart';
 
@@ -15,6 +18,10 @@ const String plannerRoute = '/plan';
 const String recordingRoute = '/record';
 const String libraryRoute = '/library';
 const String settingsRoute = '/settings';
+
+/// The import preview, outside the tab shell so it covers whichever tab is
+/// showing when a file arrives. The [ImportCandidate] travels in `extra`.
+const String importRoute = '/import';
 
 /// Route detail, relative to [libraryRoute].
 const String routeDetailPath = 'route/:id';
@@ -32,6 +39,11 @@ GoRouter createRouter({String initialLocation = plannerRoute}) {
     navigatorKey: GlobalKey<NavigatorState>(debugLabel: 'root'),
     initialLocation: initialLocation,
     routes: [
+      GoRoute(
+        path: importRoute,
+        builder: (context, state) =>
+            ImportPreviewScreen(candidate: state.extra as ImportCandidate?),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => HomeShell(shell: shell),
         branches: [
@@ -48,6 +60,14 @@ GoRouter createRouter({String initialLocation = plannerRoute}) {
               GoRoute(
                 path: recordingRoute,
                 builder: (context, state) => const RecordingScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'ride/:id',
+                    builder: (context, state) => RideDetailScreen(
+                      rideId: state.pathParameters['id'] ?? '',
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

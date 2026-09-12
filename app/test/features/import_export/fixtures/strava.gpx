@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx creator="StravaGPX" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.1" xmlns="http://www.topografix.com/GPX/1/1" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www.garmin.com/xmlschemas/GpxExtensionsv3.xsd http://www.garmin.com/xmlschemas/TrackPointExtension/v1 http://www.garmin.com/xmlschemas/TrackPointExtensionv1.xsd" xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xmlns:ns3="http://www.garmin.com/xmlschemas/TrackPointExtension/v1">
+  <metadata>
+    <time>2024-04-20T06:12:05Z</time>
+    <name>Afternoon Ride</name>
+  </metadata>
+  <trk>
+    <name>Afternoon Ride</name>
+    <type>1</type>
+    <trkseg>
+      <trkpt lat="48.1371000" lon="11.5754000">
+        <ele>519.4</ele>
+        <time>2024-04-20T06:12:05Z</time>
+        <extensions>
+          <gpxtpx:TrackPointExtension>
+            <gpxtpx:atemp>18</gpxtpx:atemp>
+            <gpxtpx:hr>121</gpxtpx:hr>
+            <gpxtpx:cad>78</gpxtpx:cad>
+          </gpxtpx:TrackPointExtension>
+        </extensions>
+      </trkpt>
+      <trkpt lat="48.1372000" lon="11.5755000">
+        <ele>519.8</ele>
+        <time>2024-04-20T06:12:10Z</time>
+        <extensions>
+          <ns3:TrackPointExtension>
+            <ns3:atemp>18.5</ns3:atemp>
+            <ns3:hr>124</ns3:hr>
+            <ns3:cad>80</ns3:cad>
+          </ns3:TrackPointExtension>
+        </extensions>
+      </trkpt>
+      <trkpt lat="48.1373000" lon="11.5756000">
+        <ele>520.2</ele>
+        <time>2024-04-20T06:12:15Z</time>
+        <extensions>
+          <TrackPointExtension>
+            <hr>130</hr>
+          </TrackPointExtension>
+        </extensions>
+      </trkpt>
+      <trkpt lat="48.1374000" lon="11.5757000">
+        <ele>520.6</ele>
+        <time>2024-04-20T06:12:20Z</time>
+        <extensions>
+          <hr>133</hr>
+          <cad>82</cad>
+        </extensions>
+      </trkpt>
+      <trkpt lat="48.1375000" lon="11.5758000">
+        <ele>521.0</ele>
+        <time>2024-04-20T06:12:25Z</time>
+      </trkpt>
+    </trkseg>
+  </trk>
+</gpx>

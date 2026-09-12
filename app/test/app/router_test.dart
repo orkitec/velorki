@@ -71,10 +71,7 @@ void main() {
     await _pumpShell(tester);
 
     await _tapTab(tester, 'Record');
-    expect(
-      find.text('Ride recording arrives with the recording milestone.'),
-      findsOneWidget,
-    );
+    expect(find.text('Ready to ride'), findsOneWidget);
 
     await _tapTab(tester, 'Library');
     expect(find.textContaining('No saved routes yet.'), findsOneWidget);

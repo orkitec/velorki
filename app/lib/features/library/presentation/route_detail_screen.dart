@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/router.dart';
+import '../../../core/files/track_exporter.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/domain/map_controller.dart';
 import '../../planner/application/planner_controller.dart';
@@ -52,6 +53,23 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
     if (positions.isEmpty) return;
     await map.setRouteLine(mainRouteLineId, positions);
     await map.fitBounds(BoundingBox.fromPoints(positions));
+  }
+
+  Future<void> _export(SavedRoute route, TrackFormat format) async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref
+          .read(trackExporterProvider)
+          .share(
+            name: route.name,
+            points: route.geometry,
+            kind: TrackKind.route,
+            format: format,
+          );
+    } on Object {
+      messenger.showSnackBar(SnackBar(content: Text(l10n.exportFailed)));
+    }
   }
 
   void _openInPlanner(SavedRoute route) {
@@ -125,13 +143,29 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
                           icon: const Icon(Icons.route_outlined),
                           label: Text(l10n.routeDetailOpenInPlanner),
                         ),
-                        Tooltip(
-                          message: l10n.routeDetailExportSoon,
-                          child: OutlinedButton.icon(
-                            onPressed: null,
-                            icon: const Icon(Icons.ios_share),
-                            label: Text(l10n.routeDetailExport),
-                          ),
+                        // A route exports as a GPX <rte> or as a FIT course;
+                        // the activity forms belong to a ride.
+                        MenuAnchor(
+                          builder: (context, controller, _) =>
+                              OutlinedButton.icon(
+                                onPressed: () => controller.isOpen
+                                    ? controller.close()
+                                    : controller.open(),
+                                icon: const Icon(Icons.ios_share),
+                                label: Text(l10n.routeDetailExport),
+                              ),
+                          menuChildren: [
+                            MenuItemButton(
+                              onPressed: () =>
+                                  unawaited(_export(saved, TrackFormat.gpx)),
+                              child: Text(l10n.exportGpxRoute),
+                            ),
+                            MenuItemButton(
+                              onPressed: () =>
+                                  unawaited(_export(saved, TrackFormat.fit)),
+                              child: Text(l10n.exportFitCourse),
+                            ),
+                          ],
                         ),
                       ],
                     ),

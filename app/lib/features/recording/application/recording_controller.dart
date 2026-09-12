@@ -1,0 +1,198 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:velorki_geo/velorki_geo.dart';
+
+import '../data/recording_service.dart';
+import '../domain/recording_snapshot.dart';
+import '../domain/recording_state.dart';
+import '../domain/ride.dart';
+
+/// What the record tab draws.
+@immutable
+class RecordingUiState {
+  /// Creates the state.
+  const RecordingUiState({
+    this.snapshot,
+    this.track = const <LatLng>[],
+    this.busy = false,
+    this.followedRouteId,
+  });
+
+  /// The latest snapshot, `null` while nothing is being recorded.
+  final RecordingSnapshot? snapshot;
+
+  /// The track so far, grown one snapshot at a time rather than resent.
+  final List<LatLng> track;
+
+  /// Whether a start or stop is in flight, so the buttons can be disabled.
+  final bool busy;
+
+  /// The saved route the rider chose to follow, if any.
+  final String? followedRouteId;
+
+  /// Whether a ride is being recorded, paused or not.
+  bool get isRecording => snapshot?.status.isRecording ?? false;
+
+  /// Whether the recorder is paused, by the rider or by auto-pause.
+  bool get isPaused => snapshot?.status == RecordingStatus.paused;
+
+  /// A copy with the given fields replaced.
+  RecordingUiState copyWith({
+    RecordingSnapshot? snapshot,
+    List<LatLng>? track,
+    bool? busy,
+    String? followedRouteId,
+    bool clearSnapshot = false,
+    bool clearRoute = false,
+  }) => RecordingUiState(
+    snapshot: clearSnapshot ? null : snapshot ?? this.snapshot,
+    track: track ?? this.track,
+    busy: busy ?? this.busy,
+    followedRouteId: clearRoute
+        ? null
+        : followedRouteId ?? this.followedRouteId,
+  );
+}
+
+/// Drives the recorder from the UI and keeps the track line for the map.
+///
+/// Everything that talks to the platform lives in [RecordingService]; this
+/// class only decides what the screen sees, which is what makes the widget
+/// tests a matter of handing in a fake service.
+class RecordingController extends Notifier<RecordingUiState> {
+  StreamSubscription<RecordingSnapshot>? _subscription;
+
+  @override
+  RecordingUiState build() {
+    final service = ref.watch(recordingServiceProvider);
+    _subscription = service.snapshots.listen(_onSnapshot);
+    ref.onDispose(() => unawaited(_subscription?.cancel()));
+    final last = service.lastSnapshot;
+    return RecordingUiState(
+      snapshot: last,
+      track: last?.lastPosition == null
+          ? const <LatLng>[]
+          : <LatLng>[last!.lastPosition!],
+    );
+  }
+
+  RecordingService get _service => ref.read(recordingServiceProvider);
+
+  /// Chooses the saved route to follow, or clears the choice with `null`.
+  void selectRoute(String? routeId) => state = routeId == null
+      ? state.copyWith(clearRoute: true)
+      : state.copyWith(followedRouteId: routeId);
+
+  /// Starts a ride.
+  ///
+  /// Throws [RecordingException] when the platform refused to start the
+  /// recorder; the caller shows the message.
+  Future<void> start({required String notificationTitle}) async {
+    if (state.isRecording || state.busy) return;
+    state = state.copyWith(busy: true, track: const <LatLng>[]);
+    try {
+      await _service.start(
+        notificationTitle: notificationTitle,
+        routeId: state.followedRouteId,
+      );
+    } finally {
+      state = state.copyWith(busy: false);
+    }
+  }
+
+  /// Suspends the recording.
+  Future<void> pause() => _service.pause();
+
+  /// Continues the recording.
+  Future<void> resume() => _service.resume();
+
+  /// Finishes the ride; returns `null` when too little was recorded to keep.
+  Future<Ride?> stop({required String rideName}) async {
+    if (state.busy) return null;
+    state = state.copyWith(busy: true);
+    try {
+      final ride = await _service.stop(rideName: rideName);
+      state = const RecordingUiState();
+      return ride;
+    } finally {
+      if (state.busy) state = state.copyWith(busy: false);
+    }
+  }
+
+  /// Listens to a recorder that outlived the UI and puts its track back on the
+  /// map. Returns whether one was still running.
+  Future<bool> reattach(RecordingState recording) async {
+    final running = await _service.reattach();
+    if (!running) return false;
+    state = state.copyWith(
+      track: await _journalTrack(recording.rideId),
+      followedRouteId: recording.routeId,
+    );
+    return true;
+  }
+
+  /// Continues an interrupted recording where it left off.
+  Future<void> resumeInterrupted(
+    RecordingState recording, {
+    required String notificationTitle,
+  }) async {
+    state = state.copyWith(busy: true, followedRouteId: recording.routeId);
+    try {
+      // The recorder first: every second spent reading the journal back is a
+      // second of the ride that is not being recorded.
+      await _service.resumeInterrupted(
+        recording,
+        notificationTitle: notificationTitle,
+      );
+      state = state.copyWith(track: await _journalTrack(recording.rideId));
+    } finally {
+      state = state.copyWith(busy: false);
+    }
+  }
+
+  /// Turns an interrupted recording into a ride without continuing it.
+  Future<Ride?> finishInterrupted(
+    RecordingState recording, {
+    required String rideName,
+  }) async {
+    final ride = await _service.finishInterrupted(
+      recording,
+      rideName: rideName,
+    );
+    state = const RecordingUiState();
+    return ride;
+  }
+
+  /// Throws an interrupted recording away.
+  Future<void> discardInterrupted(RecordingState recording) async {
+    await _service.discardInterrupted(recording);
+    state = const RecordingUiState();
+  }
+
+  void _onSnapshot(RecordingSnapshot snapshot) {
+    if (!snapshot.status.isRecording) {
+      state = state.copyWith(clearSnapshot: true);
+      return;
+    }
+    state = state.copyWith(
+      snapshot: snapshot,
+      track: snapshot.newPoints.isEmpty
+          ? state.track
+          : <LatLng>[...state.track, ...snapshot.newPoints],
+    );
+  }
+
+  Future<List<LatLng>> _journalTrack(String rideId) async {
+    final store = await ref.read(recordingStoreProvider);
+    final points = await store.readJournal(rideId);
+    return points.map((p) => p.pos).toList(growable: false);
+  }
+}
+
+/// The record tab's state.
+final recordingControllerProvider =
+    NotifierProvider<RecordingController, RecordingUiState>(
+      RecordingController.new,
+    );

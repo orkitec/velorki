@@ -12,6 +12,10 @@ class RidesDao extends DatabaseAccessor<VelorkiDatabase> with _$RidesDaoMixin {
 
   Stream<List<RideRow>> watchRides() => _ordered().watch();
 
+  /// The [limit] newest rides, for the "recent rides" block of the record tab.
+  Stream<List<RideRow>> watchRecentRides({int limit = 5}) =>
+      (_ordered()..limit(limit)).watch();
+
   Future<RideRow?> rideById(String id) =>
       (select(rides)..where((t) => t.id.equals(id))).getSingleOrNull();
 
@@ -22,6 +26,11 @@ class RidesDao extends DatabaseAccessor<VelorkiDatabase> with _$RidesDaoMixin {
       into(rides).insertOnConflictUpdate(ride);
 
   Future<bool> updateRide(RideRow ride) => update(rides).replace(ride);
+
+  /// Gives the ride with [id] a new [name]; unknown ids change nothing.
+  Future<int> renameRide(String id, String name) => (update(
+    rides,
+  )..where((t) => t.id.equals(id))).write(RidesCompanion(name: Value(name)));
 
   Future<int> deleteRide(String id) =>
       (delete(rides)..where((t) => t.id.equals(id))).go();

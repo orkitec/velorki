@@ -138,13 +138,9 @@ void main() {
     expect(h.map.fittedBounds, isNotNull);
 
     expect(find.text('Open in planner'), findsOneWidget);
-    final export = tester.widget<OutlinedButton>(
-      find.ancestor(
-        of: find.text('Export'),
-        matching: find.byType(OutlinedButton),
-      ),
-    );
-    expect(export.onPressed, isNull);
+    // The export menu itself is covered by
+    // test/features/import_export/route_export_test.dart.
+    expect(find.widgetWithText(OutlinedButton, 'Export'), findsOneWidget);
     await unmountApp(tester);
   });
 }

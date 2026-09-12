@@ -9,6 +9,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../core/db/daos/routes_dao.dart';
 import '../../../core/db/database.dart';
+import '../../../core/geo/track_stats.dart';
 import '../domain/route_profile.dart';
 import '../domain/routing_options.dart';
 import '../domain/saved_route.dart';
@@ -76,6 +77,54 @@ class RouteRepository {
       waypoints: waypoints,
       options: options,
       surfaceStats: route.messages.isEmpty ? null : route.surfaceStats,
+    );
+    await _dao.upsertRoute(toCompanion(saved));
+    return saved;
+  }
+
+  /// Writes a route that came out of a file rather than out of the router.
+  ///
+  /// There is no [RouteResult] here — nobody asked BRouter — so the distance
+  /// and the elevation gain are computed from the geometry itself, and the
+  /// surface statistics stay empty. [waypoints] defaults to the first and the
+  /// last point, which is what the planner needs to re-route the import later.
+  ///
+  /// [source] says which decoder produced it, so the library can tell a GPX
+  /// import from a FIT one.
+  Future<SavedRoute> saveImportedRoute({
+    required String name,
+    required List<TrackPoint> points,
+    required RouteSource source,
+    String? id,
+    String? description,
+    List<Waypoint>? waypoints,
+    RoutingOptions options = const RoutingOptions(),
+  }) async {
+    if (points.isEmpty) {
+      throw ArgumentError.value(points, 'points', 'an imported route is empty');
+    }
+    final now = _clock();
+    final existing = id == null ? null : await _dao.routeById(id);
+    final elevation = elevationChange(points);
+    final ends = normalizeWaypointKinds([
+      Waypoint(pos: points.first.pos),
+      if (points.length > 1) Waypoint(pos: points.last.pos),
+    ]);
+    final saved = SavedRoute(
+      id: id ?? _uuid.v4(),
+      name: name,
+      description: description,
+      source: source,
+      profile: options.profile,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+      distanceM: trackDistanceMeters(points),
+      ascentM: elevation.ascentM,
+      descentM: elevation.descentM,
+      bounds: BoundingBox.fromPoints(points.map((p) => p.pos)),
+      geometryBlob: PackedTrack.encode(points),
+      waypoints: waypoints ?? ends,
+      options: options,
     );
     await _dao.upsertRoute(toCompanion(saved));
     return saved;

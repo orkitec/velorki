@@ -143,6 +143,7 @@ Future<PlannerHarness> pumpApp(
   WidgetTester tester, {
   String initialLocation = libraryRoute,
   PlannerHarness? harness,
+  List<Override> extraOverrides = const <Override>[],
   Size surfaceSize = const Size(1000, 2000),
 }) async {
   final h = harness ?? PlannerHarness();
@@ -155,7 +156,7 @@ Future<PlannerHarness> pumpApp(
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: h.overrides(prefs),
+      overrides: [...h.overrides(prefs), ...extraOverrides],
       child: MaterialApp.router(
         theme: buildLightTheme(),
         localizationsDelegates: const [

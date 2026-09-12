@@ -39,7 +39,9 @@ dependencies:
   uuid: ^4.6.0
   # Workspace members, resolved from packages/ (no version constraint).
   velorki_brouter:
+  velorki_fit:
   velorki_geo:
+  velorki_gpx:
   wakelock_plus: ^1.8.0
 
 dev_dependencies:
