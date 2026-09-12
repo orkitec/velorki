@@ -32,6 +32,16 @@ jobs:
       - run: flutter analyze --fatal-infos lib test
       - run: dart analyze --fatal-infos lib test
       - run: flutter test --coverage
+      - name: Fetch the BRouter oracle tiles (parity tests)
+        # Exit 3 means brouter.de rebuilt the tiles since the corpus was
+        # recorded; the tile-backed tests then skip instead of failing.
+        working-directory: tools/brouter-oracle
+        run: |
+          if ./fetch.sh; then
+            echo "BROUTER_SEGMENTS_DIR=$PWD/.cache/segments4" >> "$GITHUB_ENV"
+          else
+            echo "::warning::oracle tiles changed upstream; skipping tile-backed brouter_dart tests"
+          fi
       - name: package tests
         run: |
           for p in packages/*/; do
