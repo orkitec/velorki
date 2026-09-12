@@ -8,6 +8,8 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../assistant/domain/intent_resolver.dart';
 import '../../assistant/presentation/assistant_sheet.dart';
 import '../../map/domain/map_controller.dart';
+import '../../routing_tiles/presentation/missing_tiles_banner.dart';
+import '../../routing_tiles/presentation/routing_source_chip.dart';
 import '../../search/domain/search_result.dart';
 import '../../search/presentation/search_field.dart';
 import '../../smart_loop/presentation/smart_loop_sheet.dart';
@@ -156,6 +158,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
       final error = next.error;
       if (error == null || error == previous?.error || !mounted) return;
       if (error == noRoutingBackendError) return;
+      // Missing tiles are shown as a banner with a download action in the
+      // sheet; a snack bar the rider cannot act on would only be in the way.
+      if (next.missingTiles.isNotEmpty) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.plannerRoutingFailed(error))));
@@ -205,7 +210,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
             ),
           ),
           DraggableScrollableSheet(
-            initialChildSize: 0.28,
+            // 0.28 left the action row below the fold on a 1080x2400 screen.
+            initialChildSize: 0.34,
             minChildSize: 0.12,
             maxChildSize: 0.85,
             builder: (context, scrollController) => Material(
@@ -335,6 +341,8 @@ class _SheetBody extends StatelessWidget {
 
     final route = state.result;
     if (route == null) {
+      final missing = state.missingTiles;
+      if (missing.isNotEmpty) return MissingTilesBanner(tiles: missing);
       final failure = state.route.error;
       if (failure != null) {
         return Row(
@@ -363,9 +371,18 @@ class _SheetBody extends StatelessWidget {
       );
     }
 
+    final source = state.routingSource;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (source != null)
+          Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: RoutingSourceChip(source: source),
+            ),
+          ),
         RouteStatsRow(
           distanceM: route.lengthM,
           ascentM: route.ascentM,
@@ -441,46 +458,59 @@ class _PlannerActions extends ConsumerWidget {
         state.isRoutable &&
         !state.loadingAlternatives &&
         state.alternatives.length <= RoutingOptions.maxAlternativeIdx;
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+    // One row, not a Wrap: at 1080x2400 the wrapped buttons pushed Save below
+    // the fold of the sheet's initial height. The secondary actions scroll
+    // sideways instead, and Save keeps its place at the end of the row.
+    return Row(
       children: [
-        TextButton.icon(
-          onPressed: state.canUndo ? planner.undo : null,
-          icon: const Icon(Icons.undo),
-          label: Text(l10n.plannerUndo),
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                TextButton.icon(
+                  onPressed: state.canUndo ? planner.undo : null,
+                  icon: const Icon(Icons.undo),
+                  label: Text(l10n.plannerUndo),
+                ),
+                TextButton.icon(
+                  onPressed: state.canReverse ? planner.reverse : null,
+                  icon: const Icon(Icons.swap_vert),
+                  label: Text(l10n.plannerReverse),
+                ),
+                TextButton.icon(
+                  onPressed: state.isEmpty ? null : planner.clear,
+                  icon: const Icon(Icons.delete_outline),
+                  label: Text(l10n.plannerClear),
+                ),
+                TextButton.icon(
+                  onPressed: canAlternatives
+                      ? () => unawaited(onAlternatives())
+                      : null,
+                  icon: state.loadingAlternatives
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.alt_route),
+                  label: Text(l10n.plannerAlternatives),
+                ),
+                TextButton.icon(
+                  onPressed: () => unawaited(onSmartLoop()),
+                  icon: const Icon(Icons.loop),
+                  label: Text(l10n.loopAction),
+                ),
+                TextButton.icon(
+                  onPressed: () => unawaited(onAsk()),
+                  icon: const Icon(Icons.auto_awesome),
+                  label: Text(l10n.assistantAction),
+                ),
+              ],
+            ),
+          ),
         ),
-        TextButton.icon(
-          onPressed: state.canReverse ? planner.reverse : null,
-          icon: const Icon(Icons.swap_vert),
-          label: Text(l10n.plannerReverse),
-        ),
-        TextButton.icon(
-          onPressed: state.isEmpty ? null : planner.clear,
-          icon: const Icon(Icons.delete_outline),
-          label: Text(l10n.plannerClear),
-        ),
-        TextButton.icon(
-          onPressed: canAlternatives ? () => unawaited(onAlternatives()) : null,
-          icon: state.loadingAlternatives
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.alt_route),
-          label: Text(l10n.plannerAlternatives),
-        ),
-        TextButton.icon(
-          onPressed: () => unawaited(onSmartLoop()),
-          icon: const Icon(Icons.loop),
-          label: Text(l10n.loopAction),
-        ),
-        TextButton.icon(
-          onPressed: () => unawaited(onAsk()),
-          icon: const Icon(Icons.auto_awesome),
-          label: Text(l10n.assistantAction),
-        ),
+        const SizedBox(width: 8),
         FilledButton.icon(
           onPressed: state.canSave ? () => unawaited(onSave()) : null,
           icon: const Icon(Icons.bookmark_add_outlined),

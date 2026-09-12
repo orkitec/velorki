@@ -43,6 +43,11 @@ abstract class PlannerState with _$PlannerState {
     /// no BRouter `messages` any more. Cleared as soon as a fresh route
     /// arrives from the routing server.
     SurfaceStats? loadedSurfaceStats,
+
+    /// Which backend computed the shown route, when the composite backend
+    /// said. `null` for a route loaded from the library or computed by a
+    /// backend that does not report a source.
+    RoutingSource? routingSource,
   }) = _PlannerState;
 
   const PlannerState._();
@@ -64,6 +69,24 @@ abstract class PlannerState with _$PlannerState {
     final r = result;
     if (r == null) return null;
     return options.profile.estimatedTime(r.lengthM);
+  }
+
+  /// The routing failure of the shown attempt, when it was one.
+  RoutingException? get failure {
+    final error = route.error;
+    return error is RoutingException ? error : null;
+  }
+
+  /// The tiles the on-device engine is missing for these waypoints.
+  ///
+  /// Non-empty only when the composite backend refused the route because it
+  /// has no server to fall back to; the planner then offers the download
+  /// rather than showing a failure the rider cannot act on.
+  List<TileName> get missingTiles {
+    final e = failure;
+    return e != null && e.kind == RoutingErrorKind.missingTiles
+        ? e.missingTiles
+        : const <TileName>[];
   }
 
   /// Whether a route request is in flight.

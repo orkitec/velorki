@@ -36,6 +36,29 @@ void main() {
     expect(strava.onPressed, isNotNull);
   });
 
+  testWidgets('the connect button sits below the title, not beside it', (
+    tester,
+  ) async {
+    // A phone-width screen: with the button in the tile's trailing slot the
+    // "Ride with GPS" title wrapped into three lines next to it.
+    await tester.binding.setSurfaceSize(const Size(1080, 2400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await pumpIntegrations(tester, const ConnectionsSection());
+
+    final button = find.widgetWithText(
+      FilledButton,
+      'Connect with Ride with GPS',
+    );
+    expect(
+      find.descendant(of: find.byType(ListTile), matching: button),
+      findsNothing,
+    );
+    final title = tester.getRect(find.text('Ride with GPS'));
+    expect(tester.getRect(button).top, greaterThanOrEqualTo(title.bottom));
+    // One line of title, not three.
+    expect(title.height, lessThan(40));
+  });
+
   testWidgets('without the entitlement the buttons are dead and the Plus '
       'placeholder explains why', (tester) async {
     await pumpIntegrations(

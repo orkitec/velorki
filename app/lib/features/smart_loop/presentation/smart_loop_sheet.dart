@@ -8,6 +8,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/device_position_request.dart';
 import '../../planner/application/planner_controller.dart';
+import '../../planner/data/routing_backend_provider.dart';
 import '../../planner/domain/route_profile.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../planner/presentation/route_stats_row.dart';
@@ -213,6 +214,16 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
                 children: [
                   Text(l10n.loopTitle, style: theme.textTheme.titleLarge),
                   Text(l10n.loopIntro, style: theme.textTheme.bodySmall),
+                  if (ref.watch(onDeviceRoutingActiveProvider))
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        l10n.loopOnDeviceNote,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),

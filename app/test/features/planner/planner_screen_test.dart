@@ -38,6 +38,28 @@ void main() {
     );
   });
 
+  testWidgets('Save stays above the fold of the sheet on a 1080x2400 screen', (
+    tester,
+  ) async {
+    final h = await pumpScreen(
+      tester,
+      const PlannerScreen(),
+      surfaceSize: const Size(1080, 2400),
+    );
+    await _plotRoute(tester, h);
+
+    final save = find.widgetWithText(FilledButton, 'Save');
+    final rect = tester.getRect(save);
+    expect(rect.bottom, lessThanOrEqualTo(2400));
+    expect(rect.top, greaterThanOrEqualTo(0));
+    // Inside the sheet, which starts at 66 % of the height, and hittable.
+    expect(rect.top, greaterThan(2400 * 0.6));
+    expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(find.text('Save route'), findsOneWidget);
+  });
+
   testWidgets('tapping the map twice plots a route with stats', (tester) async {
     final h = await pumpScreen(tester, const PlannerScreen());
 

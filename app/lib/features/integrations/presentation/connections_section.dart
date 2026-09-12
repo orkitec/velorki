@@ -105,8 +105,9 @@ class ConnectionTile extends ConsumerWidget {
     final connect = entitled && configured
         ? () => unawaited(_connect(context, ref))
         : null;
-    // Strava's button is their artwork at its own width, which does not fit
-    // into a list tile's trailing slot, so it sits under the tile instead.
+    // Strava's button is their artwork at its own width; RideWithGPS' label is
+    // long enough to squeeze the title into three lines. Neither fits a list
+    // tile's trailing slot, so the connect button sits under the tile.
     final branded = service == IntegrationService.strava;
 
     return Column(
@@ -137,22 +138,22 @@ class ConnectionTile extends ConsumerWidget {
                   onPressed: () => unawaited(_disconnect(context, ref)),
                   child: Text(l10n.connectionsDisconnect),
                 )
-              : branded
-              ? null
-              : FilledButton.tonal(
-                  onPressed: connect,
-                  child: Text(connectLabel(l10n, service)),
-                ),
+              : null,
         ),
-        if (branded && !busy && account == null)
+        if (!busy && account == null)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: StravaConnectButton(
-                label: connectLabel(l10n, service),
-                onPressed: connect,
-              ),
+              child: branded
+                  ? StravaConnectButton(
+                      label: connectLabel(l10n, service),
+                      onPressed: connect,
+                    )
+                  : FilledButton.tonal(
+                      onPressed: connect,
+                      child: Text(connectLabel(l10n, service)),
+                    ),
             ),
           ),
       ],

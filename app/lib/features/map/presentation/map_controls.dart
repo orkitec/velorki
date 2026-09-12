@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../core/permissions/location_permission.dart';
+import '../../routing_tiles/presentation/routing_tiles_screen.dart';
 import '../data/map_preferences.dart';
 import '../data/position_provider.dart';
 import '../domain/map_controller.dart';
@@ -45,6 +46,14 @@ class MapControls extends ConsumerWidget {
           onPressed: enabled ? () => unawaited(_toggleCyclosm(ref)) : null,
         ),
         const SizedBox(height: 8),
+        // The one place the rider can download routing tiles for exactly the
+        // area they are looking at; the screen needs a live map for that.
+        _ControlButton(
+          icon: Icons.grid_on_outlined,
+          tooltip: MapStrings.routingTiles,
+          onPressed: enabled ? () => _openRoutingTiles(context) : null,
+        ),
+        const SizedBox(height: 8),
         _ControlButton(
           icon: Icons.add,
           tooltip: MapStrings.zoomIn,
@@ -57,6 +66,18 @@ class MapControls extends ConsumerWidget {
           onPressed: enabled ? () => unawaited(_zoomBy(-1)) : null,
         ),
       ],
+    );
+  }
+
+  void _openRoutingTiles(BuildContext context) {
+    final map = controller;
+    if (map == null) return;
+    unawaited(
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => RoutingTilesScreen(mapController: map),
+        ),
+      ),
     );
   }
 

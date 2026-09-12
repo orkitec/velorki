@@ -15,6 +15,7 @@ import '../features/integrations/common/data/oauth_flow.dart';
 import '../features/map/presentation/map_view.dart';
 import '../features/planner/presentation/planner_map_host.dart';
 import '../features/recording/data/recording_recovery.dart';
+import '../features/routing_tiles/application/routing_tiles_startup.dart';
 import '../features/sharing/application/share_link_listener.dart';
 import '../features/subscription/application/subscription_controller.dart';
 import 'app.dart';
@@ -62,6 +63,11 @@ Future<void> bootstrap() async {
   // nothing waits for the store, the gated screens simply react when the
   // answer arrives.
   startSubscriptions(container);
+
+  // Copies the bundled BRouter profiles out of the app package and reconciles
+  // the downloaded rd5 tiles with what is on disk, so the planner can route on
+  // the device as soon as both are done.
+  prepareOnDeviceRouting(container);
 
   // Attached before the first frame so a file the app was launched with is
   // not missed.

@@ -195,6 +195,7 @@ class PlannerController extends _$PlannerController {
       route: AsyncData<RouteResult?>(results[selected]),
       loadedSurfaceStats: null,
       error: null,
+      routingSource: _sourceOf(backend),
     );
     return true;
   }
@@ -310,6 +311,7 @@ class PlannerController extends _$PlannerController {
         route: AsyncData<RouteResult?>(result),
         loadedSurfaceStats: null,
         error: null,
+        routingSource: _sourceOf(backend),
       );
     } on RoutingException catch (e, st) {
       if (_disposed ||
@@ -320,6 +322,7 @@ class PlannerController extends _$PlannerController {
       state = state.copyWith(
         route: AsyncError<RouteResult?>(e, st),
         error: e.message,
+        routingSource: null,
       );
     } catch (e, st) {
       if (_disposed || token.isCancelled) return;
@@ -331,6 +334,11 @@ class PlannerController extends _$PlannerController {
       if (identical(_pending, token)) _pending = null;
     }
   }
+
+  /// Where a route came from, for the planner's "on device"/"server" chip.
+  /// Only the composite backend knows; anything else stays silent.
+  static RoutingSource? _sourceOf(RoutingBackend backend) =>
+      backend is CompositeRoutingBackend ? backend.lastSource : null;
 
   RouteQuery _query({int? alternativeIdx}) => RouteQuery(
     points: state.positions,

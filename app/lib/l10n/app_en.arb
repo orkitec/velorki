@@ -1822,5 +1822,173 @@
   "shareLinkPlus": "Link sharing is part of Velorki Plus.",
   "@shareLinkPlus": {
     "description": "Shown when an unentitled rider taps Share link"
+  },
+  "routingTilesTitle": "Offline routing data",
+  "@routingTilesTitle": {
+    "description": "Title of the screen listing downloaded rd5 routing tiles"
+  },
+  "routingTilesSubtitle": "Route on this device, without a signal",
+  "@routingTilesSubtitle": {
+    "description": "Settings tile subtitle under Advanced"
+  },
+  "routingTilesEmpty": "No routing tiles yet. Move the map to the area you ride in and download it here; planning then works without a signal.",
+  "@routingTilesEmpty": {
+    "description": "Empty state of the offline routing data screen"
+  },
+  "routingTilesVisibleArea": "Download for the visible area",
+  "@routingTilesVisibleArea": {
+    "description": "Button that downloads the tiles under the current map view"
+  },
+  "routingTilesNeedsMap": "Open this screen from the map to download the area you are looking at.",
+  "@routingTilesNeedsMap": {
+    "description": "Shown instead of the visible-area download when no map is alive"
+  },
+  "routingTilesNoneInView": "No routing tiles cover the visible area.",
+  "@routingTilesNoneInView": {
+    "description": "Shown when the map view maps to no tiles at all"
+  },
+  "routingTilesAllInView": "Every tile for the visible area is already on this device.",
+  "@routingTilesAllInView": {
+    "description": "Shown when the visible area needs nothing downloaded"
+  },
+  "routingTilesRouteTitle": "Needed for this route",
+  "@routingTilesRouteTitle": {
+    "description": "Header above the tiles the planner asked to download"
+  },
+  "routingTilesTotal": "{count, plural, =0{Nothing downloaded yet} =1{1 tile, {size}} other{{count} tiles, {size}}}",
+  "@routingTilesTotal": {
+    "description": "Summary of what the downloaded tiles occupy",
+    "placeholders": {
+      "count": { "type": "int", "example": "3" },
+      "size": { "type": "String", "example": "640 MB" }
+    }
+  },
+  "routingTilesDownloadCount": "{count, plural, =1{Download 1 tile ({size})} other{Download {count} tiles ({size})}}",
+  "@routingTilesDownloadCount": {
+    "description": "Action that starts the download of the listed tiles",
+    "placeholders": {
+      "count": { "type": "int", "example": "2" },
+      "size": { "type": "String", "example": "640 MB" }
+    }
+  },
+  "routingTilesDownload": "Download",
+  "@routingTilesDownload": {
+    "description": "Downloads one tile"
+  },
+  "routingTilesUpdate": "Update",
+  "@routingTilesUpdate": {
+    "description": "Replaces a tile the mirror has rebuilt"
+  },
+  "routingTilesDelete": "Delete",
+  "@routingTilesDelete": {
+    "description": "Deletes one downloaded tile"
+  },
+  "routingTilesDeleteTitle": "Delete {name}?",
+  "@routingTilesDeleteTitle": {
+    "description": "Confirmation dialog title",
+    "placeholders": {
+      "name": { "type": "String", "example": "E10_N45" }
+    }
+  },
+  "routingTilesDeleteBody": "The tile is removed from this device. Routes in that area then need the routing server again.",
+  "@routingTilesDeleteBody": {
+    "description": "Confirmation dialog body"
+  },
+  "routingTilesCancelDownload": "Cancel download",
+  "@routingTilesCancelDownload": {
+    "description": "Stops the running download queue"
+  },
+  "routingTilesStateReady": "On this device",
+  "@routingTilesStateReady": {
+    "description": "State of a fully downloaded tile"
+  },
+  "routingTilesStateStale": "Update available",
+  "@routingTilesStateStale": {
+    "description": "State of a downloaded tile the mirror has rebuilt"
+  },
+  "routingTilesStateDownloading": "Downloading\u2026",
+  "@routingTilesStateDownloading": {
+    "description": "State of a tile that is being downloaded"
+  },
+  "routingTilesStateAbsent": "Not downloaded",
+  "@routingTilesStateAbsent": {
+    "description": "State of a tile that is only in the manifest"
+  },
+  "routingTilesUpdatedAt": "Mirror built {date}",
+  "@routingTilesUpdatedAt": {
+    "description": "When the mirror last rebuilt a tile",
+    "placeholders": {
+      "date": { "type": "String", "example": "12 Sept 2026" }
+    }
+  },
+  "routingTilesManifestFailed": "The tile list could not be loaded: {message}",
+  "@routingTilesManifestFailed": {
+    "description": "Shown when manifest.json or the directory listing failed",
+    "placeholders": {
+      "message": { "type": "String", "example": "the mirror is unavailable" }
+    }
+  },
+  "routingTilesRetry": "Try again",
+  "@routingTilesRetry": {
+    "description": "Fetches the manifest again"
+  },
+  "routingTilesFallbackNotice": "No tile mirror is configured, so the list comes from brouter.de. That is a development fallback, not a server to download from every day.",
+  "@routingTilesFallbackNotice": {
+    "description": "Warning shown when VELORKI_SEGMENTS_URL is empty"
+  },
+  "routingTilesDataNotice": "Tiles are large, often 125\u2013250 MB each, and Velorki cannot tell Wi-Fi from mobile data. Start a download when you are on Wi-Fi.",
+  "@routingTilesDataNotice": {
+    "description": "Replaces the Wi-Fi-only setting, which this milestone does not have"
+  },
+  "routingTilesDownloadFailed": "The download failed: {message}",
+  "@routingTilesDownloadFailed": {
+    "description": "Snack bar after a failed tile download",
+    "placeholders": {
+      "message": { "type": "String", "example": "E10_N45.rd5 arrived short" }
+    }
+  },
+  "plannerMissingTiles": "This route needs routing tiles that are not on this device.",
+  "@plannerMissingTiles": {
+    "description": "Planner banner when on-device routing lacks coverage"
+  },
+  "plannerRoutedOnDevice": "On device",
+  "@plannerRoutedOnDevice": {
+    "description": "Chip saying the shown route was computed on the phone"
+  },
+  "plannerRoutedOnServer": "Server",
+  "@plannerRoutedOnServer": {
+    "description": "Chip saying the shown route came from the routing server"
+  },
+  "settingsRouting": "Routing",
+  "@settingsRouting": {
+    "description": "Settings group choosing where routes are computed"
+  },
+  "settingsRoutingAuto": "Automatic",
+  "@settingsRoutingAuto": {
+    "description": "Routing preference: on device where possible, server otherwise"
+  },
+  "settingsRoutingAutoDetail": "On this device wherever the tiles are downloaded, on the routing server everywhere else.",
+  "@settingsRoutingAutoDetail": {
+    "description": "Explanation of the automatic routing preference"
+  },
+  "settingsRoutingOnDevice": "On device only",
+  "@settingsRoutingOnDevice": {
+    "description": "Routing preference: never ask the server"
+  },
+  "settingsRoutingOnDeviceDetail": "Never ask the routing server. Routes outside the downloaded tiles offer the download instead.",
+  "@settingsRoutingOnDeviceDetail": {
+    "description": "Explanation of the on-device-only routing preference"
+  },
+  "settingsRoutingServer": "Server only",
+  "@settingsRoutingServer": {
+    "description": "Routing preference: always ask the server"
+  },
+  "settingsRoutingServerDetail": "Always ask the routing server, even where tiles are downloaded.",
+  "@settingsRoutingServerDetail": {
+    "description": "Explanation of the server-only routing preference"
+  },
+  "loopOnDeviceNote": "Routing runs on this device, so the candidates are computed one after another and the search takes longer than on the server.",
+  "@loopOnDeviceNote": {
+    "description": "Note in the loop sheet while on-device routing is active"
   }
 }

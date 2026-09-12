@@ -68,6 +68,12 @@ flutter:
   uses-material-design: true
   generate: true
   assets:
+    # The pinned BRouter release's routing profiles and tag lookup table.
+    # BrouterAssets copies them to <appSupport>/brouter/profiles/ at startup,
+    # because the on-device engine reads them as files, not as assets.
+    # UPSTREAM_VERSION is the copy marker; keep both in step with brouter/.
+    - assets/brouter/UPSTREAM_VERSION
+    - assets/brouter/profiles/
     # Strava's official brand assets, unmodified apart from proportional
     # scaling of the vector originals. The 2.0x and 3.0x variants next to
     # them are picked up automatically. See assets/strava/README.md.

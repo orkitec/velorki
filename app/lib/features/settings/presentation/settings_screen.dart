@@ -8,6 +8,9 @@ import '../../../features/assistant/presentation/ai_settings_section.dart';
 import '../../../features/integrations/presentation/connections_section.dart';
 import '../../../features/map/presentation/map_strings.dart';
 import '../../../features/map/presentation/offline_regions_screen.dart';
+import '../../../features/routing_tiles/data/routing_preference_controller.dart';
+import '../../../features/routing_tiles/domain/routing_preference.dart';
+import '../../../features/routing_tiles/presentation/routing_tiles_screen.dart';
 import '../../../features/subscription/presentation/plus_settings_section.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import 'about_section.dart';
@@ -33,6 +36,8 @@ class SettingsScreen extends ConsumerWidget {
           Divider(height: 32),
           _SectionHeader.advanced(),
           _OfflineMapsTile(),
+          _RoutingTilesTile(),
+          _RoutingPreferenceSection(),
           _ServerUrlsSection(),
           Divider(height: 32),
           _SectionHeader.about(),
@@ -96,6 +101,82 @@ class _OfflineMapsTile extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Entry point into the on-device routing data, pushed the same way as the
+/// offline maps screen. No map is alive here, so the screen offers the
+/// planner's tiles and the manifest, but not "the visible area".
+class _RoutingTilesTile extends ConsumerWidget {
+  const _RoutingTilesTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    return ListTile(
+      leading: const Icon(Icons.grid_on_outlined),
+      title: Text(l10n.routingTilesTitle),
+      subtitle: Text(l10n.routingTilesSubtitle),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const RoutingTilesScreen()),
+      ),
+    );
+  }
+}
+
+/// Where routes are computed: the composite rule, or one of the two ends of
+/// it. Stored in shared_preferences; the routing backend is rebuilt from it.
+class _RoutingPreferenceSection extends ConsumerWidget {
+  const _RoutingPreferenceSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final selected = ref.watch(routingPreferenceSettingProvider);
+    final notifier = ref.read(routingPreferenceSettingProvider.notifier);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: Text(
+            l10n.settingsRouting,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ),
+        RadioGroup<RoutingPreference>(
+          groupValue: selected,
+          onChanged: (value) =>
+              unawaited(notifier.set(value ?? RoutingPreference.auto)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final preference in RoutingPreference.values)
+                RadioListTile<RoutingPreference>(
+                  value: preference,
+                  title: Text(_title(l10n, preference)),
+                  subtitle: Text(_detail(l10n, preference)),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  static String _title(AppLocalizations l10n, RoutingPreference preference) =>
+      switch (preference) {
+        RoutingPreference.auto => l10n.settingsRoutingAuto,
+        RoutingPreference.onDeviceOnly => l10n.settingsRoutingOnDevice,
+        RoutingPreference.serverOnly => l10n.settingsRoutingServer,
+      };
+
+  static String _detail(AppLocalizations l10n, RoutingPreference preference) =>
+      switch (preference) {
+        RoutingPreference.auto => l10n.settingsRoutingAutoDetail,
+        RoutingPreference.onDeviceOnly => l10n.settingsRoutingOnDeviceDetail,
+        RoutingPreference.serverOnly => l10n.settingsRoutingServerDetail,
+      };
 }
 
 class _ServerUrlsSection extends ConsumerWidget {

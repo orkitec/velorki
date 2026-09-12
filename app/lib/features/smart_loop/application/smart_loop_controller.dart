@@ -20,6 +20,11 @@ part 'smart_loop_controller.g.dart';
 /// on-device engine will want one.
 const int smartLoopConcurrency = 3;
 
+/// Candidates run one at a time while routing happens on the device: the
+/// engine is one isolate with one segment cache, so three parallel searches
+/// would only fight over it.
+const int smartLoopOnDeviceConcurrency = 1;
+
 /// Deadline for one whole loop search.
 const Duration smartLoopTimeout = Duration(seconds: 25);
 
@@ -130,7 +135,9 @@ class SmartLoopController extends _$SmartLoopController {
     final planner = LoopPlanner(
       backend: _CountingBackend(backend, run),
       strategies: plans,
-      concurrency: smartLoopConcurrency,
+      concurrency: backend is CompositeRoutingBackend && backend.local != null
+          ? smartLoopOnDeviceConcurrency
+          : smartLoopConcurrency,
       timeout: smartLoopTimeout,
       maxCandidates: planned,
       topN: smartLoopTopN,
