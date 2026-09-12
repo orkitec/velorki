@@ -313,6 +313,8 @@ Settings → Advanced lets users override the server URLs at runtime.
 
 ## On-device routing (track R)
 
+**Status (2026-09-12): R0–R5 are done.** The engine in `app/packages/brouter_dart` reproduces the Java server byte for byte on the 200-case oracle corpus, and the app routes on the device for downloaded tiles with the server as fallback. The rest of this section describes the design and the parity method.
+
 The goal is that the routing server becomes optional. `app/packages/brouter_dart`
 is a Dart port of BRouter's routing runtime.
 
@@ -461,7 +463,7 @@ needs our servers or a partner account.
 | smart loops (algorithmic, on device or via the routing server) | Strava: ride upload, route import |
 | ride recording, library, statistics | RideWithGPS: routes and trips both ways |
 | GPX/FIT import and export through files and the share sheet — the free path into Strava, Komoot and Garmin | link sharing of routes and rides (`velorki.app/s/<id>`) |
-| offline map regions, on-device routing tiles once track R lands | later: cloud sync across devices |
+| offline map regions, on-device routing with downloaded tiles | later: cloud sync across devices |
 
 The entitlement is called `plus`. (The API draft in the plan still writes
 `smart`; the exact string configured in RevenueCat is to be decided, but there
