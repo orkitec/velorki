@@ -47,7 +47,8 @@ class SegmentEntry {
           other.sha256 == sha256;
 
   @override
-  int get hashCode => Object.hash(tile, bytes, updatedAt, formatVersion, sha256);
+  int get hashCode =>
+      Object.hash(tile, bytes, updatedAt, formatVersion, sha256);
 
   @override
   String toString() => 'SegmentEntry($tile, $bytes B, $updatedAt)';

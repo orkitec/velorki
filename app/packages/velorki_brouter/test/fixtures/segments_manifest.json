@@ -1,0 +1,14 @@
+{
+  "formatVersion": "11.2",
+  "brouterVersion": "v1.7.10",
+  "source": "https://brouter.de/brouter/segments4/",
+  "segmentFilter": "E5_N45 E10_N45 W20_N30",
+  "generatedAt": "2026-09-12T02:17:05Z",
+  "tiles": [
+    { "tile": "E5_N45", "bytes": 212408832, "updatedAt": "2026-09-12T01:03:00Z" },
+    { "tile": "E10_N45", "bytes": 176160768, "updatedAt": "2026-09-12T01:04:00Z" },
+    { "tile": "W20_N30", "bytes": 1499136, "updatedAt": "2026-09-05T23:48:00Z" }
+  ],
+  "tileCount": 3,
+  "totalBytes": 390068736
+}

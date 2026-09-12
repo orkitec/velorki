@@ -75,9 +75,9 @@ Map<String, String> buildQueryParams(RouteQuery q, {int? roundTripPoints}) {
 ///
 /// This is what the ported engine's `BRouter.routeQuery` takes: it runs the
 /// string through the same `URLDecoder`-equivalent the HTTP server would.
-String buildQueryString(RouteQuery q, {int? roundTripPoints}) => Uri(
-  queryParameters: buildQueryParams(q, roundTripPoints: roundTripPoints),
-).query;
+String buildQueryString(RouteQuery q, {int? roundTripPoints}) =>
+    Uri(queryParameters: buildQueryParams(q, roundTripPoints: roundTripPoints))
+        .query;
 
 /// BRouter's coordinate resolution is 1e-6 degrees, so six decimals is exact;
 /// trailing zeros are trimmed to keep the URL readable.

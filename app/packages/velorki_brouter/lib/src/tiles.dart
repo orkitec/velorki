@@ -59,8 +59,10 @@ class TileName implements Comparable<TileName> {
     }
     final m = _namePattern.firstMatch(name);
     if (m == null) return null;
-    final lon = int.parse(m.group(2)!) * (m.group(1)!.toUpperCase() == 'W' ? -1 : 1);
-    final lat = int.parse(m.group(4)!) * (m.group(3)!.toUpperCase() == 'S' ? -1 : 1);
+    final lon =
+        int.parse(m.group(2)!) * (m.group(1)!.toUpperCase() == 'W' ? -1 : 1);
+    final lat =
+        int.parse(m.group(4)!) * (m.group(3)!.toUpperCase() == 'S' ? -1 : 1);
     if (lon % tileSizeDeg != 0 || lat % tileSizeDeg != 0) return null;
     if (lon < -180 || lon >= 180 || lat < -90 || lat >= 90) return null;
     return TileName(lon, lat);
@@ -99,8 +101,9 @@ class TileName implements Comparable<TileName> {
       p.lon < lon0 + tileSizeDeg;
 
   @override
-  int compareTo(TileName other) =>
-      lat0 == other.lat0 ? lon0.compareTo(other.lon0) : lat0.compareTo(other.lat0);
+  int compareTo(TileName other) => lat0 == other.lat0
+      ? lon0.compareTo(other.lon0)
+      : lat0.compareTo(other.lat0);
 
   @override
   bool operator ==(Object other) =>

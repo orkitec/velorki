@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'tiles.dart';
+
 /// Why a routing request failed.
 enum RoutingErrorKind {
   /// The request never produced an answer: DNS, TCP, TLS, a timeout, or a
@@ -20,6 +22,12 @@ enum RoutingErrorKind {
   /// cancellation is not a failure and the planner must be able to tell it
   /// apart when it abandons losing candidates.
   cancelled,
+
+  /// On-device routing was asked for an area whose rd5 tiles are not
+  /// downloaded (or are on the wrong format version) and no routing server is
+  /// configured. [RoutingException.missingTiles] names them, so the UI can
+  /// offer "download N tiles (X MB)".
+  missingTiles,
 }
 
 /// A routing request that did not produce a [RouteResult].
@@ -30,6 +38,7 @@ class RoutingException implements Exception {
     required this.message,
     this.cause,
     this.statusCode,
+    this.missingTiles = const <TileName>[],
   });
 
   /// The category of the failure.
@@ -43,6 +52,10 @@ class RoutingException implements Exception {
 
   /// The HTTP status code, when the failure came from an HTTP backend.
   final int? statusCode;
+
+  /// The rd5 tiles that would have to be downloaded, for
+  /// [RoutingErrorKind.missingTiles]; empty for every other kind.
+  final List<TileName> missingTiles;
 
   @override
   String toString() => 'RoutingException(${kind.name}): $message';
