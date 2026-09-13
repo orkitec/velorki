@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../map/domain/map_controller.dart';
+import '../../map/presentation/map_chrome.dart';
 
 part 'planner_map_host.g.dart';
 
@@ -44,10 +45,18 @@ class PlannerMapHost extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final map = ref.watch(mapViewBuilderProvider)(onMapReady);
     if (!embedded) return map;
-    return MediaQuery.removePadding(
-      context: context,
-      removeBottom: true,
-      child: map,
+    // An embedded map keeps the chrome its owner declared, minus the
+    // routing-tile download that only the planner needs.
+    final inherited = MapChromeInsets.maybeOf(context);
+    return MapChromeInsets(
+      controlsTop: inherited?.controlsTop,
+      attributionBottom: inherited?.attributionBottom,
+      showRoutingTiles: false,
+      child: MediaQuery.removePadding(
+        context: context,
+        removeBottom: true,
+        child: map,
+      ),
     );
   }
 }

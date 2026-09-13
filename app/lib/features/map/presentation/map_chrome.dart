@@ -14,7 +14,12 @@ class MapChromeInsets extends InheritedWidget {
     super.key,
     this.controlsTop,
     this.attributionBottom,
+    this.showRoutingTiles = true,
   });
+
+  /// Whether the control column offers the routing-tile download. Only a
+  /// map the rider plans on needs it; an embedded map does not.
+  final bool showRoutingTiles;
 
   /// Distance from the safe-area top to the control column, in dp; `null`
   /// keeps the map's own default.
@@ -31,5 +36,6 @@ class MapChromeInsets extends InheritedWidget {
   @override
   bool updateShouldNotify(MapChromeInsets oldWidget) =>
       oldWidget.controlsTop != controlsTop ||
-      oldWidget.attributionBottom != attributionBottom;
+      oldWidget.attributionBottom != attributionBottom ||
+      oldWidget.showRoutingTiles != showRoutingTiles;
 }

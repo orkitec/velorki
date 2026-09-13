@@ -46,11 +46,26 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
   MapController? _map;
   PlannerMapBinding? _binding;
   SearchResult? _placeToStartFrom;
+  final DraggableScrollableController _sheet = DraggableScrollableController();
 
   @override
   void dispose() {
     _binding?.detach();
+    _sheet.dispose();
     super.dispose();
+  }
+
+  /// Grows the sheet by one row when the variant chips appear, so they are in
+  /// view and tappable without a pull.
+  void _showVariantsRow(double size) {
+    if (!_sheet.isAttached || _sheet.size >= size - 0.001) return;
+    unawaited(
+      _sheet.animateTo(
+        size,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      ),
+    );
   }
 
   // Called from the map widget's build, so it must not call setState.
@@ -210,6 +225,19 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
     final collapsedSheetSize = screenHeight <= 0
         ? 0.1
         : ((bottomInset + 30) / screenHeight).clamp(0.06, 0.25);
+    // One more row when the variant chips are shown between the figures and
+    // the toolbar.
+    const restingSheetSize = 0.42;
+    final variantsSheetSize = screenHeight <= 0
+        ? 0.48
+        : (restingSheetSize + 56 / screenHeight).clamp(0.42, 0.6);
+    final hasVariants = state.alternatives.length > 1;
+    ref.listen(
+      plannerControllerProvider.select((s) => s.alternatives.length > 1),
+      (previous, next) {
+        if (next && !(previous ?? false)) _showVariantsRow(variantsSheetSize);
+      },
+    );
 
     return Scaffold(
       body: Stack(
@@ -270,13 +298,16 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
             ),
           ),
           DraggableScrollableSheet(
+            controller: _sheet,
             // Enough for the headline, the toolbar and Save above the
             // floating navigation bar on a 20:9 phone.
-            initialChildSize: 0.42,
+            initialChildSize: hasVariants
+                ? variantsSheetSize
+                : restingSheetSize,
             minChildSize: collapsedSheetSize,
             maxChildSize: 0.9,
             snap: true,
-            snapSizes: const <double>[0.42],
+            snapSizes: <double>[restingSheetSize, variantsSheetSize],
             builder: (context, scrollController) => DecoratedBox(
               decoration: const BoxDecoration(
                 borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
@@ -314,8 +345,13 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
                     ),
                     _SheetHeader(state: state),
                     const SizedBox(height: 14),
-                    // Actions right under the header, so Loop, Ask and Save
-                    // are visible at the sheet's initial height.
+                    // The variants right under the figures, where the sheet
+                    // grows to show them; then the actions, so Loop and Save
+                    // are visible at the sheet's resting height.
+                    if (hasVariants) ...[
+                      _AlternativeChips(state: state),
+                      const SizedBox(height: 12),
+                    ],
                     _PlannerActions(
                       state: state,
                       onAlternatives: _loadAlternatives,
@@ -517,10 +553,6 @@ class _SheetBody extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (state.alternatives.length > 1) ...[
-          _AlternativeChips(state: state),
-          const SizedBox(height: 16),
-        ],
         if (source != null)
           Align(
             alignment: Alignment.centerRight,

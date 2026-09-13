@@ -1,6 +1,7 @@
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -9,6 +10,7 @@ import '../features/import_export/presentation/import_preview_screen.dart';
 import '../features/library/presentation/library_screen.dart';
 import '../features/library/presentation/route_detail_screen.dart';
 import '../features/planner/presentation/planner_screen.dart';
+import '../features/recording/application/recording_controller.dart';
 import '../features/recording/presentation/recording_screen.dart';
 import '../features/recording/presentation/ride_detail_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
@@ -114,49 +116,58 @@ GoRouter createRouter({String initialLocation = plannerRoute}) {
 }
 
 /// Scaffold around the four tabs; each branch keeps its own navigation stack.
-class HomeShell extends StatelessWidget {
+class HomeShell extends ConsumerWidget {
   const HomeShell({required this.shell, super.key});
 
   final StatefulNavigationShell shell;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    // While a ride is being recorded on the Record tab the bar only takes
+    // space from the figures; it comes back when the ride ends or the
+    // rider leaves the tab through the system back gesture.
+    final recording = ref.watch(
+      recordingControllerProvider.select((s) => s.isRecording),
+    );
+    final hideBar = recording && shell.currentIndex == 1;
     return Scaffold(
       // The bar floats over the content; screens read the bottom padding
       // from MediaQuery to keep their last rows above it.
       extendBody: true,
       body: shell,
-      bottomNavigationBar: FloatingNavigationBar(
-        selectedIndex: shell.currentIndex,
-        onDestinationSelected: (index) => shell.goBranch(
-          index,
-          // Tapping the active tab pops back to that branch's root.
-          initialLocation: index == shell.currentIndex,
-        ),
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(Icons.route_outlined),
-            selectedIcon: const Icon(Icons.route),
-            label: l10n.tabPlan,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.radio_button_unchecked),
-            selectedIcon: const Icon(Icons.radio_button_checked),
-            label: l10n.tabRecord,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.bookmarks_outlined),
-            selectedIcon: const Icon(Icons.bookmarks),
-            label: l10n.tabLibrary,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.tune_outlined),
-            selectedIcon: const Icon(Icons.tune),
-            label: l10n.tabSettings,
-          ),
-        ],
-      ),
+      bottomNavigationBar: hideBar
+          ? null
+          : FloatingNavigationBar(
+              selectedIndex: shell.currentIndex,
+              onDestinationSelected: (index) => shell.goBranch(
+                index,
+                // Tapping the active tab pops back to that branch's root.
+                initialLocation: index == shell.currentIndex,
+              ),
+              destinations: [
+                NavigationDestination(
+                  icon: const Icon(Icons.route_outlined),
+                  selectedIcon: const Icon(Icons.route),
+                  label: l10n.tabPlan,
+                ),
+                NavigationDestination(
+                  icon: const Icon(Icons.radio_button_unchecked),
+                  selectedIcon: const Icon(Icons.radio_button_checked),
+                  label: l10n.tabRecord,
+                ),
+                NavigationDestination(
+                  icon: const Icon(Icons.bookmarks_outlined),
+                  selectedIcon: const Icon(Icons.bookmarks),
+                  label: l10n.tabLibrary,
+                ),
+                NavigationDestination(
+                  icon: const Icon(Icons.tune_outlined),
+                  selectedIcon: const Icon(Icons.tune),
+                  label: l10n.tabSettings,
+                ),
+              ],
+            ),
     );
   }
 }

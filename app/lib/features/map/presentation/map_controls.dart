@@ -13,6 +13,7 @@ import '../data/map_preferences.dart';
 import '../data/position_provider.dart';
 import '../domain/map_controller.dart';
 import 'location_rationale_dialog.dart';
+import 'map_chrome.dart';
 import 'map_strings.dart';
 
 /// The zoom the locate button jumps to when the map is further out.
@@ -52,11 +53,13 @@ class MapControls extends ConsumerWidget {
           ),
           // The one place the rider can download routing tiles for exactly the
           // area they are looking at; the screen needs a live map for that.
-          _ControlButton(
-            icon: Icons.grid_on_outlined,
-            tooltip: MapStrings.routingTiles,
-            onPressed: enabled ? () => _openRoutingTiles(context) : null,
-          ),
+          // Embedded maps (record, details) leave it out.
+          if (MapChromeInsets.maybeOf(context)?.showRoutingTiles ?? true)
+            _ControlButton(
+              icon: Icons.grid_on_outlined,
+              tooltip: MapStrings.routingTiles,
+              onPressed: enabled ? () => _openRoutingTiles(context) : null,
+            ),
           const _ControlDivider(),
           _ControlButton(
             icon: Icons.add,

@@ -169,6 +169,25 @@ void main() {
     await unmountApp(tester);
   });
 
+  testWidgets('the navigation bar hides while a ride runs on this tab', (
+    tester,
+  ) async {
+    final h = await pumpRecordingApp(tester);
+    await tester.pump();
+    expect(find.byType(NavigationBar), findsOneWidget);
+
+    await emitSnapshot(
+      tester,
+      h,
+      _snapshot(newPoints: const [LatLng(48.0, 11.0), LatLng(48.1, 11.2)]),
+    );
+
+    expect(find.text('RECORDING'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+
+    await unmountApp(tester);
+  });
+
   testWidgets('a snapshot switches to the live panel and drives the map', (
     tester,
   ) async {
