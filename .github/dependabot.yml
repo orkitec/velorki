@@ -14,6 +14,10 @@ updates:
     groups:
       api:
         patterns: ["*"]
+    ignore:
+      # typescript-eslint pins typescript < 6.1; a TS major bump breaks lint.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
