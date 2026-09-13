@@ -57,14 +57,14 @@ void main() {
       ),
     ];
 
-    test('numbers the waypoints from one and keeps explicit labels', () {
+    test('numbers the waypoints from one, names stay off the disc', () {
       final features = _features(waypointsFeatureCollection(waypoints))
           .cast<Map<String, dynamic>>();
 
       expect(features.map((f) => (f['properties'] as Map)['label']), [
         '1',
         '2',
-        'Zoo',
+        '3',
       ]);
       expect(features.map((f) => (f['properties'] as Map)['kind']), [
         'start',

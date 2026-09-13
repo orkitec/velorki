@@ -53,9 +53,9 @@ Map<String, dynamic> lineFeatureCollection(
   };
 }
 
-/// The label drawn inside a waypoint circle: 1-based position in the list.
-String waypointLabel(MapWaypoint waypoint, int index) =>
-    waypoint.label ?? '${index + 1}';
+/// The label drawn inside a waypoint circle: the 1-based position in the
+/// list. A place name would not fit a 20 px disc; it lives in the plan.
+String waypointLabel(MapWaypoint waypoint, int index) => '${index + 1}';
 
 /// One `Point` feature per waypoint, each draggable and carrying its index.
 ///
