@@ -34,6 +34,9 @@ void main() {
       map: map,
       planner: container.read(plannerControllerProvider.notifier),
     )..attach();
+    // The screen syncs the current state as soon as the map is ready, which
+    // makes it the baseline; only changes from there move the camera.
+    binding.sync(container.read(plannerControllerProvider));
     container.listen<PlannerState>(
       plannerControllerProvider,
       (_, next) => binding.sync(next),

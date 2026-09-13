@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:velorki/features/map/data/position_provider.dart';
+
 import 'package:velorki/features/planner/presentation/elevation_profile_chart.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/planner/presentation/surface_stats_bar.dart';
@@ -7,6 +9,7 @@ import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../assistant/support/fakes.dart';
 import 'support/fakes.dart';
 import 'support/pump.dart';
 
@@ -216,13 +219,43 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(h.map.movedTo, const LatLng(48.1374, 11.5755));
-    expect(find.text('Set as start'), findsOneWidget);
+    expect(find.text('Start here'), findsOneWidget);
 
-    await tester.tap(find.text('Set as start'));
+    await tester.tap(find.text('Start here'));
     await tester.pumpAndSettle();
 
     expect(h.map.waypoints.single.position, const LatLng(48.1374, 11.5755));
-    expect(find.text('Set as start'), findsNothing);
+    expect(find.text('Start here'), findsNothing);
+  });
+
+  testWidgets('a searched place is the destination from my position', (
+    tester,
+  ) async {
+    final h = await pumpScreen(
+      tester,
+      const PlannerScreen(),
+      extraOverrides: [
+        positionSourceProvider.overrideWithValue(
+          const FixedPositionSource(LatLng(48.0, 11.0)),
+        ),
+      ],
+    );
+
+    await tester.enterText(find.byType(TextField).first, 'munich');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bavaria, Germany'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('From my position'));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+
+    expect(h.map.waypoints, hasLength(2));
+    expect(h.map.waypoints.first.position, const LatLng(48.0, 11.0));
+    expect(h.map.waypoints.last.position, const LatLng(48.1374, 11.5755));
+    expect(h.map.waypoints.last.label, 'Munich');
+    expect(find.text('From my position'), findsNothing);
   });
 
   testWidgets('a searched place is appended once a plan exists', (

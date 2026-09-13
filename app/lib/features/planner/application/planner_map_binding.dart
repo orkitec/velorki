@@ -29,7 +29,8 @@ class PlannerMapBinding {
   final PlannerController planner;
 
   final Set<String> _lineIds = <String>{};
-  int _lastWaypointCount = 0;
+  // `null` until the first sync: the first state is the baseline, not a change.
+  int? _lastWaypointCount;
   bool _attached = false;
 
   /// Subscribes to the map's gestures.
@@ -85,10 +86,15 @@ class PlannerMapBinding {
       ..clear()
       ..addAll(wanted);
 
-    final appearedAtOnce =
-        _lastWaypointCount == 0 && state.waypoints.length > 1;
+    // Only a plan that went from nothing to a whole route in one step (a
+    // saved route being loaded) moves the camera. A binding that is new
+    // because the map's style reloaded must not: the rider was somewhere
+    // else on purpose, and a jump to the route would look like a jump back
+    // to the start.
+    final previous = _lastWaypointCount;
+    final appearedAtOnce = previous == 0 && state.waypoints.length > 1;
     _lastWaypointCount = state.waypoints.length;
-    if (appearedAtOnce && positions.isNotEmpty) {
+    if (previous != null && appearedAtOnce && positions.isNotEmpty) {
       await map.fitBounds(BoundingBox.fromPoints(positions));
     }
   }

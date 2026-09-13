@@ -249,9 +249,17 @@
   "@plannerRouteSaved": {
     "description": "Snack bar confirming that a route was written to the library"
   },
-  "plannerSetAsStart": "Set as start",
+  "plannerSetAsStart": "Start here",
   "@plannerSetAsStart": {
-    "description": "Chip that turns the searched place into the start of a new route"
+    "description": "Button that turns the searched place into the start of a new route"
+  },
+  "plannerRideFromPosition": "From my position",
+  "@plannerRideFromPosition": {
+    "description": "Button that plans a route from the rider's current position to the searched place"
+  },
+  "plannerPositionUnavailable": "Your position is not available yet.",
+  "@plannerPositionUnavailable": {
+    "description": "Snack bar when planning from the current position but no fix is known"
   },
   "statDistance": "Distance",
   "@statDistance": {

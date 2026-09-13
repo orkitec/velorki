@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
+import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../assistant/domain/intent_resolver.dart';
 import '../../assistant/presentation/assistant_sheet.dart';
+import '../../map/data/position_provider.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/map_chrome.dart';
 import '../../routing_tiles/presentation/missing_tiles_banner.dart';
@@ -80,6 +82,32 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
     ref
         .read(plannerControllerProvider.notifier)
         .addWaypoint(place.position, name: place.name);
+    setState(() => _placeToStartFrom = null);
+  }
+
+  /// The searched place is the destination; the ride starts where the
+  /// rider is right now.
+  Future<void> _rideFromPosition() async {
+    final place = _placeToStartFrom;
+    if (place == null) return;
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    var start = ref.read(devicePositionProvider).value?.position;
+    if (start == null) {
+      final source = ref.read(positionSourceProvider);
+      final fix = await source.current() ?? await source.lastKnown();
+      if (fix != null) start = LatLng(fix.latitude, fix.longitude);
+    }
+    if (!mounted) return;
+    if (start == null) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.plannerPositionUnavailable)),
+      );
+      return;
+    }
+    final planner = ref.read(plannerControllerProvider.notifier);
+    planner.addWaypoint(start);
+    planner.addWaypoint(place.position, name: place.name);
     setState(() => _placeToStartFrom = null);
   }
 
@@ -202,15 +230,23 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
                     bias: () => _map?.center,
                   ),
                   if (_placeToStartFrom != null)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: FilledButton.icon(
-                          onPressed: _setSearchedPlaceAsStart,
-                          icon: const Icon(Icons.play_arrow_rounded),
-                          label: Text(l10n.plannerSetAsStart),
-                        ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          FilledButton.icon(
+                            onPressed: () => unawaited(_rideFromPosition()),
+                            icon: const Icon(Icons.near_me_rounded),
+                            label: Text(l10n.plannerRideFromPosition),
+                          ),
+                          FilledButton.tonalIcon(
+                            onPressed: _setSearchedPlaceAsStart,
+                            icon: const Icon(Icons.play_arrow_rounded),
+                            label: Text(l10n.plannerSetAsStart),
+                          ),
+                        ],
                       ),
                     ),
                   const SizedBox(height: 10),
