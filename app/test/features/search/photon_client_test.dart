@@ -6,6 +6,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 import 'support/fake_http.dart';
 
 void main() {
+  _photonLanguageTests();
   late FakeHttpAdapter adapter;
   late PhotonClient client;
 
@@ -89,5 +90,30 @@ void main() {
       client.search('munich', cancelToken: token),
       throwsA(isA<DioException>()),
     );
+  });
+}
+
+void _photonLanguageTests() {
+  group('photonLanguage', () {
+    test('reduces locale tags to a supported language', () {
+      expect(PhotonClient.photonLanguage('en_US'), 'en');
+      expect(PhotonClient.photonLanguage('de-DE'), 'de');
+      expect(PhotonClient.photonLanguage('fr'), 'fr');
+    });
+
+    test('drops languages Photon does not support', () {
+      expect(PhotonClient.photonLanguage('it_IT'), isNull);
+      expect(PhotonClient.photonLanguage(''), isNull);
+      expect(PhotonClient.photonLanguage(null), isNull);
+    });
+
+    test('the request carries only a supported language', () {
+      final client = PhotonClient('https://photon.example');
+      expect(client.buildUri('x', lang: 'en_US').queryParameters['lang'], 'en');
+      expect(
+        client.buildUri('x', lang: 'it_IT').queryParameters.containsKey('lang'),
+        isFalse,
+      );
+    });
   });
 }

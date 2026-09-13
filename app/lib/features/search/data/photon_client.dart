@@ -43,6 +43,20 @@ class PhotonClient {
   /// How many results the planner asks for.
   static const int defaultLimit = 8;
 
+  /// Languages the public Photon instance accepts for `lang`. Anything else
+  /// (including region-qualified locales such as `en_US`) is answered with
+  /// HTTP 400, so the parameter is dropped and Photon falls back to its
+  /// default names.
+  static const Set<String> supportedLanguages = {'de', 'en', 'fr'};
+
+  /// Reduces a locale tag (`en_US`, `de-DE`, `en`) to a Photon language, or
+  /// null when Photon does not support it.
+  static String? photonLanguage(String? locale) {
+    if (locale == null || locale.isEmpty) return null;
+    final language = locale.split(RegExp('[-_]')).first.toLowerCase();
+    return supportedLanguages.contains(language) ? language : null;
+  }
+
   /// The server root this client talks to.
   Uri get baseUri => _base;
 
@@ -57,7 +71,7 @@ class PhotonClient {
     queryParameters: <String, String>{
       'q': query,
       'limit': '$limit',
-      if (lang != null && lang.isNotEmpty) 'lang': lang,
+      'lang': ?photonLanguage(lang),
       if (bias != null) 'lat': bias.lat.toString(),
       if (bias != null) 'lon': bias.lon.toString(),
     },
