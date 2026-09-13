@@ -28,9 +28,9 @@ jobs:
       - run: flutter pub get
       - run: dart run build_runner build
       - run: flutter gen-l10n
-      - run: dart format --output=none --set-exit-if-changed lib test
-      - run: flutter analyze --fatal-infos lib test
-      - run: dart analyze --fatal-infos lib test
+      - run: dart format --output=none --set-exit-if-changed lib test integration_test
+      - run: flutter analyze --fatal-infos lib test integration_test
+      - run: dart analyze --fatal-infos lib test integration_test
       - run: flutter test --coverage
       - name: Cache the pinned BRouter oracle tiles
         uses: actions/cache@v4

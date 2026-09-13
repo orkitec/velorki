@@ -48,10 +48,10 @@ app fully local.
 
 ## Analysis
 
-`flutter analyze --fatal-infos lib test` for the app package. Riverpod's own
+`flutter analyze --fatal-infos lib test integration_test` for the app package. Riverpod's own
 lints ship as an `analysis_server_plugin` declared under `plugins:` in
 `analysis_options.yaml`; the `flutter analyze` front end does not load analyzer
-plugins, so run `dart analyze --fatal-infos lib test` as well to see them
+plugins, so run `dart analyze --fatal-infos lib test integration_test` as well to see them
 (`custom_lint` is no longer involved and is incompatible with riverpod_lint 3.1).
 
 ## Database
@@ -74,6 +74,48 @@ produced by the GL Strings integration; do not edit them by hand. Run
 ## Tests
 
 `flutter test` for the app, `dart test` inside each `packages/*` directory.
+
+### Emulator integration tests
+
+`integration_test/` holds the feature flows that only mean something on a real
+device: planning against the on-device routing engine, the Loop sheet, saving
+into the library, recording a ride, the map style reload and a GPX import.
+They drive the real `VelorkiApp` with the real map, the real database and the
+real BRouter port — only the things a test runner cannot have are faked (the
+GPS, the location and notification permissions, the Android foreground
+service, and the Photon geocoder).
+
+```
+tool/itest.sh                 # the whole suite on emulator-5554
+tool/itest.sh close_loop      # only the files whose path matches
+```
+
+The runner passes `--dart-define=VELORKI_BROUTER_URL=` (nothing to route
+against but the device), `--dart-define=VELORKI_API_URL=` and
+`--dart-define=VELORKI_SEGMENTS_URL=http://10.0.2.2:8000`, and stops at the
+first failure. Each file is its own `flutter test` run, because the
+`integration_test` binding installs one test build per invocation; budget one
+to two minutes per file.
+
+What the emulator needs before the first run:
+
+- an rd5 tile mirror on the host at port 8000 — a directory with the `.rd5`
+  files and a `manifest.json` (`brouter/updater/sync.sh` writes that shape),
+  served with `python3 -m http.server 8000`. `10.0.2.2` is the host as the
+  emulator sees it. The suite downloads the tile it needs on the first run and
+  reuses it afterwards.
+- a virtual position in the region under test, e.g.
+  `adb -s emulator-5554 emu geo fix -73.9645 40.8153` for New York.
+
+`VELORKI_ITEST_REGION` picks the coordinates: `nyc` (default, tile `W75_N40`)
+or `madeira` (tile `W20_N30`, the tile the frozen BRouter oracle release
+serves). `integration_test/support/region.dart` holds both sets.
+`.github/workflows/integration.yml` runs the suite nightly on an emulator with
+the Madeira tile, and can be started by hand from the Actions tab.
+
+`integration_test/plan_route_test.dart` is the exception: it wants a BRouter
+*server*, so `tool/itest.sh` skips it unless `VELORKI_BROUTER_URL` is set
+(`tools/brouter-oracle/serve.sh` starts one on port 17777).
 
 ## Platform notes
 

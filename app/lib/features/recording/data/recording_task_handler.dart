@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../map/data/position_provider.dart';
 import '../domain/recording_snapshot.dart';
@@ -18,12 +19,81 @@ void startRecordingCallback() {
   FlutterForegroundTask.setTaskHandler(RecordingTaskHandler());
 }
 
+/// The handful of foreground-service calls the handler makes.
+///
+/// Behind an interface because all four are plugin statics that reach for a
+/// platform channel: in a unit test there is none, so without this seam the
+/// throttled notification, the snapshots sent to the UI and the stop
+/// acknowledgement — the behaviour worth testing — could not be observed at
+/// all.
+abstract interface class ForegroundServiceHost {
+  /// Stops the service, ending the notification with it.
+  Future<void> stopService();
+
+  /// Sends [data] to the UI isolate; a plain map, as the port only takes
+  /// primitives.
+  void sendDataToMain(Object data);
+
+  /// Replaces the second line of the ongoing notification with [text].
+  Future<void> updateNotificationText(String text);
+
+  /// Brings the app back to the front when the rider taps the notification.
+  void launchApp();
+}
+
+/// [ForegroundServiceHost] over the `FlutterForegroundTask` statics — the real
+/// service, used everywhere outside the tests.
+class FlutterForegroundServiceHost implements ForegroundServiceHost {
+  /// Creates the host.
+  const FlutterForegroundServiceHost();
+
+  @override
+  Future<void> stopService() => FlutterForegroundTask.stopService();
+
+  @override
+  void sendDataToMain(Object data) =>
+      FlutterForegroundTask.sendDataToMain(data);
+
+  @override
+  Future<void> updateNotificationText(String text) =>
+      FlutterForegroundTask.updateService(notificationText: text);
+
+  @override
+  void launchApp() => FlutterForegroundTask.launchApp();
+}
+
 /// The recorder, running inside the foreground service.
 ///
 /// It owns the GPS stream, the journal and the statistics; the UI isolate only
 /// renders the snapshots it sends and sends commands back. That split is what
 /// keeps the ride going when the activity is destroyed.
 class RecordingTaskHandler extends TaskHandler {
+  /// Creates the handler.
+  ///
+  /// The arguments are the seams the tests need: every default is the
+  /// expression the service isolate used to build inline, so the running app
+  /// behaves exactly as before, while a test can hand in a temporary store, a
+  /// fix stream it controls, a host that only records what it was asked and a
+  /// clock that does not run — the notification throttle is measured in
+  /// snapshot time, which without a fake clock would mean waiting out real
+  /// seconds.
+  RecordingTaskHandler({
+    this.host = const FlutterForegroundServiceHost(),
+    Future<RecordingStore> Function()? openStore,
+    Stream<TrackPoint> Function()? fixes,
+    DateTime Function()? clock,
+  }) : _openStore = openStore ?? RecordingStore.open,
+       _fixes =
+           fixes ?? (() => recordingFixes(const GeolocatorPositionSource())),
+       _clock = clock ?? DateTime.now;
+
+  /// The foreground service this handler runs in.
+  final ForegroundServiceHost host;
+
+  final Future<RecordingStore> Function() _openStore;
+  final Stream<TrackPoint> Function() _fixes;
+  final DateTime Function() _clock;
+
   RecordingEngine? _engine;
   StreamSubscription<RecordingSnapshot>? _snapshots;
   final StreamController<DateTime> _ticks =
@@ -36,11 +106,11 @@ class RecordingTaskHandler extends TaskHandler {
 
   @override
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
-    final store = await RecordingStore.open();
+    final store = await _openStore();
     final state = await store.readState();
     if (state == null) {
       // Nothing to record — the service was restarted without a ride.
-      await FlutterForegroundTask.stopService();
+      await host.stopService();
       return;
     }
 
@@ -52,8 +122,9 @@ class RecordingTaskHandler extends TaskHandler {
       store: store,
       journal: journal,
       initialState: state,
-      fixes: recordingFixes(const GeolocatorPositionSource()),
+      fixes: _fixes(),
       ticks: _ticks.stream,
+      clock: _clock,
     )..seed(existing);
     _snapshots = engine.snapshots.listen(_onSnapshot);
     await engine.start();
@@ -87,12 +158,12 @@ class RecordingTaskHandler extends TaskHandler {
 
   @override
   void onNotificationPressed() {
-    FlutterForegroundTask.launchApp();
+    host.launchApp();
   }
 
   Future<void> _stopAndAcknowledge() async {
     await _stopEngine();
-    FlutterForegroundTask.sendDataToMain(<String, Object?>{
+    host.sendDataToMain(<String, Object?>{
       recordingMessageKind: recordingStoppedMessage,
     });
   }
@@ -111,15 +182,11 @@ class RecordingTaskHandler extends TaskHandler {
     final now = snapshot.startedAt.add(snapshot.elapsed);
     if (now.difference(_lastNotification) < notificationInterval) return;
     _lastNotification = now;
-    unawaited(
-      FlutterForegroundTask.updateService(
-        notificationText: notificationTextFor(snapshot),
-      ),
-    );
+    unawaited(host.updateNotificationText(notificationTextFor(snapshot)));
   }
 
   void _send(RecordingSnapshot snapshot) =>
-      FlutterForegroundTask.sendDataToMain(snapshot.toMap());
+      host.sendDataToMain(snapshot.toMap());
 }
 
 /// The second line of the recording notification: distance and time.

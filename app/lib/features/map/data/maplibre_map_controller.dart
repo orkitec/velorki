@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart' show Brightness, Color, ThemeData;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -178,20 +179,191 @@ Color colorFromMapHex(String hex) {
 const String _cyclosmAttribution =
     '© OpenStreetMap contributors, tiles by CyclOSM';
 
+/// The slice of maplibre_gl's [ml.MapLibreMapController] the adapter drives.
+///
+/// The plugin controller only exists behind a platform view, so in
+/// `flutter test` there is nothing to talk to and every member below is a
+/// method channel call. Naming the handful the adapter actually uses lets the
+/// layer choreography — the z-order, the caching, the self-healing after the
+/// native side dropped a source — be driven by a recording fake instead.
+abstract class MapLibreStyleOps {
+  /// Creates a GeoJSON source called [sourceId] holding [geojson].
+  Future<void> addGeoJsonSource(String sourceId, Map<String, dynamic> geojson);
+
+  /// Replaces the data of an existing GeoJSON source. This is the cheap call
+  /// routes and waypoints are built on: one message however long the line.
+  Future<void> setGeoJsonSource(String sourceId, Map<String, dynamic> geojson);
+
+  /// Creates a non-GeoJSON source; for Velorki that is only the CyclOSM
+  /// raster tiles.
+  Future<void> addSource(String sourceId, ml.SourceProperties properties);
+
+  /// Adds the style layer [layerId] drawing [sourceId].
+  ///
+  /// [belowLayerId] is what keeps the route lines under the puck, and
+  /// [enableInteraction] decides whether a layer's features can be dragged —
+  /// only the waypoint circles want that.
+  Future<void> addLayer(
+    String sourceId,
+    String layerId,
+    ml.LayerProperties properties, {
+    String? belowLayerId,
+    bool enableInteraction = true,
+  });
+
+  /// Removes the layer [layerId]; a source can only go once nothing draws it.
+  Future<void> removeLayer(String layerId);
+
+  /// Removes the source [sourceId].
+  Future<void> removeSource(String sourceId);
+
+  /// Rewrites the paint and layout properties of [layerId], which is how a
+  /// palette change and a new accuracy ring reach the map without a reload.
+  Future<void> setLayerProperties(
+    String layerId,
+    ml.LayerProperties properties,
+  );
+
+  /// Shows or hides [layerId] — cheaper than adding and removing the overlay.
+  Future<void> setLayerVisibility(String layerId, bool visible);
+
+  /// Every source id the native style currently holds. MapLibre drops a
+  /// source silently, so asking is the only way to notice.
+  Future<List<String>> getSourceIds();
+
+  /// Registers [bytes] as the style image [name], replacing any image already
+  /// under that name. The heading cone is a bitmap we paint ourselves.
+  Future<void> addImage(String name, Uint8List bytes);
+
+  /// Flies the camera to [update].
+  Future<void> animateCamera(ml.CameraUpdate update);
+
+  /// Jumps the camera to [update], for moves that should not be watched.
+  Future<void> moveCamera(ml.CameraUpdate update);
+
+  /// Where the camera last reported itself, `null` before the first frame.
+  ml.CameraPosition? get cameraPosition;
+
+  /// The area currently on screen. Throws once the platform view is gone.
+  Future<ml.LatLngBounds> getVisibleRegion();
+
+  /// The plugin's own list of feature drag listeners. It is a plain list, so
+  /// the adapter registers and unregisters by adding to and removing from it
+  /// rather than by holding a subscription.
+  List<ml.OnFeatureDragCallback> get onFeatureDrag;
+}
+
+/// [MapLibreStyleOps] forwarding one for one to a real plugin controller.
+///
+/// Nothing but the forwarding lives here: every decision the adapter makes
+/// stays in the adapter, where a test can reach it.
+class PluginMapLibreStyleOps implements MapLibreStyleOps {
+  /// Wraps [map], the controller `MapLibreMap.onMapCreated` handed over.
+  const PluginMapLibreStyleOps(this.map);
+
+  /// The wrapped plugin controller.
+  final ml.MapLibreMapController map;
+
+  @override
+  Future<void> addGeoJsonSource(
+    String sourceId,
+    Map<String, dynamic> geojson,
+  ) => map.addGeoJsonSource(sourceId, geojson);
+
+  @override
+  Future<void> setGeoJsonSource(
+    String sourceId,
+    Map<String, dynamic> geojson,
+  ) => map.setGeoJsonSource(sourceId, geojson);
+
+  @override
+  Future<void> addSource(String sourceId, ml.SourceProperties properties) =>
+      map.addSource(sourceId, properties);
+
+  @override
+  Future<void> addLayer(
+    String sourceId,
+    String layerId,
+    ml.LayerProperties properties, {
+    String? belowLayerId,
+    bool enableInteraction = true,
+  }) => map.addLayer(
+    sourceId,
+    layerId,
+    properties,
+    belowLayerId: belowLayerId,
+    enableInteraction: enableInteraction,
+  );
+
+  @override
+  Future<void> removeLayer(String layerId) => map.removeLayer(layerId);
+
+  @override
+  Future<void> removeSource(String sourceId) => map.removeSource(sourceId);
+
+  @override
+  Future<void> setLayerProperties(
+    String layerId,
+    ml.LayerProperties properties,
+  ) => map.setLayerProperties(layerId, properties);
+
+  @override
+  Future<void> setLayerVisibility(String layerId, bool visible) =>
+      map.setLayerVisibility(layerId, visible);
+
+  @override
+  Future<List<String>> getSourceIds() => map.getSourceIds();
+
+  @override
+  Future<void> addImage(String name, Uint8List bytes) =>
+      map.addImage(name, bytes);
+
+  @override
+  Future<void> animateCamera(ml.CameraUpdate update) =>
+      map.animateCamera(update);
+
+  @override
+  Future<void> moveCamera(ml.CameraUpdate update) => map.moveCamera(update);
+
+  @override
+  ml.CameraPosition? get cameraPosition => map.cameraPosition;
+
+  @override
+  Future<ml.LatLngBounds> getVisibleRegion() => map.getVisibleRegion();
+
+  @override
+  List<ml.OnFeatureDragCallback> get onFeatureDrag => map.onFeatureDrag;
+}
+
 /// [MapController] over maplibre_gl's [ml.MapLibreMapController].
 ///
 /// Routes, waypoints, the track and the puck are GeoJSON sources with style
 /// layers rather than annotations: annotations go through a per-feature method
 /// channel round trip, while a source swap is one call however long the line.
 class MaplibreMapControllerAdapter implements MapController {
+  /// Wraps the controller `MapLibreMap.onMapCreated` handed over.
   MaplibreMapControllerAdapter(
-    this._map, {
+    ml.MapLibreMapController map, {
+    String cyclosmTileUrl = '',
+    double devicePixelRatio = 1.0,
+    MapPalette palette = const MapPalette.classic(),
+  }) : this.withOps(
+         PluginMapLibreStyleOps(map),
+         cyclosmTileUrl: cyclosmTileUrl,
+         devicePixelRatio: devicePixelRatio,
+         palette: palette,
+       );
+
+  /// Drives [ops] instead of a plugin controller, so the layer work can be
+  /// exercised without a platform view.
+  MaplibreMapControllerAdapter.withOps(
+    this._ops, {
     this.cyclosmTileUrl = '',
     this.devicePixelRatio = 1.0,
     MapPalette palette = const MapPalette.classic(),
   }) : _palette = palette; // ignore: prefer_initializing_formals
 
-  final ml.MapLibreMapController _map;
+  final MapLibreStyleOps _ops;
   MapPalette _palette;
 
   /// Screen density the heading cone bitmap is rasterised at.
@@ -207,6 +379,9 @@ class MaplibreMapControllerAdapter implements MapController {
   // What the map should show, replayed after a style (re)load and used to
   // re-create a source the native side has dropped.
   final Map<String, List<LatLng>> _routePoints = <String, List<LatLng>>{};
+  // The style of every remembered route, so a replay after a style reload
+  // draws a preview as a preview; `_routeLines` only knows what exists.
+  final Map<String, RouteLineStyle> _routeStyles = <String, RouteLineStyle>{};
   List<MapWaypoint> _waypoints = const <MapWaypoint>[];
   List<LatLng> _track = const <LatLng>[];
   BoundingBox? _visibleBounds;
@@ -234,16 +409,16 @@ class MaplibreMapControllerAdapter implements MapController {
   Future<void> attachToStyle() async {
     _attached = false;
     _routeLines.clear();
-    _map.onFeatureDrag.remove(_handleFeatureDrag);
-    _map.onFeatureDrag.add(_handleFeatureDrag);
+    _ops.onFeatureDrag.remove(_handleFeatureDrag);
+    _ops.onFeatureDrag.add(_handleFeatureDrag);
 
     await _addCyclosmLayer();
 
-    await _map.addGeoJsonSource(
+    await _ops.addGeoJsonSource(
       MapLayerIds.trackSource,
       emptyFeatureCollection(),
     );
-    await _map.addLayer(
+    await _ops.addLayer(
       MapLayerIds.trackSource,
       MapLayerIds.trackLayer,
       ml.LineLayerProperties(
@@ -256,11 +431,11 @@ class MaplibreMapControllerAdapter implements MapController {
       enableInteraction: false,
     );
 
-    await _map.addGeoJsonSource(
+    await _ops.addGeoJsonSource(
       MapLayerIds.positionSource,
       emptyFeatureCollection(),
     );
-    await _map.addLayer(
+    await _ops.addLayer(
       MapLayerIds.positionSource,
       MapLayerIds.positionAccuracyLayer,
       ml.CircleLayerProperties(
@@ -276,7 +451,7 @@ class MaplibreMapControllerAdapter implements MapController {
     // The cone is a symbol, so its bitmap has to exist before the layer that
     // names it; re-registering under the same name replaces it.
     await _addHeadingConeImage();
-    await _map.addLayer(
+    await _ops.addLayer(
       MapLayerIds.positionSource,
       MapLayerIds.positionHeadingLayer,
       ml.SymbolLayerProperties(
@@ -299,7 +474,7 @@ class MaplibreMapControllerAdapter implements MapController {
       ),
       enableInteraction: false,
     );
-    await _map.addLayer(
+    await _ops.addLayer(
       MapLayerIds.positionSource,
       MapLayerIds.positionHaloLayer,
       ml.CircleLayerProperties(
@@ -309,7 +484,7 @@ class MaplibreMapControllerAdapter implements MapController {
       ),
       enableInteraction: false,
     );
-    await _map.addLayer(
+    await _ops.addLayer(
       MapLayerIds.positionSource,
       MapLayerIds.positionDotLayer,
       ml.CircleLayerProperties(
@@ -321,11 +496,11 @@ class MaplibreMapControllerAdapter implements MapController {
       enableInteraction: false,
     );
 
-    await _map.addGeoJsonSource(
+    await _ops.addGeoJsonSource(
       MapLayerIds.waypointsSource,
       emptyFeatureCollection(),
     );
-    await _map.addLayer(
+    await _ops.addLayer(
       MapLayerIds.waypointsSource,
       MapLayerIds.waypointsCircleLayer,
       ml.CircleLayerProperties(
@@ -336,7 +511,7 @@ class MaplibreMapControllerAdapter implements MapController {
       ),
       // Drag gestures only reach layers that take part in feature interaction.
     );
-    await _map.addLayer(
+    await _ops.addLayer(
       MapLayerIds.waypointsSource,
       MapLayerIds.waypointsLabelLayer,
       ml.SymbolLayerProperties(
@@ -364,13 +539,11 @@ class MaplibreMapControllerAdapter implements MapController {
     if (_waypoints.isNotEmpty) await setWaypoints(_waypoints);
     if (_track.isNotEmpty) await setTrackLine(_track);
     final lines = Map<String, List<LatLng>>.of(_routePoints);
-    final styles = Map<String, RouteLineStyle>.of(_routeLines);
-    _routeLines.clear();
     for (final entry in lines.entries) {
       await setRouteLine(
         entry.key,
         entry.value,
-        style: styles[entry.key] ?? RouteLineStyle.main,
+        style: _routeStyles[entry.key] ?? RouteLineStyle.main,
       );
     }
   }
@@ -379,7 +552,7 @@ class MaplibreMapControllerAdapter implements MapController {
   /// a source vanished, so the adapter asks before updating.
   Future<bool> _hasSource(String sourceId) async {
     try {
-      final ids = await _map.getSourceIds();
+      final ids = await _ops.getSourceIds();
       return ids.contains(sourceId);
     } catch (_) {
       return true;
@@ -396,7 +569,7 @@ class MaplibreMapControllerAdapter implements MapController {
         devicePixelRatio: devicePixelRatio,
       );
       if (_disposed) return;
-      await _map.addImage(headingConeImageName, bytes);
+      await _ops.addImage(headingConeImageName, bytes);
     } on Object catch (error) {
       // A missing cone is a cosmetic loss; the dot and ring still draw.
       debugPrint('velorki: heading cone image failed: $error');
@@ -406,7 +579,7 @@ class MaplibreMapControllerAdapter implements MapController {
   Future<void> _addCyclosmLayer() async {
     final tiles = expandTileTemplate(cyclosmTileUrl);
     if (tiles.isEmpty) return;
-    await _map.addSource(
+    await _ops.addSource(
       MapLayerIds.cyclosmSource,
       ml.RasterSourceProperties(
         tiles: tiles,
@@ -416,7 +589,7 @@ class MaplibreMapControllerAdapter implements MapController {
         attribution: _cyclosmAttribution,
       ),
     );
-    await _map.addLayer(
+    await _ops.addLayer(
       MapLayerIds.cyclosmSource,
       MapLayerIds.cyclosmLayer,
       ml.RasterLayerProperties(
@@ -439,15 +612,15 @@ class MaplibreMapControllerAdapter implements MapController {
         ? ml.CameraUpdate.newLatLng(_toMl(center))
         : ml.CameraUpdate.newLatLngZoom(_toMl(center), zoom);
     if (animate) {
-      await _map.animateCamera(update);
+      await _ops.animateCamera(update);
     } else {
-      await _map.moveCamera(update);
+      await _ops.moveCamera(update);
     }
   }
 
   @override
   Future<void> fitBounds(BoundingBox bounds, {double paddingPx = 48}) async {
-    await _map.animateCamera(
+    await _ops.animateCamera(
       ml.CameraUpdate.newLatLngBounds(
         _toMlBounds(bounds),
         left: paddingPx,
@@ -460,12 +633,12 @@ class MaplibreMapControllerAdapter implements MapController {
 
   @override
   LatLng? get center {
-    final target = _map.cameraPosition?.target;
+    final target = _ops.cameraPosition?.target;
     return target == null ? null : LatLng(target.latitude, target.longitude);
   }
 
   @override
-  double? get zoom => _map.cameraPosition?.zoom;
+  double? get zoom => _ops.cameraPosition?.zoom;
 
   @override
   BoundingBox? get visibleBounds => _visibleBounds;
@@ -478,6 +651,10 @@ class MaplibreMapControllerAdapter implements MapController {
     List<LatLng> points, {
     RouteLineStyle style = RouteLineStyle.main,
   }) async {
+    // Remembered even before the style is ready: the replay after
+    // `attachToStyle` draws it, so owners need not push it twice.
+    _routePoints[id] = List<LatLng>.unmodifiable(points);
+    _routeStyles[id] = style;
     if (!_attached) return;
     final sourceId = MapLayerIds.routeSource(id);
     final layerId = MapLayerIds.routeLayer(id);
@@ -485,15 +662,14 @@ class MaplibreMapControllerAdapter implements MapController {
       points,
       properties: <String, dynamic>{'id': id, 'style': style.name},
     );
-    _routePoints[id] = List<LatLng>.unmodifiable(points);
     var previous = _routeLines[id];
     if (previous != null && !await _hasSource(sourceId)) {
       _routeLines.remove(id);
       previous = null;
     }
     if (previous == null) {
-      await _map.addGeoJsonSource(sourceId, data);
-      await _map.addLayer(
+      await _ops.addGeoJsonSource(sourceId, data);
+      await _ops.addLayer(
         sourceId,
         layerId,
         _lineProperties(style),
@@ -502,9 +678,9 @@ class MaplibreMapControllerAdapter implements MapController {
         enableInteraction: false,
       );
     } else {
-      await _map.setGeoJsonSource(sourceId, data);
+      await _ops.setGeoJsonSource(sourceId, data);
       if (previous != style) {
-        await _map.setLayerProperties(layerId, _lineProperties(style));
+        await _ops.setLayerProperties(layerId, _lineProperties(style));
       }
     }
     _routeLines[id] = style;
@@ -513,9 +689,10 @@ class MaplibreMapControllerAdapter implements MapController {
   @override
   Future<void> removeRouteLine(String id) async {
     _routePoints.remove(id);
+    _routeStyles.remove(id);
     if (!_attached || _routeLines.remove(id) == null) return;
-    await _map.removeLayer(MapLayerIds.routeLayer(id));
-    await _map.removeSource(MapLayerIds.routeSource(id));
+    await _ops.removeLayer(MapLayerIds.routeLayer(id));
+    await _ops.removeSource(MapLayerIds.routeSource(id));
   }
 
   @override
@@ -557,35 +734,45 @@ class MaplibreMapControllerAdapter implements MapController {
     if (palette == _palette) return;
     _palette = palette;
     if (!_attached) return;
-    await _map.setLayerProperties(
+    try {
+      await _recolour(palette);
+    } on PlatformException {
+      // The style is on its way out (a theme switch swaps the map style in
+      // the same frame it changes the palette): the next `attachToStyle`
+      // draws every layer with the palette set above.
+    }
+  }
+
+  Future<void> _recolour(MapPalette palette) async {
+    await _ops.setLayerProperties(
       MapLayerIds.trackLayer,
       ml.LineLayerProperties(lineColor: palette.track),
     );
-    await _map.setLayerProperties(
+    await _ops.setLayerProperties(
       MapLayerIds.positionDotLayer,
       ml.CircleLayerProperties(circleColor: palette.positionDot),
     );
-    await _map.setLayerProperties(
+    await _ops.setLayerProperties(
       MapLayerIds.positionHaloLayer,
       ml.CircleLayerProperties(circleColor: palette.positionDot),
     );
     // The cone is a bitmap, not a style colour, so it has to be redrawn.
     await _addHeadingConeImage();
-    await _map.setLayerProperties(
+    await _ops.setLayerProperties(
       MapLayerIds.positionAccuracyLayer,
       ml.CircleLayerProperties(
         circleColor: palette.positionAccuracy,
         circleStrokeColor: palette.positionAccuracy,
       ),
     );
-    await _map.setLayerProperties(
+    await _ops.setLayerProperties(
       MapLayerIds.waypointsCircleLayer,
       ml.CircleLayerProperties(
         circleColor: _waypointColorExpression(),
         circleStrokeColor: palette.waypointStroke,
       ),
     );
-    await _map.setLayerProperties(
+    await _ops.setLayerProperties(
       MapLayerIds.waypointsLabelLayer,
       ml.SymbolLayerProperties(
         textColor: palette.waypointLabel,
@@ -593,7 +780,7 @@ class MaplibreMapControllerAdapter implements MapController {
       ),
     );
     for (final entry in _routeLines.entries) {
-      await _map.setLayerProperties(
+      await _ops.setLayerProperties(
         MapLayerIds.routeLayer(entry.key),
         _lineProperties(entry.value),
       );
@@ -622,7 +809,7 @@ class MaplibreMapControllerAdapter implements MapController {
       await attachToStyle();
       return;
     }
-    await _map.setGeoJsonSource(
+    await _ops.setGeoJsonSource(
       MapLayerIds.waypointsSource,
       waypointsFeatureCollection(waypoints),
     );
@@ -636,7 +823,7 @@ class MaplibreMapControllerAdapter implements MapController {
       await attachToStyle();
       return;
     }
-    await _map.setGeoJsonSource(
+    await _ops.setGeoJsonSource(
       MapLayerIds.trackSource,
       lineFeatureCollection(points),
     );
@@ -650,7 +837,7 @@ class MaplibreMapControllerAdapter implements MapController {
     double? speedMps,
   }) async {
     if (!_attached) return;
-    await _map.setGeoJsonSource(
+    await _ops.setGeoJsonSource(
       MapLayerIds.positionSource,
       positionFeatureCollection(
         position,
@@ -664,7 +851,7 @@ class MaplibreMapControllerAdapter implements MapController {
     final radius = position == null || accuracyM == null || accuracyM <= 0
         ? 0.0
         : accuracyRingRadiusExpression(accuracyM, position.lat);
-    await _map.setLayerProperties(
+    await _ops.setLayerProperties(
       MapLayerIds.positionAccuracyLayer,
       ml.CircleLayerProperties(
         circleRadius: radius,
@@ -681,7 +868,7 @@ class MaplibreMapControllerAdapter implements MapController {
   Future<void> setCyclosmOverlay(bool visible) async {
     _cyclosmVisible = visible;
     if (expandTileTemplate(cyclosmTileUrl).isEmpty || !_attached) return;
-    await _map.setLayerVisibility(MapLayerIds.cyclosmLayer, visible);
+    await _ops.setLayerVisibility(MapLayerIds.cyclosmLayer, visible);
   }
 
   /// Whether the CyclOSM overlay is currently switched on.
@@ -723,7 +910,7 @@ class MaplibreMapControllerAdapter implements MapController {
 
   Future<void> _refreshVisibleBounds() async {
     try {
-      final region = await _map.getVisibleRegion();
+      final region = await _ops.getVisibleRegion();
       if (_disposed) return;
       _visibleBounds = BoundingBox(
         south: region.southwest.latitude,
@@ -740,7 +927,7 @@ class MaplibreMapControllerAdapter implements MapController {
   /// by the widget that owns it.
   void dispose() {
     _disposed = true;
-    _map.onFeatureDrag.remove(_handleFeatureDrag);
+    _ops.onFeatureDrag.remove(_handleFeatureDrag);
     onTap = null;
     onLongPress = null;
     onWaypointDragged = null;

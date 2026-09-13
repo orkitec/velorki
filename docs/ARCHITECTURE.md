@@ -564,9 +564,26 @@ deterministic pure widgets (elevation chart, stats card, list tile), vitest for
 the relay with mocked upstreams, and the `brouter_dart` parity levels as they
 land.
 
-**Nightly:** integration tests on an Android emulator (recording with mocked
-location, the GPX open-with intent), a contract job against a BRouter container
-with one small tile, and the `brouter_dart` corpus against two real tiles.
+**Nightly:** the emulator suite in `app/integration_test/`
+(`.github/workflows/integration.yml`, API 34 and 35), a contract job against a
+BRouter container with one small tile, and the `brouter_dart` corpus against
+two real tiles.
+
+The emulator suite is the one place where a whole feature is exercised end to
+end: the real `VelorkiApp`, the real drift database, the real MapLibre view and
+the real on-device BRouter port. Six flows — search to a destination, closing a
+loop and making one from a distance, saving a route and reopening it from the
+library, recording a ride with a scripted GPS track, switching the theme and
+the map style under a plan, and importing a GPX file — plus the two older
+routing checks. Only what a test runner cannot have is faked: the GPS, the
+location and notification permissions, the Android foreground service (the
+suite uses the app's own `MainIsolateRecordingService`, which is what iOS runs
+anyway) and the Photon geocoder. The rd5 tile is the frozen
+`orkitec/velorki-data@oracle-*` snapshot the BRouter parity corpus was recorded
+against, served to the emulator over HTTP, so the routes the suite plans are
+reproducible; `VELORKI_ITEST_REGION` switches the coordinates between the
+Madeira tile CI uses and whatever tile a developer has locally. Run it by hand
+with `app/tool/itest.sh`.
 
 **Per milestone, by hand:** the "done when" column above, on a real Android
 device and on an iPhone.

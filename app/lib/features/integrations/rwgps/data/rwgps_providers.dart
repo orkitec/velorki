@@ -49,6 +49,21 @@ final rwgpsClientProvider = Provider<RwgpsClient>(
   (ref) => RwgpsClient(dio: ref.watch(rwgpsDioProvider)),
 );
 
+/// Builds the throwaway dio the connector's one bare-token call is made over.
+typedef RwgpsBareDioFactory = Dio Function();
+
+/// The production [RwgpsBareDioFactory]: a fresh client with the app's base
+/// options and no interceptor, since there is no stored token yet.
+Dio buildRwgpsBareDio() => Dio(velorkiBaseOptions(rwgpsBaseOptions()));
+
+/// How the connector builds that one client.
+///
+/// Behind a provider because the call goes straight to ridewithgps.com, which
+/// a test has no way to answer; the default is the real factory.
+final rwgpsBareDioProvider = Provider<RwgpsBareDioFactory>(
+  (ref) => buildRwgpsBareDio,
+);
+
 /// Whether this build can connect Ride with GPS at all.
 final rwgpsConfiguredProvider = Provider<bool>((ref) {
   final config = ref.watch(effectiveConfigProvider);
@@ -68,7 +83,7 @@ final rwgpsConnectorProvider = Provider<RwgpsConnector?>((ref) {
     readUser: (token) async {
       // The token is not in secure storage yet, so this one call carries it
       // by hand instead of going through the interceptor.
-      final dio = Dio(velorkiBaseOptions(rwgpsBaseOptions()))
+      final dio = ref.read(rwgpsBareDioProvider)()
         ..options.headers['Authorization'] = 'Bearer $token';
       try {
         return await RwgpsClient(dio: dio).currentUser();

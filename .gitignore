@@ -16,6 +16,7 @@
 **/pubspec.lock
 !app/pubspec.lock
 app/env/local.json
+app/env/phone.json
 app/android/key.properties
 app/android/**/*.jks
 app/android/**/*.keystore

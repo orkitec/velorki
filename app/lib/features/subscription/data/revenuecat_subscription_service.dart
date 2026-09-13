@@ -17,6 +17,77 @@ final Logger _log = Logger('SubscriptionService');
 /// this answers `linux`, which has no key and therefore no store.
 String currentStorePlatform() => kIsWeb ? 'web' : Platform.operatingSystem;
 
+/// The handful of `rc.Purchases` statics this service calls.
+///
+/// Behind an interface because statics cannot be faked: without it every test
+/// of the mapping and the error handling below would need a real platform
+/// channel, which no unit test has. Production passes [SdkPurchasesApi] and
+/// nothing changes.
+abstract interface class PurchasesApi {
+  /// Sets how loud the SDK is in the console.
+  Future<void> setLogLevel(rc.LogLevel level);
+
+  /// Starts the SDK with [configuration]. Must happen before anything else.
+  Future<void> configure(rc.PurchasesConfiguration configuration);
+
+  /// Registers [listener] for every customer info change the store reports.
+  void addCustomerInfoUpdateListener(rc.CustomerInfoUpdateListener listener);
+
+  /// Unregisters a listener added with [addCustomerInfoUpdateListener].
+  void removeCustomerInfoUpdateListener(rc.CustomerInfoUpdateListener listener);
+
+  /// Asks the store what this subscriber owns.
+  Future<rc.CustomerInfo> getCustomerInfo();
+
+  /// Asks the store for the configured offerings and their prices.
+  Future<rc.Offerings> getOfferings();
+
+  /// Opens the store's purchase sheet for [params].
+  Future<rc.PurchaseResult> purchase(rc.PurchaseParams params);
+
+  /// Restores whatever this store account already owns.
+  Future<rc.CustomerInfo> restorePurchases();
+}
+
+/// [PurchasesApi] over the real `rc.Purchases` statics.
+///
+/// Deliberately nothing but forwarding: every decision the app makes lives in
+/// [RevenueCatSubscriptionService], where a test can reach it.
+class SdkPurchasesApi implements PurchasesApi {
+  /// Creates the SDK-backed api.
+  const SdkPurchasesApi();
+
+  @override
+  Future<void> setLogLevel(rc.LogLevel level) =>
+      rc.Purchases.setLogLevel(level);
+
+  @override
+  Future<void> configure(rc.PurchasesConfiguration configuration) =>
+      rc.Purchases.configure(configuration);
+
+  @override
+  void addCustomerInfoUpdateListener(rc.CustomerInfoUpdateListener listener) =>
+      rc.Purchases.addCustomerInfoUpdateListener(listener);
+
+  @override
+  void removeCustomerInfoUpdateListener(
+    rc.CustomerInfoUpdateListener listener,
+  ) => rc.Purchases.removeCustomerInfoUpdateListener(listener);
+
+  @override
+  Future<rc.CustomerInfo> getCustomerInfo() => rc.Purchases.getCustomerInfo();
+
+  @override
+  Future<rc.Offerings> getOfferings() => rc.Purchases.getOfferings();
+
+  @override
+  Future<rc.PurchaseResult> purchase(rc.PurchaseParams params) =>
+      rc.Purchases.purchase(params);
+
+  @override
+  Future<rc.CustomerInfo> restorePurchases() => rc.Purchases.restorePurchases();
+}
+
 /// [SubscriptionService] over RevenueCat's `purchases_flutter`.
 ///
 /// One entitlement ([plusEntitlementId]), one anonymous subscriber, no login.
@@ -31,9 +102,12 @@ class RevenueCatSubscriptionService implements SubscriptionService {
   /// subscriber is "identified" from RevenueCat's point of view even though
   /// the id is a random string the app made up — which is what allows
   /// [restorePurchases] to work without any account.
+  ///
+  /// [purchases] defaults to the real SDK; only tests pass anything else.
   RevenueCatSubscriptionService({
     required this.apiKey,
     required this.appUserId,
+    this.purchases = const SdkPurchasesApi(),
   });
 
   /// The RevenueCat public SDK key of this platform.
@@ -41,6 +115,9 @@ class RevenueCatSubscriptionService implements SubscriptionService {
 
   /// The subscriber id, shared with the relay.
   final String appUserId;
+
+  /// The store SDK, so a test can answer for it.
+  final PurchasesApi purchases;
 
   final StreamController<PlusCustomerInfo> _updates =
       StreamController<PlusCustomerInfo>.broadcast();
@@ -64,18 +141,20 @@ class RevenueCatSubscriptionService implements SubscriptionService {
   @override
   Future<void> configure() async {
     if (_configured) return;
-    _configured = true;
     try {
-      await rc.Purchases.setLogLevel(
+      await purchases.setLogLevel(
         kReleaseMode ? rc.LogLevel.warn : rc.LogLevel.info,
       );
-      await rc.Purchases.configure(
+      await purchases.configure(
         rc.PurchasesConfiguration(apiKey)..appUserID = appUserId,
       );
       final listener = _emitFromSdk;
       _listener = listener;
-      rc.Purchases.addCustomerInfoUpdateListener(listener);
-      _emit(fromCustomerInfo(await rc.Purchases.getCustomerInfo()));
+      purchases.addCustomerInfoUpdateListener(listener);
+      // Only now: a configure that failed at launch (no network, no Play
+      // services) is tried again on the next call.
+      _configured = true;
+      _emit(fromCustomerInfo(await purchases.getCustomerInfo()));
     } on Object catch (e, st) {
       // A store that is unreachable at launch is normal (no network, an
       // emulator without Play services). The rider stays unentitled until the
@@ -87,7 +166,7 @@ class RevenueCatSubscriptionService implements SubscriptionService {
   @override
   Future<PlusCustomerInfo> refresh() async {
     try {
-      final info = fromCustomerInfo(await rc.Purchases.getCustomerInfo());
+      final info = fromCustomerInfo(await purchases.getCustomerInfo());
       _emit(info);
       return info;
     } on Object catch (e, st) {
@@ -99,7 +178,7 @@ class RevenueCatSubscriptionService implements SubscriptionService {
   @override
   Future<PlusOffering?> offerings() async {
     try {
-      final offerings = await rc.Purchases.getOfferings();
+      final offerings = await purchases.getOfferings();
       final current = offerings.current;
       if (current == null) return null;
       return PlusOffering(
@@ -129,7 +208,7 @@ class RevenueCatSubscriptionService implements SubscriptionService {
       );
     }
     try {
-      final result = await rc.Purchases.purchase(
+      final result = await purchases.purchase(
         rc.PurchaseParams.package(native),
       );
       final info = fromCustomerInfo(result.customerInfo);
@@ -143,7 +222,7 @@ class RevenueCatSubscriptionService implements SubscriptionService {
   @override
   Future<PlusCustomerInfo> restorePurchases() async {
     try {
-      final info = fromCustomerInfo(await rc.Purchases.restorePurchases());
+      final info = fromCustomerInfo(await purchases.restorePurchases());
       _emit(info);
       return info;
     } on PlatformException catch (e) {
@@ -155,7 +234,7 @@ class RevenueCatSubscriptionService implements SubscriptionService {
   void dispose() {
     final listener = _listener;
     if (listener != null) {
-      rc.Purchases.removeCustomerInfoUpdateListener(listener);
+      purchases.removeCustomerInfoUpdateListener(listener);
     }
     _listener = null;
     unawaited(_updates.close());

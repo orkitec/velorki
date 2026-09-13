@@ -1,0 +1,1090 @@
+import 'package:flutter/painting.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:maplibre_gl/maplibre_gl.dart' as ml;
+import 'package:velorki/features/map/data/geojson.dart';
+import 'package:velorki/features/map/data/heading_cone.dart';
+import 'package:velorki/features/map/data/maplibre_map_controller.dart';
+import 'package:velorki/features/map/domain/map_controller.dart';
+import 'package:velorki_geo/velorki_geo.dart';
+
+import 'support/maplibre_style_ops_fake.dart';
+
+/// A CyclOSM style template with the subdomain placeholder the real one has.
+const String _cyclosmTemplate = 'https://{s}.tile.cyclosm.org/{z}/{x}/{y}.png';
+
+const List<LatLng> _points = <LatLng>[LatLng(47.0, 8.0), LatLng(47.1, 8.1)];
+
+/// A palette sharing no colour with [MapPalette.classic], so a repaint is
+/// visible in every property the adapter writes.
+const MapPalette _repainted = MapPalette(
+  routeMain: '#111111',
+  routeMainCasing: '#222222',
+  routeAlternative: '#333333',
+  routePreview: '#444444',
+  track: '#555555',
+  waypointStart: '#666666',
+  waypointVia: '#777777',
+  waypointEnd: '#888888',
+  waypointStroke: '#999999',
+  waypointLabel: '#AAAAAA',
+  waypointLabelHalo: '#BBBBBB',
+  positionDot: '#CCCCCC',
+  positionAccuracy: '#DDDDDD',
+);
+
+const List<MapWaypoint> _waypoints = <MapWaypoint>[
+  MapWaypoint(position: LatLng(47.0, 8.0), kind: MapWaypointKind.start),
+  MapWaypoint(position: LatLng(47.2, 8.2), kind: MapWaypointKind.end),
+];
+
+MaplibreMapControllerAdapter _adapter(
+  RecordingStyleOps ops, {
+  String cyclosmTileUrl = '',
+  MapPalette palette = const MapPalette.classic(),
+}) => MaplibreMapControllerAdapter.withOps(
+  ops,
+  cyclosmTileUrl: cyclosmTileUrl,
+  palette: palette,
+);
+
+/// The features of the collection last written to [sourceId].
+List<dynamic> _featuresOf(RecordingStyleOps ops, String sourceId) =>
+    ops.lastGeoJsonOf(sourceId)!['features'] as List<dynamic>;
+
+/// The properties of the first feature last written to [sourceId].
+Map<String, dynamic> _firstProperties(RecordingStyleOps ops, String source) =>
+    (_featuresOf(ops, source).first as Map<String, dynamic>)['properties']
+        as Map<String, dynamic>;
+
+void main() {
+  // The heading cone is rasterised with dart:ui before it is registered.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('colorFromMapHex', () {
+    test('reads the maplibre hex the palette travels as', () {
+      expect(colorFromMapHex('#1E88E5'), const Color(0xFF1E88E5));
+      // Without the `#` as well, since a style string may arrive either way.
+      expect(colorFromMapHex('1E88E5'), const Color(0xFF1E88E5));
+    });
+
+    test('moves the trailing alpha of an 8 digit hex to the front', () {
+      // maplibre writes `#RRGGBBAA`, dart:ui reads `0xAARRGGBB`.
+      expect(colorFromMapHex('#00000055'), const Color(0x55000000));
+      expect(colorFromMapHex('#FFFFFF66'), const Color(0x66FFFFFF));
+    });
+
+    test('falls back to opaque black on anything it cannot read', () {
+      for (final hex in <String>['', '#12345', 'not-a-colour', '#12345678X']) {
+        expect(colorFromMapHex(hex), const Color(0xFF000000), reason: hex);
+      }
+    });
+  });
+
+  group('attachToStyle', () {
+    test('creates every source and layer in drawing order', () async {
+      final ops = RecordingStyleOps();
+
+      await _adapter(ops).attachToStyle();
+
+      expect(
+        ops.calls
+            .where((c) => c.name == 'addGeoJsonSource' || c.name == 'addLayer')
+            .map((c) => c.layerId ?? c.id)
+            .toList(),
+        <String>[
+          MapLayerIds.trackSource,
+          MapLayerIds.trackLayer,
+          MapLayerIds.positionSource,
+          // The ring is the bottom of the puck, the dot the top, so a route
+          // line inserted below the ring stays under the whole puck.
+          MapLayerIds.positionAccuracyLayer,
+          MapLayerIds.positionHeadingLayer,
+          MapLayerIds.positionHaloLayer,
+          MapLayerIds.positionDotLayer,
+          MapLayerIds.waypointsSource,
+          MapLayerIds.waypointsCircleLayer,
+          MapLayerIds.waypointsLabelLayer,
+        ],
+      );
+    });
+
+    test('starts every source off as an empty feature collection', () async {
+      final ops = RecordingStyleOps();
+
+      await _adapter(ops).attachToStyle();
+
+      for (final source in <String>[
+        MapLayerIds.trackSource,
+        MapLayerIds.positionSource,
+        MapLayerIds.waypointsSource,
+      ]) {
+        expect(
+          ops.callsNamed('addGeoJsonSource').firstWhere((c) => c.id == source),
+          isNotNull,
+        );
+        expect(_featuresOf(ops, source), isEmpty);
+      }
+    });
+
+    test('registers the cone bitmap before the layer that names it', () async {
+      final ops = RecordingStyleOps();
+
+      await _adapter(ops).attachToStyle();
+
+      final image = ops.calls.indexWhere(
+        (c) => c.name == 'addImage' && c.id == headingConeImageName,
+      );
+      final layer = ops.calls.indexWhere(
+        (c) => c.layerId == MapLayerIds.positionHeadingLayer,
+      );
+      expect(image, isNonNegative);
+      expect(image, lessThan(layer));
+      expect(
+        ops
+            .addLayerOf(MapLayerIds.positionHeadingLayer)!
+            .properties!['icon-image'],
+        headingConeImageName,
+      );
+      expect(ops.lastCall('addImage')!.imageBytes, isNotEmpty);
+    });
+
+    test('hides the cone unless the feature carries a heading', () async {
+      final ops = RecordingStyleOps();
+
+      await _adapter(ops).attachToStyle();
+
+      final properties = ops
+          .addLayerOf(MapLayerIds.positionHeadingLayer)!
+          .properties!;
+      expect(properties['icon-opacity'], <Object>[
+        'case',
+        <Object>['has', 'heading'],
+        1,
+        0,
+      ]);
+      // The cone points along a compass course, so it turns with the map.
+      expect(properties['icon-rotation-alignment'], 'map');
+      expect(properties['icon-rotate'], <Object>['get', 'heading']);
+    });
+
+    test('only the waypoint circles take part in dragging', () async {
+      final ops = RecordingStyleOps();
+
+      await _adapter(ops).attachToStyle();
+
+      final interactive = ops
+          .callsNamed('addLayer')
+          .where((c) => c.enableInteraction!)
+          .map((c) => c.layerId)
+          .toList();
+      expect(interactive, <String>[MapLayerIds.waypointsCircleLayer]);
+    });
+
+    test('names the glyph font the tile server actually serves', () async {
+      final ops = RecordingStyleOps();
+
+      await _adapter(ops).attachToStyle();
+
+      expect(
+        ops
+            .addLayerOf(MapLayerIds.waypointsLabelLayer)!
+            .properties!['text-font'],
+        waypointLabelFont,
+      );
+    });
+
+    test('reports itself attached only once the layers exist', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+
+      expect(adapter.isAttached, isFalse);
+      await adapter.attachToStyle();
+
+      expect(adapter.isAttached, isTrue);
+    });
+
+    test('registers the drag callback exactly once per style load', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+
+      await adapter.attachToStyle();
+      await adapter.attachToStyle();
+
+      expect(ops.onFeatureDrag, hasLength(1));
+    });
+
+    test('reads the visible region while attaching', () async {
+      final ops = RecordingStyleOps()
+        ..visibleRegion = ml.LatLngBounds(
+          southwest: const ml.LatLng(46.5, 7.5),
+          northeast: const ml.LatLng(47.5, 8.5),
+        );
+      final adapter = _adapter(ops);
+
+      await adapter.attachToStyle();
+
+      expect(
+        adapter.visibleBounds,
+        const BoundingBox(south: 46.5, west: 7.5, north: 47.5, east: 8.5),
+      );
+    });
+  });
+
+  group('the CyclOSM overlay', () {
+    test('adds the raster source under everything Velorki draws', () async {
+      final ops = RecordingStyleOps();
+
+      await _adapter(ops, cyclosmTileUrl: _cyclosmTemplate).attachToStyle();
+
+      final source = ops.lastCall('addSource')!;
+      expect(source.id, MapLayerIds.cyclosmSource);
+      // MapLibre does not understand `{s}`, so the template is expanded.
+      expect(source.properties!['tiles'], <String>[
+        'https://a.tile.cyclosm.org/{z}/{x}/{y}.png',
+        'https://b.tile.cyclosm.org/{z}/{x}/{y}.png',
+        'https://c.tile.cyclosm.org/{z}/{x}/{y}.png',
+      ]);
+      expect(source.properties!['attribution'], contains('CyclOSM'));
+      expect(ops.calls.first.id, MapLayerIds.cyclosmSource);
+      expect(ops.layerIds.first, MapLayerIds.cyclosmLayer);
+    });
+
+    test('adds nothing when no tile template is configured', () async {
+      final ops = RecordingStyleOps();
+
+      await _adapter(ops).attachToStyle();
+
+      expect(ops.callsNamed('addSource'), isEmpty);
+      expect(ops.layerIds, isNot(contains(MapLayerIds.cyclosmLayer)));
+    });
+
+    test('starts hidden while the overlay is switched off', () async {
+      final ops = RecordingStyleOps();
+
+      await _adapter(ops, cyclosmTileUrl: _cyclosmTemplate).attachToStyle();
+
+      expect(
+        ops.addLayerOf(MapLayerIds.cyclosmLayer)!.properties!['visibility'],
+        'none',
+      );
+    });
+
+    test('comes back visible after a style reload', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops, cyclosmTileUrl: _cyclosmTemplate);
+
+      await adapter.setCyclosmOverlay(true);
+      await adapter.attachToStyle();
+
+      expect(adapter.isCyclosmVisible, isTrue);
+      expect(
+        ops.addLayerOf(MapLayerIds.cyclosmLayer)!.properties!['visibility'],
+        'visible',
+      );
+    });
+
+    test('toggles the layer visibility rather than re-adding it', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops, cyclosmTileUrl: _cyclosmTemplate);
+      await adapter.attachToStyle();
+      ops.clearCalls();
+
+      await adapter.setCyclosmOverlay(true);
+      await adapter.setCyclosmOverlay(false);
+
+      expect(
+        ops.callsNamed('setLayerVisibility').map((c) => c.visible).toList(),
+        <bool>[true, false],
+      );
+      expect(ops.callsNamed('addLayer'), isEmpty);
+    });
+
+    test('toggling does nothing without a tile template', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      ops.clearCalls();
+
+      await adapter.setCyclosmOverlay(true);
+
+      expect(ops.calls, isEmpty);
+      // The flag is still remembered, so the button can reflect it.
+      expect(adapter.isCyclosmVisible, isTrue);
+    });
+  });
+
+  group('setRouteLine', () {
+    test('adds the source and the layer below the puck', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      ops.clearCalls();
+
+      await adapter.setRouteLine('main', _points);
+
+      final source = ops.lastCall('addGeoJsonSource')!;
+      expect(source.id, MapLayerIds.routeSource('main'));
+      final geometry =
+          (_featuresOf(ops, MapLayerIds.routeSource('main')).first
+                  as Map<String, dynamic>)['geometry']
+              as Map<String, dynamic>;
+      expect(geometry['coordinates'], <List<double>>[
+        <double>[8.0, 47.0],
+        <double>[8.1, 47.1],
+      ]);
+      final layer = ops.lastCall('addLayer')!;
+      expect(layer.layerId, MapLayerIds.routeLayer('main'));
+      expect(layer.belowLayerId, MapLayerIds.positionAccuracyLayer);
+      expect(layer.enableInteraction, isFalse);
+      expect(
+        layer.properties!['line-color'],
+        const MapPalette.classic().routeMain,
+      );
+    });
+
+    test('updates the existing source on the second call', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setRouteLine('main', _points);
+      ops.clearCalls();
+
+      await adapter.setRouteLine('main', const <LatLng>[
+        LatLng(46.0, 7.0),
+        LatLng(46.5, 7.5),
+      ]);
+
+      expect(ops.names, <String>['setGeoJsonSource']);
+      expect(ops.calls.single.id, MapLayerIds.routeSource('main'));
+    });
+
+    test('rewrites the layer properties only when the style changed', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setRouteLine('main', _points);
+      ops.clearCalls();
+
+      await adapter.setRouteLine('main', _points);
+      expect(ops.callsNamed('setLayerProperties'), isEmpty);
+
+      await adapter.setRouteLine(
+        'main',
+        _points,
+        style: RouteLineStyle.preview,
+      );
+      final restyled = ops.lastPropertiesOf(MapLayerIds.routeLayer('main'))!;
+      expect(
+        restyled.properties!['line-color'],
+        const MapPalette.classic().routePreview,
+      );
+      expect(restyled.properties!['line-dasharray'], <double>[2, 1.5]);
+    });
+
+    test('re-adds the line when the native side dropped the source', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setRouteLine('main', _points);
+      ops.clearCalls();
+      // The style forgot our source without telling anyone.
+      ops.scriptedSourceIds.add(const <String>[]);
+
+      await adapter.setRouteLine('main', _points);
+
+      expect(ops.names, <String>['addGeoJsonSource', 'addLayer']);
+      expect(ops.lastCall('addLayer')!.layerId, MapLayerIds.routeLayer('main'));
+    });
+
+    test('keeps two ids apart and slugs them into source names', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+
+      await adapter.setRouteLine('main', _points);
+      await adapter.setRouteLine(
+        'alt/1',
+        _points,
+        style: RouteLineStyle.alternative,
+      );
+
+      expect(
+        ops.sourceIds,
+        containsAll(<String>['velorki-route-main', 'velorki-route-alt_1']),
+      );
+      expect(
+        ops.addLayerOf('velorki-route-alt_1-line')!.properties!['line-color'],
+        const MapPalette.classic().routeAlternative,
+      );
+    });
+  });
+
+  group('removeRouteLine and clearRouteLines', () {
+    test('removes the layer before its source', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setRouteLine('main', _points);
+      ops.clearCalls();
+
+      await adapter.removeRouteLine('main');
+
+      expect(ops.names, <String>['removeLayer', 'removeSource']);
+      expect(ops.calls.first.id, MapLayerIds.routeLayer('main'));
+      expect(ops.calls.last.id, MapLayerIds.routeSource('main'));
+    });
+
+    test(
+      'forgets the points, so a reload does not bring the line back',
+      () async {
+        final ops = RecordingStyleOps();
+        final adapter = _adapter(ops);
+        await adapter.attachToStyle();
+        await adapter.setRouteLine('main', _points);
+        await adapter.removeRouteLine('main');
+        ops.clearCalls();
+
+        await adapter.attachToStyle();
+
+        expect(
+          ops.callsNamed('addLayer').map((c) => c.layerId),
+          isNot(contains(MapLayerIds.routeLayer('main'))),
+        );
+      },
+    );
+
+    test('removing an id that was never drawn does nothing', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      ops.clearCalls();
+
+      await adapter.removeRouteLine('never-drawn');
+
+      expect(ops.calls, isEmpty);
+    });
+
+    test('clearRouteLines takes every line away', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setRouteLine('main', _points);
+      await adapter.setRouteLine('alt', _points);
+      ops.clearCalls();
+
+      await adapter.clearRouteLines();
+
+      expect(ops.callsNamed('removeSource').map((c) => c.id).toList(), <String>[
+        MapLayerIds.routeSource('main'),
+        MapLayerIds.routeSource('alt'),
+      ]);
+      // And nothing is left to replay.
+      ops.clearCalls();
+      await adapter.attachToStyle();
+      expect(
+        ops.callsNamed('addLayer').map((c) => c.layerId),
+        isNot(contains(MapLayerIds.routeLayer('main'))),
+      );
+    });
+  });
+
+  group('setWaypoints', () {
+    test('writes one draggable point feature per waypoint', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      ops.clearCalls();
+
+      await adapter.setWaypoints(_waypoints);
+
+      expect(ops.names, <String>['setGeoJsonSource']);
+      final features = _featuresOf(ops, MapLayerIds.waypointsSource);
+      expect(features, hasLength(2));
+      expect((features.first as Map<String, dynamic>)['id'], 'velorki-wp-0');
+      final properties = _firstProperties(ops, MapLayerIds.waypointsSource);
+      expect(properties['kind'], 'start');
+      expect(properties['label'], '1');
+      expect(properties['draggable'], isTrue);
+    });
+
+    test('rebuilds the style when its source has vanished', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      ops.clearCalls();
+      ops.scriptedSourceIds.add(const <String>[]);
+
+      await adapter.setWaypoints(_waypoints);
+
+      // Everything is re-created, and the replay still draws the waypoints.
+      expect(
+        ops.callsNamed('addGeoJsonSource').map((c) => c.id),
+        contains(MapLayerIds.waypointsSource),
+      );
+      expect(_featuresOf(ops, MapLayerIds.waypointsSource), hasLength(2));
+    });
+
+    test('a style whose sources cannot be listed is left alone', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      ops.clearCalls();
+      ops.sourceIdsError = StateError('channel closed');
+
+      await adapter.setWaypoints(_waypoints);
+
+      // Assuming the source is still there beats rebuilding the whole style.
+      expect(ops.names, <String>['setGeoJsonSource']);
+    });
+  });
+
+  group('setTrackLine', () {
+    test('writes the track as a single line string', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      ops.clearCalls();
+
+      await adapter.setTrackLine(_points);
+
+      expect(ops.names, <String>['setGeoJsonSource']);
+      expect(_featuresOf(ops, MapLayerIds.trackSource), hasLength(1));
+    });
+
+    test('rebuilds the style when its source has vanished', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      ops.clearCalls();
+      ops.scriptedSourceIds.add(const <String>[]);
+
+      await adapter.setTrackLine(_points);
+
+      expect(
+        ops.callsNamed('addGeoJsonSource').map((c) => c.id),
+        contains(MapLayerIds.trackSource),
+      );
+      expect(_featuresOf(ops, MapLayerIds.trackSource), hasLength(1));
+    });
+  });
+
+  group('before the style is attached', () {
+    test('nothing at all is sent to the map', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+
+      await adapter.setWaypoints(_waypoints);
+      await adapter.setTrackLine(_points);
+      await adapter.setRouteLine('main', _points);
+      await adapter.setPosition(const LatLng(47.0, 8.0), accuracyM: 10);
+      await adapter.setPalette(_repainted);
+
+      expect(ops.calls, isEmpty);
+    });
+
+    test('the waypoints and the track are replayed once it is', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.setWaypoints(_waypoints);
+      await adapter.setTrackLine(_points);
+
+      await adapter.attachToStyle();
+
+      expect(_featuresOf(ops, MapLayerIds.waypointsSource), hasLength(2));
+      expect(_featuresOf(ops, MapLayerIds.trackSource), hasLength(1));
+    });
+
+    test('a route line set early is drawn by the first attach', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.setRouteLine('main', _points);
+
+      await adapter.attachToStyle();
+
+      expect(
+        ops.callsNamed('addLayer').map((c) => c.layerId),
+        contains(MapLayerIds.routeLayer('main')),
+      );
+    });
+  });
+
+  group('a style reload', () {
+    test('replays the waypoints, the track and the route lines', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setWaypoints(_waypoints);
+      await adapter.setTrackLine(_points);
+      await adapter.setRouteLine('main', _points);
+      ops.clearCalls();
+
+      await adapter.attachToStyle();
+
+      expect(_featuresOf(ops, MapLayerIds.waypointsSource), hasLength(2));
+      expect(_featuresOf(ops, MapLayerIds.trackSource), hasLength(1));
+      final line = ops.addLayerOf(MapLayerIds.routeLayer('main'))!;
+      expect(_featuresOf(ops, MapLayerIds.routeSource('main')), hasLength(1));
+      // Still under the puck, as on the first attach.
+      expect(line.belowLayerId, MapLayerIds.positionAccuracyLayer);
+    });
+
+    test('replays a preview route as a preview', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setRouteLine(
+        'preview',
+        _points,
+        style: RouteLineStyle.preview,
+      );
+      ops.clearCalls();
+
+      await adapter.attachToStyle();
+
+      expect(
+        ops
+            .addLayerOf(MapLayerIds.routeLayer('preview'))!
+            .properties!['line-color'],
+        const MapPalette.classic().routePreview,
+      );
+    });
+  });
+
+  group('setPalette', () {
+    test('rewrites every colour it owns', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      ops.clearCalls();
+
+      await adapter.setPalette(_repainted);
+
+      expect(adapter.palette, _repainted);
+      expect(
+        ops.lastPropertiesOf(MapLayerIds.trackLayer)!.properties!['line-color'],
+        '#555555',
+      );
+      for (final layer in <String>[
+        MapLayerIds.positionDotLayer,
+        MapLayerIds.positionHaloLayer,
+      ]) {
+        expect(
+          ops.lastPropertiesOf(layer)!.properties!['circle-color'],
+          '#CCCCCC',
+        );
+      }
+      final ring = ops.lastPropertiesOf(MapLayerIds.positionAccuracyLayer)!;
+      expect(ring.properties!['circle-color'], '#DDDDDD');
+      expect(ring.properties!['circle-stroke-color'], '#DDDDDD');
+      final circle = ops.lastPropertiesOf(MapLayerIds.waypointsCircleLayer)!;
+      expect(circle.properties!['circle-color'], <Object>[
+        'match',
+        <Object>['get', 'kind'],
+        'start',
+        '#666666',
+        'end',
+        '#888888',
+        '#777777',
+      ]);
+      expect(circle.properties!['circle-stroke-color'], '#999999');
+      final label = ops.lastPropertiesOf(MapLayerIds.waypointsLabelLayer)!;
+      expect(label.properties!['text-color'], '#AAAAAA');
+      expect(label.properties!['text-halo-color'], '#BBBBBB');
+    });
+
+    test('redraws the heading cone, which is a bitmap not a colour', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      final before = ops.lastCall('addImage')!.imageBytes!;
+      ops.clearCalls();
+
+      await adapter.setPalette(_repainted);
+
+      final after = ops.lastCall('addImage')!;
+      expect(after.id, headingConeImageName);
+      expect(after.imageBytes, isNot(before));
+    });
+
+    test('recolours every route line that is on the map', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setRouteLine('main', _points);
+      await adapter.setRouteLine(
+        'alt',
+        _points,
+        style: RouteLineStyle.alternative,
+      );
+      ops.clearCalls();
+
+      await adapter.setPalette(_repainted);
+
+      expect(
+        ops
+            .lastPropertiesOf(MapLayerIds.routeLayer('main'))!
+            .properties!['line-color'],
+        '#111111',
+      );
+      expect(
+        ops
+            .lastPropertiesOf(MapLayerIds.routeLayer('alt'))!
+            .properties!['line-color'],
+        '#333333',
+      );
+    });
+
+    test('says nothing when the palette did not change', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      ops.clearCalls();
+
+      await adapter.setPalette(const MapPalette.classic());
+
+      expect(ops.calls, isEmpty);
+    });
+  });
+
+  group('setPosition', () {
+    test(
+      'writes the fix and a ring that holds its size on the ground',
+      () async {
+        final ops = RecordingStyleOps();
+        final adapter = _adapter(ops);
+        await adapter.attachToStyle();
+        ops.clearCalls();
+
+        await adapter.setPosition(const LatLng(47.0, 8.0), accuracyM: 20);
+
+        final feature =
+            _featuresOf(ops, MapLayerIds.positionSource).single
+                as Map<String, dynamic>;
+        expect(
+          (feature['geometry'] as Map<String, dynamic>)['coordinates'],
+          <double>[8.0, 47.0],
+        );
+        expect((feature['properties'] as Map<String, dynamic>)['accuracy'], 20);
+        expect(
+          ops
+              .lastPropertiesOf(MapLayerIds.positionAccuracyLayer)!
+              .properties!['circle-radius'],
+          accuracyRingRadiusExpression(20, 47.0),
+        );
+      },
+    );
+
+    test('writes no heading while the rider is standing still', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      ops.clearCalls();
+
+      // A GNSS course jitters through the full circle at a standstill, so the
+      // property is simply absent and the cone layer hides itself.
+      await adapter.setPosition(
+        const LatLng(47.0, 8.0),
+        headingDeg: 90,
+        speedMps: 0.1,
+      );
+
+      expect(
+        _firstProperties(ops, MapLayerIds.positionSource),
+        isNot(contains('heading')),
+      );
+    });
+
+    test('writes the heading once the rider is moving', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      ops.clearCalls();
+
+      await adapter.setPosition(
+        const LatLng(47.0, 8.0),
+        headingDeg: 450,
+        speedMps: 5,
+      );
+
+      // And it arrives normalised into 0–360.
+      expect(_firstProperties(ops, MapLayerIds.positionSource)['heading'], 90);
+    });
+
+    test('collapses the ring when there is no usable accuracy', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+
+      for (final accuracy in <double?>[null, 0, -1]) {
+        ops.clearCalls();
+        await adapter.setPosition(const LatLng(47.0, 8.0), accuracyM: accuracy);
+        expect(
+          ops
+              .lastPropertiesOf(MapLayerIds.positionAccuracyLayer)!
+              .properties!['circle-radius'],
+          0.0,
+          reason: 'accuracy $accuracy',
+        );
+      }
+    });
+
+    test('empties the source and the ring when the fix is gone', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setPosition(const LatLng(47.0, 8.0), accuracyM: 20);
+      ops.clearCalls();
+
+      await adapter.setPosition(null, accuracyM: 20);
+
+      expect(_featuresOf(ops, MapLayerIds.positionSource), isEmpty);
+      expect(
+        ops
+            .lastPropertiesOf(MapLayerIds.positionAccuracyLayer)!
+            .properties!['circle-radius'],
+        0.0,
+      );
+    });
+  });
+
+  group('the feature drag callback', () {
+    test('reports a drag as a waypoint move', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      final moves = <String>[];
+      adapter.onWaypointDragged = (index, position) =>
+          moves.add('$index@${position.lat},${position.lon}');
+
+      ops.emitFeatureDrag(waypointFeatureId(2), const ml.LatLng(47.5, 8.5));
+
+      expect(moves, <String>['2@47.5,8.5']);
+    });
+
+    test('reports the end of a drag as the final word', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      final moves = <int>[];
+      adapter.onWaypointDragged = (index, _) => moves.add(index);
+
+      ops.emitFeatureDrag(
+        waypointFeatureId(0),
+        const ml.LatLng(47.5, 8.5),
+        eventType: ml.DragEventType.end,
+      );
+
+      expect(moves, <int>[0]);
+    });
+
+    test('ignores the start, which carries the untouched position', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      var calls = 0;
+      adapter.onWaypointDragged = (_, _) => calls++;
+
+      ops.emitFeatureDrag(
+        waypointFeatureId(1),
+        const ml.LatLng(47.5, 8.5),
+        eventType: ml.DragEventType.start,
+      );
+
+      expect(calls, 0);
+    });
+
+    test('ignores a feature that is not one of our waypoints', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      var calls = 0;
+      adapter.onWaypointDragged = (_, _) => calls++;
+
+      ops.emitFeatureDrag('some-other-feature', const ml.LatLng(47.5, 8.5));
+
+      expect(calls, 0);
+    });
+  });
+
+  group('the camera', () {
+    test('moveTo animates to a plain centre by default', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+
+      await adapter.moveTo(const LatLng(47.0, 8.0));
+
+      expect(ops.names, <String>['animateCamera']);
+      expect(ops.calls.single.cameraUpdate, <Object>[
+        'newLatLng',
+        <double>[47.0, 8.0],
+      ]);
+    });
+
+    test('moveTo takes a zoom along when it is given one', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+
+      await adapter.moveTo(const LatLng(47.0, 8.0), zoom: 14);
+
+      expect(ops.calls.single.cameraUpdate, <Object>[
+        'newLatLngZoom',
+        <double>[47.0, 8.0],
+        14.0,
+      ]);
+    });
+
+    test('moveTo jumps when the caller asks for no animation', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+
+      await adapter.moveTo(const LatLng(47.0, 8.0), animate: false);
+
+      expect(ops.names, <String>['moveCamera']);
+    });
+
+    test('fitBounds animates to the padded bounds', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+
+      await adapter.fitBounds(
+        const BoundingBox(south: 46.0, west: 7.0, north: 48.0, east: 9.0),
+        paddingPx: 24,
+      );
+
+      expect(ops.names, <String>['animateCamera']);
+      expect(ops.calls.single.cameraUpdate, <Object>[
+        'newLatLngBounds',
+        <List<double>>[
+          <double>[46.0, 7.0],
+          <double>[48.0, 9.0],
+        ],
+        24.0,
+        24.0,
+        24.0,
+        24.0,
+      ]);
+    });
+
+    test('centre and zoom read the live camera position', () async {
+      final ops = RecordingStyleOps()
+        ..cameraPosition = const ml.CameraPosition(
+          target: ml.LatLng(47.0, 8.0),
+          zoom: 12.5,
+        );
+      final adapter = _adapter(ops);
+
+      expect(adapter.center, const LatLng(47.0, 8.0));
+      expect(adapter.zoom, 12.5);
+    });
+
+    test('centre and zoom are unknown before the first frame', () {
+      final adapter = _adapter(RecordingStyleOps());
+
+      expect(adapter.center, isNull);
+      expect(adapter.zoom, isNull);
+    });
+
+    test('the visible bounds are refreshed when the camera rests', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      ops.visibleRegion = ml.LatLngBounds(
+        southwest: const ml.LatLng(40.0, 1.0),
+        northeast: const ml.LatLng(41.0, 2.0),
+      );
+
+      adapter.handleCameraIdle();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        adapter.visibleBounds,
+        const BoundingBox(south: 40.0, west: 1.0, north: 41.0, east: 2.0),
+      );
+    });
+
+    test(
+      'a platform view that is already gone keeps the last bounds',
+      () async {
+        final ops = RecordingStyleOps();
+        final adapter = _adapter(ops);
+        await adapter.attachToStyle();
+        final attached = adapter.visibleBounds;
+        ops.visibleRegionError = StateError('platform view disposed');
+
+        adapter.handleCameraIdle();
+        await Future<void>.delayed(Duration.zero);
+
+        expect(adapter.visibleBounds, attached);
+        expect(attached, isNotNull);
+      },
+    );
+  });
+
+  group('the map events', () {
+    test('a tap is forwarded as a plain LatLng', () {
+      final adapter = _adapter(RecordingStyleOps());
+      final taps = <LatLng>[];
+      adapter.onTap = taps.add;
+
+      adapter.handleMapClick(const ml.LatLng(47.0, 8.0));
+
+      expect(taps, <LatLng>[const LatLng(47.0, 8.0)]);
+    });
+
+    test('a long press is forwarded as a plain LatLng', () {
+      final adapter = _adapter(RecordingStyleOps());
+      final presses = <LatLng>[];
+      adapter.onLongPress = presses.add;
+
+      adapter.handleMapLongClick(const ml.LatLng(47.0, 8.0));
+
+      expect(presses, <LatLng>[const LatLng(47.0, 8.0)]);
+    });
+
+    test('the camera coming to rest is announced', () async {
+      final adapter = _adapter(RecordingStyleOps());
+      var idles = 0;
+      adapter.onCameraIdle = () => idles++;
+
+      adapter.handleCameraIdle();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(idles, 1);
+    });
+
+    test('an event with no handler is simply dropped', () {
+      final adapter = _adapter(RecordingStyleOps());
+
+      expect(
+        () => adapter.handleMapClick(const ml.LatLng(47.0, 8.0)),
+        returnsNormally,
+      );
+    });
+  });
+
+  group('dispose', () {
+    test('unregisters the drag callback and forgets the handlers', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      var drags = 0;
+      adapter
+        ..onWaypointDragged = ((_, _) {
+          drags++;
+        })
+        ..onTap = (_) {}
+        ..onLongPress = (_) {}
+        ..onCameraIdle = () {};
+
+      adapter.dispose();
+
+      expect(ops.onFeatureDrag, isEmpty);
+      ops.emitFeatureDrag(waypointFeatureId(0), const ml.LatLng(47.0, 8.0));
+      expect(drags, 0);
+      expect(adapter.onTap, isNull);
+      expect(adapter.onLongPress, isNull);
+      expect(adapter.onWaypointDragged, isNull);
+      expect(adapter.onCameraIdle, isNull);
+    });
+  });
+}

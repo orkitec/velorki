@@ -56,6 +56,12 @@ class FakeApiAdapter implements HttpClientAdapter {
   /// The URIs of [requests].
   List<Uri> get uris => <Uri>[for (final r in requests) r.uri];
 
+  /// How often the dio this adapter belongs to was closed.
+  ///
+  /// `Dio.close` closes its adapter, so a provider that releases its client in
+  /// `ref.onDispose` can be proved to have done so.
+  int closes = 0;
+
   @override
   Future<ResponseBody> fetch(
     RequestOptions options,
@@ -82,7 +88,7 @@ class FakeApiAdapter implements HttpClientAdapter {
   }
 
   @override
-  void close({bool force = false}) {}
+  void close({bool force = false}) => closes++;
 }
 
 /// A dio wired to [adapter] and nothing else.

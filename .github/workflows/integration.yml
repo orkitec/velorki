@@ -1,0 +1,186 @@
+name: integration
+
+# The emulator suite under app/integration_test/: the feature flows that only
+# mean something on a real device — the planner against the on-device routing
+# engine, the Loop sheet, saving into the library, recording a ride, the map
+# style reload and a GPX import.
+#
+# Nightly rather than per-push: one run boots an emulator, installs a test
+# build per file and routes for real, which is minutes, not seconds. The
+# per-push app workflow keeps running the 611 widget and unit tests.
+#
+# The tiles come from the same immutable oracle-* release in
+# orkitec/velorki-data that the BRouter parity corpus was recorded against, so
+# the routes this suite plans are reproducible. That release is served to the
+# emulator from a plain HTTP server on the runner; 10.0.2.2 is the host as the
+# emulator sees it. Because the tile is Madeira, the suite runs with
+# VELORKI_ITEST_REGION=madeira, which swaps the New York coordinates the local
+# runs use for Funchal ones and points the virtual GPS at the same place.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 03:41 UTC, before the brouter-oracle job and well clear of the push CI.
+    - cron: "41 3 * * *"
+
+env:
+  # Keep in step with tools/brouter-oracle/common.sh (ORACLE_TILES_TAG).
+  ORACLE_TILES_TAG: oracle-20260912
+  # The one tile the suite needs: Madeira, lon -20..-15, lat 30..35.
+  ORACLE_TILE: W20_N30
+  # rd5 format version the mirror advertises, as brouter/updater/sync.sh does.
+  RD5_FORMAT_VERSION: "11.2"
+
+jobs:
+  emulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: [34, 35]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # The emulator is unusably slow without hardware acceleration, and the
+      # hosted runner needs the device node opened up by hand.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.4  # keep in sync with mise.toml and app/.fvmrc
+          cache: true
+
+      - name: Prepare the app package
+        working-directory: app
+        run: |
+          flutter pub get
+          dart run build_runner build
+          flutter gen-l10n
+
+      - name: Cache the pinned oracle tile
+        uses: actions/cache@v4
+        with:
+          path: .itest-mirror
+          # The tiles are immutable release assets, so their recorded hashes
+          # are the whole key: the entry can never go stale, and bumping the
+          # snapshot misses the cache and re-downloads exactly once.
+          key: itest-mirror-${{ env.ORACLE_TILE }}-${{ hashFiles('tools/brouter-oracle/tiles.sha256') }}
+
+      # A missing or altered tile has to stop the job here, with a message that
+      # says what to look at. Serving nothing would leave every test failing
+      # later on with "the mirror manifest lacks W20_N30", which reads like a
+      # bug in the app.
+      - name: Build the segments mirror from the frozen oracle tile
+        run: |
+          set -euo pipefail
+          mirror=.itest-mirror
+          mkdir -p "$mirror"
+          url="https://github.com/orkitec/velorki-data/releases/download/${ORACLE_TILES_TAG}/${ORACLE_TILE}.rd5"
+          if [ ! -f "$mirror/${ORACLE_TILE}.rd5" ]; then
+            echo "==> downloading $url"
+            if ! curl -fsSL --retry 3 -o "$mirror/${ORACLE_TILE}.rd5.part" "$url"; then
+              rm -f "$mirror/${ORACLE_TILE}.rd5.part"
+              echo "::error::Could not download ${ORACLE_TILE}.rd5 from $url."
+              echo "::error::The oracle tiles are immutable release assets of orkitec/velorki-data."
+              echo "::error::If the release ${ORACLE_TILES_TAG} does not exist yet, publish it (see"
+              echo "::error::tools/brouter-oracle/README.md) or point ORACLE_TILES_TAG at one that does."
+              exit 1
+            fi
+            mv "$mirror/${ORACLE_TILE}.rd5.part" "$mirror/${ORACLE_TILE}.rd5"
+          fi
+
+          echo "==> verifying against tools/brouter-oracle/tiles.sha256"
+          want=$(awk -v t="${ORACLE_TILE}.rd5" '$2 == t || $2 == "./" t {print $1}' \
+            tools/brouter-oracle/tiles.sha256)
+          if [ -z "$want" ]; then
+            echo "::error::tools/brouter-oracle/tiles.sha256 has no entry for ${ORACLE_TILE}.rd5."
+            exit 1
+          fi
+          got=$(sha256sum "$mirror/${ORACLE_TILE}.rd5" | cut -d' ' -f1)
+          if [ "$want" != "$got" ]; then
+            echo "::error::${ORACLE_TILE}.rd5 does not match tiles.sha256 (want $want, got $got)."
+            echo "::error::The release assets must never be replaced; investigate before re-recording."
+            rm -f "$mirror/${ORACLE_TILE}.rd5"
+            exit 1
+          fi
+
+          echo "==> writing manifest.json"
+          python3 - "$mirror" <<'PY'
+          import hashlib, json, os, sys, datetime
+          mirror = sys.argv[1]
+          tile = os.environ["ORACLE_TILE"]
+          path = os.path.join(mirror, tile + ".rd5")
+          data = open(path, "rb").read()
+          now = datetime.datetime.now(datetime.timezone.utc)
+          stamp = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+          manifest = {
+              "formatVersion": os.environ["RD5_FORMAT_VERSION"],
+              "generatedAt": stamp,
+              "tiles": [
+                  {
+                      "tile": tile,
+                      "bytes": len(data),
+                      "updatedAt": stamp,
+                      "sha256": hashlib.sha256(data).hexdigest(),
+                  }
+              ],
+          }
+          with open(os.path.join(mirror, "manifest.json"), "w") as out:
+              json.dump(manifest, out, indent=1)
+          print(json.dumps(manifest, indent=1))
+          PY
+
+      - name: Serve the mirror on port 8000
+        run: |
+          set -euo pipefail
+          nohup python3 -m http.server 8000 --directory .itest-mirror \
+            > mirror.log 2>&1 &
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/manifest.json > /dev/null; then
+              echo "==> mirror is up"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::The segments mirror did not come up on port 8000."
+          cat mirror.log || true
+          exit 1
+
+      - name: Run the emulator suite
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          working-directory: app
+          emulator-options: >-
+            -no-window -no-snapshot -no-audio -no-boot-anim -gpu swiftshader_indirect
+            -camera-back none -camera-front none
+          disable-animations: true
+          script: |
+            adb wait-for-device
+            # Madeira, where the frozen oracle tile is. The tests read the same
+            # place from VELORKI_ITEST_REGION.
+            adb emu geo fix -16.92 32.65
+            adb shell settings put secure location_mode 3
+            VELORKI_ITEST_REGION=madeira \
+            VELORKI_SEGMENTS_URL=http://10.0.2.2:8000 \
+            tool/itest.sh
+
+      - name: Mirror log
+        if: always()
+        run: cat mirror.log || true

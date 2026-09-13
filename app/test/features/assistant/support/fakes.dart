@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart' as geo;
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/assistant/domain/intent_resolver.dart';
@@ -5,6 +8,8 @@ import 'package:velorki/features/map/data/position_provider.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
 import 'package:velorki_api/velorki_api.dart';
 import 'package:velorki_geo/velorki_geo.dart';
+
+import '../../integrations/support/fakes.dart';
 
 /// A geocoder whose answers the test writes down.
 class FakeGeocoder implements PlaceGeocoder {
@@ -120,4 +125,55 @@ class FixedPositionSource implements PositionSource {
   Future<geo.Position?> current({
     Duration timeLimit = const Duration(seconds: 10),
   }) async => _fix;
+}
+
+/// A relay whose `describe` stream the test drives event by event.
+///
+/// [FakeRelayClient] answers a whole request in one go, which is enough for a
+/// controller test but hides the streaming the sheet exists to show. This one
+/// hands out an open stream per call, so a test can watch the sheet between
+/// two tokens.
+class ManualRelayClient extends FakeRelayClient {
+  /// Creates a relay that never answers until the test says so.
+  ManualRelayClient();
+
+  /// One controller per `planStream` call, in order.
+  final List<StreamController<PlanEvent>> streams =
+      <StreamController<PlanEvent>>[];
+
+  /// The stream of the request that is still open.
+  StreamController<PlanEvent> get current => streams.last;
+
+  /// Pushes [event] into the open stream.
+  void emit(PlanEvent event) => current.add(event);
+
+  /// Ends the open stream, which is what the relay's `done` does.
+  Future<void> finish() => current.close();
+
+  @override
+  Stream<PlanEvent> planStream({
+    required String step,
+    required String prompt,
+    String locale = 'en',
+    PlanUnits units = PlanUnits.metric,
+    PlanContext? context,
+    RouteSummary? routeSummary,
+    String? appUserId,
+  }) {
+    planCalls.add(
+      PlanCall(
+        step: step,
+        prompt: prompt,
+        locale: locale,
+        context: context,
+        routeSummary: routeSummary,
+      ),
+    );
+    final controller = StreamController<PlanEvent>();
+    streams.add(controller);
+    addTearDown(() async {
+      if (!controller.isClosed) await controller.close();
+    });
+    return controller.stream;
+  }
 }

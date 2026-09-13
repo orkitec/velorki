@@ -1,55 +1,16 @@
 import 'dart:async';
 
+import 'package:drift/drift.dart' show Value;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:velorki/app/app_config.dart';
 import 'package:velorki/core/db/daos/offline_regions_dao.dart';
 import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/map/data/offline_regions_repository.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
-/// A stand-in for MapLibre's offline manager. The real one is a set of
-/// top-level method channel calls, which a unit test cannot serve.
-class FakeOfflineMapApi implements OfflineMapApi {
-  final List<OfflineRegionSpec> downloads = <OfflineRegionSpec>[];
-  final List<int> deleted = <int>[];
-  final List<int> live = <int>[];
-
-  /// Progress events every download reports before finishing.
-  List<OfflineDownloadProgress> progressEvents = const [];
-
-  /// Thrown instead of finishing, when set.
-  Object? failWith;
-
-  int nextRegionId = 1;
-  int resultSizeBytes = 1024;
-
-  @override
-  Future<OfflineDownloadResult> download(
-    OfflineRegionSpec spec, {
-    void Function(OfflineDownloadProgress progress)? onProgress,
-  }) async {
-    downloads.add(spec);
-    for (final event in progressEvents) {
-      onProgress?.call(event);
-    }
-    final failure = failWith;
-    if (failure != null) throw failure;
-    final id = nextRegionId++;
-    live.add(id);
-    return OfflineDownloadResult(
-      maplibreRegionId: id,
-      sizeBytes: resultSizeBytes,
-    );
-  }
-
-  @override
-  Future<void> delete(int maplibreRegionId) async {
-    deleted.add(maplibreRegionId);
-    live.remove(maplibreRegionId);
-  }
-
-  @override
-  Future<List<int>> regionIds() async => List<int>.of(live);
-}
+import 'support/offline_fakes.dart';
 
 void main() {
   late VelorkiDatabase db;
@@ -198,5 +159,218 @@ void main() {
     await repository.reconcile();
 
     expect((await dao.allRegions()).map((r) => r.id), [kept.id]);
+  });
+
+  test('regions lists what is stored, in name order', () async {
+    await repository.download(spec);
+    await repository.download(
+      const OfflineRegionSpec(
+        name: 'Aargau',
+        bounds: bounds,
+        styleUrl: 'https://tiles.example/style.json',
+      ),
+    );
+
+    expect((await repository.regions()).map((r) => r.name), [
+      'Aargau',
+      'Zurich',
+    ]);
+  });
+
+  test('progress carries the bytes written so far', () async {
+    api.progressEvents = const [
+      OfflineDownloadProgress(fraction: 0.25, completedBytes: 256),
+      OfflineDownloadProgress(fraction: 0.75, completedBytes: 768),
+    ];
+    final seen = <OfflineDownloadProgress>[];
+
+    await repository.download(spec, onProgress: seen.add);
+
+    expect(seen.map((p) => p.completedBytes), [256, 768]);
+  });
+
+  test('the log descriptions name the region, the share and the cause', () {
+    expect(spec.toString(), startsWith('OfflineRegionSpec(Zurich, '));
+    expect(
+      spec.toString(),
+      endsWith('z6.0-15.0, https://tiles.example/style.json)'),
+    );
+    expect(
+      const OfflineDownloadProgress(
+        fraction: 0.756,
+        completedBytes: 768,
+      ).toString(),
+      'OfflineDownloadProgress(76%, 768 B)',
+    );
+    expect(
+      OfflineDownloadException('no space left').toString(),
+      'OfflineDownloadException: no space left',
+    );
+  });
+
+  test('a download that fails unexpectedly leaves no row behind', () async {
+    // Not an OfflineDownloadException: whatever the manager throws, the
+    // half-written row has to go and the caller has to hear about it.
+    api.failWith = StateError('offline database is locked');
+
+    await expectLater(repository.download(spec), throwsA(isA<StateError>()));
+    expect(await dao.allRegions(), isEmpty);
+  });
+
+  test(
+    'a region deleted while it downloads is reported, not returned',
+    () async {
+      api.duringDownload = () => dao.deleteRegion('region-0');
+
+      await expectLater(
+        repository.download(spec),
+        throwsA(
+          isA<OfflineDownloadException>().having(
+            (e) => e.message,
+            'message',
+            contains('disappeared'),
+          ),
+        ),
+      );
+    },
+  );
+
+  test('a manager that refuses to delete keeps the row', () async {
+    final row = await repository.download(spec);
+    api.deleteFailWith = OfflineDownloadException('offline database is busy');
+
+    await expectLater(
+      repository.delete(row.id),
+      throwsA(isA<OfflineDownloadException>()),
+    );
+
+    // The tiles are still on the device, so the row that offers to delete
+    // them again must stay.
+    expect((await dao.allRegions()).map((r) => r.id), [row.id]);
+  });
+
+  test('reconcile keeps a row whose download never finished', () async {
+    // A crash between writing the row and MapLibre handing an id back.
+    await dao.upsertRegion(
+      OfflineRegionsCompanion.insert(
+        id: 'interrupted',
+        name: 'Half a region',
+        bboxMinLat: bounds.south,
+        bboxMinLon: bounds.west,
+        bboxMaxLat: bounds.north,
+        bboxMaxLon: bounds.east,
+        sizeBytes: 0,
+        maplibreRegionId: const Value(null),
+      ),
+    );
+
+    await repository.reconcile();
+
+    expect((await dao.allRegions()).map((r) => r.id), ['interrupted']);
+  });
+
+  test('reconcile drops nothing when the manager cannot be asked', () async {
+    final row = await repository.download(spec);
+    api.regionIdsFailWith = StateError('offline manager unavailable');
+
+    await expectLater(repository.reconcile(), throwsA(isA<StateError>()));
+    expect((await dao.allRegions()).map((r) => r.id), [row.id]);
+  });
+
+  group('the download controller', () {
+    late ProviderContainer container;
+
+    setUp(() {
+      container = ProviderContainer(
+        overrides: [
+          offlineRegionsRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+    });
+
+    test(
+      'publishes progress while the download runs and clears it after',
+      () async {
+        api.progressEvents = const [
+          OfflineDownloadProgress(fraction: 0.5, completedBytes: 512),
+        ];
+        final midFlight = <double?>[];
+        api.duringDownload = () async => midFlight.add(
+          container.read(offlineDownloadControllerProvider)?.fraction,
+        );
+        final controller = container.read(
+          offlineDownloadControllerProvider.notifier,
+        );
+        expect(controller.isDownloading, isFalse);
+
+        await controller.download(spec);
+
+        expect(midFlight, [0.5]);
+        expect(container.read(offlineDownloadControllerProvider), isNull);
+        expect(controller.isDownloading, isFalse);
+      },
+    );
+
+    test('a second download is ignored while one is running', () async {
+      final held = Completer<void>();
+      api.duringDownload = () => held.future;
+      final controller = container.read(
+        offlineDownloadControllerProvider.notifier,
+      );
+
+      final running = controller.download(spec);
+      await controller.download(
+        const OfflineRegionSpec(
+          name: 'Aargau',
+          bounds: bounds,
+          styleUrl: 'https://tiles.example/style.json',
+        ),
+      );
+      held.complete();
+      await running;
+
+      // MapLibre shares a tile budget across regions, so the second request
+      // is dropped rather than queued.
+      expect(api.downloads.map((s) => s.name), ['Zurich']);
+    });
+
+    test(
+      'a failed download clears the progress and reports the failure',
+      () async {
+        api.failWith = OfflineDownloadException('no space left');
+        final controller = container.read(
+          offlineDownloadControllerProvider.notifier,
+        );
+
+        await expectLater(
+          controller.download(spec),
+          throwsA(isA<OfflineDownloadException>()),
+        );
+
+        expect(container.read(offlineDownloadControllerProvider), isNull);
+        expect(controller.isDownloading, isFalse);
+      },
+    );
+  });
+
+  test('the download style URL follows the map style in use', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final prefs = await SharedPreferences.getInstance();
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        appConfigProvider.overrideWithValue(
+          const AppConfig(mapStyleUrl: 'https://tiles.example/style.json'),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    expect(
+      container.read(offlineStyleUrlProvider),
+      'https://tiles.example/style.json',
+    );
   });
 }

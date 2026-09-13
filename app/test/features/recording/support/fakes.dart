@@ -6,6 +6,7 @@ import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
 import 'package:velorki/features/recording/data/recording_gateways.dart';
 import 'package:velorki/features/recording/data/recording_service.dart';
+import 'package:velorki/features/recording/data/recording_task_handler.dart';
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/features/recording/domain/recording_state.dart';
 import 'package:velorki/features/recording/domain/ride.dart';
@@ -310,3 +311,173 @@ geo.Position fakePosition({
   hasHeading: true,
   hasSpeed: true,
 );
+
+/// A [ForegroundServiceHost] that records what the recording task asked of the
+/// Android service instead of talking to a platform channel.
+class FakeForegroundServiceHost implements ForegroundServiceHost {
+  /// Everything sent to the UI isolate, in order: snapshots and the stop
+  /// acknowledgement.
+  final List<Map<Object?, Object?>> messages = <Map<Object?, Object?>>[];
+
+  /// Every notification text the recorder asked for, in order.
+  final List<String> notificationTexts = <String>[];
+
+  /// How often the service was asked to stop itself.
+  int stopServiceCalls = 0;
+
+  /// How often the notification tap brought the app to the front.
+  int launchAppCalls = 0;
+
+  final List<Completer<void>> _waiting = <Completer<void>>[];
+
+  /// The snapshots among [messages], decoded as the UI isolate decodes them.
+  List<RecordingSnapshot> get snapshots => <RecordingSnapshot>[
+    for (final message in messages)
+      if (message[recordingMessageKind] == recordingSnapshotMessage)
+        RecordingSnapshot.fromMap(message),
+  ];
+
+  /// The kinds of [messages], e.g. `['snapshot', 'stopped']`.
+  List<Object?> get messageKinds => <Object?>[
+    for (final message in messages) message[recordingMessageKind],
+  ];
+
+  /// A future that completes with the next message.
+  ///
+  /// The work behind a snapshot — flushing the journal, writing the state file
+  /// — ends whenever that I/O ends, so a test waits for the message rather
+  /// than for a stretch of real time.
+  Future<void> nextMessage() {
+    final completer = Completer<void>();
+    _waiting.add(completer);
+    return completer.future;
+  }
+
+  @override
+  Future<void> stopService() async => stopServiceCalls++;
+
+  @override
+  void sendDataToMain(Object data) {
+    messages.add(data as Map<Object?, Object?>);
+    final waiting = List<Completer<void>>.of(_waiting);
+    _waiting.clear();
+    for (final completer in waiting) {
+      completer.complete();
+    }
+  }
+
+  @override
+  Future<void> updateNotificationText(String text) async =>
+      notificationTexts.add(text);
+
+  @override
+  void launchApp() => launchAppCalls++;
+}
+
+/// A geolocator platform that answers from a script, so the gateways over it
+/// can be exercised without a device.
+///
+/// Install it with `geo.GeolocatorPlatform.instance = FakeGeolocatorPlatform()`
+/// in a `setUp`; every `Geolocator` static call goes through it.
+class FakeGeolocatorPlatform extends geo.GeolocatorPlatform {
+  /// What [isLocationServiceEnabled] answers.
+  bool serviceEnabled = true;
+
+  /// What [checkPermission] answers.
+  geo.LocationPermission permission = geo.LocationPermission.whileInUse;
+
+  /// What [requestPermission] answers; [permission] when left unset.
+  geo.LocationPermission? promptAnswer;
+
+  /// What [getLastKnownPosition] answers.
+  geo.Position? cachedPosition;
+
+  /// What [getCurrentPosition] answers, unless [currentError] is set.
+  geo.Position? freshPosition;
+
+  /// Thrown by [getCurrentPosition] instead of a fix, when set.
+  Object? currentError;
+
+  /// What both settings pages answer.
+  bool settingsOpen = true;
+
+  /// How often the permission was checked.
+  int checks = 0;
+
+  /// How often the system prompt was asked for.
+  int prompts = 0;
+
+  /// Whether the app settings page was opened.
+  bool openedAppSettings = false;
+
+  /// Whether the location settings page was opened.
+  bool openedLocationSettings = false;
+
+  /// The settings every fix and every stream was asked for, in order.
+  final List<geo.LocationSettings?> settings = <geo.LocationSettings?>[];
+
+  final StreamController<geo.Position> _positions =
+      StreamController<geo.Position>.broadcast();
+
+  /// Whether the position stream is being listened to.
+  bool get isStreaming => _positions.hasListener;
+
+  /// Pushes [position] to whoever subscribed to the position stream.
+  void emit(geo.Position position) => _positions.add(position);
+
+  /// Closes the position stream.
+  Future<void> close() =>
+      _positions.isClosed ? Future<void>.value() : _positions.close();
+
+  @override
+  Future<bool> isLocationServiceEnabled() async => serviceEnabled;
+
+  @override
+  Future<geo.LocationPermission> checkPermission() async {
+    checks++;
+    return permission;
+  }
+
+  @override
+  Future<geo.LocationPermission> requestPermission() async {
+    prompts++;
+    return promptAnswer ?? permission;
+  }
+
+  @override
+  Future<geo.Position?> getLastKnownPosition({
+    bool forceLocationManager = false,
+  }) async => cachedPosition;
+
+  @override
+  Future<geo.Position> getCurrentPosition({
+    geo.LocationSettings? locationSettings,
+  }) async {
+    settings.add(locationSettings);
+    final failure = currentError;
+    if (failure != null) throw failure;
+    final position = freshPosition;
+    if (position == null) throw TimeoutException('no fix was scripted');
+    return position;
+  }
+
+  @override
+  Stream<geo.Position> getPositionStream({
+    geo.LocationSettings? locationSettings,
+  }) {
+    settings.add(locationSettings);
+    return _positions.stream;
+  }
+
+  @override
+  Future<bool> openAppSettings() async {
+    openedAppSettings = true;
+    return settingsOpen;
+  }
+
+  @override
+  Future<bool> openLocationSettings() async {
+    openedLocationSettings = true;
+    return settingsOpen;
+  }
+}
