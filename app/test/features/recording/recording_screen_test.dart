@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
+import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/recording/data/recording_recovery.dart';
 import 'package:velorki/features/recording/data/recording_service.dart';
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
@@ -64,6 +66,30 @@ void main() {
     expect(find.text('RECENT RIDES'), findsOneWidget);
     expect(find.text('No rides yet.'), findsOneWidget);
     expect(find.text('Follow a route'), findsOneWidget);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('the planned route is drawn while no saved route is followed', (
+    tester,
+  ) async {
+    final h = RecordingHarness();
+    await pumpRecordingScreen(tester, const RecordingScreen(), harness: h);
+    await tester.pump();
+    expect(find.text('No route'), findsOneWidget);
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(RecordingScreen)),
+    );
+    final planner = container.read(plannerControllerProvider.notifier);
+    planner.addWaypoint(const LatLng(48.0, 11.0));
+    planner.addWaypoint(const LatLng(48.1, 11.1));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+
+    final drawn = h.map.calls.where((c) => c.method == 'setRouteLine');
+    expect(drawn, isNotEmpty, reason: 'the plan is the route to ride');
+    expect(find.text('The route on the Plan tab'), findsOneWidget);
 
     await unmountApp(tester);
   });

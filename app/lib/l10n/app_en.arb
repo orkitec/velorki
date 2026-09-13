@@ -625,6 +625,10 @@
   "@recordingFollowRoute": {
     "description": "Label of the picker that puts a saved route on the map while recording"
   },
+  "recordingFollowPlan": "The route on the Plan tab",
+  "@recordingFollowPlan": {
+    "description": "Follow-a-route choice when no saved route is picked but a route is planned"
+  },
   "recordingFollowNone": "No route",
   "@recordingFollowNone": {
     "description": "Entry of the route picker that follows no route"

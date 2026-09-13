@@ -30,6 +30,8 @@ abstract final class MapLayerIds {
 
   static String routeSource(String id) => 'velorki-route-${_slug(id)}';
   static String routeLayer(String id) => 'velorki-route-${_slug(id)}-line';
+  static String routeCasingLayer(String id) =>
+      'velorki-route-${_slug(id)}-casing';
 
   static String _slug(String id) =>
       id.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '_');
@@ -669,6 +671,15 @@ class MaplibreMapControllerAdapter implements MapController {
     }
     if (previous == null) {
       await _ops.addGeoJsonSource(sourceId, data);
+      // A dark casing under the line keeps any accent readable on any map
+      // style: lime on a green park, orange on a yellow road.
+      await _ops.addLayer(
+        sourceId,
+        MapLayerIds.routeCasingLayer(id),
+        _casingProperties(style),
+        belowLayerId: MapLayerIds.positionAccuracyLayer,
+        enableInteraction: false,
+      );
       await _ops.addLayer(
         sourceId,
         layerId,
@@ -680,6 +691,10 @@ class MaplibreMapControllerAdapter implements MapController {
     } else {
       await _ops.setGeoJsonSource(sourceId, data);
       if (previous != style) {
+        await _ops.setLayerProperties(
+          MapLayerIds.routeCasingLayer(id),
+          _casingProperties(style),
+        );
         await _ops.setLayerProperties(layerId, _lineProperties(style));
       }
     }
@@ -692,6 +707,7 @@ class MaplibreMapControllerAdapter implements MapController {
     _routeStyles.remove(id);
     if (!_attached || _routeLines.remove(id) == null) return;
     await _ops.removeLayer(MapLayerIds.routeLayer(id));
+    await _ops.removeLayer(MapLayerIds.routeCasingLayer(id));
     await _ops.removeSource(MapLayerIds.routeSource(id));
   }
 
@@ -722,6 +738,33 @@ class MaplibreMapControllerAdapter implements MapController {
           lineColor: palette.routePreview,
           lineWidth: 4.0,
           lineOpacity: 0.9,
+          lineCap: 'round',
+          lineJoin: 'round',
+          lineDasharray: <double>[2, 1.5],
+        ),
+      };
+
+  /// The casing drawn under a route line: wider, dark, translucent.
+  ml.LineLayerProperties _casingProperties(RouteLineStyle style) =>
+      switch (style) {
+        RouteLineStyle.main => ml.LineLayerProperties(
+          lineColor: palette.routeMainCasing,
+          lineWidth: 9.0,
+          lineOpacity: 0.55,
+          lineCap: 'round',
+          lineJoin: 'round',
+        ),
+        RouteLineStyle.alternative => ml.LineLayerProperties(
+          lineColor: palette.routeMainCasing,
+          lineWidth: 7.0,
+          lineOpacity: 0.3,
+          lineCap: 'round',
+          lineJoin: 'round',
+        ),
+        RouteLineStyle.preview => ml.LineLayerProperties(
+          lineColor: palette.routeMainCasing,
+          lineWidth: 7.0,
+          lineOpacity: 0.45,
           lineCap: 'round',
           lineJoin: 'round',
           lineDasharray: <double>[2, 1.5],
@@ -780,6 +823,10 @@ class MaplibreMapControllerAdapter implements MapController {
       ),
     );
     for (final entry in _routeLines.entries) {
+      await _ops.setLayerProperties(
+        MapLayerIds.routeCasingLayer(entry.key),
+        _casingProperties(entry.value),
+      );
       await _ops.setLayerProperties(
         MapLayerIds.routeLayer(entry.key),
         _lineProperties(entry.value),

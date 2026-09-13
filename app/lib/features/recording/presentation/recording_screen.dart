@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/app_config.dart';
 import '../../../core/permissions/location_permission.dart';
@@ -11,6 +12,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/location_rationale_dialog.dart';
 import '../../map/presentation/map_chrome.dart';
+import '../../planner/application/planner_controller.dart';
 import '../../planner/data/route_repository.dart';
 import '../../planner/domain/saved_route.dart';
 import '../../planner/presentation/planner_map_host.dart';
@@ -64,7 +66,11 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// Pushes the recording to the map: the track line, the puck, and the route
   /// being followed. Called from build, so it only touches the map when
   /// something actually changed.
-  void _syncMap(RecordingUiState state, SavedRoute? route) {
+  void _syncMap(
+    RecordingUiState state,
+    SavedRoute? route,
+    List<LatLng> planned,
+  ) {
     final map = _map;
     if (map == null) return;
     if (state.track.length != _drawnTrackPoints) {
@@ -82,16 +88,25 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
         ),
       );
     }
-    final routeId = route?.id;
-    if (routeId != _drawnRouteId) {
-      _drawnRouteId = routeId;
-      if (route == null) {
+    // A chosen saved route wins; otherwise the route on the Plan tab is the
+    // one the rider is about to ride, saved or not.
+    final line = route != null
+        ? route.geometry.map((p) => p.pos).toList(growable: false)
+        : planned;
+    final key = route != null
+        ? route.id
+        : planned.isEmpty
+        ? null
+        : 'plan:${planned.length}:${planned.first}:${planned.last}';
+    if (key != _drawnRouteId) {
+      _drawnRouteId = key;
+      if (line.isEmpty) {
         unawaited(map.removeRouteLine(followedRouteLineId));
       } else {
         unawaited(
           map.setRouteLine(
             followedRouteLineId,
-            route.geometry.map((p) => p.pos).toList(growable: false),
+            line,
             style: RouteLineStyle.preview,
           ),
         );
@@ -320,7 +335,12 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     final route = followed == null
         ? null
         : ref.watch(savedRouteProvider(followed)).value;
-    _syncMap(state, route);
+    final planned = ref.watch(
+      plannerControllerProvider.select(
+        (p) => p.result?.positions ?? const <LatLng>[],
+      ),
+    );
+    _syncMap(state, route, planned);
 
     final theme = Theme.of(context);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
@@ -328,7 +348,9 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     return Scaffold(
       body: Column(
         children: [
+          // While a ride runs the figures need the room, not the map.
           Expanded(
+            flex: state.isRecording ? 2 : 3,
             child: Stack(
               children: [
                 Positioned.fill(
@@ -386,6 +408,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
             ),
           ),
           Expanded(
+            flex: 3,
             child: Transform.translate(
               offset: const Offset(0, -24),
               child: DecoratedBox(
@@ -463,6 +486,9 @@ class _IdlePanel extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final routes = ref.watch(savedRoutesProvider).value ?? const [];
+    final hasPlan = ref.watch(
+      plannerControllerProvider.select((p) => p.result != null),
+    );
     return ListView(
       padding: EdgeInsets.fromLTRB(20, 24, 20, bottomInset + 24),
       children: [
@@ -486,7 +512,11 @@ class _IdlePanel extends ConsumerWidget {
             prefixIcon: const Icon(Icons.route_outlined),
           ),
           items: [
-            DropdownMenuItem<String?>(child: Text(l10n.recordingFollowNone)),
+            DropdownMenuItem<String?>(
+              child: Text(
+                hasPlan ? l10n.recordingFollowPlan : l10n.recordingFollowNone,
+              ),
+            ),
             for (final route in routes)
               DropdownMenuItem<String?>(
                 value: route.id,

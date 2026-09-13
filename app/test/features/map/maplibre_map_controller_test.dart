@@ -392,8 +392,12 @@ void main() {
 
       await adapter.setRouteLine('main', _points);
 
-      expect(ops.names, <String>['addGeoJsonSource', 'addLayer']);
-      expect(ops.lastCall('addLayer')!.layerId, MapLayerIds.routeLayer('main'));
+      // The casing goes in first, the line on top of it.
+      expect(ops.names, <String>['addGeoJsonSource', 'addLayer', 'addLayer']);
+      expect(ops.callsNamed('addLayer').map((c) => c.layerId), <String>[
+        MapLayerIds.routeCasingLayer('main'),
+        MapLayerIds.routeLayer('main'),
+      ]);
     });
 
     test('keeps two ids apart and slugs them into source names', () async {
@@ -429,8 +433,10 @@ void main() {
 
       await adapter.removeRouteLine('main');
 
-      expect(ops.names, <String>['removeLayer', 'removeSource']);
+      // Both layers go before the source they read from.
+      expect(ops.names, <String>['removeLayer', 'removeLayer', 'removeSource']);
       expect(ops.calls.first.id, MapLayerIds.routeLayer('main'));
+      expect(ops.calls[1].id, MapLayerIds.routeCasingLayer('main'));
       expect(ops.calls.last.id, MapLayerIds.routeSource('main'));
     });
 
