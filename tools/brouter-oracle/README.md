@@ -30,10 +30,11 @@ The Dart port reproduces the same JSON and the same numbers; the golden tests in
 ```
 tools/brouter-oracle/
 ├── common.sh            shared paths, the pinned version, the Java 17 lookup
-├── fetch.sh             download the release zip + the rd5 tiles into .cache/
+├── fetch.sh             download the release zip + the pinned rd5 tiles into .cache/
 ├── serve.sh / stop.sh   run the upstream RouteServer on port 17777
 ├── tiles.txt            which tiles, their size, and where they came from
 ├── tiles.sha256         the exact data snapshot the corpus is bound to
+│                         (also the CI cache key for the downloaded tiles)
 ├── oracle_common.py     stdlib-only helpers shared by the three corpus scripts
 ├── gen_corpus.py        deterministic request generation  -> corpus/requests.json
 ├── run_corpus.py        record responses                  -> corpus/responses/, corpus/index.json
@@ -61,6 +62,7 @@ packages. `common.sh` picks up `JAVA_HOME` if set, otherwise the mise
 ```sh
 cd tools/brouter-oracle
 ./fetch.sh          # ~11 MB: the release zip and the two rd5 tiles
+                    # (./fetch.sh --tiles-only skips the zip, as CI does)
 ./serve.sh          # RouteServer on 127.0.0.1:17777
 python3 check_corpus.py
 ./stop.sh
@@ -126,7 +128,9 @@ identical every time, and `check_corpus.py` reported 0 of 200 mismatched.
 
 Chosen from the live index at <https://brouter.de/brouter/segments4/>, listing
 timestamp **12-Sep-2026 01:03** (CET map snapshot time; the directory itself was
-last written 12-Sep-2026 03:13). The rule was: the two smallest tiles that still
+last written 12-Sep-2026 03:13). That snapshot is now **frozen**: the two files
+are published as immutable release assets and `fetch.sh` downloads them from
+there, never from brouter.de. See "The corpus is bound to a data snapshot". The rule was: the two smallest tiles that still
 contain a real, connected road network. Both are island tiles, so the network is
 fully inside the tile and no neighbouring segment is ever needed.
 
@@ -146,32 +150,105 @@ mutually unreachable islands.
 
 ### The corpus is bound to a data snapshot
 
-**brouter.de rebuilds `segments4` every night.** The recorded responses are only
-valid for the two checksums in `tiles.sha256`. As soon as upstream regenerates a
-tile, the geometry can change for perfectly legitimate reasons (an OSM edit),
-and a mismatch then says nothing about the Dart port.
+**brouter.de rebuilds `segments4` every night.** The recorded responses, and the
+`brouter_dart` golden vectors, are only valid for the two checksums in
+`tiles.sha256`. As soon as upstream regenerates a tile the geometry can change
+for perfectly legitimate reasons (an OSM edit), and a mismatch then says nothing
+about the Dart port.
 
-`fetch.sh` exits **3** when the downloaded tiles do not match `tiles.sha256`, and
-the CI workflow treats that as "skip with a warning", not as a failure.
+So the tiles are **not** fetched from brouter.de any more. The exact bytes the
+fixtures were recorded against are published as an immutable snapshot release:
 
-To re-bind the corpus to the current snapshot:
+> **`oracle-20260912`** — "Oracle tiles, brouter.de snapshot of 2026-09-12"
+> in [`orkitec/velorki-data`](https://github.com/orkitec/velorki-data/releases/tag/oracle-20260912),
+> carrying `W20_N30.rd5`, `W25_N60.rd5` and a `manifest.json` with sizes and
+> sha256.
+
+`ORACLE_TILES_TAG` in `common.sh` names that tag and `fetch.sh` downloads
+`https://github.com/orkitec/velorki-data/releases/download/<tag>/<tile>.rd5`.
+These are plain release-asset URLs: no token, and no GitHub API call, so the job
+cannot be knocked over by the API rate limit. Set `BROUTER_SEGMENTS_BASE_URL` to
+override the base URL (used by the tests of `fetch.sh` itself).
+
+Two tags, two meanings, in the same data repo:
+
+| Tag | Contents | Lifetime |
+|---|---|---|
+| `tiles-<date>` | the monthly planet mirror the **app** downloads from | rolling; `scripts/publish-tiles.sh` prunes all but the newest few |
+| `oracle-<date>` | the frozen tiles the **fixtures** were recorded against | permanent; never replaced, never pruned |
+
+The prune step in `publish-tiles.sh` must only ever delete `tiles-*` releases.
+
+**On failure `fetch.sh` gets the tiles out of the way.** It exits **1** when a
+tile will not download and **3** when the checksums do not match, and in both
+cases it moves the files into `.cache/segments4-bad/`. That matters: the
+`brouter_dart` tests fall back to `.cache/segments4` when `BROUTER_SEGMENTS_DIR`
+is unset, so tiles left behind after a failed fetch would be picked up anyway and
+the suite would report parity diffs that are really just the wrong data. With the
+directory emptied, `tilesMissing` reports them as absent and the tile-backed
+tests skip.
+
+CI does **not** skip, though: it runs `./fetch.sh --tiles-only` bare, so any
+failure here turns the job red. A silently skipped parity suite is worse than a
+red run. The workflow also caches `.cache/segments4` keyed on the content hash of
+`tiles.sha256`, so the tiles are downloaded once per snapshot; because the assets
+are immutable that cache entry can never go stale.
+
+### Bumping to a newer upstream snapshot
+
+Regenerating is a deliberate act. Never regenerate to make a red `brouter_dart`
+test go green — first decide whether the tiles changed or the port did.
 
 ```sh
 cd tools/brouter-oracle
-./fetch.sh                                        # exit code 3 is expected here
+
+# 1. get the new tiles from upstream, into an empty segments dir
+rm -rf .cache/segments4 && mkdir -p .cache/segments4
+for t in W20_N30 W25_N60; do
+  curl -fsSL -o ".cache/segments4/$t.rd5" "https://brouter.de/brouter/segments4/$t.rd5"
+done
+
+# 2. publish them as a NEW immutable release (never overwrite an old one)
+cd .cache/segments4
+gh release create "oracle-$(date -u +%Y%m%d)" --repo orkitec/velorki-data \
+  --title "Oracle tiles, brouter.de snapshot of $(date -u +%Y-%m-%d)" \
+  --latest=false W20_N30.rd5 W25_N60.rd5 manifest.json
+cd ../..
+
+# 3. point the harness at it and re-pin the hashes
+#    edit ORACLE_TILES_TAG in common.sh
 (cd .cache/segments4 && sha256sum *.rd5) > tiles.sha256
 # update the byte sizes and the index timestamp in tiles.txt and in this README
+
+# 4. re-record everything that is bound to the tiles
 ./serve.sh
 python3 gen_corpus.py        # re-samples and re-validates every case
 python3 run_corpus.py        # re-records corpus/responses/ and corpus/index.json
 python3 check_corpus.py      # must be green immediately
 ./stop.sh
-# commit corpus/ together with the new tiles.sha256 in one commit
+#    and the brouter_dart mapaccess vectors (see that package's README)
+
+# 5. commit corpus/, the regenerated vectors, tiles.sha256, tiles.txt and
+#    common.sh in ONE commit
 ```
 
-Regenerating is a deliberate act. Never regenerate to make a red
-`brouter_dart` test go green — first decide whether the tiles changed or the
-port did.
+A `manifest.json` for step 2 in the same shape as the monthly ones:
+
+```sh
+python3 - <<'EOF' > .cache/segments4/manifest.json
+import json, hashlib, datetime
+tiles = []
+for t in ("W20_N30", "W25_N60"):
+    b = open(f".cache/segments4/{t}.rd5", "rb").read()
+    tiles.append({"tile": t, "bytes": len(b),
+                  "sha256": hashlib.sha256(b).hexdigest()})
+print(json.dumps({"formatVersion": "11.2", "brouterVersion": "v1.7.10",
+                  "source": "https://brouter.de/brouter/segments4/",
+                  "immutable": True, "tiles": tiles,
+                  "tileCount": len(tiles),
+                  "totalBytes": sum(t["bytes"] for t in tiles)}, indent=2))
+EOF
+```
 
 ## The corpus
 

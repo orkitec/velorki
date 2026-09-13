@@ -364,6 +364,26 @@ job runs against two real tiles. Parity is checked at three levels:
   across the trekking, fastbike, mtb and gravel profiles, alternatives 0–3,
   nogos and roundtrip, with timeouts disabled on both sides.
 
+**The fixtures are bound to a frozen tile snapshot.** brouter.de rebuilds
+`segments4` every night, so tiles fetched from it drift and the recorded
+parity numbers (node counts, geometry) change for reasons that say nothing
+about the port. The corpus in `tools/brouter-oracle/corpus/` and the
+`brouter_dart` vectors are therefore recorded against one immutable snapshot,
+published as the release **`oracle-20260912`** in `orkitec/velorki-data` —
+the brouter.de snapshot of 12-Sep-2026 01:03, pinned by sha256 in
+`tools/brouter-oracle/tiles.sha256`. `fetch.sh` downloads from that release
+(plain asset URLs, no GitHub API, so no rate limit) and verifies the hashes;
+CI caches the tiles keyed on the content of `tiles.sha256` and fails the job
+outright if the download or the verification fails, because a silently
+skipped parity suite is worse than a red run. On a mismatch `fetch.sh` moves
+the tiles out of `.cache/segments4` so nothing can accidentally compare
+against the wrong bytes. The `oracle-*` tags are exempt from the monthly
+prune in `velorki-data/scripts/publish-tiles.sh`, which only touches
+`tiles-*`. To bump the snapshot: publish a new `oracle-<date>` release, point
+`ORACLE_TILES_TAG` in `tools/brouter-oracle/common.sh` at it, update
+`tiles.sha256`, re-record the corpus and the vectors, and commit all of it
+together — never re-record just to turn a red test green.
+
 **Memory strategy.** BRouter runs in a 128 MB JVM using random-access reads, so
 the port does the same: a `RoutingWorker` isolate with synchronous
 `RandomAccessFile` reads (upstream does not mmap), one handle per rd5 file, and

@@ -32,16 +32,24 @@ jobs:
       - run: flutter analyze --fatal-infos lib test
       - run: dart analyze --fatal-infos lib test
       - run: flutter test --coverage
+      - name: Cache the pinned BRouter oracle tiles
+        uses: actions/cache@v4
+        with:
+          path: tools/brouter-oracle/.cache/segments4
+          # The tiles are immutable release assets, so their content hash is the
+          # whole key: a cache entry can never go stale, and bumping the snapshot
+          # (a new tiles.sha256) misses the cache and re-downloads exactly once.
+          key: brouter-oracle-tiles-${{ hashFiles('tools/brouter-oracle/tiles.sha256') }}
       - name: Fetch the BRouter oracle tiles (parity tests)
-        # Exit 3 means brouter.de rebuilt the tiles since the corpus was
-        # recorded; the tile-backed tests then skip instead of failing.
+        # The tiles come from the immutable orkitec/velorki-data oracle-* release
+        # that the corpus and the brouter_dart fixtures were recorded against, so
+        # any failure here is a real problem, not the old nightly brouter.de
+        # rebuild. Fail loudly: a silently skipped parity suite is worse than a
+        # red run. --tiles-only keeps the job off the GitHub API entirely.
         working-directory: tools/brouter-oracle
         run: |
-          if ./fetch.sh; then
-            echo "BROUTER_SEGMENTS_DIR=$PWD/.cache/segments4" >> "$GITHUB_ENV"
-          else
-            echo "::warning::oracle tiles changed upstream; skipping tile-backed brouter_dart tests"
-          fi
+          ./fetch.sh --tiles-only
+          echo "BROUTER_SEGMENTS_DIR=$PWD/.cache/segments4" >> "$GITHUB_ENV"
       - name: package tests
         run: |
           for p in packages/*/; do

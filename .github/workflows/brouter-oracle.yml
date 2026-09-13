@@ -5,14 +5,16 @@ name: brouter-oracle
 # Downloads the pinned BRouter 1.7.10 release and the two rd5 tiles the corpus
 # was recorded against, starts the RouteServer and replays corpus/index.json.
 #
-# brouter.de rebuilds segments4 nightly, so the tiles will eventually stop
-# matching tiles.sha256. That is not a failure of the port: the job then warns,
-# uploads what it has and exits 0 with regeneration instructions.
+# The tiles come from the immutable snapshot release oracle-20260912 in
+# orkitec/velorki-data, not from brouter.de (which rebuilds segments4 nightly and
+# so can never serve the recorded bytes). A checksum mismatch is therefore a real
+# problem now, not the expected nightly drift, and this job fails on it.
 
 on:
   workflow_dispatch:
   schedule:
-    # Sundays 04:17 UTC, after the nightly segment rebuild on brouter.de.
+    # Sundays 04:17 UTC. The tiles are pinned, so the schedule only guards
+    # against drift in the port, the profiles and the upstream jar.
     - cron: "17 4 * * 0"
 
 defaults:
@@ -31,68 +33,30 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      - name: Cache the pinned BRouter oracle tiles
+        uses: actions/cache@v4
+        with:
+          path: tools/brouter-oracle/.cache/segments4
+          key: brouter-oracle-tiles-${{ hashFiles('tools/brouter-oracle/tiles.sha256') }}
+
       - name: Fetch the pinned BRouter release and the rd5 tiles
-        id: fetch
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          set +e
-          ./fetch.sh
-          rc=$?
-          set -e
-          echo "rc=$rc" >> "$GITHUB_OUTPUT"
-          if [ "$rc" = "3" ]; then
-            echo "tiles_changed=true" >> "$GITHUB_OUTPUT"
-          elif [ "$rc" != "0" ]; then
-            exit "$rc"
-          fi
-
-      - name: Skip -- brouter.de rebuilt the segments
-        if: steps.fetch.outputs.tiles_changed == 'true'
-        run: |
-          {
-            echo "### BRouter oracle skipped"
-            echo
-            echo "The rd5 tiles downloaded from brouter.de no longer match"
-            echo "\`tools/brouter-oracle/tiles.sha256\`. brouter.de rebuilds"
-            echo "\`segments4\` every night, so the recorded corpus is bound to a"
-            echo "data snapshot that is now gone. This is **not** a routing"
-            echo "regression."
-            echo
-            echo "Recorded checksums:"
-            echo '```'
-            cat tiles.sha256
-            echo '```'
-            echo "Checksums now:"
-            echo '```'
-            ( cd .cache/segments4 && sha256sum ./*.rd5 )
-            echo '```'
-            echo
-            echo "To re-bind the corpus to the current snapshot:"
-            echo '```sh'
-            echo "cd tools/brouter-oracle"
-            echo "./fetch.sh                       # ignore the exit code 3"
-            echo "(cd .cache/segments4 && sha256sum *.rd5) > tiles.sha256"
-            echo "# update the sizes and the index timestamp in tiles.txt and README.md"
-            echo "./serve.sh"
-            echo "python3 gen_corpus.py && python3 run_corpus.py"
-            echo "./stop.sh"
-            echo "# commit corpus/ together with the new tiles.sha256"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-          echo "::warning title=BRouter oracle skipped::rd5 tiles changed upstream; see the job summary for how to regenerate the corpus"
+        # Any non-zero exit is fatal. Exit 3 used to mean "brouter.de rebuilt the
+        # segments, skip"; with the tiles pinned to an immutable release it means
+        # the release assets were replaced or tiles.sha256 was edited without
+        # re-recording, and both need a human.
+        run: ./fetch.sh
 
       - name: Start the RouteServer
-        if: steps.fetch.outputs.tiles_changed != 'true'
         run: ./serve.sh
 
       - name: Replay the corpus
         id: check
-        if: steps.fetch.outputs.tiles_changed != 'true'
         run: python3 check_corpus.py --out .cache/check-diff.txt --bodies
 
       - name: Stop the RouteServer
-        if: always() && steps.fetch.outputs.tiles_changed != 'true'
+        if: always()
         run: ./stop.sh || true
 
       - name: Upload the diff
