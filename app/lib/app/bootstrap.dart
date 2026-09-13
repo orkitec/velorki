@@ -30,6 +30,8 @@ Future<void> bootstrap() async {
   // licences have to be added to the ones Flutter collects by itself.
   registerVelorkiLicenses();
 
+  configureMapRendering();
+
   final prefs = await SharedPreferences.getInstance();
 
   final container = ProviderContainer(

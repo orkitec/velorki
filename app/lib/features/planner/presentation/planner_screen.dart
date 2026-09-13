@@ -8,6 +8,7 @@ import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../assistant/domain/intent_resolver.dart';
 import '../../assistant/presentation/assistant_sheet.dart';
+import '../../integrations/common/data/relay_client_provider.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/device_position_request.dart';
 import '../../map/presentation/map_chrome.dart';
@@ -609,11 +610,13 @@ class _PlannerActions extends ConsumerWidget {
         label: l10n.loopAction,
         onPressed: () => unawaited(onSmartLoop()),
       ),
-      LabeledIconButton(
-        icon: Icons.auto_awesome_rounded,
-        label: l10n.assistantAction,
-        onPressed: () => unawaited(onAsk()),
-      ),
+      // The assistant needs the relay; a build without one has no Ask.
+      if (ref.watch(relayClientProvider) != null)
+        LabeledIconButton(
+          icon: Icons.auto_awesome_rounded,
+          label: l10n.assistantAction,
+          onPressed: () => unawaited(onAsk()),
+        ),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
