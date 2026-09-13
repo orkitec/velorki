@@ -357,7 +357,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     // Collapsed: the handle above the navigation bar. Live: the status row
     // and the three key figures. Idle: the start button and the chooser.
     final collapsed = fraction(30);
-    final initial = state.isRecording ? fraction(206) : fraction(420);
+    final initial = state.isRecording ? fraction(292) : fraction(420);
     final sheetKey = state.isRecording ? 'live' : 'idle';
 
     return Scaffold(
@@ -555,6 +555,7 @@ class _LivePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     final snapshot = state.snapshot!;
     final status = switch (snapshot) {
       RecordingSnapshot(status: RecordingStatus.paused, autoPaused: true) =>
@@ -568,14 +569,20 @@ class _LivePanel extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 24),
       children: [
         const _SheetHandle(),
-        // The strip that is always in view: state, the three figures a
-        // rider glances at, and the two buttons.
+        // Everything in view at once: state and elapsed time with the two
+        // buttons, then two rows of three figures. Nothing hides below.
         Row(
           children: [
+            _StatusPill(label: status, paused: state.isPaused),
+            const SizedBox(width: 12),
             Expanded(
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: _StatusPill(label: status, paused: state.isPaused),
+              child: Text(
+                formatClock(snapshot.elapsed),
+                style: theme.textTheme.statMedium.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             _RoundAction(
@@ -614,34 +621,28 @@ class _LivePanel extends StatelessWidget {
               value: formatSpeed(l10n, snapshot.speedMps),
             ),
             StatTile(
-              label: l10n.statMovingTime,
-              value: formatClock(snapshot.moving),
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        // Below the fold: the rest, for whoever pulls the sheet up.
-        RideStatsGrid(
-          items: <RideStatItem>[
-            RideStatItem(
-              icon: Icons.trending_flat,
               label: l10n.statAvgSpeed,
               value: formatSpeed(l10n, snapshot.avgSpeedMps),
             ),
-            RideStatItem(
-              icon: Icons.timelapse,
-              label: l10n.statElapsed,
-              value: formatClock(snapshot.elapsed),
-            ),
-            RideStatItem(
-              icon: Icons.trending_up,
+          ],
+        ),
+        const SizedBox(height: 16),
+        StatRow(
+          children: [
+            StatTile(
               label: l10n.statAscent,
               value: formatHeight(l10n, snapshot.ascentM),
+              size: StatSize.medium,
             ),
-            RideStatItem(
-              icon: Icons.trending_down,
+            StatTile(
               label: l10n.statDescent,
               value: formatHeight(l10n, snapshot.descentM),
+              size: StatSize.medium,
+            ),
+            StatTile(
+              label: l10n.statMovingTime,
+              value: formatClock(snapshot.moving),
+              size: StatSize.medium,
             ),
           ],
         ),
