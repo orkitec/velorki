@@ -22,11 +22,26 @@ class MapPosition {
   /// Builds one from a geolocator [geo.Position].
   factory MapPosition.fromGeolocator(geo.Position p) => MapPosition(
     position: LatLng(p.latitude, p.longitude),
-    accuracyM: p.hasAccuracy ? p.accuracy : 0,
+    accuracyM: measuredValue(p.accuracy, flagged: p.hasAccuracy) ?? 0,
     timestamp: p.timestamp,
-    headingDeg: p.hasHeading ? p.heading : null,
-    speedMps: p.hasSpeed ? p.speed : null,
+    headingDeg: measuredValue(p.heading, flagged: p.hasHeading),
+    speedMps: measuredValue(p.speed, flagged: p.hasSpeed),
   );
+
+  /// A geolocator field's value, or `null` when the platform measured none.
+  ///
+  /// The `has*` flags cannot be trusted on Android: geolocator_android's
+  /// `AndroidPosition.fromMap` rebuilds the position through a constructor
+  /// that never forwards them, so every fix claims to have no accuracy, no
+  /// course and no speed — which is why the puck had neither an accuracy ring
+  /// nor a heading. A set flag is therefore taken at face value (iOS reports
+  /// them properly, and an honest 0.0 stays a 0.0), while a clear flag falls
+  /// back to the only other evidence there is: a non-zero finite value.
+  static double? measuredValue(double value, {required bool flagged}) {
+    if (!value.isFinite) return null;
+    if (flagged) return value;
+    return value == 0 ? null : value;
+  }
 
   final LatLng position;
   final double accuracyM;

@@ -29,10 +29,14 @@ abstract class MapController {
   Future<void> setTrackLine(List<LatLng> points);
 
   /// User position puck. `null` hides it.
+  ///
+  /// [headingDeg] is a course over ground, so [speedMps] comes with it: the
+  /// direction cone is only drawn while the rider actually moves.
   Future<void> setPosition(
     LatLng? position, {
     double? accuracyM,
     double? headingDeg,
+    double? speedMps,
   });
 
   /// Toggle the CyclOSM raster overlay above the vector base map.

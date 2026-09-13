@@ -122,6 +122,7 @@ class TestMapController implements MapController {
     LatLng? position, {
     double? accuracyM,
     double? headingDeg,
+    double? speedMps,
   }) async {
     calls.add(MapCall('setPosition', [position]));
   }

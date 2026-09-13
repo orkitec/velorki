@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart' show Brightness, ThemeData;
+import 'package:flutter/material.dart' show Brightness, Color, ThemeData;
 import 'package:flutter/foundation.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:velorki_geo/velorki_geo.dart';
@@ -8,6 +8,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 import '../../../app/theme.dart';
 import '../domain/map_controller.dart';
 import 'geojson.dart';
+import 'heading_cone.dart';
 import 'tile_template.dart';
 
 /// Source and layer ids. Everything Velorki adds to the style is prefixed so
@@ -19,6 +20,8 @@ abstract final class MapLayerIds {
   static const String trackLayer = 'velorki-track-line';
   static const String positionSource = 'velorki-position';
   static const String positionAccuracyLayer = 'velorki-position-accuracy';
+  static const String positionHeadingLayer = 'velorki-position-heading';
+  static const String positionHaloLayer = 'velorki-position-halo';
   static const String positionDotLayer = 'velorki-position-dot';
   static const String waypointsSource = 'velorki-waypoints';
   static const String waypointsCircleLayer = 'velorki-waypoints-circle';
@@ -155,6 +158,21 @@ class MapPalette {
 /// `Noto Sans Regular`, so name it explicitly.
 const List<String> waypointLabelFont = <String>['Noto Sans Regular'];
 
+/// `#RRGGBB` or `#RRGGBBAA` as a [Color], the inverse of [VelorkiColors.hex].
+///
+/// The palette travels as maplibre style strings, but the heading cone is
+/// painted by us and needs a real colour back.
+Color colorFromMapHex(String hex) {
+  final digits = hex.startsWith('#') ? hex.substring(1) : hex;
+  final value = int.tryParse(digits, radix: 16);
+  if (value == null) return const Color(0xFF000000);
+  return switch (digits.length) {
+    6 => Color(0xFF000000 | value),
+    8 => Color((value >>> 8) | ((value & 0xFF) << 24)),
+    _ => const Color(0xFF000000),
+  };
+}
+
 /// Attribution string handed to the raster source, so the native SDK's own
 /// attribution sheet lists CyclOSM even though our chip draws it separately.
 const String _cyclosmAttribution =
@@ -169,11 +187,15 @@ class MaplibreMapControllerAdapter implements MapController {
   MaplibreMapControllerAdapter(
     this._map, {
     this.cyclosmTileUrl = '',
+    this.devicePixelRatio = 1.0,
     MapPalette palette = const MapPalette.classic(),
   }) : _palette = palette; // ignore: prefer_initializing_formals
 
   final ml.MapLibreMapController _map;
   MapPalette _palette;
+
+  /// Screen density the heading cone bitmap is rasterised at.
+  final double devicePixelRatio;
 
   /// The colours the layers are drawn with.
   MapPalette get palette => _palette;
@@ -251,13 +273,49 @@ class MaplibreMapControllerAdapter implements MapController {
       ),
       enableInteraction: false,
     );
+    // The cone is a symbol, so its bitmap has to exist before the layer that
+    // names it; re-registering under the same name replaces it.
+    await _addHeadingConeImage();
+    await _map.addLayer(
+      MapLayerIds.positionSource,
+      MapLayerIds.positionHeadingLayer,
+      ml.SymbolLayerProperties(
+        iconImage: headingConeImageName,
+        iconAnchor: 'bottom',
+        iconRotate: <Object>['get', 'heading'],
+        // The cone points along a compass course, so it turns with the map
+        // rather than staying upright on the screen.
+        iconRotationAlignment: 'map',
+        iconAllowOverlap: true,
+        iconIgnorePlacement: true,
+        // No course worth drawing means no cone; the property is simply
+        // absent from the feature then.
+        iconOpacity: <Object>[
+          'case',
+          <Object>['has', 'heading'],
+          1,
+          0,
+        ],
+      ),
+      enableInteraction: false,
+    );
+    await _map.addLayer(
+      MapLayerIds.positionSource,
+      MapLayerIds.positionHaloLayer,
+      ml.CircleLayerProperties(
+        circleRadius: 14.0,
+        circleColor: palette.positionDot,
+        circleOpacity: 0.18,
+      ),
+      enableInteraction: false,
+    );
     await _map.addLayer(
       MapLayerIds.positionSource,
       MapLayerIds.positionDotLayer,
       ml.CircleLayerProperties(
-        circleRadius: 6.0,
+        circleRadius: 8.0,
         circleColor: palette.positionDot,
-        circleStrokeWidth: 2.0,
+        circleStrokeWidth: 3.0,
         circleStrokeColor: '#FFFFFF',
       ),
       enableInteraction: false,
@@ -325,6 +383,23 @@ class MaplibreMapControllerAdapter implements MapController {
       return ids.contains(sourceId);
     } catch (_) {
       return true;
+    }
+  }
+
+  /// Rasterises the heading cone in the palette's position colour and hands
+  /// it to the style. Called on attach and again whenever the palette
+  /// changes: `addImage` under an existing name replaces the bitmap.
+  Future<void> _addHeadingConeImage() async {
+    try {
+      final bytes = await buildHeadingConeImage(
+        color: colorFromMapHex(palette.positionDot),
+        devicePixelRatio: devicePixelRatio,
+      );
+      if (_disposed) return;
+      await _map.addImage(headingConeImageName, bytes);
+    } on Object catch (error) {
+      // A missing cone is a cosmetic loss; the dot and ring still draw.
+      debugPrint('velorki: heading cone image failed: $error');
     }
   }
 
@@ -491,6 +566,12 @@ class MaplibreMapControllerAdapter implements MapController {
       ml.CircleLayerProperties(circleColor: palette.positionDot),
     );
     await _map.setLayerProperties(
+      MapLayerIds.positionHaloLayer,
+      ml.CircleLayerProperties(circleColor: palette.positionDot),
+    );
+    // The cone is a bitmap, not a style colour, so it has to be redrawn.
+    await _addHeadingConeImage();
+    await _map.setLayerProperties(
       MapLayerIds.positionAccuracyLayer,
       ml.CircleLayerProperties(
         circleColor: palette.positionAccuracy,
@@ -566,6 +647,7 @@ class MaplibreMapControllerAdapter implements MapController {
     LatLng? position, {
     double? accuracyM,
     double? headingDeg,
+    double? speedMps,
   }) async {
     if (!_attached) return;
     await _map.setGeoJsonSource(
@@ -574,6 +656,7 @@ class MaplibreMapControllerAdapter implements MapController {
         position,
         accuracyM: accuracyM,
         headingDeg: headingDeg,
+        speedMps: speedMps,
       ),
     );
     // circle-radius is in pixels, so a metre-accurate ring needs a fresh

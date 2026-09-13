@@ -106,18 +106,57 @@ void main() {
       });
     });
 
-    test('carries accuracy and heading when known', () {
+    test('carries accuracy and the course while moving', () {
       final json = positionFeatureCollection(
         const LatLng(47.0, 8.0),
         accuracyM: 12.5,
         headingDeg: 90,
+        speedMps: 4,
       );
 
       expect(_first(json)['properties'], {'accuracy': 12.5, 'heading': 90.0});
     });
 
+    test('omits the course while standing still', () {
+      final json = positionFeatureCollection(
+        const LatLng(47.0, 8.0),
+        accuracyM: 12.5,
+        headingDeg: 90,
+        speedMps: 0.2,
+      );
+
+      expect(_first(json)['properties'], {'accuracy': 12.5});
+    });
+
+    test('omits the course when no speed came with it', () {
+      final json = positionFeatureCollection(
+        const LatLng(47.0, 8.0),
+        headingDeg: 90,
+      );
+
+      expect(_first(json)['properties'], isEmpty);
+    });
+
     test('is empty without a fix', () {
       expect(_features(positionFeatureCollection(null)), isEmpty);
+    });
+  });
+
+  group('puckHeading', () {
+    test('needs a course, a speed, and enough of it', () {
+      expect(puckHeading(null, 5), isNull);
+      expect(puckHeading(90, null), isNull);
+      expect(puckHeading(double.nan, 5), isNull);
+      expect(puckHeading(double.infinity, 5), isNull);
+      expect(puckHeading(90, double.nan), isNull);
+      expect(puckHeading(90, minHeadingSpeedMps - 0.01), isNull);
+      expect(puckHeading(90, minHeadingSpeedMps), 90);
+    });
+
+    test('normalises the course into a full turn', () {
+      expect(puckHeading(370, 5), 10);
+      expect(puckHeading(-90, 5), 270);
+      expect(puckHeading(360, 5), 0);
     });
   });
 

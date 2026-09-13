@@ -79,15 +79,33 @@ void main() {
 
     await controller.setWaypoints(waypoints);
     await controller.setTrackLine(const [LatLng(47, 8), LatLng(47.5, 8.5)]);
-    await controller.setPosition(const LatLng(47, 8), accuracyM: 7);
+    await controller.setPosition(
+      const LatLng(47, 8),
+      accuracyM: 7,
+      headingDeg: 45,
+      speedMps: 4.2,
+    );
 
     expect(controller.waypoints, waypoints);
     expect(controller.waypointCalls, hasLength(1));
     expect(controller.trackLine, hasLength(2));
     expect(
       controller.position,
-      const RecordedPosition(position: LatLng(47, 8), accuracyM: 7),
+      const RecordedPosition(
+        position: LatLng(47, 8),
+        accuracyM: 7,
+        headingDeg: 45,
+        speedMps: 4.2,
+      ),
     );
+  });
+
+  test('records a hidden puck and keeps every position call', () async {
+    await controller.setPosition(const LatLng(47, 8), accuracyM: 7);
+    await controller.setPosition(null);
+
+    expect(controller.positionCalls, hasLength(2));
+    expect(controller.position, const RecordedPosition());
   });
 
   test('records the CyclOSM toggle', () async {

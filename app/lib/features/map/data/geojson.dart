@@ -83,14 +83,36 @@ Map<String, dynamic> waypointsFeatureCollection(List<MapWaypoint> waypoints) {
   return <String, dynamic>{'type': 'FeatureCollection', 'features': features};
 }
 
+/// Below this ground speed a GNSS course is noise, not a direction.
+///
+/// Geolocator reports course over ground, not where the phone is pointing:
+/// standing still it jitters through the full circle. Half a walking pace is
+/// where it settles into something worth drawing a cone for.
+const double minHeadingSpeedMps = 0.8;
+
+/// The course to draw the heading cone at, or `null` when there is none worth
+/// drawing — no course, a broken one, or the rider is not moving.
+double? puckHeading(double? headingDeg, double? speedMps) {
+  if (headingDeg == null || !headingDeg.isFinite) return null;
+  if (speedMps == null || !speedMps.isFinite) return null;
+  if (speedMps < minHeadingSpeedMps) return null;
+  final normalized = headingDeg % 360;
+  return normalized < 0 ? normalized + 360 : normalized;
+}
+
 /// A single `Point` feature for the position puck, or an empty collection when
 /// there is no fix.
+///
+/// `heading` is only written when [puckHeading] accepts the course, so the
+/// cone layer can hide itself with `['has', 'heading']`.
 Map<String, dynamic> positionFeatureCollection(
   LatLng? position, {
   double? accuracyM,
   double? headingDeg,
+  double? speedMps,
 }) {
   if (position == null) return emptyFeatureCollection();
+  final heading = puckHeading(headingDeg, speedMps);
   return <String, dynamic>{
     'type': 'FeatureCollection',
     'features': <Map<String, dynamic>>[
@@ -99,7 +121,7 @@ Map<String, dynamic> positionFeatureCollection(
         'id': 'velorki-position',
         'properties': <String, dynamic>{
           'accuracy': ?accuracyM,
-          'heading': ?headingDeg,
+          'heading': ?heading,
         },
         'geometry': <String, dynamic>{
           'type': 'Point',

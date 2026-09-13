@@ -9,6 +9,7 @@ import '../../../app/app_config.dart';
 import '../../settings/data/appearance_controller.dart';
 import '../data/map_preferences.dart';
 import '../data/maplibre_map_controller.dart';
+import '../data/position_provider.dart';
 import '../domain/map_controller.dart';
 import 'map_attribution.dart';
 import 'map_chrome.dart';
@@ -112,6 +113,24 @@ class _MapViewState extends ConsumerState<MapView> {
     _map = controller;
   }
 
+  /// Pushes a fix into the puck layers.
+  ///
+  /// Never moves the camera: the map only follows the rider when the locate
+  /// button says so. Screens that own their own position source (the
+  /// recorder) push on top of this; the last write wins and both agree.
+  void _pushPosition(MapPosition? fix) {
+    final adapter = _adapter;
+    if (adapter == null || !mounted) return;
+    unawaited(
+      adapter.setPosition(
+        fix?.position,
+        accuracyM: fix?.accuracyM,
+        headingDeg: fix?.headingDeg,
+        speedMps: fix?.speedMps,
+      ),
+    );
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -130,6 +149,7 @@ class _MapViewState extends ConsumerState<MapView> {
     final adapter = MaplibreMapControllerAdapter(
       map,
       cyclosmTileUrl: ref.read(effectiveConfigProvider).cyclosmTileUrl,
+      devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
       palette: MapPalette.fromTheme(Theme.of(context)),
     );
     _adapter = adapter;
@@ -139,6 +159,10 @@ class _MapViewState extends ConsumerState<MapView> {
     if (!mounted) return;
     setState(() {});
     widget.onControllerReady(adapter);
+    // A fix that arrived before the style finished loading would otherwise
+    // wait for the next one, which is up to five metres of riding away.
+    final known = ref.read(devicePositionProvider).value;
+    if (known != null) _pushPosition(known);
   }
 
   void _onCameraIdle() {
@@ -163,6 +187,16 @@ class _MapViewState extends ConsumerState<MapView> {
 
   @override
   Widget build(BuildContext context) {
+    // Listening from build keeps the auto-dispose position stream alive for
+    // as long as a map is on screen, and starts it again by itself once the
+    // locate button has turned the permission into `granted` — the stream
+    // provider watches the permission controller. It never prompts: the
+    // controller only *checks* until something asks it to request.
+    ref.listen<AsyncValue<MapPosition?>>(devicePositionProvider, (_, next) {
+      // A loading or errored stream leaves the last fix on the map; only a
+      // real `null` (permission gone) takes the puck away.
+      if (next.hasValue) _pushPosition(next.value);
+    });
     final config = ref.watch(effectiveConfigProvider);
     final styleUrl = mapStyleUrlFor(
       config,

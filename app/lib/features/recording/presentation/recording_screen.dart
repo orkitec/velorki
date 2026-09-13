@@ -78,6 +78,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
           position,
           accuracyM: state.snapshot?.accuracyM,
           headingDeg: state.snapshot?.headingDeg,
+          speedMps: state.snapshot?.speedMps,
         ),
       );
     }

@@ -73,25 +73,33 @@ class RecordedRouteLine {
 /// The last position pushed into [MapController.setPosition].
 @immutable
 class RecordedPosition {
-  const RecordedPosition({this.position, this.accuracyM, this.headingDeg});
+  const RecordedPosition({
+    this.position,
+    this.accuracyM,
+    this.headingDeg,
+    this.speedMps,
+  });
 
   final LatLng? position;
   final double? accuracyM;
   final double? headingDeg;
+  final double? speedMps;
 
   @override
   bool operator ==(Object other) =>
       other is RecordedPosition &&
       other.position == position &&
       other.accuracyM == accuracyM &&
-      other.headingDeg == headingDeg;
+      other.headingDeg == headingDeg &&
+      other.speedMps == speedMps;
 
   @override
-  int get hashCode => Object.hash(position, accuracyM, headingDeg);
+  int get hashCode => Object.hash(position, accuracyM, headingDeg, speedMps);
 
   @override
   String toString() =>
-      'RecordedPosition($position, accuracy: $accuracyM, heading: $headingDeg)';
+      'RecordedPosition($position, accuracy: $accuracyM, '
+      'heading: $headingDeg, speed: $speedMps)';
 }
 
 /// A [MapController] that records everything and renders nothing.
@@ -265,11 +273,13 @@ class FakeMapController implements MapController {
     LatLng? position, {
     double? accuracyM,
     double? headingDeg,
+    double? speedMps,
   }) async {
     final recorded = RecordedPosition(
       position: position,
       accuracyM: accuracyM,
       headingDeg: headingDeg,
+      speedMps: speedMps,
     );
     this.position = recorded;
     positionCalls.add(recorded);
