@@ -10,13 +10,19 @@ import 'package:flutter/widgets.dart';
 class MapChromeInsets extends InheritedWidget {
   /// Creates the insets.
   const MapChromeInsets({
-    required this.controlsTop,
     required super.child,
     super.key,
+    this.controlsTop,
+    this.attributionBottom,
   });
 
-  /// Distance from the safe-area top to the control column, in dp.
-  final double controlsTop;
+  /// Distance from the safe-area top to the control column, in dp; `null`
+  /// keeps the map's own default.
+  final double? controlsTop;
+
+  /// Distance from the map's bottom edge to the attribution chip, in dp,
+  /// for a panel that overlaps the map; `null` keeps the default.
+  final double? attributionBottom;
 
   /// The nearest insets, or `null` when the screen declared none.
   static MapChromeInsets? maybeOf(BuildContext context) =>
@@ -24,5 +30,6 @@ class MapChromeInsets extends InheritedWidget {
 
   @override
   bool updateShouldNotify(MapChromeInsets oldWidget) =>
-      oldWidget.controlsTop != controlsTop;
+      oldWidget.controlsTop != controlsTop ||
+      oldWidget.attributionBottom != attributionBottom;
 }

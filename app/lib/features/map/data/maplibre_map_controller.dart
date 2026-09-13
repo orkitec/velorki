@@ -144,6 +144,17 @@ class MapPalette {
   );
 }
 
+/// Font stack for the waypoint number labels.
+///
+/// A symbol layer without an explicit `text-font` falls back to the style
+/// spec's default, `Open Sans Regular, Arial Unicode MS Regular`, which the
+/// OpenFreeMap glyph endpoint does not serve: the request 404s, the glyph
+/// dependency of the waypoint source's tiles is never satisfied, and MapLibre
+/// then withholds the *whole* layout result for that source — so the circle
+/// layer sharing it stays invisible as well. Every OpenFreeMap style ships
+/// `Noto Sans Regular`, so name it explicitly.
+const List<String> waypointLabelFont = <String>['Noto Sans Regular'];
+
 /// Attribution string handed to the raster source, so the native SDK's own
 /// attribution sheet lists CyclOSM even though our chip draws it separately.
 const String _cyclosmAttribution =
@@ -272,6 +283,7 @@ class MaplibreMapControllerAdapter implements MapController {
       MapLayerIds.waypointsLabelLayer,
       ml.SymbolLayerProperties(
         textField: <Object>['get', 'label'],
+        textFont: waypointLabelFont,
         textSize: 12.0,
         textColor: palette.waypointLabel,
         textHaloColor: palette.waypointLabelHalo,

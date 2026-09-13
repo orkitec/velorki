@@ -334,6 +334,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                   // The title panel covers the top edge of the map.
                   child: MapChromeInsets(
                     controlsTop: 12 + 44 + 12,
+                    // The panel below overlaps the map by 24dp.
+                    attributionBottom: 24 + 8,
                     child: PlannerMapHost(
                       onMapReady: _onMapReady,
                       embedded: true,

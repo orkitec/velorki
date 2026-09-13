@@ -8,7 +8,14 @@ import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/features/recording/domain/recording_state.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
-/// Drives an engine on a fake clock: no timers, no real GPS, no waiting.
+/// Drives an engine on a fake clock: no timers, no real GPS, no waiting on
+/// wall-clock time.
+///
+/// The engine writes real files, and the work a tick sets off — flushing the
+/// journal, writing the state file, then emitting the snapshot — finishes
+/// whenever that I/O finishes, which on a loaded machine is far later than any
+/// fixed delay would allow. So the harness waits for the snapshot the engine
+/// emits at the end of that chain instead of for a stretch of real time.
 class _Harness {
   _Harness(this.store, {this.autoPause = true});
 
@@ -21,6 +28,8 @@ class _Harness {
   DateTime now = DateTime.utc(2026, 9, 12, 10);
   late final RecordingJournal journal;
   late final RecordingEngine engine;
+
+  Completer<void>? _awaited;
 
   RecordingSnapshot get latest => snapshots.last;
 
@@ -43,38 +52,71 @@ class _Harness {
       clock: () => now,
       autoPause: autoPause,
     )..seed(seed);
-    engine.snapshots.listen(snapshots.add);
+    engine.snapshots.listen((snapshot) {
+      snapshots.add(snapshot);
+      final waiting = _awaited;
+      _awaited = null;
+      waiting?.complete();
+    });
     await engine.start();
   }
 
   /// Emits a fix [seconds] after the start, [meters] of latitude north of 48°.
-  Future<void> fix(int seconds, {double meters = 0, double? ele}) async {
+  ///
+  /// Set [resumes] when the fix is the one that ends an auto-pause: that path
+  /// writes the state file and emits a snapshot, so the wait is for the
+  /// snapshot rather than for the plain hand-over to the engine.
+  Future<void> fix(
+    int seconds, {
+    double meters = 0,
+    double? ele,
+    bool resumes = false,
+  }) {
     now = DateTime.utc(2026, 9, 12, 10, 0, seconds);
-    fixes.add(
-      TrackPoint(LatLng(48 + meters / 111194.9266, 11), ele: ele, time: now),
+    final point = TrackPoint(
+      LatLng(48 + meters / 111194.9266, 11),
+      ele: ele,
+      time: now,
     );
-    await _settle();
+    return resumes
+        ? _emitting(() => fixes.add(point))
+        : _handedOver(() => fixes.add(point));
   }
 
   /// Moves the clock to [seconds] and fires the one-second event.
-  Future<void> tick(int seconds) async {
+  ///
+  /// Every tick ends in exactly one snapshot — from the auto-pause path or
+  /// from the plain one — which is emitted only once the journal flush and the
+  /// state-file write of that tick are through.
+  Future<void> tick(int seconds) {
     now = DateTime.utc(2026, 9, 12, 10, 0, seconds);
-    ticks.add(now);
-    await _settle();
+    return _emitting(() => ticks.add(now));
   }
 
-  // The engine writes real files, so settling means letting the event loop
-  // run, not just draining microtasks.
-  Future<void> _settle() async {
-    for (var i = 0; i < 10; i++) {
-      await Future<void>.delayed(const Duration(milliseconds: 2));
-    }
+  /// Runs [trigger] and waits for the snapshot it leads to.
+  Future<void> _emitting(void Function() trigger) async {
+    final completer = Completer<void>();
+    _awaited = completer;
+    trigger();
+    // Only a deadlock guard, well inside the test timeout so the reason is
+    // reported rather than a bare timeout; the wait itself is for the event.
+    await completer.future.timeout(
+      const Duration(seconds: 10),
+      onTimeout: () => throw StateError('the engine emitted no snapshot'),
+    );
+  }
+
+  /// Runs [trigger] and waits only for the engine to have taken the event:
+  /// one turn of the event loop delivers it, and nothing on that path waits
+  /// for a file.
+  Future<void> _handedOver(void Function() trigger) async {
+    trigger();
+    await Future<void>.delayed(Duration.zero);
   }
 
   Future<void> dispose() async {
     await fixes.close();
     await ticks.close();
-    await _settle();
   }
 }
 
@@ -156,7 +198,7 @@ void main() {
     expect((await store.readState())!.status, RecordingStatus.paused);
 
     // Moving again resumes on its own.
-    await h.fix(12, meters: 30);
+    await h.fix(12, meters: 30, resumes: true);
     expect(h.engine.status, RecordingStatus.active);
     expect(h.engine.isAutoPaused, isFalse);
     expect((await store.readState())!.status, RecordingStatus.active);

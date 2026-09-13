@@ -421,36 +421,28 @@ class _SheetHeader extends StatelessWidget {
         ],
       );
     }
-    final source = state.routingSource;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        StatRow(
           children: [
-            Expanded(
-              child: StatRow(
-                children: [
-                  StatTile(
-                    label: l10n.statDistance,
-                    value: formatDistance(l10n, route.lengthM),
-                    emphasize: true,
-                  ),
-                  StatTile(
-                    label: l10n.statAscent,
-                    value: formatHeight(l10n, route.ascentM),
-                  ),
-                  StatTile(
-                    label: l10n.statDuration,
-                    value: formatDuration(
-                      l10n,
-                      state.estimatedTime ?? Duration.zero,
-                    ),
-                  ),
-                ],
-              ),
+            StatTile(
+              label: l10n.statDistance,
+              value: formatDistance(l10n, route.lengthM),
+              emphasize: true,
             ),
-            if (source != null) RoutingSourceChip(source: source),
+            StatTile(
+              label: l10n.statAscent,
+              value: formatHeight(l10n, route.ascentM),
+            ),
+            StatTile(
+              label: l10n.statDescent,
+              value: formatHeight(l10n, route.descentM),
+            ),
+            StatTile(
+              label: l10n.statDuration,
+              value: formatDuration(l10n, state.estimatedTime ?? Duration.zero),
+            ),
           ],
         ),
         if (state.isRouting)
@@ -471,9 +463,9 @@ class _SheetBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final route = state.result;
     if (route == null || !state.isRoutable) return const SizedBox.shrink();
+    final source = state.routingSource;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -481,18 +473,14 @@ class _SheetBody extends StatelessWidget {
           _AlternativeChips(state: state),
           const SizedBox(height: 16),
         ],
-        Row(
-          children: [
-            Expanded(
-              child: StatTile(
-                label: l10n.statDescent,
-                value: formatHeight(l10n, route.descentM),
-                size: StatSize.medium,
-              ),
+        if (source != null)
+          Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: RoutingSourceChip(source: source),
             ),
-          ],
-        ),
-        const SizedBox(height: 12),
+          ),
         ElevationProfileChart(samples: elevationProfile(route.geometry)),
         const SizedBox(height: 20),
         SurfaceStatsBar(stats: state.surfaceStats),

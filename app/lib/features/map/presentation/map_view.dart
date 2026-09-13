@@ -183,10 +183,15 @@ class _MapViewState extends ConsumerState<MapView> {
     );
 
     if (!widget.showAttribution && !widget.showControls) return map;
-    final chromeTop = MapChromeInsets.maybeOf(context)?.controlsTop;
+    final chrome = MapChromeInsets.maybeOf(context);
+    final chromeTop = chrome?.controlsTop;
+    final chromeBottom = chrome?.attributionBottom;
     final controlsPadding = chromeTop == null
         ? widget.controlsPadding
         : widget.controlsPadding.copyWith(top: chromeTop);
+    final attributionPadding = chromeBottom == null
+        ? widget.attributionPadding
+        : widget.attributionPadding.copyWith(bottom: chromeBottom);
 
     return Stack(
       fit: StackFit.expand,
@@ -208,7 +213,7 @@ class _MapViewState extends ConsumerState<MapView> {
           Positioned.fill(
             child: SafeArea(
               child: Padding(
-                padding: widget.attributionPadding,
+                padding: attributionPadding,
                 child: const Align(
                   alignment: Alignment.bottomLeft,
                   child: MapAttributionChip(),
