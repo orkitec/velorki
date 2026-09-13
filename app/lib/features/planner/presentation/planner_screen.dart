@@ -236,8 +236,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
                       ),
                     ),
                   ),
-                  _SheetBody(state: state),
-                  const SizedBox(height: 12),
+                  // Actions first, so Loop, Ask and Save are visible at the
+                  // sheet's initial height; stats and the chart follow.
                   _PlannerActions(
                     state: state,
                     onAlternatives: _loadAlternatives,
@@ -245,6 +245,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
                     onAsk: _ask,
                     onSave: _save,
                   ),
+                  const SizedBox(height: 12),
+                  _SheetBody(state: state),
                 ],
               ),
             ),
@@ -458,59 +460,53 @@ class _PlannerActions extends ConsumerWidget {
         state.isRoutable &&
         !state.loadingAlternatives &&
         state.alternatives.length <= RoutingOptions.maxAlternativeIdx;
-    // One row, not a Wrap: at 1080x2400 the wrapped buttons pushed Save below
-    // the fold of the sheet's initial height. The secondary actions scroll
-    // sideways instead, and Save keeps its place at the end of the row.
-    return Row(
+    // A Wrap at the top of the sheet: every action stays visible, nothing
+    // scrolls sideways out of sight.
+    return Wrap(
+      spacing: 4,
+      runSpacing: 0,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                TextButton.icon(
-                  onPressed: state.canUndo ? planner.undo : null,
-                  icon: const Icon(Icons.undo),
-                  label: Text(l10n.plannerUndo),
-                ),
-                TextButton.icon(
-                  onPressed: state.canReverse ? planner.reverse : null,
-                  icon: const Icon(Icons.swap_vert),
-                  label: Text(l10n.plannerReverse),
-                ),
-                TextButton.icon(
-                  onPressed: state.isEmpty ? null : planner.clear,
-                  icon: const Icon(Icons.delete_outline),
-                  label: Text(l10n.plannerClear),
-                ),
-                TextButton.icon(
-                  onPressed: canAlternatives
-                      ? () => unawaited(onAlternatives())
-                      : null,
-                  icon: state.loadingAlternatives
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.alt_route),
-                  label: Text(l10n.plannerAlternatives),
-                ),
-                TextButton.icon(
-                  onPressed: () => unawaited(onSmartLoop()),
-                  icon: const Icon(Icons.loop),
-                  label: Text(l10n.loopAction),
-                ),
-                TextButton.icon(
-                  onPressed: () => unawaited(onAsk()),
-                  icon: const Icon(Icons.auto_awesome),
-                  label: Text(l10n.assistantAction),
-                ),
-              ],
-            ),
+        ...<Widget>[
+          TextButton.icon(
+            onPressed: state.canUndo ? planner.undo : null,
+            icon: const Icon(Icons.undo),
+            label: Text(l10n.plannerUndo),
           ),
-        ),
-        const SizedBox(width: 8),
+          TextButton.icon(
+            onPressed: state.canReverse ? planner.reverse : null,
+            icon: const Icon(Icons.swap_vert),
+            label: Text(l10n.plannerReverse),
+          ),
+          TextButton.icon(
+            onPressed: state.isEmpty ? null : planner.clear,
+            icon: const Icon(Icons.delete_outline),
+            label: Text(l10n.plannerClear),
+          ),
+          TextButton.icon(
+            onPressed: canAlternatives
+                ? () => unawaited(onAlternatives())
+                : null,
+            icon: state.loadingAlternatives
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.alt_route),
+            label: Text(l10n.plannerAlternatives),
+          ),
+          TextButton.icon(
+            onPressed: () => unawaited(onSmartLoop()),
+            icon: const Icon(Icons.loop),
+            label: Text(l10n.loopAction),
+          ),
+          TextButton.icon(
+            onPressed: () => unawaited(onAsk()),
+            icon: const Icon(Icons.auto_awesome),
+            label: Text(l10n.assistantAction),
+          ),
+        ],
         FilledButton.icon(
           onPressed: state.canSave ? () => unawaited(onSave()) : null,
           icon: const Icon(Icons.bookmark_add_outlined),

@@ -66,6 +66,11 @@ class MaplibreMapControllerAdapter implements MapController {
   final String cyclosmTileUrl;
 
   final Map<String, RouteLineStyle> _routeLines = <String, RouteLineStyle>{};
+  // What the map should show, replayed after a style (re)load and used to
+  // re-create a source the native side has dropped.
+  final Map<String, List<LatLng>> _routePoints = <String, List<LatLng>>{};
+  List<MapWaypoint> _waypoints = const <MapWaypoint>[];
+  List<LatLng> _track = const <LatLng>[];
   BoundingBox? _visibleBounds;
   bool _cyclosmVisible = false;
   bool _attached = false;
@@ -183,6 +188,35 @@ class MaplibreMapControllerAdapter implements MapController {
 
     _attached = true;
     await _refreshVisibleBounds();
+    await _replay();
+  }
+
+  /// Re-applies the cached waypoints, track and route lines after a style
+  /// load dropped every source.
+  Future<void> _replay() async {
+    if (_waypoints.isNotEmpty) await setWaypoints(_waypoints);
+    if (_track.isNotEmpty) await setTrackLine(_track);
+    final lines = Map<String, List<LatLng>>.of(_routePoints);
+    final styles = Map<String, RouteLineStyle>.of(_routeLines);
+    _routeLines.clear();
+    for (final entry in lines.entries) {
+      await setRouteLine(
+        entry.key,
+        entry.value,
+        style: styles[entry.key] ?? RouteLineStyle.main,
+      );
+    }
+  }
+
+  /// Whether the native style still has [sourceId]. MapLibre only logs when
+  /// a source vanished, so the adapter asks before updating.
+  Future<bool> _hasSource(String sourceId) async {
+    try {
+      final ids = await _map.getSourceIds();
+      return ids.contains(sourceId);
+    } catch (_) {
+      return true;
+    }
   }
 
   Future<void> _addCyclosmLayer() async {
@@ -267,7 +301,12 @@ class MaplibreMapControllerAdapter implements MapController {
       points,
       properties: <String, dynamic>{'id': id, 'style': style.name},
     );
-    final previous = _routeLines[id];
+    _routePoints[id] = List<LatLng>.unmodifiable(points);
+    var previous = _routeLines[id];
+    if (previous != null && !await _hasSource(sourceId)) {
+      _routeLines.remove(id);
+      previous = null;
+    }
     if (previous == null) {
       await _map.addGeoJsonSource(sourceId, data);
       await _map.addLayer(
@@ -289,6 +328,7 @@ class MaplibreMapControllerAdapter implements MapController {
 
   @override
   Future<void> removeRouteLine(String id) async {
+    _routePoints.remove(id);
     if (!_attached || _routeLines.remove(id) == null) return;
     await _map.removeLayer(MapLayerIds.routeLayer(id));
     await _map.removeSource(MapLayerIds.routeSource(id));
@@ -330,17 +370,34 @@ class MaplibreMapControllerAdapter implements MapController {
   // -------------------------------------------------------------- features
 
   @override
-  Future<void> setWaypoints(List<MapWaypoint> waypoints) =>
-      _map.setGeoJsonSource(
-        MapLayerIds.waypointsSource,
-        waypointsFeatureCollection(waypoints),
-      );
+  Future<void> setWaypoints(List<MapWaypoint> waypoints) async {
+    _waypoints = List<MapWaypoint>.unmodifiable(waypoints);
+    if (!_attached) return;
+    if (!await _hasSource(MapLayerIds.waypointsSource)) {
+      // The style dropped our sources without a style-loaded callback;
+      // rebuild everything and let the replay draw the waypoints.
+      await attachToStyle();
+      return;
+    }
+    await _map.setGeoJsonSource(
+      MapLayerIds.waypointsSource,
+      waypointsFeatureCollection(waypoints),
+    );
+  }
 
   @override
-  Future<void> setTrackLine(List<LatLng> points) => _map.setGeoJsonSource(
-    MapLayerIds.trackSource,
-    lineFeatureCollection(points),
-  );
+  Future<void> setTrackLine(List<LatLng> points) async {
+    _track = List<LatLng>.unmodifiable(points);
+    if (!_attached) return;
+    if (!await _hasSource(MapLayerIds.trackSource)) {
+      await attachToStyle();
+      return;
+    }
+    await _map.setGeoJsonSource(
+      MapLayerIds.trackSource,
+      lineFeatureCollection(points),
+    );
+  }
 
   @override
   Future<void> setPosition(
