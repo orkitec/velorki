@@ -13,10 +13,10 @@ void main() {
 
       expect(ember.routeMain, '#FF6A2E');
       expect(ember.routeMain, VelorkiColors.hex(AccentPreset.ember.route));
-      // The route colour is the same on both map styles.
+      // The light map gets the deep shade of the same accent.
       expect(
         MapPalette.fromTheme(buildLightTheme(AccentPreset.ember)).routeMain,
-        '#FF6A2E',
+        VelorkiColors.hex(AccentPreset.ember.routeOnLight),
       );
     });
 

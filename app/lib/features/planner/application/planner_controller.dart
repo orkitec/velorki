@@ -39,6 +39,16 @@ class PlannerController extends _$PlannerController {
       _debounce?.cancel();
       _pending?.cancel('planner disposed');
     });
+    // The backend is rebuilt when a routing tile arrives or a server URL
+    // changes; a plan that failed for want of either is routed again, so
+    // the download banner turns into the route by itself.
+    ref.listen(routingBackendProvider, (previous, next) {
+      if (previous == next || next == null || _disposed) return;
+      if (state.missingTiles.isNotEmpty ||
+          (state.isRoutable && state.result == null)) {
+        _scheduleRoute();
+      }
+    });
     return const PlannerState();
   }
 

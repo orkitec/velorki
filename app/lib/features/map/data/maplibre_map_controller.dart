@@ -51,6 +51,7 @@ class MapPalette {
     required this.routeMain,
     required this.routeMainCasing,
     required this.routeAlternative,
+    required this.routeAlternatives,
     required this.routePreview,
     required this.track,
     required this.waypointStart,
@@ -68,6 +69,7 @@ class MapPalette {
     : routeMain = '#1565C0',
       routeMainCasing = '#0D3C6E',
       routeAlternative = '#78909C',
+      routeAlternatives = const <String>['#78909C', '#5C6BC0', '#26A69A'],
       routePreview = '#EF6C00',
       track = '#AD1457',
       waypointStart = '#2E7D32',
@@ -87,6 +89,9 @@ class MapPalette {
       routeMain: VelorkiColors.hex(colors.routeMain),
       routeMainCasing: VelorkiColors.hex(colors.routeMainCasing),
       routeAlternative: VelorkiColors.hex(colors.routeAlternative),
+      routeAlternatives: <String>[
+        for (final c in colors.routeAlternatives) VelorkiColors.hex(c),
+      ],
       routePreview: VelorkiColors.hex(colors.routePreview),
       track: VelorkiColors.hex(colors.track),
       waypointStart: VelorkiColors.hex(colors.waypointStart),
@@ -104,6 +109,9 @@ class MapPalette {
   final String routeMain;
   final String routeMainCasing;
   final String routeAlternative;
+
+  /// One colour per alternative index; wraps around when there are more.
+  final List<String> routeAlternatives;
   final String routePreview;
   final String track;
   final String waypointStart;
@@ -121,6 +129,7 @@ class MapPalette {
       other.routeMain == routeMain &&
       other.routeMainCasing == routeMainCasing &&
       other.routeAlternative == routeAlternative &&
+      listEquals(other.routeAlternatives, routeAlternatives) &&
       other.routePreview == routePreview &&
       other.track == track &&
       other.waypointStart == waypointStart &&
@@ -137,6 +146,7 @@ class MapPalette {
     routeMain,
     routeMainCasing,
     routeAlternative,
+    Object.hashAll(routeAlternatives),
     routePreview,
     track,
     waypointStart,
@@ -671,21 +681,25 @@ class MaplibreMapControllerAdapter implements MapController {
     }
     if (previous == null) {
       await _ops.addGeoJsonSource(sourceId, data);
+      // Under the puck and the markers; an alternative also under the chosen
+      // route, whatever order they arrive in.
+      final below = style == RouteLineStyle.alternative
+          ? _alternativeBelow()
+          : MapLayerIds.positionAccuracyLayer;
       // A dark casing under the line keeps any accent readable on any map
       // style: lime on a green park, orange on a yellow road.
       await _ops.addLayer(
         sourceId,
         MapLayerIds.routeCasingLayer(id),
         _casingProperties(style),
-        belowLayerId: MapLayerIds.positionAccuracyLayer,
+        belowLayerId: below,
         enableInteraction: false,
       );
       await _ops.addLayer(
         sourceId,
         layerId,
-        _lineProperties(style),
-        // Keep route lines under the puck and the waypoint markers.
-        belowLayerId: MapLayerIds.positionAccuracyLayer,
+        _lineProperties(style, id),
+        belowLayerId: below,
         enableInteraction: false,
       );
     } else {
@@ -695,7 +709,7 @@ class MaplibreMapControllerAdapter implements MapController {
           MapLayerIds.routeCasingLayer(id),
           _casingProperties(style),
         );
-        await _ops.setLayerProperties(layerId, _lineProperties(style));
+        await _ops.setLayerProperties(layerId, _lineProperties(style, id));
       }
     }
     _routeLines[id] = style;
@@ -718,7 +732,7 @@ class MaplibreMapControllerAdapter implements MapController {
     }
   }
 
-  ml.LineLayerProperties _lineProperties(RouteLineStyle style) =>
+  ml.LineLayerProperties _lineProperties(RouteLineStyle style, [String? id]) =>
       switch (style) {
         RouteLineStyle.main => ml.LineLayerProperties(
           lineColor: palette.routeMain,
@@ -728,9 +742,11 @@ class MaplibreMapControllerAdapter implements MapController {
           lineJoin: 'round',
         ),
         RouteLineStyle.alternative => ml.LineLayerProperties(
-          lineColor: palette.routeAlternative,
+          lineColor: id == null
+              ? palette.routeAlternative
+              : _alternativeColour(id),
           lineWidth: 4.0,
-          lineOpacity: 0.75,
+          lineOpacity: 0.85,
           lineCap: 'round',
           lineJoin: 'round',
         ),
@@ -743,6 +759,25 @@ class MaplibreMapControllerAdapter implements MapController {
           lineDasharray: <double>[2, 1.5],
         ),
       };
+
+  /// `alt-2` → the third alternative colour; anything else → the fallback.
+  String _alternativeColour(String id) {
+    final match = RegExp(r'(\d+)$').firstMatch(id);
+    final colours = palette.routeAlternatives;
+    if (match == null || colours.isEmpty) return palette.routeAlternative;
+    return colours[int.parse(match.group(1)!) % colours.length];
+  }
+
+  /// The layer an alternative goes under: the lowest main route's casing,
+  /// so the chosen route always draws on top of its alternatives.
+  String _alternativeBelow() {
+    for (final entry in _routeLines.entries) {
+      if (entry.value == RouteLineStyle.main) {
+        return MapLayerIds.routeCasingLayer(entry.key);
+      }
+    }
+    return MapLayerIds.positionAccuracyLayer;
+  }
 
   /// The casing drawn under a route line: wider, dark, translucent.
   ml.LineLayerProperties _casingProperties(RouteLineStyle style) =>
@@ -829,7 +864,7 @@ class MaplibreMapControllerAdapter implements MapController {
       );
       await _ops.setLayerProperties(
         MapLayerIds.routeLayer(entry.key),
-        _lineProperties(entry.value),
+        _lineProperties(entry.value, entry.key),
       );
     }
   }

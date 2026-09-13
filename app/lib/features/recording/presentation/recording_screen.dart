@@ -11,7 +11,6 @@ import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/location_rationale_dialog.dart';
-import '../../map/presentation/map_chrome.dart';
 import '../../planner/application/planner_controller.dart';
 import '../../planner/data/route_repository.dart';
 import '../../planner/domain/saved_route.dart';
@@ -56,11 +55,19 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     super.dispose();
   }
 
-  // Called from the map widget's build, so it must not call setState.
+  // Called from the map widget's build, so it must not call setState right
+  // away; the next frame re-runs build, which pushes the route, the track
+  // and the position to the fresh map.
   void _onMapReady(MapController controller) {
+    // The builder may hand over the same controller on every build; only a
+    // new map needs the redraw, or the rebuild would call this again forever.
+    if (identical(_map, controller)) return;
     _map = controller;
     _drawnTrackPoints = -1;
     _drawnRouteId = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   /// Pushes the recording to the map: the track line, the puck, and the route
@@ -326,7 +333,6 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final state = ref.watch(recordingControllerProvider);
     final recovery = ref.watch(recordingRecoveryProvider).value;
     if (recovery != null) _handleRecovery(recovery);
@@ -344,117 +350,78 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
 
     final theme = Theme.of(context);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    double fraction(double dp) => screenHeight <= 0
+        ? 0.3
+        : ((bottomInset + dp) / screenHeight).clamp(0.06, 0.9);
+    // Collapsed: the handle above the navigation bar. Live: the status row
+    // and the three key figures. Idle: the start button and the chooser.
+    final collapsed = fraction(30);
+    final initial = state.isRecording ? fraction(206) : fraction(420);
+    final sheetKey = state.isRecording ? 'live' : 'idle';
 
     return Scaffold(
-      body: Column(
+      body: Stack(
         children: [
-          // While a ride runs the figures need the room, not the map.
-          Expanded(
-            flex: state.isRecording ? 2 : 3,
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  // The title panel covers the top edge of the map.
-                  child: MapChromeInsets(
-                    controlsTop: 12 + 44 + 12,
-                    // The panel below overlaps the map by 24dp.
-                    attributionBottom: 24 + 8,
-                    child: PlannerMapHost(
-                      onMapReady: _onMapReady,
-                      embedded: true,
-                    ),
-                  ),
-                ),
-                SafeArea(
-                  bottom: false,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 12, 0),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: GlassPanel(
-                            radius: 22,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 10,
-                            ),
-                            child: Text(
-                              l10n.tabRecord,
-                              style: theme.textTheme.titleMedium,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        GlassPanel(
-                          radius: 22,
-                          child: IconButton(
-                            tooltip: l10n.recordingKeepScreenOn,
-                            isSelected: _keepScreenOn,
-                            icon: const Icon(Icons.lightbulb_outline),
-                            selectedIcon: Icon(
-                              Icons.lightbulb,
-                              color: theme.velorki.accent,
-                            ),
-                            onPressed: () =>
-                                unawaited(_setKeepScreenOn(!_keepScreenOn)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          Positioned.fill(
+            child: PlannerMapHost(onMapReady: _onMapReady, embedded: true),
           ),
-          Expanded(
-            flex: 3,
-            child: Transform.translate(
-              offset: const Offset(0, -24),
-              child: DecoratedBox(
-                decoration: const BoxDecoration(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0x40000000),
-                      blurRadius: 24,
-                      offset: Offset(0, -4),
-                    ),
-                  ],
-                ),
-                child: Material(
-                  color: theme.colorScheme.surface,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(28),
-                    ),
-                    side: BorderSide(color: theme.velorki.glassBorder),
+          DraggableScrollableSheet(
+            // A fresh sheet per state, so the initial size applies again
+            // when a ride starts or ends.
+            key: ValueKey(sheetKey),
+            initialChildSize: initial,
+            minChildSize: collapsed,
+            maxChildSize: 0.85,
+            snap: true,
+            snapSizes: <double>[initial],
+            builder: (context, scrollController) => DecoratedBox(
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x40000000),
+                    blurRadius: 24,
+                    offset: Offset(0, -4),
                   ),
-                  clipBehavior: Clip.antiAlias,
-                  child: state.isRecording
-                      ? _LivePanel(
-                          state: state,
-                          bottomInset: bottomInset,
-                          onPause: () => unawaited(
-                            ref
-                                .read(recordingControllerProvider.notifier)
-                                .pause(),
-                          ),
-                          onResume: () => unawaited(
-                            ref
-                                .read(recordingControllerProvider.notifier)
-                                .resume(),
-                          ),
-                          onStop: () => unawaited(_stop()),
-                        )
-                      : _IdlePanel(
-                          state: state,
-                          bottomInset: bottomInset,
-                          keepScreenOn: _keepScreenOn,
-                          onKeepScreenOn: (v) => unawaited(_setKeepScreenOn(v)),
-                          onStart: () => unawaited(_start()),
-                        ),
+                ],
+              ),
+              child: Material(
+                color: theme.colorScheme.surface,
+                shape: RoundedRectangleBorder(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(28),
+                  ),
+                  side: BorderSide(color: theme.velorki.glassBorder),
                 ),
+                clipBehavior: Clip.antiAlias,
+                child: state.isRecording
+                    ? _LivePanel(
+                        state: state,
+                        scrollController: scrollController,
+                        bottomInset: bottomInset,
+                        keepScreenOn: _keepScreenOn,
+                        onKeepScreenOn: (v) => unawaited(_setKeepScreenOn(v)),
+                        onPause: () => unawaited(
+                          ref
+                              .read(recordingControllerProvider.notifier)
+                              .pause(),
+                        ),
+                        onResume: () => unawaited(
+                          ref
+                              .read(recordingControllerProvider.notifier)
+                              .resume(),
+                        ),
+                        onStop: () => unawaited(_stop()),
+                      )
+                    : _IdlePanel(
+                        state: state,
+                        scrollController: scrollController,
+                        bottomInset: bottomInset,
+                        keepScreenOn: _keepScreenOn,
+                        onKeepScreenOn: (v) => unawaited(_setKeepScreenOn(v)),
+                        onStart: () => unawaited(_start()),
+                      ),
               ),
             ),
           ),
@@ -464,11 +431,30 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   }
 }
 
+/// The drag handle at the top of the sheet.
+class _SheetHandle extends StatelessWidget {
+  const _SheetHandle();
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Container(
+      width: 40,
+      height: 4,
+      margin: const EdgeInsets.only(top: 10, bottom: 14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.outline,
+        borderRadius: BorderRadius.circular(2),
+      ),
+    ),
+  );
+}
+
 enum _RecoveryDecision { resume, finish, discard }
 
 class _IdlePanel extends ConsumerWidget {
   const _IdlePanel({
     required this.state,
+    required this.scrollController,
     required this.bottomInset,
     required this.keepScreenOn,
     required this.onKeepScreenOn,
@@ -476,6 +462,7 @@ class _IdlePanel extends ConsumerWidget {
   });
 
   final RecordingUiState state;
+  final ScrollController scrollController;
   final double bottomInset;
   final bool keepScreenOn;
   final ValueChanged<bool> onKeepScreenOn;
@@ -490,8 +477,10 @@ class _IdlePanel extends ConsumerWidget {
       plannerControllerProvider.select((p) => p.result != null),
     );
     return ListView(
-      padding: EdgeInsets.fromLTRB(20, 24, 20, bottomInset + 24),
+      controller: scrollController,
+      padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 24),
       children: [
+        const _SheetHandle(),
         Text(l10n.recordingIdleTitle, style: theme.textTheme.headlineMedium),
         const SizedBox(height: 6),
         Text(l10n.recordingIdleHint, style: theme.textTheme.bodySmall),
@@ -545,14 +534,20 @@ class _IdlePanel extends ConsumerWidget {
 class _LivePanel extends StatelessWidget {
   const _LivePanel({
     required this.state,
+    required this.scrollController,
     required this.bottomInset,
+    required this.keepScreenOn,
+    required this.onKeepScreenOn,
     required this.onPause,
     required this.onResume,
     required this.onStop,
   });
 
   final RecordingUiState state;
+  final ScrollController scrollController;
   final double bottomInset;
+  final bool keepScreenOn;
+  final ValueChanged<bool> onKeepScreenOn;
   final VoidCallback onPause;
   final VoidCallback onResume;
   final VoidCallback onStop;
@@ -560,8 +555,6 @@ class _LivePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final snapshot = state.snapshot!;
     final status = switch (snapshot) {
       RecordingSnapshot(status: RecordingStatus.paused, autoPaused: true) =>
@@ -571,43 +564,74 @@ class _LivePanel extends StatelessWidget {
       _ => l10n.recordingStatusRecording,
     };
     return ListView(
-      padding: EdgeInsets.fromLTRB(20, 24, 20, bottomInset + 24),
+      controller: scrollController,
+      padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 24),
       children: [
+        const _SheetHandle(),
+        // The strip that is always in view: state, the three figures a
+        // rider glances at, and the two buttons.
         Row(
-          children: [_StatusPill(label: status, paused: state.isPaused)],
+          children: [
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: _StatusPill(label: status, paused: state.isPaused),
+              ),
+            ),
+            _RoundAction(
+              icon: state.isPaused
+                  ? Icons.play_arrow_rounded
+                  : Icons.pause_rounded,
+              tooltip: state.isPaused
+                  ? l10n.recordingResume
+                  : l10n.recordingPause,
+              filled: state.isPaused,
+              onPressed: state.busy
+                  ? null
+                  : state.isPaused
+                  ? onResume
+                  : onPause,
+            ),
+            const SizedBox(width: 10),
+            _RoundAction(
+              icon: Icons.stop_rounded,
+              tooltip: l10n.recordingFinish,
+              danger: true,
+              onPressed: state.busy ? null : onStop,
+            ),
+          ],
         ),
         const SizedBox(height: 16),
-        Text(
-          formatDistance(l10n, snapshot.distanceM),
-          style: theme.textTheme.statHero.copyWith(
-            color: state.isPaused
-                ? scheme.onSurfaceVariant
-                : theme.velorki.accent,
-          ),
-          maxLines: 1,
-        ),
-        const SizedBox(height: 20),
-        RideStatsGrid(
-          items: <RideStatItem>[
-            RideStatItem(
-              icon: Icons.timelapse,
-              label: l10n.statElapsed,
-              value: formatClock(snapshot.elapsed),
+        StatRow(
+          children: [
+            StatTile(
+              label: l10n.statDistance,
+              value: formatDistance(l10n, snapshot.distanceM),
+              emphasize: !state.isPaused,
             ),
-            RideStatItem(
-              icon: Icons.schedule,
-              label: l10n.statMovingTime,
-              value: formatClock(snapshot.moving),
-            ),
-            RideStatItem(
-              icon: Icons.speed,
+            StatTile(
               label: l10n.statSpeed,
               value: formatSpeed(l10n, snapshot.speedMps),
             ),
+            StatTile(
+              label: l10n.statMovingTime,
+              value: formatClock(snapshot.moving),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        // Below the fold: the rest, for whoever pulls the sheet up.
+        RideStatsGrid(
+          items: <RideStatItem>[
             RideStatItem(
               icon: Icons.trending_flat,
               label: l10n.statAvgSpeed,
               value: formatSpeed(l10n, snapshot.avgSpeedMps),
+            ),
+            RideStatItem(
+              icon: Icons.timelapse,
+              label: l10n.statElapsed,
+              value: formatClock(snapshot.elapsed),
             ),
             RideStatItem(
               icon: Icons.trending_up,
@@ -621,39 +645,63 @@ class _LivePanel extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 28),
-        Row(
-          children: [
-            Expanded(
-              child: SizedBox(
-                height: 60,
-                child: state.isPaused
-                    ? FilledButton.icon(
-                        onPressed: state.busy ? null : onResume,
-                        icon: const Icon(Icons.play_arrow_rounded),
-                        label: Text(l10n.recordingResume),
-                      )
-                    : FilledButton.tonalIcon(
-                        onPressed: state.busy ? null : onPause,
-                        icon: const Icon(Icons.pause_rounded),
-                        label: Text(l10n.recordingPause),
-                      ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: SizedBox(
-                height: 60,
-                child: OutlinedButton.icon(
-                  onPressed: state.busy ? null : onStop,
-                  icon: const Icon(Icons.stop_rounded),
-                  label: Text(l10n.recordingFinish),
-                ),
-              ),
-            ),
-          ],
+        const SizedBox(height: 16),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          value: keepScreenOn,
+          onChanged: onKeepScreenOn,
+          title: Text(l10n.recordingKeepScreenOn),
         ),
       ],
+    );
+  }
+}
+
+/// A 56dp round button: pause/resume in the accent when it resumes, finish
+/// in the error colour.
+class _RoundAction extends StatelessWidget {
+  const _RoundAction({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+    this.filled = false,
+    this.danger = false,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onPressed;
+  final bool filled;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final background = danger
+        ? scheme.errorContainer
+        : filled
+        ? scheme.primary
+        : scheme.surfaceContainerHigh;
+    final foreground = danger
+        ? scheme.onErrorContainer
+        : filled
+        ? scheme.onPrimary
+        : scheme.onSurface;
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: background,
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          child: SizedBox(
+            width: 56,
+            height: 56,
+            child: Icon(icon, size: 28, color: foreground),
+          ),
+        ),
+      ),
     );
   }
 }

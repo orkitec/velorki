@@ -90,6 +90,7 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
     required this.routeMain,
     required this.routeMainCasing,
     required this.routeAlternative,
+    required this.routeAlternatives,
     required this.routePreview,
     required this.track,
     required this.waypointStart,
@@ -113,8 +114,11 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
   /// The darker outline under the main route line.
   final Color routeMainCasing;
 
-  /// Alternative routes, drawn under the main one.
+  /// Alternative routes, drawn under the main one (the fallback colour).
   final Color routeAlternative;
+
+  /// One colour per alternative, so three variants read apart at a glance.
+  final List<Color> routeAlternatives;
 
   /// A route being previewed or followed.
   final Color routePreview;
@@ -164,6 +168,7 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
     Color? routeMain,
     Color? routeMainCasing,
     Color? routeAlternative,
+    List<Color>? routeAlternatives,
     Color? routePreview,
     Color? track,
     Color? waypointStart,
@@ -181,6 +186,7 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
     routeMain: routeMain ?? this.routeMain,
     routeMainCasing: routeMainCasing ?? this.routeMainCasing,
     routeAlternative: routeAlternative ?? this.routeAlternative,
+    routeAlternatives: routeAlternatives ?? this.routeAlternatives,
     routePreview: routePreview ?? this.routePreview,
     track: track ?? this.track,
     waypointStart: waypointStart ?? this.waypointStart,
@@ -204,6 +210,13 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
       routeMain: mix(routeMain, other.routeMain),
       routeMainCasing: mix(routeMainCasing, other.routeMainCasing),
       routeAlternative: mix(routeAlternative, other.routeAlternative),
+      routeAlternatives: <Color>[
+        for (var i = 0; i < routeAlternatives.length; i++)
+          mix(
+            routeAlternatives[i],
+            other.routeAlternatives[i % other.routeAlternatives.length],
+          ),
+      ],
       routePreview: mix(routePreview, other.routePreview),
       track: mix(track, other.track),
       waypointStart: mix(waypointStart, other.waypointStart),
@@ -371,6 +384,11 @@ VelorkiColors _darkColors(AccentPreset p, ColorScheme scheme) => VelorkiColors(
   routeMain: p.route,
   routeMainCasing: _inkDark,
   routeAlternative: const Color(0xFF7C8794),
+  routeAlternatives: const <Color>[
+    Color(0xFF6AA0FF),
+    Color(0xFFB48CFF),
+    Color(0xFF3ED1C4),
+  ],
   routePreview: const Color(0xFFF0B84A),
   track: p.dark,
   waypointStart: const Color(0xFF3DDC84),
@@ -387,11 +405,17 @@ VelorkiColors _darkColors(AccentPreset p, ColorScheme scheme) => VelorkiColors(
 
 VelorkiColors _lightColors(AccentPreset p, ColorScheme scheme) => VelorkiColors(
   accent: p.light,
-  routeMain: p.route,
+  // The deep variant: the bright one washes out on pale roads and parks.
+  routeMain: p.routeOnLight,
   routeMainCasing: _inkLight,
   routeAlternative: const Color(0xFF8A939E),
+  routeAlternatives: const <Color>[
+    Color(0xFF3F6FD8),
+    Color(0xFF8E4BD8),
+    Color(0xFF0E9B8F),
+  ],
   routePreview: const Color(0xFFE08A00),
-  track: p.light,
+  track: p.routeOnLight,
   waypointStart: const Color(0xFF1FA85F),
   waypointEnd: const Color(0xFFE0304C),
   waypointVia: _white,

@@ -20,6 +20,7 @@ const MapPalette _repainted = MapPalette(
   routeMain: '#111111',
   routeMainCasing: '#222222',
   routeAlternative: '#333333',
+  routeAlternatives: <String>['#333333', '#343434', '#353535'],
   routePreview: '#444444',
   track: '#555555',
   waypointStart: '#666666',
@@ -416,9 +417,15 @@ void main() {
         ops.sourceIds,
         containsAll(<String>['velorki-route-main', 'velorki-route-alt_1']),
       );
+      // Alternative 1 wears the second alternative colour, and sits under
+      // the chosen route's casing.
       expect(
         ops.addLayerOf('velorki-route-alt_1-line')!.properties!['line-color'],
-        const MapPalette.classic().routeAlternative,
+        const MapPalette.classic().routeAlternatives[1],
+      );
+      expect(
+        ops.addLayerOf('velorki-route-alt_1-line')!.belowLayerId,
+        MapLayerIds.routeCasingLayer('main'),
       );
     });
   });

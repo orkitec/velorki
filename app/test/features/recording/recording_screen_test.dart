@@ -186,8 +186,8 @@ void main() {
     expect(find.text('42:07'), findsOneWidget);
     expect(find.text('40:00'), findsOneWidget);
     expect(find.text('210 m'), findsOneWidget);
-    expect(find.text('Pause'), findsOneWidget);
-    expect(find.text('Finish'), findsOneWidget);
+    expect(find.byTooltip('Pause'), findsOneWidget);
+    expect(find.byTooltip('Finish'), findsOneWidget);
 
     final track = h.map.calls.where((c) => c.method == 'setTrackLine').last;
     expect(track.arguments.first, hasLength(2));
@@ -201,14 +201,14 @@ void main() {
     await tester.pump();
 
     await emitSnapshot(tester, h, _snapshot());
-    await tester.tap(find.text('Pause'));
+    await tester.tap(find.byTooltip('Pause'));
     await tester.pump();
     expect(h.service.calls, contains('pause'));
 
     await emitSnapshot(tester, h, _snapshot(status: RecordingStatus.paused));
     expect(find.text('PAUSED'), findsOneWidget);
 
-    await tester.tap(find.text('Resume'));
+    await tester.tap(find.byTooltip('Resume'));
     await tester.pump();
     expect(h.service.calls, contains('resume'));
 
@@ -236,7 +236,7 @@ void main() {
     await tester.pump();
 
     await emitSnapshot(tester, h, _snapshot());
-    await tester.tap(find.text('Finish'));
+    await tester.tap(find.byTooltip('Finish'));
     await tester.pumpAndSettle();
 
     expect(h.service.calls.last, startsWith('stop('));
@@ -251,7 +251,7 @@ void main() {
     await tester.pump();
 
     await emitSnapshot(tester, harness, _snapshot());
-    await tester.tap(find.text('Finish'));
+    await tester.tap(find.byTooltip('Finish'));
     await tester.pumpAndSettle();
 
     expect(find.byType(RideDetailScreen), findsOneWidget);

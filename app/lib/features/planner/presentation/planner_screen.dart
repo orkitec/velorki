@@ -204,6 +204,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
 
     final theme = Theme.of(context);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    // Collapsed, only the drag handle peeks out above the floating
+    // navigation bar: the map is free, and one pull brings the plan back.
+    final collapsedSheetSize = screenHeight <= 0
+        ? 0.1
+        : ((bottomInset + 30) / screenHeight).clamp(0.06, 0.25);
 
     return Scaffold(
       body: Stack(
@@ -264,12 +270,13 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
             ),
           ),
           DraggableScrollableSheet(
-            // 0.28 left the action row below the fold on a 1080x2400 screen.
             // Enough for the headline, the toolbar and Save above the
             // floating navigation bar on a 20:9 phone.
             initialChildSize: 0.42,
-            minChildSize: 0.16,
+            minChildSize: collapsedSheetSize,
             maxChildSize: 0.9,
+            snap: true,
+            snapSizes: const <double>[0.42],
             builder: (context, scrollController) => DecoratedBox(
               decoration: const BoxDecoration(
                 borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
@@ -541,11 +548,21 @@ class _AlternativeChips extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final colors = Theme.of(context).velorki;
     return Wrap(
       spacing: 8,
       children: [
         for (var i = 0; i < state.alternatives.length; i++)
           ChoiceChip(
+            // The dot is the colour the line has on the map.
+            avatar: CircleAvatar(
+              radius: 6,
+              // Same formula as the map: alternative i wears colour i.
+              backgroundColor: i == 0
+                  ? colors.routeMain
+                  : colors.routeAlternatives[i %
+                        colors.routeAlternatives.length],
+            ),
             label: Text(
               i == 0 ? l10n.plannerMainRoute : l10n.plannerAlternativeIndex(i),
             ),

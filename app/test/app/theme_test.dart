@@ -43,7 +43,11 @@ void main() {
           // glass panels; a theme without it crashes on first paint.
           expect(theme.extension<VelorkiColors>(), isNotNull);
           expect(theme.velorki.accent, dark ? preset.dark : preset.light);
-          expect(theme.velorki.routeMain, preset.route);
+          // The bright route on the night map, the deep one on the light map.
+          expect(
+            theme.velorki.routeMain,
+            dark ? preset.route : preset.routeOnLight,
+          );
           expect(theme.colorScheme.primary, dark ? preset.dark : preset.light);
 
           // The bundled typefaces, not the platform default.
@@ -105,7 +109,7 @@ void main() {
 
     expect(light.colorScheme.surface, isNot(dark.colorScheme.surface));
     expect(light.velorki.glass, isNot(dark.velorki.glass));
-    // The route keeps its colour across both map styles.
-    expect(light.velorki.routeMain, dark.velorki.routeMain);
+    // The route changes shade with the map style.
+    expect(light.velorki.routeMain, isNot(dark.velorki.routeMain));
   });
 }
