@@ -6,6 +6,10 @@ REPO_ROOT="$(cd "$ORACLE_DIR/../.." && pwd)"
 
 CACHE_DIR="$ORACLE_DIR/.cache"
 SEGMENTS_DIR="$CACHE_DIR/segments4"
+# The committed rd5 fixtures the corpus was recorded against. fetch.sh seeds
+# SEGMENTS_DIR from here; see tiles/README.md. BROUTER_TILES_DIR overrides it
+# (used by the tests of fetch.sh itself).
+TILES_DIR="${BROUTER_TILES_DIR:-$ORACLE_DIR/tiles}"
 # Where fetch.sh moves tiles that failed to download or failed their checksum,
 # so that SEGMENTS_DIR never holds bytes the corpus was not recorded against.
 BAD_SEGMENTS_DIR="$CACHE_DIR/segments4-bad"
@@ -24,16 +28,18 @@ BROUTER_ZIP="$CACHE_DIR/brouter-${BROUTER_VERSION_NUM}.zip"
 JAR_IN_ZIP="brouter-${BROUTER_VERSION_NUM}/brouter-${BROUTER_VERSION_NUM}-all.jar"
 BROUTER_JAR="$ZIP_DIR/$JAR_IN_ZIP"
 
-# The rd5 tiles come from an immutable snapshot release in orkitec/velorki-data,
-# NOT from brouter.de: brouter.de rebuilds segments4 every night, so it can never
-# serve the exact bytes the corpus and the brouter_dart fixtures were recorded
-# against (tiles.sha256). Plain release-asset URLs need no token and do not touch
-# the GitHub API rate limit.
-ORACLE_TILES_TAG="oracle-20260912"
-SEGMENTS_BASE_URL="${BROUTER_SEGMENTS_BASE_URL:-https://github.com/orkitec/velorki-data/releases/download/$ORACLE_TILES_TAG}"
-
-# Where that snapshot was taken from, for the record and for re-recording.
+# Where the committed tiles were snapshotted from, for the record and for
+# re-recording against a newer upstream state. brouter.de rebuilds segments4
+# every night, so it can never serve the exact bytes the corpus and the
+# brouter_dart fixtures were recorded against (tiles.sha256) -- which is why
+# those bytes live in tiles/ and nothing is downloaded by default.
 UPSTREAM_SEGMENTS_URL="https://brouter.de/brouter/segments4"
+
+# Optional download fallback, used by fetch.sh only for a tile listed in
+# tiles.txt that is missing from tiles/. Defaults to upstream, which is right
+# for re-recording and wrong for reproducing the pinned corpus -- fetch.sh
+# verifies whatever it gets against tiles.sha256 either way.
+SEGMENTS_BASE_URL="${BROUTER_SEGMENTS_BASE_URL:-$UPSTREAM_SEGMENTS_URL}"
 
 PORT="${BROUTER_ORACLE_PORT:-17777}"
 BASE_URL="http://127.0.0.1:${PORT}/brouter"

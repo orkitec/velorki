@@ -1,9 +1,9 @@
 # rd5 segment tiles used by the BRouter oracle corpus.
 #
 # Origin index:   https://brouter.de/brouter/segments4/
-# Fetched from:   https://github.com/orkitec/velorki-data/releases/download/oracle-20260912/
-#                 (immutable snapshot of that index; brouter.de itself rebuilds
-#                 segments4 nightly and can no longer serve these bytes)
+# Where they live: tiles/ in this directory, committed (brouter.de rebuilds
+#                 segments4 nightly and can no longer serve these bytes, so
+#                 fetch.sh copies the committed fixtures instead of downloading)
 # Index timestamp of the listing these were taken from: 12-Sep-2026 01:03 (CET,
 # map snapshot time; the directory itself was last touched 12-Sep-2026 03:13).
 #

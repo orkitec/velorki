@@ -11,9 +11,9 @@ import 'package:test/test.dart';
 
 import 'vectors.dart';
 
-/// The rd5 tiles are not committed (1.5 + 2.7 MB); the tests read them from
-/// `BROUTER_SEGMENTS_DIR`, by default the oracle's cache
-/// (`tools/brouter-oracle/fetch.sh` downloads and checksums them).
+/// The rd5 tiles are committed under `tools/brouter-oracle/tiles/`; the tests
+/// read them from `BROUTER_SEGMENTS_DIR`, by default the oracle's cache
+/// (`tools/brouter-oracle/fetch.sh` copies and checksums them into it).
 final Directory segmentsDir = Directory(
   Platform.environment['BROUTER_SEGMENTS_DIR'] ??
       '../../../tools/brouter-oracle/.cache/segments4',

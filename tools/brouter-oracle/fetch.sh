@@ -1,17 +1,23 @@
 #!/usr/bin/env bash
-# Download everything the oracle needs into .cache/ (git-ignored):
+# Put everything the oracle needs into .cache/ (git-ignored):
+#   - the rd5 segment tiles listed in tiles.txt, copied from the committed
+#     fixtures in tiles/ (see tiles/README.md) and verified against
+#     tiles.sha256. No network: the bytes the corpus was recorded against are
+#     in the repo. A tile that is listed but not committed is downloaded from
+#     $SEGMENTS_BASE_URL as a fallback (used when re-recording against a newer
+#     brouter.de snapshot).
 #   - the pinned BRouter release zip, and the fat jar extracted from it
-#   - the rd5 segment tiles listed in tiles.txt, from the immutable snapshot
-#     release orkitec/velorki-data@$ORACLE_TILES_TAG (see README, "The tiles")
 #
 # Usage: ./fetch.sh [--verify-only] [--tiles-only]
-#   --verify-only  never download anything, only verify what is already cached
+#   --verify-only  never copy or download anything, only verify what is
+#                  already cached in .cache/segments4
 #   --tiles-only   skip the release zip and the jar (CI only needs the tiles;
 #                  it never runs the Java oracle, and skipping the zip keeps the
 #                  job off the GitHub API rate limit entirely)
 #
-# Exit codes: 0 ok, 1 hard failure (including a tile that would not download),
-# 3 tiles fetched but checksums differ from tiles.sha256.
+# Exit codes: 0 ok, 1 hard failure (including a listed tile that is neither
+# committed nor downloadable), 3 tiles present but checksums differ from
+# tiles.sha256.
 #
 # On either failure the tiles are moved out of .cache/segments4 into
 # .cache/segments4-bad, so a caller that ignores the exit code still cannot run
@@ -100,70 +106,125 @@ say "    jar: $BROUTER_JAR (Main-Class: $main_class)"
 fi  # tiles_only
 
 # --------------------------------------------------------------------- tiles
-say "==> tiles from $SEGMENTS_BASE_URL"
+say "==> tiles from $TILES_DIR"
 failed=0
+bad_fixture=0
+downloaded=0
 tile_files=()
 while read -r tile _rest; do
   case "$tile" in ''|'#'*) continue ;; esac
   dest="$SEGMENTS_DIR/$tile.rd5"
+  src="$TILES_DIR/$tile.rd5"
   tile_files+=("$dest")
-  if [ ! -f "$dest" ] && [ "$verify_only" -eq 1 ]; then
-    say "    MISSING $tile.rd5 (--verify-only, not downloading)"
+
+  if [ -f "$dest" ]; then
+    say "    $tile.rd5 $(stat -c%s "$dest") bytes (already in $SEGMENTS_DIR)"
+    continue
+  fi
+
+  if [ "$verify_only" -eq 1 ]; then
+    say "    MISSING $tile.rd5 (--verify-only, not copying or downloading)"
     failed=1
     continue
   fi
-  if [ ! -f "$dest" ]; then
-    say "==> downloading $tile.rd5"
-    if ! curl -fsSL --retry 3 -o "$dest.part" "$SEGMENTS_BASE_URL/$tile.rd5"; then
-      rm -f "$dest.part"
-      say "    FAILED to download $SEGMENTS_BASE_URL/$tile.rd5"
-      failed=1
+
+  if [ -f "$src" ]; then
+    # Verify the fixture where it lies: a committed file that does not match
+    # tiles.sha256 must never reach $SEGMENTS_DIR in the first place.
+    want="$(awk -v t="$tile.rd5" '$2 == t || $2 == "./" t {print $1}' "$ORACLE_DIR/tiles.sha256")"
+    got="$(sha256sum "$src" | cut -d' ' -f1)"
+    if [ -z "$want" ]; then
+      say "    NOTE $tile.rd5 has no entry in tiles.sha256; nothing pins it"
+    elif [ "$want" != "$got" ]; then
+      say "    BAD FIXTURE $src"
+      say "      tiles.sha256 wants $want"
+      say "      the committed file is $got"
+      bad_fixture=1
       continue
     fi
+    cp -f "$src" "$dest.part"
     mv "$dest.part" "$dest"
+    say "    $tile.rd5 $(stat -c%s "$dest") bytes (copied from $TILES_DIR)"
+    continue
   fi
-  say "    $tile.rd5 $(stat -c%s "$dest") bytes"
+
+  # Not committed: fall back to a download. This is the re-recording path, not
+  # the one CI takes -- whatever arrives is still checked against tiles.sha256.
+  say "==> $tile.rd5 is not in $TILES_DIR; downloading from $SEGMENTS_BASE_URL"
+  if ! curl -fsSL --retry 3 -o "$dest.part" "$SEGMENTS_BASE_URL/$tile.rd5"; then
+    rm -f "$dest.part"
+    say "    FAILED to download $SEGMENTS_BASE_URL/$tile.rd5"
+    failed=1
+    continue
+  fi
+  mv "$dest.part" "$dest"
+  downloaded=1
+  say "    $tile.rd5 $(stat -c%s "$dest") bytes (downloaded)"
 done < "$ORACLE_DIR/tiles.txt"
 
 if [ "$failed" -ne 0 ]; then
   say ""
-  say "ERROR: the pinned oracle tiles could not be fetched from"
-  say "  $SEGMENTS_BASE_URL"
-  say "These are immutable release assets, so this is a transport or an"
-  say "availability problem, never an upstream data change. Do NOT re-record the"
-  say "corpus to work around it."
-  quarantine "download failed" ${tile_files[@]+"${tile_files[@]}"}
+  if [ "$verify_only" -eq 1 ]; then
+    say "ERROR: --verify-only, and $SEGMENTS_DIR does not hold every tile in"
+    say "tiles.txt. Run ./fetch.sh --tiles-only to seed it from $TILES_DIR."
+  else
+    say "ERROR: a tile listed in tiles.txt is neither committed in"
+    say "  $TILES_DIR"
+    say "nor downloadable from"
+    say "  $SEGMENTS_BASE_URL"
+    say "The tiles the corpus was recorded against are committed, so this means"
+    say "tiles.txt lists a tile that was never added, or a checkout is partial."
+    say "Do NOT re-record the corpus to work around it."
+  fi
+  quarantine "tile missing" ${tile_files[@]+"${tile_files[@]}"}
   exit 1
+fi
+
+if [ "$bad_fixture" -ne 0 ]; then
+  say ""
+  say "ERROR: a committed rd5 fixture in $TILES_DIR does not match"
+  say "tools/brouter-oracle/tiles.sha256 (see above)."
+  say "The corpus, corpus/responses/ and the brouter_dart vectors are bound to"
+  say "exactly those bytes, so either the file was replaced without re-recording"
+  say "or the checkout is damaged. Investigate before touching anything; see"
+  say "$TILES_DIR/README.md."
+  quarantine "committed fixture does not match tiles.sha256" ${tile_files[@]+"${tile_files[@]}"}
+  exit 3
 fi
 
 # ----------------------------------------------------------------- checksums
 say "==> verifying against tiles.sha256"
 if ( cd "$SEGMENTS_DIR" && sha256sum --quiet -c "$ORACLE_DIR/tiles.sha256" ); then
-  say "    checksums match the recorded data snapshot ($ORACLE_TILES_TAG)"
+  say "    checksums match the recorded data snapshot"
   exit 0
 fi
 
 say ""
-say "ERROR: the rd5 tiles do NOT match tools/brouter-oracle/tiles.sha256."
-say "They were downloaded from the immutable snapshot release"
-say "  $SEGMENTS_BASE_URL"
-say "so a mismatch means one of: the release assets were replaced (they must"
-say "never be), tiles.sha256 was edited without re-recording the corpus, or the"
-say "download was corrupted. Actual checksums now:"
+say "ERROR: the rd5 tiles in $SEGMENTS_DIR do NOT match"
+say "tools/brouter-oracle/tiles.sha256. Actual checksums now:"
 ( cd "$SEGMENTS_DIR" && sha256sum ./*.rd5 ) >&2
 say ""
-say "This is NOT the nightly brouter.de rebuild any more -- that is exactly what"
-say "pinning to $ORACLE_TILES_TAG removed. Investigate before touching anything."
+if [ "$downloaded" -ne 0 ]; then
+  say "At least one tile was downloaded from $SEGMENTS_BASE_URL rather than taken"
+  say "from $TILES_DIR. brouter.de rebuilds segments4 nightly, so a downloaded"
+  say "tile is a *different* snapshot from the one the corpus was recorded"
+  say "against -- that is expected, and it is why the tiles are committed."
+else
+  say "Nothing was downloaded: these bytes came from $SEGMENTS_DIR or from the"
+  say "committed fixtures, so either the cache was tampered with or tiles.sha256"
+  say "was edited without re-recording the corpus."
+fi
 say ""
 say "To deliberately re-bind the corpus to a NEWER upstream snapshot:"
-say "  1. download the new tiles from $UPSTREAM_SEGMENTS_URL"
-say "  2. publish them as a new, immutable oracle-<date> release in"
-say "     orkitec/velorki-data and point ORACLE_TILES_TAG in common.sh at it"
-say "  3. cd tools/brouter-oracle"
-say "     (cd .cache/segments4 && sha256sum *.rd5) > tiles.sha256"
-say "     # update the byte sizes and the index timestamp in tiles.txt and README.md"
-say "     ./serve.sh && python3 gen_corpus.py && python3 run_corpus.py && ./stop.sh"
-say "  4. re-record the brouter_dart vectors, then commit corpus/, the vectors"
-say "     and the new tiles.sha256 together"
+say "  1. cd tools/brouter-oracle"
+say "     rm -rf .cache/segments4 tiles/*.rd5"
+say "     ./fetch.sh --tiles-only      # now downloads from $UPSTREAM_SEGMENTS_URL"
+say "     cp .cache/segments4/*.rd5 tiles/"
+say "  2. (cd .cache/segments4 && sha256sum *.rd5) > tiles.sha256"
+say "     # update the byte sizes and the index timestamp in tiles.txt,"
+say "     # README.md and tiles/README.md"
+say "  3. ./serve.sh && python3 gen_corpus.py && python3 run_corpus.py && ./stop.sh"
+say "  4. re-record the brouter_dart vectors, then commit tiles/, corpus/, the"
+say "     vectors and the new tiles.sha256 together"
 quarantine "checksum mismatch" ${tile_files[@]+"${tile_files[@]}"}
 exit 3

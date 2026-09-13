@@ -32,20 +32,12 @@ jobs:
       - run: flutter analyze --fatal-infos lib test integration_test
       - run: dart analyze --fatal-infos lib test integration_test
       - run: flutter test --coverage
-      - name: Cache the pinned BRouter oracle tiles
-        uses: actions/cache@v4
-        with:
-          path: tools/brouter-oracle/.cache/segments4
-          # The tiles are immutable release assets, so their content hash is the
-          # whole key: a cache entry can never go stale, and bumping the snapshot
-          # (a new tiles.sha256) misses the cache and re-downloads exactly once.
-          key: brouter-oracle-tiles-${{ hashFiles('tools/brouter-oracle/tiles.sha256') }}
-      - name: Fetch the BRouter oracle tiles (parity tests)
-        # The tiles come from the immutable orkitec/velorki-data oracle-* release
-        # that the corpus and the brouter_dart fixtures were recorded against, so
-        # any failure here is a real problem, not the old nightly brouter.de
-        # rebuild. Fail loudly: a silently skipped parity suite is worse than a
-        # red run. --tiles-only keeps the job off the GitHub API entirely.
+      - name: Stage the BRouter oracle tiles (parity tests)
+        # Offline: the rd5 tiles the corpus and the brouter_dart fixtures were
+        # recorded against are committed in tools/brouter-oracle/tiles/, and
+        # fetch.sh copies them into .cache/segments4 after checking them
+        # against tiles.sha256. Fail loudly: a silently skipped parity suite is
+        # worse than a red run.
         working-directory: tools/brouter-oracle
         run: |
           ./fetch.sh --tiles-only

@@ -20,9 +20,9 @@ const germany = RouteQuery(
   points: [LatLng(48.137, 11.575), LatLng(53.551, 9.993)],
 );
 
-/// The rd5 tiles are not committed; the tile-backed tests only run when
-/// `BROUTER_SEGMENTS_DIR` points at a directory holding them
-/// (`tools/brouter-oracle/fetch.sh` fills the oracle's cache).
+/// The rd5 tiles are committed under `tools/brouter-oracle/tiles/`; the
+/// tile-backed tests only run when `BROUTER_SEGMENTS_DIR` points at a directory
+/// holding them (`tools/brouter-oracle/fetch.sh` fills the oracle's cache).
 final String? segmentsDir = Platform.environment['BROUTER_SEGMENTS_DIR'];
 
 /// The repo's profiles (`brouter/profiles`), overridable like in brouter_dart.

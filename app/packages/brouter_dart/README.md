@@ -276,10 +276,11 @@ the peninsula cleanup, the waypoint matches (crosspoints, radii and directions
 as raw double bits, `wayNearest` lists), `nodesCreated` before/after
 `collectOutreachers`, and the cache status strings.
 
-The tiles are not committed (1.5 + 2.7 MB). The tests read them from
-`BROUTER_SEGMENTS_DIR`, by default `tools/brouter-oracle/.cache/segments4`
-(`tools/brouter-oracle/fetch.sh` downloads and checksums them; CI runs it
-first), and skip with a message when they are absent. The walks are bound to
+The tiles are committed under `tools/brouter-oracle/tiles/` (1.5 + 2.7 MB). The
+tests read them from `BROUTER_SEGMENTS_DIR`, by default
+`tools/brouter-oracle/.cache/segments4` (`tools/brouter-oracle/fetch.sh` copies
+and checksums them into it, offline; CI runs it first), and skip with a message
+when they are absent. The walks are bound to
 the tile snapshot in `tools/brouter-oracle/tiles.sha256` like the corpus.
 
 ## Track R3: `brouter-expressions`

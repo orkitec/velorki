@@ -9,11 +9,11 @@ name: integration
 # build per file and routes for real, which is minutes, not seconds. The
 # per-push app workflow keeps running the 611 widget and unit tests.
 #
-# The tiles come from the same immutable oracle-* release in
-# orkitec/velorki-data that the BRouter parity corpus was recorded against, so
-# the routes this suite plans are reproducible. That release is served to the
-# emulator from a plain HTTP server on the runner; 10.0.2.2 is the host as the
-# emulator sees it. Because the tile is Madeira, the suite runs with
+# The tile is the same committed rd5 fixture the BRouter parity corpus was
+# recorded against (tools/brouter-oracle/tiles/), so the routes this suite plans
+# are reproducible and nothing is downloaded. It is served to the emulator from
+# a plain HTTP server on the runner; 10.0.2.2 is the host as the emulator sees
+# it. Because the tile is Madeira, the suite runs with
 # VELORKI_ITEST_REGION=madeira, which swaps the New York coordinates the local
 # runs use for Funchal ones and points the virtual GPS at the same place.
 
@@ -24,9 +24,8 @@ on:
     - cron: "41 3 * * *"
 
 env:
-  # Keep in step with tools/brouter-oracle/common.sh (ORACLE_TILES_TAG).
-  ORACLE_TILES_TAG: oracle-20260912
-  # The one tile the suite needs: Madeira, lon -20..-15, lat 30..35.
+  # The one tile the suite needs: Madeira, lon -20..-15, lat 30..35. It is
+  # committed at tools/brouter-oracle/tiles/$ORACLE_TILE.rd5.
   ORACLE_TILE: W20_N30
   # rd5 format version the mirror advertises, as brouter/updater/sync.sh does.
   RD5_FORMAT_VERSION: "11.2"
@@ -70,37 +69,22 @@ jobs:
           dart run build_runner build
           flutter gen-l10n
 
-      - name: Cache the pinned oracle tile
-        uses: actions/cache@v4
-        with:
-          path: .itest-mirror
-          # The tiles are immutable release assets, so their recorded hashes
-          # are the whole key: the entry can never go stale, and bumping the
-          # snapshot misses the cache and re-downloads exactly once.
-          key: itest-mirror-${{ env.ORACLE_TILE }}-${{ hashFiles('tools/brouter-oracle/tiles.sha256') }}
-
-      # A missing or altered tile has to stop the job here, with a message that
-      # says what to look at. Serving nothing would leave every test failing
-      # later on with "the mirror manifest lacks W20_N30", which reads like a
-      # bug in the app.
+      # An altered tile has to stop the job here, with a message that says what
+      # to look at. Serving nothing would leave every test failing later on with
+      # "the mirror manifest lacks W20_N30", which reads like a bug in the app.
       - name: Build the segments mirror from the frozen oracle tile
         run: |
           set -euo pipefail
           mirror=.itest-mirror
+          src="tools/brouter-oracle/tiles/${ORACLE_TILE}.rd5"
           mkdir -p "$mirror"
-          url="https://github.com/orkitec/velorki-data/releases/download/${ORACLE_TILES_TAG}/${ORACLE_TILE}.rd5"
-          if [ ! -f "$mirror/${ORACLE_TILE}.rd5" ]; then
-            echo "==> downloading $url"
-            if ! curl -fsSL --retry 3 -o "$mirror/${ORACLE_TILE}.rd5.part" "$url"; then
-              rm -f "$mirror/${ORACLE_TILE}.rd5.part"
-              echo "::error::Could not download ${ORACLE_TILE}.rd5 from $url."
-              echo "::error::The oracle tiles are immutable release assets of orkitec/velorki-data."
-              echo "::error::If the release ${ORACLE_TILES_TAG} does not exist yet, publish it (see"
-              echo "::error::tools/brouter-oracle/README.md) or point ORACLE_TILES_TAG at one that does."
-              exit 1
-            fi
-            mv "$mirror/${ORACLE_TILE}.rd5.part" "$mirror/${ORACLE_TILE}.rd5"
+          if [ ! -f "$src" ]; then
+            echo "::error::$src is missing. The oracle tiles are committed"
+            echo "::error::fixtures; see tools/brouter-oracle/tiles/README.md."
+            exit 1
           fi
+          echo "==> copying $src"
+          cp -f "$src" "$mirror/${ORACLE_TILE}.rd5"
 
           echo "==> verifying against tools/brouter-oracle/tiles.sha256"
           want=$(awk -v t="${ORACLE_TILE}.rd5" '$2 == t || $2 == "./" t {print $1}' \
@@ -112,7 +96,7 @@ jobs:
           got=$(sha256sum "$mirror/${ORACLE_TILE}.rd5" | cut -d' ' -f1)
           if [ "$want" != "$got" ]; then
             echo "::error::${ORACLE_TILE}.rd5 does not match tiles.sha256 (want $want, got $got)."
-            echo "::error::The release assets must never be replaced; investigate before re-recording."
+            echo "::error::The corpus is bound to exactly these bytes; investigate before re-recording."
             rm -f "$mirror/${ORACLE_TILE}.rd5"
             exit 1
           fi

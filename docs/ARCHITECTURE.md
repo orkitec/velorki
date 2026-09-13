@@ -354,9 +354,10 @@ deterministic, so identical inputs must produce identical geometry and cost.
 `tools/brouter-oracle/` (Java, upstream jars, runs in Docker in CI) dumps rd5
 micro-caches as JSON, dumps profile evaluations, and generates a corpus of
 request plus full GeoJSON (geometry, length, filtered and plain ascent,
-messages) from the pinned server. Fixtures are a mini rd5 built from a small
-Geofabrik extract (Liechtenstein or Malta, under 10 MB) in Git LFS; a nightly
-job runs against two real tiles. Parity is checked at three levels:
+messages) from the pinned server. The fixtures are two real brouter.de
+tiles, Madeira and south-west Iceland (4 MB together), committed under
+`tools/brouter-oracle/tiles/` with their checksums; a nightly job re-runs
+the corpus against them. Parity is checked at three levels:
 
 - **L1** — byte-identical `util` and `codec` round trips and dumps.
 - **L2** — profile evaluation equal to within 1e-6.
@@ -368,21 +369,21 @@ job runs against two real tiles. Parity is checked at three levels:
 `segments4` every night, so tiles fetched from it drift and the recorded
 parity numbers (node counts, geometry) change for reasons that say nothing
 about the port. The corpus in `tools/brouter-oracle/corpus/` and the
-`brouter_dart` vectors are therefore recorded against one immutable snapshot,
-published as the release **`oracle-20260912`** in `orkitec/velorki-data` —
-the brouter.de snapshot of 12-Sep-2026 01:03, pinned by sha256 in
-`tools/brouter-oracle/tiles.sha256`. `fetch.sh` downloads from that release
-(plain asset URLs, no GitHub API, so no rate limit) and verifies the hashes;
-CI caches the tiles keyed on the content of `tiles.sha256` and fails the job
-outright if the download or the verification fails, because a silently
-skipped parity suite is worse than a red run. On a mismatch `fetch.sh` moves
-the tiles out of `.cache/segments4` so nothing can accidentally compare
-against the wrong bytes. The `oracle-*` tags are exempt from the monthly
-prune in `velorki-data/scripts/publish-tiles.sh`, which only touches
-`tiles-*`. To bump the snapshot: publish a new `oracle-<date>` release, point
-`ORACLE_TILES_TAG` in `tools/brouter-oracle/common.sh` at it, update
-`tiles.sha256`, re-record the corpus and the vectors, and commit all of it
-together — never re-record just to turn a red test green.
+`brouter_dart` vectors are therefore recorded against one frozen snapshot —
+the brouter.de listing of 12-Sep-2026 01:03 — and those exact bytes are
+committed in the repo as `tools/brouter-oracle/tiles/W20_N30.rd5` and
+`W25_N60.rd5` (4.2 MB together, no Git LFS), pinned by sha256 in
+`tools/brouter-oracle/tiles.sha256`. `fetch.sh` copies them into
+`.cache/segments4` after verifying each one, so `./fetch.sh --tiles-only`
+downloads nothing at all and CI is self-contained; it fails the job outright
+if a fixture does not verify, because a silently skipped parity suite is
+worse than a red run. On a mismatch `fetch.sh` moves the tiles out of
+`.cache/segments4` so nothing can accidentally compare against the wrong
+bytes. The rd5 data is OpenStreetMap-derived and stays under ODbL — see
+`tools/brouter-oracle/tiles/README.md`. To bump the snapshot: replace the
+committed tiles from brouter.de, update `tiles.sha256`, re-record the corpus
+and the vectors, and commit all of it together — never re-record just to turn
+a red test green.
 
 **Memory strategy.** BRouter runs in a 128 MB JVM using random-access reads, so
 the port does the same: a `RoutingWorker` isolate with synchronous
@@ -578,10 +579,10 @@ the map style under a plan, and importing a GPX file — plus the two older
 routing checks. Only what a test runner cannot have is faked: the GPS, the
 location and notification permissions, the Android foreground service (the
 suite uses the app's own `MainIsolateRecordingService`, which is what iOS runs
-anyway) and the Photon geocoder. The rd5 tile is the frozen
-`orkitec/velorki-data@oracle-*` snapshot the BRouter parity corpus was recorded
-against, served to the emulator over HTTP, so the routes the suite plans are
-reproducible; `VELORKI_ITEST_REGION` switches the coordinates between the
+anyway) and the Photon geocoder. The rd5 tile is the committed
+`tools/brouter-oracle/tiles/W20_N30.rd5` fixture the BRouter parity corpus was
+recorded against, copied into a local mirror and served to the emulator over
+HTTP, so the routes the suite plans are reproducible; `VELORKI_ITEST_REGION` switches the coordinates between the
 Madeira tile CI uses and whatever tile a developer has locally. Run it by hand
 with `app/tool/itest.sh`.
 

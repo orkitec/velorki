@@ -2,13 +2,15 @@ name: brouter-oracle
 
 # Track R0: keep the BRouter test oracle honest.
 #
-# Downloads the pinned BRouter 1.7.10 release and the two rd5 tiles the corpus
-# was recorded against, starts the RouteServer and replays corpus/index.json.
+# Downloads the pinned BRouter 1.7.10 release, stages the two rd5 tiles the
+# corpus was recorded against, starts the RouteServer and replays
+# corpus/index.json.
 #
-# The tiles come from the immutable snapshot release oracle-20260912 in
-# orkitec/velorki-data, not from brouter.de (which rebuilds segments4 nightly and
-# so can never serve the recorded bytes). A checksum mismatch is therefore a real
-# problem now, not the expected nightly drift, and this job fails on it.
+# The tiles are committed in tools/brouter-oracle/tiles/ and fetch.sh only
+# copies and verifies them -- nothing comes from brouter.de, which rebuilds
+# segments4 nightly and so can never serve the recorded bytes. A checksum
+# mismatch is therefore a real problem, not the expected nightly drift, and this
+# job fails on it.
 
 on:
   workflow_dispatch:
@@ -33,19 +35,13 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Cache the pinned BRouter oracle tiles
-        uses: actions/cache@v4
-        with:
-          path: tools/brouter-oracle/.cache/segments4
-          key: brouter-oracle-tiles-${{ hashFiles('tools/brouter-oracle/tiles.sha256') }}
-
-      - name: Fetch the pinned BRouter release and the rd5 tiles
+      - name: Fetch the pinned BRouter release and stage the rd5 tiles
         env:
           GITHUB_TOKEN: ${{ github.token }}
         # Any non-zero exit is fatal. Exit 3 used to mean "brouter.de rebuilt the
-        # segments, skip"; with the tiles pinned to an immutable release it means
-        # the release assets were replaced or tiles.sha256 was edited without
-        # re-recording, and both need a human.
+        # segments, skip"; with the tiles committed it means a fixture in
+        # tools/brouter-oracle/tiles/ no longer matches tiles.sha256, which needs
+        # a human.
         run: ./fetch.sh
 
       - name: Start the RouteServer
