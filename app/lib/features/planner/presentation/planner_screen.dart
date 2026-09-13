@@ -3,14 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
-import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../assistant/domain/intent_resolver.dart';
 import '../../assistant/presentation/assistant_sheet.dart';
-import '../../map/data/position_provider.dart';
 import '../../map/domain/map_controller.dart';
+import '../../map/presentation/device_position_request.dart';
 import '../../map/presentation/map_chrome.dart';
 import '../../routing_tiles/presentation/missing_tiles_banner.dart';
 import '../../routing_tiles/presentation/routing_source_chip.dart';
@@ -92,12 +91,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
     if (place == null) return;
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    var start = ref.read(devicePositionProvider).value?.position;
-    if (start == null) {
-      final source = ref.read(positionSourceProvider);
-      final fix = await source.current() ?? await source.lastKnown();
-      if (fix != null) start = LatLng(fix.latitude, fix.longitude);
-    }
+    // Asks for the permission if it has never been asked, like the locate
+    // button does. Not read from the auto-dispose position stream: a single
+    // read would spin it up and tear it down before the first fix.
+    final start = await requestDevicePosition(context, ref);
     if (!mounted) return;
     if (start == null) {
       messenger.showSnackBar(

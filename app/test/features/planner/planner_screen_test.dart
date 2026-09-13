@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
 
 import 'package:velorki/features/planner/presentation/elevation_profile_chart.dart';
@@ -235,6 +236,9 @@ void main() {
       tester,
       const PlannerScreen(),
       extraOverrides: [
+        locationPermissionGatewayProvider.overrideWithValue(
+          const GrantedLocationPermission(),
+        ),
         positionSourceProvider.overrideWithValue(
           const FixedPositionSource(LatLng(48.0, 11.0)),
         ),
