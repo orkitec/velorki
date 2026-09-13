@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/theme.dart';
 import '../../../core/db/database.dart';
+import '../../shared/presentation/placeholder_body.dart';
 import '../data/map_preferences.dart';
 import '../data/offline_regions_repository.dart';
 import '../domain/map_controller.dart';
@@ -42,12 +44,15 @@ class OfflineRegionsScreen extends ConsumerWidget {
           if (progress != null)
             LinearProgressIndicator(
               value: progress.fraction == 0 ? null : progress.fraction,
+              minHeight: 6,
+              borderRadius: BorderRadius.zero,
             ),
           Expanded(
             child: regions.when(
               data: (rows) => rows.isEmpty
                   ? const _EmptyState()
                   : ListView.builder(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
                       itemCount: rows.length,
                       itemBuilder: (context, i) => _RegionTile(row: rows[i]),
                     ),
@@ -56,34 +61,18 @@ class OfflineRegionsScreen extends ConsumerWidget {
               error: (error, _) => Center(child: Text('$error')),
             ),
           ),
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  if (blockedReason != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        blockedReason,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ),
-                  FilledButton.icon(
-                    icon: const Icon(Icons.download_outlined),
-                    label: Text(
-                      progress == null
-                          ? MapStrings.downloadVisibleArea
-                          : MapStrings.downloading,
-                    ),
-                    onPressed: blockedReason != null || progress != null
-                        ? null
-                        : () => unawaited(_download(context, ref)),
-                  ),
-                ],
+          _BottomBar(
+            note: blockedReason,
+            action: FilledButton.icon(
+              icon: const Icon(Icons.download_outlined),
+              label: Text(
+                progress == null
+                    ? MapStrings.downloadVisibleArea
+                    : MapStrings.downloading,
               ),
+              onPressed: blockedReason != null || progress != null
+                  ? null
+                  : () => unawaited(_download(context, ref)),
             ),
           ),
         ],
@@ -115,16 +104,48 @@ class _EmptyState extends StatelessWidget {
   const _EmptyState();
 
   @override
-  Widget build(BuildContext context) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(32),
-      child: Text(
-        MapStrings.offlineRegionsEmpty,
-        textAlign: TextAlign.center,
-        style: Theme.of(context).textTheme.bodyMedium,
-      ),
-    ),
+  Widget build(BuildContext context) => const PlaceholderBody(
+    icon: Icons.download_for_offline_outlined,
+    message: MapStrings.offlineRegionsEmpty,
   );
+}
+
+/// The primary action, held above the system inset by a hairline.
+class _BottomBar extends StatelessWidget {
+  const _BottomBar({required this.action, this.note});
+
+  final Widget action;
+  final String? note;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final note = this.note;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        border: Border(
+          top: BorderSide(color: theme.colorScheme.outlineVariant),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              if (note != null) ...<Widget>[
+                Text(note, style: theme.textTheme.bodySmall),
+                const SizedBox(height: 16),
+              ],
+              action,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _RegionTile extends ConsumerWidget {
@@ -134,10 +155,29 @@ class _RegionTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     return ListTile(
-      leading: const Icon(Icons.map_outlined),
-      title: Text(row.name),
-      subtitle: Text(MapStrings.formatBytes(row.sizeBytes)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      // Every region in this list is on the device already.
+      leading: Container(
+        width: 44,
+        height: 44,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Icon(
+          Icons.offline_pin_outlined,
+          size: 22,
+          color: theme.velorki.success,
+        ),
+      ),
+      title: Text(row.name, style: theme.textTheme.titleMedium),
+      subtitle: Text(
+        MapStrings.formatBytes(row.sizeBytes),
+        style: theme.textTheme.labelMedium,
+      ),
       trailing: IconButton(
         icon: const Icon(Icons.delete_outline),
         tooltip: MapStrings.deleteRegion,

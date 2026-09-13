@@ -123,6 +123,20 @@ l10n/app_en.arb  + the translated locales
 Only `app_en.arb` is edited by hand; the other ARB files come from the GL
 Strings integration.
 
+### Look and feel (`app/lib/app/theme.dart`)
+
+One theme builder, `buildLightTheme(preset)` / `buildDarkTheme(preset)`, with
+four accent presets (`AccentPreset`: Volt, Ember, Glacier, Berry) chosen under
+Settings → Appearance next to the light/dark/system switch
+(`AppearanceSetting`, persisted in shared_preferences). Two typefaces ship as
+assets: Barlow Condensed for headlines and figures, Manrope for everything
+else. `VelorkiColors` (a `ThemeExtension`) carries what Material has no slot
+for — the route, track and marker colours, the glass panels over the map, the
+semantic success/warning colours — and `MapPalette.fromTheme` turns it into the
+maplibre layer colours, so the route follows the accent. Dark mode also swaps
+the map style (`VELORKI_MAP_STYLE_URL_DARK`, default OpenFreeMap Dark). The
+shared widgets live in `features/shared/presentation/stat_tile.dart`.
+
 ### Pure-Dart packages (`app/packages/`)
 
 None of these depend on Flutter, so they run and are unit-tested on the desktop
@@ -298,6 +312,7 @@ the official defaults are committed, `env/local.json` is git-ignored.
 | `VELORKI_API_URL` | the relay |
 | `VELORKI_PHOTON_URL` | the Photon geocoder |
 | `VELORKI_MAP_STYLE_URL` | the MapLibre style |
+| `VELORKI_MAP_STYLE_URL_DARK` | the MapLibre style in dark mode |
 | `VELORKI_SEGMENTS_URL` | the rd5 segment mirror used for on-device routing |
 | `VELORKI_REVENUECAT_KEY_ANDROID` | RevenueCat public SDK key, Android |
 | `VELORKI_REVENUECAT_KEY_IOS` | RevenueCat public SDK key, iOS |

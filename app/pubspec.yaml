@@ -82,6 +82,24 @@ flutter:
     - assets/strava/api_logo_pwrdBy_strava_horiz_orange.png
     - assets/strava/api_logo_pwrdBy_strava_horiz_white.png
 
+  fonts:
+    - family: BarlowCondensed
+      fonts:
+        - asset: assets/fonts/BarlowCondensed-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/BarlowCondensed-Bold.ttf
+          weight: 700
+    - family: Manrope
+      fonts:
+        - asset: assets/fonts/Manrope-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Manrope-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Manrope-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Manrope-Bold.ttf
+          weight: 700
+
 # Launcher icons. The PNGs are generated from the SVG sources next to them
 # (see assets/icon/README.md); `dart run flutter_launcher_icons` then writes
 # the Android mipmaps and the iOS AppIcon set.
@@ -89,7 +107,7 @@ flutter_launcher_icons:
   android: true
   ios: true
   image_path: assets/icon/icon.png
-  # The seed colour from lib/app/theme.dart.
+  # Velorki green of the launcher icon (independent of the in-app accents).
   adaptive_icon_background: "#1B7F5A"
   adaptive_icon_foreground: assets/icon/icon_foreground.png
   # App Store rejects an icon with an alpha channel.
@@ -105,3 +123,4 @@ workspace:
   - packages/velorki_loops
   - packages/velorki_api
   - packages/brouter_dart
+

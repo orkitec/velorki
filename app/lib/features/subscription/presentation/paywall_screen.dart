@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/theme.dart';
 import '../../../core/links/link_opener.dart';
 import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../shared/presentation/stat_tile.dart';
 import '../application/subscription_controller.dart';
 import '../data/subscription_service.dart';
 import '../domain/plus_subscription.dart';
@@ -78,28 +80,38 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final available = ref.watch(subscriptionServiceProvider).isAvailable;
     final action = ref.watch(subscriptionControllerProvider);
     final entitled = ref.watch(plusEntitledProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.plusTitle)),
+      // The title is the hero of the page itself; the bar carries the way
+      // back and nothing else.
+      appBar: AppBar(),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
         children: [
-          Text(l10n.plusIntro, style: theme.textTheme.bodyMedium),
-          const SizedBox(height: 20),
-          Text(l10n.plusIncludes, style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
+          Text(l10n.plusTitle, style: theme.textTheme.headlineLarge),
+          const SizedBox(height: 12),
+          Text(
+            l10n.plusIntro,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 24),
+          SectionCaption(l10n.plusIncludes, accent: true),
+          const SizedBox(height: 12),
           // Driven by the one gate list, so moving a feature to the free
           // tier takes it off the paywall in the same edit.
           for (final feature in PlusFeature.values.where(
             gatedFeatures.contains,
           ))
             _FeatureRow(feature: feature),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Text(l10n.plusFreeAnyway, style: theme.textTheme.bodySmall),
-          const Divider(height: 32),
+          const SizedBox(height: 24),
           if (entitled)
             const _ActiveBanner()
           else if (!available)
@@ -112,7 +124,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               onPurchase: (package) => unawaited(_purchase(package)),
             ),
           if (available) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Center(
               child: TextButton(
                 onPressed: action == PlusAction.none
@@ -139,10 +151,10 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           Text(
             l10n.plusLegal,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+              color: scheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Wrap(
             alignment: WrapAlignment.center,
             spacing: 8,
@@ -163,6 +175,14 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   }
 }
 
+/// The icon standing for [feature] on the paywall's list.
+IconData _featureIcon(PlusFeature feature) => switch (feature) {
+  PlusFeature.aiAssistant => Icons.auto_awesome_outlined,
+  PlusFeature.stravaConnection => Icons.directions_bike_outlined,
+  PlusFeature.rwgpsConnection => Icons.map_outlined,
+  PlusFeature.linkSharing => Icons.link_rounded,
+};
+
 class _FeatureRow extends StatelessWidget {
   const _FeatureRow({required this.feature});
 
@@ -172,12 +192,26 @@ class _FeatureRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.check_circle_outline, color: theme.colorScheme.primary),
+          Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHigh,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              _featureIcon(feature),
+              size: 19,
+              color: theme.velorki.accent,
+            ),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -185,8 +219,9 @@ class _FeatureRow extends StatelessWidget {
               children: [
                 Text(
                   plusFeatureTitle(l10n, feature),
-                  style: theme.textTheme.titleSmall,
+                  style: theme.textTheme.bodyLarge,
                 ),
+                const SizedBox(height: 2),
                 Text(
                   plusFeatureBody(l10n, feature),
                   style: theme.textTheme.bodySmall,
@@ -207,16 +242,35 @@ class _ActiveBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final colors = theme.velorki;
     return Card(
-      margin: EdgeInsets.zero,
-      color: theme.colorScheme.primaryContainer,
-      child: ListTile(
-        leading: Icon(
-          Icons.workspace_premium,
-          color: theme.colorScheme.onPrimaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.verified_rounded, color: colors.success),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.plusActive,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: colors.success,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    l10n.plusPurchaseThanks,
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        title: Text(l10n.plusActive),
-        subtitle: Text(l10n.plusPurchaseThanks),
       ),
     );
   }
@@ -230,15 +284,13 @@ class _UnavailableCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return Card(
-      margin: EdgeInsets.zero,
-      color: theme.colorScheme.surfaceContainerHighest,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(l10n.plusUnavailableTitle, style: theme.textTheme.titleSmall),
-            const SizedBox(height: 4),
+            Text(l10n.plusUnavailableTitle, style: theme.textTheme.titleMedium),
+            const SizedBox(height: 6),
             Text(l10n.plusUnavailableBody, style: theme.textTheme.bodySmall),
           ],
         ),
@@ -304,7 +356,7 @@ class _Packages extends ConsumerWidget {
                 selected: package.id == chosen.id,
                 onTap: () => onSelected(package.id),
               ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             FilledButton(
               onPressed: busy ? null : () => onPurchase(chosen),
               child: busy
@@ -337,25 +389,69 @@ class _PackageTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final accent = theme.velorki.accent;
     final intro = plusIntroLabel(l10n, package);
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      color: selected ? theme.colorScheme.secondaryContainer : null,
-      child: ListTile(
-        onTap: onTap,
-        leading: Icon(
-          selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-        ),
-        title: Text(
-          l10n.plusPricePeriod(
-            package.priceString,
-            plusPeriodLabel(l10n, package.period),
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Material(
+          color: selected
+              ? scheme.surfaceContainerHigh
+              : scheme.surfaceContainerLow,
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(
+              color: selected ? accent : scheme.outlineVariant,
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.plusPricePeriod(
+                            package.priceString,
+                            plusPeriodLabel(l10n, package.period),
+                          ),
+                          style: theme.textTheme.statLarge,
+                        ),
+                        if (intro != null) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            intro,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: package.hasFreeTrial
+                                  ? accent
+                                  : scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Icon(
+                    selected
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_unchecked,
+                    color: selected ? accent : scheme.outline,
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
-        subtitle: intro == null ? null : Text(intro),
-        trailing: package.hasFreeTrial
-            ? Icon(Icons.card_giftcard, color: theme.colorScheme.primary)
-            : null,
       ),
     );
   }

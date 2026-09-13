@@ -6,13 +6,16 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/app_config.dart';
 import '../../../core/permissions/location_permission.dart';
+import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/location_rationale_dialog.dart';
+import '../../map/presentation/map_chrome.dart';
 import '../../planner/data/route_repository.dart';
 import '../../planner/domain/saved_route.dart';
 import '../../planner/presentation/planner_map_host.dart';
 import '../../planner/presentation/route_format.dart';
+import '../../shared/presentation/stat_tile.dart';
 import '../application/recording_controller.dart';
 import '../data/recording_gateways.dart';
 import '../data/recording_recovery.dart';
@@ -318,40 +321,116 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
         : ref.watch(savedRouteProvider(followed)).value;
     _syncMap(state, route);
 
+    final theme = Theme.of(context);
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.tabRecord),
-        actions: [
-          IconButton(
-            tooltip: l10n.recordingKeepScreenOn,
-            isSelected: _keepScreenOn,
-            icon: const Icon(Icons.lightbulb_outline),
-            selectedIcon: const Icon(Icons.lightbulb),
-            onPressed: () => unawaited(_setKeepScreenOn(!_keepScreenOn)),
-          ),
-        ],
-      ),
       body: Column(
         children: [
-          SizedBox(height: 240, child: PlannerMapHost(onMapReady: _onMapReady)),
           Expanded(
-            child: state.isRecording
-                ? _LivePanel(
-                    state: state,
-                    onPause: () => unawaited(
-                      ref.read(recordingControllerProvider.notifier).pause(),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  // The title panel covers the top edge of the map.
+                  child: MapChromeInsets(
+                    controlsTop: 12 + 44 + 12,
+                    child: PlannerMapHost(
+                      onMapReady: _onMapReady,
+                      embedded: true,
                     ),
-                    onResume: () => unawaited(
-                      ref.read(recordingControllerProvider.notifier).resume(),
-                    ),
-                    onStop: () => unawaited(_stop()),
-                  )
-                : _IdlePanel(
-                    state: state,
-                    keepScreenOn: _keepScreenOn,
-                    onKeepScreenOn: (v) => unawaited(_setKeepScreenOn(v)),
-                    onStart: () => unawaited(_start()),
                   ),
+                ),
+                SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 12, 0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: GlassPanel(
+                            radius: 22,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            child: Text(
+                              l10n.tabRecord,
+                              style: theme.textTheme.titleMedium,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GlassPanel(
+                          radius: 22,
+                          child: IconButton(
+                            tooltip: l10n.recordingKeepScreenOn,
+                            isSelected: _keepScreenOn,
+                            icon: const Icon(Icons.lightbulb_outline),
+                            selectedIcon: Icon(
+                              Icons.lightbulb,
+                              color: theme.velorki.accent,
+                            ),
+                            onPressed: () =>
+                                unawaited(_setKeepScreenOn(!_keepScreenOn)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Transform.translate(
+              offset: const Offset(0, -24),
+              child: DecoratedBox(
+                decoration: const BoxDecoration(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x40000000),
+                      blurRadius: 24,
+                      offset: Offset(0, -4),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: theme.colorScheme.surface,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(28),
+                    ),
+                    side: BorderSide(color: theme.velorki.glassBorder),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: state.isRecording
+                      ? _LivePanel(
+                          state: state,
+                          bottomInset: bottomInset,
+                          onPause: () => unawaited(
+                            ref
+                                .read(recordingControllerProvider.notifier)
+                                .pause(),
+                          ),
+                          onResume: () => unawaited(
+                            ref
+                                .read(recordingControllerProvider.notifier)
+                                .resume(),
+                          ),
+                          onStop: () => unawaited(_stop()),
+                        )
+                      : _IdlePanel(
+                          state: state,
+                          bottomInset: bottomInset,
+                          keepScreenOn: _keepScreenOn,
+                          onKeepScreenOn: (v) => unawaited(_setKeepScreenOn(v)),
+                          onStart: () => unawaited(_start()),
+                        ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -364,12 +443,14 @@ enum _RecoveryDecision { resume, finish, discard }
 class _IdlePanel extends ConsumerWidget {
   const _IdlePanel({
     required this.state,
+    required this.bottomInset,
     required this.keepScreenOn,
     required this.onKeepScreenOn,
     required this.onStart,
   });
 
   final RecordingUiState state;
+  final double bottomInset;
   final bool keepScreenOn;
   final ValueChanged<bool> onKeepScreenOn;
   final VoidCallback onStart;
@@ -380,31 +461,26 @@ class _IdlePanel extends ConsumerWidget {
     final theme = Theme.of(context);
     final routes = ref.watch(savedRoutesProvider).value ?? const [];
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: EdgeInsets.fromLTRB(20, 24, 20, bottomInset + 24),
       children: [
-        Text(l10n.recordingIdleTitle, style: theme.textTheme.titleLarge),
-        const SizedBox(height: 4),
-        Text(
-          l10n.recordingIdleHint,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 16),
+        Text(l10n.recordingIdleTitle, style: theme.textTheme.headlineMedium),
+        const SizedBox(height: 6),
+        Text(l10n.recordingIdleHint, style: theme.textTheme.bodySmall),
+        const SizedBox(height: 20),
         SizedBox(
-          height: 56,
+          height: 60,
           child: FilledButton.icon(
             onPressed: state.busy ? null : onStart,
-            icon: const Icon(Icons.play_arrow),
+            icon: const Icon(Icons.fiber_manual_record_rounded),
             label: Text(l10n.recordingStart),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         DropdownButtonFormField<String?>(
           initialValue: state.followedRouteId,
           decoration: InputDecoration(
             labelText: l10n.recordingFollowRoute,
-            border: const OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.route_outlined),
           ),
           items: [
             DropdownMenuItem<String?>(child: Text(l10n.recordingFollowNone)),
@@ -417,16 +493,16 @@ class _IdlePanel extends ConsumerWidget {
           onChanged: (value) =>
               ref.read(recordingControllerProvider.notifier).selectRoute(value),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           value: keepScreenOn,
           onChanged: onKeepScreenOn,
           title: Text(l10n.recordingKeepScreenOn),
         ),
-        const Divider(height: 32),
-        Text(l10n.recordingRecentRides, style: theme.textTheme.titleMedium),
-        const SizedBox(height: 8),
+        const SizedBox(height: 16),
+        SectionCaption(l10n.recordingRecentRides),
+        const SizedBox(height: 4),
         const RidesList(limit: 5, shrinkWrap: true),
       ],
     );
@@ -436,12 +512,14 @@ class _IdlePanel extends ConsumerWidget {
 class _LivePanel extends StatelessWidget {
   const _LivePanel({
     required this.state,
+    required this.bottomInset,
     required this.onPause,
     required this.onResume,
     required this.onStop,
   });
 
   final RecordingUiState state;
+  final double bottomInset;
   final VoidCallback onPause;
   final VoidCallback onResume;
   final VoidCallback onStop;
@@ -450,6 +528,7 @@ class _LivePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final snapshot = state.snapshot!;
     final status = switch (snapshot) {
       RecordingSnapshot(status: RecordingStatus.paused, autoPaused: true) =>
@@ -459,27 +538,22 @@ class _LivePanel extends StatelessWidget {
       _ => l10n.recordingStatusRecording,
     };
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: EdgeInsets.fromLTRB(20, 24, 20, bottomInset + 24),
       children: [
         Row(
-          children: [
-            Icon(
-              state.isPaused ? Icons.pause_circle : Icons.fiber_manual_record,
-              size: 16,
-              color: state.isPaused
-                  ? theme.colorScheme.onSurfaceVariant
-                  : theme.colorScheme.error,
-            ),
-            const SizedBox(width: 6),
-            Text(status, style: theme.textTheme.labelLarge),
-          ],
+          children: [_StatusPill(label: status, paused: state.isPaused)],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         Text(
           formatDistance(l10n, snapshot.distanceM),
-          style: theme.textTheme.displaySmall,
+          style: theme.textTheme.statHero.copyWith(
+            color: state.isPaused
+                ? scheme.onSurfaceVariant
+                : theme.velorki.accent,
+          ),
+          maxLines: 1,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 20),
         RideStatsGrid(
           items: <RideStatItem>[
             RideStatItem(
@@ -514,21 +588,21 @@ class _LivePanel extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 28),
         Row(
           children: [
             Expanded(
               child: SizedBox(
-                height: 52,
+                height: 60,
                 child: state.isPaused
                     ? FilledButton.icon(
                         onPressed: state.busy ? null : onResume,
-                        icon: const Icon(Icons.play_arrow),
+                        icon: const Icon(Icons.play_arrow_rounded),
                         label: Text(l10n.recordingResume),
                       )
                     : FilledButton.tonalIcon(
                         onPressed: state.busy ? null : onPause,
-                        icon: const Icon(Icons.pause),
+                        icon: const Icon(Icons.pause_rounded),
                         label: Text(l10n.recordingPause),
                       ),
               ),
@@ -536,10 +610,10 @@ class _LivePanel extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: SizedBox(
-                height: 52,
+                height: 60,
                 child: OutlinedButton.icon(
                   onPressed: state.busy ? null : onStop,
-                  icon: const Icon(Icons.stop),
+                  icon: const Icon(Icons.stop_rounded),
                   label: Text(l10n.recordingFinish),
                 ),
               ),
@@ -547,6 +621,59 @@ class _LivePanel extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// `● RECORDING` with a red dot, or a quiet `PAUSED`.
+///
+/// Deliberately not animated: a repeating animation never lets a widget test
+/// settle, and a steady dot is calmer on the handlebar anyway.
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.label, required this.paused});
+
+  final String label;
+  final bool paused;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final dotColor = paused ? scheme.onSurfaceVariant : scheme.error;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 8, 14, 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: dotColor,
+                shape: BoxShape.circle,
+                boxShadow: paused
+                    ? null
+                    : [
+                        BoxShadow(
+                          color: dotColor.withValues(alpha: 0.6),
+                          blurRadius: 8,
+                        ),
+                      ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label.toUpperCase(),
+              style: theme.textTheme.overline.copyWith(color: scheme.onSurface),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

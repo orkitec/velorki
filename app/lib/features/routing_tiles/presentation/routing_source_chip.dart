@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 
+import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
 /// Says where the shown route was computed: on this device or on the routing
@@ -19,25 +20,34 @@ class RoutingSourceChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final onDevice = source == RoutingSource.local;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
+        color: scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Icon(
-            onDevice ? Icons.smartphone : Icons.cloud_outlined,
-            size: 14,
-            color: theme.colorScheme.onSurfaceVariant,
+          // A dot rather than an icon: the state is binary, and green says
+          // "no network needed" without a legend.
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: onDevice ? theme.velorki.success : scheme.onSurfaceVariant,
+            ),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 6),
           Text(
-            onDevice ? l10n.plannerRoutedOnDevice : l10n.plannerRoutedOnServer,
-            style: theme.textTheme.labelSmall,
+            (onDevice ? l10n.plannerRoutedOnDevice : l10n.plannerRoutedOnServer)
+                .toUpperCase(),
+            style: theme.textTheme.overline.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),

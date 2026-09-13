@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 
+import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../shared/presentation/stat_tile.dart';
 import 'route_format.dart';
 
 /// What the route is made of: a paved/unpaved/unknown bar plus chips for the
@@ -26,7 +28,7 @@ class SurfaceStatsBar extends StatelessWidget {
     }
 
     final segments = <(String, double, Color)>[
-      (l10n.surfacePaved, s.pavedShare, theme.colorScheme.primary),
+      (l10n.surfacePaved, s.pavedShare, theme.velorki.accent),
       (l10n.surfaceUnpaved, s.unpavedShare, theme.colorScheme.tertiary),
       (l10n.surfaceUnknown, s.unknownShare, theme.colorScheme.outlineVariant),
     ];
@@ -35,12 +37,12 @@ class SurfaceStatsBar extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(l10n.surfaceTitle, style: theme.textTheme.titleSmall),
-        const SizedBox(height: 8),
+        SectionCaption(l10n.surfaceTitle),
+        const SizedBox(height: 10),
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
           child: SizedBox(
-            height: 10,
+            height: 8,
             child: total <= 0
                 ? ColoredBox(color: theme.colorScheme.outlineVariant)
                 : Row(
@@ -58,10 +60,10 @@ class SurfaceStatsBar extends StatelessWidget {
                   ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Wrap(
-          spacing: 8,
-          runSpacing: 4,
+          spacing: 16,
+          runSpacing: 8,
           children: [
             for (final (label, share, color) in segments)
               _ShareChip(label: label, share: share, color: color),
@@ -82,6 +84,7 @@ class SurfaceStatsBar extends StatelessWidget {
   }
 }
 
+/// One legend entry: the colour of a share and how much of the route it is.
 class _ShareChip extends StatelessWidget {
   const _ShareChip({
     required this.label,
@@ -97,14 +100,24 @@ class _ShareChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    return Chip(
-      visualDensity: VisualDensity.compact,
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      avatar: CircleAvatar(backgroundColor: color, radius: 6),
-      label: Text(
-        l10n.labelWithPercent(label, formatPercent(l10n, share)),
-        style: theme.textTheme.labelSmall,
-      ),
+    // A dot and a word: a Material chip would add a box around every share
+    // and turn the legend into five buttons that do nothing.
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          l10n.labelWithPercent(label, formatPercent(l10n, share)),
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
     );
   }
 }

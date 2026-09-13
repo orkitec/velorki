@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../shared/presentation/stat_tile.dart';
 
 /// The card shown where a Velorki Plus feature would be.
 ///
@@ -20,53 +21,31 @@ class PlusUpsellCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    return Card(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      color: theme.colorScheme.secondaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.workspace_premium_outlined,
-                  color: theme.colorScheme.onSecondaryContainer,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+      child: Card(
+        color: theme.colorScheme.surfaceContainerLow,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // The product name, not a translatable label.
+              const SectionCaption('Plus', accent: true),
+              const SizedBox(height: 6),
+              Text(l10n.plusTitle, style: theme.textTheme.titleMedium),
+              const SizedBox(height: 6),
+              Text(body, style: theme.textTheme.bodySmall),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FilledButton(
+                  onPressed: () => context.push(paywallRoute),
+                  child: Text(l10n.plusSeeDetails),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.plusTitle,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: theme.colorScheme.onSecondaryContainer,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        body,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSecondaryContainer,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton.tonal(
-                onPressed: () => context.push(paywallRoute),
-                child: Text(l10n.plusSeeDetails),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

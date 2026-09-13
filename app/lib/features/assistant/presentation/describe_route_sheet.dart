@@ -79,13 +79,18 @@ class _DescribeRouteSheetState extends ConsumerState<DescribeRouteSheet> {
         maxHeight: MediaQuery.sizeOf(context).height * 0.8,
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+        padding: EdgeInsets.fromLTRB(
+          20,
+          4,
+          20,
+          MediaQuery.viewPaddingOf(context).bottom + 16,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(l10n.describeTitle, style: theme.textTheme.titleLarge),
-            const SizedBox(height: 12),
+            Text(l10n.describeTitle, style: theme.textTheme.headlineSmall),
+            const SizedBox(height: 14),
             if (state.running)
               Row(
                 children: [
@@ -99,15 +104,17 @@ class _DescribeRouteSheetState extends ConsumerState<DescribeRouteSheet> {
                 ],
               ),
             if (state.text.isNotEmpty) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
+              // What the model wrote is the content of this sheet, so it is
+              // set in the reading size rather than as a caption.
               Flexible(
                 child: SingleChildScrollView(
-                  child: Text(state.text, style: theme.textTheme.bodyMedium),
+                  child: Text(state.text, style: theme.textTheme.bodyLarge),
                 ),
               ),
             ],
             if (state.problem != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Text(
                 l10n.describeFailed(assistantProblemText(l10n, state.problem!)),
                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -115,19 +122,19 @@ class _DescribeRouteSheetState extends ConsumerState<DescribeRouteSheet> {
                 ),
               ),
             ],
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              alignment: WrapAlignment.end,
+            const SizedBox(height: 20),
+            Row(
               children: [
                 TextButton(
                   onPressed: state.running ? null : () => unawaited(_run()),
                   child: Text(l10n.describeAgain),
                 ),
-                FilledButton(
-                  onPressed: state.canSave ? () => unawaited(_save()) : null,
-                  child: Text(l10n.describeSave),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: state.canSave ? () => unawaited(_save()) : null,
+                    child: Text(l10n.describeSave),
+                  ),
                 ),
               ],
             ),

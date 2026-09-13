@@ -19,6 +19,7 @@ import '../../planner/presentation/route_stats_row.dart';
 import '../../recording/presentation/ride_detail_screen.dart'
     show rideDetailLocation;
 import '../../shared/presentation/placeholder_body.dart';
+import '../../shared/presentation/stat_tile.dart';
 import '../data/import_repository.dart';
 import '../domain/imported_track.dart';
 
@@ -146,20 +147,24 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
         : RouteProfile.trekking.estimatedTime(stats.distanceM);
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: 24),
+      // The floating navigation bar sits over the list, so the Save button
+      // needs room to clear it.
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.paddingOf(context).bottom + 24,
+      ),
       children: [
-        SizedBox(height: 220, child: PlannerMapHost(onMapReady: _onMapReady)),
+        SizedBox(
+          height: 220,
+          child: PlannerMapHost(onMapReady: _onMapReady, embedded: true),
+        ),
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               TextField(
                 controller: _name,
-                decoration: InputDecoration(
-                  labelText: l10n.importNameLabel,
-                  border: const OutlineInputBorder(),
-                ),
+                decoration: InputDecoration(labelText: l10n.importNameLabel),
                 textInputAction: TextInputAction.done,
               ),
               const SizedBox(height: 12),
@@ -175,21 +180,18 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
                 _timeLine(l10n, stats),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               RouteStatsRow(
                 distanceM: stats.distanceM,
                 ascentM: stats.ascentM,
                 descentM: stats.descentM,
                 duration: duration,
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               ElevationProfileChart(samples: elevationProfile(track.points)),
-              const SizedBox(height: 20),
-              Text(
-                l10n.importSaveAs,
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 24),
+              SectionCaption(l10n.importSaveAs),
+              const SizedBox(height: 12),
               SegmentedButton<ImportKind>(
                 segments: [
                   ButtonSegment(
@@ -207,7 +209,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
                 onSelectionChanged: (selection) =>
                     setState(() => _kind = selection.first),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               FilledButton.icon(
                 onPressed: _saving ? null : () => unawaited(_save()),
                 icon: const Icon(Icons.save_outlined),

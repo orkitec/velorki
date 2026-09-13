@@ -10,12 +10,27 @@ import '../data/map_preferences.dart';
 import '../data/maplibre_map_controller.dart';
 import '../domain/map_controller.dart';
 import 'map_attribution.dart';
+import 'map_chrome.dart';
 import 'map_controls.dart';
 
 /// Used when the build passes no `VELORKI_MAP_STYLE_URL`, so a bare
 /// `flutter run` still shows a map.
 const String fallbackMapStyleUrl =
     'https://tiles.openfreemap.org/styles/liberty';
+
+/// The dark-mode counterpart, used when `VELORKI_MAP_STYLE_URL_DARK` is empty.
+const String fallbackMapStyleUrlDark =
+    'https://tiles.openfreemap.org/styles/dark';
+
+/// The style for [brightness]: the configured URLs, else OpenFreeMap's.
+String mapStyleUrlFor(AppConfig config, Brightness brightness) {
+  if (brightness == Brightness.dark) {
+    return config.mapStyleUrlDark.isEmpty
+        ? fallbackMapStyleUrlDark
+        : config.mapStyleUrlDark;
+  }
+  return config.mapStyleUrl.isEmpty ? fallbackMapStyleUrl : config.mapStyleUrl;
+}
 
 /// The map itself: a `MapLibreMap` platform view plus the adapter that turns
 /// it into a [MapController].
@@ -82,6 +97,17 @@ class _MapViewState extends ConsumerState<MapView> {
     _map = controller;
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // An accent change without a brightness change keeps the style, so the
+    // layers are recoloured in place; a brightness change swaps the style
+    // and rebuilds the adapter from `_onStyleLoaded`.
+    final adapter = _adapter;
+    if (adapter == null) return;
+    unawaited(adapter.setPalette(MapPalette.fromTheme(Theme.of(context))));
+  }
+
   Future<void> _onStyleLoaded() async {
     final map = _map;
     if (map == null) return;
@@ -89,6 +115,7 @@ class _MapViewState extends ConsumerState<MapView> {
     final adapter = MaplibreMapControllerAdapter(
       map,
       cyclosmTileUrl: ref.read(effectiveConfigProvider).cyclosmTileUrl,
+      palette: MapPalette.fromTheme(Theme.of(context)),
     );
     _adapter = adapter;
     await adapter.attachToStyle();
@@ -122,9 +149,7 @@ class _MapViewState extends ConsumerState<MapView> {
   @override
   Widget build(BuildContext context) {
     final config = ref.watch(effectiveConfigProvider);
-    final styleUrl = config.mapStyleUrl.isEmpty
-        ? fallbackMapStyleUrl
-        : config.mapStyleUrl;
+    final styleUrl = mapStyleUrlFor(config, Theme.of(context).brightness);
     // Read, not watch: the initial camera must not rebuild the platform view
     // every time the camera is saved.
     final camera = widget.rememberCamera
@@ -158,6 +183,10 @@ class _MapViewState extends ConsumerState<MapView> {
     );
 
     if (!widget.showAttribution && !widget.showControls) return map;
+    final chromeTop = MapChromeInsets.maybeOf(context)?.controlsTop;
+    final controlsPadding = chromeTop == null
+        ? widget.controlsPadding
+        : widget.controlsPadding.copyWith(top: chromeTop);
 
     return Stack(
       fit: StackFit.expand,
@@ -167,7 +196,7 @@ class _MapViewState extends ConsumerState<MapView> {
           Positioned.fill(
             child: SafeArea(
               child: Padding(
-                padding: widget.controlsPadding,
+                padding: controlsPadding,
                 child: Align(
                   alignment: Alignment.topRight,
                   child: MapControls(controller: _adapter),

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
+import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../import_export/presentation/import_file_action.dart';
 import '../../integrations/presentation/import_from_service_menu.dart';
@@ -39,12 +40,39 @@ class LibraryScreen extends ConsumerWidget {
                 icon: Icons.folder_outlined,
                 message: '${l10n.libraryEmpty}\n${l10n.libraryEmptyDetail}',
               )
-            : ListView.separated(
+            // The floating navigation bar sits over the list, so the last
+            // route needs room to clear it.
+            : ListView.builder(
+                padding: EdgeInsets.only(
+                  top: 6,
+                  bottom: MediaQuery.paddingOf(context).bottom + 24,
+                ),
                 itemCount: items.length,
-                separatorBuilder: (_, _) => const Divider(height: 1),
                 itemBuilder: (context, i) => _RouteTile(route: items[i]),
               ),
       ),
+    );
+  }
+}
+
+/// The rounded square holding a tile's icon.
+class _TileIcon extends StatelessWidget {
+  const _TileIcon(this.icon);
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: 44,
+      height: 44,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Icon(icon, size: 22, color: theme.velorki.accent),
     );
   }
 }
@@ -79,29 +107,40 @@ class _RouteTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Dismissible(
       key: ValueKey(route.id),
       direction: DismissDirection.endToStart,
       background: ColoredBox(
-        color: Theme.of(context).colorScheme.errorContainer,
-        child: const Align(
+        color: scheme.errorContainer,
+        child: Align(
           alignment: Alignment.centerRight,
           child: Padding(
-            padding: EdgeInsets.only(right: 24),
-            child: Icon(Icons.delete_outline),
+            padding: const EdgeInsets.only(right: 24),
+            child: Icon(Icons.delete_outline, color: scheme.onErrorContainer),
           ),
         ),
       ),
       onDismissed: (_) => unawaited(_delete(context, ref)),
       child: ListTile(
-        leading: const Icon(Icons.route_outlined),
-        title: Text(route.name),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+        leading: const _TileIcon(Icons.route_rounded),
+        title: Text(
+          route.name,
+          style: theme.textTheme.titleMedium,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         subtitle: Text(
           l10n.libraryRouteSubtitle(
             formatDate(l10n, route.createdAt),
             formatDistance(l10n, route.distanceM),
             formatHeight(l10n, route.ascentM),
           ),
+          style: theme.textTheme.bodySmall,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         trailing: PopupMenuButton<_RouteAction>(
           onSelected: (action) => unawaited(switch (action) {

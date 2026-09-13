@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/device_position_request.dart';
@@ -14,6 +15,7 @@ import '../../planner/presentation/route_format.dart';
 import '../../planner/presentation/route_stats_row.dart';
 import '../../search/domain/search_result.dart';
 import '../../search/presentation/search_field.dart';
+import '../../shared/presentation/stat_tile.dart';
 import '../application/loop_map_preview.dart';
 import '../application/smart_loop_controller.dart';
 import '../domain/loops.dart';
@@ -206,22 +208,25 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const _GrabHandle(),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(l10n.loopTitle, style: theme.textTheme.titleLarge),
-                  Text(l10n.loopIntro, style: theme.textTheme.bodySmall),
+                  Text(l10n.loopTitle, style: theme.textTheme.headlineSmall),
+                  const SizedBox(height: 4),
+                  Text(
+                    l10n.loopIntro,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                   if (ref.watch(onDeviceRoutingActiveProvider))
                     Padding(
-                      padding: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.only(top: 6),
                       child: Text(
                         l10n.loopOnDeviceNote,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
+                        style: theme.textTheme.bodySmall,
                       ),
                     ),
                 ],
@@ -230,7 +235,7 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
             Flexible(
               child: ListView(
                 shrinkWrap: true,
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
                 children: [
                   _Section(title: l10n.loopStart),
                   _StartChooser(
@@ -286,28 +291,19 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
                     ),
                   ),
                   _Section(title: l10n.loopDistance),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Slider(
-                          value: _km,
-                          min: loopMinKm,
-                          max: loopMaxKm,
-                          divisions: ((loopMaxKm - loopMinKm) / loopStepKm)
-                              .round(),
-                          label: formatDistance(l10n, _km * 1000),
-                          onChanged: (v) => setState(() => _km = v),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 72,
-                        child: Text(
-                          formatDistance(l10n, _km * 1000),
-                          textAlign: TextAlign.end,
-                          style: theme.textTheme.titleMedium,
-                        ),
-                      ),
-                    ],
+                  Text(
+                    formatDistance(l10n, _km * 1000),
+                    style: theme.textTheme.statLarge.copyWith(
+                      color: theme.velorki.accent,
+                    ),
+                  ),
+                  Slider(
+                    value: _km,
+                    min: loopMinKm,
+                    max: loopMaxKm,
+                    divisions: ((loopMaxKm - loopMinKm) / loopStepKm).round(),
+                    label: formatDistance(l10n, _km * 1000),
+                    onChanged: (v) => setState(() => _km = v),
                   ),
                   _Section(title: l10n.plannerProfile),
                   _ProfileChips(
@@ -367,7 +363,12 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
             ),
             const Divider(height: 1),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              padding: EdgeInsets.fromLTRB(
+                20,
+                12,
+                20,
+                MediaQuery.viewPaddingOf(context).bottom + 16,
+              ),
               child: _Actions(
                 state: state,
                 onGenerate: () => unawaited(_generate()),
@@ -383,23 +384,6 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
   }
 }
 
-class _GrabHandle extends StatelessWidget {
-  const _GrabHandle();
-
-  @override
-  Widget build(BuildContext context) => Center(
-    child: Container(
-      width: 36,
-      height: 4,
-      margin: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.outlineVariant,
-        borderRadius: BorderRadius.circular(2),
-      ),
-    ),
-  );
-}
-
 class _Section extends StatelessWidget {
   const _Section({required this.title});
 
@@ -407,8 +391,8 @@ class _Section extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 16, bottom: 4),
-    child: Text(title, style: Theme.of(context).textTheme.titleSmall),
+    padding: const EdgeInsets.only(top: 20, bottom: 8),
+    child: SectionCaption(title),
   );
 }
 
@@ -484,9 +468,12 @@ class _Results extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (state.running) ...[
-          const SizedBox(height: 16),
-          LinearProgressIndicator(value: state.progress),
-          const SizedBox(height: 8),
+          const SizedBox(height: 20),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(value: state.progress, minHeight: 4),
+          ),
+          const SizedBox(height: 10),
           Text(l10n.loopSearching, style: theme.textTheme.bodySmall),
         ],
         if (error != null)
@@ -554,14 +541,23 @@ class LoopCandidateCard extends StatelessWidget {
     final features = candidate.score.features;
     final stats = result.surfaceStats;
 
+    final accent = theme.velorki.accent;
+
     return Card(
       margin: const EdgeInsets.only(top: 12),
-      color: selected ? theme.colorScheme.secondaryContainer : null,
+      // The chosen loop is the one drawn on the map; a 2dp accent border says
+      // so without recolouring the whole card.
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: selected
+            ? BorderSide(color: accent, width: 2)
+            : BorderSide(color: theme.colorScheme.outlineVariant),
+      ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -570,28 +566,24 @@ class LoopCandidateCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       l10n.loopCandidateTitle(index + 1),
-                      style: theme.textTheme.titleSmall,
+                      style: theme.textTheme.titleMedium,
                     ),
                   ),
                   if (selected)
-                    Icon(
-                      Icons.check_circle,
-                      size: 18,
-                      color: theme.colorScheme.primary,
-                    ),
+                    Icon(Icons.check_circle_rounded, size: 20, color: accent),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               RouteStatsRow(
                 distanceM: result.lengthM,
                 ascentM: result.ascentM,
                 descentM: result.descentM,
                 duration: profile.estimatedTime(result.lengthM),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 14),
               Wrap(
-                spacing: 8,
-                runSpacing: 4,
+                spacing: 6,
+                runSpacing: 6,
                 children: [
                   _Metric(
                     label: l10n.labelWithPercent(
@@ -638,11 +630,24 @@ class _Metric extends StatelessWidget {
   final String label;
 
   @override
-  Widget build(BuildContext context) => Chip(
-    visualDensity: VisualDensity.compact,
-    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    label: Text(label, style: Theme.of(context).textTheme.labelSmall),
-  );
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    // A Material chip inside a card the rider taps would look like a second
+    // button; this is a label, so it is drawn as one.
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.labelMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
 }
 
 class _Actions extends StatelessWidget {
@@ -664,35 +669,35 @@ class _Actions extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     if (state.running) {
-      return Align(
-        alignment: Alignment.centerRight,
-        child: OutlinedButton.icon(
-          onPressed: onStop,
-          icon: const Icon(Icons.stop),
-          label: Text(l10n.loopStop),
-        ),
+      return OutlinedButton.icon(
+        onPressed: onStop,
+        icon: const Icon(Icons.stop_rounded),
+        label: Text(l10n.loopStop),
       );
     }
     if (state.candidates.isEmpty) {
       return FilledButton.icon(
         onPressed: onGenerate,
-        icon: const Icon(Icons.loop),
+        icon: const Icon(Icons.loop_rounded),
         label: Text(l10n.loopGenerate),
       );
     }
+    // "Use this loop" is what the rider came for, so it takes the width;
+    // a new draw is one more tap away.
     return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
       children: [
         TextButton.icon(
           onPressed: onRegenerate,
-          icon: const Icon(Icons.refresh),
+          icon: const Icon(Icons.refresh_rounded),
           label: Text(l10n.loopRegenerate),
         ),
-        const SizedBox(width: 8),
-        FilledButton.icon(
-          onPressed: state.canAdopt ? onUse : null,
-          icon: const Icon(Icons.check),
-          label: Text(l10n.loopUseThis),
+        const SizedBox(width: 12),
+        Expanded(
+          child: FilledButton.icon(
+            onPressed: state.canAdopt ? onUse : null,
+            icon: const Icon(Icons.check_rounded),
+            label: Text(l10n.loopUseThis),
+          ),
         ),
       ],
     );

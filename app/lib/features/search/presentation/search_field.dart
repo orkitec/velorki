@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
+import '../../shared/presentation/stat_tile.dart';
 import '../application/place_search_controller.dart';
 import '../data/photon_client.dart';
 import '../domain/search_result.dart';
@@ -71,17 +72,26 @@ class _SearchFieldState extends ConsumerState<SearchField> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Card(
-          margin: EdgeInsets.zero,
+        GlassPanel(
+          radius: 28,
           child: TextField(
             controller: _controller,
             focusNode: _focusNode,
             textInputAction: TextInputAction.search,
             enabled: hasGeocoder,
+            style: Theme.of(context).textTheme.bodyLarge,
             decoration: InputDecoration(
               hintText: hasGeocoder ? l10n.searchHint : l10n.searchUnavailable,
-              prefixIcon: const Icon(Icons.search),
+              prefixIcon: const Icon(Icons.search_rounded),
+              filled: false,
               border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 16,
+              ),
               suffixIcon: _controller.text.isEmpty
                   ? null
                   : IconButton(
@@ -109,50 +119,53 @@ class _ResultsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Card(
-      margin: const EdgeInsets.only(top: 4),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxHeight: 260),
-        child: results.when(
-          loading: () => const Padding(
-            padding: EdgeInsets.all(16),
-            child: LinearProgressIndicator(),
-          ),
-          error: (error, _) => ListTile(
-            leading: const Icon(Icons.error_outline),
-            title: Text(
-              error is SearchException && error.message.contains('configured')
-                  ? l10n.searchUnavailable
-                  : l10n.searchFailed,
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: GlassPanel(
+        radius: 20,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 260),
+          child: results.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.all(16),
+              child: LinearProgressIndicator(),
             ),
-            // The reason, so a failure is diagnosable from the screen.
-            subtitle:
-                error is SearchException &&
-                    !error.message.contains('configured')
-                ? Text(
-                    error.message,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  )
-                : null,
+            error: (error, _) => ListTile(
+              leading: const Icon(Icons.error_outline),
+              title: Text(
+                error is SearchException && error.message.contains('configured')
+                    ? l10n.searchUnavailable
+                    : l10n.searchFailed,
+              ),
+              // The reason, so a failure is diagnosable from the screen.
+              subtitle:
+                  error is SearchException &&
+                      !error.message.contains('configured')
+                  ? Text(
+                      error.message,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    )
+                  : null,
+            ),
+            data: (items) => items.isEmpty
+                ? ListTile(title: Text(l10n.searchNoResults))
+                : ListView.builder(
+                    shrinkWrap: true,
+                    padding: EdgeInsets.zero,
+                    itemCount: items.length,
+                    itemBuilder: (context, i) {
+                      final r = items[i];
+                      return ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.place_outlined),
+                        title: Text(r.name),
+                        subtitle: r.subtitle.isEmpty ? null : Text(r.subtitle),
+                        onTap: () => onSelected(r),
+                      );
+                    },
+                  ),
           ),
-          data: (items) => items.isEmpty
-              ? ListTile(title: Text(l10n.searchNoResults))
-              : ListView.builder(
-                  shrinkWrap: true,
-                  padding: EdgeInsets.zero,
-                  itemCount: items.length,
-                  itemBuilder: (context, i) {
-                    final r = items[i];
-                    return ListTile(
-                      dense: true,
-                      leading: const Icon(Icons.place_outlined),
-                      title: Text(r.name),
-                      subtitle: r.subtitle.isEmpty ? null : Text(r.subtitle),
-                      onTap: () => onSelected(r),
-                    );
-                  },
-                ),
         ),
       ),
     );

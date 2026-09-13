@@ -65,6 +65,19 @@ void main() {
     await _pumpShell(tester);
 
     expect(find.byType(NavigationBar), findsOneWidget);
+    // The bar floats in its glass pill over a body that runs behind it.
+    expect(find.byType(FloatingNavigationBar), findsOneWidget);
+    expect(
+      tester
+          .widget<Scaffold>(
+            find.ancestor(
+              of: find.byType(FloatingNavigationBar),
+              matching: find.byType(Scaffold),
+            ),
+          )
+          .extendBody,
+      isTrue,
+    );
     expect(find.byType(NavigationDestination), findsNWidgets(4));
     for (final label in ['Plan', 'Record', 'Library', 'Settings']) {
       expect(find.widgetWithText(NavigationDestination, label), findsOneWidget);

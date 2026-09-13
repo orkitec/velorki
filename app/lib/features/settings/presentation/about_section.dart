@@ -55,6 +55,9 @@ class AboutSection extends ConsumerWidget {
             version == null
                 ? l10n.settingsVersionUnknown
                 : l10n.settingsVersion(version),
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
         ListTile(
@@ -71,20 +74,20 @@ class AboutSection extends ConsumerWidget {
         ListTile(
           leading: const Icon(Icons.privacy_tip_outlined),
           title: Text(l10n.settingsPrivacyPolicy),
-          trailing: const Icon(Icons.open_in_new),
+          trailing: const Icon(Icons.open_in_new, size: 18),
           onTap: () => unawaited(_open(context, ref, velorkiPrivacyUrl)),
         ),
         ListTile(
           leading: const Icon(Icons.gavel_outlined),
           title: Text(l10n.settingsTerms),
-          trailing: const Icon(Icons.open_in_new),
+          trailing: const Icon(Icons.open_in_new, size: 18),
           onTap: () => unawaited(_open(context, ref, velorkiTermsUrl)),
         ),
         ListTile(
           leading: const Icon(Icons.bug_report_outlined),
           title: Text(l10n.settingsReportProblem),
           subtitle: Text(l10n.settingsReportProblemSubtitle),
-          trailing: const Icon(Icons.open_in_new),
+          trailing: const Icon(Icons.open_in_new, size: 18),
           onTap: () => unawaited(_open(context, ref, velorkiIssuesUrl)),
         ),
       ],

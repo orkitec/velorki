@@ -1497,6 +1497,50 @@
   "@plusSeeDetails": {
     "description": "Button on the upsell card that opens the paywall"
   },
+  "settingsAppearance": "Appearance",
+  "@settingsAppearance": {
+    "description": "Settings section header for theme mode and accent colour"
+  },
+  "appearanceMode": "Theme",
+  "@appearanceMode": {
+    "description": "Label above the light/dark/system choice"
+  },
+  "appearanceModeSystem": "System",
+  "@appearanceModeSystem": {
+    "description": "Theme mode option: follow the system setting"
+  },
+  "appearanceModeLight": "Light",
+  "@appearanceModeLight": {
+    "description": "Theme mode option: always light"
+  },
+  "appearanceModeDark": "Dark",
+  "@appearanceModeDark": {
+    "description": "Theme mode option: always dark"
+  },
+  "appearanceAccent": "Accent",
+  "@appearanceAccent": {
+    "description": "Label above the accent colour swatches"
+  },
+  "accentVolt": "Volt",
+  "@accentVolt": {
+    "description": "Accent colour name: electric lime green"
+  },
+  "accentEmber": "Ember",
+  "@accentEmber": {
+    "description": "Accent colour name: coral orange"
+  },
+  "accentGlacier": "Glacier",
+  "@accentGlacier": {
+    "description": "Accent colour name: ice blue"
+  },
+  "accentBerry": "Berry",
+  "@accentBerry": {
+    "description": "Accent colour name: hot pink"
+  },
+  "plannerVariants": "Variants",
+  "@plannerVariants": {
+    "description": "Short label under the alternative-routes icon button in the planner toolbar"
+  },
   "settingsSubscription": "Subscription",
   "@settingsSubscription": {
     "description": "Settings section header above the Plus tile"

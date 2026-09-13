@@ -25,12 +25,29 @@ MapViewBuilder mapViewBuilder(Ref ref) =>
 /// Places the map and forwards its controller, so no screen imports maplibre.
 class PlannerMapHost extends ConsumerWidget {
   /// Creates the host.
-  const PlannerMapHost({required this.onMapReady, super.key});
+  const PlannerMapHost({
+    required this.onMapReady,
+    super.key,
+    this.embedded = false,
+  });
 
   /// Called once the map can be driven.
   final void Function(MapController controller) onMapReady;
 
+  /// Whether the map sits above other content rather than reaching the
+  /// bottom of the screen. An embedded map drops the bottom safe-area inset
+  /// (the floating navigation bar), which would otherwise push its
+  /// attribution chip into the middle of the map.
+  final bool embedded;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) =>
-      ref.watch(mapViewBuilderProvider)(onMapReady);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final map = ref.watch(mapViewBuilderProvider)(onMapReady);
+    if (!embedded) return map;
+    return MediaQuery.removePadding(
+      context: context,
+      removeBottom: true,
+      child: map,
+    );
+  }
 }

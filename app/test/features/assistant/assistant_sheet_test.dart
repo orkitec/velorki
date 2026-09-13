@@ -11,6 +11,7 @@ import 'package:velorki/features/assistant/presentation/assistant_sheet.dart';
 import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
+import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki/features/smart_loop/application/smart_loop_controller.dart';
 import 'package:velorki_api/velorki_api.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -56,7 +57,7 @@ Future<PlannerHarness> _openSheet(
   if (consent != null) {
     await container.read(aiConsentControllerProvider.notifier).set(consent);
   }
-  await tester.tap(find.widgetWithText(TextButton, 'Ask'));
+  await tester.tap(find.widgetWithText(LabeledIconButton, 'Ask'));
   await tester.pumpAndSettle();
   return harness;
 }

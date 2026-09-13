@@ -13,7 +13,9 @@ import '../../../features/routing_tiles/domain/routing_preference.dart';
 import '../../../features/routing_tiles/presentation/routing_tiles_screen.dart';
 import '../../../features/subscription/presentation/plus_settings_section.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../shared/presentation/stat_tile.dart';
 import 'about_section.dart';
+import 'appearance_section.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -24,7 +26,13 @@ class SettingsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.tabSettings)),
       body: ListView(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.paddingOf(context).bottom + 24,
+        ),
         children: const [
+          _SectionHeader.appearance(),
+          AppearanceSection(),
+          Divider(height: 32),
           _SectionHeader.subscription(),
           PlusSettingsSection(),
           Divider(height: 32),
@@ -42,7 +50,6 @@ class SettingsScreen extends ConsumerWidget {
           Divider(height: 32),
           _SectionHeader.about(),
           AboutSection(),
-          SizedBox(height: 24),
         ],
       ),
     );
@@ -50,6 +57,7 @@ class SettingsScreen extends ConsumerWidget {
 }
 
 class _SectionHeader extends StatelessWidget {
+  const _SectionHeader.appearance() : _section = _Section.appearance;
   const _SectionHeader.subscription() : _section = _Section.subscription;
   const _SectionHeader.connections() : _section = _Section.connections;
   const _SectionHeader.ai() : _section = _Section.ai;
@@ -61,26 +69,21 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-      child: Text(
-        switch (_section) {
-          _Section.subscription => l10n.settingsSubscription,
-          _Section.connections => l10n.settingsConnections,
-          _Section.ai => l10n.settingsAi,
-          _Section.advanced => l10n.settingsAdvanced,
-          _Section.about => l10n.settingsAbout,
-        },
-        style: theme.textTheme.titleSmall?.copyWith(
-          color: theme.colorScheme.primary,
-        ),
-      ),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+      child: SectionCaption(switch (_section) {
+        _Section.appearance => l10n.settingsAppearance,
+        _Section.subscription => l10n.settingsSubscription,
+        _Section.connections => l10n.settingsConnections,
+        _Section.ai => l10n.settingsAi,
+        _Section.advanced => l10n.settingsAdvanced,
+        _Section.about => l10n.settingsAbout,
+      }, accent: true),
     );
   }
 }
 
-enum _Section { subscription, connections, ai, advanced, about }
+enum _Section { appearance, subscription, connections, ai, advanced, about }
 
 /// Entry point into the map feature's offline regions screen.
 ///

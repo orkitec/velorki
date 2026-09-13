@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../shared/presentation/stat_tile.dart';
 import '../data/map_preferences.dart';
 import 'map_strings.dart';
 
@@ -28,16 +29,17 @@ class MapAttributionChip extends ConsumerWidget {
     return Semantics(
       button: true,
       label: MapStrings.attributionTitle,
-      child: Material(
-        color: theme.colorScheme.surface.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(4),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () =>
-              showMapAttributionDialog(context, cyclosmActive: cyclosm),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            child: Text(parts.join(' · '), style: theme.textTheme.labelSmall),
+      child: GlassPanel(
+        radius: 999,
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            onTap: () =>
+                showMapAttributionDialog(context, cyclosmActive: cyclosm),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              child: Text(parts.join(' · '), style: theme.textTheme.labelSmall),
+            ),
           ),
         ),
       ),

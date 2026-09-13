@@ -9,6 +9,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/device_position_request.dart';
 import '../../planner/presentation/route_format.dart';
+import '../../shared/presentation/stat_tile.dart';
 import '../application/assistant_controller.dart';
 import '../data/ai_consent_controller.dart';
 import '../domain/ai_consent.dart';
@@ -120,21 +121,31 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const _GrabHandle(),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(l10n.assistantTitle, style: theme.textTheme.titleLarge),
-                  Text(l10n.assistantIntro, style: theme.textTheme.bodySmall),
+                  Text(
+                    l10n.assistantTitle,
+                    style: theme.textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 4),
+                  // What leaves the phone and what does not: said in the
+                  // reading size, not in fine print.
+                  Text(
+                    l10n.assistantIntro,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               ),
             ),
             Flexible(
               child: ListView(
                 shrinkWrap: true,
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
                 children: [
                   TextField(
                     controller: _prompt,
@@ -142,17 +153,12 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
                     maxLines: 4,
                     maxLength: 1000,
                     textInputAction: TextInputAction.send,
-                    decoration: InputDecoration(
-                      hintText: l10n.assistantHint,
-                      border: const OutlineInputBorder(),
-                    ),
+                    style: theme.textTheme.bodyLarge,
+                    decoration: InputDecoration(hintText: l10n.assistantHint),
                     onSubmitted: (_) => unawaited(_send()),
                   ),
-                  Text(
-                    l10n.assistantExamples,
-                    style: theme.textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 4),
+                  SectionCaption(l10n.assistantExamples),
+                  const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 4,
@@ -171,7 +177,7 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
                     ],
                   ),
                   if (state.busy) ...[
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     Row(
                       children: [
                         const SizedBox(
@@ -209,10 +215,15 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
             ),
             const Divider(height: 1),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              padding: EdgeInsets.fromLTRB(
+                20,
+                12,
+                20,
+                MediaQuery.viewPaddingOf(context).bottom + 16,
+              ),
               child: FilledButton.icon(
                 onPressed: state.busy ? null : () => unawaited(_send()),
-                icon: const Icon(Icons.auto_awesome),
+                icon: const Icon(Icons.auto_awesome_rounded),
                 label: Text(l10n.assistantSend),
               ),
             ),
@@ -253,13 +264,16 @@ class _RequestSummary extends StatelessWidget {
           request.loop
               ? l10n.assistantSummaryLoop(distance)
               : l10n.assistantSummaryRoute(distance),
-          style: theme.textTheme.titleSmall,
+          style: theme.textTheme.titleMedium,
         ),
+        const SizedBox(height: 2),
         Text(
           startLabel == null
               ? l10n.assistantStartHere
               : l10n.assistantStartAt(startLabel),
-          style: theme.textTheme.bodySmall,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
         ),
         if (places.isNotEmpty) ...[
           const SizedBox(height: 8),
@@ -298,9 +312,9 @@ class _ChoiceRow extends StatelessWidget {
         children: [
           Text(
             l10n.assistantChoose(choice.query),
-            style: theme.textTheme.titleSmall,
+            style: theme.textTheme.titleMedium,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Wrap(
             spacing: 8,
             runSpacing: 4,
@@ -362,21 +376,4 @@ class _ProblemRow extends ConsumerWidget {
       ],
     );
   }
-}
-
-class _GrabHandle extends StatelessWidget {
-  const _GrabHandle();
-
-  @override
-  Widget build(BuildContext context) => Center(
-    child: Container(
-      width: 36,
-      height: 4,
-      margin: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.outlineVariant,
-        borderRadius: BorderRadius.circular(2),
-      ),
-    ),
-  );
 }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/theme.dart';
 import '../../../core/links/link_opener.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../data/ai_consent_controller.dart';
@@ -39,24 +40,40 @@ class AiSettingsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     final consent = ref.watch(aiConsentControllerProvider);
+    // Consent given reads as a live connection, like a connected account.
+    final on = consent?.allowsRequests ?? false;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ListTile(
-          leading: const Icon(Icons.privacy_tip_outlined),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+          leading: Icon(
+            Icons.privacy_tip_outlined,
+            color: on ? theme.velorki.success : null,
+          ),
           title: Text(l10n.settingsAiConsent),
-          subtitle: Text(aiConsentDescription(l10n, consent)),
+          subtitle: Text(
+            aiConsentDescription(l10n, consent),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: on
+                  ? theme.velorki.success
+                  : theme.colorScheme.onSurfaceVariant,
+              fontWeight: on ? FontWeight.w700 : null,
+            ),
+          ),
           trailing: TextButton(
             onPressed: () => unawaited(_change(context, ref)),
             child: Text(l10n.settingsAiChange),
           ),
         ),
         ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20),
           leading: const Icon(Icons.flag_outlined),
           title: Text(l10n.settingsAiReport),
           subtitle: Text(l10n.settingsAiReportSubtitle),
-          trailing: const Icon(Icons.open_in_new),
+          trailing: const Icon(Icons.open_in_new, size: 18),
           onTap: () => unawaited(_report(context, ref)),
         ),
       ],

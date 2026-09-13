@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart' show Brightness, ThemeData;
 import 'package:flutter/foundation.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../../app/theme.dart';
 import '../domain/map_controller.dart';
 import 'geojson.dart';
 import 'tile_template.dart';
@@ -31,20 +33,115 @@ abstract final class MapLayerIds {
 
 /// Line, circle and text colours, kept in one place so the planner's legend
 /// and the map agree.
-abstract final class MapColors {
-  static const String routeMain = '#1565C0';
-  static const String routeMainCasing = '#0D3C6E';
-  static const String routeAlternative = '#78909C';
-  static const String routePreview = '#EF6C00';
-  static const String track = '#AD1457';
-  static const String waypointStart = '#2E7D32';
-  static const String waypointVia = '#1565C0';
-  static const String waypointEnd = '#C62828';
-  static const String waypointStroke = '#FFFFFF';
-  static const String waypointLabel = '#FFFFFF';
-  static const String waypointLabelHalo = '#00000055';
-  static const String positionDot = '#1E88E5';
-  static const String positionAccuracy = '#1E88E5';
+/// The colours of the layers Velorki adds, as maplibre hex strings.
+///
+/// Built from the theme so the route follows the chosen accent and the
+/// markers hold up on both map styles; [MapPalette.classic] is the fixed set
+/// used where no theme is around.
+@immutable
+class MapPalette {
+  /// Creates the palette.
+  const MapPalette({
+    required this.routeMain,
+    required this.routeMainCasing,
+    required this.routeAlternative,
+    required this.routePreview,
+    required this.track,
+    required this.waypointStart,
+    required this.waypointVia,
+    required this.waypointEnd,
+    required this.waypointStroke,
+    required this.waypointLabel,
+    required this.waypointLabelHalo,
+    required this.positionDot,
+    required this.positionAccuracy,
+  });
+
+  /// The fixed palette of the first release.
+  const MapPalette.classic()
+    : routeMain = '#1565C0',
+      routeMainCasing = '#0D3C6E',
+      routeAlternative = '#78909C',
+      routePreview = '#EF6C00',
+      track = '#AD1457',
+      waypointStart = '#2E7D32',
+      waypointVia = '#1565C0',
+      waypointEnd = '#C62828',
+      waypointStroke = '#FFFFFF',
+      waypointLabel = '#FFFFFF',
+      waypointLabelHalo = '#00000055',
+      positionDot = '#1E88E5',
+      positionAccuracy = '#1E88E5';
+
+  /// The palette of [theme]'s [VelorkiColors].
+  factory MapPalette.fromTheme(ThemeData theme) {
+    final colors = theme.velorki;
+    final dark = theme.brightness == Brightness.dark;
+    return MapPalette(
+      routeMain: VelorkiColors.hex(colors.routeMain),
+      routeMainCasing: VelorkiColors.hex(colors.routeMainCasing),
+      routeAlternative: VelorkiColors.hex(colors.routeAlternative),
+      routePreview: VelorkiColors.hex(colors.routePreview),
+      track: VelorkiColors.hex(colors.track),
+      waypointStart: VelorkiColors.hex(colors.waypointStart),
+      waypointVia: VelorkiColors.hex(colors.waypointVia),
+      waypointEnd: VelorkiColors.hex(colors.waypointEnd),
+      waypointStroke: VelorkiColors.hex(colors.waypointStroke),
+      // Labels sit on the via markers, which are white in both modes.
+      waypointLabel: dark ? '#0B0D10' : '#14171A',
+      waypointLabelHalo: '#FFFFFF66',
+      positionDot: VelorkiColors.hex(colors.position),
+      positionAccuracy: VelorkiColors.hex(colors.position),
+    );
+  }
+
+  final String routeMain;
+  final String routeMainCasing;
+  final String routeAlternative;
+  final String routePreview;
+  final String track;
+  final String waypointStart;
+  final String waypointVia;
+  final String waypointEnd;
+  final String waypointStroke;
+  final String waypointLabel;
+  final String waypointLabelHalo;
+  final String positionDot;
+  final String positionAccuracy;
+
+  @override
+  bool operator ==(Object other) =>
+      other is MapPalette &&
+      other.routeMain == routeMain &&
+      other.routeMainCasing == routeMainCasing &&
+      other.routeAlternative == routeAlternative &&
+      other.routePreview == routePreview &&
+      other.track == track &&
+      other.waypointStart == waypointStart &&
+      other.waypointVia == waypointVia &&
+      other.waypointEnd == waypointEnd &&
+      other.waypointStroke == waypointStroke &&
+      other.waypointLabel == waypointLabel &&
+      other.waypointLabelHalo == waypointLabelHalo &&
+      other.positionDot == positionDot &&
+      other.positionAccuracy == positionAccuracy;
+
+  @override
+  int get hashCode => Object.hash(
+    routeMain,
+    routeMainCasing,
+    routeAlternative,
+    routePreview,
+    track,
+    waypointStart,
+    waypointVia,
+    waypointEnd,
+    waypointStroke,
+    waypointLabel,
+    waypointLabelHalo,
+    positionDot,
+    positionAccuracy,
+  );
 }
 
 /// Attribution string handed to the raster source, so the native SDK's own
@@ -58,9 +155,17 @@ const String _cyclosmAttribution =
 /// layers rather than annotations: annotations go through a per-feature method
 /// channel round trip, while a source swap is one call however long the line.
 class MaplibreMapControllerAdapter implements MapController {
-  MaplibreMapControllerAdapter(this._map, {this.cyclosmTileUrl = ''});
+  MaplibreMapControllerAdapter(
+    this._map, {
+    this.cyclosmTileUrl = '',
+    MapPalette palette = const MapPalette.classic(),
+  }) : _palette = palette; // ignore: prefer_initializing_formals
 
   final ml.MapLibreMapController _map;
+  MapPalette _palette;
+
+  /// The colours the layers are drawn with.
+  MapPalette get palette => _palette;
 
   /// CyclOSM XYZ template, `{s}` included; empty disables the overlay.
   final String cyclosmTileUrl;
@@ -108,8 +213,8 @@ class MaplibreMapControllerAdapter implements MapController {
     await _map.addLayer(
       MapLayerIds.trackSource,
       MapLayerIds.trackLayer,
-      const ml.LineLayerProperties(
-        lineColor: MapColors.track,
+      ml.LineLayerProperties(
+        lineColor: palette.track,
         lineWidth: 4.0,
         lineOpacity: 0.9,
         lineCap: 'round',
@@ -125,12 +230,12 @@ class MaplibreMapControllerAdapter implements MapController {
     await _map.addLayer(
       MapLayerIds.positionSource,
       MapLayerIds.positionAccuracyLayer,
-      const ml.CircleLayerProperties(
+      ml.CircleLayerProperties(
         circleRadius: 0.0,
-        circleColor: MapColors.positionAccuracy,
+        circleColor: palette.positionAccuracy,
         circleOpacity: 0.15,
         circleStrokeWidth: 1.0,
-        circleStrokeColor: MapColors.positionAccuracy,
+        circleStrokeColor: palette.positionAccuracy,
         circleStrokeOpacity: 0.4,
       ),
       enableInteraction: false,
@@ -138,9 +243,9 @@ class MaplibreMapControllerAdapter implements MapController {
     await _map.addLayer(
       MapLayerIds.positionSource,
       MapLayerIds.positionDotLayer,
-      const ml.CircleLayerProperties(
+      ml.CircleLayerProperties(
         circleRadius: 6.0,
-        circleColor: MapColors.positionDot,
+        circleColor: palette.positionDot,
         circleStrokeWidth: 2.0,
         circleStrokeColor: '#FFFFFF',
       ),
@@ -154,30 +259,22 @@ class MaplibreMapControllerAdapter implements MapController {
     await _map.addLayer(
       MapLayerIds.waypointsSource,
       MapLayerIds.waypointsCircleLayer,
-      const ml.CircleLayerProperties(
+      ml.CircleLayerProperties(
         circleRadius: 10.0,
-        circleColor: <Object>[
-          'match',
-          <Object>['get', 'kind'],
-          'start',
-          MapColors.waypointStart,
-          'end',
-          MapColors.waypointEnd,
-          MapColors.waypointVia,
-        ],
-        circleStrokeWidth: 2.0,
-        circleStrokeColor: MapColors.waypointStroke,
+        circleColor: _waypointColorExpression(),
+        circleStrokeWidth: 2.5,
+        circleStrokeColor: palette.waypointStroke,
       ),
       // Drag gestures only reach layers that take part in feature interaction.
     );
     await _map.addLayer(
       MapLayerIds.waypointsSource,
       MapLayerIds.waypointsLabelLayer,
-      const ml.SymbolLayerProperties(
+      ml.SymbolLayerProperties(
         textField: <Object>['get', 'label'],
         textSize: 12.0,
-        textColor: MapColors.waypointLabel,
-        textHaloColor: MapColors.waypointLabelHalo,
+        textColor: palette.waypointLabel,
+        textHaloColor: palette.waypointLabelHalo,
         textHaloWidth: 0.6,
         textAllowOverlap: true,
         textIgnorePlacement: true,
@@ -341,24 +438,24 @@ class MaplibreMapControllerAdapter implements MapController {
     }
   }
 
-  static ml.LineLayerProperties _lineProperties(RouteLineStyle style) =>
+  ml.LineLayerProperties _lineProperties(RouteLineStyle style) =>
       switch (style) {
-        RouteLineStyle.main => const ml.LineLayerProperties(
-          lineColor: MapColors.routeMain,
-          lineWidth: 6.0,
+        RouteLineStyle.main => ml.LineLayerProperties(
+          lineColor: palette.routeMain,
+          lineWidth: 5.0,
           lineOpacity: 1.0,
           lineCap: 'round',
           lineJoin: 'round',
         ),
-        RouteLineStyle.alternative => const ml.LineLayerProperties(
-          lineColor: MapColors.routeAlternative,
+        RouteLineStyle.alternative => ml.LineLayerProperties(
+          lineColor: palette.routeAlternative,
           lineWidth: 4.0,
           lineOpacity: 0.75,
           lineCap: 'round',
           lineJoin: 'round',
         ),
-        RouteLineStyle.preview => const ml.LineLayerProperties(
-          lineColor: MapColors.routePreview,
+        RouteLineStyle.preview => ml.LineLayerProperties(
+          lineColor: palette.routePreview,
           lineWidth: 4.0,
           lineOpacity: 0.9,
           lineCap: 'round',
@@ -366,6 +463,59 @@ class MaplibreMapControllerAdapter implements MapController {
           lineDasharray: <double>[2, 1.5],
         ),
       };
+
+  /// Recolours every layer for [palette], e.g. after the accent changed
+  /// without a style reload.
+  Future<void> setPalette(MapPalette palette) async {
+    if (palette == _palette) return;
+    _palette = palette;
+    if (!_attached) return;
+    await _map.setLayerProperties(
+      MapLayerIds.trackLayer,
+      ml.LineLayerProperties(lineColor: palette.track),
+    );
+    await _map.setLayerProperties(
+      MapLayerIds.positionDotLayer,
+      ml.CircleLayerProperties(circleColor: palette.positionDot),
+    );
+    await _map.setLayerProperties(
+      MapLayerIds.positionAccuracyLayer,
+      ml.CircleLayerProperties(
+        circleColor: palette.positionAccuracy,
+        circleStrokeColor: palette.positionAccuracy,
+      ),
+    );
+    await _map.setLayerProperties(
+      MapLayerIds.waypointsCircleLayer,
+      ml.CircleLayerProperties(
+        circleColor: _waypointColorExpression(),
+        circleStrokeColor: palette.waypointStroke,
+      ),
+    );
+    await _map.setLayerProperties(
+      MapLayerIds.waypointsLabelLayer,
+      ml.SymbolLayerProperties(
+        textColor: palette.waypointLabel,
+        textHaloColor: palette.waypointLabelHalo,
+      ),
+    );
+    for (final entry in _routeLines.entries) {
+      await _map.setLayerProperties(
+        MapLayerIds.routeLayer(entry.key),
+        _lineProperties(entry.value),
+      );
+    }
+  }
+
+  List<Object> _waypointColorExpression() => <Object>[
+    'match',
+    <Object>['get', 'kind'],
+    'start',
+    palette.waypointStart,
+    'end',
+    palette.waypointEnd,
+    palette.waypointVia,
+  ];
 
   // -------------------------------------------------------------- features
 
@@ -423,10 +573,10 @@ class MaplibreMapControllerAdapter implements MapController {
       MapLayerIds.positionAccuracyLayer,
       ml.CircleLayerProperties(
         circleRadius: radius,
-        circleColor: MapColors.positionAccuracy,
+        circleColor: palette.positionAccuracy,
         circleOpacity: 0.15,
         circleStrokeWidth: 1.0,
-        circleStrokeColor: MapColors.positionAccuracy,
+        circleStrokeColor: palette.positionAccuracy,
         circleStrokeOpacity: 0.4,
       ),
     );

@@ -1,7 +1,9 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../shared/presentation/stat_tile.dart';
 import '../domain/elevation_profile.dart';
 import 'route_format.dart';
 
@@ -63,24 +65,33 @@ class _ElevationProfileChartState extends State<ElevationProfileChart> {
     final padding = ((maxY - minY) * 0.1).clamp(5.0, 100.0);
     final touched = _touched;
 
+    final colors = theme.velorki;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(l10n.elevationTitle, style: theme.textTheme.titleSmall),
+            Expanded(child: SectionCaption(l10n.elevationTitle)),
             if (touched != null)
-              Text(
-                l10n.elevationPoint(
-                  formatDistance(l10n, touched.distanceM),
-                  formatHeight(l10n, touched.elevationM),
+              Flexible(
+                child: Text(
+                  l10n.elevationPoint(
+                    formatDistance(l10n, touched.distanceM),
+                    formatHeight(l10n, touched.elevationM),
+                  ),
+                  style: theme.textTheme.statMedium.copyWith(
+                    color: colors.accent,
+                  ),
+                  textAlign: TextAlign.end,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                style: theme.textTheme.bodySmall,
               ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         SizedBox(
           height: widget.height,
           child: LineChart(
@@ -91,14 +102,22 @@ class _ElevationProfileChartState extends State<ElevationProfileChart> {
               maxX: spots.last.x,
               gridData: const FlGridData(show: false),
               borderData: FlBorderData(show: false),
-              titlesData: const FlTitlesData(
-                topTitles: AxisTitles(),
-                rightTitles: AxisTitles(),
+              titlesData: FlTitlesData(
+                topTitles: const AxisTitles(),
+                rightTitles: const AxisTitles(),
                 bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(showTitles: true, reservedSize: 22),
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 24,
+                    getTitlesWidget: (_, meta) => _axisLabel(context, meta),
+                  ),
                 ),
                 leftTitles: AxisTitles(
-                  sideTitles: SideTitles(showTitles: true, reservedSize: 40),
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 40,
+                    getTitlesWidget: (_, meta) => _axisLabel(context, meta),
+                  ),
                 ),
               ),
               lineTouchData: LineTouchData(
@@ -109,12 +128,12 @@ class _ElevationProfileChartState extends State<ElevationProfileChart> {
                 LineChartBarData(
                   spots: spots,
                   isCurved: false,
-                  barWidth: 2,
-                  color: theme.colorScheme.primary,
+                  barWidth: 2.5,
+                  color: colors.accent,
                   dotData: const FlDotData(show: false),
                   belowBarData: BarAreaData(
                     show: true,
-                    color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                    color: colors.chartFill,
                   ),
                 ),
               ],
@@ -122,6 +141,20 @@ class _ElevationProfileChartState extends State<ElevationProfileChart> {
           ),
         ),
       ],
+    );
+  }
+
+  /// One axis number, in the quiet label style the rest of the app uses.
+  Widget _axisLabel(BuildContext context, TitleMeta meta) {
+    final theme = Theme.of(context);
+    return SideTitleWidget(
+      meta: meta,
+      child: Text(
+        meta.formattedValue,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
     );
   }
 

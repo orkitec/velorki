@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/planner/presentation/elevation_profile_chart.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/planner/presentation/surface_stats_bar.dart';
+import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -131,17 +132,17 @@ void main() {
     final h = await pumpScreen(tester, const PlannerScreen());
     await _plotRoute(tester, h);
 
-    await tester.tap(find.text('Reverse'));
+    await tester.tap(find.widgetWithText(LabeledIconButton, 'Reverse'));
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
     expect(h.backend.queries.last.points, [_b, _a]);
 
-    await tester.tap(find.text('Undo'));
+    await tester.tap(find.widgetWithText(LabeledIconButton, 'Undo'));
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
     expect(h.backend.queries.last.points, [_a, _b]);
 
-    await tester.tap(find.text('Clear'));
+    await tester.tap(find.widgetWithText(LabeledIconButton, 'Clear'));
     await tester.pumpAndSettle();
     expect(find.text('Tap the map to set a start.'), findsOneWidget);
     expect(h.map.lines, isEmpty);
@@ -154,7 +155,7 @@ void main() {
     h.backend.byAlternative[1] = syntheticRoute(lengthM: 11000);
     await _plotRoute(tester, h);
 
-    await tester.tap(find.text('Alternatives'));
+    await tester.tap(find.widgetWithText(LabeledIconButton, 'Variants'));
     await tester.pumpAndSettle();
 
     expect(find.widgetWithText(ChoiceChip, 'Main'), findsOneWidget);

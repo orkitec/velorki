@@ -61,7 +61,7 @@ void main() {
 
     expect(find.text('Ready to ride'), findsOneWidget);
     expect(find.text('Start ride'), findsOneWidget);
-    expect(find.text('Recent rides'), findsOneWidget);
+    expect(find.text('RECENT RIDES'), findsOneWidget);
     expect(find.text('No rides yet.'), findsOneWidget);
     expect(find.text('Follow a route'), findsOneWidget);
 
@@ -155,7 +155,7 @@ void main() {
       _snapshot(newPoints: const [LatLng(48.0, 11.0), LatLng(48.1, 11.2)]),
     );
 
-    expect(find.text('Recording'), findsOneWidget);
+    expect(find.text('RECORDING'), findsOneWidget);
     expect(find.text('12.3 km'), findsOneWidget);
     expect(find.text('42:07'), findsOneWidget);
     expect(find.text('40:00'), findsOneWidget);
@@ -180,7 +180,7 @@ void main() {
     expect(h.service.calls, contains('pause'));
 
     await emitSnapshot(tester, h, _snapshot(status: RecordingStatus.paused));
-    expect(find.text('Paused'), findsOneWidget);
+    expect(find.text('PAUSED'), findsOneWidget);
 
     await tester.tap(find.text('Resume'));
     await tester.pump();
@@ -199,7 +199,7 @@ void main() {
       _snapshot(status: RecordingStatus.paused, autoPaused: true),
     );
 
-    expect(find.text('Auto-paused'), findsOneWidget);
+    expect(find.text('AUTO-PAUSED'), findsOneWidget);
     await unmountApp(tester);
   });
 

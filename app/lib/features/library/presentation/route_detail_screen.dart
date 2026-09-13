@@ -105,16 +105,20 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
             );
           }
           unawaited(_showOnMap(saved));
+          final theme = Theme.of(context);
           final geometry = saved.geometry;
           return ListView(
-            padding: const EdgeInsets.only(bottom: 24),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.paddingOf(context).bottom + 24,
+            ),
             children: [
+              // Full-bleed hero: the route is the headline of this screen.
               SizedBox(
-                height: 220,
-                child: PlannerMapHost(onMapReady: _onMapReady),
+                height: 260,
+                child: PlannerMapHost(onMapReady: _onMapReady, embedded: true),
               ),
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -124,37 +128,40 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
                         profileLabel(l10n, saved.profile),
                         formatHeight(l10n, saved.ascentM),
                       ),
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: theme.textTheme.bodySmall,
                     ),
                     if (saved.description != null &&
                         saved.description!.isNotEmpty) ...[
                       const SizedBox(height: 12),
                       Text(
                         saved.description!,
-                        style: Theme.of(context).textTheme.bodyMedium,
+                        style: theme.textTheme.bodyMedium,
                       ),
                     ],
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 20),
                     RouteStatsRow(
                       distanceM: saved.distanceM,
                       ascentM: saved.ascentM,
                       descentM: saved.descentM,
                       duration: saved.estimatedTime,
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
                     ElevationProfileChart(samples: elevationProfile(geometry)),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
                     SurfaceStatsBar(stats: saved.surfaceStats),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
+                    // The one thing a saved route is usually opened for gets
+                    // the full-width pill; the rest wraps underneath.
+                    FilledButton.icon(
+                      onPressed: () => _openInPlanner(saved),
+                      icon: const Icon(Icons.route_outlined),
+                      label: Text(l10n.routeDetailOpenInPlanner),
+                    ),
+                    const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        FilledButton.icon(
-                          onPressed: () => _openInPlanner(saved),
-                          icon: const Icon(Icons.route_outlined),
-                          label: Text(l10n.routeDetailOpenInPlanner),
-                        ),
                         // A route exports as a GPX <rte> or as a FIT course;
                         // the activity forms belong to a ride.
                         MenuAnchor(

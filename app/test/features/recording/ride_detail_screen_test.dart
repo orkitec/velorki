@@ -39,9 +39,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Morning loop'), findsOneWidget);
-    expect(find.text('Distance'), findsOneWidget);
-    expect(find.text('Moving'), findsOneWidget);
-    expect(find.text('Ascent'), findsOneWidget);
+    expect(find.text('DISTANCE'), findsOneWidget);
+    expect(find.text('MOVING'), findsOneWidget);
+    expect(find.text('ASCENT'), findsOneWidget);
     expect(find.text('00:59'), findsWidgets);
     expect(find.text('Export GPX track'), findsWidgets);
     expect(find.text('Export FIT activity'), findsWidgets);

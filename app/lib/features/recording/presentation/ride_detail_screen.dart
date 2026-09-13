@@ -12,6 +12,7 @@ import '../../integrations/presentation/ride_upload_menu.dart';
 import '../../map/domain/map_controller.dart';
 import '../../planner/presentation/planner_map_host.dart';
 import '../../planner/presentation/route_format.dart';
+import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/placeholder_body.dart';
 import '../../sharing/presentation/share_link_button.dart';
 import '../data/ride_repository.dart';
@@ -157,24 +158,28 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
             );
           }
           unawaited(_showOnMap(saved));
+          final theme = Theme.of(context);
           final stats = saved.stats;
           return ListView(
-            padding: const EdgeInsets.only(bottom: 24),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.paddingOf(context).bottom + 24,
+            ),
             children: [
+              // Full-bleed hero: the track is the headline of this screen.
               SizedBox(
-                height: 220,
-                child: PlannerMapHost(onMapReady: _onMapReady),
+                height: 260,
+                child: PlannerMapHost(onMapReady: _onMapReady, embedded: true),
               ),
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
                       formatDate(l10n, saved.startedAt),
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: theme.textTheme.bodySmall,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 20),
                     RideStatsGrid(
                       items: <RideStatItem>[
                         RideStatItem(
@@ -214,7 +219,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -287,44 +292,21 @@ class RideStatsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = (constraints.maxWidth - (columns - 1) * 12) / columns;
         return Wrap(
           spacing: 12,
-          runSpacing: 16,
+          runSpacing: 20,
           children: [
             for (final item in items)
               SizedBox(
                 width: width,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          item.icon,
-                          size: 16,
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 4),
-                        Flexible(
-                          child: Text(
-                            item.label,
-                            style: theme.textTheme.labelSmall,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      item.value,
-                      style: theme.textTheme.titleMedium,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                child: StatTile(
+                  icon: item.icon,
+                  label: item.label,
+                  value: item.value,
+                  size: StatSize.medium,
                 ),
               ),
           ],

@@ -17,6 +17,7 @@ abstract class AppConfig with _$AppConfig {
     @Default('') String segmentsUrl,
     @Default('') String photonUrl,
     @Default('') String mapStyleUrl,
+    @Default('') String mapStyleUrlDark,
     @Default('') String cyclosmTileUrl,
     @Default('') String revenueCatKeyAndroid,
     @Default('') String revenueCatKeyIos,
@@ -33,6 +34,7 @@ abstract class AppConfig with _$AppConfig {
     segmentsUrl: String.fromEnvironment('VELORKI_SEGMENTS_URL'),
     photonUrl: String.fromEnvironment('VELORKI_PHOTON_URL'),
     mapStyleUrl: String.fromEnvironment('VELORKI_MAP_STYLE_URL'),
+    mapStyleUrlDark: String.fromEnvironment('VELORKI_MAP_STYLE_URL_DARK'),
     cyclosmTileUrl: String.fromEnvironment('VELORKI_CYCLOSM_TILE_URL'),
     revenueCatKeyAndroid: String.fromEnvironment(
       'VELORKI_REVENUECAT_KEY_ANDROID',

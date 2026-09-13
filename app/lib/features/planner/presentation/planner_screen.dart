@@ -4,14 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 
+import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../assistant/domain/intent_resolver.dart';
 import '../../assistant/presentation/assistant_sheet.dart';
 import '../../map/domain/map_controller.dart';
+import '../../map/presentation/map_chrome.dart';
 import '../../routing_tiles/presentation/missing_tiles_banner.dart';
 import '../../routing_tiles/presentation/routing_source_chip.dart';
 import '../../search/domain/search_result.dart';
 import '../../search/presentation/search_field.dart';
+import '../../shared/presentation/stat_tile.dart';
 import '../../smart_loop/presentation/smart_loop_sheet.dart';
 import '../application/planner_controller.dart';
 import '../application/planner_map_binding.dart';
@@ -24,7 +27,6 @@ import '../domain/routing_options.dart';
 import 'elevation_profile_chart.dart';
 import 'planner_map_host.dart';
 import 'route_format.dart';
-import 'route_stats_row.dart';
 import 'save_route_dialog.dart';
 import 'surface_stats_bar.dart';
 
@@ -167,11 +169,22 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
       ref.read(plannerControllerProvider.notifier).clearError();
     });
 
+    final theme = Theme.of(context);
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+
     return Scaffold(
       body: Stack(
         children: [
-          Positioned.fill(child: PlannerMapHost(onMapReady: _onMapReady)),
+          Positioned.fill(
+            // Search field, chips and their gaps: the control column starts
+            // underneath them.
+            child: MapChromeInsets(
+              controlsTop: 8 + 56 + 10 + 44 + 12,
+              child: PlannerMapHost(onMapReady: _onMapReady),
+            ),
+          ),
           SafeArea(
+            bottom: false,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
               child: Column(
@@ -186,14 +199,14 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
                       alignment: Alignment.centerLeft,
                       child: Padding(
                         padding: const EdgeInsets.only(top: 8),
-                        child: ActionChip(
-                          avatar: const Icon(Icons.play_arrow, size: 18),
-                          label: Text(l10n.plannerSetAsStart),
+                        child: FilledButton.icon(
                           onPressed: _setSearchedPlaceAsStart,
+                          icon: const Icon(Icons.play_arrow_rounded),
+                          label: Text(l10n.plannerSetAsStart),
                         ),
                       ),
                     ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   _ProfileChooser(
                     selected: state.options.profile,
                     onSelected: ref
@@ -211,43 +224,61 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
           ),
           DraggableScrollableSheet(
             // 0.28 left the action row below the fold on a 1080x2400 screen.
-            initialChildSize: 0.34,
-            minChildSize: 0.12,
-            maxChildSize: 0.85,
-            builder: (context, scrollController) => Material(
-              elevation: 8,
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(16),
+            // Enough for the headline, the toolbar and Save above the
+            // floating navigation bar on a 20:9 phone.
+            initialChildSize: 0.42,
+            minChildSize: 0.16,
+            maxChildSize: 0.9,
+            builder: (context, scrollController) => DecoratedBox(
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x40000000),
+                    blurRadius: 24,
+                    offset: Offset(0, -4),
+                  ),
+                ],
               ),
-              clipBehavior: Clip.antiAlias,
-              child: ListView(
-                controller: scrollController,
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                children: [
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                        borderRadius: BorderRadius.circular(2),
+              child: Material(
+                color: theme.colorScheme.surface,
+                shape: RoundedRectangleBorder(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(28),
+                  ),
+                  side: BorderSide(color: theme.velorki.glassBorder),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: ListView(
+                  controller: scrollController,
+                  padding: EdgeInsets.fromLTRB(20, 10, 20, bottomInset + 24),
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 14),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.outline,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                  ),
-                  // Actions first, so Loop, Ask and Save are visible at the
-                  // sheet's initial height; stats and the chart follow.
-                  _PlannerActions(
-                    state: state,
-                    onAlternatives: _loadAlternatives,
-                    onSmartLoop: _smartLoop,
-                    onAsk: _ask,
-                    onSave: _save,
-                  ),
-                  const SizedBox(height: 12),
-                  _SheetBody(state: state),
-                ],
+                    _SheetHeader(state: state),
+                    const SizedBox(height: 14),
+                    // Actions right under the header, so Loop, Ask and Save
+                    // are visible at the sheet's initial height.
+                    _PlannerActions(
+                      state: state,
+                      onAlternatives: _loadAlternatives,
+                      onSmartLoop: _smartLoop,
+                      onAsk: _ask,
+                      onSave: _save,
+                    ),
+                    const SizedBox(height: 16),
+                    _SheetBody(state: state),
+                  ],
+                ),
               ),
             ),
           ),
@@ -297,8 +328,10 @@ class _ProfileChooser extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return SizedBox(
-      height: 40,
+      height: 44,
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
@@ -309,6 +342,21 @@ class _ProfileChooser extends StatelessWidget {
                 label: Text(profileLabel(l10n, profile)),
                 selected: profile == selected,
                 onSelected: (_) => onSelected(profile),
+                // Over the map the chips are chrome, so they are opaque
+                // glass whatever the chip theme says.
+                backgroundColor: theme.velorki.glass,
+                selectedColor: scheme.primary,
+                side: BorderSide(
+                  color: profile == selected
+                      ? scheme.primary
+                      : theme.velorki.glassBorder,
+                ),
+                labelStyle: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: profile == selected
+                      ? scheme.onPrimary
+                      : scheme.onSurface,
+                ),
               ),
             ),
         ],
@@ -317,8 +365,10 @@ class _ProfileChooser extends StatelessWidget {
   }
 }
 
-class _SheetBody extends StatelessWidget {
-  const _SheetBody({required this.state});
+/// The first row of the sheet: the headline figures when there is a route,
+/// the hint or the progress when there is not.
+class _SheetHeader extends StatelessWidget {
+  const _SheetHeader({required this.state});
 
   final PlannerState state;
 
@@ -331,16 +381,15 @@ class _SheetBody extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l10n.plannerEmptyState, style: theme.textTheme.titleMedium),
-          const SizedBox(height: 4),
+          Text(l10n.plannerEmptyState, style: theme.textTheme.headlineSmall),
+          const SizedBox(height: 6),
           Text(l10n.plannerEmptyStateDetail, style: theme.textTheme.bodySmall),
         ],
       );
     }
     if (!state.isRoutable) {
-      return Text(l10n.plannerOnePointHint, style: theme.textTheme.bodyMedium);
+      return Text(l10n.plannerOnePointHint, style: theme.textTheme.titleMedium);
     }
-
     final route = state.result;
     if (route == null) {
       final missing = state.missingTiles;
@@ -368,42 +417,85 @@ class _SheetBody extends StatelessWidget {
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
           const SizedBox(width: 12),
-          Text(l10n.plannerRouting, style: theme.textTheme.bodyMedium),
+          Text(l10n.plannerRouting, style: theme.textTheme.titleMedium),
         ],
       );
     }
-
     final source = state.routingSource;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (source != null)
-          Align(
-            alignment: Alignment.centerRight,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: RoutingSourceChip(source: source),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: StatRow(
+                children: [
+                  StatTile(
+                    label: l10n.statDistance,
+                    value: formatDistance(l10n, route.lengthM),
+                    emphasize: true,
+                  ),
+                  StatTile(
+                    label: l10n.statAscent,
+                    value: formatHeight(l10n, route.ascentM),
+                  ),
+                  StatTile(
+                    label: l10n.statDuration,
+                    value: formatDuration(
+                      l10n,
+                      state.estimatedTime ?? Duration.zero,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        RouteStatsRow(
-          distanceM: route.lengthM,
-          ascentM: route.ascentM,
-          descentM: route.descentM,
-          duration: state.estimatedTime ?? Duration.zero,
+            if (source != null) RoutingSourceChip(source: source),
+          ],
         ),
         if (state.isRouting)
           const Padding(
-            padding: EdgeInsets.only(top: 8),
-            child: LinearProgressIndicator(),
+            padding: EdgeInsets.only(top: 10),
+            child: LinearProgressIndicator(minHeight: 3),
           ),
-        const SizedBox(height: 16),
-        ElevationProfileChart(samples: elevationProfile(route.geometry)),
-        const SizedBox(height: 16),
-        SurfaceStatsBar(stats: state.surfaceStats),
+      ],
+    );
+  }
+}
+
+/// Everything under the actions: chart, surfaces, alternatives.
+class _SheetBody extends StatelessWidget {
+  const _SheetBody({required this.state});
+
+  final PlannerState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final route = state.result;
+    if (route == null || !state.isRoutable) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
         if (state.alternatives.length > 1) ...[
-          const SizedBox(height: 12),
           _AlternativeChips(state: state),
+          const SizedBox(height: 16),
         ],
+        Row(
+          children: [
+            Expanded(
+              child: StatTile(
+                label: l10n.statDescent,
+                value: formatHeight(l10n, route.descentM),
+                size: StatSize.medium,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ElevationProfileChart(samples: elevationProfile(route.geometry)),
+        const SizedBox(height: 20),
+        SurfaceStatsBar(stats: state.surfaceStats),
       ],
     );
   }
@@ -460,53 +552,46 @@ class _PlannerActions extends ConsumerWidget {
         state.isRoutable &&
         !state.loadingAlternatives &&
         state.alternatives.length <= RoutingOptions.maxAlternativeIdx;
-    // A Wrap at the top of the sheet: every action stays visible, nothing
-    // scrolls sideways out of sight.
-    return Wrap(
-      spacing: 4,
-      runSpacing: 0,
-      crossAxisAlignment: WrapCrossAlignment.center,
+    // One row of round buttons sharing the width, so every action stays
+    // visible whatever the screen width; Save gets the full-width pill.
+    final actions = <Widget>[
+      LabeledIconButton(
+        icon: Icons.undo_rounded,
+        label: l10n.plannerUndo,
+        onPressed: state.canUndo ? planner.undo : null,
+      ),
+      LabeledIconButton(
+        icon: Icons.swap_vert_rounded,
+        label: l10n.plannerReverse,
+        onPressed: state.canReverse ? planner.reverse : null,
+      ),
+      LabeledIconButton(
+        icon: Icons.delete_outline_rounded,
+        label: l10n.plannerClear,
+        onPressed: state.isEmpty ? null : planner.clear,
+      ),
+      LabeledIconButton(
+        icon: Icons.alt_route_rounded,
+        label: l10n.plannerVariants,
+        busy: state.loadingAlternatives,
+        onPressed: canAlternatives ? () => unawaited(onAlternatives()) : null,
+      ),
+      LabeledIconButton(
+        icon: Icons.loop_rounded,
+        label: l10n.loopAction,
+        onPressed: () => unawaited(onSmartLoop()),
+      ),
+      LabeledIconButton(
+        icon: Icons.auto_awesome_rounded,
+        label: l10n.assistantAction,
+        onPressed: () => unawaited(onAsk()),
+      ),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ...<Widget>[
-          TextButton.icon(
-            onPressed: state.canUndo ? planner.undo : null,
-            icon: const Icon(Icons.undo),
-            label: Text(l10n.plannerUndo),
-          ),
-          TextButton.icon(
-            onPressed: state.canReverse ? planner.reverse : null,
-            icon: const Icon(Icons.swap_vert),
-            label: Text(l10n.plannerReverse),
-          ),
-          TextButton.icon(
-            onPressed: state.isEmpty ? null : planner.clear,
-            icon: const Icon(Icons.delete_outline),
-            label: Text(l10n.plannerClear),
-          ),
-          TextButton.icon(
-            onPressed: canAlternatives
-                ? () => unawaited(onAlternatives())
-                : null,
-            icon: state.loadingAlternatives
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.alt_route),
-            label: Text(l10n.plannerAlternatives),
-          ),
-          TextButton.icon(
-            onPressed: () => unawaited(onSmartLoop()),
-            icon: const Icon(Icons.loop),
-            label: Text(l10n.loopAction),
-          ),
-          TextButton.icon(
-            onPressed: () => unawaited(onAsk()),
-            icon: const Icon(Icons.auto_awesome),
-            label: Text(l10n.assistantAction),
-          ),
-        ],
+        Row(children: [for (final action in actions) Expanded(child: action)]),
+        const SizedBox(height: 14),
         FilledButton.icon(
           onPressed: state.canSave ? () => unawaited(onSave()) : null,
           icon: const Icon(Icons.bookmark_add_outlined),

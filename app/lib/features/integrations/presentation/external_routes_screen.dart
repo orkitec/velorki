@@ -153,13 +153,18 @@ class _ExternalRoutesScreenState extends ConsumerState<ExternalRoutesScreen> {
     // so the footer exists for Strava even before a fetch time is known.
     final strava = widget.service == IntegrationService.strava;
     final hasFooter = fetchedAt != null || strava;
-    return ListView.separated(
+    return ListView.builder(
+      // The floating navigation bar sits over the list, so the last row —
+      // Strava's credit included — needs room to clear it.
+      padding: EdgeInsets.only(
+        top: 6,
+        bottom: MediaQuery.paddingOf(context).bottom + 24,
+      ),
       itemCount: _routes.length + (hasFooter ? 1 : 0),
-      separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, index) {
         if (hasFooter && index == _routes.length) {
           return Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

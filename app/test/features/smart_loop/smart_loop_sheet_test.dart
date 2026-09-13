@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
+import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki/features/smart_loop/application/loop_map_preview.dart';
 import 'package:velorki/features/smart_loop/application/smart_loop_controller.dart';
 import 'package:velorki/features/smart_loop/domain/loops.dart';
@@ -43,7 +44,7 @@ Future<PlannerHarness> _openSheet(
   await tester.pump(const Duration(milliseconds: 400));
   await tester.pumpAndSettle();
 
-  await tester.tap(find.widgetWithText(TextButton, 'Loop'));
+  await tester.tap(find.widgetWithText(LabeledIconButton, 'Loop'));
   await tester.pumpAndSettle();
   return h;
 }
@@ -88,10 +89,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(_inSheet(find.text('150.0 km')), findsOneWidget);
 
+    // The profile chips already sit below the fold of a phone-sized sheet.
+    await _scrollTo(tester, _inSheet(find.widgetWithText(ChoiceChip, 'MTB')));
     await tester.tap(_inSheet(find.widgetWithText(ChoiceChip, 'MTB')));
     await tester.pumpAndSettle();
 
-    // The rest of the form is below the fold of a phone-sized sheet.
+    // The rest of the form is below the fold too.
     await _scrollTo(tester, _inSheet(find.text('Seek')));
     await tester.tap(_inSheet(find.text('Seek')));
     await tester.pumpAndSettle();

@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -12,6 +14,7 @@ import '../features/recording/presentation/ride_detail_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/subscription/presentation/paywall_screen.dart';
 import '../l10n/generated/app_localizations.dart';
+import 'theme.dart';
 
 part 'router.g.dart';
 
@@ -120,8 +123,11 @@ class HomeShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
+      // The bar floats over the content; screens read the bottom padding
+      // from MediaQuery to keep their last rows above it.
+      extendBody: true,
       body: shell,
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: FloatingNavigationBar(
         selectedIndex: shell.currentIndex,
         onDestinationSelected: (index) => shell.goBranch(
           index,
@@ -140,16 +146,100 @@ class HomeShell extends StatelessWidget {
             label: l10n.tabRecord,
           ),
           NavigationDestination(
-            icon: const Icon(Icons.folder_outlined),
-            selectedIcon: const Icon(Icons.folder),
+            icon: const Icon(Icons.bookmarks_outlined),
+            selectedIcon: const Icon(Icons.bookmarks),
             label: l10n.tabLibrary,
           ),
           NavigationDestination(
-            icon: const Icon(Icons.settings_outlined),
-            selectedIcon: const Icon(Icons.settings),
+            icon: const Icon(Icons.tune_outlined),
+            selectedIcon: const Icon(Icons.tune),
             label: l10n.tabSettings,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A [NavigationBar] in a floating glass pill, blurred over the map.
+///
+/// The Material bar underneath keeps the semantics, the ripples and the
+/// label behaviour; only its chrome is replaced.
+class FloatingNavigationBar extends StatelessWidget {
+  const FloatingNavigationBar({
+    required this.selectedIndex,
+    required this.onDestinationSelected,
+    required this.destinations,
+    super.key,
+  });
+
+  final int selectedIndex;
+  final ValueChanged<int> onDestinationSelected;
+  final List<NavigationDestination> destinations;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.velorki;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        16,
+        0,
+        16,
+        MediaQuery.viewPaddingOf(context).bottom + 12,
+      ),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x40000000),
+              blurRadius: 24,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(30),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: colors.glass,
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(color: colors.glassBorder),
+              ),
+              child: MediaQuery.removePadding(
+                context: context,
+                removeBottom: true,
+                child: NavigationBar(
+                  height: 72,
+                  backgroundColor: Colors.transparent,
+                  surfaceTintColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  indicatorColor: theme.colorScheme.primary,
+                  indicatorShape: const StadiumBorder(),
+                  selectedIndex: selectedIndex,
+                  onDestinationSelected: onDestinationSelected,
+                  destinations: [
+                    for (final d in destinations)
+                      NavigationDestination(
+                        icon: d.icon,
+                        selectedIcon: IconTheme.merge(
+                          data: IconThemeData(
+                            color: theme.colorScheme.onPrimary,
+                          ),
+                          child: d.selectedIcon ?? d.icon,
+                        ),
+                        label: d.label,
+                        tooltip: d.tooltip,
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

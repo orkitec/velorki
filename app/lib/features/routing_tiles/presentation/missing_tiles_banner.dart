@@ -28,30 +28,29 @@ class MissingTilesBanner extends ConsumerWidget {
     final bytes = manifest?.bytesFor(tiles) ?? 0;
     return Card(
       margin: EdgeInsets.zero,
-      color: theme.colorScheme.secondaryContainer,
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Icon(
                   Icons.download_for_offline_outlined,
-                  color: theme.colorScheme.onSecondaryContainer,
+                  size: 22,
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     l10n.plannerMissingTiles,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSecondaryContainer,
-                    ),
+                    style: theme.textTheme.bodyMedium,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 14),
             Align(
               alignment: Alignment.centerLeft,
               child: FilledButton.tonal(

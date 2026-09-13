@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
+import '../../../app/theme.dart';
 import '../../../core/links/link_opener.dart';
 import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -77,6 +78,9 @@ class PlusSettingsSection extends ConsumerWidget {
     final action = ref.watch(subscriptionControllerProvider);
     final available = ref.watch(subscriptionServiceProvider).isAvailable;
 
+    final theme = Theme.of(context);
+    final detail = _detail(l10n, entitled: entitled, info: info);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -85,9 +89,30 @@ class PlusSettingsSection extends ConsumerWidget {
             entitled
                 ? Icons.workspace_premium
                 : Icons.workspace_premium_outlined,
+            color: entitled ? theme.velorki.success : null,
           ),
           title: Text(l10n.plusTitle),
-          subtitle: Text(_status(l10n, entitled: entitled, info: info)),
+          subtitle: Row(
+            children: [
+              Text(
+                entitled ? l10n.plusActive : l10n.plusInactive,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: entitled
+                      ? theme.velorki.success
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              if (detail != null)
+                Expanded(
+                  child: Text(
+                    ' · $detail',
+                    style: theme.textTheme.bodySmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+            ],
+          ),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push(paywallRoute),
         ),
@@ -114,19 +139,19 @@ class PlusSettingsSection extends ConsumerWidget {
     );
   }
 
-  /// "Active · Renews on 12 Oct 2026", or just "Not active".
-  String _status(
+  /// What follows the status word: "Renews on 12 Oct 2026", or `null` when
+  /// the subscription is inactive or has no known end.
+  String? _detail(
     AppLocalizations l10n, {
     required bool entitled,
     required PlusCustomerInfo? info,
   }) {
-    if (!entitled) return l10n.plusInactive;
+    if (!entitled) return null;
     final expires = info?.expiresAt;
-    if (expires == null) return l10n.plusActive;
+    if (expires == null) return null;
     final date = formatDate(l10n, expires);
-    final when = (info?.willRenew ?? false)
+    return (info?.willRenew ?? false)
         ? l10n.plusRenewsOn(date)
         : l10n.plusEndsOn(date);
-    return '${l10n.plusActive} · $when';
   }
 }

@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../../app/theme.dart';
 import '../../../core/permissions/location_permission.dart';
 import '../../routing_tiles/presentation/routing_tiles_screen.dart';
+import '../../shared/presentation/stat_tile.dart';
 import '../data/map_preferences.dart';
 import '../data/position_provider.dart';
 import '../domain/map_controller.dart';
@@ -30,42 +32,44 @@ class MapControls extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cyclosm = ref.watch(cyclosmOverlayProvider);
     final enabled = controller != null;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        _ControlButton(
-          icon: Icons.my_location,
-          tooltip: MapStrings.locateMe,
-          onPressed: enabled ? () => unawaited(_locate(context, ref)) : null,
-        ),
-        const SizedBox(height: 8),
-        _ControlButton(
-          icon: Icons.directions_bike,
-          tooltip: MapStrings.toggleCyclosm,
-          selected: cyclosm,
-          onPressed: enabled ? () => unawaited(_toggleCyclosm(ref)) : null,
-        ),
-        const SizedBox(height: 8),
-        // The one place the rider can download routing tiles for exactly the
-        // area they are looking at; the screen needs a live map for that.
-        _ControlButton(
-          icon: Icons.grid_on_outlined,
-          tooltip: MapStrings.routingTiles,
-          onPressed: enabled ? () => _openRoutingTiles(context) : null,
-        ),
-        const SizedBox(height: 8),
-        _ControlButton(
-          icon: Icons.add,
-          tooltip: MapStrings.zoomIn,
-          onPressed: enabled ? () => unawaited(_zoomBy(1)) : null,
-        ),
-        const SizedBox(height: 8),
-        _ControlButton(
-          icon: Icons.remove,
-          tooltip: MapStrings.zoomOut,
-          onPressed: enabled ? () => unawaited(_zoomBy(-1)) : null,
-        ),
-      ],
+    // One glass column rather than five floating buttons: less chrome over
+    // the map, and the group reads as one control.
+    return GlassPanel(
+      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 5),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          _ControlButton(
+            icon: Icons.my_location,
+            tooltip: MapStrings.locateMe,
+            onPressed: enabled ? () => unawaited(_locate(context, ref)) : null,
+          ),
+          _ControlButton(
+            icon: Icons.directions_bike,
+            tooltip: MapStrings.toggleCyclosm,
+            selected: cyclosm,
+            onPressed: enabled ? () => unawaited(_toggleCyclosm(ref)) : null,
+          ),
+          // The one place the rider can download routing tiles for exactly the
+          // area they are looking at; the screen needs a live map for that.
+          _ControlButton(
+            icon: Icons.grid_on_outlined,
+            tooltip: MapStrings.routingTiles,
+            onPressed: enabled ? () => _openRoutingTiles(context) : null,
+          ),
+          const _ControlDivider(),
+          _ControlButton(
+            icon: Icons.add,
+            tooltip: MapStrings.zoomIn,
+            onPressed: enabled ? () => unawaited(_zoomBy(1)) : null,
+          ),
+          _ControlButton(
+            icon: Icons.remove,
+            tooltip: MapStrings.zoomOut,
+            onPressed: enabled ? () => unawaited(_zoomBy(-1)) : null,
+          ),
+        ],
+      ),
     );
   }
 
@@ -174,23 +178,37 @@ class _ControlButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return SizedBox(
       width: 44,
       height: 44,
-      child: Material(
-        color: selected ? scheme.primaryContainer : scheme.surface,
-        elevation: 2,
-        borderRadius: BorderRadius.circular(8),
-        clipBehavior: Clip.antiAlias,
-        child: IconButton(
-          icon: Icon(icon),
-          iconSize: 20,
-          tooltip: tooltip,
-          color: selected ? scheme.onPrimaryContainer : scheme.onSurface,
-          onPressed: onPressed,
+      child: IconButton(
+        icon: Icon(icon),
+        iconSize: 20,
+        tooltip: tooltip,
+        style: IconButton.styleFrom(
+          shape: const CircleBorder(),
+          foregroundColor: selected ? theme.velorki.accent : scheme.onSurface,
+          disabledForegroundColor: scheme.onSurfaceVariant.withValues(
+            alpha: 0.38,
+          ),
         ),
+        onPressed: onPressed,
       ),
     );
   }
+}
+
+/// The hairline between the map layers and the zoom pair.
+class _ControlDivider extends StatelessWidget {
+  const _ControlDivider();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 20,
+    height: 1,
+    margin: const EdgeInsets.symmetric(vertical: 3),
+    color: Theme.of(context).velorki.glassBorder,
+  );
 }

@@ -53,6 +53,7 @@ need:
 | `VELORKI_API_URL` | your relay — **empty string** to build without it |
 | `VELORKI_PHOTON_URL` | your Photon instance, or the public one |
 | `VELORKI_MAP_STYLE_URL` | your MapLibre style (OpenFreeMap, or self-hosted PMTiles) |
+| `VELORKI_MAP_STYLE_URL_DARK` | the style used in dark mode (default OpenFreeMap Dark) |
 | `VELORKI_SEGMENTS_URL` | your rd5 segment mirror, for on-device routing tiles |
 | `VELORKI_REVENUECAT_KEY_ANDROID` / `_IOS` | your RevenueCat public SDK keys |
 | `VELORKI_STRAVA_CLIENT_ID` | your Strava application |

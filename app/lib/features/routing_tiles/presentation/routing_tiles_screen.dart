@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 
+import '../../../app/theme.dart';
 import '../../../core/db/database.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/map_strings.dart';
 import '../../planner/presentation/route_format.dart';
+import '../../shared/presentation/placeholder_body.dart';
 import '../application/tile_download_controller.dart';
 import '../data/routing_tiles_repository.dart';
 import '../data/segments_manifest_service.dart';
@@ -67,7 +69,7 @@ class RoutingTilesScreen extends ConsumerWidget {
           if (queue.isRunning) _QueueHeader(state: queue),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(top: 4, bottom: 12),
               children: <Widget>[
                 if (isFallback) _Notice(text: l10n.routingTilesFallbackNotice),
                 if (manifest.hasError)
@@ -75,50 +77,29 @@ class RoutingTilesScreen extends ConsumerWidget {
                 else if (preselected.isNotEmpty)
                   _MissingTilesCard(tiles: preselected),
                 if (rows.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(32, 32, 32, 16),
-                    child: Text(
-                      l10n.routingTilesEmpty,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
+                  PlaceholderBody(
+                    icon: Icons.grid_on_outlined,
+                    message: l10n.routingTilesEmpty,
                   )
                 else
                   for (final tile in rows) _TileRow(tile: tile),
               ],
             ),
           ),
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  Text(
-                    l10n.routingTilesTotal(
-                      downloaded.length,
-                      MapStrings.formatBytes(totalBytes),
-                    ),
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    mapController?.visibleBounds == null
-                        ? l10n.routingTilesNeedsMap
-                        : l10n.routingTilesDataNotice,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 8),
-                  FilledButton.icon(
-                    icon: const Icon(Icons.download_outlined),
-                    label: Text(l10n.routingTilesVisibleArea),
-                    onPressed: mapController?.visibleBounds == null
-                        ? null
-                        : () => unawaited(_downloadVisibleArea(context, ref)),
-                  ),
-                ],
-              ),
+          _BottomBar(
+            total: l10n.routingTilesTotal(
+              downloaded.length,
+              MapStrings.formatBytes(totalBytes),
+            ),
+            note: mapController?.visibleBounds == null
+                ? l10n.routingTilesNeedsMap
+                : l10n.routingTilesDataNotice,
+            action: FilledButton.icon(
+              icon: const Icon(Icons.download_outlined),
+              label: Text(l10n.routingTilesVisibleArea),
+              onPressed: mapController?.visibleBounds == null
+                  ? null
+                  : () => unawaited(_downloadVisibleArea(context, ref)),
             ),
           ),
         ],
@@ -224,9 +205,10 @@ class _QueueHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     final progress = state.progress;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
+      padding: const EdgeInsets.fromLTRB(20, 12, 12, 6),
       child: Row(
         children: <Widget>[
           Expanded(
@@ -237,10 +219,16 @@ class _QueueHeader extends ConsumerWidget {
                   '${state.current?.name ?? ''} · '
                   '${MapStrings.formatBytes(progress?.received ?? 0)} / '
                   '${MapStrings.formatBytes(progress?.total ?? 0)}',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: theme.textTheme.labelMedium,
                 ),
                 const SizedBox(height: 6),
-                LinearProgressIndicator(value: progress?.fraction),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(3),
+                  child: LinearProgressIndicator(
+                    value: progress?.fraction,
+                    minHeight: 6,
+                  ),
+                ),
               ],
             ),
           ),
@@ -264,7 +252,7 @@ class _Notice extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 6),
       child: Text(text, style: theme.textTheme.bodySmall),
     );
   }
@@ -279,30 +267,38 @@ class _ManifestError extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    return Card(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      color: theme.colorScheme.errorContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              l10n.routingTilesManifestFailed(_message(error)),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onErrorContainer,
-              ),
-            ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () => unawaited(
-                  ref.read(segmentsManifestSourceProvider.notifier).refresh(),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 6),
+      child: Card(
+        color: theme.colorScheme.errorContainer,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: theme.colorScheme.error.withValues(alpha: 0.3),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                l10n.routingTilesManifestFailed(_message(error)),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onErrorContainer,
                 ),
-                child: Text(l10n.routingTilesRetry),
               ),
-            ),
-          ],
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => unawaited(
+                    ref.read(segmentsManifestSourceProvider.notifier).refresh(),
+                  ),
+                  child: Text(l10n.routingTilesRetry),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -320,37 +316,42 @@ class _MissingTilesCard extends ConsumerWidget {
     final theme = Theme.of(context);
     final manifest = ref.watch(segmentsManifestSourceProvider).value;
     final bytes = manifest?.bytesFor(tiles) ?? 0;
-    return Card(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              l10n.routingTilesRouteTitle,
-              style: theme.textTheme.titleSmall,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              tiles.map((t) => t.name).join(', '),
-              style: theme.textTheme.bodySmall,
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: FilledButton.tonal(
-                onPressed: () =>
-                    unawaited(confirmTileDownload(context, ref, tiles)),
-                child: Text(
-                  l10n.routingTilesDownloadCount(
-                    tiles.length,
-                    MapStrings.formatBytes(bytes),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 6),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              // Not a SectionCaption: the wording is a sentence, not a label.
+              Text(
+                l10n.routingTilesRouteTitle,
+                style: theme.textTheme.titleMedium,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                tiles.map((t) => t.name).join(', '),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FilledButton(
+                  onPressed: () =>
+                      unawaited(confirmTileDownload(context, ref, tiles)),
+                  child: Text(
+                    l10n.routingTilesDownloadCount(
+                      tiles.length,
+                      MapStrings.formatBytes(bytes),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -365,18 +366,66 @@ class _TileRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final colors = theme.velorki;
     final label = switch (tile.state) {
       RoutingTileState.ready => l10n.routingTilesStateReady,
       RoutingTileState.stale => l10n.routingTilesStateStale,
       RoutingTileState.downloading => l10n.routingTilesStateDownloading,
       RoutingTileState.absent => l10n.routingTilesStateAbsent,
     };
+    // The state is read from the colour first and the word second.
+    final stateColor = switch (tile.state) {
+      RoutingTileState.ready => colors.success,
+      RoutingTileState.stale => colors.warning,
+      RoutingTileState.downloading => colors.accent,
+      RoutingTileState.absent => scheme.onSurfaceVariant,
+    };
+    final stateIcon = switch (tile.state) {
+      RoutingTileState.ready => Icons.download_done_rounded,
+      RoutingTileState.stale => Icons.update_rounded,
+      RoutingTileState.downloading => Icons.downloading_rounded,
+      RoutingTileState.absent => Icons.grid_on_outlined,
+    };
     return ListTile(
-      leading: const Icon(Icons.grid_on_outlined),
-      title: Text(tile.name),
-      subtitle: Text(
-        '${MapStrings.formatBytes(tile.bytes)} · $label\n'
-        '${l10n.routingTilesUpdatedAt(formatDate(l10n, tile.updatedAt))}',
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      leading: _TileIcon(icon: stateIcon, color: stateColor),
+      title: Text(tile.name, style: theme.textTheme.titleMedium),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const SizedBox(height: 2),
+          Row(
+            children: <Widget>[
+              Text(
+                MapStrings.formatBytes(tile.bytes),
+                style: theme.textTheme.labelMedium,
+              ),
+              Text(
+                '  ·  ',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: scheme.outline,
+                ),
+              ),
+              Flexible(
+                child: Text(
+                  label,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: stateColor,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            l10n.routingTilesUpdatedAt(formatDate(l10n, tile.updatedAt)),
+            style: theme.textTheme.bodySmall,
+          ),
+        ],
       ),
       isThreeLine: true,
       trailing: tile.isDownloading
@@ -428,5 +477,68 @@ class _TileRow extends ConsumerWidget {
       final repository = await ref.read(routingTilesRepositoryProvider.future);
       await repository.delete(tile.tile);
     }
+  }
+}
+
+/// The rounded square holding a tile's state icon.
+class _TileIcon extends StatelessWidget {
+  const _TileIcon({required this.icon, required this.color});
+
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 44,
+    height: 44,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.surfaceContainerHigh,
+      borderRadius: BorderRadius.circular(14),
+    ),
+    child: Icon(icon, size: 22, color: color),
+  );
+}
+
+/// The summary and the primary action, held above the system inset by a
+/// hairline.
+class _BottomBar extends StatelessWidget {
+  const _BottomBar({
+    required this.total,
+    required this.note,
+    required this.action,
+  });
+
+  final String total;
+  final String note;
+  final Widget action;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        border: Border(
+          top: BorderSide(color: theme.colorScheme.outlineVariant),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Text(total, style: theme.textTheme.titleMedium),
+              const SizedBox(height: 6),
+              Text(note, style: theme.textTheme.bodySmall),
+              const SizedBox(height: 16),
+              action,
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
