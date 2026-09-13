@@ -1,6 +1,9 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+
+import '../../../core/http/user_agent.dart';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -35,10 +38,13 @@ class PhotonClient {
   /// `/api` path is appended. Inject [dio] in tests.
   PhotonClient(String baseUrl, {Dio? dio})
     : _base = _normalizeBase(baseUrl),
-      _dio = dio ?? Dio();
+      _dio = dio ?? velorkiDio();
 
   final Uri _base;
   final Dio _dio;
+
+  /// The HTTP client, exposed for tests.
+  Dio get dio => _dio;
 
   /// How many results the planner asks for.
   static const int defaultLimit = 8;

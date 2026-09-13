@@ -1,4 +1,7 @@
 import 'package:dio/dio.dart';
+
+import '../../../core/http/user_agent.dart';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:velorki_brouter/velorki_brouter.dart' hide CancelToken;
 
@@ -109,10 +112,12 @@ class SegmentsManifestService {
 @Riverpod(keepAlive: true)
 Dio segmentsDio(Ref ref) {
   final dio = Dio(
-    BaseOptions(
-      connectTimeout: const Duration(seconds: 20),
-      receiveTimeout: const Duration(minutes: 2),
-      responseType: ResponseType.json,
+    velorkiBaseOptions(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 20),
+        receiveTimeout: const Duration(minutes: 2),
+        responseType: ResponseType.json,
+      ),
     ),
   );
   ref.onDispose(dio.close);

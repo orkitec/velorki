@@ -1,4 +1,7 @@
 import 'package:dio/dio.dart';
+
+import '../../../core/http/user_agent.dart';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
@@ -86,7 +89,7 @@ typedef ShareGpxFetcher = Future<Uint8List> Function(Uri url);
 /// endpoint: `GET /s/<id>.gpx` needs no authentication, which is what makes a
 /// shared link openable by anyone.
 final shareGpxFetcherProvider = Provider<ShareGpxFetcher>((ref) {
-  final dio = Dio();
+  final dio = velorkiDio();
   ref.onDispose(dio.close);
   return (url) async {
     final response = await dio.getUri<List<int>>(

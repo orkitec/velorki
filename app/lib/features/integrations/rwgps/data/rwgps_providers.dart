@@ -1,4 +1,7 @@
 import 'package:dio/dio.dart';
+
+import '../../../../core/http/user_agent.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/app_config.dart';
@@ -30,7 +33,7 @@ final rwgpsTokenSourceProvider = Provider<OAuthTokenSource>(
 
 /// The dio Ride with GPS is talked to over.
 final rwgpsDioProvider = Provider<Dio>((ref) {
-  final dio = Dio(rwgpsBaseOptions());
+  final dio = Dio(velorkiBaseOptions(rwgpsBaseOptions()));
   dio.interceptors.add(
     OAuthTokenInterceptor(
       tokens: ref.watch(rwgpsTokenSourceProvider),
@@ -65,7 +68,7 @@ final rwgpsConnectorProvider = Provider<RwgpsConnector?>((ref) {
     readUser: (token) async {
       // The token is not in secure storage yet, so this one call carries it
       // by hand instead of going through the interceptor.
-      final dio = Dio(rwgpsBaseOptions())
+      final dio = Dio(velorkiBaseOptions(rwgpsBaseOptions()))
         ..options.headers['Authorization'] = 'Bearer $token';
       try {
         return await RwgpsClient(dio: dio).currentUser();

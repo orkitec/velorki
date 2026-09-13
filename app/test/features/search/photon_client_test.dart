@@ -1,11 +1,17 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:velorki/core/http/user_agent.dart';
 import 'package:velorki/features/search/data/photon_client.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import 'support/fake_http.dart';
 
 void main() {
+  test('requests identify as Velorki', () {
+    final client = PhotonClient('https://photon.example');
+    expect(client.dio.options.headers['User-Agent'], velorkiUserAgent);
+  });
+
   _photonLanguageTests();
   late FakeHttpAdapter adapter;
   late PhotonClient client;

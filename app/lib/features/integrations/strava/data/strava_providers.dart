@@ -1,4 +1,7 @@
 import 'package:dio/dio.dart';
+
+import '../../../../core/http/user_agent.dart';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -27,11 +30,13 @@ final stravaTokenSourceProvider = Provider<OAuthTokenSource>(
 /// The dio Strava is talked to over: bearer token, refresh and one retry.
 final stravaDioProvider = Provider<Dio>((ref) {
   final dio = Dio(
-    BaseOptions(
-      connectTimeout: const Duration(seconds: 20),
-      receiveTimeout: const Duration(seconds: 60),
-      sendTimeout: const Duration(minutes: 2),
-      headers: <String, String>{'Accept': 'application/json'},
+    velorkiBaseOptions(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 20),
+        receiveTimeout: const Duration(seconds: 60),
+        sendTimeout: const Duration(minutes: 2),
+        headers: <String, String>{'Accept': 'application/json'},
+      ),
     ),
   );
   dio.interceptors.add(

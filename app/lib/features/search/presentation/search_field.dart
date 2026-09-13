@@ -125,6 +125,16 @@ class _ResultsCard extends StatelessWidget {
                   ? l10n.searchUnavailable
                   : l10n.searchFailed,
             ),
+            // The reason, so a failure is diagnosable from the screen.
+            subtitle:
+                error is SearchException &&
+                    !error.message.contains('configured')
+                ? Text(
+                    error.message,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  )
+                : null,
           ),
           data: (items) => items.isEmpty
               ? ListTile(title: Text(l10n.searchNoResults))
