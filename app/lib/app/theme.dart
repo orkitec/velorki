@@ -514,15 +514,24 @@ ThemeData _build(AccentPreset preset, Brightness brightness) {
       showCheckmark: false,
       labelPadding: const EdgeInsets.symmetric(horizontal: 4),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      labelStyle: WidgetStateTextStyle.resolveWith(
-        (states) => text.labelLarge!.copyWith(
-          fontWeight: FontWeight.w700,
-          color: states.contains(WidgetState.selected)
+      // ChoiceChip resolves the label *colour* per state, not the whole
+      // style, so the state-aware part has to be the colour itself.
+      labelStyle: text.labelLarge!.copyWith(
+        fontWeight: FontWeight.w700,
+        color: WidgetStateColor.resolveWith(
+          (states) => states.contains(WidgetState.selected)
               ? scheme.onPrimary
               : scheme.onSurface,
         ),
       ),
-      iconTheme: IconThemeData(size: 18, color: scheme.onSurface),
+      iconTheme: IconThemeData(
+        size: 18,
+        color: WidgetStateColor.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? scheme.onPrimary
+              : scheme.onSurface,
+        ),
+      ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
