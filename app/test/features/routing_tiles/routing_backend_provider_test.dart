@@ -36,6 +36,7 @@ void main() {
 
   Future<ProviderContainer> containerFor({
     String brouterUrl = 'https://brouter.test',
+    String segmentsUrl = '',
     RoutingPreference preference = RoutingPreference.auto,
     bool withTile = false,
   }) async {
@@ -58,7 +59,9 @@ void main() {
     final container = ProviderContainer(
       overrides: <Override>[
         sharedPreferencesProvider.overrideWithValue(prefs),
-        appConfigProvider.overrideWithValue(AppConfig(brouterUrl: brouterUrl)),
+        appConfigProvider.overrideWithValue(
+          AppConfig(brouterUrl: brouterUrl, segmentsUrl: segmentsUrl),
+        ),
         velorkiDatabaseProvider.overrideWithValue(db),
         brouterStorageProvider.overrideWith((ref) async => storage),
         brouterProfilesProvider.overrideWith((ref) async => storage.profiles),
@@ -158,6 +161,22 @@ void main() {
     expect(decision.canRoute, isFalse);
     expect(decision.missingTiles, <TileName>[_tile]);
     expect(decision.failure!.kind, RoutingErrorKind.missingTiles);
+  });
+
+  test('a tile mirror without tiles offers the download', () async {
+    final container = await containerFor(
+      brouterUrl: '',
+      segmentsUrl: 'https://segments.test',
+    );
+
+    final composite =
+        container.read(routingBackendProvider)! as CompositeRoutingBackend;
+
+    expect(composite.local, isNotNull);
+    expect(composite.remote, isNull);
+    final decision = composite.decide(_inTile);
+    expect(decision.canRoute, isFalse);
+    expect(decision.missingTiles, <TileName>[_tile]);
   });
 
   test('without a server and without tiles there is no backend', () async {

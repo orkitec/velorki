@@ -16,10 +16,11 @@ part 'routing_backend_provider.g.dart';
 /// It is a [CompositeRoutingBackend] over up to two backends:
 ///
 /// * [LocalRoutingBackend] over the downloaded rd5 tiles, as soon as the
-///   bundled profiles are copied and at least one tile is ready — or, in
-///   [RoutingPreference.onDeviceOnly], even with no tile at all, so a route
-///   fails with `missingTiles` and the planner can offer the download instead
-///   of claiming there is no routing server;
+///   bundled profiles are copied and either a tile is ready, a tile mirror
+///   (`VELORKI_SEGMENTS_URL`) is configured, or the rider chose
+///   [RoutingPreference.onDeviceOnly] — in the latter two cases even with no
+///   tile at all, so a route fails with `missingTiles` and the planner can
+///   offer the download instead of claiming there is no routing server;
 /// * [BRouterHttpBackend] against `VELORKI_BROUTER_URL`, unless the rider
 ///   chose [RoutingPreference.onDeviceOnly].
 ///
@@ -39,9 +40,15 @@ RoutingBackend? routingBackend(Ref ref) {
   final onDevice = preference.allowsLocal
       ? ref.watch(onDeviceRoutingProvider).value
       : null;
+  // A tile mirror makes the local path worth offering even before the first
+  // download: the composite then reports the missing tiles and the planner
+  // offers to fetch them, instead of claiming there is no routing server.
+  final canDownload = config.segmentsUrl.isNotEmpty;
   LocalRoutingBackend? local;
   if (onDevice != null &&
-      (onDevice.hasTiles || preference == RoutingPreference.onDeviceOnly)) {
+      (onDevice.hasTiles ||
+          canDownload ||
+          preference == RoutingPreference.onDeviceOnly)) {
     final backend = LocalRoutingBackend(
       segmentsDir: onDevice.segmentsDir,
       profilesDir: onDevice.profilesDir,
