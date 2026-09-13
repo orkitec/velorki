@@ -5,6 +5,7 @@
 /// Pure algorithm, no model. Pure Dart, no Flutter dependency.
 library;
 
+export 'src/close_loop.dart';
 export 'src/loop_planner.dart';
 export 'src/loop_request.dart';
 export 'src/scorer.dart';

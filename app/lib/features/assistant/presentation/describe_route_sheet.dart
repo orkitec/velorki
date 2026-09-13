@@ -16,6 +16,8 @@ Future<void> showDescribeRouteSheet(BuildContext context, SavedRoute route) =>
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      // Over the shell's floating navigation bar, not under it.
+      useRootNavigator: true,
       builder: (context) => DescribeRouteSheet(route: route),
     );
 

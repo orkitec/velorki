@@ -26,10 +26,22 @@ abstract class CandidateStrategy {
 /// [radiusForTarget] inverts that to hit [LoopRequest.targetM].
 class RoundtripStrategy implements CandidateStrategy {
   /// Creates the round-trip strategy.
-  const RoundtripStrategy({this.directions = 8});
+  const RoundtripStrategy({
+    this.directions = 8,
+    this.offsetDeg = 0,
+    this.allowSameWayBack = false,
+  });
 
   /// How many evenly spaced directions to try (8 gives 0, 45, … 315).
   final int directions;
+
+  /// Added to every direction, so asking again with a different offset walks
+  /// off into the gaps between the directions already tried.
+  final double offsetDeg;
+
+  /// `false` sends BRouter round the circle through its round-trip points;
+  /// `true` makes it ride out to the far point and back the same way.
+  final bool allowSameWayBack;
 
   /// `(pi + 2)`: a half circle of arc plus two radial legs.
   static const double lengthPerRadius = math.pi + 2;
@@ -52,8 +64,8 @@ class RoundtripStrategy implements CandidateStrategy {
         profile: request.profile,
         roundTrip: true,
         roundTripDistanceM: radius,
-        roundTripDirectionDeg: i * step,
-        allowSameWayBack: false,
+        roundTripDirectionDeg: offsetDeg + i * step,
+        allowSameWayBack: allowSameWayBack,
       );
     }
   }

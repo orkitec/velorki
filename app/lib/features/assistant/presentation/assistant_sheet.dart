@@ -31,6 +31,8 @@ Future<ResolvedIntent?> showAssistantSheet(
   context: context,
   isScrollControlled: true,
   useSafeArea: true,
+  // Over the shell's floating navigation bar, not under it.
+  useRootNavigator: true,
   builder: (context) => AssistantSheet(map: map),
 );
 

@@ -49,6 +49,21 @@ class AppearanceSection extends ConsumerWidget {
                 unawaited(controller.setMode(selection.single)),
           ),
           const SizedBox(height: 20),
+          Text(l10n.appearanceMap, style: theme.textTheme.titleSmall),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final look in MapLook.values)
+                ChoiceChip(
+                  label: Text(mapLookLabel(l10n, look)),
+                  selected: look == appearance.mapLook,
+                  onSelected: (_) => unawaited(controller.setMapLook(look)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 20),
           Text(l10n.appearanceAccent, style: theme.textTheme.titleSmall),
           const SizedBox(height: 10),
           Row(
@@ -72,6 +87,14 @@ class AppearanceSection extends ConsumerWidget {
     );
   }
 }
+
+/// The localised name of a map look.
+String mapLookLabel(AppLocalizations l10n, MapLook look) => switch (look) {
+  MapLook.auto => l10n.mapLookAuto,
+  MapLook.light => l10n.mapLookLight,
+  MapLook.night => l10n.mapLookNight,
+  MapLook.black => l10n.mapLookBlack,
+};
 
 /// The localised name of an accent preset.
 String accentLabel(AppLocalizations l10n, AccentPreset preset) =>

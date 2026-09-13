@@ -8,6 +8,49 @@ import 'waypoint.dart';
 
 part 'planner_state.freezed.dart';
 
+/// One step on the planner's undo stack.
+///
+/// Waypoints alone are not enough any more: closing a loop and cycling the way
+/// home change the plan without touching the waypoint list, and each of those
+/// has to come back one step at a time. Only the two loop options are kept —
+/// undoing an edit must not also undo a profile the rider picked since.
+@immutable
+class PlannerEdit {
+  /// Captures one state of the plan.
+  const PlannerEdit({
+    required this.waypoints,
+    required this.differentWayBack,
+    required this.returnVariant,
+  });
+
+  /// Snapshots the loop-shaping part of [state].
+  factory PlannerEdit.of(PlannerState state) => PlannerEdit(
+    waypoints: state.waypoints,
+    differentWayBack: state.options.differentWayBack,
+    returnVariant: state.options.returnVariant,
+  );
+
+  /// The waypoints as they were.
+  final List<Waypoint> waypoints;
+
+  /// [RoutingOptions.differentWayBack] as it was.
+  final bool differentWayBack;
+
+  /// [RoutingOptions.returnVariant] as it was.
+  final int returnVariant;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PlannerEdit &&
+          other.waypoints == waypoints &&
+          other.differentWayBack == differentWayBack &&
+          other.returnVariant == returnVariant;
+
+  @override
+  int get hashCode => Object.hash(waypoints, differentWayBack, returnVariant);
+}
+
 /// Everything the Plan tab shows.
 @freezed
 abstract class PlannerState with _$PlannerState {
@@ -24,8 +67,8 @@ abstract class PlannerState with _$PlannerState {
     /// Alternatives 0..3, fetched only when the user asks for them.
     @Default(<RouteResult>[]) List<RouteResult> alternatives,
 
-    /// Previous waypoint lists, newest last.
-    @Default(<List<Waypoint>>[]) List<List<Waypoint>> undoStack,
+    /// Previous edits, newest last.
+    @Default(<PlannerEdit>[]) List<PlannerEdit> undoStack,
 
     /// The last routing failure, in the routing server's own words.
     String? error,
@@ -100,6 +143,17 @@ abstract class PlannerState with _$PlannerState {
 
   /// Whether enough waypoints are set to ask for a route.
   bool get isRoutable => waypoints.length >= 2;
+
+  /// Whether the plan ends where it started, which is what "Close the loop"
+  /// leaves behind.
+  bool get isClosedLoop =>
+      waypoints.length >= 3 && waypoints.first.pos == waypoints.last.pos;
+
+  /// Whether the route home should avoid the roads of the route out.
+  ///
+  /// Only a closed plan can: for an ordinary A to B there is no way out to
+  /// stay off.
+  bool get ridesBackAnotherWay => isClosedLoop && options.differentWayBack;
 
   /// The waypoint positions, for the routing query and the map.
   List<LatLng> get positions =>

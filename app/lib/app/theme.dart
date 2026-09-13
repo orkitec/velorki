@@ -18,7 +18,8 @@ enum AccentPreset {
     dark: Color(0xFFC8F542),
     light: Color(0xFF3F7A00),
     lightContainer: Color(0xFFE3F8A6),
-    route: Color(0xFF7ED321),
+    route: Color(0xFFB4F02E),
+    routeOnLight: Color(0xFF4C9A00),
   ),
 
   /// Coral orange.
@@ -26,7 +27,8 @@ enum AccentPreset {
     dark: Color(0xFFFF7A45),
     light: Color(0xFFC63D12),
     lightContainer: Color(0xFFFFD9CB),
-    route: Color(0xFFFF5A1F),
+    route: Color(0xFFFF6A2E),
+    routeOnLight: Color(0xFFD9420F),
   ),
 
   /// Ice blue.
@@ -34,7 +36,8 @@ enum AccentPreset {
     dark: Color(0xFF5CD6FF),
     light: Color(0xFF0071A6),
     lightContainer: Color(0xFFCDEFFF),
-    route: Color(0xFF00A3E0),
+    route: Color(0xFF38C6FF),
+    routeOnLight: Color(0xFF0082BF),
   ),
 
   /// Hot pink.
@@ -42,7 +45,8 @@ enum AccentPreset {
     dark: Color(0xFFFF66B0),
     light: Color(0xFFB8155F),
     lightContainer: Color(0xFFFFD4E7),
-    route: Color(0xFFF0338F),
+    route: Color(0xFFFF4FA3),
+    routeOnLight: Color(0xFFC81C6B),
   );
 
   const AccentPreset({
@@ -50,6 +54,7 @@ enum AccentPreset {
     required this.light,
     required this.lightContainer,
     required this.route,
+    required this.routeOnLight,
   });
 
   /// The accent on dark surfaces; dark text sits on it.
@@ -61,8 +66,12 @@ enum AccentPreset {
   /// The tinted container behind the light accent.
   final Color lightContainer;
 
-  /// The main route line on the map.
+  /// The main route line on the dark map.
   final Color route;
+
+  /// The main route line on the light map, deep enough to hold against
+  /// pale roads and green parks.
+  final Color routeOnLight;
 
   /// The preset named [name], or [volt] when the name is unknown.
   static AccentPreset fromName(String? name) => AccentPreset.values.firstWhere(
@@ -274,7 +283,7 @@ ThemeData buildDarkTheme([AccentPreset preset = AccentPreset.volt]) =>
 
 // ------------------------------------------------------------------ palettes
 
-const Color _inkDark = Color(0xFF0B0D10);
+const Color _inkDark = Color(0xFF0E1115);
 const Color _inkLight = Color(0xFF14171A);
 const Color _paper = Color(0xFFF5F6F3);
 const Color _white = Color(0xFFFFFFFF);
@@ -297,18 +306,18 @@ ColorScheme _darkScheme(AccentPreset p) => ColorScheme(
   onError: _inkDark,
   errorContainer: const Color(0xFF4A1A20),
   onErrorContainer: const Color(0xFFFFC9CE),
-  surface: const Color(0xFF0F1114),
+  surface: const Color(0xFF15181E),
   onSurface: const Color(0xFFF1F3F5),
-  onSurfaceVariant: const Color(0xFFA5ADB6),
-  surfaceContainerLowest: const Color(0xFF0A0C0E),
-  surfaceContainerLow: const Color(0xFF15181C),
-  surfaceContainer: const Color(0xFF1B1F24),
-  surfaceContainerHigh: const Color(0xFF23282E),
-  surfaceContainerHighest: const Color(0xFF2C3239),
-  surfaceDim: const Color(0xFF0B0D10),
-  surfaceBright: const Color(0xFF353B43),
-  outline: const Color(0xFF454C55),
-  outlineVariant: const Color(0xFF272C32),
+  onSurfaceVariant: const Color(0xFFAAB2BC),
+  surfaceContainerLowest: const Color(0xFF0F1216),
+  surfaceContainerLow: const Color(0xFF1B1F26),
+  surfaceContainer: const Color(0xFF21262E),
+  surfaceContainerHigh: const Color(0xFF2A3039),
+  surfaceContainerHighest: const Color(0xFF333A44),
+  surfaceDim: const Color(0xFF111418),
+  surfaceBright: const Color(0xFF3C444F),
+  outline: const Color(0xFF4B535E),
+  outlineVariant: const Color(0xFF2C333C),
   inverseSurface: const Color(0xFFF1F3F5),
   onInverseSurface: _inkLight,
   inversePrimary: p.light,
@@ -371,8 +380,8 @@ VelorkiColors _darkColors(AccentPreset p, ColorScheme scheme) => VelorkiColors(
   position: const Color(0xFF4DA3FF),
   success: const Color(0xFF3DDC84),
   warning: const Color(0xFFF0B84A),
-  glass: const Color(0xEB15181C),
-  glassBorder: const Color(0x33FFFFFF),
+  glass: const Color(0xEB1B1F26),
+  glassBorder: const Color(0x2EFFFFFF),
   chartFill: p.dark.withValues(alpha: 0.18),
 );
 

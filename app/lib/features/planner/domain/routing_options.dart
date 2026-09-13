@@ -12,6 +12,20 @@ abstract class RoutingOptions with _$RoutingOptions {
 
     /// Which of BRouter's alternatives is shown, `0`..`3`.
     @Default(0) int alternativeIdx,
+
+    /// Whether a closed plan should come home a different way.
+    ///
+    /// Only meaningful when the last waypoint repeats the first: the planner
+    /// then routes the ride out and the ride home as two requests and makes
+    /// the second one avoid the first one's roads. See `CloseLoopRouter`.
+    @Default(false) bool differentWayBack,
+
+    /// Which alternative the way home takes, `0`..`3`.
+    ///
+    /// "Another way back" cycles it: the ride out stays as it is and only the
+    /// return leg is redrawn. Meaningless unless [differentWayBack] is set on
+    /// a closed plan.
+    @Default(0) int returnVariant,
   }) = _RoutingOptions;
 
   const RoutingOptions._();
@@ -22,9 +36,12 @@ abstract class RoutingOptions with _$RoutingOptions {
   /// Parses the JSON written into the `routing_options_json` column.
   factory RoutingOptions.fromMap(Map<String, dynamic> json) {
     final idx = json['alternativeIdx'];
+    final variant = json['returnVariant'];
     return RoutingOptions(
       profile: RouteProfile.fromName(json['profile'] as String?),
       alternativeIdx: idx is int ? idx.clamp(0, maxAlternativeIdx) : 0,
+      differentWayBack: json['differentWayBack'] == true,
+      returnVariant: variant is int ? variant.clamp(0, maxAlternativeIdx) : 0,
     );
   }
 
@@ -32,5 +49,7 @@ abstract class RoutingOptions with _$RoutingOptions {
   Map<String, dynamic> toMap() => <String, dynamic>{
     'profile': profile.brouterName,
     'alternativeIdx': alternativeIdx,
+    'differentWayBack': differentWayBack,
+    'returnVariant': returnVariant,
   };
 }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
+import 'package:velorki_loops/velorki_loops.dart';
 
 import '../data/routing_backend_provider.dart';
 import '../domain/planner_state.dart';
@@ -65,9 +66,16 @@ class PlannerController extends _$PlannerController {
   void moveWaypoint(int index, LatLng pos) {
     if (index < 0 || index >= state.waypoints.length) return;
     _pushUndo();
+    final closed = state.isClosedLoop;
     final next = [...state.waypoints];
     // The label belonged to the place that was dropped, so it goes with it.
     next[index] = next[index].copyWith(pos: pos, name: null);
+    // A closed loop starts and ends at one place: moving that place moves
+    // both ends, so the loop stays closed.
+    if (closed && (index == 0 || index == next.length - 1)) {
+      final other = index == 0 ? next.length - 1 : 0;
+      next[other] = next[other].copyWith(pos: pos, name: null);
+    }
     _setWaypoints(next);
   }
 
@@ -93,6 +101,70 @@ class PlannerController extends _$PlannerController {
     _setWaypoints(waypoints);
   }
 
+  /// Turns the plan into a loop by riding back to where it started.
+  ///
+  /// A copy of the first waypoint is appended, so the plan now ends where it
+  /// began, and [differentWayBack] is remembered in the options: with it set,
+  /// [_route] asks for the way out and the way home separately and keeps the
+  /// second off the first one's roads.
+  ///
+  /// One undo entry, like every other edit: taking it back drops the closing
+  /// waypoint, and the plan is an ordinary A to B again — which is why the
+  /// stale option left behind does nothing.
+  void closeLoop({required bool differentWayBack}) {
+    if (state.waypoints.length < 2) return;
+    if (state.isClosedLoop) {
+      // Already a loop: only the way home is up for debate, and changing that
+      // is not a change to the plan, so it gets no undo entry.
+      if (state.options.differentWayBack == differentWayBack) return;
+      state = state.copyWith(
+        options: state.options.copyWith(differentWayBack: differentWayBack),
+        alternatives: const <RouteResult>[],
+      );
+      _scheduleRoute();
+      return;
+    }
+    _pushUndo();
+    state = state.copyWith(
+      options: state.options.copyWith(
+        differentWayBack: differentWayBack,
+        returnVariant: 0,
+      ),
+    );
+    final first = state.waypoints.first;
+    _setWaypoints([
+      ...state.waypoints,
+      Waypoint(pos: first.pos, name: first.name),
+    ]);
+  }
+
+  /// Draws another way home for a closed loop.
+  ///
+  /// The ride out stays exactly as it is; only the return leg is asked for
+  /// again, with the next of BRouter's alternatives. A variant that comes back
+  /// as the same road is skipped, so every press really does change something
+  /// — or, when the network offers nothing else, leaves the loop alone.
+  ///
+  /// Each press is one undo step.
+  Future<void> anotherWayBack() async {
+    if (!state.ridesBackAnotherWay) return;
+    _pushUndo();
+    final before = state.result;
+    for (var tried = 0; tried <= RoutingOptions.maxAlternativeIdx; tried++) {
+      final next =
+          (state.options.returnVariant + 1) %
+          (RoutingOptions.maxAlternativeIdx + 1);
+      state = state.copyWith(
+        options: state.options.copyWith(returnVariant: next),
+        alternatives: const <RouteResult>[],
+      );
+      await _routeNow();
+      if (_disposed) return;
+      final now = state.result;
+      if (now == null || before == null || !_sameRoute(before, now)) return;
+    }
+  }
+
   /// Rides the route the other way round.
   void reverse() {
     if (state.waypoints.length < 2) return;
@@ -107,13 +179,19 @@ class PlannerController extends _$PlannerController {
     _setWaypoints(const <Waypoint>[]);
   }
 
-  /// Takes back the last waypoint change.
+  /// Takes back the last change, one step at a time.
   void undo() {
     if (state.undoStack.isEmpty) return;
     final stack = [...state.undoStack];
     final previous = stack.removeLast();
-    state = state.copyWith(undoStack: stack);
-    _setWaypoints(previous);
+    state = state.copyWith(
+      undoStack: stack,
+      options: state.options.copyWith(
+        differentWayBack: previous.differentWayBack,
+        returnVariant: previous.returnVariant,
+      ),
+    );
+    _setWaypoints(previous.waypoints);
   }
 
   /// Switches the routing profile and re-routes.
@@ -168,7 +246,7 @@ class PlannerController extends _$PlannerController {
     for (var i = 0; i <= RoutingOptions.maxAlternativeIdx; i++) {
       try {
         results.add(
-          await backend.route(_query(alternativeIdx: i), cancel: token),
+          await _routeOnce(backend, _query(alternativeIdx: i), token),
         );
       } on RoutingException catch (e) {
         if (e.kind == RoutingErrorKind.cancelled) return false;
@@ -261,7 +339,9 @@ class PlannerController extends _$PlannerController {
   }
 
   void _pushUndo() {
-    state = state.copyWith(undoStack: [...state.undoStack, state.waypoints]);
+    state = state.copyWith(
+      undoStack: [...state.undoStack, PlannerEdit.of(state)],
+    );
   }
 
   void _setWaypoints(List<Waypoint> waypoints) {
@@ -293,6 +373,37 @@ class PlannerController extends _$PlannerController {
     _debounce = Timer(plannerDebounce, () => unawaited(_route()));
   }
 
+  /// Routes straight away instead of after the debounce, and waits for it.
+  Future<void> _routeNow() async {
+    _debounce?.cancel();
+    _pending?.cancel('superseded');
+    _pending = null;
+    if (!state.isRoutable) return;
+    state = state.copyWith(
+      route: const AsyncLoading<RouteResult?>(),
+      error: null,
+    );
+    await _route();
+  }
+
+  /// Whether two results are the same ride, near enough.
+  ///
+  /// Length plus the first and last few points: a different alternative that
+  /// happens to follow the same roads matches on all of them, and comparing
+  /// whole geometries to find that out would be wasteful.
+  static bool _sameRoute(RouteResult a, RouteResult b) {
+    if ((a.lengthM - b.lengthM).abs() > 1) return false;
+    final x = a.geometry;
+    final y = b.geometry;
+    if (x.length != y.length) return false;
+    for (var i = 0; i < 3; i++) {
+      if (i >= x.length) break;
+      if (x[i].pos != y[i].pos) return false;
+      if (x[x.length - 1 - i].pos != y[y.length - 1 - i].pos) return false;
+    }
+    return true;
+  }
+
   Future<void> _route() async {
     final backend = ref.read(routingBackendProvider);
     if (backend == null) {
@@ -305,7 +416,7 @@ class PlannerController extends _$PlannerController {
     final token = CancelToken();
     _pending = token;
     try {
-      final result = await backend.route(_query(), cancel: token);
+      final result = await _routeOnce(backend, _query(), token);
       if (_disposed || token.isCancelled) return;
       state = state.copyWith(
         route: AsyncData<RouteResult?>(result),
@@ -334,6 +445,24 @@ class PlannerController extends _$PlannerController {
       if (identical(_pending, token)) _pending = null;
     }
   }
+
+  /// Routes one query, in two legs when the plan is a loop that wants a
+  /// different way home.
+  ///
+  /// [CloseLoopRouter] lives in `velorki_loops` so the two-leg logic can be
+  /// tested without a planner; here it is simply which of two objects the
+  /// query goes to.
+  Future<RouteResult> _routeOnce(
+    RoutingBackend backend,
+    RouteQuery query,
+    CancelToken token,
+  ) => state.ridesBackAnotherWay
+      ? CloseLoopRouter(backend).route(
+          query,
+          cancel: token,
+          returnAlternativeIdx: state.options.returnVariant,
+        )
+      : backend.route(query, cancel: token);
 
   /// Where a route came from, for the planner's "on device"/"server" chip.
   /// Only the composite backend knows; anything else stays silent.

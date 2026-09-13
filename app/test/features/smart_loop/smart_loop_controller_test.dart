@@ -13,7 +13,6 @@ import 'package:velorki_geo/velorki_geo.dart';
 import 'support/fake_loop_backend.dart';
 
 const LatLng _start = LatLng(48.137213, 11.575612);
-const LatLng _lake = LatLng(48.0850, 11.2830);
 const LoopRequest _request = LoopRequest(start: _start, targetM: 40000);
 
 ProviderContainer _container(RoutingBackend? backend) {
@@ -25,61 +24,82 @@ ProviderContainer _container(RoutingBackend? backend) {
 }
 
 void main() {
-  group('strategies', () {
-    test('a request without a via uses the round trip engine', () {
-      final names = strategiesForRequest(_request).map((s) => s.name).toList();
-      expect(names, ['roundtrip', 'perimeter']);
+  group('search', () {
+    test('fires the round trip engine off in every direction', () async {
+      final backend = FakeLoopBackend();
+      final container = _container(backend);
+
+      await container
+          .read(smartLoopControllerProvider.notifier)
+          .search(_request);
+
+      expect(backend.queries, hasLength(smartLoopDirections));
+      expect(backend.queries.every((q) => q.roundTrip), isTrue);
+      expect(backend.queries.every((q) => !q.allowSameWayBack), isTrue);
+      expect(
+        backend.queries.map((q) => q.roundTripDirectionDeg).toSet(),
+        hasLength(smartLoopDirections),
+      );
+      expect(backend.maxInFlight, lessThanOrEqualTo(smartLoopConcurrency));
     });
 
-    test('a request with a via routes through it', () {
-      final names = strategiesForRequest(
-        const LoopRequest(start: _start, via: [_lake], targetM: 40000),
-      ).map((s) => s.name).toList();
-      expect(names, ['viaOutAndBack', 'perimeter']);
-    });
-  });
+    test('the switch becomes BRouter\'s allowSamewayback', () async {
+      final backend = FakeLoopBackend();
+      await _container(backend)
+          .read(smartLoopControllerProvider.notifier)
+          .search(_request, allowSameWayBack: true);
 
-  group('start', () {
-    test(
-      'candidates appear progressively and the best three are kept',
-      () async {
-        final backend = FakeLoopBackend(delay: const Duration(milliseconds: 2));
-        final container = _container(backend);
-        final counts = <int>[];
-        container.listen(
-          smartLoopControllerProvider,
-          (_, next) => counts.add(next.candidates.length),
-          fireImmediately: false,
+      expect(backend.queries.every((q) => q.allowSameWayBack), isTrue);
+    });
+
+    test('keeps everything that routed, best first', () async {
+      final backend = FakeLoopBackend(
+        // Each direction gets its own length, so the scorer has an opinion.
+        lengthFor: (q) => 40000 + (q.roundTripDirectionDeg ?? 0) * 10,
+      );
+      final container = _container(backend);
+
+      await container
+          .read(smartLoopControllerProvider.notifier)
+          .search(_request);
+
+      final state = container.read(smartLoopControllerProvider);
+      expect(state.running, isFalse);
+      expect(state.progress, 1);
+      expect(state.candidates, hasLength(smartLoopDirections));
+      expect(state.index, 0);
+      for (var i = 1; i < state.candidates.length; i++) {
+        expect(
+          state.candidates[i - 1].score.total,
+          lessThanOrEqualTo(state.candidates[i].score.total),
         );
+      }
+    });
 
-        final controller = container.read(smartLoopControllerProvider.notifier);
-        await controller.start(_request);
+    test('puts the best loop straight into the planner', () async {
+      final container = _container(FakeLoopBackend());
 
-        final state = container.read(smartLoopControllerProvider);
-        expect(state.running, isFalse);
-        expect(state.progress, 1);
-        expect(state.error, isNull);
-        expect(state.candidates, hasLength(smartLoopTopN));
-        expect(state.selected, 0);
-        // Eleven queries: eight round trips plus three perimeter rings.
-        expect(backend.queries, hasLength(11));
-        expect(backend.maxInFlight, lessThanOrEqualTo(smartLoopConcurrency));
-        // The list grew one candidate at a time before it settled.
-        expect(counts.where((n) => n == 1), isNotEmpty);
-        expect(counts.where((n) => n == 2), isNotEmpty);
-        for (var i = 1; i < state.candidates.length; i++) {
-          expect(
-            state.candidates[i - 1].score.total,
-            lessThanOrEqualTo(state.candidates[i].score.total),
+      await container
+          .read(smartLoopControllerProvider.notifier)
+          .search(
+            const LoopRequest(start: _start, targetM: 40000, profile: 'mtb'),
           );
-        }
-      },
-    );
+
+      final best = container.read(smartLoopControllerProvider).current!;
+      final planner = container.read(plannerControllerProvider);
+      expect(planner.result, same(best.result));
+      expect(planner.options.profile, RouteProfile.mtb);
+      expect(planner.isRouting, isFalse);
+      // A round trip is one point; BRouter invented the rest.
+      expect(planner.waypoints, hasLength(1));
+      expect(planner.waypoints.single.kind, WaypointKind.start);
+      expect(planner.canSave, isTrue);
+    });
 
     test('progress counts queries that failed as well', () async {
       final seen = <double>[];
       final container = _container(
-        FakeLoopBackend(failWhen: (q) => q.roundTrip),
+        FakeLoopBackend(failWhen: (q) => (q.roundTripDirectionDeg ?? 0) < 180),
       );
       container.listen(
         smartLoopControllerProvider,
@@ -88,73 +108,24 @@ void main() {
 
       await container
           .read(smartLoopControllerProvider.notifier)
-          .start(_request);
+          .search(_request);
 
       expect(seen.where((p) => p > 0 && p < 1), isNotEmpty);
       expect(container.read(smartLoopControllerProvider).progress, 1);
-      // Only the three perimeter rings routed.
       expect(
         container.read(smartLoopControllerProvider).candidates,
-        hasLength(3),
+        hasLength(4),
       );
     });
 
-    test('a request with a via is routed through it', () async {
-      final backend = FakeLoopBackend();
-      final container = _container(backend);
-      await container
-          .read(smartLoopControllerProvider.notifier)
-          .start(
-            const LoopRequest(start: _start, via: [_lake], targetM: 40000),
-          );
-
-      expect(backend.queries.any((q) => q.points.contains(_lake)), isTrue);
-      expect(backend.queries.every((q) => !q.roundTrip), isTrue);
-      expect(backend.queries.every((q) => !q.allowSameWayBack), isTrue);
-    });
-
-    test('the request and the profile reach the routing server', () async {
-      final backend = FakeLoopBackend();
-      final container = _container(backend);
-      await container
-          .read(smartLoopControllerProvider.notifier)
-          .start(
-            const LoopRequest(start: _start, targetM: 30000, profile: 'gravel'),
-          );
-
-      expect(backend.queries.every((q) => q.profile == 'gravel'), isTrue);
-      expect(
-        container.read(smartLoopControllerProvider).request?.targetM,
-        30000,
-      );
-    });
-
-    test(
-      'a seed changes where the perimeter fallback puts its rings',
-      () async {
-        final first = FakeLoopBackend();
-        await _container(first)
-            .read(smartLoopControllerProvider.notifier)
-            .start(_request, seed: 1);
-        final second = FakeLoopBackend();
-        await _container(second)
-            .read(smartLoopControllerProvider.notifier)
-            .start(_request, seed: 2);
-
-        List<List<LatLng>> ringsOf(FakeLoopBackend b) =>
-            b.queries.where((q) => !q.roundTrip).map((q) => q.points).toList();
-        expect(ringsOf(first), isNot(equals(ringsOf(second))));
-      },
-    );
-
-    test('starting again replaces the previous search', () async {
+    test('searching again replaces the previous search', () async {
       final backend = FakeLoopBackend(delay: const Duration(milliseconds: 20));
       final container = _container(backend);
       final controller = container.read(smartLoopControllerProvider.notifier);
 
-      final first = controller.start(_request);
+      final first = controller.search(_request);
       await Future<void>.delayed(const Duration(milliseconds: 5));
-      await controller.start(const LoopRequest(start: _start, targetM: 20000));
+      await controller.search(const LoopRequest(start: _start, targetM: 20000));
       await first;
 
       final state = container.read(smartLoopControllerProvider);
@@ -164,81 +135,58 @@ void main() {
     });
   });
 
-  group('select', () {
-    test('picks a candidate and ignores impossible indices', () async {
-      final container = _container(FakeLoopBackend());
-      final controller = container.read(smartLoopControllerProvider.notifier);
-      await controller.start(_request);
-
-      controller.select(2);
-      expect(container.read(smartLoopControllerProvider).selected, 2);
-
-      controller
-        ..select(-1)
-        ..select(99);
-      expect(container.read(smartLoopControllerProvider).selected, 2);
-    });
-  });
-
-  group('adopt', () {
-    test('hands the route and its waypoints to the planner', () async {
-      final container = _container(FakeLoopBackend());
-      final controller = container.read(smartLoopControllerProvider.notifier);
-      await controller.start(
-        const LoopRequest(start: _start, via: [_lake], targetM: 40000),
+  group('another', () {
+    test('walks down the ranking without routing again', () async {
+      final backend = FakeLoopBackend(
+        lengthFor: (q) => 40000 + (q.roundTripDirectionDeg ?? 0) * 10,
       );
-      controller.select(0);
+      final container = _container(backend);
+      final controller = container.read(smartLoopControllerProvider.notifier);
+      await controller.search(_request);
+      final routed = backend.queries.length;
+      final second = container.read(smartLoopControllerProvider).candidates[1];
 
-      expect(controller.adopt(), isTrue);
+      await controller.another();
 
-      final chosen = container.read(smartLoopControllerProvider).candidates[0];
-      final planner = container.read(plannerControllerProvider);
-      expect(planner.result, same(chosen.result));
-      expect(planner.route.isLoading, isFalse);
-      expect(planner.positions, chosen.query.points);
-      expect(planner.waypoints.first.kind, WaypointKind.start);
-      expect(planner.waypoints.last.kind, WaypointKind.end);
-      expect(planner.canSave, isTrue);
-      // The planner must not route again: the loop is already computed.
-      expect(planner.isRouting, isFalse);
+      expect(backend.queries, hasLength(routed));
+      expect(container.read(smartLoopControllerProvider).index, 1);
+      expect(container.read(smartLoopControllerProvider).current, same(second));
+      // The planner follows along.
+      expect(container.read(plannerControllerProvider).result, second.result);
     });
 
-    test('carries the profile the loop was routed with', () async {
-      final container = _container(FakeLoopBackend());
+    test('searches again, rotated, once the ranking is used up', () async {
+      final backend = FakeLoopBackend();
+      final container = _container(backend);
       final controller = container.read(smartLoopControllerProvider.notifier);
-      await controller.start(
-        const LoopRequest(start: _start, targetM: 40000, profile: 'mtb'),
-      );
+      await controller.search(_request);
+      final firstRound = backend.queries
+          .map((q) => q.roundTripDirectionDeg)
+          .toSet();
 
-      expect(controller.adopt(), isTrue);
+      for (var i = 0; i < smartLoopDirections; i++) {
+        await controller.another();
+      }
+
+      expect(backend.queries, hasLength(smartLoopDirections * 2));
+      final secondRound = backend.queries
+          .skip(smartLoopDirections)
+          .map((q) => q.roundTripDirectionDeg)
+          .toSet();
+      expect(secondRound.intersection(firstRound), isEmpty);
       expect(
-        container.read(plannerControllerProvider).options.profile,
-        RouteProfile.mtb,
+        container.read(smartLoopControllerProvider).candidates,
+        isNotEmpty,
       );
     });
 
-    test('a round trip arrives as a single start waypoint', () async {
-      final container = _container(FakeLoopBackend());
-      final controller = container.read(smartLoopControllerProvider.notifier);
-      await controller.start(_request);
-      // Pick a candidate the round trip engine produced, if there is one.
-      final state = container.read(smartLoopControllerProvider);
-      final i = state.candidates.indexWhere((c) => c.query.roundTrip);
-      if (i < 0) return;
-      controller.select(i);
+    test('does nothing before a search', () async {
+      final backend = FakeLoopBackend();
+      final container = _container(backend);
 
-      expect(controller.adopt(), isTrue);
-      expect(container.read(plannerControllerProvider).waypoints, hasLength(1));
-      expect(container.read(plannerControllerProvider).isRoutable, isFalse);
-    });
+      await container.read(smartLoopControllerProvider.notifier).another();
 
-    test('does nothing without a selection', () {
-      final container = _container(FakeLoopBackend());
-      expect(
-        container.read(smartLoopControllerProvider.notifier).adopt(),
-        isFalse,
-      );
-      expect(container.read(plannerControllerProvider).waypoints, isEmpty);
+      expect(backend.queries, isEmpty);
     });
   });
 
@@ -248,7 +196,7 @@ void main() {
       final container = _container(backend);
       final controller = container.read(smartLoopControllerProvider.notifier);
 
-      final run = controller.start(_request);
+      final run = controller.search(_request);
       await Future<void>.delayed(const Duration(milliseconds: 10));
       expect(container.read(smartLoopControllerProvider).running, isTrue);
 
@@ -269,6 +217,19 @@ void main() {
         const SmartLoopState(),
       );
     });
+
+    test('reset forgets the last search', () async {
+      final container = _container(FakeLoopBackend());
+      final controller = container.read(smartLoopControllerProvider.notifier);
+      await controller.search(_request);
+
+      controller.reset();
+
+      expect(
+        container.read(smartLoopControllerProvider),
+        const SmartLoopState(),
+      );
+    });
   });
 
   group('failure', () {
@@ -276,7 +237,7 @@ void main() {
       final container = _container(FakeLoopBackend(failWhen: (_) => true));
       await container
           .read(smartLoopControllerProvider.notifier)
-          .start(_request);
+          .search(_request);
 
       final state = container.read(smartLoopControllerProvider);
       expect(state.running, isFalse);
@@ -294,7 +255,7 @@ void main() {
       );
       await container
           .read(smartLoopControllerProvider.notifier)
-          .start(_request);
+          .search(_request);
 
       final state = container.read(smartLoopControllerProvider);
       expect(state.error, 'fake: no track found');
@@ -308,7 +269,7 @@ void main() {
         final container = _container(null);
         await container
             .read(smartLoopControllerProvider.notifier)
-            .start(_request);
+            .search(_request);
 
         final state = container.read(smartLoopControllerProvider);
         expect(state.error, noRoutingBackendError);
@@ -317,21 +278,13 @@ void main() {
       },
     );
 
-    test(
-      'a search that produced nothing without a failure is "found nothing"',
-      () async {
-        // No strategy proposes anything for a zero-distance request with a via
-        // list the via strategy cannot use, so nothing is routed at all.
-        final backend = FakeLoopBackend();
-        final container = _container(backend);
-        await container
-            .read(smartLoopControllerProvider.notifier)
-            .start(const LoopRequest(start: _start, targetM: 0));
-
-        final state = container.read(smartLoopControllerProvider);
-        expect(state.running, isFalse);
-        expect(state.error, isNull);
-      },
-    );
+    test('adopt does nothing without a candidate', () {
+      final container = _container(FakeLoopBackend());
+      expect(
+        container.read(smartLoopControllerProvider.notifier).adopt(),
+        isFalse,
+      );
+      expect(container.read(plannerControllerProvider).waypoints, isEmpty);
+    });
   });
 }

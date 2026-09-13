@@ -184,6 +184,28 @@ class FakeRoutingBackend implements RoutingBackend {
   }
 }
 
+/// A [RoutingBackend] whose answer depends on the alternative asked for.
+///
+/// The plain fake answers every query with the same route, which is exactly
+/// what "another way back" must treat as "nothing changed"; this one gives
+/// each alternative its own road so a test can tell the variants apart.
+///
+/// [sameAs] maps an alternative index onto the one it is identical to.
+class VariedRoutingBackend extends FakeRoutingBackend {
+  /// Creates the backend.
+  VariedRoutingBackend({this.sameAs = const <int, int>{}});
+
+  /// Which alternatives draw the same road as which other.
+  final Map<int, int> sameAs;
+
+  @override
+  Future<RouteResult> route(RouteQuery q, {CancelToken? cancel}) async {
+    await super.route(q, cancel: cancel);
+    final idx = sameAs[q.alternativeIdx] ?? q.alternativeIdx;
+    return syntheticRoute(lengthM: 10000 + idx * 1000, startLat: 48.0 + idx);
+  }
+}
+
 /// A small route with elevations and two tagged segments.
 RouteResult syntheticRoute({
   double lengthM = 10000,

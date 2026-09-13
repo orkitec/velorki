@@ -143,7 +143,7 @@
   "@profileTrekking": {
     "description": "Routing profile for everyday touring bikes"
   },
-  "profileFastbike": "Fast",
+  "profileFastbike": "Road",
   "@profileFastbike": {
     "description": "Routing profile for road bikes that prefers fast, paved roads"
   },
@@ -188,10 +188,6 @@
   "plannerRouting": "Routing…",
   "@plannerRouting": {
     "description": "Progress label while a route is being computed"
-  },
-  "plannerProfile": "Profile",
-  "@plannerProfile": {
-    "description": "Label of the routing profile chooser"
   },
   "plannerUndo": "Undo",
   "@plannerUndo": {
@@ -819,99 +815,83 @@
   "@loopAction": {
     "description": "Planner button that opens the smart loop sheet"
   },
-  "loopTitle": "Smart loop",
-  "@loopTitle": {
-    "description": "Title of the sheet that generates round trips"
+  "loopMakeTitle": "Make a loop",
+  "@loopMakeTitle": {
+    "description": "Title of the sheet that turns a plan into a loop or makes one from scratch"
   },
-  "loopIntro": "A round trip from a start, roughly the distance you pick.",
-  "@loopIntro": {
-    "description": "One-line explanation under the smart loop title"
+  "loopBackToStart": "Ride back to where you started.",
+  "@loopBackToStart": {
+    "description": "One-line explanation shown when the planned route is about to be closed into a loop"
   },
-  "loopStart": "Start",
-  "@loopStart": {
-    "description": "Label of the chooser for where the loop begins"
+  "loopDifferentWayBack": "Different way back",
+  "@loopDifferentWayBack": {
+    "description": "Switch that asks for a way home other than the way out"
   },
-  "loopStartMyPosition": "My position",
-  "@loopStartMyPosition": {
-    "description": "Loop start option: the device's own GPS position"
+  "loopDifferentWayBackHint": "Avoids the roads you already rode.",
+  "@loopDifferentWayBackHint": {
+    "description": "Subtitle of the different way back switch"
   },
-  "loopStartMapCentre": "Map centre",
-  "@loopStartMapCentre": {
-    "description": "Loop start option: the point the map is currently centred on"
+  "loopProfile": "Bike",
+  "@loopProfile": {
+    "description": "Caption of the profile chips in the loop sheet"
   },
-  "loopStartWaypoint": "First waypoint",
-  "@loopStartWaypoint": {
-    "description": "Loop start option: the first waypoint of the route being planned"
+  "loopClose": "Close the loop",
+  "@loopClose": {
+    "description": "Button that appends the start point to the planned route, making it a loop"
   },
-  "loopVia": "Via",
-  "@loopVia": {
-    "description": "Label of the optional places the loop should pass"
+  "loopFromPosition": "From your position",
+  "@loopFromPosition": {
+    "description": "Quiet line saying the loop starts at the device position"
   },
-  "loopViaHint": "Optional: up to two places the loop rides past.",
-  "@loopViaHint": {
-    "description": "Explanation under the via place search in the loop sheet"
-  },
-  "loopViaRemove": "Remove {name}",
-  "@loopViaRemove": {
-    "description": "Tooltip of the button that takes a via place off the loop",
-    "placeholders": {
-      "name": {
-        "type": "String",
-        "example": "Starnberger See"
-      }
-    }
+  "loopFromMapCentre": "From the map centre",
+  "@loopFromMapCentre": {
+    "description": "Quiet line saying the loop starts at what the map is looking at, because no position was available"
   },
   "loopDistance": "Distance",
   "@loopDistance": {
     "description": "Label of the target distance slider"
   },
-  "loopHills": "Hills",
-  "@loopHills": {
-    "description": "Label of the climbing preference chooser"
-  },
-  "loopHillsAvoid": "Avoid",
-  "@loopHillsAvoid": {
-    "description": "Climbing preference: keep the loop as flat as possible"
-  },
-  "loopHillsNeutral": "Neutral",
-  "@loopHillsNeutral": {
-    "description": "Climbing preference: no opinion about climbing"
-  },
-  "loopHillsSeek": "Seek",
-  "@loopHillsSeek": {
-    "description": "Climbing preference: climbing is wanted"
-  },
-  "loopSurfaceMixed": "Mixed",
-  "@loopSurfaceMixed": {
-    "description": "Surface preference: tarmac with some gravel is fine"
-  },
-  "loopSurfaceGravel": "Gravel",
-  "@loopSurfaceGravel": {
-    "description": "Surface preference: unpaved tracks are wanted"
-  },
-  "loopAvoidBusy": "Avoid busy roads",
-  "@loopAvoidBusy": {
-    "description": "Switch that weighs primary and trunk roads double against a loop"
-  },
-  "loopGenerate": "Generate",
-  "@loopGenerate": {
-    "description": "Button that starts the loop search"
-  },
-  "loopRegenerate": "Regenerate",
-  "@loopRegenerate": {
-    "description": "Button that runs the same loop search again with different candidates"
+  "loopMake": "Make a loop",
+  "@loopMake": {
+    "description": "Button that searches for a loop of the chosen distance"
   },
   "loopStop": "Stop",
   "@loopStop": {
     "description": "Button that cancels a running loop search"
   },
-  "loopSearching": "Looking for loops…",
-  "@loopSearching": {
-    "description": "Progress label while loop candidates are being routed"
+  "loopAnother": "Another",
+  "@loopAnother": {
+    "description": "Button that puts the next-best loop of the same search on the map"
   },
-  "loopNoneFound": "No loop found, try a shorter distance or another via.",
+  "loopAnotherWayBack": "Another way back",
+  "@loopAnotherWayBack": {
+    "description": "Button that draws a different return leg for a closed loop"
+  },
+  "loopDone": "Done",
+  "@loopDone": {
+    "description": "Button that closes the loop sheet and keeps the loop on the map"
+  },
+  "loopResult": "{distance} · {ascent} up",
+  "@loopResult": {
+    "description": "The one line describing the loop that was made",
+    "placeholders": {
+      "distance": {
+        "type": "String",
+        "example": "31 km"
+      },
+      "ascent": {
+        "type": "String",
+        "example": "210 m"
+      }
+    }
+  },
+  "loopNoneFound": "No loop found here, try another distance.",
   "@loopNoneFound": {
     "description": "Shown when the loop search finished without a single routable candidate"
+  },
+  "loopNoPosition": "Turn on location or tap the map to set a start.",
+  "@loopNoPosition": {
+    "description": "Shown when neither a position nor a map centre could start a loop"
   },
   "loopFailed": "Loop search failed: {message}",
   "@loopFailed": {
@@ -922,46 +902,6 @@
         "example": "position not mapped"
       }
     }
-  },
-  "loopNoStart": "No start point yet: search for a place or tap the map.",
-  "@loopNoStart": {
-    "description": "Shown when the loop sheet has no position to start a loop from"
-  },
-  "loopPositionUnavailable": "Your position is not available.",
-  "@loopPositionUnavailable": {
-    "description": "Shown when the device could not produce a GPS fix for the loop start"
-  },
-  "loopUseThis": "Use this loop",
-  "@loopUseThis": {
-    "description": "Button that hands the selected loop to the planner"
-  },
-  "loopCandidateTitle": "Loop {index}",
-  "@loopCandidateTitle": {
-    "description": "Heading of one loop candidate card, numbered from one",
-    "placeholders": {
-      "index": {
-        "type": "int",
-        "example": "1"
-      }
-    }
-  },
-  "loopRepeated": "Repeated",
-  "@loopRepeated": {
-    "description": "Share of a loop that is ridden twice, shown as a chip on a candidate card"
-  },
-  "loopScore": "Score {value}",
-  "@loopScore": {
-    "description": "The loop's ranking score, lower is better",
-    "placeholders": {
-      "value": {
-        "type": "String",
-        "example": "1.24"
-      }
-    }
-  },
-  "loopAdopted": "Loop opened in the planner",
-  "@loopAdopted": {
-    "description": "Snack bar confirming that the chosen loop is now the planned route"
   },
   "settingsConnections": "Connections",
   "@settingsConnections": {
@@ -1521,6 +1461,26 @@
   "@appearanceAccent": {
     "description": "Label above the accent colour swatches"
   },
+  "appearanceMap": "Map",
+  "@appearanceMap": {
+    "description": "Label above the map style choice in Settings → Appearance"
+  },
+  "mapLookAuto": "Follows theme",
+  "@mapLookAuto": {
+    "description": "Map style option: light map in light mode, night map in dark mode"
+  },
+  "mapLookLight": "Light",
+  "@mapLookLight": {
+    "description": "Map style option: always the light map"
+  },
+  "mapLookNight": "Night",
+  "@mapLookNight": {
+    "description": "Map style option: always the blue-grey night map"
+  },
+  "mapLookBlack": "Black",
+  "@mapLookBlack": {
+    "description": "Map style option: always the black map"
+  },
   "accentVolt": "Volt",
   "@accentVolt": {
     "description": "Accent colour name: electric lime green"
@@ -1903,16 +1863,28 @@
   "@routingTilesTotal": {
     "description": "Summary of what the downloaded tiles occupy",
     "placeholders": {
-      "count": { "type": "int", "example": "3" },
-      "size": { "type": "String", "example": "640 MB" }
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "size": {
+        "type": "String",
+        "example": "640 MB"
+      }
     }
   },
   "routingTilesDownloadCount": "{count, plural, =1{Download 1 tile ({size})} other{Download {count} tiles ({size})}}",
   "@routingTilesDownloadCount": {
     "description": "Action that starts the download of the listed tiles",
     "placeholders": {
-      "count": { "type": "int", "example": "2" },
-      "size": { "type": "String", "example": "640 MB" }
+      "count": {
+        "type": "int",
+        "example": "2"
+      },
+      "size": {
+        "type": "String",
+        "example": "640 MB"
+      }
     }
   },
   "routingTilesDownload": "Download",
@@ -1931,7 +1903,10 @@
   "@routingTilesDeleteTitle": {
     "description": "Confirmation dialog title",
     "placeholders": {
-      "name": { "type": "String", "example": "E10_N45" }
+      "name": {
+        "type": "String",
+        "example": "E10_N45"
+      }
     }
   },
   "routingTilesDeleteBody": "The tile is removed from this device. Routes in that area then need the routing server again.",
@@ -1950,7 +1925,7 @@
   "@routingTilesStateStale": {
     "description": "State of a downloaded tile the mirror has rebuilt"
   },
-  "routingTilesStateDownloading": "Downloading\u2026",
+  "routingTilesStateDownloading": "Downloading…",
   "@routingTilesStateDownloading": {
     "description": "State of a tile that is being downloaded"
   },
@@ -1962,14 +1937,20 @@
   "@routingTilesUpdatedAt": {
     "description": "When the mirror last rebuilt a tile",
     "placeholders": {
-      "date": { "type": "String", "example": "12 Sept 2026" }
+      "date": {
+        "type": "String",
+        "example": "12 Sept 2026"
+      }
     }
   },
   "routingTilesManifestFailed": "The tile list could not be loaded: {message}",
   "@routingTilesManifestFailed": {
     "description": "Shown when manifest.json or the directory listing failed",
     "placeholders": {
-      "message": { "type": "String", "example": "the mirror is unavailable" }
+      "message": {
+        "type": "String",
+        "example": "the mirror is unavailable"
+      }
     }
   },
   "routingTilesRetry": "Try again",
@@ -1980,7 +1961,7 @@
   "@routingTilesFallbackNotice": {
     "description": "Warning shown when VELORKI_SEGMENTS_URL is empty"
   },
-  "routingTilesDataNotice": "Tiles are large, often 125\u2013250 MB each, and Velorki cannot tell Wi-Fi from mobile data. Start a download when you are on Wi-Fi.",
+  "routingTilesDataNotice": "Tiles are large, often 125–250 MB each, and Velorki cannot tell Wi-Fi from mobile data. Start a download when you are on Wi-Fi.",
   "@routingTilesDataNotice": {
     "description": "Replaces the Wi-Fi-only setting, which this milestone does not have"
   },
@@ -1988,7 +1969,10 @@
   "@routingTilesDownloadFailed": {
     "description": "Snack bar after a failed tile download",
     "placeholders": {
-      "message": { "type": "String", "example": "E10_N45.rd5 arrived short" }
+      "message": {
+        "type": "String",
+        "example": "E10_N45.rd5 arrived short"
+      }
     }
   },
   "plannerMissingTiles": "This route needs routing tiles that are not on this device.",
@@ -2030,9 +2014,5 @@
   "settingsRoutingServerDetail": "Always ask the routing server, even where tiles are downloaded.",
   "@settingsRoutingServerDetail": {
     "description": "Explanation of the server-only routing preference"
-  },
-  "loopOnDeviceNote": "Routing runs on this device, so the candidates are computed one after another and the search takes longer than on the server.",
-  "@loopOnDeviceNote": {
-    "description": "Note in the loop sheet while on-device routing is active"
   }
 }

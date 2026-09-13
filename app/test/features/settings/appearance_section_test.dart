@@ -53,7 +53,17 @@ void main() {
 
     expect(find.byType(SegmentedButton<ThemeMode>), findsOneWidget);
     for (final label in ['System', 'Light', 'Dark']) {
-      expect(find.text(label), findsOneWidget);
+      // "Light" is also a map look chip, so look inside the segments.
+      expect(
+        find.descendant(
+          of: find.byType(SegmentedButton<ThemeMode>),
+          matching: find.text(label),
+        ),
+        findsOneWidget,
+      );
+    }
+    for (final label in ['Follows theme', 'Night', 'Black']) {
+      expect(find.widgetWithText(ChoiceChip, label), findsOneWidget);
     }
     for (final label in ['Volt', 'Ember', 'Glacier', 'Berry']) {
       expect(_swatch(label), findsOneWidget);
@@ -118,5 +128,15 @@ void main() {
       findsOneWidget,
     );
     expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+  });
+
+  testWidgets('tapping Night switches the map look', (tester) async {
+    final container = await _pump(tester);
+    expect(container.read(appearanceSettingProvider).mapLook, MapLook.auto);
+
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Night'));
+    await tester.pumpAndSettle();
+
+    expect(container.read(appearanceSettingProvider).mapLook, MapLook.night);
   });
 }

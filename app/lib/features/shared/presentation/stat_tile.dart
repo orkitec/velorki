@@ -79,13 +79,17 @@ class StatTile extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 6),
-        Text(
-          value,
-          style: valueStyle.copyWith(
-            color: emphasize ? theme.velorki.accent : scheme.onSurface,
+        // Shrinks rather than truncates: "21.0 km" must never become "21.0…".
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: alignEnd ? Alignment.centerRight : Alignment.centerLeft,
+          child: Text(
+            value,
+            style: valueStyle.copyWith(
+              color: emphasize ? theme.velorki.accent : scheme.onSurface,
+            ),
+            maxLines: 1,
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
         ),
       ],
     );

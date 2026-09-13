@@ -4,18 +4,19 @@ import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/theme.dart';
 import 'package:velorki/features/map/data/maplibre_map_controller.dart';
 import 'package:velorki/features/map/presentation/map_view.dart';
+import 'package:velorki/features/settings/data/appearance_controller.dart';
 
 void main() {
   group('MapPalette.fromTheme', () {
     test('draws the route in the chosen accent', () {
       final ember = MapPalette.fromTheme(buildDarkTheme(AccentPreset.ember));
 
-      expect(ember.routeMain, '#FF5A1F');
+      expect(ember.routeMain, '#FF6A2E');
       expect(ember.routeMain, VelorkiColors.hex(AccentPreset.ember.route));
       // The route colour is the same on both map styles.
       expect(
         MapPalette.fromTheme(buildLightTheme(AccentPreset.ember)).routeMain,
-        '#FF5A1F',
+        '#FF6A2E',
       );
     });
 
@@ -94,11 +95,23 @@ void main() {
   });
 
   group('mapStyleUrlFor', () {
+    test('a fixed map look ignores the brightness', () {
+      const config = AppConfig();
+      for (final b in Brightness.values) {
+        expect(mapStyleUrlFor(config, b, MapLook.light), fallbackMapStyleUrl);
+        expect(
+          mapStyleUrlFor(config, b, MapLook.night),
+          fallbackMapStyleUrlDark,
+        );
+        expect(mapStyleUrlFor(config, b, MapLook.black), blackMapStyleUrl);
+      }
+    });
+
     test('falls back per brightness when nothing is configured', () {
       const config = AppConfig();
 
       expect(mapStyleUrlFor(config, Brightness.dark), fallbackMapStyleUrlDark);
-      expect(mapStyleUrlFor(config, Brightness.dark), contains('/dark'));
+      expect(mapStyleUrlFor(config, Brightness.dark), contains('/fiord'));
       expect(mapStyleUrlFor(config, Brightness.light), fallbackMapStyleUrl);
     });
 

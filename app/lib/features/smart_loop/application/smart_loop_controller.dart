@@ -28,39 +28,18 @@ const int smartLoopOnDeviceConcurrency = 1;
 /// Deadline for one whole loop search.
 const Duration smartLoopTimeout = Duration(seconds: 25);
 
-/// Upper bound on the routing requests one search may spend.
-const int smartLoopMaxCandidates = 12;
+/// How many directions one search heads off in.
+const int smartLoopDirections = 8;
 
-/// How many candidates the sheet keeps and the map draws.
-const int smartLoopTopN = 3;
-
-/// The seed the first search of a session uses, so the same request produces
-/// the same loops until the user asks to regenerate.
-const int smartLoopSeed = 0x76656c6f;
-
-/// The strategies a [LoopRequest] is generated from.
-///
-/// A request with a via is answered by routing through it and coming back a
-/// different way; without one there is nothing to route through, so BRouter's
-/// own round-trip mode takes over. The perimeter fallback is always there
-/// because it produces *something* even where the other two give up.
-List<CandidateStrategy> strategiesForRequest(
-  LoopRequest request, {
-  int seed = smartLoopSeed,
-}) => <CandidateStrategy>[
-  if (request.via.isEmpty)
-    const RoundtripStrategy()
-  else
-    const ViaOutAndBackStrategy(),
-  PerimeterStrategy(seed: seed),
-];
+/// How far the next search is rotated once every loop of this one has been
+/// shown: half a step, so it lands between the directions already tried.
+const double smartLoopRotationDeg = 360 / smartLoopDirections / 2;
 
 /// The planner waypoints a candidate is handed over with.
 ///
-/// These are the query's own points, so a via loop arrives in the planner with
-/// its start and its via places. A round trip has a single point — BRouter
-/// invents the rest — and therefore arrives as a lone start waypoint; the
-/// geometry is still the computed loop, which is what gets saved.
+/// A round trip has a single query point — BRouter invents the rest — so it
+/// arrives as a lone start waypoint. The geometry is still the computed loop,
+/// which is what the planner draws and what gets saved.
 List<Waypoint> waypointsForCandidate(LoopCandidate candidate) =>
     normalizeWaypointKinds(
       candidate.query.points
@@ -68,18 +47,19 @@ List<Waypoint> waypointsForCandidate(LoopCandidate candidate) =>
           .toList(growable: false),
     );
 
-/// The smart-loop sheet's state machine.
+/// The engine behind the "Make a loop" sheet.
 ///
-/// One search runs at a time. [start] materialises the queries the strategies
-/// propose — which is what makes an honest progress bar possible, since the
-/// planner's stream only ever reports the queries that *succeeded* — and then
-/// lets [LoopPlanner.planStream] route them, adding each candidate to the
-/// state as it arrives.
+/// One search runs at a time: [search] fires BRouter's own round-trip mode off
+/// in [smartLoopDirections] directions, scores whatever comes back and hands
+/// the best loop straight to the planner. [another] walks down that ranking
+/// without touching the network and only searches again — rotated — when the
+/// list is used up.
 @Riverpod(keepAlive: true)
 class SmartLoopController extends _$SmartLoopController {
   _LoopRun? _run;
-  int _seed = smartLoopSeed;
   bool _disposed = false;
+  bool _allowSameWayBack = false;
+  double _directionOffsetDeg = 0;
 
   @override
   SmartLoopState build() {
@@ -91,17 +71,20 @@ class SmartLoopController extends _$SmartLoopController {
     return const SmartLoopState();
   }
 
-  /// Runs a loop search for [request].
+  /// Searches loops for [request] and puts the best one in the planner.
   ///
-  /// Any search still running is cancelled first. [seed] changes where the
-  /// perimeter fallback puts its waypoints, which is what "Regenerate" hands
-  /// in to get different loops for the same request. The returned future
-  /// completes when this search is done, cancelled or superseded; the
-  /// candidates appear in the state long before that.
-  Future<void> start(LoopRequest request, {int? seed}) async {
+  /// [allowSameWayBack] is BRouter's own switch: `false` sends the ride round
+  /// a circle, `true` out to a far point and back the same way. The returned
+  /// future completes when the search is done, cancelled or superseded.
+  Future<void> search(
+    LoopRequest request, {
+    bool allowSameWayBack = false,
+    double directionOffsetDeg = 0,
+  }) async {
     _stopRun();
-    if (seed != null) _seed = seed;
     if (_disposed) return;
+    _allowSameWayBack = allowSameWayBack;
+    _directionOffsetDeg = directionOffsetDeg;
 
     state = SmartLoopState(request: request, running: true);
 
@@ -111,22 +94,18 @@ class SmartLoopController extends _$SmartLoopController {
       return;
     }
 
-    final List<_ReplayStrategy> plans;
-    try {
-      plans = await _materialize(request, seed: _seed);
-    } on Object catch (e) {
-      if (!_disposed) {
-        state = state.copyWith(running: false, error: e.toString());
-      }
-      return;
-    }
-    final planned = plans.fold<int>(0, (n, s) => n + s.planned.length);
-    if (planned == 0 || _disposed) {
+    final strategy = RoundtripStrategy(
+      directions: smartLoopDirections,
+      offsetDeg: directionOffsetDeg,
+      allowSameWayBack: allowSameWayBack,
+    );
+    final queries = await strategy.queries(request).toList();
+    if (queries.isEmpty || _disposed) {
       if (!_disposed) state = state.copyWith(running: false, progress: 1);
       return;
     }
 
-    final run = _LoopRun(planned);
+    final run = _LoopRun(queries.length);
     _run = run;
     run.onProgress = () {
       if (_disposed || !identical(_run, run)) return;
@@ -134,13 +113,13 @@ class SmartLoopController extends _$SmartLoopController {
     };
     final planner = LoopPlanner(
       backend: _CountingBackend(backend, run),
-      strategies: plans,
+      strategies: <CandidateStrategy>[_ReplayStrategy(strategy.name, queries)],
       concurrency: backend is CompositeRoutingBackend && backend.local != null
           ? smartLoopOnDeviceConcurrency
           : smartLoopConcurrency,
       timeout: smartLoopTimeout,
-      maxCandidates: planned,
-      topN: smartLoopTopN,
+      maxCandidates: queries.length,
+      topN: queries.length,
     );
 
     try {
@@ -164,31 +143,52 @@ class SmartLoopController extends _$SmartLoopController {
       progress: 1,
       error: state.candidates.isEmpty ? run.lastFailure : null,
     );
+    adopt();
   }
 
-  /// Picks the candidate at [index]; out-of-range indices are ignored.
-  void select(int index) {
-    if (index < 0 || index >= state.candidates.length) return;
-    if (state.selected == index) return;
-    state = state.copyWith(selected: index);
+  /// Shows the next-best loop of the current search.
+  ///
+  /// Nothing is routed while the ranking still holds one; once it is used up
+  /// the same request is searched again with the directions rotated by
+  /// [smartLoopRotationDeg], which is the cheapest way to different loops.
+  Future<void> another() async {
+    final request = state.request;
+    if (request == null || state.running) return;
+    if (state.index + 1 < state.candidates.length) {
+      state = state.copyWith(index: state.index + 1);
+      adopt();
+      return;
+    }
+    await search(
+      request,
+      allowSameWayBack: _allowSameWayBack,
+      directionOffsetDeg: _directionOffsetDeg + smartLoopRotationDeg,
+    );
   }
 
-  /// Stops the search and every routing request still in flight.
+  /// Stops the search and every routing request still in flight, keeping
+  /// whatever was found.
   void cancel() {
     if (_run == null) return;
     _stopRun();
-    if (!_disposed && state.running) {
-      state = state.copyWith(running: false);
-    }
+    if (_disposed) return;
+    if (state.running) state = state.copyWith(running: false);
+    adopt();
   }
 
-  /// Hands the selected candidate to the planner.
+  /// Forgets the last search, so reopening the sheet starts on a clean slate.
+  void reset() {
+    _stopRun();
+    if (!_disposed) state = const SmartLoopState();
+  }
+
+  /// Hands the loop currently on show to the planner.
   ///
-  /// The planner shows it without routing again, so the user can look at the
+  /// The planner shows it without routing again, so the rider can look at the
   /// elevation profile, save it to the library or edit it. Returns `false`
-  /// when nothing is selected.
+  /// when there is nothing to hand over.
   bool adopt() {
-    final candidate = state.selectedCandidate;
+    final candidate = state.current;
     if (candidate == null) return false;
     ref
         .read(plannerControllerProvider.notifier)
@@ -207,37 +207,11 @@ class SmartLoopController extends _$SmartLoopController {
     _run = null;
   }
 
-  /// Collects the queries the strategies propose, keeping each strategy's
-  /// name, so the number of routing requests is known before the first one
-  /// goes out.
-  Future<List<_ReplayStrategy>> _materialize(
-    LoopRequest request, {
-    required int seed,
-  }) async {
-    final plans = <_ReplayStrategy>[];
-    var budget = smartLoopMaxCandidates;
-    for (final strategy in strategiesForRequest(request, seed: seed)) {
-      if (budget <= 0) break;
-      final queries = await strategy.queries(request).take(budget).toList();
-      if (queries.isEmpty) continue;
-      budget -= queries.length;
-      plans.add(_ReplayStrategy(strategy.name, queries));
-    }
-    return plans;
-  }
-
-  /// Inserts [candidate] into the ranking, keeping the best
-  /// [smartLoopTopN] and the user's pick pointing at the same loop.
+  /// Inserts [candidate] into the ranking, best first.
   void _add(LoopCandidate candidate) {
-    final picked = state.selectedCandidate;
     final ranked = <LoopCandidate>[...state.candidates, candidate]
       ..sort((a, b) => a.score.total.compareTo(b.score.total));
-    final kept = ranked.length <= smartLoopTopN
-        ? ranked
-        : ranked.sublist(0, smartLoopTopN);
-    var selected = picked == null ? 0 : kept.indexOf(picked);
-    if (selected < 0) selected = 0;
-    state = state.copyWith(candidates: kept, selected: selected);
+    state = state.copyWith(candidates: ranked, index: 0);
   }
 
   static String _messageOf(Object error) =>
@@ -272,8 +246,9 @@ class _LoopRun {
 /// Replays an already collected list of queries.
 ///
 /// [LoopPlanner] takes strategies, not queries, so the materialised queries go
-/// back in through this trivial strategy. The name is the original one, so a
-/// candidate still says which strategy produced it.
+/// back in through this trivial strategy — which is what makes an honest
+/// progress bar possible, since the planner's stream only ever reports the
+/// queries that *succeeded*.
 ///
 /// It is a generator rather than a `Stream.fromIterable` on purpose: the
 /// planner stops reading at its candidate budget, and cancelling a
@@ -319,7 +294,7 @@ class _CountingBackend implements RoutingBackend {
       return await _inner.route(q, cancel: cancel ?? _run.token);
     } on RoutingException catch (e) {
       // "No route from here" is the normal answer to an over-ambitious loop,
-      // not a failure: it becomes the sheet's "try a shorter distance" state.
+      // not a failure: it becomes the sheet's "try another distance" state.
       // Only a broken server or a rejected request is worth reporting.
       if (e.kind == RoutingErrorKind.network ||
           e.kind == RoutingErrorKind.invalid) {

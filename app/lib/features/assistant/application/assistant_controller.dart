@@ -9,6 +9,8 @@ import 'package:velorki_geo/velorki_geo.dart';
 import '../../../core/plus/plus_gate.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
 import '../../planner/application/planner_controller.dart';
+import '../../planner/domain/route_profile.dart';
+import '../../planner/domain/waypoint.dart';
 import '../../smart_loop/application/smart_loop_controller.dart';
 import '../data/ai_consent_controller.dart';
 import '../data/place_geocoder.dart';
@@ -200,13 +202,28 @@ class AssistantController extends _$AssistantController {
           ),
           intent: intent,
         );
-      case LoopIntent():
+      case LoopIntent(:final request, :final via):
         _ready(intent);
-        // Fire and forget: the loop search reports its own progress, and the
-        // assistant sheet closes onto the loop sheet as soon as this returns.
-        unawaited(
-          ref.read(smartLoopControllerProvider.notifier).start(intent.request),
-        );
+        if (via.isEmpty) {
+          // Nothing to ride past, so BRouter's round-trip mode makes the loop.
+          // Fire and forget: the search reports its own progress and the
+          // assistant sheet closes onto the loop sheet as soon as this
+          // returns.
+          unawaited(
+            ref.read(smartLoopControllerProvider.notifier).search(request),
+          );
+        } else {
+          // The places to ride past *are* the route; closing it is what makes
+          // it a loop, and the way home avoids the way out.
+          ref.read(plannerControllerProvider.notifier)
+            ..setProfile(RouteProfile.fromName(request.profile))
+            ..setWaypoints(<Waypoint>[
+              Waypoint(pos: request.start),
+              for (final place in via)
+                Waypoint(pos: place.position, name: place.label),
+            ])
+            ..closeLoop(differentWayBack: true);
+        }
       case RouteIntent():
         ref.read(plannerControllerProvider.notifier)
           ..setProfile(intent.profile)

@@ -10,9 +10,9 @@ import 'package:velorki/features/assistant/domain/intent_resolver.dart';
 import 'package:velorki/features/assistant/presentation/assistant_sheet.dart';
 import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
+import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
-import 'package:velorki/features/smart_loop/application/smart_loop_controller.dart';
 import 'package:velorki_api/velorki_api.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -161,13 +161,16 @@ void main() {
     await tester.tap(_inSheet(find.text('Neustadt, Thüringen')));
     await tester.pumpAndSettle();
 
-    // The sheet closed onto the loop sheet, with the picked place in the
-    // request.
+    // The sheet closed onto the planner: a loop past a place is that place
+    // plotted and the route closed behind it.
     expect(find.byType(AssistantSheet), findsNothing);
-    expect(
-      _container(tester).read(smartLoopControllerProvider).request?.via.single,
+    final planner = _container(tester).read(plannerControllerProvider);
+    expect(planner.positions, <LatLng>[
+      _here,
       const LatLng(50.73, 10.90),
-    );
+      _here,
+    ]);
+    expect(planner.options.differentWayBack, isTrue);
   });
 
   testWidgets('without Velorki Plus the sheet points at the paywall', (

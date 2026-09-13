@@ -55,9 +55,12 @@ class PlannerMapBinding {
   /// The camera is only moved when a whole route appears at once — which is
   /// what loading a saved route does — never while the user is editing.
   Future<void> sync(PlannerState state) async {
-    await map.setWaypoints(
-      state.waypoints.map(_marker).toList(growable: false),
-    );
+    // A closed loop's last waypoint sits exactly on its first: one marker
+    // is enough, and the start marker stays the one to drag.
+    final shown = state.isClosedLoop
+        ? state.waypoints.sublist(0, state.waypoints.length - 1)
+        : state.waypoints;
+    await map.setWaypoints(shown.map(_marker).toList(growable: false));
 
     final result = state.result;
     final positions = result?.positions ?? const <LatLng>[];

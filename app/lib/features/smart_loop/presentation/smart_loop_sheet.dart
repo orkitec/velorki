@@ -9,425 +9,364 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/device_position_request.dart';
 import '../../planner/application/planner_controller.dart';
-import '../../planner/data/routing_backend_provider.dart';
 import '../../planner/domain/route_profile.dart';
 import '../../planner/presentation/route_format.dart';
-import '../../planner/presentation/route_stats_row.dart';
-import '../../search/domain/search_result.dart';
-import '../../search/presentation/search_field.dart';
 import '../../shared/presentation/stat_tile.dart';
-import '../application/loop_map_preview.dart';
 import '../application/smart_loop_controller.dart';
+import '../data/loop_preferences.dart';
 import '../domain/loops.dart';
-import '../domain/smart_loop_state.dart';
 
-/// Shortest loop the slider offers, in kilometres.
-const double loopMinKm = 10;
-
-/// Longest loop the slider offers, in kilometres.
-const double loopMaxKm = 150;
-
-/// Where the slider starts.
-const double loopDefaultKm = 40;
-
-/// Slider step in kilometres.
-const double loopStepKm = 5;
-
-/// How many via places one loop may have.
-const int loopMaxVias = 2;
-
-/// Opens the smart loop sheet over the planner.
+/// Opens the "Make a loop" sheet over the planner.
 ///
-/// [map] is the planner's own map controller: the sheet draws its candidates
-/// on it through [LoopMapPreview] and takes them off again when it closes. A
-/// `null` map is fine — the sheet then simply shows no preview.
+/// [map] is the planner's own map controller, used as the fallback start when
+/// there is no plan and no position. The sheet draws nothing itself: the loop
+/// it makes goes straight into the planner, which already draws its route.
 Future<void> showSmartLoopSheet(
   BuildContext context, {
   MapController? map,
 }) async {
   final container = ProviderScope.containerOf(context, listen: false);
-  final preview = LoopMapPreview(map);
+  // A search the assistant has just started keeps running; anything older is
+  // stale the moment the sheet opens again.
+  if (!container.read(smartLoopControllerProvider).running) {
+    container.read(smartLoopControllerProvider.notifier).reset();
+  }
   await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (context) => SmartLoopSheet(preview: preview),
+    // The shell's floating navigation bar belongs to the branch navigator, so
+    // a sheet opened there would sit under it.
+    useRootNavigator: true,
+    builder: (context) => SmartLoopSheet(map: map),
   );
   container.read(smartLoopControllerProvider.notifier).cancel();
-  await preview.clear();
 }
 
-/// Where a loop starts.
-enum LoopStartChoice {
-  /// The device's own position.
-  myPosition,
-
-  /// The point the map is centred on.
-  mapCentre,
-
-  /// The first waypoint of the route in the planner.
-  waypoint,
-}
-
-/// "A nice 60 km loop from here, past the lake", as a form.
+/// One sheet, two jobs: close the planned route into a loop, or make a loop
+/// out of nothing but a start and a distance.
+///
+/// Which of the two it is, is not a choice the rider has to make — it follows
+/// from what is on the map. With a route planned, "a loop" means riding that
+/// route and coming home; with a bare start it means going somewhere and
+/// coming back.
 class SmartLoopSheet extends ConsumerStatefulWidget {
   /// Creates the sheet.
-  const SmartLoopSheet({required this.preview, super.key});
+  const SmartLoopSheet({super.key, this.map});
 
-  /// Draws the candidates on the planner's map.
-  final LoopMapPreview preview;
+  /// The planner's map, for the map-centre fallback.
+  final MapController? map;
 
   @override
   ConsumerState<SmartLoopSheet> createState() => _SmartLoopSheetState();
 }
 
 class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
-  final List<SearchResult> _vias = <SearchResult>[];
-  late LoopStartChoice _start;
-  late RouteProfile _profile;
-  double _km = loopDefaultKm;
-  Hills _hills = Hills.neutral;
-  Surface _surface = Surface.mixed;
-  bool _avoidBusy = true;
-  String? _startProblem;
+  /// Whether the sheet closes the planned route (Case A) rather than making a
+  /// loop from scratch (Case B). Decided once, when the sheet opens.
+  late final bool _closeRoute;
+
+  /// Whether the loop starts at a point the rider put on the map. Read once:
+  /// adopting a loop puts its own start waypoint in the planner, and the line
+  /// under the title must not change meaning because of that.
+  late final bool _startIsPlotted;
+  late double _km;
+  bool _differentWayBack = true;
+
+  /// Whether the plan is a loop already, which is when the sheet shows what it
+  /// made instead of offering to make it.
+  bool _closed = false;
+  bool _fromMapCentre = false;
+  String? _problem;
 
   @override
   void initState() {
     super.initState();
+    final loop = ref.read(smartLoopControllerProvider);
     final planner = ref.read(plannerControllerProvider);
-    _profile = planner.options.profile;
-    _start = planner.waypoints.isNotEmpty
-        ? LoopStartChoice.waypoint
-        : (widget.preview.map?.center != null
-              ? LoopStartChoice.mapCentre
-              : LoopStartChoice.myPosition);
-    // Reopening the sheet redraws whatever the last search found.
-    final state = ref.read(smartLoopControllerProvider);
-    if (state.candidates.isNotEmpty) {
-      unawaited(
-        widget.preview.previewRoutes(state.previewLines, state.selected ?? 0),
-      );
-    }
+    // A running or finished search owns the planner's route, so the sheet
+    // stays on the search it belongs to.
+    final searching = loop.running || loop.candidates.isNotEmpty;
+    _closeRoute = !searching && planner.waypoints.length >= 2;
+    _startIsPlotted = planner.waypoints.isNotEmpty;
+    _closed = planner.isClosedLoop;
+    if (_closed) _differentWayBack = planner.options.differentWayBack;
+    _km = loop.request != null
+        ? loop.request!.targetM / 1000
+        : ref.read(lastLoopDistanceKmProvider);
   }
 
-  List<LoopStartChoice> get _startChoices => <LoopStartChoice>[
-    LoopStartChoice.myPosition,
-    if (widget.preview.map?.center != null) LoopStartChoice.mapCentre,
-    if (ref.read(plannerControllerProvider).waypoints.isNotEmpty)
-      LoopStartChoice.waypoint,
-  ];
-
+  /// Where a from-scratch loop starts: the plotted waypoint, else the rider's
+  /// position, else what the map is looking at.
   Future<LatLng?> _resolveStart() async {
-    switch (_start) {
-      case LoopStartChoice.waypoint:
-        final waypoints = ref.read(plannerControllerProvider).waypoints;
-        return waypoints.isEmpty ? null : waypoints.first.pos;
-      case LoopStartChoice.mapCentre:
-        return widget.preview.map?.center;
-      case LoopStartChoice.myPosition:
-        return requestDevicePosition(context, ref);
-    }
+    final waypoints = ref.read(plannerControllerProvider).waypoints;
+    if (waypoints.isNotEmpty) return waypoints.first.pos;
+    final position = await requestDevicePosition(context, ref);
+    if (position != null) return position;
+    final centre = widget.map?.center;
+    if (centre != null && mounted) setState(() => _fromMapCentre = true);
+    return centre;
   }
 
-  Future<void> _generate({bool newSeed = false}) async {
+  Future<void> _make() async {
     final l10n = AppLocalizations.of(context);
+    final profile = ref.read(plannerControllerProvider).options.profile;
+    final previous = ref.read(smartLoopControllerProvider).request;
     final start = await _resolveStart();
     if (!mounted) return;
     if (start == null) {
-      setState(
-        () => _startProblem = _start == LoopStartChoice.myPosition
-            ? l10n.loopPositionUnavailable
-            : l10n.loopNoStart,
-      );
+      setState(() => _problem = l10n.loopNoPosition);
       return;
     }
-    setState(() => _startProblem = null);
+    setState(() => _problem = null);
+    unawaited(ref.read(lastLoopDistanceKmProvider.notifier).save(_km));
     await ref
         .read(smartLoopControllerProvider.notifier)
-        .start(
+        .search(
           LoopRequest(
             start: start,
-            via: _vias.map((v) => v.position).toList(growable: false),
             targetM: _km * 1000,
-            profile: _profile.brouterName,
-            prefs: LoopPrefs(
-              hills: _hills,
-              surface: _surface,
-              avoidTraffic: _avoidBusy,
-            ),
+            profile: profile.brouterName,
+            // The rider's own preferences only ever arrive from the
+            // assistant; the sheet itself has no opinion any more.
+            prefs: previous?.prefs ?? const LoopPrefs(),
           ),
-          seed: newSeed
-              ? DateTime.now().microsecondsSinceEpoch & 0x7fffffff
-              : null,
+          allowSameWayBack: !_differentWayBack,
         );
   }
 
-  void _addVia(SearchResult place) {
-    if (_vias.length >= loopMaxVias) return;
-    setState(() => _vias.add(place));
-  }
-
-  void _removeVia(SearchResult place) => setState(() => _vias.remove(place));
-
-  Future<void> _use() async {
-    final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    final navigator = Navigator.of(context);
-    if (!ref.read(smartLoopControllerProvider.notifier).adopt()) return;
-    await widget.preview.clear();
-    navigator.pop();
-    messenger?.showSnackBar(SnackBar(content: Text(l10n.loopAdopted)));
+  void _close() {
+    ref
+        .read(plannerControllerProvider.notifier)
+        .closeLoop(differentWayBack: _differentWayBack);
+    // The sheet stays: what it just made is the thing the rider wants to look
+    // at, and "Another way back" is the next thing they will want.
+    setState(() => _closed = true);
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final state = ref.watch(smartLoopControllerProvider);
-
-    ref.listen(smartLoopControllerProvider, (previous, next) {
-      if (previous != null &&
-          previous.candidates == next.candidates &&
-          previous.selected == next.selected) {
-        return;
-      }
-      unawaited(
-        widget.preview.previewRoutes(next.previewLines, next.selected ?? 0),
-      );
-    });
 
     return ConstrainedBox(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.sizeOf(context).height * 0.9,
       ),
-      child: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(context).bottom,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          4,
+          20,
+          MediaQuery.viewPaddingOf(context).bottom + 16,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(l10n.loopTitle, style: theme.textTheme.headlineSmall),
-                  const SizedBox(height: 4),
-                  Text(
-                    l10n.loopIntro,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  if (ref.watch(onDeviceRoutingActiveProvider))
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Text(
-                        l10n.loopOnDeviceNote,
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            Flexible(
-              child: ListView(
-                shrinkWrap: true,
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-                children: [
-                  _Section(title: l10n.loopStart),
-                  _StartChooser(
-                    choices: _startChoices,
-                    selected: _start,
-                    onSelected: (choice) => setState(() {
-                      _start = choice;
-                      _startProblem = null;
-                    }),
-                  ),
-                  if (_startProblem != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        _startProblem!,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.error,
-                        ),
-                      ),
-                    ),
-                  _Section(title: l10n.loopVia),
-                  if (_vias.length < loopMaxVias)
-                    SearchField(
-                      onSelected: _addVia,
-                      bias: () => widget.preview.map?.center,
-                    ),
-                  if (_vias.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Wrap(
-                        spacing: 8,
-                        children: [
-                          for (final via in _vias)
-                            InputChip(
-                              avatar: const Icon(
-                                Icons.place_outlined,
-                                size: 18,
-                              ),
-                              label: Text(via.name),
-                              onDeleted: () => _removeVia(via),
-                              deleteButtonTooltipMessage: l10n.loopViaRemove(
-                                via.name,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      l10n.loopViaHint,
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ),
-                  _Section(title: l10n.loopDistance),
-                  Text(
-                    formatDistance(l10n, _km * 1000),
-                    style: theme.textTheme.statLarge.copyWith(
-                      color: theme.velorki.accent,
-                    ),
-                  ),
-                  Slider(
-                    value: _km,
-                    min: loopMinKm,
-                    max: loopMaxKm,
-                    divisions: ((loopMaxKm - loopMinKm) / loopStepKm).round(),
-                    label: formatDistance(l10n, _km * 1000),
-                    onChanged: (v) => setState(() => _km = v),
-                  ),
-                  _Section(title: l10n.plannerProfile),
-                  _ProfileChips(
-                    selected: _profile,
-                    onSelected: (p) => setState(() => _profile = p),
-                  ),
-                  _Section(title: l10n.loopHills),
-                  SegmentedButton<Hills>(
-                    showSelectedIcon: false,
-                    segments: [
-                      ButtonSegment(
-                        value: Hills.avoid,
-                        label: Text(l10n.loopHillsAvoid),
-                      ),
-                      ButtonSegment(
-                        value: Hills.neutral,
-                        label: Text(l10n.loopHillsNeutral),
-                      ),
-                      ButtonSegment(
-                        value: Hills.seek,
-                        label: Text(l10n.loopHillsSeek),
-                      ),
-                    ],
-                    selected: <Hills>{_hills},
-                    onSelectionChanged: (s) => setState(() => _hills = s.first),
-                  ),
-                  _Section(title: l10n.surfaceTitle),
-                  SegmentedButton<Surface>(
-                    showSelectedIcon: false,
-                    segments: [
-                      ButtonSegment(
-                        value: Surface.paved,
-                        label: Text(l10n.surfacePaved),
-                      ),
-                      ButtonSegment(
-                        value: Surface.mixed,
-                        label: Text(l10n.loopSurfaceMixed),
-                      ),
-                      ButtonSegment(
-                        value: Surface.gravel,
-                        label: Text(l10n.loopSurfaceGravel),
-                      ),
-                    ],
-                    selected: <Surface>{_surface},
-                    onSelectionChanged: (s) =>
-                        setState(() => _surface = s.first),
-                  ),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(l10n.loopAvoidBusy),
-                    value: _avoidBusy,
-                    onChanged: (v) => setState(() => _avoidBusy = v),
-                  ),
-                  _Results(state: state, profile: _profile),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                12,
-                20,
-                MediaQuery.viewPaddingOf(context).bottom + 16,
-              ),
-              child: _Actions(
-                state: state,
-                onGenerate: () => unawaited(_generate()),
-                onRegenerate: () => unawaited(_generate(newSeed: true)),
-                onStop: ref.read(smartLoopControllerProvider.notifier).cancel,
-                onUse: () => unawaited(_use()),
-              ),
-            ),
+            Text(l10n.loopMakeTitle, style: theme.textTheme.headlineSmall),
+            const SizedBox(height: 8),
+            if (_closeRoute) ..._closeRouteBody(l10n, theme),
+            if (!_closeRoute) ..._makeLoopBody(l10n, theme),
           ],
         ),
       ),
     );
   }
-}
 
-class _Section extends StatelessWidget {
-  const _Section({required this.title});
+  List<Widget> _closeRouteBody(AppLocalizations l10n, ThemeData theme) {
+    final planner = ref.watch(plannerControllerProvider);
+    final result = planner.result;
+    return [
+      Text(l10n.loopBackToStart, style: _quiet(theme)),
+      ..._profileSection(l10n),
+      _wayBackSwitch(l10n),
+      const SizedBox(height: 12),
+      if (!_closed)
+        FilledButton.icon(
+          onPressed: _close,
+          icon: const Icon(Icons.loop_rounded),
+          label: Text(l10n.loopClose),
+        )
+      else ...[
+        if (planner.isRouting)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: const LinearProgressIndicator(minHeight: 4),
+          )
+        else if (result != null)
+          Text(
+            l10n.loopResult(
+              formatDistance(l10n, result.lengthM),
+              formatHeight(l10n, result.ascentM),
+            ),
+            style: theme.textTheme.titleMedium,
+          ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: planner.isRouting || !planner.ridesBackAnotherWay
+                    ? null
+                    : () => unawaited(
+                        ref
+                            .read(plannerControllerProvider.notifier)
+                            .anotherWayBack(),
+                      ),
+                child: Text(l10n.loopAnotherWayBack),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FilledButton(
+                onPressed: Navigator.of(context).pop,
+                child: Text(l10n.loopDone),
+              ),
+            ),
+          ],
+        ),
+        if (planner.error != null)
+          _Problem(text: l10n.loopFailed(planner.error!)),
+      ],
+    ];
+  }
 
-  final String title;
+  /// The bike the loop is routed for. It is the planner's own profile, so
+  /// picking one here changes the chips on the planner too.
+  List<Widget> _profileSection(AppLocalizations l10n) => [
+    const SizedBox(height: 16),
+    SectionCaption(l10n.loopProfile),
+    const SizedBox(height: 8),
+    _ProfileChips(
+      selected: ref.watch(plannerControllerProvider).options.profile,
+      onSelected: ref.read(plannerControllerProvider.notifier).setProfile,
+    ),
+  ];
 
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 20, bottom: 8),
-    child: SectionCaption(title),
+  List<Widget> _makeLoopBody(AppLocalizations l10n, ThemeData theme) {
+    final state = ref.watch(smartLoopControllerProvider);
+    final profile = ref.watch(plannerControllerProvider).options.profile;
+    final result = state.current?.result;
+    // Moving the slider or picking another bike after a search makes the loop
+    // on the map stale, so the sheet offers to make a new one rather than
+    // another one.
+    final stale =
+        state.request != null &&
+        ((state.request!.targetM / 1000 - _km).abs() > 0.01 ||
+            state.request!.profile != profile.brouterName);
+
+    return [
+      if (!_startIsPlotted)
+        Text(
+          _fromMapCentre ? l10n.loopFromMapCentre : l10n.loopFromPosition,
+          style: _quiet(theme),
+        ),
+      const SizedBox(height: 16),
+      SectionCaption(l10n.loopDistance),
+      const SizedBox(height: 4),
+      Text(
+        _kmLabel(l10n),
+        style: theme.textTheme.statLarge.copyWith(color: theme.velorki.accent),
+      ),
+      Slider(
+        value: _km,
+        min: loopMinKm,
+        max: loopMaxKm,
+        divisions: ((loopMaxKm - loopMinKm) / loopStepKm).round(),
+        label: _kmLabel(l10n),
+        onChanged: state.running ? null : (v) => setState(() => _km = v),
+      ),
+      ..._profileSection(l10n),
+      _wayBackSwitch(l10n),
+      const SizedBox(height: 12),
+      if (state.running) ...[
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(value: state.progress, minHeight: 4),
+        ),
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: ref.read(smartLoopControllerProvider.notifier).cancel,
+            child: Text(l10n.loopStop),
+          ),
+        ),
+      ] else if (result != null && !stale) ...[
+        Text(
+          l10n.loopResult(
+            formatDistance(l10n, result.lengthM),
+            formatHeight(l10n, result.ascentM),
+          ),
+          style: theme.textTheme.titleMedium,
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => unawaited(
+                  ref.read(smartLoopControllerProvider.notifier).another(),
+                ),
+                child: Text(l10n.loopAnother),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FilledButton(
+                onPressed: Navigator.of(context).pop,
+                child: Text(l10n.loopDone),
+              ),
+            ),
+          ],
+        ),
+      ] else
+        FilledButton.icon(
+          onPressed: () => unawaited(_make()),
+          icon: const Icon(Icons.loop_rounded),
+          label: Text(l10n.loopMake),
+        ),
+      if (state.foundNothing && !state.running)
+        _Problem(text: l10n.loopNoneFound),
+      if (state.error != null) _Problem(text: l10n.loopFailed(state.error!)),
+      if (_problem != null) _Problem(text: _problem!),
+    ];
+  }
+
+  /// The slider figure. It only ever moves in whole steps of
+  /// [loopStepKm] kilometres, so the decimal the route statistics carry would
+  /// be a permanent ".0" here.
+  String _kmLabel(AppLocalizations l10n) =>
+      l10n.valueKilometers(formatNumber(l10n, _km, decimals: 0));
+
+  Widget _wayBackSwitch(AppLocalizations l10n) => SwitchListTile(
+    contentPadding: EdgeInsets.zero,
+    title: Text(l10n.loopDifferentWayBack),
+    subtitle: Text(l10n.loopDifferentWayBackHint),
+    value: _differentWayBack,
+    onChanged: (v) {
+      setState(() => _differentWayBack = v);
+      // A loop that is already on the map is redrawn on the spot; one that is
+      // not yet made only remembers the choice.
+      if (_closed) {
+        ref
+            .read(plannerControllerProvider.notifier)
+            .closeLoop(differentWayBack: v);
+      }
+    },
+  );
+
+  TextStyle? _quiet(ThemeData theme) => theme.textTheme.bodyMedium?.copyWith(
+    color: theme.colorScheme.onSurfaceVariant,
   );
 }
 
-class _StartChooser extends StatelessWidget {
-  const _StartChooser({
-    required this.choices,
-    required this.selected,
-    required this.onSelected,
-  });
-
-  final List<LoopStartChoice> choices;
-  final LoopStartChoice selected;
-  final ValueChanged<LoopStartChoice> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Wrap(
-      spacing: 8,
-      children: [
-        for (final choice in choices)
-          ChoiceChip(
-            label: Text(switch (choice) {
-              LoopStartChoice.myPosition => l10n.loopStartMyPosition,
-              LoopStartChoice.mapCentre => l10n.loopStartMapCentre,
-              LoopStartChoice.waypoint => l10n.loopStartWaypoint,
-            }),
-            selected: choice == selected,
-            onSelected: (_) => onSelected(choice),
-          ),
-      ],
-    );
-  }
-}
-
+/// The planner's profiles as a scrolling row of chips.
+///
+/// The planner draws the same choice over the map, where the chips have to be
+/// opaque glass; here the sheet is a surface already, so the chip theme is
+/// left alone.
 class _ProfileChips extends StatelessWidget {
   const _ProfileChips({required this.selected, required this.onSelected});
 
@@ -437,269 +376,44 @@ class _ProfileChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        for (final profile in RouteProfile.values)
-          ChoiceChip(
-            label: Text(profileLabel(l10n, profile)),
-            selected: profile == selected,
-            onSelected: (_) => onSelected(profile),
-          ),
-      ],
-    );
-  }
-}
-
-class _Results extends ConsumerWidget {
-  const _Results({required this.state, required this.profile});
-
-  final SmartLoopState state;
-  final RouteProfile profile;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final error = state.error;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (state.running) ...[
-          const SizedBox(height: 20),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(value: state.progress, minHeight: 4),
-          ),
-          const SizedBox(height: 10),
-          Text(l10n.loopSearching, style: theme.textTheme.bodySmall),
-        ],
-        if (error != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 16),
-            child: Row(
-              children: [
-                Icon(Icons.error_outline, color: theme.colorScheme.error),
-                const SizedBox(width: 12),
-                Expanded(child: Text(l10n.loopFailed(error))),
-              ],
+    return SizedBox(
+      height: 44,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          for (final profile in RouteProfile.values)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                label: Text(profileLabel(l10n, profile)),
+                selected: profile == selected,
+                onSelected: (_) => onSelected(profile),
+              ),
             ),
-          ),
-        if (state.foundNothing)
-          Padding(
-            padding: const EdgeInsets.only(top: 16),
-            child: Text(l10n.loopNoneFound, style: theme.textTheme.bodyMedium),
-          ),
-        for (var i = 0; i < state.candidates.length; i++)
-          LoopCandidateCard(
-            candidate: state.candidates[i],
-            index: i,
-            profile: profile,
-            selected: i == state.selected,
-            onTap: () =>
-                ref.read(smartLoopControllerProvider.notifier).select(i),
-          ),
-      ],
-    );
-  }
-}
-
-/// One loop candidate: its statistics, what it is made of and its score.
-class LoopCandidateCard extends StatelessWidget {
-  /// Creates the card.
-  const LoopCandidateCard({
-    required this.candidate,
-    required this.index,
-    required this.profile,
-    required this.selected,
-    required this.onTap,
-    super.key,
-  });
-
-  /// The loop being shown.
-  final LoopCandidate candidate;
-
-  /// Its rank, counted from zero.
-  final int index;
-
-  /// The profile the loop was routed with, for the time estimate.
-  final RouteProfile profile;
-
-  /// Whether this is the loop drawn as the main line.
-  final bool selected;
-
-  /// Picks this loop.
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final result = candidate.result;
-    final features = candidate.score.features;
-    final stats = result.surfaceStats;
-
-    final accent = theme.velorki.accent;
-
-    return Card(
-      margin: const EdgeInsets.only(top: 12),
-      // The chosen loop is the one drawn on the map; a 2dp accent border says
-      // so without recolouring the whole card.
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: selected
-            ? BorderSide(color: accent, width: 2)
-            : BorderSide(color: theme.colorScheme.outlineVariant),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      l10n.loopCandidateTitle(index + 1),
-                      style: theme.textTheme.titleMedium,
-                    ),
-                  ),
-                  if (selected)
-                    Icon(Icons.check_circle_rounded, size: 20, color: accent),
-                ],
-              ),
-              const SizedBox(height: 12),
-              RouteStatsRow(
-                distanceM: result.lengthM,
-                ascentM: result.ascentM,
-                descentM: result.descentM,
-                duration: profile.estimatedTime(result.lengthM),
-              ),
-              const SizedBox(height: 14),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  _Metric(
-                    label: l10n.labelWithPercent(
-                      l10n.surfacePaved,
-                      formatPercent(l10n, stats.pavedShare),
-                    ),
-                  ),
-                  _Metric(
-                    label: l10n.labelWithPercent(
-                      l10n.surfaceCycleway,
-                      formatPercent(l10n, features.cyclewayShare),
-                    ),
-                  ),
-                  _Metric(
-                    label: l10n.labelWithPercent(
-                      l10n.surfaceBusy,
-                      formatPercent(l10n, features.busyShare),
-                    ),
-                  ),
-                  _Metric(
-                    label: l10n.labelWithPercent(
-                      l10n.loopRepeated,
-                      formatPercent(l10n, features.repeatedSegmentRatio),
-                    ),
-                  ),
-                  _Metric(
-                    label: l10n.loopScore(
-                      formatNumber(l10n, candidate.score.total, decimals: 2),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }
 }
 
-class _Metric extends StatelessWidget {
-  const _Metric({required this.label});
+class _Problem extends StatelessWidget {
+  const _Problem({required this.text});
 
-  final String label;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    // A Material chip inside a card the rider taps would look like a second
-    // button; this is a label, so it is drawn as one.
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(999),
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.error_outline, color: theme.colorScheme.error, size: 20),
+          const SizedBox(width: 12),
+          Expanded(child: Text(text, style: theme.textTheme.bodyMedium)),
+        ],
       ),
-      child: Text(
-        label,
-        style: theme.textTheme.labelMedium?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
-      ),
-    );
-  }
-}
-
-class _Actions extends StatelessWidget {
-  const _Actions({
-    required this.state,
-    required this.onGenerate,
-    required this.onRegenerate,
-    required this.onStop,
-    required this.onUse,
-  });
-
-  final SmartLoopState state;
-  final VoidCallback onGenerate;
-  final VoidCallback onRegenerate;
-  final VoidCallback onStop;
-  final VoidCallback onUse;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    if (state.running) {
-      return OutlinedButton.icon(
-        onPressed: onStop,
-        icon: const Icon(Icons.stop_rounded),
-        label: Text(l10n.loopStop),
-      );
-    }
-    if (state.candidates.isEmpty) {
-      return FilledButton.icon(
-        onPressed: onGenerate,
-        icon: const Icon(Icons.loop_rounded),
-        label: Text(l10n.loopGenerate),
-      );
-    }
-    // "Use this loop" is what the rider came for, so it takes the width;
-    // a new draw is one more tap away.
-    return Row(
-      children: [
-        TextButton.icon(
-          onPressed: onRegenerate,
-          icon: const Icon(Icons.refresh_rounded),
-          label: Text(l10n.loopRegenerate),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: FilledButton.icon(
-            onPressed: state.canAdopt ? onUse : null,
-            icon: const Icon(Icons.check_rounded),
-            label: Text(l10n.loopUseThis),
-          ),
-        ),
-      ],
     );
   }
 }

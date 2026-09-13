@@ -4,7 +4,7 @@
   "VELORKI_SEGMENTS_URL": "https://api.velorki.app/segments4",
   "VELORKI_PHOTON_URL": "https://photon.komoot.io",
   "VELORKI_MAP_STYLE_URL": "https://tiles.openfreemap.org/styles/liberty",
-  "VELORKI_MAP_STYLE_URL_DARK": "https://tiles.openfreemap.org/styles/dark",
+  "VELORKI_MAP_STYLE_URL_DARK": "https://tiles.openfreemap.org/styles/fiord",
   "VELORKI_CYCLOSM_TILE_URL": "https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png",
   "VELORKI_REVENUECAT_KEY_ANDROID": "",
   "VELORKI_REVENUECAT_KEY_IOS": "",

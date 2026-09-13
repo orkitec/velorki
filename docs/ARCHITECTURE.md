@@ -134,7 +134,7 @@ else. `VelorkiColors` (a `ThemeExtension`) carries what Material has no slot
 for — the route, track and marker colours, the glass panels over the map, the
 semantic success/warning colours — and `MapPalette.fromTheme` turns it into the
 maplibre layer colours, so the route follows the accent. Dark mode also swaps
-the map style (`VELORKI_MAP_STYLE_URL_DARK`, default OpenFreeMap Dark). The
+the map style (`VELORKI_MAP_STYLE_URL_DARK`, default OpenFreeMap Fiord). The
 shared widgets live in `features/shared/presentation/stat_tile.dart`.
 
 ### Pure-Dart packages (`app/packages/`)

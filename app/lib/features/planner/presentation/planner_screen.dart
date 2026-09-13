@@ -95,22 +95,29 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
     );
   }
 
-  /// Opens the smart loop sheet, handing it the planner's map so it can draw
-  /// its candidates on it.
+  /// Opens the loop sheet, handing it the planner's map for the map-centre
+  /// fallback start.
   Future<void> _smartLoop() => showSmartLoopSheet(context, map: _map);
 
   /// Opens the assistant, then shows whatever it produced.
   ///
-  /// A loop request is already running as a loop search when the sheet
-  /// closes, so the loop sheet opens on top of it and shows the candidates as
-  /// they arrive; a point-to-point route is simply on the map.
+  /// A loop with no place to ride past is already running as a loop search
+  /// when the sheet closes, so the loop sheet opens on top of it and shows
+  /// the result as it arrives. Everything else — a loop through places, a
+  /// point-to-point route — is already on the map.
   Future<void> _ask() async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final intent = await showAssistantSheet(context, map: _map);
     if (!mounted || intent == null) return;
     if (intent is LoopIntent) {
-      await _smartLoop();
+      if (intent.via.isEmpty) {
+        await _smartLoop();
+      } else {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.assistantRouteHandedOver)),
+        );
+      }
       return;
     }
     if (intent is RouteIntent) {

@@ -8,6 +8,7 @@ import 'package:velorki/features/settings/data/appearance_controller.dart';
 
 const String _modeKey = 'appearance.mode';
 const String _accentKey = 'appearance.accent';
+const String _mapKey = 'appearance.map';
 
 Future<(ProviderContainer, SharedPreferences)> _container([
   Map<String, Object> initial = const <String, Object>{},
@@ -125,5 +126,27 @@ void main() {
       container.read(appearanceSettingProvider),
       const Appearance(mode: ThemeMode.light, accent: AccentPreset.glacier),
     );
+  });
+
+  test('setMapLook persists the choice and auto clears the key', () async {
+    final (container, prefs) = await _container();
+    expect(container.read(appearanceSettingProvider).mapLook, MapLook.auto);
+
+    await container
+        .read(appearanceSettingProvider.notifier)
+        .setMapLook(MapLook.night);
+    expect(prefs.getString(_mapKey), 'night');
+    expect(container.read(appearanceSettingProvider).mapLook, MapLook.night);
+
+    await container
+        .read(appearanceSettingProvider.notifier)
+        .setMapLook(MapLook.auto);
+    expect(prefs.containsKey(_mapKey), isFalse);
+    expect(container.read(appearanceSettingProvider).mapLook, MapLook.auto);
+  });
+
+  test('an unknown stored map look falls back to auto', () async {
+    final (container, _) = await _container(<String, Object>{_mapKey: 'sepia'});
+    expect(container.read(appearanceSettingProvider).mapLook, MapLook.auto);
   });
 }

@@ -83,7 +83,7 @@ void main() {
     final h = await pumpScreen(tester, const PlannerScreen());
     await _plotRoute(tester, h);
 
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Fast'));
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Road'));
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
 

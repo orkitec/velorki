@@ -40,7 +40,7 @@ app fully local.
 | `VELORKI_SEGMENTS_URL` | Mirror of the rd5 routing tiles for on-device routing downloads. |
 | `VELORKI_PHOTON_URL` | Photon geocoder for search. |
 | `VELORKI_MAP_STYLE_URL` | MapLibre style JSON. Default OpenFreeMap Liberty. |
-| `VELORKI_MAP_STYLE_URL_DARK` | MapLibre style JSON for dark mode. Default OpenFreeMap Dark. |
+| `VELORKI_MAP_STYLE_URL_DARK` | MapLibre style JSON for dark mode. Default OpenFreeMap Fiord. |
 | `VELORKI_CYCLOSM_TILE_URL` | CyclOSM raster tiles for the optional cycling overlay. |
 | `VELORKI_REVENUECAT_KEY_*` | RevenueCat public SDK keys per platform. Empty: subscription UI hidden. |
 | `VELORKI_STRAVA_CLIENT_ID`, `VELORKI_RWGPS_CLIENT_ID` | Public OAuth client ids. The secrets live in the relay. |

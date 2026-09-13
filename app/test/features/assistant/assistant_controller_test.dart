@@ -108,6 +108,37 @@ void main() {
       ]);
     });
 
+    test('a loop past a place is plotted and closed', () async {
+      final relay = FakeRelayClient(
+        planEvents: <PlanEvent>[
+          RouteRequestEvent(routeRequest(via: ['Tegernsee'])),
+          const DoneEvent(),
+        ],
+      );
+      final container = await _container(
+        relay: relay,
+        geocoder: FakeGeocoder({
+          'Tegernsee': [place('Tegernsee', 47.71, 11.75)],
+        }),
+      );
+
+      await container
+          .read(assistantControllerProvider.notifier)
+          .submit('a loop past the Tegernsee', position: _here);
+
+      // Nothing to search for: the place is the route, and closing it behind
+      // the rider is what makes it a loop.
+      expect(container.read(smartLoopControllerProvider).request, isNull);
+      final planner = container.read(plannerControllerProvider);
+      expect(planner.positions, <LatLng>[
+        _here,
+        const LatLng(47.71, 11.75),
+        _here,
+      ]);
+      expect(planner.isClosedLoop, isTrue);
+      expect(planner.options.differentWayBack, isTrue);
+    });
+
     test('an ambiguous name waits for the rider, then resolves', () async {
       final relay = FakeRelayClient(
         planEvents: <PlanEvent>[

@@ -6,6 +6,7 @@ import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/app_config.dart';
+import '../../settings/data/appearance_controller.dart';
 import '../data/map_preferences.dart';
 import '../data/maplibre_map_controller.dart';
 import '../domain/map_controller.dart';
@@ -20,16 +21,30 @@ const String fallbackMapStyleUrl =
 
 /// The dark-mode counterpart, used when `VELORKI_MAP_STYLE_URL_DARK` is empty.
 const String fallbackMapStyleUrlDark =
-    'https://tiles.openfreemap.org/styles/dark';
+    'https://tiles.openfreemap.org/styles/fiord';
 
-/// The style for [brightness]: the configured URLs, else OpenFreeMap's.
-String mapStyleUrlFor(AppConfig config, Brightness brightness) {
-  if (brightness == Brightness.dark) {
-    return config.mapStyleUrlDark.isEmpty
-        ? fallbackMapStyleUrlDark
-        : config.mapStyleUrlDark;
-  }
-  return config.mapStyleUrl.isEmpty ? fallbackMapStyleUrl : config.mapStyleUrl;
+/// OpenFreeMap's black style, the "Black" map look.
+const String blackMapStyleUrl = 'https://tiles.openfreemap.org/styles/dark';
+
+/// The style for [look] under [brightness]: the configured URLs, else
+/// OpenFreeMap's.
+String mapStyleUrlFor(
+  AppConfig config,
+  Brightness brightness, [
+  MapLook look = MapLook.auto,
+]) {
+  final light = config.mapStyleUrl.isEmpty
+      ? fallbackMapStyleUrl
+      : config.mapStyleUrl;
+  final night = config.mapStyleUrlDark.isEmpty
+      ? fallbackMapStyleUrlDark
+      : config.mapStyleUrlDark;
+  return switch (look) {
+    MapLook.light => light,
+    MapLook.night => night,
+    MapLook.black => blackMapStyleUrl,
+    MapLook.auto => brightness == Brightness.dark ? night : light,
+  };
 }
 
 /// The map itself: a `MapLibreMap` platform view plus the adapter that turns
@@ -149,7 +164,11 @@ class _MapViewState extends ConsumerState<MapView> {
   @override
   Widget build(BuildContext context) {
     final config = ref.watch(effectiveConfigProvider);
-    final styleUrl = mapStyleUrlFor(config, Theme.of(context).brightness);
+    final styleUrl = mapStyleUrlFor(
+      config,
+      Theme.of(context).brightness,
+      ref.watch(appearanceSettingProvider).mapLook,
+    );
     // Read, not watch: the initial camera must not rebuild the platform view
     // every time the camera is saved.
     final camera = widget.rememberCamera
