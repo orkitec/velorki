@@ -138,6 +138,17 @@ needle turned to the map's bearing. The choice is kept in
 `recording.follow`, so the next ride starts the way the last one was ridden,
 and a pan or a twist of the map hands it back to the rider.
 
+**Turn-by-turn.** BRouter's voice hints travel with a route as `TurnHint`s and
+are stored with it. While a ride runs, `NavigationController` (kept alive for
+the session, read once by `HomeShell`) feeds every fix to `TurnNavigator`, which
+matches the rider onto the followed route — the saved one, or the plan when none
+was chosen — and reports the next turn, the one after it, the distance left and
+whether the rider strayed. `TurnAnnouncer` turns that stream into cues given
+once each; `TurnBanner` shows the current one over the map and `TurnSpeaker`
+(`flutter_tts`) says it. Two switches in Settings: `navigation.turns` shows the
+banner, `navigation.voice` speaks it. Straying is reported, not repaired — there
+is no re-routing yet.
+
 **Integrations and OAuth.** One `OAuthFlow`: build the authorise URL, open it
 with `flutter_web_auth_2`, receive the redirect on `velorki://oauth/<service>`,
 exchange the code **through the relay**, store the tokens in secure storage; a

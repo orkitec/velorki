@@ -25,6 +25,7 @@ void main() {
       expect(uri.queryParameters['profile'], 'fastbike');
       expect(uri.queryParameters['alternativeidx'], '0');
       expect(uri.queryParameters['format'], 'geojson');
+      expect(uri.queryParameters['timode'], '2', reason: 'voice hints');
       expect(uri.queryParameters.containsKey('engineMode'), isFalse);
       expect(uri.queryParameters.containsKey('allowSamewayback'), isFalse);
     });

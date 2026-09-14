@@ -110,6 +110,89 @@ void main() {
     });
   });
 
+  group('turn instructions', () {
+    // The rows are what BRouter writes into `voicehints`, with the quirks of
+    // the wire format: numbers may arrive as strings, the rows are not sorted
+    // and an unknown command has to be dropped rather than guessed at.
+    RouteResult parseWithHints(List<Object?> hints) =>
+        RouteResult.fromGeoJson(<String, dynamic>{
+          'type': 'FeatureCollection',
+          'features': [
+            {
+              'type': 'Feature',
+              'properties': <String, dynamic>{
+                'track-length': '1234',
+                'voicehints': hints,
+              },
+              'geometry': {
+                'type': 'LineString',
+                'coordinates': [
+                  [11.0, 48.0],
+                  [11.1, 48.1],
+                  [11.2, 48.2],
+                  [11.3, 48.3],
+                  [11.4, 48.4],
+                ],
+              },
+            },
+          ],
+        });
+
+    late RouteResult hinted;
+
+    setUpAll(() {
+      hinted = parseWithHints(<Object?>[
+        // out of order, so the parser has to sort them
+        [4, 100, 0, 0.0, 0],
+        ['2', '13', '2', '310.5', '-95'],
+        [1, 5, 0, 120.25, 88],
+        // command 42 is none of BRouter's, the row goes
+        [3, 42, 0, 10.0, 0],
+      ]);
+    });
+
+    test('rows become hints in point order', () {
+      expect(hinted.turns.map((t) => t.pointIndex), [1, 2, 4]);
+      expect(hinted.turns.map((t) => t.kind), [
+        TurnKind.right,
+        TurnKind.roundabout,
+        TurnKind.end,
+      ]);
+    });
+
+    test('strings are read as numbers', () {
+      final roundabout = hinted.turns[1];
+      expect(roundabout.exitNumber, 2);
+      expect(roundabout.distanceToNextM, 310.5);
+      expect(roundabout.angleDeg, -95);
+    });
+
+    test('the plain columns survive', () {
+      final right = hinted.turns.first;
+      expect(right.exitNumber, 0);
+      expect(right.distanceToNextM, 120.25);
+      expect(right.angleDeg, 88);
+    });
+
+    test('an unknown command is skipped, not guessed', () {
+      expect(hinted.turns.any((t) => t.pointIndex == 3), isFalse);
+    });
+
+    test('rows that are not rows are ignored', () {
+      final r = parseWithHints(<Object?>[
+        'nonsense',
+        42,
+        <Object?>[1],
+        [2, 5],
+      ]);
+      expect(r.turns, [const TurnHint(pointIndex: 2, kind: TurnKind.right)]);
+    });
+
+    test('a response without voicehints has no turns', () {
+      expect(result.turns, isEmpty);
+    });
+  });
+
   group('surface stats', () {
     test('shares are relative to the track length', () {
       final s = result.surfaceStats;

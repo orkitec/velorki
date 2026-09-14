@@ -128,6 +128,7 @@ Future<RecordingHarness> pumpRecordingScreen(
   Widget child, {
   RecordingHarness? harness,
   Map<String, Object> preferences = const <String, Object>{},
+  List<Override> extraOverrides = const <Override>[],
   Size surfaceSize = const Size(1000, 2000),
 }) async {
   final h = harness ?? RecordingHarness();
@@ -139,7 +140,7 @@ Future<RecordingHarness> pumpRecordingScreen(
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: h.overrides(await _prefs(preferences)),
+      overrides: [...h.overrides(await _prefs(preferences)), ...extraOverrides],
       child: MaterialApp(
         theme: buildLightTheme(),
         localizationsDelegates: const [

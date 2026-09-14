@@ -19,4 +19,5 @@ export 'src/segment_message.dart';
 export 'src/segments_manifest.dart';
 export 'src/surface_stats.dart';
 export 'src/tiles.dart';
+export 'src/turn_hint.dart';
 export 'src/version.dart';

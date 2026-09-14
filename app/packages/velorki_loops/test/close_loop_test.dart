@@ -22,6 +22,7 @@ RouteResult _leg({
   Duration? totalTime,
   double? energyJ,
   String? name,
+  List<TurnHint> turns = const <TurnHint>[],
 }) => RouteResult(
   geometry: geometry,
   lengthM: lengthM,
@@ -48,6 +49,7 @@ RouteResult _leg({
   totalTime: totalTime,
   energyJ: energyJ,
   times: times,
+  turns: turns,
   name: name,
 );
 
@@ -145,6 +147,54 @@ void main() {
       expect(merged.raw['velorki-legs'], hasLength(2));
       // The surface statistics see both legs' messages.
       expect(merged.surfaceStats.pavedShare, closeTo(1, 0.001));
+    });
+
+    test('the return leg\'s turns move with its points', () {
+      final a = _leg(
+        geometry: <TrackPoint>[
+          TrackPoint(_start),
+          TrackPoint(const LatLng(48.01, 11.01)),
+          TrackPoint(_far),
+        ],
+        turns: const <TurnHint>[
+          TurnHint(pointIndex: 1, kind: TurnKind.right, angleDeg: 90),
+          // the outbound leg's arrival, in the middle of the loop now
+          TurnHint(pointIndex: 2, kind: TurnKind.end),
+        ],
+      );
+      final b = _leg(
+        geometry: <TrackPoint>[
+          TrackPoint(_far),
+          TrackPoint(const LatLng(48.02, 11.02)),
+          TrackPoint(_start),
+        ],
+        turns: const <TurnHint>[
+          TurnHint(pointIndex: 1, kind: TurnKind.left, angleDeg: -90),
+          TurnHint(pointIndex: 2, kind: TurnKind.end),
+        ],
+      );
+
+      final merged = mergeLegs(a, b);
+
+      // 3 + 2 points: the return leg's point 1 is the merged point 3.
+      expect(merged.geometry, hasLength(5));
+      expect(merged.turns, const <TurnHint>[
+        TurnHint(pointIndex: 1, kind: TurnKind.right, angleDeg: 90),
+        TurnHint(pointIndex: 3, kind: TurnKind.left, angleDeg: -90),
+        TurnHint(pointIndex: 4, kind: TurnKind.end),
+      ]);
+      // The one "end" hint left is the last point of the loop.
+      expect(merged.turns.last.pointIndex, merged.geometry.length - 1);
+    });
+
+    test('legs without turns merge to none', () {
+      final a = _leg(
+        geometry: <TrackPoint>[TrackPoint(_start), TrackPoint(_far)],
+      );
+      final b = _leg(
+        geometry: <TrackPoint>[TrackPoint(_far), TrackPoint(_start)],
+      );
+      expect(mergeLegs(a, b).turns, isEmpty);
     });
 
     test('leaves the times empty when a leg has none', () {

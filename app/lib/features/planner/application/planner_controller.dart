@@ -323,6 +323,7 @@ class PlannerController extends _$PlannerController {
           descentM: saved.descentM,
           messages: const [],
           raw: const <String, dynamic>{},
+          turns: saved.turns,
           name: saved.name,
         ),
       ),

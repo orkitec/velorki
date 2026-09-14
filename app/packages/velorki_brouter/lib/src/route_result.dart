@@ -3,6 +3,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 import 'routing_exception.dart';
 import 'segment_message.dart';
 import 'surface_stats.dart';
+import 'turn_hint.dart';
 
 /// A computed route.
 class RouteResult {
@@ -18,6 +19,7 @@ class RouteResult {
     this.totalTime,
     this.energyJ,
     this.times = const <double>[],
+    this.turns = const <TurnHint>[],
     this.name,
     this.creator,
   });
@@ -58,6 +60,10 @@ class RouteResult {
   /// produced a time model. Same length as [geometry], or empty.
   final List<double> times;
 
+  /// The turn instructions BRouter produced, in route order. Empty when the
+  /// request did not ask for them (`timode=0`) or the profile produced none.
+  final List<TurnHint> turns;
+
   /// Track name from the response properties.
   final String? name;
 
@@ -83,8 +89,8 @@ class RouteResult {
   /// Expects a `FeatureCollection` whose first `LineString` feature is the
   /// track: coordinates are `[lon, lat]` or `[lon, lat, ele]`, properties hold
   /// `track-length`, `filtered ascend`, `plain-ascend`, `total-time`,
-  /// `total-energy`, `messages` and `times`. Extra features (BRouter adds
-  /// `Point` features when `exportWaypoints=1`) are ignored.
+  /// `total-energy`, `messages`, `times` and `voicehints`. Extra features
+  /// (BRouter adds `Point` features when `exportWaypoints=1`) are ignored.
   ///
   /// Throws [RoutingException] with [RoutingErrorKind.invalid] when the
   /// document is not a BRouter GeoJSON track.
@@ -150,6 +156,9 @@ class RouteResult {
               .toList(growable: false)
         : const <double>[];
     final totalSeconds = _numOrNull(props['total-time']);
+    final turns = props['voicehints'] is List
+        ? _parseTurns(props['voicehints'] as List)
+        : const <TurnHint>[];
 
     return RouteResult(
       geometry: geometry,
@@ -164,9 +173,23 @@ class RouteResult {
           : Duration(milliseconds: (totalSeconds * 1000).round()),
       energyJ: _numOrNull(props['total-energy']),
       times: times,
+      turns: turns,
       name: props['name']?.toString(),
       creator: props['creator']?.toString(),
     );
+  }
+
+  /// Reads the `voicehints` rows, dropping anything that is not a hint we
+  /// know (BRouter's own commands only), and puts them in route order.
+  static List<TurnHint> _parseTurns(List<dynamic> rows) {
+    final turns = <TurnHint>[];
+    for (final row in rows) {
+      if (row is! List) continue;
+      final hint = TurnHint.fromBRouterRow(row);
+      if (hint != null) turns.add(hint);
+    }
+    turns.sort((a, b) => a.pointIndex.compareTo(b.pointIndex));
+    return List<TurnHint>.unmodifiable(turns);
   }
 
   static List<SegmentMessage> _parseMessages(List<dynamic> rows) {

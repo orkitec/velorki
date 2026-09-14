@@ -35,6 +35,11 @@ abstract class SavedRoute with _$SavedRoute {
     String? description,
     SurfaceStats? surfaceStats,
 
+    /// BRouter's turn instructions, anchored to indices of [geometry]. Empty
+    /// for routes that never went through the router (file imports) and for
+    /// rows saved before the app stored them.
+    @Default(<TurnHint>[]) List<TurnHint> turns,
+
     /// Whether [description] was written by the model rather than by the
     /// rider. Shown next to the text and re-set when it is written again.
     @Default(false) bool aiDescriptionGenerated,

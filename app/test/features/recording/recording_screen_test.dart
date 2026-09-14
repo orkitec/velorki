@@ -12,8 +12,12 @@ import 'package:velorki/features/recording/domain/ride.dart';
 import 'package:velorki/core/geo/ride_stats.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
+import 'package:velorki/features/navigation/application/navigation_controller.dart';
+import 'package:velorki/features/navigation/domain/navigation_progress.dart';
+import 'package:velorki/features/navigation/presentation/turn_banner.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
+import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../planner/support/fakes.dart' show MapCall;
@@ -737,6 +741,58 @@ void main() {
             .following,
         isFalse,
       );
+      await unmountApp(tester);
+    });
+  });
+
+  group('the turn banner', () {
+    const progress = NavigationProgress(
+      next: TurnHint(pointIndex: 10, kind: TurnKind.left),
+      distanceToNextM: 200,
+    );
+
+    testWidgets('rides with a guided route and pushes the controls down', (
+      tester,
+    ) async {
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        extraOverrides: [
+          navigationControllerProvider.overrideWithValue(progress),
+        ],
+      );
+      await tester.pump();
+      expect(find.byType(TurnBanner), findsNothing);
+
+      await emitSnapshot(tester, h, _snapshot());
+
+      expect(find.byType(TurnBanner), findsOneWidget);
+      expect(find.text('200 m'), findsOneWidget);
+      expect(find.text('Turn left'), findsOneWidget);
+      expect(
+        tester
+            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
+            .controlsTop,
+        turnBannerHeight + 24,
+      );
+
+      await unmountApp(tester);
+    });
+
+    testWidgets('stays away when nothing is being guided', (tester) async {
+      final h = await pumpRecordingScreen(tester, const RecordingScreen());
+      await tester.pump();
+
+      await emitSnapshot(tester, h, _snapshot());
+
+      expect(find.byType(TurnBanner), findsNothing);
+      expect(
+        tester
+            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
+            .controlsTop,
+        isNull,
+      );
+
       await unmountApp(tester);
     });
   });

@@ -38,6 +38,11 @@ Map<String, String> buildQueryParams(RouteQuery q, {int? roundTripPoints}) {
     'profile': q.profile,
     'alternativeidx': '${q.alternativeIdx}',
     'format': 'geojson',
+    // Turn-instruction mode 2 ("locus"): it is the mode that tells keep
+    // left/right apart from taking an exit, and it is what makes BRouter
+    // write the `voicehints` table at all. Voice hints are computed after
+    // the route is found, so asking for them changes no geometry and no cost.
+    'timode': '2',
   };
 
   if (q.roundTrip) {

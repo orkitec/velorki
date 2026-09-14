@@ -77,6 +77,7 @@ class RouteRepository {
       waypoints: waypoints,
       options: options,
       surfaceStats: route.messages.isEmpty ? null : route.surfaceStats,
+      turns: route.turns,
     );
     await _dao.upsertRoute(toCompanion(saved));
     return saved;
@@ -212,6 +213,7 @@ class RouteRepository {
     waypoints: decodeWaypoints(row.waypointsJson),
     options: decodeOptions(row.routingOptionsJson),
     surfaceStats: decodeSurfaceStats(row.surfaceStatsJson),
+    turns: decodeTurns(row.turnsJson),
     aiDescriptionGenerated: row.aiDescriptionGenerated,
   );
 
@@ -239,6 +241,7 @@ class RouteRepository {
           ? null
           : jsonEncode(encodeSurfaceStats(route.surfaceStats!)),
     ),
+    turnsJson: Value(encodeTurns(route.turns)),
     aiDescriptionGenerated: Value(route.aiDescriptionGenerated),
   );
 
@@ -281,6 +284,27 @@ Map<String, dynamic> encodeSurfaceStats(SurfaceStats stats) =>
       'coveredLengthM': stats.coveredLengthM,
       'totalLengthM': stats.totalLengthM,
     };
+
+/// The `turns_json` column: null rather than `[]` for a route without turn
+/// instructions, so the column stays empty for everything that never went
+/// through the router.
+String? encodeTurns(List<TurnHint> turns) =>
+    turns.isEmpty ? null : jsonEncode(turns.map((t) => t.toMap()).toList());
+
+/// Parses the `turns_json` column; anything unreadable yields an empty list
+/// rather than breaking the library.
+List<TurnHint> decodeTurns(String? json) {
+  if (json == null || json.isEmpty) return const <TurnHint>[];
+  final decoded = _tryDecode(json);
+  if (decoded is! List) return const <TurnHint>[];
+  final out = <TurnHint>[];
+  for (final entry in decoded) {
+    if (entry is! Map) continue;
+    final hint = TurnHint.fromMap(entry);
+    if (hint != null) out.add(hint);
+  }
+  return out;
+}
 
 /// Parses the `surface_stats_json` column.
 SurfaceStats? decodeSurfaceStats(String? json) {

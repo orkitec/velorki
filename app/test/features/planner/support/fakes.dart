@@ -232,6 +232,7 @@ RouteResult syntheticRoute({
   double startLat = 48.0,
   double startLon = 11.0,
   bool withMessages = true,
+  List<TurnHint> turns = const <TurnHint>[],
 }) {
   final geometry = List<TrackPoint>.generate(
     points,
@@ -260,6 +261,7 @@ RouteResult syntheticRoute({
           ]
         : const <SegmentMessage>[],
     raw: const <String, dynamic>{},
+    turns: turns,
   );
 }
 

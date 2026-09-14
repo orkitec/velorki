@@ -14,6 +14,8 @@ import '../../map/data/heading_smoother.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/location_rationale_dialog.dart';
 import '../../map/presentation/map_chrome.dart';
+import '../../navigation/application/navigation_controller.dart';
+import '../../navigation/presentation/turn_banner.dart';
 import '../../planner/application/planner_controller.dart';
 import '../../planner/data/route_repository.dart';
 import '../../planner/domain/saved_route.dart';
@@ -558,6 +560,10 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     final followMode = ref.watch(followModeProvider);
     _syncMap(state, route, planned, followMode);
 
+    // Turn-by-turn, when there is a route to follow and the rider wants it.
+    final navigation = ref.watch(navigationControllerProvider);
+    final guiding = navigation != null && state.isRecording;
+
     final theme = Theme.of(context);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     final screenHeight = MediaQuery.sizeOf(context).height;
@@ -587,9 +593,25 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
               // Only a running ride has a camera to hold, so only a running
               // ride shows the compass.
               onCompass: state.isRecording ? _handleCompass : null,
+              // The turn banner sits over the top of the map, so the control
+              // column starts below it while one is showing.
+              controlsTop: guiding ? turnBannerHeight + 24 : null,
               child: PlannerMapHost(onMapReady: _onMapReady, embedded: true),
             ),
           ),
+          if (guiding)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: TurnBanner(progress: navigation),
+                ),
+              ),
+            ),
           DraggableScrollableSheet(
             // A fresh sheet per state, so the initial size applies again
             // when a ride starts or ends.

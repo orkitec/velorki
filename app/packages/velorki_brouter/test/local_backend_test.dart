@@ -214,6 +214,48 @@ void main() {
     );
 
     test(
+      'the route comes with BRouter turn instructions',
+      () async {
+        final result = await backend.route(funchalToMachico);
+
+        expect(result.turns, isNotEmpty, reason: 'timode=2 asks for them');
+
+        // Every hint points at a real geometry point, in order.
+        for (final turn in result.turns) {
+          expect(turn.pointIndex, greaterThanOrEqualTo(0));
+          expect(turn.pointIndex, lessThan(result.geometry.length));
+        }
+        final indices = result.turns.map((t) => t.pointIndex).toList();
+        expect(indices, orderedEquals(List.of(indices)..sort()));
+
+        // The coast road turns; the hints are real instructions, not just a
+        // marker at the end of the track.
+        expect(
+          result.turns.any((t) => t.kind != TurnKind.end && t.pointIndex > 0),
+          isTrue,
+        );
+        expect(
+          result.turns.any((t) => t.distanceToNextM > 0),
+          isTrue,
+          reason: 'the distance to the next hint is carried',
+        );
+
+        // BRouter's Locus mode (timode=2) drops the closing "end" hint in
+        // VoiceHintProcessor.postProcess, so this route has none — the last
+        // hint is a normal turn shortly before the destination.
+        expect(result.turns.map((t) => t.kind), isNot(contains(TurnKind.end)));
+        expect(result.turns.last.pointIndex, lessThan(result.geometry.length));
+
+        printOnFailure(
+          'Funchal->Machico: ${result.turns.length} hints, '
+          'kinds ${result.turns.map((t) => t.kind.name).toSet()}',
+        );
+      },
+      skip: skipReason,
+      timeout: const Timeout(Duration(minutes: 2)),
+    );
+
+    test(
       'a corpus case comes out exactly as the server recorded it',
       () async {
         final index = jsonDecode(

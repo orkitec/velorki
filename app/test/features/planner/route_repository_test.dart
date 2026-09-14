@@ -4,6 +4,7 @@ import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/domain/routing_options.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
+import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import 'support/fakes.dart';
@@ -150,11 +151,72 @@ void main() {
     expect((await repository.routeById(saved.id))!.surfaceStats, isNull);
   });
 
+  test('the turn instructions survive a save and a load', () async {
+    const turns = <TurnHint>[
+      TurnHint(
+        pointIndex: 1,
+        kind: TurnKind.right,
+        distanceToNextM: 120.5,
+        angleDeg: 88,
+      ),
+      TurnHint(
+        pointIndex: 3,
+        kind: TurnKind.roundabout,
+        exitNumber: 2,
+        distanceToNextM: 40,
+        angleDeg: -95,
+      ),
+      TurnHint(pointIndex: 4, kind: TurnKind.end),
+    ];
+
+    final saved = await repository.savePlannedRoute(
+      name: 'Turny',
+      route: syntheticRoute(turns: turns),
+      waypoints: _waypoints,
+      options: const RoutingOptions(),
+    );
+
+    expect(saved.turns, turns);
+    expect((await repository.routeById(saved.id))!.turns, turns);
+  });
+
+  test('a route without turn instructions leaves the column null', () async {
+    final saved = await repository.savePlannedRoute(
+      name: 'Silent',
+      route: syntheticRoute(),
+      waypoints: _waypoints,
+      options: const RoutingOptions(),
+    );
+
+    expect((await db.routesDao.routeById(saved.id))!.turnsJson, isNull);
+    expect((await repository.routeById(saved.id))!.turns, isEmpty);
+  });
+
+  test('an imported route has no turns and still saves', () async {
+    final saved = await repository.saveImportedRoute(
+      name: 'From a file',
+      points: syntheticRoute().geometry,
+      source: RouteSource.importedGpx,
+    );
+
+    expect(saved.turns, isEmpty);
+    expect((await repository.routeById(saved.id))!.turns, isEmpty);
+  });
+
   test('unreadable JSON columns degrade to empty defaults', () {
     expect(decodeWaypoints('not json'), isEmpty);
     expect(decodeWaypoints('{}'), isEmpty);
     expect(decodeOptions('nonsense'), const RoutingOptions());
     expect(decodeSurfaceStats(null), isNull);
     expect(decodeSurfaceStats('['), isNull);
+    expect(decodeTurns(null), isEmpty);
+    expect(decodeTurns(''), isEmpty);
+    expect(decodeTurns('['), isEmpty);
+    expect(decodeTurns('{"i":1}'), isEmpty);
+    // A row that is not a hint is dropped, the rest of the list survives.
+    expect(decodeTurns('[1, {"i":2,"k":5}, {"k":99}]'), [
+      const TurnHint(pointIndex: 2, kind: TurnKind.right),
+    ]);
+    expect(encodeTurns(const <TurnHint>[]), isNull);
   });
 }

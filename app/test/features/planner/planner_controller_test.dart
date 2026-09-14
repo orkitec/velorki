@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
+import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/planner/data/routing_backend_provider.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/domain/routing_options.dart';
@@ -706,6 +708,46 @@ void main() {
             .returnVariant,
         0,
       );
+    });
+  });
+
+  group('saved routes', () {
+    test('loading one puts its turn instructions back on the plan', () {
+      const turns = <TurnHint>[
+        TurnHint(pointIndex: 1, kind: TurnKind.slightLeft, angleDeg: -30),
+        TurnHint(pointIndex: 3, kind: TurnKind.right, angleDeg: 85),
+      ];
+      final geometry = syntheticRoute().geometry;
+      final container = _container(FakeRoutingBackend());
+
+      container
+          .read(plannerControllerProvider.notifier)
+          .loadSavedRoute(
+            SavedRoute(
+              id: 'r1',
+              name: 'Saved',
+              source: RouteSource.planned,
+              profile: RouteProfile.trekking,
+              createdAt: DateTime.utc(2026, 9, 12),
+              updatedAt: DateTime.utc(2026, 9, 12),
+              distanceM: 10000,
+              ascentM: 120,
+              descentM: 80,
+              bounds: BoundingBox.fromPoints(geometry.map((p) => p.pos)),
+              geometryBlob: PackedTrack.encode(geometry),
+              waypoints: const [
+                Waypoint(pos: _a, kind: WaypointKind.start),
+                Waypoint(pos: _b, kind: WaypointKind.end),
+              ],
+              options: const RoutingOptions(),
+              turns: turns,
+            ),
+          );
+
+      final route = container.read(plannerControllerProvider).route.value!;
+      expect(route.turns, turns);
+      // The indices still point into the geometry that came back.
+      expect(route.turns.last.pointIndex, lessThan(route.geometry.length));
     });
   });
 }

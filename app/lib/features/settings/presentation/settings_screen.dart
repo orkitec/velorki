@@ -16,6 +16,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/presentation/stat_tile.dart';
 import 'about_section.dart';
 import 'appearance_section.dart';
+import 'navigation_section.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -32,6 +33,9 @@ class SettingsScreen extends ConsumerWidget {
         children: const [
           _SectionHeader.appearance(),
           AppearanceSection(),
+          Divider(height: 32),
+          _SectionHeader.navigation(),
+          NavigationSection(),
           Divider(height: 32),
           _SectionHeader.subscription(),
           PlusSettingsSection(),
@@ -58,6 +62,7 @@ class SettingsScreen extends ConsumerWidget {
 
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader.appearance() : _section = _Section.appearance;
+  const _SectionHeader.navigation() : _section = _Section.navigation;
   const _SectionHeader.subscription() : _section = _Section.subscription;
   const _SectionHeader.connections() : _section = _Section.connections;
   const _SectionHeader.ai() : _section = _Section.ai;
@@ -73,6 +78,7 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
       child: SectionCaption(switch (_section) {
         _Section.appearance => l10n.settingsAppearance,
+        _Section.navigation => l10n.settingsNavigation,
         _Section.subscription => l10n.settingsSubscription,
         _Section.connections => l10n.settingsConnections,
         _Section.ai => l10n.settingsAi,
@@ -83,7 +89,15 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-enum _Section { appearance, subscription, connections, ai, advanced, about }
+enum _Section {
+  appearance,
+  navigation,
+  subscription,
+  connections,
+  ai,
+  advanced,
+  about,
+}
 
 /// Entry point into the map feature's offline regions screen.
 ///

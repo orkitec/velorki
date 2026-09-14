@@ -9,6 +9,7 @@ import '../features/import_export/domain/imported_track.dart';
 import '../features/import_export/presentation/import_preview_screen.dart';
 import '../features/library/presentation/library_screen.dart';
 import '../features/library/presentation/route_detail_screen.dart';
+import '../features/navigation/application/navigation_controller.dart';
 import '../features/planner/presentation/planner_screen.dart';
 import '../features/recording/application/recording_controller.dart';
 import '../features/recording/presentation/recording_screen.dart';
@@ -124,6 +125,10 @@ class HomeShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    // Turn-by-turn is kept alive for the whole session, and a keep-alive
+    // provider only exists once something has read it. Listening rather than
+    // watching: the shell has nothing to redraw when a turn comes closer.
+    ref.listen(navigationControllerProvider, (previous, next) {});
     // While a ride is being recorded on the Record tab the bar only takes
     // space from the figures; it comes back when the ride ends or the
     // rider leaves the tab through the system back gesture.

@@ -189,13 +189,22 @@ List<NoGo> nogosAlong(
 /// The join point is in both geometries, so [b]'s first point is dropped;
 /// everything that is a sum is summed, everything that is a list is
 /// concatenated, and [RouteResult.times] are shifted by the outbound leg's
-/// last timestamp so they stay monotonic.
+/// last timestamp so they stay monotonic. The return leg's turn instructions
+/// move with its points, and the outbound leg's "you have arrived" hint goes:
+/// the ride does not end at the join point any more.
 RouteResult mergeLegs(RouteResult a, RouteResult b) {
   final geometry = <TrackPoint>[...a.geometry, ...b.geometry.skip(1)];
   final offset = a.times.isEmpty ? 0.0 : a.times.last;
   final times = (a.times.isEmpty || b.times.isEmpty)
       ? const <double>[]
       : <double>[...a.times, ...b.times.skip(1).map((t) => t + offset)];
+  // The dropped first point of [b] is [a]'s last one, so point i of [b]
+  // becomes point `a.geometry.length - 1 + i` of the merged geometry.
+  final pointOffset = a.geometry.isEmpty ? 0 : a.geometry.length - 1;
+  final turns = <TurnHint>[
+    ...a.turns.where((t) => t.kind != TurnKind.end),
+    ...b.turns.map((t) => t.shifted(pointOffset)),
+  ];
   return RouteResult(
     geometry: geometry,
     lengthM: a.lengthM + b.lengthM,
@@ -210,6 +219,7 @@ RouteResult mergeLegs(RouteResult a, RouteResult b) {
     totalTime: _addDurations(a.totalTime, b.totalTime),
     energyJ: _addDoubles(a.energyJ, b.energyJ),
     times: times,
+    turns: turns,
     name: a.name ?? b.name,
     creator: a.creator ?? b.creator,
   );

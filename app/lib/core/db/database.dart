@@ -36,10 +36,15 @@ class VelorkiDatabase extends _$VelorkiDatabase {
   factory VelorkiDatabase.open() => VelorkiDatabase(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (m, from, to) async {
+      // 2 added the turn instructions of a saved route; older rows keep null
+      // and come back with an empty list.
+      if (from < 2) await m.addColumn(routes, routes.turnsJson);
+    },
     beforeOpen: (_) async {
       // SQLite needs this per connection for the rides → routes foreign key.
       await customStatement('PRAGMA foreign_keys = ON');

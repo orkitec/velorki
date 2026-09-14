@@ -25,7 +25,22 @@ void main() {
         'profile': 'trekking',
         'alternativeidx': '0',
         'format': 'geojson',
+        'timode': '2',
       },
+    );
+  });
+
+  test('turn instructions are always asked for', () {
+    // Both backends want the `voicehints` table, so `timode` is not optional.
+    expect(
+      buildQueryParams(const RouteQuery(points: [start, end]))['timode'],
+      '2',
+    );
+    expect(
+      buildQueryParams(
+        const RouteQuery(points: [start], roundTrip: true),
+      )['timode'],
+      '2',
     );
   });
 

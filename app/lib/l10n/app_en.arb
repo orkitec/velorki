@@ -2083,5 +2083,167 @@
   "settingsRoutingServerDetail": "Always ask the routing server, even where tiles are downloaded.",
   "@settingsRoutingServerDetail": {
     "description": "Explanation of the server-only routing preference"
+  },
+  "navTurnLeft": "Turn left",
+  "@navTurnLeft": {
+    "description": "Turn-by-turn instruction: a normal left turn"
+  },
+  "navTurnRight": "Turn right",
+  "@navTurnRight": {
+    "description": "Turn-by-turn instruction: a normal right turn"
+  },
+  "navTurnSlightLeft": "Bear left",
+  "@navTurnSlightLeft": {
+    "description": "Turn-by-turn instruction: a shallow left turn"
+  },
+  "navTurnSlightRight": "Bear right",
+  "@navTurnSlightRight": {
+    "description": "Turn-by-turn instruction: a shallow right turn"
+  },
+  "navTurnSharpLeft": "Turn sharp left",
+  "@navTurnSharpLeft": {
+    "description": "Turn-by-turn instruction: a hairpin left turn"
+  },
+  "navTurnSharpRight": "Turn sharp right",
+  "@navTurnSharpRight": {
+    "description": "Turn-by-turn instruction: a hairpin right turn"
+  },
+  "navKeepLeft": "Keep left",
+  "@navKeepLeft": {
+    "description": "Turn-by-turn instruction: stay on the left branch of a fork"
+  },
+  "navKeepRight": "Keep right",
+  "@navKeepRight": {
+    "description": "Turn-by-turn instruction: stay on the right branch of a fork"
+  },
+  "navUTurn": "Turn around",
+  "@navUTurn": {
+    "description": "Turn-by-turn instruction: go back the way you came"
+  },
+  "navRoundaboutExit": "At the roundabout, take exit {exit}",
+  "@navRoundaboutExit": {
+    "description": "Turn-by-turn instruction at a roundabout, counting exits from 1",
+    "placeholders": {
+      "exit": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "navExitLeft": "Take the exit on the left",
+  "@navExitLeft": {
+    "description": "Turn-by-turn instruction: leave the road on the left"
+  },
+  "navExitRight": "Take the exit on the right",
+  "@navExitRight": {
+    "description": "Turn-by-turn instruction: leave the road on the right"
+  },
+  "navContinue": "Continue",
+  "@navContinue": {
+    "description": "Turn-by-turn instruction: carry on, nothing to do here"
+  },
+  "navArrive": "Arrive",
+  "@navArrive": {
+    "description": "Turn-by-turn instruction for the end of the route"
+  },
+  "navCueAhead": "In {distance} metres, {instruction}",
+  "@navCueAhead": {
+    "description": "Spoken warning some way before a turn",
+    "placeholders": {
+      "distance": {
+        "type": "int",
+        "example": "200"
+      },
+      "instruction": {
+        "type": "String",
+        "example": "turn left"
+      }
+    }
+  },
+  "navCueNow": "Now {instruction}",
+  "@navCueNow": {
+    "description": "Spoken cue at the turn itself",
+    "placeholders": {
+      "instruction": {
+        "type": "String",
+        "example": "turn left"
+      }
+    }
+  },
+  "navCueThen": "{instruction}, then {next}",
+  "@navCueThen": {
+    "description": "Spoken cue for two turns that follow each other closely",
+    "placeholders": {
+      "instruction": {
+        "type": "String",
+        "example": "Now turn left"
+      },
+      "next": {
+        "type": "String",
+        "example": "keep right"
+      }
+    }
+  },
+  "navThen": "then {instruction}",
+  "@navThen": {
+    "description": "Banner row previewing the turn after the next one",
+    "placeholders": {
+      "instruction": {
+        "type": "String",
+        "example": "keep right"
+      }
+    }
+  },
+  "navOffRoute": "Off route",
+  "@navOffRoute": {
+    "description": "Spoken and shown when the rider has left the planned route"
+  },
+  "navBackOnRoute": "Back on the route",
+  "@navBackOnRoute": {
+    "description": "Spoken and shown when the rider has found the route again"
+  },
+  "navArrived": "You have arrived",
+  "@navArrived": {
+    "description": "Spoken at the end of the route"
+  },
+  "navDistanceMetres": "{distance} m",
+  "@navDistanceMetres": {
+    "description": "A short distance to the next turn, shown in the banner",
+    "placeholders": {
+      "distance": {
+        "type": "int",
+        "example": "250"
+      }
+    }
+  },
+  "navDistanceKm": "{distance} km",
+  "@navDistanceKm": {
+    "description": "A longer distance to the next turn, one decimal place",
+    "placeholders": {
+      "distance": {
+        "type": "String",
+        "example": "1.4"
+      }
+    }
+  },
+  "settingsNavigation": "Navigation",
+  "@settingsNavigation": {
+    "description": "Settings section header for turn-by-turn guidance"
+  },
+  "settingsTurnDirections": "Turn directions",
+  "@settingsTurnDirections": {
+    "description": "Settings switch that shows the next turn while recording"
+  },
+  "settingsTurnDirectionsHint": "Show the next turn while you record along a route",
+  "@settingsTurnDirectionsHint": {
+    "description": "Explanation under the turn directions switch"
+  },
+  "settingsVoiceDirections": "Voice",
+  "@settingsVoiceDirections": {
+    "description": "Settings switch that speaks the turns out loud"
+  },
+  "settingsVoiceDirectionsHint": "Say the turns out loud",
+  "@settingsVoiceDirectionsHint": {
+    "description": "Explanation under the voice directions switch"
   }
 }
