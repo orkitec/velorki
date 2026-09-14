@@ -28,6 +28,17 @@ void main() {
       );
     });
 
+    test('a torn-down method channel is nothing to report', () async {
+      await expectLater(
+        tolerateMapGone(
+          () async => throw MissingPluginException(
+            'No implementation found for method circleLayer#add',
+          ),
+        ),
+        completes,
+      );
+    });
+
     test('any other platform error still surfaces', () async {
       await expectLater(
         tolerateMapGone(

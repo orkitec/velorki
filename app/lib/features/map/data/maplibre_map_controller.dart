@@ -3,7 +3,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart' show Brightness, Color, ThemeData;
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart' show PlatformException;
+import 'package:flutter/services.dart'
+    show MissingPluginException, PlatformException;
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -277,15 +278,18 @@ abstract class MapLibreStyleOps {
 /// Completes [op] as if it had succeeded when the platform says there was
 /// nothing to do.
 ///
-/// Two answers from the Android plugin mean exactly that: `MAP_NOT_READY`,
-/// when the activity was recreated under the map (the view is gone and a
-/// fresh map with a fresh adapter is on its way), and "already exists", when
-/// a style reload kept a source or layer the adapter had written off. Both
+/// Three answers mean exactly that: `MAP_NOT_READY`, when the activity was
+/// recreated under the map (the view is gone and a fresh map with a fresh
+/// adapter is on its way); a missing plugin implementation, when the view's
+/// method channel has already been torn down; and "already exists", when a
+/// style reload kept a source or layer the adapter had written off. All
 /// used to surface as unhandled exceptions from fire-and-forget calls and
-/// take an integration test down; neither is worth reporting.
+/// take an integration test down; none is worth reporting.
 Future<void> tolerateMapGone(Future<void> Function() op) async {
   try {
     await op();
+  } on MissingPluginException {
+    return;
   } on PlatformException catch (e) {
     if (e.code == 'MAP_NOT_READY') return;
     if ((e.message ?? '').contains('already exists')) return;

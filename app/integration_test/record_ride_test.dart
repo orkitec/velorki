@@ -137,7 +137,8 @@ void main() {
     expect(movingDistance, greaterThan(0));
 
     // ---------------------------------------------------------------- pause
-    await tapAndPump(tester, find.widgetWithText(FilledButton, 'Pause'));
+    // The live controls are round icon buttons; their tooltips name them.
+    await tapAndPump(tester, find.byTooltip('Pause'));
     await waitUntil(
       tester,
       () => container.read(recordingControllerProvider).isPaused,
@@ -149,7 +150,7 @@ void main() {
     await screenshot(tester, 'recording-paused');
 
     // --------------------------------------------------------------- resume
-    await tapAndPump(tester, find.widgetWithText(FilledButton, 'Resume'));
+    await tapAndPump(tester, find.byTooltip('Resume'));
     await waitUntil(
       tester,
       () => !container.read(recordingControllerProvider).isPaused,
@@ -179,7 +180,7 @@ void main() {
     // --------------------------------------------------------------- finish
     await tapAndPump(
       tester,
-      find.widgetWithText(OutlinedButton, 'Finish'),
+      find.byTooltip('Finish'),
       settle: const Duration(seconds: 2),
     );
     await waitUntil(
