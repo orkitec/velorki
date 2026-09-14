@@ -1,6 +1,7 @@
 import 'dart:math' show Point;
 
 import 'package:flutter/painting.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:velorki/features/map/data/geojson.dart';
@@ -410,6 +411,30 @@ void main() {
         contains(MapLayerIds.waypointsSource),
       );
       expect(_featuresOf(ops, MapLayerIds.waypointsSource), hasLength(2));
+    });
+
+    test('a layer iOS reports missing mid-update is drawn afresh', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setRouteLine('main', _points);
+      ops.clearCalls();
+      ops.layerPropertiesError = PlatformException(
+        code: 'LAYER_NOT_FOUND_ERROR',
+        message: 'Layer velorki-route-main-linenot found',
+      );
+
+      await adapter.setRouteLine(
+        'main',
+        _points,
+        style: RouteLineStyle.alternative,
+      );
+
+      expect(
+        ops.lastCall('addGeoJsonSource')!.id,
+        MapLayerIds.routeSource('main'),
+      );
+      expect(ops.addLayerOf(MapLayerIds.routeLayer('main')), isNotNull);
     });
 
     test('adds the source and the layer below the puck', () async {

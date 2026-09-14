@@ -160,6 +160,9 @@ class RecordingStyleOps implements MapLibreStyleOps {
   /// `sourceNotFound` platform error; Android keeps quiet.
   bool strictSources = false;
 
+  /// Thrown by the next [setLayerProperties] call, then cleared.
+  Object? layerPropertiesError;
+
   /// Forgets the recorded calls; the sources, layers and scripts stay.
   void clearCalls() => calls.clear();
 
@@ -275,6 +278,11 @@ class RecordingStyleOps implements MapLibreStyleOps {
     String layerId,
     ml.LayerProperties properties,
   ) async {
+    final error = layerPropertiesError;
+    if (error != null) {
+      layerPropertiesError = null;
+      throw error;
+    }
     calls.add(
       RecordedStyleCall(
         'setLayerProperties',

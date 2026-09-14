@@ -298,6 +298,14 @@ Future<void> tolerateMapGone(Future<void> Function() op) async {
   }
 }
 
+/// Whether [e] says the style no longer has what the call addressed: iOS
+/// answers with `sourceNotFound`, `LAYER_NOT_FOUND_ERROR` and the like while
+/// a look change tears the old style down under the adapter.
+bool isStyleGoneError(PlatformException e) {
+  final code = e.code.toLowerCase();
+  return code.contains('notfound') || code.contains('not_found');
+}
+
 /// [MapLibreStyleOps] forwarding one for one to a real plugin controller.
 ///
 /// Nothing but the forwarding lives here: every decision the adapter makes
@@ -805,57 +813,45 @@ class MaplibreMapControllerAdapter implements MapController {
       _routeLines.remove(id);
       previous = null;
     }
-    if (previous == null && present == true) {
-      // The style kept the line through a reload the adapter treated as a
-      // fresh start (`attachToStyle` forgets every line). Adding it again
-      // would clash with what is there; refreshing it is what was meant.
-      if (await _writeRouteSource(id, sourceId, layerId, data, style)) {
+    try {
+      if (previous == null && present == true) {
+        // The style kept the line through a reload the adapter treated as
+        // a fresh start (`attachToStyle` forgets every line). Adding it
+        // again would clash with what is there; refreshing it is what was
+        // meant.
+        await _ops.setGeoJsonSource(sourceId, data);
         await _ops.setLayerProperties(
           MapLayerIds.routeCasingLayer(id),
           _casingProperties(style),
         );
         await _ops.setLayerProperties(layerId, _lineProperties(style, id));
+      } else if (previous == null) {
+        await _addRouteLine(id, sourceId, layerId, data, style);
+      } else {
+        await _ops.setGeoJsonSource(sourceId, data);
+        if (previous != style) {
+          await _ops.setLayerProperties(
+            MapLayerIds.routeCasingLayer(id),
+            _casingProperties(style),
+          );
+          await _ops.setLayerProperties(layerId, _lineProperties(style, id));
+        }
       }
       _routeLines[id] = style;
-      return;
-    }
-    if (previous == null) {
-      await _addRouteLine(id, sourceId, layerId, data, style);
-      _routeLines[id] = style;
-      return;
-    }
-    if (await _writeRouteSource(id, sourceId, layerId, data, style) &&
-        previous != style) {
-      await _ops.setLayerProperties(
-        MapLayerIds.routeCasingLayer(id),
-        _casingProperties(style),
-      );
-      await _ops.setLayerProperties(layerId, _lineProperties(style, id));
-    }
-    _routeLines[id] = style;
-  }
-
-  /// Writes [data] into an existing route source. Returns `false` when the
-  /// source turned out to be gone and the line was drawn afresh instead.
-  ///
-  /// iOS answers a write to a source the style no longer has with
-  /// `sourceNotFound` (Android keeps quiet), and the style can lose a source
-  /// between the adapter's check and its write while a look changes.
-  Future<bool> _writeRouteSource(
-    String id,
-    String sourceId,
-    String layerId,
-    Map<String, dynamic> data,
-    RouteLineStyle style,
-  ) async {
-    try {
-      await _ops.setGeoJsonSource(sourceId, data);
-      return true;
     } on PlatformException catch (e) {
-      if (e.code != 'sourceNotFound') rethrow;
+      // iOS refuses a write to a source or layer the style has dropped
+      // (Android keeps quiet), and a look change tears the old style down
+      // piece by piece while the adapter is still writing. The line is
+      // drawn afresh once; if the style is really going, the replay after
+      // the next style load draws it anyway.
+      if (!isStyleGoneError(e)) rethrow;
       _routeLines.remove(id);
-      await _addRouteLine(id, sourceId, layerId, data, style);
-      return false;
+      try {
+        await _addRouteLine(id, sourceId, layerId, data, style);
+        _routeLines[id] = style;
+      } on PlatformException catch (e) {
+        if (!isStyleGoneError(e)) rethrow;
+      }
     }
   }
 
@@ -1111,7 +1107,7 @@ class MaplibreMapControllerAdapter implements MapController {
     try {
       await _ops.setGeoJsonSource(sourceId, data);
     } on PlatformException catch (e) {
-      if (!e.code.endsWith('NotFound')) rethrow;
+      if (!isStyleGoneError(e)) rethrow;
       if (_reattaching) return;
       _reattaching = true;
       try {
