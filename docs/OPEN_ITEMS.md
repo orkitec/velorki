@@ -1,8 +1,9 @@
 # Open items
 
-Everything below needs a person, a real device, a Mac, or a live service. The
-code paths exist and are unit-tested; these are the parts that could not be
-exercised on the Linux build machine.
+Everything below needs a person, a Mac, a live service, or a longer test on
+the phone than has happened so far. The app runs on a Pixel 3 XL and has
+recorded real rides; planning, on-device routing, the map and recording are
+exercised there. The items here are the parts not yet covered by that.
 
 ## Servers and accounts (Steffen)
 
@@ -62,7 +63,11 @@ exercised on the Linux build machine.
 - [ ] Background recording on an iPhone: screen off for a long ride, the blue
       indicator, force-quit → interrupted-ride dialog on relaunch.
 
-## On a real Android phone
+## Still to try on the Android phone
+
+Done on the Pixel: planning with on-device routing, tile download over the
+GitHub Releases mirror, recording a ride with the screen on, continuing a
+stopped ride, the Library's rides list.
 
 - [ ] Recording: 2 h with the screen off, no gaps; swipe the app away mid-ride
       and reopen (reattach); kill the process and relaunch (resume/finish

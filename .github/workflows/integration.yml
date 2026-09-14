@@ -161,9 +161,9 @@ jobs:
             # place from VELORKI_ITEST_REGION.
             adb emu geo fix -16.92 32.65
             adb shell settings put secure location_mode 3
-            VELORKI_ITEST_REGION=madeira \
-            VELORKI_SEGMENTS_URL=http://10.0.2.2:8000 \
-            tool/itest.sh
+            # One line: the emulator action runs the script line by line, so
+            # a backslash continuation is handed to sh as a command.
+            VELORKI_ITEST_REGION=madeira VELORKI_SEGMENTS_URL=http://10.0.2.2:8000 tool/itest.sh
 
       - name: Mirror log
         if: always()

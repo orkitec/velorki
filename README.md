@@ -20,9 +20,9 @@ of the BRouter engine that reproduces the Java server byte for byte on a
 recorded corpus, against routing tiles downloaded per region. A BRouter server
 is optional, for areas without downloaded tiles.
 
-Not yet done: the store accounts and partner API registrations are missing, the
-relay and the tile mirror are not deployed, and nothing has run on a real phone
-or on iOS. `docs/OPEN_ITEMS.md` lists every such item.
+Not yet done: the store accounts and partner API registrations, the relay and
+the tile mirror deployment, and an iOS build. `docs/OPEN_ITEMS.md` lists every
+such item.
 
 ## Layout
 
