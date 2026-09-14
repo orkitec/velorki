@@ -28,6 +28,18 @@ void main() {
       );
     });
 
+    test('a style iOS no longer has is nothing to report', () async {
+      await expectLater(
+        tolerateMapGone(
+          () async => throw PlatformException(
+            code: 'styleNotFound',
+            message: 'Style not found',
+          ),
+        ),
+        completes,
+      );
+    });
+
     test('a torn-down method channel is nothing to report', () async {
       await expectLater(
         tolerateMapGone(
