@@ -2,15 +2,33 @@ name: glstrings pull translations
 
 # Pulls finished translations from GL Strings (Applanga) into the ARB files and
 # opens a pull request. Weekly and on demand. Translations never land on main
-# without review.
+# without review. Skipped when the APPLANGA_ACCESS_TOKEN secret is not set.
 on:
   schedule:
     - cron: "0 6 * * 1"
   workflow_dispatch:
 
 jobs:
-  pull:
+  token:
     if: ${{ github.repository_owner == 'orkitec' }}
+    runs-on: ubuntu-latest
+    outputs:
+      present: ${{ steps.check.outputs.present }}
+    steps:
+      - id: check
+        env:
+          APPLANGA_ACCESS_TOKEN: ${{ secrets.APPLANGA_ACCESS_TOKEN }}
+        run: |
+          if [ -n "$APPLANGA_ACCESS_TOKEN" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::APPLANGA_ACCESS_TOKEN is not set; no translations are pulled."
+          fi
+
+  pull:
+    needs: token
+    if: ${{ needs.token.outputs.present == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
