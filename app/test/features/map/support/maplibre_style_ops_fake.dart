@@ -163,11 +163,14 @@ class RecordingStyleOps implements MapLibreStyleOps {
     String featureId,
     ml.LatLng current, {
     ml.DragEventType eventType = ml.DragEventType.drag,
+    // Far from any test position, so a drag is a real drag unless a test
+    // says where the finger went down.
+    ml.LatLng origin = const ml.LatLng(0, 0),
   }) {
     for (final callback in List<ml.OnFeatureDragCallback>.of(onFeatureDrag)) {
       callback(
         const Point<double>(0, 0),
-        current,
+        origin,
         current,
         const ml.LatLng(0, 0),
         featureId,

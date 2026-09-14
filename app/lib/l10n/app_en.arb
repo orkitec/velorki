@@ -254,6 +254,14 @@
     "description": "Title of the sheet for a tapped waypoint without a name",
     "placeholders": {"number": {"type": "int"}}
   },
+  "plannerVisitEarlier": "Visit earlier",
+  "@plannerVisitEarlier": {
+    "description": "Button in the waypoint sheet that swaps the point with the previous one"
+  },
+  "plannerVisitLater": "Visit later",
+  "@plannerVisitLater": {
+    "description": "Button in the waypoint sheet that swaps the point with the next one"
+  },
   "plannerRemovePoint": "Remove point",
   "@plannerRemovePoint": {
     "description": "Button in the waypoint sheet that deletes the point"

@@ -232,6 +232,50 @@ void main() {
       expect(backend.callCount, 1);
     });
 
+    testWidgets('a waypoint swaps places with a neighbour, undoably', (
+      tester,
+    ) async {
+      final backend = FakeRoutingBackend();
+      final container = _container(backend);
+      final planner = container.read(plannerControllerProvider.notifier)
+        ..addWaypoint(_a)
+        ..addWaypoint(_b)
+        ..addWaypoint(_c);
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump();
+      final before = backend.callCount;
+
+      planner.swapWaypoint(1, 1);
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump();
+
+      var positions = container
+          .read(plannerControllerProvider)
+          .waypoints
+          .map((w) => w.pos)
+          .toList();
+      expect(positions, [_a, _c, _b]);
+      expect(backend.callCount, before + 1);
+
+      // The ends cannot move past the edges; nothing changes and no route.
+      planner
+        ..swapWaypoint(0, -1)
+        ..swapWaypoint(2, 1)
+        ..swapWaypoint(1, 0);
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(backend.callCount, before + 1);
+
+      planner.undo();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump();
+      positions = container
+          .read(plannerControllerProvider)
+          .waypoints
+          .map((w) => w.pos)
+          .toList();
+      expect(positions, [_a, _b, _c]);
+    });
+
     testWidgets('a routing failure lands in the state', (tester) async {
       final backend = FakeRoutingBackend()
         ..error = const RoutingException(

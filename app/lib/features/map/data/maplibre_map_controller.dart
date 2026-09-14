@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart' show Brightness, Color, ThemeData;
 import 'package:flutter/foundation.dart';
@@ -1157,7 +1158,55 @@ class MaplibreMapControllerAdapter implements MapController {
     if (eventType != ml.DragEventType.end) return;
     _dragging = false;
     _lastDragEnd = DateTime.now();
+    if (_isTapSizedDrag(origin, current)) {
+      // A finger that wobbled a few pixels meant to tap: the marker goes
+      // back where it was and the tap is reported instead of a move.
+      if (index < _waypoints.length) {
+        final restored = List<MapWaypoint>.of(_waypoints);
+        final old = restored[index];
+        restored[index] = MapWaypoint(
+          position: _fromMl(origin),
+          kind: old.kind,
+          label: old.label,
+        );
+        _waypoints = List<MapWaypoint>.unmodifiable(restored);
+        if (_attached) {
+          unawaited(
+            _ops.setGeoJsonSource(
+              MapLayerIds.waypointsSource,
+              waypointsFeatureCollection(_waypoints),
+            ),
+          );
+        }
+      }
+      _reportWaypointTap(index);
+      return;
+    }
     onWaypointDragged?.call(index, _fromMl(current));
+  }
+
+  /// Reports a marker tap once: the platform delivers a wobbly tap both as
+  /// a drag (start/end) and as a feature tap, so the second one within the
+  /// click shadow is dropped.
+  void _reportWaypointTap(int index) {
+    final now = DateTime.now();
+    final last = _lastFeatureTap;
+    if (last != null && now.difference(last) < _clickShadow) return;
+    _lastFeatureTap = now;
+    onWaypointTapped?.call(index);
+  }
+
+  /// Whether a drag from [origin] to [current] stayed within a tap's worth
+  /// of screen pixels at the current zoom.
+  bool _isTapSizedDrag(ml.LatLng origin, ml.LatLng current) {
+    const tapPixels = 14.0;
+    final zoom = _ops.cameraPosition?.zoom ?? 14.0;
+    final metresPerPixel =
+        156543.03 *
+        math.cos(origin.latitude * math.pi / 180) /
+        math.pow(2, zoom);
+    return haversineMeters(_fromMl(origin), _fromMl(current)) <
+        tapPixels * metresPerPixel;
   }
 
   void _handleFeatureTapped(
@@ -1169,8 +1218,7 @@ class MaplibreMapControllerAdapter implements MapController {
   ) {
     final index = waypointIndexFromFeatureId(id);
     if (index == null) return;
-    _lastFeatureTap = DateTime.now();
-    onWaypointTapped?.call(index);
+    _reportWaypointTap(index);
   }
 
   Future<void> _refreshVisibleBounds() async {

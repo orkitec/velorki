@@ -249,6 +249,33 @@ void main() {
     expect(find.text('Remove point'), findsNothing);
   });
 
+  testWidgets('a point can be visited earlier or later from its sheet', (
+    tester,
+  ) async {
+    final h = await pumpScreen(tester, const PlannerScreen());
+    await _plotRoute(tester, h);
+    final first = h.map.waypoints[0].position;
+    final second = h.map.waypoints[1].position;
+
+    h.map.onWaypointTapped!(1);
+    await tester.pumpAndSettle();
+    // The last point cannot go later.
+    expect(
+      tester
+          .widget<OutlinedButton>(
+            find.widgetWithText(OutlinedButton, 'Visit later'),
+          )
+          .onPressed,
+      isNull,
+    );
+    await tester.tap(find.text('Visit earlier'));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+
+    expect(h.map.waypoints[0].position, second);
+    expect(h.map.waypoints[1].position, first);
+  });
+
   testWidgets('a searched place is the destination from my position', (
     tester,
   ) async {

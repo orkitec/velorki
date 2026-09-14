@@ -62,7 +62,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final name = state.waypoints[index].name;
-    final remove = await showModalBottomSheet<bool>(
+    final count = state.waypoints.length;
+    final action = await showModalBottomSheet<_PointAction>(
       context: context,
       useRootNavigator: true,
       builder: (context) => SafeArea(
@@ -79,14 +80,40 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 16),
+              // Reordering by one place at a time: swap with a neighbour.
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: index > 0
+                          ? () =>
+                                Navigator.of(context).pop(_PointAction.earlier)
+                          : null,
+                      icon: const Icon(Icons.arrow_upward_rounded),
+                      label: Text(l10n.plannerVisitEarlier),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: index < count - 1
+                          ? () => Navigator.of(context).pop(_PointAction.later)
+                          : null,
+                      icon: const Icon(Icons.arrow_downward_rounded),
+                      label: Text(l10n.plannerVisitLater),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
               FilledButton.tonalIcon(
-                onPressed: () => Navigator.of(context).pop(true),
+                onPressed: () => Navigator.of(context).pop(_PointAction.remove),
                 icon: const Icon(Icons.delete_outline_rounded),
                 label: Text(l10n.plannerRemovePoint),
               ),
               const SizedBox(height: 8),
               TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
+                onPressed: () => Navigator.of(context).pop(),
                 child: Text(l10n.commonCancel),
               ),
             ],
@@ -94,8 +121,16 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
         ),
       ),
     );
-    if (!mounted || !(remove ?? false)) return;
-    ref.read(plannerControllerProvider.notifier).removeWaypoint(index);
+    if (!mounted || action == null) return;
+    final planner = ref.read(plannerControllerProvider.notifier);
+    switch (action) {
+      case _PointAction.earlier:
+        planner.swapWaypoint(index, -1);
+      case _PointAction.later:
+        planner.swapWaypoint(index, 1);
+      case _PointAction.remove:
+        planner.removeWaypoint(index);
+    }
   }
 
   /// Grows the sheet by one row when the variant chips appear, so they are in
@@ -422,6 +457,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
     );
   }
 }
+
+enum _PointAction { earlier, later, remove }
 
 class _NoRoutingServerBanner extends StatelessWidget {
   const _NoRoutingServerBanner();

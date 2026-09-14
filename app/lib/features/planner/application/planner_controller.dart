@@ -97,6 +97,22 @@ class PlannerController extends _$PlannerController {
     _setWaypoints(next);
   }
 
+  /// Swaps the waypoint at [index] with the one [offset] places away
+  /// (-1: visit it earlier, +1: later), undoably.
+  void swapWaypoint(int index, int offset) {
+    final other = index + offset;
+    final n = state.waypoints.length;
+    if (index < 0 || index >= n || other < 0 || other >= n || offset == 0) {
+      return;
+    }
+    _pushUndo();
+    final next = [...state.waypoints];
+    final tmp = next[index];
+    next[index] = next[other];
+    next[other] = tmp;
+    _setWaypoints(next);
+  }
+
   /// Replaces the whole plan with [waypoints], undoably.
   ///
   /// The assistant hands its resolved start, vias and destination over this

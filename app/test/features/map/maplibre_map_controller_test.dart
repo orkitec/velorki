@@ -1132,6 +1132,50 @@ void main() {
       expect(coordinates[1], closeTo(47.9, 1e-6));
     });
 
+    test(
+      'a wobble of a few pixels is a tap, and the marker snaps back',
+      () async {
+        final ops = RecordingStyleOps();
+        final adapter = _adapter(ops);
+        await adapter.attachToStyle();
+        await adapter.setWaypoints(_waypoints);
+        final moves = <int>[];
+        final tapped = <int>[];
+        adapter.onWaypointDragged = (index, _) => moves.add(index);
+        adapter.onWaypointTapped = tapped.add;
+        final origin = _waypoints[1].position;
+
+        // ~1 m away: far below 14 px at any zoom the map is used at.
+        ops.emitFeatureDrag(
+          waypointFeatureId(1),
+          ml.LatLng(origin.lat + 0.00001, origin.lon),
+          origin: ml.LatLng(origin.lat, origin.lon),
+          eventType: ml.DragEventType.end,
+        );
+
+        expect(moves, isEmpty);
+        expect(tapped, <int>[1]);
+
+        // The platform also reports the wobble as a feature tap right
+        // after the drag; that must not open a second sheet.
+        for (final callback in List.of(ops.onFeatureTapped)) {
+          callback(
+            const Point<double>(0, 0),
+            ml.LatLng(origin.lat, origin.lon),
+            waypointFeatureId(1),
+            MapLayerIds.waypointsHitLayer,
+            null,
+          );
+        }
+        expect(tapped, <int>[1]);
+        final features = _featuresOf(ops, MapLayerIds.waypointsSource);
+        final back =
+            (features[1]['geometry'] as Map<String, dynamic>)['coordinates']
+                as List;
+        expect(back[1], closeTo(origin.lat, 1e-9));
+      },
+    );
+
     test('the release after a drag is not also a map tap', () async {
       final ops = RecordingStyleOps();
       final adapter = _adapter(ops);
