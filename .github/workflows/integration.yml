@@ -40,7 +40,7 @@ jobs:
         api-level: [34, 35]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # The emulator is unusably slow without hardware acceleration, and the
       # hosted runner needs the device node opened up by hand.

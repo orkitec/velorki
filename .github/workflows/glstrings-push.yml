@@ -14,7 +14,7 @@ jobs:
     if: ${{ github.repository_owner == 'orkitec' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: applanga/setup-applanga-cli@v1.0.3
         with:
           version: 1.0.*
