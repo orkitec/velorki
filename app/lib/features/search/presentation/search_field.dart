@@ -29,6 +29,11 @@ class SearchField extends ConsumerStatefulWidget {
 class _SearchFieldState extends ConsumerState<SearchField> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+  // The results float in the app's overlay, anchored under the field, so
+  // nothing on the screen (the planner sheet, for one) can cover them.
+  final LayerLink _link = LayerLink();
+  final OverlayPortalController _results = OverlayPortalController();
+  double _fieldWidth = 0;
   bool _dismissed = false;
 
   @override
@@ -36,6 +41,17 @@ class _SearchFieldState extends ConsumerState<SearchField> {
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
+  }
+
+  bool get _showResults =>
+      !_dismissed && _controller.text.trim().length >= searchMinChars;
+
+  void _syncResults() {
+    if (_showResults) {
+      if (!_results.isShowing) _results.show();
+    } else if (_results.isShowing) {
+      _results.hide();
+    }
   }
 
   void _onChanged(String text) {
@@ -68,44 +84,65 @@ class _SearchFieldState extends ConsumerState<SearchField> {
     final results = ref.watch(placeSearchProvider);
     final hasGeocoder = ref.watch(photonClientProvider) != null;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        GlassPanel(
-          radius: 28,
-          child: TextField(
-            controller: _controller,
-            focusNode: _focusNode,
-            textInputAction: TextInputAction.search,
-            enabled: hasGeocoder,
-            style: Theme.of(context).textTheme.bodyLarge,
-            decoration: InputDecoration(
-              hintText: hasGeocoder ? l10n.searchHint : l10n.searchUnavailable,
-              prefixIcon: const Icon(Icons.search_rounded),
-              filled: false,
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              disabledBorder: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 16,
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _syncResults();
+    });
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        _fieldWidth = constraints.maxWidth;
+        return OverlayPortal(
+          controller: _results,
+          overlayChildBuilder: (context) => Positioned(
+            width: _fieldWidth,
+            child: CompositedTransformFollower(
+              link: _link,
+              targetAnchor: Alignment.bottomLeft,
+              followerAnchor: Alignment.topLeft,
+              showWhenUnlinked: false,
+              child: Material(
+                type: MaterialType.transparency,
+                child: _ResultsCard(results: results, onSelected: _select),
               ),
-              suffixIcon: _controller.text.isEmpty
-                  ? null
-                  : IconButton(
-                      tooltip: l10n.searchClear,
-                      icon: const Icon(Icons.close),
-                      onPressed: _clear,
-                    ),
             ),
-            onChanged: _onChanged,
           ),
-        ),
-        if (!_dismissed && _controller.text.trim().length >= searchMinChars)
-          _ResultsCard(results: results, onSelected: _select),
-      ],
+          child: CompositedTransformTarget(
+            link: _link,
+            child: GlassPanel(
+              radius: 28,
+              child: TextField(
+                controller: _controller,
+                focusNode: _focusNode,
+                textInputAction: TextInputAction.search,
+                enabled: hasGeocoder,
+                style: Theme.of(context).textTheme.bodyLarge,
+                decoration: InputDecoration(
+                  hintText: hasGeocoder
+                      ? l10n.searchHint
+                      : l10n.searchUnavailable,
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  filled: false,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  disabledBorder: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
+                  suffixIcon: _controller.text.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: l10n.searchClear,
+                          icon: const Icon(Icons.close),
+                          onPressed: _clear,
+                        ),
+                ),
+                onChanged: _onChanged,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -119,10 +156,21 @@ class _ResultsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(top: 6),
-      child: GlassPanel(
-        radius: 20,
+      // Opaque: it floats over the chips and the sheet, and a list read
+      // through them is not a list.
+      child: Material(
+        color: scheme.surfaceContainerLowest,
+        elevation: 8,
+        shadowColor: Colors.black.withValues(alpha: 0.35),
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: scheme.outlineVariant),
+        ),
+        clipBehavior: Clip.antiAlias,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxHeight: 260),
           child: results.when(

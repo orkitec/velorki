@@ -131,10 +131,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
     final planner = ref.read(plannerControllerProvider.notifier);
     if (ref.read(plannerControllerProvider).isEmpty) {
       unawaited(_map?.moveTo(result.position, zoom: 13));
+      unawaited(_map?.setSearchPin(result.position, label: result.name));
       setState(() => _placeToStartFrom = result);
       return;
     }
     planner.addWaypoint(result.position, name: result.name);
+    unawaited(_map?.setSearchPin(null));
     setState(() => _placeToStartFrom = null);
   }
 
@@ -144,6 +146,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
     ref
         .read(plannerControllerProvider.notifier)
         .addWaypoint(place.position, name: place.name);
+    unawaited(_map?.setSearchPin(null));
     setState(() => _placeToStartFrom = null);
   }
 
@@ -168,6 +171,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
     final planner = ref.read(plannerControllerProvider.notifier);
     planner.addWaypoint(start);
     planner.addWaypoint(place.position, name: place.name);
+    unawaited(_map?.setSearchPin(null));
     setState(() => _placeToStartFrom = null);
   }
 

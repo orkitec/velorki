@@ -42,6 +42,10 @@ abstract class MapController {
   /// Toggle the CyclOSM raster overlay above the vector base map.
   Future<void> setCyclosmOverlay(bool visible);
 
+  /// A pin for a searched place the rider has not decided about yet, with
+  /// its name; `null` removes it.
+  Future<void> setSearchPin(LatLng? position, {String? label});
+
   /// Events from the map, set by the owning screen.
   set onTap(ValueChanged<LatLng>? handler);
   set onLongPress(ValueChanged<LatLng>? handler);

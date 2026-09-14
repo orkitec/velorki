@@ -221,12 +221,15 @@ void main() {
 
     expect(h.map.movedTo, const LatLng(48.1374, 11.5755));
     expect(find.text('Start here'), findsOneWidget);
+    // The found place is pinned until the rider decides what it is.
+    expect(h.map.searchPin, const LatLng(48.1374, 11.5755));
 
     await tester.tap(find.text('Start here'));
     await tester.pumpAndSettle();
 
     expect(h.map.waypoints.single.position, const LatLng(48.1374, 11.5755));
     expect(find.text('Start here'), findsNothing);
+    expect(h.map.searchPin, isNull, reason: 'it is a waypoint now');
   });
 
   testWidgets('tapping a marker offers to remove the point', (tester) async {

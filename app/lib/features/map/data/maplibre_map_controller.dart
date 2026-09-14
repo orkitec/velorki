@@ -20,12 +20,16 @@ abstract final class MapLayerIds {
   static const String cyclosmLayer = 'velorki-cyclosm-raster';
   static const String trackSource = 'velorki-track';
   static const String trackLayer = 'velorki-track-line';
+  static const String searchPinSource = 'velorki-search-pin';
+  static const String searchPinLayer = 'velorki-search-pin-dot';
+  static const String searchPinLabelLayer = 'velorki-search-pin-label';
   static const String positionSource = 'velorki-position';
   static const String positionAccuracyLayer = 'velorki-position-accuracy';
   static const String positionHeadingLayer = 'velorki-position-heading';
   static const String positionHaloLayer = 'velorki-position-halo';
   static const String positionDotLayer = 'velorki-position-dot';
   static const String waypointsSource = 'velorki-waypoints';
+  static const String waypointsHitLayer = 'velorki-waypoints-hit';
   static const String waypointsCircleLayer = 'velorki-waypoints-circle';
   static const String waypointsLabelLayer = 'velorki-waypoints-label';
 
@@ -403,6 +407,8 @@ class MaplibreMapControllerAdapter implements MapController {
   // draws a preview as a preview; `_routeLines` only knows what exists.
   final Map<String, RouteLineStyle> _routeStyles = <String, RouteLineStyle>{};
   List<MapWaypoint> _waypoints = const <MapWaypoint>[];
+  LatLng? _searchPin;
+  String? _searchPinLabel;
   List<LatLng> _track = const <LatLng>[];
   // Hysteresis and circular averaging for the heading cone, so it neither
   // blinks nor spins while the rider rolls along at walking pace.
@@ -535,6 +541,14 @@ class MaplibreMapControllerAdapter implements MapController {
       MapLayerIds.waypointsSource,
       emptyFeatureCollection(),
     );
+    // The touch target: an invisible disc twice the marker's size. It is the
+    // only interactive waypoint layer, so a tap or a drag is reported once,
+    // and a finger on a dense screen still hits it.
+    await _ops.addLayer(
+      MapLayerIds.waypointsSource,
+      MapLayerIds.waypointsHitLayer,
+      ml.CircleLayerProperties(circleRadius: 22.0, circleOpacity: 0.0),
+    );
     await _ops.addLayer(
       MapLayerIds.waypointsSource,
       MapLayerIds.waypointsCircleLayer,
@@ -544,7 +558,7 @@ class MaplibreMapControllerAdapter implements MapController {
         circleStrokeWidth: 2.5,
         circleStrokeColor: palette.waypointStroke,
       ),
-      // Drag gestures only reach layers that take part in feature interaction.
+      enableInteraction: false,
     );
     await _ops.addLayer(
       MapLayerIds.waypointsSource,
@@ -563,6 +577,41 @@ class MaplibreMapControllerAdapter implements MapController {
       enableInteraction: false,
     );
 
+    // The searched place: a pin in the preview colour with the place name,
+    // shown until the rider makes it a start, a destination, or drops it.
+    await _ops.addGeoJsonSource(
+      MapLayerIds.searchPinSource,
+      emptyFeatureCollection(),
+    );
+    await _ops.addLayer(
+      MapLayerIds.searchPinSource,
+      MapLayerIds.searchPinLayer,
+      ml.CircleLayerProperties(
+        circleRadius: 9.0,
+        circleColor: palette.routePreview,
+        circleStrokeWidth: 2.5,
+        circleStrokeColor: palette.waypointStroke,
+      ),
+      enableInteraction: false,
+    );
+    await _ops.addLayer(
+      MapLayerIds.searchPinSource,
+      MapLayerIds.searchPinLabelLayer,
+      ml.SymbolLayerProperties(
+        textField: <Object>['get', 'label'],
+        textFont: waypointLabelFont,
+        textSize: 13.0,
+        textOffset: <Object>[0, -1.6],
+        textAnchor: 'bottom',
+        textColor: palette.waypointLabel,
+        textHaloColor: palette.waypointLabelHalo,
+        textHaloWidth: 1.2,
+        textAllowOverlap: true,
+        textIgnorePlacement: true,
+      ),
+      enableInteraction: false,
+    );
+
     _attached = true;
     await _refreshVisibleBounds();
     await _replay();
@@ -572,6 +621,9 @@ class MaplibreMapControllerAdapter implements MapController {
   /// load dropped every source.
   Future<void> _replay() async {
     if (_waypoints.isNotEmpty) await setWaypoints(_waypoints);
+    if (_searchPin != null) {
+      await setSearchPin(_searchPin, label: _searchPinLabel);
+    }
     if (_track.isNotEmpty) await setTrackLine(_track);
     final lines = Map<String, List<LatLng>>.of(_routePoints);
     for (final entry in lines.entries) {
@@ -886,6 +938,20 @@ class MaplibreMapControllerAdapter implements MapController {
         textHaloColor: palette.waypointLabelHalo,
       ),
     );
+    await _ops.setLayerProperties(
+      MapLayerIds.searchPinLayer,
+      ml.CircleLayerProperties(
+        circleColor: palette.routePreview,
+        circleStrokeColor: palette.waypointStroke,
+      ),
+    );
+    await _ops.setLayerProperties(
+      MapLayerIds.searchPinLabelLayer,
+      ml.SymbolLayerProperties(
+        textColor: palette.waypointLabel,
+        textHaloColor: palette.waypointLabelHalo,
+      ),
+    );
     for (final entry in _routeLines.entries) {
       await _ops.setLayerProperties(
         MapLayerIds.routeCasingLayer(entry.key),
@@ -990,6 +1056,31 @@ class MaplibreMapControllerAdapter implements MapController {
     await _ops.setLayerVisibility(MapLayerIds.cyclosmLayer, visible);
   }
 
+  @override
+  Future<void> setSearchPin(LatLng? position, {String? label}) async {
+    _searchPin = position;
+    _searchPinLabel = position == null ? null : label;
+    if (!_attached) return;
+    await _ops.setGeoJsonSource(
+      MapLayerIds.searchPinSource,
+      position == null
+          ? emptyFeatureCollection()
+          : <String, dynamic>{
+              'type': 'FeatureCollection',
+              'features': <Map<String, dynamic>>[
+                <String, dynamic>{
+                  'type': 'Feature',
+                  'properties': <String, dynamic>{'label': label ?? ''},
+                  'geometry': <String, dynamic>{
+                    'type': 'Point',
+                    'coordinates': lngLat(position),
+                  },
+                },
+              ],
+            },
+    );
+  }
+
   /// Whether the CyclOSM overlay is currently switched on.
   bool get isCyclosmVisible => _cyclosmVisible;
 
@@ -1041,6 +1132,27 @@ class MaplibreMapControllerAdapter implements MapController {
     if (eventType == ml.DragEventType.start) {
       _dragging = true;
       return;
+    }
+    // The platform does not move the feature itself: the marker follows
+    // the finger through the source, and the planner hears about it once,
+    // on release.
+    if (index < _waypoints.length) {
+      final moved = List<MapWaypoint>.of(_waypoints);
+      final old = moved[index];
+      moved[index] = MapWaypoint(
+        position: _fromMl(current),
+        kind: old.kind,
+        label: old.label,
+      );
+      _waypoints = List<MapWaypoint>.unmodifiable(moved);
+      if (_attached) {
+        unawaited(
+          _ops.setGeoJsonSource(
+            MapLayerIds.waypointsSource,
+            waypointsFeatureCollection(_waypoints),
+          ),
+        );
+      }
     }
     if (eventType != ml.DragEventType.end) return;
     _dragging = false;

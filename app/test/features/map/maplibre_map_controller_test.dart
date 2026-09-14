@@ -105,8 +105,12 @@ void main() {
           MapLayerIds.positionHaloLayer,
           MapLayerIds.positionDotLayer,
           MapLayerIds.waypointsSource,
+          MapLayerIds.waypointsHitLayer,
           MapLayerIds.waypointsCircleLayer,
           MapLayerIds.waypointsLabelLayer,
+          MapLayerIds.searchPinSource,
+          MapLayerIds.searchPinLayer,
+          MapLayerIds.searchPinLabelLayer,
         ],
       );
     });
@@ -120,6 +124,7 @@ void main() {
         MapLayerIds.trackSource,
         MapLayerIds.positionSource,
         MapLayerIds.waypointsSource,
+        MapLayerIds.searchPinSource,
       ]) {
         expect(
           ops.callsNamed('addGeoJsonSource').firstWhere((c) => c.id == source),
@@ -170,7 +175,7 @@ void main() {
       expect(properties['icon-rotate'], <Object>['get', 'heading']);
     });
 
-    test('only the waypoint circles take part in dragging', () async {
+    test('only the waypoint hit discs take part in dragging', () async {
       final ops = RecordingStyleOps();
 
       await _adapter(ops).attachToStyle();
@@ -180,7 +185,7 @@ void main() {
           .where((c) => c.enableInteraction!)
           .map((c) => c.layerId)
           .toList();
-      expect(interactive, <String>[MapLayerIds.waypointsCircleLayer]);
+      expect(interactive, <String>[MapLayerIds.waypointsHitLayer]);
     });
 
     test('names the glyph font the tile server actually serves', () async {
@@ -695,6 +700,37 @@ void main() {
     });
   });
 
+  group('setSearchPin', () {
+    test('writes the place with its label and clears it again', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+
+      await adapter.setSearchPin(const LatLng(47.5, 8.5), label: 'Zoo');
+      final features = _featuresOf(ops, MapLayerIds.searchPinSource);
+      expect(features, hasLength(1));
+      expect(
+        (features.single['properties'] as Map<String, dynamic>)['label'],
+        'Zoo',
+      );
+
+      await adapter.setSearchPin(null);
+      expect(_featuresOf(ops, MapLayerIds.searchPinSource), isEmpty);
+    });
+
+    test('comes back after a style reload', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setSearchPin(const LatLng(47.5, 8.5), label: 'Zoo');
+      ops.clearCalls();
+
+      await adapter.attachToStyle();
+
+      expect(_featuresOf(ops, MapLayerIds.searchPinSource), hasLength(1));
+    });
+  });
+
   group('setPalette', () {
     test('rewrites every colour it owns', () async {
       final ops = RecordingStyleOps();
@@ -1043,8 +1079,8 @@ void main() {
       adapter.onWaypointDragged = (index, position) =>
           moves.add('$index@${position.lat},${position.lon}');
 
-      // The platform moves the marker under the finger; committing every
-      // step rewrote the source under the drag and re-routed on the way.
+      // Committing every step rewrote the plan and re-routed on the way;
+      // the marker itself still follows the finger through the source.
       ops.emitFeatureDrag(waypointFeatureId(2), const ml.LatLng(47.5, 8.5));
       expect(moves, isEmpty);
 
@@ -1078,6 +1114,22 @@ void main() {
       adapter.handleMapLongClick(const ml.LatLng(47.6, 8.6));
 
       expect(inserted, isEmpty);
+    });
+
+    test('the marker follows the finger while it is dragged', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setWaypoints(_waypoints);
+      ops.clearCalls();
+
+      ops.emitFeatureDrag(waypointFeatureId(1), const ml.LatLng(47.9, 8.9));
+
+      final features = _featuresOf(ops, MapLayerIds.waypointsSource);
+      final moved = features[1]['geometry'] as Map<String, dynamic>;
+      final coordinates = (moved['coordinates'] as List).cast<double>();
+      expect(coordinates[0], closeTo(8.9, 1e-6));
+      expect(coordinates[1], closeTo(47.9, 1e-6));
     });
 
     test('the release after a drag is not also a map tap', () async {

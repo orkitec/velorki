@@ -130,6 +130,14 @@ class TestMapController implements MapController {
     calls.add(MapCall('setPosition', [position]));
   }
 
+  /// The searched place shown, if any.
+  LatLng? searchPin;
+
+  @override
+  Future<void> setSearchPin(LatLng? position, {String? label}) async {
+    searchPin = position;
+  }
+
   @override
   Future<void> setCyclosmOverlay(bool visible) async {
     calls.add(MapCall('setCyclosmOverlay', [visible]));

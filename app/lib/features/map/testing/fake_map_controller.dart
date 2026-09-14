@@ -291,6 +291,18 @@ class FakeMapController implements MapController {
     positionCalls.add(recorded);
   }
 
+  /// The searched place shown, if any.
+  LatLng? searchPin;
+
+  /// Its label.
+  String? searchPinLabel;
+
+  @override
+  Future<void> setSearchPin(LatLng? position, {String? label}) async {
+    searchPin = position;
+    searchPinLabel = position == null ? null : label;
+  }
+
   @override
   Future<void> setCyclosmOverlay(bool visible) async {
     cyclosmOverlay = visible;
