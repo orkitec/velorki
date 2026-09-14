@@ -183,6 +183,54 @@ void main() {
     expect(done.arrived, isTrue);
   });
 
+  test('a loop is not an arrival at its own start', () {
+    // A square: east, north, west, south, 500 m a side, back to the start.
+    // Saved before turn hints existed, so it carries none, which used to
+    // make "near the end" enough for an arrival.
+    final square = <LatLng>[
+      for (var i = 0; i <= 5; i++) LatLng(_lat0, _lon0 + i * 100 / _mPerDegLon),
+      for (var i = 1; i <= 5; i++)
+        LatLng(_lat0 + i * 100 / _mPerDegLat, _lon0 + 500 / _mPerDegLon),
+      for (var i = 1; i <= 5; i++)
+        LatLng(
+          _lat0 + 500 / _mPerDegLat,
+          _lon0 + (500 - i * 100) / _mPerDegLon,
+        ),
+      for (var i = 1; i <= 5; i++)
+        LatLng(_lat0 + (500 - i * 100) / _mPerDegLat, _lon0),
+    ];
+    final navigator = TurnNavigator(line: square, turns: const []);
+
+    // The first fix sits a few metres from the start, which is also the
+    // end. It must count as the start.
+    final first = navigator.update(
+      LatLng(_lat0 + 3 / _mPerDegLat, _lon0 + 5 / _mPerDegLon),
+    );
+    expect(first.arrived, isFalse);
+    expect(first.alongM, lessThan(50));
+    expect(first.remainingM, greaterThan(1900));
+
+    // Round the square, then home: now it is an arrival.
+    for (final along in <double>[300, 600, 900, 1200, 1500, 1800, 1950]) {
+      final leg = along ~/ 500;
+      final into = along - leg * 500;
+      final point = switch (leg) {
+        0 => LatLng(_lat0, _lon0 + into / _mPerDegLon),
+        1 => LatLng(_lat0 + into / _mPerDegLat, _lon0 + 500 / _mPerDegLon),
+        2 => LatLng(
+          _lat0 + 500 / _mPerDegLat,
+          _lon0 + (500 - into) / _mPerDegLon,
+        ),
+        _ => LatLng(_lat0 + (500 - into) / _mPerDegLat, _lon0),
+      };
+      expect(navigator.update(point).arrived, isFalse, reason: 'at $along m');
+    }
+    final home = navigator.update(
+      LatLng(_lat0 + 3 / _mPerDegLat, _lon0 + 2 / _mPerDegLon),
+    );
+    expect(home.arrived, isTrue);
+  });
+
   test('an empty line reports nothing at all', () {
     final navigator = TurnNavigator(line: const [], turns: const [_left]);
 

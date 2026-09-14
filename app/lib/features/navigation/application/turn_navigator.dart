@@ -108,11 +108,10 @@ class TurnNavigator {
         : math.max(0.0, _cumulative[next.pointIndex] - alongM);
     final remainingM = math.max(0.0, totalM - alongM);
     final toEndM = haversineMeters(position, _line.last);
-    final pastLastHint =
-        _turns.isEmpty ||
-        alongM > _cumulative[_turns.last.pointIndex] + _passedMarginM;
-    final arrived =
-        toEndM <= _arrivalM && (pastLastHint || remainingM < _arrivalM);
+    // Arrival is progress along the route, not nearness to its last point:
+    // a loop starts where it ends, and the first fix of a ride would
+    // otherwise be an arrival.
+    final arrived = toEndM <= _arrivalM && remainingM <= _arrivalM;
 
     return NavigationProgress(
       next: next,
@@ -147,10 +146,18 @@ class TurnNavigator {
     return best;
   }
 
+  /// How much of a jump along the route, in metres, weighs like one metre
+  /// of distance from it when two segments fit a fix about equally well.
+  /// Keeps a loop's start from being matched to its end, and a route that
+  /// doubles back from flipping between its two passes.
+  static const double _jumpWeight = 0.05;
+
   _Match _search(LatLng position, int from, int to) {
     var bestSegment = from;
     var bestDistance = double.infinity;
+    var bestScore = double.infinity;
     var bestAlong = _cumulative[from];
+    final lastAlong = _cumulative[_lastSegment];
     for (var i = from; i <= to; i++) {
       final a = _line[i];
       final b = _line[i + 1];
@@ -171,10 +178,13 @@ class TurnNavigator {
         a.lon + (b.lon - a.lon) * t,
       );
       final distance = haversineMeters(position, snapped);
-      if (distance < bestDistance) {
+      final along = _cumulative[i] + (_cumulative[i + 1] - _cumulative[i]) * t;
+      final score = distance + _jumpWeight * (along - lastAlong).abs();
+      if (score < bestScore) {
+        bestScore = score;
         bestDistance = distance;
         bestSegment = i;
-        bestAlong = _cumulative[i] + (_cumulative[i + 1] - _cumulative[i]) * t;
+        bestAlong = along;
       }
     }
     return _Match(bestSegment, bestDistance, bestAlong);
