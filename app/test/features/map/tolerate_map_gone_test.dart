@@ -40,6 +40,19 @@ void main() {
       );
     });
 
+    test('a source iOS dropped mid-attach is nothing to report', () async {
+      await expectLater(
+        tolerateMapGone(
+          () async => throw PlatformException(
+            code: 'sourceNotFound',
+            message: 'Source not found',
+            details: 'Source with id velorki-position not found.',
+          ),
+        ),
+        completes,
+      );
+    });
+
     test('a torn-down method channel is nothing to report', () async {
       await expectLater(
         tolerateMapGone(

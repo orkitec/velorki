@@ -294,6 +294,11 @@ Future<void> tolerateMapGone(Future<void> Function() op) async {
   } on PlatformException catch (e) {
     if (e.code == 'MAP_NOT_READY' || e.code == 'styleNotFound') return;
     if ((e.message ?? '').contains('already exists')) return;
+    // A source or layer the style no longer has: the style is on its way
+    // out under us, and the style-loaded callback that follows replays
+    // everything onto the new one. (The adapter's own not-found handling
+    // still matters for the fakes that stand in for the plugin.)
+    if (isStyleGoneError(e)) return;
     rethrow;
   }
 }

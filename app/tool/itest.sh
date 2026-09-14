@@ -79,41 +79,64 @@ flutter_test_one() {
     --dart-define=VELORKI_BROUTER_URL="$BROUTER_URL" \
     --dart-define=VELORKI_API_URL= \
     --dart-define=VELORKI_SEGMENTS_URL="$SEGMENTS_URL" \
-    --dart-define=VELORKI_ITEST_REGION="$REGION" &
+    --dart-define=VELORKI_ITEST_REGION="$REGION" > "$2" 2>&1 &
   local pid=$!
-  # Detached from our output: a sleeper holding the log pipe open would keep
-  # the caller waiting for the whole limit after the test has finished. The
-  # launcher turns the kill into a plain exit 1 ("No tests ran."), so the
-  # watchdog leaves a mark of its own and a hang is reported as 143.
-  local mark
-  mark=$(mktemp)
-  ( sleep "$LIMIT"; echo hung > "$mark"; kill "$pid" 2>/dev/null ) \
-    >/dev/null 2>&1 </dev/null &
-  local watchdog=$!
+  # Watched from here rather than by a detached sleeper: the launcher turns
+  # a kill into a plain exit 1 ("No tests ran."), so the outcome is decided
+  # by this loop and a hang is reported as 143.
+  local start now passed_at="" outcome=""
+  start=$(date +%s)
+  while kill -0 "$pid" 2>/dev/null; do
+    sleep 5
+    now=$(date +%s)
+    # On the iOS simulator the tooling has been seen to sit for good after
+    # the test itself reported its verdict; a verdict that is followed by
+    # nothing for half a minute is taken as final.
+    if [ -z "$passed_at" ] && grep -q "All tests passed!" "$2"; then
+      passed_at=$now
+    fi
+    if [ -n "$passed_at" ] && [ $((now - passed_at)) -ge 30 ]; then
+      outcome=passed; kill "$pid" 2>/dev/null; break
+    fi
+    if [ $((now - start)) -ge "$LIMIT" ]; then
+      outcome=hung; kill "$pid" 2>/dev/null; break
+    fi
+  done
   local rc=0
   wait "$pid" || rc=$?
-  pkill -P "$watchdog" 2>/dev/null || true
-  kill "$watchdog" 2>/dev/null || true
-  wait "$watchdog" 2>/dev/null || true
-  if [ -s "$mark" ]; then rc=143; fi
-  rm -f "$mark"
+  case "$outcome" in
+    passed) rc=0 ;;
+    hung) rc=143 ;;
+  esac
+  return "$rc"
+}
+
+# Runs one file with its output streamed and kept in a log for the checks.
+attempt() {
+  local f=$1 log=$2 rc=0
+  : > "$log"
+  tail -n +1 -f "$log" &
+  local reader=$!
+  flutter_test_one "$f" "$log" || rc=$?
+  sleep 1
+  kill "$reader" 2>/dev/null || true
+  wait "$reader" 2>/dev/null || true
   return "$rc"
 }
 
 run_one() {
   local f=$1 log rc=0
   log=$(mktemp)
-  flutter_test_one "$f" 2>&1 | tee "$log" || rc=$?
+  attempt "$f" "$log" || rc=$?
   if [ "$rc" -eq 0 ]; then
     rm -f "$log"
     return 0
   fi
   # 143: the watchdog killed it. A load failure is the tooling, not the test.
   if [ "$rc" -eq 143 ] || grep -qE "Failed to start Dart Development Service|^Failed to load \"" "$log"; then
-    rm -f "$log"
     printf '    the tooling did not get going; running %s once more\n' "$(basename "$f")"
-    flutter_test_one "$f"
-    return
+    rc=0
+    attempt "$f" "$log" || rc=$?
   fi
   rm -f "$log"
   return "$rc"

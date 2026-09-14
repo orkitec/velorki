@@ -157,12 +157,20 @@ class _MapViewState extends ConsumerState<MapView> {
     final map = _map;
     if (map == null) return;
     _adapter?.dispose();
-    final adapter = MaplibreMapControllerAdapter(
-      map,
-      cyclosmTileUrl: ref.read(effectiveConfigProvider).cyclosmTileUrl,
-      devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
-      palette: MapPalette.fromTheme(Theme.of(context)),
-    );
+    final MaplibreMapControllerAdapter adapter;
+    try {
+      adapter = MaplibreMapControllerAdapter(
+        map,
+        cyclosmTileUrl: ref.read(effectiveConfigProvider).cyclosmTileUrl,
+        devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
+        palette: MapPalette.fromTheme(Theme.of(context)),
+      );
+    } on StateError {
+      // The style finished loading while the world around the map is being
+      // torn down (a test's container disposed before its widgets); there
+      // is nobody left to draw for.
+      return;
+    }
     _adapter = adapter;
     await adapter.attachToStyle();
     if (!mounted) return;
