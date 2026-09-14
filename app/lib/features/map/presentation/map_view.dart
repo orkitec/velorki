@@ -238,6 +238,11 @@ class _MapViewState extends ConsumerState<MapView> {
       // The puck is drawn by our own layers from `devicePositionProvider`;
       // the native location component would ask for permission by itself.
       myLocationEnabled: false,
+      // Everything on the map is a GeoJSON source with style layers; the
+      // plugin's annotation managers would only add four layers nobody uses,
+      // and their asynchronous set-up is what throws when the activity is
+      // recreated under a map (MAP_NOT_READY from inside the plugin).
+      annotationOrder: const <ml.AnnotationType>[],
       onMapCreated: _onMapCreated,
       onStyleLoadedCallback: () => unawaited(_onStyleLoaded()),
       onMapClick: (_, coordinates) => _adapter?.handleMapClick(coordinates),

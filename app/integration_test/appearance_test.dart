@@ -82,6 +82,9 @@ void main() {
       tester,
       () => maps.isNotEmpty && maps.last.lines.containsKey(mainRouteLineId),
       describe: 'the route line on the map',
+      // The first map of the run: on a freshly booted CI emulator the style
+      // download alone can take the better part of a minute.
+      timeout: const Duration(seconds: 120),
       onTimeout: () => 'maps=${maps.length}',
     );
     final drawnBefore = maps.last.lines[mainRouteLineId]!.length;
