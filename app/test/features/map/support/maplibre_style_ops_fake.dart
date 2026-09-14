@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:velorki/features/map/data/maplibre_map_controller.dart';
 
@@ -155,6 +156,10 @@ class RecordingStyleOps implements MapLibreStyleOps {
     return matching.isEmpty ? null : matching.last.geojson;
   }
 
+  /// Answer a write to a source that is not there the way iOS does, with a
+  /// `sourceNotFound` platform error; Android keeps quiet.
+  bool strictSources = false;
+
   /// Forgets the recorded calls; the sources, layers and scripts stay.
   void clearCalls() => calls.clear();
 
@@ -205,6 +210,13 @@ class RecordingStyleOps implements MapLibreStyleOps {
     String sourceId,
     Map<String, dynamic> geojson,
   ) async {
+    if (strictSources && !sourceIds.contains(sourceId)) {
+      throw PlatformException(
+        code: 'sourceNotFound',
+        message: 'Source not found',
+        details: 'Source with id $sourceId not found.',
+      );
+    }
     calls.add(
       RecordedStyleCall('setGeoJsonSource', id: sourceId, geojson: geojson),
     );

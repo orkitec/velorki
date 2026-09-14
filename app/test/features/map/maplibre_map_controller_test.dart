@@ -350,6 +350,26 @@ void main() {
       },
     );
 
+    test('a source the style lost is drawn afresh when iOS says so', () async {
+      // A style swap on iOS can drop a source between two writes; the
+      // platform then refuses the update with sourceNotFound.
+      final ops = RecordingStyleOps()..strictSources = true;
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setRouteLine('main', _points);
+      ops.sourceIds.remove(MapLayerIds.routeSource('main'));
+      ops.scriptedSourceIds.add(<String>[MapLayerIds.routeSource('main')]);
+      ops.clearCalls();
+
+      await adapter.setRouteLine('main', _points.reversed.toList());
+
+      expect(
+        ops.lastCall('addGeoJsonSource')!.id,
+        MapLayerIds.routeSource('main'),
+      );
+      expect(ops.addLayerOf(MapLayerIds.routeLayer('main')), isNotNull);
+    });
+
     test('adds the source and the layer below the puck', () async {
       final ops = RecordingStyleOps();
       final adapter = _adapter(ops);

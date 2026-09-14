@@ -664,12 +664,14 @@ class MaplibreMapControllerAdapter implements MapController {
 
   /// Whether the native style still has [sourceId]. MapLibre only logs when
   /// a source vanished, so the adapter asks before updating.
-  Future<bool> _hasSource(String sourceId) async {
+  /// Whether the style has [sourceId]; `null` when the platform would not
+  /// say (a style mid-swap, a view already gone).
+  Future<bool?> _hasSource(String sourceId) async {
     try {
       final ids = await _ops.getSourceIds();
       return ids.contains(sourceId);
     } catch (_) {
-      return true;
+      return null;
     }
   }
 
@@ -794,11 +796,11 @@ class MaplibreMapControllerAdapter implements MapController {
     );
     var previous = _routeLines[id];
     final present = await _hasSource(sourceId);
-    if (previous != null && !present) {
+    if (previous != null && present == false) {
       _routeLines.remove(id);
       previous = null;
     }
-    if (previous == null && present) {
+    if (previous == null && present == true) {
       // The style kept the line through a reload the adapter treated as a
       // fresh start (`attachToStyle` forgets every line). Adding it again
       // would clash with what is there; refreshing it is what was meant.
@@ -812,39 +814,62 @@ class MaplibreMapControllerAdapter implements MapController {
       return;
     }
     if (previous == null) {
-      await _ops.addGeoJsonSource(sourceId, data);
-      // Under the puck and the markers; an alternative also under the chosen
-      // route, whatever order they arrive in.
-      final below = style == RouteLineStyle.alternative
-          ? _alternativeBelow()
-          : MapLayerIds.positionAccuracyLayer;
-      // A dark casing under the line keeps any accent readable on any map
-      // style: lime on a green park, orange on a yellow road.
-      await _ops.addLayer(
-        sourceId,
+      await _addRouteLine(id, sourceId, layerId, data, style);
+      _routeLines[id] = style;
+      return;
+    }
+    try {
+      await _ops.setGeoJsonSource(sourceId, data);
+    } on PlatformException catch (e) {
+      // iOS answers a write to a source the style no longer has with
+      // `sourceNotFound` (Android keeps quiet). The line is gone, so it is
+      // drawn afresh rather than reported.
+      if (e.code != 'sourceNotFound') rethrow;
+      _routeLines.remove(id);
+      await _addRouteLine(id, sourceId, layerId, data, style);
+      _routeLines[id] = style;
+      return;
+    }
+    if (previous != style) {
+      await _ops.setLayerProperties(
         MapLayerIds.routeCasingLayer(id),
         _casingProperties(style),
-        belowLayerId: below,
-        enableInteraction: false,
       );
-      await _ops.addLayer(
-        sourceId,
-        layerId,
-        _lineProperties(style, id),
-        belowLayerId: below,
-        enableInteraction: false,
-      );
-    } else {
-      await _ops.setGeoJsonSource(sourceId, data);
-      if (previous != style) {
-        await _ops.setLayerProperties(
-          MapLayerIds.routeCasingLayer(id),
-          _casingProperties(style),
-        );
-        await _ops.setLayerProperties(layerId, _lineProperties(style, id));
-      }
+      await _ops.setLayerProperties(layerId, _lineProperties(style, id));
     }
     _routeLines[id] = style;
+  }
+
+  /// Adds the source and the two layers of a route line.
+  Future<void> _addRouteLine(
+    String id,
+    String sourceId,
+    String layerId,
+    Map<String, dynamic> data,
+    RouteLineStyle style,
+  ) async {
+    await _ops.addGeoJsonSource(sourceId, data);
+    // Under the puck and the markers; an alternative also under the chosen
+    // route, whatever order they arrive in.
+    final below = style == RouteLineStyle.alternative
+        ? _alternativeBelow()
+        : MapLayerIds.positionAccuracyLayer;
+    // A dark casing under the line keeps any accent readable on any map
+    // style: lime on a green park, orange on a yellow road.
+    await _ops.addLayer(
+      sourceId,
+      MapLayerIds.routeCasingLayer(id),
+      _casingProperties(style),
+      belowLayerId: below,
+      enableInteraction: false,
+    );
+    await _ops.addLayer(
+      sourceId,
+      layerId,
+      _lineProperties(style, id),
+      belowLayerId: below,
+      enableInteraction: false,
+    );
   }
 
   @override
@@ -1037,7 +1062,7 @@ class MaplibreMapControllerAdapter implements MapController {
   Future<void> setWaypoints(List<MapWaypoint> waypoints) async {
     _waypoints = List<MapWaypoint>.unmodifiable(waypoints);
     if (!_attached) return;
-    if (!await _hasSource(MapLayerIds.waypointsSource)) {
+    if (await _hasSource(MapLayerIds.waypointsSource) == false) {
       // The style dropped our sources without a style-loaded callback;
       // rebuild everything and let the replay draw the waypoints.
       await attachToStyle();
@@ -1053,7 +1078,7 @@ class MaplibreMapControllerAdapter implements MapController {
   Future<void> setTrackLine(List<LatLng> points) async {
     _track = List<LatLng>.unmodifiable(points);
     if (!_attached) return;
-    if (!await _hasSource(MapLayerIds.trackSource)) {
+    if (await _hasSource(MapLayerIds.trackSource) == false) {
       await attachToStyle();
       return;
     }
