@@ -370,6 +370,48 @@ void main() {
       expect(ops.addLayerOf(MapLayerIds.routeLayer('main')), isNotNull);
     });
 
+    test(
+      'a line the style lists but refuses to update is drawn afresh',
+      () async {
+        // Mid-swap the style can still list a source it will not write to.
+        final ops = RecordingStyleOps()..strictSources = true;
+        final adapter = _adapter(ops);
+        await adapter.attachToStyle();
+        await adapter.setRouteLine('main', _points);
+        await adapter.attachToStyle();
+        ops.sourceIds.remove(MapLayerIds.routeSource('main'));
+        ops.scriptedSourceIds.add(<String>[MapLayerIds.routeSource('main')]);
+        ops.clearCalls();
+
+        await adapter.setRouteLine('main', _points.reversed.toList());
+
+        expect(
+          ops.lastCall('addGeoJsonSource')!.id,
+          MapLayerIds.routeSource('main'),
+        );
+        expect(ops.addLayerOf(MapLayerIds.routeLayer('main')), isNotNull);
+      },
+    );
+
+    test('a waypoint write iOS refuses rebuilds the style once', () async {
+      final ops = RecordingStyleOps()..strictSources = true;
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      ops.sourceIds.remove(MapLayerIds.waypointsSource);
+      // The style still lists the source when asked, but refuses the write.
+      ops.scriptedSourceIds.add(<String>[MapLayerIds.waypointsSource]);
+      ops.clearCalls();
+
+      await adapter.setWaypoints(_waypoints);
+
+      // Rebuilt: the base sources are added again and the waypoints replayed.
+      expect(
+        ops.callsNamed('addGeoJsonSource').map((c) => c.id),
+        contains(MapLayerIds.waypointsSource),
+      );
+      expect(_featuresOf(ops, MapLayerIds.waypointsSource), hasLength(2));
+    });
+
     test('adds the source and the layer below the puck', () async {
       final ops = RecordingStyleOps();
       final adapter = _adapter(ops);

@@ -808,12 +808,13 @@ class MaplibreMapControllerAdapter implements MapController {
       // The style kept the line through a reload the adapter treated as a
       // fresh start (`attachToStyle` forgets every line). Adding it again
       // would clash with what is there; refreshing it is what was meant.
-      await _ops.setGeoJsonSource(sourceId, data);
-      await _ops.setLayerProperties(
-        MapLayerIds.routeCasingLayer(id),
-        _casingProperties(style),
-      );
-      await _ops.setLayerProperties(layerId, _lineProperties(style, id));
+      if (await _writeRouteSource(id, sourceId, layerId, data, style)) {
+        await _ops.setLayerProperties(
+          MapLayerIds.routeCasingLayer(id),
+          _casingProperties(style),
+        );
+        await _ops.setLayerProperties(layerId, _lineProperties(style, id));
+      }
       _routeLines[id] = style;
       return;
     }
@@ -822,19 +823,8 @@ class MaplibreMapControllerAdapter implements MapController {
       _routeLines[id] = style;
       return;
     }
-    try {
-      await _ops.setGeoJsonSource(sourceId, data);
-    } on PlatformException catch (e) {
-      // iOS answers a write to a source the style no longer has with
-      // `sourceNotFound` (Android keeps quiet). The line is gone, so it is
-      // drawn afresh rather than reported.
-      if (e.code != 'sourceNotFound') rethrow;
-      _routeLines.remove(id);
-      await _addRouteLine(id, sourceId, layerId, data, style);
-      _routeLines[id] = style;
-      return;
-    }
-    if (previous != style) {
+    if (await _writeRouteSource(id, sourceId, layerId, data, style) &&
+        previous != style) {
       await _ops.setLayerProperties(
         MapLayerIds.routeCasingLayer(id),
         _casingProperties(style),
@@ -842,6 +832,30 @@ class MaplibreMapControllerAdapter implements MapController {
       await _ops.setLayerProperties(layerId, _lineProperties(style, id));
     }
     _routeLines[id] = style;
+  }
+
+  /// Writes [data] into an existing route source. Returns `false` when the
+  /// source turned out to be gone and the line was drawn afresh instead.
+  ///
+  /// iOS answers a write to a source the style no longer has with
+  /// `sourceNotFound` (Android keeps quiet), and the style can lose a source
+  /// between the adapter's check and its write while a look changes.
+  Future<bool> _writeRouteSource(
+    String id,
+    String sourceId,
+    String layerId,
+    Map<String, dynamic> data,
+    RouteLineStyle style,
+  ) async {
+    try {
+      await _ops.setGeoJsonSource(sourceId, data);
+      return true;
+    } on PlatformException catch (e) {
+      if (e.code != 'sourceNotFound') rethrow;
+      _routeLines.remove(id);
+      await _addRouteLine(id, sourceId, layerId, data, style);
+      return false;
+    }
   }
 
   /// Adds the source and the two layers of a route line.
@@ -1072,10 +1086,39 @@ class MaplibreMapControllerAdapter implements MapController {
       await attachToStyle();
       return;
     }
-    await _ops.setGeoJsonSource(
+    await _writeBaseSource(
       MapLayerIds.waypointsSource,
       waypointsFeatureCollection(waypoints),
     );
+  }
+
+  /// Whether [attachToStyle] is running because a write found the style
+  /// gone; stops a write during that rebuild from asking for another.
+  bool _reattaching = false;
+
+  /// Writes [data] into one of the sources [attachToStyle] creates.
+  ///
+  /// iOS refuses a write to a source the style has dropped with
+  /// `sourceNotFound` (a look change tears the old style down before the
+  /// style-loaded callback arrives). That is the same situation as the
+  /// missing-source check above, so it is answered the same way: rebuild
+  /// and let the replay draw everything.
+  Future<void> _writeBaseSource(
+    String sourceId,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      await _ops.setGeoJsonSource(sourceId, data);
+    } on PlatformException catch (e) {
+      if (!e.code.endsWith('NotFound')) rethrow;
+      if (_reattaching) return;
+      _reattaching = true;
+      try {
+        await attachToStyle();
+      } finally {
+        _reattaching = false;
+      }
+    }
   }
 
   @override
@@ -1086,7 +1129,7 @@ class MaplibreMapControllerAdapter implements MapController {
       await attachToStyle();
       return;
     }
-    await _ops.setGeoJsonSource(
+    await _writeBaseSource(
       MapLayerIds.trackSource,
       lineFeatureCollection(points),
     );
@@ -1109,7 +1152,7 @@ class MaplibreMapControllerAdapter implements MapController {
     final heading = position == null
         ? null
         : _headingSmoother.update(headingDeg: headingDeg, speedMps: speedMps);
-    await _ops.setGeoJsonSource(
+    await _writeBaseSource(
       MapLayerIds.positionSource,
       positionFeatureCollection(
         position,
@@ -1117,6 +1160,7 @@ class MaplibreMapControllerAdapter implements MapController {
         resolvedHeadingDeg: heading,
       ),
     );
+    if (!_attached) return;
     // circle-radius is in pixels, so a metre-accurate ring needs a fresh
     // zoom expression whenever the accuracy or the latitude changes.
     final radius = position == null || accuracyM == null || accuracyM <= 0
@@ -1147,7 +1191,7 @@ class MaplibreMapControllerAdapter implements MapController {
     _searchPin = position;
     _searchPinLabel = position == null ? null : label;
     if (!_attached) return;
-    await _ops.setGeoJsonSource(
+    await _writeBaseSource(
       MapLayerIds.searchPinSource,
       position == null
           ? emptyFeatureCollection()
