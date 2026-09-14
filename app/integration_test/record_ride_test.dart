@@ -161,13 +161,15 @@ void main() {
     expect(find.text('RECORDING'), findsOneWidget);
 
     await _ride(tester, positions, from: 20, to: _points);
+    // Every fix, not just the first after the pause: the recorder works in
+    // its own isolate and the last one can land after the distance grew.
     await waitUntil(
       tester,
       () =>
-          (container.read(recordingControllerProvider).snapshot?.distanceM ??
-              0) >
-          movingDistance,
-      describe: 'the distance to grow again after resuming',
+          (container.read(recordingControllerProvider).snapshot?.pointCount ??
+              0) >=
+          _points,
+      describe: 'every fix to be recorded after resuming',
       onTimeout: () =>
           '${container.read(recordingControllerProvider).snapshot}',
     );

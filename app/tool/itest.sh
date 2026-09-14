@@ -74,7 +74,8 @@ run_one() {
     rm -f "$log"
     return 0
   fi
-  if grep -q "Failed to start Dart Development Service" "$log"; then
+  # A load failure is the tooling, not the test: the app never ran.
+  if grep -qE "Failed to start Dart Development Service|^Failed to load \"" "$log"; then
     rm -f "$log"
     printf '    the tooling did not start; running %s once more\n' "$(basename "$f")"
     flutter test "$f" \
