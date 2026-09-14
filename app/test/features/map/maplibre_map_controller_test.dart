@@ -322,6 +322,34 @@ void main() {
   });
 
   group('setRouteLine', () {
+    test(
+      'a line the style kept through a reload is refreshed, not re-added',
+      () async {
+        // The plugin fires onStyleLoaded again without dropping the style's
+        // sources on some Android builds; the adapter has forgotten the line
+        // by then and adding it twice threw "already exists" in CI.
+        final ops = RecordingStyleOps();
+        final adapter = _adapter(ops);
+        await adapter.attachToStyle();
+        await adapter.setRouteLine('main', _points);
+        ops.clearCalls();
+
+        await adapter.attachToStyle();
+
+        final source = MapLayerIds.routeSource('main');
+        expect(
+          ops.callsNamed('addGeoJsonSource').where((c) => c.id == source),
+          isEmpty,
+        );
+        expect(ops.addLayerOf(MapLayerIds.routeLayer('main')), isNull);
+        expect(ops.lastCall('setGeoJsonSource')!.id, source);
+        expect(
+          ops.lastCall('setLayerProperties')!.id,
+          MapLayerIds.routeLayer('main'),
+        );
+      },
+    );
+
     test('adds the source and the layer below the puck', () async {
       final ops = RecordingStyleOps();
       final adapter = _adapter(ops);
@@ -668,6 +696,7 @@ void main() {
       await adapter.setRouteLine('main', _points);
       ops.clearCalls();
 
+      ops.reloadStyle();
       await adapter.attachToStyle();
 
       expect(_featuresOf(ops, MapLayerIds.waypointsSource), hasLength(2));
@@ -689,6 +718,7 @@ void main() {
       );
       ops.clearCalls();
 
+      ops.reloadStyle();
       await adapter.attachToStyle();
 
       expect(

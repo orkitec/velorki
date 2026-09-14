@@ -274,10 +274,31 @@ abstract class MapLibreStyleOps {
   List<ml.OnFeatureInteractionCallback> get onFeatureTapped;
 }
 
+/// Completes [op] as if it had succeeded when the platform says there was
+/// nothing to do.
+///
+/// Two answers from the Android plugin mean exactly that: `MAP_NOT_READY`,
+/// when the activity was recreated under the map (the view is gone and a
+/// fresh map with a fresh adapter is on its way), and "already exists", when
+/// a style reload kept a source or layer the adapter had written off. Both
+/// used to surface as unhandled exceptions from fire-and-forget calls and
+/// take an integration test down; neither is worth reporting.
+Future<void> tolerateMapGone(Future<void> Function() op) async {
+  try {
+    await op();
+  } on PlatformException catch (e) {
+    if (e.code == 'MAP_NOT_READY') return;
+    if ((e.message ?? '').contains('already exists')) return;
+    rethrow;
+  }
+}
+
 /// [MapLibreStyleOps] forwarding one for one to a real plugin controller.
 ///
 /// Nothing but the forwarding lives here: every decision the adapter makes
-/// stays in the adapter, where a test can reach it.
+/// stays in the adapter, where a test can reach it. The one thing added is
+/// [tolerateMapGone] around every write, because those two platform answers
+/// are facts about the platform view, not about the adapter's state.
 class PluginMapLibreStyleOps implements MapLibreStyleOps {
   /// Wraps [map], the controller `MapLibreMap.onMapCreated` handed over.
   const PluginMapLibreStyleOps(this.map);
@@ -289,17 +310,17 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
   Future<void> addGeoJsonSource(
     String sourceId,
     Map<String, dynamic> geojson,
-  ) => map.addGeoJsonSource(sourceId, geojson);
+  ) => tolerateMapGone(() => map.addGeoJsonSource(sourceId, geojson));
 
   @override
   Future<void> setGeoJsonSource(
     String sourceId,
     Map<String, dynamic> geojson,
-  ) => map.setGeoJsonSource(sourceId, geojson);
+  ) => tolerateMapGone(() => map.setGeoJsonSource(sourceId, geojson));
 
   @override
   Future<void> addSource(String sourceId, ml.SourceProperties properties) =>
-      map.addSource(sourceId, properties);
+      tolerateMapGone(() => map.addSource(sourceId, properties));
 
   @override
   Future<void> addLayer(
@@ -308,43 +329,48 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
     ml.LayerProperties properties, {
     String? belowLayerId,
     bool enableInteraction = true,
-  }) => map.addLayer(
-    sourceId,
-    layerId,
-    properties,
-    belowLayerId: belowLayerId,
-    enableInteraction: enableInteraction,
+  }) => tolerateMapGone(
+    () => map.addLayer(
+      sourceId,
+      layerId,
+      properties,
+      belowLayerId: belowLayerId,
+      enableInteraction: enableInteraction,
+    ),
   );
 
   @override
-  Future<void> removeLayer(String layerId) => map.removeLayer(layerId);
+  Future<void> removeLayer(String layerId) =>
+      tolerateMapGone(() => map.removeLayer(layerId));
 
   @override
-  Future<void> removeSource(String sourceId) => map.removeSource(sourceId);
+  Future<void> removeSource(String sourceId) =>
+      tolerateMapGone(() => map.removeSource(sourceId));
 
   @override
   Future<void> setLayerProperties(
     String layerId,
     ml.LayerProperties properties,
-  ) => map.setLayerProperties(layerId, properties);
+  ) => tolerateMapGone(() => map.setLayerProperties(layerId, properties));
 
   @override
   Future<void> setLayerVisibility(String layerId, bool visible) =>
-      map.setLayerVisibility(layerId, visible);
+      tolerateMapGone(() => map.setLayerVisibility(layerId, visible));
 
   @override
   Future<List<String>> getSourceIds() => map.getSourceIds();
 
   @override
   Future<void> addImage(String name, Uint8List bytes) =>
-      map.addImage(name, bytes);
+      tolerateMapGone(() => map.addImage(name, bytes));
 
   @override
   Future<void> animateCamera(ml.CameraUpdate update) =>
-      map.animateCamera(update);
+      tolerateMapGone(() => map.animateCamera(update));
 
   @override
-  Future<void> moveCamera(ml.CameraUpdate update) => map.moveCamera(update);
+  Future<void> moveCamera(ml.CameraUpdate update) =>
+      tolerateMapGone(() => map.moveCamera(update));
 
   @override
   ml.CameraPosition? get cameraPosition => map.cameraPosition;
@@ -767,9 +793,23 @@ class MaplibreMapControllerAdapter implements MapController {
       properties: <String, dynamic>{'id': id, 'style': style.name},
     );
     var previous = _routeLines[id];
-    if (previous != null && !await _hasSource(sourceId)) {
+    final present = await _hasSource(sourceId);
+    if (previous != null && !present) {
       _routeLines.remove(id);
       previous = null;
+    }
+    if (previous == null && present) {
+      // The style kept the line through a reload the adapter treated as a
+      // fresh start (`attachToStyle` forgets every line). Adding it again
+      // would clash with what is there; refreshing it is what was meant.
+      await _ops.setGeoJsonSource(sourceId, data);
+      await _ops.setLayerProperties(
+        MapLayerIds.routeCasingLayer(id),
+        _casingProperties(style),
+      );
+      await _ops.setLayerProperties(layerId, _lineProperties(style, id));
+      _routeLines[id] = style;
+      return;
     }
     if (previous == null) {
       await _ops.addGeoJsonSource(sourceId, data);

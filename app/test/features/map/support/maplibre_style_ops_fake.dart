@@ -158,6 +158,13 @@ class RecordingStyleOps implements MapLibreStyleOps {
   /// Forgets the recorded calls; the sources, layers and scripts stay.
   void clearCalls() => calls.clear();
 
+  /// What a real style reload does to the map: every source and layer the
+  /// adapter added is gone, the calls are kept.
+  void reloadStyle() {
+    sourceIds.clear();
+    layerIds.clear();
+  }
+
   /// Fires a drag event at every registered listener, as the plugin does.
   void emitFeatureDrag(
     String featureId,
