@@ -289,6 +289,10 @@ class RecordingMapController implements MapController {
       inner.onWaypointDragged = handler;
 
   @override
+  set onWaypointTapped(void Function(int index)? handler) =>
+      inner.onWaypointTapped = handler;
+
+  @override
   set onCameraIdle(VoidCallback? handler) => inner.onCameraIdle = handler;
 
   @override

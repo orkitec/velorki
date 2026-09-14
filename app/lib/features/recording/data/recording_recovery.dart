@@ -66,7 +66,12 @@ class RecoveryService {
     }
     if (await isServiceRunning()) return ReattachRecording(state);
     final points = await store.readJournal(state.rideId);
-    return InterruptedRecording(state: state, stats: computeRideStats(points));
+    return InterruptedRecording(
+      state: state,
+      // The seams of a continued ride are breaks here too, so the dialog
+      // offers the figures the ride will actually be saved with.
+      stats: computeRideStats(points, breaks: state.statsBreaks),
+    );
   }
 }
 

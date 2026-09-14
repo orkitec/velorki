@@ -10,6 +10,12 @@ import 'planner_controller.dart';
 /// Id of the main route line on the map.
 const String mainRouteLineId = 'main';
 
+/// The line id of the route the rider chose: the main route keeps
+/// [mainRouteLineId]; a chosen alternative carries its index, so the map
+/// draws it in that alternative's colour, on top like the main route.
+String chosenRouteLineId(int alternativeIdx) =>
+    alternativeIdx == 0 ? mainRouteLineId : '$mainRouteLineId-$alternativeIdx';
+
 /// Id of alternative [index] on the map.
 String alternativeLineId(int index) => 'alt-$index';
 
@@ -40,7 +46,11 @@ class PlannerMapBinding {
     map.onTap = (pos) => planner.addWaypoint(pos);
     map.onLongPress = (pos) => planner.insertWaypoint(pos);
     map.onWaypointDragged = planner.moveWaypoint;
+    map.onWaypointTapped = (index) => onWaypointTap?.call(index);
   }
+
+  /// What the screen does when a marker is tapped; `null` does nothing.
+  void Function(int index)? onWaypointTap;
 
   /// Unsubscribes, so a disposed screen cannot move waypoints any more.
   void detach() {
@@ -49,6 +59,7 @@ class PlannerMapBinding {
     map.onTap = null;
     map.onLongPress = null;
     map.onWaypointDragged = null;
+    map.onWaypointTapped = null;
   }
 
   /// Pushes [state] to the map: markers, the main line and the alternatives.
@@ -68,8 +79,9 @@ class PlannerMapBinding {
     final wanted = <String>{};
 
     if (positions.isNotEmpty) {
-      wanted.add(mainRouteLineId);
-      await map.setRouteLine(mainRouteLineId, positions);
+      final chosen = chosenRouteLineId(state.options.alternativeIdx);
+      wanted.add(chosen);
+      await map.setRouteLine(chosen, positions);
     }
     for (var i = 0; i < state.alternatives.length; i++) {
       if (i == state.options.alternativeIdx) continue;

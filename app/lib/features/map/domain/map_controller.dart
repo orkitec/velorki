@@ -46,6 +46,10 @@ abstract class MapController {
   set onTap(ValueChanged<LatLng>? handler);
   set onLongPress(ValueChanged<LatLng>? handler);
   set onWaypointDragged(void Function(int index, LatLng position)? handler);
+
+  /// A tap on a waypoint marker, with the marker's index; the owning screen
+  /// offers what can be done with the point (remove it, for one).
+  set onWaypointTapped(void Function(int index)? handler);
   set onCameraIdle(VoidCallback? handler);
 
   /// Visible area, for offline downloads and search bias.

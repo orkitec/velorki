@@ -249,6 +249,15 @@
   "@plannerRouteSaved": {
     "description": "Snack bar confirming that a route was written to the library"
   },
+  "plannerPointTitle": "Point {number}",
+  "@plannerPointTitle": {
+    "description": "Title of the sheet for a tapped waypoint without a name",
+    "placeholders": {"number": {"type": "int"}}
+  },
+  "plannerRemovePoint": "Remove point",
+  "@plannerRemovePoint": {
+    "description": "Button in the waypoint sheet that deletes the point"
+  },
   "plannerSetAsStart": "Start here",
   "@plannerSetAsStart": {
     "description": "Button that turns the searched place into the start of a new route"
@@ -404,6 +413,24 @@
   "searchUnavailable": "No search server configured, set one in Settings → Advanced.",
   "@searchUnavailable": {
     "description": "Shown when the Photon URL is empty so no search is possible"
+  },
+  "libraryRoutes": "Routes",
+  "@libraryRoutes": {
+    "description": "Library section switch: the saved routes"
+  },
+  "libraryRides": "Rides",
+  "@libraryRides": {
+    "description": "Library section switch: the recorded rides"
+  },
+  "libraryRidesCount": "{count, plural, =1{1 ride} other{{count} rides}}",
+  "@libraryRidesCount": {
+    "description": "Caption above the library's list of recorded rides",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      }
+    }
   },
   "libraryEmpty": "No saved routes yet.",
   "@libraryEmpty": {
@@ -792,6 +819,28 @@
       "message": {
         "type": "String",
         "example": "no space left"
+      }
+    }
+  },
+  "rideContinue": "Continue this ride",
+  "@rideContinue": {
+    "description": "Menu item on the ride detail screen that records onto this ride again, for a ride that was stopped by accident"
+  },
+  "rideContinueBody": "Recording starts again on this ride: its track, distance, time and climb continue where they stopped, and the break until now counts as a pause.",
+  "@rideContinueBody": {
+    "description": "First paragraph of the dialog that confirms continuing a finished ride"
+  },
+  "rideContinueRunning": "Another ride is being recorded. It will be finished and saved first.",
+  "@rideContinueRunning": {
+    "description": "Warning in the continue dialog when a different recording is under way and will be stopped"
+  },
+  "rideContinueUploaded": "It was already sent to {services}; the continued ride will need sending again.",
+  "@rideContinueUploaded": {
+    "description": "Warning in the continue dialog when the ride was already uploaded, so the upload markers are cleared",
+    "placeholders": {
+      "services": {
+        "type": "String",
+        "example": "Strava"
       }
     }
   },

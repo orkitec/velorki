@@ -6,6 +6,7 @@ import 'package:velorki/features/recording/data/recording_engine.dart';
 import 'package:velorki/features/recording/data/recording_journal.dart';
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/features/recording/domain/recording_state.dart';
+import 'package:velorki/features/recording/domain/ride.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 /// Drives an engine on a fake clock: no timers, no real GPS, no waiting on
@@ -36,6 +37,7 @@ class _Harness {
   Future<void> start({
     RecordingStatus status = RecordingStatus.active,
     List<TrackPoint> seed = const <TrackPoint>[],
+    List<RidePause> pauses = const <RidePause>[],
   }) async {
     journal = store.openJournal('ride-1');
     await journal.open();
@@ -46,6 +48,7 @@ class _Harness {
         rideId: 'ride-1',
         startedAt: now,
         status: status,
+        pauses: pauses,
       ),
       fixes: fixes.stream,
       ticks: ticks.stream,
@@ -280,6 +283,54 @@ void main() {
     await h.tick(1);
     expect(h.latest.pointCount, 2);
     expect(h.latest.distanceM, closeTo(111.19, 0.1));
+
+    await h.engine.stop();
+    await h.dispose();
+  });
+
+  test('a seam is a break however short the gap across it is', () async {
+    // What "Continue this ride" hands the engine: the ride's own fixes, and a
+    // seam from the moment it was stopped to the moment it was picked up —
+    // two seconds, far inside the 30 s gap rule.
+    final h = _Harness(store);
+    await h.start(
+      seed: <TrackPoint>[
+        TrackPoint(
+          const LatLng(48, 11),
+          ele: 500,
+          time: DateTime.utc(2026, 9, 12, 9, 59, 58),
+        ),
+        TrackPoint(
+          const LatLng(48.0001, 11),
+          ele: 501,
+          time: DateTime.utc(2026, 9, 12, 9, 59, 59),
+        ),
+      ],
+      pauses: <RidePause>[
+        RidePause(
+          startedAt: DateTime.utc(2026, 9, 12, 9, 59, 59),
+          endedAt: DateTime.utc(2026, 9, 12, 10),
+          seam: true,
+        ),
+      ],
+    );
+    await h.tick(0);
+    expect(h.latest.distanceM, closeTo(11.12, 0.01));
+    expect(h.latest.moving, const Duration(seconds: 1));
+
+    // The first fix after the hand-over: no distance, no moving time, even
+    // though it is only two seconds after the last one.
+    await h.fix(1, meters: 31.12);
+    await h.tick(1);
+    expect(h.latest.pointCount, 3);
+    expect(h.latest.distanceM, closeTo(11.12, 0.01));
+    expect(h.latest.moving, const Duration(seconds: 1));
+
+    // From there the ride goes on as any other.
+    await h.fix(3, meters: 51.12);
+    await h.tick(3);
+    expect(h.latest.distanceM, closeTo(31.12, 0.05));
+    expect(h.latest.moving, const Duration(seconds: 3));
 
     await h.engine.stop();
     await h.dispose();

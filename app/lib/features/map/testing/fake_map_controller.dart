@@ -170,6 +170,9 @@ class FakeMapController implements MapController {
   void Function(int index, LatLng position)? onWaypointDragged;
 
   @override
+  void Function(int index)? onWaypointTapped;
+
+  @override
   VoidCallback? onCameraIdle;
 
   /// Forgets every recorded call; the handlers and the camera stay.
@@ -201,6 +204,9 @@ class FakeMapController implements MapController {
   /// Pretends the user dragged waypoint [index] to [position].
   void emitWaypointDragged(int index, LatLng position) =>
       onWaypointDragged?.call(index, position);
+
+  /// Pretends the user tapped waypoint [index].
+  void emitWaypointTapped(int index) => onWaypointTapped?.call(index);
 
   /// Pretends the camera came to rest.
   void emitCameraIdle() => onCameraIdle?.call();

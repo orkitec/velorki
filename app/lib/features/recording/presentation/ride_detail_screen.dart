@@ -8,6 +8,8 @@ import 'package:velorki_api/velorki_api.dart' show ShareKind;
 import '../../../app/router.dart';
 import '../../../core/files/track_exporter.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../integrations/common/domain/connected_account.dart';
+import '../../integrations/presentation/integration_labels.dart';
 import '../../integrations/presentation/ride_upload_menu.dart';
 import '../../map/domain/map_controller.dart';
 import '../../planner/presentation/planner_map_host.dart';
@@ -15,6 +17,8 @@ import '../../planner/presentation/route_format.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/placeholder_body.dart';
 import '../../sharing/presentation/share_link_button.dart';
+import '../application/recording_controller.dart';
+import '../data/recording_service.dart';
 import '../data/ride_repository.dart';
 import '../domain/ride.dart';
 import 'recording_format.dart';
@@ -83,6 +87,82 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
     );
   }
 
+  /// Hands the ride back to the recorder and shows the record tab, where the
+  /// live panel carries on from the ride's own figures.
+  ///
+  /// Only a recorder that is already busy needs a decision from the rider —
+  /// that ride is finished and saved first — and so does a ride that has been
+  /// sent somewhere, because continuing it means sending it again.
+  Future<void> _continue(Ride ride) async {
+    final l10n = AppLocalizations.of(context);
+    final router = GoRouter.of(context);
+    final controller = ref.read(recordingControllerProvider.notifier);
+    final running = await ref.read(recordingServiceProvider).isRunning;
+    if (!mounted) return;
+    if ((running || ride.uploads.isNotEmpty) &&
+        !await _confirmContinue(ride, running: running)) {
+      return;
+    }
+    if (running) {
+      await controller.stop(
+        rideName: l10n.recordingRideName(formatDate(l10n, DateTime.now())),
+      );
+    }
+    await controller.continueRide(
+      ride,
+      notificationTitle: l10n.recordingNotificationTitle,
+    );
+    router.go(recordingRoute);
+  }
+
+  Future<bool> _confirmContinue(Ride ride, {required bool running}) async {
+    final l10n = AppLocalizations.of(context);
+    final services = _uploadedServices(l10n, ride);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.rideContinue),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10n.rideContinueBody),
+            if (running) ...[
+              const SizedBox(height: 12),
+              Text(l10n.rideContinueRunning),
+            ],
+            if (services != null) ...[
+              const SizedBox(height: 12),
+              Text(l10n.rideContinueUploaded(services)),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.rideContinue),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
+  }
+
+  /// The services [ride] was sent to, as they are written in the UI, or `null`
+  /// when it was never sent anywhere.
+  static String? _uploadedServices(AppLocalizations l10n, Ride ride) {
+    final names = ride.uploads.keys
+        .map(IntegrationService.fromId)
+        .nonNulls
+        .map((service) => serviceLabel(l10n, service))
+        .join(', ');
+    return names.isEmpty ? null : names;
+  }
+
   Future<void> _export(Ride ride, TrackFormat format) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
@@ -117,6 +197,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
           if (ride.value != null)
             PopupMenuButton<_RideAction>(
               onSelected: (action) => unawaited(switch (action) {
+                _RideAction.continueRide => _continue(ride.value!),
                 _RideAction.rename => _rename(ride.value!),
                 _RideAction.delete => _delete(ride.value!),
                 _RideAction.exportGpx => _export(ride.value!, TrackFormat.gpx),
@@ -132,6 +213,10 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                   child: Text(l10n.rideDetailExportFit),
                 ),
                 const PopupMenuDivider(),
+                PopupMenuItem(
+                  value: _RideAction.continueRide,
+                  child: Text(l10n.rideContinue),
+                ),
                 PopupMenuItem(
                   value: _RideAction.rename,
                   child: Text(l10n.commonRename),
@@ -257,7 +342,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
   }
 }
 
-enum _RideAction { rename, delete, exportGpx, exportFit }
+enum _RideAction { continueRide, rename, delete, exportGpx, exportFit }
 
 /// One figure of [RideStatsGrid].
 class RideStatItem {

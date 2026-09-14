@@ -1,3 +1,5 @@
+import 'dart:math' show Point;
+
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
@@ -400,6 +402,36 @@ void main() {
         MapLayerIds.routeLayer('main'),
       ]);
     });
+
+    test(
+      'a chosen alternative keeps its colour but is drawn as main',
+      () async {
+        final ops = RecordingStyleOps();
+        final adapter = _adapter(ops);
+        await adapter.attachToStyle();
+
+        await adapter.setRouteLine('main-2', _points);
+        await adapter.setRouteLine('main', _points);
+
+        expect(
+          ops
+              .addLayerOf('velorki-route-main-2-line')!
+              .properties!['line-color'],
+          const MapPalette.classic().routeAlternatives[2],
+        );
+        expect(
+          ops.addLayerOf('velorki-route-main-line')!.properties!['line-color'],
+          const MapPalette.classic().routeMain,
+        );
+        // Both are main-styled: the usual width, not an alternative's.
+        expect(
+          ops
+              .addLayerOf('velorki-route-main-2-line')!
+              .properties!['line-width'],
+          5.0,
+        );
+      },
+    );
 
     test('keeps two ids apart and slugs them into source names', () async {
       final ops = RecordingStyleOps();
@@ -823,6 +855,148 @@ void main() {
       expect(_firstProperties(ops, MapLayerIds.positionSource)['heading'], 90);
     });
 
+    test('keeps the cone through a dip in speed, then drops it', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+
+      // Rolling out at a traffic light: one threshold would blink the cone
+      // on and off with every fix, two keep it steady.
+      await adapter.setPosition(
+        const LatLng(47.0, 8.0),
+        headingDeg: 90,
+        speedMps: 3,
+      );
+      expect(
+        _firstProperties(ops, MapLayerIds.positionSource),
+        contains('heading'),
+      );
+
+      await adapter.setPosition(
+        const LatLng(47.0, 8.0),
+        headingDeg: 90,
+        speedMps: 1.0,
+      );
+      expect(
+        _firstProperties(ops, MapLayerIds.positionSource),
+        contains('heading'),
+      );
+
+      await adapter.setPosition(
+        const LatLng(47.0, 8.0),
+        headingDeg: 90,
+        speedMps: 0.4,
+      );
+      expect(
+        _firstProperties(ops, MapLayerIds.positionSource),
+        isNot(contains('heading')),
+      );
+    });
+
+    test('waits for a real pace before the cone appears at all', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+
+      await adapter.setPosition(
+        const LatLng(47.0, 8.0),
+        headingDeg: 90,
+        speedMps: 1.0,
+      );
+
+      expect(
+        _firstProperties(ops, MapLayerIds.positionSource),
+        isNot(contains('heading')),
+        reason: 'walking pace is not riding',
+      );
+    });
+
+    test('smooths the course instead of following every jitter', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+
+      await adapter.setPosition(
+        const LatLng(47.0, 8.0),
+        headingDeg: 0,
+        speedMps: 5,
+      );
+      await adapter.setPosition(
+        const LatLng(47.0, 8.0),
+        headingDeg: 100,
+        speedMps: 5,
+      );
+
+      expect(
+        _firstProperties(ops, MapLayerIds.positionSource)['heading'] as double,
+        closeTo(35, 1e-9),
+      );
+    });
+
+    test('keeps the last heading when a fix brings no course', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+
+      await adapter.setPosition(
+        const LatLng(47.0, 8.0),
+        headingDeg: 90,
+        speedMps: 5,
+      );
+      await adapter.setPosition(const LatLng(47.0, 8.0), speedMps: 5);
+
+      expect(_firstProperties(ops, MapLayerIds.positionSource)['heading'], 90);
+    });
+
+    test('starts the average over after the cone was hidden', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+
+      await adapter.setPosition(
+        const LatLng(47.0, 8.0),
+        headingDeg: 0,
+        speedMps: 5,
+      );
+      // Stopped: the cone goes, and with it the average.
+      await adapter.setPosition(
+        const LatLng(47.0, 8.0),
+        headingDeg: 0,
+        speedMps: 0,
+      );
+      await adapter.setPosition(
+        const LatLng(47.0, 8.0),
+        headingDeg: 100,
+        speedMps: 5,
+      );
+
+      expect(
+        _firstProperties(ops, MapLayerIds.positionSource)['heading'],
+        100,
+        reason: 'no drift from a heading two stops ago',
+      );
+    });
+
+    test('a lost fix forgets the heading as well', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+
+      await adapter.setPosition(
+        const LatLng(47.0, 8.0),
+        headingDeg: 0,
+        speedMps: 5,
+      );
+      await adapter.setPosition(null);
+      await adapter.setPosition(
+        const LatLng(47.0, 8.0),
+        headingDeg: 100,
+        speedMps: 5,
+      );
+
+      expect(_firstProperties(ops, MapLayerIds.positionSource)['heading'], 100);
+    });
+
     test('collapses the ring when there is no usable accuracy', () async {
       final ops = RecordingStyleOps();
       final adapter = _adapter(ops);
@@ -861,7 +1035,7 @@ void main() {
   });
 
   group('the feature drag callback', () {
-    test('reports a drag as a waypoint move', () async {
+    test('intermediate drag positions are not reported', () async {
       final ops = RecordingStyleOps();
       final adapter = _adapter(ops);
       await adapter.attachToStyle();
@@ -869,9 +1043,82 @@ void main() {
       adapter.onWaypointDragged = (index, position) =>
           moves.add('$index@${position.lat},${position.lon}');
 
+      // The platform moves the marker under the finger; committing every
+      // step rewrote the source under the drag and re-routed on the way.
       ops.emitFeatureDrag(waypointFeatureId(2), const ml.LatLng(47.5, 8.5));
+      expect(moves, isEmpty);
 
-      expect(moves, <String>['2@47.5,8.5']);
+      ops.emitFeatureDrag(
+        waypointFeatureId(2),
+        const ml.LatLng(47.6, 8.6),
+        eventType: ml.DragEventType.end,
+      );
+      expect(moves, hasLength(1));
+      expect(moves.single, startsWith('2@47.6,8.'));
+    });
+
+    test('a long press while dragging a marker inserts nothing', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      final inserted = <LatLng>[];
+      adapter.onLongPress = inserted.add;
+
+      ops.emitFeatureDrag(
+        waypointFeatureId(1),
+        const ml.LatLng(47.5, 8.5),
+        eventType: ml.DragEventType.start,
+      );
+      adapter.handleMapLongClick(const ml.LatLng(47.5, 8.5));
+      ops.emitFeatureDrag(
+        waypointFeatureId(1),
+        const ml.LatLng(47.6, 8.6),
+        eventType: ml.DragEventType.end,
+      );
+      adapter.handleMapLongClick(const ml.LatLng(47.6, 8.6));
+
+      expect(inserted, isEmpty);
+    });
+
+    test('the release after a drag is not also a map tap', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      final taps = <LatLng>[];
+      adapter.onTap = taps.add;
+
+      ops.emitFeatureDrag(
+        waypointFeatureId(0),
+        const ml.LatLng(47.5, 8.5),
+        eventType: ml.DragEventType.end,
+      );
+      adapter.handleMapClick(const ml.LatLng(47.5, 8.5));
+
+      expect(taps, isEmpty, reason: 'the release would add a waypoint');
+    });
+
+    test('a tap on a marker reports its index, not a map tap', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      final taps = <LatLng>[];
+      final tapped = <int>[];
+      adapter.onTap = taps.add;
+      adapter.onWaypointTapped = tapped.add;
+
+      for (final callback in List.of(ops.onFeatureTapped)) {
+        callback(
+          const Point<double>(0, 0),
+          const ml.LatLng(47.5, 8.5),
+          waypointFeatureId(1),
+          MapLayerIds.waypointsCircleLayer,
+          null,
+        );
+      }
+      adapter.handleMapClick(const ml.LatLng(47.5, 8.5));
+
+      expect(tapped, <int>[1]);
+      expect(taps, isEmpty);
     });
 
     test('reports the end of a drag as the final word', () async {

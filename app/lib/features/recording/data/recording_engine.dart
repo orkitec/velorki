@@ -29,7 +29,11 @@ class RecordingEngine {
     RideStatsAccumulator? accumulator,
   }) : _state = initialState,
        _clock = clock ?? DateTime.now,
-       _accumulator = accumulator ?? RideStatsAccumulator();
+       // A continued ride carries the seam it was picked up across, so the
+       // first fix after the hand-over adds no distance and no moving time.
+       _accumulator =
+           accumulator ??
+           RideStatsAccumulator(breaks: initialState.statsBreaks);
 
   /// Where the state file lives; it is rewritten on every state change.
   final RecordingStore store;

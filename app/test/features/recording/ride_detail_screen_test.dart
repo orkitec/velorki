@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/core/files/track_exporter.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
+import 'package:velorki/features/recording/domain/ride_upload.dart';
 import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -24,6 +25,18 @@ Future<void> _seed(RecordingHarness harness) =>
       startedAt: DateTime.utc(2026, 9, 12, 10),
       endedAt: DateTime.utc(2026, 9, 12, 10, 0, 59),
     );
+
+/// Opens the ride's overflow menu and picks "Continue this ride".
+Future<void> _tapContinue(WidgetTester tester) async {
+  await tester.tap(find.byIcon(Icons.more_vert));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Continue this ride').last);
+  await tester.pumpAndSettle();
+  // Handing the ride back reads the journal off the real file system, which
+  // only a real turn of the event loop finishes.
+  await settleAsync(tester);
+  await tester.pumpAndSettle();
+}
 
 void main() {
   testWidgets('shows the track, the statistics and the export buttons', (
@@ -122,6 +135,98 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Export failed:'), findsOneWidget);
+    await unmountApp(tester);
+  });
+
+  testWidgets('continuing hands the ride back to the recorder', (tester) async {
+    final harness = RecordingHarness();
+    await _seed(harness);
+    await pumpRecordingApp(
+      tester,
+      initialLocation: rideDetailLocation('ride-1'),
+      harness: harness,
+    );
+    await tester.pumpAndSettle();
+
+    await _tapContinue(tester);
+
+    // Nothing else was recording and the ride was never sent anywhere, so
+    // there is nothing to confirm.
+    expect(harness.service.calls, <String>['continueRide(ride-1)']);
+    expect(harness.service.continued.single.name, 'Morning loop');
+    expect(find.byType(RideDetailScreen), findsNothing, reason: 'record tab');
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('continuing finishes a running recording first, once confirmed', (
+    tester,
+  ) async {
+    final harness = RecordingHarness();
+    await _seed(harness);
+    harness.service.running = true;
+    await pumpRecordingApp(
+      tester,
+      initialLocation: rideDetailLocation('ride-1'),
+      harness: harness,
+    );
+    await tester.pumpAndSettle();
+
+    await _tapContinue(tester);
+    expect(
+      find.text(
+        'Another ride is being recorded. It will be finished and '
+        'saved first.',
+      ),
+      findsOneWidget,
+    );
+    expect(harness.service.calls, isEmpty);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Continue this ride'));
+    await tester.pumpAndSettle();
+    await settleAsync(tester);
+    await tester.pumpAndSettle();
+
+    expect(harness.service.calls, hasLength(2));
+    expect(harness.service.calls.first, startsWith('stop(Ride '));
+    expect(harness.service.calls.last, 'continueRide(ride-1)');
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('an uploaded ride says it will have to be sent again', (
+    tester,
+  ) async {
+    final harness = RecordingHarness();
+    await _seed(harness);
+    await RideRepository(harness.planner.db.ridesDao).recordUpload(
+      'ride-1',
+      serviceId: 'strava',
+      upload: RideUpload(
+        status: RideUploadStatus.done,
+        uploadedAt: DateTime.utc(2026, 9, 12, 11),
+        activityId: '99',
+      ),
+    );
+    await pumpRecordingApp(
+      tester,
+      initialLocation: rideDetailLocation('ride-1'),
+      harness: harness,
+    );
+    await tester.pumpAndSettle();
+
+    await _tapContinue(tester);
+    expect(
+      find.textContaining('It was already sent to Strava'),
+      findsOneWidget,
+    );
+
+    // Backing out leaves the ride alone.
+    await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+    await tester.pumpAndSettle();
+    expect(harness.service.calls, isEmpty);
+    expect(find.byType(RideDetailScreen), findsOneWidget);
+
     await unmountApp(tester);
   });
 

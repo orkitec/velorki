@@ -45,7 +45,13 @@ class RidesList extends ConsumerWidget {
       data: (items) {
         if (items.isEmpty) {
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 16),
+            // Inside an already padded host (the record tab) the text lines
+            // up with its caption; standing alone (the library) it keeps
+            // the 20 dp gutter itself.
+            padding: EdgeInsets.symmetric(
+              horizontal: shrinkWrap ? 4 : 20,
+              vertical: 16,
+            ),
             child: Text(
               l10n.recordingNoRides,
               style: theme.textTheme.bodyMedium?.copyWith(

@@ -129,6 +129,34 @@ void main() {
       expect(stats.elapsedTime, const Duration(minutes: 5, seconds: 1));
     });
 
+    test('a break the timestamps do not show still ends the segment', () {
+      // Two seconds between the fixes, so the 30 s gap rule sees nothing; the
+      // recorder knows it was switched off in between.
+      final points = <TrackPoint>[
+        _at(48, 0),
+        _at(48.0001, 1),
+        _at(48.0002, 3),
+        _at(48.0003, 4),
+      ];
+      final ridden = computeRideStats(points);
+      expect(ridden.distanceM, closeTo(3 * stepMeters, 0.01));
+      expect(ridden.movingTime, const Duration(seconds: 4));
+
+      final broken = computeRideStats(
+        points,
+        breaks: <StatsBreak>[
+          StatsBreak(
+            startedAt: DateTime.utc(2026, 9, 12, 10, 0, 1),
+            endedAt: DateTime.utc(2026, 9, 12, 10, 0, 3),
+          ),
+        ],
+      );
+      expect(broken.distanceM, closeTo(2 * stepMeters, 0.01));
+      expect(broken.movingTime, const Duration(seconds: 2));
+      expect(broken.pointCount, 4, reason: 'every fix is still in the track');
+      expect(broken.elapsedTime, const Duration(seconds: 4));
+    });
+
     test('a crawl just under 1 km/h does not count, just over does', () {
       // 1 km/h is 0.2777… m/s, so 6.94 m in 25 s. 0.00006° of latitude is
       // 6.67 m (under) and 0.00007° is 7.78 m (over); 25 s keeps both inside

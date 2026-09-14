@@ -32,6 +32,7 @@ class MapControls extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cyclosm = ref.watch(cyclosmOverlayProvider);
+    final chrome = MapChromeInsets.maybeOf(context);
     final enabled = controller != null;
     // One glass column rather than five floating buttons: less chrome over
     // the map, and the group reads as one control.
@@ -43,6 +44,9 @@ class MapControls extends ConsumerWidget {
           _ControlButton(
             icon: Icons.my_location,
             tooltip: MapStrings.locateMe,
+            // Accent while the screen keeps the camera on the rider, so the
+            // button says whether the map is following or has been let go.
+            selected: chrome?.following ?? false,
             onPressed: enabled ? () => unawaited(_locate(context, ref)) : null,
           ),
           _ControlButton(
@@ -54,7 +58,7 @@ class MapControls extends ConsumerWidget {
           // The one place the rider can download routing tiles for exactly the
           // area they are looking at; the screen needs a live map for that.
           // Embedded maps (record, details) leave it out.
-          if (MapChromeInsets.maybeOf(context)?.showRoutingTiles ?? true)
+          if (chrome?.showRoutingTiles ?? true)
             _ControlButton(
               icon: Icons.grid_on_outlined,
               tooltip: MapStrings.routingTiles,
@@ -106,6 +110,7 @@ class MapControls extends ConsumerWidget {
     final map = controller;
     if (map == null) return;
     final messenger = ScaffoldMessenger.maybeOf(context);
+    final onLocate = MapChromeInsets.maybeOf(context)?.onLocate;
     final permissions = ref.read(locationPermissionControllerProvider.notifier);
 
     var status = await permissions.refresh();
@@ -155,6 +160,9 @@ class MapControls extends ConsumerWidget {
       LatLng(fix.latitude, fix.longitude),
       zoom: math.max(map.zoom ?? locateZoom, locateZoom),
     );
+    // After the move, not before: the screen's follow mode watches camera
+    // idles to spot a hand pan, and this move is ours, not the rider's.
+    onLocate?.call();
   }
 
   static void _show(

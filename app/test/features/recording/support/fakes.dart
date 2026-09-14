@@ -32,6 +32,9 @@ class FakeRecordingService implements RecordingService {
   /// What [reattach] answers.
   bool reattaches = false;
 
+  /// The rides [continueRide] was asked to record onto, in order.
+  final List<Ride> continued = <Ride>[];
+
   /// When set, [start] throws it.
   RecordingException? startError;
 
@@ -91,6 +94,16 @@ class FakeRecordingService implements RecordingService {
     required String notificationTitle,
   }) async {
     calls.add('resumeInterrupted(${state.rideId})');
+    running = true;
+  }
+
+  @override
+  Future<void> continueRide(
+    Ride ride, {
+    required String notificationTitle,
+  }) async {
+    calls.add('continueRide(${ride.id})');
+    continued.add(ride);
     running = true;
   }
 

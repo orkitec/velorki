@@ -48,7 +48,9 @@ class RideRepository {
   /// Turns a recorded track into a `rides` row.
   ///
   /// The statistics are computed from [points] with the very same rules the
-  /// recorder used live, so the finished ride shows the numbers the rider saw.
+  /// recorder used live, so the finished ride shows the numbers the rider saw
+  /// — the seams among [pauses] included, which is what keeps a continued
+  /// ride from counting the hand-over as riding.
   Future<Ride> finalizeRide({
     required String rideId,
     required String name,
@@ -59,7 +61,7 @@ class RideRepository {
     List<RidePause> pauses = const <RidePause>[],
     String? notes,
   }) async {
-    final stats = computeRideStats(points);
+    final stats = computeRideStats(points, breaks: statsBreaksOf(pauses));
     final ride = Ride(
       id: rideId,
       name: name,
@@ -95,6 +97,13 @@ class RideRepository {
     };
     await _dao.setRideUploads(rideId, encodeRideUploads(merged));
   }
+
+  /// Forgets every upload record of [rideId].
+  ///
+  /// A continued ride is not the ride that was sent any more: it has to be
+  /// sent again, and the detail screen has to offer that rather than "View on
+  /// Strava".
+  Future<void> clearUploads(String rideId) => _dao.setRideUploads(rideId, null);
 
   /// Forgets the upload record of [serviceId], which is what a failed retry
   /// of a ride that was never accepted should leave behind.

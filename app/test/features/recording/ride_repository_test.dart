@@ -9,6 +9,7 @@ import 'package:velorki/features/recording/data/ride_repository.dart';
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/features/recording/domain/recording_state.dart';
 import 'package:velorki/features/recording/domain/ride.dart';
+import 'package:velorki/features/recording/domain/ride_upload.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import 'support/fakes.dart';
@@ -197,6 +198,23 @@ void main() {
       await positions.close();
     });
 
+    /// A second recorder on a clock the test moves, because continuing a ride
+    /// happens at a moment after the ride ended rather than at a pinned one.
+    late MainIsolateRecordingService continuing;
+    var now = DateTime.utc(2026, 9, 12, 10);
+
+    setUp(() {
+      now = DateTime.utc(2026, 9, 12, 10);
+      continuing = MainIsolateRecordingService(
+        store: Future<RecordingStore>.value(store),
+        rides: repository,
+        positions: positions,
+        platform: TargetPlatform.iOS,
+        clock: () => now,
+      );
+      addTearDown(continuing.dispose);
+    });
+
     Future<void> settle() async {
       for (var i = 0; i < 10; i++) {
         await Future<void>.delayed(const Duration(milliseconds: 2));
@@ -292,6 +310,108 @@ void main() {
       final ride = await service.stop(rideName: 'Resumed');
       expect(ride!.id, 'ride-y');
       expect(ride.stats.pointCount, 4);
+    });
+
+    test('continues a saved ride onto its own row', () async {
+      // A ride of six fixes, already sent to Strava.
+      final saved = await repository.finalizeRide(
+        rideId: 'ride-1',
+        name: 'Morning loop',
+        points: _track(6, ele: 500),
+        startedAt: DateTime.utc(2026, 9, 12, 10),
+        endedAt: DateTime.utc(2026, 9, 12, 10, 0, 5),
+      );
+      await repository.recordUpload(
+        'ride-1',
+        serviceId: 'strava',
+        upload: RideUpload(
+          status: RideUploadStatus.done,
+          uploadedAt: DateTime.utc(2026, 9, 12, 11),
+          activityId: '99',
+        ),
+      );
+      final before = (await repository.rideById('ride-1'))!;
+      expect(before.uploads, isNotEmpty);
+      expect(before.stats.distanceM, closeTo(55.6, 0.1));
+
+      // Two seconds after it was stopped, the rider picks it up again.
+      now = DateTime.utc(2026, 9, 12, 10, 0, 7);
+      await continuing.continueRide(before, notificationTitle: 'Recording');
+
+      final state = await store.readState();
+      expect(state!.rideId, 'ride-1');
+      expect(state.startedAt, saved.startedAt, reason: 'the start is kept');
+      expect(state.isContinuation, isTrue);
+      expect(state.pauses.last.seam, isTrue);
+      expect(state.pauses.last.startedAt, saved.endedAt);
+      expect(state.pauses.last.endedAt, now);
+      expect(await store.readJournal('ride-1'), hasLength(6));
+      expect(
+        (await repository.rideById('ride-1'))!.uploads,
+        isEmpty,
+        reason: 'a continued ride has to be sent again',
+      );
+
+      // Three more fixes, the first of them across the seam.
+      positions.emit(seconds: 8, meters: 66.7, ele: 510);
+      positions.emit(seconds: 9, meters: 77.8, ele: 515);
+      positions.emit(seconds: 10, meters: 88.9, ele: 520);
+      await settle();
+
+      final ride = await continuing.stop(rideName: 'Ride 12 Sept');
+      expect(ride!.id, 'ride-1');
+      expect(ride.name, 'Morning loop', reason: 'the name the rider gave it');
+      expect(ride.startedAt, DateTime.utc(2026, 9, 12, 10));
+      expect(ride.endedAt, DateTime.utc(2026, 9, 12, 10, 0, 10));
+      expect(ride.points, hasLength(9), reason: 'the geometry is merged');
+      expect(ride.points.first.time, DateTime.utc(2026, 9, 12, 10));
+      // 55.6 m ridden before, 22.2 m after; the 11 m across the seam is not
+      // a ridden distance and the two seconds are not moving time.
+      expect(ride.stats.distanceM, closeTo(77.8, 0.2));
+      expect(ride.stats.movingTime, const Duration(seconds: 7));
+      expect(ride.stats.elapsedTime, const Duration(seconds: 10));
+      // 3 m climbed before the seam and 10 m after it; the 5 m step across
+      // the seam is not a climb, it is where the ride was picked up.
+      expect(ride.stats.ascentM, closeTo(13, 0.001));
+      expect(ride.uploads, isEmpty);
+      expect(ride.pauses.where((p) => p.seam), hasLength(1));
+      expect(await db.ridesDao.allRides(), hasLength(1));
+      expect(store.journalFile('ride-1').existsSync(), isFalse);
+      expect(await store.readState(), isNull);
+    });
+
+    test('a second continue keeps the first seam a break', () async {
+      final saved = await repository.finalizeRide(
+        rideId: 'ride-2',
+        name: 'Evening loop',
+        points: _track(3),
+        startedAt: DateTime.utc(2026, 9, 12, 10),
+        endedAt: DateTime.utc(2026, 9, 12, 10, 0, 2),
+      );
+
+      now = DateTime.utc(2026, 9, 12, 10, 0, 3);
+      await continuing.continueRide(saved, notificationTitle: 'Recording');
+      positions.emit(seconds: 4, meters: 44.5);
+      positions.emit(seconds: 5, meters: 55.6);
+      await settle();
+      final once = await continuing.stop(rideName: 'unused');
+      expect(once!.stats.distanceM, closeTo(33.4, 0.2));
+
+      now = DateTime.utc(2026, 9, 12, 10, 0, 6);
+      await continuing.continueRide(once, notificationTitle: 'Recording');
+      positions.emit(seconds: 7, meters: 66.7);
+      positions.emit(seconds: 8, meters: 77.8);
+      await settle();
+      final twice = await continuing.stop(rideName: 'unused');
+
+      expect(twice!.id, 'ride-2');
+      expect(twice.name, 'Evening loop');
+      expect(twice.points, hasLength(7));
+      expect(twice.pauses.where((p) => p.seam), hasLength(2));
+      // Neither seam was ridden: 22.2 + 11.1 + 11.1 m.
+      expect(twice.stats.distanceM, closeTo(44.5, 0.3));
+      expect(twice.stats.movingTime, const Duration(seconds: 4));
+      expect(await db.ridesDao.allRides(), hasLength(1));
     });
 
     test('discarding an interrupted recording leaves nothing behind', () async {

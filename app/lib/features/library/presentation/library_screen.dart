@@ -12,10 +12,17 @@ import '../../integrations/presentation/import_from_service_menu.dart';
 import '../../planner/data/route_repository.dart';
 import '../../planner/domain/saved_route.dart';
 import '../../planner/presentation/route_format.dart';
+import '../../recording/data/ride_repository.dart';
+import '../../recording/presentation/rides_list.dart';
 import '../../shared/presentation/placeholder_body.dart';
+import '../../shared/presentation/stat_tile.dart';
+import '../data/library_section.dart';
 import 'rename_route_dialog.dart';
 
-/// The Library tab: every saved route, newest first.
+/// The Library tab: the saved routes and the recorded rides, newest first.
+///
+/// Which of the two shows is the rider's choice and survives a restart; see
+/// [librarySectionProvider].
 class LibraryScreen extends ConsumerWidget {
   /// Creates the library.
   const LibraryScreen({super.key});
@@ -23,34 +30,106 @@ class LibraryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final routes = ref.watch(savedRoutesProvider);
+    final section = ref.watch(librarySectionProvider);
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.tabLibrary),
         actions: const [ImportFromServiceButton(), ImportFileButton()],
       ),
-      body: routes.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => PlaceholderBody(
-          icon: Icons.error_outline,
-          message: error.toString(),
-        ),
-        data: (items) => items.isEmpty
-            ? PlaceholderBody(
-                icon: Icons.folder_outlined,
-                message: '${l10n.libraryEmpty}\n${l10n.libraryEmptyDetail}',
-              )
-            // The floating navigation bar sits over the list, so the last
-            // route needs room to clear it.
-            : ListView.builder(
-                padding: EdgeInsets.only(
-                  top: 6,
-                  bottom: MediaQuery.paddingOf(context).bottom + 24,
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+            child: SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<LibrarySection>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(
+                    value: LibrarySection.routes,
+                    icon: const Icon(Icons.route_rounded, size: 18),
+                    label: Text(l10n.libraryRoutes),
+                  ),
+                  ButtonSegment(
+                    value: LibrarySection.rides,
+                    icon: const Icon(Icons.directions_bike_rounded, size: 18),
+                    label: Text(l10n.libraryRides),
+                  ),
+                ],
+                selected: {section},
+                onSelectionChanged: (selection) => unawaited(
+                  ref
+                      .read(librarySectionProvider.notifier)
+                      .select(selection.first),
                 ),
-                itemCount: items.length,
-                itemBuilder: (context, i) => _RouteTile(route: items[i]),
               ),
+            ),
+          ),
+          Expanded(
+            child: switch (section) {
+              LibrarySection.routes => const _RoutesSection(),
+              LibrarySection.rides => const _RidesSection(),
+            },
+          ),
+        ],
       ),
+    );
+  }
+}
+
+/// Every saved route, newest first.
+class _RoutesSection extends ConsumerWidget {
+  const _RoutesSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final routes = ref.watch(savedRoutesProvider);
+    return routes.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) =>
+          PlaceholderBody(icon: Icons.error_outline, message: error.toString()),
+      data: (items) => items.isEmpty
+          ? PlaceholderBody(
+              icon: Icons.folder_outlined,
+              message: '${l10n.libraryEmpty}\n${l10n.libraryEmptyDetail}',
+            )
+          // The floating navigation bar sits over the list, so the last
+          // route needs room to clear it.
+          : ListView.builder(
+              padding: EdgeInsets.only(
+                top: 6,
+                bottom: MediaQuery.paddingOf(context).bottom + 24,
+              ),
+              itemCount: items.length,
+              itemBuilder: (context, i) => _RouteTile(route: items[i]),
+            ),
+    );
+  }
+}
+
+/// Every recorded ride, newest first.
+///
+/// The list itself is the record tab's [RidesList] without its limit, so the
+/// rows, the swipe-to-delete and the tap into the ride detail behave exactly
+/// as they do there; only the count above it is the library's own.
+class _RidesSection extends ConsumerWidget {
+  const _RidesSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final count = ref.watch(ridesProvider).value?.length ?? 0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (count > 0)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+            child: SectionCaption(l10n.libraryRidesCount(count)),
+          ),
+        const Expanded(child: RidesList()),
+      ],
     );
   }
 }

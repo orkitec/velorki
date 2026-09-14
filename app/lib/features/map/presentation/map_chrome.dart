@@ -15,6 +15,8 @@ class MapChromeInsets extends InheritedWidget {
     this.controlsTop,
     this.attributionBottom,
     this.showRoutingTiles = true,
+    this.following = false,
+    this.onLocate,
   });
 
   /// Whether the control column offers the routing-tile download. Only a
@@ -29,6 +31,17 @@ class MapChromeInsets extends InheritedWidget {
   /// for a panel that overlaps the map; `null` keeps the default.
   final double? attributionBottom;
 
+  /// Whether the owning screen currently keeps the camera on the rider. The
+  /// locate button is drawn in the accent colour while it does.
+  final bool following;
+
+  /// Called after the locate button moved the camera to the fix.
+  ///
+  /// The button lives inside the map, the follow mode belongs to the screen
+  /// around it; this is the screen's way in without widening the
+  /// `mapViewBuilder` signature every map in the app shares.
+  final VoidCallback? onLocate;
+
   /// The nearest insets, or `null` when the screen declared none.
   static MapChromeInsets? maybeOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<MapChromeInsets>();
@@ -37,5 +50,7 @@ class MapChromeInsets extends InheritedWidget {
   bool updateShouldNotify(MapChromeInsets oldWidget) =>
       oldWidget.controlsTop != controlsTop ||
       oldWidget.attributionBottom != attributionBottom ||
-      oldWidget.showRoutingTiles != showRoutingTiles;
+      oldWidget.showRoutingTiles != showRoutingTiles ||
+      oldWidget.following != following ||
+      oldWidget.onLocate != onLocate;
 }

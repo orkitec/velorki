@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +12,7 @@ import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/location_rationale_dialog.dart';
+import '../../map/presentation/map_chrome.dart';
 import '../../planner/application/planner_controller.dart';
 import '../../planner/data/route_repository.dart';
 import '../../planner/domain/saved_route.dart';
@@ -33,6 +35,18 @@ const String followedRouteLineId = 'follow';
 /// Preference key of the one-time battery-optimisation explanation.
 const String batteryPromptShownKey = 'recording.batteryPromptShown';
 
+/// The zoom the map follows the rider at; a camera that is already closer
+/// keeps its zoom.
+const double followZoom = 16;
+
+/// How far the camera may come to rest from the fix we last moved it to
+/// before that counts as the rider having panned the map by hand.
+///
+/// Wide enough that a fix arriving mid-animation, or the small drift of an
+/// animated move, is not mistaken for a pan; narrow enough that a deliberate
+/// drag always is.
+const double handPanMeters = 40;
+
 /// The Record tab: start a ride, watch the numbers, finish it.
 class RecordingScreen extends ConsumerStatefulWidget {
   /// Creates the screen.
@@ -49,9 +63,28 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   int _drawnTrackPoints = -1;
   String? _drawnRouteId;
 
+  /// Whether the camera stays on the rider. On from the moment a ride starts,
+  /// off as soon as the rider drags the map, back on with the locate button.
+  bool _following = false;
+
+  /// Whether the camera is moving because *we* moved it. The plugin reports
+  /// no gesture source, so the flag plus [_followTarget] is how a hand pan is
+  /// told apart from our own follow move: it is set before every move of ours
+  /// and cleared by the idle that move ends in.
+  bool _autoMoving = false;
+
+  /// The fix the camera was last sent to, the reference a camera idle is
+  /// measured against.
+  LatLng? _followTarget;
+
+  /// Whether a ride was running on the previous build, so the start of one can
+  /// switch following back on.
+  bool _wasRecording = false;
+
   @override
   void dispose() {
     if (_keepScreenOn) unawaited(ref.read(screenWakeProvider).disable());
+    _map?.onCameraIdle = null;
     super.dispose();
   }
 
@@ -62,12 +95,56 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     // The builder may hand over the same controller on every build; only a
     // new map needs the redraw, or the rebuild would call this again forever.
     if (identical(_map, controller)) return;
+    _map?.onCameraIdle = null;
     _map = controller;
+    controller.onCameraIdle = _handleCameraIdle;
     _drawnTrackPoints = -1;
     _drawnRouteId = null;
+    _autoMoving = false;
+    _followTarget = null;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) setState(() {});
     });
+  }
+
+  // --------------------------------------------------------- follow mode
+
+  /// Sends the camera to [position] and marks the move as ours.
+  void _followTo(MapController map, LatLng position) {
+    _autoMoving = true;
+    _followTarget = position;
+    unawaited(
+      map.moveTo(position, zoom: math.max(map.zoom ?? followZoom, followZoom)),
+    );
+  }
+
+  /// The map came to rest.
+  ///
+  /// Our own move ends in exactly one idle, which clears the flag. Any other
+  /// idle that leaves the camera far from the fix we aimed at was the rider
+  /// dragging the map, and the map is theirs again until they say otherwise.
+  void _handleCameraIdle() {
+    if (_autoMoving) {
+      _autoMoving = false;
+      return;
+    }
+    if (!_following) return;
+    final center = _map?.center;
+    final target = _followTarget;
+    if (center == null || target == null) return;
+    if (haversineMeters(center, target) <= handPanMeters) return;
+    if (mounted) setState(() => _following = false);
+  }
+
+  /// The locate button moved the camera to the rider, which is exactly what
+  /// following does; so it is following again.
+  void _handleLocate() {
+    if (!mounted) return;
+    // That move was not ours, but it ends in an idle all the same, and it
+    // left the camera on the rider — neither must read as a hand pan.
+    _autoMoving = true;
+    _followTarget = _map?.center ?? _followTarget;
+    setState(() => _following = true);
   }
 
   /// Pushes the recording to the map: the track line, the puck, and the route
@@ -78,6 +155,14 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     SavedRoute? route,
     List<LatLng> planned,
   ) {
+    // A ride that has just started takes the camera with it. Decided before
+    // the map is looked at, so a ride that starts while the style is still
+    // loading follows once the map arrives.
+    if (state.isRecording != _wasRecording) {
+      _wasRecording = state.isRecording;
+      _following = state.isRecording;
+      _followTarget = null;
+    }
     final map = _map;
     if (map == null) return;
     if (state.track.length != _drawnTrackPoints) {
@@ -94,6 +179,12 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
           speedMps: state.snapshot?.speedMps,
         ),
       );
+      // The puck alone is no use to a rider who cannot see it: while a ride
+      // runs and nobody has taken the map away from us, the camera goes
+      // wherever the fix goes.
+      if (state.isRecording && _following && position != _followTarget) {
+        _followTo(map, position);
+      }
     }
     // A chosen saved route wins; otherwise the route on the Plan tab is the
     // one the rider is about to ride, saved or not.
@@ -364,7 +455,13 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: PlannerMapHost(onMapReady: _onMapReady, embedded: true),
+            // The locate button lives inside the map; this is how it reaches
+            // the follow mode, and how it learns to show it.
+            child: MapChromeInsets(
+              following: state.isRecording && _following,
+              onLocate: _handleLocate,
+              child: PlannerMapHost(onMapReady: _onMapReady, embedded: true),
+            ),
           ),
           DraggableScrollableSheet(
             // A fresh sheet per state, so the initial size applies again

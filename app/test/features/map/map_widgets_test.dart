@@ -1,27 +1,98 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geolocator/geolocator.dart' as geo;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
+import 'package:velorki/app/theme.dart';
+import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/map/data/map_preferences.dart';
+import 'package:velorki/features/map/data/position_provider.dart';
 import 'package:velorki/features/map/presentation/map_attribution.dart';
+import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
 import 'package:velorki/features/map/presentation/map_strings.dart';
 import 'package:velorki/features/map/testing/testing.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
-Future<Widget> _wrap(Widget child, {bool cyclosm = false}) async {
+Future<Widget> _wrap(
+  Widget child, {
+  bool cyclosm = false,
+  List<Override> overrides = const <Override>[],
+}) async {
   SharedPreferences.setMockInitialValues(<String, Object>{
     'map.cyclosm_overlay': cyclosm,
   });
   final prefs = await SharedPreferences.getInstance();
   return ProviderScope(
-    overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      ...overrides,
+    ],
     child: MaterialApp(
+      theme: buildLightTheme(),
       home: Scaffold(body: Center(child: child)),
     ),
   );
 }
+
+/// A location permission that is simply there.
+class _GrantedPermission implements LocationPermissionGateway {
+  @override
+  Future<LocationPermissionStatus> check() async =>
+      LocationPermissionStatus.granted;
+
+  @override
+  Future<LocationPermissionStatus> request() async =>
+      LocationPermissionStatus.granted;
+
+  @override
+  Future<bool> openAppSettings() async => true;
+
+  @override
+  Future<bool> openLocationSettings() async => true;
+}
+
+/// A [PositionSource] that always answers with one fix and no stream.
+class _OneFixSource implements PositionSource {
+  _OneFixSource(this.fix);
+
+  final geo.Position fix;
+
+  @override
+  Stream<geo.Position> positions(geo.LocationSettings settings) =>
+      const Stream<geo.Position>.empty();
+
+  @override
+  Future<geo.Position?> lastKnown() async => fix;
+
+  @override
+  Future<geo.Position?> current({
+    Duration timeLimit = const Duration(seconds: 10),
+  }) async => fix;
+}
+
+geo.Position _fixAt(double latitude, double longitude) => geo.Position(
+  latitude: latitude,
+  longitude: longitude,
+  timestamp: DateTime.utc(2026, 9, 12, 10),
+  accuracy: 5,
+  altitude: 0,
+  altitudeAccuracy: 0,
+  heading: 0,
+  headingAccuracy: 0,
+  speed: 0,
+  speedAccuracy: 0,
+  hasAccuracy: true,
+);
+
+/// The locate button's foreground colour, which says whether the map follows.
+Color? _locateColor(WidgetTester tester) => tester
+    .widget<IconButton>(find.widgetWithIcon(IconButton, Icons.my_location))
+    .style
+    ?.foregroundColor
+    ?.resolve(const <WidgetState>{});
 
 void main() {
   group('MapAttributionChip', () {
@@ -124,6 +195,66 @@ void main() {
 
       expect(controller.cyclosmOverlayCalls, [true, false]);
       expect(container.read(cyclosmOverlayProvider), isFalse);
+    });
+
+    testWidgets('draws the locate button in the accent while following', (
+      tester,
+    ) async {
+      final controller = FakeMapController();
+      await tester.pumpWidget(
+        await _wrap(
+          MapChromeInsets(
+            following: true,
+            child: MapControls(controller: controller),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(_locateColor(tester), buildLightTheme().velorki.accent);
+    });
+
+    testWidgets('draws it plainly when the map does not follow', (
+      tester,
+    ) async {
+      final controller = FakeMapController();
+      await tester.pumpWidget(await _wrap(MapControls(controller: controller)));
+      await tester.pump();
+
+      expect(_locateColor(tester), isNot(buildLightTheme().velorki.accent));
+    });
+
+    testWidgets('tells the screen once it has moved to the fix', (
+      tester,
+    ) async {
+      final controller = FakeMapController()..zoom = 10;
+      var located = 0;
+      await tester.pumpWidget(
+        await _wrap(
+          MapChromeInsets(
+            onLocate: () => located++,
+            child: MapControls(controller: controller),
+          ),
+          overrides: [
+            locationPermissionGatewayProvider.overrideWithValue(
+              _GrantedPermission(),
+            ),
+            positionSourceProvider.overrideWithValue(
+              _OneFixSource(_fixAt(47.0, 8.0)),
+            ),
+          ],
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.widgetWithIcon(IconButton, Icons.my_location));
+      await tester.pumpAndSettle();
+
+      // The order matters: the screen's follow mode watches camera idles, so
+      // the move has to be on its way before it is told.
+      expect(controller.cameraMoves.single.center, const LatLng(47.0, 8.0));
+      expect(controller.cameraMoves.single.zoom, locateZoom);
+      expect(located, 1);
     });
   });
 }

@@ -105,6 +105,11 @@ void main() {
     await tester.pump();
     expect(map.lines[alternativeLineId(2)], isNull);
     expect(map.styles[alternativeLineId(0)], RouteLineStyle.alternative);
+    // The chosen alternative is drawn on top like the main route, under an
+    // id that carries its index so it keeps its own colour; the plain main
+    // line is gone.
+    expect(map.styles[chosenRouteLineId(2)], RouteLineStyle.main);
+    expect(map.lines[mainRouteLineId], isNull);
   });
 
   testWidgets('clearing the plan removes every line', (tester) async {

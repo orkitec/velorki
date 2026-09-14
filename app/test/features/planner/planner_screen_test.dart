@@ -229,6 +229,23 @@ void main() {
     expect(find.text('Start here'), findsNothing);
   });
 
+  testWidgets('tapping a marker offers to remove the point', (tester) async {
+    final h = await pumpScreen(tester, const PlannerScreen());
+    await _plotRoute(tester, h);
+    expect(h.map.waypoints, hasLength(2));
+
+    h.map.onWaypointTapped!(1);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Point 2'), findsOneWidget);
+    await tester.tap(find.text('Remove point'));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+
+    expect(h.map.waypoints, hasLength(1));
+    expect(find.text('Remove point'), findsNothing);
+  });
+
   testWidgets('a searched place is the destination from my position', (
     tester,
   ) async {

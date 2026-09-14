@@ -92,11 +92,15 @@ class RecordingController extends Notifier<RecordingUiState> {
   Future<void> start({required String notificationTitle}) async {
     if (state.isRecording || state.busy) return;
     state = state.copyWith(busy: true, track: const <LatLng>[]);
+    _listening = true;
     try {
       await _service.start(
         notificationTitle: notificationTitle,
         routeId: state.followedRouteId,
       );
+    } catch (_) {
+      _listening = false;
+      rethrow;
     } finally {
       state = state.copyWith(busy: false);
     }
@@ -112,12 +116,13 @@ class RecordingController extends Notifier<RecordingUiState> {
   Future<Ride?> stop({required String rideName}) async {
     if (state.busy) return null;
     state = state.copyWith(busy: true);
+    _listening = false;
     try {
-      final ride = await _service.stop(rideName: rideName);
-      state = const RecordingUiState();
-      return ride;
+      return await _service.stop(rideName: rideName);
     } finally {
-      if (state.busy) state = state.copyWith(busy: false);
+      // Whatever the recorder answered, the ride is over for the screen:
+      // a live panel that cannot be left is worse than a lost snapshot.
+      state = const RecordingUiState();
     }
   }
 
@@ -126,6 +131,7 @@ class RecordingController extends Notifier<RecordingUiState> {
   Future<bool> reattach(RecordingState recording) async {
     final running = await _service.reattach();
     if (!running) return false;
+    _listening = true;
     state = state.copyWith(
       track: await _journalTrack(recording.rideId),
       followedRouteId: recording.routeId,
@@ -139,6 +145,7 @@ class RecordingController extends Notifier<RecordingUiState> {
     required String notificationTitle,
   }) async {
     state = state.copyWith(busy: true, followedRouteId: recording.routeId);
+    _listening = true;
     try {
       // The recorder first: every second spent reading the journal back is a
       // second of the ride that is not being recorded.
@@ -147,6 +154,31 @@ class RecordingController extends Notifier<RecordingUiState> {
         notificationTitle: notificationTitle,
       );
       state = state.copyWith(track: await _journalTrack(recording.rideId));
+    } finally {
+      state = state.copyWith(busy: false);
+    }
+  }
+
+  /// Records onto the already saved ride [ride] again, continuing its track
+  /// and its figures.
+  ///
+  /// The recorder does the work of handing the ride back to itself; here it is
+  /// the same as resuming an interrupted recording, down to putting the track
+  /// that is already in the journal back on the map.
+  Future<void> continueRide(
+    Ride ride, {
+    required String notificationTitle,
+  }) async {
+    if (state.isRecording || state.busy) return;
+    selectRoute(ride.routeId);
+    state = state.copyWith(busy: true);
+    _listening = true;
+    try {
+      await _service.continueRide(ride, notificationTitle: notificationTitle);
+      state = state.copyWith(track: await _journalTrack(ride.id));
+    } catch (_) {
+      _listening = false;
+      rethrow;
     } finally {
       state = state.copyWith(busy: false);
     }
@@ -171,11 +203,19 @@ class RecordingController extends Notifier<RecordingUiState> {
     state = const RecordingUiState();
   }
 
+  // Whether snapshots from the recorder are wanted. On by default, so a
+  // recorder that outlived the UI shows up as soon as it reports; off after
+  // `stop`, so a last flush from the foreground isolate cannot bring the
+  // live panel back for a ride that is already saved; on again when a ride
+  // starts or a running recorder is found.
+  bool _listening = true;
+
   void _onSnapshot(RecordingSnapshot snapshot) {
     if (!snapshot.status.isRecording) {
       state = state.copyWith(clearSnapshot: true);
       return;
     }
+    if (!_listening) return;
     state = state.copyWith(
       snapshot: snapshot,
       track: snapshot.newPoints.isEmpty

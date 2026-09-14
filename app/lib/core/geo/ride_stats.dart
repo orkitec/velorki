@@ -23,6 +23,42 @@ const double maxPlausibleSpeedMps = 30;
 /// [computeRideStats], so the number on the screen is the number that is saved.
 const Duration statsPauseGap = Duration(seconds: 30);
 
+/// A stretch of wall-clock time in which nothing was recorded.
+///
+/// The recorder knows about breaks the timestamps alone cannot show: the gap
+/// between the moment a ride was stopped and the moment it was continued is
+/// one, and it may well be shorter than [statsPauseGap]. A segment that
+/// crosses such a break contributes neither distance nor moving time, exactly
+/// as a long gap does.
+@immutable
+class StatsBreak {
+  /// Creates a break.
+  const StatsBreak({required this.startedAt, required this.endedAt});
+
+  /// When the recorder stopped listening.
+  final DateTime startedAt;
+
+  /// When it started again.
+  final DateTime endedAt;
+
+  /// Whether [from] to [to] runs through this break.
+  bool spans(DateTime from, DateTime to) =>
+      from.isBefore(endedAt) && startedAt.isBefore(to);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is StatsBreak &&
+          other.startedAt == startedAt &&
+          other.endedAt == endedAt;
+
+  @override
+  int get hashCode => Object.hash(startedAt, endedAt);
+
+  @override
+  String toString() => 'StatsBreak($startedAt → $endedAt)';
+}
+
 /// Everything the `rides` table stores about how a ride went.
 @immutable
 class RideStats {
@@ -127,10 +163,14 @@ class RideStatsAccumulator {
     this.movingThresholdMps = movingSpeedThresholdMps,
     this.hysteresisM = elevationHysteresisM,
     this.maxSpeedLimitMps = maxPlausibleSpeedMps,
+    this.breaks = const <StatsBreak>[],
   });
 
   /// A gap longer than this ends a segment; see [statsPauseGap].
   final Duration pauseGap;
+
+  /// Stretches the recorder was not listening in; see [StatsBreak].
+  final List<StatsBreak> breaks;
 
   /// Speed from which a segment counts as moving.
   final double movingThresholdMps;
@@ -216,7 +256,7 @@ class RideStatsAccumulator {
       if (meters / seconds > maxSpeedLimitMps) return false;
     }
 
-    if (delta == null || delta > pauseGap) {
+    if (delta == null || delta > pauseGap || _spansBreak(from, to)) {
       // A break: the straight line across it is not a ridden distance, and the
       // height difference across it is not a climb.
       _lastSegmentSpeedMps = 0;
@@ -248,6 +288,14 @@ class RideStatsAccumulator {
     return true;
   }
 
+  bool _spansBreak(DateTime? from, DateTime? to) {
+    if (breaks.isEmpty || from == null || to == null) return false;
+    for (final gap in breaks) {
+      if (gap.spans(from, to)) return true;
+    }
+    return false;
+  }
+
   void _accumulateElevation(double? elevation) {
     final value = _finite(elevation);
     if (value == null) return;
@@ -271,11 +319,15 @@ class RideStatsAccumulator {
 }
 
 /// The statistics of a finished ride, from its track points.
+///
+/// [breaks] are the stretches the recorder was switched off in, which the
+/// timestamps may be too close together to show; see [StatsBreak].
 RideStats computeRideStats(
   List<TrackPoint> points, {
   Duration pauseGap = statsPauseGap,
+  List<StatsBreak> breaks = const <StatsBreak>[],
 }) {
-  final accumulator = RideStatsAccumulator(pauseGap: pauseGap);
+  final accumulator = RideStatsAccumulator(pauseGap: pauseGap, breaks: breaks);
   for (final point in points) {
     accumulator.add(point);
   }

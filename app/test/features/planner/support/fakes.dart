@@ -62,6 +62,9 @@ class TestMapController implements MapController {
   void Function(int index, LatLng position)? onWaypointDragged;
 
   @override
+  void Function(int index)? onWaypointTapped;
+
+  @override
   VoidCallback? onCameraIdle;
 
   @override

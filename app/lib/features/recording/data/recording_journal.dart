@@ -227,6 +227,18 @@ class RecordingStore {
   Future<List<TrackPoint>> readJournal(String rideId) =>
       readJournalPoints(journalFile(rideId));
 
+  /// Writes [points] as the whole journal of [rideId], replacing whatever was
+  /// there.
+  ///
+  /// This is how a finished ride is handed back to the recorder: the blob in
+  /// the `rides` row and a journal file have the very same layout, so
+  /// continuing a ride is one write rather than a replay of every fix.
+  Future<void> writeJournal(String rideId, List<TrackPoint> points) async {
+    await ensureDirectory();
+    await journalFile(rideId)
+        .writeAsBytes(PackedTrack.encode(points), flush: true);
+  }
+
   /// Deletes the journal of [rideId].
   Future<void> deleteJournal(String rideId) async {
     final file = journalFile(rideId);

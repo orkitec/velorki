@@ -76,6 +76,12 @@ abstract class RecordingService {
     required String notificationTitle,
   });
 
+  /// Records onto the already finished ride [ride], continuing its track and
+  /// its figures instead of starting a new one.
+  ///
+  /// Does nothing when a recording is already under way.
+  Future<void> continueRide(Ride ride, {required String notificationTitle});
+
   /// Turns the journal of the interrupted recording [state] into a ride.
   Future<Ride?> finishInterrupted(
     RecordingState state, {
@@ -133,6 +139,42 @@ abstract base class BaseRecordingService implements RecordingService {
     required String rideName,
   }) => finalize(state, rideName: rideName);
 
+  /// Hands [ride] back to the recorder.
+  ///
+  /// The ride's own track becomes the journal of a recording with the ride's
+  /// id, and the state file gets the ride's start, its route and its pauses
+  /// plus the seam it is being picked up across. From there this is an
+  /// interrupted recording like any other, so the resume machinery — and on
+  /// Android the foreground service that reads the very same two files — does
+  /// the rest. Finishing it writes the row again, id and all.
+  ///
+  /// The upload markers go: a continued ride is not the ride that was sent.
+  @override
+  Future<void> continueRide(
+    Ride ride, {
+    required String notificationTitle,
+  }) async {
+    if (await isRunning) return;
+    final opened = await store;
+    await opened.writeJournal(ride.id, ride.points);
+    final state = continuationState(ride);
+    await opened.writeState(state);
+    await rides.clearUploads(ride.id);
+    await resumeInterrupted(state, notificationTitle: notificationTitle);
+  }
+
+  /// The recording that continues [ride]; see [continueRide].
+  RecordingState continuationState(Ride ride) => RecordingState(
+    rideId: ride.id,
+    startedAt: ride.startedAt,
+    status: RecordingStatus.active,
+    routeId: ride.routeId,
+    pauses: <RidePause>[
+      ...ride.pauses,
+      RidePause(startedAt: ride.endedAt, endedAt: clock().toUtc(), seam: true),
+    ],
+  );
+
   @override
   Future<void> discardInterrupted(RecordingState state) async {
     final opened = await store;
@@ -175,14 +217,21 @@ abstract base class BaseRecordingService implements RecordingService {
       _lastSnapshot = null;
       return null;
     }
+    // A continued ride replaces its own row and keeps what the rider gave it:
+    // the name they may have typed and the notes they may have written. Only
+    // the uploads are dropped, and those went at the moment it was continued.
+    final continued = state.isContinuation
+        ? await rides.rideById(state.rideId)
+        : null;
     final ride = await rides.finalizeRide(
       rideId: state.rideId,
-      name: rideName,
+      name: continued?.name ?? rideName,
       points: points,
       startedAt: state.startedAt,
       endedAt: points.last.time ?? clock().toUtc(),
       routeId: state.routeId,
       pauses: state.pauses,
+      notes: continued?.notes,
     );
     await opened.deleteJournal(state.rideId);
     await opened.clearState();

@@ -10,6 +10,7 @@ import '../../../app/theme.dart';
 import '../domain/map_controller.dart';
 import 'geojson.dart';
 import 'heading_cone.dart';
+import 'heading_smoother.dart';
 import 'tile_template.dart';
 
 /// Source and layer ids. Everything Velorki adds to the style is prefixed so
@@ -263,6 +264,9 @@ abstract class MapLibreStyleOps {
   /// the adapter registers and unregisters by adding to and removing from it
   /// rather than by holding a subscription.
   List<ml.OnFeatureDragCallback> get onFeatureDrag;
+
+  /// The plugin's feature tap listeners, same shape as [onFeatureDrag].
+  List<ml.OnFeatureInteractionCallback> get onFeatureTapped;
 }
 
 /// [MapLibreStyleOps] forwarding one for one to a real plugin controller.
@@ -345,6 +349,10 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
 
   @override
   List<ml.OnFeatureDragCallback> get onFeatureDrag => map.onFeatureDrag;
+
+  @override
+  List<ml.OnFeatureInteractionCallback> get onFeatureTapped =>
+      map.onFeatureTapped;
 }
 
 /// [MapController] over maplibre_gl's [ml.MapLibreMapController].
@@ -396,6 +404,9 @@ class MaplibreMapControllerAdapter implements MapController {
   final Map<String, RouteLineStyle> _routeStyles = <String, RouteLineStyle>{};
   List<MapWaypoint> _waypoints = const <MapWaypoint>[];
   List<LatLng> _track = const <LatLng>[];
+  // Hysteresis and circular averaging for the heading cone, so it neither
+  // blinks nor spins while the rider rolls along at walking pace.
+  final HeadingSmoother _headingSmoother = HeadingSmoother();
   BoundingBox? _visibleBounds;
   bool _cyclosmVisible = false;
   bool _attached = false;
@@ -411,6 +422,16 @@ class MaplibreMapControllerAdapter implements MapController {
   void Function(int index, LatLng position)? onWaypointDragged;
 
   @override
+  void Function(int index)? onWaypointTapped;
+
+  // A drag ends with a release the platform also reports as a tap, and a
+  // tap on a marker arrives as a map click too; both would add a waypoint.
+  DateTime? _lastDragEnd;
+  DateTime? _lastFeatureTap;
+  bool _dragging = false;
+  static const Duration _clickShadow = Duration(milliseconds: 600);
+
+  @override
   VoidCallback? onCameraIdle;
 
   /// Whether [attachToStyle] has run and the layers exist.
@@ -423,6 +444,8 @@ class MaplibreMapControllerAdapter implements MapController {
     _routeLines.clear();
     _ops.onFeatureDrag.remove(_handleFeatureDrag);
     _ops.onFeatureDrag.add(_handleFeatureDrag);
+    _ops.onFeatureTapped.remove(_handleFeatureTapped);
+    _ops.onFeatureTapped.add(_handleFeatureTapped);
 
     await _addCyclosmLayer();
 
@@ -735,7 +758,10 @@ class MaplibreMapControllerAdapter implements MapController {
   ml.LineLayerProperties _lineProperties(RouteLineStyle style, [String? id]) =>
       switch (style) {
         RouteLineStyle.main => ml.LineLayerProperties(
-          lineColor: palette.routeMain,
+          // A chosen alternative (`main-2`) keeps its own colour on top.
+          lineColor: id == null || !_isVariantId(id)
+              ? palette.routeMain
+              : _alternativeColour(id),
           lineWidth: 5.0,
           lineOpacity: 1.0,
           lineCap: 'round',
@@ -759,6 +785,9 @@ class MaplibreMapControllerAdapter implements MapController {
           lineDasharray: <double>[2, 1.5],
         ),
       };
+
+  /// Whether [id] names a numbered variant (`alt-2`, `main-2`).
+  static bool _isVariantId(String id) => RegExp(r'-\d+$').hasMatch(id);
 
   /// `alt-2` → the third alternative colour; anything else → the fallback.
   String _alternativeColour(String id) {
@@ -919,13 +948,21 @@ class MaplibreMapControllerAdapter implements MapController {
     double? speedMps,
   }) async {
     if (!_attached) return;
+    // The cone is driven by the smoother, not by this one fix: it appears
+    // only once the rider is clearly moving, keeps the last heading through a
+    // fix without a course, and turns the long way around 0° like a compass.
+    if (position == null) {
+      _headingSmoother.reset();
+    }
+    final heading = position == null
+        ? null
+        : _headingSmoother.update(headingDeg: headingDeg, speedMps: speedMps);
     await _ops.setGeoJsonSource(
       MapLayerIds.positionSource,
       positionFeatureCollection(
         position,
         accuracyM: accuracyM,
-        headingDeg: headingDeg,
-        speedMps: speedMps,
+        resolvedHeadingDeg: heading,
       ),
     );
     // circle-radius is in pixels, so a metre-accurate ring needs a fresh
@@ -959,12 +996,26 @@ class MaplibreMapControllerAdapter implements MapController {
   // ---------------------------------------------------------------- events
 
   /// Forwarded from `MapLibreMap.onMapClick`.
-  void handleMapClick(ml.LatLng coordinates) =>
-      onTap?.call(_fromMl(coordinates));
+  void handleMapClick(ml.LatLng coordinates) {
+    if (_inClickShadow()) return;
+    onTap?.call(_fromMl(coordinates));
+  }
+
+  bool _inClickShadow() {
+    final now = DateTime.now();
+    for (final stamp in <DateTime?>[_lastDragEnd, _lastFeatureTap]) {
+      if (stamp != null && now.difference(stamp) < _clickShadow) return true;
+    }
+    return false;
+  }
 
   /// Forwarded from `MapLibreMap.onMapLongClick`.
-  void handleMapLongClick(ml.LatLng coordinates) =>
-      onLongPress?.call(_fromMl(coordinates));
+  void handleMapLongClick(ml.LatLng coordinates) {
+    // Holding a marker to drag it is not a long press on the map: that would
+    // insert a point under the finger while the marker is being moved.
+    if (_dragging || _inClickShadow()) return;
+    onLongPress?.call(_fromMl(coordinates));
+  }
 
   /// Forwarded from `MapLibreMap.onCameraIdle`.
   void handleCameraIdle() {
@@ -981,13 +1032,33 @@ class MaplibreMapControllerAdapter implements MapController {
     ml.Annotation? annotation,
     ml.DragEventType eventType,
   ) {
-    // `start` carries the untouched position, so it would report a move that
-    // did not happen; `drag` keeps the route in step with the finger and
-    // `end` is the final word.
-    if (eventType == ml.DragEventType.start) return;
+    // The platform moves the marker under the finger by itself. Only the
+    // release is reported: committing every intermediate position rewrote
+    // the marker source under the native drag, flooded the undo stack and
+    // re-routed on the way, which made the drag shaky.
     final index = waypointIndexFromFeatureId(id);
     if (index == null) return;
+    if (eventType == ml.DragEventType.start) {
+      _dragging = true;
+      return;
+    }
+    if (eventType != ml.DragEventType.end) return;
+    _dragging = false;
+    _lastDragEnd = DateTime.now();
     onWaypointDragged?.call(index, _fromMl(current));
+  }
+
+  void _handleFeatureTapped(
+    Object? point,
+    ml.LatLng coordinates,
+    String id,
+    String layerId,
+    ml.Annotation? annotation,
+  ) {
+    final index = waypointIndexFromFeatureId(id);
+    if (index == null) return;
+    _lastFeatureTap = DateTime.now();
+    onWaypointTapped?.call(index);
   }
 
   Future<void> _refreshVisibleBounds() async {
@@ -1010,9 +1081,11 @@ class MaplibreMapControllerAdapter implements MapController {
   void dispose() {
     _disposed = true;
     _ops.onFeatureDrag.remove(_handleFeatureDrag);
+    _ops.onFeatureTapped.remove(_handleFeatureTapped);
     onTap = null;
     onLongPress = null;
     onWaypointDragged = null;
+    onWaypointTapped = null;
     onCameraIdle = null;
   }
 

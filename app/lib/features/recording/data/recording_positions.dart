@@ -46,12 +46,25 @@ geo.LocationSettings recordingLocationSettings({TargetPlatform? platform}) {
 
 /// A geolocator fix as a track point, with the fields the platform did not
 /// measure left `null` rather than zero.
+///
+/// The `has*` flags are not trusted on their own: geolocator_android drops
+/// them when it rebuilds a position, which left every ride without an
+/// altitude and so without any ascent. See [MapPosition.measuredValue].
 TrackPoint trackPointFromPosition(geo.Position position) => TrackPoint(
   LatLng(position.latitude, position.longitude),
-  ele: position.hasAltitude ? position.altitude : null,
+  ele: MapPosition.measuredValue(
+    position.altitude,
+    flagged: position.hasAltitude,
+  ),
   time: position.timestamp.toUtc(),
-  speedMps: position.hasSpeed ? position.speed : null,
-  accuracyM: position.hasAccuracy ? position.accuracy : null,
+  speedMps: MapPosition.measuredValue(
+    position.speed,
+    flagged: position.hasSpeed,
+  ),
+  accuracyM: MapPosition.measuredValue(
+    position.accuracy,
+    flagged: position.hasAccuracy,
+  ),
 );
 
 /// The fixes of a recording, ready for the engine.

@@ -9,7 +9,7 @@ import 'ride_upload.dart';
 /// One interval during which the recording was paused.
 class RidePause {
   /// Creates a pause.
-  const RidePause({required this.startedAt, this.endedAt});
+  const RidePause({required this.startedAt, this.endedAt, this.seam = false});
 
   /// Reads a pause back from [toJson].
   factory RidePause.fromJson(Map<String, Object?> json) => RidePause(
@@ -17,6 +17,7 @@ class RidePause {
         DateTime.tryParse(json['start'] as String? ?? '')?.toUtc() ??
         DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
     endedAt: DateTime.tryParse(json['end'] as String? ?? '')?.toUtc(),
+    seam: json['seam'] as bool? ?? false,
   );
 
   /// When the rider (or auto-pause) stopped the recording.
@@ -25,18 +26,35 @@ class RidePause {
   /// When it continued; `null` while the pause is still open.
   final DateTime? endedAt;
 
+  /// Whether this pause is the gap a continued ride was picked up across:
+  /// from the moment the ride was finished to the moment "Continue this ride"
+  /// handed it back to the recorder.
+  ///
+  /// The flag is kept in the row because the statistics are recomputed from
+  /// the whole track every time the ride is saved, and a seam has to stay a
+  /// break in them however short it was — see [StatsBreak].
+  final bool seam;
+
   /// How long the pause lasted, zero while it is still open.
   Duration get duration =>
       endedAt == null ? Duration.zero : endedAt!.difference(startedAt);
 
+  /// This pause as a break in the statistics, or `null` while it is open or
+  /// when it is an ordinary pause, which the gap between the fixes already
+  /// shows.
+  StatsBreak? get asStatsBreak => !seam || endedAt == null
+      ? null
+      : StatsBreak(startedAt: startedAt, endedAt: endedAt!);
+
   /// A copy that ends at [endedAt].
   RidePause ending(DateTime endedAt) =>
-      RidePause(startedAt: startedAt, endedAt: endedAt);
+      RidePause(startedAt: startedAt, endedAt: endedAt, seam: seam);
 
   /// This pause as JSON, for the `pauses_json` column.
   Map<String, Object?> toJson() => <String, Object?>{
     'start': startedAt.toUtc().toIso8601String(),
     if (endedAt != null) 'end': endedAt!.toUtc().toIso8601String(),
+    if (seam) 'seam': true,
   };
 
   @override
@@ -44,14 +62,23 @@ class RidePause {
       identical(this, other) ||
       other is RidePause &&
           other.startedAt == startedAt &&
-          other.endedAt == endedAt;
+          other.endedAt == endedAt &&
+          other.seam == seam;
 
   @override
-  int get hashCode => Object.hash(startedAt, endedAt);
+  int get hashCode => Object.hash(startedAt, endedAt, seam);
 
   @override
-  String toString() => 'RidePause($startedAt → $endedAt)';
+  String toString() =>
+      'RidePause($startedAt → $endedAt${seam ? ', seam' : ''})';
 }
+
+/// The breaks among [pauses]: every seam a continued ride was picked up
+/// across, in the form the statistics take.
+List<StatsBreak> statsBreaksOf(List<RidePause> pauses) => <StatsBreak>[
+  for (final pause in pauses)
+    if (pause.asStatsBreak case final StatsBreak gap) gap,
+];
 
 /// The `pauses_json` column.
 String encodeRidePauses(List<RidePause> pauses) =>

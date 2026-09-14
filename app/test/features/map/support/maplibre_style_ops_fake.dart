@@ -112,6 +112,10 @@ class RecordingStyleOps implements MapLibreStyleOps {
   final List<ml.OnFeatureDragCallback> onFeatureDrag =
       <ml.OnFeatureDragCallback>[];
 
+  @override
+  final List<ml.OnFeatureInteractionCallback> onFeatureTapped =
+      <ml.OnFeatureInteractionCallback>[];
+
   /// The names of the [calls], in order.
   List<String> get names => calls.map((c) => c.name).toList();
 

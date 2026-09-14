@@ -55,6 +55,49 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
     super.dispose();
   }
 
+  /// What can be done with a tapped marker: today, removing it.
+  Future<void> _showWaypointActions(int index) async {
+    final state = ref.read(plannerControllerProvider);
+    if (index < 0 || index >= state.waypoints.length) return;
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final name = state.waypoints[index].name;
+    final remove = await showModalBottomSheet<bool>(
+      context: context,
+      useRootNavigator: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                name ?? l10n.plannerPointTitle(index + 1),
+                style: theme.textTheme.headlineSmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 16),
+              FilledButton.tonalIcon(
+                onPressed: () => Navigator.of(context).pop(true),
+                icon: const Icon(Icons.delete_outline_rounded),
+                label: Text(l10n.plannerRemovePoint),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(l10n.commonCancel),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (!mounted || !(remove ?? false)) return;
+    ref.read(plannerControllerProvider.notifier).removeWaypoint(index);
+  }
+
   /// Grows the sheet by one row when the variant chips appear, so they are in
   /// view and tappable without a pull.
   void _showVariantsRow(double size) {
@@ -75,7 +118,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
     final binding = PlannerMapBinding(
       map: controller,
       planner: ref.read(plannerControllerProvider.notifier),
-    )..attach();
+    );
+    binding.onWaypointTap = (index) {
+      unawaited(_showWaypointActions(index));
+    };
+    binding.attach();
     _binding = binding;
     unawaited(binding.sync(ref.read(plannerControllerProvider)));
   }

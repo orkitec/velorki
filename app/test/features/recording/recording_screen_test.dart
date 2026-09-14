@@ -10,10 +10,12 @@ import 'package:velorki/features/recording/domain/recording_state.dart';
 import 'package:velorki/features/recording/domain/ride.dart';
 import 'package:velorki/core/geo/ride_stats.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
+import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../planner/support/fakes.dart' show MapCall;
 import 'support/pump.dart';
 
 RecordingSnapshot _snapshot({
@@ -21,6 +23,7 @@ RecordingSnapshot _snapshot({
   bool autoPaused = false,
   double distanceM = 12345,
   List<LatLng> newPoints = const <LatLng>[],
+  LatLng lastPosition = const LatLng(48.1, 11.2),
 }) => RecordingSnapshot(
   rideId: 'ride-1',
   status: status,
@@ -33,7 +36,7 @@ RecordingSnapshot _snapshot({
   avgSpeedMps: 5,
   ascentM: 210,
   descentM: 190,
-  lastPosition: const LatLng(48.1, 11.2),
+  lastPosition: lastPosition,
   accuracyM: 4,
   pointCount: 120,
   newPoints: newPoints,
@@ -278,6 +281,30 @@ void main() {
     await unmountApp(tester);
   });
 
+  testWidgets('a late snapshot after finishing does not revive the ride', (
+    tester,
+  ) async {
+    final harness = RecordingHarness()..service.finishedRide = _ride();
+    await RideRepository(harness.planner.db.ridesDao).save(_ride());
+    await pumpRecordingApp(tester, harness: harness);
+    await tester.pump();
+
+    await emitSnapshot(tester, harness, _snapshot());
+    await tester.tap(find.byTooltip('Finish'));
+    await tester.pumpAndSettle();
+    expect(find.byType(RideDetailScreen), findsOneWidget);
+
+    // The foreground isolate flushes one last time after the stop; the
+    // Record tab must stay ready for the next ride, not go live again.
+    await emitSnapshot(tester, harness, _snapshot());
+    await tester.tap(find.text('Record'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ready to ride'), findsOneWidget);
+    expect(find.text('RECORDING'), findsNothing);
+    await unmountApp(tester);
+  });
+
   testWidgets('the keep-screen-on toggle drives the wake lock', (tester) async {
     final h = await pumpRecordingScreen(tester, const RecordingScreen());
     await tester.pump();
@@ -382,6 +409,153 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(h.service.calls, <String>['discardInterrupted(ride-1)']);
+      await unmountApp(tester);
+    });
+  });
+
+  group('the map follows the rider', () {
+    /// Every camera move the screen asked for, in order.
+    List<MapCall> moves(RecordingHarness h) =>
+        h.map.calls.where((c) => c.method == 'moveTo').toList();
+
+    /// The idle the screen's own follow move ends in.
+    Future<void> settleCamera(WidgetTester tester, RecordingHarness h) async {
+      h.map.onCameraIdle?.call();
+      await tester.pump();
+    }
+
+    testWidgets('a fix moves the camera once a ride runs', (tester) async {
+      final h = await pumpRecordingScreen(tester, const RecordingScreen());
+      await tester.pump();
+      expect(moves(h), isEmpty, reason: 'an idle map stays where it is');
+
+      await emitSnapshot(tester, h, _snapshot());
+
+      expect(moves(h), hasLength(1));
+      expect(moves(h).single.arguments.first, const LatLng(48.1, 11.2));
+      expect(moves(h).single.arguments[1], followZoom);
+
+      await settleCamera(tester, h);
+      await emitSnapshot(
+        tester,
+        h,
+        _snapshot(lastPosition: const LatLng(48.2, 11.3)),
+      );
+
+      expect(moves(h), hasLength(2));
+      expect(moves(h).last.arguments.first, const LatLng(48.2, 11.3));
+
+      await unmountApp(tester);
+    });
+
+    testWidgets('a camera that is already closer keeps its zoom', (
+      tester,
+    ) async {
+      final h = RecordingHarness()..map.zoom = 18;
+      await pumpRecordingScreen(tester, const RecordingScreen(), harness: h);
+      await tester.pump();
+
+      await emitSnapshot(tester, h, _snapshot());
+
+      expect(moves(h).single.arguments[1], 18);
+      await unmountApp(tester);
+    });
+
+    testWidgets('panning the map by hand stops the following', (tester) async {
+      final h = await pumpRecordingScreen(tester, const RecordingScreen());
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot());
+      // The idle our own move ends in is not the rider's doing.
+      await settleCamera(tester, h);
+      expect(moves(h), hasLength(1));
+
+      // Now the rider drags the map somewhere else and lets go.
+      h.map.center = const LatLng(48.6, 11.9);
+      await settleCamera(tester, h);
+
+      await emitSnapshot(
+        tester,
+        h,
+        _snapshot(lastPosition: const LatLng(48.2, 11.3)),
+      );
+
+      expect(moves(h), hasLength(1), reason: 'the map is the rider\'s now');
+      await unmountApp(tester);
+    });
+
+    testWidgets('a nudge inside the threshold keeps the following', (
+      tester,
+    ) async {
+      final h = await pumpRecordingScreen(tester, const RecordingScreen());
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot());
+      await settleCamera(tester, h);
+
+      // Twenty metres north of the fix: an animated move rarely lands on the
+      // exact centre, and that must not read as a pan.
+      h.map.center = const LatLng(48.10018, 11.2);
+      await settleCamera(tester, h);
+
+      await emitSnapshot(
+        tester,
+        h,
+        _snapshot(lastPosition: const LatLng(48.2, 11.3)),
+      );
+
+      expect(moves(h), hasLength(2));
+      await unmountApp(tester);
+    });
+
+    testWidgets('the locate button picks the following up again', (
+      tester,
+    ) async {
+      final h = await pumpRecordingScreen(tester, const RecordingScreen());
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot());
+      await settleCamera(tester, h);
+      h.map.center = const LatLng(48.6, 11.9);
+      await settleCamera(tester, h);
+
+      // What MapControls calls after it moved the camera to the fix.
+      final chrome = tester.widget<MapChromeInsets>(
+        find.byType(MapChromeInsets).first,
+      );
+      expect(chrome.following, isFalse);
+      chrome.onLocate!();
+      await tester.pump();
+
+      expect(
+        tester
+            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
+            .following,
+        isTrue,
+      );
+      // Back on the rider right away, without waiting for the next fix.
+      expect(moves(h), hasLength(2));
+      expect(moves(h).last.arguments.first, const LatLng(48.1, 11.2));
+
+      await settleCamera(tester, h);
+      await emitSnapshot(
+        tester,
+        h,
+        _snapshot(lastPosition: const LatLng(48.2, 11.3)),
+      );
+
+      expect(moves(h), hasLength(3));
+      expect(moves(h).last.arguments.first, const LatLng(48.2, 11.3));
+      await unmountApp(tester);
+    });
+
+    testWidgets('an idle map never follows, and says so', (tester) async {
+      await pumpRecordingScreen(tester, const RecordingScreen());
+      await tester.pump();
+
+      expect(
+        tester
+            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
+            .following,
+        isFalse,
+      );
       await unmountApp(tester);
     });
   });

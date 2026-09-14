@@ -104,15 +104,19 @@ double? puckHeading(double? headingDeg, double? speedMps) {
 /// there is no fix.
 ///
 /// `heading` is only written when [puckHeading] accepts the course, so the
-/// cone layer can hide itself with `['has', 'heading']`.
+/// cone layer can hide itself with `['has', 'heading']`. A caller that has
+/// already decided on a course — the adapter, which smooths it over several
+/// fixes — passes it as [resolvedHeadingDeg] and leaves [headingDeg] and
+/// [speedMps] out.
 Map<String, dynamic> positionFeatureCollection(
   LatLng? position, {
   double? accuracyM,
   double? headingDeg,
   double? speedMps,
+  double? resolvedHeadingDeg,
 }) {
   if (position == null) return emptyFeatureCollection();
-  final heading = puckHeading(headingDeg, speedMps);
+  final heading = resolvedHeadingDeg ?? puckHeading(headingDeg, speedMps);
   return <String, dynamic>{
     'type': 'FeatureCollection',
     'features': <Map<String, dynamic>>[

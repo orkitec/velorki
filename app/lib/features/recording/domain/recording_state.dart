@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../core/geo/ride_stats.dart';
 import 'recording_snapshot.dart';
 import 'ride.dart';
 
@@ -48,7 +49,19 @@ class RecordingState {
   final String? routeId;
 
   /// Every pause so far, the last one still open while paused.
+  ///
+  /// A recording that continues an already saved ride starts with that ride's
+  /// pauses plus one [RidePause.seam]: the stretch between the moment the ride
+  /// was finished and the moment it was picked up again.
   final List<RidePause> pauses;
+
+  /// Whether this recording continues an already saved ride, which is what a
+  /// seam among the [pauses] says.
+  bool get isContinuation => pauses.any((pause) => pause.seam);
+
+  /// The seams, for the statistics: a segment across one counts neither
+  /// distance nor moving time.
+  List<StatsBreak> get statsBreaks => statsBreaksOf(pauses);
 
   /// A copy with the given fields replaced.
   RecordingState copyWith({RecordingStatus? status, List<RidePause>? pauses}) =>
