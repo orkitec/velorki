@@ -2,16 +2,15 @@
 
 Release-blocking items for the App Store and Google Play. Nothing here is
 optional: each box has either blocked a review in the past or is required by a
-policy that applies to this app. Milestone M7 is "all boxes ticked".
+policy that applies to this app.
 
 Legend: **(iOS)** App Store only, **(Play)** Google Play only, no marker =
 both. A ticked box names the file or the screen that makes it true, so the
 claim can be checked without hunting.
 
-Everything still unticked is either a form in one of the two consoles or work
-that needs the Mac; both are collected in
-[What is left, and where to do it](#what-is-left-and-where-to-do-it) at the
-end.
+Everything still unticked is a form in one of the two consoles, collected in
+[What is left, and where to do it](#what-is-left-and-where-to-do-it) at the end.
+The engineering and account work is in [OPEN_ITEMS.md](OPEN_ITEMS.md).
 
 ## Background location
 
@@ -129,10 +128,10 @@ Strava or RideWithGPS, and shared routes to our share store.
 - [x] The start position sent with a prompt is rounded to about 1 km and no
       identifiers are in the prompt. — `roundCoordinate` in
       `lib/features/assistant/domain/ai_consent.dart`.
-- [x] A "report AI output" action exists (mailto or a GitHub issue template)
-      and is reachable from the assistant sheet. — `aiReportMailto` in
-      `lib/features/assistant/presentation/assistant_strings.dart`, and
-      Settings → AI assistant → "Report AI output".
+- [x] A "report AI output" action exists (mailto). — `aiReportMailto` in
+      `lib/features/assistant/presentation/assistant_strings.dart`, reachable
+      from Settings → AI assistant → "Report AI output". It is **not** on the
+      assistant sheet itself; put it there if a reviewer asks.
 - [ ] The assistant's scope is constrained to route planning, and the
       age-rating questionnaire answers reflect that.
 - [ ] The description step can be turned off by the user.
@@ -172,9 +171,9 @@ Strava or RideWithGPS, and shared routes to our share store.
 
 - [x] "© OpenStreetMap contributors" is visible in a corner of the map on every
       map screen. — `lib/features/map/presentation/map_attribution.dart`.
-- [x] The About screen credits BRouter, Photon and OpenFreeMap (and CyclOSM
-      when the overlay is enabled). — they are entries on the licence page,
-      registered in `lib/app/licenses.dart` from `bootstrap()`.
+- [x] The About screen credits BRouter, Photon, OpenFreeMap and CyclOSM. —
+      `lib/app/licenses.dart`, registered from `bootstrap()`. (The map's own
+      attribution line adds CyclOSM only while the overlay is on.)
 - [x] An open-source licences screen lists all bundled dependencies and their
       licences. — Settings → About → "Open-source licences" opens Flutter's
       `showLicensePage` with the app name and version;
@@ -197,16 +196,20 @@ Strava or RideWithGPS, and shared routes to our share store.
       — the footer of the Strava routes list,
       `lib/features/integrations/presentation/external_routes_screen.dart`.
 - [x] The word "Strava" does not appear in the app name, the store title or the
-      icon. — `fastlane/metadata/*/en-US/{title,name,keywords}.txt` and
-      `app/assets/icon/icon.svg`.
+      icon. — `fastlane/metadata/android/en-US/title.txt`,
+      `fastlane/metadata/ios/en-US/{name,keywords}.txt` and
+      `app/assets/icon/icon.svg`. It does appear in the long descriptions,
+      which is allowed.
 - [x] Every view of a Strava activity links back to that activity on Strava. —
       "View on Strava" in `lib/features/integrations/presentation/ride_upload_menu.dart`,
       opening the activity URL returned by the upload.
 - [x] Strava data is shown only to the athlete it belongs to. — there are no
       accounts and no sharing of imported Strava content; the token lives in
       the device keychain.
-- [x] Cached Strava data is evicted after 7 days (`external_fetched_at`). —
-      `externalRouteListCacheProvider.purgeExpired()` runs in `bootstrap()`.
+- [x] The cached Strava route list is evicted after 7 days. —
+      `ExternalRouteListCache.maxAge`; `purgeExpired()` runs in `bootstrap()`.
+      (Routes the user has actually imported keep their `external_fetched_at`
+      column and are the user's own data, not a cache.)
 - [x] Strava data is never sent to the AI provider. — `canDescribe` refuses
       `RouteSource.strava`.
 - [ ] The Strava API review is submitted before the app exceeds 10 connected
@@ -234,8 +237,9 @@ Strava or RideWithGPS, and shared routes to our share store.
 
 ## Icons, splash and store graphics
 
-- [x] The app icon is generated for both platforms from one source. —
-      `app/assets/icon/icon.svg` → `icon.png` / `icon_foreground.png` →
+- [x] The app icon is generated for both platforms from committed SVGs. —
+      `app/assets/icon/icon.svg` → `icon.png` and `icon_foreground.svg` →
+      `icon_foreground.png` →
       `dart run flutter_launcher_icons` (configured in `app/pubspec.yaml`:
       `android: true`, `ios: true`, adaptive background `#1B7F5A`, adaptive
       foreground, `remove_alpha_ios: true`). Regeneration steps:
@@ -293,18 +297,12 @@ Everything above that is still open, grouped by where the work happens.
 
 ### In Xcode, on the Mac
 
-1. Add `ios/Runner/PrivacyInfo.xcprivacy` to the **Runner** target: select the
-   file in the navigator, File inspector → Target Membership → Runner, and
-   check it appears under Runner → Build Phases → Copy Bundle Resources.
-   Until then the manifest is in the repository but not in the app.
-2. Add the **Share Extension** target for `receive_sharing_intent`: a new
-   target with its own bundle id (`com.orkitec.velorki.Share`), an App Group
-   shared with the app, and provisioning profiles for both. Without it,
-   "Share → Velorki" from another iOS app does nothing; "Open in Velorki"
-   already works. Background and the reason it is not in this repository:
-   `app/lib/features/import_export/README.md`.
-3. Create the distribution certificate and profile once with
-   `bundle exec fastlane match appstore`, then keep every later run readonly.
+Add `ios/Runner/PrivacyInfo.xcprivacy` to the **Runner** target: select the file
+in the navigator, File inspector → Target Membership → Runner, and check it
+appears under Runner → Build Phases → Copy Bundle Resources. Until then the
+manifest is in the repository but not in the app. The rest of the Mac work —
+the Share Extension target, `fastlane match` — is in
+[OPEN_ITEMS.md](OPEN_ITEMS.md).
 
 ### In App Store Connect
 
@@ -333,12 +331,3 @@ Everything above that is still open, grouped by where the work happens.
 | Service account for `supply` | Google Cloud console → service account → key, then **Users and permissions** in the Play Console with the *Release manager* role; the path goes into `PLAY_SERVICE_ACCOUNT_JSON_PATH` (see `app/fastlane/README.md`) |
 | Subscriptions and the 7-day trial | **Monetize → Products → Subscriptions**, matching the RevenueCat product ids |
 | Internal testing track and, if the account is personal, the 14-day closed test with 12 testers | **Test and release → Testing** |
-
-### Elsewhere
-
-- Publish `https://velorki.app/privacy` and `https://velorki.app/terms`; the
-  app and both listings link to them.
-- Have a lawyer read `docs/PRIVACY.md`, then remove its DRAFT banner.
-- Request the RideWithGPS API key and register the redirect URI.
-- Submit the Strava API review before the eleventh connected athlete, and keep
-  an active Strava subscription on the developer account.

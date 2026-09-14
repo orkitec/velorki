@@ -10,11 +10,11 @@ Thanks for helping. A few rules keep the project easy to work on.
 | `api/` | the thin relay (OAuth token exchange, AI relay, share links), TypeScript on Node | AGPL-3.0-only |
 | `brouter/` | routing profiles and the segment updater | Apache-2.0 (profiles carry BRouter's MIT header) |
 | `deploy/` | self-hosting: compose file, Caddy, systemd units | Apache-2.0 |
-| `docs/` | architecture, privacy, store checklist | Apache-2.0 |
+| `docs/` | architecture, self-hosting, privacy, store checklist | Apache-2.0 |
 
 `docs/ARCHITECTURE.md` explains the design and the rule behind it: as much as
 possible runs on the phone; the relay only holds what cannot ship in an
-open-source app.
+open-source app. `docs/OPEN_ITEMS.md` is what is still open.
 
 ## Setup
 
@@ -22,7 +22,7 @@ open-source app.
    repository root gives you Flutter, Java and Node at the pinned versions.
 2. Android SDK: `app/README.md` explains the command-line-tools setup; iOS needs
    Xcode on a Mac.
-3. `cd app && flutter pub get && dart run build_runner build` then
+3. `cd app && flutter pub get && tool/gen.sh` then
    `flutter run --dart-define-from-file=env/dev.json`.
 4. `cd api && npm ci && npm run dev` for the relay (optional; the app works
    without it, with the integrations hidden).

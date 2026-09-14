@@ -73,7 +73,10 @@ produced by the GL Strings integration; do not edit them by hand. Run
 
 ## Tests
 
-`flutter test` for the app, `dart test` inside each `packages/*` directory.
+`flutter test` for the app and `dart test` inside each `packages/*` directory —
+that is what `.github/workflows/app.yml` runs on every push, together with
+`flutter test --coverage`, `dart format`, both analyzers and the `brouter_dart`
+parity suites against the committed oracle tiles.
 
 ### Emulator integration tests
 

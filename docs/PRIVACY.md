@@ -14,9 +14,9 @@ page explains what happens to your data.
 
 - There is **no account**. You do not sign up, and we do not know who you are.
 - Your routes, your rides and your settings stay **on your phone**.
-- Some things need a server: routing, search, map tiles, and — if you use them —
-  the AI assistant, the Strava and RideWithGPS connections, and share links.
-  Each of those is described below.
+- Some things need a server: search, map tiles, routing outside the areas you
+  have downloaded, and — if you use them — the AI assistant, the Strava and
+  RideWithGPS connections, and share links. Each is described below.
 - We do not sell your data, and we do not use it for advertising or profiling.
 
 ## What stays on your device
@@ -38,12 +38,11 @@ you want to keep as GPX or FIT files.
 
 ### Routing
 
-When you plan a route, the app sends the coordinates of your waypoints to the
-routing server, which sends back the route. The server is BRouter, run by us.
-It needs the waypoints to compute the route. It does not receive your identity,
-your other routes or your rides. Once the on-device routing option is available
-and you have downloaded the tiles for your area, routing happens entirely on
-the phone and nothing is sent at all.
+Routing normally happens entirely on your phone, from routing tiles you have
+downloaded, and nothing is sent anywhere. For an area you have no tiles for,
+the app sends the coordinates of your waypoints to a routing server (BRouter,
+run by us) which sends back the route. It needs the waypoints to compute the
+route; it does not receive your identity, your other routes or your rides.
 
 ### Search
 

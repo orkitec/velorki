@@ -14,24 +14,15 @@ link sharing. The code for all of it is here, so you can also run your own.
 
 ## Status
 
-All planned features are implemented and unit-tested; nothing is in the
-stores yet. What exists today:
+All planned features are implemented and unit-tested; nothing is in the stores
+yet. Routing runs **on the device**: `app/packages/brouter_dart` is a Dart port
+of the BRouter engine that reproduces the Java server byte for byte on a
+recorded corpus, against routing tiles downloaded per region. A BRouter server
+is optional, for areas without downloaded tiles.
 
-- Planning on OpenStreetMap with bike-specific routing, alternatives,
-  elevation profile and surface statistics; smart loops with a scoring of
-  candidates; GPX and FIT import and export; ride recording that survives the
-  app being killed; Strava and RideWithGPS connections; a subscription with
-  an AI assistant and link sharing.
-- Routing runs either on a self-hosted BRouter server or **on the device**:
-  `app/packages/brouter_dart` is a Dart port of the BRouter engine that
-  reproduces the Java server byte for byte on a recorded corpus, with map
-  tiles downloaded per region.
-- Verified on the Android emulator: planning through a server, planning on
-  the device after a tile download, recording and import screens.
-
-Not yet done: the servers are not deployed, the store accounts and partner
-API registrations are missing, and nothing has run on a real phone or on
-iOS. `docs/OPEN_ITEMS.md` lists every such item.
+Not yet done: the store accounts and partner API registrations are missing, the
+relay and the tile mirror are not deployed, and nothing has run on a real phone
+or on iOS. `docs/OPEN_ITEMS.md` lists every such item.
 
 ## Layout
 
@@ -41,16 +32,16 @@ iOS. `docs/OPEN_ITEMS.md` lists every such item.
 | `api/` | the thin relay: OAuth token exchange, AI relay, share links | AGPL-3.0-only |
 | `brouter/` | routing profiles and the map-data updater for the BRouter routing server | Apache-2.0 |
 | `deploy/` | self-hosting with Docker Compose or systemd | Apache-2.0 |
-| `docs/` | architecture, privacy, store checklist | Apache-2.0 |
+| `docs/` | architecture, self-hosting, privacy, store checklist | Apache-2.0 |
 
 ## Design in one paragraph
 
-As much as possible runs on the device. The phone holds the routes, the rides,
-the loop generator and, once the Dart port of BRouter lands, the routing
-itself. The server side is a stock BRouter routing server and a small relay
-that only does what an open-source app cannot: keep the Strava and RideWithGPS
-client secrets, call the language model, and store shared links. No accounts,
-no cloud database. See `docs/ARCHITECTURE.md`.
+As much as possible runs on the device: the routes, the rides, the loop
+generator and the routing itself. The server side is optional — a stock BRouter
+routing server for areas without downloaded tiles, and a small relay that only
+does what an open-source app cannot: keep the Strava and RideWithGPS client
+secrets, call the language model, and store shared links. No accounts, no cloud
+database. See `docs/ARCHITECTURE.md`.
 
 ## Building
 
@@ -59,8 +50,9 @@ pinned versions. Then see `app/README.md` and `api/README.md`.
 
 ## Self-hosting
 
-`deploy/README.md` walks through running your own routing server and relay
-with `docker compose up`. Forks must rebrand, see `TRADEMARK.md`.
+Velorki needs no backend. `docs/SELF_HOSTING.md` says what you can run yourself
+anyway — a tile host, a routing server, the relay — and `deploy/README.md` is
+the step-by-step for the last two. Forks must rebrand, see `TRADEMARK.md`.
 
 ## Credits
 
