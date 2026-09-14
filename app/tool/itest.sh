@@ -58,15 +58,41 @@ done
 printf '\n'
 
 started=$(date +%s)
-for f in "${tests[@]}"; do
-  printf '==> %s\n' "$f"
-  one=$(date +%s)
-  flutter test "$f" \
+# Runs one test file. The Flutter tooling occasionally fails to bring up its
+# Dart Development Service on a busy CI emulator, before the app has even
+# started; that one failure is retried once, anything the test itself says
+# stands.
+run_one() {
+  local f=$1 log
+  log=$(mktemp)
+  if flutter test "$f" \
     -d "$DEVICE" \
     --dart-define=VELORKI_BROUTER_URL="$BROUTER_URL" \
     --dart-define=VELORKI_API_URL= \
     --dart-define=VELORKI_SEGMENTS_URL="$SEGMENTS_URL" \
-    --dart-define=VELORKI_ITEST_REGION="$REGION"
+    --dart-define=VELORKI_ITEST_REGION="$REGION" 2>&1 | tee "$log"; then
+    rm -f "$log"
+    return 0
+  fi
+  if grep -q "Failed to start Dart Development Service" "$log"; then
+    rm -f "$log"
+    printf '    the tooling did not start; running %s once more\n' "$(basename "$f")"
+    flutter test "$f" \
+      -d "$DEVICE" \
+      --dart-define=VELORKI_BROUTER_URL="$BROUTER_URL" \
+      --dart-define=VELORKI_API_URL= \
+      --dart-define=VELORKI_SEGMENTS_URL="$SEGMENTS_URL" \
+      --dart-define=VELORKI_ITEST_REGION="$REGION"
+    return
+  fi
+  rm -f "$log"
+  return 1
+}
+
+for f in "${tests[@]}"; do
+  printf '==> %s\n' "$f"
+  one=$(date +%s)
+  run_one "$f"
   printf '    %s: %ss\n\n' "$(basename "$f")" "$(( $(date +%s) - one ))"
 done
 
