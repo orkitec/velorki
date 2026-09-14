@@ -31,6 +31,9 @@ void main() {
       expect(point.ele, 123.4);
       expect(point.speedMps, 4.2);
       expect(point.accuracyM, 6);
+      // The course rides along so the record screen can turn the map with
+      // the rider; it is not written to the journal.
+      expect(point.headingDeg, 90);
     });
 
     test('keeps non-zero fields even when Android drops the flags', () {

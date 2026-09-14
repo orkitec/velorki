@@ -36,6 +36,8 @@ before changing structure.
   block cleartext), phone at the GitHub Releases mirror.
 - Emulator: start with `~/Work/bin/velorki-emu` (sizes the window for the
   tiled desktop). Two devices are usually attached: always pass `adb -s`.
+  `app/tool/emu_ride.py` simulates a moving rider with course and speed
+  (`adb emu geo fix` gives neither), for follow-mode and recording checks.
 - Never `pkill -f <pattern>` from a shell whose own command line contains the
   pattern; use `pkill -x` or `[p]attern`.
 

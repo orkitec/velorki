@@ -16,7 +16,10 @@ class MapChromeInsets extends InheritedWidget {
     this.attributionBottom,
     this.showRoutingTiles = true,
     this.following = false,
+    this.headingUp = false,
+    this.bearingDeg = 0,
     this.onLocate,
+    this.onCompass,
   });
 
   /// Whether the control column offers the routing-tile download. Only a
@@ -35,12 +38,25 @@ class MapChromeInsets extends InheritedWidget {
   /// locate button is drawn in the accent colour while it does.
   final bool following;
 
+  /// Whether that following also turns the map with the direction of travel.
+  /// The compass button is drawn in the accent colour while it does, so the
+  /// rider can see which of the two follow styles is on.
+  final bool headingUp;
+
+  /// Where the map currently points, in degrees clockwise from north, so the
+  /// compass needle can turn with it.
+  final double bearingDeg;
+
   /// Called after the locate button moved the camera to the fix.
   ///
   /// The button lives inside the map, the follow mode belongs to the screen
   /// around it; this is the screen's way in without widening the
   /// `mapViewBuilder` signature every map in the app shares.
   final VoidCallback? onLocate;
+
+  /// Called when the compass button was tapped; `null` leaves the button out
+  /// altogether, which is what every map but a running ride wants.
+  final VoidCallback? onCompass;
 
   /// The nearest insets, or `null` when the screen declared none.
   static MapChromeInsets? maybeOf(BuildContext context) =>
@@ -52,5 +68,8 @@ class MapChromeInsets extends InheritedWidget {
       oldWidget.attributionBottom != attributionBottom ||
       oldWidget.showRoutingTiles != showRoutingTiles ||
       oldWidget.following != following ||
-      oldWidget.onLocate != onLocate;
+      oldWidget.headingUp != headingUp ||
+      oldWidget.bearingDeg != bearingDeg ||
+      oldWidget.onLocate != onLocate ||
+      oldWidget.onCompass != onCompass;
 }

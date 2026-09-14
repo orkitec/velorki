@@ -50,6 +50,9 @@ class TestMapController implements MapController {
   double? zoom;
 
   @override
+  double? bearing;
+
+  @override
   BoundingBox? visibleBounds;
 
   @override
@@ -71,11 +74,13 @@ class TestMapController implements MapController {
   Future<void> moveTo(
     LatLng center, {
     double? zoom,
+    double? bearing,
     bool animate = true,
   }) async {
     movedTo = center;
     this.center = center;
-    calls.add(MapCall('moveTo', [center, zoom]));
+    if (bearing != null) this.bearing = bearing;
+    calls.add(MapCall('moveTo', [center, zoom, bearing]));
   }
 
   @override

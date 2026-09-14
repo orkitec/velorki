@@ -6,10 +6,21 @@ import 'package:velorki_geo/velorki_geo.dart';
 /// fake. Nothing outside `features/map` may import maplibre types.
 abstract class MapController {
   /// Camera.
-  Future<void> moveTo(LatLng center, {double? zoom, bool animate = true});
+  ///
+  /// A `null` [bearing] leaves the map turned the way it is; pass `0` to put
+  /// north back at the top.
+  Future<void> moveTo(
+    LatLng center, {
+    double? zoom,
+    double? bearing,
+    bool animate = true,
+  });
   Future<void> fitBounds(BoundingBox bounds, {double paddingPx = 48});
   LatLng? get center;
   double? get zoom;
+
+  /// Where the top of the map points, in degrees clockwise from north.
+  double? get bearing;
 
   /// Route lines. `id` lets callers keep the main route and alternatives
   /// apart; the same id replaces the previous line.

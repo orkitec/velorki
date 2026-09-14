@@ -20,6 +20,8 @@ abstract final class MapStrings {
 
   // Controls.
   static const String locateMe = 'Show my position';
+  static const String followHeadingUp = 'Map turns with you';
+  static const String followNorthUp = 'North up';
   static const String toggleCyclosm = 'Cycling map overlay';
   static const String routingTiles = 'Offline routing data';
   static const String zoomIn = 'Zoom in';

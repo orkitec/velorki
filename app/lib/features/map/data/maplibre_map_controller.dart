@@ -694,9 +694,22 @@ class MaplibreMapControllerAdapter implements MapController {
   Future<void> moveTo(
     LatLng center, {
     double? zoom,
+    double? bearing,
     bool animate = true,
   }) async {
-    final update = zoom == null
+    // Only a full camera position carries a bearing, and it carries the zoom
+    // and the tilt with it, so those have to be filled in from the live
+    // camera or the move would flatten them to the defaults.
+    final update = bearing != null
+        ? ml.CameraUpdate.newCameraPosition(
+            ml.CameraPosition(
+              target: _toMl(center),
+              zoom: zoom ?? _ops.cameraPosition?.zoom ?? 0,
+              bearing: bearing,
+              tilt: _ops.cameraPosition?.tilt ?? 0,
+            ),
+          )
+        : zoom == null
         ? ml.CameraUpdate.newLatLng(_toMl(center))
         : ml.CameraUpdate.newLatLngZoom(_toMl(center), zoom);
     if (animate) {
@@ -727,6 +740,9 @@ class MaplibreMapControllerAdapter implements MapController {
 
   @override
   double? get zoom => _ops.cameraPosition?.zoom;
+
+  @override
+  double? get bearing => _ops.cameraPosition?.bearing;
 
   @override
   BoundingBox? get visibleBounds => _visibleBounds;

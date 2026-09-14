@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/recording/data/recording_recovery.dart';
@@ -24,6 +25,8 @@ RecordingSnapshot _snapshot({
   double distanceM = 12345,
   List<LatLng> newPoints = const <LatLng>[],
   LatLng lastPosition = const LatLng(48.1, 11.2),
+  double? headingDeg,
+  double speedMps = 6,
 }) => RecordingSnapshot(
   rideId: 'ride-1',
   status: status,
@@ -32,7 +35,8 @@ RecordingSnapshot _snapshot({
   distanceM: distanceM,
   elapsed: const Duration(minutes: 42, seconds: 7),
   moving: const Duration(minutes: 40),
-  speedMps: 6,
+  speedMps: speedMps,
+  headingDeg: headingDeg,
   avgSpeedMps: 5,
   ascentM: 210,
   descentM: 190,
@@ -543,6 +547,183 @@ void main() {
 
       expect(moves(h), hasLength(3));
       expect(moves(h).last.arguments.first, const LatLng(48.2, 11.3));
+      await unmountApp(tester);
+    });
+
+    testWidgets('heading up turns the map with the rider', (tester) async {
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        preferences: const {'recording.follow': 'headingUp'},
+      );
+      await tester.pump();
+
+      // Walking pace: no course worth turning the map by, so the move leaves
+      // the map pointing where it already pointed.
+      await emitSnapshot(tester, h, _snapshot(headingDeg: 90, speedMps: 0.4));
+      expect(moves(h).single.arguments[2], isNull);
+      await settleCamera(tester, h);
+
+      await emitSnapshot(
+        tester,
+        h,
+        _snapshot(headingDeg: 90, lastPosition: const LatLng(48.2, 11.3)),
+      );
+
+      expect(moves(h).last.arguments[2], 90);
+      expect(
+        tester
+            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
+            .headingUp,
+        isTrue,
+      );
+      await unmountApp(tester);
+    });
+
+    testWidgets('north up asks for north on every move', (tester) async {
+      final h = await pumpRecordingScreen(tester, const RecordingScreen());
+      await tester.pump();
+
+      await emitSnapshot(tester, h, _snapshot(headingDeg: 90));
+
+      expect(moves(h).single.arguments[2], 0);
+      expect(
+        tester
+            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
+            .headingUp,
+        isFalse,
+      );
+      await unmountApp(tester);
+    });
+
+    testWidgets('the compass swaps the follow style and keeps it', (
+      tester,
+    ) async {
+      final h = await pumpRecordingScreen(tester, const RecordingScreen());
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot(headingDeg: 90));
+      await settleCamera(tester, h);
+
+      Future<void> tapCompass() async {
+        tester
+            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
+            .onCompass!();
+        await tester.pump();
+        await settleAsync(tester);
+      }
+
+      await tapCompass();
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('recording.follow'), 'headingUp');
+      expect(
+        tester
+            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
+            .headingUp,
+        isTrue,
+      );
+
+      // And back again, which straightens the map and forgets the choice
+      // rather than storing the default.
+      await tapCompass();
+
+      expect(prefs.getString('recording.follow'), isNull);
+      expect(moves(h).last.arguments[2], 0);
+      expect(
+        tester
+            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
+            .headingUp,
+        isFalse,
+      );
+      await unmountApp(tester);
+    });
+
+    testWidgets('the locate button only re-arms following', (tester) async {
+      final h = await pumpRecordingScreen(tester, const RecordingScreen());
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot(headingDeg: 90));
+      await settleCamera(tester, h);
+
+      tester
+          .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
+          .onLocate!();
+      await tester.pump();
+      await settleAsync(tester);
+
+      // The follow style is the compass button's business, not this one's.
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('recording.follow'), isNull);
+      final chrome = tester.widget<MapChromeInsets>(
+        find.byType(MapChromeInsets).first,
+      );
+      expect(chrome.headingUp, isFalse);
+      expect(chrome.following, isTrue);
+      await unmountApp(tester);
+    });
+
+    testWidgets('the needle follows the camera', (tester) async {
+      final h = await pumpRecordingScreen(tester, const RecordingScreen());
+      await tester.pump();
+      expect(
+        tester
+            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
+            .bearingDeg,
+        0,
+      );
+
+      h.map.bearing = 40;
+      await settleCamera(tester, h);
+
+      expect(
+        tester
+            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
+            .bearingDeg,
+        40,
+      );
+      await unmountApp(tester);
+    });
+
+    testWidgets('turning the map by hand stops the following', (tester) async {
+      final h = await pumpRecordingScreen(tester, const RecordingScreen());
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot());
+      await settleCamera(tester, h);
+
+      // Two fingers on the map, let go forty degrees off north.
+      h.map.bearing = 40;
+      await settleCamera(tester, h);
+
+      expect(
+        tester
+            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
+            .following,
+        isFalse,
+      );
+      await unmountApp(tester);
+    });
+
+    testWidgets('a ride that ends leaves the map pointing north', (
+      tester,
+    ) async {
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        preferences: const {'recording.follow': 'headingUp'},
+      );
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot(headingDeg: 90));
+      await settleCamera(tester, h);
+      expect(moves(h).last.arguments[2], 90);
+
+      await emitSnapshot(tester, h, _snapshot(status: RecordingStatus.idle));
+
+      expect(moves(h).last.arguments[2], 0);
+      expect(
+        tester
+            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
+            .following,
+        isFalse,
+      );
       await unmountApp(tester);
     });
 

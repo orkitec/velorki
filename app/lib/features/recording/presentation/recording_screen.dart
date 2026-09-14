@@ -10,6 +10,7 @@ import '../../../app/app_config.dart';
 import '../../../core/permissions/location_permission.dart';
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../map/data/heading_smoother.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/location_rationale_dialog.dart';
 import '../../map/presentation/map_chrome.dart';
@@ -20,6 +21,7 @@ import '../../planner/presentation/planner_map_host.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../application/recording_controller.dart';
+import '../data/follow_mode.dart';
 import '../data/recording_gateways.dart';
 import '../data/recording_recovery.dart';
 import '../data/recording_service.dart';
@@ -46,6 +48,17 @@ const double followZoom = 16;
 /// animated move, is not mistaken for a pan; narrow enough that a deliberate
 /// drag always is.
 const double handPanMeters = 40;
+
+/// How far north-up may drift from north at a camera idle before that counts
+/// as the rider having turned the map by hand.
+const double handRotationDegrees = 5;
+
+/// The same, in heading-up, measured against the bearing we last asked for.
+///
+/// Wider than [handRotationDegrees]: the camera is animating towards a new
+/// heading most of the time, so it rarely rests on exactly the one we asked
+/// for, and only a deliberate twist opens a gap this large.
+const double handRotationFollowDegrees = 20;
 
 /// The Record tab: start a ride, watch the numbers, finish it.
 class RecordingScreen extends ConsumerStatefulWidget {
@@ -81,6 +94,23 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// switch following back on.
   bool _wasRecording = false;
 
+  /// Turns the jittery course of each fix into the bearing the map is held
+  /// at; the same smoothing the heading cone uses, so cone and map agree.
+  final HeadingSmoother _headings = HeadingSmoother();
+
+  /// The bearing heading-up aims for, kept across a stop: a rider waiting at
+  /// a red light still faces the way they were going, and the map snapping
+  /// back to north there would be worse than a slightly stale heading.
+  double? _targetBearing;
+
+  /// Where the map currently points, in degrees clockwise from north, so the
+  /// compass needle can be drawn turned the same way.
+  double _bearing = 0;
+
+  /// The snapshot the smoother was last fed, so a rebuild that brings no new
+  /// fix does not push the average further along the same course.
+  RecordingSnapshot? _fedSnapshot;
+
   @override
   void dispose() {
     if (_keepScreenOn) unawaited(ref.read(screenWakeProvider).disable());
@@ -110,12 +140,32 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   // --------------------------------------------------------- follow mode
 
   /// Sends the camera to [position] and marks the move as ours.
-  void _followTo(MapController map, LatLng position) {
+  void _followTo(MapController map, LatLng position, FollowMode mode) {
     _autoMoving = true;
     _followTarget = position;
+    // North-up says so on every move; heading-up leaves the map alone until a
+    // heading exists, rather than forcing it to north first.
+    final bearing = mode == FollowMode.headingUp ? _targetBearing : 0.0;
     unawaited(
-      map.moveTo(position, zoom: math.max(map.zoom ?? followZoom, followZoom)),
+      map.moveTo(
+        position,
+        zoom: math.max(map.zoom ?? followZoom, followZoom),
+        bearing: bearing,
+      ),
     );
+  }
+
+  /// Turns the map back to north, for a ride that ended or a rider who left
+  /// heading-up: nothing else would ever straighten it again.
+  void _resetBearing(MapController map) {
+    final center = map.center ?? _followTarget;
+    if (center == null) return;
+    _headings.reset();
+    _targetBearing = null;
+    _bearing = 0;
+    _autoMoving = true;
+    _followTarget = center;
+    unawaited(map.moveTo(center, bearing: 0));
   }
 
   /// The map came to rest.
@@ -124,26 +174,77 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// idle that leaves the camera far from the fix we aimed at was the rider
   /// dragging the map, and the map is theirs again until they say otherwise.
   void _handleCameraIdle() {
+    // Before the early return below: the needle has to follow our own moves
+    // as much as the rider's, or heading-up would leave it pointing north.
+    final bearing = _map?.bearing;
+    if (bearing != null && (bearing - _bearing).abs() > 0.5) {
+      if (mounted) setState(() => _bearing = bearing);
+    }
     if (_autoMoving) {
       _autoMoving = false;
       return;
     }
     if (!_following) return;
-    final center = _map?.center;
+    final map = _map;
+    if (map == null) return;
+    if (_turnedByHand(map)) {
+      if (mounted) setState(() => _following = false);
+      return;
+    }
+    final center = map.center;
     final target = _followTarget;
     if (center == null || target == null) return;
     if (haversineMeters(center, target) <= handPanMeters) return;
     if (mounted) setState(() => _following = false);
   }
 
+  /// Whether the map came to rest turned somewhere we never sent it.
+  ///
+  /// Rotating the map is as much a way of taking it over as dragging it, so
+  /// it ends the following the same way.
+  bool _turnedByHand(MapController map) {
+    final bearing = map.bearing;
+    if (bearing == null) return false;
+    final mode = ref.read(followModeProvider);
+    final aimedAt = mode == FollowMode.headingUp ? _targetBearing ?? 0 : 0.0;
+    final limit = mode == FollowMode.headingUp
+        ? handRotationFollowDegrees
+        : handRotationDegrees;
+    return _angleBetween(bearing, aimedAt) > limit;
+  }
+
+  /// The angle between two bearings, 0 to 180 degrees.
+  static double _angleBetween(double a, double b) {
+    final delta = ((a - b) % 360 + 360) % 360;
+    return delta > 180 ? 360 - delta : delta;
+  }
+
   /// The locate button moved the camera to the rider, which is exactly what
-  /// following does; so it is following again.
+  /// following does; so it is following again. That is all it does — the
+  /// follow style belongs to the compass next to it.
   void _handleLocate() {
     if (!mounted) return;
     // That move was not ours, but it ends in an idle all the same, and it
     // left the camera on the rider — neither must read as a hand pan.
     _autoMoving = true;
     _followTarget = _map?.center ?? _followTarget;
+    if (_following) return;
+    setState(() => _following = true);
+  }
+
+  /// The compass swaps the follow style, north-up or heading-up, and that
+  /// choice is remembered for the next ride.
+  ///
+  /// A tap while the map has been let go picks the following up again too:
+  /// asking for a style only to watch the map stay put would be a riddle.
+  void _handleCompass() {
+    if (!mounted) return;
+    final next = ref.read(followModeProvider) == FollowMode.headingUp
+        ? FollowMode.northUp
+        : FollowMode.headingUp;
+    unawaited(ref.read(followModeProvider.notifier).select(next));
+    final map = _map;
+    if (next == FollowMode.northUp && map != null) _resetBearing(map);
     setState(() => _following = true);
   }
 
@@ -154,36 +255,53 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     RecordingUiState state,
     SavedRoute? route,
     List<LatLng> planned,
+    FollowMode mode,
   ) {
     // A ride that has just started takes the camera with it. Decided before
     // the map is looked at, so a ride that starts while the style is still
     // loading follows once the map arrives.
+    var ended = false;
     if (state.isRecording != _wasRecording) {
+      ended = _wasRecording;
       _wasRecording = state.isRecording;
       _following = state.isRecording;
       _followTarget = null;
     }
     final map = _map;
     if (map == null) return;
+    // A finished ride leaves the map wherever the last heading pointed, which
+    // is no way to hand it back to the rider.
+    if (ended) _resetBearing(map);
     if (state.track.length != _drawnTrackPoints) {
       _drawnTrackPoints = state.track.length;
       unawaited(map.setTrackLine(state.track));
     }
-    final position = state.snapshot?.lastPosition;
+    final snapshot = state.snapshot;
+    final position = snapshot?.lastPosition;
     if (position != null) {
       unawaited(
         map.setPosition(
           position,
-          accuracyM: state.snapshot?.accuracyM,
-          headingDeg: state.snapshot?.headingDeg,
-          speedMps: state.snapshot?.speedMps,
+          accuracyM: snapshot?.accuracyM,
+          headingDeg: snapshot?.headingDeg,
+          speedMps: snapshot?.speedMps,
         ),
       );
+      // One course per fix, not per build: the average would otherwise creep
+      // along on rebuilds that brought nothing new.
+      if (snapshot != null && !identical(snapshot, _fedSnapshot)) {
+        _fedSnapshot = snapshot;
+        final heading = _headings.update(
+          headingDeg: snapshot.headingDeg,
+          speedMps: snapshot.speedMps,
+        );
+        if (heading != null) _targetBearing = heading;
+      }
       // The puck alone is no use to a rider who cannot see it: while a ride
       // runs and nobody has taken the map away from us, the camera goes
       // wherever the fix goes.
       if (state.isRecording && _following && position != _followTarget) {
-        _followTo(map, position);
+        _followTo(map, position, mode);
       }
     }
     // A chosen saved route wins; otherwise the route on the Plan tab is the
@@ -437,7 +555,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
         (p) => p.result?.positions ?? const <LatLng>[],
       ),
     );
-    _syncMap(state, route, planned);
+    final followMode = ref.watch(followModeProvider);
+    _syncMap(state, route, planned, followMode);
 
     final theme = Theme.of(context);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
@@ -455,11 +574,19 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            // The locate button lives inside the map; this is how it reaches
-            // the follow mode, and how it learns to show it.
+            // The locate and compass buttons live inside the map; this is how
+            // they reach the follow mode, and how they learn to show it.
             child: MapChromeInsets(
               following: state.isRecording && _following,
+              headingUp:
+                  state.isRecording &&
+                  _following &&
+                  followMode == FollowMode.headingUp,
+              bearingDeg: _bearing,
               onLocate: _handleLocate,
+              // Only a running ride has a camera to hold, so only a running
+              // ride shows the compass.
+              onCompass: state.isRecording ? _handleCompass : null,
               child: PlannerMapHost(onMapReady: _onMapReady, embedded: true),
             ),
           ),

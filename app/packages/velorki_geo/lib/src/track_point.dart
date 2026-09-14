@@ -4,7 +4,7 @@ import 'lat_lng.dart';
 ///
 /// Planned routes carry [pos] and [ele]; recorded rides add [time], [speedMps]
 /// and [accuracyM]. Absent values stay `null` all the way through the packed
-/// codec.
+/// codec. [headingDeg] is the live course of a fix; it is not stored.
 class TrackPoint {
   /// Creates a track point.
   const TrackPoint(
@@ -13,6 +13,7 @@ class TrackPoint {
     this.time,
     this.speedMps,
     this.accuracyM,
+    this.headingDeg,
   });
 
   /// The position.
@@ -30,6 +31,9 @@ class TrackPoint {
   /// Horizontal accuracy in metres, if known.
   final double? accuracyM;
 
+  /// Course over ground in degrees clockwise from north, if the fix had one.
+  final double? headingDeg;
+
   /// Latitude shortcut.
   double get lat => pos.lat;
 
@@ -44,12 +48,14 @@ class TrackPoint {
     DateTime? time,
     double? speedMps,
     double? accuracyM,
+    double? headingDeg,
   }) => TrackPoint(
     pos ?? this.pos,
     ele: ele ?? this.ele,
     time: time ?? this.time,
     speedMps: speedMps ?? this.speedMps,
     accuracyM: accuracyM ?? this.accuracyM,
+    headingDeg: headingDeg ?? this.headingDeg,
   );
 
   @override
@@ -60,13 +66,15 @@ class TrackPoint {
           other.ele == ele &&
           other.time == time &&
           other.speedMps == speedMps &&
-          other.accuracyM == accuracyM;
+          other.accuracyM == accuracyM &&
+          other.headingDeg == headingDeg;
 
   @override
-  int get hashCode => Object.hash(pos, ele, time, speedMps, accuracyM);
+  int get hashCode =>
+      Object.hash(pos, ele, time, speedMps, accuracyM, headingDeg);
 
   @override
   String toString() =>
       'TrackPoint($pos, ele: $ele, time: $time, '
-      'speed: $speedMps, acc: $accuracyM)';
+      'speed: $speedMps, acc: $accuracyM, heading: $headingDeg)';
 }

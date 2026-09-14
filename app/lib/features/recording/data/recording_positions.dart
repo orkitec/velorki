@@ -65,6 +65,10 @@ TrackPoint trackPointFromPosition(geo.Position position) => TrackPoint(
     position.accuracy,
     flagged: position.hasAccuracy,
   ),
+  headingDeg: MapPosition.measuredValue(
+    position.heading,
+    flagged: position.hasHeading,
+  ),
 );
 
 /// The fixes of a recording, ready for the engine.

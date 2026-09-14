@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -88,11 +90,33 @@ geo.Position _fixAt(double latitude, double longitude) => geo.Position(
 );
 
 /// The locate button's foreground colour, which says whether the map follows.
-Color? _locateColor(WidgetTester tester) => tester
-    .widget<IconButton>(find.widgetWithIcon(IconButton, Icons.my_location))
+Color? _locateColor(WidgetTester tester) =>
+    _buttonColor(tester, Icons.my_location);
+
+/// The compass button's foreground colour, which says which follow style is on.
+Color? _compassColor(WidgetTester tester) =>
+    _buttonColor(tester, Icons.navigation);
+
+Color? _buttonColor(WidgetTester tester, IconData icon) => tester
+    .widget<IconButton>(find.widgetWithIcon(IconButton, icon))
     .style
     ?.foregroundColor
     ?.resolve(const <WidgetState>{});
+
+/// How far the compass needle is turned inside its button, in radians.
+double _needleAngle(WidgetTester tester) {
+  final transform = tester
+      .widget<Transform>(
+        find
+            .ancestor(
+              of: find.byIcon(Icons.navigation),
+              matching: find.byType(Transform),
+            )
+            .first,
+      )
+      .transform;
+  return math.atan2(transform.storage[1], transform.storage[0]);
+}
 
 void main() {
   group('MapAttributionChip', () {
@@ -224,6 +248,94 @@ void main() {
       expect(_locateColor(tester), isNot(buildLightTheme().velorki.accent));
     });
 
+    testWidgets('leaves the compass out without a screen behind it', (
+      tester,
+    ) async {
+      final controller = FakeMapController();
+      await tester.pumpWidget(await _wrap(MapControls(controller: controller)));
+      await tester.pump();
+
+      expect(find.byIcon(Icons.navigation), findsNothing);
+    });
+
+    testWidgets('a compass tap reaches the screen', (tester) async {
+      final controller = FakeMapController();
+      var compassed = 0;
+      await tester.pumpWidget(
+        await _wrap(
+          MapChromeInsets(
+            onCompass: () => compassed++,
+            child: MapControls(controller: controller),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byIcon(Icons.navigation), findsOneWidget);
+      expect(
+        tester
+            .widget<IconButton>(
+              find.widgetWithIcon(IconButton, Icons.navigation),
+            )
+            .tooltip,
+        MapStrings.followNorthUp,
+      );
+
+      await tester.tap(find.widgetWithIcon(IconButton, Icons.navigation));
+      await tester.pumpAndSettle();
+
+      // The map itself is not touched: the screen owns the follow style.
+      expect(controller.cameraMoves, isEmpty);
+      expect(compassed, 1);
+    });
+
+    testWidgets('draws the compass in the accent in heading up', (
+      tester,
+    ) async {
+      final controller = FakeMapController();
+      await tester.pumpWidget(
+        await _wrap(
+          MapChromeInsets(
+            following: true,
+            headingUp: true,
+            onCompass: () {},
+            child: MapControls(controller: controller),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(_compassColor(tester), buildLightTheme().velorki.accent);
+      expect(
+        tester
+            .widget<IconButton>(
+              find.widgetWithIcon(IconButton, Icons.navigation),
+            )
+            .tooltip,
+        MapStrings.followHeadingUp,
+      );
+      // The locate button is a plain crosshair either way.
+      expect(find.byIcon(Icons.my_location), findsOneWidget);
+    });
+
+    testWidgets('turns the needle against the map', (tester) async {
+      final controller = FakeMapController();
+      await tester.pumpWidget(
+        await _wrap(
+          MapChromeInsets(
+            bearingDeg: 90,
+            onCompass: () {},
+            child: MapControls(controller: controller),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // The map points east, so the needle turns a quarter turn back to keep
+      // pointing at north.
+      expect(_needleAngle(tester), closeTo(-math.pi / 2, 0.001));
+    });
+
     testWidgets('tells the screen once it has moved to the fix', (
       tester,
     ) async {
@@ -254,6 +366,39 @@ void main() {
       // the move has to be on its way before it is told.
       expect(controller.cameraMoves.single.center, const LatLng(47.0, 8.0));
       expect(controller.cameraMoves.single.zoom, locateZoom);
+      expect(located, 1);
+    });
+
+    testWidgets('while the screen follows, a tap goes straight to it', (
+      tester,
+    ) async {
+      final controller = FakeMapController()..zoom = 10;
+      var located = 0;
+      await tester.pumpWidget(
+        await _wrap(
+          MapChromeInsets(
+            following: true,
+            onLocate: () => located++,
+            child: MapControls(controller: controller),
+          ),
+          overrides: [
+            locationPermissionGatewayProvider.overrideWithValue(
+              _GrantedPermission(),
+            ),
+            positionSourceProvider.overrideWithValue(
+              _OneFixSource(_fixAt(47.0, 8.0)),
+            ),
+          ],
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.widgetWithIcon(IconButton, Icons.my_location));
+      await tester.pumpAndSettle();
+
+      // No fix fetched, no camera move of its own: the screen owns the
+      // camera already and answers the tap itself.
+      expect(controller.cameraMoves, isEmpty);
       expect(located, 1);
     });
   });

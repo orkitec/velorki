@@ -53,7 +53,10 @@ class PlannerMapHost extends ConsumerWidget {
       attributionBottom: inherited?.attributionBottom,
       showRoutingTiles: false,
       following: inherited?.following ?? false,
+      headingUp: inherited?.headingUp ?? false,
+      bearingDeg: inherited?.bearingDeg ?? 0,
       onLocate: inherited?.onLocate,
+      onCompass: inherited?.onCompass,
       child: MediaQuery.removePadding(
         context: context,
         removeBottom: true,

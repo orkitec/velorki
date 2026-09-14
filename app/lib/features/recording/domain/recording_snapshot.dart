@@ -108,6 +108,7 @@ class RecordingSnapshot {
     descentM: stats.descentM,
     lastPosition: lastPoint?.pos,
     accuracyM: lastPoint?.accuracyM,
+    headingDeg: lastPoint?.headingDeg,
     pointCount: stats.pointCount,
     newPoints: newPoints,
   );

@@ -34,6 +34,8 @@ class MapControls extends ConsumerWidget {
     final cyclosm = ref.watch(cyclosmOverlayProvider);
     final chrome = MapChromeInsets.maybeOf(context);
     final enabled = controller != null;
+    final headingUp = chrome?.headingUp ?? false;
+    final onCompass = chrome?.onCompass;
     // One glass column rather than five floating buttons: less chrome over
     // the map, and the group reads as one control.
     return GlassPanel(
@@ -49,6 +51,20 @@ class MapControls extends ConsumerWidget {
             selected: chrome?.following ?? false,
             onPressed: enabled ? () => unawaited(_locate(context, ref)) : null,
           ),
+          // Only a screen that has a follow style to switch offers a compass;
+          // on every other map the needle would have nothing to say.
+          if (onCompass != null)
+            _ControlButton(
+              icon: Icons.navigation,
+              // The needle turns with the map, so it points at the real north
+              // however the rider has twisted the camera.
+              iconTurns: -(chrome?.bearingDeg ?? 0) * math.pi / 180,
+              tooltip: headingUp
+                  ? MapStrings.followHeadingUp
+                  : MapStrings.followNorthUp,
+              selected: headingUp,
+              onPressed: enabled ? onCompass : null,
+            ),
           _ControlButton(
             icon: Icons.directions_bike,
             tooltip: MapStrings.toggleCyclosm,
@@ -110,7 +126,15 @@ class MapControls extends ConsumerWidget {
     final map = controller;
     if (map == null) return;
     final messenger = ScaffoldMessenger.maybeOf(context);
-    final onLocate = MapChromeInsets.maybeOf(context)?.onLocate;
+    final chrome = MapChromeInsets.maybeOf(context);
+    final onLocate = chrome?.onLocate;
+    // A screen that already keeps the camera on the rider has the position;
+    // waiting up to ten seconds for a fresh fix here would only delay the
+    // screen's answer to the tap, which it can give straight away.
+    if (chrome?.following ?? false) {
+      onLocate?.call();
+      return;
+    }
     final permissions = ref.read(locationPermissionControllerProvider.notifier);
 
     var status = await permissions.refresh();
@@ -180,12 +204,16 @@ class _ControlButton extends StatelessWidget {
     required this.tooltip,
     required this.onPressed,
     this.selected = false,
+    this.iconTurns = 0,
   });
 
   final IconData icon;
   final String tooltip;
   final VoidCallback? onPressed;
   final bool selected;
+
+  /// How far the icon is turned inside the button, in radians clockwise.
+  final double iconTurns;
 
   @override
   Widget build(BuildContext context) {
@@ -195,7 +223,7 @@ class _ControlButton extends StatelessWidget {
       width: 44,
       height: 44,
       child: IconButton(
-        icon: Icon(icon),
+        icon: Transform.rotate(angle: iconTurns, child: Icon(icon)),
         iconSize: 20,
         tooltip: tooltip,
         style: IconButton.styleFrom(

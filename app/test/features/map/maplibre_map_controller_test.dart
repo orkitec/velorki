@@ -1289,6 +1289,51 @@ void main() {
       ]);
     });
 
+    test('moveTo carries a bearing as a whole camera position', () async {
+      final ops = RecordingStyleOps()
+        ..cameraPosition = const ml.CameraPosition(
+          target: ml.LatLng(47.0, 8.0),
+          zoom: 12.5,
+          tilt: 20,
+        );
+      final adapter = _adapter(ops);
+
+      await adapter.moveTo(const LatLng(47.0, 8.0), bearing: 90);
+
+      expect(ops.names, <String>['animateCamera']);
+      final update = ops.calls.single.cameraUpdate! as List<Object?>;
+      expect(update.first, 'newCameraPosition');
+      final position = update[1]! as Map<Object?, Object?>;
+      expect(position['bearing'], 90.0);
+      // The zoom and the tilt come from the live camera, so asking for a
+      // bearing alone does not flatten them.
+      expect(position['zoom'], 12.5);
+      expect(position['tilt'], 20.0);
+    });
+
+    test('moveTo takes the zoom it is given along with the bearing', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+
+      await adapter.moveTo(const LatLng(47.0, 8.0), zoom: 16, bearing: 0);
+
+      final update = ops.calls.single.cameraUpdate! as List<Object?>;
+      final position = update[1]! as Map<Object?, Object?>;
+      expect(position['zoom'], 16.0);
+      expect(position['bearing'], 0.0);
+    });
+
+    test('the bearing reads the live camera position', () async {
+      final ops = RecordingStyleOps()
+        ..cameraPosition = const ml.CameraPosition(
+          target: ml.LatLng(47.0, 8.0),
+          bearing: 42,
+        );
+
+      expect(_adapter(ops).bearing, 42);
+      expect(_adapter(RecordingStyleOps()).bearing, isNull);
+    });
+
     test('moveTo jumps when the caller asks for no animation', () async {
       final ops = RecordingStyleOps();
       final adapter = _adapter(ops);

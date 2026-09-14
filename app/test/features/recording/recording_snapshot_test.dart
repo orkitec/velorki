@@ -297,6 +297,25 @@ void main() {
       expect(snapshot.speedMps, 5.5);
     });
 
+    test('the last fix lends its position, accuracy and course', () {
+      final snapshot = RecordingSnapshot.fromStats(
+        rideId: 'ride-1',
+        status: RecordingStatus.active,
+        startedAt: DateTime.utc(2026, 9, 12, 10),
+        stats: stats,
+        elapsed: const Duration(minutes: 13),
+        lastPoint: const TrackPoint(
+          LatLng(47.5, 8.5),
+          accuracyM: 6,
+          headingDeg: 45,
+        ),
+      );
+
+      expect(snapshot.lastPosition, const LatLng(47.5, 8.5));
+      expect(snapshot.accuracyM, 6);
+      expect(snapshot.headingDeg, 45);
+    });
+
     test('the elapsed time is the clock, not the statistics', () {
       // A paused recording keeps counting wall-clock time while the journal
       // stands still, so the recorder passes its own elapsed time.

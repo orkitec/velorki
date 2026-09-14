@@ -276,6 +276,9 @@ class RecordingMapController implements MapController {
   double? get zoom => inner.zoom;
 
   @override
+  double? get bearing => inner.bearing;
+
+  @override
   BoundingBox? get visibleBounds => inner.visibleBounds;
 
   @override
@@ -296,8 +299,12 @@ class RecordingMapController implements MapController {
   set onCameraIdle(VoidCallback? handler) => inner.onCameraIdle = handler;
 
   @override
-  Future<void> moveTo(LatLng center, {double? zoom, bool animate = true}) =>
-      inner.moveTo(center, zoom: zoom, animate: animate);
+  Future<void> moveTo(
+    LatLng center, {
+    double? zoom,
+    double? bearing,
+    bool animate = true,
+  }) => inner.moveTo(center, zoom: zoom, bearing: bearing, animate: animate);
 
   @override
   Future<void> fitBounds(BoundingBox bounds, {double paddingPx = 48}) =>

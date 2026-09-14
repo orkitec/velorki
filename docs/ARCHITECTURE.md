@@ -130,7 +130,13 @@ the `flutter_foreground_task` isolate owns the geolocator stream, the journal
 and the live statistics; the manifest deliberately does **not** request
 `ACCESS_BACKGROUND_LOCATION`, because the service always starts in the
 foreground, which avoids the stricter Play review. On iOS "When In Use" plus
-`UIBackgroundModes location` suffices.
+`UIBackgroundModes location` suffices. While a ride runs the camera follows
+the rider in one of two styles, north-up or heading-up (the map turned to the
+smoothed course, as `HeadingSmoother` gives it); the locate button picks the
+following up again, and the compass button below it swaps the style, its
+needle turned to the map's bearing. The choice is kept in
+`recording.follow`, so the next ride starts the way the last one was ridden,
+and a pan or a twist of the map hands it back to the rider.
 
 **Integrations and OAuth.** One `OAuthFlow`: build the authorise URL, open it
 with `flutter_web_auth_2`, receive the redirect on `velorki://oauth/<service>`,

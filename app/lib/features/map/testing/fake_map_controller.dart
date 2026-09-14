@@ -10,10 +10,15 @@ class RecordedCameraMove {
     required this.center,
     required this.zoom,
     required this.animate,
+    this.bearing,
   });
 
   final LatLng center;
   final double? zoom;
+
+  /// The bearing asked for, `null` when the move left the map turned as it
+  /// was.
+  final double? bearing;
   final bool animate;
 
   @override
@@ -21,14 +26,16 @@ class RecordedCameraMove {
       other is RecordedCameraMove &&
       other.center == center &&
       other.zoom == zoom &&
+      other.bearing == bearing &&
       other.animate == animate;
 
   @override
-  int get hashCode => Object.hash(center, zoom, animate);
+  int get hashCode => Object.hash(center, zoom, bearing, animate);
 
   @override
   String toString() =>
-      'RecordedCameraMove($center, zoom: $zoom, animate: $animate)';
+      'RecordedCameraMove($center, zoom: $zoom, bearing: $bearing, '
+      'animate: $animate)';
 }
 
 /// One recorded [MapController.fitBounds] call.
@@ -158,6 +165,9 @@ class FakeMapController implements MapController {
   double? zoom;
 
   @override
+  double? bearing;
+
+  @override
   BoundingBox? visibleBounds;
 
   @override
@@ -217,13 +227,20 @@ class FakeMapController implements MapController {
   Future<void> moveTo(
     LatLng center, {
     double? zoom,
+    double? bearing,
     bool animate = true,
   }) async {
     cameraMoves.add(
-      RecordedCameraMove(center: center, zoom: zoom, animate: animate),
+      RecordedCameraMove(
+        center: center,
+        zoom: zoom,
+        bearing: bearing,
+        animate: animate,
+      ),
     );
     this.center = center;
     if (zoom != null) this.zoom = zoom;
+    if (bearing != null) this.bearing = bearing;
   }
 
   @override
