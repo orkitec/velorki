@@ -1,0 +1,70 @@
+name: integration ios
+
+# The same emulator flows as integration.yml, on an iOS simulator. macOS
+# runners are free for a public repository but slow to start, so this runs
+# nightly and on demand rather than on every push. The tests fake the GPS
+# and the permissions in-process, so nothing here depends on the simulator's
+# own location; the map, the on-device router and the recorder are real.
+on:
+  workflow_dispatch:
+  schedule:
+    # 04:41 UTC, an hour after the Android run.
+    - cron: "41 4 * * *"
+
+env:
+  ORACLE_TILE: W20_N30
+  RD5_FORMAT_VERSION: "11.2"
+
+jobs:
+  simulator:
+    runs-on: macos-15
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.4  # keep in sync with mise.toml and app/.fvmrc
+          cache: true
+
+      - name: Prepare the app package
+        working-directory: app
+        run: |
+          flutter pub get
+          dart run build_runner build
+          flutter gen-l10n
+
+      - name: Build and serve the segments mirror
+        run: bash app/tool/itest_mirror.sh
+
+      - name: Boot a simulator
+        id: sim
+        run: |
+          set -euo pipefail
+          # The newest available iPhone runtime; the list is sorted by the
+          # simulator tool, so the last iPhone line is the newest device.
+          udid=$(xcrun simctl list devices available --json | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          phones = [d for runtime, ds in devices.items() if "iOS" in runtime
+                    for d in ds if d["name"].startswith("iPhone") and d["isAvailable"]]
+          print(phones[-1]["udid"])
+          ')
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          xcrun simctl list devices booted
+
+      - name: Run the simulator suite
+        working-directory: app
+        env:
+          VELORKI_ITEST_DEVICE: ${{ steps.sim.outputs.udid }}
+          VELORKI_ITEST_REGION: madeira
+          VELORKI_SEGMENTS_URL: http://127.0.0.1:8000
+        run: tool/itest.sh
+
+      - name: Mirror log
+        if: always()
+        run: cat mirror.log || true
