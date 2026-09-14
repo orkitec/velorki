@@ -6,7 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../features/navigation/data/navigation_settings.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
-/// Settings → Navigation: the turn directions and whether they are spoken.
+/// Settings → Navigation: the turn directions, whether they are spoken, and
+/// whether leaving the route plans a new way back onto it.
 class NavigationSection extends ConsumerWidget {
   /// Creates the section.
   const NavigationSection({super.key});
@@ -33,6 +34,16 @@ class NavigationSection extends ConsumerWidget {
           subtitle: Text(l10n.settingsVoiceDirectionsHint),
           onChanged: settings.turns
               ? (value) => unawaited(controller.setVoice(value))
+              : null,
+        ),
+        // Re-routing needs a route to be matched against, which is what the
+        // turn directions do, so it greys out with them too.
+        SwitchListTile(
+          value: settings.reroute,
+          title: Text(l10n.settingsReroute),
+          subtitle: Text(l10n.settingsRerouteHint),
+          onChanged: settings.turns
+              ? (value) => unawaited(controller.setReroute(value))
               : null,
         ),
       ],

@@ -257,6 +257,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     RecordingUiState state,
     SavedRoute? route,
     List<LatLng> planned,
+    GuidedRoute? detour,
     FollowMode mode,
   ) {
     // A ride that has just started takes the camera with it. Decided before
@@ -306,12 +307,18 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
         _followTo(map, position, mode);
       }
     }
-    // A chosen saved route wins; otherwise the route on the Plan tab is the
-    // one the rider is about to ride, saved or not.
-    final line = route != null
+    // A way back onto the route replaces it while it lasts: the detour is
+    // where the rider is being sent now. Failing that a chosen saved route
+    // wins, and failing that the route on the Plan tab is the one the rider
+    // is about to ride, saved or not.
+    final line = detour != null
+        ? detour.line
+        : route != null
         ? route.geometry.map((p) => p.pos).toList(growable: false)
         : planned;
-    final key = route != null
+    final key = detour != null
+        ? detour.key
+        : route != null
         ? route.id
         : planned.isEmpty
         ? null
@@ -558,7 +565,9 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       ),
     );
     final followMode = ref.watch(followModeProvider);
-    _syncMap(state, route, planned, followMode);
+    // A re-route, while one is being followed, is the line to draw.
+    final detour = ref.watch(detourRouteProvider);
+    _syncMap(state, route, planned, detour, followMode);
 
     // Turn-by-turn, when there is a route to follow and the rider wants it.
     final navigation = ref.watch(navigationControllerProvider);

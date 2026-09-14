@@ -32,6 +32,10 @@ enum CueKind {
   /// The rider is back on the route.
   backOnRoute,
 
+  /// A new way back onto the route has been computed and is now being
+  /// followed. Given by the controller, not by [TurnAnnouncer].
+  rerouted,
+
   /// The end of the route is reached.
   arrived,
 }

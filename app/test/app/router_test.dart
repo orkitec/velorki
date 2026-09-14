@@ -95,8 +95,14 @@ void main() {
     expect(find.textContaining('No saved routes yet.'), findsOneWidget);
 
     await _tapTab(tester, 'Settings');
+    // Advanced sits below the fold as the settings list grows.
+    await tester.scrollUntilVisible(
+      find.text('Server URLs'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('Server URLs'), findsOneWidget);
-    // The About section sits below the fold as the settings list grows.
+    // The About section sits below it again.
     await tester.scrollUntilVisible(
       find.text('© OpenStreetMap contributors'),
       200,
@@ -119,6 +125,12 @@ void main() {
   ) async {
     await _pumpShell(tester);
     await _tapTab(tester, 'Settings');
+    // Advanced sits below the fold as the settings list grows.
+    await tester.scrollUntilVisible(
+      find.widgetWithText(TextField, 'BRouter URL'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
 
     await tester.enterText(
       find.widgetWithText(TextField, 'BRouter URL'),

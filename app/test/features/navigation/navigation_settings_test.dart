@@ -15,7 +15,7 @@ Future<ProviderContainer> _container(Map<String, Object> initial) async {
 }
 
 void main() {
-  test('turn directions and voice are both on out of the box', () async {
+  test('turns, voice and re-routing are all on out of the box', () async {
     final container = await _container(const <String, Object>{});
 
     expect(
@@ -24,17 +24,19 @@ void main() {
     );
     expect(container.read(navigationSettingsProvider).turns, isTrue);
     expect(container.read(navigationSettingsProvider).voice, isTrue);
+    expect(container.read(navigationSettingsProvider).reroute, isTrue);
   });
 
   test('stored switches come back', () async {
     final container = await _container(const {
       'navigation.turns': false,
       'navigation.voice': false,
+      'navigation.reroute': false,
     });
 
     expect(
       container.read(navigationSettingsProvider),
-      const NavigationSettings(turns: false, voice: false),
+      const NavigationSettings(turns: false, voice: false, reroute: false),
     );
   });
 
@@ -70,6 +72,28 @@ void main() {
     expect(prefs.getBool('navigation.voice'), isNull);
   });
 
+  test('switching re-routing off stores it', () async {
+    final container = await _container(const <String, Object>{});
+
+    await container.read(navigationSettingsProvider.notifier).setReroute(false);
+
+    expect(container.read(navigationSettingsProvider).reroute, isFalse);
+    expect(container.read(navigationSettingsProvider).turns, isTrue);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getBool('navigation.reroute'), isFalse);
+  });
+
+  test('switching re-routing back on forgets the key', () async {
+    final container = await _container(const {'navigation.reroute': false});
+    expect(container.read(navigationSettingsProvider).reroute, isFalse);
+
+    await container.read(navigationSettingsProvider.notifier).setReroute(true);
+
+    expect(container.read(navigationSettingsProvider).reroute, isTrue);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getBool('navigation.reroute'), isNull);
+  });
+
   test('a rebuilt container reads what was written', () async {
     final first = await _container(const <String, Object>{});
     await first.read(navigationSettingsProvider.notifier).setTurns(false);
@@ -82,6 +106,7 @@ void main() {
 
     expect(second.read(navigationSettingsProvider).turns, isFalse);
     expect(second.read(navigationSettingsProvider).voice, isTrue);
+    expect(second.read(navigationSettingsProvider).reroute, isTrue);
   });
 
   test('copyWith touches only what it is given', () {
@@ -91,7 +116,14 @@ void main() {
       settings.copyWith(voice: false),
       const NavigationSettings(voice: false),
     );
+    expect(
+      settings.copyWith(reroute: false),
+      const NavigationSettings(reroute: false),
+    );
     expect(settings.copyWith(), settings);
-    expect(settings.toString(), 'NavigationSettings(turns: true, voice: true)');
+    expect(
+      settings.toString(),
+      'NavigationSettings(turns: true, voice: true, reroute: true)',
+    );
   });
 }

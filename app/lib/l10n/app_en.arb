@@ -2206,6 +2206,14 @@
   "@navArrived": {
     "description": "Spoken at the end of the route"
   },
+  "navRerouted": "Route recalculated",
+  "@navRerouted": {
+    "description": "Spoken when a new way back onto the route has been found"
+  },
+  "navRerouting": "Recalculating…",
+  "@navRerouting": {
+    "description": "Shown in the banner while a new way back onto the route is being computed"
+  },
   "navDistanceMetres": "{distance} m",
   "@navDistanceMetres": {
     "description": "A short distance to the next turn, shown in the banner",
@@ -2245,5 +2253,13 @@
   "settingsVoiceDirectionsHint": "Say the turns out loud",
   "@settingsVoiceDirectionsHint": {
     "description": "Explanation under the voice directions switch"
+  },
+  "settingsReroute": "Re-route when off course",
+  "@settingsReroute": {
+    "description": "Settings switch that plans a new way back when the rider leaves the route"
+  },
+  "settingsRerouteHint": "Plan a new way back onto the route when you leave it",
+  "@settingsRerouteHint": {
+    "description": "Explanation under the re-route switch"
   }
 }

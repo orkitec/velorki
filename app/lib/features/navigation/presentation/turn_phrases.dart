@@ -31,6 +31,8 @@ String cuePhrase(TurnCue cue, AppLocalizations l10n) {
       return l10n.navOffRoute;
     case CueKind.backOnRoute:
       return l10n.navBackOnRoute;
+    case CueKind.rerouted:
+      return l10n.navRerouted;
     case CueKind.arrived:
       return l10n.navArrived;
     case CueKind.ahead:

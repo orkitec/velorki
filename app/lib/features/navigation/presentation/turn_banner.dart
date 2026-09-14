@@ -14,7 +14,7 @@ const double turnBannerHeight = 88;
 ///
 /// Three lines at most: the distance in big figures, the instruction under it
 /// and, when a second turn follows straight after, a "then ..." preview. Off
-/// route and arrival replace all of that with a single line.
+/// route, re-routing and arrival replace all of that with a single line.
 class TurnBanner extends StatelessWidget {
   /// Creates the banner.
   const TurnBanner({required this.progress, super.key});
@@ -37,7 +37,13 @@ class TurnBanner extends StatelessWidget {
     final Color tint;
     final List<Widget> lines;
 
-    if (progress.offRoute) {
+    if (progress.rerouting) {
+      // A request is out for a way back onto the route: say that rather than
+      // leave the rider looking at a bare "off route".
+      icon = Icons.autorenew;
+      tint = colors.warning;
+      lines = [_headline(theme, l10n.navRerouting, tint)];
+    } else if (progress.offRoute) {
       icon = Icons.error_outline;
       tint = colors.warning;
       lines = [_headline(theme, l10n.navOffRoute, tint)];

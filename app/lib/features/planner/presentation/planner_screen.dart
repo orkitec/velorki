@@ -393,7 +393,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
             minChildSize: collapsedSheetSize,
             maxChildSize: 0.9,
             snap: true,
-            snapSizes: <double>[restingSheetSize, variantsSheetSize],
+            // One resting height, not both: with the two in the list a pull
+            // down from the top settled on the higher one and a pull up from
+            // the handle on the lower one, a chip row apart.
+            snapSizes: <double>[
+              hasVariants ? variantsSheetSize : restingSheetSize,
+            ],
             builder: (context, scrollController) => DecoratedBox(
               decoration: const BoxDecoration(
                 borderRadius: BorderRadius.vertical(top: Radius.circular(28)),

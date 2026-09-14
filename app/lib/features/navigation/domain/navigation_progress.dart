@@ -16,6 +16,7 @@ class NavigationProgress {
     this.remainingM = 0,
     this.alongM = 0,
     this.arrived = false,
+    this.rerouting = false,
   });
 
   /// The turn that has not been passed yet, or `null` when none is left.
@@ -43,6 +44,24 @@ class NavigationProgress {
   /// Whether the rider has reached the end of the route.
   final bool arrived;
 
+  /// Whether a new way back onto the route is being computed right now.
+  ///
+  /// Set by the controller rather than the navigator: it is about a request in
+  /// flight, not about where the rider is.
+  final bool rerouting;
+
+  /// The same progress with [rerouting] set to [value].
+  NavigationProgress withRerouting(bool value) => NavigationProgress(
+    next: next,
+    distanceToNextM: distanceToNextM,
+    after: after,
+    offRoute: offRoute,
+    remainingM: remainingM,
+    alongM: alongM,
+    arrived: arrived,
+    rerouting: value,
+  );
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -53,7 +72,8 @@ class NavigationProgress {
           other.offRoute == offRoute &&
           other.remainingM == remainingM &&
           other.alongM == alongM &&
-          other.arrived == arrived;
+          other.arrived == arrived &&
+          other.rerouting == rerouting;
 
   @override
   int get hashCode => Object.hash(
@@ -64,6 +84,7 @@ class NavigationProgress {
     remainingM,
     alongM,
     arrived,
+    rerouting,
   );
 
   @override
@@ -74,5 +95,6 @@ class NavigationProgress {
       'along ${alongM.toStringAsFixed(0)} m, '
       'remaining ${remainingM.toStringAsFixed(0)} m'
       '${offRoute ? ', off route' : ''}'
+      '${rerouting ? ', re-routing' : ''}'
       '${arrived ? ', arrived' : ''})';
 }

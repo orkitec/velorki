@@ -86,6 +86,24 @@ void main() {
     expect(find.byIcon(Icons.error_outline), findsOneWidget);
   });
 
+  testWidgets('a way back being worked out replaces the warning', (
+    tester,
+  ) async {
+    await _pumpBanner(
+      tester,
+      const NavigationProgress(
+        next: _left,
+        distanceToNextM: 300,
+        offRoute: true,
+        rerouting: true,
+      ),
+    );
+
+    expect(find.text('Recalculating…'), findsOneWidget);
+    expect(find.text('Off route'), findsNothing);
+    expect(find.byIcon(Icons.autorenew), findsOneWidget);
+  });
+
   testWidgets('the end of the route says so', (tester) async {
     await _pumpBanner(tester, const NavigationProgress(arrived: true));
 

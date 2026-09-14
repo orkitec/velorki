@@ -105,6 +105,39 @@ void main() {
     await unmountApp(tester);
   });
 
+  testWidgets('a way back onto the route is drawn in place of the plan', (
+    tester,
+  ) async {
+    final h = RecordingHarness();
+    await pumpRecordingScreen(tester, const RecordingScreen(), harness: h);
+    await tester.pump();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(RecordingScreen)),
+    );
+    final planner = container.read(plannerControllerProvider.notifier);
+    planner.addWaypoint(const LatLng(48.0, 11.0));
+    planner.addWaypoint(const LatLng(48.1, 11.1));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+
+    const detour = <LatLng>[LatLng(48.05, 11.2), LatLng(48.08, 11.25)];
+    container
+        .read(detourRouteProvider.notifier)
+        .replace(
+          const GuidedRoute(
+            key: 'detour:1:2',
+            line: detour,
+            turns: <TurnHint>[],
+          ),
+        );
+    await tester.pumpAndSettle();
+
+    expect(h.map.lines[followedRouteLineId], detour);
+
+    await unmountApp(tester);
+  });
+
   testWidgets('the recent rides are listed under the start button', (
     tester,
   ) async {

@@ -85,6 +85,10 @@ void main() {
       cuePhrase(const TurnCue(kind: CueKind.arrived), l10n),
       'You have arrived',
     );
+    expect(
+      cuePhrase(const TurnCue(kind: CueKind.rerouted), l10n),
+      'Route recalculated',
+    );
   });
 
   test('a roundabout is spoken with its exit number', () {

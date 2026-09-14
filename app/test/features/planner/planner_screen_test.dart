@@ -249,6 +249,19 @@ void main() {
     expect(find.text('Remove point'), findsNothing);
   });
 
+  testWidgets('the sheet has one resting height without variants', (
+    tester,
+  ) async {
+    await pumpScreen(tester, const PlannerScreen());
+    final sheet = tester.widget<DraggableScrollableSheet>(
+      find.byType(DraggableScrollableSheet),
+    );
+    // Two resting heights a chip row apart made a pull down from the top
+    // and a pull up from the handle settle at different places.
+    expect(sheet.snapSizes, hasLength(1));
+    expect(sheet.snapSizes!.single, sheet.initialChildSize);
+  });
+
   testWidgets('a point can be visited earlier or later from its sheet', (
     tester,
   ) async {
