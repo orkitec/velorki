@@ -50,17 +50,13 @@ exercised there. The items here are the parts not yet covered by that.
 
 ## On the Mac (Xcode)
 
-- [ ] First iOS build: `flutter build ios`, provisioning, fastlane (match repo,
-      App Store Connect API key). `ios/Runner/AppDelegate.swift` has an
-      `application(_:open:options:)` handler for file opens that has never been
-      compiled.
+- [ ] iOS release signing: fastlane (match repo, App Store Connect API key).
+      Development builds sign automatically with the orkitec team and run on
+      a phone; the file-open handler in `ios/Runner/AppDelegate.swift` has
+      not been tried yet.
 - [ ] Add the **Share Extension** target for `receive_sharing_intent`; "Open in
       Velorki" already works without it. See
       `app/lib/features/import_export/README.md`.
-- [ ] Add the **VelorkiLiveActivity** widget-extension target for the iOS live
-      activity; the Swift and the exact Xcode steps are in
-      `app/ios/VelorkiLiveActivity/README.md`. Without it the Dart side fails
-      quietly and the ride shows nothing on the lock screen.
 - [ ] Exclude `<appSupport>/brouter/segments` from the iOS backup
       (`NSURLIsExcludedFromBackupKey`; the TODO is in
       `app/lib/features/routing_tiles/data/brouter_storage.dart`).

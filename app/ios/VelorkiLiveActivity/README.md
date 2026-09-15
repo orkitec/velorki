@@ -1,36 +1,22 @@
 # VelorkiLiveActivity
 
-The lock-screen card and Dynamic Island of a running ride. The Swift here is
-written but not wired up: a widget extension has to be a target in the Xcode
-project, and the project file can only be edited on the Mac.
+The lock-screen card and Dynamic Island of a running ride.
 
-The Dart side is finished and already calls the plugin
-(`lib/features/recording/data/live_activity.dart`); without this target every
-call fails quietly and the app behaves as it does today.
+The target `VelorkiLiveActivity` is a widget extension in `Runner.xcodeproj`,
+embedded in Runner, deployment target 16.2, built from the three Swift files
+and the `Info.plist` here. Runner and the extension both carry the App Group
+`group.com.orkitec.velorki` in their entitlements files; the same string is
+`liveActivityAppGroupId` in `lib/features/recording/data/live_activity.dart`,
+change one and change the other. Push Notifications are not needed: the
+activity is created with `iOSEnableRemoteUpdates: false` and every figure
+comes from the phone itself.
 
-## Adding the target
+The Dart side calls the plugin from
+`lib/features/recording/data/live_activity.dart`; without the extension every
+call fails quietly.
 
-1. Open `ios/Runner.xcworkspace` in Xcode.
-2. **File → New → Target… → Widget Extension**. Product name
-   **`VelorkiLiveActivity`**, "Include Live Activity" ticked, "Include
-   Configuration App Intent" unticked, "Embed in Application" = **Runner**.
-   Finish, then **Activate** the scheme when asked.
-3. Delete the files the template generated (`VelorkiLiveActivity.swift`,
-   `VelorkiLiveActivityBundle.swift`, `VelorkiLiveActivityLiveActivity.swift`,
-   `AppIntent.swift`, the asset catalog may stay) and add the four files from
-   this directory to the target instead: `VelorkiLiveActivityBundle.swift`,
-   `RideAttributes.swift`, `RideLiveActivityView.swift`, `Info.plist`. Point
-   the target's **Info.plist File** build setting at this `Info.plist`.
-4. Set the target's **iOS Deployment Target** to **16.2**.
-5. **Signing & Capabilities → + Capability → App Groups** on *both* the
-   `Runner` target and the `VelorkiLiveActivity` target, and tick
-   `group.com.orkitec.velorki` in both. The same string is
-   `liveActivityAppGroupId` in `lib/features/recording/data/live_activity.dart`;
-   change one and change the other.
-6. `NSSupportsLiveActivities` is already in `ios/Runner/Info.plist` and in the
-   `Info.plist` here. Push Notifications are **not** needed: the activity is
-   created with `iOSEnableRemoteUpdates: false` and every figure comes from the
-   phone itself.
+Flutter's "Thin Binary" script phase must run after "Embed Foundation
+Extensions" in the Runner target, or Xcode reports a build cycle.
 
 ## How the data gets across
 
