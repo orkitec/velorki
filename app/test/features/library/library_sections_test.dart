@@ -172,7 +172,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('DISTANCE'), findsOneWidget);
-    expect(find.text('MOVING'), findsOneWidget);
+    // Twice: the stat tile, and the column of the splits table.
+    expect(find.text('MOVING'), findsWidgets);
     expect(find.text('Export GPX track'), findsWidgets);
     await unmountApp(tester);
   });

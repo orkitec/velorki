@@ -40,6 +40,9 @@ class TestMapController implements MapController {
   /// The last bounds [fitBounds] was asked for.
   BoundingBox? fittedBounds;
 
+  /// The segments of the last [setTrackSegments] call.
+  List<TrackSegment> trackSegments = const <TrackSegment>[];
+
   /// The last camera target.
   LatLng? movedTo;
 
@@ -123,7 +126,14 @@ class TestMapController implements MapController {
 
   @override
   Future<void> setTrackLine(List<LatLng> points) async {
+    trackSegments = const <TrackSegment>[];
     calls.add(MapCall('setTrackLine', [points]));
+  }
+
+  @override
+  Future<void> setTrackSegments(List<TrackSegment> segments) async {
+    trackSegments = segments;
+    calls.add(MapCall('setTrackSegments', [segments]));
   }
 
   @override

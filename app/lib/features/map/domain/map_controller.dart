@@ -44,6 +44,13 @@ abstract class MapController {
   /// A recorded or recording track, drawn distinct from planned routes.
   Future<void> setTrackLine(List<LatLng> points);
 
+  /// The same track cut into pieces and coloured by how fast each was ridden.
+  ///
+  /// Replaces whatever [setTrackLine] drew, and vice versa: there is one
+  /// track on the map. A finished ride is drawn this way, a running recording
+  /// through [setTrackLine], which has nothing to colour by yet.
+  Future<void> setTrackSegments(List<TrackSegment> segments);
+
   /// User position puck. `null` hides it.
   ///
   /// [headingDeg] is a course over ground, so [speedMps] comes with it: the
@@ -84,6 +91,31 @@ abstract class MapController {
 
   /// Visible area, for offline downloads and search bias.
   BoundingBox? get visibleBounds;
+}
+
+/// One piece of a coloured track: a polyline and where it sits between the
+/// ride's slowest and its fastest stretch.
+@immutable
+class TrackSegment {
+  /// Creates a segment; [t] is clamped to 0..1.
+  TrackSegment({required this.points, required double t})
+    : t = t.clamp(0.0, 1.0);
+
+  /// The polyline, in riding order.
+  final List<LatLng> points;
+
+  /// 0 is the slow end of the colour ramp, 1 the fast end.
+  final double t;
+
+  @override
+  bool operator ==(Object other) =>
+      other is TrackSegment && other.t == t && listEquals(other.points, points);
+
+  @override
+  int get hashCode => Object.hash(t, Object.hashAll(points));
+
+  @override
+  String toString() => 'TrackSegment(${points.length} points, t: $t)';
 }
 
 enum RouteLineStyle { main, alternative, preview }

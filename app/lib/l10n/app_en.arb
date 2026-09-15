@@ -860,6 +860,44 @@
       }
     }
   },
+  "rideElevation": "Elevation",
+  "@rideElevation": {
+    "description": "Caption above the elevation chart of a recorded ride"
+  },
+  "rideSpeed": "Speed",
+  "@rideSpeed": {
+    "description": "Caption above the speed chart of a recorded ride"
+  },
+  "rideSplits": "Splits",
+  "@rideSplits": {
+    "description": "Caption above the table of kilometre or mile splits"
+  },
+  "rideSplitColumn": "Split",
+  "@rideSplitColumn": {
+    "description": "Column heading of the splits table, over the length of each split"
+  },
+  "rideSpeedSlow": "slow",
+  "@rideSpeedSlow": {
+    "description": "Left end of the legend under a track coloured by speed"
+  },
+  "rideSpeedFast": "fast",
+  "@rideSpeedFast": {
+    "description": "Right end of the legend under a track coloured by speed"
+  },
+  "rideChartPoint": "{distance} · {value}",
+  "@rideChartPoint": {
+    "description": "Read-out of the point the rider touched in a ride chart: how far along, and the height or speed there",
+    "placeholders": {
+      "distance": {
+        "type": "String",
+        "example": "12.4 km"
+      },
+      "value": {
+        "type": "String",
+        "example": "430 m"
+      }
+    }
+  },
   "rideContinue": "Continue this ride",
   "@rideContinue": {
     "description": "Menu item on the ride detail screen that records onto this ride again, for a ride that was stopped by accident"

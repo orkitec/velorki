@@ -27,6 +27,8 @@ const MapPalette _repainted = MapPalette(
   routeAlternatives: <String>['#333333', '#343434', '#353535'],
   routePreview: '#444444',
   track: '#555555',
+  trackSlow: '#505050',
+  trackFast: '#5F5F5F',
   waypointStart: '#666666',
   waypointVia: '#777777',
   waypointEnd: '#888888',
@@ -36,6 +38,14 @@ const MapPalette _repainted = MapPalette(
   positionDot: '#CCCCCC',
   positionAccuracy: '#DDDDDD',
 );
+
+final List<TrackSegment> _segments = <TrackSegment>[
+  TrackSegment(points: _points, t: 0),
+  TrackSegment(
+    points: const <LatLng>[LatLng(47.1, 8.1), LatLng(47.2, 8.2)],
+    t: 1,
+  ),
+];
 
 const List<MapWaypoint> _waypoints = <MapWaypoint>[
   MapWaypoint(position: LatLng(47.0, 8.0), kind: MapWaypointKind.start),
@@ -731,6 +741,122 @@ void main() {
         contains(MapLayerIds.trackSource),
       );
       expect(_featuresOf(ops, MapLayerIds.trackSource), hasLength(1));
+    });
+  });
+
+  group('setTrackSegments', () {
+    test('writes one line per segment, each carrying its t', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      ops.clearCalls();
+
+      await adapter.setTrackSegments(_segments);
+
+      final features = _featuresOf(ops, MapLayerIds.trackSource);
+      expect(features, hasLength(2));
+      expect(
+        features.map((f) => (f as Map<String, dynamic>)['properties']['t']),
+        <double>[0, 1],
+      );
+      expect(
+        (features.first as Map<String, dynamic>)['geometry']['coordinates'],
+        // GeoJSON is lon, lat.
+        <List<double>>[
+          <double>[8.0, 47.0],
+          <double>[8.1, 47.1],
+        ],
+      );
+    });
+
+    test('the layer colours the line by t, slow to fast', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops, palette: _repainted);
+      await adapter.attachToStyle();
+      ops.clearCalls();
+
+      await adapter.setTrackSegments(_segments);
+
+      final paint = ops.lastPropertiesOf(MapLayerIds.trackLayer)!;
+      expect(paint.properties!['line-color'], <Object>[
+        'interpolate',
+        <Object>['linear'],
+        <Object>['get', 't'],
+        0,
+        '#505050',
+        1,
+        '#5F5F5F',
+      ]);
+    });
+
+    test('the paint is written once, not on every update', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      ops.clearCalls();
+
+      await adapter.setTrackSegments(_segments);
+      await adapter.setTrackSegments(_segments);
+
+      expect(ops.callsNamed('setLayerProperties'), hasLength(1));
+    });
+
+    test('a plain track line puts the flat colour back', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setTrackSegments(_segments);
+      ops.clearCalls();
+
+      await adapter.setTrackLine(_points);
+
+      expect(
+        ops.lastPropertiesOf(MapLayerIds.trackLayer)!.properties!['line-color'],
+        const MapPalette.classic().track,
+      );
+      expect(_featuresOf(ops, MapLayerIds.trackSource), hasLength(1));
+    });
+
+    test('a segment of one point is not drawn at all', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      ops.clearCalls();
+
+      await adapter.setTrackSegments(<TrackSegment>[
+        TrackSegment(points: const <LatLng>[LatLng(47, 8)], t: 0),
+      ]);
+
+      expect(_featuresOf(ops, MapLayerIds.trackSource), isEmpty);
+    });
+
+    test('a style reload replays the coloured track', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setTrackSegments(_segments);
+      ops.clearCalls();
+
+      ops.reloadStyle();
+      await adapter.attachToStyle();
+
+      expect(_featuresOf(ops, MapLayerIds.trackSource), hasLength(2));
+      expect(
+        ops.lastPropertiesOf(MapLayerIds.trackLayer)!.properties!['line-color'],
+        isA<List<Object?>>(),
+      );
+    });
+
+    test('rebuilds the style when its source has vanished', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      ops.clearCalls();
+      ops.scriptedSourceIds.add(const <String>[]);
+
+      await adapter.setTrackSegments(_segments);
+
+      expect(_featuresOf(ops, MapLayerIds.trackSource), hasLength(2));
     });
   });
 

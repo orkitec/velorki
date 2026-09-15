@@ -53,6 +53,45 @@ Map<String, dynamic> lineFeatureCollection(
   };
 }
 
+/// One `LineString` feature per segment, each carrying its `t` in the feature
+/// properties so one line layer can colour the whole track by speed.
+///
+/// Segments of fewer than two points are dropped, as a one point line is
+/// invalid GeoJSON and MapLibre would throw the whole source away with it.
+Map<String, dynamic> trackSegmentsFeatureCollection(
+  List<TrackSegment> segments,
+) {
+  final features = <Map<String, dynamic>>[
+    for (final segment in segments)
+      if (segment.points.length >= 2)
+        <String, dynamic>{
+          'type': 'Feature',
+          'properties': <String, dynamic>{'t': segment.t},
+          'geometry': <String, dynamic>{
+            'type': 'LineString',
+            'coordinates': segment.points.map(lngLat).toList(),
+          },
+        },
+  ];
+  if (features.isEmpty) return emptyFeatureCollection();
+  return <String, dynamic>{'type': 'FeatureCollection', 'features': features};
+}
+
+/// A `line-color` expression ramping from [slow] to [fast] over the `t` of
+/// [trackSegmentsFeatureCollection].
+///
+/// One layer and one interpolation rather than five layers: the ramp is
+/// continuous, so a finer classification later needs no style change.
+List<Object> trackSpeedColorExpression(String slow, String fast) => <Object>[
+  'interpolate',
+  <Object>['linear'],
+  <Object>['get', 't'],
+  0,
+  slow,
+  1,
+  fast,
+];
+
 /// The label drawn inside a waypoint circle: the 1-based position in the
 /// list. A place name would not fit a 20 px disc; it lives in the plan.
 String waypointLabel(MapWaypoint waypoint, int index) => '${index + 1}';

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/core/files/track_exporter.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
 import 'package:velorki/features/recording/domain/ride_upload.dart';
+import 'package:velorki/features/recording/presentation/ride_charts.dart';
 import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
+import 'package:velorki/features/recording/presentation/ride_splits.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import 'support/pump.dart';
@@ -16,6 +19,44 @@ List<TrackPoint> _track() => <TrackPoint>[
       time: DateTime.utc(2026, 9, 12, 10, 0, i),
     ),
 ];
+
+/// Exactly 20 km/h for three kilometres, one fix a second: three whole
+/// kilometre splits of three minutes each.
+List<TrackPoint> _threeKilometres({bool withElevation = true}) {
+  const speedMps = 1000 / 180;
+  var position = const LatLng(48, 11);
+  return <TrackPoint>[
+    for (var i = 0; i <= 540; i++)
+      TrackPoint(
+        i == 0 ? position : position = destinationPoint(position, 0, speedMps),
+        ele: withElevation ? 400 + i * 0.1 : null,
+        time: DateTime.utc(2026, 9, 12, 10).add(Duration(seconds: i)),
+      ),
+  ];
+}
+
+/// Saves a ride of [points] and opens its detail screen.
+Future<void> _open(
+  WidgetTester tester,
+  RecordingHarness harness,
+  List<TrackPoint> points, {
+  List<Override> extraOverrides = const <Override>[],
+}) async {
+  await RideRepository(harness.planner.db.ridesDao).finalizeRide(
+    rideId: 'ride-1',
+    name: 'Morning loop',
+    points: points,
+    startedAt: points.first.time!,
+    endedAt: points.last.time!,
+  );
+  await pumpRecordingScreen(
+    tester,
+    const RideDetailScreen(rideId: 'ride-1'),
+    harness: harness,
+    extraOverrides: extraOverrides,
+  );
+  await tester.pumpAndSettle();
+}
 
 Future<void> _seed(RecordingHarness harness) =>
     RideRepository(harness.planner.db.ridesDao).finalizeRide(
@@ -53,16 +94,24 @@ void main() {
 
     expect(find.text('Morning loop'), findsOneWidget);
     expect(find.text('DISTANCE'), findsOneWidget);
-    expect(find.text('MOVING'), findsOneWidget);
-    expect(find.text('ASCENT'), findsOneWidget);
+    // Once in the tiles, once as a column of the splits table.
+    expect(find.text('MOVING'), findsNWidgets(2));
+    expect(find.text('ASCENT'), findsNWidgets(2));
     expect(find.text('00:59'), findsWidgets);
     expect(find.text('Export GPX track'), findsWidgets);
     expect(find.text('Export FIT activity'), findsWidgets);
 
-    // The track went on the map and the camera was fitted to it.
-    final track = harness.map.calls.where((c) => c.method == 'setTrackLine');
-    expect(track, isNotEmpty);
-    expect((track.last.arguments.first as List<LatLng>?), hasLength(60));
+    // The track went on the map coloured by speed, and the camera was fitted
+    // to it.
+    final segments = harness.map.trackSegments;
+    expect(segments, isNotEmpty);
+    expect(
+      segments.expand((s) => s.points).length,
+      // Every fix is in a segment; the ones where the colour changes are in
+      // two, so the line has no holes.
+      greaterThanOrEqualTo(60),
+    );
+    expect(segments.map((s) => s.t), everyElement(inInclusiveRange(0, 1)));
     expect(harness.map.fittedBounds, isNotNull);
     expect(harness.map.fittedBounds!.south, closeTo(48, 1e-9));
 
@@ -250,6 +299,71 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Sunday spin'), findsOneWidget);
+    await unmountApp(tester);
+  });
+
+  testWidgets('the analysis draws an elevation chart, a speed chart and '
+      'the splits', (tester) async {
+    final harness = RecordingHarness();
+    await _open(tester, harness, _threeKilometres());
+
+    expect(find.byType(RideElevationChart), findsOneWidget);
+    expect(find.byType(RideSpeedChart), findsOneWidget);
+    expect(find.byType(RideSplitsTable), findsOneWidget);
+    expect(find.text('ELEVATION'), findsOneWidget);
+    expect(find.text('SPEED'), findsOneWidget);
+    expect(find.text('SPLITS'), findsOneWidget);
+    // The legend under the map.
+    expect(find.byType(RideSpeedLegend), findsOneWidget);
+    expect(find.text('SLOW'), findsOneWidget);
+    expect(find.text('FAST'), findsOneWidget);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('a ride without heights shows no elevation chart', (
+    tester,
+  ) async {
+    final harness = RecordingHarness();
+    await _open(tester, harness, _threeKilometres(withElevation: false));
+
+    expect(find.byType(RideElevationChart), findsNothing);
+    expect(find.text('ELEVATION'), findsNothing);
+    // The speed chart and the splits are still there.
+    expect(find.text('SPEED'), findsOneWidget);
+    expect(find.text('SPLITS'), findsOneWidget);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('three kilometres at 20 km/h are three splits of 3:00', (
+    tester,
+  ) async {
+    final harness = RecordingHarness();
+    await _open(tester, harness, _threeKilometres());
+
+    expect(find.text('1 km'), findsNWidgets(3));
+    expect(find.text('03:00'), findsNWidgets(3));
+    expect(find.text('20.0 km/h'), findsWidgets);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('the same ride splits into miles under imperial', (tester) async {
+    final harness = RecordingHarness();
+    await _open(
+      tester,
+      harness,
+      _threeKilometres(),
+      extraOverrides: [imperialUnits],
+    );
+
+    // 1.86 miles: one whole mile and the remainder, flagged by its own length.
+    expect(find.text('1 mi'), findsOneWidget);
+    expect(find.text('0.9 mi'), findsOneWidget);
+    expect(find.text('04:50'), findsOneWidget);
+    expect(find.text('04:10'), findsOneWidget);
+
     await unmountApp(tester);
   });
 

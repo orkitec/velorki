@@ -61,6 +61,8 @@ class MapPalette {
     required this.routeAlternatives,
     required this.routePreview,
     required this.track,
+    required this.trackSlow,
+    required this.trackFast,
     required this.waypointStart,
     required this.waypointVia,
     required this.waypointEnd,
@@ -79,6 +81,8 @@ class MapPalette {
       routeAlternatives = const <String>['#78909C', '#5C6BC0', '#26A69A'],
       routePreview = '#EF6C00',
       track = '#AD1457',
+      trackSlow = '#1D6FD0',
+      trackFast = '#AD1457',
       waypointStart = '#2E7D32',
       waypointVia = '#1565C0',
       waypointEnd = '#C62828',
@@ -101,6 +105,8 @@ class MapPalette {
       ],
       routePreview: VelorkiColors.hex(colors.routePreview),
       track: VelorkiColors.hex(colors.track),
+      trackSlow: VelorkiColors.hex(colors.trackSlow),
+      trackFast: VelorkiColors.hex(colors.trackFast),
       waypointStart: VelorkiColors.hex(colors.waypointStart),
       waypointVia: VelorkiColors.hex(colors.waypointVia),
       waypointEnd: VelorkiColors.hex(colors.waypointEnd),
@@ -121,6 +127,12 @@ class MapPalette {
   final List<String> routeAlternatives;
   final String routePreview;
   final String track;
+
+  /// The slow end of the ride page's speed ramp.
+  final String trackSlow;
+
+  /// The fast end of it.
+  final String trackFast;
   final String waypointStart;
   final String waypointVia;
   final String waypointEnd;
@@ -139,6 +151,8 @@ class MapPalette {
       listEquals(other.routeAlternatives, routeAlternatives) &&
       other.routePreview == routePreview &&
       other.track == track &&
+      other.trackSlow == trackSlow &&
+      other.trackFast == trackFast &&
       other.waypointStart == waypointStart &&
       other.waypointVia == waypointVia &&
       other.waypointEnd == waypointEnd &&
@@ -156,6 +170,8 @@ class MapPalette {
     Object.hashAll(routeAlternatives),
     routePreview,
     track,
+    trackSlow,
+    trackFast,
     waypointStart,
     waypointVia,
     waypointEnd,
@@ -473,6 +489,11 @@ class MaplibreMapControllerAdapter implements MapController {
   LatLng? _searchPin;
   String? _searchPinLabel;
   List<LatLng> _track = const <LatLng>[];
+  // The two ways of drawing the track share one source and one layer, so only
+  // one of them is ever set; `_trackColoured` is what the layer currently
+  // paints with, so a recording does not rewrite the paint on every fix.
+  List<TrackSegment> _trackSegments = const <TrackSegment>[];
+  bool _trackColoured = false;
   // Hysteresis and circular averaging for the heading cone, so it neither
   // blinks nor spins while the rider rolls along at walking pace.
   final HeadingSmoother _headingSmoother = HeadingSmoother();
@@ -515,6 +536,9 @@ class MaplibreMapControllerAdapter implements MapController {
   Future<void> attachToStyle() async {
     _attached = false;
     _routeLines.clear();
+    // A fresh style draws the track in the plain colour until something asks
+    // for the speed ramp again.
+    _trackColoured = false;
     // A fresh style has no puck, so the next fix is drawn where it is rather
     // than walked there from wherever the old one stood.
     _puckWalk?.cancel();
@@ -697,6 +721,7 @@ class MaplibreMapControllerAdapter implements MapController {
       await setSearchPin(_searchPin, label: _searchPinLabel);
     }
     if (_track.isNotEmpty) await setTrackLine(_track);
+    if (_trackSegments.isNotEmpty) await setTrackSegments(_trackSegments);
     final lines = Map<String, List<LatLng>>.of(_routePoints);
     for (final entry in lines.entries) {
       await setRouteLine(
@@ -1035,7 +1060,7 @@ class MaplibreMapControllerAdapter implements MapController {
   Future<void> _recolour(MapPalette palette) async {
     await _ops.setLayerProperties(
       MapLayerIds.trackLayer,
-      ml.LineLayerProperties(lineColor: palette.track),
+      ml.LineLayerProperties(lineColor: _trackLineColor()),
     );
     await _ops.setLayerProperties(
       MapLayerIds.positionDotLayer,
@@ -1154,16 +1179,51 @@ class MaplibreMapControllerAdapter implements MapController {
   @override
   Future<void> setTrackLine(List<LatLng> points) async {
     _track = List<LatLng>.unmodifiable(points);
+    _trackSegments = const <TrackSegment>[];
     if (!_attached) return;
     if (await _hasSource(MapLayerIds.trackSource) == false) {
       await attachToStyle();
       return;
     }
+    await _setTrackColoured(false);
     await _writeBaseSource(
       MapLayerIds.trackSource,
       lineFeatureCollection(points),
     );
   }
+
+  @override
+  Future<void> setTrackSegments(List<TrackSegment> segments) async {
+    _trackSegments = List<TrackSegment>.unmodifiable(segments);
+    _track = const <LatLng>[];
+    if (!_attached) return;
+    if (await _hasSource(MapLayerIds.trackSource) == false) {
+      await attachToStyle();
+      return;
+    }
+    await _setTrackColoured(true);
+    await _writeBaseSource(
+      MapLayerIds.trackSource,
+      trackSegmentsFeatureCollection(segments),
+    );
+  }
+
+  /// Switches the track layer between the flat colour and the speed ramp,
+  /// writing the paint only when it actually changes.
+  Future<void> _setTrackColoured(bool coloured) async {
+    if (_trackColoured == coloured) return;
+    _trackColoured = coloured;
+    await _ops.setLayerProperties(
+      MapLayerIds.trackLayer,
+      ml.LineLayerProperties(lineColor: _trackLineColor()),
+    );
+  }
+
+  /// What the track layer paints with: one colour for a recording, the
+  /// slow-to-fast ramp for a finished ride.
+  Object _trackLineColor() => _trackColoured
+      ? trackSpeedColorExpression(palette.trackSlow, palette.trackFast)
+      : palette.track;
 
   @override
   Future<void> setPosition(

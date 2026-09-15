@@ -169,6 +169,12 @@ class FakeMapController implements MapController {
   /// Every [setTrackLine] call, in order.
   final List<List<LatLng>> trackLineCalls = <List<LatLng>>[];
 
+  /// The segments of the last [setTrackSegments] call.
+  List<TrackSegment> trackSegments = const <TrackSegment>[];
+
+  /// Every [setTrackSegments] call, in order.
+  final List<List<TrackSegment>> trackSegmentCalls = <List<TrackSegment>>[];
+
   /// The last [setPosition] call, `null` until one happens.
   RecordedPosition? position;
 
@@ -314,6 +320,15 @@ class FakeMapController implements MapController {
     final copy = List<LatLng>.unmodifiable(points);
     trackLine = copy;
     trackLineCalls.add(copy);
+    trackSegments = const <TrackSegment>[];
+  }
+
+  @override
+  Future<void> setTrackSegments(List<TrackSegment> segments) async {
+    final copy = List<TrackSegment>.unmodifiable(segments);
+    trackSegments = copy;
+    trackSegmentCalls.add(copy);
+    trackLine = const <LatLng>[];
   }
 
   @override

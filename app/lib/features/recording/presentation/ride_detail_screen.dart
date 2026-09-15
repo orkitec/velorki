@@ -7,6 +7,7 @@ import 'package:velorki_api/velorki_api.dart' show ShareKind;
 
 import '../../../app/router.dart';
 import '../../../core/files/track_exporter.dart';
+import '../../../core/geo/ride_analysis.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../integrations/common/domain/connected_account.dart';
 import '../../integrations/presentation/integration_labels.dart';
@@ -19,11 +20,14 @@ import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/placeholder_body.dart';
 import '../../sharing/presentation/share_link_button.dart';
 import '../application/recording_controller.dart';
+import '../application/ride_analysis_provider.dart';
 import '../data/recording_service.dart';
 import '../data/ride_repository.dart';
 import '../domain/ride.dart';
 import 'recording_format.dart';
 import 'rename_ride_dialog.dart';
+import 'ride_charts.dart';
+import 'ride_splits.dart';
 
 /// The location of the detail screen for the ride [id].
 String rideDetailLocation(String id) => '$recordingRoute/ride/$id';
@@ -43,23 +47,40 @@ class RideDetailScreen extends ConsumerStatefulWidget {
 
 class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
   MapController? _map;
-  String? _shownRideId;
+  String? _shownKey;
+  // The analysis as the last build saw it, so the map can be drawn from
+  // `onMapReady` too, which arrives out of turn.
+  RideAnalysis? _analysis;
 
   // Called from the map widget's build, so it must not call setState.
   void _onMapReady(MapController controller) {
     _map = controller;
-    _shownRideId = null;
+    _shownKey = null;
     final ride = ref.read(rideProvider(widget.rideId)).value;
-    if (ride != null) unawaited(_showOnMap(ride));
+    if (ride != null) unawaited(_showOnMap(ride, _analysis));
   }
 
-  Future<void> _showOnMap(Ride ride) async {
+  /// Draws the ride and fits the camera to it.
+  ///
+  /// The track goes on coloured by speed as soon as the analysis is there;
+  /// until then, and for a ride whose fixes carry no times, it is the plain
+  /// line the recorder draws.
+  Future<void> _showOnMap(Ride ride, RideAnalysis? analysis) async {
     final map = _map;
-    if (map == null || _shownRideId == ride.id) return;
-    _shownRideId = ride.id;
+    if (map == null) return;
+    final bands = analysis?.speedBands.segments ?? const <SpeedBandSegment>[];
+    final key = '${ride.id}:${bands.length}';
+    if (_shownKey == key) return;
+    _shownKey = key;
     final positions = ride.positions;
     if (positions.isEmpty) return;
-    await map.setTrackLine(positions);
+    if (bands.isEmpty) {
+      await map.setTrackLine(positions);
+    } else {
+      await map.setTrackSegments(<TrackSegment>[
+        for (final band in bands) TrackSegment(points: band.points, t: band.t),
+      ]);
+    }
     final bounds = ride.bounds;
     if (bounds != null) await map.fitBounds(bounds);
   }
@@ -189,6 +210,16 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
     final l10n = AppLocalizations.of(context);
     final units = ref.watch(unitSystemProvider);
     final ride = ref.watch(rideProvider(widget.rideId));
+    // Computed once per ride and unit system, never on a rebuild.
+    final analysis = ref
+        .watch(
+          rideAnalysisProvider((
+            rideId: widget.rideId,
+            splitLengthM: splitLengthFor(units),
+          )),
+        )
+        .value;
+    _analysis = analysis;
 
     return Scaffold(
       appBar: AppBar(
@@ -244,7 +275,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
               message: l10n.rideDetailNotFound,
             );
           }
-          unawaited(_showOnMap(saved));
+          unawaited(_showOnMap(saved, analysis));
           final theme = Theme.of(context);
           final stats = saved.stats;
           return ListView(
@@ -262,6 +293,11 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (analysis != null &&
+                        analysis.speedBands.segments.isNotEmpty) ...[
+                      const RideSpeedLegend(),
+                      const SizedBox(height: 16),
+                    ],
                     Text(
                       formatDate(l10n, saved.startedAt),
                       style: theme.textTheme.bodySmall,
@@ -306,6 +342,20 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                         ),
                       ],
                     ),
+                    if (analysis != null) ...[
+                      if (analysis.hasElevation) ...[
+                        const SizedBox(height: 28),
+                        RideElevationChart(samples: analysis.samples),
+                      ],
+                      if (analysis.hasSpeed) ...[
+                        const SizedBox(height: 28),
+                        RideSpeedChart(samples: analysis.samples),
+                      ],
+                      if (analysis.splits.isNotEmpty) ...[
+                        const SizedBox(height: 28),
+                        RideSplitsTable(splits: analysis.splits),
+                      ],
+                    ],
                     const SizedBox(height: 24),
                     Wrap(
                       spacing: 8,

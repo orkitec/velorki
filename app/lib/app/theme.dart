@@ -93,6 +93,8 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
     required this.routeAlternatives,
     required this.routePreview,
     required this.track,
+    required this.trackSlow,
+    required this.trackFast,
     required this.waypointStart,
     required this.waypointEnd,
     required this.waypointVia,
@@ -125,6 +127,12 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
 
   /// The recorded track.
   final Color track;
+
+  /// The slow end of the ride page's speed ramp: a cool blue.
+  final Color trackSlow;
+
+  /// The fast end of it, which is the plain track colour.
+  final Color trackFast;
 
   /// Start marker.
   final Color waypointStart;
@@ -171,6 +179,8 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
     List<Color>? routeAlternatives,
     Color? routePreview,
     Color? track,
+    Color? trackSlow,
+    Color? trackFast,
     Color? waypointStart,
     Color? waypointEnd,
     Color? waypointVia,
@@ -189,6 +199,8 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
     routeAlternatives: routeAlternatives ?? this.routeAlternatives,
     routePreview: routePreview ?? this.routePreview,
     track: track ?? this.track,
+    trackSlow: trackSlow ?? this.trackSlow,
+    trackFast: trackFast ?? this.trackFast,
     waypointStart: waypointStart ?? this.waypointStart,
     waypointEnd: waypointEnd ?? this.waypointEnd,
     waypointVia: waypointVia ?? this.waypointVia,
@@ -219,6 +231,8 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
       ],
       routePreview: mix(routePreview, other.routePreview),
       track: mix(track, other.track),
+      trackSlow: mix(trackSlow, other.trackSlow),
+      trackFast: mix(trackFast, other.trackFast),
       waypointStart: mix(waypointStart, other.waypointStart),
       waypointEnd: mix(waypointEnd, other.waypointEnd),
       waypointVia: mix(waypointVia, other.waypointVia),
@@ -391,6 +405,8 @@ VelorkiColors _darkColors(AccentPreset p, ColorScheme scheme) => VelorkiColors(
   ],
   routePreview: const Color(0xFFF0B84A),
   track: p.dark,
+  trackSlow: const Color(0xFF58A6FF),
+  trackFast: p.dark,
   waypointStart: const Color(0xFF3DDC84),
   waypointEnd: const Color(0xFFFF4D6A),
   waypointVia: _white,
@@ -416,6 +432,8 @@ VelorkiColors _lightColors(AccentPreset p, ColorScheme scheme) => VelorkiColors(
   ],
   routePreview: const Color(0xFFE08A00),
   track: p.routeOnLight,
+  trackSlow: const Color(0xFF1D6FD0),
+  trackFast: p.routeOnLight,
   waypointStart: const Color(0xFF1FA85F),
   waypointEnd: const Color(0xFFE0304C),
   waypointVia: _white,

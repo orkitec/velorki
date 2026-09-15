@@ -321,6 +321,10 @@ class RecordingMapController implements MapController {
   Future<void> setTrackLine(List<LatLng> points) => inner.setTrackLine(points);
 
   @override
+  Future<void> setTrackSegments(List<TrackSegment> segments) =>
+      inner.setTrackSegments(segments);
+
+  @override
   Future<void> setPosition(
     LatLng? position, {
     double? accuracyM,

@@ -2,11 +2,10 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/theme.dart';
 import '../../../core/units/units.dart' as units;
 import '../../../l10n/generated/app_localizations.dart';
 import '../../settings/data/units.dart';
-import '../../shared/presentation/stat_tile.dart';
+import '../../shared/presentation/metric_chart.dart';
 import '../domain/elevation_profile.dart';
 import 'route_format.dart';
 
@@ -16,7 +15,7 @@ import 'route_format.dart';
 /// chart never draws more than [elevationProfileMaxPoints] points no matter
 /// how long the route is. Touching the line reads out that point. The axes
 /// carry bare numbers, in kilometres and metres or in miles and feet.
-class ElevationProfileChart extends ConsumerStatefulWidget {
+class ElevationProfileChart extends ConsumerWidget {
   /// Creates the chart.
   const ElevationProfileChart({
     required this.samples,
@@ -31,24 +30,10 @@ class ElevationProfileChart extends ConsumerStatefulWidget {
   final double height;
 
   @override
-  ConsumerState<ElevationProfileChart> createState() =>
-      _ElevationProfileChartState();
-}
-
-class _ElevationProfileChartState extends ConsumerState<ElevationProfileChart> {
-  ElevationSample? _touched;
-
-  @override
-  void didUpdateWidget(ElevationProfileChart oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!identical(oldWidget.samples, widget.samples)) _touched = null;
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    if (widget.samples.length < 2) {
+    if (samples.length < 2) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Text(
@@ -59,7 +44,7 @@ class _ElevationProfileChartState extends ConsumerState<ElevationProfileChart> {
     }
 
     final system = ref.watch(unitSystemProvider);
-    final spots = widget.samples
+    final spots = samples
         .map(
           (s) => FlSpot(
             units.distanceToDisplay(system, s.distanceM),
@@ -79,113 +64,17 @@ class _ElevationProfileChartState extends ConsumerState<ElevationProfileChart> {
       units.elevationToDisplay(system, 5),
       units.elevationToDisplay(system, 100),
     );
-    final touched = _touched;
 
-    final colors = theme.velorki;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(child: SectionCaption(l10n.elevationTitle)),
-            if (touched != null)
-              Flexible(
-                child: Text(
-                  l10n.elevationPoint(
-                    formatDistance(l10n, system, touched.distanceM),
-                    formatHeight(l10n, system, touched.elevationM),
-                  ),
-                  style: theme.textTheme.statMedium.copyWith(
-                    color: colors.accent,
-                  ),
-                  textAlign: TextAlign.end,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        SizedBox(
-          height: widget.height,
-          child: LineChart(
-            LineChartData(
-              minY: minY - padding,
-              maxY: maxY + padding,
-              minX: spots.first.x,
-              maxX: spots.last.x,
-              gridData: const FlGridData(show: false),
-              borderData: FlBorderData(show: false),
-              titlesData: FlTitlesData(
-                topTitles: const AxisTitles(),
-                rightTitles: const AxisTitles(),
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 24,
-                    getTitlesWidget: (_, meta) => _axisLabel(context, meta),
-                  ),
-                ),
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 40,
-                    getTitlesWidget: (_, meta) => _axisLabel(context, meta),
-                  ),
-                ),
-              ),
-              lineTouchData: LineTouchData(
-                handleBuiltInTouches: false,
-                touchCallback: _onTouch,
-              ),
-              lineBarsData: [
-                LineChartBarData(
-                  spots: spots,
-                  isCurved: false,
-                  barWidth: 2.5,
-                  color: colors.accent,
-                  dotData: const FlDotData(show: false),
-                  belowBarData: BarAreaData(
-                    show: true,
-                    color: colors.chartFill,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// One axis number, in the quiet label style the rest of the app uses.
-  Widget _axisLabel(BuildContext context, TitleMeta meta) {
-    final theme = Theme.of(context);
-    return SideTitleWidget(
-      meta: meta,
-      child: Text(
-        meta.formattedValue,
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
+    return MetricChart(
+      title: l10n.elevationTitle,
+      spots: spots,
+      height: height,
+      minY: minY - padding,
+      maxY: maxY + padding,
+      readoutAt: (index) => l10n.elevationPoint(
+        formatDistance(l10n, system, samples[index].distanceM),
+        formatHeight(l10n, system, samples[index].elevationM),
       ),
     );
-  }
-
-  void _onTouch(FlTouchEvent event, LineTouchResponse? response) {
-    final spot = response?.lineBarSpots?.firstOrNull;
-    if (spot == null) {
-      if (event is FlTapUpEvent || event is FlPointerExitEvent) {
-        setState(() => _touched = null);
-      }
-      return;
-    }
-    final index = spot.spotIndex;
-    if (index < 0 || index >= widget.samples.length) return;
-    final sample = widget.samples[index];
-    if (sample == _touched) return;
-    setState(() => _touched = sample);
   }
 }

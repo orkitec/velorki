@@ -164,6 +164,11 @@ screen for range: dark theme and black map through `appearanceOverrideProvider`
 (an override, never a write to the rider's choice), a bare puck, no camera
 animation, 40 % brightness while the screen is held awake, and a black glance
 page of figures after 30 s without a touch. See [BATTERY.md](BATTERY.md).
+A finished ride is measured a second time by `core/geo/ride_analysis.dart`
+(`analyseRide`, once per ride and unit system through `rideAnalysisProvider`):
+kilometre or mile splits, at most 400 smoothed chart samples for the elevation
+and speed charts, and the track cut into five speed classes by its own
+quantiles, which the ride page draws through `MapController.setTrackSegments`.
 
 
 **Lock screen.** While a ride records, `RideNotificationUpdater` (kept alive
