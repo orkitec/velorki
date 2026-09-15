@@ -24,8 +24,8 @@ class MapPosition {
     position: LatLng(p.latitude, p.longitude),
     accuracyM: measuredValue(p.accuracy, flagged: p.hasAccuracy) ?? 0,
     timestamp: p.timestamp,
-    headingDeg: measuredValue(p.heading, flagged: p.hasHeading),
-    speedMps: measuredValue(p.speed, flagged: p.hasSpeed),
+    headingDeg: measuredHeading(p.heading, flagged: p.hasHeading),
+    speedMps: measuredSpeed(p.speed, flagged: p.hasSpeed),
   );
 
   /// A geolocator field's value, or `null` when the platform measured none.
@@ -41,6 +41,32 @@ class MapPosition {
     if (!value.isFinite) return null;
     if (flagged) return value;
     return value == 0 ? null : value;
+  }
+
+  /// A geolocator course as a heading, or `null` when there is none.
+  ///
+  /// Core Location answers "I have no course" with -1 and still says the fix
+  /// has one, so [measuredValue] hands that -1 straight on and the cone and
+  /// the heading-up map swing to north every time the rider slows down.
+  /// Anything off the compass rose is therefore dropped here, and the 360 a
+  /// platform may report for due north is folded back to 0.
+  static double? measuredHeading(double value, {required bool flagged}) {
+    final heading = measuredValue(value, flagged: flagged);
+    if (heading == null) return null;
+    if (heading == 360) return 0;
+    if (heading < 0 || heading > 360) return null;
+    return heading;
+  }
+
+  /// A geolocator ground speed, or `null` when there is none.
+  ///
+  /// The same -1 as [measuredHeading]: nobody rides backwards through the
+  /// ground, so a negative speed is the platform saying it did not measure
+  /// one.
+  static double? measuredSpeed(double value, {required bool flagged}) {
+    final speed = measuredValue(value, flagged: flagged);
+    if (speed == null || speed < 0) return null;
+    return speed;
   }
 
   final LatLng position;

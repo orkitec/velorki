@@ -1,4 +1,5 @@
 import 'package:velorki_brouter/velorki_brouter.dart';
+import 'package:velorki_geo/velorki_geo.dart';
 
 /// Where the rider stands on a route: the turn that is coming, the one after
 /// it, how much route is left and whether the rider is still on it.
@@ -17,6 +18,9 @@ class NavigationProgress {
     this.alongM = 0,
     this.arrived = false,
     this.rerouting = false,
+    this.snapped,
+    this.routeBearingDeg,
+    this.distanceFromRouteM = 0,
   });
 
   /// The turn that has not been passed yet, or `null` when none is left.
@@ -50,6 +54,25 @@ class NavigationProgress {
   /// flight, not about where the rider is.
   final bool rerouting;
 
+  /// The point of the route the rider was matched to, or `null` before the
+  /// first fix.
+  ///
+  /// A GPS fix wanders by a few metres from one second to the next; the
+  /// matched point does not, which is why the puck is drawn here while the
+  /// rider is on the route.
+  final LatLng? snapped;
+
+  /// Forward bearing of the route at [snapped], in degrees clockwise from
+  /// north, or `null` when the route is a single point.
+  ///
+  /// Steadier than a GNSS course by a long way: it is the direction the road
+  /// runs, not the direction the last two fixes happened to fall in.
+  final double? routeBearingDeg;
+
+  /// How far the fix was from the route, in metres. The caller decides how
+  /// much of a gap is still worth snapping over.
+  final double distanceFromRouteM;
+
   /// The same progress with [rerouting] set to [value].
   NavigationProgress withRerouting(bool value) => NavigationProgress(
     next: next,
@@ -60,6 +83,9 @@ class NavigationProgress {
     alongM: alongM,
     arrived: arrived,
     rerouting: value,
+    snapped: snapped,
+    routeBearingDeg: routeBearingDeg,
+    distanceFromRouteM: distanceFromRouteM,
   );
 
   @override
@@ -73,7 +99,10 @@ class NavigationProgress {
           other.remainingM == remainingM &&
           other.alongM == alongM &&
           other.arrived == arrived &&
-          other.rerouting == rerouting;
+          other.rerouting == rerouting &&
+          other.snapped == snapped &&
+          other.routeBearingDeg == routeBearingDeg &&
+          other.distanceFromRouteM == distanceFromRouteM;
 
   @override
   int get hashCode => Object.hash(
@@ -85,6 +114,9 @@ class NavigationProgress {
     alongM,
     arrived,
     rerouting,
+    snapped,
+    routeBearingDeg,
+    distanceFromRouteM,
   );
 
   @override

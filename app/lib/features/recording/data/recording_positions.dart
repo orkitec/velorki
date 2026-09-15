@@ -49,7 +49,9 @@ geo.LocationSettings recordingLocationSettings({TargetPlatform? platform}) {
 ///
 /// The `has*` flags are not trusted on their own: geolocator_android drops
 /// them when it rebuilds a position, which left every ride without an
-/// altitude and so without any ascent. See [MapPosition.measuredValue].
+/// altitude and so without any ascent. See [MapPosition.measuredValue]. The
+/// course and the speed go through the stricter checks as well, because Core
+/// Location reports -1 for both when it has neither.
 TrackPoint trackPointFromPosition(geo.Position position) => TrackPoint(
   LatLng(position.latitude, position.longitude),
   ele: MapPosition.measuredValue(
@@ -57,7 +59,7 @@ TrackPoint trackPointFromPosition(geo.Position position) => TrackPoint(
     flagged: position.hasAltitude,
   ),
   time: position.timestamp.toUtc(),
-  speedMps: MapPosition.measuredValue(
+  speedMps: MapPosition.measuredSpeed(
     position.speed,
     flagged: position.hasSpeed,
   ),
@@ -65,7 +67,7 @@ TrackPoint trackPointFromPosition(geo.Position position) => TrackPoint(
     position.accuracy,
     flagged: position.hasAccuracy,
   ),
-  headingDeg: MapPosition.measuredValue(
+  headingDeg: MapPosition.measuredHeading(
     position.heading,
     flagged: position.hasHeading,
   ),

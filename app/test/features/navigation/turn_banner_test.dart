@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/theme.dart';
 import 'package:velorki/features/navigation/domain/navigation_progress.dart';
 import 'package:velorki/features/navigation/presentation/turn_banner.dart';
+import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 
@@ -45,7 +46,9 @@ void main() {
     expect(find.textContaining('then'), findsNothing);
   });
 
-  testWidgets('a turn close behind the next one is previewed', (tester) async {
+  testWidgets('a turn close behind the next one is a second arrow', (
+    tester,
+  ) async {
     await _pumpBanner(
       tester,
       const NavigationProgress(
@@ -57,7 +60,10 @@ void main() {
 
     expect(find.text('120 m'), findsOneWidget);
     expect(find.text('Turn left'), findsOneWidget);
-    expect(find.text('then keep right'), findsOneWidget);
+    // The preview is an arrow on the same row, not a "then ..." line.
+    expect(find.byIcon(Icons.fork_right), findsOneWidget);
+    expect(find.textContaining('then'), findsNothing);
+    expect(tester.getSize(find.byType(GlassPanel)).height, turnBannerHeight);
   });
 
   testWidgets('kilometres are shown with one decimal', (tester) async {
@@ -125,6 +131,26 @@ void main() {
 
     final size = tester.getSize(find.byType(TurnBanner));
     expect(size.height, turnBannerHeight);
-    expect(turnBannerHeight, lessThanOrEqualTo(96));
+    expect(turnBannerHeight, lessThanOrEqualTo(56));
+  });
+
+  testWidgets('the banner is only as wide as its content', (tester) async {
+    await _pumpBanner(
+      tester,
+      const NavigationProgress(
+        next: _left,
+        distanceToNextM: 120,
+        after: _keepRight,
+      ),
+    );
+
+    final banner = tester.getSize(find.byType(TurnBanner)).width;
+    final panel = tester.getSize(find.byType(GlassPanel)).width;
+    expect(panel, lessThanOrEqualTo(banner * 0.8));
+    // Left-aligned: the panel starts where the banner does.
+    expect(
+      tester.getTopLeft(find.byType(GlassPanel)).dx,
+      tester.getTopLeft(find.byType(TurnBanner)).dx,
+    );
   });
 }

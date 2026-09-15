@@ -507,32 +507,56 @@ class _ProfileChooser extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    // The five chips share the width of the search field above them, one
+    // fifth each, so the row reads as one control that lines up with the
+    // rest of the chrome instead of a strip that stops short or scrolls.
+    // Tight chip padding keeps the longest label inside its fifth on a
+    // 360 dp phone.
+    final profiles = RouteProfile.values;
     return SizedBox(
       height: 44,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
+      child: Row(
         children: [
-          for (final profile in RouteProfile.values)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: ChoiceChip(
-                label: Text(profileLabel(l10n, profile)),
-                selected: profile == selected,
-                onSelected: (_) => onSelected(profile),
-                // Over the map the chips are chrome, so they are opaque
-                // glass whatever the chip theme says.
-                backgroundColor: theme.velorki.glass,
-                selectedColor: scheme.primary,
-                side: BorderSide(
-                  color: profile == selected
-                      ? scheme.primary
-                      : theme.velorki.glassBorder,
+          for (final (index, profile) in profiles.indexed)
+            Expanded(
+              child: Padding(
+                // Gaps between the chips only, so the first and the last
+                // sit flush with the search field's edges.
+                padding: EdgeInsets.only(
+                  right: index == profiles.length - 1 ? 0 : 6,
                 ),
-                labelStyle: theme.textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: profile == selected
-                      ? scheme.onPrimary
-                      : scheme.onSurface,
+                child: ChoiceChip(
+                  label: SizedBox(
+                    width: double.infinity,
+                    child: Text(
+                      profileLabel(l10n, profile),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  selected: profile == selected,
+                  onSelected: (_) => onSelected(profile),
+                  showCheckmark: false,
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  labelPadding: EdgeInsets.zero,
+                  // Over the map the chips are chrome, so they are opaque
+                  // glass whatever the chip theme says.
+                  backgroundColor: theme.velorki.glass,
+                  selectedColor: scheme.primary,
+                  side: BorderSide(
+                    color: profile == selected
+                        ? scheme.primary
+                        : theme.velorki.glassBorder,
+                  ),
+                  labelStyle: theme.textTheme.labelLarge?.copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: profile == selected
+                        ? scheme.onPrimary
+                        : scheme.onSurface,
+                  ),
                 ),
               ),
             ),

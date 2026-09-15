@@ -15,6 +15,7 @@ import '../../map/domain/map_controller.dart';
 import '../../map/presentation/location_rationale_dialog.dart';
 import '../../map/presentation/map_chrome.dart';
 import '../../navigation/application/navigation_controller.dart';
+import '../../navigation/domain/navigation_progress.dart';
 import '../../navigation/presentation/turn_banner.dart';
 import '../../planner/application/planner_controller.dart';
 import '../../planner/data/route_repository.dart';
@@ -62,6 +63,28 @@ const double handRotationDegrees = 5;
 /// for, and only a deliberate twist opens a gap this large.
 const double handRotationFollowDegrees = 20;
 
+/// How long a follow move is given.
+///
+/// About the gap between two recording fixes, so the camera is still gliding
+/// towards this one when the next arrives, instead of jumping and waiting.
+const Duration followCameraDuration = Duration(milliseconds: 1000);
+
+/// How far the heading has to have moved before the camera is turned with it.
+///
+/// A degree or two either way is the GPS breathing, not the rider steering,
+/// and a map that answers it is a map that never stands still.
+const double cameraBearingDeadbandDegrees = 8;
+
+/// Below this ground speed the map keeps the bearing it has.
+const double cameraBearingMinSpeedMps = 1.5;
+
+/// How far from the guided route a fix may be and still be drawn on it.
+///
+/// Wide enough for the usual few metres of GPS error and a cycleway drawn
+/// beside the road, narrow enough that a rider who really left the route is
+/// shown where they are.
+const double routeSnapMeters = 25;
+
 /// The Record tab: start a ride, watch the numbers, finish it.
 class RecordingScreen extends ConsumerStatefulWidget {
   /// Creates the screen.
@@ -105,6 +128,13 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// back to north there would be worse than a slightly stale heading.
   double? _targetBearing;
 
+  /// The bearing we last asked the camera for.
+  ///
+  /// The map is only turned when the heading has really moved, so this is
+  /// what a move repeats in between, and what a camera idle is measured
+  /// against.
+  double? _sentBearing;
+
   /// Where the map currently points, in degrees clockwise from north, so the
   /// compass needle can be drawn turned the same way.
   double _bearing = 0;
@@ -142,19 +172,48 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   // --------------------------------------------------------- follow mode
 
   /// Sends the camera to [position] and marks the move as ours.
-  void _followTo(MapController map, LatLng position, FollowMode mode) {
+  void _followTo(
+    MapController map,
+    LatLng position,
+    FollowMode mode, {
+    double? speedMps,
+  }) {
     _autoMoving = true;
     _followTarget = position;
     // North-up says so on every move; heading-up leaves the map alone until a
     // heading exists, rather than forcing it to north first.
-    final bearing = mode == FollowMode.headingUp ? _targetBearing : 0.0;
+    final double? bearing;
+    if (mode == FollowMode.headingUp) {
+      bearing = _cameraBearing(_targetBearing, speedMps);
+    } else {
+      bearing = 0.0;
+      _sentBearing = 0;
+    }
     unawaited(
       map.moveTo(
         position,
         zoom: math.max(map.zoom ?? followZoom, followZoom),
         bearing: bearing,
+        duration: followCameraDuration,
       ),
     );
+  }
+
+  /// The bearing to hand the camera, which is not always the one we aim for.
+  ///
+  /// Turning the map costs the rider their bearings, so it is only worth it
+  /// when the heading has really moved — and never at a standstill, where the
+  /// course is noise and the old bearing is still the right one.
+  double? _cameraBearing(double? wanted, double? speedMps) {
+    final last = _sentBearing;
+    if (last != null && (speedMps ?? 0) < cameraBearingMinSpeedMps) return last;
+    if (wanted == null) return last;
+    if (last != null &&
+        _angleBetween(wanted, last) <= cameraBearingDeadbandDegrees) {
+      return last;
+    }
+    _sentBearing = wanted;
+    return wanted;
   }
 
   /// Turns the map back to north, for a ride that ended or a rider who left
@@ -164,6 +223,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     if (center == null) return;
     _headings.reset();
     _targetBearing = null;
+    _sentBearing = 0;
     _bearing = 0;
     _autoMoving = true;
     _followTarget = center;
@@ -208,7 +268,9 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     final bearing = map.bearing;
     if (bearing == null) return false;
     final mode = ref.read(followModeProvider);
-    final aimedAt = mode == FollowMode.headingUp ? _targetBearing ?? 0 : 0.0;
+    final aimedAt = mode == FollowMode.headingUp
+        ? _sentBearing ?? _targetBearing ?? 0
+        : 0.0;
     final limit = mode == FollowMode.headingUp
         ? handRotationFollowDegrees
         : handRotationDegrees;
@@ -250,6 +312,18 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     setState(() => _following = true);
   }
 
+  /// [navigation] when the rider is close enough to the guided route to be
+  /// drawn on it, `null` otherwise.
+  ///
+  /// Off route, or a long way off the line, the raw fix is the honest answer:
+  /// a puck glued to a road the rider has left is worse than a shaky one.
+  NavigationProgress? _routeSnap(NavigationProgress? navigation) {
+    if (navigation == null || navigation.offRoute) return null;
+    if (navigation.snapped == null) return null;
+    if (navigation.distanceFromRouteM > routeSnapMeters) return null;
+    return navigation;
+  }
+
   /// Pushes the recording to the map: the track line, the puck, and the route
   /// being followed. Called from build, so it only touches the map when
   /// something actually changed.
@@ -259,6 +333,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     List<LatLng> planned,
     GuidedRoute? detour,
     FollowMode mode,
+    NavigationProgress? navigation,
   ) {
     // A ride that has just started takes the camera with it. Decided before
     // the map is looked at, so a ride that starts while the style is still
@@ -282,11 +357,17 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     final snapshot = state.snapshot;
     final position = snapshot?.lastPosition;
     if (position != null) {
+      // On a route the route is the better answer to both questions. Its
+      // matched point does not wander with the fix, and the direction the
+      // road runs beats a GNSS course by a wide margin — which is exactly
+      // what every other navigation app draws.
+      final onRoute = _routeSnap(navigation);
+      final puck = onRoute?.snapped ?? position;
       unawaited(
         map.setPosition(
-          position,
+          puck,
           accuracyM: snapshot?.accuracyM,
-          headingDeg: snapshot?.headingDeg,
+          headingDeg: onRoute?.routeBearingDeg ?? snapshot?.headingDeg,
           speedMps: snapshot?.speedMps,
         ),
       );
@@ -300,11 +381,13 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
         );
         if (heading != null) _targetBearing = heading;
       }
+      final routeBearing = onRoute?.routeBearingDeg;
+      if (routeBearing != null) _targetBearing = routeBearing;
       // The puck alone is no use to a rider who cannot see it: while a ride
       // runs and nobody has taken the map away from us, the camera goes
       // wherever the fix goes.
-      if (state.isRecording && _following && position != _followTarget) {
-        _followTo(map, position, mode);
+      if (state.isRecording && _following && puck != _followTarget) {
+        _followTo(map, puck, mode, speedMps: snapshot?.speedMps);
       }
     }
     // A way back onto the route replaces it while it lasts: the detour is
@@ -567,10 +650,11 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     final followMode = ref.watch(followModeProvider);
     // A re-route, while one is being followed, is the line to draw.
     final detour = ref.watch(detourRouteProvider);
-    _syncMap(state, route, planned, detour, followMode);
-
     // Turn-by-turn, when there is a route to follow and the rider wants it.
+    // Read before the map is synced: it is what puts the puck on the route.
     final navigation = ref.watch(navigationControllerProvider);
+    _syncMap(state, route, planned, detour, followMode, navigation);
+
     final guiding = navigation != null && state.isRecording;
 
     final theme = Theme.of(context);

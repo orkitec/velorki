@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
 
 import 'package:velorki/features/planner/presentation/elevation_profile_chart.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
+import 'package:velorki/features/search/presentation/search_field.dart';
 import 'package:velorki/features/planner/presentation/surface_stats_bar.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
@@ -338,5 +340,56 @@ void main() {
     expect(h.map.waypoints, hasLength(3));
     expect(h.map.waypoints.last.position, const LatLng(48.1374, 11.5755));
     expect(h.map.waypoints.last.label, 'Munich');
+  });
+
+  // Last on purpose: it swaps the test font for the real one, which every
+  // test after it in this file would then lay out with.
+  testWidgets('the five profile chips span the search field', (tester) async {
+    // The stand-in font of a widget test gives every glyph a full em, so the
+    // chips would never fit on any width. Measure with the font the app ships.
+    final manrope = FontLoader('Manrope')
+      ..addFont(rootBundle.load('assets/fonts/Manrope-Bold.ttf'));
+    await manrope.load();
+
+    for (final width in <double>[360.0, 390.0]) {
+      await pumpScreen(
+        tester,
+        const PlannerScreen(),
+        surfaceSize: Size(width, 780),
+      );
+
+      for (final label in ['Touring', 'Road', 'Gravel', 'MTB', 'Direct']) {
+        expect(
+          find.widgetWithText(ChoiceChip, label),
+          findsOneWidget,
+          reason: 'at $width dp',
+        );
+      }
+
+      // The five chips share the search field's width: the first starts
+      // where it starts, the last ends where it ends, and no label is cut.
+      final search = tester.getRect(find.byType(SearchField));
+      final first = tester.getRect(find.widgetWithText(ChoiceChip, 'Touring'));
+      final last = tester.getRect(find.widgetWithText(ChoiceChip, 'Direct'));
+      expect(first.left, closeTo(search.left, 0.5), reason: 'at $width dp');
+      expect(last.right, closeTo(search.right, 0.5), reason: 'at $width dp');
+      for (final label in ['Touring', 'Road', 'Gravel', 'MTB', 'Direct']) {
+        final chipWidget = tester.widget<ChoiceChip>(
+          find.widgetWithText(ChoiceChip, label),
+        );
+        final painter = TextPainter(
+          text: TextSpan(text: label, style: chipWidget.labelStyle),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        final chip = tester.getRect(find.widgetWithText(ChoiceChip, label));
+        expect(
+          painter.width,
+          lessThanOrEqualTo(chip.width - 8),
+          reason: '$label does not fit its chip at $width dp',
+        );
+      }
+
+      await unmountApp(tester);
+    }
   });
 }

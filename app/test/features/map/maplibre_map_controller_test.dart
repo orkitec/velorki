@@ -1,5 +1,6 @@
 import 'dart:math' show Point;
 
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_test/flutter_test.dart';
@@ -1082,8 +1083,95 @@ void main() {
 
       expect(
         _firstProperties(ops, MapLayerIds.positionSource)['heading'] as double,
-        closeTo(35, 1e-9),
+        closeTo(50, 1e-9),
       );
+    });
+
+    /// The fixes written to the position source since [ops] was last cleared.
+    List<LatLng> puckWrites(RecordingStyleOps ops) => ops
+        .callsNamed('setGeoJsonSource')
+        .where((c) => c.id == MapLayerIds.positionSource)
+        .map((c) {
+          final feature =
+              (c.geojson!['features'] as List<dynamic>).single
+                  as Map<String, dynamic>;
+          final at =
+              (feature['geometry'] as Map<String, dynamic>)['coordinates']
+                  as List<dynamic>;
+          return LatLng(at[1] as double, at[0] as double);
+        })
+        .toList();
+
+    test('walks the puck from the last fix to the new one', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setPosition(const LatLng(47.0, 8.0), accuracyM: 5);
+      ops.clearCalls();
+
+      fakeAsync((async) {
+        // Fifty metres north: a second of riding, drawn as a walk rather than
+        // a hop.
+        adapter.setPosition(const LatLng(47.00045, 8.0), accuracyM: 5);
+        async.flushMicrotasks();
+        async.elapse(puckInterpolationDuration);
+        async.flushMicrotasks();
+
+        final writes = puckWrites(ops);
+        expect(
+          writes.length,
+          greaterThan(2),
+          reason: 'the puck is drawn on its way there',
+        );
+        expect(writes.last, const LatLng(47.00045, 8.0));
+        expect(writes.first.lat, greaterThan(47.0));
+        expect(writes.first.lat, lessThan(47.00045));
+      });
+    });
+
+    test('a fix from far away is simply put there', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setPosition(const LatLng(47.0, 8.0));
+      ops.clearCalls();
+
+      fakeAsync((async) {
+        // Half a kilometre in one fix is not riding, it is the OS handing
+        // over a fix from somewhere else.
+        adapter.setPosition(const LatLng(47.0045, 8.0));
+        async.flushMicrotasks();
+        expect(puckWrites(ops), <LatLng>[const LatLng(47.0045, 8.0)]);
+
+        async.elapse(puckInterpolationDuration);
+        expect(puckWrites(ops), hasLength(1));
+      });
+    });
+
+    test('a new fix ends the walk the last one started', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setPosition(const LatLng(47.0, 8.0));
+
+      fakeAsync((async) {
+        adapter.setPosition(const LatLng(47.00045, 8.0));
+        async.flushMicrotasks();
+        async.elapse(const Duration(milliseconds: 200));
+        ops.clearCalls();
+
+        adapter.setPosition(const LatLng(47.0009, 8.0));
+        async.flushMicrotasks();
+        async.elapse(puckInterpolationDuration);
+
+        // Everything drawn from here on belongs to the second walk, and it
+        // ends on the second fix.
+        expect(puckWrites(ops).last, const LatLng(47.0009, 8.0));
+        expect(
+          puckWrites(ops).length,
+          lessThanOrEqualTo(puckInterpolationSteps),
+        );
+      });
     });
 
     test('keeps the last heading when a fix brings no course', () async {

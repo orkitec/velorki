@@ -617,6 +617,98 @@ void main() {
       await unmountApp(tester);
     });
 
+    testWidgets('a follow move is given a fix interval to glide over', (
+      tester,
+    ) async {
+      final h = await pumpRecordingScreen(tester, const RecordingScreen());
+      await tester.pump();
+
+      await emitSnapshot(tester, h, _snapshot());
+
+      expect(moves(h).single.arguments[3], followCameraDuration);
+      expect(followCameraDuration, const Duration(milliseconds: 1000));
+      await unmountApp(tester);
+    });
+
+    testWidgets('a heading that only jitters leaves the map where it is', (
+      tester,
+    ) async {
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        preferences: const {'recording.follow': 'headingUp'},
+      );
+      await tester.pump();
+
+      await emitSnapshot(tester, h, _snapshot(headingDeg: 40));
+      expect(moves(h).last.arguments[2], 40);
+      await settleCamera(tester, h);
+
+      // Four degrees of GPS breathing: the smoothed heading moves by two,
+      // and the camera is asked for the bearing it already has.
+      await emitSnapshot(
+        tester,
+        h,
+        _snapshot(headingDeg: 44, lastPosition: const LatLng(48.2, 11.3)),
+      );
+
+      expect(moves(h).last.arguments[2], 40);
+      await unmountApp(tester);
+    });
+
+    testWidgets('a real turn does move the map', (tester) async {
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        preferences: const {'recording.follow': 'headingUp'},
+      );
+      await tester.pump();
+
+      await emitSnapshot(tester, h, _snapshot(headingDeg: 40));
+      expect(moves(h).last.arguments[2], 40);
+      await settleCamera(tester, h);
+
+      // Forty degrees of course, half of it smoothed away, still well past
+      // the deadband.
+      await emitSnapshot(
+        tester,
+        h,
+        _snapshot(headingDeg: 80, lastPosition: const LatLng(48.2, 11.3)),
+      );
+
+      expect(moves(h).last.arguments[2], 60);
+      await unmountApp(tester);
+    });
+
+    testWidgets('a rider at a standstill keeps the bearing they had', (
+      tester,
+    ) async {
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        preferences: const {'recording.follow': 'headingUp'},
+      );
+      await tester.pump();
+
+      await emitSnapshot(tester, h, _snapshot(headingDeg: 40));
+      expect(moves(h).last.arguments[2], 40);
+      await settleCamera(tester, h);
+
+      // Rolling to a stop: the course is noise now, so the map holds still.
+      await emitSnapshot(
+        tester,
+        h,
+        _snapshot(
+          headingDeg: 200,
+          speedMps: 1.0,
+          lastPosition: const LatLng(48.2, 11.3),
+        ),
+      );
+
+      expect(moves(h).last.arguments[2], 40);
+      await unmountApp(tester);
+    });
+
     testWidgets('north up asks for north on every move', (tester) async {
       final h = await pumpRecordingScreen(tester, const RecordingScreen());
       await tester.pump();
@@ -774,6 +866,103 @@ void main() {
             .following,
         isFalse,
       );
+      await unmountApp(tester);
+    });
+  });
+
+  group('the puck on the guided route', () {
+    /// A match on the route 5 m from the fix, heading due east.
+    const onRoute = NavigationProgress(
+      snapped: LatLng(48.1001, 11.2001),
+      routeBearingDeg: 90,
+      distanceFromRouteM: 5,
+    );
+
+    /// Every camera move the screen asked for, in order.
+    List<MapCall> moves(RecordingHarness h) =>
+        h.map.calls.where((c) => c.method == 'moveTo').toList();
+
+    /// Every puck the screen drew, in order.
+    List<MapCall> pucks(RecordingHarness h) =>
+        h.map.calls.where((c) => c.method == 'setPosition').toList();
+
+    testWidgets('a rider on the route is drawn on it, facing along it', (
+      tester,
+    ) async {
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        preferences: const {'recording.follow': 'headingUp'},
+        extraOverrides: [
+          navigationControllerProvider.overrideWithValue(onRoute),
+        ],
+      );
+      await tester.pump();
+
+      // A course forty degrees off the road, which is what a GNSS course does
+      // between two buildings; the road wins.
+      await emitSnapshot(tester, h, _snapshot(headingDeg: 50));
+
+      expect(pucks(h).last.arguments[0], onRoute.snapped);
+      expect(pucks(h).last.arguments[1], 90);
+      expect(pucks(h).last.arguments[2], 6, reason: 'the real ground speed');
+      expect(moves(h).last.arguments[0], onRoute.snapped);
+      expect(moves(h).last.arguments[2], 90);
+
+      await unmountApp(tester);
+    });
+
+    testWidgets('a rider too far from the route keeps the raw fix', (
+      tester,
+    ) async {
+      const wideOfIt = NavigationProgress(
+        snapped: LatLng(48.1001, 11.2001),
+        routeBearingDeg: 90,
+        distanceFromRouteM: 40,
+      );
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        preferences: const {'recording.follow': 'headingUp'},
+        extraOverrides: [
+          navigationControllerProvider.overrideWithValue(wideOfIt),
+        ],
+      );
+      await tester.pump();
+
+      await emitSnapshot(tester, h, _snapshot(headingDeg: 50));
+
+      expect(pucks(h).last.arguments[0], const LatLng(48.1, 11.2));
+      expect(pucks(h).last.arguments[1], 50);
+      expect(moves(h).last.arguments[2], 50);
+
+      await unmountApp(tester);
+    });
+
+    testWidgets('a rider called off route keeps the raw fix too', (
+      tester,
+    ) async {
+      const strayed = NavigationProgress(
+        snapped: LatLng(48.1001, 11.2001),
+        routeBearingDeg: 90,
+        distanceFromRouteM: 5,
+        offRoute: true,
+      );
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        preferences: const {'recording.follow': 'headingUp'},
+        extraOverrides: [
+          navigationControllerProvider.overrideWithValue(strayed),
+        ],
+      );
+      await tester.pump();
+
+      await emitSnapshot(tester, h, _snapshot(headingDeg: 50));
+
+      expect(pucks(h).last.arguments[0], const LatLng(48.1, 11.2));
+      expect(pucks(h).last.arguments[1], 50);
+
       await unmountApp(tester);
     });
   });

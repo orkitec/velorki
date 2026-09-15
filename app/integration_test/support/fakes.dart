@@ -304,7 +304,14 @@ class RecordingMapController implements MapController {
     double? zoom,
     double? bearing,
     bool animate = true,
-  }) => inner.moveTo(center, zoom: zoom, bearing: bearing, animate: animate);
+    Duration? duration,
+  }) => inner.moveTo(
+    center,
+    zoom: zoom,
+    bearing: bearing,
+    animate: animate,
+    duration: duration,
+  );
 
   @override
   Future<void> fitBounds(BoundingBox bounds, {double paddingPx = 48}) =>

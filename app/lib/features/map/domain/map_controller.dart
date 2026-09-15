@@ -9,11 +9,16 @@ abstract class MapController {
   ///
   /// A `null` [bearing] leaves the map turned the way it is; pass `0` to put
   /// north back at the top.
+  ///
+  /// [duration] is how long the animation takes; `null` leaves it to the
+  /// platform. A follow move asks for roughly the gap between two fixes, so
+  /// the camera glides along with the rider instead of jumping and waiting.
   Future<void> moveTo(
     LatLng center, {
     double? zoom,
     double? bearing,
     bool animate = true,
+    Duration? duration,
   });
   Future<void> fitBounds(BoundingBox bounds, {double paddingPx = 48});
   LatLng? get center;

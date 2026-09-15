@@ -11,6 +11,7 @@ class RecordedCameraMove {
     required this.zoom,
     required this.animate,
     this.bearing,
+    this.duration,
   });
 
   final LatLng center;
@@ -21,21 +22,25 @@ class RecordedCameraMove {
   final double? bearing;
   final bool animate;
 
+  /// How long the move was asked to take, `null` for the platform default.
+  final Duration? duration;
+
   @override
   bool operator ==(Object other) =>
       other is RecordedCameraMove &&
       other.center == center &&
       other.zoom == zoom &&
       other.bearing == bearing &&
-      other.animate == animate;
+      other.animate == animate &&
+      other.duration == duration;
 
   @override
-  int get hashCode => Object.hash(center, zoom, bearing, animate);
+  int get hashCode => Object.hash(center, zoom, bearing, animate, duration);
 
   @override
   String toString() =>
       'RecordedCameraMove($center, zoom: $zoom, bearing: $bearing, '
-      'animate: $animate)';
+      'animate: $animate, duration: $duration)';
 }
 
 /// One recorded [MapController.fitBounds] call.
@@ -229,6 +234,7 @@ class FakeMapController implements MapController {
     double? zoom,
     double? bearing,
     bool animate = true,
+    Duration? duration,
   }) async {
     cameraMoves.add(
       RecordedCameraMove(
@@ -236,6 +242,7 @@ class FakeMapController implements MapController {
         zoom: zoom,
         bearing: bearing,
         animate: animate,
+        duration: duration,
       ),
     );
     this.center = center;

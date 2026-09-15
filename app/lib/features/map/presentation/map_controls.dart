@@ -54,15 +54,9 @@ class MapControls extends ConsumerWidget {
           // Only a screen that has a follow style to switch offers a compass;
           // on every other map the needle would have nothing to say.
           if (onCompass != null)
-            _ControlButton(
-              icon: Icons.navigation,
-              // The needle turns with the map, so it points at the real north
-              // however the rider has twisted the camera.
-              iconTurns: -(chrome?.bearingDeg ?? 0) * math.pi / 180,
-              tooltip: headingUp
-                  ? MapStrings.followHeadingUp
-                  : MapStrings.followNorthUp,
-              selected: headingUp,
+            _CompassButton(
+              headingUp: headingUp,
+              bearingDeg: chrome?.bearingDeg ?? 0,
               onPressed: enabled ? onCompass : null,
             ),
           _ControlButton(
@@ -195,6 +189,112 @@ class MapControls extends ConsumerWidget {
     SnackBarAction? action,
   }) {
     messenger?.showSnackBar(SnackBar(content: Text(message), action: action));
+  }
+}
+
+/// The compass: a needle that points north however the map is turned, in
+/// the accent while the map turns with the rider.
+///
+/// Which of the two styles is on is hard to read off a needle alone, so a
+/// tap also shows the name of the style just chosen next to the button for
+/// a moment. That is the whole explanation the rider gets; nothing else is
+/// added to the map.
+class _CompassButton extends StatefulWidget {
+  const _CompassButton({
+    required this.headingUp,
+    required this.bearingDeg,
+    required this.onPressed,
+  });
+
+  final bool headingUp;
+  final double bearingDeg;
+  final VoidCallback? onPressed;
+
+  @override
+  State<_CompassButton> createState() => _CompassButtonState();
+}
+
+class _CompassButtonState extends State<_CompassButton> {
+  final LayerLink _link = LayerLink();
+  final OverlayPortalController _hint = OverlayPortalController();
+  Timer? _hide;
+  String _hintText = '';
+
+  /// How long the style's name stays next to the button.
+  static const Duration hintDuration = Duration(milliseconds: 1800);
+
+  @override
+  void dispose() {
+    _hide?.cancel();
+    super.dispose();
+  }
+
+  void _tap() {
+    final onPressed = widget.onPressed;
+    if (onPressed == null) return;
+    // The name of the style the tap switches to, not the one it leaves.
+    _hintText = widget.headingUp
+        ? MapStrings.followNorthUp
+        : MapStrings.followHeadingUp;
+    onPressed();
+    _hide?.cancel();
+    setState(() {});
+    if (!_hint.isShowing) _hint.show();
+    _hide = Timer(hintDuration, () {
+      if (mounted && _hint.isShowing) _hint.hide();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return CompositedTransformTarget(
+      link: _link,
+      child: OverlayPortal(
+        controller: _hint,
+        // The overlay hands its child the whole screen; the label must
+        // take only its own size or it paints a full-screen slab.
+        overlayChildBuilder: (context) => Align(
+          alignment: Alignment.topLeft,
+          child: CompositedTransformFollower(
+            link: _link,
+            targetAnchor: Alignment.centerLeft,
+            followerAnchor: Alignment.centerRight,
+            offset: const Offset(-8, 0),
+            child: IgnorePointer(
+              child: Material(
+                color: theme.colorScheme.inverseSurface,
+                borderRadius: BorderRadius.circular(12),
+                elevation: 2,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  child: Text(
+                    _hintText,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: theme.colorScheme.onInverseSurface,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        child: _ControlButton(
+          icon: Icons.navigation,
+          // The needle turns with the map, so it points at the real north
+          // however the rider has twisted the camera.
+          iconTurns: -widget.bearingDeg * math.pi / 180,
+          tooltip: widget.headingUp
+              ? MapStrings.followHeadingUp
+              : MapStrings.followNorthUp,
+          selected: widget.headingUp,
+          onPressed: widget.onPressed == null ? null : _tap,
+        ),
+      ),
+    );
   }
 }
 

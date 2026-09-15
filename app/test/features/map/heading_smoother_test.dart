@@ -48,12 +48,18 @@ void main() {
     test('later courses move the heading by alpha of the difference', () {
       final smoother = HeadingSmoother()..update(headingDeg: 0, speedMps: 5);
 
-      // 0 + 0.35 * 100, then 35 + 0.35 * 65.
-      expect(smoother.update(headingDeg: 100, speedMps: 5), closeTo(35, 1e-9));
-      expect(
-        smoother.update(headingDeg: 100, speedMps: 5),
-        closeTo(57.75, 1e-9),
-      );
+      // Riding speed, so alpha is 0.5: 0 + 0.5 * 100, then 50 + 0.5 * 50.
+      expect(smoother.update(headingDeg: 100, speedMps: 5), closeTo(50, 1e-9));
+      expect(smoother.update(headingDeg: 100, speedMps: 5), closeTo(75, 1e-9));
+    });
+
+    test('a slower fix is blended in more carefully', () {
+      final smoother = HeadingSmoother()..update(headingDeg: 0, speedMps: 2);
+
+      // Below 4 m/s the course is half noise, so only 0.3 of it counts.
+      expect(smoother.update(headingDeg: 100, speedMps: 2), closeTo(30, 1e-9));
+      // And back at riding speed the cone catches up faster again.
+      expect(smoother.update(headingDeg: 100, speedMps: 5), closeTo(65, 1e-9));
     });
 
     test('a raw course is normalised before it is blended', () {
@@ -66,9 +72,10 @@ void main() {
     test('averages the short way around 0 degrees', () {
       final smoother = HeadingSmoother()..update(headingDeg: 359, speedMps: 5);
 
-      // Not 233, which is where a plain arithmetic mean of 359 and 1 lands.
-      expect(smoother.update(headingDeg: 1, speedMps: 5), closeTo(359.7, 1e-9));
-      expect(smoother.update(headingDeg: 1, speedMps: 5), closeTo(0.155, 1e-6));
+      // Half of the two degrees between 359 and 1, not half of the 358 the
+      // long way round, which would land on 180.
+      expect(smoother.update(headingDeg: 1, speedMps: 5), closeTo(0, 1e-9));
+      expect(smoother.update(headingDeg: 1, speedMps: 5), closeTo(0.5, 1e-9));
       expect(smoother.heading, inInclusiveRange(0, 360));
     });
 
@@ -76,7 +83,7 @@ void main() {
       final smoother = HeadingSmoother()..update(headingDeg: 1, speedMps: 5);
 
       final heading = smoother.update(headingDeg: 350, speedMps: 5)!;
-      expect(heading, closeTo(357.15, 1e-9));
+      expect(heading, closeTo(355.5, 1e-9));
       expect(heading, inInclusiveRange(0, 360));
     });
 

@@ -139,7 +139,7 @@
   "@commonRetry": {
     "description": "Button that runs the failed operation again"
   },
-  "profileTrekking": "Trekking",
+  "profileTrekking": "Touring",
   "@profileTrekking": {
     "description": "Routing profile for everyday touring bikes"
   },
@@ -155,7 +155,7 @@
   "@profileMtb": {
     "description": "Routing profile for mountain bikes, short for mountain bike"
   },
-  "profileShortest": "Shortest",
+  "profileShortest": "Direct",
   "@profileShortest": {
     "description": "Routing profile that minimises distance regardless of comfort"
   },

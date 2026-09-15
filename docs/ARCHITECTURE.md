@@ -136,7 +136,13 @@ smoothed course, as `HeadingSmoother` gives it); the locate button picks the
 following up again, and the compass button below it swaps the style, its
 needle turned to the map's bearing. The choice is kept in
 `recording.follow`, so the next ride starts the way the last one was ridden,
-and a pan or a twist of the map hands it back to the rider.
+and a pan or a twist of the map hands it back to the rider. While the rider is
+within 25 m of the guided route the puck is drawn at `NavigationProgress.snapped`
+and pointed along `routeBearingDeg`, so neither wanders with the fix; the
+adapter then walks the puck to each new fix over 800 ms instead of hopping.
+The camera glides over a one-second fix interval and is only turned when the
+bearing has moved more than 8°, and never below 1.5 m/s, where a GNSS course
+is noise.
 
 **Turn-by-turn.** BRouter's voice hints travel with a route as `TurnHint`s and
 are stored with it. While a ride runs, `NavigationController` (kept alive for

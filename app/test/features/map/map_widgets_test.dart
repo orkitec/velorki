@@ -289,6 +289,43 @@ void main() {
       expect(compassed, 1);
     });
 
+    testWidgets('a compass tap names the style it switches to, briefly', (
+      tester,
+    ) async {
+      final controller = FakeMapController();
+      await tester.pumpWidget(
+        await _wrap(
+          MapChromeInsets(
+            onCompass: () {},
+            child: MapControls(controller: controller),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // North-up is on, so the tap switches to heading-up and says so.
+      await tester.tap(find.widgetWithIcon(IconButton, Icons.navigation));
+      await tester.pump();
+      expect(find.text(MapStrings.followHeadingUp), findsOneWidget);
+      // A label, not a slab: the overlay offers the whole screen and the
+      // hint must take only what its text needs.
+      final slab = tester.getSize(
+        find
+            .ancestor(
+              of: find.text(MapStrings.followHeadingUp),
+              matching: find.byType(Material),
+            )
+            .first,
+      );
+      // The test font is a full em per glyph, so the bound is loose.
+      expect(slab.width, lessThan(400));
+      expect(slab.height, lessThan(48));
+
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pump();
+      expect(find.text(MapStrings.followHeadingUp), findsNothing);
+    });
+
     testWidgets('draws the compass in the accent in heading up', (
       tester,
     ) async {

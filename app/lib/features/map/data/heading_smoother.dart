@@ -9,11 +9,19 @@ const double headingConeOnSpeedMps = 1.5;
 /// Ground speed below which a visible heading cone disappears again.
 const double headingConeOffSpeedMps = 0.6;
 
-/// Weight of the newest course in the circular exponential average.
+/// Weight of the newest course in the circular exponential average while the
+/// rider is clearly riding.
 ///
-/// Low enough to swallow the jitter of a consumer GNSS course, high enough
-/// that the cone has caught up with a turn within a few fixes.
-const double headingSmoothingAlpha = 0.35;
+/// A course measured at riding speed is a good one, so the cone may follow it
+/// closely and be through a turn in two or three fixes.
+const double headingAlphaFast = 0.5;
+
+/// The same at a slower pace, where the course is half noise and the average
+/// has to work harder to keep the cone still.
+const double headingAlphaSlow = 0.3;
+
+/// Ground speed from which [headingAlphaFast] is used.
+const double headingAlphaFastSpeedMps = 4;
 
 /// Turns the raw course of a fix into the heading the puck's cone is drawn at.
 ///
@@ -27,10 +35,13 @@ const double headingSmoothingAlpha = 0.35;
 /// and is fed every fix.
 class HeadingSmoother {
   /// Creates a smoother with the production thresholds.
+  ///
+  /// A given [alpha] is used at every speed; leaving it out picks one per fix,
+  /// which is what production wants.
   HeadingSmoother({
     this.onSpeedMps = headingConeOnSpeedMps,
     this.offSpeedMps = headingConeOffSpeedMps,
-    this.alpha = headingSmoothingAlpha,
+    this.alpha,
   });
 
   /// Ground speed at or above which a hidden cone appears.
@@ -39,8 +50,16 @@ class HeadingSmoother {
   /// Ground speed below which a visible cone hides again.
   final double offSpeedMps;
 
-  /// Weight of the newest course, between 0 and 1.
-  final double alpha;
+  /// Weight of the newest course, between 0 and 1, or `null` to let the speed
+  /// of each fix decide.
+  final double? alpha;
+
+  /// The weight this fix's course is blended in with.
+  double alphaAt(double? speedMps) =>
+      alpha ??
+      ((speedMps ?? 0) >= headingAlphaFastSpeedMps
+          ? headingAlphaFast
+          : headingAlphaSlow);
 
   bool _visible = false;
   double? _heading;
@@ -74,7 +93,9 @@ class HeadingSmoother {
     final course = puckHeading(headingDeg, speedMps);
     if (course != null) {
       final previous = _heading;
-      _heading = previous == null ? course : _blend(previous, course);
+      _heading = previous == null
+          ? course
+          : _blend(previous, course, alphaAt(speedMps));
     }
     return _heading;
   }
@@ -86,11 +107,11 @@ class HeadingSmoother {
     _heading = null;
   }
 
-  /// [previous] moved [alpha] of the way towards [course], the short way
+  /// [previous] moved [weight] of the way towards [course], the short way
   /// around the circle.
-  double _blend(double previous, double course) {
+  double _blend(double previous, double course, double weight) {
     final delta = ((course - previous + 540) % 360) - 180;
-    final blended = (previous + alpha * delta) % 360;
+    final blended = (previous + weight * delta) % 360;
     return blended < 0 ? blended + 360 : blended;
   }
 }

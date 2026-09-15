@@ -103,6 +103,42 @@ void main() {
     });
   });
 
+  group('MapPosition.measuredHeading', () {
+    test('drops the -1 Core Location reports for "no course"', () {
+      // And it flags the fix as having one, so the plain value check lets it
+      // through: a cone pointing north every time the rider slows down.
+      expect(MapPosition.measuredHeading(-1, flagged: true), isNull);
+      expect(MapPosition.measuredHeading(-1, flagged: false), isNull);
+    });
+
+    test('folds a course of 360 back onto due north', () {
+      expect(MapPosition.measuredHeading(360, flagged: true), 0);
+    });
+
+    test('drops anything else off the compass rose', () {
+      expect(MapPosition.measuredHeading(361, flagged: true), isNull);
+      expect(MapPosition.measuredHeading(-0.5, flagged: true), isNull);
+      expect(MapPosition.measuredHeading(double.nan, flagged: true), isNull);
+    });
+
+    test('keeps every course that is one', () {
+      expect(MapPosition.measuredHeading(0, flagged: true), 0);
+      expect(MapPosition.measuredHeading(359.9, flagged: true), 359.9);
+    });
+  });
+
+  group('MapPosition.measuredSpeed', () {
+    test('drops the -1 Core Location reports for "no speed"', () {
+      expect(MapPosition.measuredSpeed(-1, flagged: true), isNull);
+      expect(MapPosition.measuredSpeed(-0.01, flagged: false), isNull);
+    });
+
+    test('keeps a real speed, a flagged standstill included', () {
+      expect(MapPosition.measuredSpeed(0, flagged: true), 0);
+      expect(MapPosition.measuredSpeed(4.2, flagged: false), 4.2);
+    });
+  });
+
   group('MapPosition.fromGeolocator', () {
     test('keeps accuracy, course and speed an Android fix never flags', () {
       final position = MapPosition.fromGeolocator(
@@ -126,6 +162,23 @@ void main() {
     test('keeps a flagged zero, e.g. a course of due north', () {
       final position = MapPosition.fromGeolocator(
         _fix(accuracy: 5, speed: 3, flags: true),
+      );
+
+      expect(position.headingDeg, 0);
+    });
+
+    test('throws away the -1 an iPhone sends when it has neither', () {
+      final position = MapPosition.fromGeolocator(
+        _fix(accuracy: 5, heading: -1, speed: -1, flags: true),
+      );
+
+      expect(position.headingDeg, isNull);
+      expect(position.speedMps, isNull);
+    });
+
+    test('a course of 360 arrives as due north', () {
+      final position = MapPosition.fromGeolocator(
+        _fix(accuracy: 5, heading: 360, speed: 3, flags: true),
       );
 
       expect(position.headingDeg, 0);

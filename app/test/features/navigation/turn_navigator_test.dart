@@ -73,6 +73,32 @@ void main() {
     expect(progress.alongM, closeTo(500, 3));
     expect(progress.distanceToNextM, closeTo(500, 3));
     expect(progress.offRoute, isFalse);
+    // And the matched point is on the line itself, 20 m south of the fix:
+    // that is where the puck is drawn while the rider is on the route.
+    expect(progress.distanceFromRouteM, closeTo(20, 1));
+    expect(progress.snapped!.lat, closeTo(_lat0, 1e-9));
+    expect(progress.snapped!.lon, closeTo(_lon0 + 500 / _mPerDegLon, 1e-7));
+  });
+
+  test('the bearing comes from the leg the rider is on', () {
+    final navigator = _navigator();
+
+    // Due east on the first leg of the L, due north on the second.
+    expect(navigator.update(_at(500)).routeBearingDeg, closeTo(90, 0.5));
+    expect(navigator.update(_at(1500)).routeBearingDeg, closeTo(0, 0.5));
+  });
+
+  test('a route of a single point has no bearing and no distance off it', () {
+    final navigator = TurnNavigator(
+      line: <LatLng>[_at(0)],
+      turns: const <TurnHint>[],
+    );
+
+    final progress = navigator.update(_at(0, offsetM: 10));
+
+    expect(progress.routeBearingDeg, isNull);
+    expect(progress.snapped, _at(0));
+    expect(progress.distanceFromRouteM, closeTo(10, 1));
   });
 
   test('past the corner the end becomes the next turn', () {

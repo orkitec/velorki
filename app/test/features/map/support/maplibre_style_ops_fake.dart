@@ -24,6 +24,7 @@ class RecordedStyleCall {
     this.visible,
     this.imageBytes,
     this.cameraUpdate,
+    this.cameraDuration,
   });
 
   /// The member that was called, e.g. `addLayer`.
@@ -55,6 +56,9 @@ class RecordedStyleCall {
 
   /// `toJson()` of a camera update, e.g. `['newLatLngZoom', [8.5, 47], 14]`.
   final Object? cameraUpdate;
+
+  /// How long an `animateCamera` was asked to take.
+  final Duration? cameraDuration;
 
   @override
   String toString() {
@@ -307,9 +311,16 @@ class RecordingStyleOps implements MapLibreStyleOps {
   }
 
   @override
-  Future<void> animateCamera(ml.CameraUpdate update) async {
+  Future<void> animateCamera(
+    ml.CameraUpdate update, {
+    Duration? duration,
+  }) async {
     calls.add(
-      RecordedStyleCall('animateCamera', cameraUpdate: update.toJson()),
+      RecordedStyleCall(
+        'animateCamera',
+        cameraUpdate: update.toJson(),
+        cameraDuration: duration,
+      ),
     );
   }
 

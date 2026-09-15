@@ -7,6 +7,7 @@ geo.Position _fix({
   double altitude = 123.4,
   double speed = 4.2,
   double accuracy = 6,
+  double heading = 90,
 }) => geo.Position(
   latitude: 48,
   longitude: 11,
@@ -14,7 +15,7 @@ geo.Position _fix({
   accuracy: accuracy,
   altitude: altitude,
   altitudeAccuracy: 3,
-  heading: 90,
+  heading: heading,
   headingAccuracy: 5,
   speed: speed,
   speedAccuracy: 1,
@@ -44,6 +45,21 @@ void main() {
       expect(point.ele, 123.4);
       expect(point.speedMps, 4.2);
       expect(point.accuracyM, 6);
+    });
+
+    test('an iPhone with no course and no speed sends -1 for both', () {
+      // Core Location flags the fix as having them all the same, so nothing
+      // but the value itself says they are missing.
+      final point = trackPointFromPosition(
+        _fix(flagged: true, speed: -1, heading: -1),
+      );
+      expect(point.speedMps, isNull);
+      expect(point.headingDeg, isNull);
+    });
+
+    test('a course of 360 is written as due north', () {
+      final point = trackPointFromPosition(_fix(flagged: true, heading: 360));
+      expect(point.headingDeg, 0);
     });
 
     test('an unflagged zero is treated as not measured', () {

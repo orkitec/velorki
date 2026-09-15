@@ -121,7 +121,27 @@ class TurnNavigator {
       remainingM: remainingM,
       alongM: alongM,
       arrived: arrived,
+      snapped: match.snapped,
+      routeBearingDeg: _segmentBearing(match.segment),
+      distanceFromRouteM: match.distanceM,
     );
+  }
+
+  /// Which way the route runs on segment [index], or `null` for a route of a
+  /// single point.
+  ///
+  /// The direction of the road the rider is on beats a GNSS course by a wide
+  /// margin, so this is what turns the map and points the cone while they are
+  /// on the route. A segment of zero length carries no direction; the search
+  /// walks back to the last one that does.
+  double? _segmentBearing(int index) {
+    if (_line.length < 2) return null;
+    for (var i = math.min(index, _line.length - 2); i >= 0; i--) {
+      final a = _line[i];
+      final b = _line[i + 1];
+      if (a != b) return bearingDegrees(a, b);
+    }
+    return null;
   }
 
   /// Finds the point of the route nearest to [position].
@@ -132,7 +152,7 @@ class TurnNavigator {
   /// (or restarted mid-route) is found again.
   _Match _snap(LatLng position) {
     if (_line.length == 1) {
-      return _Match(0, haversineMeters(position, _line.first), 0);
+      return _Match(0, haversineMeters(position, _line.first), 0, _line.first);
     }
     final segments = _line.length - 1;
     final from = math.max(0, _lastSegment - 5);
@@ -157,6 +177,7 @@ class TurnNavigator {
     var bestDistance = double.infinity;
     var bestScore = double.infinity;
     var bestAlong = _cumulative[from];
+    var bestSnapped = _line[from];
     final lastAlong = _cumulative[_lastSegment];
     for (var i = from; i <= to; i++) {
       final a = _line[i];
@@ -185,15 +206,16 @@ class TurnNavigator {
         bestDistance = distance;
         bestSegment = i;
         bestAlong = along;
+        bestSnapped = snapped;
       }
     }
-    return _Match(bestSegment, bestDistance, bestAlong);
+    return _Match(bestSegment, bestDistance, bestAlong, bestSnapped);
   }
 }
 
 /// One position matched to the route.
 class _Match {
-  const _Match(this.segment, this.distanceM, this.alongM);
+  const _Match(this.segment, this.distanceM, this.alongM, this.snapped);
 
   /// Index of the segment the position sits on.
   final int segment;
@@ -203,4 +225,7 @@ class _Match {
 
   /// How far along the route the matched point is, in metres.
   final double alongM;
+
+  /// The point on the route itself.
+  final LatLng snapped;
 }

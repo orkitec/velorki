@@ -267,7 +267,7 @@ void main() {
 
       expect(_inSheet(find.text('BIKE')), findsOneWidget);
       expect(
-        _inSheet(find.widgetWithText(ChoiceChip, 'Trekking')),
+        _inSheet(find.widgetWithText(ChoiceChip, 'Touring')),
         findsOneWidget,
       );
 

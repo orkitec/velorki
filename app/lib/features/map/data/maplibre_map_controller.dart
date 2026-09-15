@@ -198,6 +198,24 @@ Color colorFromMapHex(String hex) {
 const String _cyclosmAttribution =
     '© OpenStreetMap contributors, tiles by CyclOSM';
 
+/// How long the puck takes to walk from one fix to the next.
+///
+/// A recording fix arrives about once a second; drawing the puck straight at
+/// each one makes it hop. Walking it there over most of that second is what
+/// makes the dot look like it is riding rather than teleporting.
+const Duration puckInterpolationDuration = Duration(milliseconds: 800);
+
+/// How many steps that walk is drawn in. Twelve is smooth enough to read as
+/// motion and cheap enough to write twelve times a second.
+const int puckInterpolationSteps = 12;
+
+/// A jump longer than this is not riding.
+///
+/// The first fix after a tunnel, a cold start or an OS cache comes from far
+/// away; walking the puck across half a city would look like a bug, so it is
+/// simply put where it belongs.
+const double puckTeleportMeters = 100;
+
 /// The slice of maplibre_gl's [ml.MapLibreMapController] the adapter drives.
 ///
 /// The plugin controller only exists behind a platform view, so in
@@ -254,8 +272,8 @@ abstract class MapLibreStyleOps {
   /// under that name. The heading cone is a bitmap we paint ourselves.
   Future<void> addImage(String name, Uint8List bytes);
 
-  /// Flies the camera to [update].
-  Future<void> animateCamera(ml.CameraUpdate update);
+  /// Flies the camera to [update], over [duration] when one is given.
+  Future<void> animateCamera(ml.CameraUpdate update, {Duration? duration});
 
   /// Jumps the camera to [update], for moves that should not be watched.
   Future<void> moveCamera(ml.CameraUpdate update);
@@ -383,8 +401,8 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
       tolerateMapGone(() => map.addImage(name, bytes));
 
   @override
-  Future<void> animateCamera(ml.CameraUpdate update) =>
-      tolerateMapGone(() => map.animateCamera(update));
+  Future<void> animateCamera(ml.CameraUpdate update, {Duration? duration}) =>
+      tolerateMapGone(() => map.animateCamera(update, duration: duration));
 
   @override
   Future<void> moveCamera(ml.CameraUpdate update) =>
@@ -458,6 +476,10 @@ class MaplibreMapControllerAdapter implements MapController {
   // Hysteresis and circular averaging for the heading cone, so it neither
   // blinks nor spins while the rider rolls along at walking pace.
   final HeadingSmoother _headingSmoother = HeadingSmoother();
+  // Where the puck is drawn right now, and the ticker walking it towards the
+  // newest fix; see [setPosition].
+  LatLng? _puckPosition;
+  Timer? _puckWalk;
   BoundingBox? _visibleBounds;
   bool _cyclosmVisible = false;
   bool _attached = false;
@@ -493,6 +515,11 @@ class MaplibreMapControllerAdapter implements MapController {
   Future<void> attachToStyle() async {
     _attached = false;
     _routeLines.clear();
+    // A fresh style has no puck, so the next fix is drawn where it is rather
+    // than walked there from wherever the old one stood.
+    _puckWalk?.cancel();
+    _puckWalk = null;
+    _puckPosition = null;
     _ops.onFeatureDrag.remove(_handleFeatureDrag);
     _ops.onFeatureDrag.add(_handleFeatureDrag);
     _ops.onFeatureTapped.remove(_handleFeatureTapped);
@@ -742,6 +769,7 @@ class MaplibreMapControllerAdapter implements MapController {
     double? zoom,
     double? bearing,
     bool animate = true,
+    Duration? duration,
   }) async {
     // Only a full camera position carries a bearing, and it carries the zoom
     // and the tilt with it, so those have to be filled in from the live
@@ -759,7 +787,7 @@ class MaplibreMapControllerAdapter implements MapController {
         ? ml.CameraUpdate.newLatLng(_toMl(center))
         : ml.CameraUpdate.newLatLngZoom(_toMl(center), zoom);
     if (animate) {
-      await _ops.animateCamera(update);
+      await _ops.animateCamera(update, duration: duration);
     } else {
       await _ops.moveCamera(update);
     }
@@ -1144,6 +1172,10 @@ class MaplibreMapControllerAdapter implements MapController {
     double? headingDeg,
     double? speedMps,
   }) async {
+    // Whatever the last fix started is over; this one decides where the puck
+    // goes now.
+    _puckWalk?.cancel();
+    _puckWalk = null;
     if (!_attached) return;
     // The cone is driven by the smoother, not by this one fix: it appears
     // only once the rider is clearly moving, keeps the last heading through a
@@ -1154,14 +1186,27 @@ class MaplibreMapControllerAdapter implements MapController {
     final heading = position == null
         ? null
         : _headingSmoother.update(headingDeg: headingDeg, speedMps: speedMps);
-    await _writeBaseSource(
-      MapLayerIds.positionSource,
-      positionFeatureCollection(
-        position,
-        accuracyM: accuracyM,
-        resolvedHeadingDeg: heading,
-      ),
-    );
+    final from = _puckPosition;
+    _puckPosition = position;
+    // A fix per second drawn as a fix per second is a hopping dot. Walk the
+    // puck from where it stands to where the rider now is, and only the last
+    // step of that walk is the fix itself. A first fix and a jump that is no
+    // ride at all go straight there.
+    if (position != null &&
+        from != null &&
+        from != position &&
+        haversineMeters(from, position) <= puckTeleportMeters) {
+      _walkPuck(from, position, accuracyM: accuracyM, headingDeg: heading);
+    } else {
+      await _writeBaseSource(
+        MapLayerIds.positionSource,
+        positionFeatureCollection(
+          position,
+          accuracyM: accuracyM,
+          resolvedHeadingDeg: heading,
+        ),
+      );
+    }
     if (!_attached) return;
     // circle-radius is in pixels, so a metre-accurate ring needs a fresh
     // zoom expression whenever the accuracy or the latitude changes.
@@ -1179,6 +1224,47 @@ class MaplibreMapControllerAdapter implements MapController {
         circleStrokeOpacity: 0.4,
       ),
     );
+  }
+
+  /// Draws the puck on its way from [from] to [to] over
+  /// [puckInterpolationDuration], ending exactly on [to].
+  ///
+  /// Every step carries the same heading and accuracy the fix came with, so
+  /// only the dot moves; nothing blinks while it walks.
+  void _walkPuck(
+    LatLng from,
+    LatLng to, {
+    double? accuracyM,
+    double? headingDeg,
+  }) {
+    final period = puckInterpolationDuration ~/ puckInterpolationSteps;
+    var step = 0;
+    _puckWalk = Timer.periodic(period, (timer) {
+      step++;
+      final done = step >= puckInterpolationSteps;
+      if (done) {
+        timer.cancel();
+        if (identical(_puckWalk, timer)) _puckWalk = null;
+      }
+      if (!_attached) return;
+      final t = step / puckInterpolationSteps;
+      final at = done
+          ? to
+          : LatLng(
+              from.lat + (to.lat - from.lat) * t,
+              from.lon + (to.lon - from.lon) * t,
+            );
+      unawaited(
+        _writeBaseSource(
+          MapLayerIds.positionSource,
+          positionFeatureCollection(
+            at,
+            accuracyM: accuracyM,
+            resolvedHeadingDeg: headingDeg,
+          ),
+        ),
+      );
+    });
   }
 
   @override
@@ -1371,6 +1457,8 @@ class MaplibreMapControllerAdapter implements MapController {
   /// by the widget that owns it.
   void dispose() {
     _disposed = true;
+    _puckWalk?.cancel();
+    _puckWalk = null;
     _ops.onFeatureDrag.remove(_handleFeatureDrag);
     _ops.onFeatureTapped.remove(_handleFeatureTapped);
     onTap = null;
