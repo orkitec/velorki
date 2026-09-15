@@ -20,6 +20,14 @@ void startRecordingCallback() {
   FlutterForegroundTask.setTaskHandler(RecordingTaskHandler());
 }
 
+/// Command that hands the notification's second line to the main isolate for
+/// a while, so the two do not write over each other.
+const String recordingCommandNotificationLease = 'notificationLease';
+
+/// Key of the lease in milliseconds inside a
+/// [recordingCommandNotificationLease] message.
+const String recordingNotificationLeaseKey = 'leaseMs';
+
 /// The handful of foreground-service calls the handler makes.
 ///
 /// Behind an interface because all four are plugin statics that reach for a
@@ -105,6 +113,10 @@ class RecordingTaskHandler extends TaskHandler {
       StreamController<DateTime>.broadcast();
   DateTime _lastNotification = DateTime.fromMillisecondsSinceEpoch(0);
 
+  /// Until when the main isolate writes the notification text itself, or
+  /// `null` while this isolate is the only writer.
+  DateTime? _leasedUntil;
+
   /// Seconds between two notification updates. The rider glances at it; one
   /// redraw per second would only cost battery.
   static const Duration notificationInterval = Duration(seconds: 5);
@@ -160,6 +172,11 @@ class RecordingTaskHandler extends TaskHandler {
         if (engine != null) _send(engine.snapshot);
       case recordingCommandStop:
         unawaited(_stopAndAcknowledge());
+      case recordingCommandNotificationLease:
+        final ms = data[recordingNotificationLeaseKey];
+        _leasedUntil = ms is int && ms > 0
+            ? _clock().add(Duration(milliseconds: ms))
+            : null;
     }
   }
 
@@ -186,6 +203,15 @@ class RecordingTaskHandler extends TaskHandler {
 
   void _onSnapshot(RecordingSnapshot snapshot) {
     _send(snapshot);
+    // The main isolate writes a richer line — the next turn in front of the
+    // figures — while it is alive, and renews its lease with every write. A
+    // UI that was destroyed stops renewing, and the lease runs out on its
+    // own, so the notification never freezes on a stale turn.
+    final leased = _leasedUntil;
+    if (leased != null) {
+      if (_clock().isBefore(leased)) return;
+      _leasedUntil = null;
+    }
     final now = snapshot.startedAt.add(snapshot.elapsed);
     if (now.difference(_lastNotification) < notificationInterval) return;
     _lastNotification = now;

@@ -5,12 +5,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/theme.dart';
+import '../../../core/units/units.dart' as units;
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/device_position_request.dart';
 import '../../planner/application/planner_controller.dart';
 import '../../planner/domain/route_profile.dart';
 import '../../planner/presentation/route_format.dart';
+import '../../settings/data/units.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../application/smart_loop_controller.dart';
 import '../data/loop_preferences.dart';
@@ -91,9 +93,27 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
     _startIsPlotted = planner.waypoints.isNotEmpty;
     _closed = planner.isClosedLoop;
     if (_closed) _differentWayBack = planner.options.differentWayBack;
-    _km = loop.request != null
-        ? loop.request!.targetM / 1000
-        : ref.read(lastLoopDistanceKmProvider);
+    _km = _snapped(
+      loop.request != null
+          ? loop.request!.targetM / 1000
+          : ref.read(lastLoopDistanceKmProvider),
+    );
+  }
+
+  /// [km] moved to the nearest stop the slider actually has.
+  ///
+  /// The stops are whole kilometres or whole miles, so a distance last chosen
+  /// in one unit does not leave the figure sitting between two of them after
+  /// the rider switches to the other.
+  double _snapped(double km) {
+    final system = ref.read(unitSystemProvider);
+    final metric = system == UnitSystem.metric;
+    final min = metric ? loopMinKm : loopMinMi;
+    final max = metric ? loopMaxKm : loopMaxMi;
+    final step = metric ? loopStepKm : loopStepMi;
+    final display = units.distanceToDisplay(system, km * 1000).clamp(min, max);
+    final stops = ((display - min) / step).round();
+    return units.displayToMeters(system, min + stops * step) / 1000;
   }
 
   /// Where a from-scratch loop starts: the plotted waypoint, else the rider's
@@ -176,6 +196,7 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
 
   List<Widget> _closeRouteBody(AppLocalizations l10n, ThemeData theme) {
     final planner = ref.watch(plannerControllerProvider);
+    final system = ref.watch(unitSystemProvider);
     final result = planner.result;
     return [
       Text(l10n.loopBackToStart, style: _quiet(theme)),
@@ -197,8 +218,8 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
         else if (result != null)
           Text(
             l10n.loopResult(
-              formatDistance(l10n, result.lengthM),
-              formatHeight(l10n, result.ascentM),
+              formatDistance(l10n, system, result.lengthM),
+              formatHeight(l10n, system, result.ascentM),
             ),
             style: theme.textTheme.titleMedium,
           ),
@@ -247,6 +268,16 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
   List<Widget> _makeLoopBody(AppLocalizations l10n, ThemeData theme) {
     final state = ref.watch(smartLoopControllerProvider);
     final profile = ref.watch(plannerControllerProvider).options.profile;
+    final system = ref.watch(unitSystemProvider);
+    final metric = system == UnitSystem.metric;
+    // The slider works in whatever the rider reads; only the kilometres it
+    // hands back are ever stored or routed for.
+    final sliderMin = metric ? loopMinKm : loopMinMi;
+    final sliderMax = metric ? loopMaxKm : loopMaxMi;
+    final sliderStep = metric ? loopStepKm : loopStepMi;
+    final sliderValue = units
+        .distanceToDisplay(system, _km * 1000)
+        .clamp(sliderMin, sliderMax);
     final result = state.current?.result;
     // Moving the slider or picking another bike after a search makes the loop
     // on the map stale, so the sheet offers to make a new one rather than
@@ -266,16 +297,19 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
       SectionCaption(l10n.loopDistance),
       const SizedBox(height: 4),
       Text(
-        _kmLabel(l10n),
+        _sliderLabel(l10n, system, sliderValue),
         style: theme.textTheme.statLarge.copyWith(color: theme.velorki.accent),
       ),
       Slider(
-        value: _km,
-        min: loopMinKm,
-        max: loopMaxKm,
-        divisions: ((loopMaxKm - loopMinKm) / loopStepKm).round(),
-        label: _kmLabel(l10n),
-        onChanged: state.running ? null : (v) => setState(() => _km = v),
+        value: sliderValue,
+        min: sliderMin,
+        max: sliderMax,
+        divisions: ((sliderMax - sliderMin) / sliderStep).round(),
+        label: _sliderLabel(l10n, system, sliderValue),
+        onChanged: state.running
+            ? null
+            : (v) =>
+                  setState(() => _km = units.displayToMeters(system, v) / 1000),
       ),
       ..._profileSection(l10n),
       _wayBackSwitch(l10n),
@@ -296,8 +330,8 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
       ] else if (result != null && !stale) ...[
         Text(
           l10n.loopResult(
-            formatDistance(l10n, result.lengthM),
-            formatHeight(l10n, result.ascentM),
+            formatDistance(l10n, system, result.lengthM),
+            formatHeight(l10n, system, result.ascentM),
           ),
           style: theme.textTheme.titleMedium,
         ),
@@ -334,11 +368,18 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
     ];
   }
 
-  /// The slider figure. It only ever moves in whole steps of
-  /// [loopStepKm] kilometres, so the decimal the route statistics carry would
-  /// be a permanent ".0" here.
-  String _kmLabel(AppLocalizations l10n) =>
-      l10n.valueKilometers(formatNumber(l10n, _km, decimals: 0));
+  /// The slider figure. It only ever moves in whole kilometres or miles, so
+  /// the decimal the route statistics carry would be a permanent ".0" here.
+  String _sliderLabel(AppLocalizations l10n, UnitSystem system, double value) =>
+      formatMeasure(
+        l10n,
+        units.Measure(
+          value,
+          system == UnitSystem.metric
+              ? units.MeasureUnit.kilometers
+              : units.MeasureUnit.miles,
+        ),
+      );
 
   Widget _wayBackSwitch(AppLocalizations l10n) => SwitchListTile(
     contentPadding: EdgeInsets.zero,

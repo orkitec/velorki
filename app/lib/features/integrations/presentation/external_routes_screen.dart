@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/presentation/route_format.dart';
+import '../../settings/data/units.dart';
 import '../../shared/presentation/placeholder_body.dart';
 import '../application/external_route_importer.dart';
 import '../application/external_routes_loader.dart';
@@ -128,6 +129,7 @@ class _ExternalRoutesScreenState extends ConsumerState<ExternalRoutesScreen> {
   }
 
   Widget _body(AppLocalizations l10n, String label, {required bool connected}) {
+    final units = ref.watch(unitSystemProvider);
     if (!connected) {
       return PlaceholderBody(
         icon: Icons.link_off,
@@ -188,8 +190,8 @@ class _ExternalRoutesScreenState extends ConsumerState<ExternalRoutesScreen> {
           title: Text(route.name),
           subtitle: Text(
             l10n.externalRouteSubtitle(
-              formatDistance(l10n, route.distanceM),
-              formatHeight(l10n, route.elevationGainM),
+              formatDistance(l10n, units, route.distanceM),
+              formatHeight(l10n, units, route.elevationGainM),
               route.createdAt == null ? '' : formatDate(l10n, route.createdAt!),
             ),
           ),

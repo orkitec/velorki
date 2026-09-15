@@ -17,6 +17,7 @@ import '../data/navigation_settings.dart';
 import '../data/turn_speaker.dart';
 import '../domain/navigation_progress.dart';
 import '../presentation/turn_phrases.dart';
+import '../../settings/data/units.dart';
 import 'route_geometry.dart';
 import 'turn_announcer.dart';
 import 'turn_navigator.dart';
@@ -420,7 +421,7 @@ class NavigationController extends _$NavigationController {
     final l10n = ref.read(navigationLocalizationsProvider);
     final speaker = ref.read(turnSpeakerProvider);
     for (final cue in cues) {
-      final phrase = cuePhrase(cue, l10n);
+      final phrase = cuePhrase(cue, l10n, units: ref.read(unitSystemProvider));
       if (phrase.isNotEmpty) unawaited(speaker.speak(phrase));
     }
   }

@@ -18,6 +18,7 @@ import 'about_section.dart';
 import 'appearance_section.dart';
 import 'navigation_section.dart';
 import 'recording_section.dart';
+import 'units_section.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -34,6 +35,7 @@ class SettingsScreen extends ConsumerWidget {
         children: const [
           _SectionHeader.appearance(),
           AppearanceSection(),
+          UnitsSection(),
           Divider(height: 32),
           _SectionHeader.navigation(),
           NavigationSection(),

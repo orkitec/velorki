@@ -19,6 +19,7 @@ import 'package:velorki/app/app.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/features/map/presentation/map_view.dart';
 import 'package:velorki/features/planner/presentation/planner_map_host.dart';
+import 'package:velorki/features/settings/data/units.dart';
 
 /// How long a step of the pump loop is. Short enough that a tap is picked up
 /// quickly, long enough that a few hundred of them cover a minute.
@@ -41,6 +42,9 @@ Future<ProviderContainer> pumpApp(
   final container = ProviderContainer(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
+      // The emulator says en-US, which would open the app in miles; these
+      // flows are written in metric.
+      localeCountryProvider.overrideWithValue(null),
       if (realMap)
         mapViewBuilderProvider.overrideWithValue(
           (onReady) => MapView(onControllerReady: onReady),

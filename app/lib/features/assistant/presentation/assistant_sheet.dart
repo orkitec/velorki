@@ -9,6 +9,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/device_position_request.dart';
 import '../../planner/presentation/route_format.dart';
+import '../../settings/data/units.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../application/assistant_controller.dart';
 import '../data/ai_consent_controller.dart';
@@ -237,17 +238,21 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
 }
 
 /// What the model asked for, once it is resolved enough to show.
-class _RequestSummary extends StatelessWidget {
+class _RequestSummary extends ConsumerWidget {
   const _RequestSummary({required this.state});
 
   final AssistantState state;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final request = state.request!;
-    final distance = formatDistance(l10n, request.distanceKm * 1000);
+    final distance = formatDistance(
+      l10n,
+      ref.watch(unitSystemProvider),
+      request.distanceKm * 1000,
+    );
     final places = switch (state.intent) {
       LoopIntent(:final via) => via,
       RouteIntent(:final places) => places,

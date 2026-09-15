@@ -252,4 +252,27 @@ void main() {
     expect(find.text('Sunday spin'), findsOneWidget);
     await unmountApp(tester);
   });
+
+  testWidgets('the ride detail reads in miles, mph and feet under imperial', (
+    tester,
+  ) async {
+    final harness = RecordingHarness();
+    await _seed(harness);
+    await pumpRecordingScreen(
+      tester,
+      const RideDetailScreen(rideId: 'ride-1'),
+      harness: harness,
+      extraOverrides: [imperialUnits],
+    );
+    await tester.pumpAndSettle();
+
+    // The seeded track runs about 1.3 km up to 558 m and back down.
+    expect(find.textContaining(' mi'), findsWidgets);
+    expect(find.textContaining(' mph'), findsWidgets);
+    expect(find.textContaining(' ft'), findsWidgets);
+    expect(find.textContaining(' km'), findsNothing);
+    expect(find.textContaining(' km/h'), findsNothing);
+
+    await unmountApp(tester);
+  });
 }

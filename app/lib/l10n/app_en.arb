@@ -294,8 +294,18 @@
   "@statDuration": {
     "description": "Label of the estimated riding time, short for estimated time"
   },
-  "valueKilometers": "{value} km",
-  "@valueKilometers": {
+  "unitM": "{value} m",
+  "@unitM": {
+    "description": "A distance or height in metres",
+    "placeholders": {
+      "value": {
+        "type": "String",
+        "example": "430"
+      }
+    }
+  },
+  "unitKm": "{value} km",
+  "@unitKm": {
     "description": "A distance in kilometres",
     "placeholders": {
       "value": {
@@ -304,13 +314,43 @@
       }
     }
   },
-  "valueMeters": "{value} m",
-  "@valueMeters": {
-    "description": "A height in metres",
+  "unitFt": "{value} ft",
+  "@unitFt": {
+    "description": "A distance or height in feet",
     "placeholders": {
       "value": {
         "type": "String",
-        "example": "430"
+        "example": "1410"
+      }
+    }
+  },
+  "unitMi": "{value} mi",
+  "@unitMi": {
+    "description": "A distance in miles",
+    "placeholders": {
+      "value": {
+        "type": "String",
+        "example": "26.4"
+      }
+    }
+  },
+  "unitKmh": "{value} km/h",
+  "@unitKmh": {
+    "description": "A speed in kilometres per hour",
+    "placeholders": {
+      "value": {
+        "type": "String",
+        "example": "24.3"
+      }
+    }
+  },
+  "unitMph": "{value} mph",
+  "@unitMph": {
+    "description": "A speed in miles per hour",
+    "placeholders": {
+      "value": {
+        "type": "String",
+        "example": "15.1"
       }
     }
   },
@@ -793,16 +833,6 @@
   "statElapsed": "Time",
   "@statElapsed": {
     "description": "Label of the wall-clock time since the ride started"
-  },
-  "valueKilometersPerHour": "{value} km/h",
-  "@valueKilometersPerHour": {
-    "description": "A speed in kilometres per hour",
-    "placeholders": {
-      "value": {
-        "type": "String",
-        "example": "24.3"
-      }
-    }
   },
   "rideDetailNotFound": "This ride no longer exists.",
   "@rideDetailNotFound": {
@@ -1534,6 +1564,18 @@
   "@appearanceMap": {
     "description": "Label above the map style choice in Settings → Appearance"
   },
+  "settingsUnits": "Units",
+  "@settingsUnits": {
+    "description": "Label above the metric/imperial choice in Settings"
+  },
+  "unitsMetric": "Metric",
+  "@unitsMetric": {
+    "description": "Units option: kilometres, metres and km/h"
+  },
+  "unitsImperial": "Imperial",
+  "@unitsImperial": {
+    "description": "Units option: miles, feet and mph"
+  },
   "mapLookAuto": "Follows theme",
   "@mapLookAuto": {
     "description": "Map style option: light map in light mode, night map in dark mode"
@@ -2160,6 +2202,64 @@
       }
     }
   },
+  "navCueAheadFeet": "In {distance} feet, {instruction}",
+  "@navCueAheadFeet": {
+    "description": "Spoken warning some way before a turn, in feet",
+    "placeholders": {
+      "distance": {
+        "type": "int",
+        "example": "500"
+      },
+      "instruction": {
+        "type": "String",
+        "example": "turn left"
+      }
+    }
+  },
+  "navCueAheadMiles": "In {distance} miles, {instruction}",
+  "@navCueAheadMiles": {
+    "description": "Spoken warning a long way before a turn, in miles",
+    "placeholders": {
+      "distance": {
+        "type": "String",
+        "example": "2.5"
+      },
+      "instruction": {
+        "type": "String",
+        "example": "turn left"
+      }
+    }
+  },
+  "navCueQuarterMile": "In a quarter mile, {instruction}",
+  "@navCueQuarterMile": {
+    "description": "Spoken warning about a quarter of a mile before a turn",
+    "placeholders": {
+      "instruction": {
+        "type": "String",
+        "example": "turn left"
+      }
+    }
+  },
+  "navCueHalfMile": "In half a mile, {instruction}",
+  "@navCueHalfMile": {
+    "description": "Spoken warning about half a mile before a turn",
+    "placeholders": {
+      "instruction": {
+        "type": "String",
+        "example": "turn left"
+      }
+    }
+  },
+  "navCueOneMile": "In one mile, {instruction}",
+  "@navCueOneMile": {
+    "description": "Spoken warning about a mile before a turn",
+    "placeholders": {
+      "instruction": {
+        "type": "String",
+        "example": "turn left"
+      }
+    }
+  },
   "navCueNow": "Now {instruction}",
   "@navCueNow": {
     "description": "Spoken cue at the turn itself",
@@ -2224,6 +2324,20 @@
       }
     }
   },
+  "navTurnIn": "{instruction} in {distance}",
+  "@navTurnIn": {
+    "description": "Next turn with the distance to it, shown in the recording notification",
+    "placeholders": {
+      "instruction": {
+        "type": "String",
+        "example": "Turn left"
+      },
+      "distance": {
+        "type": "String",
+        "example": "150 m"
+      }
+    }
+  },
   "navDistanceKm": "{distance} km",
   "@navDistanceKm": {
     "description": "A longer distance to the next turn, one decimal place",
@@ -2231,6 +2345,26 @@
       "distance": {
         "type": "String",
         "example": "1.4"
+      }
+    }
+  },
+  "navDistanceFeet": "{distance} ft",
+  "@navDistanceFeet": {
+    "description": "A short distance to the next turn in feet, shown in the banner",
+    "placeholders": {
+      "distance": {
+        "type": "int",
+        "example": "400"
+      }
+    }
+  },
+  "navDistanceMiles": "{distance} mi",
+  "@navDistanceMiles": {
+    "description": "A longer distance to the next turn in miles, one decimal place",
+    "placeholders": {
+      "distance": {
+        "type": "String",
+        "example": "0.9"
       }
     }
   },

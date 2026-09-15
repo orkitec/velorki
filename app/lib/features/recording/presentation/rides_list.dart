@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/presentation/route_format.dart';
+import '../../settings/data/units.dart';
 import '../data/ride_repository.dart';
 import '../domain/ride.dart';
 import 'ride_detail_screen.dart';
@@ -137,6 +138,7 @@ class RideTile extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final units = ref.watch(unitSystemProvider);
     return Dismissible(
       key: ValueKey('ride-${ride.id}'),
       direction: DismissDirection.endToStart,
@@ -166,7 +168,7 @@ class RideTile extends ConsumerWidget {
         subtitle: Text(
           l10n.rideSubtitle(
             formatDate(l10n, ride.startedAt),
-            formatDistance(l10n, ride.stats.distanceM),
+            formatDistance(l10n, units, ride.stats.distanceM),
             formatDuration(l10n, ride.stats.movingTime),
           ),
           style: theme.textTheme.bodySmall,

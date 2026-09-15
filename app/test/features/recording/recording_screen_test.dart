@@ -1328,4 +1328,27 @@ void main() {
     );
     await unmountApp(tester);
   });
+
+  testWidgets('the record sheet reads in miles, mph and feet under imperial', (
+    tester,
+  ) async {
+    final h = await pumpRecordingScreen(
+      tester,
+      const RecordingScreen(),
+      extraOverrides: [imperialUnits],
+    );
+    await tester.pump();
+
+    await emitSnapshot(tester, h, _snapshot());
+
+    // 12 345 m, 6 m/s, 5 m/s average, 210 m up and 190 m down.
+    expect(find.text('7.7 mi'), findsOneWidget);
+    expect(find.text('13.4 mph'), findsOneWidget);
+    expect(find.text('11.2 mph'), findsOneWidget);
+    expect(find.text('689 ft'), findsOneWidget);
+    expect(find.text('623 ft'), findsOneWidget);
+    expect(find.textContaining('km'), findsNothing);
+
+    await unmountApp(tester);
+  });
 }

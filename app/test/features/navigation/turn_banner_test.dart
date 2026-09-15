@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/theme.dart';
 import 'package:velorki/features/navigation/domain/navigation_progress.dart';
@@ -8,28 +10,36 @@ import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 
+import '../../support/units.dart';
+
 const TurnHint _left = TurnHint(pointIndex: 10, kind: TurnKind.left);
 const TurnHint _keepRight = TurnHint(pointIndex: 14, kind: TurnKind.keepRight);
 
-Future<void> _pumpBanner(WidgetTester tester, NavigationProgress progress) =>
-    tester.pumpWidget(
-      MaterialApp(
-        theme: buildLightTheme(),
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(
-          body: Align(
-            alignment: Alignment.topCenter,
-            child: TurnBanner(progress: progress),
-          ),
+Future<void> _pumpBanner(
+  WidgetTester tester,
+  NavigationProgress progress, {
+  Override? units,
+}) => tester.pumpWidget(
+  ProviderScope(
+    overrides: [units ?? metricUnits],
+    child: MaterialApp(
+      theme: buildLightTheme(),
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Scaffold(
+        body: Align(
+          alignment: Alignment.topCenter,
+          child: TurnBanner(progress: progress),
         ),
       ),
-    );
+    ),
+  ),
+);
 
 void main() {
   testWidgets('the banner shows the distance and the instruction', (
@@ -152,5 +162,24 @@ void main() {
       tester.getTopLeft(find.byType(GlassPanel)).dx,
       tester.getTopLeft(find.byType(TurnBanner)).dx,
     );
+  });
+
+  testWidgets('imperial shows feet and miles', (tester) async {
+    await _pumpBanner(
+      tester,
+      const NavigationProgress(next: _left, distanceToNextM: 120),
+      units: imperialUnits,
+    );
+
+    expect(find.text('390 ft'), findsOneWidget);
+    expect(find.text('Turn left'), findsOneWidget);
+
+    await _pumpBanner(
+      tester,
+      const NavigationProgress(next: _left, distanceToNextM: 1400),
+      units: imperialUnits,
+    );
+
+    expect(find.text('0.9 mi'), findsOneWidget);
   });
 }

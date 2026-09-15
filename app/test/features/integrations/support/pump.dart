@@ -17,6 +17,7 @@ import 'package:velorki/features/integrations/common/data/relay_client_provider.
 import 'package:velorki/features/integrations/common/data/secure_key_value_store.dart';
 import 'package:velorki/features/integrations/common/domain/connected_account.dart';
 import 'package:velorki/features/settings/data/package_info_provider.dart';
+import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki_api/velorki_api.dart';
 
@@ -94,6 +95,8 @@ class IntegrationsHarness {
   /// The overrides to hand to a [ProviderScope].
   List<Override> overrides(SharedPreferences prefs) => <Override>[
     sharedPreferencesProvider.overrideWithValue(prefs),
+    // The test host says en-US; these expectations are written in metric.
+    localeCountryProvider.overrideWithValue(null),
     appConfigProvider.overrideWithValue(config),
     secureKeyValueStoreProvider.overrideWithValue(store),
     integrationConnectorProvider.overrideWith(
@@ -134,6 +137,8 @@ Future<ProviderContainer> integrationsContainer({
   final container = ProviderContainer(
     overrides: <Override>[
       sharedPreferencesProvider.overrideWithValue(prefs),
+      // The test host says en-US; these expectations are written in metric.
+      localeCountryProvider.overrideWithValue(null),
       appConfigProvider.overrideWithValue(config),
       secureKeyValueStoreProvider.overrideWithValue(
         store ??

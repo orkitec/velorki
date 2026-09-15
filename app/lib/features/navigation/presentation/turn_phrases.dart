@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 
+import '../../../core/units/units.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../application/turn_announcer.dart';
 
@@ -24,8 +25,15 @@ String turnLabel(TurnHint hint, AppLocalizations l10n) => switch (hint.kind) {
   TurnKind.straight || TurnKind.beeline || TurnKind.offRoad => l10n.navContinue,
 };
 
-/// What the voice says for [cue].
-String cuePhrase(TurnCue cue, AppLocalizations l10n) {
+/// What the voice says for [cue], in [units].
+///
+/// [units] is named and optional so the controller that speaks the cues can
+/// stay as it is until it has the rider's setting to hand.
+String cuePhrase(
+  TurnCue cue,
+  AppLocalizations l10n, {
+  UnitSystem units = UnitSystem.metric,
+}) {
   switch (cue.kind) {
     case CueKind.offRoute:
       return l10n.navOffRoute;
@@ -38,9 +46,11 @@ String cuePhrase(TurnCue cue, AppLocalizations l10n) {
     case CueKind.ahead:
       final turn = cue.turn;
       if (turn == null) return '';
-      return l10n.navCueAhead(
+      return _aheadPhrase(
         cue.distanceM,
         _midSentence(turnLabel(turn, l10n), l10n),
+        l10n,
+        units,
       );
     case CueKind.now:
       final turn = cue.turn;
@@ -52,15 +62,52 @@ String cuePhrase(TurnCue cue, AppLocalizations l10n) {
   }
 }
 
-/// A distance for the banner: metres below a kilometre, kilometres with one
-/// decimal above it.
-String distanceLabel(double metres, AppLocalizations l10n) {
-  if (metres < 1000) {
-    // Round to 10 m so the banner does not flicker on every fix.
-    final rounded = (metres / 10).round() * 10;
-    return l10n.navDistanceMetres(rounded);
+/// The spoken warning before a turn.
+///
+/// Metric counts the metres off. Imperial rounds to a hundred feet below a
+/// thousand and then says the fractions a rider actually hears on the road —
+/// a quarter, a half, a mile — rather than a number of miles with a decimal.
+String _aheadPhrase(
+  int metres,
+  String instruction,
+  AppLocalizations l10n,
+  UnitSystem units,
+) {
+  if (units == UnitSystem.metric) {
+    return l10n.navCueAhead(metres, instruction);
   }
-  return l10n.navDistanceKm((metres / 1000).toStringAsFixed(1));
+  final feet = metres / metersPerFoot;
+  if (feet < 1000) {
+    return l10n.navCueAheadFeet(
+      roundToHundredFeet(metres.toDouble()).round(),
+      instruction,
+    );
+  }
+  final miles = metres / metersPerMile;
+  if (miles < 0.375) return l10n.navCueQuarterMile(instruction);
+  if (miles < 0.75) return l10n.navCueHalfMile(instruction);
+  if (miles < 1.5) return l10n.navCueOneMile(instruction);
+  return l10n.navCueAheadMiles(miles.toStringAsFixed(1), instruction);
+}
+
+/// A distance for the banner, in [units].
+///
+/// Metric reads metres below a kilometre and kilometres with one decimal
+/// above it; imperial reads feet below a tenth of a mile and miles with one
+/// decimal above it. Both round the short end so the figure does not flicker
+/// on every fix.
+String distanceLabel(double metres, AppLocalizations l10n, UnitSystem units) {
+  if (units == UnitSystem.metric) {
+    if (metres < metersPerKilometer) {
+      // Round to 10 m so the banner does not flicker on every fix.
+      final rounded = (metres / 10).round() * 10;
+      return l10n.navDistanceMetres(rounded);
+    }
+    return l10n.navDistanceKm((metres / metersPerKilometer).toStringAsFixed(1));
+  }
+  final miles = metres / metersPerMile;
+  if (miles < 0.1) return l10n.navDistanceFeet(roundToTenFeet(metres).round());
+  return l10n.navDistanceMiles(miles.toStringAsFixed(1));
 }
 
 /// The Material icon that stands for [kind].

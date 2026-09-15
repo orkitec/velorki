@@ -357,6 +357,58 @@ void main() {
     await h.dispose();
   });
 
+  test(
+    'leaves the notification text to the main isolate while it is leased',
+    () async {
+      await writeState();
+      await writeJournal(2);
+
+      final h = _Harness(store);
+      await h.start();
+      expect(h.host.notificationTexts, hasLength(1));
+
+      // The UI isolate takes the text over: it has the next turn to put in
+      // front of the figures, which this isolate knows nothing about.
+      await h.deliver(<String, Object?>{
+        recordingCommandKey: recordingCommandNotificationLease,
+        recordingNotificationLeaseKey: 10000,
+      });
+      await h.tick(10);
+      expect(h.host.notificationTexts, hasLength(1));
+
+      // A UI that was destroyed stops renewing, and the text comes back here
+      // rather than freezing on a turn the rider has long since taken.
+      await h.tick(20);
+      expect(h.host.notificationTexts, hasLength(2));
+      // Twenty seconds without a fix, so auto-pause has stepped in by now;
+      // that the line is written again at all is what matters here.
+      expect(h.host.notificationTexts.last, startsWith('0.0 km · 00:20'));
+
+      await h.dispose();
+    },
+  );
+
+  test('takes the notification text back when the lease is given up', () async {
+    await writeState();
+    await writeJournal(2);
+
+    final h = _Harness(store);
+    await h.start();
+    await h.deliver(<String, Object?>{
+      recordingCommandKey: recordingCommandNotificationLease,
+      recordingNotificationLeaseKey: 10000,
+    });
+    await h.deliver(<String, Object?>{
+      recordingCommandKey: recordingCommandNotificationLease,
+      recordingNotificationLeaseKey: 0,
+    });
+
+    await h.tick(10);
+    expect(h.host.notificationTexts, hasLength(2));
+
+    await h.dispose();
+  });
+
   test('stops the recording when the service is destroyed', () async {
     await writeState();
     await writeJournal(4);

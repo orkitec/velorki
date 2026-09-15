@@ -13,10 +13,13 @@ import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki/features/planner/data/routing_backend_provider.dart';
 import 'package:velorki/features/planner/presentation/planner_map_host.dart';
 import 'package:velorki/features/search/data/photon_client.dart';
+import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
 
 import '../../search/support/fake_http.dart';
 import 'fakes.dart';
+
+export '../../../support/units.dart' show imperialUnits, metricUnits;
 
 /// A map view that hands out [controller] as soon as it is built.
 class TestMapView extends StatefulWidget {
@@ -89,6 +92,10 @@ class PlannerHarness {
   /// The overrides to hand to a [ProviderScope].
   List<Override> overrides(SharedPreferences prefs) => [
     sharedPreferencesProvider.overrideWithValue(prefs),
+    // The test host says en-US, which would open every suite in miles. The
+    // expectations here are written in metric, so the country says nothing
+    // and a test that wants imperial overrides it itself.
+    localeCountryProvider.overrideWithValue(null),
     routingBackendProvider.overrideWithValue(
       withRoutingBackend ? backend : null,
     ),

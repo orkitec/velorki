@@ -14,6 +14,7 @@ import '../../planner/domain/saved_route.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../recording/data/ride_repository.dart';
 import '../../recording/presentation/rides_list.dart';
+import '../../settings/data/units.dart';
 import '../../shared/presentation/placeholder_body.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../data/library_section.dart';
@@ -188,6 +189,7 @@ class _RouteTile extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final units = ref.watch(unitSystemProvider);
     return Dismissible(
       key: ValueKey(route.id),
       direction: DismissDirection.endToStart,
@@ -214,8 +216,8 @@ class _RouteTile extends ConsumerWidget {
         subtitle: Text(
           l10n.libraryRouteSubtitle(
             formatDate(l10n, route.createdAt),
-            formatDistance(l10n, route.distanceM),
-            formatHeight(l10n, route.ascentM),
+            formatDistance(l10n, units, route.distanceM),
+            formatHeight(l10n, units, route.ascentM),
           ),
           style: theme.textTheme.bodySmall,
           maxLines: 1,

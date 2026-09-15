@@ -22,6 +22,7 @@ import '../../planner/presentation/planner_map_host.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../planner/presentation/route_stats_row.dart';
 import '../../planner/presentation/surface_stats_bar.dart';
+import '../../settings/data/units.dart';
 import '../../shared/presentation/placeholder_body.dart';
 import '../../sharing/presentation/share_link_button.dart';
 
@@ -84,6 +85,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final units = ref.watch(unitSystemProvider);
     final route = ref.watch(savedRouteProvider(widget.routeId));
 
     return Scaffold(
@@ -126,7 +128,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
                       l10n.libraryRouteSubtitle(
                         formatDate(l10n, saved.createdAt),
                         profileLabel(l10n, saved.profile),
-                        formatHeight(l10n, saved.ascentM),
+                        formatHeight(l10n, units, saved.ascentM),
                       ),
                       style: theme.textTheme.bodySmall,
                     ),

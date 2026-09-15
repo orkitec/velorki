@@ -12,6 +12,7 @@ import '../features/library/presentation/route_detail_screen.dart';
 import '../features/navigation/application/navigation_controller.dart';
 import '../features/planner/presentation/planner_screen.dart';
 import '../features/recording/application/recording_controller.dart';
+import '../features/recording/application/ride_notification_updater.dart';
 import '../features/recording/presentation/recording_screen.dart';
 import '../features/recording/presentation/ride_detail_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
@@ -129,6 +130,9 @@ class HomeShell extends ConsumerWidget {
     // provider only exists once something has read it. Listening rather than
     // watching: the shell has nothing to redraw when a turn comes closer.
     ref.listen(navigationControllerProvider, (previous, next) {});
+    // The same for what a recording ride puts on the lock screen: the Android
+    // notification's turn line and the iOS live activity.
+    ref.listen(rideNotificationUpdaterProvider, (previous, next) {});
     // While a ride is being recorded on the Record tab the bar only takes
     // space from the figures; it comes back when the ride ends or the
     // rider leaves the tab through the system back gesture.

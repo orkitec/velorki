@@ -57,6 +57,10 @@ exercised there. The items here are the parts not yet covered by that.
 - [ ] Add the **Share Extension** target for `receive_sharing_intent`; "Open in
       Velorki" already works without it. See
       `app/lib/features/import_export/README.md`.
+- [ ] Add the **VelorkiLiveActivity** widget-extension target for the iOS live
+      activity; the Swift and the exact Xcode steps are in
+      `app/ios/VelorkiLiveActivity/README.md`. Without it the Dart side fails
+      quietly and the ride shows nothing on the lock screen.
 - [ ] Exclude `<appSupport>/brouter/segments` from the iOS backup
       (`NSURLIsExcludedFromBackupKey`; the TODO is in
       `app/lib/features/routing_tiles/data/brouter_storage.dart`).

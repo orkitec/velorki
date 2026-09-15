@@ -16,6 +16,7 @@ import '../../routing_tiles/presentation/missing_tiles_banner.dart';
 import '../../routing_tiles/presentation/routing_source_chip.dart';
 import '../../search/domain/search_result.dart';
 import '../../search/presentation/search_field.dart';
+import '../../settings/data/units.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../smart_loop/presentation/smart_loop_sheet.dart';
 import '../application/planner_controller.dart';
@@ -568,15 +569,16 @@ class _ProfileChooser extends StatelessWidget {
 
 /// The first row of the sheet: the headline figures when there is a route,
 /// the hint or the progress when there is not.
-class _SheetHeader extends StatelessWidget {
+class _SheetHeader extends ConsumerWidget {
   const _SheetHeader({required this.state});
 
   final PlannerState state;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final units = ref.watch(unitSystemProvider);
 
     if (state.isEmpty) {
       return Column(
@@ -629,16 +631,16 @@ class _SheetHeader extends StatelessWidget {
           children: [
             StatTile(
               label: l10n.statDistance,
-              value: formatDistance(l10n, route.lengthM),
+              value: formatDistance(l10n, units, route.lengthM),
               emphasize: true,
             ),
             StatTile(
               label: l10n.statAscent,
-              value: formatHeight(l10n, route.ascentM),
+              value: formatHeight(l10n, units, route.ascentM),
             ),
             StatTile(
               label: l10n.statDescent,
-              value: formatHeight(l10n, route.descentM),
+              value: formatHeight(l10n, units, route.descentM),
             ),
             StatTile(
               label: l10n.statDuration,

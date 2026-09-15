@@ -73,6 +73,16 @@ map, the semantic colours — and `MapPalette.fromTheme` turns it into the
 maplibre layer colours, so the route follows the accent. Dark mode also swaps
 the map style.
 
+### Units (`app/lib/core/units/units.dart`)
+
+`UnitSystem` is metric or imperial, and `formatDistance` / `formatSpeed` /
+`formatElevation` convert a figure and say which unit it came out in; the
+translated label goes round it in `route_format.dart`. The choice sits under
+Settings → Appearance (`UnitsSetting` on `units.system`, nothing stored until
+the rider picks a side, defaulting to imperial only where the phone's country
+does — US, LR, MM). Every stat tile, slider, chart axis, turn banner and
+spoken cue reads it from `unitSystemProvider`.
+
 ### Pure-Dart packages (`app/packages/`)
 
 None depend on Flutter, so they run and are tested on the desktop Dart VM.
@@ -154,6 +164,22 @@ screen for range: dark theme and black map through `appearanceOverrideProvider`
 (an override, never a write to the rider's choice), a bare puck, no camera
 animation, 40 % brightness while the screen is held awake, and a black glance
 page of figures after 30 s without a touch. See [BATTERY.md](BATTERY.md).
+
+
+**Lock screen.** While a ride records, `RideNotificationUpdater` (kept alive
+for the session and read once by `HomeShell`, like the navigator) writes what
+the rider sees without unlocking the phone: on Android the second line of the
+ongoing notification, on iOS a live activity, from one code path. With
+guidance it reads `Turn left in 150 m · 3.2 km · 00:42`, `Off route · …` when
+the rider has strayed, and the plain figures when no route is being followed.
+The notification is written at most every 2 s and only when the line actually
+changed; the live activity at most every 5 s. Both isolates could write that
+line, so the main one takes it on a lease: every update tells the service
+isolate through `sendDataToTask` to leave the text alone for the next 10 s,
+and a UI that was destroyed simply stops renewing, at which point the service
+goes back to writing its own distance and time. The iOS card is the
+`live_activities` plugin plus a widget extension that is written but not yet a
+target in the Xcode project — see `app/ios/VelorkiLiveActivity/README.md`.
 
 **Turn-by-turn.** BRouter's voice hints travel with a route as `TurnHint`s and
 are stored with it. While a ride runs, `NavigationController` (kept alive for

@@ -70,6 +70,8 @@
 	<true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<false/>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Velorki shows your position on the map and records your rides, also while the screen is off during a recording.</string>
 	<key>UIApplicationSceneManifest</key>

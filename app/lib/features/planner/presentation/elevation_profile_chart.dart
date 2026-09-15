@@ -1,8 +1,11 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme.dart';
+import '../../../core/units/units.dart' as units;
 import '../../../l10n/generated/app_localizations.dart';
+import '../../settings/data/units.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../domain/elevation_profile.dart';
 import 'route_format.dart';
@@ -11,8 +14,9 @@ import 'route_format.dart';
 ///
 /// The samples are thinned by [elevationProfile] before they get here, so the
 /// chart never draws more than [elevationProfileMaxPoints] points no matter
-/// how long the route is. Touching the line reads out that point.
-class ElevationProfileChart extends StatefulWidget {
+/// how long the route is. Touching the line reads out that point. The axes
+/// carry bare numbers, in kilometres and metres or in miles and feet.
+class ElevationProfileChart extends ConsumerStatefulWidget {
   /// Creates the chart.
   const ElevationProfileChart({
     required this.samples,
@@ -27,10 +31,11 @@ class ElevationProfileChart extends StatefulWidget {
   final double height;
 
   @override
-  State<ElevationProfileChart> createState() => _ElevationProfileChartState();
+  ConsumerState<ElevationProfileChart> createState() =>
+      _ElevationProfileChartState();
 }
 
-class _ElevationProfileChartState extends State<ElevationProfileChart> {
+class _ElevationProfileChartState extends ConsumerState<ElevationProfileChart> {
   ElevationSample? _touched;
 
   @override
@@ -53,8 +58,14 @@ class _ElevationProfileChartState extends State<ElevationProfileChart> {
       );
     }
 
+    final system = ref.watch(unitSystemProvider);
     final spots = widget.samples
-        .map((s) => FlSpot(s.distanceM / 1000, s.elevationM))
+        .map(
+          (s) => FlSpot(
+            units.distanceToDisplay(system, s.distanceM),
+            units.elevationToDisplay(system, s.elevationM),
+          ),
+        )
         .toList(growable: false);
     var minY = spots.first.y;
     var maxY = spots.first.y;
@@ -62,7 +73,12 @@ class _ElevationProfileChartState extends State<ElevationProfileChart> {
       if (s.y < minY) minY = s.y;
       if (s.y > maxY) maxY = s.y;
     }
-    final padding = ((maxY - minY) * 0.1).clamp(5.0, 100.0);
+    // The breathing room around the line is five to a hundred metres, said in
+    // whatever the axis counts in.
+    final padding = ((maxY - minY) * 0.1).clamp(
+      units.elevationToDisplay(system, 5),
+      units.elevationToDisplay(system, 100),
+    );
     final touched = _touched;
 
     final colors = theme.velorki;
@@ -78,8 +94,8 @@ class _ElevationProfileChartState extends State<ElevationProfileChart> {
               Flexible(
                 child: Text(
                   l10n.elevationPoint(
-                    formatDistance(l10n, touched.distanceM),
-                    formatHeight(l10n, touched.elevationM),
+                    formatDistance(l10n, system, touched.distanceM),
+                    formatHeight(l10n, system, touched.elevationM),
                   ),
                   style: theme.textTheme.statMedium.copyWith(
                     color: colors.accent,

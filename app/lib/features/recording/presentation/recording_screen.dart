@@ -24,6 +24,7 @@ import '../../planner/data/route_repository.dart';
 import '../../planner/domain/saved_route.dart';
 import '../../planner/presentation/planner_map_host.dart';
 import '../../planner/presentation/route_format.dart';
+import '../../settings/data/units.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../application/recording_controller.dart';
 import '../data/battery_saver.dart';
@@ -649,7 +650,11 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
         content: Text(
           l10n.recordingRecoveryBody(
             formatDate(l10n, recovery.state.startedAt.toLocal()),
-            formatDistance(l10n, recovery.stats.distanceM),
+            formatDistance(
+              l10n,
+              ref.read(unitSystemProvider),
+              recovery.stats.distanceM,
+            ),
             formatDuration(l10n, recovery.stats.movingTime),
           ),
         ),
@@ -1018,16 +1023,17 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
 /// No controls at all — a screen the rider only glances at is a screen they
 /// must not be able to stop the ride on by accident. One tap anywhere brings
 /// the map and the sheet back.
-class _GlancePanel extends StatelessWidget {
+class _GlancePanel extends ConsumerWidget {
   const _GlancePanel({required this.snapshot, this.navigation});
 
   final RecordingSnapshot snapshot;
   final NavigationProgress? navigation;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final units = ref.watch(unitSystemProvider);
     // Black is the point on an OLED screen, so the figures are given the
     // colours that read on it whatever theme the app is otherwise in.
     final glanceTheme = theme.copyWith(
@@ -1055,7 +1061,7 @@ class _GlancePanel extends StatelessWidget {
                       Icon(turnIcon(turn.kind), size: 40, color: Colors.white),
                       const SizedBox(width: 16),
                       Text(
-                        distanceLabel(navigation!.distanceToNextM, l10n),
+                        distanceLabel(navigation!.distanceToNextM, l10n, units),
                         style: theme.textTheme.statMedium.copyWith(
                           color: Colors.white,
                         ),
@@ -1077,7 +1083,7 @@ class _GlancePanel extends StatelessWidget {
                 ],
                 StatTile(
                   label: l10n.statDistance,
-                  value: formatDistance(l10n, snapshot.distanceM),
+                  value: formatDistance(l10n, units, snapshot.distanceM),
                   size: StatSize.hero,
                 ),
                 const SizedBox(height: 32),
@@ -1085,7 +1091,7 @@ class _GlancePanel extends StatelessWidget {
                   children: [
                     StatTile(
                       label: l10n.statSpeed,
-                      value: formatSpeed(l10n, snapshot.speedMps),
+                      value: formatSpeed(l10n, units, snapshot.speedMps),
                     ),
                     StatTile(
                       label: l10n.statElapsed,
@@ -1212,7 +1218,7 @@ class _IdlePanel extends ConsumerWidget {
   }
 }
 
-class _LivePanel extends StatelessWidget {
+class _LivePanel extends ConsumerWidget {
   const _LivePanel({
     required this.state,
     required this.scrollController,
@@ -1234,9 +1240,10 @@ class _LivePanel extends StatelessWidget {
   final VoidCallback onStop;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final units = ref.watch(unitSystemProvider);
     final snapshot = state.snapshot!;
     final status = switch (snapshot) {
       RecordingSnapshot(status: RecordingStatus.paused, autoPaused: true) =>
@@ -1294,16 +1301,16 @@ class _LivePanel extends StatelessWidget {
           children: [
             StatTile(
               label: l10n.statDistance,
-              value: formatDistance(l10n, snapshot.distanceM),
+              value: formatDistance(l10n, units, snapshot.distanceM),
               emphasize: !state.isPaused,
             ),
             StatTile(
               label: l10n.statSpeed,
-              value: formatSpeed(l10n, snapshot.speedMps),
+              value: formatSpeed(l10n, units, snapshot.speedMps),
             ),
             StatTile(
               label: l10n.statAvgSpeed,
-              value: formatSpeed(l10n, snapshot.avgSpeedMps),
+              value: formatSpeed(l10n, units, snapshot.avgSpeedMps),
             ),
           ],
         ),
@@ -1312,12 +1319,12 @@ class _LivePanel extends StatelessWidget {
           children: [
             StatTile(
               label: l10n.statAscent,
-              value: formatHeight(l10n, snapshot.ascentM),
+              value: formatHeight(l10n, units, snapshot.ascentM),
               size: StatSize.medium,
             ),
             StatTile(
               label: l10n.statDescent,
-              value: formatHeight(l10n, snapshot.descentM),
+              value: formatHeight(l10n, units, snapshot.descentM),
               size: StatSize.medium,
             ),
             StatTile(

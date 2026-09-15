@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
@@ -53,6 +54,7 @@ Future<PlannerHarness> _openSheet(
   List<LatLng> points = const <LatLng>[_first],
   PlannerHarness? harness,
   bool withPosition = true,
+  List<Override> extraOverrides = const <Override>[],
 }) async {
   final h = await pumpScreen(
     tester,
@@ -65,6 +67,7 @@ Future<PlannerHarness> _openSheet(
       positionSourceProvider.overrideWithValue(
         const FixedPositionSource(_first),
       ),
+      ...extraOverrides,
     ],
   );
   for (final point in points) {
@@ -453,6 +456,24 @@ void main() {
         _container(tester).read(smartLoopControllerProvider).request!.start,
         _second,
       );
+    });
+  });
+
+  group('imperial', () {
+    testWidgets('the distance slider runs in whole miles', (tester) async {
+      await _openSheet(tester, extraOverrides: [imperialUnits]);
+
+      // 30 km is the default; the nearest stop on the mile slider is 19.
+      expect(_inSheet(find.text('19 mi')), findsOneWidget);
+
+      await tester.drag(_inSheet(find.byType(Slider)), const Offset(-2000, 0));
+      await tester.pumpAndSettle();
+      expect(_inSheet(find.text('3 mi')), findsOneWidget);
+
+      await _make(tester);
+
+      final state = _container(tester).read(smartLoopControllerProvider);
+      expect(state.request!.targetM, closeTo(3 * 1609.344, 0.5));
     });
   });
 }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../settings/data/units.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../domain/navigation_progress.dart';
 import 'turn_phrases.dart';
@@ -20,7 +22,7 @@ const double _maxWidthFactor = 0.8;
 /// figures and the instruction beside it. A turn that follows straight after
 /// is a second, smaller arrow at the end rather than a line of its own. Off
 /// route, re-routing and arrival replace all of that with a single tinted line.
-class TurnBanner extends StatelessWidget {
+class TurnBanner extends ConsumerWidget {
   /// Creates the banner.
   const TurnBanner({required this.progress, super.key});
 
@@ -32,9 +34,10 @@ class TurnBanner extends StatelessWidget {
   static double heightFor(NavigationProgress progress) => turnBannerHeight;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
+    final units = ref.watch(unitSystemProvider);
     final colors = theme.velorki;
     final next = progress.next;
 
@@ -60,7 +63,7 @@ class TurnBanner extends StatelessWidget {
       icon = Icons.straight;
       tint = colors.accent;
       row = [
-        _distance(theme, distanceLabel(progress.remainingM, l10n), tint),
+        _distance(theme, distanceLabel(progress.remainingM, l10n, units), tint),
         _instruction(theme, l10n.navContinue),
       ];
     } else {
@@ -68,7 +71,11 @@ class TurnBanner extends StatelessWidget {
       tint = colors.accent;
       final after = progress.after;
       row = [
-        _distance(theme, distanceLabel(progress.distanceToNextM, l10n), tint),
+        _distance(
+          theme,
+          distanceLabel(progress.distanceToNextM, l10n, units),
+          tint,
+        ),
         _instruction(theme, turnLabel(next, l10n)),
         // The turn behind the next one is an arrow, not a sentence: it only
         // has to tell the rider which way the road goes after this one.

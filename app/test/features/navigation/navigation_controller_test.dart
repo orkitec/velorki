@@ -28,6 +28,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../planner/support/fakes.dart' show FakeRoutingBackend;
 import '../recording/support/fakes.dart';
+import '../../support/units.dart';
 
 /// One degree of latitude, the same figure the recording fakes use.
 const double _metresPerDegree = 111194.9266;
@@ -168,6 +169,8 @@ class _NavHarness {
     final container = ProviderContainer(
       overrides: <Override>[
         sharedPreferencesProvider.overrideWithValue(prefs),
+        // The host locale must not decide what the cues say.
+        metricUnits,
         recordingServiceProvider.overrideWithValue(service),
         turnSpeakerProvider.overrideWithValue(speaker),
         navigationLocalizationsProvider.overrideWithValue(

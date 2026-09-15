@@ -1,11 +1,13 @@
+import '../../../core/units/units.dart' as units;
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/presentation/route_format.dart';
 
-/// A speed, in kilometres per hour with one decimal.
-String formatSpeed(AppLocalizations l10n, double metersPerSecond) =>
-    l10n.valueKilometersPerHour(
-      formatNumber(l10n, metersPerSecond * 3.6, decimals: 1),
-    );
+/// A speed, in the rider's own units with one decimal.
+String formatSpeed(
+  AppLocalizations l10n,
+  units.UnitSystem system,
+  double metersPerSecond,
+) => formatMeasure(l10n, units.formatSpeed(system, metersPerSecond));
 
 /// A running stopwatch: `mm:ss` below an hour, `h:mm:ss` above it.
 ///

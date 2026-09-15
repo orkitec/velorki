@@ -1,20 +1,35 @@
 import 'package:intl/intl.dart';
 
+import '../../../core/units/units.dart' as units;
 import '../../../l10n/generated/app_localizations.dart';
 import '../domain/route_profile.dart';
 
-/// A distance for the stats row: kilometres with one decimal, metres below
-/// a kilometre.
-String formatDistance(AppLocalizations l10n, double meters) {
-  if (meters.abs() < 1000) {
-    return l10n.valueMeters(formatNumber(l10n, meters, decimals: 0));
-  }
-  return l10n.valueKilometers(formatNumber(l10n, meters / 1000, decimals: 1));
-}
+/// A distance for the stats row, in the rider's own units.
+String formatDistance(
+  AppLocalizations l10n,
+  units.UnitSystem system,
+  double meters,
+) => formatMeasure(l10n, units.formatDistance(system, meters));
 
-/// A height, always in whole metres.
-String formatHeight(AppLocalizations l10n, double meters) =>
-    l10n.valueMeters(formatNumber(l10n, meters, decimals: 0));
+/// A height, in whole metres or whole feet.
+String formatHeight(
+  AppLocalizations l10n,
+  units.UnitSystem system,
+  double meters,
+) => formatMeasure(l10n, units.formatElevation(system, meters));
+
+/// A converted figure with its translated unit around it.
+String formatMeasure(AppLocalizations l10n, units.Measure measure) {
+  final value = formatNumber(l10n, measure.value, decimals: measure.decimals);
+  return switch (measure.unit) {
+    units.MeasureUnit.meters => l10n.unitM(value),
+    units.MeasureUnit.kilometers => l10n.unitKm(value),
+    units.MeasureUnit.feet => l10n.unitFt(value),
+    units.MeasureUnit.miles => l10n.unitMi(value),
+    units.MeasureUnit.kilometersPerHour => l10n.unitKmh(value),
+    units.MeasureUnit.milesPerHour => l10n.unitMph(value),
+  };
+}
 
 /// A riding time, in hours and minutes.
 String formatDuration(AppLocalizations l10n, Duration duration) {

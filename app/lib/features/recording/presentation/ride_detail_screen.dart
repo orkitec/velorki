@@ -14,6 +14,7 @@ import '../../integrations/presentation/ride_upload_menu.dart';
 import '../../map/domain/map_controller.dart';
 import '../../planner/presentation/planner_map_host.dart';
 import '../../planner/presentation/route_format.dart';
+import '../../settings/data/units.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/placeholder_body.dart';
 import '../../sharing/presentation/share_link_button.dart';
@@ -186,6 +187,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final units = ref.watch(unitSystemProvider);
     final ride = ref.watch(rideProvider(widget.rideId));
 
     return Scaffold(
@@ -270,7 +272,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                         RideStatItem(
                           icon: Icons.straighten,
                           label: l10n.statDistance,
-                          value: formatDistance(l10n, stats.distanceM),
+                          value: formatDistance(l10n, units, stats.distanceM),
                         ),
                         RideStatItem(
                           icon: Icons.schedule,
@@ -285,22 +287,22 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                         RideStatItem(
                           icon: Icons.speed,
                           label: l10n.statAvgSpeed,
-                          value: formatSpeed(l10n, stats.avgSpeedMps),
+                          value: formatSpeed(l10n, units, stats.avgSpeedMps),
                         ),
                         RideStatItem(
                           icon: Icons.bolt,
                           label: l10n.statMaxSpeed,
-                          value: formatSpeed(l10n, stats.maxSpeedMps),
+                          value: formatSpeed(l10n, units, stats.maxSpeedMps),
                         ),
                         RideStatItem(
                           icon: Icons.trending_up,
                           label: l10n.statAscent,
-                          value: formatHeight(l10n, stats.ascentM),
+                          value: formatHeight(l10n, units, stats.ascentM),
                         ),
                         RideStatItem(
                           icon: Icons.trending_down,
                           label: l10n.statDescent,
-                          value: formatHeight(l10n, stats.descentM),
+                          value: formatHeight(l10n, units, stats.descentM),
                         ),
                       ],
                     ),
