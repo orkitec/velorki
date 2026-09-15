@@ -97,6 +97,12 @@ const Duration compassPushInterval = Duration(milliseconds: 200);
 /// shown where they are.
 const double routeSnapMeters = 25;
 
+/// How far the rider's own course may differ from the route's direction
+/// before the route stops speaking for them. Riding the route backwards, or
+/// turning off it, the course is the truth; a cone glued to the road pointed
+/// the wrong way for both.
+const double routeBearingAgreementDegrees = 45;
+
 /// How long the record screen waits for a touch before it drops to the glance
 /// view, while a battery-saver ride runs.
 const Duration glanceAfter = Duration(seconds: 30);
@@ -520,20 +526,29 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       // road runs beats a GNSS course by a wide margin — which is exactly
       // what every other navigation app draws.
       final onRoute = _routeSnap(navigation);
-      final puck = onRoute?.snapped ?? position;
-      final routeBearing = onRoute?.routeBearingDeg;
       final course = snapshot?.headingDeg;
       final speed = snapshot?.speedMps;
+      final moving = (speed ?? 0) >= headingConeOnSpeedMps;
+      // The route only speaks for a rider who is actually going its way. A
+      // course that disagrees with it by more than the allowance means the
+      // rider is riding it backwards or leaving it, and then the fix and the
+      // course are the honest answers, however shaky.
+      final roadBearing = onRoute?.routeBearingDeg;
+      final againstRoute =
+          roadBearing != null &&
+          moving &&
+          course != null &&
+          headingDifference(course, roadBearing) > routeBearingAgreementDegrees;
+      final routeBearing = againstRoute ? null : roadBearing;
+      final puck = againstRoute ? position : (onRoute?.snapped ?? position);
       // A GNSS course is where the rider has been, so it is worth nothing
       // standing still — and a rider at a red light still faces somewhere.
-      // That is what the phone's compass is for, and it is what the road
-      // itself is for when there is one under the puck.
-      final moving = (speed ?? 0) >= headingConeOnSpeedMps;
-      final fromCompass =
-          compass != null &&
-          routeBearing == null &&
-          !(moving && course != null);
-      final heading = routeBearing ?? (fromCompass ? compass : course);
+      // That is what the phone's compass is for, even on the route: the
+      // road says which way it runs, not which way the rider is turned.
+      final fromCompass = compass != null && !(moving && course != null);
+      final heading = fromCompass
+          ? compass
+          : (moving ? (routeBearing ?? course) : (course ?? routeBearing));
 
       final freshFix = snapshot != null && !identical(snapshot, _fedSnapshot);
       // A heading the compass turned up between two fixes has to reach the
@@ -571,7 +586,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
           _bearingFromCompass = fromCompass;
         }
       }
-      if (routeBearing != null) {
+      if (routeBearing != null && !fromCompass) {
         _targetBearing = routeBearing;
         _bearingFromCompass = false;
       }

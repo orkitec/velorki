@@ -914,6 +914,31 @@ void main() {
       await unmountApp(tester);
     });
 
+    testWidgets('a rider going against the route keeps their own course', (
+      tester,
+    ) async {
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        preferences: const {'recording.follow': 'headingUp'},
+        extraOverrides: [
+          navigationControllerProvider.overrideWithValue(onRoute),
+        ],
+      );
+      await tester.pump();
+
+      // Riding the route backwards: the road runs east, the rider goes west.
+      // The cone must say west and the puck must be the fix, not the road.
+      final snapshot = _snapshot(headingDeg: 260);
+      await emitSnapshot(tester, h, snapshot);
+
+      expect(pucks(h).last.arguments[0], snapshot.lastPosition);
+      expect(pucks(h).last.arguments[1], 260);
+      expect(moves(h).last.arguments[2], isNot(90));
+
+      await unmountApp(tester);
+    });
+
     testWidgets('a rider too far from the route keeps the raw fix', (
       tester,
     ) async {
