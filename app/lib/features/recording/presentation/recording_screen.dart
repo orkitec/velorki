@@ -126,6 +126,13 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// The countdown to that, restarted by every touch.
   Timer? _glanceTimer;
 
+  /// The sheet's snap points, kept as one instance for as long as the
+  /// normal size holds. DraggableScrollableSheet compares the list by
+  /// identity and snaps to the nearest point on every rebuild it sees a
+  /// new one, which cancels a drag in flight; the screen rebuilds several
+  /// times a second while a ride runs.
+  List<double> _snapSizes = const [];
+
   /// Whether a battery-saver ride is running, as the last build saw it.
   bool _saverRide = false;
 
@@ -230,6 +237,13 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     _glanceTimer = Timer(glanceAfter, () {
       if (mounted) setState(() => _glance = true);
     });
+  }
+
+  List<double> _snapSizesFor(double initial) {
+    if (_snapSizes.length != 1 || _snapSizes.first != initial) {
+      _snapSizes = <double>[initial];
+    }
+    return _snapSizes;
   }
 
   /// Any touch anywhere brings the map back and buys another 30 seconds.
@@ -955,7 +969,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                 minChildSize: collapsed,
                 maxChildSize: 0.85,
                 snap: true,
-                snapSizes: <double>[initial],
+                snapSizes: _snapSizesFor(initial),
                 builder: (context, scrollController) => DecoratedBox(
                   decoration: const BoxDecoration(
                     borderRadius: BorderRadius.vertical(
