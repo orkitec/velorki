@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart' as geo;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../core/permissions/location_permission.dart';
+import '../../recording/application/recording_controller.dart';
 
 part 'position_provider.g.dart';
 
@@ -149,8 +151,20 @@ PositionSource positionSource(Ref ref) => const GeolocatorPositionSource();
 ///
 /// Subscribing starts the GPS, so this provider is deliberately not
 /// `keepAlive`: it stops as soon as the last map screen goes away.
+///
+/// It also stands aside for the duration of a recording. The recorder already
+/// holds a GPS client — on Android inside the foreground service — and the
+/// record screen draws the puck from its snapshots, so a second client here
+/// would double the most expensive part of a ride for a puck nobody is
+/// looking at. The stream simply ends: ending it rather than reporting `null`
+/// leaves the last fix on the maps that are not the record screen's, and the
+/// provider is rebuilt, permission and all, the moment the ride is over.
 @riverpod
 Stream<MapPosition?> devicePosition(Ref ref) async* {
+  final recording = ref.watch(
+    recordingControllerProvider.select((state) => state.isRecording),
+  );
+  if (recording) return;
   final status = await ref.watch(locationPermissionControllerProvider.future);
   if (!status.isUsable) {
     yield null;

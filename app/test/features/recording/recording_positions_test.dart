@@ -1,6 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart' as geo;
+import 'package:flutter/foundation.dart';
+import 'package:velorki/features/map/data/position_provider.dart';
 import 'package:velorki/features/recording/data/recording_positions.dart';
+import 'package:velorki/features/recording/domain/gps_precision.dart';
 
 geo.Position _fix({
   required bool flagged,
@@ -71,4 +74,100 @@ void main() {
       expect(point.accuracyM, isNull);
     });
   });
+
+  group('recordingLocationSettings', () {
+    geo.LocationSettings android(GpsPrecision precision) =>
+        recordingLocationSettings(
+          platform: TargetPlatform.android,
+          precision: precision,
+        );
+
+    test('precise asks the phone for the best fix it has, every second', () {
+      final settings = android(GpsPrecision.precise) as geo.AndroidSettings;
+
+      expect(settings.accuracy, geo.LocationAccuracy.best);
+      expect(settings.distanceFilter, 5);
+      expect(settings.intervalDuration, const Duration(seconds: 1));
+    });
+
+    test('normal keeps the rhythm at the ordinary high accuracy', () {
+      final settings = android(GpsPrecision.normal) as geo.AndroidSettings;
+
+      expect(settings.accuracy, geo.LocationAccuracy.high);
+      expect(settings.distanceFilter, 5);
+      expect(settings.intervalDuration, const Duration(seconds: 1));
+    });
+
+    test('saver halves the duty cycle: ten metres, two seconds', () {
+      final settings = android(GpsPrecision.saver) as geo.AndroidSettings;
+
+      expect(settings.accuracy, geo.LocationAccuracy.high);
+      expect(settings.distanceFilter, 10);
+      expect(settings.intervalDuration, const Duration(seconds: 2));
+    });
+
+    test('an iPhone keeps recording in the background at every profile', () {
+      final settings = recordingLocationSettings(
+        platform: TargetPlatform.iOS,
+        precision: GpsPrecision.saver,
+      ) as geo.AppleSettings;
+
+      expect(settings.accuracy, geo.LocationAccuracy.high);
+      expect(settings.distanceFilter, 10);
+      expect(settings.allowBackgroundLocationUpdates, isTrue);
+      expect(settings.pauseLocationUpdatesAutomatically, isFalse);
+    });
+
+    test('the desktop builds get the plain settings', () {
+      final settings = recordingLocationSettings(
+        platform: TargetPlatform.linux,
+        precision: GpsPrecision.precise,
+      );
+
+      expect(settings.accuracy, geo.LocationAccuracy.best);
+      expect(settings.distanceFilter, 5);
+    });
+
+    test('nothing said means normal', () {
+      final settings = recordingLocationSettings(
+        platform: TargetPlatform.android,
+      );
+
+      expect(settings.accuracy, geo.LocationAccuracy.high);
+      expect(settings.distanceFilter, 5);
+    });
+  });
+
+  group('recordingFixes', () {
+    test('subscribes with the profile it was given', () {
+      final source = _RecordingSource();
+
+      recordingFixes(
+        source,
+        platform: TargetPlatform.android,
+        precision: GpsPrecision.saver,
+      ).listen(null).cancel();
+
+      expect(source.settings.single.distanceFilter, 10);
+    });
+  });
+}
+
+/// A position source that only notes what it was subscribed with.
+class _RecordingSource implements PositionSource {
+  final List<geo.LocationSettings> settings = <geo.LocationSettings>[];
+
+  @override
+  Stream<geo.Position> positions(geo.LocationSettings locationSettings) {
+    settings.add(locationSettings);
+    return const Stream<geo.Position>.empty();
+  }
+
+  @override
+  Future<geo.Position?> lastKnown() async => null;
+
+  @override
+  Future<geo.Position?> current({
+    Duration timeLimit = const Duration(seconds: 10),
+  }) async => null;
 }

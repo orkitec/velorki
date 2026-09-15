@@ -10,6 +10,8 @@ import 'package:velorki/app/router.dart';
 import 'package:velorki/app/theme.dart';
 import 'package:velorki/core/files/track_exporter.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
+import 'package:velorki/features/map/data/compass_heading.dart';
+import 'package:velorki/features/map/testing/fake_compass_source.dart';
 import 'package:velorki/features/recording/data/recording_gateways.dart';
 import 'package:velorki/features/recording/data/recording_journal.dart';
 import 'package:velorki/features/recording/data/recording_recovery.dart';
@@ -53,6 +55,9 @@ class RecordingHarness {
   /// The keep-screen-on gateway.
   final FakeScreenWake screenWake = FakeScreenWake();
 
+  /// The screen-dimming gateway the battery saver drives.
+  final FakeScreenDimmer dimmer = FakeScreenDimmer();
+
   /// The location permission.
   final FakeLocationPermissionGateway permission;
 
@@ -61,6 +66,10 @@ class RecordingHarness {
 
   /// The battery-optimisation exemption.
   final FakeBatteryOptimization battery;
+
+  /// Where the phone points, for the standstill heading. Silent until a test
+  /// points it somewhere, so no magnetometer is ever asked for.
+  final FakeCompassSource compass = FakeCompassSource();
 
   /// What the launch check found.
   final RecoveryResult recovery;
@@ -85,7 +94,9 @@ class RecordingHarness {
     notificationPermissionProvider.overrideWithValue(notifications),
     batteryOptimizationProvider.overrideWithValue(battery),
     screenWakeProvider.overrideWithValue(screenWake),
+    screenDimmerProvider.overrideWithValue(dimmer),
     trackExporterProvider.overrideWithValue(exporter),
+    compassSourceProvider.overrideWithValue(compass),
   ];
 
   /// Removes the throw-away journal directory.

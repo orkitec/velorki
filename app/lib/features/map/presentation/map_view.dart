@@ -6,6 +6,7 @@ import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/app_config.dart';
+import '../../recording/data/battery_saver.dart';
 import '../../settings/data/appearance_controller.dart';
 import '../data/map_preferences.dart';
 import '../data/maplibre_map_controller.dart';
@@ -129,6 +130,10 @@ class _MapViewState extends ConsumerState<MapView> {
   /// Never moves the camera: the map only follows the rider when the locate
   /// button says so. Screens that own their own position source (the
   /// recorder) push on top of this; the last write wins and both agree.
+  ///
+  /// The GPS course is the only heading here. The phone's compass belongs to
+  /// the screen that navigates: the planner and the library maps would be
+  /// running the magnetometer for a cone nobody is riding behind.
   void _pushPosition(MapPosition? fix) {
     final adapter = _adapter;
     if (adapter == null || !mounted) return;
@@ -217,11 +222,12 @@ class _MapViewState extends ConsumerState<MapView> {
       if (next.hasValue) _pushPosition(next.value);
     });
     final config = ref.watch(effectiveConfigProvider);
-    final styleUrl = mapStyleUrlFor(
-      config,
-      Theme.of(context).brightness,
-      ref.watch(appearanceSettingProvider).mapLook,
-    );
+    // The black style of a battery-saver ride wins over the rider's own look
+    // for as long as that ride lasts.
+    final look =
+        ref.watch(appearanceOverrideProvider)?.mapLook ??
+        ref.watch(appearanceSettingProvider).mapLook;
+    final styleUrl = mapStyleUrlFor(config, Theme.of(context).brightness, look);
     // Read, not watch: the initial camera must not rebuild the platform view
     // every time the camera is saved.
     final camera = widget.rememberCamera

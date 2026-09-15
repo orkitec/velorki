@@ -17,6 +17,7 @@ import '../../shared/presentation/stat_tile.dart';
 import 'about_section.dart';
 import 'appearance_section.dart';
 import 'navigation_section.dart';
+import 'recording_section.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -36,6 +37,9 @@ class SettingsScreen extends ConsumerWidget {
           Divider(height: 32),
           _SectionHeader.navigation(),
           NavigationSection(),
+          Divider(height: 32),
+          _SectionHeader.recording(),
+          RecordingSection(),
           Divider(height: 32),
           _SectionHeader.subscription(),
           PlusSettingsSection(),
@@ -63,6 +67,7 @@ class SettingsScreen extends ConsumerWidget {
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader.appearance() : _section = _Section.appearance;
   const _SectionHeader.navigation() : _section = _Section.navigation;
+  const _SectionHeader.recording() : _section = _Section.recording;
   const _SectionHeader.subscription() : _section = _Section.subscription;
   const _SectionHeader.connections() : _section = _Section.connections;
   const _SectionHeader.ai() : _section = _Section.ai;
@@ -79,6 +84,7 @@ class _SectionHeader extends StatelessWidget {
       child: SectionCaption(switch (_section) {
         _Section.appearance => l10n.settingsAppearance,
         _Section.navigation => l10n.settingsNavigation,
+        _Section.recording => l10n.settingsRecording,
         _Section.subscription => l10n.settingsSubscription,
         _Section.connections => l10n.settingsConnections,
         _Section.ai => l10n.settingsAi,
@@ -92,6 +98,7 @@ class _SectionHeader extends StatelessWidget {
 enum _Section {
   appearance,
   navigation,
+  recording,
   subscription,
   connections,
   ai,

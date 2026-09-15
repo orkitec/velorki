@@ -326,11 +326,15 @@ class RecordingMapController implements MapController {
     double? accuracyM,
     double? headingDeg,
     double? speedMps,
+    bool headingFromCompass = false,
+    bool minimal = false,
   }) => inner.setPosition(
     position,
     accuracyM: accuracyM,
     headingDeg: headingDeg,
     speedMps: speedMps,
+    headingFromCompass: headingFromCompass,
+    minimal: minimal,
   );
 
   @override

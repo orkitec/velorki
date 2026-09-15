@@ -15,6 +15,8 @@ import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/navigation/application/navigation_controller.dart';
 import 'package:velorki/features/navigation/domain/navigation_progress.dart';
 import 'package:velorki/features/navigation/presentation/turn_banner.dart';
+import 'package:velorki/features/recording/data/recording_settings.dart';
+import 'package:velorki/features/recording/domain/gps_precision.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
@@ -967,6 +969,100 @@ void main() {
     });
   });
 
+  group('the compass at a standstill', () {
+    /// Every camera move the screen asked for, in order.
+    List<MapCall> moves(RecordingHarness h) =>
+        h.map.calls.where((c) => c.method == 'moveTo').toList();
+
+    /// Every puck the screen drew, in order.
+    List<MapCall> pucks(RecordingHarness h) =>
+        h.map.calls.where((c) => c.method == 'setPosition').toList();
+
+    testWidgets('a rider who has stopped faces where the phone points', (
+      tester,
+    ) async {
+      final h = RecordingHarness();
+      await pumpRecordingScreen(tester, const RecordingScreen(), harness: h);
+      h.compass.point(90);
+      await tester.pump();
+
+      await emitSnapshot(tester, h, _snapshot(speedMps: 0));
+
+      expect(pucks(h).last.arguments[1], 90);
+      expect(
+        pucks(h).last.arguments[3],
+        isTrue,
+        reason: 'the map may draw the cone however slow the rider is',
+      );
+
+      await unmountApp(tester);
+    });
+
+    testWidgets('heading-up turns the map to the phone at a standstill', (
+      tester,
+    ) async {
+      final h = RecordingHarness();
+      await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        harness: h,
+        preferences: const {'recording.follow': 'headingUp'},
+      );
+      h.compass.point(90);
+      await tester.pump();
+
+      await emitSnapshot(tester, h, _snapshot(speedMps: 0));
+
+      expect(moves(h).last.arguments[2], 90);
+
+      await unmountApp(tester);
+    });
+
+    testWidgets('once the ride is moving the GPS course wins', (tester) async {
+      final h = RecordingHarness();
+      await pumpRecordingScreen(tester, const RecordingScreen(), harness: h);
+      h.compass.point(90);
+      await tester.pump();
+
+      await emitSnapshot(tester, h, _snapshot(speedMps: 0));
+      await emitSnapshot(
+        tester,
+        h,
+        _snapshot(
+          speedMps: 5,
+          headingDeg: 30,
+          lastPosition: const LatLng(48.11, 11.21),
+        ),
+      );
+
+      expect(pucks(h).last.arguments[1], 30);
+      expect(pucks(h).last.arguments[3], isFalse);
+
+      await unmountApp(tester);
+    });
+
+    testWidgets('turning the phone redraws the puck without a new fix', (
+      tester,
+    ) async {
+      final h = RecordingHarness();
+      await pumpRecordingScreen(tester, const RecordingScreen(), harness: h);
+      h.compass.point(90);
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot(speedMps: 0));
+      final drawn = pucks(h).length;
+
+      h.compass.point(120);
+      await tester.pump();
+      await tester.pump();
+
+      expect(pucks(h).length, greaterThan(drawn));
+      expect(pucks(h).last.arguments[1], 120);
+      expect(pucks(h).last.arguments[3], isTrue);
+
+      await unmountApp(tester);
+    });
+  });
+
   group('the turn banner', () {
     const progress = NavigationProgress(
       next: TurnHint(pointIndex: 10, kind: TurnKind.left),
@@ -1014,6 +1110,205 @@ void main() {
             .controlsTop,
         isNull,
       );
+
+      await unmountApp(tester);
+    });
+  });
+
+  group('the battery saver', () {
+    /// Every puck push the screen made, in order.
+    List<MapCall> pucks(RecordingHarness h) =>
+        h.map.calls.where((c) => c.method == 'setPosition').toList();
+
+    /// Every camera move, in order.
+    List<MapCall> moves(RecordingHarness h) =>
+        h.map.calls.where((c) => c.method == 'moveTo').toList();
+
+    testWidgets('the idle sheet offers the switch and remembers it', (
+      tester,
+    ) async {
+      await pumpRecordingScreen(tester, const RecordingScreen());
+      await tester.pump();
+
+      final tile = find.widgetWithText(SwitchListTile, 'Battery saver');
+      expect(tester.widget<SwitchListTile>(tile).value, isFalse);
+
+      await tester.tap(tile);
+      await tester.pumpAndSettle();
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(RecordingScreen)),
+      );
+      expect(container.read(recordingSettingsProvider).saver, isTrue);
+      expect(tester.widget<SwitchListTile>(tile).value, isTrue);
+
+      await unmountApp(tester);
+    });
+
+    testWidgets('a ride started with it on records at the saver profile', (
+      tester,
+    ) async {
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        preferences: const <String, Object>{
+          'recording.saver': true,
+          'recording.precision': 'precise',
+        },
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('Start ride'));
+      await tester.pumpAndSettle();
+
+      // The saver overrules the precision the rider picked.
+      expect(h.service.precisions, [GpsPrecision.saver]);
+
+      await unmountApp(tester);
+    });
+
+    testWidgets('the puck loses its ring and its cone, the camera its glide', (
+      tester,
+    ) async {
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        preferences: const <String, Object>{'recording.saver': true},
+      );
+      await tester.pump();
+
+      await emitSnapshot(tester, h, _snapshot(headingDeg: 90));
+
+      expect(pucks(h).last.arguments[4], isTrue, reason: 'the bare dot');
+      expect(moves(h).last.arguments[4], isFalse, reason: 'no animation');
+      expect(moves(h).last.arguments[3], isNull, reason: 'nothing to glide');
+
+      await unmountApp(tester);
+    });
+
+    testWidgets('an ordinary ride keeps the ring and the glide', (
+      tester,
+    ) async {
+      final h = await pumpRecordingScreen(tester, const RecordingScreen());
+      await tester.pump();
+
+      await emitSnapshot(tester, h, _snapshot(headingDeg: 90));
+
+      expect(pucks(h).last.arguments[4], isFalse);
+      expect(moves(h).last.arguments[4], isTrue);
+
+      await unmountApp(tester);
+    });
+
+    testWidgets('the screen is dimmed while it is also held awake', (
+      tester,
+    ) async {
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        preferences: const <String, Object>{'recording.saver': true},
+      );
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot());
+      expect(h.dimmer.brightness, isNull, reason: 'the screen may sleep');
+
+      await tester.tap(find.widgetWithText(SwitchListTile, 'Keep screen on'));
+      await tester.pumpAndSettle();
+
+      expect(h.dimmer.brightness, saverBrightness);
+
+      // The ride ends: the rider's own brightness comes back.
+      await emitSnapshot(tester, h, _snapshot(status: RecordingStatus.idle));
+
+      expect(h.dimmer.brightness, isNull);
+      expect(h.dimmer.calls, ['dim(0.4)', 'reset']);
+
+      await unmountApp(tester);
+    });
+
+    testWidgets('after thirty seconds the figures are all that is left', (
+      tester,
+    ) async {
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        preferences: const <String, Object>{'recording.saver': true},
+      );
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot());
+      expect(find.byType(DraggableScrollableSheet), findsOneWidget);
+
+      await tester.pump(glanceAfter + const Duration(seconds: 1));
+
+      expect(find.byType(DraggableScrollableSheet), findsNothing);
+      expect(find.text('DISTANCE'), findsOneWidget);
+      expect(find.text('12.3 km'), findsOneWidget);
+      expect(find.text('SPEED'), findsOneWidget);
+      // Nothing that could stop the ride by accident.
+      expect(find.byTooltip('Finish'), findsNothing);
+      // The map is still there, only not drawn.
+      expect(find.byType(MapChromeInsets, skipOffstage: false), findsWidgets);
+
+      await unmountApp(tester);
+    });
+
+    testWidgets('a tap brings the map back for another thirty seconds', (
+      tester,
+    ) async {
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        preferences: const <String, Object>{'recording.saver': true},
+      );
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot());
+      await tester.pump(glanceAfter + const Duration(seconds: 1));
+      expect(find.byType(DraggableScrollableSheet), findsNothing);
+
+      await tester.tapAt(const Offset(500, 300));
+      await tester.pump();
+
+      expect(find.byType(DraggableScrollableSheet), findsOneWidget);
+
+      // And it goes again once the rider leaves it alone.
+      await tester.pump(glanceAfter + const Duration(seconds: 1));
+      expect(find.byType(DraggableScrollableSheet), findsNothing);
+
+      await unmountApp(tester);
+    });
+
+    testWidgets('a ride without the saver keeps the map whatever happens', (
+      tester,
+    ) async {
+      final h = await pumpRecordingScreen(tester, const RecordingScreen());
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot());
+
+      await tester.pump(glanceAfter + const Duration(seconds: 1));
+
+      expect(find.byType(DraggableScrollableSheet), findsOneWidget);
+      expect(find.text('RECORDING'), findsOneWidget);
+
+      await unmountApp(tester);
+    });
+
+    testWidgets('the ride ending puts the map and the sheet back', (
+      tester,
+    ) async {
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        preferences: const <String, Object>{'recording.saver': true},
+      );
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot());
+      await tester.pump(glanceAfter + const Duration(seconds: 1));
+      expect(find.byType(DraggableScrollableSheet), findsNothing);
+
+      await emitSnapshot(tester, h, _snapshot(status: RecordingStatus.idle));
+
+      expect(find.byType(DraggableScrollableSheet), findsOneWidget);
+      expect(find.text('Ready to ride'), findsOneWidget);
 
       await unmountApp(tester);
     });

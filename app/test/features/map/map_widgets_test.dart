@@ -15,6 +15,7 @@ import 'package:velorki/features/map/presentation/map_attribution.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
 import 'package:velorki/features/map/presentation/map_strings.dart';
+import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki/features/map/testing/testing.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -313,7 +314,7 @@ void main() {
         find
             .ancestor(
               of: find.text(MapStrings.followHeadingUp),
-              matching: find.byType(Material),
+              matching: find.byType(GlassPanel),
             )
             .first,
       );

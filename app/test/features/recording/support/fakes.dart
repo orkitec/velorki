@@ -7,6 +7,7 @@ import 'package:velorki/features/map/data/position_provider.dart';
 import 'package:velorki/features/recording/data/recording_gateways.dart';
 import 'package:velorki/features/recording/data/recording_service.dart';
 import 'package:velorki/features/recording/data/recording_task_handler.dart';
+import 'package:velorki/features/recording/domain/gps_precision.dart';
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/features/recording/domain/recording_state.dart';
 import 'package:velorki/features/recording/domain/ride.dart';
@@ -38,6 +39,9 @@ class FakeRecordingService implements RecordingService {
   /// When set, [start] throws it.
   RecordingException? startError;
 
+  /// The GPS profile every start was asked for, in order.
+  final List<GpsPrecision> precisions = <GpsPrecision>[];
+
   RecordingSnapshot? _last;
 
   @override
@@ -62,8 +66,10 @@ class FakeRecordingService implements RecordingService {
   Future<void> start({
     required String notificationTitle,
     String? routeId,
+    GpsPrecision precision = GpsPrecision.normal,
   }) async {
     calls.add('start($routeId)');
+    precisions.add(precision);
     final error = startError;
     if (error != null) throw error;
     running = true;
@@ -92,8 +98,10 @@ class FakeRecordingService implements RecordingService {
   Future<void> resumeInterrupted(
     RecordingState state, {
     required String notificationTitle,
+    GpsPrecision? precision,
   }) async {
     calls.add('resumeInterrupted(${state.rideId})');
+    if (precision != null) precisions.add(precision);
     running = true;
   }
 
@@ -101,8 +109,10 @@ class FakeRecordingService implements RecordingService {
   Future<void> continueRide(
     Ride ride, {
     required String notificationTitle,
+    GpsPrecision precision = GpsPrecision.normal,
   }) async {
     calls.add('continueRide(${ride.id})');
+    precisions.add(precision);
     continued.add(ride);
     running = true;
   }
@@ -270,6 +280,28 @@ class FakeScreenWake implements ScreenWake {
 
   @override
   Future<void> disable() async => enabled = false;
+}
+
+/// A screen dimmer that only remembers what it was asked for.
+class FakeScreenDimmer implements ScreenDimmer {
+  /// The brightness the app is being held at, `null` when the system's own
+  /// brightness stands.
+  double? brightness;
+
+  /// Every call, in order, e.g. `dim(0.4)` then `reset`.
+  final List<String> calls = <String>[];
+
+  @override
+  Future<void> dim(double value) async {
+    brightness = value;
+    calls.add('dim($value)');
+  }
+
+  @override
+  Future<void> reset() async {
+    brightness = null;
+    calls.add('reset');
+  }
 }
 
 /// A [PositionSource] fed from a test instead of from the GPS.

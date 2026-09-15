@@ -3,32 +3,46 @@ import 'package:geolocator/geolocator.dart' as geo;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../map/data/position_provider.dart';
+import '../domain/gps_precision.dart';
 
-/// The position stream a recording needs, per platform.
+/// The position stream a recording needs, for [precision], per platform.
 ///
-/// Five metres of movement between fixes is the same filter the map puck uses,
-/// but the accuracy is pushed to the maximum: a ride is stored once and drawn
-/// forever, a puck only has to look right for a second.
+/// Three profiles. `precise` is the best fix the phone can give, every five
+/// metres, a second apart — a ride is stored once and drawn forever, so a
+/// mountain-bike track is worth the drain. `normal` keeps the same rhythm at
+/// the ordinary high accuracy, which on a road is the same line for less
+/// energy. `saver` halves the duty cycle again: ten metres, two seconds,
+/// which at 20 km/h is still a fix every 1.8 s.
 ///
 /// On Android geolocator's own foreground notification stays switched off: the
 /// foreground service belongs to `flutter_foreground_task`, and two services
 /// would mean two notifications. On iOS there is no service at all, so the
 /// location manager itself has to be told to keep running in the background
 /// and never to pause updates on its own.
-geo.LocationSettings recordingLocationSettings({TargetPlatform? platform}) {
+geo.LocationSettings recordingLocationSettings({
+  TargetPlatform? platform,
+  GpsPrecision precision = GpsPrecision.normal,
+}) {
   final target = platform ?? defaultTargetPlatform;
+  final accuracy = precision == GpsPrecision.precise
+      ? geo.LocationAccuracy.best
+      : geo.LocationAccuracy.high;
+  final distanceFilter = precision == GpsPrecision.saver ? 10 : 5;
+  final interval = precision == GpsPrecision.saver
+      ? const Duration(seconds: 2)
+      : const Duration(seconds: 1);
   switch (target) {
     case TargetPlatform.android:
       return geo.AndroidSettings(
-        accuracy: geo.LocationAccuracy.best,
-        distanceFilter: 5,
-        intervalDuration: const Duration(seconds: 1),
+        accuracy: accuracy,
+        distanceFilter: distanceFilter,
+        intervalDuration: interval,
       );
     case TargetPlatform.iOS:
     case TargetPlatform.macOS:
       return geo.AppleSettings(
-        accuracy: geo.LocationAccuracy.best,
-        distanceFilter: 5,
+        accuracy: accuracy,
+        distanceFilter: distanceFilter,
         pauseLocationUpdatesAutomatically: false,
         showBackgroundLocationIndicator: true,
         allowBackgroundLocationUpdates: true,
@@ -37,9 +51,9 @@ geo.LocationSettings recordingLocationSettings({TargetPlatform? platform}) {
     case TargetPlatform.fuchsia:
     case TargetPlatform.linux:
     case TargetPlatform.windows:
-      return const geo.LocationSettings(
-        accuracy: geo.LocationAccuracy.best,
-        distanceFilter: 5,
+      return geo.LocationSettings(
+        accuracy: accuracy,
+        distanceFilter: distanceFilter,
       );
   }
 }
@@ -77,6 +91,9 @@ TrackPoint trackPointFromPosition(geo.Position position) => TrackPoint(
 Stream<TrackPoint> recordingFixes(
   PositionSource source, {
   TargetPlatform? platform,
+  GpsPrecision precision = GpsPrecision.normal,
 }) => source
-    .positions(recordingLocationSettings(platform: platform))
+    .positions(
+      recordingLocationSettings(platform: platform, precision: precision),
+    )
     .map(trackPointFromPosition);

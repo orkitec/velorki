@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../core/geo/ride_stats.dart';
+import 'gps_precision.dart';
 import 'recording_snapshot.dart';
 import 'ride.dart';
 
@@ -14,6 +15,7 @@ class RecordingState {
     required this.status,
     this.routeId,
     this.pauses = const <RidePause>[],
+    this.precision = GpsPrecision.normal,
   });
 
   /// Reads a state back from [toJson]; returns `null` when the map is not one.
@@ -27,6 +29,7 @@ class RecordingState {
       startedAt: startedAt.toUtc(),
       status: RecordingStatus.fromName(json['status'] as String?),
       routeId: json['routeId'] as String?,
+      precision: GpsPrecision.fromName(json['precision'] as String?),
       pauses: pauses is List
           ? <RidePause>[
               for (final entry in pauses)
@@ -59,19 +62,30 @@ class RecordingState {
   /// seam among the [pauses] says.
   bool get isContinuation => pauses.any((pause) => pause.seam);
 
+  /// How hard the GPS is driven for this ride.
+  ///
+  /// Written down with the rest because the recorder that reads it may be the
+  /// foreground service isolate, which has no access to the preferences the
+  /// rider set the profile in: the state file is how the choice crosses over.
+  final GpsPrecision precision;
+
   /// The seams, for the statistics: a segment across one counts neither
   /// distance nor moving time.
   List<StatsBreak> get statsBreaks => statsBreaksOf(pauses);
 
   /// A copy with the given fields replaced.
-  RecordingState copyWith({RecordingStatus? status, List<RidePause>? pauses}) =>
-      RecordingState(
-        rideId: rideId,
-        startedAt: startedAt,
-        status: status ?? this.status,
-        routeId: routeId,
-        pauses: pauses ?? this.pauses,
-      );
+  RecordingState copyWith({
+    RecordingStatus? status,
+    List<RidePause>? pauses,
+    GpsPrecision? precision,
+  }) => RecordingState(
+    rideId: rideId,
+    startedAt: startedAt,
+    status: status ?? this.status,
+    routeId: routeId,
+    pauses: pauses ?? this.pauses,
+    precision: precision ?? this.precision,
+  );
 
   /// This state as JSON.
   Map<String, Object?> toJson() => <String, Object?>{
@@ -80,6 +94,7 @@ class RecordingState {
     'status': status.name,
     if (routeId != null) 'routeId': routeId,
     'pauses': pauses.map((p) => p.toJson()).toList(),
+    'precision': precision.name,
   };
 
   @override
@@ -90,11 +105,18 @@ class RecordingState {
           other.startedAt == startedAt &&
           other.status == status &&
           other.routeId == routeId &&
+          other.precision == precision &&
           listEquals(other.pauses, pauses);
 
   @override
-  int get hashCode =>
-      Object.hash(rideId, startedAt, status, routeId, Object.hashAll(pauses));
+  int get hashCode => Object.hash(
+    rideId,
+    startedAt,
+    status,
+    routeId,
+    precision,
+    Object.hashAll(pauses),
+  );
 
   @override
   String toString() =>

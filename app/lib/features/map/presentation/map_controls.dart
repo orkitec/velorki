@@ -262,20 +262,20 @@ class _CompassButtonState extends State<_CompassButton> {
             followerAnchor: Alignment.centerRight,
             offset: const Offset(-8, 0),
             child: IgnorePointer(
-              child: Material(
-                color: theme.colorScheme.inverseSurface,
-                borderRadius: BorderRadius.circular(12),
-                elevation: 2,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  child: Text(
-                    _hintText,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: theme.colorScheme.onInverseSurface,
-                    ),
+              // The same glass as the control column it sits next to, so
+              // it reads as part of the map chrome rather than a system
+              // toast.
+              child: GlassPanel(
+                radius: 14,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
+                child: Text(
+                  _hintText,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: theme.velorki.accent,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),

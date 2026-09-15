@@ -5,6 +5,7 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/recording/data/recording_journal.dart';
 import 'package:velorki/features/recording/data/recording_task_handler.dart';
+import 'package:velorki/features/recording/domain/gps_precision.dart';
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/features/recording/domain/recording_state.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -30,12 +31,18 @@ class _Harness {
   final StreamController<TrackPoint> fixes =
       StreamController<TrackPoint>.broadcast();
 
+  /// The GPS profiles the handler asked its fix stream for, in order.
+  final List<GpsPrecision> precisions = <GpsPrecision>[];
+
   DateTime now = _start;
 
   late final RecordingTaskHandler handler = RecordingTaskHandler(
     host: host,
     openStore: () async => store,
-    fixes: () => fixes.stream,
+    fixes: (precision) {
+      precisions.add(precision);
+      return fixes.stream;
+    },
     clock: () => now,
   );
 
@@ -125,10 +132,17 @@ void main() {
   });
 
   /// Writes the state file of a ride that is under way.
-  Future<void> writeState({RecordingStatus status = RecordingStatus.active}) =>
-      store.writeState(
-        RecordingState(rideId: 'ride-1', startedAt: _start, status: status),
-      );
+  Future<void> writeState({
+    RecordingStatus status = RecordingStatus.active,
+    GpsPrecision precision = GpsPrecision.normal,
+  }) => store.writeState(
+    RecordingState(
+      rideId: 'ride-1',
+      startedAt: _start,
+      status: status,
+      precision: precision,
+    ),
+  );
 
   /// Journals [points] fixes ten metres and one second apart, as an
   /// interrupted recording would have left them behind.
@@ -158,6 +172,19 @@ void main() {
       recordingCommandKey: recordingCommandSync,
     });
     expect(h.host.messages, isEmpty);
+
+    await h.dispose();
+  });
+
+  test('opens the GPS at the profile the state file names', () async {
+    // The service isolate has no preferences of its own: the profile the
+    // rider chose travels with the recording state.
+    await writeState(precision: GpsPrecision.saver);
+
+    final h = _Harness(store);
+    await h.start();
+
+    expect(h.precisions, [GpsPrecision.saver]);
 
     await h.dispose();
   });

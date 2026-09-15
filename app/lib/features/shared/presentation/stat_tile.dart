@@ -9,6 +9,9 @@ enum StatSize {
 
   /// The stats row under a route.
   large,
+
+  /// The one figure a rider reads at a glance, as big as the screen allows.
+  hero,
 }
 
 /// One figure with its upper-case caption: `DISTANCE` over `42.3 km`.
@@ -50,6 +53,7 @@ class StatTile extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final valueStyle = switch (size) {
+      StatSize.hero => theme.textTheme.statHero,
       StatSize.large => theme.textTheme.statLarge,
       StatSize.medium => theme.textTheme.statMedium,
     };

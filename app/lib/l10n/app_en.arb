@@ -2261,5 +2261,37 @@
   "settingsRerouteHint": "Plan a new way back onto the route when you leave it",
   "@settingsRerouteHint": {
     "description": "Explanation under the re-route switch"
+  },
+  "settingsRecording": "Recording",
+  "@settingsRecording": {
+    "description": "Settings section header for how rides are recorded"
+  },
+  "settingsGpsPrecision": "GPS precision",
+  "@settingsGpsPrecision": {
+    "description": "Label above the GPS precision choice"
+  },
+  "gpsPrecisionSaver": "Battery saver",
+  "@gpsPrecisionSaver": {
+    "description": "The coarsest GPS profile: a fix every ten metres, two seconds apart"
+  },
+  "gpsPrecisionNormal": "Normal",
+  "@gpsPrecisionNormal": {
+    "description": "The default GPS profile: a fix every five metres, a second apart"
+  },
+  "gpsPrecisionPrecise": "Precise",
+  "@gpsPrecisionPrecise": {
+    "description": "The most accurate GPS profile, for trails"
+  },
+  "settingsGpsPrecisionHint": "Precise is for trails; Normal is enough for roads",
+  "@settingsGpsPrecisionHint": {
+    "description": "Explanation under the GPS precision choice"
+  },
+  "settingsBatterySaver": "Battery saver",
+  "@settingsBatterySaver": {
+    "description": "Switch that puts a ride into battery saver"
+  },
+  "settingsBatterySaverHint": "Dark map, no animations, a plain page with the numbers after 30 s; the screen is what drains the battery",
+  "@settingsBatterySaverHint": {
+    "description": "Explanation under the battery saver switch"
   }
 }

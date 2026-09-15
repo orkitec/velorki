@@ -81,7 +81,7 @@ class TestMapController implements MapController {
     movedTo = center;
     this.center = center;
     if (bearing != null) this.bearing = bearing;
-    calls.add(MapCall('moveTo', [center, zoom, bearing, duration]));
+    calls.add(MapCall('moveTo', [center, zoom, bearing, duration, animate]));
   }
 
   @override
@@ -132,8 +132,18 @@ class TestMapController implements MapController {
     double? accuracyM,
     double? headingDeg,
     double? speedMps,
+    bool headingFromCompass = false,
+    bool minimal = false,
   }) async {
-    calls.add(MapCall('setPosition', [position, headingDeg, speedMps]));
+    calls.add(
+      MapCall('setPosition', [
+        position,
+        headingDeg,
+        speedMps,
+        headingFromCompass,
+        minimal,
+      ]),
+    );
   }
 
   /// The searched place shown, if any.

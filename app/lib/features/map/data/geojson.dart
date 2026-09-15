@@ -90,14 +90,22 @@ Map<String, dynamic> waypointsFeatureCollection(List<MapWaypoint> waypoints) {
 /// where it settles into something worth drawing a cone for.
 const double minHeadingSpeedMps = 0.8;
 
-/// The course to draw the heading cone at, or `null` when there is none worth
-/// drawing — no course, a broken one, or the rider is not moving.
-double? puckHeading(double? headingDeg, double? speedMps) {
+/// [headingDeg] folded into [0, 360), or `null` when it is no angle at all.
+double? normalizedHeading(double? headingDeg) {
   if (headingDeg == null || !headingDeg.isFinite) return null;
-  if (speedMps == null || !speedMps.isFinite) return null;
-  if (speedMps < minHeadingSpeedMps) return null;
   final normalized = headingDeg % 360;
   return normalized < 0 ? normalized + 360 : normalized;
+}
+
+/// The course to draw the heading cone at, or `null` when there is none worth
+/// drawing — no course, a broken one, or the rider is not moving.
+///
+/// Only for a course over ground; a compass heading means something standing
+/// still and goes through [normalizedHeading] instead.
+double? puckHeading(double? headingDeg, double? speedMps) {
+  if (speedMps == null || !speedMps.isFinite) return null;
+  if (speedMps < minHeadingSpeedMps) return null;
+  return normalizedHeading(headingDeg);
 }
 
 /// A single `Point` feature for the position puck, or an empty collection when

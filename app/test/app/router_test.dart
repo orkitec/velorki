@@ -102,14 +102,21 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('Server URLs'), findsOneWidget);
-    // The About section sits below it again.
+    // The About section sits below it again, the version at its top and the
+    // attribution under it — far enough apart that one scroll per line is
+    // what it takes as the list grows.
+    await tester.scrollUntilVisible(
+      find.text('Version 0.1.0+1'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Version 0.1.0+1'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('© OpenStreetMap contributors'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('© OpenStreetMap contributors'), findsOneWidget);
-    expect(find.text('Version 0.1.0+1'), findsOneWidget);
 
     await _tapTab(tester, 'Plan');
     expect(find.text('Tap the map to set a start.'), findsOneWidget);

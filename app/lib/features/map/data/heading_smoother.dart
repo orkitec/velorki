@@ -23,6 +23,22 @@ const double headingAlphaSlow = 0.3;
 /// Ground speed from which [headingAlphaFast] is used.
 const double headingAlphaFastSpeedMps = 4;
 
+/// [previous] moved [weight] of the way towards [next], the short way around
+/// the circle, so 359° and 1° average to 0° and not to 180°.
+///
+/// Shared with the compass, which averages its samples the same way.
+double blendHeadings(double previous, double next, double weight) {
+  final delta = ((next - previous + 540) % 360) - 180;
+  final blended = (previous + weight * delta) % 360;
+  return blended < 0 ? blended + 360 : blended;
+}
+
+/// The angle between two headings, 0 to 180 degrees.
+double headingDifference(double a, double b) {
+  final delta = ((a - b) % 360 + 360) % 360;
+  return delta > 180 ? 360 - delta : delta;
+}
+
 /// Turns the raw course of a fix into the heading the puck's cone is drawn at.
 ///
 /// Two problems, one object: a plain speed threshold blinks the cone on and
@@ -30,6 +46,12 @@ const double headingAlphaFastSpeedMps = 4;
 /// between fixes. So visibility has hysteresis ([onSpeedMps] to show,
 /// [offSpeedMps] to hide) and the angle is an exponential average taken the
 /// long way around the circle, so 359° and 1° average to 0° and not to 180°.
+///
+/// A heading from the phone's compass is a different animal and says so
+/// ([update]'s `fromCompass`): it is where the phone points rather than where
+/// the rider has been, so it means something at a standstill and shows the
+/// cone at any speed. Both kinds go through the same average, so handing over
+/// from one to the other turns the cone rather than jumping it.
 ///
 /// Pure Dart with no map types in sight: one instance lives per map adapter
 /// and is fed every fix.
@@ -77,9 +99,25 @@ class HeadingSmoother {
   /// anything, as [puckHeading] decides — keeps the last smoothed heading for
   /// as long as the cone stays visible, rather than dropping the cone for one
   /// frame.
-  double? update({double? headingDeg, double? speedMps}) {
+  ///
+  /// [fromCompass] marks [headingDeg] as a compass heading instead of a
+  /// course over ground. That one is worth drawing however slowly the rider
+  /// is going, so it brings the cone up and keeps it up; a course still has
+  /// to earn its place with speed.
+  double? update({
+    double? headingDeg,
+    double? speedMps,
+    bool fromCompass = false,
+  }) {
     final speed = speedMps != null && speedMps.isFinite ? speedMps : 0.0;
-    if (_visible) {
+    final course = fromCompass
+        ? normalizedHeading(headingDeg)
+        : puckHeading(headingDeg, speedMps);
+    if (fromCompass && course != null) {
+      // Where the phone points is true standing still, so the speed rules do
+      // not apply to it at all.
+      _visible = true;
+    } else if (_visible) {
       if (speed < offSpeedMps) {
         reset();
         return null;
@@ -90,12 +128,13 @@ class HeadingSmoother {
       return null;
     }
 
-    final course = puckHeading(headingDeg, speedMps);
     if (course != null) {
       final previous = _heading;
+      // The same average either way, so a compass heading handing over to a
+      // course (or back) turns the cone instead of snapping it.
       _heading = previous == null
           ? course
-          : _blend(previous, course, alphaAt(speedMps));
+          : blendHeadings(previous, course, alphaAt(speedMps));
     }
     return _heading;
   }
@@ -105,13 +144,5 @@ class HeadingSmoother {
   void reset() {
     _visible = false;
     _heading = null;
-  }
-
-  /// [previous] moved [weight] of the way towards [course], the short way
-  /// around the circle.
-  double _blend(double previous, double course, double weight) {
-    final delta = ((course - previous + 540) % 360) - 180;
-    final blended = (previous + weight * delta) % 360;
-    return blended < 0 ? blended + 360 : blended;
   }
 }

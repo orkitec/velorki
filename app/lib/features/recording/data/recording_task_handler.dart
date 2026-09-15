@@ -4,6 +4,7 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../map/data/position_provider.dart';
+import '../domain/gps_precision.dart';
 import '../domain/recording_snapshot.dart';
 import 'recording_engine.dart';
 import 'recording_journal.dart';
@@ -80,18 +81,22 @@ class RecordingTaskHandler extends TaskHandler {
   RecordingTaskHandler({
     this.host = const FlutterForegroundServiceHost(),
     Future<RecordingStore> Function()? openStore,
-    Stream<TrackPoint> Function()? fixes,
+    Stream<TrackPoint> Function(GpsPrecision precision)? fixes,
     DateTime Function()? clock,
   }) : _openStore = openStore ?? RecordingStore.open,
        _fixes =
-           fixes ?? (() => recordingFixes(const GeolocatorPositionSource())),
+           fixes ??
+           ((precision) => recordingFixes(
+             const GeolocatorPositionSource(),
+             precision: precision,
+           )),
        _clock = clock ?? DateTime.now;
 
   /// The foreground service this handler runs in.
   final ForegroundServiceHost host;
 
   final Future<RecordingStore> Function() _openStore;
-  final Stream<TrackPoint> Function() _fixes;
+  final Stream<TrackPoint> Function(GpsPrecision precision) _fixes;
   final DateTime Function() _clock;
 
   RecordingEngine? _engine;
@@ -122,7 +127,9 @@ class RecordingTaskHandler extends TaskHandler {
       store: store,
       journal: journal,
       initialState: state,
-      fixes: _fixes(),
+      // The GPS profile travels in the state file: this isolate has no
+      // preferences of its own.
+      fixes: _fixes(state.precision),
       ticks: _ticks.stream,
       clock: _clock,
     )..seed(existing);

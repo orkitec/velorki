@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../map/data/position_provider.dart';
+import '../domain/gps_precision.dart';
 import '../domain/recording_snapshot.dart';
 import '../domain/recording_state.dart';
 import '../domain/ride.dart';
@@ -51,8 +52,14 @@ abstract class RecordingService {
   /// Starts a ride, optionally following the saved route [routeId].
   ///
   /// [notificationTitle] is the first line of the Android notification; it is
-  /// passed in because only the UI knows the locale.
-  Future<void> start({required String notificationTitle, String? routeId});
+  /// passed in because only the UI knows the locale. [precision] is the GPS
+  /// profile the ride is recorded at; it travels with the recording state,
+  /// which is how it reaches the service isolate.
+  Future<void> start({
+    required String notificationTitle,
+    String? routeId,
+    GpsPrecision precision = GpsPrecision.normal,
+  });
 
   /// Suspends journalling.
   Future<void> pause();
@@ -74,13 +81,18 @@ abstract class RecordingService {
   Future<void> resumeInterrupted(
     RecordingState state, {
     required String notificationTitle,
+    GpsPrecision? precision,
   });
 
   /// Records onto the already finished ride [ride], continuing its track and
   /// its figures instead of starting a new one.
   ///
   /// Does nothing when a recording is already under way.
-  Future<void> continueRide(Ride ride, {required String notificationTitle});
+  Future<void> continueRide(
+    Ride ride, {
+    required String notificationTitle,
+    GpsPrecision precision = GpsPrecision.normal,
+  });
 
   /// Turns the journal of the interrupted recording [state] into a ride.
   Future<Ride?> finishInterrupted(
@@ -153,22 +165,31 @@ abstract base class BaseRecordingService implements RecordingService {
   Future<void> continueRide(
     Ride ride, {
     required String notificationTitle,
+    GpsPrecision precision = GpsPrecision.normal,
   }) async {
     if (await isRunning) return;
     final opened = await store;
     await opened.writeJournal(ride.id, ride.points);
-    final state = continuationState(ride);
+    final state = continuationState(ride, precision: precision);
     await opened.writeState(state);
     await rides.clearUploads(ride.id);
-    await resumeInterrupted(state, notificationTitle: notificationTitle);
+    await resumeInterrupted(
+      state,
+      notificationTitle: notificationTitle,
+      precision: precision,
+    );
   }
 
   /// The recording that continues [ride]; see [continueRide].
-  RecordingState continuationState(Ride ride) => RecordingState(
+  RecordingState continuationState(
+    Ride ride, {
+    GpsPrecision precision = GpsPrecision.normal,
+  }) => RecordingState(
     rideId: ride.id,
     startedAt: ride.startedAt,
     status: RecordingStatus.active,
     routeId: ride.routeId,
+    precision: precision,
     pauses: <RidePause>[
       ...ride.pauses,
       RidePause(startedAt: ride.endedAt, endedAt: clock().toUtc(), seam: true),
@@ -194,11 +215,15 @@ abstract base class BaseRecordingService implements RecordingService {
   }
 
   /// A fresh recording state for a ride that starts now.
-  RecordingState newState({String? routeId}) => RecordingState(
+  RecordingState newState({
+    String? routeId,
+    GpsPrecision precision = GpsPrecision.normal,
+  }) => RecordingState(
     rideId: _uuid.v4(),
     startedAt: clock().toUtc(),
     status: RecordingStatus.active,
     routeId: routeId,
+    precision: precision,
   );
 
   /// Reads the journal of [state], writes the `rides` row and cleans up.
@@ -273,20 +298,25 @@ final class MainIsolateRecordingService extends BaseRecordingService {
   Future<void> start({
     required String notificationTitle,
     String? routeId,
+    GpsPrecision precision = GpsPrecision.normal,
   }) async {
     if (_engine != null) return;
-    await _run(newState(routeId: routeId), seed: const <TrackPoint>[]);
+    await _run(
+      newState(routeId: routeId, precision: precision),
+      seed: const <TrackPoint>[],
+    );
   }
 
   @override
   Future<void> resumeInterrupted(
     RecordingState state, {
     required String notificationTitle,
+    GpsPrecision? precision,
   }) async {
     if (_engine != null) return;
     final opened = await store;
     await _run(
-      state.copyWith(status: RecordingStatus.active),
+      state.copyWith(status: RecordingStatus.active, precision: precision),
       seed: await opened.readJournal(state.rideId),
     );
   }
@@ -336,7 +366,11 @@ final class MainIsolateRecordingService extends BaseRecordingService {
       store: opened,
       journal: journal,
       initialState: state,
-      fixes: recordingFixes(positions, platform: platform),
+      fixes: recordingFixes(
+        positions,
+        platform: platform,
+        precision: state.precision,
+      ),
       ticks: Stream<DateTime>.periodic(
         const Duration(seconds: 1),
         (_) => clock(),
@@ -376,10 +410,11 @@ final class ForegroundTaskRecordingService extends BaseRecordingService {
   Future<void> start({
     required String notificationTitle,
     String? routeId,
+    GpsPrecision precision = GpsPrecision.normal,
   }) async {
     if (await isRunning) return;
     final opened = await store;
-    final state = newState(routeId: routeId);
+    final state = newState(routeId: routeId, precision: precision);
     await opened.deleteJournal(state.rideId);
     await opened.writeState(state);
     await _startService(notificationTitle);
@@ -389,10 +424,13 @@ final class ForegroundTaskRecordingService extends BaseRecordingService {
   Future<void> resumeInterrupted(
     RecordingState state, {
     required String notificationTitle,
+    GpsPrecision? precision,
   }) async {
     if (await isRunning) return;
     final opened = await store;
-    await opened.writeState(state.copyWith(status: RecordingStatus.active));
+    await opened.writeState(
+      state.copyWith(status: RecordingStatus.active, precision: precision),
+    );
     await _startService(notificationTitle);
   }
 

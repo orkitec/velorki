@@ -126,6 +126,68 @@ void main() {
     });
   });
 
+  group('a compass heading', () {
+    test('shows the cone standing still, where a course never would', () {
+      final smoother = HeadingSmoother();
+
+      expect(smoother.update(headingDeg: 90, speedMps: 0), isNull);
+      expect(
+        smoother.update(headingDeg: 90, speedMps: 0, fromCompass: true),
+        90,
+      );
+      expect(smoother.isVisible, isTrue);
+    });
+
+    test('keeps the cone up at a red light', () {
+      final smoother = HeadingSmoother()..update(headingDeg: 90, speedMps: 5);
+
+      // Rolling to a stop: the course alone would drop the cone here.
+      expect(
+        smoother.update(headingDeg: 90, speedMps: 0, fromCompass: true),
+        90,
+      );
+      expect(smoother.isVisible, isTrue);
+    });
+
+    test('hands over to a course by turning, not by jumping', () {
+      final smoother = HeadingSmoother()
+        ..update(headingDeg: 90, speedMps: 0, fromCompass: true);
+
+      // Riding speed, so half the difference: 90 towards 100 is 95, not 100.
+      expect(smoother.update(headingDeg: 100, speedMps: 5), closeTo(95, 1e-9));
+      expect(
+        smoother.update(headingDeg: 100, speedMps: 5),
+        closeTo(97.5, 1e-9),
+      );
+    });
+
+    test('a course hands back to the compass the same way', () {
+      final smoother = HeadingSmoother()..update(headingDeg: 100, speedMps: 5);
+
+      // Stopped, so the careful alpha: 100 towards 0 the short way is 70.
+      expect(
+        smoother.update(headingDeg: 0, speedMps: 0, fromCompass: true),
+        closeTo(70, 1e-9),
+      );
+    });
+
+    test('is normalised like a course', () {
+      final smoother = HeadingSmoother();
+
+      expect(
+        smoother.update(headingDeg: -90, speedMps: 0, fromCompass: true),
+        270,
+      );
+    });
+
+    test('a missing one leaves the speed rules in charge', () {
+      final smoother = HeadingSmoother()..update(headingDeg: 90, speedMps: 5);
+
+      expect(smoother.update(speedMps: 0, fromCompass: true), isNull);
+      expect(smoother.isVisible, isFalse);
+    });
+  });
+
   test('the thresholds are configurable', () {
     final smoother = HeadingSmoother(
       onSpeedMps: 10,

@@ -90,6 +90,8 @@ class RecordedPosition {
     this.accuracyM,
     this.headingDeg,
     this.speedMps,
+    this.headingFromCompass = false,
+    this.minimal = false,
   });
 
   final LatLng? position;
@@ -97,21 +99,37 @@ class RecordedPosition {
   final double? headingDeg;
   final double? speedMps;
 
+  /// Whether the heading came from the phone's compass rather than the GPS.
+  final bool headingFromCompass;
+
+  /// Whether the bare dot was asked for, without ring or cone.
+  final bool minimal;
+
   @override
   bool operator ==(Object other) =>
       other is RecordedPosition &&
       other.position == position &&
       other.accuracyM == accuracyM &&
       other.headingDeg == headingDeg &&
-      other.speedMps == speedMps;
+      other.speedMps == speedMps &&
+      other.headingFromCompass == headingFromCompass &&
+      other.minimal == minimal;
 
   @override
-  int get hashCode => Object.hash(position, accuracyM, headingDeg, speedMps);
+  int get hashCode => Object.hash(
+    position,
+    accuracyM,
+    headingDeg,
+    speedMps,
+    headingFromCompass,
+    minimal,
+  );
 
   @override
   String toString() =>
       'RecordedPosition($position, accuracy: $accuracyM, '
-      'heading: $headingDeg, speed: $speedMps)';
+      'heading: $headingDeg, speed: $speedMps, '
+      'fromCompass: $headingFromCompass, minimal: $minimal)';
 }
 
 /// A [MapController] that records everything and renders nothing.
@@ -304,12 +322,16 @@ class FakeMapController implements MapController {
     double? accuracyM,
     double? headingDeg,
     double? speedMps,
+    bool headingFromCompass = false,
+    bool minimal = false,
   }) async {
     final recorded = RecordedPosition(
       position: position,
       accuracyM: accuracyM,
       headingDeg: headingDeg,
       speedMps: speedMps,
+      headingFromCompass: headingFromCompass,
+      minimal: minimal,
     );
     this.position = recorded;
     positionCalls.add(recorded);

@@ -973,6 +973,64 @@ void main() {
       },
     );
 
+    test('a minimal fix is a bare dot: no ring, no cone', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      ops.clearCalls();
+
+      // What a battery-saver ride asks for: fewer pixels lit, less to redraw.
+      await adapter.setPosition(
+        const LatLng(47.0, 8.0),
+        accuracyM: 20,
+        headingDeg: 90,
+        speedMps: 5,
+        minimal: true,
+      );
+
+      expect(
+        _firstProperties(ops, MapLayerIds.positionSource),
+        isNot(contains('heading')),
+      );
+      final ring = ops
+          .lastPropertiesOf(MapLayerIds.positionAccuracyLayer)!
+          .properties!;
+      expect(ring['circle-opacity'], 0.0);
+      expect(ring['circle-stroke-opacity'], 0.0);
+    });
+
+    test('the cone is back on the next ordinary fix', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setPosition(
+        const LatLng(47.0, 8.0),
+        headingDeg: 90,
+        speedMps: 5,
+        minimal: true,
+      );
+      ops.clearCalls();
+
+      // The smoother was kept fed while the cone was hidden, so switching the
+      // saver off mid-ride does not start it from nothing.
+      await adapter.setPosition(
+        const LatLng(47.0, 8.0),
+        headingDeg: 90,
+        speedMps: 5,
+      );
+
+      expect(
+        _firstProperties(ops, MapLayerIds.positionSource),
+        contains('heading'),
+      );
+      expect(
+        ops
+            .lastPropertiesOf(MapLayerIds.positionAccuracyLayer)!
+            .properties!['circle-opacity'],
+        0.15,
+      );
+    });
+
     test('writes no heading while the rider is standing still', () async {
       final ops = RecordingStyleOps();
       final adapter = _adapter(ops);

@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../data/recording_service.dart';
+import '../data/recording_settings.dart';
+import '../domain/gps_precision.dart';
 import '../domain/recording_snapshot.dart';
 import '../domain/recording_state.dart';
 import '../domain/ride.dart';
@@ -80,6 +82,13 @@ class RecordingController extends Notifier<RecordingUiState> {
 
   RecordingService get _service => ref.read(recordingServiceProvider);
 
+  /// The GPS profile the next ride runs at: what the rider picked, or the
+  /// saver profile when the battery saver overrules it. Read at the moment a
+  /// ride starts, because that is when the stream is opened — changing it
+  /// mid-ride would mean restarting the recorder.
+  GpsPrecision get _precision =>
+      ref.read(recordingSettingsProvider).effectivePrecision;
+
   /// Chooses the saved route to follow, or clears the choice with `null`.
   void selectRoute(String? routeId) => state = routeId == null
       ? state.copyWith(clearRoute: true)
@@ -97,6 +106,7 @@ class RecordingController extends Notifier<RecordingUiState> {
       await _service.start(
         notificationTitle: notificationTitle,
         routeId: state.followedRouteId,
+        precision: _precision,
       );
     } catch (_) {
       _listening = false;
@@ -152,6 +162,7 @@ class RecordingController extends Notifier<RecordingUiState> {
       await _service.resumeInterrupted(
         recording,
         notificationTitle: notificationTitle,
+        precision: _precision,
       );
       state = state.copyWith(track: await _journalTrack(recording.rideId));
     } finally {
@@ -174,7 +185,11 @@ class RecordingController extends Notifier<RecordingUiState> {
     state = state.copyWith(busy: true);
     _listening = true;
     try {
-      await _service.continueRide(ride, notificationTitle: notificationTitle);
+      await _service.continueRide(
+        ride,
+        notificationTitle: notificationTitle,
+        precision: _precision,
+      );
       state = state.copyWith(track: await _journalTrack(ride.id));
     } catch (_) {
       _listening = false;

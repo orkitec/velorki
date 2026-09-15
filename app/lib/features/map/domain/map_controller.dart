@@ -48,11 +48,21 @@ abstract class MapController {
   ///
   /// [headingDeg] is a course over ground, so [speedMps] comes with it: the
   /// direction cone is only drawn while the rider actually moves.
+  ///
+  /// [headingFromCompass] says the heading came from the phone's magnetometer
+  /// instead, which is true standing still: the cone is then drawn whatever
+  /// the speed.
+  ///
+  /// [minimal] draws the bare dot: no accuracy ring, no direction cone. That
+  /// is what a battery-saver ride asks for — fewer pixels lit and less for the
+  /// map to redraw on every fix.
   Future<void> setPosition(
     LatLng? position, {
     double? accuracyM,
     double? headingDeg,
     double? speedMps,
+    bool headingFromCompass = false,
+    bool minimal = false,
   });
 
   /// Toggle the CyclOSM raster overlay above the vector base map.

@@ -10,6 +10,7 @@ import '../../../app/app_config.dart';
 import '../../../core/permissions/location_permission.dart';
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../map/data/compass_heading.dart';
 import '../../map/data/heading_smoother.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/location_rationale_dialog.dart';
@@ -17,6 +18,7 @@ import '../../map/presentation/map_chrome.dart';
 import '../../navigation/application/navigation_controller.dart';
 import '../../navigation/domain/navigation_progress.dart';
 import '../../navigation/presentation/turn_banner.dart';
+import '../../navigation/presentation/turn_phrases.dart';
 import '../../planner/application/planner_controller.dart';
 import '../../planner/data/route_repository.dart';
 import '../../planner/domain/saved_route.dart';
@@ -24,10 +26,12 @@ import '../../planner/presentation/planner_map_host.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../application/recording_controller.dart';
+import '../data/battery_saver.dart';
 import '../data/follow_mode.dart';
 import '../data/recording_gateways.dart';
 import '../data/recording_recovery.dart';
 import '../data/recording_service.dart';
+import '../data/recording_settings.dart';
 import '../domain/recording_snapshot.dart';
 import '../domain/recording_state.dart';
 import 'recording_format.dart';
@@ -78,12 +82,28 @@ const double cameraBearingDeadbandDegrees = 8;
 /// Below this ground speed the map keeps the bearing it has.
 const double cameraBearingMinSpeedMps = 1.5;
 
+/// How often a compass heading on its own may redraw the puck.
+///
+/// Standing still there is no next fix coming to carry a fresh heading to the
+/// map, so the compass has to push one itself — five times a second is more
+/// than the eye follows and far less than the sensor offers.
+const Duration compassPushInterval = Duration(milliseconds: 200);
+
 /// How far from the guided route a fix may be and still be drawn on it.
 ///
 /// Wide enough for the usual few metres of GPS error and a cycleway drawn
 /// beside the road, narrow enough that a rider who really left the route is
 /// shown where they are.
 const double routeSnapMeters = 25;
+
+/// How long the record screen waits for a touch before it drops to the glance
+/// view, while a battery-saver ride runs.
+const Duration glanceAfter = Duration(seconds: 30);
+
+/// The screen brightness a battery-saver ride runs at, while the screen is
+/// being held awake. Bright enough to read in daylight, less than half the
+/// energy of a display at full tilt.
+const double saverBrightness = 0.4;
 
 /// The Record tab: start a ride, watch the numbers, finish it.
 class RecordingScreen extends ConsumerStatefulWidget {
@@ -97,6 +117,25 @@ class RecordingScreen extends ConsumerStatefulWidget {
 class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   MapController? _map;
   bool _keepScreenOn = false;
+
+  /// Whether the map and the sheet have given way to the glance view: the
+  /// figures on black, the way a bike computer shows them.
+  bool _glance = false;
+
+  /// The countdown to that, restarted by every touch.
+  Timer? _glanceTimer;
+
+  /// Whether a battery-saver ride is running, as the last build saw it.
+  bool _saverRide = false;
+
+  /// Whether the display is being held at [saverBrightness] by us.
+  bool _dimmed = false;
+
+  /// The two screen gateways, kept once read: `ref` is out of bounds in
+  /// [dispose], and that is exactly where the display has to be handed back.
+  ScreenWake? _wake;
+  ScreenDimmer? _dimmer;
+
   bool _recoveryHandled = false;
   int _drawnTrackPoints = -1;
   String? _drawnRouteId;
@@ -139,15 +178,64 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// compass needle can be drawn turned the same way.
   double _bearing = 0;
 
+  /// Whether [_targetBearing] came from the compass rather than from a course
+  /// over ground. A compass bearing means something at a standstill, so the
+  /// camera may follow it there; a course may not.
+  bool _bearingFromCompass = false;
+
   /// The snapshot the smoother was last fed, so a rebuild that brings no new
   /// fix does not push the average further along the same course.
   RecordingSnapshot? _fedSnapshot;
 
+  /// The compass heading last drawn, and when, so a standing rider turning
+  /// the phone gets a fresh cone without one redraw per sensor sample.
+  double? _pushedCompass;
+  DateTime? _compassPushedAt;
+
   @override
   void dispose() {
-    if (_keepScreenOn) unawaited(ref.read(screenWakeProvider).disable());
+    if (_keepScreenOn) unawaited(_wake?.disable());
+    if (_dimmed) unawaited(_dimmer?.reset());
+    _glanceTimer?.cancel();
     _map?.onCameraIdle = null;
     super.dispose();
+  }
+
+  // ------------------------------------------------------- battery saver
+
+  /// Follows the saver in and out of a ride: the glance countdown runs while
+  /// one is on and is thrown away with it.
+  void _syncSaver(bool saver) {
+    if (saver == _saverRide) return;
+    _saverRide = saver;
+    _glance = false;
+    _restartGlanceTimer(saver);
+  }
+
+  /// Dims the display for a saver ride, and only while the screen is being
+  /// held awake: a screen that switches itself off costs nothing already.
+  void _syncBrightness(bool wanted) {
+    if (wanted == _dimmed) return;
+    _dimmed = wanted;
+    final ScreenDimmer dimmer = _dimmer ?? ref.read(screenDimmerProvider);
+    _dimmer = dimmer;
+    unawaited(wanted ? dimmer.dim(saverBrightness) : dimmer.reset());
+  }
+
+  void _restartGlanceTimer(bool saver) {
+    _glanceTimer?.cancel();
+    _glanceTimer = null;
+    if (!saver) return;
+    _glanceTimer = Timer(glanceAfter, () {
+      if (mounted) setState(() => _glance = true);
+    });
+  }
+
+  /// Any touch anywhere brings the map back and buys another 30 seconds.
+  void _handlePointerDown() {
+    final saver = ref.read(batterySaverActiveProvider);
+    if (_glance) setState(() => _glance = false);
+    _restartGlanceTimer(saver);
   }
 
   // Called from the map widget's build, so it must not call setState right
@@ -177,6 +265,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     LatLng position,
     FollowMode mode, {
     double? speedMps,
+    bool fromCompass = false,
+    bool saver = false,
   }) {
     _autoMoving = true;
     _followTarget = position;
@@ -184,7 +274,11 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     // heading exists, rather than forcing it to north first.
     final double? bearing;
     if (mode == FollowMode.headingUp) {
-      bearing = _cameraBearing(_targetBearing, speedMps);
+      bearing = _cameraBearing(
+        _targetBearing,
+        speedMps,
+        fromCompass: fromCompass,
+      );
     } else {
       bearing = 0.0;
       _sentBearing = 0;
@@ -194,7 +288,10 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
         position,
         zoom: math.max(map.zoom ?? followZoom, followZoom),
         bearing: bearing,
-        duration: followCameraDuration,
+        // A saver ride jumps the camera instead of gliding it: an animation
+        // is a second of redraws for a move that takes one step anyway.
+        animate: !saver,
+        duration: saver ? null : followCameraDuration,
       ),
     );
   }
@@ -203,10 +300,20 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   ///
   /// Turning the map costs the rider their bearings, so it is only worth it
   /// when the heading has really moved — and never at a standstill, where the
-  /// course is noise and the old bearing is still the right one.
-  double? _cameraBearing(double? wanted, double? speedMps) {
+  /// course is noise and the old bearing is still the right one. A compass
+  /// heading is exempt from that last rule: it is at its most useful standing
+  /// still, which is the whole point of reading the magnetometer.
+  double? _cameraBearing(
+    double? wanted,
+    double? speedMps, {
+    bool fromCompass = false,
+  }) {
     final last = _sentBearing;
-    if (last != null && (speedMps ?? 0) < cameraBearingMinSpeedMps) return last;
+    if (!fromCompass &&
+        last != null &&
+        (speedMps ?? 0) < cameraBearingMinSpeedMps) {
+      return last;
+    }
     if (wanted == null) return last;
     if (last != null &&
         _angleBetween(wanted, last) <= cameraBearingDeadbandDegrees) {
@@ -216,6 +323,34 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     return wanted;
   }
 
+  /// Whether the map points somewhere else than the heading now says, so a
+  /// move is worth making even though the rider has not gone anywhere.
+  ///
+  /// Mirrors what [_cameraBearing] would decide, so it never asks for a move
+  /// that would be handed the bearing the map already has.
+  bool _bearingStale(FollowMode mode, double? speedMps) {
+    if (mode != FollowMode.headingUp) return false;
+    final wanted = _targetBearing;
+    if (wanted == null) return false;
+    final sent = _sentBearing;
+    if (sent == null) return true;
+    if (!_bearingFromCompass && (speedMps ?? 0) < cameraBearingMinSpeedMps) {
+      return false;
+    }
+    return _angleBetween(wanted, sent) > cameraBearingDeadbandDegrees;
+  }
+
+  /// Whether a compass heading on its own has earned a redraw: a heading we
+  /// have not drawn yet, and not within [compassPushInterval] of the last one.
+  bool _compassPushDue(double heading) {
+    if (heading == _pushedCompass) return false;
+    final last = _compassPushedAt;
+    if (last != null && DateTime.now().difference(last) < compassPushInterval) {
+      return false;
+    }
+    return true;
+  }
+
   /// Turns the map back to north, for a ride that ended or a rider who left
   /// heading-up: nothing else would ever straighten it again.
   void _resetBearing(MapController map) {
@@ -223,6 +358,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     if (center == null) return;
     _headings.reset();
     _targetBearing = null;
+    _bearingFromCompass = false;
     _sentBearing = 0;
     _bearing = 0;
     _autoMoving = true;
@@ -309,6 +445,11 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     unawaited(ref.read(followModeProvider.notifier).select(next));
     final map = _map;
     if (next == FollowMode.northUp && map != null) _resetBearing(map);
+    // Asked for heading-up standing still, the rider wants to see the map
+    // turn now, not once the phone has moved a degree: forget what was last
+    // drawn so the next build takes the compass as it stands.
+    _pushedCompass = null;
+    _compassPushedAt = null;
     setState(() => _following = true);
   }
 
@@ -334,6 +475,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     GuidedRoute? detour,
     FollowMode mode,
     NavigationProgress? navigation,
+    double? compass,
+    bool saver,
   ) {
     // A ride that has just started takes the camera with it. Decided before
     // the map is looked at, so a ride that starts while the style is still
@@ -363,31 +506,75 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       // what every other navigation app draws.
       final onRoute = _routeSnap(navigation);
       final puck = onRoute?.snapped ?? position;
-      unawaited(
-        map.setPosition(
-          puck,
-          accuracyM: snapshot?.accuracyM,
-          headingDeg: onRoute?.routeBearingDeg ?? snapshot?.headingDeg,
-          speedMps: snapshot?.speedMps,
-        ),
-      );
-      // One course per fix, not per build: the average would otherwise creep
-      // along on rebuilds that brought nothing new.
-      if (snapshot != null && !identical(snapshot, _fedSnapshot)) {
-        _fedSnapshot = snapshot;
-        final heading = _headings.update(
-          headingDeg: snapshot.headingDeg,
-          speedMps: snapshot.speedMps,
-        );
-        if (heading != null) _targetBearing = heading;
-      }
       final routeBearing = onRoute?.routeBearingDeg;
-      if (routeBearing != null) _targetBearing = routeBearing;
+      final course = snapshot?.headingDeg;
+      final speed = snapshot?.speedMps;
+      // A GNSS course is where the rider has been, so it is worth nothing
+      // standing still — and a rider at a red light still faces somewhere.
+      // That is what the phone's compass is for, and it is what the road
+      // itself is for when there is one under the puck.
+      final moving = (speed ?? 0) >= headingConeOnSpeedMps;
+      final fromCompass =
+          compass != null &&
+          routeBearing == null &&
+          !(moving && course != null);
+      final heading = routeBearing ?? (fromCompass ? compass : course);
+
+      final freshFix = snapshot != null && !identical(snapshot, _fedSnapshot);
+      // A heading the compass turned up between two fixes has to reach the
+      // map by itself; at a standstill there is no next fix to carry it.
+      final compassPush = fromCompass && !freshFix && _compassPushDue(compass);
+      if (freshFix || !fromCompass || compassPush) {
+        if (fromCompass) _pushedCompass = compass;
+        // Only a redraw the compass asked for on its own is worth throttling;
+        // the ones a fix brings along are paid for already.
+        if (compassPush) _compassPushedAt = DateTime.now();
+        unawaited(
+          map.setPosition(
+            puck,
+            accuracyM: snapshot?.accuracyM,
+            headingDeg: heading,
+            speedMps: speed,
+            headingFromCompass: fromCompass,
+            // A saver ride draws the bare dot: no ring, no cone.
+            minimal: saver,
+          ),
+        );
+      }
+      // One heading per fix, not per build: the average would otherwise creep
+      // along on rebuilds that brought nothing new. A fresh compass reading
+      // counts as news of its own.
+      if (snapshot != null && (freshFix || compassPush)) {
+        _fedSnapshot = snapshot;
+        final smoothed = _headings.update(
+          headingDeg: fromCompass ? compass : course,
+          speedMps: speed,
+          fromCompass: fromCompass,
+        );
+        if (smoothed != null) {
+          _targetBearing = smoothed;
+          _bearingFromCompass = fromCompass;
+        }
+      }
+      if (routeBearing != null) {
+        _targetBearing = routeBearing;
+        _bearingFromCompass = false;
+      }
       // The puck alone is no use to a rider who cannot see it: while a ride
       // runs and nobody has taken the map away from us, the camera goes
-      // wherever the fix goes.
-      if (state.isRecording && _following && puck != _followTarget) {
-        _followTo(map, puck, mode, speedMps: snapshot?.speedMps);
+      // wherever the fix goes — and, in heading-up, wherever the heading now
+      // points, even if the rider has not moved an inch.
+      if (state.isRecording &&
+          _following &&
+          (puck != _followTarget || _bearingStale(mode, speed))) {
+        _followTo(
+          map,
+          puck,
+          mode,
+          speedMps: speed,
+          fromCompass: _bearingFromCompass,
+          saver: saver,
+        );
       }
     }
     // A way back onto the route replaces it while it lasts: the detour is
@@ -623,7 +810,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
 
   Future<void> _setKeepScreenOn(bool value) async {
     setState(() => _keepScreenOn = value);
-    final wake = ref.read(screenWakeProvider);
+    final ScreenWake wake = _wake ?? ref.read(screenWakeProvider);
+    _wake = wake;
     await (value ? wake.enable() : wake.disable());
   }
 
@@ -653,9 +841,33 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     // Turn-by-turn, when there is a route to follow and the rider wants it.
     // Read before the map is synced: it is what puts the puck on the route.
     final navigation = ref.watch(navigationControllerProvider);
-    _syncMap(state, route, planned, detour, followMode, navigation);
+    // Where the phone points, for the standstill a GNSS has no heading for.
+    // The provider is autoDispose, so the magnetometer runs while this screen
+    // does and stops with it; no other map asks for it.
+    final compass = ref.watch(compassHeadingProvider).value;
+    // Everything the battery saver does hangs off this: the dark theme and the
+    // black map (through `appearanceOverrideProvider`), the bare puck, the
+    // camera that jumps instead of gliding, the dimmed screen and the glance
+    // view. It is false again the moment the ride ends.
+    final saver = ref.watch(batterySaverActiveProvider);
+    _syncSaver(saver);
+    _syncBrightness(saver && _keepScreenOn);
+    _syncMap(
+      state,
+      route,
+      planned,
+      detour,
+      followMode,
+      navigation,
+      compass,
+      saver,
+    );
 
     final guiding = navigation != null && state.isRecording;
+    final snapshot = state.snapshot;
+    // The glance view needs figures to show; without a snapshot there are
+    // none yet and the normal screen stays.
+    final glance = saver && _glance && snapshot != null;
 
     final theme = Theme.of(context);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
@@ -669,102 +881,222 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     final initial = state.isRecording ? fraction(292) : fraction(420);
     final sheetKey = state.isRecording ? 'live' : 'idle';
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          Positioned.fill(
-            // The locate and compass buttons live inside the map; this is how
-            // they reach the follow mode, and how they learn to show it.
-            child: MapChromeInsets(
-              following: state.isRecording && _following,
-              headingUp:
-                  state.isRecording &&
-                  _following &&
-                  followMode == FollowMode.headingUp,
-              bearingDeg: _bearing,
-              onLocate: _handleLocate,
-              // Only a running ride has a camera to hold, so only a running
-              // ride shows the compass.
-              onCompass: state.isRecording ? _handleCompass : null,
-              // The turn banner sits over the top of the map, so the control
-              // column starts below it while one is showing.
-              controlsTop: guiding ? turnBannerHeight + 24 : null,
-              child: PlannerMapHost(onMapReady: _onMapReady, embedded: true),
-            ),
-          ),
-          if (guiding)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: TurnBanner(progress: navigation),
+    return Listener(
+      // Any touch anywhere postpones the glance view, and a touch on the
+      // glance view itself brings the map back.
+      onPointerDown: (_) => _handlePointerDown(),
+      child: Scaffold(
+        backgroundColor: glance ? Colors.black : null,
+        body: Stack(
+          children: [
+            // The map keeps its state while the glance view is up, but nothing
+            // asks it to paint. Whether MapLibre's platform view really stops
+            // rendering natively behind an Offstage is not known — this is as
+            // far as Flutter's side reaches.
+            Positioned.fill(
+              child: Visibility(
+                visible: !glance,
+                maintainState: true,
+                // The locate and compass buttons live inside the map; this is
+                // how they reach the follow mode, and how they learn to show
+                // it.
+                child: MapChromeInsets(
+                  following: state.isRecording && _following,
+                  headingUp:
+                      state.isRecording &&
+                      _following &&
+                      followMode == FollowMode.headingUp,
+                  bearingDeg: _bearing,
+                  onLocate: _handleLocate,
+                  // Only a running ride has a camera to hold, so only a
+                  // running ride shows the compass.
+                  onCompass: state.isRecording ? _handleCompass : null,
+                  // The turn banner sits over the top of the map, so the
+                  // control column starts below it while one is showing.
+                  controlsTop: guiding ? turnBannerHeight + 24 : null,
+                  child: PlannerMapHost(
+                    onMapReady: _onMapReady,
+                    embedded: true,
+                  ),
                 ),
               ),
             ),
-          DraggableScrollableSheet(
-            // A fresh sheet per state, so the initial size applies again
-            // when a ride starts or ends.
-            key: ValueKey(sheetKey),
-            initialChildSize: initial,
-            minChildSize: collapsed,
-            maxChildSize: 0.85,
-            snap: true,
-            snapSizes: <double>[initial],
-            builder: (context, scrollController) => DecoratedBox(
-              decoration: const BoxDecoration(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x40000000),
-                    blurRadius: 24,
-                    offset: Offset(0, -4),
+            if (guiding && !glance)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: TurnBanner(progress: navigation),
                   ),
-                ],
-              ),
-              child: Material(
-                color: theme.colorScheme.surface,
-                shape: RoundedRectangleBorder(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(28),
-                  ),
-                  side: BorderSide(color: theme.velorki.glassBorder),
                 ),
-                clipBehavior: Clip.antiAlias,
-                child: state.isRecording
-                    ? _LivePanel(
-                        state: state,
-                        scrollController: scrollController,
-                        bottomInset: bottomInset,
-                        keepScreenOn: _keepScreenOn,
-                        onKeepScreenOn: (v) => unawaited(_setKeepScreenOn(v)),
-                        onPause: () => unawaited(
-                          ref
-                              .read(recordingControllerProvider.notifier)
-                              .pause(),
-                        ),
-                        onResume: () => unawaited(
-                          ref
-                              .read(recordingControllerProvider.notifier)
-                              .resume(),
-                        ),
-                        onStop: () => unawaited(_stop()),
-                      )
-                    : _IdlePanel(
-                        state: state,
-                        scrollController: scrollController,
-                        bottomInset: bottomInset,
-                        keepScreenOn: _keepScreenOn,
-                        onKeepScreenOn: (v) => unawaited(_setKeepScreenOn(v)),
-                        onStart: () => unawaited(_start()),
+              ),
+            if (glance)
+              Positioned.fill(
+                child: _GlancePanel(
+                  snapshot: snapshot,
+                  navigation: guiding ? navigation : null,
+                ),
+              )
+            else
+              DraggableScrollableSheet(
+                // A fresh sheet per state, so the initial size applies again
+                // when a ride starts or ends.
+                key: ValueKey(sheetKey),
+                initialChildSize: initial,
+                minChildSize: collapsed,
+                maxChildSize: 0.85,
+                snap: true,
+                snapSizes: <double>[initial],
+                builder: (context, scrollController) => DecoratedBox(
+                  decoration: const BoxDecoration(
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(28),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0x40000000),
+                        blurRadius: 24,
+                        offset: Offset(0, -4),
                       ),
+                    ],
+                  ),
+                  child: Material(
+                    color: theme.colorScheme.surface,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(28),
+                      ),
+                      side: BorderSide(color: theme.velorki.glassBorder),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: state.isRecording
+                        ? _LivePanel(
+                            state: state,
+                            scrollController: scrollController,
+                            bottomInset: bottomInset,
+                            keepScreenOn: _keepScreenOn,
+                            onKeepScreenOn: (v) =>
+                                unawaited(_setKeepScreenOn(v)),
+                            onPause: () => unawaited(
+                              ref
+                                  .read(recordingControllerProvider.notifier)
+                                  .pause(),
+                            ),
+                            onResume: () => unawaited(
+                              ref
+                                  .read(recordingControllerProvider.notifier)
+                                  .resume(),
+                            ),
+                            onStop: () => unawaited(_stop()),
+                          )
+                        : _IdlePanel(
+                            state: state,
+                            scrollController: scrollController,
+                            bottomInset: bottomInset,
+                            keepScreenOn: _keepScreenOn,
+                            onKeepScreenOn: (v) =>
+                                unawaited(_setKeepScreenOn(v)),
+                            onStart: () => unawaited(_start()),
+                          ),
+                  ),
+                ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The glance view: the two or three figures a rider on the move actually
+/// reads, white on black, nothing else.
+///
+/// No controls at all — a screen the rider only glances at is a screen they
+/// must not be able to stop the ride on by accident. One tap anywhere brings
+/// the map and the sheet back.
+class _GlancePanel extends StatelessWidget {
+  const _GlancePanel({required this.snapshot, this.navigation});
+
+  final RecordingSnapshot snapshot;
+  final NavigationProgress? navigation;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    // Black is the point on an OLED screen, so the figures are given the
+    // colours that read on it whatever theme the app is otherwise in.
+    final glanceTheme = theme.copyWith(
+      colorScheme: theme.colorScheme.copyWith(
+        surface: Colors.black,
+        onSurface: Colors.white,
+        onSurfaceVariant: Colors.white70,
+      ),
+    );
+    final turn = navigation?.next;
+    return ColoredBox(
+      color: Colors.black,
+      child: Theme(
+        data: glanceTheme,
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (turn != null) ...[
+                  Row(
+                    children: [
+                      Icon(turnIcon(turn.kind), size: 40, color: Colors.white),
+                      const SizedBox(width: 16),
+                      Text(
+                        distanceLabel(navigation!.distanceToNextM, l10n),
+                        style: theme.textTheme.statMedium.copyWith(
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          turnLabel(turn, l10n),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: Colors.white70,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                ],
+                StatTile(
+                  label: l10n.statDistance,
+                  value: formatDistance(l10n, snapshot.distanceM),
+                  size: StatSize.hero,
+                ),
+                const SizedBox(height: 32),
+                StatRow(
+                  children: [
+                    StatTile(
+                      label: l10n.statSpeed,
+                      value: formatSpeed(l10n, snapshot.speedMps),
+                    ),
+                    StatTile(
+                      label: l10n.statElapsed,
+                      value: formatClock(snapshot.elapsed),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -860,6 +1192,16 @@ class _IdlePanel extends ConsumerWidget {
           value: keepScreenOn,
           onChanged: onKeepScreenOn,
           title: Text(l10n.recordingKeepScreenOn),
+        ),
+        // The same switch as in Settings → Recording, where the rider needs
+        // it: on the screen they start the ride from.
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          value: ref.watch(recordingSettingsProvider.select((s) => s.saver)),
+          onChanged: (value) => unawaited(
+            ref.read(recordingSettingsProvider.notifier).setSaver(value),
+          ),
+          title: Text(l10n.settingsBatterySaver),
         ),
         const SizedBox(height: 16),
         SectionCaption(l10n.recordingRecentRides),

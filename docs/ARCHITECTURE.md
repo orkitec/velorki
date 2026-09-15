@@ -142,7 +142,18 @@ and pointed along `routeBearingDeg`, so neither wanders with the fix; the
 adapter then walks the puck to each new fix over 800 ms instead of hopping.
 The camera glides over a one-second fix interval and is only turned when the
 bearing has moved more than 8°, and never below 1.5 m/s, where a GNSS course
-is noise.
+is noise. Standing still there is no course at all, so the heading then comes
+from the phone's magnetometer instead (`compass_heading.dart`, tilt-compensated
+against the accelerometer, `autoDispose` so it only runs on the Record tab),
+which is what lets the cone and heading-up work at a red light. Only one GPS
+client runs while a ride does: `devicePositionProvider`, the map's own stream,
+ends itself for the duration. How hard that one client is driven is the GPS
+precision setting, which travels to the service isolate inside
+`recording_state.json`, and Settings → Recording → Battery saver trades the
+screen for range: dark theme and black map through `appearanceOverrideProvider`
+(an override, never a write to the rider's choice), a bare puck, no camera
+animation, 40 % brightness while the screen is held awake, and a black glance
+page of figures after 30 s without a touch. See [BATTERY.md](BATTERY.md).
 
 **Turn-by-turn.** BRouter's voice hints travel with a route as `TurnHint`s and
 are stored with it. While a ride runs, `NavigationController` (kept alive for

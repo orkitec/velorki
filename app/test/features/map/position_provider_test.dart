@@ -3,8 +3,12 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart' as geo;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:velorki/app/app_config.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
+import 'package:velorki/features/recording/data/recording_service.dart';
+import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../recording/support/fakes.dart';
@@ -420,4 +424,87 @@ void main() {
       expect(source.isStreaming, isFalse);
     });
   });
+
+  group('devicePositionProvider while a ride is recorded', () {
+    late ScriptedPositionSource source;
+    late FakeRecordingService recorder;
+
+    setUp(() {
+      source = ScriptedPositionSource();
+      recorder = FakeRecordingService();
+      addTearDown(source.close);
+      addTearDown(recorder.dispose);
+    });
+
+    Future<ProviderContainer> container() async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          locationPermissionGatewayProvider.overrideWithValue(
+            FakeLocationPermissionGateway(),
+          ),
+          positionSourceProvider.overrideWithValue(source),
+          recordingServiceProvider.overrideWithValue(recorder),
+        ],
+      );
+      addTearDown(container.dispose);
+      return container;
+    }
+
+    test('the map stops asking for fixes of its own', () async {
+      final c = await container();
+      final subscription = c.listen(devicePositionProvider, (_, _) {});
+      addTearDown(subscription.close);
+      await pumpEventQueue();
+      expect(source.isStreaming, isTrue, reason: 'no ride, the map is on GPS');
+
+      recorder.emit(_recording());
+      await pumpEventQueue();
+
+      // One GPS client per phone: the recorder's. The record screen draws the
+      // puck from its snapshots.
+      expect(source.isStreaming, isFalse);
+    });
+
+    test('the puck comes back when the ride is over', () async {
+      final c = await container();
+      final subscription = c.listen(devicePositionProvider, (_, _) {});
+      addTearDown(subscription.close);
+      await pumpEventQueue();
+      recorder.emit(_recording());
+      await pumpEventQueue();
+      expect(source.isStreaming, isFalse);
+
+      recorder.emit(_recording(status: RecordingStatus.idle));
+      await pumpEventQueue();
+
+      expect(source.isStreaming, isTrue);
+      source.emit(_fixAt(48));
+      await pumpEventQueue();
+      expect(
+        c.read(devicePositionProvider).value?.position,
+        const LatLng(48.0, 11.0),
+      );
+    });
+  });
 }
+
+RecordingSnapshot _recording({
+  RecordingStatus status = RecordingStatus.active,
+}) => RecordingSnapshot(
+  rideId: 'ride-1',
+  status: status,
+  startedAt: DateTime.utc(2026, 9, 12, 10),
+  distanceM: 100,
+  elapsed: const Duration(minutes: 1),
+  moving: const Duration(minutes: 1),
+  speedMps: 5,
+  avgSpeedMps: 5,
+  ascentM: 0,
+  descentM: 0,
+  lastPosition: const LatLng(48.0, 11.0),
+  accuracyM: 5,
+  pointCount: 10,
+);

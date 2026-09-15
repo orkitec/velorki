@@ -1171,6 +1171,8 @@ class MaplibreMapControllerAdapter implements MapController {
     double? accuracyM,
     double? headingDeg,
     double? speedMps,
+    bool headingFromCompass = false,
+    bool minimal = false,
   }) async {
     // Whatever the last fix started is over; this one decides where the puck
     // goes now.
@@ -1183,9 +1185,16 @@ class MaplibreMapControllerAdapter implements MapController {
     if (position == null) {
       _headingSmoother.reset();
     }
-    final heading = position == null
+    final smoothed = position == null
         ? null
-        : _headingSmoother.update(headingDeg: headingDeg, speedMps: speedMps);
+        : _headingSmoother.update(
+            headingDeg: headingDeg,
+            speedMps: speedMps,
+            fromCompass: headingFromCompass,
+          );
+    // The smoother is kept fed either way, so switching the saver off
+    // mid-ride does not start the cone from nothing.
+    final heading = minimal ? null : smoothed;
     final from = _puckPosition;
     _puckPosition = position;
     // A fix per second drawn as a fix per second is a hopping dot. Walk the
@@ -1218,10 +1227,10 @@ class MaplibreMapControllerAdapter implements MapController {
       ml.CircleLayerProperties(
         circleRadius: radius,
         circleColor: palette.positionAccuracy,
-        circleOpacity: 0.15,
+        circleOpacity: minimal ? 0.0 : 0.15,
         circleStrokeWidth: 1.0,
         circleStrokeColor: palette.positionAccuracy,
-        circleStrokeOpacity: 0.4,
+        circleStrokeOpacity: minimal ? 0.0 : 0.4,
       ),
     );
   }
