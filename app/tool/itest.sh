@@ -130,11 +130,13 @@ started=$(date +%s)
 # simulator, and is retried once like the other tooling failures.
 LIMIT="${VELORKI_ITEST_TIMEOUT:-900}"
 
-# How long the tooling may take to attach and start the first test, in
-# seconds. Attaching takes seconds; on a busy API 35 emulator the tooling has
-# been seen to wait forever for the app's VM service line (flutter_tools has
-# no timeout there), with nothing in the log and nothing on the mirror. That
-# used to cost the whole LIMIT before the retry; now it costs this.
+# How long the tooling may take, after the build, to install the app, attach
+# and start the first test, in seconds. That takes seconds; on a busy API 35
+# emulator the tooling has been seen to wait forever for the app's VM service
+# line (flutter_tools has no timeout there), with nothing in the log and
+# nothing on the mirror. That used to cost the whole LIMIT before the retry;
+# now it costs this. Counted from the build's own "done" line, because an
+# Xcode build on a shared macOS runner can take longer than this by itself.
 STARTUP="${VELORKI_ITEST_STARTUP_TIMEOUT:-180}"
 
 # The Flutter tooling occasionally fails to bring up its Dart Development
@@ -157,18 +159,23 @@ flutter_test_one() {
   # Watched from here rather than by a detached sleeper: the launcher turns
   # a kill into a plain exit 1 ("No tests ran."), so the outcome is decided
   # by this loop and a hang is reported as 143.
-  local start now passed_at="" running_at="" outcome=""
+  local start now passed_at="" built_at="" running_at="" outcome=""
   start=$(date +%s)
   while kill -0 "$pid" 2>/dev/null; do
     sleep 5
     now=$(date +%s)
-    # The reporter's first "+0: <test name>" line means the app is attached
-    # and the test is running; "+0: loading" comes earlier and does not.
+    # The build's own last line starts the attach window; the reporter's
+    # first "+0: <test name>" line ends it ("+0: loading" comes earlier and
+    # does not count: the app is not attached yet).
+    if [ -z "$built_at" ] && grep -qE '^✓ Built |Xcode build done' "$2"; then
+      built_at=$now
+    fi
     if [ -z "$running_at" ] && grep -qE '^[0-9]+:[0-9]+ \+0: ' "$2" \
       && grep -E '^[0-9]+:[0-9]+ \+0: ' "$2" | grep -qv ': loading '; then
       running_at=$now
     fi
-    if [ -z "$running_at" ] && [ $((now - start)) -ge "$STARTUP" ]; then
+    if [ -z "$running_at" ] && [ -n "$built_at" ] \
+      && [ $((now - built_at)) -ge "$STARTUP" ]; then
       outcome=hung; kill "$pid" 2>/dev/null; break
     fi
     # On the iOS simulator the tooling has been seen to sit for good after
