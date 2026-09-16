@@ -335,12 +335,25 @@ class _ResultsCard extends StatelessWidget {
 IconData searchResultIcon(SearchResult result) {
   if (result.source != SearchSource.local) return Icons.place_outlined;
   return switch (result.kind) {
-    SearchKind.place => Icons.location_city_outlined,
+    SearchKind.place => _placeIcon(result.detail),
     SearchKind.street => Icons.signpost_outlined,
     SearchKind.poi => _poiIcon(result.detail),
     SearchKind.unknown => Icons.place_outlined,
   };
 }
+
+/// A settlement's icon shrinks with the settlement, so a city and the hamlet
+/// that shares its name are told apart at a glance.
+IconData _placeIcon(String? detail) => switch (detail) {
+  'city' => Icons.location_city_outlined,
+  'town' => Icons.domain_outlined,
+  'village' => Icons.cottage_outlined,
+  'hamlet' => Icons.house_outlined,
+  'suburb' || 'neighbourhood' => Icons.maps_home_work_outlined,
+  'locality' => Icons.pin_drop_outlined,
+  'island' => Icons.waves_outlined,
+  _ => Icons.location_city_outlined,
+};
 
 IconData _poiIcon(String? detail) => switch (detail) {
   'drinking_water' => Icons.water_drop_outlined,
@@ -413,7 +426,8 @@ String localResultSubtitle(
   final number = result.houseNumber;
   final meters = result.distanceMeters;
   return <String>[
-    searchKindLabel(l10n, result),
+    // An unnamed row already shows its kind as the title.
+    if (result.name.isNotEmpty) searchKindLabel(l10n, result),
     if (meters != null && units != null)
       format.formatDistance(l10n, units, meters),
     if (number != null && number.isNotEmpty)

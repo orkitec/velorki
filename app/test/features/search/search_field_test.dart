@@ -176,7 +176,7 @@ void main() {
 
       expect(h.photonAdapter.requests, isEmpty);
       expect(find.text('Vaduz'), findsOneWidget);
-      expect(find.byIcon(Icons.location_city_outlined), findsWidgets);
+      expect(find.byIcon(Icons.domain_outlined), findsWidgets);
       expect(find.text('Town'), findsOneWidget);
     });
 
@@ -233,7 +233,7 @@ void main() {
       expect(rows.first, 'Drinking water');
       expect(rows[1], 'Brunnen Mühleholz');
       expect(find.byIcon(Icons.water_drop_outlined), findsNWidgets(2));
-      expect(find.textContaining('Drinking water \u00b7 5'), findsOneWidget);
+      expect(find.textContaining(RegExp(r'^5\d m')), findsOneWidget);
       expect(
         find.textContaining('Drinking water \u00b7 7'),
         findsOneWidget,
@@ -328,43 +328,43 @@ const _kinds =
       (
         kind: SearchKind.place,
         detail: 'town',
-        icon: Icons.location_city_outlined,
+        icon: Icons.domain_outlined,
         label: 'Town',
       ),
       (
         kind: SearchKind.place,
         detail: 'village',
-        icon: Icons.location_city_outlined,
+        icon: Icons.cottage_outlined,
         label: 'Village',
       ),
       (
         kind: SearchKind.place,
         detail: 'hamlet',
-        icon: Icons.location_city_outlined,
+        icon: Icons.house_outlined,
         label: 'Hamlet',
       ),
       (
         kind: SearchKind.place,
         detail: 'suburb',
-        icon: Icons.location_city_outlined,
+        icon: Icons.maps_home_work_outlined,
         label: 'Suburb',
       ),
       (
         kind: SearchKind.place,
         detail: 'neighbourhood',
-        icon: Icons.location_city_outlined,
+        icon: Icons.maps_home_work_outlined,
         label: 'Neighbourhood',
       ),
       (
         kind: SearchKind.place,
         detail: 'locality',
-        icon: Icons.location_city_outlined,
+        icon: Icons.pin_drop_outlined,
         label: 'Locality',
       ),
       (
         kind: SearchKind.place,
         detail: 'island',
-        icon: Icons.location_city_outlined,
+        icon: Icons.waves_outlined,
         label: 'Island',
       ),
       (
@@ -696,19 +696,19 @@ void _kindTable() {
 
     expect(
       localResultSubtitle(l10n, tap(meters: 350), units: UnitSystem.metric),
-      'Drinking water \u00b7 350 m',
+      '350 m',
     );
     expect(
       localResultSubtitle(l10n, tap(meters: 2400), units: UnitSystem.metric),
-      'Drinking water \u00b7 2.4 km',
+      '2.4 km',
     );
     expect(
       localResultSubtitle(l10n, tap(meters: 120), units: UnitSystem.imperial),
-      'Drinking water \u00b7 390 ft',
+      '390 ft',
     );
     expect(
       localResultSubtitle(l10n, tap(meters: 350), units: UnitSystem.imperial),
-      'Drinking water \u00b7 0.2 mi',
+      '0.2 mi',
     );
     expect(
       localResultSubtitle(
@@ -716,12 +716,14 @@ void _kindTable() {
         tap(meters: 350, city: 'Vaduz'),
         units: UnitSystem.metric,
       ),
-      'Drinking water \u00b7 350 m \u00b7 Vaduz',
+      '350 m \u00b7 Vaduz',
     );
     expect(
       localResultSubtitle(l10n, tap(meters: 350)),
-      'Drinking water',
-      reason: 'a row the units are not known for keeps the distance to itself',
+      '',
+      reason:
+          'a row the units are not known for keeps the distance to itself, '
+          'and an unnamed row already wears its kind as its title',
     );
     expect(
       localResultSubtitle(
