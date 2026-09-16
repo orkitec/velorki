@@ -22,6 +22,7 @@ import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/routing_tiles/presentation/routing_source_chip.dart';
+import 'package:velorki/features/search/data/gazetteer_store.dart';
 import 'package:velorki/features/search/data/photon_client.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
@@ -52,6 +53,12 @@ void main() {
             'https://photon.itest',
             dio: Dio()..httpClientAdapter = photon,
           ),
+        ),
+        // This is the online path. The suite runs its files on one install,
+        // so a gazetteer left behind by offline_search_test would answer the
+        // search itself and Photon would never be asked.
+        gazetteerStoreProvider.overrideWith(
+          (ref) async => GazetteerStore(null),
         ),
         locationPermissionGatewayProvider.overrideWithValue(
           const GrantedLocationPermission(),
