@@ -257,10 +257,14 @@ Tiles are 5°×5°, named `E10_N45` / `W5_S10` from `floor(lon/5)*5,
 floor(lat/5)*5`, 125–250 MB each in Central Europe, downloaded from
 `VELORKI_SEGMENTS_URL` with resumable range requests. That URL is the mirror's
 `latest.json` pointer, so a monthly snapshot reaches riders without an app
-release (a snapshot is sharded into releases of at most 480 tiles, since each
-tile is two assets, the rd5 and its gazetteer, under GitHub's 1000-asset cap); the app marks tiles the mirror has rebuilt as stale (checked weekly)
-and refuses tiles in a newer rd5 format than its bundled `lookups.dat`, asking
-for an app update instead. The map's download button opens `features/offline`,
+release; a snapshot is sharded into releases of at most 480 tiles, since each
+tile is two assets, the rd5 and its gazetteer, under GitHub's 1000-asset cap,
+and `SegmentsManifestService` fetches every shard's `manifest.json` from the
+`shards` array and merges them into one manifest whose entries each remember
+the release they are served from (one unreadable shard fails the fetch rather
+than hiding a region). The app marks tiles the mirror has rebuilt as stale
+(checked weekly) and refuses tiles in a newer rd5 format than its bundled
+`lookups.dat`, asking for an app update instead. The map's download button opens `features/offline`,
 one screen that fetches the map area and the routing tiles together; the two
 kinds keep their own screens behind it. `CompositeRoutingBackend`
 takes the bounding box of the waypoints, expands it by max(10 km, 20 %), and

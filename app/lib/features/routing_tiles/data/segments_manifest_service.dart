@@ -36,13 +36,31 @@ class SegmentsManifestException implements Exception {
   String toString() => 'SegmentsManifestException: $message';
 }
 
+/// One release of a snapshot: a base URL with its own `manifest.json`.
+class _Shard {
+  const _Shard(this.name, this.baseUrl);
+
+  /// The release tag, or the base URL when the pointer names no tag.
+  final String name;
+
+  /// Where this shard's tiles and manifest live, without a trailing slash.
+  final String baseUrl;
+}
+
 /// Reads the list of downloadable rd5 tiles with their sizes and dates.
 ///
 /// `VELORKI_SEGMENTS_URL` names either a directory holding `manifest.json`
 /// and the tiles, or a pointer file such as the mirror's `latest.json`, which
 /// carries the `baseUrl` of the current snapshot. A pointer lets the mirror
-/// move to a fresh snapshot without an app release; the first shard is used
-/// (the app does not merge shard manifests yet).
+/// move to a fresh snapshot without an app release.
+///
+/// A snapshot bigger than one GitHub release (at most 1000 assets, and a tile
+/// is two of them) is split into shards, each its own release with its own
+/// `manifest.json` listing only its tiles. The pointer's `shards` array names
+/// them all; every shard is read and the tiles are merged into one manifest,
+/// each entry remembering the shard it is served from. One unreadable shard
+/// fails the whole fetch: a manifest missing a shard would silently hide
+/// whole regions from the rider.
 class SegmentsManifestService {
   /// Creates the service. An empty [segmentsUrl] selects the brouter.de
   /// fallback.
@@ -64,11 +82,13 @@ class SegmentsManifestService {
   /// Whether the configured URL is a pointer file rather than a directory.
   bool get isPointer => _segmentsUrl.endsWith('.json');
 
-  /// The directory the tiles are fetched from, without a trailing slash.
+  /// The directory tiles without a base URL of their own are fetched from,
+  /// without a trailing slash.
   ///
-  /// For a pointer this is the snapshot it named the last time [fetch] ran;
-  /// before that, the pointer's own directory, which holds no tiles. Every
-  /// download follows a manifest fetch, so that state is never used.
+  /// For a pointer this is the first shard of the snapshot it named the last
+  /// time [fetch] ran; before that, the pointer's own directory, which holds
+  /// no tiles. Every download follows a manifest fetch, so that state is
+  /// never used.
   String get baseUrl {
     final url = isFallback
         ? brouterDeSegmentsUrl
@@ -76,42 +96,82 @@ class SegmentsManifestService {
         ? (_resolvedBase ??
               _segmentsUrl.substring(0, _segmentsUrl.lastIndexOf('/')))
         : _segmentsUrl;
-    return url.endsWith('/') ? url.substring(0, url.length - 1) : url;
+    return _withoutTrailingSlash(url);
   }
 
-  /// Where one tile is downloaded from.
-  Uri tileUrl(TileName tile) => Uri.parse('$baseUrl/${tile.fileName}');
+  /// Where one tile is downloaded from: its own shard, or the default base.
+  Uri tileUrl(SegmentEntry entry) =>
+      Uri.parse('${_baseFor(entry)}/${entry.fileName}');
 
   /// Where one tile's offline gazetteer is downloaded from.
-  Uri gazetteerUrl(TileName tile) =>
-      Uri.parse('$baseUrl/${tile.gazetteerFileName}');
+  Uri gazetteerUrl(SegmentEntry entry) =>
+      Uri.parse('${_baseFor(entry)}/${entry.tile.gazetteerFileName}');
 
-  /// Fetches the manifest: `manifest.json` from our own mirror, or the
-  /// scraped directory listing from brouter.de.
+  /// Fetches the manifest: `manifest.json` from every shard of our own
+  /// mirror, or the scraped directory listing from brouter.de.
   Future<SegmentsManifest> fetch() async {
     if (isFallback) return _fetchDirectoryListing();
-    if (isPointer) await _resolvePointer();
+    if (!isPointer) return _fetchManifest(baseUrl);
+    return _fetchSnapshot(await _readPointer());
+  }
+
+  /// Reads every shard the pointer names and merges them into one manifest.
+  Future<SegmentsManifest> _fetchSnapshot(Map<Object?, Object?> pointer) async {
+    final shards = _shardsOf(pointer);
+    _resolvedBase = shards.first.baseUrl;
+    final manifests = await Future.wait(<Future<SegmentsManifest>>[
+      for (final shard in shards) _fetchManifest(shard.baseUrl, shard: shard),
+    ]);
+
+    final tiles = <SegmentEntry>[];
+    final seen = <TileName>{};
+    for (var i = 0; i < shards.length; i++) {
+      for (final entry in manifests[i].tiles) {
+        // A tile listed by two shards is served by the first one that has it.
+        if (!seen.add(entry.tile)) continue;
+        tiles.add(entry.withBaseUrl(shards[i].baseUrl));
+      }
+    }
+    final first = manifests.first;
+    return SegmentsManifest(
+      tiles: tiles,
+      formatVersion: _string(pointer['formatVersion']) ?? first.formatVersion,
+      brouterVersion:
+          _string(pointer['brouterVersion']) ?? first.brouterVersion,
+      source: _string(pointer['source']) ?? first.source,
+      generatedAt:
+          DateTime.tryParse(_string(pointer['generatedAt']) ?? '')?.toUtc() ??
+          first.generatedAt,
+    );
+  }
+
+  /// Fetches and parses one `manifest.json`.
+  ///
+  /// [shard] names the release in the failure message, so a rider (and the
+  /// log) learns which part of the snapshot is missing.
+  Future<SegmentsManifest> _fetchManifest(String base, {_Shard? shard}) async {
+    final what = shard == null ? 'segment mirror' : 'shard ${shard.name}';
     final Response<Object?> response;
     try {
-      response = await _dio.get<Object?>('$baseUrl/manifest.json');
+      response = await _dio.get<Object?>('$base/manifest.json');
     } on DioException catch (e) {
       throw SegmentsManifestException(
-        'The segment mirror at $baseUrl could not be reached.',
+        'The $what at $base could not be reached.',
         cause: e,
       );
     }
     try {
-      return SegmentsManifest.parse(response.data);
+      return SegmentsManifest.parse(_decoded(response.data));
     } on Object catch (e) {
       throw SegmentsManifestException(
-        'The manifest at $baseUrl/manifest.json is not readable.',
+        'The manifest of the $what at $base/manifest.json is not readable.',
         cause: e,
       );
     }
   }
 
-  /// Reads the pointer and remembers the snapshot it names.
-  Future<void> _resolvePointer() async {
+  /// Reads the pointer file and returns what it says.
+  Future<Map<Object?, Object?>> _readPointer() async {
     final Response<Object?> response;
     try {
       response = await _dio.get<Object?>(_segmentsUrl);
@@ -121,30 +181,52 @@ class SegmentsManifestService {
         cause: e,
       );
     }
-    // GitHub serves the raw file as text/plain, so dio hands over a string
-    // rather than a decoded map.
     final Object? data;
     try {
-      final raw = response.data;
-      data = raw is String ? jsonDecode(raw) : raw;
+      data = _decoded(response.data);
     } on Object catch (e) {
       throw SegmentsManifestException(
         'The tile mirror pointer at $_segmentsUrl is not readable.',
         cause: e,
       );
     }
-    final base = switch (data) {
-      {'baseUrl': final String url} when url.isNotEmpty => url,
-      {'shards': [{'baseUrl': final String url}, ...]} when url.isNotEmpty =>
-        url,
-      _ => null,
-    };
-    if (base == null) {
+    if (data is! Map) {
+      throw SegmentsManifestException(
+        'The tile mirror pointer at $_segmentsUrl is not readable.',
+      );
+    }
+    return data;
+  }
+
+  /// The releases a pointer names, in the order it lists them.
+  ///
+  /// A pointer without a `shards` array is a one-shard snapshot described by
+  /// its own `baseUrl`, which is what a mirror wrote before sharding existed.
+  List<_Shard> _shardsOf(Map<Object?, Object?> pointer) {
+    final out = <_Shard>[];
+    final rows = pointer['shards'];
+    if (rows is List) {
+      for (final row in rows) {
+        if (row is! Map) continue;
+        final url = _string(row['baseUrl']);
+        if (url == null) continue;
+        out.add(_Shard(_string(row['tag']) ?? url, _withoutTrailingSlash(url)));
+      }
+    }
+    if (out.isEmpty) {
+      final url = _string(pointer['baseUrl']);
+      if (url != null) {
+        out.add(
+          _Shard(_string(pointer['tag']) ?? url, _withoutTrailingSlash(url)),
+        );
+      }
+    }
+    if (out.isEmpty) {
       throw SegmentsManifestException(
         'The tile mirror pointer at $_segmentsUrl names no snapshot.',
       );
     }
-    _resolvedBase = base;
+    return out;
   }
 
   Future<SegmentsManifest> _fetchDirectoryListing() async {
@@ -165,6 +247,25 @@ class SegmentsManifestService {
         cause: e,
       );
     }
+  }
+
+  String _baseFor(SegmentEntry entry) {
+    final base = entry.baseUrl;
+    return base == null || base.isEmpty ? baseUrl : _withoutTrailingSlash(base);
+  }
+
+  /// GitHub serves the raw JSON as `text/plain`, so dio hands over a string
+  /// rather than a decoded map.
+  static Object? _decoded(Object? data) =>
+      data is String ? jsonDecode(data) : data;
+
+  static String _withoutTrailingSlash(String url) =>
+      url.endsWith('/') ? url.substring(0, url.length - 1) : url;
+
+  static String? _string(Object? value) {
+    if (value == null) return null;
+    final s = value.toString().trim();
+    return s.isEmpty ? null : s;
   }
 }
 

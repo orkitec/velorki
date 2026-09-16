@@ -58,6 +58,7 @@ class SegmentEntry {
     this.formatVersion,
     this.sha256,
     this.gazetteer,
+    this.baseUrl,
   });
 
   /// Which tile this is.
@@ -86,8 +87,28 @@ class SegmentEntry {
   /// listing never has one.
   final GazetteerEntry? gazetteer;
 
+  /// The directory this tile is served from, when it is not the mirror's
+  /// default one.
+  ///
+  /// A sharded snapshot spreads its tiles over several releases, each with its
+  /// own base URL, so an entry has to remember where it came from. `null`
+  /// means "wherever the mirror serves its tiles from", which is what a
+  /// single-directory mirror and the scraped directory listing use.
+  final String? baseUrl;
+
   /// The `.rd5` file name.
   String get fileName => tile.fileName;
+
+  /// This entry as served from [baseUrl].
+  SegmentEntry withBaseUrl(String? baseUrl) => SegmentEntry(
+    tile: tile,
+    bytes: bytes,
+    updatedAt: updatedAt,
+    formatVersion: formatVersion,
+    sha256: sha256,
+    gazetteer: gazetteer,
+    baseUrl: baseUrl,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -98,11 +119,19 @@ class SegmentEntry {
           other.updatedAt == updatedAt &&
           other.formatVersion == formatVersion &&
           other.sha256 == sha256 &&
-          other.gazetteer == gazetteer;
+          other.gazetteer == gazetteer &&
+          other.baseUrl == baseUrl;
 
   @override
-  int get hashCode =>
-      Object.hash(tile, bytes, updatedAt, formatVersion, sha256, gazetteer);
+  int get hashCode => Object.hash(
+    tile,
+    bytes,
+    updatedAt,
+    formatVersion,
+    sha256,
+    gazetteer,
+    baseUrl,
+  );
 
   @override
   String toString() =>

@@ -13,12 +13,13 @@ exercised there. The items here are the parts not yet covered by that.
       most 1,000 assets and a tile now costs two of them (`.rd5` + `.gaz`), so
       `publish-tiles.sh` fills a shard with 480 tiles and the planet's 1,142
       tiles are three shards (`tiles-YYYYMMDD`, `-s2`, `-s3`), each with its own
-      `manifest.json`; until the app merges shard manifests, one URL covers one
-      shard (Europe fits in shard 1). `app/env/dev.json` follows the mirror's
-      `latest.json`.
+      `manifest.json`. The app reads them all: it follows `latest.json`, fetches
+      every shard's manifest and merges them, so one pointer URL covers the
+      whole planet. `app/env/dev.json` follows the mirror's `latest.json`.
 - [ ] **Publish a real snapshot**: the tag `latest.json` points at holds three
       tiles. A planet run of `publish-tiles`, followed by `publish-gazetteer`,
-      is what makes the mirror usable for anyone but the maintainer.
+      is what makes the mirror usable for anyone but the maintainer — the app
+      side of sharding is done.
 - [ ] **velorki-data's own docs**: its README still describes shards of 900
       tiles in "Sharding, and why the planet is not one release", which the
       gazetteer assets made wrong; the gazetteer sections say 480.

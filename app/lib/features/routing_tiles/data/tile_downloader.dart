@@ -93,8 +93,8 @@ class TileDownloader {
     required Dio dio,
     required Directory segmentsDir,
     required Directory gazetteerDir,
-    required Uri Function(TileName tile) urlFor,
-    required Uri Function(TileName tile) gazetteerUrlFor,
+    required Uri Function(SegmentEntry entry) urlFor,
+    required Uri Function(SegmentEntry entry) gazetteerUrlFor,
   }) // Named parameters cannot be private, so these cannot be initialising
     // formals.
     // ignore: prefer_initializing_formals
@@ -111,8 +111,8 @@ class TileDownloader {
   final Dio _dio;
   final Directory _segmentsDir;
   final Directory _gazetteerDir;
-  final Uri Function(TileName tile) _urlFor;
-  final Uri Function(TileName tile) _gazetteerUrlFor;
+  final Uri Function(SegmentEntry entry) _urlFor;
+  final Uri Function(SegmentEntry entry) _gazetteerUrlFor;
   final StreamController<TileDownloadProgress> _progress =
       StreamController<TileDownloadProgress>.broadcast();
 
@@ -127,7 +127,7 @@ class TileDownloader {
     await _segmentsDir.create(recursive: true);
     return _downloadTo(
       File('${_segmentsDir.path}/${entry.fileName}'),
-      url: _urlFor(entry.tile),
+      url: _urlFor(entry),
       fileName: entry.fileName,
       bytes: entry.bytes,
       sha256: entry.sha256,
@@ -136,7 +136,11 @@ class TileDownloader {
     );
   }
 
-  /// Downloads the offline gazetteer [entry] into the gazetteer directory.
+  /// Downloads [entry]'s offline gazetteer into the gazetteer directory, and
+  /// returns it; `null` when the mirror offers none for this tile.
+  ///
+  /// It takes the tile's [SegmentEntry] rather than the [GazetteerEntry] alone
+  /// because the `.gaz` is served from the same shard as the `.rd5`.
   ///
   /// Same resumable fetch and the same verification as a tile, and progress on
   /// the same [progress] stream under the same tile name — a dense tile's
@@ -144,18 +148,20 @@ class TileDownloader {
   /// wire. It is the second phase of that tile's download, so the bar simply
   /// starts again at zero for the smaller file. Its checksum is mandatory, so
   /// a truncated or rewritten file can never be opened as a search index.
-  Future<File> downloadGazetteer(
-    GazetteerEntry entry, {
+  Future<File?> downloadGazetteer(
+    SegmentEntry entry, {
     CancelToken? cancelToken,
   }) async {
+    final gazetteer = entry.gazetteer;
+    if (gazetteer == null) return null;
     await _gazetteerDir.create(recursive: true);
     return _downloadTo(
-      File('${_gazetteerDir.path}/${entry.fileName}'),
-      url: _gazetteerUrlFor(entry.tile),
-      fileName: entry.fileName,
-      bytes: entry.bytes,
-      sha256: entry.sha256,
-      onProgress: (received) => _emit(entry.tile, received, entry.bytes),
+      File('${_gazetteerDir.path}/${gazetteer.fileName}'),
+      url: _gazetteerUrlFor(entry),
+      fileName: gazetteer.fileName,
+      bytes: gazetteer.bytes,
+      sha256: gazetteer.sha256,
+      onProgress: (received) => _emit(entry.tile, received, gazetteer.bytes),
       cancelToken: cancelToken,
     );
   }

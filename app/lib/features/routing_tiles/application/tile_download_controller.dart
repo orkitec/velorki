@@ -194,10 +194,9 @@ class TileDownloadQueue extends _$TileDownloadQueue {
     SegmentEntry entry,
     CancelToken token,
   ) async {
-    final gazetteer = entry.gazetteer;
-    if (gazetteer == null) return;
+    if (entry.gazetteer == null) return;
     try {
-      await downloader.downloadGazetteer(gazetteer, cancelToken: token);
+      await downloader.downloadGazetteer(entry, cancelToken: token);
     } on TileDownloadException catch (e) {
       debugPrint('velorki: no offline search for ${entry.tile}: ${e.message}');
     }

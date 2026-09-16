@@ -123,6 +123,40 @@ void main() {
       expect(SegmentsManifest.empty.tiles, isEmpty);
       expect(SegmentsManifest.empty.totalBytes, 0);
     });
+
+    test('an entry can remember the shard it is served from', () {
+      const plain = SegmentEntry(tile: TileName(5, 45), bytes: 1);
+      final shard = plain.withBaseUrl('https://mirror.test/tiles-s2');
+
+      expect(plain.baseUrl, isNull, reason: 'the mirror default is unnamed');
+      expect(shard.baseUrl, 'https://mirror.test/tiles-s2');
+      expect(shard.tile, plain.tile);
+      expect(shard.bytes, plain.bytes);
+      expect(shard, isNot(plain));
+      expect(shard.hashCode, isNot(plain.hashCode));
+      expect(shard, plain.withBaseUrl('https://mirror.test/tiles-s2'));
+      expect(shard.withBaseUrl(null), plain);
+    });
+
+    test('a parsed manifest names no base URL of its own', () {
+      final e = SegmentsManifest.parse(
+        '[{"tile": "E5_N45", "bytes": 1, "gazetteer": '
+        '{"bytes": 2, "sha256": "abc"}}]',
+      ).tiles.single;
+
+      expect(e.baseUrl, isNull);
+      expect(
+        SegmentsManifest.parseDirectoryListing(
+          '<a href="E5_N45.rd5">E5_N45.rd5</a> 12-Sep-2026 01:03 10\n',
+        ).tiles.single.baseUrl,
+        isNull,
+      );
+      expect(
+        e.withBaseUrl('https://mirror.test/s2').gazetteer,
+        e.gazetteer,
+        reason: 'the gazetteer follows its tile to the same shard',
+      );
+    });
   });
 
   group('the optional gazetteer object', () {

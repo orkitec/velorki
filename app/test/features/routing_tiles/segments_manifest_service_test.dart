@@ -40,6 +40,86 @@ final Map<String, Object?> _manifest = <String, Object?>{
   ],
 };
 
+/// The release directory of a shard tag, as `publish-tiles.sh` writes it.
+String _baseOf(String tag) => 'https://mirror.test/releases/$tag/';
+
+/// A `latest.json` naming [tags] as the shards of one snapshot.
+Map<String, Object?> _pointerOver(List<String> tags) => <String, Object?>{
+  'tag': tags.first,
+  'generatedAt': '2026-09-13T01:03:00Z',
+  'formatVersion': '11.2',
+  'brouterVersion': 'v1.7.10',
+  'baseUrl': _baseOf(tags.first),
+  'shardCount': tags.length,
+  'shards': <Object?>[
+    for (final tag in tags)
+      <String, Object?>{'tag': tag, 'baseUrl': _baseOf(tag), 'tileCount': 1},
+  ],
+};
+
+/// One shard's `manifest.json`, listing only its own [tiles].
+Map<String, Object?> _shardManifest(
+  String tag,
+  Map<String, int> tiles, {
+  bool gazetteer = false,
+}) => <String, Object?>{
+  'formatVersion': '11.2',
+  'brouterVersion': 'v1.7.10',
+  'generatedAt': '2026-09-13T01:03:00Z',
+  'tag': tag,
+  'baseUrl': _baseOf(tag),
+  'shardCount': 3,
+  'tiles': <Object?>[
+    for (final entry in tiles.entries)
+      <String, Object?>{
+        'tile': entry.key,
+        'bytes': entry.value,
+        'updatedAt': '2026-09-12T01:03:00Z',
+        'sha256': 'ab' * 32,
+        if (gazetteer)
+          'gazetteer': <String, Object?>{'bytes': 32, 'sha256': 'cd' * 32},
+      },
+  ],
+};
+
+/// A mirror serving `latest.json` over [shards] and each shard's manifest.
+///
+/// A tag in [missing] answers 404 instead, as a release whose manifest was
+/// never uploaded would.
+FakeSegmentsAdapter _shardedMirror(
+  Map<String, Map<String, int>> shards, {
+  Set<String> missing = const <String>{},
+  bool gazetteer = false,
+}) => FakeSegmentsAdapter((options) {
+  final url = options.uri.toString();
+  if (url.endsWith('latest.json')) {
+    return FakeSegmentsResponse.json(_pointerOver(shards.keys.toList()));
+  }
+  for (final shard in shards.entries) {
+    if (url != '${_baseOf(shard.key)}manifest.json') continue;
+    if (missing.contains(shard.key)) {
+      return FakeSegmentsResponse.failure(
+        DioException.badResponse(
+          statusCode: 404,
+          requestOptions: options,
+          response: Response<Object?>(requestOptions: options, statusCode: 404),
+        ),
+        status: 404,
+      );
+    }
+    return FakeSegmentsResponse.json(
+      _shardManifest(shard.key, shard.value, gazetteer: gazetteer),
+    );
+  }
+  return FakeSegmentsResponse.json(<String, Object?>{}, status: 404);
+});
+
+const String _pointerUrl = 'https://mirror.test/main/latest.json';
+
+/// A bare entry for a tile, as the URL helpers only need its name and shard.
+SegmentEntry _entry(TileName tile, {String? baseUrl}) =>
+    SegmentEntry(tile: tile, bytes: 0, baseUrl: baseUrl);
+
 void main() {
   group('with a mirror configured', () {
     test('reads manifest.json', () async {
@@ -64,7 +144,7 @@ void main() {
       expect(manifest[const TileName(10, 45)]!.formatVersion, '11.2');
       expect(manifest[const TileName(10, 45)]!.sha256, 'ab' * 32);
       expect(
-        service.tileUrl(const TileName(10, 45)).toString(),
+        service.tileUrl(_entry(const TileName(10, 45))).toString(),
         'https://mirror.test/segments4/E10_N45.rd5',
       );
     });
@@ -133,7 +213,7 @@ void main() {
       );
       expect(manifest[const TileName(5, 45)]!.bytes, greaterThan(200000000));
       expect(
-        service.tileUrl(const TileName(5, 45)).toString(),
+        service.tileUrl(_entry(const TileName(5, 45))).toString(),
         '$brouterDeSegmentsUrl/E5_N45.rd5',
       );
     });
@@ -454,11 +534,11 @@ void main() {
       final service = serviceFor('https://mirror.test/segments4/');
 
       expect(
-        service.tileUrl(const TileName(-5, -10)).toString(),
+        service.tileUrl(_entry(const TileName(-5, -10))).toString(),
         'https://mirror.test/segments4/W5_S10.rd5',
       );
       expect(
-        service.tileUrl(const TileName(0, 0)).toString(),
+        service.tileUrl(_entry(const TileName(0, 0))).toString(),
         'https://mirror.test/segments4/E0_N0.rd5',
       );
     });
@@ -718,7 +798,7 @@ void main() {
         'https://mirror.test/releases/tiles-20260913/manifest.json',
       ]);
       expect(
-        service.tileUrl(const TileName(10, 45)).toString(),
+        service.tileUrl(manifest[const TileName(10, 45)]!).toString(),
         'https://mirror.test/releases/tiles-20260913/E10_N45.rd5',
       );
     });
@@ -742,7 +822,7 @@ void main() {
 
       expect(manifest.tiles, hasLength(2));
       expect(
-        service.tileUrl(const TileName(10, 45)).toString(),
+        service.tileUrl(manifest[const TileName(10, 45)]!).toString(),
         'https://mirror.test/releases/tiles-20260913/E10_N45.rd5',
       );
     });
@@ -759,6 +839,128 @@ void main() {
       await expectLater(
         service.fetch(),
         throwsA(isA<SegmentsManifestException>()),
+      );
+    });
+    test('reads every shard of a snapshot and merges them', () async {
+      final adapter = _shardedMirror(<String, Map<String, int>>{
+        'tiles-20260913': <String, int>{'E5_N45': 10},
+        'tiles-20260913-s2': <String, int>{'E10_N45': 20},
+        'tiles-20260913-s3': <String, int>{'E15_N45': 30},
+      }, gazetteer: true);
+      final service = SegmentsManifestService(
+        dio: segmentsDioWith(adapter),
+        segmentsUrl: _pointerUrl,
+      );
+
+      final manifest = await service.fetch();
+
+      expect(manifest.tiles, hasLength(3));
+      expect(manifest.totalBytes, 60);
+      expect(manifest.formatVersion, '11.2');
+      expect(manifest.brouterVersion, 'v1.7.10');
+      expect(manifest.generatedAt, DateTime.utc(2026, 9, 13, 1, 3));
+      expect(adapter.requests.map((r) => r.uri.toString()), <String>[
+        _pointerUrl,
+        '${_baseOf('tiles-20260913')}manifest.json',
+        '${_baseOf('tiles-20260913-s2')}manifest.json',
+        '${_baseOf('tiles-20260913-s3')}manifest.json',
+      ]);
+
+      final third = manifest[const TileName(15, 45)]!;
+      expect(third.baseUrl, 'https://mirror.test/releases/tiles-20260913-s3');
+      expect(
+        service.tileUrl(third).toString(),
+        'https://mirror.test/releases/tiles-20260913-s3/E15_N45.rd5',
+      );
+      expect(
+        service.gazetteerUrl(third).toString(),
+        'https://mirror.test/releases/tiles-20260913-s3/E15_N45.gaz',
+      );
+      expect(
+        service.tileUrl(manifest[const TileName(10, 45)]!).toString(),
+        'https://mirror.test/releases/tiles-20260913-s2/E10_N45.rd5',
+      );
+      expect(
+        service.baseUrl,
+        'https://mirror.test/releases/tiles-20260913',
+        reason: 'the first shard is where an entry without a base goes',
+      );
+    });
+
+    test('a shard that cannot be read fails the whole fetch, and says '
+        'which', () async {
+      final service = SegmentsManifestService(
+        dio: segmentsDioWith(
+          _shardedMirror(
+            <String, Map<String, int>>{
+              'tiles-20260913': <String, int>{'E5_N45': 10},
+              'tiles-20260913-s2': <String, int>{'E10_N45': 20},
+              'tiles-20260913-s3': <String, int>{'E15_N45': 30},
+            },
+            missing: <String>{'tiles-20260913-s2'},
+          ),
+        ),
+        segmentsUrl: _pointerUrl,
+      );
+
+      await expectLater(
+        service.fetch(),
+        throwsA(
+          isA<SegmentsManifestException>().having(
+            (e) => e.message,
+            'message',
+            contains('tiles-20260913-s2'),
+          ),
+        ),
+      );
+    });
+
+    test('a tile on two shards is served by the first', () async {
+      final service = SegmentsManifestService(
+        dio: segmentsDioWith(
+          _shardedMirror(<String, Map<String, int>>{
+            'tiles-20260913': <String, int>{'E5_N45': 10},
+            'tiles-20260913-s2': <String, int>{'E5_N45': 99, 'E10_N45': 20},
+          }),
+        ),
+        segmentsUrl: _pointerUrl,
+      );
+
+      final manifest = await service.fetch();
+
+      expect(manifest.tiles, hasLength(2));
+      final first = manifest[const TileName(5, 45)]!;
+      expect(first.bytes, 10);
+      expect(first.baseUrl, 'https://mirror.test/releases/tiles-20260913');
+      expect(
+        service.tileUrl(first).toString(),
+        'https://mirror.test/releases/tiles-20260913/E5_N45.rd5',
+      );
+    });
+
+    test('a one-shard snapshot reads like a single-directory mirror', () async {
+      final adapter = _shardedMirror(<String, Map<String, int>>{
+        'tiles-20260913': <String, int>{'E5_N45': 10, 'E10_N45': 20},
+      });
+      final service = SegmentsManifestService(
+        dio: segmentsDioWith(adapter),
+        segmentsUrl: _pointerUrl,
+      );
+
+      final manifest = await service.fetch();
+
+      expect(manifest.tiles, hasLength(2));
+      expect(adapter.requests.map((r) => r.uri.toString()), <String>[
+        _pointerUrl,
+        '${_baseOf('tiles-20260913')}manifest.json',
+      ]);
+      expect(
+        manifest.tiles.map((e) => e.baseUrl),
+        everyElement('https://mirror.test/releases/tiles-20260913'),
+      );
+      expect(
+        service.tileUrl(manifest[const TileName(5, 45)]!).toString(),
+        'https://mirror.test/releases/tiles-20260913/E5_N45.rd5',
       );
     });
   });

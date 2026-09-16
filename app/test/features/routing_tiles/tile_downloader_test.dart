@@ -24,12 +24,25 @@ GazetteerEntry _gazEntry({int? bytes, String? sha256}) => GazetteerEntry(
   updatedAt: DateTime.utc(2026, 9, 16),
 );
 
-SegmentEntry _entry({int? bytes, String? sha256}) => SegmentEntry(
+SegmentEntry _entry({
+  int? bytes,
+  String? sha256,
+  GazetteerEntry? gazetteer,
+  String? baseUrl,
+}) => SegmentEntry(
   tile: _tile,
   bytes: bytes ?? _body.length,
   updatedAt: DateTime.utc(2026, 9, 1),
   formatVersion: '11.2',
   sha256: sha256,
+  gazetteer: gazetteer,
+  baseUrl: baseUrl,
+);
+
+/// A tile whose mirror also offers the offline gazetteer.
+SegmentEntry _withGaz({int? bytes, String? sha256, String? baseUrl}) => _entry(
+  gazetteer: _gazEntry(bytes: bytes, sha256: sha256),
+  baseUrl: baseUrl,
 );
 
 void main() {
@@ -41,9 +54,13 @@ void main() {
       dio: segmentsDioWith(adapter),
       segmentsDir: segments,
       gazetteerDir: gazetteer,
-      urlFor: (tile) => Uri.parse('https://mirror.test/${tile.fileName}'),
-      gazetteerUrlFor: (tile) =>
-          Uri.parse('https://mirror.test/${tile.gazetteerFileName}'),
+      urlFor: (entry) => Uri.parse(
+        '${entry.baseUrl ?? 'https://mirror.test'}/${entry.fileName}',
+      ),
+      gazetteerUrlFor: (entry) => Uri.parse(
+        '${entry.baseUrl ?? 'https://mirror.test'}/'
+        '${entry.tile.gazetteerFileName}',
+      ),
     );
     addTearDown(d.dispose);
     return d;
@@ -221,7 +238,7 @@ void main() {
     test('lands in the gazetteer directory, not next to the tiles', () async {
       final adapter = servingGazetteer();
 
-      final file = await downloader(adapter).downloadGazetteer(_gazEntry());
+      final file = (await downloader(adapter).downloadGazetteer(_withGaz()))!;
 
       expect(file.path, gazFile().path);
       expect(file.readAsBytesSync(), _gaz);
@@ -237,7 +254,7 @@ void main() {
       final adapter = servingGazetteer();
 
       await expectLater(
-        downloader(adapter).downloadGazetteer(_gazEntry(bytes: 99)),
+        downloader(adapter).downloadGazetteer(_withGaz(bytes: 99)),
         throwsA(
           isA<TileDownloadException>().having(
             (e) => e.kind,
@@ -254,7 +271,7 @@ void main() {
       final adapter = servingGazetteer();
 
       await expectLater(
-        downloader(adapter).downloadGazetteer(_gazEntry(sha256: 'b' * 64)),
+        downloader(adapter).downloadGazetteer(_withGaz(sha256: 'b' * 64)),
         throwsA(
           isA<TileDownloadException>().having(
             (e) => e.kind,
@@ -276,7 +293,7 @@ void main() {
       final d = downloader(adapter);
 
       await expectLater(
-        d.downloadGazetteer(_gazEntry()),
+        d.downloadGazetteer(_withGaz()),
         throwsA(
           isA<TileDownloadException>().having(
             (e) => e.kind,
@@ -295,7 +312,7 @@ void main() {
       final sub = d.progress.listen(progress.add);
       addTearDown(sub.cancel);
 
-      await d.downloadGazetteer(_gazEntry());
+      await d.downloadGazetteer(_withGaz());
 
       expect(progress, isNotEmpty);
       expect(
@@ -315,10 +332,40 @@ void main() {
           .writeAsBytesSync(Uint8List.sublistView(_gaz, 0, 5));
       final adapter = servingGazetteer();
 
-      final file = await downloader(adapter).downloadGazetteer(_gazEntry());
+      final file = (await downloader(adapter).downloadGazetteer(_withGaz()))!;
 
       expect(adapter.ranges, <String?>['bytes=5-']);
       expect(file.readAsBytesSync(), _gaz);
+    });
+
+    test('a tile the mirror has no gazetteer for downloads nothing', () async {
+      final adapter = servingGazetteer();
+
+      expect(await downloader(adapter).downloadGazetteer(_entry()), isNull);
+      expect(adapter.requests, isEmpty);
+    });
+  });
+
+  group('a tile that lives on another shard', () {
+    const String shard = 'https://mirror.test/releases/tiles-20260913-s2';
+
+    test('is fetched from its own shard, and so is its gazetteer', () async {
+      final adapter = FakeSegmentsAdapter(
+        (options) => options.uri.path.endsWith('.gaz')
+            ? FakeSegmentsResponse.bytes(_gaz)
+            : FakeSegmentsResponse.bytes(_body),
+      );
+      final d = downloader(adapter);
+
+      final tile = await d.download(_entry(baseUrl: shard));
+      final gaz = (await d.downloadGazetteer(_withGaz(baseUrl: shard)))!;
+
+      expect(tile.readAsBytesSync(), _body);
+      expect(gaz.readAsBytesSync(), _gaz);
+      expect(adapter.requests.map((r) => r.uri.toString()), <String>[
+        '$shard/E10_N45.rd5',
+        '$shard/E10_N45.gaz',
+      ]);
     });
   });
 }
