@@ -4,15 +4,31 @@ import 'package:velorki_brouter/velorki_brouter.dart';
 
 import '../domain/navigation_progress.dart';
 
-/// The farthest a turn is announced from.
-const double _aheadM = 300;
+/// How many seconds before a turn it is announced unless the rider says
+/// otherwise. Ten seconds at 20 km/h is 55 m: time to hear it, look up and
+/// find the turning. OsmAnd's cycling profile says 22 s, Garmin a fixed
+/// 160 m; both are commonly found early.
+const int defaultLeadSeconds = 10;
 
-/// A turn nearer than this when it first comes into view gets no advance
-/// warning: there is no time to say it twice, so only the "now" cue follows.
-const double _tooLateForAheadM = 120;
+/// The slowest speed the lead is worked out at, 10 km/h. Standing at a
+/// light or coasting, the announcement still comes a sensible way out
+/// rather than at the kerb.
+const double _minSpeedMps = 2.8;
 
-/// The shortest distance a "now" cue is given at, whatever the speed.
-const double _nowFloorM = 40;
+/// The closest the advance warning is ever given, whatever the speed.
+const double _aheadFloorM = 50;
+
+/// How many seconds before the turn the "now" cue comes.
+const double _nowSeconds = 3;
+
+/// The closest the "now" cue is ever given, whatever the speed.
+const double _nowFloorM = 30;
+
+/// How much travel the advance warning needs before the "now" cue: the
+/// seconds it takes to say. A turn that comes into view closer than that
+/// gets the "now" cue alone, so the two are never heard on top of each
+/// other.
+const double _sayingSeconds = 3;
 
 /// A second turn this close behind the first is tacked onto its cue as a
 /// "then ..." so the rider hears both while there is still time.
@@ -84,7 +100,6 @@ class TurnCue {
 /// so a turn that is passed during a GPS gap is simply left behind rather than
 /// announced late.
 class TurnAnnouncer {
-  final Set<int> _seen = <int>{};
   final Set<int> _aheadGiven = <int>{};
   final Set<int> _nowGiven = <int>{};
   bool _offRoute = false;
@@ -92,9 +107,15 @@ class TurnAnnouncer {
 
   /// The cues [p] calls for, in the order they should be said.
   ///
-  /// [speedMps] stretches the "now" cue: at 10 m/s it comes 40 m out, giving
-  /// the same four seconds of warning as at walking pace.
-  List<TurnCue> update(NavigationProgress p, {double speedMps = 0}) {
+  /// Everything is timed in seconds of travel at [speedMps], never slower
+  /// than 10 km/h: the advance warning [leadSeconds] out, the "now" cue a
+  /// few seconds out. A turn that comes into view too late for the warning
+  /// to be said before the "now" cue is due only gets the "now" cue.
+  List<TurnCue> update(
+    NavigationProgress p, {
+    double speedMps = 0,
+    int leadSeconds = defaultLeadSeconds,
+  }) {
     final cues = <TurnCue>[];
 
     if (p.offRoute && !_offRoute) {
@@ -108,26 +129,22 @@ class TurnAnnouncer {
     final next = p.next;
     if (next != null) {
       final key = next.pointIndex;
-      if (_seen.add(key) && p.distanceToNextM < _tooLateForAheadM) {
-        // First sight and already close: skip the advance warning.
-        _aheadGiven.add(key);
-      }
-      if (p.distanceToNextM <= _aheadM && _aheadGiven.add(key)) {
+      final speed = math.max(_minSpeedMps, speedMps);
+      final aheadAt = math.max(_aheadFloorM, speed * leadSeconds);
+      final nowAt = math.max(_nowFloorM, speed * _nowSeconds);
+      final sayingM = speed * _sayingSeconds;
+      final d = p.distanceToNextM;
+      if (d <= aheadAt && d > nowAt + sayingM && _aheadGiven.add(key)) {
         cues.add(
-          TurnCue(
-            kind: CueKind.ahead,
-            turn: next,
-            distanceM: _roundedAhead(p.distanceToNextM),
-          ),
+          TurnCue(kind: CueKind.ahead, turn: next, distanceM: _roundedAhead(d)),
         );
       }
-      final nowAt = math.max(_nowFloorM, speedMps * 4);
-      if (p.distanceToNextM <= nowAt && _nowGiven.add(key)) {
+      if (d <= nowAt && _nowGiven.add(key)) {
         cues.add(
           TurnCue(
             kind: CueKind.now,
             turn: next,
-            distanceM: p.distanceToNextM.round(),
+            distanceM: d.round(),
             then: _thenTurn(next, p.after),
           ),
         );
@@ -151,7 +168,9 @@ class TurnAnnouncer {
         : null;
   }
 
-  /// Distances are announced in round numbers: the nearest 50 m, never less.
-  static int _roundedAhead(double metres) =>
-      math.max(50, (metres / 50).round() * 50);
+  /// Distances are announced in round numbers: the nearest 10 m up to
+  /// 100 m, the nearest 50 m beyond, never less than 50.
+  static int _roundedAhead(double metres) => metres < 100
+      ? math.max(50, (metres / 10).round() * 10)
+      : (metres / 50).round() * 50;
 }

@@ -123,7 +123,83 @@ void main() {
     expect(settings.copyWith(), settings);
     expect(
       settings.toString(),
-      'NavigationSettings(turns: true, voice: true, reroute: true)',
+      'NavigationSettings(turns: true, voice: true, reroute: true, '
+      'leadSeconds: 10, voiceId: null)',
     );
+  });
+
+  test('the lead is ten seconds out of the box', () async {
+    final container = await _container(const <String, Object>{});
+
+    expect(container.read(navigationSettingsProvider).leadSeconds, 10);
+  });
+
+  test('a stored lead comes back', () async {
+    final container = await _container(const {'navigation.leadSeconds': 20});
+
+    expect(container.read(navigationSettingsProvider).leadSeconds, 20);
+  });
+
+  test('setting the lead stores it', () async {
+    final container = await _container(const <String, Object>{});
+
+    await container
+        .read(navigationSettingsProvider.notifier)
+        .setLeadSeconds(15);
+
+    expect(container.read(navigationSettingsProvider).leadSeconds, 15);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getInt('navigation.leadSeconds'), 15);
+  });
+
+  test('setting the lead back to ten forgets the key', () async {
+    final container = await _container(const {'navigation.leadSeconds': 20});
+
+    await container
+        .read(navigationSettingsProvider.notifier)
+        .setLeadSeconds(10);
+
+    expect(container.read(navigationSettingsProvider).leadSeconds, 10);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.containsKey('navigation.leadSeconds'), isFalse);
+  });
+
+  test('the lead stays between 5 and 30 seconds', () async {
+    final container = await _container(const {'navigation.leadSeconds': 1});
+    expect(container.read(navigationSettingsProvider).leadSeconds, 5);
+
+    await container
+        .read(navigationSettingsProvider.notifier)
+        .setLeadSeconds(99);
+
+    expect(container.read(navigationSettingsProvider).leadSeconds, 30);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getInt('navigation.leadSeconds'), 30);
+  });
+
+  test('the voice is the system default out of the box', () async {
+    final container = await _container(const <String, Object>{});
+
+    expect(container.read(navigationSettingsProvider).voiceId, isNull);
+  });
+
+  test('a stored voice comes back', () async {
+    final container = await _container(const {'navigation.voiceId': 'v1'});
+
+    expect(container.read(navigationSettingsProvider).voiceId, 'v1');
+  });
+
+  test('choosing a voice stores it, and the default forgets the key', () async {
+    final container = await _container(const <String, Object>{});
+    final controller = container.read(navigationSettingsProvider.notifier);
+
+    await controller.setVoiceId('v2');
+    expect(container.read(navigationSettingsProvider).voiceId, 'v2');
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('navigation.voiceId'), 'v2');
+
+    await controller.setVoiceId(null);
+    expect(container.read(navigationSettingsProvider).voiceId, isNull);
+    expect(prefs.containsKey('navigation.voiceId'), isFalse);
   });
 }

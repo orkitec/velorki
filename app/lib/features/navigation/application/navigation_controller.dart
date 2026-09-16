@@ -176,6 +176,10 @@ class NavigationController extends _$NavigationController {
   TurnNavigator? _navigator;
   TurnAnnouncer? _announcer;
 
+  /// Whether the voice choice has reached the speaker, and which one.
+  bool _voiceApplied = false;
+  String? _appliedVoiceId;
+
   /// Identity of the route the navigator was built for: the detour while one
   /// is up, the plan otherwise.
   String? _routeKey;
@@ -300,7 +304,11 @@ class NavigationController extends _$NavigationController {
 
     final progress = _navigator!.update(position);
     _progress = progress;
-    final cues = _announcer!.update(progress, speedMps: snapshot.speedMps);
+    final cues = _announcer!.update(
+      progress,
+      speedMps: snapshot.speedMps,
+      leadSeconds: settings.leadSeconds,
+    );
     if (cues.isNotEmpty && settings.voice) _speak(cues);
 
     // On the plan itself, remember how far the rider got: that is where the
@@ -420,6 +428,15 @@ class NavigationController extends _$NavigationController {
   void _speak(List<TurnCue> cues) {
     final l10n = ref.read(navigationLocalizationsProvider);
     final speaker = ref.read(turnSpeakerProvider);
+    // The chosen voice is handed to the speaker before the first cue of a
+    // session and again whenever the choice changes; the speaker queues it
+    // ahead of the cues that follow.
+    final voiceId = ref.read(navigationSettingsProvider).voiceId;
+    if (!_voiceApplied || voiceId != _appliedVoiceId) {
+      _voiceApplied = true;
+      _appliedVoiceId = voiceId;
+      unawaited(speaker.selectVoice(voiceId));
+    }
     for (final cue in cues) {
       final phrase = cuePhrase(cue, l10n, units: ref.read(unitSystemProvider));
       if (phrase.isNotEmpty) unawaited(speaker.speak(phrase));

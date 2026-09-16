@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../features/navigation/data/navigation_settings.dart';
+import '../../../features/navigation/data/turn_speaker.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import 'voice_picker_screen.dart';
 
-/// Settings → Navigation: the turn directions, whether they are spoken, and
-/// whether leaving the route plans a new way back onto it.
+/// Settings → Navigation: the turn directions, whether they are spoken, how
+/// far ahead, and whether leaving the route plans a new way back onto it.
 class NavigationSection extends ConsumerWidget {
   /// Creates the section.
   const NavigationSection({super.key});
@@ -36,6 +38,37 @@ class NavigationSection extends ConsumerWidget {
               ? (value) => unawaited(controller.setVoice(value))
               : null,
         ),
+        // Which voice: the chosen one by name, or the phone's own.
+        ListTile(
+          enabled: settings.turns && settings.voice,
+          title: Text(l10n.settingsVoicePick),
+          subtitle: Text(_voiceName(ref, settings.voiceId, l10n)),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: settings.turns && settings.voice
+              ? () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const VoicePickerScreen(),
+                  ),
+                )
+              : null,
+        ),
+        // How far ahead a turn is spoken, in seconds of travel; it only
+        // matters while there is a voice.
+        ListTile(
+          enabled: settings.turns && settings.voice,
+          title: Text(l10n.settingsTurnLead),
+          subtitle: Text(l10n.settingsTurnLeadHint(settings.leadSeconds)),
+        ),
+        Slider(
+          value: settings.leadSeconds.toDouble(),
+          min: minLeadSeconds.toDouble(),
+          max: maxLeadSeconds.toDouble(),
+          divisions: maxLeadSeconds - minLeadSeconds,
+          label: l10n.settingsTurnLeadValue(settings.leadSeconds),
+          onChanged: settings.turns && settings.voice
+              ? (value) => unawaited(controller.setLeadSeconds(value.round()))
+              : null,
+        ),
         // Re-routing needs a route to be matched against, which is what the
         // turn directions do, so it greys out with them too.
         SwitchListTile(
@@ -49,4 +82,15 @@ class NavigationSection extends ConsumerWidget {
       ],
     );
   }
+}
+
+/// The name of the voice with [id], or the default's name while the list is
+/// still loading or the voice is gone.
+String _voiceName(WidgetRef ref, String? id, AppLocalizations l10n) {
+  if (id == null) return l10n.settingsVoiceSystemDefault;
+  final voices = ref.watch(availableVoicesProvider).value;
+  for (final voice in voices ?? const []) {
+    if (voice.id == id) return voice.name;
+  }
+  return l10n.settingsVoiceSystemDefault;
 }

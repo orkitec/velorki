@@ -6,6 +6,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/theme.dart';
 import 'package:velorki/features/navigation/data/navigation_settings.dart';
+import 'package:velorki/features/navigation/data/turn_speaker.dart';
+import 'package:velorki/features/navigation/testing/fake_turn_speaker.dart';
+import 'package:velorki/features/settings/presentation/voice_picker_screen.dart';
 import 'package:velorki/features/settings/presentation/navigation_section.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
 
@@ -16,7 +19,10 @@ Future<ProviderContainer> _pump(
   SharedPreferences.setMockInitialValues(initial);
   final prefs = await SharedPreferences.getInstance();
   final container = ProviderContainer(
-    overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      turnSpeakerProvider.overrideWithValue(FakeTurnSpeaker()),
+    ],
   );
   addTearDown(container.dispose);
 
@@ -150,5 +156,60 @@ void main() {
     expect(_tile(tester, 'Turn directions').value, isTrue);
     expect(_tile(tester, 'Voice').value, isFalse);
     expect(_tile(tester, 'Re-route when off course').value, isFalse);
+  });
+
+  testWidgets('the announce-turns slider shows and stores the lead', (
+    tester,
+  ) async {
+    final container = await _pump(tester);
+
+    expect(find.text('Announce turns'), findsOneWidget);
+    expect(
+      find.text(
+        '10 seconds before the turn at your speed, never closer than 50 metres',
+      ),
+      findsOneWidget,
+    );
+    final slider = tester.widget<Slider>(find.byType(Slider));
+    expect(slider.value, 10);
+    expect(slider.min, 5);
+    expect(slider.max, 30);
+
+    slider.onChanged!(20);
+    await tester.pumpAndSettle();
+
+    expect(container.read(navigationSettingsProvider).leadSeconds, 20);
+    expect(find.textContaining('20 seconds before the turn'), findsOneWidget);
+  });
+
+  testWidgets('the slider greys out without a voice', (tester) async {
+    await _pump(tester, initial: const {'navigation.voice': false});
+
+    expect(tester.widget<Slider>(find.byType(Slider)).onChanged, isNull);
+  });
+
+  testWidgets('the speaking voice row shows the default and opens the list', (
+    tester,
+  ) async {
+    await _pump(tester);
+
+    expect(find.text('Speaking voice'), findsOneWidget);
+    expect(find.text('System default'), findsOneWidget);
+
+    await tester.tap(find.text('Speaking voice'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(VoicePickerScreen), findsOneWidget);
+  });
+
+  testWidgets('the speaking voice row greys out without a voice', (
+    tester,
+  ) async {
+    await _pump(tester, initial: const {'navigation.voice': false});
+
+    final tile = tester.widget<ListTile>(
+      find.widgetWithText(ListTile, 'Speaking voice'),
+    );
+    expect(tile.enabled, isFalse);
   });
 }

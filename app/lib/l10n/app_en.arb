@@ -1976,9 +1976,124 @@
   "@shareLinkPlus": {
     "description": "Shown when an unentitled rider taps Share link"
   },
+  "offlineTitle": "Offline",
+  "@offlineTitle": {
+    "description": "Title of the combined offline data screen"
+  },
+  "offlineEntryTitle": "Offline data",
+  "@offlineEntryTitle": {
+    "description": "Settings row into the combined offline data screen"
+  },
+  "offlineEntrySubtitle": "Maps and routing data for rides without a signal",
+  "@offlineEntrySubtitle": {
+    "description": "Explanation under the offline data settings row"
+  },
+  "offlineIntro": "Two things make a ride work without a signal: the map you look at, and the routing data your routes are computed from. Velorki downloads both for an area.",
+  "@offlineIntro": {
+    "description": "Explanation at the top of the offline data screen"
+  },
+  "offlineMapsTitle": "Map",
+  "@offlineMapsTitle": {
+    "description": "Card title for the offline map areas"
+  },
+  "offlineMapsSource": "The vector map from OpenFreeMap, drawn from OpenStreetMap data. Tens of megabytes for a city.",
+  "@offlineMapsSource": {
+    "description": "Where the offline map comes from and how big it is"
+  },
+  "offlineRoutingTitle": "Routing data",
+  "@offlineRoutingTitle": {
+    "description": "Card title for the routing tiles"
+  },
+  "offlineRoutingSource": "BRouter tiles from the Velorki mirror, built from OpenStreetMap. One tile covers 5° × 5°, often 125–250 MB.",
+  "@offlineRoutingSource": {
+    "description": "Where the routing data comes from and how big it is"
+  },
+  "offlineManage": "Manage",
+  "@offlineManage": {
+    "description": "Button on an offline data card that opens that kind's own screen"
+  },
+  "offlineMapsSummary": "{count, plural, =0{No areas downloaded} =1{1 area, {size}} other{{count} areas, {size}}}",
+  "@offlineMapsSummary": {
+    "description": "What is on the device for the offline map",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String",
+        "example": "42 MB"
+      }
+    }
+  },
+  "offlineMapsRefreshHint": "{count, plural, =1{1 area is older than two months and can be refreshed} other{{count} areas are older than two months and can be refreshed}}",
+  "@offlineMapsRefreshHint": {
+    "description": "Hint on the offline map card when downloaded areas are old enough for a refresh",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "offlineDownloadVisible": "Download the visible area",
+  "@offlineDownloadVisible": {
+    "description": "Button that downloads map and routing data for the area the map shows"
+  },
+  "offlineNeedsMap": "Open this screen from the map to download the area you are looking at.",
+  "@offlineNeedsMap": {
+    "description": "Note when the offline screen was opened without a map"
+  },
+  "offlineDialogTitle": "Download the visible area",
+  "@offlineDialogTitle": {
+    "description": "Title of the combined download confirmation"
+  },
+  "offlineDialogMap": "Map of the visible area · size known once downloaded",
+  "@offlineDialogMap": {
+    "description": "The map line in the combined download confirmation"
+  },
+  "offlineDialogRoutingPresent": "Routing data for this area is already on the device",
+  "@offlineDialogRoutingPresent": {
+    "description": "Routing line in the combined download confirmation when nothing is missing"
+  },
+  "offlineDialogDownload": "Download",
+  "@offlineDialogDownload": {
+    "description": "Confirms the combined download"
+  },
+  "offlineMapDownloading": "Downloading the map…",
+  "@offlineMapDownloading": {
+    "description": "Progress label while the map area downloads"
+  },
+  "offlineRoutingDownloading": "Downloading {tile}…",
+  "@offlineRoutingDownloading": {
+    "description": "Progress label while a routing tile downloads",
+    "placeholders": {
+      "tile": {
+        "type": "String",
+        "example": "E10_N45"
+      }
+    }
+  },
+  "offlineMapFailed": "The map could not be downloaded: {error}",
+  "@offlineMapFailed": {
+    "description": "Snackbar when the map area download fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "routingTilesTitle": "Offline routing data",
   "@routingTilesTitle": {
     "description": "Title of the screen listing downloaded rd5 routing tiles"
+  },
+  "routingTilesUpdatesHint": "{count, plural, =1{1 tile has an update} other{{count} tiles have updates}}",
+  "@routingTilesUpdatesHint": {
+    "description": "Subtitle of the Settings row into the routing tiles when the mirror has rebuilt some of them",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
   },
   "routingTilesSubtitle": "Route on this device, without a signal",
   "@routingTilesSubtitle": {
@@ -2039,6 +2154,36 @@
   "routingTilesDownload": "Download",
   "@routingTilesDownload": {
     "description": "Downloads one tile"
+  },
+  "routingTilesNeedsAppTitle": "Update Velorki first",
+  "@routingTilesNeedsAppTitle": {
+    "description": "Dialog title when a routing tile is in a newer data format than the app can read"
+  },
+  "routingTilesNeedsAppBody": "These tiles are in data format {tileFormat}, and this Velorki reads up to {appFormat}. They need a newer Velorki; download them once you have updated to one.",
+  "@routingTilesNeedsAppBody": {
+    "description": "Dialog body when a routing tile is in a newer data format than the app can read",
+    "placeholders": {
+      "tileFormat": {
+        "type": "String",
+        "example": "11.3"
+      },
+      "appFormat": {
+        "type": "String",
+        "example": "11.2"
+      }
+    }
+  },
+  "routingTilesNeedsAppDismiss": "Not now",
+  "@routingTilesNeedsAppDismiss": {
+    "description": "Dismisses the update-the-app dialog"
+  },
+  "routingTilesOpenStore": "Open store",
+  "@routingTilesOpenStore": {
+    "description": "Opens the app's store page from the update-the-app dialog"
+  },
+  "routingTilesStateNeedsApp": "Update needs a newer Velorki",
+  "@routingTilesStateNeedsApp": {
+    "description": "Tile state when the mirror's newer build is in a format the app cannot read"
   },
   "routingTilesUpdate": "Update",
   "@routingTilesUpdate": {
@@ -2425,6 +2570,66 @@
   "settingsVoiceDirectionsHint": "Say the turns out loud",
   "@settingsVoiceDirectionsHint": {
     "description": "Explanation under the voice directions switch"
+  },
+  "settingsVoicePick": "Speaking voice",
+  "@settingsVoicePick": {
+    "description": "Settings row that opens the list of text-to-speech voices"
+  },
+  "settingsVoiceSystemDefault": "System default",
+  "@settingsVoiceSystemDefault": {
+    "description": "The voice choice that leaves it to the phone"
+  },
+  "settingsVoiceSystemDefaultHint": "The phone's own voice for your language",
+  "@settingsVoiceSystemDefaultHint": {
+    "description": "Explanation under the system default voice"
+  },
+  "settingsVoiceNetworkTitle": "Some voices need the internet",
+  "@settingsVoiceNetworkTitle": {
+    "description": "Heading of the note above the voice list when online voices are present"
+  },
+  "settingsVoiceNetworkHint": "A voice marked with a cloud is generated online. Where there is no signal, the turn goes unspoken or comes late. For rides, prefer a voice stored on the phone.",
+  "@settingsVoiceNetworkHint": {
+    "description": "Body of the note above the voice list when online voices are present"
+  },
+  "settingsVoiceNeedsInternet": "Needs internet",
+  "@settingsVoiceNeedsInternet": {
+    "description": "Chip on a voice that is generated online"
+  },
+  "settingsVoiceQualityEnhanced": "Enhanced",
+  "@settingsVoiceQualityEnhanced": {
+    "description": "Quality label of a better-than-standard voice"
+  },
+  "settingsVoiceQualityPremium": "Premium",
+  "@settingsVoiceQualityPremium": {
+    "description": "Quality label of the best voices"
+  },
+  "settingsVoiceNone": "No voice for your language is installed. Add one in the phone's settings, under text-to-speech or Spoken Content.",
+  "@settingsVoiceNone": {
+    "description": "Shown in the voice list when the phone has no voice for the app's language"
+  },
+  "settingsTurnLead": "Announce turns",
+  "@settingsTurnLead": {
+    "description": "Settings row for how far ahead a turn is spoken"
+  },
+  "settingsTurnLeadHint": "{seconds} seconds before the turn at your speed, never closer than 50 metres",
+  "@settingsTurnLeadHint": {
+    "description": "Explanation under the announce turns row",
+    "placeholders": {
+      "seconds": {
+        "type": "int",
+        "example": "10"
+      }
+    }
+  },
+  "settingsTurnLeadValue": "{seconds} s",
+  "@settingsTurnLeadValue": {
+    "description": "Label on the announce turns slider",
+    "placeholders": {
+      "seconds": {
+        "type": "int",
+        "example": "10"
+      }
+    }
   },
   "settingsReroute": "Re-route when off course",
   "@settingsReroute": {

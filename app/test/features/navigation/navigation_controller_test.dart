@@ -270,14 +270,15 @@ void main() {
     final h = await _NavHarness.create(saved: _savedRoute());
     await h.follow('route-1');
 
-    for (final alongM in <double>[0, 250, 260, 480, 490, 600, 800, 810, 990]) {
+    // At 6 m/s the warning comes 60 m out and the now cue 30 m out.
+    for (final alongM in <double>[0, 250, 450, 460, 480, 600, 950, 990]) {
       await h.ride(alongM);
     }
 
     expect(h.speaker.spoken, <String>[
-      'In 250 metres, turn left',
+      'In 50 metres, turn left',
       'Now turn left',
-      'In 200 metres, arrive',
+      'In 50 metres, arrive',
       'Now arrive',
       'You have arrived',
     ]);
@@ -333,11 +334,12 @@ void main() {
 
     await h.ride(0);
     await h.ride(250);
+    await h.ride(450);
 
     expect(h.progress, isNotNull);
     expect(h.progress!.next?.kind, TurnKind.left);
-    expect(h.progress!.distanceToNextM, closeTo(250, 2));
-    expect(h.speaker.spoken, contains('In 250 metres, turn left'));
+    expect(h.progress!.distanceToNextM, closeTo(50, 2));
+    expect(h.speaker.spoken, contains('In 50 metres, turn left'));
   });
 
   group('re-routing', () {

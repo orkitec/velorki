@@ -33,58 +33,81 @@ List<CueKind> _kinds(List<TurnCue> cues) =>
     cues.map((cue) => cue.kind).toList();
 
 void main() {
-  test('a turn coming into view at 300 m is announced in round numbers', () {
+  // Standing still counts as 10 km/h: the warning comes at 50 m, the "now"
+  // cue at 30 m, and the warning needs 8.4 m of room before the "now" cue.
+  test('a turn coming into view at 50 m is announced in round numbers', () {
     final announcer = TurnAnnouncer();
 
-    final cues = announcer.update(_at(268));
+    final cues = announcer.update(_at(48));
 
     expect(_kinds(cues), [CueKind.ahead]);
     expect(cues.single.turn, _left);
-    expect(cues.single.distanceM, 250);
+    expect(cues.single.distanceM, 50);
   });
 
   test('nothing is said while the turn is still far away', () {
     final announcer = TurnAnnouncer();
 
     expect(announcer.update(_at(800)), isEmpty);
-    expect(_kinds(announcer.update(_at(290))), [CueKind.ahead]);
+    expect(announcer.update(_at(60)), isEmpty);
+    expect(_kinds(announcer.update(_at(49))), [CueKind.ahead]);
   });
 
   test('the ahead cue is given once, however many fixes arrive', () {
     final announcer = TurnAnnouncer();
 
-    announcer.update(_at(280));
-    expect(announcer.update(_at(250)), isEmpty);
-    expect(announcer.update(_at(120)), isEmpty);
+    announcer.update(_at(48));
+    expect(announcer.update(_at(45)), isEmpty);
+    expect(announcer.update(_at(35)), isEmpty);
   });
 
-  test('a turn first seen at 90 m only gets a now cue', () {
+  test('a turn first seen at 35 m only gets a now cue', () {
     final announcer = TurnAnnouncer();
 
-    final first = announcer.update(_at(90));
-    final second = announcer.update(_at(60));
-    final third = announcer.update(_at(30));
+    final first = announcer.update(_at(35));
+    final second = announcer.update(_at(25));
 
     expect(first, isEmpty);
-    expect(second, isEmpty);
-    expect(_kinds(third), [CueKind.now]);
-    expect(third.single.distanceM, 30);
+    expect(_kinds(second), [CueKind.now]);
+    expect(second.single.distanceM, 25);
   });
 
-  test('the now cue comes at 40 m when standing still', () {
+  test('the now cue comes at 30 m when standing still', () {
     final announcer = TurnAnnouncer();
-    announcer.update(_at(280));
+    announcer.update(_at(48));
 
-    expect(announcer.update(_at(45)), isEmpty);
-    expect(_kinds(announcer.update(_at(38))), [CueKind.now]);
+    expect(announcer.update(_at(32)), isEmpty);
+    expect(_kinds(announcer.update(_at(28))), [CueKind.now]);
     expect(announcer.update(_at(10)), isEmpty);
   });
 
-  test('speed moves the now cue further out', () {
+  test('speed moves both cues further out', () {
+    // 15 m/s: the warning at 150 m, the now cue at 45 m.
     final announcer = TurnAnnouncer();
-    announcer.update(_at(280), speedMps: 15);
 
-    expect(_kinds(announcer.update(_at(55), speedMps: 15)), [CueKind.now]);
+    expect(announcer.update(_at(160), speedMps: 15), isEmpty);
+    final ahead = announcer.update(_at(140), speedMps: 15);
+    expect(_kinds(ahead), [CueKind.ahead]);
+    expect(ahead.single.distanceM, 150);
+    expect(announcer.update(_at(55), speedMps: 15), isEmpty);
+    expect(_kinds(announcer.update(_at(44), speedMps: 15)), [CueKind.now]);
+  });
+
+  test('the lead setting moves the warning out', () {
+    // 5 m/s for 20 s: the warning at 100 m.
+    final announcer = TurnAnnouncer();
+
+    expect(announcer.update(_at(120), speedMps: 5, leadSeconds: 20), isEmpty);
+    final cues = announcer.update(_at(95), speedMps: 5, leadSeconds: 20);
+    expect(_kinds(cues), [CueKind.ahead]);
+    expect(cues.single.distanceM, 100);
+  });
+
+  test('the warning never comes closer than 50 m, however short the lead', () {
+    final announcer = TurnAnnouncer();
+
+    expect(announcer.update(_at(60), leadSeconds: 5), isEmpty);
+    expect(_kinds(announcer.update(_at(49), leadSeconds: 5)), [CueKind.ahead]);
   });
 
   test('a turn close behind the next one rides along on the now cue', () {
@@ -132,7 +155,7 @@ void main() {
     announcer.update(_at(800));
 
     // The next fix is already past the first turn and near the second.
-    final cues = announcer.update(_at(35, next: _keepRight));
+    final cues = announcer.update(_at(25, next: _keepRight));
 
     expect(_kinds(cues), [CueKind.now]);
     expect(cues.single.turn, _keepRight);
@@ -140,19 +163,41 @@ void main() {
 
   test('the next turn gets its own cues after the first one is done', () {
     final announcer = TurnAnnouncer();
-    announcer.update(_at(280));
+    announcer.update(_at(48));
     announcer.update(_at(20));
 
-    final cues = announcer.update(_at(200, next: _keepRight));
+    final cues = announcer.update(_at(45, next: _keepRight));
 
     expect(_kinds(cues), [CueKind.ahead]);
     expect(cues.single.turn, _keepRight);
-    expect(cues.single.distanceM, 200);
+    expect(cues.single.distanceM, 50);
   });
 
-  test('advance distances are rounded to the nearest 50 m', () {
-    expect(TurnAnnouncer().update(_at(130)).first.distanceM, 150);
-    expect(TurnAnnouncer().update(_at(120)).first.distanceM, 100);
-    expect(TurnAnnouncer().update(_at(299)).first.distanceM, 300);
+  test('advance distances are rounded to 10 m below 100 m and 50 m above', () {
+    // 4 m/s for 20 s: the warning at 80 m.
+    expect(
+      TurnAnnouncer()
+          .update(_at(76), speedMps: 4, leadSeconds: 20)
+          .first
+          .distanceM,
+      80,
+    );
+    expect(
+      TurnAnnouncer()
+          .update(_at(63), speedMps: 4, leadSeconds: 20)
+          .first
+          .distanceM,
+      60,
+    );
+    expect(
+      TurnAnnouncer()
+          .update(_at(52), speedMps: 4, leadSeconds: 20)
+          .first
+          .distanceM,
+      50,
+    );
+    // 15 m/s: the warning at 150 m.
+    expect(TurnAnnouncer().update(_at(130), speedMps: 15).first.distanceM, 150);
+    expect(TurnAnnouncer().update(_at(112), speedMps: 15).first.distanceM, 100);
   });
 }
