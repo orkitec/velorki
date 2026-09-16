@@ -4,8 +4,9 @@ Plan the ride, find the café, follow the turns, and do all of it where the
 signal ends. Free, open source, built on OpenStreetMap.
 
 Download a region once and the whole app works without a network: the map,
-the routing, the place search and the spoken turns. A Flutter app for iOS and
-Android. What it does:
+the routing, the place search and the spoken turns. No account, no ads, no
+paywall on the ride itself, and no server in the loop unless you ask for one.
+A Flutter app for iOS and Android. What it does:
 
 - **Routing on the phone.** A Dart port of the BRouter engine routes on
   downloaded 5°×5° tiles, with touring, road, gravel, MTB and direct
@@ -35,10 +36,13 @@ Android. What it does:
   plotted route, through a hosted model behind a relay that holds the key.
 - Metric or imperial units; every string is localisable.
 
-Everything that runs on your phone is free: planning, loops, recording, search,
-files. "Velorki Plus" is a subscription for the parts that need our servers or
-a partner account: the Strava and RideWithGPS connections, the assistant and
-link sharing. The code for all of it is here, so you can also run your own.
+**Everything on the phone is free, for everyone, for good**: planning, loops,
+offline maps and routing, search, navigation, recording, ride stats, GPX and
+FIT files. The routing data and the search index are mirrored for you at no
+charge. "Velorki Plus" is a small subscription only for the parts that need
+our servers or a partner account: the Strava and RideWithGPS connections, the
+assistant and link sharing. The code for all of it is here, so you can also
+run your own and skip the subscription entirely.
 
 ## Status
 
