@@ -324,16 +324,14 @@ void main() {
     await _unmount(tester);
   });
 
-  testWidgets('the CyclOSM overlay blocks the download and says why', (
+  testWidgets('the CyclOSM overlay does not block the download', (
     tester,
   ) async {
+    // The pack is built from the base style; the overlay never comes along.
     await pumpOfflineRegions(tester, map: _mapAt(), cyclosmOverlay: true);
 
-    expect(
-      find.textContaining('tile policy forbids bulk downloading'),
-      findsOneWidget,
-    );
-    expect(_downloadButton(tester).onPressed, isNull);
+    expect(find.textContaining('tile policy'), findsNothing);
+    expect(_downloadButton(tester).onPressed, isNotNull);
     await _unmount(tester);
   });
 

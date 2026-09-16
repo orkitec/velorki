@@ -54,10 +54,6 @@ abstract final class MapStrings {
   static const String downloadVisibleArea = 'Download visible area';
   static const String downloadNeedsMap =
       'Open this screen from the map to download the area you are looking at.';
-  static const String downloadBlockedByCyclosm =
-      'Offline download is not available while the CyclOSM overlay is on: the '
-      'OpenStreetMap Foundation tile policy forbids bulk downloading those '
-      'tiles. Turn the overlay off and download the vector base map instead.';
   static const String downloading = 'Downloading…';
   static const String deleteRegion = 'Delete';
   static const String deleteRegionTitle = 'Delete offline area?';

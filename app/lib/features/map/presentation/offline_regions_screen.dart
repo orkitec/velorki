@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme.dart';
 import '../../../core/db/database.dart';
 import '../../shared/presentation/placeholder_body.dart';
-import '../data/map_preferences.dart';
 import '../data/offline_regions_repository.dart';
 import '../domain/map_controller.dart';
 import 'map_strings.dart';
@@ -28,14 +27,12 @@ class OfflineRegionsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final regions = ref.watch(offlineRegionsProvider);
     final progress = ref.watch(offlineDownloadControllerProvider);
-    final cyclosmActive = ref.watch(cyclosmOverlayProvider);
     final bounds = mapController?.visibleBounds;
 
-    // The OSMF tile policy forbids bulk downloading CyclOSM tiles, so the
-    // action is off while the overlay is on, whatever the map shows.
-    final String? blockedReason = cyclosmActive
-        ? MapStrings.downloadBlockedByCyclosm
-        : bounds == null
+    // The pack is built from the base style, so the CyclOSM overlay (whose
+    // tile policy forbids bulk downloads) never comes along, whatever the
+    // map shows.
+    final String? blockedReason = bounds == null
         ? MapStrings.downloadNeedsMap
         : null;
 

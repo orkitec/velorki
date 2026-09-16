@@ -205,7 +205,7 @@ class _SearchFieldState extends ConsumerState<SearchField> {
   }
 }
 
-class _ResultsCard extends StatelessWidget {
+class _ResultsCard extends StatefulWidget {
   const _ResultsCard({
     required this.results,
     required this.units,
@@ -217,6 +217,21 @@ class _ResultsCard extends StatelessWidget {
   final UnitSystem units;
   final ValueChanged<SearchResult> onSelected;
   final VoidCallback onSearchOnline;
+
+  @override
+  State<_ResultsCard> createState() => _ResultsCardState();
+}
+
+class _ResultsCardState extends State<_ResultsCard> {
+  // Owned here so the scrollbar can stay visible: a list that is longer
+  // than the card must look longer than the card.
+  final ScrollController _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -237,8 +252,9 @@ class _ResultsCard extends StatelessWidget {
         ),
         clipBehavior: Clip.antiAlias,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 260),
-          child: results.when(
+          // About five rows and the footer; more than that scrolls, visibly.
+          constraints: const BoxConstraints(maxHeight: 380),
+          child: widget.results.when(
             loading: () => const Padding(
               padding: EdgeInsets.all(16),
               child: LinearProgressIndicator(),
@@ -281,23 +297,28 @@ class _ResultsCard extends StatelessWidget {
     final corrected = state.correctedQuery;
     final Widget list = items.isEmpty
         ? ListTile(title: Text(l10n.searchNoResults))
-        : ListView.builder(
-            shrinkWrap: true,
-            padding: EdgeInsets.zero,
-            itemCount: items.length,
-            itemBuilder: (context, i) {
-              final r = items[i];
-              final subtitle = r.source == SearchSource.local
-                  ? localResultSubtitle(l10n, r, units: units)
-                  : r.subtitle;
-              return ListTile(
-                dense: true,
-                leading: Icon(searchResultIcon(r)),
-                title: Text(searchResultTitle(l10n, r)),
-                subtitle: subtitle.isEmpty ? null : Text(subtitle),
-                onTap: () => onSelected(r),
-              );
-            },
+        : Scrollbar(
+            controller: _scroll,
+            thumbVisibility: true,
+            child: ListView.builder(
+              controller: _scroll,
+              shrinkWrap: true,
+              padding: EdgeInsets.zero,
+              itemCount: items.length,
+              itemBuilder: (context, i) {
+                final r = items[i];
+                final subtitle = r.source == SearchSource.local
+                    ? localResultSubtitle(l10n, r, units: widget.units)
+                    : r.subtitle;
+                return ListTile(
+                  dense: true,
+                  leading: Icon(searchResultIcon(r)),
+                  title: Text(searchResultTitle(l10n, r)),
+                  subtitle: subtitle.isEmpty ? null : Text(subtitle),
+                  onTap: () => widget.onSelected(r),
+                );
+              },
+            ),
           );
     if (!online && corrected == null) return list;
     return Column(
@@ -319,7 +340,7 @@ class _ResultsCard extends StatelessWidget {
             dense: true,
             leading: const Icon(Icons.travel_explore_outlined),
             title: Text(l10n.searchOnlineFor(state.query)),
-            onTap: onSearchOnline,
+            onTap: widget.onSearchOnline,
           ),
         ],
       ],

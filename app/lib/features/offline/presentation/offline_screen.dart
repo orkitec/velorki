@@ -6,7 +6,6 @@ import 'package:velorki_brouter/velorki_brouter.dart';
 
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../map/data/map_preferences.dart';
 import '../../map/data/offline_regions_repository.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/map_strings.dart';
@@ -37,7 +36,6 @@ class OfflineScreen extends ConsumerWidget {
     final tiles = ref.watch(routingTilesProvider).value ?? const [];
     final queue = ref.watch(tileDownloadQueueProvider);
     final mapProgress = ref.watch(offlineDownloadControllerProvider);
-    final cyclosmActive = ref.watch(cyclosmOverlayProvider);
     final bounds = mapController?.visibleBounds;
 
     final regionBytes = regions.fold<int>(0, (sum, r) => sum + r.sizeBytes);
@@ -49,11 +47,9 @@ class OfflineScreen extends ConsumerWidget {
     final tileBytes = downloaded.fold<int>(0, (sum, t) => sum + t.bytes);
     final stale = tiles.where((t) => t.isStale).length;
 
-    final String? blockedReason = cyclosmActive
-        ? MapStrings.downloadBlockedByCyclosm
-        : bounds == null
-        ? l10n.offlineNeedsMap
-        : null;
+    // The map pack is built from the base style, so the CyclOSM overlay
+    // never comes along and does not have to block the download.
+    final String? blockedReason = bounds == null ? l10n.offlineNeedsMap : null;
     final busy = mapProgress != null || queue.isRunning;
 
     return Scaffold(
