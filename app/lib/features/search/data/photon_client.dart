@@ -66,6 +66,22 @@ class PhotonClient {
   /// The server root this client talks to.
   Uri get baseUri => _base;
 
+  /// [query] the way Photon can read it.
+  ///
+  /// Photon splits on whitespace and nothing else, so "400w 42nd" is one
+  /// token "400w" that matches no house number and no street, while
+  /// "400 w 42nd" finds the buildings at 400 West 42nd Street. A number glued
+  /// to a compass letter is what people type on a phone keyboard, so the
+  /// space is put back here rather than left to the rider. Ordinals such as
+  /// "42nd" are left alone.
+  static String normalizeQuery(String query) => query
+      .trim()
+      .replaceAllMapped(
+        RegExp(r'^(\d+)([nsewNSEW])(?=\s|$)'),
+        (m) => '${m[1]} ${m[2]}',
+      )
+      .replaceAll(RegExp(r'\s+'), ' ');
+
   /// The URL a [search] would request. Public so tests can assert it.
   Uri buildUri(
     String query, {
@@ -75,7 +91,7 @@ class PhotonClient {
   }) => _base.replace(
     path: '${_base.path}/api',
     queryParameters: <String, String>{
-      'q': query,
+      'q': normalizeQuery(query),
       'limit': '$limit',
       'lang': ?photonLanguage(lang),
       if (bias != null) 'lat': bias.lat.toString(),

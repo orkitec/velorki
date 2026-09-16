@@ -7,6 +7,17 @@ import 'package:velorki_geo/velorki_geo.dart';
 import 'support/fake_http.dart';
 
 void main() {
+  test('a house number glued to a direction letter gets its space back', () {
+    // "400w 42nd" is one token to Photon and finds nothing; "400 w 42nd"
+    // finds the buildings at 400 West 42nd Street.
+    expect(PhotonClient.normalizeQuery('400w 42nd'), '400 w 42nd');
+    expect(PhotonClient.normalizeQuery('  400   W 42nd  '), '400 W 42nd');
+    expect(PhotonClient.normalizeQuery('42nd street'), '42nd street');
+    expect(PhotonClient.normalizeQuery('munich'), 'munich');
+    final client = PhotonClient('https://photon.example');
+    expect(client.buildUri('400w 42nd').queryParameters['q'], '400 w 42nd');
+  });
+
   test('requests identify as Velorki', () {
     final client = PhotonClient('https://photon.example');
     expect(client.dio.options.headers['User-Agent'], velorkiUserAgent);
