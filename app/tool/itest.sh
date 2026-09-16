@@ -66,8 +66,7 @@ fi
 # as 1, so adding a test file needs no change here unless it is slow.
 itest_weight() {
   case "$(basename "$1")" in
-    close_loop_test.dart) echo 5 ;;
-    navigate_route_test.dart | record_ride_test.dart) echo 3 ;;
+    close_loop_test.dart | navigate_route_test.dart | record_ride_test.dart) echo 2 ;;
     *) echo 1 ;;
   esac
 }
@@ -131,6 +130,13 @@ started=$(date +%s)
 # simulator, and is retried once like the other tooling failures.
 LIMIT="${VELORKI_ITEST_TIMEOUT:-900}"
 
+# How long the tooling may take to attach and start the first test, in
+# seconds. Attaching takes seconds; on a busy API 35 emulator the tooling has
+# been seen to wait forever for the app's VM service line (flutter_tools has
+# no timeout there), with nothing in the log and nothing on the mirror. That
+# used to cost the whole LIMIT before the retry; now it costs this.
+STARTUP="${VELORKI_ITEST_STARTUP_TIMEOUT:-180}"
+
 # The Flutter tooling occasionally fails to bring up its Dart Development
 # Service on a busy CI emulator, or to load the file at all, before the app
 # has even started; that is retried once, anything the test itself says
@@ -151,11 +157,20 @@ flutter_test_one() {
   # Watched from here rather than by a detached sleeper: the launcher turns
   # a kill into a plain exit 1 ("No tests ran."), so the outcome is decided
   # by this loop and a hang is reported as 143.
-  local start now passed_at="" outcome=""
+  local start now passed_at="" running_at="" outcome=""
   start=$(date +%s)
   while kill -0 "$pid" 2>/dev/null; do
     sleep 5
     now=$(date +%s)
+    # The reporter's first "+0: <test name>" line means the app is attached
+    # and the test is running; "+0: loading" comes earlier and does not.
+    if [ -z "$running_at" ] && grep -qE '^[0-9]+:[0-9]+ \+0: ' "$2" \
+      && grep -E '^[0-9]+:[0-9]+ \+0: ' "$2" | grep -qv ': loading '; then
+      running_at=$now
+    fi
+    if [ -z "$running_at" ] && [ $((now - start)) -ge "$STARTUP" ]; then
+      outcome=hung; kill "$pid" 2>/dev/null; break
+    fi
     # On the iOS simulator the tooling has been seen to sit for good after
     # the test itself reported its verdict; a verdict that is followed by
     # nothing for half a minute is taken as final.
