@@ -10,9 +10,11 @@
 library;
 
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart' as geo;
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
@@ -113,6 +115,7 @@ geo.Position fix(
   required int seconds,
   double speed = 5,
   double ele = 0,
+  double heading = 90,
 }) => geo.Position(
   latitude: position.lat,
   longitude: position.lon,
@@ -120,7 +123,7 @@ geo.Position fix(
   accuracy: 4,
   altitude: ele,
   altitudeAccuracy: 2,
-  heading: 90,
+  heading: heading,
   headingAccuracy: 5,
   speed: speed,
   speedAccuracy: 1,
@@ -129,6 +132,134 @@ geo.Position fix(
   hasHeading: true,
   hasSpeed: true,
 );
+
+/// A rider following a planned route, one fix at a time.
+///
+/// Wraps a [ScriptedPositionSource] and walks [line]: [rideTo] pushes a fix
+/// every [stepM] metres up to a distance along the route, [strayTo] pushes one
+/// beside it. Every fix carries the course of the segment being ridden and a
+/// speed, which `adb emu geo fix` cannot give and navigation needs — the
+/// re-route only goes out for a rider who is actually moving, and the map
+/// turns with the course.
+///
+/// The timestamps advance by the distance covered at [speedMps] rather than
+/// with the wall clock, so the recorder sees a steady ride however fast the
+/// test pushes the fixes; they are always at least a second apart, because a
+/// fix that does not move the clock on is rejected as a duplicate.
+class ScriptedRide {
+  /// Creates a rider for [line], pushing into [source].
+  ScriptedRide({
+    required this.source,
+    required List<LatLng> line,
+    this.stepM = 10,
+    this.speedMps = 5,
+  }) : line = List<LatLng>.unmodifiable(line),
+       _cumulative = List<double>.filled(line.length, 0) {
+    for (var i = 1; i < this.line.length; i++) {
+      _cumulative[i] =
+          _cumulative[i - 1] + haversineMeters(this.line[i - 1], this.line[i]);
+    }
+  }
+
+  /// Where the fixes go.
+  final ScriptedPositionSource source;
+
+  /// The route geometry being ridden.
+  final List<LatLng> line;
+
+  /// Metres between two fixes.
+  final double stepM;
+
+  /// How fast the rider travels, in metres per second.
+  final double speedMps;
+
+  final List<double> _cumulative;
+  double _alongM = 0;
+  int _seconds = 0;
+  LatLng? _last;
+
+  /// The length of the route, in metres.
+  double get totalM => _cumulative.isEmpty ? 0 : _cumulative.last;
+
+  /// How far along the route the rider has got, in metres.
+  double get alongM => _alongM;
+
+  /// The point [metres] along the route.
+  LatLng pointAt(double metres) {
+    if (line.isEmpty) return const LatLng(0, 0);
+    if (metres <= 0) return line.first;
+    if (metres >= totalM) return line.last;
+    var i = 1;
+    while (i < _cumulative.length - 1 && _cumulative[i] < metres) {
+      i++;
+    }
+    final span = _cumulative[i] - _cumulative[i - 1];
+    final t = span <= 0 ? 0.0 : (metres - _cumulative[i - 1]) / span;
+    return LatLng(
+      line[i - 1].lat + (line[i].lat - line[i - 1].lat) * t,
+      line[i - 1].lon + (line[i].lon - line[i - 1].lon) * t,
+    );
+  }
+
+  /// Which way the route runs [metres] along it, in degrees from north.
+  double bearingAt(double metres) {
+    if (line.length < 2) return 0;
+    var i = 1;
+    while (i < _cumulative.length - 1 && _cumulative[i] < metres) {
+      i++;
+    }
+    return bearingDegrees(line[i - 1], line[i]);
+  }
+
+  /// Rides on to [targetM] metres along the route, pumping [pump] between the
+  /// fixes so the app has a frame to take each of them in.
+  Future<void> rideTo(
+    WidgetTester tester,
+    double targetM, {
+    Duration pump = const Duration(milliseconds: 40),
+  }) async {
+    final target = targetM.clamp(0.0, totalM);
+    while (_alongM < target) {
+      _alongM = math.min(target, _alongM + stepM);
+      await _emit(tester, pointAt(_alongM), bearingAt(_alongM), pump);
+    }
+  }
+
+  /// Pushes one fix [offsetM] metres to the right of where the rider stands,
+  /// without moving them along the route.
+  ///
+  /// Called again with a different offset it is a rider carrying on away from
+  /// the route: the clock moves with the distance between the two, so the
+  /// recorder still reports a rider under way.
+  Future<void> strayTo(
+    WidgetTester tester,
+    double offsetM, {
+    Duration pump = const Duration(milliseconds: 40),
+  }) async {
+    final bearing = bearingAt(_alongM);
+    await _emit(
+      tester,
+      destinationPoint(pointAt(_alongM), bearing + 90, offsetM),
+      bearing,
+      pump,
+    );
+  }
+
+  Future<void> _emit(
+    WidgetTester tester,
+    LatLng position,
+    double heading,
+    Duration pump,
+  ) async {
+    final metres = _last == null ? 0.0 : haversineMeters(_last!, position);
+    _seconds += math.max(1, (metres / speedMps).round());
+    _last = position;
+    source.emit(
+      fix(position, seconds: _seconds, speed: speedMps, heading: heading),
+    );
+    await tester.pump(pump);
+  }
+}
 
 /// A notification permission that is always granted, so `start()` never waits
 /// for the POST_NOTIFICATIONS prompt.
