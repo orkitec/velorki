@@ -9,6 +9,7 @@ import 'package:velorki/features/settings/data/appearance_controller.dart';
 const String _modeKey = 'appearance.mode';
 const String _accentKey = 'appearance.accent';
 const String _mapKey = 'appearance.map';
+const String _overlayDarkKey = 'appearance.overlay_dark';
 
 Future<(ProviderContainer, SharedPreferences)> _container([
   Map<String, Object> initial = const <String, Object>{},
@@ -148,5 +149,54 @@ void main() {
   test('an unknown stored map look falls back to auto', () async {
     final (container, _) = await _container(<String, Object>{_mapKey: 'sepia'});
     expect(container.read(appearanceSettingProvider).mapLook, MapLook.auto);
+  });
+
+  test('the cycling overlay is inverted on dark maps to begin with', () async {
+    final (container, _) = await _container();
+
+    expect(
+      container.read(appearanceSettingProvider).overlayDark,
+      OverlayDarkMode.inverted,
+    );
+  });
+
+  test('setOverlayDark persists the choice and inverted clears it', () async {
+    final (container, prefs) = await _container();
+    final notifier = container.read(appearanceSettingProvider.notifier);
+
+    await notifier.setOverlayDark(OverlayDarkMode.dimmed);
+    expect(prefs.getString(_overlayDarkKey), 'dimmed');
+    expect(
+      container.read(appearanceSettingProvider).overlayDark,
+      OverlayDarkMode.dimmed,
+    );
+    // The map look is left alone.
+    expect(container.read(appearanceSettingProvider).mapLook, MapLook.auto);
+
+    await notifier.setOverlayDark(OverlayDarkMode.inverted);
+    expect(prefs.containsKey(_overlayDarkKey), isFalse);
+    expect(container.read(appearanceSettingProvider), const Appearance());
+  });
+
+  test('what was stored for the overlay comes back', () async {
+    final (container, _) = await _container(<String, Object>{
+      _overlayDarkKey: 'unchanged',
+    });
+
+    expect(
+      container.read(appearanceSettingProvider).overlayDark,
+      OverlayDarkMode.unchanged,
+    );
+  });
+
+  test('an unknown stored overlay mode falls back to inverted', () async {
+    final (container, _) = await _container(<String, Object>{
+      _overlayDarkKey: 'solarised',
+    });
+
+    expect(
+      container.read(appearanceSettingProvider).overlayDark,
+      OverlayDarkMode.inverted,
+    );
   });
 }

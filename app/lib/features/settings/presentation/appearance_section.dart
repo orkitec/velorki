@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/app_config.dart';
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../data/appearance_controller.dart';
@@ -63,6 +64,29 @@ class AppearanceSection extends ConsumerWidget {
                 ),
             ],
           ),
+          // Only a build that ships CyclOSM tiles can draw the overlay, and
+          // only then is there anything to choose here.
+          if (ref.watch(effectiveConfigProvider).cyclosmTileUrl.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Text(
+              l10n.appearanceOverlayDarkTitle,
+              style: theme.textTheme.titleSmall,
+            ),
+            const SizedBox(height: 10),
+            SegmentedButton<OverlayDarkMode>(
+              showSelectedIcon: false,
+              segments: [
+                for (final mode in OverlayDarkMode.values)
+                  ButtonSegment(
+                    value: mode,
+                    label: Text(overlayDarkLabel(l10n, mode)),
+                  ),
+              ],
+              selected: {appearance.overlayDark},
+              onSelectionChanged: (selection) =>
+                  unawaited(controller.setOverlayDark(selection.single)),
+            ),
+          ],
           const SizedBox(height: 20),
           Text(l10n.appearanceAccent, style: theme.textTheme.titleSmall),
           const SizedBox(height: 10),
@@ -95,6 +119,14 @@ String mapLookLabel(AppLocalizations l10n, MapLook look) => switch (look) {
   MapLook.night => l10n.mapLookNight,
   MapLook.black => l10n.mapLookBlack,
 };
+
+/// The localised name of a dark-map treatment for the cycling overlay.
+String overlayDarkLabel(AppLocalizations l10n, OverlayDarkMode mode) =>
+    switch (mode) {
+      OverlayDarkMode.inverted => l10n.appearanceOverlayDarkInverted,
+      OverlayDarkMode.dimmed => l10n.appearanceOverlayDarkDimmed,
+      OverlayDarkMode.unchanged => l10n.appearanceOverlayDarkUnchanged,
+    };
 
 /// The localised name of an accent preset.
 String accentLabel(AppLocalizations l10n, AccentPreset preset) =>

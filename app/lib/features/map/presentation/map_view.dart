@@ -10,6 +10,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 import '../../../app/app_config.dart';
 import '../../recording/data/battery_saver.dart';
 import '../../settings/data/appearance_controller.dart';
+import '../data/cyclosm_tone.dart';
 import '../data/map_preferences.dart';
 import '../data/maplibre_map_controller.dart';
 import '../data/position_provider.dart';
@@ -41,6 +42,16 @@ const String fallbackMapStyleUrlDark =
 /// OpenFreeMap's black style, the "Black" map look.
 const String blackMapStyleUrl = 'https://tiles.openfreemap.org/styles/dark';
 
+/// [look] with [MapLook.auto] turned into the look it actually is under
+/// [brightness], so everything that depends on which map is on screen — the
+/// style URL, the tone of the CyclOSM overlay — agrees on one answer.
+MapLook resolveMapLook(MapLook look, Brightness brightness) =>
+    look != MapLook.auto
+    ? look
+    : brightness == Brightness.dark
+    ? MapLook.night
+    : MapLook.light;
+
 /// The style for [look] under [brightness]: the configured URLs, else
 /// OpenFreeMap's.
 String mapStyleUrlFor(
@@ -54,11 +65,11 @@ String mapStyleUrlFor(
   final night = config.mapStyleUrlDark.isEmpty
       ? fallbackMapStyleUrlDark
       : config.mapStyleUrlDark;
-  return switch (look) {
-    MapLook.light => light,
+  return switch (resolveMapLook(look, brightness)) {
     MapLook.night => night,
     MapLook.black => blackMapStyleUrl,
-    MapLook.auto => brightness == Brightness.dark ? night : light,
+    // `resolveMapLook` has already turned auto into one of the others.
+    MapLook.light || MapLook.auto => light,
   };
 }
 
@@ -171,6 +182,7 @@ class _MapViewState extends ConsumerState<MapView> {
         cyclosmTileUrl: ref.read(effectiveConfigProvider).cyclosmTileUrl,
         devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
         palette: MapPalette.fromTheme(Theme.of(context)),
+        cyclosmTone: _readCyclosmTone(),
       );
     } on StateError {
       // The style finished loading while the world around the map is being
@@ -189,6 +201,18 @@ class _MapViewState extends ConsumerState<MapView> {
     // wait for the next one, which is up to five metres of riding away.
     final known = ref.read(devicePositionProvider).value;
     if (known != null) _pushPosition(known);
+  }
+
+  /// How the CyclOSM overlay is painted for the map look and the overlay
+  /// setting in force right now.
+  RasterTone _readCyclosmTone() {
+    final appearance = ref.read(appearanceSettingProvider);
+    final look =
+        ref.read(appearanceOverrideProvider)?.mapLook ?? appearance.mapLook;
+    return cyclosmToneFor(
+      resolveMapLook(look, Theme.of(context).brightness),
+      appearance.overlayDark,
+    );
   }
 
   void _onCameraIdle() {
@@ -224,12 +248,29 @@ class _MapViewState extends ConsumerState<MapView> {
       if (next.hasValue) _pushPosition(next.value);
     });
     final config = ref.watch(effectiveConfigProvider);
+    final appearance = ref.watch(appearanceSettingProvider);
     // The black style of a battery-saver ride wins over the rider's own look
     // for as long as that ride lasts.
     final look =
-        ref.watch(appearanceOverrideProvider)?.mapLook ??
-        ref.watch(appearanceSettingProvider).mapLook;
-    final styleUrl = mapStyleUrlFor(config, Theme.of(context).brightness, look);
+        ref.watch(appearanceOverrideProvider)?.mapLook ?? appearance.mapLook;
+    final brightness = Theme.of(context).brightness;
+    final styleUrl = mapStyleUrlFor(config, brightness, look);
+    // A look change swaps the style, and the fresh adapter built from
+    // `_onStyleLoaded` adds the overlay in the new tone; a change of the
+    // overlay setting alone keeps the style, so the layer is re-painted here.
+    // Both paths run through one call, which does nothing when the tone is
+    // already the one on screen.
+    final adapter = _adapter;
+    if (adapter != null) {
+      unawaited(
+        adapter.setCyclosmTone(
+          cyclosmToneFor(
+            resolveMapLook(look, brightness),
+            appearance.overlayDark,
+          ),
+        ),
+      );
+    }
     // Read, not watch: the initial camera must not rebuild the platform view
     // every time the camera is saved.
     final camera = widget.rememberCamera

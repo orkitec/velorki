@@ -76,8 +76,16 @@ void main() {
   }
 
   /// Waits for the debounce and the search behind it.
-  Future<void> settle() =>
-      Future<void>.delayed(const Duration(milliseconds: 300));
+  // Waits out the debounce and then for the search to finish. A fixed
+  // delay races the whole suite's load; polling the state does not.
+  Future<void> settle([ProviderContainer? container]) async {
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    if (container == null) return;
+    for (var i = 0; i < 100; i++) {
+      if (!container.read(placeSearchProvider).isLoading) return;
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    }
+  }
 
   test('with a gazetteer the search answers from the device', () async {
     final adapter = FakeHttpAdapter(body: photonFixture);
@@ -86,7 +94,7 @@ void main() {
     container
         .read(placeSearchProvider.notifier)
         .query('vaduz', bias: inTheTile);
-    await settle();
+    await settle(container);
 
     final state = container.read(placeSearchProvider).value!;
     expect(state.source, SearchSource.local);
@@ -105,7 +113,7 @@ void main() {
     container
         .read(placeSearchProvider.notifier)
         .query('vaduz', lang: 'en', bias: outsideTheTile);
-    await settle();
+    await settle(container);
 
     final state = container.read(placeSearchProvider).value!;
     expect(
@@ -123,7 +131,7 @@ void main() {
     final container = await containerFor(adapter: adapter);
 
     container.read(placeSearchProvider.notifier).query('vaduz', lang: 'en');
-    await settle();
+    await settle(container);
 
     final state = container.read(placeSearchProvider).value!;
     expect(adapter.requests, hasLength(1));
@@ -137,7 +145,7 @@ void main() {
     final notifier = container.read(placeSearchProvider.notifier);
 
     notifier.query('vaduz', bias: inTheTile);
-    await settle();
+    await settle(container);
     expect(
       container.read(placeSearchProvider).value!.source,
       SearchSource.local,
@@ -167,7 +175,7 @@ void main() {
     final notifier = container.read(placeSearchProvider.notifier);
 
     notifier.query('vaduz', bias: outsideTheTile);
-    await settle();
+    await settle(container);
     expect(
       container.read(placeSearchProvider).value!.source,
       SearchSource.online,
@@ -186,7 +194,7 @@ void main() {
     final notifier = container.read(placeSearchProvider.notifier);
 
     notifier.query('vaduz', bias: inTheTile);
-    await settle();
+    await settle(container);
     expect(adapter.requests, isEmpty);
 
     await notifier.searchOnline(bias: inTheTile);
@@ -205,7 +213,7 @@ void main() {
     container
         .read(placeSearchProvider.notifier)
         .query('vaduz', bias: inTheTile);
-    await settle();
+    await settle(container);
 
     final state = container.read(placeSearchProvider).value!;
     expect(state.source, SearchSource.local);
@@ -222,7 +230,7 @@ void main() {
     );
 
     container.read(placeSearchProvider.notifier).query('munich', lang: 'en');
-    await settle();
+    await settle(container);
 
     final state = container.read(placeSearchProvider).value!;
     expect(adapter.requests, hasLength(1));
@@ -237,7 +245,7 @@ void main() {
     final container = await containerFor(adapter: adapter);
 
     container.read(placeSearchProvider.notifier).query('va', bias: inTheTile);
-    await settle();
+    await settle(container);
 
     expect(container.read(placeSearchProvider).value!.results, isEmpty);
     expect(adapter.requests, isEmpty);
@@ -250,7 +258,7 @@ void main() {
     final notifier = container.read(placeSearchProvider.notifier)
       ..query('schaan', bias: inTheTile)
       ..query('vaduz', bias: inTheTile);
-    await settle();
+    await settle(container);
 
     final state = container.read(placeSearchProvider).value!;
     expect(state.query, 'vaduz');
@@ -266,11 +274,11 @@ void main() {
     );
     final notifier = container.read(placeSearchProvider.notifier)
       ..query('munich');
-    await settle();
+    await settle(container);
     expect(adapter.requests, hasLength(1));
 
     notifier.query('munchen');
-    await settle();
+    await settle(container);
 
     expect(adapter.requests, hasLength(2));
     expect(adapter.lastUri.queryParameters['q'], 'munchen');
@@ -280,7 +288,7 @@ void main() {
     final container = await containerFor();
     final notifier = container.read(placeSearchProvider.notifier)
       ..query('vaduz', bias: inTheTile);
-    await settle();
+    await settle(container);
     expect(container.read(placeSearchProvider).value!.results, isNotEmpty);
 
     notifier.clear();
@@ -300,7 +308,7 @@ void main() {
     );
 
     container.read(placeSearchProvider.notifier).query('munich');
-    await settle();
+    await settle(container);
 
     expect(container.read(placeSearchProvider).hasError, isTrue);
   });

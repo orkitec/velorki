@@ -12,11 +12,17 @@ import 'package:velorki/l10n/generated/app_localizations.dart';
 Future<ProviderContainer> _pump(
   WidgetTester tester, {
   Map<String, Object> initial = const <String, Object>{},
+  String cyclosmTileUrl = '',
 }) async {
   SharedPreferences.setMockInitialValues(initial);
   final prefs = await SharedPreferences.getInstance();
   final container = ProviderContainer(
-    overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      effectiveConfigProvider.overrideWithValue(
+        AppConfig(cyclosmTileUrl: cyclosmTileUrl),
+      ),
+    ],
   );
   addTearDown(container.dispose);
 
@@ -138,5 +144,65 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(container.read(appearanceSettingProvider).mapLook, MapLook.night);
+  });
+
+  testWidgets('a build without CyclOSM tiles offers no overlay choice', (
+    tester,
+  ) async {
+    await _pump(tester);
+
+    expect(find.byType(SegmentedButton<OverlayDarkMode>), findsNothing);
+    expect(find.text('Cycling overlay on dark maps'), findsNothing);
+  });
+
+  testWidgets('choosing Dimmed switches the overlay and stores it', (
+    tester,
+  ) async {
+    final container = await _pump(
+      tester,
+      cyclosmTileUrl: 'https://{s}.tile.cyclosm.org/{z}/{x}/{y}.png',
+    );
+    expect(find.text('Cycling overlay on dark maps'), findsOneWidget);
+    expect(
+      tester
+          .widget<SegmentedButton<OverlayDarkMode>>(
+            find.byType(SegmentedButton<OverlayDarkMode>),
+          )
+          .selected,
+      {OverlayDarkMode.inverted},
+    );
+
+    await tester.tap(find.text('Dimmed'));
+    await tester.pumpAndSettle();
+
+    expect(
+      container.read(appearanceSettingProvider).overlayDark,
+      OverlayDarkMode.dimmed,
+    );
+    expect(
+      tester
+          .widget<SegmentedButton<OverlayDarkMode>>(
+            find.byType(SegmentedButton<OverlayDarkMode>),
+          )
+          .selected,
+      {OverlayDarkMode.dimmed},
+    );
+  });
+
+  testWidgets('the stored overlay choice is the one shown', (tester) async {
+    await _pump(
+      tester,
+      initial: <String, Object>{'appearance.overlay_dark': 'unchanged'},
+      cyclosmTileUrl: 'https://{s}.tile.cyclosm.org/{z}/{x}/{y}.png',
+    );
+
+    expect(
+      tester
+          .widget<SegmentedButton<OverlayDarkMode>>(
+            find.byType(SegmentedButton<OverlayDarkMode>),
+          )
+          .selected,
+      {OverlayDarkMode.unchanged},
+    );
   });
 }

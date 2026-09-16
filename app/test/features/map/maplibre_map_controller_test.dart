@@ -5,6 +5,7 @@ import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
+import 'package:velorki/features/map/data/cyclosm_tone.dart';
 import 'package:velorki/features/map/data/geojson.dart';
 import 'package:velorki/features/map/data/heading_cone.dart';
 import 'package:velorki/features/map/data/maplibre_map_controller.dart';
@@ -56,10 +57,12 @@ MaplibreMapControllerAdapter _adapter(
   RecordingStyleOps ops, {
   String cyclosmTileUrl = '',
   MapPalette palette = const MapPalette.classic(),
+  RasterTone cyclosmTone = lightCyclosmTone,
 }) => MaplibreMapControllerAdapter.withOps(
   ops,
   cyclosmTileUrl: cyclosmTileUrl,
   palette: palette,
+  cyclosmTone: cyclosmTone,
 );
 
 /// The features of the collection last written to [sourceId].
@@ -317,6 +320,123 @@ void main() {
         <bool>[true, false],
       );
       expect(ops.callsNamed('addLayer'), isEmpty);
+    });
+
+    test('is added in the tone of the look on screen', () async {
+      final ops = RecordingStyleOps();
+
+      await _adapter(
+        ops,
+        cyclosmTileUrl: _cyclosmTemplate,
+        cyclosmTone: nightInvertedTone,
+      ).attachToStyle();
+
+      final added = ops.addLayerOf(MapLayerIds.cyclosmLayer)!.properties!;
+      expect(added, containsPair('raster-brightness-min', 1.0));
+      expect(added, containsPair('raster-brightness-max', 0.0));
+      expect(added, containsPair('raster-hue-rotate', 180.0));
+      expect(added, containsPair('raster-saturation', -0.2));
+      expect(added, containsPair('raster-opacity', 0.9));
+    });
+
+    test('is re-painted, not re-added, when the look changes', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops, cyclosmTileUrl: _cyclosmTemplate);
+      await adapter.attachToStyle();
+      await adapter.setCyclosmOverlay(true);
+      ops.clearCalls();
+
+      await adapter.setCyclosmTone(blackInvertedTone);
+
+      final painted = ops.lastPropertiesOf(MapLayerIds.cyclosmLayer)!;
+      expect(painted.properties, containsPair('raster-brightness-min', 0.85));
+      expect(painted.properties, containsPair('raster-saturation', -0.4));
+      // The overlay is on, and a repaint must not switch it off: the
+      // visibility is left out of the write entirely.
+      expect(painted.properties!.keys, isNot(contains('visibility')));
+      expect(ops.callsNamed('addLayer'), isEmpty);
+      expect(adapter.cyclosmTone, blackInvertedTone);
+    });
+
+    test('follows the dark-map setting without a style change', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(
+        ops,
+        cyclosmTileUrl: _cyclosmTemplate,
+        cyclosmTone: nightInvertedTone,
+      );
+      await adapter.attachToStyle();
+      ops.clearCalls();
+
+      // The rider switched the treatment from inverted to dimmed; the map
+      // look, and so the style, stayed where it was.
+      await adapter.setCyclosmTone(nightDimmedTone);
+
+      expect(
+        ops.lastPropertiesOf(MapLayerIds.cyclosmLayer)!.properties,
+        containsPair('raster-brightness-max', 0.55),
+      );
+      expect(ops.callsNamed('addLayer'), isEmpty);
+    });
+
+    test('writes nothing when the tone is already the one on screen', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(
+        ops,
+        cyclosmTileUrl: _cyclosmTemplate,
+        cyclosmTone: nightInvertedTone,
+      );
+      await adapter.attachToStyle();
+      ops.clearCalls();
+
+      await adapter.setCyclosmTone(nightInvertedTone);
+
+      expect(ops.calls, isEmpty);
+    });
+
+    test('is added in the new tone after the style reload', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops, cyclosmTileUrl: _cyclosmTemplate);
+
+      // What a look change does: the tone is set, the style reloads, and the
+      // overlay comes back painted for the new map.
+      await adapter.setCyclosmTone(blackInvertedTone);
+      await adapter.attachToStyle();
+
+      expect(
+        ops.addLayerOf(MapLayerIds.cyclosmLayer)!.properties,
+        containsPair('raster-brightness-min', 0.85),
+      );
+    });
+
+    test('a repaint of a style already gone is not an error', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops, cyclosmTileUrl: _cyclosmTemplate);
+      await adapter.attachToStyle();
+      ops.layerPropertiesError = PlatformException(
+        code: 'LAYER_NOT_FOUND_ERROR',
+        message: 'Layer not found',
+      );
+
+      await adapter.setCyclosmTone(nightInvertedTone);
+
+      // The next attach draws the overlay in the tone set here.
+      await adapter.attachToStyle();
+      expect(
+        ops.addLayerOf(MapLayerIds.cyclosmLayer)!.properties,
+        containsPair('raster-hue-rotate', 180.0),
+      );
+    });
+
+    test('re-toning does nothing without a tile template', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      ops.clearCalls();
+
+      await adapter.setCyclosmTone(nightInvertedTone);
+
+      expect(ops.calls, isEmpty);
     });
 
     test('toggling does nothing without a tile template', () async {

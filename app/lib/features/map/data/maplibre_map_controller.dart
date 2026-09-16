@@ -10,6 +10,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/theme.dart';
 import '../domain/map_controller.dart';
+import 'cyclosm_tone.dart';
 import 'geojson.dart';
 import 'heading_cone.dart';
 import 'heading_smoother.dart';
@@ -450,11 +451,13 @@ class MaplibreMapControllerAdapter implements MapController {
     String cyclosmTileUrl = '',
     double devicePixelRatio = 1.0,
     MapPalette palette = const MapPalette.classic(),
+    RasterTone cyclosmTone = lightCyclosmTone,
   }) : this.withOps(
          PluginMapLibreStyleOps(map),
          cyclosmTileUrl: cyclosmTileUrl,
          devicePixelRatio: devicePixelRatio,
          palette: palette,
+         cyclosmTone: cyclosmTone,
        );
 
   /// Drives [ops] instead of a plugin controller, so the layer work can be
@@ -464,16 +467,23 @@ class MaplibreMapControllerAdapter implements MapController {
     this.cyclosmTileUrl = '',
     this.devicePixelRatio = 1.0,
     MapPalette palette = const MapPalette.classic(),
-  }) : _palette = palette; // ignore: prefer_initializing_formals
+    RasterTone cyclosmTone = lightCyclosmTone,
+  }) : _palette = palette, // ignore: prefer_initializing_formals
+       _cyclosmTone = cyclosmTone; // ignore: prefer_initializing_formals
 
   final MapLibreStyleOps _ops;
   MapPalette _palette;
+  RasterTone _cyclosmTone;
 
   /// Screen density the heading cone bitmap is rasterised at.
   final double devicePixelRatio;
 
   /// The colours the layers are drawn with.
   MapPalette get palette => _palette;
+
+  /// The raster paint the CyclOSM overlay is drawn with: the tone of the map
+  /// look on screen, chosen by the owner (see [cyclosmToneFor]).
+  RasterTone get cyclosmTone => _cyclosmTone;
 
   /// CyclOSM XYZ template, `{s}` included; empty disables the overlay.
   final String cyclosmTileUrl;
@@ -778,12 +788,34 @@ class MaplibreMapControllerAdapter implements MapController {
     await _ops.addLayer(
       MapLayerIds.cyclosmSource,
       MapLayerIds.cyclosmLayer,
-      ml.RasterLayerProperties(
-        rasterOpacity: 0.85,
+      _cyclosmTone.layerProperties(
         visibility: _cyclosmVisible ? 'visible' : 'none',
       ),
       enableInteraction: false,
     );
+  }
+
+  /// Re-paints the CyclOSM overlay in [tone], e.g. after the rider switched
+  /// to the night map or changed how the overlay is treated there.
+  ///
+  /// A look change normally swaps the base style, and the style-loaded
+  /// callback builds a fresh adapter that adds the overlay in the new tone.
+  /// This is the other path — the overlay setting changing on its own, and
+  /// the moment before a style reload lands — where the layer is still there
+  /// and only its paint has to change.
+  Future<void> setCyclosmTone(RasterTone tone) async {
+    if (tone == _cyclosmTone) return;
+    _cyclosmTone = tone;
+    if (!_attached || expandTileTemplate(cyclosmTileUrl).isEmpty) return;
+    try {
+      await _ops.setLayerProperties(
+        MapLayerIds.cyclosmLayer,
+        tone.layerProperties(),
+      );
+    } on PlatformException {
+      // The old style is on its way out; the next `attachToStyle` adds the
+      // overlay in the tone set above.
+    }
   }
 
   // ---------------------------------------------------------------- camera
