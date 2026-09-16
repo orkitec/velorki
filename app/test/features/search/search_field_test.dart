@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:velorki/core/units/units.dart';
 import 'package:velorki/features/search/data/gazetteer_store.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
@@ -116,14 +117,17 @@ void main() {
     });
 
     /// The store override, over a fixture unless [empty].
-    List<Override> storeOverride({bool empty = false}) {
+    List<Override> storeOverride({
+      bool empty = false,
+      List<GazPoi> extraPois = const <GazPoi>[],
+    }) {
       if (!empty) {
         buildGazetteer(
           dir,
           'E5_N45',
           places: fixturePlaces,
           streets: fixtureStreets,
-          pois: fixturePois,
+          pois: <GazPoi>[...fixturePois, ...extraPois],
           // Städtle 2 and 10 are known, so 2 is exact and 4 is interpolated.
           houseNumbers: const <GazHouseNumber>[
             GazHouseNumber(11, 2, 47.1398, 9.5210),
@@ -146,12 +150,16 @@ void main() {
       bool empty = false,
       bool withGeocoder = true,
       String text = 'vaduz',
+      LatLng? bias,
+      List<GazPoi> extraPois = const <GazPoi>[],
     }) async {
       final h = await pumpScreen(
         tester,
-        Scaffold(body: SearchField(onSelected: (_) {})),
+        Scaffold(
+          body: SearchField(onSelected: (_) {}, bias: () => bias),
+        ),
         harness: PlannerHarness(withGeocoder: withGeocoder),
-        extraOverrides: storeOverride(empty: empty),
+        extraOverrides: storeOverride(empty: empty, extraPois: extraPois),
       );
       // The store is opened while the app starts; a frame stands in for that.
       await tester.pump();
@@ -203,6 +211,52 @@ void main() {
       await pumpField(tester, text: 'stadtle 4');
 
       expect(find.text('Street \u00b7 \u2248 4 \u00b7 Vaduz'), findsOneWidget);
+    });
+
+    testWidgets('a kind word lists the nearest ones, unnamed rows included', (
+      tester,
+    ) async {
+      await pumpField(
+        tester,
+        text: 'drinking water',
+        bias: const LatLng(47.1410, 9.5209),
+        extraPois: const <GazPoi>[
+          GazPoi.unnamed(30, 'drinking_water', 47.1415, 9.5209),
+        ],
+      );
+
+      // The unnamed tap is the nearest and wears its kind as its name.
+      final rows = tester
+          .widgetList<ListTile>(find.byType(ListTile))
+          .map((tile) => (tile.title! as Text).data)
+          .toList();
+      expect(rows.first, 'Drinking water');
+      expect(rows[1], 'Brunnen Mühleholz');
+      expect(find.byIcon(Icons.water_drop_outlined), findsNWidgets(2));
+      expect(find.textContaining('Drinking water \u00b7 5'), findsOneWidget);
+      expect(
+        find.textContaining('Drinking water \u00b7 7'),
+        findsOneWidget,
+        reason: 'the named tap is some 760 m from the centre',
+      );
+    });
+
+    testWidgets('a misspelling is corrected and the card says so', (
+      tester,
+    ) async {
+      await pumpField(tester, text: 'vaduzz');
+
+      expect(
+        find.text('Showing results for \u201cvaduz\u201d'),
+        findsOneWidget,
+      );
+      expect(find.text('Vaduz'), findsOneWidget);
+    });
+
+    testWidgets('a query that answers is never corrected', (tester) async {
+      await pumpField(tester);
+
+      expect(find.textContaining('Showing results for'), findsNothing);
     });
 
     testWidgets('the last row offers the online search and runs it', (
@@ -324,6 +378,42 @@ const _kinds =
         detail: 'drinking_water',
         icon: Icons.water_drop_outlined,
         label: 'Drinking water',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'toilets',
+        icon: Icons.wc_outlined,
+        label: 'Toilets',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'bicycle_rental',
+        icon: Icons.directions_bike_outlined,
+        label: 'Bike rental',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'charging_station',
+        icon: Icons.ev_station_outlined,
+        label: 'E-bike charging',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'pharmacy',
+        icon: Icons.local_pharmacy_outlined,
+        label: 'Pharmacy',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'picnic_site',
+        icon: Icons.deck_outlined,
+        label: 'Picnic site',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'bicycle_parking',
+        icon: Icons.local_parking_outlined,
+        label: 'Bike parking',
       ),
       (
         kind: SearchKind.poi,
@@ -563,6 +653,101 @@ void _kindTable() {
         _local(SearchKind.unknown, null, city: 'Vaduz'),
       ),
       'Vaduz',
+    );
+  });
+
+  test('a row with no name at all is titled by what it is', () {
+    SearchResult unnamed(String? detail, {SearchKind kind = SearchKind.poi}) =>
+        SearchResult(
+          name: '',
+          position: const LatLng(47, 9.5),
+          source: SearchSource.local,
+          kind: kind,
+          detail: detail,
+        );
+
+    expect(
+      searchResultTitle(l10n, unnamed('drinking_water')),
+      'Drinking water',
+    );
+    expect(searchResultTitle(l10n, unnamed('bicycle_parking')), 'Bike parking');
+    expect(
+      searchResultTitle(l10n, unnamed(null, kind: SearchKind.unknown)),
+      'Place',
+      reason: 'a row that is nothing in particular still needs a title',
+    );
+    expect(
+      searchResultTitle(l10n, _local(SearchKind.poi, 'drinking_water')),
+      'Somewhere',
+      reason: 'a name is never replaced',
+    );
+  });
+
+  test('a row found by its kind says how far away it is', () {
+    SearchResult tap({required double meters, String? city}) => SearchResult(
+      name: '',
+      position: const LatLng(47, 9.5),
+      source: SearchSource.local,
+      kind: SearchKind.poi,
+      detail: 'drinking_water',
+      city: city,
+      distanceMeters: meters,
+    );
+
+    expect(
+      localResultSubtitle(l10n, tap(meters: 350), units: UnitSystem.metric),
+      'Drinking water \u00b7 350 m',
+    );
+    expect(
+      localResultSubtitle(l10n, tap(meters: 2400), units: UnitSystem.metric),
+      'Drinking water \u00b7 2.4 km',
+    );
+    expect(
+      localResultSubtitle(l10n, tap(meters: 120), units: UnitSystem.imperial),
+      'Drinking water \u00b7 390 ft',
+    );
+    expect(
+      localResultSubtitle(l10n, tap(meters: 350), units: UnitSystem.imperial),
+      'Drinking water \u00b7 0.2 mi',
+    );
+    expect(
+      localResultSubtitle(
+        l10n,
+        tap(meters: 350, city: 'Vaduz'),
+        units: UnitSystem.metric,
+      ),
+      'Drinking water \u00b7 350 m \u00b7 Vaduz',
+    );
+    expect(
+      localResultSubtitle(l10n, tap(meters: 350)),
+      'Drinking water',
+      reason: 'a row the units are not known for keeps the distance to itself',
+    );
+    expect(
+      localResultSubtitle(
+        l10n,
+        _local(SearchKind.poi, 'cafe'),
+        units: UnitSystem.metric,
+      ),
+      'Cafe',
+      reason: 'a name match was not found by its distance',
+    );
+  });
+
+  test('the keyword table maps every label the app can print', () {
+    final table = localisedKindKeywords(l10n);
+
+    expect(table['drinking water'], 'drinking_water');
+    expect(table['toilets'], 'toilets');
+    expect(table['bike rental'], 'bicycle_rental');
+    expect(table['e-bike charging'], 'charging_station');
+    expect(table['pharmacy'], 'pharmacy');
+    expect(table['picnic site'], 'picnic_site');
+    expect(table['bike parking'], 'bicycle_parking');
+    expect(
+      table.containsKey('place'),
+      isFalse,
+      reason: 'the fallback label names no kind',
     );
   });
 

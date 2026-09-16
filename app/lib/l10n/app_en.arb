@@ -654,6 +654,80 @@
   "@searchKindPlace": {
     "description": "Second line of an offline search result that is a landmark of no recognised kind"
   },
+  "searchKindToilets": "Toilets",
+  "@searchKindToilets": {
+    "description": "Second line of an offline search result that is a public toilet"
+  },
+  "searchKindBikeRental": "Bike rental",
+  "@searchKindBikeRental": {
+    "description": "Second line of an offline search result that is a bicycle rental station"
+  },
+  "searchKindCharging": "E-bike charging",
+  "@searchKindCharging": {
+    "description": "Second line of an offline search result that is a charging station an e-bike can use"
+  },
+  "searchKindPharmacy": "Pharmacy",
+  "@searchKindPharmacy": {
+    "description": "Second line of an offline search result that is a pharmacy"
+  },
+  "searchKindPicnicSite": "Picnic site",
+  "@searchKindPicnicSite": {
+    "description": "Second line of an offline search result that is a picnic site"
+  },
+  "searchKindBikeParking": "Bike parking",
+  "@searchKindBikeParking": {
+    "description": "Second line of an offline search result that is bicycle parking"
+  },
+  "searchCorrectedTo": "Showing results for “{query}”",
+  "@searchCorrectedTo": {
+    "description": "Hint above the offline results when nothing matched what was typed and the search was repeated with a corrected spelling",
+    "placeholders": {
+      "query": {
+        "type": "String",
+        "example": "münchen"
+      }
+    }
+  },
+  "searchSettingsTitle": "Search",
+  "@searchSettingsTitle": {
+    "description": "Title of the settings page that orders and switches off the offline search groups"
+  },
+  "searchSettingsCaption": "What offline search shows, and in which order. Drag to change the priority.",
+  "@searchSettingsCaption": {
+    "description": "One-line explanation at the top of the search settings page"
+  },
+  "searchGroupPlaces": "Places",
+  "@searchGroupPlaces": {
+    "description": "Search group: cities, towns, villages and other settlements"
+  },
+  "searchGroupStreets": "Streets and addresses",
+  "@searchGroupStreets": {
+    "description": "Search group: streets and house numbers"
+  },
+  "searchGroupLandmarks": "Landmarks",
+  "@searchGroupLandmarks": {
+    "description": "Search group: attractions, museums, churches, towers and named buildings"
+  },
+  "searchGroupCyclingStops": "Cycling stops",
+  "@searchGroupCyclingStops": {
+    "description": "Search group: taps, cafes, bike shops, repair stations and other stops on a ride"
+  },
+  "searchGroupOvernight": "Overnight",
+  "@searchGroupOvernight": {
+    "description": "Search group: campsites, hotels, hostels and mountain huts"
+  },
+  "searchGroupNature": "Nature",
+  "@searchGroupNature": {
+    "description": "Search group: peaks, passes, viewpoints, parks, water and beaches"
+  },
+  "searchGroupTransport": "Transport",
+  "@searchGroupTransport": {
+    "description": "Search group: stations, airports and ferry terminals"
+  },
+  "searchGroupServices": "Services",
+  "@searchGroupServices": {
+    "description": "Search group: hospitals, pharmacies, universities, sports venues and shopping centres"
+  },
   "libraryRoutes": "Routes",
   "@libraryRoutes": {
     "description": "Library section switch: the saved routes"

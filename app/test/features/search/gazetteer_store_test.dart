@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/search/data/gazetteer_store.dart';
+import 'package:velorki/features/search/domain/search_group.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -513,6 +514,318 @@ void main() {
       expect(hit.approximate, isTrue, reason: 'no anchors in an old file');
       expect(hit.position.lat, closeTo(40.7570, 1e-7));
       expect((await store.search('manhat')).single.name, 'Manhattan');
+    });
+  });
+
+  group('the nearest of a kind', () {
+    const LatLng centre = LatLng(47.1410, 9.5209);
+
+    /// A latitude [meters] north of [centre].
+    double north(double meters) => centre.lat + meters / 111320;
+
+    /// Taps, toilets and racks around the centre, one of each named.
+    void buildStops() {
+      buildGazetteer(
+        dir,
+        'E5_N45',
+        places: fixturePlaces,
+        pois: <GazPoi>[
+          GazPoi(
+            20,
+            'Brunnen Mühleholz',
+            'drinking_water',
+            north(800),
+            centre.lon,
+            placeId: 1,
+          ),
+          GazPoi.unnamed(21, 'drinking_water', north(200), centre.lon),
+          GazPoi.unnamed(22, 'toilets', north(100), centre.lon),
+          GazPoi.unnamed(23, 'bicycle_parking', north(300), centre.lon),
+        ],
+      );
+    }
+
+    test(
+      'an English kind word answers with the nearest of that kind',
+      () async {
+        buildStops();
+        final store = await openStore();
+
+        final found = await store.search('drinking water', near: centre);
+
+        expect(found, hasLength(2));
+        expect(found.every((r) => r.detail == 'drinking_water'), isTrue);
+        expect(found.first.name, isEmpty, reason: 'the nearest tap is unnamed');
+        expect(found.first.distanceMeters, closeTo(200, 5));
+        expect(found.last.name, 'Brunnen Mühleholz');
+        expect(found.last.distanceMeters, closeTo(800, 5));
+      },
+    );
+
+    test(
+      'a prefix of the word is enough, and so is the localised label',
+      () async {
+        buildStops();
+        final store = await openStore();
+
+        expect(
+          (await store.search('toile', near: centre)).single.detail,
+          'toilets',
+        );
+        // What the widget builds from AppLocalizations, in a language that
+        // shares no word with the English table.
+        final german = await store.search(
+          'trink',
+          near: centre,
+          keywords: const <String, String>{'trinkwasser': 'drinking_water'},
+        );
+        expect(german, hasLength(2));
+        expect(german.first.detail, 'drinking_water');
+        expect(
+          await store.search('trink', near: centre),
+          isEmpty,
+          reason: 'without the table the German word names no kind',
+        );
+      },
+    );
+
+    test('at most five rows, nearest first', () async {
+      buildGazetteer(
+        dir,
+        'E5_N45',
+        pois: <GazPoi>[
+          for (var i = 1; i <= 7; i++)
+            GazPoi.unnamed(
+              20 + i,
+              'bicycle_parking',
+              north(i * 100),
+              centre.lon,
+            ),
+        ],
+      );
+      final store = await openStore();
+
+      final found = await store.search('bike parking', near: centre);
+
+      expect(found, hasLength(kindSearchLimit));
+      for (final (index, row) in found.indexed) {
+        expect(row.distanceMeters, closeTo((index + 1) * 100, 2));
+      }
+    });
+
+    test('the box grows to fifty kilometres and stops there', () async {
+      buildGazetteer(
+        dir,
+        'E5_N45',
+        pois: <GazPoi>[
+          GazPoi.unnamed(21, 'bakery', north(30000), centre.lon),
+          GazPoi.unnamed(22, 'bakery', north(60000), centre.lon),
+        ],
+      );
+      final store = await openStore();
+
+      final found = await store.search('bakery', near: centre);
+
+      expect(found, hasLength(1), reason: 'nothing within five kilometres');
+      expect(found.single.distanceMeters, closeTo(30000, 50));
+    });
+
+    test('without a map centre a kind word is only a name', () async {
+      buildStops();
+      final store = await openStore();
+
+      expect(await store.search('toilets'), isEmpty);
+      expect(
+        (await store.search('brunnen')).single.distanceMeters,
+        isNull,
+        reason: 'a name match is not found by its distance',
+      );
+    });
+
+    test('kind rows come first and are never listed twice', () async {
+      buildStops();
+      final store = await openStore();
+
+      final found = await store.search('brunnen', near: centre);
+      expect(found.single.name, 'Brunnen Mühleholz');
+
+      // "drinking water" finds the named tap by kind; the name query finds
+      // nothing, so it stays one row.
+      final byKind = await store.search('drinking water', near: centre);
+      expect(byKind.where((r) => r.name == 'Brunnen Mühleholz'), hasLength(1));
+    });
+  });
+
+  group('search groups', () {
+    /// A place and a cafe of the same name: same bm25, same name length, so
+    /// only the group order can tell them apart.
+    void buildNamesakes() {
+      buildGazetteer(
+        dir,
+        'E5_N45',
+        places: const <GazPlace>[
+          GazPlace(1, 'Testort', 'village', 47.1400, 9.5200),
+        ],
+        pois: const <GazPoi>[GazPoi(2, 'Testort', 'cafe', 47.1401, 9.5201)],
+      );
+    }
+
+    test('a switched-off group is left out of the name matches', () async {
+      buildNamesakes();
+      final store = await openStore();
+
+      expect((await store.search('testort')), hasLength(2));
+      final filtered = await store.search(
+        'testort',
+        preferences: const SearchPreferences(
+          disabled: <SearchGroup>{SearchGroup.cyclingStops},
+        ),
+      );
+      expect(filtered.single.kind, SearchKind.place);
+    });
+
+    test('a kind search answers even for a switched-off group', () async {
+      buildNamesakes();
+      final store = await openStore();
+
+      final found = await store.search(
+        'cafe',
+        near: const LatLng(47.1400, 9.5200),
+        preferences: const SearchPreferences(
+          disabled: <SearchGroup>{SearchGroup.cyclingStops},
+        ),
+      );
+      expect(found.single.detail, 'cafe');
+    });
+
+    test('the group order breaks a tie before the name length does', () async {
+      buildNamesakes();
+      final store = await openStore();
+
+      expect((await store.search('testort')).first.kind, SearchKind.place);
+
+      final stopsFirst = SearchPreferences(
+        order: <SearchGroup>[
+          SearchGroup.cyclingStops,
+          for (final group in SearchGroup.values)
+            if (group != SearchGroup.cyclingStops) group,
+        ],
+      );
+      expect(
+        (await store.search('testort', preferences: stopsFirst)).first.kind,
+        SearchKind.poi,
+      );
+    });
+
+    test('a house number still outranks the group order', () async {
+      buildGazetteer(
+        dir,
+        'E5_N45',
+        streets: const <GazStreet>[GazStreet(1, 'Testort', 47.1400, 9.5200)],
+        pois: const <GazPoi>[GazPoi(2, 'Testort', 'cafe', 47.1401, 9.5201)],
+      );
+      final store = await openStore();
+
+      final stopsFirst = SearchPreferences(
+        order: <SearchGroup>[
+          SearchGroup.cyclingStops,
+          for (final group in SearchGroup.values)
+            if (group != SearchGroup.cyclingStops) group,
+        ],
+      );
+      final found = await store.search('testort 7', preferences: stopsFirst);
+      expect(found.first.kind, SearchKind.street);
+      expect(found.first.houseNumber, '7');
+    });
+  });
+
+  group('typo tolerance', () {
+    void buildTypos() {
+      buildGazetteer(
+        dir,
+        'E5_N45',
+        places: const <GazPlace>[
+          GazPlace(1, 'Funchal', 'town', 32.6500, -16.9100, population: 105000),
+          GazPlace(2, 'München', 'city', 48.1370, 11.5750, population: 1500000),
+          GazPlace(3, 'Vaduz', 'town', 47.1410, 9.5209, population: 5450),
+        ],
+      );
+    }
+
+    test('a read-only file spells a name back for the rider', () async {
+      buildTypos();
+      final store = await openStore();
+
+      final found = await store.lookup('Funchall');
+
+      expect(found.correctedQuery, 'funchal');
+      expect(found.results.single.name, 'Funchal');
+    });
+
+    test('the correction folds diacritics the way the index does', () async {
+      buildTypos();
+      final store = await openStore();
+
+      final found = await store.lookup('Muinchen');
+
+      expect(found.correctedQuery, 'munchen');
+      expect(found.results.single.name, 'München');
+    });
+
+    test('a query that finds something is never second-guessed', () async {
+      buildTypos();
+      final store = await openStore();
+
+      final found = await store.lookup('vaduz');
+
+      expect(found.correctedQuery, isNull);
+      expect(found.results.single.name, 'Vaduz');
+    });
+
+    test('a short token may be one edit out, a long one two', () async {
+      buildTypos();
+      final store = await openStore();
+
+      final short = await store.lookup('vzduq');
+      expect(short.correctedQuery, isNull, reason: 'two edits, five letters');
+      expect(short.results, isEmpty);
+
+      final long = await store.lookup('funhaal');
+      expect(
+        long.correctedQuery,
+        'funchal',
+        reason: 'two edits, seven letters',
+      );
+      expect(long.results.single.name, 'Funchal');
+    });
+
+    test('at most three candidates, the commonest word first', () async {
+      buildGazetteer(
+        dir,
+        'E5_N45',
+        places: const <GazPlace>[
+          GazPlace(1, 'Kahlo', 'village', 47.10, 9.50),
+          GazPlace(2, 'Kahlo', 'village', 47.20, 9.60),
+          GazPlace(3, 'Kablo', 'village', 47.30, 9.70),
+          GazPlace(4, 'Kadlo', 'village', 47.40, 9.80),
+          GazPlace(5, 'Kamlo', 'village', 47.50, 9.90),
+          GazPlace(6, 'Karlo', 'village', 47.60, 9.95),
+        ],
+      );
+      final store = await openStore();
+
+      final found = await store.lookup('kaxlo');
+
+      expect(
+        found.correctedQuery,
+        'kahlo',
+        reason: 'two rows carry it, so it is the likeliest word',
+      );
+      expect(found.results.map((r) => r.name).toSet(), <String>{
+        'Kahlo',
+        'Kablo',
+        'Kadlo',
+      }, reason: 'the other two never made it into the rewritten query');
     });
   });
 

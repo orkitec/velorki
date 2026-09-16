@@ -7,6 +7,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../data/gazetteer_store.dart';
 import '../data/photon_client.dart';
+import '../data/search_preferences_controller.dart';
 import '../domain/search_result.dart';
 
 part 'place_search_controller.g.dart';
@@ -30,6 +31,7 @@ class PlaceSearchState {
     this.query = '',
     this.source = SearchSource.online,
     this.canSearchOnline = false,
+    this.correctedQuery,
   });
 
   /// The results, already ranked.
@@ -44,10 +46,16 @@ class PlaceSearchState {
   /// Whether a geocoder is configured, so "Search online" can be offered.
   final bool canSearchOnline;
 
+  /// What the on-device index was searched for when nothing matched [query]
+  /// and the spelling was guessed at; `null` when [query] answered by itself.
+  /// The list says so in a line above the results.
+  final String? correctedQuery;
+
   @override
   String toString() =>
       'PlaceSearchState(${results.length} ${source.name} results for '
-      '"$query", online available: $canSearchOnline)';
+      '"$query"${correctedQuery == null ? '' : ' (corrected to '
+                '"$correctedQuery")'}, online available: $canSearchOnline)';
 }
 
 /// The place search behind the planner's search field.
@@ -82,7 +90,18 @@ class PlaceSearch extends _$PlaceSearch {
   }
 
   /// Searches for [text], biased towards [bias] when the map centre is known.
-  void query(String text, {String? lang, LatLng? bias}) {
+  ///
+  /// [keywords] is the localised kind table — "drinking water" → the
+  /// `drinking_water` kind, in the language the app is running in — which only
+  /// the widget can build, because only the widget has the localisations. With
+  /// it and [bias], typing the name of a kind answers with the nearest ones of
+  /// that kind before the name matches.
+  void query(
+    String text, {
+    String? lang,
+    LatLng? bias,
+    Map<String, String> keywords = const <String, String>{},
+  }) {
     _debounce?.cancel();
     _pending?.cancel('superseded');
     _pending = null;
@@ -95,7 +114,9 @@ class PlaceSearch extends _$PlaceSearch {
     state = const AsyncLoading<PlaceSearchState>();
     _debounce = Timer(
       _store?.hasTiles ?? false ? searchLocalDebounce : searchDebounce,
-      () => unawaited(_search(trimmed, lang: lang, bias: bias)),
+      () => unawaited(
+        _search(trimmed, lang: lang, bias: bias, keywords: keywords),
+      ),
     );
   }
 
@@ -123,13 +144,18 @@ class PlaceSearch extends _$PlaceSearch {
     state = AsyncData<PlaceSearchState>(_emptyState());
   }
 
-  Future<void> _search(String text, {String? lang, LatLng? bias}) async {
+  Future<void> _search(
+    String text, {
+    String? lang,
+    LatLng? bias,
+    Map<String, String> keywords = const <String, String>{},
+  }) async {
     // Only the store that is already open is consulted: it is opened while the
     // app starts, long before anyone has typed three characters, and a search
     // must never wait on the file system.
     final store = _store;
     if (store != null && store.hasTiles) {
-      await _searchLocal(store, text, near: bias);
+      await _searchLocal(store, text, near: bias, keywords: keywords);
       return;
     }
     await _searchOnline(text, lang: lang, bias: bias);
@@ -139,15 +165,25 @@ class PlaceSearch extends _$PlaceSearch {
     GazetteerStore store,
     String text, {
     LatLng? near,
+    Map<String, String> keywords = const <String, String>{},
   }) async {
-    final results = await store.search(text, near: near);
+    // Read, not watched: a change to the groups takes effect on the next
+    // keystroke, and rebuilding the controller would throw away what is on
+    // the screen.
+    final found = await store.lookup(
+      text,
+      near: near,
+      preferences: ref.read(searchPreferencesProvider),
+      keywords: keywords,
+    );
     if (_disposed || _query != text) return;
     state = AsyncData<PlaceSearchState>(
       PlaceSearchState(
-        results: results,
+        results: found.results,
         query: text,
         source: SearchSource.local,
         canSearchOnline: _hasGeocoder,
+        correctedQuery: found.correctedQuery,
       ),
     );
   }

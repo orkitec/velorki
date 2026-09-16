@@ -102,7 +102,7 @@ from: it only ever calls `route()`.
 
 ## Data model
 
-Drift owns four tables, schema version 1. Connected accounts live in secure
+Drift owns four tables, schema version 3. Connected accounts live in secure
 storage, not in the database.
 
 - **`routes`** — id (uuid), name, description, `source`
@@ -122,7 +122,10 @@ storage, not in the database.
 edits are debounced 300 ms and then call `RoutingBackend.route()`. The
 `RouteResult` carries the geometry, the ascent and BRouter's `messages` (way
 tags per segment), from which the surface statistics are derived. Dragging the
-line inserts a via point; alternatives 0–3 and an undo stack sit on top.
+line inserts a via point; alternatives 0–3 and an undo stack sit on top. The
+map keeps its full size under the keyboard (neither scaffold resizes for it);
+the plan sheet drops to its handle when the search field takes focus and comes
+back when the keyboard goes.
 
 **Import and export.** `IncomingFileService` unifies open-with (`app_links`,
 `content://` URIs) and the share sheet (`receive_sharing_intent`). The file type
@@ -183,8 +186,8 @@ line, so the main one takes it on a lease: every update tells the service
 isolate through `sendDataToTask` to leave the text alone for the next 10 s,
 and a UI that was destroyed simply stops renewing, at which point the service
 goes back to writing its own distance and time. The iOS card is the
-`live_activities` plugin plus a widget extension that is written but not yet a
-target in the Xcode project — see `app/ios/VelorkiLiveActivity/README.md`.
+`live_activities` plugin plus the `VelorkiLiveActivity` widget extension target
+— see `app/ios/VelorkiLiveActivity/README.md`.
 
 **Turn-by-turn.** BRouter's voice hints travel with a route as `TurnHint`s and
 are stored with it. While a ride runs, `NavigationController` (kept alive for
@@ -242,7 +245,7 @@ float semantics — that arithmetic is the main determinism risk.
 
 The upstream server is the test oracle: the algorithm is deterministic, so
 identical inputs must produce identical output. `tools/brouter-oracle/` records
-a 200-case corpus and dumps micro-caches and profile evaluations as JSON from
+a 224-case corpus and dumps micro-caches and profile evaluations as JSON from
 the pinned server, against two committed rd5 fixtures in
 `tools/brouter-oracle/tiles/` (Madeira and SW Iceland, 4.2 MB, pinned by
 sha256). Parity has three levels: **L1** byte-identical `util`/`codec` round
@@ -254,7 +257,8 @@ Tiles are 5°×5°, named `E10_N45` / `W5_S10` from `floor(lon/5)*5,
 floor(lat/5)*5`, 125–250 MB each in Central Europe, downloaded from
 `VELORKI_SEGMENTS_URL` with resumable range requests. That URL is the mirror's
 `latest.json` pointer, so a monthly snapshot reaches riders without an app
-release; the app marks tiles the mirror has rebuilt as stale (checked weekly)
+release (a snapshot is sharded into releases of at most 480 tiles, since each
+tile is two assets, the rd5 and its gazetteer, under GitHub's 1000-asset cap); the app marks tiles the mirror has rebuilt as stale (checked weekly)
 and refuses tiles in a newer rd5 format than its bundled `lookups.dat`, asking
 for an app update instead. The map's download button opens `features/offline`,
 one screen that fetches the map area and the routing tiles together; the two

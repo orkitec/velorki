@@ -8,6 +8,7 @@ import '../../../features/assistant/presentation/ai_settings_section.dart';
 import '../../../features/integrations/presentation/connections_section.dart';
 import '../../../features/routing_tiles/data/routing_preference_controller.dart';
 import '../../../features/routing_tiles/domain/routing_preference.dart';
+import '../../../features/search/presentation/search_settings_screen.dart';
 import '../../../features/offline/presentation/offline_entry.dart';
 import '../../../features/subscription/presentation/plus_settings_section.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -52,6 +53,7 @@ class SettingsScreen extends ConsumerWidget {
           Divider(height: 32),
           _SectionHeader.advanced(),
           OfflineEntry(),
+          SearchSettingsEntry(),
           _RoutingPreferenceSection(),
           _ServerUrlsSection(),
           Divider(height: 32),

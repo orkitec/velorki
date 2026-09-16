@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:velorki/app/app_config.dart';
 import 'package:velorki/features/search/application/place_search_controller.dart';
 import 'package:velorki/features/search/data/gazetteer_store.dart';
 import 'package:velorki/features/search/data/photon_client.dart';
@@ -27,7 +29,10 @@ void main() {
     bool withGazetteer = true,
     bool withGeocoder = true,
     FakeHttpAdapter? adapter,
+    Map<String, Object> prefs = const <String, Object>{},
   }) async {
+    SharedPreferences.setMockInitialValues(prefs);
+    final preferences = await SharedPreferences.getInstance();
     if (withGazetteer) {
       buildGazetteer(
         dir,
@@ -42,6 +47,7 @@ void main() {
     await store.refresh();
     final container = ProviderContainer(
       overrides: <Override>[
+        sharedPreferencesProvider.overrideWithValue(preferences),
         gazetteerStoreProvider.overrideWith((ref) async => store),
         photonClientProvider.overrideWithValue(
           withGeocoder

@@ -65,6 +65,11 @@ abstract class SearchResult with _$SearchResult {
     /// interpolated between two anchors, snapped to the nearest one, or the
     /// street itself because the gazetteer knows no numbers for it.
     @Default(false) bool approximate,
+
+    /// How far this is from the map centre, in metres, when the row was found
+    /// by its kind ("the nearest tap") rather than by its name. `null` for
+    /// every row whose distance is not the reason it is in the list.
+    double? distanceMeters,
   }) = _SearchResult;
 
   const SearchResult._();

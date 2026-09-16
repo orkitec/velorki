@@ -10,6 +10,9 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../routing_tiles/data/brouter_storage.dart';
 import '../../routing_tiles/data/routing_tiles_repository.dart';
+import '../domain/fuzzy.dart';
+import '../domain/search_group.dart';
+import '../domain/search_kinds.dart';
 import '../domain/search_result.dart';
 import 'photon_client.dart';
 
@@ -32,6 +35,30 @@ const int _maxQueryChars = 100;
 
 /// The most tokens one query is split into.
 const int _maxTokens = 8;
+
+/// How many rows a "nearest tap" search answers with.
+const int kindSearchLimit = 5;
+
+/// The bounding boxes a kind search tries, in metres, until it has
+/// [kindSearchLimit] rows. A tap five kilometres away is a detour; one fifty
+/// kilometres away is only worth showing when there is nothing else.
+const List<double> kindSearchRadiiMeters = <double>[5000, 10000, 25000, 50000];
+
+/// The most rows one file hands back per kind search, before the distances
+/// are measured. A bounding box over a dense city can hold thousands of bike
+/// parkings and only the five nearest ever matter.
+const int _kindFetchLimit = 400;
+
+/// The most spelling candidates one mistyped token is rewritten into.
+const int _maxCandidates = 3;
+
+/// Up to this many characters a token may only be one edit away from the
+/// word it meant; a longer one may be two.
+const int _shortTokenChars = 5;
+
+/// Metres in a degree of latitude, near enough for a bounding box that is
+/// re-measured with the haversine afterwards.
+const double _metersPerDegree = 111320;
 
 /// The offline place search: every `<TILE>.gaz` under
 /// `<appSupport>/brouter/gazetteer/`, opened read-only and queried together.
@@ -119,25 +146,218 @@ class GazetteerStore {
     String text, {
     LatLng? near,
     int limit = 10,
-  }) async {
-    if (_closed || _open.isEmpty) return const <SearchResult>[];
-    final query = gazetteerMatchExpression(text);
-    if (query == null) return const <SearchResult>[];
+    SearchPreferences preferences = SearchPreferences.defaults,
+    Map<String, String> keywords = const <String, String>{},
+  }) async => (await lookup(
+    text,
+    near: near,
+    limit: limit,
+    preferences: preferences,
+    keywords: keywords,
+  )).results;
 
+  /// The same search, with what the store had to do to answer it.
+  ///
+  /// On top of [search] this is where the two things the plain result list
+  /// cannot express happen:
+  ///
+  /// * **The nearest of a kind.** When the typed text is, or starts, the name
+  ///   of a kind — "drinking water", "bakery", the localised label out of
+  ///   [keywords] — the answer opens with the [kindSearchLimit] rows of that
+  ///   kind nearest to [near], found on the position index in a box that
+  ///   grows through [kindSearchRadiiMeters] until it holds enough of them.
+  ///   Each carries its [SearchResult.distanceMeters]. Name matches follow,
+  ///   and a row that is already in the kind list is not repeated.
+  /// * **Spelling.** When neither the kind search nor the names answer at all,
+  ///   every token that matches no term in the index is looked up in the index
+  ///   vocabulary and the query is run once more with the nearest words. The
+  ///   corrected text comes back in [GazetteerSearch.correctedQuery] so the
+  ///   list can say what it actually searched for.
+  ///
+  /// [preferences] is Settings → Search: rows of a switched-off group are left
+  /// out of the name matches (a kind search asks for a kind explicitly, so it
+  /// is never filtered), and the group order breaks a bm25 tie before the name
+  /// length does.
+  Future<GazetteerSearch> lookup(
+    String text, {
+    LatLng? near,
+    int limit = 10,
+    SearchPreferences preferences = SearchPreferences.defaults,
+    Map<String, String> keywords = const <String, String>{},
+  }) async {
+    if (_closed || _open.isEmpty) return GazetteerSearch.empty;
+    final cap = math.max(0, limit);
+    final kindResults = near == null
+        ? const <SearchResult>[]
+        : _nearestOfKind(text, keywords, near);
+
+    final query = gazetteerMatchExpression(text);
+    var hits = query == null ? <_Hit>[] : _runQuery(query, near, preferences);
+    String? corrected;
+    if (query != null && hits.isEmpty && kindResults.isEmpty) {
+      final fix = _correct(query);
+      if (fix != null) {
+        final retried = _runQuery(fix.query, near, preferences);
+        if (retried.isNotEmpty) {
+          hits = retried;
+          corrected = fix.text;
+        }
+      }
+    }
+
+    final addressed = query?.houseNumber != null;
+    hits.sort((a, b) => _byRank(a, b, addressed: addressed));
+    final results = <SearchResult>[...kindResults.take(cap)];
+    final seen = <String>{for (final row in results) _identity(row)};
+    for (final hit in hits) {
+      if (results.length >= cap) break;
+      if (!seen.add(_identity(hit.result))) continue;
+      results.add(hit.result);
+    }
+    return GazetteerSearch(results: results, correctedQuery: corrected);
+  }
+
+  /// Every file's answer to [query], minus the groups the rider switched off
+  /// and with each hit's group rank attached.
+  List<_Hit> _runQuery(
+    GazetteerQuery query,
+    LatLng? near,
+    SearchPreferences preferences,
+  ) {
     final hits = <_Hit>[];
     for (final file in _open.values) {
       try {
-        hits.addAll(file.search(query, near));
+        for (final hit in file.search(query, near)) {
+          final group = searchGroupOf(hit.result);
+          if (!preferences.isEnabled(group)) continue;
+          hits.add(hit.inGroup(preferences.rankOf(group)));
+        }
       } on Object catch (e) {
         debugPrint('velorki: gazetteer ${file.tile} could not answer: $e');
       }
     }
-    final addressed = query.houseNumber != null;
-    hits.sort((a, b) => _byRank(a, b, addressed: addressed));
-    return <SearchResult>[
-      for (final hit in hits.take(math.max(0, limit))) hit.result,
+    return hits;
+  }
+
+  /// The rows nearest to [near] of every kind [text] names, or nothing when it
+  /// names none.
+  List<SearchResult> _nearestOfKind(
+    String text,
+    Map<String, String> keywords,
+    LatLng near,
+  ) {
+    if (text.trim().length < gazetteerMinChars) return const <SearchResult>[];
+    final kinds = kindsForKeyword(text, keywords);
+    if (kinds.isEmpty) return const <SearchResult>[];
+
+    var best = const <SearchResult>[];
+    for (final radius in kindSearchRadiiMeters) {
+      final found = <SearchResult>[];
+      for (final file in _open.values) {
+        try {
+          found.addAll(file.nearest(kinds, near, radius));
+        } on Object catch (e) {
+          debugPrint('velorki: gazetteer ${file.tile} has no kind index: $e');
+        }
+      }
+      found.sort(
+        (a, b) => (a.distanceMeters ?? 0).compareTo(b.distanceMeters ?? 0),
+      );
+      best = found.length > kindSearchLimit
+          ? found.sublist(0, kindSearchLimit)
+          : found;
+      if (best.length >= kindSearchLimit) break;
+    }
+    return best;
+  }
+
+  /// [query] with every token the index has never seen replaced by the words
+  /// it probably meant, or `null` when nothing can be corrected.
+  ///
+  /// A token with a prefix match is left exactly as it was: only the words
+  /// that found nothing are guessed at, so "cafe muinchen" still has to be a
+  /// cafe.
+  ({GazetteerQuery query, String text})? _correct(GazetteerQuery query) {
+    final parts = <String>[];
+    final words = <String>[];
+    var changed = false;
+    for (final token in query.tokens) {
+      final folded = foldSearchTerm(token);
+      if (folded.isEmpty || _indexKnows(token)) {
+        parts.add(_prefixTerm(token));
+        words.add(token);
+        continue;
+      }
+      final candidates = _candidates(folded);
+      if (candidates.isEmpty) {
+        parts.add(_prefixTerm(token));
+        words.add(token);
+        continue;
+      }
+      changed = true;
+      parts.add('(${candidates.map((term) => '"$term"').join(' OR ')})');
+      words.add(candidates.first);
+    }
+    if (!changed) return null;
+    return (
+      query: GazetteerQuery(
+        match: parts.join(' '),
+        tokens: query.tokens,
+        houseNumber: query.houseNumber,
+      ),
+      text: words.join(' '),
+    );
+  }
+
+  /// Whether any open file holds a term starting with [token].
+  bool _indexKnows(String token) {
+    for (final file in _open.values) {
+      try {
+        if (file.matchesAnything(_prefixTerm(token))) return true;
+      } on Object catch (e) {
+        debugPrint('velorki: gazetteer ${file.tile} could not answer: $e');
+      }
+    }
+    return false;
+  }
+
+  /// The at most [_maxCandidates] words the index holds that [folded] is
+  /// likeliest to be a typo of, commonest first.
+  List<String> _candidates(String folded) {
+    final maxDistance = folded.length <= _shortTokenChars ? 1 : 2;
+    final docs = <String, int>{};
+    for (final file in _open.values) {
+      try {
+        for (final term in file.vocabulary(folded)) {
+          docs[term.term] = (docs[term.term] ?? 0) + term.doc;
+        }
+      } on Object catch (e) {
+        debugPrint('velorki: gazetteer ${file.tile} has no vocabulary: $e');
+      }
+    }
+    final scored = <({String term, int doc})>[];
+    for (final entry in docs.entries) {
+      if (entry.key == folded) continue;
+      if (damerauLevenshtein(folded, entry.key, max: maxDistance) >
+          maxDistance) {
+        continue;
+      }
+      scored.add((term: entry.key, doc: entry.value));
+    }
+    scored.sort((a, b) {
+      final doc = b.doc.compareTo(a.doc);
+      return doc != 0 ? doc : a.term.compareTo(b.term);
+    });
+    return <String>[
+      for (final entry in scored.take(_maxCandidates)) entry.term,
     ];
   }
+
+  /// What tells two rows of two files apart: a tile boundary can put the same
+  /// tap in both, and a kind search must not list what the names already did.
+  static String _identity(SearchResult result) =>
+      '${result.name}@${result.position.lat.toStringAsFixed(6)},'
+      '${result.position.lon.toStringAsFixed(6)}';
 
   /// Closes every open file. The store answers nothing afterwards.
   void close() {
@@ -185,6 +405,10 @@ class GazetteerStore {
       final street = _isStreet(b).compareTo(_isStreet(a));
       if (street != 0) return street;
     }
+    // Settings → Search is the rider's own priority and outranks every
+    // heuristic below it.
+    final group = a.groupRank.compareTo(b.groupRank);
+    if (group != 0) return group;
     // The index keeps no column sizes, so bm25 cannot tell "Monte" from
     // "Monte Tea House": the shorter name is the closer match.
     final length = a.result.name.length.compareTo(b.result.name.length);
@@ -198,14 +422,46 @@ class GazetteerStore {
       hit.result.kind == SearchKind.street ? 1 : 0;
 }
 
+/// What one search found, and what it had to do to find it.
+@immutable
+class GazetteerSearch {
+  /// Creates the answer.
+  const GazetteerSearch({required this.results, this.correctedQuery});
+
+  /// The rows, already ranked: the kind matches first, then the names.
+  final List<SearchResult> results;
+
+  /// The text the index was actually searched for, when nothing matched what
+  /// was typed and the spelling had to be guessed at; `null` otherwise.
+  final String? correctedQuery;
+
+  /// Nothing found, nothing corrected.
+  static const GazetteerSearch empty = GazetteerSearch(
+    results: <SearchResult>[],
+  );
+
+  @override
+  String toString() =>
+      'GazetteerSearch(${results.length} results'
+      '${correctedQuery == null ? '' : ', corrected to "$correctedQuery"'})';
+}
+
 /// What a typed query asks one gazetteer for.
 @immutable
 class GazetteerQuery {
   /// Creates a query.
-  const GazetteerQuery({required this.match, this.houseNumber});
+  const GazetteerQuery({
+    required this.match,
+    required this.tokens,
+    this.houseNumber,
+  });
 
   /// The FTS5 `MATCH` expression, every token a quoted prefix.
   final String match;
+
+  /// The words [match] was built from, as they were typed, so a query that
+  /// found nothing can be spelled again.
+  final List<String> tokens;
 
   /// The house number that was taken out of the match, as it was typed, or
   /// `null` when the query held none.
@@ -259,10 +515,15 @@ GazetteerQuery? gazetteerMatchExpression(String text) {
   if (words.join(' ').length < gazetteerMinChars) return null;
 
   return GazetteerQuery(
-    match: words.map((word) => '"${word.replaceAll('"', '""')}"*').join(' '),
+    match: words.map(_prefixTerm).join(' '),
+    tokens: words,
     houseNumber: houseNumber,
   );
 }
+
+/// One token as FTS5 reads it: quoted, so an operator a rider typed is text,
+/// and a prefix, so "w" finds "West".
+String _prefixTerm(String word) => '"${word.replaceAll('"', '""')}"*';
 
 /// Whether [token] is a house number: nothing but digits, and a number this
 /// machine can compare.
@@ -309,6 +570,9 @@ class _GazetteerFile {
   final PreparedStatement? _alias;
   final PreparedStatement? _houseNumbers;
 
+  PreparedStatement? _vocab;
+  bool _vocabAttempted = false;
+
   /// The hits for [query], hydrated and measured against [near].
   ///
   /// A rowid that is none of the three tables is an alternative name: it is
@@ -336,6 +600,97 @@ class _GazetteerFile {
     return byRow.values.toList();
   }
 
+  /// Whether the index holds a single row for [match].
+  ///
+  /// The cheapest question there is about a token: did the rider spell it the
+  /// way this tile spells it?
+  bool matchesAnything(String match) =>
+      _match.select(<Object?>[match, 1]).isNotEmpty;
+
+  /// The rows of any of [kinds] inside a [radius]-metre box around [near],
+  /// nearest first, each carrying its distance.
+  ///
+  /// The box is on `idx_pois_pos`, which is what the format keeps the position
+  /// index for; the corners of a box are further away than its edges, so every
+  /// row is measured properly afterwards and the ones outside the circle are
+  /// dropped. A row with no name at all is a valid answer here — an unnamed
+  /// tap is still a tap — and comes back with an empty [SearchResult.name] for
+  /// the widget to put the kind's label in.
+  List<SearchResult> nearest(List<String> kinds, LatLng near, double radius) {
+    if (_poi == null || kinds.isEmpty) return const <SearchResult>[];
+    final dLat = radius / _metersPerDegree;
+    // A degree of longitude shrinks towards the poles; the floor keeps the box
+    // finite where the cosine does not.
+    final dLon =
+        radius /
+        (_metersPerDegree *
+            math.max(math.cos(near.lat * math.pi / 180).abs(), 0.01));
+    final placeholders = List<String>.filled(kinds.length, '?').join(', ');
+    final rows = _db.select(
+      'SELECT name, kind, lat, lon, place_id FROM pois '
+      'WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? '
+      'AND kind IN ($placeholders) LIMIT ?',
+      <Object?>[
+        ((near.lat - dLat) * 1e7).round(),
+        ((near.lat + dLat) * 1e7).round(),
+        ((near.lon - dLon) * 1e7).round(),
+        ((near.lon + dLon) * 1e7).round(),
+        ...kinds,
+        _kindFetchLimit,
+      ],
+    );
+    final found = <SearchResult>[];
+    for (final row in rows) {
+      final position = _position(row);
+      if (position == null) continue;
+      final meters = haversineMeters(near, position);
+      if (meters > radius) continue;
+      found.add(
+        SearchResult(
+          name: row['name']?.toString() ?? '',
+          position: position,
+          city: _contextName(_asInt(row['place_id'])),
+          source: SearchSource.local,
+          kind: SearchKind.poi,
+          detail: row['kind']?.toString(),
+          distanceMeters: meters,
+        ),
+      );
+    }
+    found.sort(
+      (a, b) => (a.distanceMeters ?? 0).compareTo(b.distanceMeters ?? 0),
+    );
+    return found.length > kindSearchLimit
+        ? found.sublist(0, kindSearchLimit)
+        : found;
+  }
+
+  /// The index terms that could be what [folded] was meant to be: the same
+  /// length give or take two, and starting with the same letter unless the
+  /// term is short enough that its first letter may be the typo.
+  ///
+  /// Read from an `fts5vocab` table in the connection's own `temp` schema,
+  /// which is writable even though the file itself is opened read-only:
+  /// `temp` lives in this connection, not in the `.gaz`. It is created the
+  /// first time a query needs it and never for a search that spells
+  /// everything correctly.
+  List<({String term, int doc})> vocabulary(String folded) {
+    final statement = _vocabulary();
+    if (statement == null || folded.isEmpty) {
+      return const <({String term, int doc})>[];
+    }
+    final rows = statement.select(<Object?>[
+      math.max(1, folded.length - 2),
+      folded.length + 2,
+      folded.substring(0, 1),
+    ]);
+    return <({String term, int doc})>[
+      for (final row in rows)
+        if (row['term']?.toString() case final String term)
+          (term: term, doc: _asInt(row['doc']) ?? 0),
+    ];
+  }
+
   /// Releases the statements and the database.
   void close() {
     _match.close();
@@ -344,7 +699,29 @@ class _GazetteerFile {
     _poi?.close();
     _alias?.close();
     _houseNumbers?.close();
+    _vocab?.close();
     _db.close();
+  }
+
+  PreparedStatement? _vocabulary() {
+    if (_vocabAttempted) return _vocab;
+    _vocabAttempted = true;
+    try {
+      _db.execute(
+        'CREATE VIRTUAL TABLE IF NOT EXISTS temp.vocab '
+        "USING fts5vocab(main, 'search', 'row');",
+      );
+      _vocab = _db.prepare(
+        'SELECT term, doc FROM temp.vocab '
+        'WHERE length(term) BETWEEN ? AND ? '
+        'AND (substr(term, 1, 1) = ? OR length(term) <= 4)',
+      );
+    } on Object catch (e) {
+      // An old SQLite without fts5vocab, or a file whose index cannot be
+      // read: spelling help is the one thing a search can do without.
+      debugPrint('velorki: $tile.gaz has no vocabulary: $e');
+    }
+    return _vocab;
   }
 
   /// The row an FTS rowid stands for: itself, or the row an alias belongs to.
@@ -535,6 +912,7 @@ class _Hit {
     required this.rank,
     required this.population,
     required this.distance,
+    this.groupRank = 0,
   });
 
   final SearchResult result;
@@ -542,12 +920,25 @@ class _Hit {
   final int population;
   final double distance;
 
+  /// Where the rider put this row's group in Settings → Search.
+  final int groupRank;
+
   /// The same hit with a better score, for a row an alias matched too.
   _Hit withRank(double rank) => _Hit(
     result: result,
     rank: rank,
     population: population,
     distance: distance,
+    groupRank: groupRank,
+  );
+
+  /// The same hit, ranked by the rider's group order.
+  _Hit inGroup(int rank) => _Hit(
+    result: result,
+    rank: this.rank,
+    population: population,
+    distance: distance,
+    groupRank: rank,
   );
 }
 

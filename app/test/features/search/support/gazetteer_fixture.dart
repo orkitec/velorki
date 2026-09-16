@@ -61,7 +61,7 @@ class GazStreet {
   final int? placeId;
 }
 
-/// A named point of interest.
+/// A point of interest, named or not.
 class GazPoi {
   /// Creates a POI.
   const GazPoi(
@@ -73,11 +73,17 @@ class GazPoi {
     this.placeId,
   });
 
+  /// Creates a POI with no name at all, the way the builder stores a tap or a
+  /// bike rack that OSM never gave one. It is not put into the FTS index —
+  /// there is nothing to match — so only a kind search ever finds it.
+  const GazPoi.unnamed(this.id, this.kind, this.lat, this.lon, {this.placeId})
+    : name = null;
+
   /// The row id, unique across all three tables.
   final int id;
 
-  /// The searchable name.
-  final String name;
+  /// The searchable name, or `null` for an unnamed utility row.
+  final String? name;
 
   /// `drinking_water`, `cafe`, `peak`, …
   final String kind;
@@ -169,7 +175,7 @@ CREATE TABLE streets (
       ..execute('''
 CREATE TABLE pois (
     id       INTEGER PRIMARY KEY,
-    name     TEXT NOT NULL,
+    name     TEXT,
     kind     TEXT NOT NULL,
     lat      INTEGER NOT NULL,
     lon      INTEGER NOT NULL,
@@ -260,7 +266,10 @@ CREATE TABLE house_numbers (
           poi.placeId,
         ],
       );
-      index.execute(<Object?>[poi.id, poi.name]);
+      // Unnamed rows are deliberately left out of the index, exactly as the
+      // builder leaves them out: a search box cannot match an empty name.
+      final name = poi.name;
+      if (name != null) index.execute(<Object?>[poi.id, name]);
     }
     for (final alias in aliases) {
       db.execute(

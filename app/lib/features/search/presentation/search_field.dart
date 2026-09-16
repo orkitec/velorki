@@ -5,10 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
+import '../../planner/presentation/route_format.dart' as format;
+import '../../settings/data/units.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../application/place_search_controller.dart';
 import '../data/gazetteer_store.dart';
 import '../data/photon_client.dart';
+import '../domain/search_kinds.dart';
 import '../domain/search_result.dart';
 
 /// The planner's place search: a text field with a debounced dropdown.
@@ -92,6 +95,7 @@ class _SearchFieldState extends ConsumerState<SearchField> {
           text,
           lang: Localizations.localeOf(context).languageCode,
           bias: widget.bias?.call(),
+          keywords: localisedKindKeywords(AppLocalizations.of(context)),
         );
   }
 
@@ -114,7 +118,7 @@ class _SearchFieldState extends ConsumerState<SearchField> {
   }
 
   void _select(SearchResult result) {
-    _controller.text = result.name;
+    _controller.text = searchResultTitle(AppLocalizations.of(context), result);
     _focusNode.unfocus();
     setState(() => _dismissed = true);
     widget.onSelected(result);
@@ -124,6 +128,9 @@ class _SearchFieldState extends ConsumerState<SearchField> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final results = ref.watch(placeSearchProvider);
+    // Read here, not in the overlay's builder: the overlay is built outside
+    // this build and a provider may only be watched inside one.
+    final units = ref.watch(unitSystemProvider);
     // The field works with a geocoder, with a downloaded gazetteer, or both;
     // only a device with neither has nothing to search.
     final canSearch =
@@ -149,6 +156,7 @@ class _SearchFieldState extends ConsumerState<SearchField> {
                 type: MaterialType.transparency,
                 child: _ResultsCard(
                   results: results,
+                  units: units,
                   onSelected: _select,
                   onSearchOnline: _searchOnline,
                 ),
@@ -200,11 +208,13 @@ class _SearchFieldState extends ConsumerState<SearchField> {
 class _ResultsCard extends StatelessWidget {
   const _ResultsCard({
     required this.results,
+    required this.units,
     required this.onSelected,
     required this.onSearchOnline,
   });
 
   final AsyncValue<PlaceSearchState> results;
+  final UnitSystem units;
   final ValueChanged<SearchResult> onSelected;
   final VoidCallback onSearchOnline;
 
@@ -268,6 +278,7 @@ class _ResultsCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final online = state.source == SearchSource.local && state.canSearchOnline;
     final items = state.results;
+    final corrected = state.correctedQuery;
     final Widget list = items.isEmpty
         ? ListTile(title: Text(l10n.searchNoResults))
         : ListView.builder(
@@ -277,29 +288,40 @@ class _ResultsCard extends StatelessWidget {
             itemBuilder: (context, i) {
               final r = items[i];
               final subtitle = r.source == SearchSource.local
-                  ? localResultSubtitle(l10n, r)
+                  ? localResultSubtitle(l10n, r, units: units)
                   : r.subtitle;
               return ListTile(
                 dense: true,
                 leading: Icon(searchResultIcon(r)),
-                title: Text(r.name),
+                title: Text(searchResultTitle(l10n, r)),
                 subtitle: subtitle.isEmpty ? null : Text(subtitle),
                 onTap: () => onSelected(r),
               );
             },
           );
-    if (!online) return list;
+    if (!online && corrected == null) return list;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // What the index was actually asked, when it was not what was typed.
+        if (corrected != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
+            child: Text(
+              l10n.searchCorrectedTo(corrected),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
         Flexible(child: list),
-        const Divider(height: 1),
-        ListTile(
-          dense: true,
-          leading: const Icon(Icons.travel_explore_outlined),
-          title: Text(l10n.searchOnlineFor(state.query)),
-          onTap: onSearchOnline,
-        ),
+        if (online) ...[
+          const Divider(height: 1),
+          ListTile(
+            dense: true,
+            leading: const Icon(Icons.travel_explore_outlined),
+            title: Text(l10n.searchOnlineFor(state.query)),
+            onTap: onSearchOnline,
+          ),
+        ],
       ],
     );
   }
@@ -322,6 +344,12 @@ IconData searchResultIcon(SearchResult result) {
 
 IconData _poiIcon(String? detail) => switch (detail) {
   'drinking_water' => Icons.water_drop_outlined,
+  'toilets' => Icons.wc_outlined,
+  'bicycle_rental' => Icons.directions_bike_outlined,
+  'charging_station' => Icons.ev_station_outlined,
+  'pharmacy' => Icons.local_pharmacy_outlined,
+  'picnic_site' => Icons.deck_outlined,
+  'bicycle_parking' => Icons.local_parking_outlined,
   'cafe' => Icons.local_cafe_outlined,
   'bicycle_repair_station' => Icons.build_outlined,
   'shelter' => Icons.house_siding_outlined,
@@ -357,21 +385,71 @@ IconData _poiIcon(String? detail) => switch (detail) {
   _ => Icons.place_outlined,
 };
 
-/// The second line of a local row: what it is, the house number when the rider
-/// typed one, and where it is when the gazetteer knows.
+/// The first line of a result row.
+///
+/// The gazetteer stores unnamed taps, toilets, shelters and bike parkings \u2014
+/// there is nothing to call them and nothing to find them by name \u2014 so a row
+/// with no name is titled with what it is. This is the one place that
+/// substitution happens: [SearchResult.name] stays empty everywhere else.
+String searchResultTitle(AppLocalizations l10n, SearchResult result) {
+  if (result.name.isNotEmpty) return result.name;
+  final label = searchKindLabel(l10n, result);
+  return label.isEmpty ? l10n.searchKindPlace : label;
+}
+
+/// The second line of a local row: what it is, how far away when it was found
+/// by its kind, the house number when the rider typed one, and where it is
+/// when the gazetteer knows.
 ///
 /// "Street \u00b7 400 \u00b7 Manhattan", and "Street \u00b7 \u2248 400 \u00b7 Manhattan" when the
 /// number sits between the ones the gazetteer knows rather than on one of
-/// them. Every part is optional; the separator is put in once, here.
-String localResultSubtitle(AppLocalizations l10n, SearchResult result) {
+/// them; "Drinking water \u00b7 350 m" for the nearest tap, in [units]. Every part
+/// is optional; the separator is put in once, here.
+String localResultSubtitle(
+  AppLocalizations l10n,
+  SearchResult result, {
+  UnitSystem? units,
+}) {
   final number = result.houseNumber;
+  final meters = result.distanceMeters;
   return <String>[
     searchKindLabel(l10n, result),
+    if (meters != null && units != null)
+      format.formatDistance(l10n, units, meters),
     if (number != null && number.isNotEmpty)
       result.approximate ? l10n.searchApproximateNumber(number) : number,
     result.city ?? '',
   ].where((part) => part.isNotEmpty).join(' \u00b7 ');
 }
+
+/// Every kind's localised label, lower case, mapped to the kind: the table the
+/// store matches a typed "drinking water" or "Trinkwasser" against.
+///
+/// Built once per language \u2014 the labels do not change while the app runs, and
+/// this is asked for on every keystroke.
+Map<String, String> localisedKindKeywords(AppLocalizations l10n) =>
+    _keywordCache.putIfAbsent(l10n.localeName, () {
+      final table = <String, String>{};
+      for (final kind in searchPoiKinds) {
+        final label = searchKindLabel(
+          l10n,
+          SearchResult(
+            name: '',
+            position: const LatLng(0, 0),
+            source: SearchSource.local,
+            kind: SearchKind.poi,
+            detail: kind,
+          ),
+        );
+        // The fallback label ("Place") names no kind in particular.
+        if (label.isEmpty || label == l10n.searchKindPlace) continue;
+        table.putIfAbsent(label.toLowerCase(), () => kind);
+      }
+      return table;
+    });
+
+final Map<String, Map<String, String>> _keywordCache =
+    <String, Map<String, String>>{};
 
 /// The localised name of a local result's kind.
 String searchKindLabel(AppLocalizations l10n, SearchResult result) {
@@ -386,6 +464,12 @@ String searchKindLabel(AppLocalizations l10n, SearchResult result) {
     'locality' => l10n.searchKindLocality,
     'island' => l10n.searchKindIsland,
     'drinking_water' => l10n.searchKindDrinkingWater,
+    'toilets' => l10n.searchKindToilets,
+    'bicycle_rental' => l10n.searchKindBikeRental,
+    'charging_station' => l10n.searchKindCharging,
+    'pharmacy' => l10n.searchKindPharmacy,
+    'picnic_site' => l10n.searchKindPicnicSite,
+    'bicycle_parking' => l10n.searchKindBikeParking,
     'cafe' => l10n.searchKindCafe,
     'bicycle_repair_station' => l10n.searchKindBikeRepair,
     'shelter' => l10n.searchKindShelter,
