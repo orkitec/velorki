@@ -97,9 +97,15 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- location: a ride is recorded with the screen off.
+	     audio: spoken turn cues play with the screen locked. The speaker puts
+	     the audio session in the playback category (see
+	     lib/features/navigation/data/turn_speaker.dart), which is silenced
+	     without this. -->
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>
+		<string>audio</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>

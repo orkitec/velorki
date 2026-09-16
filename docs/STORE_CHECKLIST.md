@@ -25,6 +25,10 @@ background-location app.
       v1, and "When In Use" is enough for a foreground recording.
 - [x] **(iOS)** `UIBackgroundModes` contains `location`. —
       `ios/Runner/Info.plist`.
+- [x] **(iOS)** `UIBackgroundModes` also contains `audio`, so a spoken turn cue
+      is not silenced while the screen is locked. — `ios/Runner/Info.plist`;
+      the playback audio session is set up in
+      `app/lib/features/navigation/data/turn_speaker.dart`.
 - [x] **(iOS)** `pausesLocationUpdatesAutomatically = false` and the background
       location indicator is enabled. —
       `lib/features/recording/data/recording_positions.dart`
@@ -286,6 +290,8 @@ Write review notes covering:
 
 - [ ] Why background location is needed (recording a ride with the screen off)
       and how to reproduce it.
+- [ ] Why the `audio` background mode is needed (spoken turn cues during a
+      guided ride with the screen locked) and how to reproduce it.
 - [ ] That there are no accounts, so no demo credentials are needed.
 - [ ] How to reach the AI assistant and that it is behind a subscription, with
       a sandbox/promo note on how the reviewer can try it.

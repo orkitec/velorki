@@ -16,6 +16,10 @@ class FakeTurnSpeaker implements TurnSpeaker {
   /// Everything [speak] was called with, in order.
   final List<String> spoken = <String>[];
 
+  /// Only the cues [speak] was told were urgent, in order; a subset of
+  /// [spoken].
+  final List<String> urgent = <String>[];
+
   /// How often [stop] was called.
   int stops = 0;
 
@@ -32,7 +36,10 @@ class FakeTurnSpeaker implements TurnSpeaker {
   final List<String?> selections = <String?>[];
 
   @override
-  Future<void> speak(String text) async => spoken.add(text);
+  Future<void> speak(String text, {bool urgent = false}) async {
+    spoken.add(text);
+    if (urgent) this.urgent.add(text);
+  }
 
   @override
   Future<void> stop() async => stops++;

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,7 +16,13 @@ import '../domain/voice_ranking.dart';
 /// has.
 abstract class TurnSpeaker {
   /// Says [text], queued behind anything already being said.
-  Future<void> speak(String text);
+  ///
+  /// The future is done when the cue has been said, or dropped. An [urgent]
+  /// cue — "turn now", the one the rider has seconds to act on — does not
+  /// wait: whatever is being said is cut off and the cues still queued are
+  /// dropped, because they were worked out before the turn that is happening
+  /// now.
+  Future<void> speak(String text, {bool urgent = false});
 
   /// Drops whatever is being said and whatever is queued.
   Future<void> stop();
@@ -41,11 +49,11 @@ abstract class TurnSpeaker {
 /// rider who never starts a guided ride never touches text-to-speech, and on
 /// Android the first call is what starts the engine's service.
 ///
-/// Cues are said one after the other. The plugin keeps a single result slot
-/// per `speak` on iOS, so two calls in flight at once leave the first
-/// hanging, and a cue that arrives while the engine is still being set up
-/// would go out with the wrong voice and audio session; a chain of futures
-/// keeps every call behind the one before it.
+/// Cues are said one after the other, out of a queue this class keeps itself.
+/// The plugin holds a single result slot per `speak` on iOS, so two calls in
+/// flight at once leave the first hanging, and handing the engine a second
+/// cue while it is still speaking is what cuts a cue off mid-word. Only an
+/// urgent cue jumps that queue, and then the engine is stopped first.
 ///
 /// Nothing here throws. A phone with no engine installed (or with the voice
 /// data missing) makes the plugin fail on the platform channel; the rider
@@ -56,8 +64,18 @@ class FlutterTtsSpeaker implements TurnSpeaker {
     this.localeTag = 'en-US',
     FlutterTts? engine,
     TargetPlatform? platform,
+    DateTime Function()? clock,
   }) : _tts = engine ?? FlutterTts(),
-       _platform = platform ?? defaultTargetPlatform;
+       _platform = platform ?? defaultTargetPlatform,
+       _now = clock ?? DateTime.now;
+
+  /// How long a cue may wait its turn before it is dropped unsaid.
+  ///
+  /// A distance callout is about where the rider was when it was worked out.
+  /// Six seconds on is 30 m at 20 km/h: far enough for "in 200 metres" to be
+  /// wrong, and long enough that a cue queued behind an ordinary one is still
+  /// said.
+  static const Duration staleAfter = Duration(seconds: 6);
 
   /// The BCP-47 tag the cues are spoken in.
   final String localeTag;
@@ -65,6 +83,9 @@ class FlutterTtsSpeaker implements TurnSpeaker {
   /// Which set of engine quirks to work around; injected so tests can play
   /// either phone on the desktop.
   final TargetPlatform _platform;
+
+  /// Reads the clock cues are aged by; injected so tests can move it.
+  final DateTime Function() _now;
 
   bool get _isAndroid => !kIsWeb && _platform == TargetPlatform.android;
 
@@ -75,22 +96,35 @@ class FlutterTtsSpeaker implements TurnSpeaker {
   bool _broken = false;
   String? _defaultKey;
   VoiceOption? _defaultVoice;
-  Future<void> _queue = Future<void>.value();
+
+  /// What is waiting to be said, oldest first.
+  final List<_Job> _waiting = <_Job>[];
+
+  /// Completes when the utterance in flight is cut short. On iOS a stopped
+  /// `speak` never returns — the plugin hands the result back from
+  /// `didFinish`, and a cancelled utterance only reports `didCancel` — so a
+  /// cut is what ends the wait, not the plugin's own future.
+  Completer<void>? _cut;
+
+  bool _working = false;
 
   @override
-  Future<void> speak(String text) {
+  Future<void> speak(String text, {bool urgent = false}) {
     if (text.isEmpty || _broken) return Future<void>.value();
-    return _queue = _queue.then((_) => _speakNow(text));
-  }
-
-  Future<void> _speakNow(String text) async {
-    await _configure();
-    if (_broken) return;
-    try {
-      await _tts.speak(text);
-    } catch (error) {
-      _fail(error);
+    if (urgent) {
+      // A cue worked out before the turn the rider is taking right now is out
+      // of date by definition, so the queue goes with the utterance in
+      // flight.
+      for (final job in _waiting) {
+        job.finish();
+      }
+      _waiting.clear();
     }
+    final job = _SpeakJob(text, urgent: urgent, at: _now());
+    _waiting.add(job);
+    if (urgent) _interrupt();
+    unawaited(_work());
+    return job.future;
   }
 
   @override
@@ -122,8 +156,12 @@ class FlutterTtsSpeaker implements TurnSpeaker {
   @override
   Future<void> selectVoice(String? id) {
     if (_broken) return Future<void>.value();
-    // Behind the queue, so a cue being said finishes in the voice it started.
-    return _queue = _queue.then((_) => _selectNow(id));
+    // Behind the queue, so a cue being said finishes in the voice it started
+    // in. A voice change is never urgent and never goes stale.
+    final job = _VoiceJob(id, at: _now());
+    _waiting.add(job);
+    unawaited(_work());
+    return job.future;
   }
 
   Future<void> _selectNow(String? id) async {
@@ -171,19 +209,89 @@ class FlutterTtsSpeaker implements TurnSpeaker {
 
   @override
   Future<void> stop() async {
-    if (!_configured || _broken) return;
     // Whatever is waiting its turn is dropped with what is being said.
-    _queue = Future<void>.value();
-    try {
-      await _tts.stop();
-    } catch (error) {
-      _fail(error);
+    for (final job in _waiting) {
+      job.finish();
     }
+    _waiting.clear();
+    await _stopEngine();
+    _release();
   }
 
   @override
   Future<void> dispose() async {
     await stop();
+  }
+
+  /// Works through [_waiting] until it runs out, one job at a time: the
+  /// engine is handed the next cue only once the one before it is done.
+  Future<void> _work() async {
+    if (_working) return;
+    _working = true;
+    try {
+      while (_waiting.isNotEmpty) {
+        final job = _waiting.removeAt(0);
+        if (job is _SpeakJob) {
+          if (!job.urgent && _now().difference(job.at) > staleAfter) {
+            // A distance callout that waited this long is about a stretch of
+            // road the rider has already ridden.
+            job.finish();
+            continue;
+          }
+          await _say(job);
+        } else if (job is _VoiceJob) {
+          await _selectNow(job.id);
+          job.finish();
+        }
+      }
+    } finally {
+      _working = false;
+    }
+  }
+
+  Future<void> _say(_SpeakJob job) async {
+    await _configure();
+    if (_broken) {
+      job.finish();
+      return;
+    }
+    final cut = _cut = Completer<void>();
+    // `_fail` swallows the error, so the cue's own future is a plain
+    // completion whichever way the utterance ends.
+    final said = _tts.speak(job.text).then<void>((_) {}, onError: _fail);
+    await Future.any<void>(<Future<void>>[said, cut.future]);
+    if (identical(_cut, cut)) _cut = null;
+    job.finish();
+  }
+
+  /// Stops the utterance in flight for an urgent cue, and lets [_work] move
+  /// on once the engine has actually gone quiet.
+  void _interrupt() {
+    final cut = _cut;
+    if (cut == null) return;
+    _cut = null;
+    unawaited(
+      _stopEngine().whenComplete(() {
+        if (!cut.isCompleted) cut.complete();
+      }),
+    );
+  }
+
+  /// Ends the wait on the utterance in flight without stopping the engine
+  /// again.
+  void _release() {
+    final cut = _cut;
+    _cut = null;
+    if (cut != null && !cut.isCompleted) cut.complete();
+  }
+
+  Future<void> _stopEngine() async {
+    if (!_configured || _broken) return;
+    try {
+      await _tts.stop();
+    } catch (error) {
+      _fail(error);
+    }
   }
 
   Future<void> _configure() async {
@@ -192,8 +300,11 @@ class FlutterTtsSpeaker implements TurnSpeaker {
     try {
       await _tts.setLanguage(localeTag);
       // Wait for a cue to finish before the next one is handed over, so the
-      // queue below actually holds.
+      // queue above actually holds.
       await _tts.awaitSpeakCompletion(true);
+      // A cue carries the whole instruction in three or four words; there is
+      // nothing to gain from saying it quietly.
+      await _tts.setVolume(1);
       if (_isAndroid) {
         // QUEUE_ADD: a second cue waits instead of cutting the first one off
         // mid-word.
@@ -208,12 +319,28 @@ class FlutterTtsSpeaker implements TurnSpeaker {
         // it reads a cue at the pace a rider expects. Android's default is
         // already right, and changing it there makes the cue race.
         await _tts.setSpeechRate(0.52);
+        // Hands the plugin the app's shared AVAudioSession and lets it
+        // activate the session around an utterance, which is what makes
+        // ducking work at all.
         await _tts.setSharedInstance(true);
-        await _tts.setIosAudioCategory(IosTextToSpeechAudioCategory.playback, [
-          IosTextToSpeechAudioCategoryOptions.duckOthers,
-          IosTextToSpeechAudioCategoryOptions
-              .interruptSpokenAudioAndMixWithOthers,
-        ], IosTextToSpeechAudioMode.voicePrompt);
+        // `playback` is the category that keeps speaking with the screen
+        // locked and the Ring/Silent switch on silent, which is why
+        // `UIBackgroundModes` in Info.plist has `audio` in it. The options
+        // are the set Apple names for turn-by-turn guidance: mix with (and
+        // duck) music rather than being silenced by it, and pause a podcast
+        // or an audiobook for the few seconds a cue takes rather than talking
+        // over the top of it. `voicePrompt` tells the system this is spoken
+        // guidance, not media.
+        await _tts.setIosAudioCategory(
+          IosTextToSpeechAudioCategory.playback,
+          const [
+            IosTextToSpeechAudioCategoryOptions.mixWithOthers,
+            IosTextToSpeechAudioCategoryOptions.duckOthers,
+            IosTextToSpeechAudioCategoryOptions
+                .interruptSpokenAudioAndMixWithOthers,
+          ],
+          IosTextToSpeechAudioMode.voicePrompt,
+        );
       }
     } catch (error) {
       _fail(error);
@@ -225,6 +352,36 @@ class FlutterTtsSpeaker implements TurnSpeaker {
     _broken = true;
     debugPrint('Voice directions are off: text-to-speech failed ($error)');
   }
+}
+
+/// Something the speaker has been asked to do, waiting its turn.
+abstract class _Job {
+  _Job({required this.at});
+
+  /// When it was asked for; what [FlutterTtsSpeaker.staleAfter] measures.
+  final DateTime at;
+
+  final Completer<void> _done = Completer<void>();
+
+  /// Done when the job has been carried out, or dropped.
+  Future<void> get future => _done.future;
+
+  void finish() {
+    if (!_done.isCompleted) _done.complete();
+  }
+}
+
+class _SpeakJob extends _Job {
+  _SpeakJob(this.text, {required this.urgent, required super.at});
+
+  final String text;
+  final bool urgent;
+}
+
+class _VoiceJob extends _Job {
+  _VoiceJob(this.id, {required super.at});
+
+  final String? id;
 }
 
 /// The speaker the navigation feature uses.
