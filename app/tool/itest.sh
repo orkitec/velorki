@@ -214,8 +214,10 @@ flutter_test_one() {
     if [ -z "$built_at" ] && grep -qE '^✓ Built |Xcode build done' "$2"; then
       built_at=$now
     fi
-    if [ -z "$running_at" ] && grep -qE '^[0-9]+:[0-9]+ \+0: ' "$2" \
-      && grep -E '^[0-9]+:[0-9]+ \+0: ' "$2" | grep -qv ': loading '; then
+    # The reporter separates its progress lines with carriage returns on
+    # macOS, so they are split on both before looking for the first test.
+    if [ -z "$running_at" ] && tr '\r' '\n' < "$2" \
+      | grep -E '^[0-9]+:[0-9]+ \+[0-9]+: ' | grep -qv ': loading '; then
       running_at=$now
     fi
     if [ -z "$running_at" ] && [ -n "$built_at" ] \
