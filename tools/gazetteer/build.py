@@ -131,12 +131,6 @@ PLACE_RADIUS_M = 5000.0
 # How far an address may look for the street of the same name.
 ADDRESS_RADIUS_M = 2000.0
 
-# Anchors kept per street: the lowest number, the highest, and every tenth in
-# between. 40 is the cap; only a street with more than ~380 distinct numbers
-# ever reaches it, and then the tenths are thinned evenly.
-ANCHOR_STEP = 10
-MAX_ANCHORS = 40
-
 # How far a smaller place may look for the town it sits in.
 CONTEXT_RADIUS_M = 25000.0
 
@@ -869,7 +863,7 @@ class StreetNameGrid:
 
 
 def thin_anchors(entries: list[tuple[int, int, int]]) -> list[tuple[int, int, int]]:
-    """Lowest, highest and every tenth number in between, at most MAX_ANCHORS."""
+    """Lowest, highest and every twentieth number in between, at most MAX_ANCHORS."""
     count = len(entries)
     if count <= 2:
         return entries
@@ -936,6 +930,11 @@ def house_numbers(
 # writing one tile
 # --------------------------------------------------------------------------
 
+# Every 20th number in between: half as many anchors, still accurate to a block.
+ANCHOR_STEP = 20
+# Hard cap per street, so one long road cannot bloat a tile; ~380 numbers reach it.
+MAX_ANCHORS = 20
+
 SCHEMA = """
 CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 
@@ -995,9 +994,10 @@ CREATE TABLE aliases (
 );
 
 -- Anchor points along a street: the lowest house number, the highest, and
--- every tenth in between. A lookup interpolates between the two anchors that
--- bracket the number asked for. WITHOUT ROWID because (street_id, number) is
--- the whole row's key and the table is nothing but that key plus a point.
+-- every twentieth in between (see ANCHOR_STEP / MAX_ANCHORS above). A lookup
+-- interpolates between the two anchors that bracket the number asked for.
+-- WITHOUT ROWID because (street_id, number) is the whole row's key and the
+-- table is nothing but that key plus a point.
 CREATE TABLE house_numbers (
     street_id INTEGER NOT NULL,
     number    INTEGER NOT NULL,
@@ -1019,9 +1019,11 @@ CREATE VIRTUAL TABLE search USING fts5(
 -- merge.py falls back to name + place + rounded position for those.
 --
 -- Reverse lookup is a bounding box on lat/lon plus a sort, so a plain index on
--- the coordinates is all it needs.
+-- the coordinates is all it needs. Streets get none: the app finds a street by
+-- name through the FTS index and its house numbers by street_id, and nothing
+-- on the phone asks which street is near a point. The index was a tenth of a
+-- dense tile.
 CREATE INDEX idx_places_pos  ON places(lat, lon);
-CREATE INDEX idx_streets_pos ON streets(lat, lon);
 CREATE INDEX idx_pois_pos    ON pois(lat, lon);
 CREATE INDEX idx_aliases_ref ON aliases(ref_id);
 """

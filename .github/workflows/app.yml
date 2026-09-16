@@ -102,7 +102,7 @@ jobs:
   # The gazetteer builder, which is Python and has nothing to do with the app
   # package -- hence the working-directory override. It builds the 3.5 MB
   # Liechtenstein extract twice and asserts the file format, the query contract
-  # and the mirror tooling against it: 72 tests in about five seconds, so it
+  # and the mirror tooling against it: 75 tests in about five seconds, so it
   # rides along on every run of this workflow rather than being gated on a
   # path. tools/gazetteer/** is in the paths above for the same reason the app
   # job wants it: app/test reads the committed .gaz fixtures.

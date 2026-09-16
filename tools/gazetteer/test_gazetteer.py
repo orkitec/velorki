@@ -214,13 +214,24 @@ class GazetteerTest(unittest.TestCase):
             )
         }
         self.assertLessEqual(
-            {"idx_places_pos", "idx_streets_pos", "idx_pois_pos", "idx_aliases_ref"},
+            {"idx_places_pos", "idx_pois_pos", "idx_aliases_ref"},
             indexes,
         )
         self.assertEqual(db.execute("PRAGMA page_size").fetchone()[0], 4096)
         self.assertEqual(
             db.execute("PRAGMA journal_mode").fetchone()[0].lower(), "delete"
         )
+
+    def test_a_built_file_has_no_street_position_index(self) -> None:
+        """Nothing on the phone looks a street up by position; the index is dropped."""
+        for streets in (True, False):
+            indexes = {
+                row[0]
+                for row in self.open(streets).execute(
+                    "SELECT name FROM sqlite_master WHERE type = 'index'"
+                )
+            }
+            self.assertNotIn("idx_streets_pos", indexes)
 
     def test_meta_rows(self) -> None:
         meta = dict(self.open().execute("SELECT key, value FROM meta"))
@@ -738,24 +749,31 @@ class GazetteerTest(unittest.TestCase):
     # ----------------------------------------------------- house numbers ---
 
     def test_thin_anchors_keeps_the_ends(self) -> None:
+        self.assertEqual((build.ANCHOR_STEP, build.MAX_ANCHORS), (20, 20))
         entries = [(number, number, 0) for number in range(1, 61)]
         thinned = build.thin_anchors(entries)
         self.assertEqual(thinned[0], entries[0])
         self.assertEqual(thinned[-1], entries[-1])
         self.assertLessEqual(len(thinned), build.MAX_ANCHORS)
         self.assertEqual([e[0] for e in thinned], sorted(e[0] for e in thinned))
-        # Every tenth in between, so 1, 11, 21, ... plus the last.
-        self.assertEqual([e[0] for e in thinned], [1, 11, 21, 31, 41, 51, 60])
-        # Even 500 numbers stay under the cap.
-        many = build.thin_anchors([(n, n, 0) for n in range(1, 501)])
+        # Every twentieth in between, so 1, 21, 41 plus the last.
+        self.assertEqual([e[0] for e in thinned], [1, 21, 41, 60])
+        # Even 5,000 numbers stay under the cap, and the ends survive.
+        many = build.thin_anchors([(n, n, 0) for n in range(1, 5001)])
         self.assertLessEqual(len(many), build.MAX_ANCHORS)
-        self.assertEqual((many[0][0], many[-1][0]), (1, 500))
+        self.assertEqual((many[0][0], many[-1][0]), (1, 5000))
+        # Past the cap the inner anchors are sampled evenly, not bunched up: the
+        # first step is ANCHOR_STEP, every step after it is within a fifth of
+        # the others.
+        gaps = [b[0] - a[0] for a, b in zip(many, many[1:])]
+        self.assertEqual(gaps[0], build.ANCHOR_STEP)
+        self.assertLess(max(gaps[1:]), 1.2 * min(gaps[1:]))
 
-    def test_a_street_with_fifty_addresses_is_thinned(self) -> None:
+    def test_a_street_with_sixty_addresses_is_thinned(self) -> None:
         """The whole path: addresses in, anchors out, on one synthetic street."""
         street = build.StreetRow(7, "Teststrasse", 47.14, 9.52, None, ())
         book = build.AddressBook()
-        for number in range(50, 0, -1):  # out of order on purpose
+        for number in range(60, 0, -1):  # out of order on purpose
             book.add("teststrasse", number, 47.14 + number * 1e-5, 9.52)
         book.add("Teststrasse", 1, 47.145, 9.52)  # number 1 again, further off
         book.add("Teststrasse", 2, 48.90, 9.52)  # 200 km away: no street near
@@ -764,7 +782,8 @@ class GazetteerTest(unittest.TestCase):
         self.assertTrue(all(row[0] == 7 for row in anchors))
         self.assertLessEqual(len(anchors), build.MAX_ANCHORS)
         self.assertEqual(numbers, sorted(numbers))
-        self.assertEqual((numbers[0], numbers[-1]), (1, 50))
+        self.assertEqual((numbers[0], numbers[-1]), (1, 60))
+        self.assertEqual(numbers, [1, 21, 41, 60])
         # The first address of a repeated number wins, so number 1 keeps the
         # position it was first seen at, not the one added later.
         first = next(row for row in anchors if row[1] == 1)
@@ -905,6 +924,23 @@ class GazetteerTest(unittest.TestCase):
         row, distance = query.nearest(db, "places", 47.1410, 9.5215)
         self.assertEqual(row[0], "Vaduz")
         self.assertLess(distance, 1000)
+
+    def test_reverse_lookup_of_a_street_without_the_index(self) -> None:
+        """A built file has no idx_streets_pos, so the street answer is a scan."""
+        db = self.open()
+        self.assertFalse(query.has_position_index(db, "streets"))
+        scanned, distance = query.nearest(db, "streets", 47.1410, 9.5215)
+        self.assertIsNotNone(scanned)
+        self.assertLess(distance, 1000)
+
+        # The same file with the old index gives the same street, by bounding box.
+        with_index = self.break_file("CREATE INDEX idx_streets_pos ON streets(lat, lon)")
+        indexed_db = sqlite3.connect(f"file:{with_index}?mode=ro", uri=True)
+        self.addCleanup(indexed_db.close)
+        self.assertTrue(query.has_position_index(indexed_db, "streets"))
+        row, indexed_distance = query.nearest(indexed_db, "streets", 47.1410, 9.5215)
+        self.assertEqual(row, scanned)
+        self.assertAlmostEqual(indexed_distance, distance, places=6)
 
     # ------------------------------------------------------------- check ---
 
@@ -1206,6 +1242,13 @@ class GazetteerTest(unittest.TestCase):
         db.close()
         return broken
 
+    def test_check_accepts_a_file_that_still_has_the_street_index(self) -> None:
+        """Files built before the trim keep idx_streets_pos and stay valid."""
+        older = self.break_file("CREATE INDEX idx_streets_pos ON streets(lat, lon)")
+        report = check.check(older)
+        self.assertTrue(report.has_streets)
+        self.assertGreater(report.streets, 0)
+
     def test_check_rejects_a_dangling_alias(self) -> None:
         broken = self.break_file(
             "INSERT INTO aliases (id, ref_id, name) VALUES (9999999, 9999998, 'x')"
@@ -1224,16 +1267,27 @@ class GazetteerTest(unittest.TestCase):
         self.assertIn("street_id", str(caught.exception))
 
     def test_check_rejects_a_street_over_the_anchor_cap(self) -> None:
+        """check.py's cap is 40 — what any file may hold, not what build.py writes."""
+        self.assertEqual((check.MAX_ANCHORS, build.MAX_ANCHORS), (40, 20))
         street_id = self.open().execute("SELECT id FROM streets LIMIT 1").fetchone()[0]
-        broken = self.break_file(
-            "INSERT OR REPLACE INTO house_numbers (street_id, number, lat, lon)"
-            f" SELECT {street_id}, value, 471400000, 95200000"
-            f" FROM (WITH RECURSIVE n(value) AS (SELECT 1 UNION ALL"
-            f"   SELECT value + 1 FROM n WHERE value < {build.MAX_ANCHORS + 1})"
-            " SELECT value FROM n)"
-        )
+
+        def crowd(anchors: int) -> str:
+            return self.break_file(
+                f"DELETE FROM house_numbers WHERE street_id = {street_id}",
+                "INSERT INTO house_numbers (street_id, number, lat, lon)"
+                f" SELECT {street_id}, value, 471400000, 95200000"
+                f" FROM (WITH RECURSIVE n(value) AS (SELECT 1 UNION ALL"
+                f"   SELECT value + 1 FROM n WHERE value < {anchors})"
+                " SELECT value FROM n)"
+            )
+
+        # A file built before today carries up to 40 and is still valid.
+        report = check.check(crowd(check.MAX_ANCHORS))
+        self.assertEqual(report.max_anchors, check.MAX_ANCHORS)
+        self.assertIn(f"max {check.MAX_ANCHORS}/street", report.summary())
+
         with self.assertRaises(check.GazetteerError) as caught:
-            check.check(broken)
+            check.check(crowd(check.MAX_ANCHORS + 1))
         self.assertIn("anchors", str(caught.exception))
 
     def test_check_rejects_an_unnamed_cafe(self) -> None:

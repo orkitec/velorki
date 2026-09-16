@@ -28,7 +28,7 @@ at `<appSupport>/brouter/gazetteer/<TILE>.gaz`, read-only.
 | `pois` | one per feature and kind | what a rider needs on the road and what a rider searches for as a destination: the 38 kinds below, named — or unnamed for the eight utility kinds |
 | `streets` | one per street name per place | every named `highway=*` way, the many ways of one street merged into one row |
 | `aliases` | one per extra name | `name:en`, `int_name`, `alt_name`, `old_name`, `official_name`, `short_name` of a row above |
-| `house_numbers` | at most 40 per street | anchor points along a street: the lowest number, the highest, every tenth in between |
+| `house_numbers` | at most 20 per street | anchor points along a street: the lowest number, the highest, every twentieth in between |
 | `search` | one per place, street, **named** poi and alias | the FTS5 index the search box queries |
 | `meta` | six | schema version, tile, build time, source, what is in the file |
 
@@ -164,7 +164,6 @@ CREATE VIRTUAL TABLE search USING fts5(
 );
 
 CREATE INDEX idx_places_pos  ON places(lat, lon);
-CREATE INDEX idx_streets_pos ON streets(lat, lon);
 CREATE INDEX idx_pois_pos    ON pois(lat, lon);
 CREATE INDEX idx_aliases_ref ON aliases(ref_id);
 ```
@@ -204,8 +203,14 @@ every street of that place. `admin_id` and `place_id` can only point inside the
 same file, so a village whose nearest town falls in the neighbouring tile keeps
 a `NULL`.
 
-Reverse lookup needs no extra table: the three positional indexes turn "what is
-near me" into a bounding box plus a sort.
+**Streets carry no positional index.** The app finds a street by name through
+the FTS index and its house numbers by `street_id`; nothing on the phone asks
+which street is near a point, and `idx_streets_pos` was a tenth of a tile. Every
+tool still reads a file that has it — files built before this trim keep it — and
+`query.py --reverse` falls back to one full scan of `streets`, marked `(scan)`.
+
+Reverse lookup needs no extra table: the positional indexes on `places` and
+`pois` turn "what is near me" into a bounding box plus a sort.
 
 ## Query contract
 
@@ -283,8 +288,11 @@ address belongs to the street row of the same name (case-insensitively;
 diacritics are kept) nearest within 2 km, and is dropped when there is none or
 when the number has no leading integer. Per street the numbers are then sorted,
 the first address of a repeated number wins, and the list is thinned to the
-lowest, the highest and every tenth in between — at most 40, which only a
-street with more than ~380 numbers ever reaches.
+lowest, the highest and every twentieth in between — at most 20, which only a
+street with more than ~380 numbers ever reaches. Both numbers are
+`ANCHOR_STEP` and `MAX_ANCHORS`, next to the schema in `build.py`; `check.py`
+still accepts up to 40 so a file built before the trim passes, and reports the
+busiest street's count in its summary.
 
 Areas cost a second pass over the file: osmium indexes the multipolygon and
 boundary relations first, then assembles each one while the ways stream past.
@@ -320,10 +328,10 @@ tile it
   surviving rows (a dropped duplicate's references go to its survivor),
 * carries the aliases over with `ref_id` remapped, one row per (surviving row,
   name), and the anchors with `street_id` remapped, one per (street, number),
-  thinned back under 40 when a merged street holds more. The "every tenth" step
-  is **not** re-applied: its input is the addresses, which merge.py never sees,
-  so re-running it would throw away nine anchors in ten on every merge and
-  merging a file with a copy of itself would not be a no-op,
+  thinned back under 20 when a merged street holds more. The "every twentieth"
+  step is **not** re-applied: its input is the addresses, which merge.py never
+  sees, so re-running it would throw away nineteen anchors in twenty on every
+  merge and merging a file with a copy of itself would not be a no-op,
 * merges a file that predates either table fine — it simply contributes none,
 * rebuilds the FTS index, writes `meta` (`source` is the comma-joined distinct
   sources of the inputs, `has_streets` / `has_pois` are set when any input has
@@ -339,12 +347,12 @@ pyosmium.
 
 | File | Built from | Content | Size |
 |---|---|---|---:|
-| `E5_N45.gaz` | `liechtenstein.osm.pbf` | 98 places, 1,313 streets, 922 pois (302 unnamed), 46 aliases, 2,497 anchors | 286,720 B |
-| `W20_N30.gaz` | `portugal-latest.osm.pbf`, `--tiles W20_N30` | 1,769 places, 1,022 pois | 262,144 B |
+| `E5_N45.gaz` | `liechtenstein.osm.pbf` | 98 places, 1,313 streets, 922 pois (302 unnamed), 46 aliases, 2,058 anchors | 249,856 B |
+| `W20_N30.gaz` | `portugal-latest.osm.pbf`, `--tiles W20_N30` | 1,774 places, 8,435 streets, 6,501 pois, 3,234 anchors | 1,490,944 B |
 
-`E5_N45.gaz` by page share: `pois` and `house_numbers` 19% each, `streets` 17%,
-the FTS index 14%, `idx_streets_pos` 10%, `idx_pois_pos` 7%, `places` 4%,
-everything else (including `aliases` and its index) one page each.
+`E5_N45.gaz` by page share: `pois` 21%, `streets` 20%, `house_numbers` 18%, the
+FTS index 15%, `idx_pois_pos` 8%, `places` 5%, everything else (including
+`aliases` and its index) one page each.
 
 ```sh
 ./build.py liechtenstein.osm.pbf --out fixtures
@@ -365,12 +373,14 @@ stations and 1 repair station, node 12899110144 a `drinking_water=no` spring
 that is dropped, node 4759689350 a toilet with a tap that is two rows.
 Landmarks took the file from 155,648 B to 204,800 B, Addendum 2 (the seven
 kinds, the aliases, the anchors) to 266,240 B and Addendum 3 (327 more POI
-rows, most of them unnamed) to 286,720 B; `--no-streets` is 155,648 B.
+rows, most of them unnamed) to 286,720 B; Addendum 4 (no `idx_streets_pos`, an
+anchor every twentieth number) took it back to 249,856 B, 12.9% off, and
+`--no-streets` from 155,648 B to 151,552 B.
 Madeira is `W20_N30`, the tile the integration tests already mirror, and holds
 `Funchal`; Portugal is the only Geofabrik extract that covers it, so the
-mainland tiles are discarded with `--tiles`. `W20_N30.gaz` was built before the
-`osm_type` / `osm_id` columns existed and is kept that way on purpose: it is
-what proves the tools still read a file without them.
+mainland tiles are discarded with `--tiles`. `W20_N30.gaz` was built before
+`idx_streets_pos` was dropped and the anchor cap halved, and is kept that way
+on purpose: it is what proves the tools still read an older file.
 
 Run the tests from the repo root:
 
@@ -379,7 +389,7 @@ GAZ_EXTRACT=/path/to/liechtenstein.osm.pbf \
   python -m unittest tools/gazetteer/test_gazetteer.py
 ```
 
-72 tests, about five seconds. `.github/workflows/app.yml`'s `gazetteer` job
+75 tests, about five seconds. `.github/workflows/app.yml`'s `gazetteer` job
 runs exactly that on every push — it fetches the extract from Geofabrik as
 `liechtenstein.osm.pbf` (the name ends up in `meta.source`, which the tests
 assert on) — then `check.py` and `sha256sum -c fixtures.sha256` over the
@@ -407,7 +417,10 @@ file name. `app/tool/itest_mirror.sh` uses both.
 ## Measured
 
 Geofabrik extracts of 2026-09-15/16, 8-core laptop, 16 GB RAM, sizes after
-`VACUUM`.
+`VACUUM`. Every size below predates Addendum 4 and is that much too big: the
+full New York tile `W75_N40` (607k streets, 1.17 M anchors) was 89 MB with
+`idx_streets_pos` and a tenth-number anchor, and Liechtenstein went 286,720 →
+249,856 B, most of it the dropped index.
 
 | Extract | PBF | Tile | places | pois | streets | `--no-streets` | Default |
 |---|---:|---|---:|---:|---:|---:|---:|

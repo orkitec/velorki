@@ -105,14 +105,13 @@ CREATE VIRTUAL TABLE search USING fts5(
 );
 
 CREATE INDEX idx_places_pos  ON places(lat, lon);
-CREATE INDEX idx_streets_pos ON streets(lat, lon);
 CREATE INDEX idx_pois_pos    ON pois(lat, lon);
 CREATE INDEX idx_aliases_ref ON aliases(ref_id);
 """
 
-# The anchor cap build.py applies. A merged street holds the union of its
-# inputs' anchors, which is thinned again to stay under it.
-MAX_ANCHORS = 40
+# The anchor cap build.py applies (its MAX_ANCHORS). A merged street holds the
+# union of its inputs' anchors, which is thinned again to stay under it.
+MAX_ANCHORS = 20
 
 # The columns every version 1 file has, in order. osm_type and osm_id are read
 # separately because files built before the addendum do not have them.
@@ -290,9 +289,9 @@ def dedup_key(row: Row, place_name: str | None) -> tuple | None:
 def thin_anchors(entries: list[tuple[int, int, int]]) -> list[tuple[int, int, int]]:
     """The union of two inputs' anchors, back under MAX_ANCHORS.
 
-    What comes in here is already thinned — build.py's "every tenth" ran over
+    What comes in here is already thinned — build.py's "every twentieth" ran over
     the addresses, which merge.py never sees — so running that step again would
-    throw away nine anchors in ten every time a file passed through a merge, and
+    throw away nineteen anchors in twenty every time a file passed a merge, and
     merging a file with a copy of itself would not be a no-op. Only the cap is
     re-applied: the lowest and the highest number always survive, and the rest
     are sampled evenly.

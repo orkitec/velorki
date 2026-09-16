@@ -20,7 +20,9 @@ one POI kind nearest to the point, named or not: that is how the app answers
 "drinking water", and the only way to see the unnamed utility rows at all.
 
 The reverse form is the nearest street, place and POI to a coordinate, found
-with a bounding box on the lat/lon indexes.
+with a bounding box on the lat/lon indexes. `streets` has no such index in a
+file built today — the app never looks a street up by position — so the street
+answer comes from one full scan of the table and is marked `(scan)`.
 """
 
 from __future__ import annotations
@@ -287,10 +289,47 @@ REVERSE_SQL = {
 }
 
 
+def has_position_index(db: sqlite3.Connection, table: str) -> bool:
+    """Whether `idx_<table>_pos` is in the file; `streets` has none since the trim."""
+    return (
+        db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = ?",
+            (f"idx_{table}_pos",),
+        ).fetchone()
+        is not None
+    )
+
+
+def nearest_by_scan(
+    db: sqlite3.Connection, table: str, lat: float, lon: float
+) -> tuple[tuple, float] | tuple[None, None]:
+    """Nearest row without a positional index: read the table once, keep the best.
+
+    Growing a bounding box over an unindexed table would scan it up to four
+    times over; one pass is both simpler and cheaper.
+    """
+    best: tuple | None = None
+    best_distance = float("inf")
+    for row in db.execute(REVERSE_SQL[table]):
+        distance = meters_between(
+            lat, lon, row[1] / COORD_SCALE, row[2] / COORD_SCALE
+        )
+        if distance < best_distance:
+            best, best_distance = row, distance
+    if best is None:
+        return None, None
+    return best, best_distance
+
+
 def nearest(
     db: sqlite3.Connection, table: str, lat: float, lon: float
 ) -> tuple[tuple, float] | tuple[None, None]:
-    """Nearest row in one table, growing the bounding box until something hits."""
+    """Nearest row in one table, growing the bounding box until something hits.
+
+    Falls back to a single full scan when the table has no positional index.
+    """
+    if not has_position_index(db, table):
+        return nearest_by_scan(db, table, lat, lon)
     for degrees in (0.02, 0.1, 0.5, 2.0):
         dlon = degrees / max(0.05, math.cos(math.radians(lat)))
         rows = db.execute(
@@ -366,18 +405,20 @@ def main() -> int:
             parser.error("--reverse needs LAT LON")
         lat, lon = float(options.args[0]), float(options.args[1])
         started = time.perf_counter()
+        scanned = {table for table in REVERSE_SQL if not has_position_index(db, table)}
         found = {table: nearest(db, table, lat, lon) for table in REVERSE_SQL}
         elapsed = (time.perf_counter() - started) * 1000
         for table, (row, distance) in found.items():
+            note = "  (scan)" if table in scanned else ""
             if row is None:
-                print(f"{table:<8} -")
+                print(f"{table:<8} -{note}")
                 continue
             context = place_name(db, row[4])
             print(
                 f"{table:<8} {row[0]}"
                 f"{' (' + context + ')' if context else ''}"
                 f"  [{row[3]}]  {distance:.0f} m  "
-                f"{row[1] / COORD_SCALE:.5f},{row[2] / COORD_SCALE:.5f}"
+                f"{row[1] / COORD_SCALE:.5f},{row[2] / COORD_SCALE:.5f}{note}"
             )
         print(f"({elapsed:.1f} ms)")
         return 0

@@ -11,8 +11,11 @@ rows plus the aliases. No two POI rows share an (osm_type, osm_id, kind). The
 optional `osm_type`/`osm_id` columns and the optional `aliases` /
 `house_numbers` tables are accepted whether or not a file has them; when a file
 does have them, every `ref_id` and `street_id` must resolve and no street may
-carry more than 40 anchors. Used by manifest.py before it writes a gazetteer
-entry, and by the tests.
+carry more than 40 anchors — build.py writes at most 20 today, but a file built
+before that cap still has to pass. The summary reports the real maximum. The
+positional index on `streets` is likewise optional: older files have it, files
+built today do not. Used by manifest.py before it writes a gazetteer entry, and
+by the tests.
 """
 
 from __future__ import annotations
@@ -26,7 +29,8 @@ SCHEMA_VERSION = "1"
 
 TABLES = ("meta", "places", "streets", "pois", "search")
 
-# Must match build.py's MAX_ANCHORS.
+# What a file may carry, not what build.py writes: build.py's cap is 20 today
+# and was 40 before, and a file built then is still a valid file.
 MAX_ANCHORS = 40
 
 # Must match build.py's UNNAMED_KINDS: the only kinds a POI may carry with no
@@ -58,6 +62,7 @@ class Report(NamedTuple):
     aliases: int = 0
     house_numbers: int = 0
     unnamed_pois: int = 0
+    max_anchors: int = 0
 
     def summary(self) -> str:
         kinds = ["places", "pois"] if self.has_pois else ["places"]
@@ -67,7 +72,8 @@ class Report(NamedTuple):
             f"{os.path.basename(self.path)}  {self.tile}  "
             f"{self.places} places, {self.streets} streets, "
             f"{self.pois} pois ({self.unnamed_pois} unnamed), "
-            f"{self.aliases} aliases, {self.house_numbers} house numbers, "
+            f"{self.aliases} aliases, {self.house_numbers} house numbers "
+            f"(max {self.max_anchors}/street), "
             f"{self.search} indexed  {self.bytes / 1e6:.2f} MB  "
             f"[{'+'.join(kinds)}]  built {self.built_at}  from {self.source}"
         )
@@ -156,6 +162,7 @@ def check(path: str) -> Report:
         aliases=counts["aliases"],
         house_numbers=counts["house_numbers"],
         unnamed_pois=counts["unnamed_pois"],
+        max_anchors=counts["max_anchors"],
     )
 
 
@@ -229,9 +236,10 @@ def _check_extra_tables(db: sqlite3.Connection, path: str) -> dict[str, int]:
     """`aliases` and `house_numbers` are optional, but not optionally correct.
 
     An alias has to point at a real row of one of the three tables, an anchor at
-    a real street, and no street may carry more than MAX_ANCHORS anchors.
+    a real street, and no street may carry more than MAX_ANCHORS anchors. Also
+    returns the busiest street's anchor count, for the summary line.
     """
-    counts = {"aliases": 0, "house_numbers": 0}
+    counts = {"aliases": 0, "house_numbers": 0, "max_anchors": 0}
 
     if _has_table(db, "aliases"):
         counts["aliases"] = db.execute("SELECT count(*) FROM aliases").fetchone()[0]
@@ -257,16 +265,17 @@ def _check_extra_tables(db: sqlite3.Connection, path: str) -> dict[str, int]:
             raise GazetteerError(
                 f"{path}: house_numbers.street_id {dangling[0]} is not a street"
             )
-        crowded = db.execute(
-            "SELECT street_id, count(*) FROM house_numbers GROUP BY street_id "
-            "HAVING count(*) > ? LIMIT 1",
-            (MAX_ANCHORS,),
+        busiest = db.execute(
+            "SELECT street_id, count(*) AS anchors FROM house_numbers "
+            "GROUP BY street_id ORDER BY anchors DESC LIMIT 1"
         ).fetchone()
-        if crowded is not None:
-            raise GazetteerError(
-                f"{path}: street {crowded[0]} holds {crowded[1]} anchors, "
-                f"more than {MAX_ANCHORS}"
-            )
+        if busiest is not None:
+            counts["max_anchors"] = busiest[1]
+            if busiest[1] > MAX_ANCHORS:
+                raise GazetteerError(
+                    f"{path}: street {busiest[0]} holds {busiest[1]} anchors, "
+                    f"more than {MAX_ANCHORS}"
+                )
 
     return counts
 
