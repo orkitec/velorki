@@ -5,12 +5,17 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/search/data/gazetteer_store.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
+import 'package:velorki/l10n/generated/app_localizations.dart';
+import 'package:velorki/l10n/generated/app_localizations_en.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
+import 'package:velorki_geo/velorki_geo.dart';
 
 import '../planner/support/pump.dart';
 import 'support/gazetteer_fixture.dart';
 
 void main() {
+  group('kinds, icons and labels', _kindTable);
+
   testWidgets('nothing is sent below three characters', (tester) async {
     final h = await pumpScreen(
       tester,
@@ -229,5 +234,288 @@ void main() {
       expect(find.byIcon(Icons.place_outlined), findsWidgets);
       expect(find.byIcon(Icons.travel_explore_outlined), findsNothing);
     });
+  });
+}
+
+/// Every kind the gazetteer can answer with, as the rows show it.
+///
+/// The table is the contract: a kind added to the store without an icon and a
+/// label here is a row that says nothing, which is the bug this guards.
+const _kinds =
+    <({SearchKind kind, String? detail, IconData icon, String label})>[
+      (
+        kind: SearchKind.place,
+        detail: 'city',
+        icon: Icons.location_city_outlined,
+        label: 'City',
+      ),
+      (
+        kind: SearchKind.place,
+        detail: 'town',
+        icon: Icons.location_city_outlined,
+        label: 'Town',
+      ),
+      (
+        kind: SearchKind.place,
+        detail: 'village',
+        icon: Icons.location_city_outlined,
+        label: 'Village',
+      ),
+      (
+        kind: SearchKind.place,
+        detail: 'hamlet',
+        icon: Icons.location_city_outlined,
+        label: 'Hamlet',
+      ),
+      (
+        kind: SearchKind.place,
+        detail: 'suburb',
+        icon: Icons.location_city_outlined,
+        label: 'Suburb',
+      ),
+      (
+        kind: SearchKind.place,
+        detail: 'neighbourhood',
+        icon: Icons.location_city_outlined,
+        label: 'Neighbourhood',
+      ),
+      (
+        kind: SearchKind.place,
+        detail: 'locality',
+        icon: Icons.location_city_outlined,
+        label: 'Locality',
+      ),
+      (
+        kind: SearchKind.place,
+        detail: 'island',
+        icon: Icons.location_city_outlined,
+        label: 'Island',
+      ),
+      (
+        kind: SearchKind.street,
+        detail: null,
+        icon: Icons.signpost_outlined,
+        label: 'Street',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'drinking_water',
+        icon: Icons.water_drop_outlined,
+        label: 'Drinking water',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'cafe',
+        icon: Icons.local_cafe_outlined,
+        label: 'Cafe',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'bicycle_repair_station',
+        icon: Icons.build_outlined,
+        label: 'Bike repair station',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'shelter',
+        icon: Icons.house_siding_outlined,
+        label: 'Shelter',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'bicycle_shop',
+        icon: Icons.pedal_bike_outlined,
+        label: 'Bike shop',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'station',
+        icon: Icons.train_outlined,
+        label: 'Station',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'viewpoint',
+        icon: Icons.landscape_outlined,
+        label: 'Viewpoint',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'peak',
+        icon: Icons.terrain_outlined,
+        label: 'Peak',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'park',
+        icon: Icons.park_outlined,
+        label: 'Park',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'attraction',
+        icon: Icons.attractions_outlined,
+        label: 'Attraction',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'museum',
+        icon: Icons.museum_outlined,
+        label: 'Museum',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'historic',
+        icon: Icons.account_balance_outlined,
+        label: 'Historic site',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'place_of_worship',
+        icon: Icons.church_outlined,
+        label: 'Place of worship',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'hospital',
+        icon: Icons.local_hospital_outlined,
+        label: 'Hospital',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'university',
+        icon: Icons.school_outlined,
+        label: 'University',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'stadium',
+        icon: Icons.stadium_outlined,
+        label: 'Sports venue',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'mall',
+        icon: Icons.local_mall_outlined,
+        label: 'Shopping centre',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'airport',
+        icon: Icons.flight_outlined,
+        label: 'Airport',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'ferry_terminal',
+        icon: Icons.directions_boat_outlined,
+        label: 'Ferry terminal',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'tower',
+        icon: Icons.cell_tower_outlined,
+        label: 'Tower',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'lighthouse',
+        icon: Icons.lightbulb_outline,
+        label: 'Lighthouse',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'water',
+        icon: Icons.water_outlined,
+        label: 'Water',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'beach',
+        icon: Icons.beach_access_outlined,
+        label: 'Beach',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'nature_reserve',
+        icon: Icons.forest_outlined,
+        label: 'Nature reserve',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'building',
+        icon: Icons.apartment_outlined,
+        label: 'Building',
+      ),
+      // The fallbacks: a POI kind this build does not know, and no kind at all.
+      (
+        kind: SearchKind.poi,
+        detail: 'graffiti_wall',
+        icon: Icons.place_outlined,
+        label: 'Place',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: null,
+        icon: Icons.place_outlined,
+        label: 'Place',
+      ),
+    ];
+
+SearchResult _local(SearchKind kind, String? detail, {String? city}) =>
+    SearchResult(
+      name: 'Somewhere',
+      position: const LatLng(47, 9.5),
+      source: SearchSource.local,
+      kind: kind,
+      detail: detail,
+      city: city,
+    );
+
+void _kindTable() {
+  final AppLocalizations l10n = AppLocalizationsEn();
+
+  for (final row in _kinds) {
+    final name = '${row.kind.name}/${row.detail ?? 'none'}';
+    test('$name shows ${row.label}', () {
+      final result = _local(row.kind, row.detail);
+      expect(searchResultIcon(result), row.icon);
+      expect(searchKindLabel(l10n, result), row.label);
+      expect(localResultSubtitle(l10n, result), row.label);
+      expect(
+        localResultSubtitle(l10n, _local(row.kind, row.detail, city: 'Vaduz')),
+        '${row.label} · Vaduz',
+      );
+    });
+  }
+
+  test('an unclassified local row keeps the neutral pin and no label', () {
+    final result = _local(SearchKind.unknown, null);
+    expect(searchResultIcon(result), Icons.place_outlined);
+    expect(searchKindLabel(l10n, result), isEmpty);
+    expect(
+      localResultSubtitle(
+        l10n,
+        _local(SearchKind.unknown, null, city: 'Vaduz'),
+      ),
+      'Vaduz',
+    );
+  });
+
+  test('an online row keeps the neutral pin whatever its kind', () {
+    for (final row in _kinds) {
+      expect(
+        searchResultIcon(
+          SearchResult(
+            name: 'Somewhere',
+            position: const LatLng(47, 9.5),
+            kind: row.kind,
+            detail: row.detail,
+          ),
+        ),
+        Icons.place_outlined,
+        reason: '${row.kind.name}/${row.detail}',
+      );
+    }
   });
 }

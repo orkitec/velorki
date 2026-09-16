@@ -12,7 +12,9 @@ file.
 
 The PBF is streamed, never loaded whole. Node coordinates go through an osmium
 location cache (in memory for small extracts, a file on disk for big ones), so
-Python only ever sees the objects that carry tags worth keeping.
+Python only ever sees the objects that carry tags worth keeping. Areas are
+assembled as well, which costs a second pass over the file and is what makes a
+lake, a park or a big building mapped as a multipolygon relation searchable.
 
 Usage:
     build.py liechtenstein.osm.pbf --out gaz
@@ -53,14 +55,33 @@ PLACE_KINDS = frozenset(
 # Places that can be the "which town is this in" context of a smaller place.
 CONTEXT_KINDS = frozenset("city town".split())
 
-# The small set of points of interest a bike app actually needs. Unnamed ones
-# are dropped: a search box cannot find a row with no name.
+# What a rider needs on the road, and what a rider searches for by name.
+# Unnamed objects are dropped throughout: a search box cannot find a row with
+# no name.
+#
+# The first group is the rider's own kit; it is matched first so a café in a
+# historic building stays a café.
 POI_AMENITIES = {
     "drinking_water": "drinking_water",
     "cafe": "cafe",
     "bicycle_repair_station": "bicycle_repair_station",
     "shelter": "shelter",
 }
+
+# The second group is landmarks: what somebody types into the search box as a
+# destination. Matched in the order below, so the more specific kind wins and
+# `building` is only ever the fallback.
+MUSEUM_TOURISM = frozenset("museum gallery".split())
+ATTRACTION_TOURISM = frozenset("attraction theme_park zoo aquarium".split())
+HOSPITAL_AMENITIES = frozenset("hospital clinic".split())
+UNIVERSITY_AMENITIES = frozenset("university college".split())
+STADIUM_LEISURE = frozenset("stadium sports_centre ice_rink swimming_pool".split())
+MALL_SHOPS = frozenset("mall department_store".split())
+TOWER_MAN_MADE = frozenset(
+    "tower communications_tower observation_tower mast".split()
+)
+WATER_NATURAL = frozenset("water bay strait lagoon".split())
+RESERVE_BOUNDARIES = frozenset("national_park protected_area".split())
 
 # Street grouping: a street with no place to hang off gets grouped by a coarse
 # grid cell instead, so two "Main Street"s in villages 40 km apart do not
@@ -142,7 +163,7 @@ class RawPlace(NamedTuple):
     lon: float
     population: int | None
     context: str | None  # is_in / addr:city, a name, not yet an id
-    osm_type: str  # 'n' or 'w'
+    osm_type: str  # 'n', 'w' or 'r'
     osm_id: int
 
 
@@ -169,20 +190,85 @@ class Extract(NamedTuple):
 
 
 def poi_kind(tags) -> str | None:
+    """The one kind an object gets, or None if it is not worth a row.
+
+    First match wins, so the order is the priority: the rider's kit, then
+    landmarks from most to least specific, then `building` as the fallback for
+    anything else that carries a name.
+    """
     amenity = tags.get("amenity")
+    shop = tags.get("shop")
+    tourism = tags.get("tourism")
+    natural = tags.get("natural")
+    leisure = tags.get("leisure")
+
+    # --- the rider's kit -------------------------------------------------
     if amenity in POI_AMENITIES:
         return POI_AMENITIES[amenity]
-    if tags.get("shop") == "bicycle":
+    if shop == "bicycle":
         return "bicycle_shop"
     if tags.get("railway") == "station":
         return "station"
-    if tags.get("tourism") == "viewpoint":
+    if tourism == "viewpoint":
         return "viewpoint"
-    if tags.get("natural") == "peak":
+    if natural == "peak":
         return "peak"
-    if tags.get("leisure") == "park":
+    if leisure == "park":
         return "park"
+
+    # --- landmarks -------------------------------------------------------
+    if tourism in ATTRACTION_TOURISM:
+        return "attraction"
+    if tourism in MUSEUM_TOURISM:
+        return "museum"
+    # historic=yes says nothing on its own, so it only counts when no other
+    # kind fits; any real historic=* value wins over the kinds below it.
+    historic = tags.get("historic")
+    if historic and historic != "yes":
+        return "historic"
+    if amenity == "place_of_worship":
+        return "place_of_worship"
+    if amenity in HOSPITAL_AMENITIES:
+        return "hospital"
+    if amenity in UNIVERSITY_AMENITIES:
+        return "university"
+    if leisure in STADIUM_LEISURE:
+        return "stadium"
+    if shop in MALL_SHOPS:
+        return "mall"
+    if tags.get("aeroway") == "aerodrome":
+        return "airport"
+    if amenity == "ferry_terminal":
+        return "ferry_terminal"
+    man_made = tags.get("man_made")
+    if man_made == "lighthouse":
+        return "lighthouse"
+    if man_made in TOWER_MAN_MADE:
+        return "tower"
+    if natural in WATER_NATURAL or tags.get("landuse") == "reservoir":
+        return "water"
+    if natural == "beach":
+        return "beach"
+    if leisure == "nature_reserve" or tags.get("boundary") in RESERVE_BOUNDARIES:
+        return "nature_reserve"
+    if historic == "yes":
+        return "historic"
+
+    # --- anything else with a name and four walls ------------------------
+    building = tags.get("building")
+    if building and building != "no":
+        return "building"
     return None
+
+
+def is_bare_number(name: str) -> bool:
+    """True for a `name` with no letter in it at all.
+
+    That is a house number somebody typed into the name field, or a numbered
+    boundary stone. Nobody searches for '12', and the FTS index would answer
+    such a query with hundreds of them.
+    """
+    return not any(character.isalpha() for character in name)
 
 
 def way_centroid(way) -> tuple[float, float] | None:
@@ -201,14 +287,45 @@ def way_centroid(way) -> tuple[float, float] | None:
     return total_lat / count, total_lon / count
 
 
+def area_centroid(area) -> tuple[float, float] | None:
+    """Mean of the nodes of an area's outer rings.
+
+    Good enough to put a lake or a shopping centre in the right tile and on the
+    right spot on the map; holes and ring areas are not worth a polygon
+    centroid here.
+    """
+    total_lat = 0.0
+    total_lon = 0.0
+    count = 0
+    for ring in area.outer_rings():
+        for node in ring:
+            if not node.location.valid():
+                continue
+            total_lat += node.location.lat
+            total_lon += node.location.lon
+            count += 1
+    if count == 0:
+        return None
+    return total_lat / count, total_lon / count
+
+
 def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
-    places: list[RawPlace] = []
+    # Keyed by OSM identity: a closed way arrives twice, once as the way and
+    # once as the area osmium assembles from it, and the area wins.
+    places: dict[tuple[str, int], RawPlace] = {}
+    pois: dict[tuple[str, int], RawPoi] = {}
     street_ways: list[RawStreet] = []
-    pois: list[RawPoi] = []
     intern = sys.intern
 
     processor = (
-        osmium.FileProcessor(path, osmium.osm.NODE | osmium.osm.WAY)
+        osmium.FileProcessor(
+            path, osmium.osm.NODE | osmium.osm.WAY | osmium.osm.AREA
+        )
+        # Areas cost a second pass over the file: osmium indexes the
+        # multipolygon and boundary relations first, then assembles each one
+        # while the ways stream past. Without this a lake, a park or a big
+        # building mapped as a relation is simply missing.
+        .with_areas()
         .with_locations(node_cache)
         # Untagged nodes never reach Python; they only feed the location cache.
         .with_filter(osmium_filter.EmptyTagFilter())
@@ -216,66 +333,72 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
 
     for obj in processor:
         tags = obj.tags
+        name = clean_name(tags.get("name"))
+        if not name:
+            continue
+        is_area = isinstance(obj, osmium.osm.Area)
         is_node = isinstance(obj, osmium.osm.Node)
 
         place = tags.get("place")
-        want_place = place in PLACE_KINDS and "name" in tags
-        want_street = want_streets and not is_node and "highway" in tags and "name" in tags
-        kind = poi_kind(tags) if "name" in tags else None
+        want_place = place in PLACE_KINDS
+        want_street = want_streets and not is_node and not is_area and "highway" in tags
+        kind = poi_kind(tags)
+        if kind and is_bare_number(name):
+            kind = None
         if not (want_place or want_street or kind):
             continue
 
-        # One representative point per object: the node itself, or the mean of
-        # a way's nodes (which is what an area-mapped place or park needs).
+        # One representative point per object: the node itself, the mean of a
+        # way's nodes, or the mean of an assembled area's outer rings.
         if is_node:
             if not obj.location.valid():
                 continue
             lat, lon = obj.location.lat, obj.location.lon
         else:
-            point = way_centroid(obj)
+            point = area_centroid(obj) if is_area else way_centroid(obj)
             if point is None:
                 continue
             lat, lon = point
 
-        name = clean_name(tags.get("name"))
-        if not name:
-            continue
-
         # The OSM identity travels with the row so two extracts that overlap
-        # can be merged without counting the same object twice.
-        osm_type = "n" if is_node else "w"
-        osm_id = obj.id
+        # can be merged without counting the same object twice. An area keeps
+        # the identity of what it was built from: the relation, or the way.
+        if is_area:
+            osm_type = "w" if obj.from_way() else "r"
+            osm_id = obj.orig_id()
+        else:
+            osm_type = "n" if is_node else "w"
+            osm_id = obj.id
+        key = (osm_type, osm_id)
 
-        if want_place:
-            places.append(
-                RawPlace(
-                    name,
-                    intern(place),
-                    lat,
-                    lon,
-                    parse_population(tags.get("population")),
-                    clean_name(
-                        tags.get("is_in:city")
-                        or tags.get("addr:city")
-                        or tags.get("is_in")
-                    ),
-                    osm_type,
-                    osm_id,
-                )
+        if want_place and (is_area or key not in places):
+            places[key] = RawPlace(
+                name,
+                intern(place),
+                lat,
+                lon,
+                parse_population(tags.get("population")),
+                clean_name(
+                    tags.get("is_in:city")
+                    or tags.get("addr:city")
+                    or tags.get("is_in")
+                ),
+                osm_type,
+                osm_id,
             )
 
         # Streets come from ways only; a named highway node is a bus stop or a
-        # crossing, not a street.
+        # crossing, not a street, and a pedestrian area is already the way.
         if want_street:
             city = clean_name(tags.get("addr:city"))
             street_ways.append(
                 RawStreet(intern(name), intern(city) if city else None, lat, lon)
             )
 
-        if kind:
-            pois.append(RawPoi(name, kind, lat, lon, osm_type, osm_id))
+        if kind and (is_area or key not in pois):
+            pois[key] = RawPoi(name, kind, lat, lon, osm_type, osm_id)
 
-    return Extract(places, street_ways, pois)
+    return Extract(list(places.values()), street_ways, list(pois.values()))
 
 
 # --------------------------------------------------------------------------

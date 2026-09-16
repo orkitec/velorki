@@ -548,6 +548,74 @@
   "@searchKindPark": {
     "description": "Second line of an offline search result that is a park"
   },
+  "searchKindAttraction": "Attraction",
+  "@searchKindAttraction": {
+    "description": "Second line of an offline search result that is a tourist attraction"
+  },
+  "searchKindMuseum": "Museum",
+  "@searchKindMuseum": {
+    "description": "Second line of an offline search result that is a museum"
+  },
+  "searchKindHistoric": "Historic site",
+  "@searchKindHistoric": {
+    "description": "Second line of an offline search result that is a historic site"
+  },
+  "searchKindWorship": "Place of worship",
+  "@searchKindWorship": {
+    "description": "Second line of an offline search result that is a church, mosque, synagogue or temple"
+  },
+  "searchKindHospital": "Hospital",
+  "@searchKindHospital": {
+    "description": "Second line of an offline search result that is a hospital"
+  },
+  "searchKindUniversity": "University",
+  "@searchKindUniversity": {
+    "description": "Second line of an offline search result that is a university or college"
+  },
+  "searchKindStadium": "Sports venue",
+  "@searchKindStadium": {
+    "description": "Second line of an offline search result that is a stadium or other sports venue"
+  },
+  "searchKindMall": "Shopping centre",
+  "@searchKindMall": {
+    "description": "Second line of an offline search result that is a shopping centre"
+  },
+  "searchKindAirport": "Airport",
+  "@searchKindAirport": {
+    "description": "Second line of an offline search result that is an airport"
+  },
+  "searchKindFerryTerminal": "Ferry terminal",
+  "@searchKindFerryTerminal": {
+    "description": "Second line of an offline search result that is a ferry terminal"
+  },
+  "searchKindTower": "Tower",
+  "@searchKindTower": {
+    "description": "Second line of an offline search result that is a tower"
+  },
+  "searchKindLighthouse": "Lighthouse",
+  "@searchKindLighthouse": {
+    "description": "Second line of an offline search result that is a lighthouse"
+  },
+  "searchKindWater": "Water",
+  "@searchKindWater": {
+    "description": "Second line of an offline search result that is a lake, river or other water body"
+  },
+  "searchKindBeach": "Beach",
+  "@searchKindBeach": {
+    "description": "Second line of an offline search result that is a beach"
+  },
+  "searchKindNatureReserve": "Nature reserve",
+  "@searchKindNatureReserve": {
+    "description": "Second line of an offline search result that is a nature reserve"
+  },
+  "searchKindBuilding": "Building",
+  "@searchKindBuilding": {
+    "description": "Second line of an offline search result that is a named building"
+  },
+  "searchKindPlace": "Place",
+  "@searchKindPlace": {
+    "description": "Second line of an offline search result that is a landmark of no recognised kind"
+  },
   "libraryRoutes": "Routes",
   "@libraryRoutes": {
     "description": "Library section switch: the saved routes"

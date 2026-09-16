@@ -53,6 +53,17 @@ def find_extract() -> str | None:
 
 TILE = "E5_N45"
 
+# Every kind `pois.kind` may hold: the rider's kit, then the landmarks.
+POI_KINDS = frozenset(
+    """
+    drinking_water cafe bicycle_repair_station shelter bicycle_shop station
+    viewpoint peak park
+    attraction museum historic place_of_worship hospital university stadium
+    mall airport ferry_terminal tower lighthouse water beach nature_reserve
+    building
+    """.split()
+)
+
 
 class GazetteerTest(unittest.TestCase):
     tmp: str
@@ -225,23 +236,124 @@ class GazetteerTest(unittest.TestCase):
             ).fetchone()[0],
             0,
         )
+        self.assertEqual(
+            db.execute(
+                "SELECT count(*) FROM pois WHERE name <> trim(name)"
+            ).fetchone()[0],
+            0,
+        )
         kinds = {row[0] for row in db.execute("SELECT DISTINCT kind FROM pois")}
         self.assertIn("peak", kinds)
         self.assertTrue(kinds & {"drinking_water", "cafe"})
+        self.assertLessEqual(kinds, POI_KINDS)
+
+    def test_landmark_kinds_are_collected(self) -> None:
+        """The kinds a rider searches for by name, not just the ones on the
+        road. Liechtenstein has at least one of each of these."""
+        kinds = {row[0] for row in self.open().execute("SELECT DISTINCT kind FROM pois")}
         self.assertLessEqual(
-            kinds,
             {
-                "drinking_water",
-                "cafe",
-                "bicycle_repair_station",
-                "shelter",
-                "bicycle_shop",
-                "station",
-                "viewpoint",
-                "peak",
-                "park",
+                "building",
+                "historic",
+                "museum",
+                "place_of_worship",
+                "attraction",
+                "stadium",
+                "water",
+                "nature_reserve",
+                "tower",
+                "university",
+                "hospital",
             },
+            kinds,
         )
+
+    def test_a_named_building_is_a_poi(self) -> None:
+        """Vaduz town hall: amenity=townhall is not a kind of its own, so the
+        building tag is what puts it in the search box."""
+        row = self.open().execute(
+            "SELECT kind, osm_type FROM pois WHERE name = 'Rathaus Vaduz'"
+        ).fetchone()
+        self.assertEqual(row, ("building", "w"))
+
+    def test_a_church_is_a_place_of_worship(self) -> None:
+        """building=cathedral, but the amenity is the useful kind."""
+        row = self.open().execute(
+            "SELECT kind FROM pois WHERE name = 'Kathedrale St. Florin'"
+        ).fetchone()
+        self.assertEqual(row[0], "place_of_worship")
+
+    def test_a_more_specific_kind_wins_over_building(self) -> None:
+        """One object, one row: the art museum is a building=yes way too."""
+        rows = self.open().execute(
+            "SELECT kind FROM pois WHERE name = 'Kunstmuseum Liechtenstein'"
+        ).fetchall()
+        self.assertEqual(rows, [("museum",)])
+
+    def test_kind_table(self) -> None:
+        """The tag-to-kind rules, without needing an object in the extract."""
+        cases = [
+            ({"building": "yes", "tourism": "museum"}, "museum"),
+            ({"building": "yes", "amenity": "place_of_worship"}, "place_of_worship"),
+            ({"building": "yes", "historic": "castle"}, "historic"),
+            ({"building": "yes", "historic": "yes"}, "historic"),
+            ({"building": "yes", "amenity": "cafe"}, "cafe"),
+            ({"building": "house"}, "building"),
+            ({"building": "no", "name": "x"}, None),
+            ({"natural": "water", "water": "lake"}, "water"),
+            ({"landuse": "reservoir"}, "water"),
+            ({"natural": "bay"}, "water"),
+            ({"leisure": "swimming_pool"}, "stadium"),
+            ({"leisure": "nature_reserve"}, "nature_reserve"),
+            ({"boundary": "protected_area"}, "nature_reserve"),
+            ({"man_made": "communications_tower"}, "tower"),
+            ({"man_made": "lighthouse"}, "lighthouse"),
+            ({"aeroway": "aerodrome"}, "airport"),
+            ({"shop": "department_store"}, "mall"),
+            ({"amenity": "ferry_terminal"}, "ferry_terminal"),
+            ({"amenity": "clinic"}, "hospital"),
+            ({"amenity": "college"}, "university"),
+            ({"tourism": "zoo"}, "attraction"),
+            ({"tourism": "gallery"}, "museum"),
+            ({"natural": "beach"}, "beach"),
+            ({"highway": "residential"}, None),
+        ]
+        for tags, expected in cases:
+            with self.subTest(tags=tags):
+                self.assertEqual(build.poi_kind(tags), expected)
+
+    def test_a_bare_number_is_never_a_name(self) -> None:
+        """House numbers in the name field and numbered boundary stones."""
+        self.assertTrue(build.is_bare_number("12"))
+        self.assertTrue(build.is_bare_number("12-14"))
+        self.assertFalse(build.is_bare_number("12a"))
+        names = [row[0] for row in self.open().execute("SELECT name FROM pois")]
+        self.assertEqual(
+            [name for name in names if not any(c.isalpha() for c in name)], []
+        )
+
+    def test_a_multipolygon_relation_becomes_one_row(self) -> None:
+        """Vaduz castle is a multipolygon; without areas it is missing."""
+        db = self.open()
+        rows = db.execute(
+            "SELECT kind, osm_type, osm_id, lat, lon FROM pois "
+            "WHERE name = 'Schloss Vaduz'"
+        ).fetchall()
+        self.assertEqual(len(rows), 1, "one object, one row")
+        kind, osm_type, osm_id, lat, lon = rows[0]
+        self.assertEqual((kind, osm_type, osm_id), ("historic", "r", 1252853))
+        self.assertAlmostEqual(lat / 1e7, 47.14, places=1)
+        self.assertAlmostEqual(lon / 1e7, 9.52, places=1)
+
+        # Lakes are the other thing only relations hold.
+        relations = db.execute(
+            "SELECT name, kind, lat, lon FROM pois WHERE osm_type = 'r'"
+        ).fetchall()
+        self.assertGreater(len(relations), 5)
+        self.assertIn("water", {row[1] for row in relations})
+        for name, _, lat, lon in relations:
+            # Every centroid has to land inside the tile the file is named for.
+            self.assertEqual(build.tile_name(lat / 1e7, lon / 1e7), TILE, name)
 
     def test_osm_identity_columns(self) -> None:
         db = self.open()
@@ -253,7 +365,7 @@ class GazetteerTest(unittest.TestCase):
             kinds = {
                 row[0] for row in db.execute(f"SELECT DISTINCT osm_type FROM {table}")
             }
-            self.assertLessEqual(kinds, {"n", "w"})
+            self.assertLessEqual(kinds, {"n", "w", "r"})
             self.assertEqual(
                 db.execute(
                     f"SELECT count(*) FROM (SELECT osm_type, osm_id FROM {table}"

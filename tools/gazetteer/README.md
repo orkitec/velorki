@@ -25,7 +25,7 @@ at `<appSupport>/brouter/gazetteer/<TILE>.gaz`, read-only.
 | Table | Rows | What it is |
 |---|---|---|
 | `places` | one per settlement | `place=city\|town\|village\|hamlet\|suburb\|neighbourhood\|locality\|island` nodes and areas, with population where OSM has it |
-| `pois` | one per feature | only what a rider needs, and only when it has a name: drinking water, cafés, bicycle repair stations, shelters, bike shops, railway stations, viewpoints, peaks, parks |
+| `pois` | one per feature | what a rider needs on the road and what a rider searches for as a destination, always named: the 25 kinds below |
 | `streets` | one per street name per place | every named `highway=*` way, the many ways of one street merged into one row. Only with `--streets` |
 | `search` | one per row above | the FTS5 index the search box queries |
 | `meta` | six | schema version, tile, build time, source, what is in the file |
@@ -33,6 +33,47 @@ at `<appSupport>/brouter/gazetteer/<TILE>.gaz`, read-only.
 Default content is places plus POIs, which keeps every tile to a few MB.
 Streets are opt-in and roughly quadruple the file; the app handles them when
 `meta.has_streets` is `1`.
+
+## POI kinds
+
+The kind is the first match down this list, so a café in a historic building is
+a `cafe`, a museum in a building is a `museum`, and `building` is only ever the
+fallback. One object gets one row.
+
+| kind | tags |
+|---|---|
+| `drinking_water`, `cafe`, `bicycle_repair_station`, `shelter` | `amenity=` the same value |
+| `bicycle_shop` | `shop=bicycle` |
+| `station` | `railway=station` |
+| `viewpoint` | `tourism=viewpoint` |
+| `peak` | `natural=peak` |
+| `park` | `leisure=park` |
+| `attraction` | `tourism=attraction\|theme_park\|zoo\|aquarium` |
+| `museum` | `tourism=museum\|gallery` |
+| `historic` | any `historic=*`; `historic=yes` only when nothing else fits |
+| `place_of_worship` | `amenity=place_of_worship` |
+| `hospital` | `amenity=hospital\|clinic` |
+| `university` | `amenity=university\|college` |
+| `stadium` | `leisure=stadium\|sports_centre\|ice_rink\|swimming_pool` |
+| `mall` | `shop=mall\|department_store` |
+| `airport` | `aeroway=aerodrome` |
+| `ferry_terminal` | `amenity=ferry_terminal` |
+| `tower` | `man_made=tower\|communications_tower\|observation_tower\|mast` |
+| `lighthouse` | `man_made=lighthouse` |
+| `water` | `natural=water` (any `water=*`), `landuse=reservoir`, `natural=bay\|strait\|lagoon` |
+| `beach` | `natural=beach` |
+| `nature_reserve` | `leisure=nature_reserve`, `boundary=national_park\|protected_area` |
+| `building` | any other `building=*`, except `building=no` |
+
+An unnamed object is never stored. Names are trimmed, and a name with no letter
+in it is dropped: that is a house number somebody typed into the name field, or
+a numbered boundary stone, and nobody searches for `12`.
+
+Nodes, ways **and areas** are read, so a lake, a park, a nature reserve or a
+big building mapped as a multipolygon relation lands in the file like any other
+object. An area keeps the identity of what it was assembled from: `osm_type`
+`'r'` with the relation id, or `'w'` with the way id for a closed way. A closed
+way arrives twice, as the way and as the area, and is counted once.
 
 ## Schema
 
@@ -66,9 +107,7 @@ CREATE TABLE streets (
 CREATE TABLE pois (
     id       INTEGER PRIMARY KEY,
     name     TEXT NOT NULL,     -- unnamed POIs are not stored
-    kind     TEXT NOT NULL,     -- drinking_water, cafe, bicycle_repair_station,
-                                --   shelter, bicycle_shop, station, viewpoint,
-                                --   peak, park
+    kind     TEXT NOT NULL,     -- one of the 25 kinds, see "POI kinds" above
     lat      INTEGER NOT NULL,
     lon      INTEGER NOT NULL,
     place_id INTEGER,
@@ -160,9 +199,16 @@ only tagged objects reach Python; `--node-cache auto` (the default) keeps it in
 memory under 150 MB of PBF and in a temporary file above that. Override with
 `--node-cache flex_mem` or `--node-cache sparse_file_array,/path`.
 
-An object lands in a tile by its representative point: the node itself, or the
-mean of a way's nodes for an area-mapped place, park or street. A street that
-crosses a tile boundary appears once, in the tile its centre falls in.
+An object lands in a tile by its representative point: the node itself, the
+mean of a way's nodes, or the mean of the outer rings of an assembled area. A
+street that crosses a tile boundary appears once, in the tile its centre falls
+in.
+
+Areas cost a second pass over the file: osmium indexes the multipolygon and
+boundary relations first, then assembles each one while the ways stream past.
+On Liechtenstein that is +0.2 s of 0.5 s and +3 MB of peak RSS, on Malta
+0.9 s → 2.1 s and 82 MB → 87 MB. It buys the lakes, the reserves and the big
+buildings, which exist as relations and nothing else.
 
 ## Merging
 
@@ -203,7 +249,7 @@ pyosmium.
 
 | File | Built from | Content | Size |
 |---|---|---|---:|
-| `E5_N45.gaz` | `liechtenstein.osm.pbf`, `--streets` | 98 places, 1,313 streets, 95 pois | 155,648 B |
+| `E5_N45.gaz` | `liechtenstein.osm.pbf`, `--streets` | 98 places, 1,313 streets, 542 pois | 204,800 B |
 | `W20_N30.gaz` | `portugal-latest.osm.pbf`, `--tiles W20_N30` | 1,769 places, 1,022 pois | 262,144 B |
 
 ```sh
@@ -215,6 +261,11 @@ pyosmium.
 Liechtenstein covers all three kinds and plenty of umlauts to prove the
 tokenizer folds them: `muhleholz` finds the village `Mühleholz` and the street
 `Im Mühleholz`, `vad` puts the town `Vaduz` first, `grauspitz` finds two peaks.
+It also covers the landmarks: `Rathaus Vaduz` is a `building`, `Kathedrale St.
+Florin` a `place_of_worship`, `Schloss Vaduz` a `historic` built from a
+multipolygon relation. Landmarks took the file from 155,648 B to 204,800 B,
+1.3× — the street table is most of this one. Without `--streets` the same
+build went 65,536 B → 114,688 B (1.8×), and Malta, which is built up, 2.5×.
 Madeira is `W20_N30`, the tile the integration tests already mirror, and holds
 `Funchal`; Portugal is the only Geofabrik extract that covers it, so the
 mainland tiles are discarded with `--tiles`. `W20_N30.gaz` was built before the
@@ -253,7 +304,7 @@ Geofabrik extracts of 2026-09-15/16, 8-core laptop, 16 GB RAM, sizes after
 
 | Extract | PBF | Tile | places | pois | streets | Default | `--streets` |
 |---|---:|---|---:|---:|---:|---:|---:|
-| liechtenstein | 3.5 MB | `E5_N45` | 98 | 95 | 1,313 | 0.05 MB | 0.14 MB |
+| liechtenstein | 3.5 MB | `E5_N45` | 98 | 542 | 1,313 | 0.11 MB | 0.20 MB |
 | iceland | 65 MB | `W25_N60` | 366 | 851 | — | 0.14 MB | — |
 | berlin | 99 MB | `E10_N50` | 598 | 4,052 | 20,830 | 0.40 MB | 1.75 MB |
 | portugal | 423 MB | `W20_N30` | 1,769 | 1,022 | — | 0.26 MB | — |
@@ -261,14 +312,17 @@ Geofabrik extracts of 2026-09-15/16, 8-core laptop, 16 GB RAM, sizes after
 
 | Extract | Wall, default | Wall, `--streets` | Peak RSS |
 |---|---:|---:|---:|
-| liechtenstein | 0.3 s | 0.5 s | 57 MB |
+| liechtenstein | 0.5 s | 0.7 s | 59 MB |
 | iceland | 4 s | — | 299 MB |
 | berlin | 11 s | 22 s | 247 MB |
 | portugal | 36 s | — | 969 MB |
 | new-york | 55 s | 77 s | 1.07 GB |
 
-Roughly 6–9 MB of PBF per second on one core. Streets are the whole size
-question: without them the densest tile measured here is 1.2 MB against a
+Only the liechtenstein row was re-measured after landmarks and areas landed;
+the four bigger extracts are from before and their `pois` and sizes are now
+low by roughly 3–6× on POIs and 2–3× on the default file. Roughly 3–5 MB of
+PBF per second on one core now that every file is read twice. Streets are
+still the whole size question: without them the densest tile measured here is 1.2 MB against a
 119 MB `.rd5`, with them 11.4 MB. The New York extract covers less than half of
 `W75_N40`; a complete build of that tile from `us-northeast` was ~78 MB under
 the old schema and lands near 40 MB under this one, all of it streets.
@@ -284,11 +338,8 @@ Photon is a full geocoder; this is a search box that works on a plane.
 * **Admin hierarchy.** `admin_id` and `place_id` are geometry, not boundaries,
   and stop at the tile edge. No country, state or district, so Springfield,
   Massachusetts cannot be told from Springfield, Illinois.
-* **Anything outside places, streets and the nine POI kinds** — squares, rivers,
-  lakes, general shops.
-* **Relations.** Geometry comes from nodes and ways only. A city or park mapped
-  only as a multipolygon relation is missed; in practice such a place almost
-  always has a node too.
+* **Anything outside places, streets and the 25 POI kinds** — squares, rivers,
+  general shops, individual addresses.
 * **Alternative names.** `name:de`, `old_name`, `alt_name`, `short_name` are not
   indexed.
 
@@ -301,6 +352,8 @@ matrix of runners that each hold one PBF at a time, then `merge.py` over the
 partial tiles and `manifest.py` per release shard. It runs after every tile
 snapshot and can be dispatched for one continent or a list of extracts. A
 runner has ~14 GB of disk and 16 GB of RAM, which is why the unit is the leaf
-extract and not the continent; the default build (places and POIs) needs about
-1 GB of RAM per 500 MB of PBF. `--streets` planet-wide would also need the
-street list spilled to disk during the build, which is not written.
+extract and not the continent; the default build (places and POIs) needed about
+1 GB of RAM per 500 MB of PBF before areas, and area assembly adds the
+relation index and the assembler buffers on top — not measured on an extract
+that size yet. `--streets` planet-wide would also need the street list spilled
+to disk during the build, which is not written.
