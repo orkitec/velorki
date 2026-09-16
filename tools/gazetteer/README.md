@@ -294,15 +294,13 @@ Photon is a full geocoder; this is a search box that works on a plane.
 
 ## Planet builds
 
-Still to be done, and it has to go **per continent on a 16 GB box**: `europe`
-(~30 GB), `north-america` (~15 GB), `asia` (~15 GB), then the small ones, each
-1–3 hours, run on different days. One pass over the 80 GB planet file is the
-wrong shape — the location cache alone is a ~110 GB scratch file for 9.5 billion
-nodes, and with `--streets` every named highway way is held in a Python list
-between the read and the merge, which extrapolates past 100 GB of RAM (the
-default build holds only places and POIs and is far cheaper). The fix, if street
-builds are ever wanted planet-wide, is to spill that list to an on-disk staging
-table sorted by name; it is not written. Geofabrik continents overlap at their
-edges, so a few tiles (the Bosphorus, the Urals, Sinai, Panama) come out of two
-extracts; `merge.py` is what puts those back together. Not GitHub Actions:
-`ubuntu-latest` has ~14 GB of free disk, less than the `north-america` PBF.
+The planet is built on GitHub Actions by the `publish-gazetteer` workflow in
+[orkitec/velorki-data](https://github.com/orkitec/velorki-data), one Geofabrik
+leaf extract per step (about 510 extracts, ~79 GB of PBF), spread over a
+matrix of runners that each hold one PBF at a time, then `merge.py` over the
+partial tiles and `manifest.py` per release shard. It runs after every tile
+snapshot and can be dispatched for one continent or a list of extracts. A
+runner has ~14 GB of disk and 16 GB of RAM, which is why the unit is the leaf
+extract and not the continent; the default build (places and POIs) needs about
+1 GB of RAM per 500 MB of PBF. `--streets` planet-wide would also need the
+street list spilled to disk during the build, which is not written.

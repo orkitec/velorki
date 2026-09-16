@@ -45,10 +45,11 @@ exercised there. The items here are the parts not yet covered by that.
       `PLAY_SERVICE_ACCOUNT_JSON`.
 - [ ] **Geocoder**: the on-device gazetteer is done — a rider with routing
       tiles searches `<TILE>.gaz` first and only reaches Photon by tapping
-      "Search online for …". Remaining: build the gazetteers for the whole
-      planet in `tools/gazetteer` and publish them with the tile snapshots,
-      and put a relay endpoint in front of Photon (Komoot first, a keyed OSM
-      geocoder such as Geoapify as fallback) for everyone without tiles.
+      "Search online for …". The `publish-gazetteer` workflow in
+      [velorki-data][data] builds them per Geofabrik extract after every
+      tile snapshot. Remaining: a relay endpoint in front of Photon (Komoot
+      first, a keyed OSM geocoder such as Geoapify as fallback) for everyone
+      without tiles.
       Decided 2026-09-16: Apple and Google search are not options — Apple's
       agreement (Attachment 6, "Map Data" includes coordinates and points of
       interest; 2.4 results only on an Apple map; 2.5 not stored) and Google's
