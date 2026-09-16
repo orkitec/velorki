@@ -47,3 +47,7 @@ deploy/segments/
 # Python bytecode from tools/
 __pycache__/
 *.pyc
+
+# Integration-test mirror scratch (app/tool/itest_mirror.sh)
+.itest-mirror/
+mirror.pid
