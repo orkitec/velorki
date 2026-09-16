@@ -217,6 +217,19 @@ void main() {
 
     // ----------------------------------------------------------- in the list
     await tapAndPump(tester, find.text('Record'));
+    // The recent rides sit below the fold of the sheet, under the switches,
+    // and the list only builds the rows on screen: pull the sheet up until
+    // the ride's row exists.
+    await tester.dragUntilVisible(
+      find.widgetWithText(ListTile, ride.name),
+      find
+          .descendant(
+            of: find.byType(DraggableScrollableSheet),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+      const Offset(0, -300),
+    );
     await waitForWidget(tester, find.widgetWithText(ListTile, ride.name));
     expect(wake.enabled, isFalse, reason: 'the wake lock is released');
 
