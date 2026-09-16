@@ -11,6 +11,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 import '../../routing_tiles/data/brouter_storage.dart';
 import '../../routing_tiles/data/routing_tiles_repository.dart';
 import '../domain/search_result.dart';
+import 'photon_client.dart';
 
 part 'gazetteer_store.g.dart';
 
@@ -38,9 +39,10 @@ const int _maxTokens = 8;
 /// One small SQLite file per downloaded routing tile, built by
 /// `tools/gazetteer`, holding that tile's places, streets and named POIs with
 /// one FTS5 index over all three (`search`, ids from a single counter, so a
-/// hit's rowid names exactly one row in exactly one table). The files are read
-/// only on the phone and rebuilt from scratch by the builder, so nothing here
-/// ever writes.
+/// hit's rowid names exactly one row in exactly one table — or one alternative
+/// name in `aliases`, which points back at its row). The files are read only
+/// on the phone and rebuilt from scratch by the builder, so nothing here ever
+/// writes.
 ///
 /// The SQLite work runs synchronously — a prefix query over a few hundred
 /// thousand rows is a couple of milliseconds, far cheaper than shipping the
@@ -107,28 +109,31 @@ class GazetteerStore {
   ///
   /// Ranked the way the file format prescribes: bm25 ascending, ties broken by
   /// the shorter name, then population descending and then by distance to
-  /// [near], which is the map centre when there is one. Returns at most [limit] results, and an empty
-  /// list for anything shorter than [gazetteerMinChars], for a query that
-  /// tokenises to nothing, and for any file that fails to answer — the search
-  /// box must never throw at the rider.
+  /// [near], which is the map centre when there is one. A query that carried a
+  /// house number ("400 w 42nd") puts the streets above places and POIs of the
+  /// same bm25 score: a number means the rider is after an address. Returns at
+  /// most [limit] results, and an empty list for anything shorter than
+  /// [gazetteerMinChars], for a query that tokenises to nothing, and for any
+  /// file that fails to answer — the search box must never throw at the rider.
   Future<List<SearchResult>> search(
     String text, {
     LatLng? near,
     int limit = 10,
   }) async {
     if (_closed || _open.isEmpty) return const <SearchResult>[];
-    final match = gazetteerMatchExpression(text);
-    if (match == null) return const <SearchResult>[];
+    final query = gazetteerMatchExpression(text);
+    if (query == null) return const <SearchResult>[];
 
     final hits = <_Hit>[];
     for (final file in _open.values) {
       try {
-        hits.addAll(file.search(match, near));
+        hits.addAll(file.search(query, near));
       } on Object catch (e) {
         debugPrint('velorki: gazetteer ${file.tile} could not answer: $e');
       }
     }
-    hits.sort(_byRank);
+    final addressed = query.houseNumber != null;
+    hits.sort((a, b) => _byRank(a, b, addressed: addressed));
     return <SearchResult>[
       for (final hit in hits.take(math.max(0, limit))) hit.result,
     ];
@@ -171,9 +176,15 @@ class GazetteerStore {
     return rows.isEmpty ? null : rows.first['value']?.toString();
   }
 
-  static int _byRank(_Hit a, _Hit b) {
+  static int _byRank(_Hit a, _Hit b, {required bool addressed}) {
     final rank = a.rank.compareTo(b.rank);
     if (rank != 0) return rank;
+    if (addressed) {
+      // A number in the query is an address: the street it belongs to beats
+      // the café of the same name.
+      final street = _isStreet(b).compareTo(_isStreet(a));
+      if (street != 0) return street;
+    }
     // The index keeps no column sizes, so bm25 cannot tell "Monte" from
     // "Monte Tea House": the shorter name is the closer match.
     final length = a.result.name.length.compareTo(b.result.name.length);
@@ -182,37 +193,86 @@ class GazetteerStore {
     if (population != 0) return population;
     return a.distance.compareTo(b.distance);
   }
+
+  static int _isStreet(_Hit hit) =>
+      hit.result.kind == SearchKind.street ? 1 : 0;
 }
 
-/// The FTS5 `MATCH` expression for [text], or `null` when there is nothing to
-/// search for.
+/// What a typed query asks one gazetteer for.
+@immutable
+class GazetteerQuery {
+  /// Creates a query.
+  const GazetteerQuery({required this.match, this.houseNumber});
+
+  /// The FTS5 `MATCH` expression, every token a quoted prefix.
+  final String match;
+
+  /// The house number that was taken out of the match, as it was typed, or
+  /// `null` when the query held none.
+  final String? houseNumber;
+
+  /// [houseNumber] as a number, or `null` when there is none.
+  int? get number => houseNumber == null ? null : int.tryParse(houseNumber!);
+
+  @override
+  String toString() => 'GazetteerQuery($match, number: $houseNumber)';
+}
+
+/// What [text] asks the index for, or `null` when there is nothing to search.
 ///
-/// The typed text is split on whitespace, every token is quoted (with `"`
-/// doubled inside) so that FTS5 operators a rider typed are read as text, and
-/// only the last token gets the `*` that makes it a prefix. Tokens without a
-/// single letter or digit are dropped: quoting them would leave an empty
-/// phrase, which FTS5 rejects.
+/// The text is first normalised the way Photon needs it ("400w 42nd" ->
+/// "400 w 42nd"), then split on whitespace. A digits-only token at the start or
+/// the end of a query with more than one token is the house number: it is
+/// carried separately and left out of the match, because no name in the index
+/// contains it. An ordinal such as "42nd" is a name, not a number, and the only
+/// token of a query is never a house number either.
+///
+/// Every remaining token is quoted (with `"` doubled inside) so that FTS5
+/// operators a rider typed are read as text, and every one of them is a prefix,
+/// so "w 42nd" finds "West 42nd Street". Tokens without a single letter or
+/// digit are dropped: quoting them would leave an empty phrase, which FTS5
+/// rejects. What is left has to be at least [gazetteerMinChars] characters
+/// long — the floor applies to the text that is actually matched, not to what
+/// the number made of it.
 @visibleForTesting
-String? gazetteerMatchExpression(String text) {
-  final trimmed = text.trim();
-  if (trimmed.length < gazetteerMinChars) return null;
-  final capped = trimmed.length > _maxQueryChars
-      ? trimmed.substring(0, _maxQueryChars)
-      : trimmed;
-  final tokens = <String>[];
+GazetteerQuery? gazetteerMatchExpression(String text) {
+  final normalized = PhotonClient.normalizeQuery(text);
+  final capped = normalized.length > _maxQueryChars
+      ? normalized.substring(0, _maxQueryChars)
+      : normalized;
+  final words = <String>[];
   for (final token in capped.split(RegExp(r'\s+'))) {
     if (token.isEmpty || !_hasWordChar.hasMatch(token)) continue;
-    tokens.add('"${token.replaceAll('"', '""')}"');
-    if (tokens.length == _maxTokens) break;
+    words.add(token);
   }
-  if (tokens.isEmpty) return null;
-  tokens[tokens.length - 1] = '${tokens.last}*';
-  return tokens.join(' ');
+
+  String? houseNumber;
+  if (words.length > 1) {
+    if (_isHouseNumber(words.first)) {
+      houseNumber = words.removeAt(0);
+    } else if (_isHouseNumber(words.last)) {
+      houseNumber = words.removeLast();
+    }
+  }
+  if (words.length > _maxTokens) words.removeRange(_maxTokens, words.length);
+  if (words.isEmpty) return null;
+  if (words.join(' ').length < gazetteerMinChars) return null;
+
+  return GazetteerQuery(
+    match: words.map((word) => '"${word.replaceAll('"', '""')}"*').join(' '),
+    houseNumber: houseNumber,
+  );
 }
 
-final RegExp _hasWordChar = RegExp(r'[\p{L}\p{N}]', unicode: true);
+/// Whether [token] is a house number: nothing but digits, and a number this
+/// machine can compare.
+bool _isHouseNumber(String token) =>
+    _digitsOnly.hasMatch(token) && int.tryParse(token) != null;
 
-/// One open `<TILE>.gaz`, with the four statements a search runs.
+final RegExp _hasWordChar = RegExp(r'[\p{L}\p{N}]', unicode: true);
+final RegExp _digitsOnly = RegExp(r'^\d+$');
+
+/// One open `<TILE>.gaz`, with the statements a search runs.
 class _GazetteerFile {
   _GazetteerFile(this.tile, this._db)
     : _match = _db.prepare(
@@ -230,6 +290,12 @@ class _GazetteerFile {
       _poi = _prepareOrNull(
         _db,
         'SELECT name, kind, lat, lon, place_id FROM pois WHERE id = ?',
+      ),
+      _alias = _prepareOrNull(_db, 'SELECT ref_id FROM aliases WHERE id = ?'),
+      _houseNumbers = _prepareOrNull(
+        _db,
+        'SELECT number, lat, lon FROM house_numbers WHERE street_id = ? '
+        'ORDER BY number',
       );
 
   /// The tile this file covers, e.g. `E5_N45`.
@@ -240,21 +306,34 @@ class _GazetteerFile {
   final PreparedStatement _place;
   final PreparedStatement? _street;
   final PreparedStatement? _poi;
+  final PreparedStatement? _alias;
+  final PreparedStatement? _houseNumbers;
 
-  /// The hits for [match], hydrated and measured against [near].
-  List<_Hit> search(String match, LatLng? near) {
-    final out = <_Hit>[];
-    for (final row in _match.select(<Object?>[match, _fetchLimit])) {
+  /// The hits for [query], hydrated and measured against [near].
+  ///
+  /// A rowid that is none of the three tables is an alternative name: it is
+  /// resolved through `aliases` and answers with the row's primary name, so
+  /// searching "Bruxelles" finds "Brussel". Two hits on the same row (the name
+  /// and one of its aliases both matched) are one row, with the better rank.
+  List<_Hit> search(GazetteerQuery query, LatLng? near) {
+    final byRow = <int, _Hit>{};
+    for (final row in _match.select(<Object?>[query.match, _fetchLimit])) {
       final id = _asInt(row['rowid']);
-      final rank = _asDouble(row['rank']);
       if (id == null) continue;
+      final rank = _asDouble(row['rank']);
+      final target = _resolveAlias(id);
+      final seen = byRow[target];
+      if (seen != null) {
+        if (rank < seen.rank) byRow[target] = seen.withRank(rank);
+        continue;
+      }
       final hit =
-          _hydratePlace(id, rank, near) ??
-          _hydrate(_street, id, rank, near, SearchKind.street) ??
-          _hydrate(_poi, id, rank, near, SearchKind.poi);
-      if (hit != null) out.add(hit);
+          _hydratePlace(target, rank, near) ??
+          _hydrateStreet(target, rank, near, query) ??
+          _hydratePoi(target, rank, near);
+      if (hit != null) byRow[target] = hit;
     }
-    return out;
+    return byRow.values.toList();
   }
 
   /// Releases the statements and the database.
@@ -263,7 +342,18 @@ class _GazetteerFile {
     _place.close();
     _street?.close();
     _poi?.close();
+    _alias?.close();
+    _houseNumbers?.close();
     _db.close();
+  }
+
+  /// The row an FTS rowid stands for: itself, or the row an alias belongs to.
+  int _resolveAlias(int id) {
+    final statement = _alias;
+    if (statement == null) return id;
+    final rows = statement.select(<Object?>[id]);
+    if (rows.isEmpty) return id;
+    return _asInt(rows.first['ref_id']) ?? id;
   }
 
   _Hit? _hydratePlace(int id, double rank, LatLng? near) {
@@ -287,13 +377,42 @@ class _GazetteerFile {
     );
   }
 
-  _Hit? _hydrate(
-    PreparedStatement? statement,
+  /// A street, at the house number the query carried when it carried one.
+  _Hit? _hydrateStreet(
     int id,
     double rank,
     LatLng? near,
-    SearchKind kind,
+    GazetteerQuery query,
   ) {
+    final statement = _street;
+    if (statement == null) return null;
+    final rows = statement.select(<Object?>[id]);
+    if (rows.isEmpty) return null;
+    final row = rows.first;
+    final street = _position(row);
+    if (street == null) return null;
+    final number = query.number;
+    final located = number == null
+        ? (position: street, approximate: false)
+        : _locate(id, number, street);
+    return _Hit(
+      result: SearchResult(
+        name: row['name']?.toString() ?? '',
+        position: located.position,
+        city: _contextName(_asInt(row['place_id'])),
+        source: SearchSource.local,
+        kind: SearchKind.street,
+        houseNumber: number == null ? null : query.houseNumber,
+        approximate: located.approximate,
+      ),
+      rank: rank,
+      population: 0,
+      distance: _distance(near, located.position),
+    );
+  }
+
+  _Hit? _hydratePoi(int id, double rank, LatLng? near) {
+    final statement = _poi;
     if (statement == null) return null;
     final rows = statement.select(<Object?>[id]);
     if (rows.isEmpty) return null;
@@ -306,13 +425,64 @@ class _GazetteerFile {
         position: position,
         city: _contextName(_asInt(row['place_id'])),
         source: SearchSource.local,
-        kind: kind,
-        detail: kind == SearchKind.poi ? row['kind']?.toString() : null,
+        kind: SearchKind.poi,
+        detail: row['kind']?.toString(),
       ),
       rank: rank,
       population: 0,
       distance: _distance(near, position),
     );
+  }
+
+  /// Where number [number] of street [streetId] is.
+  ///
+  /// The builder keeps anchors, not every address: the lowest number, the
+  /// highest and every tenth in between. An anchor for the number itself is
+  /// the exact spot; between two anchors the position is interpolated by
+  /// number; beyond either end it is the end anchor; with no anchors at all it
+  /// is [fallback], the street itself. Everything but a hit on an anchor is
+  /// approximate, and the row says so.
+  ({LatLng position, bool approximate}) _locate(
+    int streetId,
+    int number,
+    LatLng fallback,
+  ) {
+    final statement = _houseNumbers;
+    if (statement == null) return (position: fallback, approximate: true);
+    final anchors = <({int number, LatLng position})>[];
+    for (final row in statement.select(<Object?>[streetId])) {
+      final value = _asInt(row['number']);
+      final position = _position(row);
+      if (value == null || position == null) continue;
+      anchors.add((number: value, position: position));
+    }
+    if (anchors.isEmpty) return (position: fallback, approximate: true);
+
+    for (final anchor in anchors) {
+      if (anchor.number == number) {
+        return (position: anchor.position, approximate: false);
+      }
+    }
+    if (number < anchors.first.number) {
+      return (position: anchors.first.position, approximate: true);
+    }
+    if (number > anchors.last.number) {
+      return (position: anchors.last.position, approximate: true);
+    }
+    for (var i = 0; i + 1 < anchors.length; i++) {
+      final low = anchors[i];
+      final high = anchors[i + 1];
+      if (number <= low.number || number >= high.number) continue;
+      final t = (number - low.number) / (high.number - low.number);
+      return (
+        position: LatLng(
+          low.position.lat + (high.position.lat - low.position.lat) * t,
+          low.position.lon + (high.position.lon - low.position.lon) * t,
+        ),
+        approximate: true,
+      );
+    }
+    return (position: fallback, approximate: true);
   }
 
   /// The name of the place a row hangs off, for the second line of the row.
@@ -339,8 +509,8 @@ class _GazetteerFile {
       return db.prepare(sql);
     } on Object catch (e) {
       // A gazetteer built without streets or POIs still has the tables, but a
-      // file from a future builder may not; one missing table must not take
-      // the places with it.
+      // file from an older builder has no aliases and no house numbers at all;
+      // one missing table must not take the places with it.
       debugPrint('velorki: gazetteer statement unavailable: $e');
       return null;
     }
@@ -371,6 +541,14 @@ class _Hit {
   final double rank;
   final int population;
   final double distance;
+
+  /// The same hit with a better score, for a row an alias matched too.
+  _Hit withRank(double rank) => _Hit(
+    result: result,
+    rank: rank,
+    population: population,
+    distance: distance,
+  );
 }
 
 /// The app's [GazetteerStore], re-scanned whenever the routing tiles change.

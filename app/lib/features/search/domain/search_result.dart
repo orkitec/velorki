@@ -56,6 +56,15 @@ abstract class SearchResult with _$SearchResult {
     /// which the widget turns into a localised label. `osmValue` for an
     /// online result.
     String? detail,
+
+    /// The house number the rider typed, when this row is the street it
+    /// belongs to. `null` for every other row.
+    String? houseNumber,
+
+    /// Whether [position] is only close to what was asked for: a house number
+    /// interpolated between two anchors, snapped to the nearest one, or the
+    /// street itself because the gazetteer knows no numbers for it.
+    @Default(false) bool approximate,
   }) = _SearchResult;
 
   const SearchResult._();

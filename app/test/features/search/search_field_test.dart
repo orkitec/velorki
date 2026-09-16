@@ -124,6 +124,11 @@ void main() {
           places: fixturePlaces,
           streets: fixtureStreets,
           pois: fixturePois,
+          // Städtle 2 and 10 are known, so 2 is exact and 4 is interpolated.
+          houseNumbers: const <GazHouseNumber>[
+            GazHouseNumber(11, 2, 47.1398, 9.5210),
+            GazHouseNumber(11, 10, 47.1404, 9.5222),
+          ],
         );
       }
       final store = GazetteerStore(dir);
@@ -181,6 +186,23 @@ void main() {
       expect(find.text('Im Mühleholz'), findsOneWidget);
       expect(find.text('Street \u00b7 Vaduz'), findsOneWidget);
       expect(find.byIcon(Icons.signpost_outlined), findsOneWidget);
+    });
+
+    testWidgets('a house number typed with the street shows up in the row', (
+      tester,
+    ) async {
+      await pumpField(tester, text: 'stadtle 2');
+
+      expect(find.text('Städtle'), findsOneWidget);
+      expect(find.text('Street \u00b7 2 \u00b7 Vaduz'), findsOneWidget);
+    });
+
+    testWidgets('a number between the known ones is marked approximate', (
+      tester,
+    ) async {
+      await pumpField(tester, text: 'stadtle 4');
+
+      expect(find.text('Street \u00b7 \u2248 4 \u00b7 Vaduz'), findsOneWidget);
     });
 
     testWidgets('the last row offers the online search and runs it', (
@@ -447,6 +469,48 @@ const _kinds =
         icon: Icons.apartment_outlined,
         label: 'Building',
       ),
+      (
+        kind: SearchKind.poi,
+        detail: 'mountain_pass',
+        icon: Icons.hiking,
+        label: 'Mountain pass',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'camp_site',
+        icon: Icons.holiday_village_outlined,
+        label: 'Campsite',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'hotel',
+        icon: Icons.hotel_outlined,
+        label: 'Hotel',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'hostel',
+        icon: Icons.bed_outlined,
+        label: 'Hostel',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'alpine_hut',
+        icon: Icons.cabin_outlined,
+        label: 'Mountain hut',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'supermarket',
+        icon: Icons.shopping_cart_outlined,
+        label: 'Supermarket',
+      ),
+      (
+        kind: SearchKind.poi,
+        detail: 'bakery',
+        icon: Icons.bakery_dining_outlined,
+        label: 'Bakery',
+      ),
       // The fallbacks: a POI kind this build does not know, and no kind at all.
       (
         kind: SearchKind.poi,
@@ -499,6 +563,43 @@ void _kindTable() {
         _local(SearchKind.unknown, null, city: 'Vaduz'),
       ),
       'Vaduz',
+    );
+  });
+
+  test('a house number sits between the kind and the place', () {
+    SearchResult street({required String number, bool approximate = false}) =>
+        SearchResult(
+          name: 'West 42nd Street',
+          position: const LatLng(40.76, -74),
+          source: SearchSource.local,
+          kind: SearchKind.street,
+          city: 'Manhattan',
+          houseNumber: number,
+          approximate: approximate,
+        );
+
+    expect(
+      localResultSubtitle(l10n, street(number: '400')),
+      'Street \u00b7 400 \u00b7 Manhattan',
+    );
+    expect(
+      localResultSubtitle(l10n, street(number: '410', approximate: true)),
+      'Street \u00b7 \u2248 410 \u00b7 Manhattan',
+      reason: 'an interpolated position says so',
+    );
+    expect(
+      localResultSubtitle(
+        l10n,
+        SearchResult(
+          name: 'Feldweg',
+          position: const LatLng(47, 9.5),
+          source: SearchSource.local,
+          kind: SearchKind.street,
+          houseNumber: '7',
+        ),
+      ),
+      'Street \u00b7 7',
+      reason: 'the separator is only put where there is something to separate',
     );
   });
 

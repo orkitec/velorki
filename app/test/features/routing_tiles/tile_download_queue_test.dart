@@ -167,6 +167,50 @@ void main() {
     expect(repository.readyTiles(), <TileName>{_first});
   });
 
+  test('the gazetteer is a second phase of the same tile', () async {
+    final container = await containerFor(_servingBoth());
+    final seen = <({int received, int total, bool finished})>[];
+    container.listen(tileDownloadQueueProvider, (_, next) {
+      final progress = next.progress;
+      if (progress == null) return;
+      seen.add((
+        received: progress.received,
+        total: progress.total,
+        finished: next.finished.contains(_first),
+      ));
+    });
+
+    await container.read(tileDownloadQueueProvider.notifier).enqueue(
+      <SegmentEntry>[_entry(_first, gazetteer: true)],
+    );
+
+    final gazetteer = seen.indexWhere((s) => s.total == _gaz.length);
+    expect(gazetteer, greaterThan(0), reason: 'the .gaz is reported too');
+    expect(
+      seen.take(gazetteer).every((s) => s.total == _body.length),
+      isTrue,
+      reason: 'the rd5 first, in full',
+    );
+    expect(seen[gazetteer - 1].received, _body.length);
+    expect(seen[gazetteer].received, 0, reason: 'the bar starts over');
+    expect(seen.last.received, _gaz.length);
+    expect(
+      seen.take(gazetteer + 1).every((s) => !s.finished),
+      isTrue,
+      reason: 'the rd5 alone does not finish the tile',
+    );
+    expect(
+      seen
+          .where((s) => s.total == _gaz.length && s.received < s.total)
+          .every((s) => !s.finished),
+      isTrue,
+      reason: 'nor does a gazetteer that is still coming down',
+    );
+    expect(container.read(tileDownloadQueueProvider).finished, <TileName>[
+      _first,
+    ]);
+  });
+
   test('a tile without a gazetteer asks for none', () async {
     final adapter = _servingBoth();
     final container = await containerFor(adapter);

@@ -347,16 +347,30 @@ IconData _poiIcon(String? detail) => switch (detail) {
   'beach' => Icons.beach_access_outlined,
   'nature_reserve' => Icons.forest_outlined,
   'building' => Icons.apartment_outlined,
+  'mountain_pass' => Icons.hiking,
+  'camp_site' => Icons.holiday_village_outlined,
+  'hotel' => Icons.hotel_outlined,
+  'hostel' => Icons.bed_outlined,
+  'alpine_hut' => Icons.cabin_outlined,
+  'supermarket' => Icons.shopping_cart_outlined,
+  'bakery' => Icons.bakery_dining_outlined,
   _ => Icons.place_outlined,
 };
 
-/// The second line of a local row: what it is, and where it is when the
-/// gazetteer knows.
+/// The second line of a local row: what it is, the house number when the rider
+/// typed one, and where it is when the gazetteer knows.
+///
+/// "Street \u00b7 400 \u00b7 Manhattan", and "Street \u00b7 \u2248 400 \u00b7 Manhattan" when the
+/// number sits between the ones the gazetteer knows rather than on one of
+/// them. Every part is optional; the separator is put in once, here.
 String localResultSubtitle(AppLocalizations l10n, SearchResult result) {
-  final label = searchKindLabel(l10n, result);
-  final where = result.city;
-  if (where == null || where.isEmpty) return label;
-  return label.isEmpty ? where : '$label \u00b7 $where';
+  final number = result.houseNumber;
+  return <String>[
+    searchKindLabel(l10n, result),
+    if (number != null && number.isNotEmpty)
+      result.approximate ? l10n.searchApproximateNumber(number) : number,
+    result.city ?? '',
+  ].where((part) => part.isNotEmpty).join(' \u00b7 ');
 }
 
 /// The localised name of a local result's kind.
@@ -396,6 +410,13 @@ String searchKindLabel(AppLocalizations l10n, SearchResult result) {
     'beach' => l10n.searchKindBeach,
     'nature_reserve' => l10n.searchKindNatureReserve,
     'building' => l10n.searchKindBuilding,
+    'mountain_pass' => l10n.searchKindMountainPass,
+    'camp_site' => l10n.searchKindCampSite,
+    'hotel' => l10n.searchKindHotel,
+    'hostel' => l10n.searchKindHostel,
+    'alpine_hut' => l10n.searchKindAlpineHut,
+    'supermarket' => l10n.searchKindSupermarket,
+    'bakery' => l10n.searchKindBakery,
     // A landmark the gazetteer classified in a way this build does not know
     // still says it is a place; only a row of another kind stays silent.
     _ => result.kind == SearchKind.poi ? l10n.searchKindPlace : '',

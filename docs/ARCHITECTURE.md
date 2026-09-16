@@ -271,7 +271,11 @@ index), fetched from the mirror next to the `.rd5` and stored under
 `<appSupport>/brouter/gazetteer/`. `GazetteerStore`
 (`app/lib/features/search/data/gazetteer_store.dart`) opens every file
 read-only and answers the search field first — instant and without a signal —
-ranked by bm25, then population, then distance to the map centre. Photon is
+ranked by bm25, then population, then distance to the map centre. A street
+whose house numbers the file anchors answers a typed number at the number's
+own position, interpolated between the two nearest anchors when it is not one
+of them and marked "≈" then; alternative names (`name:en`, `alt_name`, …) are
+indexed too and answer under the object's primary name. Photon is
 then the last row of the list ("Search online for …"), one tap away; a device
 with no gazetteer goes to Photon straight away, as before. A failed gazetteer
 download never fails its tile: the region stays routable and its search stays

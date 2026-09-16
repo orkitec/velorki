@@ -184,9 +184,11 @@ class TileDownloadQueue extends _$TileDownloadQueue {
   ///
   /// Runs after the rd5 has arrived and before the tile is marked ready, so
   /// that by the time the tiles list changes the `.gaz` is already there for
-  /// `GazetteerStore` to pick up. A failure is only logged: the tile itself is
-  /// complete and routable, and place search simply stays online for that
-  /// area. Downloading the same (already ready) tile again retries it.
+  /// `GazetteerStore` to pick up — the tile is not finished until this is. It
+  /// reports progress under the same tile, so the screen's bar starts over for
+  /// the smaller file. A failure is only logged: the tile itself is complete
+  /// and routable, and place search simply stays online for that area.
+  /// Downloading the same (already ready) tile again retries it.
   Future<void> _fetchGazetteer(
     TileDownloader downloader,
     SegmentEntry entry,

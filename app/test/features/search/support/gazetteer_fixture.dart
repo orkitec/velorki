@@ -89,17 +89,52 @@ class GazPoi {
   final int? placeId;
 }
 
+/// An alternative name of a place, a street or a POI.
+class GazAlias {
+  /// Creates an alias.
+  const GazAlias(this.id, this.refId, this.name);
+
+  /// The row id, from the same counter as the three tables.
+  final int id;
+
+  /// The places/streets/pois row this name belongs to.
+  final int refId;
+
+  /// The alternative name, which is what the FTS index holds.
+  final String name;
+}
+
+/// One house-number anchor on a street.
+class GazHouseNumber {
+  /// Creates an anchor.
+  const GazHouseNumber(this.streetId, this.number, this.lat, this.lon);
+
+  /// The street it sits on.
+  final int streetId;
+
+  /// The leading integer of `addr:housenumber`.
+  final int number;
+
+  /// Position in degrees.
+  final double lat, lon;
+}
+
 /// Writes `<tile>.gaz` into [dir] and returns it.
 ///
 /// [schemaVersion] is written into `meta` as given, so a test can produce a
-/// file from a future builder that this app must refuse.
+/// file from a future builder that this app must refuse. [legacy] leaves out
+/// `aliases` and `house_numbers` altogether, the way the first builder wrote
+/// its files; the app has to answer from those too.
 File buildGazetteer(
   Directory dir,
   String tile, {
   String schemaVersion = '1',
+  bool legacy = false,
   List<GazPlace> places = const <GazPlace>[],
   List<GazStreet> streets = const <GazStreet>[],
   List<GazPoi> pois = const <GazPoi>[],
+  List<GazAlias> aliases = const <GazAlias>[],
+  List<GazHouseNumber> houseNumbers = const <GazHouseNumber>[],
 }) {
   dir.createSync(recursive: true);
   final file = File('${dir.path}/$tile.gaz');
@@ -150,6 +185,25 @@ CREATE VIRTUAL TABLE search USING fts5(
       ..execute('CREATE INDEX idx_places_pos  ON places(lat, lon);')
       ..execute('CREATE INDEX idx_streets_pos ON streets(lat, lon);')
       ..execute('CREATE INDEX idx_pois_pos    ON pois(lat, lon);');
+
+    if (!legacy) {
+      db
+        ..execute('''
+CREATE TABLE aliases (
+    id     INTEGER PRIMARY KEY,
+    ref_id INTEGER NOT NULL,
+    name   TEXT NOT NULL
+);''')
+        ..execute('CREATE INDEX idx_aliases_ref ON aliases(ref_id);')
+        ..execute('''
+CREATE TABLE house_numbers (
+    street_id INTEGER NOT NULL,
+    number    INTEGER NOT NULL,
+    lat       INTEGER NOT NULL,
+    lon       INTEGER NOT NULL,
+    PRIMARY KEY (street_id, number)
+) WITHOUT ROWID;''');
+    }
 
     for (final row in <List<Object?>>[
       <Object?>['schema_version', schemaVersion],
@@ -207,6 +261,25 @@ CREATE VIRTUAL TABLE search USING fts5(
         ],
       );
       index.execute(<Object?>[poi.id, poi.name]);
+    }
+    for (final alias in aliases) {
+      db.execute(
+        'INSERT INTO aliases (id, ref_id, name) VALUES (?, ?, ?);',
+        <Object?>[alias.id, alias.refId, alias.name],
+      );
+      index.execute(<Object?>[alias.id, alias.name]);
+    }
+    for (final anchor in houseNumbers) {
+      db.execute(
+        'INSERT INTO house_numbers (street_id, number, lat, lon) '
+        'VALUES (?, ?, ?, ?);',
+        <Object?>[
+          anchor.streetId,
+          anchor.number,
+          _e7(anchor.lat),
+          _e7(anchor.lon),
+        ],
+      );
     }
     index.close();
     db.execute('VACUUM;');

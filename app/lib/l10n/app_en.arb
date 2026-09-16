@@ -512,6 +512,16 @@
   "@searchKindStreet": {
     "description": "Second line of an offline search result that is a street"
   },
+  "searchApproximateNumber": "\u2248 {number}",
+  "@searchApproximateNumber": {
+    "description": "House number on the second line of an offline search result when the position is only approximate, interpolated between the numbers the gazetteer knows",
+    "placeholders": {
+      "number": {
+        "type": "String",
+        "example": "400"
+      }
+    }
+  },
   "searchKindDrinkingWater": "Drinking water",
   "@searchKindDrinkingWater": {
     "description": "Second line of an offline search result that is a drinking water tap"
@@ -611,6 +621,34 @@
   "searchKindBuilding": "Building",
   "@searchKindBuilding": {
     "description": "Second line of an offline search result that is a named building"
+  },
+  "searchKindMountainPass": "Mountain pass",
+  "@searchKindMountainPass": {
+    "description": "Second line of an offline search result that is a mountain pass"
+  },
+  "searchKindCampSite": "Campsite",
+  "@searchKindCampSite": {
+    "description": "Second line of an offline search result that is a campsite"
+  },
+  "searchKindHotel": "Hotel",
+  "@searchKindHotel": {
+    "description": "Second line of an offline search result that is a hotel or motel"
+  },
+  "searchKindHostel": "Hostel",
+  "@searchKindHostel": {
+    "description": "Second line of an offline search result that is a hostel or guest house"
+  },
+  "searchKindAlpineHut": "Mountain hut",
+  "@searchKindAlpineHut": {
+    "description": "Second line of an offline search result that is an alpine or wilderness hut"
+  },
+  "searchKindSupermarket": "Supermarket",
+  "@searchKindSupermarket": {
+    "description": "Second line of an offline search result that is a supermarket or convenience store"
+  },
+  "searchKindBakery": "Bakery",
+  "@searchKindBakery": {
+    "description": "Second line of an offline search result that is a bakery"
   },
   "searchKindPlace": "Place",
   "@searchKindPlace": {

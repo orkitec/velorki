@@ -288,6 +288,27 @@ void main() {
       expect((await d.download(_entry())).existsSync(), isTrue);
     });
 
+    test('reports progress on the same stream as the tile', () async {
+      final adapter = servingGazetteer();
+      final d = downloader(adapter);
+      final progress = <TileDownloadProgress>[];
+      final sub = d.progress.listen(progress.add);
+      addTearDown(sub.cancel);
+
+      await d.downloadGazetteer(_gazEntry());
+
+      expect(progress, isNotEmpty);
+      expect(
+        progress.every((p) => p.tile == _tile),
+        isTrue,
+        reason: 'the gazetteer is the same tile, seen a second time',
+      );
+      expect(progress.first.received, 0);
+      expect(progress.last.received, _gaz.length);
+      expect(progress.last.total, _gaz.length);
+      expect(progress.last.fraction, 1.0);
+    });
+
     test('an interrupted gazetteer resumes from its .part', () async {
       gazetteer.createSync(recursive: true);
       File('${gazFile().path}.part')
