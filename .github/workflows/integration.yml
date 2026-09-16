@@ -67,7 +67,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        api-level: [34, 35]
+        # Android 12 is the oldest phone in the house (a Pixel 3 XL), 15
+        # enforces edge-to-edge and the foreground-service rules, 16 is the
+        # newest with a runner image; the app compiles against 37.
+        api-level: [31, 35, 36]
         # Keep api-level first: the job name the UI renders is the matrix
         # values in this order, i.e. `emulator (34, 1/3)`.
         shard: ["1/3", "2/3", "3/3"]
