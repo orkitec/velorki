@@ -8,8 +8,9 @@ Geofabrik extracts overlap at their edges and none of them covers a whole
 partial files are merged here. Input directories are searched recursively, so
 one directory per extract (or the flat download of a CI matrix) both work.
 
-Rows are deduplicated by their OSM identity (`osm_type`, `osm_id`) where they
-have one. Streets do not: a street row is the mean of many ways, so two
+Rows are deduplicated by their OSM identity — (`osm_type`, `osm_id`) for a
+place, (`osm_type`, `osm_id`, `kind`) for a POI, because one object may be both
+a `toilets` row and a `drinking_water` row. Streets have no identity: a street row is the mean of many ways, so two
 extracts that both cover it produce two slightly different rows, and those are
 matched by name, the place they hang off and their position rounded to
 1e-3 degrees (about 100 m). Ids are then handed out from a single counter
@@ -73,7 +74,7 @@ CREATE TABLE streets (
 
 CREATE TABLE pois (
     id       INTEGER PRIMARY KEY,
-    name     TEXT NOT NULL,
+    name     TEXT,
     kind     TEXT NOT NULL,
     lat      INTEGER NOT NULL,
     lon      INTEGER NOT NULL,
@@ -262,12 +263,17 @@ def rounded(coordinate: int) -> int:
 def dedup_key(row: Row, place_name: str | None) -> tuple | None:
     """What makes two rows the same row, or None when they cannot be matched.
 
-    OSM identity wins wherever a row has one. A street never does, so it falls
-    back to its name, the place it belongs to and its rounded position. A
-    place or POI out of a file built before the addendum has neither, and is
-    kept as it is: dropping it would lose data, keeping it can only duplicate.
+    OSM identity wins wherever a row has one, and for a POI the kind is part of
+    it: one object may be a `toilets` row and a `drinking_water` row, and those
+    two must survive a merge as two rows. A street has no identity at all, so
+    it falls back to its name, the place it belongs to and its rounded
+    position. A place or POI out of a file built before the addendum has
+    neither, and is kept as it is: dropping it would lose data, keeping it can
+    only duplicate.
     """
     if row.osm_type is not None and row.osm_id is not None:
+        if row.table == "pois":
+            return ("pois", "osm", row.osm_type, row.osm_id, row.values[2])
         return (row.table, "osm", row.osm_type, row.osm_id)
     if row.table == "streets":
         return (
@@ -427,12 +433,14 @@ def write_tile(path: str, tile: str, merged: Merged, meta: list[tuple[str, str]]
         "INSERT INTO house_numbers (street_id, number, lat, lon) VALUES (?,?,?,?)",
         merged.numbers,
     )
+    # An unnamed utility row has nothing to match, so it stays out of the index.
     db.executemany(
         "INSERT INTO search(rowid, name) VALUES (?,?)",
         [
             (row[0], row[1])
             for table in TABLES
             for row in merged.rows[table]
+            if row[1] is not None
         ]
         + [(row[0], row[2]) for row in merged.aliases],
     )

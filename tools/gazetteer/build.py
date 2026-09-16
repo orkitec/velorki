@@ -6,7 +6,8 @@ after the tile (``gaz/W75_N40.gaz``), so a phone can download the search data
 for exactly the tiles it already has routing data for. The file format is
 version 1 of the Velorki gazetteer; see README.md for the schema.
 
-Content is places, streets and named points of interest. Streets are built by
+Content is places, streets and points of interest (named, plus unnamed
+taps, toilets and the rest of the utility kinds). Streets are built by
 default and are most of the file; ``--no-streets`` leaves them out and takes a
 tile back to a few hundred KB.
 
@@ -57,17 +58,31 @@ PLACE_KINDS = frozenset(
 CONTEXT_KINDS = frozenset("city town".split())
 
 # What a rider needs on the road, and what a rider searches for by name.
-# Unnamed objects are dropped throughout: a search box cannot find a row with
-# no name.
+# Unnamed objects are dropped throughout *except* for the utility kinds below:
+# a tap or a toilet is worth a row without a name, because the app looks for
+# the nearest one rather than searching for it by name.
 #
 # The first group is the rider's own kit; it is matched first so a café in a
 # historic building stays a café.
 POI_AMENITIES = {
     "drinking_water": "drinking_water",
+    "water_point": "drinking_water",
     "cafe": "cafe",
     "bicycle_repair_station": "bicycle_repair_station",
     "shelter": "shelter",
+    "toilets": "toilets",
+    "bicycle_rental": "bicycle_rental",
+    "bicycle_parking": "bicycle_parking",
+    "pharmacy": "pharmacy",
 }
+
+# The kinds a row may carry with a NULL name. Everything else stays named-only.
+UNNAMED_KINDS = frozenset(
+    """
+    drinking_water toilets bicycle_repair_station shelter bicycle_rental
+    charging_station picnic_site bicycle_parking
+    """.split()
+)
 
 # Still the rider's kit: where a tour stops for the night, restocks, or crosses
 # a ridge. Matched with the nine above, before any landmark, so a hotel in a
@@ -240,7 +255,7 @@ class RawStreet(NamedTuple):
 
 
 class RawPoi(NamedTuple):
-    name: str
+    name: str | None  # NULL only for a UNNAMED_KINDS row
     kind: str
     lat: float
     lon: float
@@ -300,12 +315,45 @@ class Extract(NamedTuple):
     addresses: AddressBook
 
 
+def tag_keys(tags) -> Iterable[str]:
+    """The keys of an osmium tag list or of a plain dict of tags."""
+    for tag in tags:
+        yield tag if isinstance(tag, str) else tag.k
+
+
+def is_drinking_water(tags) -> bool:
+    """Whether a rider can fill a bottle here, whatever else the object is.
+
+    `drinking_water=yes` sits on springs, fountains, taps, water points,
+    toilets and campsites; `drinking_water=no` vetoes all of it, including an
+    `amenity=drinking_water` that has run dry.
+    """
+    if tags.get("drinking_water") == "no":
+        return False
+    return (
+        tags.get("amenity") in ("drinking_water", "water_point")
+        or tags.get("drinking_water") == "yes"
+        or tags.get("man_made") == "water_tap"
+    )
+
+
+def is_bicycle_charging(tags) -> bool:
+    """An `amenity=charging_station` that charges an e-bike, not only a car."""
+    if tags.get("amenity") != "charging_station":
+        return False
+    if tags.get("bicycle") == "yes" or tags.get("bicycle:charging") == "yes":
+        return True
+    return any(
+        key.startswith("socket:") and "bicycle" in key for key in tag_keys(tags)
+    )
+
+
 def poi_kind(tags) -> str | None:
-    """The one kind an object gets, or None if it is not worth a row.
+    """The one primary kind an object gets, or None if it is not worth a row.
 
     First match wins, so the order is the priority: the rider's kit, then
-    landmarks from most to least specific, then `building` as the fallback for
-    anything else that carries a name.
+    landmarks from most to least specific, then `building`, and `drinking_water`
+    last of all for an object (a spring, a fountain) that is nothing but water.
     """
     amenity = tags.get("amenity")
     shop = tags.get("shop")
@@ -315,7 +363,17 @@ def poi_kind(tags) -> str | None:
 
     # --- the rider's kit -------------------------------------------------
     if amenity in POI_AMENITIES:
-        return POI_AMENITIES[amenity]
+        kind = POI_AMENITIES[amenity]
+        # A dry fountain (`drinking_water=no`) is not a water stop; it may
+        # still be a landmark, so it falls through rather than returning.
+        if kind != "drinking_water" or is_drinking_water(tags):
+            return kind
+    if tags.get("man_made") == "water_tap" and is_drinking_water(tags):
+        return "drinking_water"
+    if is_bicycle_charging(tags):
+        return "charging_station"
+    if tourism == "picnic_site":
+        return "picnic_site"
     if shop == "bicycle":
         return "bicycle_shop"
     if tags.get("railway") == "station":
@@ -387,7 +445,29 @@ def poi_kind(tags) -> str | None:
     building = tags.get("building")
     if building and building != "no":
         return "building"
+
+    # A spring or a fountain that is nothing but `drinking_water=yes`.
+    if is_drinking_water(tags):
+        return "drinking_water"
     return None
+
+
+def poi_kinds(tags) -> tuple[str, ...]:
+    """Every kind an object gets a row for: its primary kind, and water.
+
+    One object is one row, except that `drinking_water=yes` on something whose
+    primary kind is not water (a toilet, a campsite, a hut) earns a second row
+    of kind `drinking_water` for the same OSM object, so a rider looking for
+    the nearest tap finds it. That is why the identity of a row — the key
+    build.py, merge.py and check.py all deduplicate on — is
+    (osm_type, osm_id, kind), not (osm_type, osm_id).
+    """
+    primary = poi_kind(tags)
+    if primary is None:
+        return ()
+    if primary != "drinking_water" and is_drinking_water(tags):
+        return (primary, "drinking_water")
+    return (primary,)
 
 
 def is_bare_number(name: str) -> bool:
@@ -442,7 +522,8 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
     # Keyed by OSM identity: a closed way arrives twice, once as the way and
     # once as the area osmium assembles from it, and the area wins.
     places: dict[tuple[str, int], RawPlace] = {}
-    pois: dict[tuple[str, int], RawPoi] = {}
+    # Keyed by (osm_type, osm_id, kind): one object can be two rows.
+    pois: dict[tuple[str, int, str], RawPoi] = {}
     street_ways: list[RawStreet] = []
     addresses = AddressBook()
     intern = sys.intern
@@ -488,10 +569,16 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
             and not is_area
             and "highway" in tags
         )
-        kind = poi_kind(tags) if name else None
-        if kind and is_bare_number(name):
-            kind = None
-        if not (want_place or want_street or kind or address_street):
+        # A name with no letter in it is a house number somebody typed into the
+        # name field: the POI keeps its position and loses the name, which only
+        # leaves it a row when its kind may go unnamed.
+        poi_name = None if name is not None and is_bare_number(name) else name
+        kinds = tuple(
+            kind
+            for kind in poi_kinds(tags)
+            if poi_name is not None or kind in UNNAMED_KINDS
+        )
+        if not (want_place or want_street or kinds or address_street):
             continue
 
         # One representative point per object: the node itself, the mean of a
@@ -508,7 +595,7 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
 
         if address_street is not None and address_number is not None:
             addresses.add(address_street, address_number, lat, lon)
-            if not (want_place or want_street or kind):
+            if not (want_place or want_street or kinds):
                 continue
 
         # The OSM identity travels with the row so two extracts that overlap
@@ -521,7 +608,7 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
             osm_type = "n" if is_node else "w"
             osm_id = obj.id
         key = (osm_type, osm_id)
-        alts = alias_names(tags, name)
+        alts = alias_names(tags, name) if name else ()
 
         if want_place and (is_area or key not in places):
             places[key] = RawPlace(
@@ -548,8 +635,14 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
                 RawStreet(intern(name), intern(city) if city else None, lat, lon, alts)
             )
 
-        if kind and (is_area or key not in pois):
-            pois[key] = RawPoi(name, kind, lat, lon, osm_type, osm_id, alts)
+        # One row per (object, kind): a toilet with a tap is a `toilets` row and
+        # a `drinking_water` row, and the pair is what everything deduplicates on.
+        for kind in kinds:
+            poi_key = key + (kind,)
+            if is_area or poi_key not in pois:
+                pois[poi_key] = RawPoi(
+                    poi_name, kind, lat, lon, osm_type, osm_id, alts
+                )
 
     return Extract(list(places.values()), street_ways, list(pois.values()), addresses)
 
@@ -868,9 +961,12 @@ CREATE TABLE streets (
     osm_id   INTEGER
 );
 
+-- `name` is nullable, but only for the unnamed utility kinds (UNNAMED_KINDS):
+-- a tap, a toilet or a bike stand is worth a row without a name because the
+-- app looks for the nearest one. Such a row is not in the FTS index.
 CREATE TABLE pois (
     id       INTEGER PRIMARY KEY,
-    name     TEXT NOT NULL,
+    name     TEXT,
     kind     TEXT NOT NULL,
     lat      INTEGER NOT NULL,
     lon      INTEGER NOT NULL,
@@ -947,7 +1043,7 @@ def write_tile(
     tile: str,
     places: list[PlaceRow],
     streets: list[StreetRow],
-    pois: list[tuple[int, str, str, float, float, int | None, str, int]],
+    pois: list[tuple[int, str | None, str, float, float, int | None, str, int]],
     aliases: list[tuple[int, int, str]],
     numbers: list[tuple[int, int, int, int]],
     source: str,
@@ -1005,11 +1101,12 @@ def write_tile(
         numbers,
     )
 
+    # An unnamed utility row has nothing to match, so it stays out of the index.
     db.executemany(
         "INSERT INTO search(rowid, name) VALUES (?,?)",
         [(p.id, p.name) for p in places]
         + [(s.id, s.name) for s in streets]
-        + [(row[0], row[1]) for row in pois]
+        + [(row[0], row[1]) for row in pois if row[1] is not None]
         + [(row[0], row[2]) for row in aliases],
     )
 
@@ -1165,7 +1262,7 @@ def main() -> int:
     print(
         f"  {len(extract.places)} place objects, "
         f"{len(extract.street_ways)} named highway ways, "
-        f"{len(extract.pois)} named pois, "
+        f"{len(extract.pois)} poi rows, "
         f"{extract.addresses.total()} addresses "
         f"in {read_done - started:.1f}s"
     )

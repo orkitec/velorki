@@ -25,11 +25,11 @@ at `<appSupport>/brouter/gazetteer/<TILE>.gaz`, read-only.
 | Table | Rows | What it is |
 |---|---|---|
 | `places` | one per settlement | `place=city\|town\|village\|hamlet\|suburb\|neighbourhood\|locality\|island` nodes and areas, with population where OSM has it |
-| `pois` | one per feature | what a rider needs on the road and what a rider searches for as a destination, always named: the 32 kinds below |
+| `pois` | one per feature and kind | what a rider needs on the road and what a rider searches for as a destination: the 38 kinds below, named — or unnamed for the eight utility kinds |
 | `streets` | one per street name per place | every named `highway=*` way, the many ways of one street merged into one row |
 | `aliases` | one per extra name | `name:en`, `int_name`, `alt_name`, `old_name`, `official_name`, `short_name` of a row above |
 | `house_numbers` | at most 40 per street | anchor points along a street: the lowest number, the highest, every tenth in between |
-| `search` | one per place, street, poi and alias | the FTS5 index the search box queries |
+| `search` | one per place, street, **named** poi and alias | the FTS5 index the search box queries |
 | `meta` | six | schema version, tile, build time, source, what is in the file |
 
 Streets are built by default and are most of the file; `--no-streets` leaves
@@ -40,13 +40,22 @@ app reads `meta.has_streets` to know which it got.
 
 The kind is the first match down this list, so a café in a historic building is
 a `cafe`, a hotel in one is a `hotel`, a museum in a building is a `museum`, and
-`building` is only ever the fallback. One object gets one row. The first
-sixteen are what a tour needs on the road; the rest are landmarks somebody
-types as a destination.
+`building` is only ever the fallback. One object gets one row — except that
+`drinking_water=yes` on something that is not water (a toilet, a campsite, a
+hut) earns a **second** row of kind `drinking_water` for the same object, so a
+rider looking for the nearest tap finds it. That is why the identity of a row,
+the key `build.py`, `merge.py` and `check.py` all deduplicate on, is
+`(osm_type, osm_id, kind)` and not `(osm_type, osm_id)`.
+
+The first group is what a tour needs on the road; the rest are landmarks
+somebody types as a destination.
 
 | kind | tags |
 |---|---|
-| `drinking_water`, `cafe`, `bicycle_repair_station`, `shelter` | `amenity=` the same value |
+| `drinking_water` | `amenity=drinking_water\|water_point`, `man_made=water_tap`, or any object with `drinking_water=yes`; never with `drinking_water=no` |
+| `cafe`, `bicycle_repair_station`, `shelter`, `toilets`, `bicycle_rental`, `bicycle_parking`, `pharmacy` | `amenity=` the same value |
+| `charging_station` | `amenity=charging_station` with `bicycle=yes`, `bicycle:charging=yes` or a `socket:*` key naming a bicycle |
+| `picnic_site` | `tourism=picnic_site` |
 | `bicycle_shop` | `shop=bicycle` |
 | `station` | `railway=station` |
 | `viewpoint` | `tourism=viewpoint` |
@@ -76,9 +85,18 @@ types as a destination.
 | `nature_reserve` | `leisure=nature_reserve`, `boundary=national_park\|protected_area` |
 | `building` | any other `building=*`, except `building=no` |
 
-An unnamed object is never stored. Names are trimmed, and a name with no letter
-in it is dropped: that is a house number somebody typed into the name field, or
-a numbered boundary stone, and nobody searches for `12`.
+**Unnamed rows.** `pois.name` is nullable, but only for the eight utility kinds
+`drinking_water`, `toilets`, `bicycle_repair_station`, `shelter`,
+`bicycle_rental`, `charging_station`, `picnic_site`, `bicycle_parking`: a tap or
+a toilet is worth a row without a name because the app looks for the *nearest*
+one rather than typing for it. Such a row is **not** in the FTS index — there is
+nothing to match — and `idx_pois_pos` is how it is found. Every other kind is
+still stored only when it has a name.
+
+Names are trimmed, and a name with no letter in it is not a name: that is a
+house number somebody typed into the name field, or a numbered boundary stone,
+and nobody searches for `12`. The row keeps its position and loses the name,
+which leaves it a row only when its kind may go unnamed.
 
 Nodes, ways **and areas** are read, so a lake, a park, a nature reserve or a
 big building mapped as a multipolygon relation lands in the file like any other
@@ -117,8 +135,8 @@ CREATE TABLE streets (
 
 CREATE TABLE pois (
     id       INTEGER PRIMARY KEY,
-    name     TEXT NOT NULL,     -- unnamed POIs are not stored
-    kind     TEXT NOT NULL,     -- one of the 32 kinds, see "POI kinds" above
+    name     TEXT,              -- NULL only on the eight utility kinds
+    kind     TEXT NOT NULL,     -- one of the 38 kinds, see "POI kinds" above
     lat      INTEGER NOT NULL,
     lon      INTEGER NOT NULL,
     place_id INTEGER,
@@ -172,11 +190,12 @@ third.
 **Integer coordinates.** SQLite stores a `REAL` in 8 bytes; 1e-7 degrees fits in
 4–5, which is a quarter of a dense street table and its index.
 
-**`osm_type` / `osm_id` are the merge key.** Both are nullable and the app
-ignores them; every tool accepts a file with or without the two columns (the
-`W20_N30` fixture predates them). A place or POI carries the node or way it
-came from, so `merge.py` can tell the same object out of two overlapping
-extracts from two different objects. A street row is the mean of many ways and
+**`osm_type` / `osm_id` are the merge key**, plus `kind` for a POI. All are
+nullable and the app ignores them; every tool accepts a file with or without the
+two columns (the `W20_N30` fixture predates them). A place or POI carries the
+node or way it came from, so `merge.py` can tell the same object out of two
+overlapping extracts from two different objects; a POI's key carries the kind
+as well, because one object can be a `toilets` row and a `drinking_water` row. A street row is the mean of many ways and
 has no single identity, so it keeps `NULL`s and is matched by name, place and
 position instead.
 
@@ -228,8 +247,14 @@ An approximate position is marked `≈` (`SearchResult.approximate` in the app).
 ./query.py fixtures/E5_N45.gaz vad --near 47.141,9.521
 ./query.py fixtures/E5_N45.gaz "114 landstrasse"      # exact anchor
 ./query.py fixtures/E5_N45.gaz "landstrasse 120"      # ≈ interpolated
+./query.py fixtures/E5_N45.gaz --near 47.141,9.521 --kind drinking_water
 ./query.py --reverse fixtures/E5_N45.gaz 47.1410 9.5215
 ```
+
+`--near LAT,LON --kind <kind>` is the other query the app runs: the rows of one
+POI kind nearest to a point, named or not, with their distance — a bounding box
+on `idx_pois_pos` grown 5 → 50 km until enough rows are in it. It is the only
+way to see the unnamed rows at all.
 
 ## Building
 
@@ -287,7 +312,8 @@ tile it
 
 * validates every input with `check.py` and stops before writing anything if
   one fails,
-* drops rows that repeat an `(osm_type, osm_id)` already seen, and streets that
+* drops rows that repeat an `(osm_type, osm_id)` — `(osm_type, osm_id, kind)`
+  for a POI — already seen, and streets that
   repeat a name + place name + position rounded to 1e-3 degrees (~100 m),
 * hands out ids from a single counter across the three tables and then the
   aliases, as `build.py` does, and remaps `admin_id` / `place_id` onto the
@@ -313,11 +339,11 @@ pyosmium.
 
 | File | Built from | Content | Size |
 |---|---|---|---:|
-| `E5_N45.gaz` | `liechtenstein.osm.pbf` | 98 places, 1,313 streets, 595 pois, 44 aliases, 2,497 anchors | 266,240 B |
+| `E5_N45.gaz` | `liechtenstein.osm.pbf` | 98 places, 1,313 streets, 922 pois (302 unnamed), 46 aliases, 2,497 anchors | 286,720 B |
 | `W20_N30.gaz` | `portugal-latest.osm.pbf`, `--tiles W20_N30` | 1,769 places, 1,022 pois | 262,144 B |
 
-`E5_N45.gaz` by page share: `house_numbers` 20%, `streets` 18%, `pois` and the
-FTS index 14% each, `idx_streets_pos` 11%, `idx_pois_pos` 6%, `places` 5%,
+`E5_N45.gaz` by page share: `pois` and `house_numbers` 19% each, `streets` 17%,
+the FTS index 14%, `idx_streets_pos` 10%, `idx_pois_pos` 7%, `places` 4%,
 everything else (including `aliases` and its index) one page each.
 
 ```sh
@@ -333,9 +359,13 @@ It also covers the landmarks: `Rathaus Vaduz` is a `building`, `Kathedrale St.
 Florin` a `place_of_worship`, `Schloss Vaduz` a `historic` built from a
 multipolygon relation. `Liechtensteinisches Landesmuseum Vaduz` carries the
 `name:en` the alias test looks for, and `Landstrasse` in Triesen is the street
-with the most anchors. Landmarks took the file from 155,648 B to 204,800 B and
-Addendum 2 (the seven kinds, the aliases, the anchors) to 266,240 B, of which
-the anchors are 53 KB; `--no-streets` is 131,072 B.
+with the most anchors. It also covers the unnamed rows: 97 nameless water
+stops, 78 shelters, 63 bike stands, 42 toilets, 19 picnic sites, 2 charging
+stations and 1 repair station, node 12899110144 a `drinking_water=no` spring
+that is dropped, node 4759689350 a toilet with a tap that is two rows.
+Landmarks took the file from 155,648 B to 204,800 B, Addendum 2 (the seven
+kinds, the aliases, the anchors) to 266,240 B and Addendum 3 (327 more POI
+rows, most of them unnamed) to 286,720 B; `--no-streets` is 155,648 B.
 Madeira is `W20_N30`, the tile the integration tests already mirror, and holds
 `Funchal`; Portugal is the only Geofabrik extract that covers it, so the
 mainland tiles are discarded with `--tiles`. `W20_N30.gaz` was built before the
@@ -374,7 +404,7 @@ Geofabrik extracts of 2026-09-15/16, 8-core laptop, 16 GB RAM, sizes after
 
 | Extract | PBF | Tile | places | pois | streets | `--no-streets` | Default |
 |---|---:|---|---:|---:|---:|---:|---:|
-| liechtenstein | 3.5 MB | `E5_N45` | 98 | 595 | 1,313 | 0.13 MB | 0.27 MB |
+| liechtenstein | 3.5 MB | `E5_N45` | 98 | 922 | 1,313 | 0.16 MB | 0.29 MB |
 | malta | 8.9 MB | `E10_N35` | 685 | 4,098 | 9,562 | — | 1.36 MB |
 | iceland | 65 MB | `W25_N60` | 366 | 851 | — | 0.14 MB | — |
 | berlin | 99 MB | `E10_N50` | 598 | 4,052 | 20,830 | 0.40 MB | 1.75 MB |
@@ -415,7 +445,7 @@ Photon is a full geocoder; this is a search box that works on a plane.
 * **Admin hierarchy.** `admin_id` and `place_id` are geometry, not boundaries,
   and stop at the tile edge. No country, state or district, so Springfield,
   Massachusetts cannot be told from Springfield, Illinois.
-* **Anything outside places, streets and the 32 POI kinds** — squares, rivers,
+* **Anything outside places, streets and the 38 POI kinds** — squares, rivers,
   general shops, individual addresses.
 * **Language variants.** `name:en` and the five other alternative-name tags are
   indexed; the rest of `name:<lang>` is not, because on a national extract that

@@ -58,10 +58,20 @@ POI_KINDS = frozenset(
     """
     drinking_water cafe bicycle_repair_station shelter bicycle_shop station
     viewpoint peak park
+    toilets bicycle_rental charging_station pharmacy picnic_site
+    bicycle_parking
     mountain_pass camp_site hotel hostel alpine_hut supermarket bakery
     attraction museum historic place_of_worship hospital university stadium
     mall airport ferry_terminal tower lighthouse water beach nature_reserve
     building
+    """.split()
+)
+
+# Addendum 3: the only kinds a row may carry with no name at all.
+UNNAMED_KINDS = frozenset(
+    """
+    drinking_water toilets bicycle_repair_station shelter bicycle_rental
+    charging_station picnic_site bicycle_parking
     """.split()
 )
 
@@ -159,6 +169,14 @@ class GazetteerTest(unittest.TestCase):
                 ("osm_type", "TEXT"),
                 ("osm_id", "INTEGER"),
             ],
+        )
+        # `pois.name` is the one nullable name; places and streets are not.
+        self.assertEqual(
+            {
+                table: {row[1]: row[3] for row in db.execute(f"PRAGMA table_info({table})")}["name"]
+                for table in ("places", "streets", "pois")
+            },
+            {"places": 1, "streets": 1, "pois": 0},
         )
         self.assertEqual(
             [(row[1], row[2]) for row in db.execute("PRAGMA table_info(aliases)")],
@@ -269,17 +287,21 @@ class GazetteerTest(unittest.TestCase):
         self.assertAlmostEqual(lat / 1e7, 47.139, places=2)
         self.assertAlmostEqual(lon / 1e7, 9.522, places=2)
 
-    def test_only_named_pois(self) -> None:
+    def test_only_utility_kinds_go_unnamed(self) -> None:
         db = self.open()
+        unnamed = {
+            row[0]: row[1]
+            for row in db.execute(
+                "SELECT kind, count(*) FROM pois WHERE name IS NULL OR name = ''"
+                " GROUP BY kind"
+            )
+        }
+        self.assertTrue(unnamed, "no unnamed rows at all")
+        self.assertLessEqual(set(unnamed), UNNAMED_KINDS, "a named-only kind is NULL")
+        # Every other kind is named, and no kind is ever the empty string.
         self.assertEqual(
             db.execute(
-                "SELECT count(*) FROM pois WHERE name IS NULL OR name = ''"
-            ).fetchone()[0],
-            0,
-        )
-        self.assertEqual(
-            db.execute(
-                "SELECT count(*) FROM pois WHERE name <> trim(name)"
+                "SELECT count(*) FROM pois WHERE name = '' OR name <> trim(name)"
             ).fetchone()[0],
             0,
         )
@@ -287,6 +309,17 @@ class GazetteerTest(unittest.TestCase):
         self.assertIn("peak", kinds)
         self.assertTrue(kinds & {"drinking_water", "cafe"})
         self.assertLessEqual(kinds, POI_KINDS)
+
+    def test_a_named_kind_is_never_null(self) -> None:
+        """cafe, peak, hotel and the rest keep the named-only rule."""
+        rows = self.open().execute(
+            "SELECT kind, count(*) FROM pois WHERE name IS NULL"
+            " AND kind NOT IN ({}) GROUP BY kind".format(
+                ",".join("?" * len(UNNAMED_KINDS))
+            ),
+            tuple(sorted(UNNAMED_KINDS)),
+        ).fetchall()
+        self.assertEqual(rows, [])
 
     def test_landmark_kinds_are_collected(self) -> None:
         """The kinds a rider searches for by name, not just the ones on the
@@ -394,6 +427,37 @@ class GazetteerTest(unittest.TestCase):
             # The rider's own kit still wins over the seven.
             ({"amenity": "cafe", "shop": "bakery"}, "cafe"),
             ({"shop": "bicycle", "shop:name": "x"}, "bicycle_shop"),
+            # Addendum 3.
+            ({"amenity": "toilets"}, "toilets"),
+            ({"amenity": "bicycle_rental"}, "bicycle_rental"),
+            ({"amenity": "bicycle_parking"}, "bicycle_parking"),
+            ({"amenity": "pharmacy"}, "pharmacy"),
+            ({"tourism": "picnic_site"}, "picnic_site"),
+            ({"amenity": "water_point"}, "drinking_water"),
+            ({"man_made": "water_tap"}, "drinking_water"),
+            ({"natural": "spring", "drinking_water": "yes"}, "drinking_water"),
+            ({"amenity": "fountain", "drinking_water": "yes"}, "drinking_water"),
+            # Never when the water is off.
+            ({"natural": "spring", "drinking_water": "no"}, None),
+            ({"amenity": "drinking_water", "drinking_water": "no"}, None),
+            ({"man_made": "water_tap", "drinking_water": "no"}, None),
+            ({"amenity": "water_point", "drinking_water": "no"}, None),
+            # A charging station only counts when it charges a bike.
+            ({"amenity": "charging_station"}, None),
+            ({"amenity": "charging_station", "bicycle": "yes"}, "charging_station"),
+            (
+                {"amenity": "charging_station", "bicycle:charging": "yes"},
+                "charging_station",
+            ),
+            (
+                {"amenity": "charging_station", "socket:bicycle": "2"},
+                "charging_station",
+            ),
+            ({"amenity": "charging_station", "socket:type2": "4"}, None),
+            # The primary kind wins; the water is a second row, not this one.
+            ({"amenity": "toilets", "drinking_water": "yes"}, "toilets"),
+            ({"tourism": "camp_site", "drinking_water": "yes"}, "camp_site"),
+            ({"building": "yes", "drinking_water": "yes"}, "building"),
         ]
         for tags, expected in cases:
             with self.subTest(tags=tags):
@@ -404,10 +468,136 @@ class GazetteerTest(unittest.TestCase):
         self.assertTrue(build.is_bare_number("12"))
         self.assertTrue(build.is_bare_number("12-14"))
         self.assertFalse(build.is_bare_number("12a"))
-        names = [row[0] for row in self.open().execute("SELECT name FROM pois")]
+        names = [
+            row[0]
+            for row in self.open().execute(
+                "SELECT name FROM pois WHERE name IS NOT NULL"
+            )
+        ]
         self.assertEqual(
             [name for name in names if not any(c.isalpha() for c in name)], []
         )
+
+    def test_poi_kinds_adds_a_water_row_to_another_kind(self) -> None:
+        """One object, one row — except that `drinking_water=yes` on something
+        that is not water earns a second row of kind `drinking_water` for the
+        same OSM object. That is why everything deduplicates on
+        (osm_type, osm_id, kind)."""
+        self.assertEqual(build.poi_kinds({"amenity": "toilets"}), ("toilets",))
+        self.assertEqual(
+            build.poi_kinds({"amenity": "toilets", "drinking_water": "yes"}),
+            ("toilets", "drinking_water"),
+        )
+        self.assertEqual(
+            build.poi_kinds({"amenity": "drinking_water"}), ("drinking_water",)
+        )
+        self.assertEqual(build.poi_kinds({"highway": "residential"}), ())
+        self.assertEqual(
+            build.poi_kinds({"natural": "spring", "drinking_water": "no"}), ()
+        )
+
+    def test_utility_kinds_are_collected(self) -> None:
+        """Addendum 3's kinds, in the extract. Liechtenstein has no
+        `bicycle_rental`, so that one is proven by the tag rules above."""
+        kinds = {
+            row[0]: row[1]
+            for row in self.open().execute(
+                "SELECT kind, count(*) FROM pois GROUP BY kind"
+            )
+        }
+        for kind in (
+            "toilets",
+            "bicycle_parking",
+            "picnic_site",
+            "charging_station",
+            "pharmacy",
+            "drinking_water",
+        ):
+            self.assertGreater(kinds.get(kind, 0), 0, f"no {kind} rows: {sorted(kinds)}")
+
+    def test_unnamed_drinking_water_rows_exist(self) -> None:
+        """Liechtenstein's fountains and taps: rows with a position and no name."""
+        rows = self.open().execute(
+            "SELECT count(*) FROM pois WHERE kind = 'drinking_water'"
+            " AND name IS NULL"
+        ).fetchone()[0]
+        self.assertGreater(rows, 10, "no unnamed water stops")
+
+    def indexed_ids(self, streets: bool = True) -> set[int]:
+        """Every rowid the contentless FTS index actually holds."""
+        db = self.open(streets)
+        db.execute(
+            "CREATE VIRTUAL TABLE temp.docs USING fts5vocab(main,'search','instance')"
+        )
+        try:
+            return {row[0] for row in db.execute("SELECT DISTINCT doc FROM temp.docs")}
+        finally:
+            db.execute("DROP TABLE temp.docs")
+
+    def test_unnamed_rows_are_not_in_the_search_index(self) -> None:
+        db = self.open()
+        indexed = self.indexed_ids()
+        unnamed = {row[0] for row in db.execute("SELECT id FROM pois WHERE name IS NULL")}
+        self.assertTrue(unnamed)
+        self.assertEqual(indexed & unnamed, set(), "an unnamed row is in the index")
+
+        # And the index is exactly the named rows plus the aliases.
+        expected = sum(
+            db.execute(sql).fetchone()[0]
+            for sql in (
+                "SELECT count(*) FROM places",
+                "SELECT count(*) FROM streets",
+                "SELECT count(*) FROM pois WHERE name IS NOT NULL",
+                "SELECT count(*) FROM aliases",
+            )
+        )
+        self.assertEqual(len(indexed), expected)
+        self.assertEqual(check.check(self.path()).search, expected)
+
+    def test_a_dry_spring_is_not_a_water_stop(self) -> None:
+        """Node 12899110144 is a `natural=spring` with `drinking_water=no`; its
+        neighbour 3565164920 says yes and is in the file."""
+        db = self.open()
+        self.assertEqual(
+            db.execute(
+                "SELECT count(*) FROM pois WHERE osm_type = 'n' AND osm_id = 12899110144"
+            ).fetchone()[0],
+            0,
+        )
+        self.assertEqual(
+            db.execute(
+                "SELECT kind, name FROM pois WHERE osm_type = 'n' AND osm_id = 3565164920"
+            ).fetchall(),
+            [("drinking_water", None)],
+        )
+
+    def test_a_toilet_with_a_tap_is_two_rows(self) -> None:
+        """Node 4759689350 is `amenity=toilets` + `drinking_water=yes`: the
+        primary kind stays `toilets` and the water is a second row."""
+        rows = self.open().execute(
+            "SELECT kind FROM pois WHERE osm_type = 'n' AND osm_id = 4759689350"
+            " ORDER BY kind"
+        ).fetchall()
+        self.assertEqual(rows, [("drinking_water",), ("toilets",)])
+
+    def test_nearest_of_kind_lists_unnamed_rows_by_distance(self) -> None:
+        db = self.open()
+        rows = query.nearest_of_kind(db, "drinking_water", 47.1410, 9.5215, 5)
+        self.assertEqual(len(rows), 5)
+        distances = [row[5] for row in rows]
+        self.assertEqual(distances, sorted(distances))
+        self.assertLess(distances[0], 2000)
+        self.assertTrue(
+            any(row[1] is None for row in rows), "only named rows came back"
+        )
+        for row_id, _, lat, lon, _, _ in rows:
+            kind = db.execute(
+                "SELECT kind FROM pois WHERE id = ?", (row_id,)
+            ).fetchone()[0]
+            self.assertEqual(kind, "drinking_water")
+            self.assertEqual(build.tile_name(lat, lon), TILE)
+        # A kind nothing in the tile carries comes back empty, not wrong.
+        self.assertEqual(query.nearest_of_kind(db, "lighthouse", 47.141, 9.52, 5), [])
 
     def test_a_multipolygon_relation_becomes_one_row(self) -> None:
         """Vaduz castle is a multipolygon; without areas it is missing."""
@@ -433,8 +623,11 @@ class GazetteerTest(unittest.TestCase):
             self.assertEqual(build.tile_name(lat / 1e7, lon / 1e7), TILE, name)
 
     def test_osm_identity_columns(self) -> None:
+        """The dedupe key is (osm_type, osm_id) for a place and
+        (osm_type, osm_id, kind) for a POI: one object can be a toilet row and
+        a drinking water row, but never two rows of the same kind."""
         db = self.open()
-        for table in ("places", "pois"):
+        for table, key in (("places", "osm_type, osm_id"), ("pois", "osm_type, osm_id, kind")):
             total, typed = db.execute(
                 f"SELECT count(*), count(osm_id) FROM {table}"
             ).fetchone()
@@ -445,8 +638,8 @@ class GazetteerTest(unittest.TestCase):
             self.assertLessEqual(kinds, {"n", "w", "r"})
             self.assertEqual(
                 db.execute(
-                    f"SELECT count(*) FROM (SELECT osm_type, osm_id FROM {table}"
-                    " GROUP BY osm_type, osm_id HAVING count(*) > 1)"
+                    f"SELECT count(*) FROM (SELECT {key} FROM {table}"
+                    f" GROUP BY {key} HAVING count(*) > 1)"
                 ).fetchone()[0],
                 0,
             )
@@ -851,11 +1044,12 @@ class GazetteerTest(unittest.TestCase):
 
     @staticmethod
     def osm_keys(path: str, table: str) -> set:
+        """The dedupe key of every row of a table: a POI's carries its kind."""
+        columns = "osm_type, osm_id" + (", kind" if table == "pois" else "")
         db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
         try:
             return {
-                tuple(row)
-                for row in db.execute(f"SELECT osm_type, osm_id FROM {table}")
+                tuple(row) for row in db.execute(f"SELECT {columns} FROM {table}")
             }
         finally:
             db.close()
@@ -998,6 +1192,68 @@ class GazetteerTest(unittest.TestCase):
         with self.assertRaises(check.GazetteerError) as caught:
             check.check(broken)
         self.assertIn("anchors", str(caught.exception))
+
+    def test_check_rejects_an_unnamed_cafe(self) -> None:
+        """A NULL name is only ever allowed on the utility kinds."""
+        broken = self.break_file(
+            "UPDATE pois SET name = NULL WHERE id ="
+            " (SELECT id FROM pois WHERE kind = 'cafe' LIMIT 1)"
+        )
+        with self.assertRaises(check.GazetteerError) as caught:
+            check.check(broken)
+        self.assertIn("cafe", str(caught.exception))
+
+    def test_check_rejects_an_unnamed_row_in_the_index(self) -> None:
+        """An unnamed row has nothing to match and must stay out of the FTS."""
+        broken = self.break_file(
+            "INSERT INTO search(rowid, name) SELECT id, 'brunnen' FROM pois"
+            " WHERE name IS NULL LIMIT 1"
+        )
+        with self.assertRaises(check.GazetteerError) as caught:
+            check.check(broken)
+        self.assertIn("FTS index", str(caught.exception))
+        self.assertIn("unnamed", str(caught.exception))
+
+    def test_check_rejects_a_duplicated_poi(self) -> None:
+        """(osm_type, osm_id, kind) is the identity of a POI row."""
+        broken = self.break_file(
+            "INSERT INTO pois (id, name, kind, lat, lon, place_id, osm_type, osm_id)"
+            " SELECT 9999999, name, kind, lat, lon, place_id, osm_type, osm_id"
+            " FROM pois WHERE name IS NULL LIMIT 1"
+        )
+        with self.assertRaises(check.GazetteerError) as caught:
+            check.check(broken)
+        self.assertIn("more than once", str(caught.exception))
+
+    def test_merge_of_two_copies_keeps_the_unnamed_rows(self) -> None:
+        """Unnamed rows merge like any other: deduplicated on
+        (osm_type, osm_id, kind), and still out of the FTS index."""
+        merged = self.run_merge(*self.copies(self.path(), self.path()))
+        before = sqlite3.connect(f"file:{self.path()}?mode=ro", uri=True)
+        after = sqlite3.connect(f"file:{merged}?mode=ro", uri=True)
+        self.addCleanup(before.close)
+        self.addCleanup(after.close)
+
+        counted = "SELECT kind, count(*) FROM pois WHERE name IS NULL GROUP BY kind"
+        rows = before.execute(counted).fetchall()
+        self.assertTrue(rows)
+        self.assertEqual(after.execute(counted).fetchall(), rows)
+        self.assertEqual(
+            after.execute(
+                "SELECT count(*) FROM (SELECT osm_type, osm_id, kind FROM pois"
+                " GROUP BY osm_type, osm_id, kind HAVING count(*) > 1)"
+            ).fetchone()[0],
+            0,
+        )
+        # A toilet with a tap survives as its two rows, not as one.
+        self.assertEqual(
+            after.execute(
+                "SELECT kind FROM pois WHERE osm_type = 'n' AND osm_id = 4759689350"
+                " ORDER BY kind"
+            ).fetchall(),
+            [("drinking_water",), ("toilets",)],
+        )
+        check.check(merged)
 
     def test_merge_output_passes_check(self) -> None:
         merged = self.run_merge(*self.copies(self.path(), self.path(streets=False)))

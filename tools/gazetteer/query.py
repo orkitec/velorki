@@ -4,6 +4,7 @@
     query.py fixtures/E5_N45.gaz muhleholz
     query.py fixtures/E5_N45.gaz vad --near 47.141,9.521
     query.py fixtures/E5_N45.gaz 12 landstrasse
+    query.py fixtures/E5_N45.gaz --near 47.141,9.521 --kind drinking_water
     query.py --reverse fixtures/E5_N45.gaz 47.1410 9.5215
 
 The forward form is exactly what the app runs: one FTS statement, then three
@@ -13,6 +14,10 @@ resolved through `aliases.ref_id` to the row whose primary name is shown. A
 digits-only token at the start or the end of a multi-token query is a house
 number: it is taken out of the match and resolved against the street's anchors,
 which prints `≈` when the position is interpolated rather than mapped.
+
+`--kind` with `--near` skips the search box altogether and lists the rows of
+one POI kind nearest to the point, named or not: that is how the app answers
+"drinking water", and the only way to see the unnamed utility rows at all.
 
 The reverse form is the nearest street, place and POI to a coordinate, found
 with a bounding box on the lat/lon indexes.
@@ -227,6 +232,52 @@ def meters_between(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return math.hypot(dlat, dlon)
 
 
+# --------------------------------------------------------------------------
+# nearest of a kind
+# --------------------------------------------------------------------------
+
+# What the app does when the typed text is a kind keyword ("drinking water"):
+# a bounding box on idx_pois_pos, grown until enough rows are in it. Unnamed
+# rows are the point of it — they are in no index but this one.
+KIND_RADII_KM = (5.0, 10.0, 25.0, 50.0)
+
+
+def nearest_of_kind(
+    db: sqlite3.Connection, kind: str, lat: float, lon: float, limit: int
+) -> list[tuple[int, str | None, float, float, int | None, float]]:
+    """The `limit` rows of one POI kind nearest to a point, named or not."""
+    rows: list[tuple] = []
+    for radius_km in KIND_RADII_KM:
+        degrees = radius_km * 1000 / METERS_PER_DEG_LAT
+        dlon = degrees / max(0.05, math.cos(math.radians(lat)))
+        rows = db.execute(
+            "SELECT id, name, lat, lon, place_id FROM pois WHERE kind = ?"
+            " AND lat BETWEEN ? AND ? AND lon BETWEEN ? AND ?",
+            (
+                kind,
+                int((lat - degrees) * COORD_SCALE),
+                int((lat + degrees) * COORD_SCALE),
+                int((lon - dlon) * COORD_SCALE),
+                int((lon + dlon) * COORD_SCALE),
+            ),
+        ).fetchall()
+        if len(rows) >= limit:
+            break
+    found = [
+        (
+            row[0],
+            row[1],
+            row[2] / COORD_SCALE,
+            row[3] / COORD_SCALE,
+            row[4],
+            meters_between(lat, lon, row[2] / COORD_SCALE, row[3] / COORD_SCALE),
+        )
+        for row in rows
+    ]
+    found.sort(key=lambda row: row[5])
+    return found[:limit]
+
+
 # The reverse lookup asks the same four columns of each table; only the kind
 # and the foreign key are named differently.
 REVERSE_SQL = {
@@ -272,13 +323,43 @@ def parse_near(raw: str) -> tuple[float, float]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("db", help="a gazetteer tile, e.g. fixtures/E5_N45.gaz")
-    parser.add_argument("args", nargs="+", help="search text, or LAT LON for --reverse")
+    parser.add_argument(
+        "args", nargs="*", help="search text, or LAT LON for --reverse"
+    )
     parser.add_argument("--reverse", action="store_true", help="reverse lookup")
     parser.add_argument("--near", default=None, help="map centre as LAT,LON")
+    parser.add_argument(
+        "--kind",
+        default=None,
+        help="with --near: list the nearest pois of this kind instead of searching",
+    )
     parser.add_argument("--limit", type=int, default=10)
     options = parser.parse_args()
 
     db = sqlite3.connect(f"file:{options.db}?mode=ro", uri=True)
+
+    if options.kind:
+        if not options.near:
+            parser.error("--kind needs --near LAT,LON")
+        lat, lon = parse_near(options.near)
+        started = time.perf_counter()
+        rows = nearest_of_kind(db, options.kind, lat, lon, options.limit)
+        elapsed = (time.perf_counter() - started) * 1000
+        for _, name, row_lat, row_lon, place_id, distance in rows:
+            context = place_name(db, place_id)
+            label = name if name is not None else f"({options.kind})"
+            print(
+                f"{distance / 1000:>8.2f} km  {label:<40} "
+                f"{row_lat:>9.5f},{row_lon:>10.5f}"
+                f"{'  (' + context + ')' if context else ''}"
+            )
+        if not rows:
+            print(f"(no {options.kind} within {KIND_RADII_KM[-1]:.0f} km)")
+        print(f"({len(rows)} rows, {elapsed:.1f} ms)")
+        return 0
+
+    if not options.args:
+        parser.error("nothing to search for")
 
     if options.reverse:
         if len(options.args) != 2:
