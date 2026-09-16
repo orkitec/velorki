@@ -5,9 +5,15 @@ name: integration
 # engine, the Loop sheet, saving into the library, recording a ride, the map
 # style reload and a GPX import.
 #
-# Nightly rather than per-push: one run boots an emulator, installs a test
-# build per file and routes for real, which is minutes, not seconds. The
-# per-push app workflow keeps running the widget and unit tests.
+# Runs on every push to main that can change what the suite exercises — the
+# app package, the committed rd5 tile, the .gaz fixtures served beside it, or
+# this file — and again nightly as the safety net for everything a path filter
+# cannot see (a runner image change, a flaky boot, an Android API level). One
+# run boots an emulator, installs a test build per file and routes for real,
+# which is minutes, not seconds, so pushes to the same branch cancel each
+# other: only the newest commit is worth an emulator. Scheduled runs are their
+# own concurrency group and are never cancelled. The per-push app workflow
+# keeps running the widget and unit tests.
 #
 # The tile is the same committed rd5 fixture the BRouter parity corpus was
 # recorded against (tools/brouter-oracle/tiles/), so the routes this suite plans
@@ -19,9 +25,23 @@ name: integration
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "tools/brouter-oracle/tiles/**"
+      - "tools/gazetteer/fixtures/**"
+      - ".github/workflows/integration.yml"
   schedule:
     # 03:41 UTC, before the brouter-oracle job and well clear of the push CI.
     - cron: "41 3 * * *"
+
+concurrency:
+  # The event name is in the group so a push never cancels the nightly and the
+  # nightly never cancels a push; cancel-in-progress is gated on push as well,
+  # so two scheduled runs would queue rather than kill each other.
+  group: integration-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 
 env:
   # The one tile the suite needs: Madeira, lon -20..-15, lat 30..35. It is

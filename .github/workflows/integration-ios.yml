@@ -1,15 +1,30 @@
 name: integration ios
 
-# The same emulator flows as integration.yml, on an iOS simulator. macOS
-# runners are free for a public repository but slow to start, so this runs
-# nightly and on demand rather than on every push. The tests fake the GPS
-# and the permissions in-process, so nothing here depends on the simulator's
-# own location; the map, the on-device router and the recorder are real.
+# The same emulator flows as integration.yml, on an iOS simulator, and on the
+# same triggers: every push to main that touches the app, the tiles or the
+# fixtures, plus the nightly run as the safety net for what a path filter
+# cannot see. macOS runners are free for a public repository, so a push is
+# worth one — but they queue slowly, so a newer push cancels the older
+# simulator run rather than waiting behind it. Scheduled runs are their own
+# concurrency group and are never cancelled. The tests fake the GPS and the
+# permissions in-process, so nothing here depends on the simulator's own
+# location; the map, the on-device router and the recorder are real.
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "tools/brouter-oracle/tiles/**"
+      - "tools/gazetteer/fixtures/**"
+      - ".github/workflows/integration-ios.yml"
   schedule:
     # 04:41 UTC, an hour after the Android run.
     - cron: "41 4 * * *"
+
+concurrency:
+  group: integration-ios-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 
 env:
   ORACLE_TILE: W20_N30

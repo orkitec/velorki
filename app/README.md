@@ -79,6 +79,21 @@ that is what `.github/workflows/app.yml` runs on every push, together with
 `flutter test --coverage`, `dart format`, both analyzers and the `brouter_dart`
 parity suites against the committed oracle tiles.
 
+`test/perf/gazetteer_perf_test.dart` is the exception: it skips itself unless
+`GAZETTEER_PERF_FILE` points at a `<TILE>.gaz`, read from
+`--dart-define=GAZETTEER_PERF_FILE=...` first and from the environment second.
+It links the file into a temp directory, opens it with `GazetteerStore` and
+times a prefix query, a kind search and the spelling pass against ceilings
+loose enough to survive a CI runner. `.github/workflows/gazetteer-perf.yml`
+runs it nightly against New York (`W75_N40.gaz`, 89 MB, pulled from the tag
+the mirror's `latest.json` names) and puts the numbers in the run summary;
+locally the Madeira fixture is a fast smoke test:
+
+```sh
+flutter test test/perf/gazetteer_perf_test.dart \
+  --dart-define=GAZETTEER_PERF_FILE=$PWD/../tools/gazetteer/fixtures/W20_N30.gaz
+```
+
 ### Emulator integration tests
 
 `integration_test/` holds the feature flows that only mean something on a real
@@ -114,8 +129,11 @@ What the emulator needs before the first run:
 `VELORKI_ITEST_REGION` picks the coordinates: `nyc` (default, tile `W75_N40`)
 or `madeira` (tile `W20_N30`, the tile the frozen BRouter oracle release
 serves). `integration_test/support/region.dart` holds both sets.
-`.github/workflows/integration.yml` runs the suite nightly on an emulator with
-the Madeira tile, and can be started by hand from the Actions tab.
+`.github/workflows/integration.yml` runs the suite on an emulator with the
+Madeira tile on every push to main that touches `app/`, the committed tiles or
+the `.gaz` fixtures, again nightly, and by hand from the Actions tab; a newer
+push cancels the older run, the nightly is never cancelled.
+`.github/workflows/integration-ios.yml` is the same on an iOS simulator.
 
 `integration_test/plan_route_test.dart` is the exception: it wants a BRouter
 *server*, so `tool/itest.sh` skips it unless `VELORKI_BROUTER_URL` is set

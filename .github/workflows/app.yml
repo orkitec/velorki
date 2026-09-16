@@ -1,11 +1,20 @@
 name: app
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
-    paths: ["app/**", "mise.toml", ".github/workflows/app.yml"]
+    paths:
+      - "app/**"
+      - "tools/gazetteer/**"
+      - "mise.toml"
+      - ".github/workflows/app.yml"
   pull_request:
-    paths: ["app/**", "mise.toml", ".github/workflows/app.yml"]
+    paths:
+      - "app/**"
+      - "tools/gazetteer/**"
+      - "mise.toml"
+      - ".github/workflows/app.yml"
 
 defaults:
   run:
@@ -54,3 +63,44 @@ jobs:
           name: velorki-debug-apk
           path: app/build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 7
+
+  # The gazetteer builder, which is Python and has nothing to do with the app
+  # package -- hence the working-directory override. It builds the 3.5 MB
+  # Liechtenstein extract twice and asserts the file format, the query contract
+  # and the mirror tooling against it: 72 tests in about five seconds, so it
+  # rides along on every run of this workflow rather than being gated on a
+  # path. tools/gazetteer/** is in the paths above for the same reason the app
+  # job wants it: app/test reads the committed .gaz fixtures.
+  gazetteer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          # pyosmium ships wheels per CPython version; 3.13 has them, and a
+          # tool-cache Python takes pip installs without --break-system-packages.
+          python-version: "3.13"
+      - run: pip install "osmium>=4,<5"
+      - name: Download the Geofabrik Liechtenstein extract
+        # The builder tests read the source file name into meta.source and
+        # assert on it, so the -latest name Geofabrik serves is dropped here.
+        run: |
+          curl --retry 3 --retry-all-errors --fail --location --silent --show-error \
+            --user-agent "velorki-ci (+https://github.com/orkitec/velorki)" \
+            --output "$RUNNER_TEMP/liechtenstein.osm.pbf" \
+            https://download.geofabrik.de/europe/liechtenstein-latest.osm.pbf
+      - name: Builder tests
+        env:
+          GAZ_EXTRACT: ${{ runner.temp }}/liechtenstein.osm.pbf
+        run: python3 -m unittest tools/gazetteer/test_gazetteer.py
+      - name: Validate the committed fixtures
+        run: python3 tools/gazetteer/check.py tools/gazetteer/fixtures/*.gaz
+      - name: Fixture checksums
+        # The app tests and the emulator tile mirror are bound to these exact
+        # bytes; a rebuild that changes them has to be deliberate.
+        working-directory: tools/gazetteer/fixtures
+        run: sha256sum -c fixtures.sha256

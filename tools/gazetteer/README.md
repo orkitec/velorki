@@ -379,6 +379,13 @@ GAZ_EXTRACT=/path/to/liechtenstein.osm.pbf \
   python -m unittest tools/gazetteer/test_gazetteer.py
 ```
 
+72 tests, about five seconds. `.github/workflows/app.yml`'s `gazetteer` job
+runs exactly that on every push — it fetches the extract from Geofabrik as
+`liechtenstein.osm.pbf` (the name ends up in `meta.source`, which the tests
+assert on) — then `check.py` and `sha256sum -c fixtures.sha256` over the
+committed fixtures. `.github/workflows/gazetteer-perf.yml` times the app's
+search against New York nightly; see `app/test/perf/gazetteer_perf_test.dart`.
+
 ## Mirror integration
 
 A mirror serves `<TILE>.gaz` next to `<TILE>.rd5`. `manifest.json` tile entries

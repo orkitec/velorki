@@ -75,7 +75,12 @@ before changing structure.
   from — the oracle rd5 plus its `.gaz` fixture — on port 8000.
 - BRouter parity: `tools/brouter-oracle` with the two committed tiles in
   `tools/brouter-oracle/tiles/`; the corpus is bound to those exact bytes.
-- CI: `app.yml` (every push), `integration.yml` and `integration-ios.yml`
-  (nightly, boot an emulator and a simulator), `brouter-oracle.yml` (weekly).
-  No rd5 comes off brouter.de; the oracle job does fetch the pinned upstream
-  release zip.
+- `app/test/perf`: timings against a real gazetteer, skipped unless
+  `GAZETTEER_PERF_FILE` names a `.gaz` (`--dart-define` or the environment).
+- CI: `app.yml` (every push; its `gazetteer` job builds the Liechtenstein
+  extract and checks the `.gaz` fixtures), `integration.yml` and
+  `integration-ios.yml` (every push to main that touches app/tiles/fixtures,
+  plus nightly; a newer push cancels the older run), `gazetteer-perf.yml`
+  (nightly, times the search against New York off the mirror),
+  `brouter-oracle.yml` (weekly). No rd5 comes off brouter.de; the oracle job
+  does fetch the pinned upstream release zip.

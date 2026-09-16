@@ -1,0 +1,79 @@
+name: gazetteer-perf
+
+# app/test/perf/gazetteer_perf_test.dart against a real, city-sized gazetteer:
+# New York's W75_N40.gaz, 89 MB, which is what a rider actually types into.
+# The committed fixtures are 0.3 and 1.5 MB and would never show a query that
+# stopped using its index, so this job downloads the tile from the mirror
+# instead of committing one.
+#
+# Nightly rather than per-push: the download is most of the run, and the
+# ceilings in the test are deliberately generous, so this is a tripwire for a
+# regression, not a benchmark to watch per commit. The numbers it measured go
+# into the run's summary either way.
+#
+# The tile comes out of whatever snapshot latest.json currently points at, so
+# the job follows the mirror instead of pinning a tag that goes stale.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 05:41 UTC, an hour after the iOS run and clear of the nightly emulator.
+    - cron: "41 5 * * *"
+
+env:
+  PERF_TILE: W75_N40
+  MIRROR_LATEST: https://raw.githubusercontent.com/orkitec/velorki-data/main/latest.json
+
+jobs:
+  perf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.4  # keep in sync with mise.toml and app/.fvmrc
+          cache: true
+
+      - name: Prepare the app package
+        working-directory: app
+        run: |
+          flutter pub get
+          dart run build_runner build
+          flutter gen-l10n
+
+      - name: Resolve the current mirror snapshot
+        id: snapshot
+        run: |
+          set -euo pipefail
+          tag=$(curl --retry 3 --retry-all-errors --fail --location --silent --show-error \
+            --user-agent "velorki-ci (+https://github.com/orkitec/velorki)" \
+            "$MIRROR_LATEST" | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag"])')
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Gazetteer snapshot: $tag" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Download the New York gazetteer
+        run: |
+          set -euo pipefail
+          curl --retry 3 --retry-all-errors --fail --location --silent --show-error \
+            --user-agent "velorki-ci (+https://github.com/orkitec/velorki)" \
+            --output "$RUNNER_TEMP/$PERF_TILE.gaz" \
+            "https://github.com/orkitec/velorki-data/releases/download/${{ steps.snapshot.outputs.tag }}/$PERF_TILE.gaz"
+          ls -l "$RUNNER_TEMP/$PERF_TILE.gaz"
+
+      - name: Measure
+        working-directory: app
+        run: |
+          set -euo pipefail
+          flutter test test/perf/gazetteer_perf_test.dart \
+            --dart-define=GAZETTEER_PERF_FILE="$RUNNER_TEMP/$PERF_TILE.gaz" \
+            | tee "$RUNNER_TEMP/perf.log"
+          # The test prints one "GAZPERF | what | how long" line per
+          # measurement; lift them into the run summary as a table.
+          {
+            echo "| measurement | $PERF_TILE |"
+            echo "| --- | --- |"
+            sed -n 's/^GAZPERF //p' "$RUNNER_TEMP/perf.log" | sed 's/$/ |/'
+          } >> "$GITHUB_STEP_SUMMARY"
