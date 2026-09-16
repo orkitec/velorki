@@ -10,6 +10,8 @@ import '../data/map_preferences.dart';
 import '../data/offline_regions_repository.dart';
 import '../domain/map_controller.dart';
 import 'map_strings.dart';
+import '../../../l10n/generated/app_localizations.dart';
+import '../../planner/presentation/route_format.dart';
 
 /// Downloaded map areas: list, delete, and download the area the map is
 /// currently showing.
@@ -156,6 +158,13 @@ class _RegionTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final downloading = ref.watch(offlineDownloadControllerProvider) != null;
+    final downloadedAt = row.downloadedAt;
+    final due = OfflineRegionsRepository.isRefreshDue(row, DateTime.now());
+    final when = downloadedAt == null
+        ? MapStrings.downloadedUnknown
+        : '${MapStrings.downloadedOn} ${formatDate(l10n, downloadedAt)}';
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
       // Every region in this list is on the device already.
@@ -175,15 +184,46 @@ class _RegionTile extends ConsumerWidget {
       ),
       title: Text(row.name, style: theme.textTheme.titleMedium),
       subtitle: Text(
-        MapStrings.formatBytes(row.sizeBytes),
-        style: theme.textTheme.labelMedium,
+        '${MapStrings.formatBytes(row.sizeBytes)}  ·  $when'
+        '${due ? '  ·  ${MapStrings.refreshDue}' : ''}',
+        style: theme.textTheme.labelMedium?.copyWith(
+          color: due ? theme.velorki.warning : null,
+        ),
       ),
-      trailing: IconButton(
-        icon: const Icon(Icons.delete_outline),
-        tooltip: MapStrings.deleteRegion,
-        onPressed: () => unawaited(_confirmDelete(context, ref)),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          // A refresh is a full download again, so it is only offered once
+          // the area is old enough for the map to have moved on.
+          if (due)
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              tooltip: MapStrings.refreshRegion,
+              onPressed: downloading
+                  ? null
+                  : () => unawaited(_refresh(context, ref)),
+            ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: MapStrings.deleteRegion,
+            onPressed: () => unawaited(_confirmDelete(context, ref)),
+          ),
+        ],
       ),
     );
+  }
+
+  Future<void> _refresh(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    try {
+      await ref
+          .read(offlineDownloadControllerProvider.notifier)
+          .refresh(row.id);
+    } on Object catch (error) {
+      messenger?.showSnackBar(
+        SnackBar(content: Text('${MapStrings.downloadFailed} $error')),
+      );
+    }
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {

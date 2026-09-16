@@ -24,10 +24,12 @@ class OfflineRegionsDao extends DatabaseAccessor<VelorkiDatabase>
     String id, {
     required int maplibreRegionId,
     required int sizeBytes,
+    required DateTime downloadedAt,
   }) => (update(offlineRegions)..where((t) => t.id.equals(id))).write(
     OfflineRegionsCompanion(
       maplibreRegionId: Value(maplibreRegionId),
       sizeBytes: Value(sizeBytes),
+      downloadedAt: Value(downloadedAt),
     ),
   );
 

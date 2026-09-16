@@ -35,6 +35,7 @@ void main() {
       dao: dao,
       api: api,
       idFactory: () => 'region-${nextId++}',
+      clock: () => DateTime.utc(2026, 9, 15, 12),
     );
   });
 
@@ -372,5 +373,80 @@ void main() {
       container.read(offlineStyleUrlProvider),
       'https://tiles.example/style.json',
     );
+  });
+
+  group('refresh', () {
+    test('a download records when it happened', () async {
+      final row = await repository.download(spec);
+
+      expect(row.downloadedAt, DateTime.utc(2026, 9, 15, 12));
+    });
+
+    test('is due after eight weeks, or when the date is unknown', () {
+      final now = DateTime.utc(2026, 9, 15);
+      OfflineRegionRow at(DateTime? downloadedAt) => OfflineRegionRow(
+        id: 'r',
+        name: 'r',
+        bboxMinLat: 0,
+        bboxMinLon: 0,
+        bboxMaxLat: 1,
+        bboxMaxLon: 1,
+        maplibreRegionId: 1,
+        sizeBytes: 1,
+        downloadedAt: downloadedAt,
+      );
+
+      expect(OfflineRegionsRepository.isRefreshDue(at(null), now), isTrue);
+      expect(
+        OfflineRegionsRepository.isRefreshDue(
+          at(DateTime.utc(2026, 9, 1)),
+          now,
+        ),
+        isFalse,
+      );
+      expect(
+        OfflineRegionsRepository.isRefreshDue(
+          at(DateTime.utc(2026, 7, 20)),
+          now,
+        ),
+        isTrue,
+      );
+    });
+
+    test('downloads the same bounds again and swaps the tiles under the '
+        'row', () async {
+      final old = await repository.download(spec);
+      api.resultSizeBytes = 2048;
+
+      final fresh = await repository.refresh(
+        old.id,
+        styleUrl: 'https://tiles.example/style2.json',
+      );
+
+      expect(api.downloads, hasLength(2));
+      expect(api.downloads.last.bounds, bounds);
+      expect(api.downloads.last.name, 'Zurich');
+      expect(api.downloads.last.styleUrl, 'https://tiles.example/style2.json');
+      expect(api.deleted, [old.maplibreRegionId]);
+      expect(fresh.id, old.id);
+      expect(fresh.maplibreRegionId, isNot(old.maplibreRegionId));
+      expect(fresh.sizeBytes, 2048);
+      expect(await repository.regions(), hasLength(1));
+    });
+
+    test('a failed refresh leaves the area as it was', () async {
+      final old = await repository.download(spec);
+      api.failWith = OfflineDownloadException('no signal');
+
+      await expectLater(
+        repository.refresh(old.id, styleUrl: spec.styleUrl),
+        throwsA(isA<OfflineDownloadException>()),
+      );
+
+      expect(api.deleted, isEmpty);
+      final rows = await repository.regions();
+      expect(rows.single.maplibreRegionId, old.maplibreRegionId);
+      expect(rows.single.sizeBytes, old.sizeBytes);
+    });
   });
 }

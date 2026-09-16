@@ -36,7 +36,7 @@ class VelorkiDatabase extends _$VelorkiDatabase {
   factory VelorkiDatabase.open() => VelorkiDatabase(_openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -44,6 +44,11 @@ class VelorkiDatabase extends _$VelorkiDatabase {
       // 2 added the turn instructions of a saved route; older rows keep null
       // and come back with an empty list.
       if (from < 2) await m.addColumn(routes, routes.turnsJson);
+      // 3 added when an offline map area was downloaded; older areas keep
+      // null and count as due for a refresh.
+      if (from < 3) {
+        await m.addColumn(offlineRegions, offlineRegions.downloadedAt);
+      }
     },
     beforeOpen: (_) async {
       // SQLite needs this per connection for the rides → routes foreign key.

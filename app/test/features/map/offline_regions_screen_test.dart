@@ -48,6 +48,7 @@ class OfflineHarness {
     required String name,
     required int sizeBytes,
     int? maplibreRegionId,
+    DateTime? downloadedAt,
   }) {
     if (maplibreRegionId != null) api.live.add(maplibreRegionId);
     return dao.upsertRegion(
@@ -60,6 +61,7 @@ class OfflineHarness {
         bboxMaxLon: _visible.east,
         sizeBytes: sizeBytes,
         maplibreRegionId: Value(maplibreRegionId),
+        downloadedAt: Value(downloadedAt),
       ),
     );
   }
@@ -178,8 +180,8 @@ void main() {
         .map((t) => (t.title! as Text).data)
         .toList();
     expect(names, ['Aargau', 'Zurich']);
-    expect(find.text('4.0 kB'), findsOneWidget);
-    expect(find.text('5.0 MB'), findsOneWidget);
+    expect(find.textContaining('4.0 kB'), findsOneWidget);
+    expect(find.textContaining('5.0 MB'), findsOneWidget);
     expect(find.textContaining('No offline areas yet.'), findsNothing);
     await _unmount(tester);
   });
@@ -191,7 +193,7 @@ void main() {
     await h.seedRegion(id: 'a', name: 'Interrupted', sizeBytes: 0);
     await pumpOfflineRegions(tester, harness: h);
 
-    expect(find.text('—'), findsOneWidget);
+    expect(find.textContaining('—'), findsOneWidget);
     await _unmount(tester);
   });
 
@@ -230,7 +232,7 @@ void main() {
 
     expect(find.byType(LinearProgressIndicator), findsNothing);
     expect(find.text('Map area 1'), findsOneWidget);
-    expect(find.text('4.0 kB'), findsOneWidget);
+    expect(find.textContaining('4.0 kB'), findsOneWidget);
     expect(find.text('Download visible area'), findsOneWidget);
     await _unmount(tester);
   });
@@ -332,6 +334,66 @@ void main() {
       findsOneWidget,
     );
     expect(_downloadButton(tester).onPressed, isNull);
+    await _unmount(tester);
+  });
+
+  testWidgets('a fresh area shows its date and no refresh', (tester) async {
+    final h = await pumpOfflineRegions(tester);
+    await h.seedRegion(
+      id: 'fresh',
+      name: 'Fresh area',
+      sizeBytes: 4096,
+      maplibreRegionId: 3,
+      downloadedAt: DateTime.now().subtract(const Duration(days: 3)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Downloaded'), findsOneWidget);
+    expect(find.textContaining('Refresh available'), findsNothing);
+    expect(find.byTooltip('Refresh'), findsNothing);
+    await _unmount(tester);
+  });
+
+  testWidgets('an old area offers a refresh that downloads it again', (
+    tester,
+  ) async {
+    final h = await pumpOfflineRegions(tester);
+    await h.seedRegion(
+      id: 'old',
+      name: 'Old area',
+      sizeBytes: 4096,
+      maplibreRegionId: 3,
+      downloadedAt: DateTime.now().subtract(const Duration(days: 90)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Refresh available'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Refresh'));
+    await tester.pumpAndSettle();
+
+    expect(h.api.downloads, hasLength(1));
+    expect(h.api.downloads.single.name, 'Old area');
+    expect(h.api.deleted, [3]);
+    expect(find.textContaining('Refresh available'), findsNothing);
+    expect(find.text('Old area'), findsOneWidget);
+    await _unmount(tester);
+  });
+
+  testWidgets('an area from before the date was kept counts as old', (
+    tester,
+  ) async {
+    final h = await pumpOfflineRegions(tester);
+    await h.seedRegion(
+      id: 'legacy',
+      name: 'Legacy area',
+      sizeBytes: 4096,
+      maplibreRegionId: 3,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('before this app version'), findsOneWidget);
+    expect(find.byTooltip('Refresh'), findsOneWidget);
     await _unmount(tester);
   });
 }

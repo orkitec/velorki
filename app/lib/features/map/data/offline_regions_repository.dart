@@ -186,17 +186,32 @@ class OfflineRegionsRepository {
     required OfflineRegionsDao dao,
     required OfflineMapApi api,
     String Function()? idFactory,
+    DateTime Function()? clock,
   }) // Named parameters cannot be private, so these cannot be initialising
     // formals.
     // ignore: prefer_initializing_formals
     : _dao = dao,
        // ignore: prefer_initializing_formals
        _api = api,
-       _idFactory = idFactory ?? const Uuid().v4;
+       _idFactory = idFactory ?? const Uuid().v4,
+       _clock = clock ?? DateTime.now;
 
   final OfflineRegionsDao _dao;
   final OfflineMapApi _api;
   final String Function() _idFactory;
+  final DateTime Function() _clock;
+
+  /// How old an area has to be before a refresh is offered. OpenFreeMap
+  /// rebuilds weekly, but a refresh is a full download again, so it is only
+  /// worth it once the map has moved on noticeably.
+  static const Duration refreshAfter = Duration(days: 56);
+
+  /// Whether [row] is old enough for a refresh at [now]. An area without a
+  /// date predates the column and is treated as old.
+  static bool isRefreshDue(OfflineRegionRow row, DateTime now) {
+    final downloadedAt = row.downloadedAt;
+    return downloadedAt == null || now.difference(downloadedAt) >= refreshAfter;
+  }
 
   /// Every stored region, alphabetically, updated as rows change.
   Stream<List<OfflineRegionRow>> watchRegions() => _dao.watchRegions();
@@ -232,6 +247,7 @@ class OfflineRegionsRepository {
         id,
         maplibreRegionId: result.maplibreRegionId,
         sizeBytes: result.sizeBytes,
+        downloadedAt: _clock().toUtc(),
       );
     } on Object {
       await _dao.deleteRegion(id);
@@ -244,6 +260,41 @@ class OfflineRegionsRepository {
       );
     }
     return row;
+  }
+
+  /// Downloads the area of [id] again with [styleUrl] and swaps the tiles
+  /// underneath the same row, so the area never disappears from the list.
+  /// The old tiles go only once the new ones are complete; a failed refresh
+  /// leaves the area as it was.
+  Future<OfflineRegionRow> refresh(
+    String id, {
+    required String styleUrl,
+    void Function(OfflineDownloadProgress progress)? onProgress,
+  }) async {
+    final row = await _dao.regionById(id);
+    if (row == null) {
+      throw OfflineDownloadException('Region $id is not on this device');
+    }
+    final spec = OfflineRegionSpec(
+      name: row.name,
+      bounds: BoundingBox(
+        south: row.bboxMinLat,
+        west: row.bboxMinLon,
+        north: row.bboxMaxLat,
+        east: row.bboxMaxLon,
+      ),
+      styleUrl: styleUrl,
+    );
+    final result = await _api.download(spec, onProgress: onProgress);
+    final previous = row.maplibreRegionId;
+    if (previous != null) await _api.delete(previous);
+    await _dao.setDownloadResult(
+      id,
+      maplibreRegionId: result.maplibreRegionId,
+      sizeBytes: result.sizeBytes,
+      downloadedAt: _clock().toUtc(),
+    );
+    return (await _dao.regionById(id))!;
   }
 
   /// Deletes the tiles and the row.
@@ -310,6 +361,23 @@ class OfflineDownloadController extends _$OfflineDownloadController {
       await ref
           .read(offlineRegionsRepositoryProvider)
           .download(spec, onProgress: (p) => state = p);
+    } finally {
+      state = null;
+    }
+  }
+
+  /// Fetches the area [id] again with the map's current style.
+  Future<void> refresh(String id) async {
+    if (state != null) return;
+    state = const OfflineDownloadProgress(fraction: 0, completedBytes: 0);
+    try {
+      await ref
+          .read(offlineRegionsRepositoryProvider)
+          .refresh(
+            id,
+            styleUrl: ref.read(offlineStyleUrlProvider),
+            onProgress: (p) => state = p,
+          );
     } finally {
       state = null;
     }

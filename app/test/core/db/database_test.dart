@@ -87,14 +87,19 @@ RidesCompanion _ride(
   );
 }
 
+/// The `offline_regions` table as schemas 1 and 2 created it, without the
+/// download date.
+const String _offlineRegionsV1Ddl =
+    'CREATE TABLE offline_regions (id TEXT NOT NULL, name TEXT NOT NULL, bbox_min_lat REAL NOT NULL, bbox_min_lon REAL NOT NULL, bbox_max_lat REAL NOT NULL, bbox_max_lon REAL NOT NULL, maplibre_region_id INTEGER NULL, size_bytes INTEGER NOT NULL, PRIMARY KEY (id))';
+
 void main() {
   late VelorkiDatabase db;
 
   setUp(() => db = VelorkiDatabase.memory());
   tearDown(() => db.close());
 
-  test('schema version is 2', () {
-    expect(db.schemaVersion, 2);
+  test('schema version is 3', () {
+    expect(db.schemaVersion, 3);
   });
 
   test('a schema 1 database is upgraded and keeps its routes', () async {
@@ -102,13 +107,14 @@ void main() {
     await db.close();
 
     // A database as schema 1 left it: the routes table without turns_json and
-    // one row in it. Only that table is created — the migration under test
-    // touches nothing else.
+    // one row in it, and the offline_regions table the upgrade to 3 alters.
+    // Nothing else is created — the migrations touch nothing else.
     final v1 = VelorkiDatabase(
       NativeDatabase.memory(
         setup: (raw) {
           raw
             ..execute(_routesV1Ddl)
+            ..execute(_offlineRegionsV1Ddl)
             ..execute(
               "INSERT INTO routes VALUES ('old', 'Before the upgrade', NULL, "
               "'planned', 'trekking', '2026-09-12T10:00:00.000Z', "
@@ -130,6 +136,36 @@ void main() {
     expect(row.createdAt, DateTime.utc(2026, 9, 12, 10));
     expect(row.turnsJson, isNull, reason: 'the new column starts empty');
   });
+
+  test(
+    'a schema 2 database gains the download date of its map areas',
+    () async {
+      await db.close();
+
+      final v2 = VelorkiDatabase(
+        NativeDatabase.memory(
+          setup: (raw) {
+            raw
+              ..execute(_routesV1Ddl)
+              ..execute('ALTER TABLE routes ADD COLUMN turns_json TEXT NULL')
+              ..execute(_offlineRegionsV1Ddl)
+              ..execute(
+                "INSERT INTO offline_regions VALUES ('area', 'Old area', "
+                '47.0, 8.0, 47.5, 8.6, 7, 4096)',
+              )
+              ..userVersion = 2;
+          },
+        ),
+      );
+      addTearDown(v2.close);
+
+      final row = await v2.offlineRegionsDao.regionById('area');
+
+      expect(row, isNotNull);
+      expect(row!.sizeBytes, 4096);
+      expect(row.downloadedAt, isNull, reason: 'the new column starts empty');
+    },
+  );
 
   group('routes', () {
     test('insert and read back', () async {

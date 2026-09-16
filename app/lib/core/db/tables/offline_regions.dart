@@ -13,6 +13,10 @@ class OfflineRegions extends Table {
   IntColumn get maplibreRegionId => integer().nullable()();
   IntColumn get sizeBytes => integer()();
 
+  /// When the tiles were fetched; null for areas from before this was kept,
+  /// which count as due for a refresh.
+  DateTimeColumn get downloadedAt => dateTime().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
