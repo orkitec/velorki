@@ -6,6 +6,7 @@ import 'package:velorki/features/map/data/position_provider.dart';
 
 import 'package:velorki/features/planner/presentation/elevation_profile_chart.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
+import 'package:velorki/features/planner/presentation/planner_map_host.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
 import 'package:velorki/features/planner/presentation/surface_stats_bar.dart';
@@ -378,20 +379,48 @@ void main() {
     expect(chrome().controlsTop!, closeTo(before, 0.5));
   });
 
-  testWidgets('the sheet steps aside while the keyboard is up', (tester) async {
+  testWidgets('the sheet parks under the keyboard while searching', (
+    tester,
+  ) async {
     await pumpScreen(tester, const PlannerScreen());
-    expect(find.byType(DraggableScrollableSheet), findsOneWidget);
+    final sheet = find.byType(DraggableScrollableSheet);
+    final headline = find.text('Tap the map to set a start.');
+    expect(headline, findsOneWidget);
+    final screenHeight = tester.getSize(find.byType(PlannerScreen)).height;
+    final restingTop = tester.getTopLeft(headline).dy;
+    expect(restingTop, lessThan(screenHeight * 0.7));
 
+    // Focusing the field drops the sheet to its handle before the keyboard
+    // shows: the headline is off the bottom edge. The map keeps its full
+    // size underneath.
+    await tester.tap(find.byType(TextField).first);
+    await tester.pumpAndSettle();
+    expect(sheet, findsOneWidget);
+    expect(tester.getTopLeft(headline).dy, greaterThan(screenHeight * 0.9));
+    expect(
+      tester.getSize(find.byType(PlannerMapHost)).height,
+      closeTo(screenHeight, 0.5),
+    );
+
+    // The keyboard comes and goes; the map never shrinks.
     tester.view.viewInsets = const FakeViewPadding(bottom: 600);
     addTearDown(tester.view.resetViewInsets);
     await tester.pumpAndSettle();
-
-    // Kept alive but out of the way; the map keeps its size.
-    expect(find.byType(DraggableScrollableSheet), findsNothing);
     expect(
-      find.byType(DraggableScrollableSheet, skipOffstage: false),
-      findsOneWidget,
+      tester.getSize(find.byType(PlannerMapHost)).height,
+      closeTo(screenHeight, 0.5),
     );
+    expect(tester.getTopLeft(headline).dy, greaterThan(screenHeight * 0.9));
+
+    // Once the keyboard is gone the sheet is back where it was.
+    tester.view.viewInsets = FakeViewPadding.zero;
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(headline).dy, closeTo(restingTop, 0.5));
+
+    // The field kept its focus; the keyboard coming back parks it again.
+    tester.view.viewInsets = const FakeViewPadding(bottom: 600);
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(headline).dy, greaterThan(screenHeight * 0.9));
   });
 
   testWidgets('a searched place is appended once a plan exists', (

@@ -148,6 +148,10 @@ class HomeShell extends ConsumerWidget {
       // The bar floats over the content; screens read the bottom padding
       // from MediaQuery to keep their last rows above it.
       extendBody: true,
+      // The keyboard inset is left to each tab's own scaffold: the map
+      // screens keep their full height under the keyboard, the settings
+      // screen resizes as usual.
+      resizeToAvoidBottomInset: false,
       body: shell,
       bottomNavigationBar: hideBar
           ? null

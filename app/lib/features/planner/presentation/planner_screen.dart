@@ -62,19 +62,78 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   }
 
   final DraggableScrollableController _sheet = DraggableScrollableController();
+  // Where the sheet was before the search field took it out of the way, or
+  // null while it is where the rider left it.
+  double? _sheetSizeBeforeSearch;
+  // The sheet's collapsed size, as computed by the last build.
+  double _collapsedSheetSize = 0.1;
 
   @override
   void initState() {
     super.initState();
-    // The keyboard's inset is read from the window (the shell's scaffold
-    // resizes for it and no longer reports it), and the window does not
-    // rebuild this screen by itself: metrics changes are listened for.
+    // The keyboard's going is what brings the sheet back; the window does
+    // not rebuild this screen by itself, so metrics changes are listened for.
     WidgetsBinding.instance.addObserver(this);
   }
 
+  bool _searchFocused = false;
+  bool _keyboardUp = false;
+
   @override
   void didChangeMetrics() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    // Only the keyboard's coming and going matter, not every metrics change:
+    // the first one arrives before the keyboard has any height, and would
+    // otherwise undo the parking straight away.
+    final up = View.of(context).viewInsets.bottom > 0;
+    if (up == _keyboardUp) return;
+    _keyboardUp = up;
+    if (!up) {
+      _restoreSheet();
+    } else if (_searchFocused) {
+      // The keyboard came back to a field that never lost focus (dismissed
+      // with the back gesture, tapped again).
+      _parkSheet();
+    }
+  }
+
+  /// The search field is about to open the keyboard: the sheet drops to its
+  /// handle first, so it sits under the keyboard instead of peeking over it.
+  /// When the field gives focus up with no keyboard in the way, it comes
+  /// back at once; otherwise the keyboard's going brings it back.
+  void _onSearchFocus(bool focused) {
+    _searchFocused = focused;
+    if (focused) {
+      _parkSheet();
+    } else if (!_keyboardUp) {
+      _restoreSheet();
+    }
+  }
+
+  void _parkSheet() {
+    if (!_sheet.isAttached || _sheetSizeBeforeSearch != null) return;
+    _sheetSizeBeforeSearch = _sheet.size;
+    unawaited(
+      _sheet.animateTo(
+        _collapsedSheetSize,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      ),
+    );
+  }
+
+  void _restoreSheet() {
+    final size = _sheetSizeBeforeSearch;
+    if (size == null) return;
+    _sheetSizeBeforeSearch = null;
+    if (!_sheet.isAttached) return;
+    unawaited(
+      _sheet.animateTo(
+        size,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      ),
+    );
   }
 
   @override
@@ -349,6 +408,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     final collapsedSheetSize = screenHeight <= 0
         ? 0.1
         : ((bottomInset + 30) / screenHeight).clamp(0.06, 0.25);
+    _collapsedSheetSize = collapsedSheetSize;
     // One more row when the variant chips are shown between the figures and
     // the toolbar.
     const restingSheetSize = 0.42;
@@ -363,94 +423,92 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       },
     );
 
-    // With the keyboard up the sheet would ride up with it and cover what is
-    // left of the map the rider is searching on, so it steps aside until the
-    // keyboard goes; its state is kept. Read from the window: the shell's
-    // scaffold resizes for the inset and no longer reports it.
-    final keyboardUp = View.of(context).viewInsets.bottom > 0;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _measureChrome();
     });
 
     return Scaffold(
-      body: Stack(
-        children: [
-          Positioned.fill(
-            // Search field, place actions, chips and their gaps: the control
-            // column starts underneath them.
-            child: MapChromeInsets(
-              controlsTop: _chromeHeight + 12,
-              child: PlannerMapHost(onMapReady: _onMapReady),
-            ),
-          ),
-          SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-              child: Column(
-                key: _chromeKey,
-                // Only as tall as its rows, so its height is the chrome's.
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SearchField(
-                    onSelected: _onPlaceSelected,
-                    onCleared: _clearSearchedPlace,
-                    bias: () => _map?.center,
-                  ),
-                  const SizedBox(height: 10),
-                  _ProfileChooser(
-                    selected: state.options.profile,
-                    onSelected: ref
-                        .read(plannerControllerProvider.notifier)
-                        .setProfile,
-                  ),
-                  if (_placeToStartFrom != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 10),
-                      // One row, the two actions sharing the width. The X
-                      // in the search field is what forgets the place.
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: FilledButton.icon(
-                              onPressed: () => unawaited(_rideFromPosition()),
-                              icon: const Icon(Icons.near_me_rounded),
-                              label: Text(
-                                l10n.plannerRideFromPosition,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: FilledButton.tonalIcon(
-                              onPressed: _setSearchedPlaceAsStart,
-                              icon: const Icon(Icons.play_arrow_rounded),
-                              label: Text(
-                                l10n.plannerSetAsStart,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  if (!hasBackend)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 8),
-                      child: _NoRoutingServerBanner(),
-                    ),
-                ],
+      // The map fills the screen and stays put; the keyboard overlays its
+      // lower edge and the search results float above from the field. A
+      // resizing scaffold would shrink the platform view to a strip.
+      resizeToAvoidBottomInset: false,
+      body: SizedBox.expand(
+        child: Stack(
+          children: [
+            Positioned.fill(
+              // Search field, place actions, chips and their gaps: the control
+              // column starts underneath them.
+              child: MapChromeInsets(
+                controlsTop: _chromeHeight + 12,
+                child: PlannerMapHost(onMapReady: _onMapReady),
               ),
             ),
-          ),
-          Visibility(
-            visible: !keyboardUp,
-            maintainState: true,
-            child: DraggableScrollableSheet(
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                child: Column(
+                  key: _chromeKey,
+                  // Only as tall as its rows, so its height is the chrome's.
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SearchField(
+                      onSelected: _onPlaceSelected,
+                      onFocusChanged: _onSearchFocus,
+                      onCleared: _clearSearchedPlace,
+                      bias: () => _map?.center,
+                    ),
+                    const SizedBox(height: 10),
+                    _ProfileChooser(
+                      selected: state.options.profile,
+                      onSelected: ref
+                          .read(plannerControllerProvider.notifier)
+                          .setProfile,
+                    ),
+                    if (_placeToStartFrom != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        // One row, the two actions sharing the width. The X
+                        // in the search field is what forgets the place.
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: FilledButton.icon(
+                                onPressed: () => unawaited(_rideFromPosition()),
+                                icon: const Icon(Icons.near_me_rounded),
+                                label: Text(
+                                  l10n.plannerRideFromPosition,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: FilledButton.tonalIcon(
+                                onPressed: _setSearchedPlaceAsStart,
+                                icon: const Icon(Icons.play_arrow_rounded),
+                                label: Text(
+                                  l10n.plannerSetAsStart,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (!hasBackend)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: _NoRoutingServerBanner(),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            DraggableScrollableSheet(
               controller: _sheet,
               // Enough for the headline, the toolbar and Save above the
               // floating navigation bar on a 20:9 phone.
@@ -524,8 +582,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

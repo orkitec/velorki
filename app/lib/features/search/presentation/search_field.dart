@@ -18,8 +18,13 @@ class SearchField extends ConsumerStatefulWidget {
     required this.onSelected,
     this.bias,
     this.onCleared,
+    this.onFocusChanged,
     super.key,
   });
+
+  /// Called when the field takes or gives up focus, before the keyboard
+  /// moves: the screen can make room for it.
+  final ValueChanged<bool>? onFocusChanged;
 
   /// Called when the rider clears the field or edits it after picking a
   /// result: the picked place is no longer what the field says.
@@ -46,9 +51,19 @@ class _SearchFieldState extends ConsumerState<SearchField> {
   bool _dismissed = false;
 
   @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(_onFocus);
+  }
+
+  void _onFocus() => widget.onFocusChanged?.call(_focusNode.hasFocus);
+
+  @override
   void dispose() {
     _controller.dispose();
-    _focusNode.dispose();
+    _focusNode
+      ..removeListener(_onFocus)
+      ..dispose();
     super.dispose();
   }
 
