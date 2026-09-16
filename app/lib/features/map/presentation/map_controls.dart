@@ -7,7 +7,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/theme.dart';
 import '../../../core/permissions/location_permission.dart';
-import '../../routing_tiles/presentation/routing_tiles_screen.dart';
+import '../../offline/presentation/offline_screen.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../data/map_preferences.dart';
 import '../data/position_provider.dart';
@@ -65,14 +65,14 @@ class MapControls extends ConsumerWidget {
             selected: cyclosm,
             onPressed: enabled ? () => unawaited(_toggleCyclosm(ref)) : null,
           ),
-          // The one place the rider can download routing tiles for exactly the
-          // area they are looking at; the screen needs a live map for that.
-          // Embedded maps (record, details) leave it out.
+          // The one place the rider can download the map and the routing
+          // tiles for exactly the area they are looking at; the screen needs
+          // a live map for that. Embedded maps (record, details) leave it out.
           if (chrome?.showRoutingTiles ?? true)
             _ControlButton(
-              icon: Icons.grid_on_outlined,
-              tooltip: MapStrings.routingTiles,
-              onPressed: enabled ? () => _openRoutingTiles(context) : null,
+              icon: Icons.download_for_offline_outlined,
+              tooltip: MapStrings.offlineData,
+              onPressed: enabled ? () => _openOffline(context) : null,
             ),
           const _ControlDivider(),
           _ControlButton(
@@ -90,13 +90,13 @@ class MapControls extends ConsumerWidget {
     );
   }
 
-  void _openRoutingTiles(BuildContext context) {
+  void _openOffline(BuildContext context) {
     final map = controller;
     if (map == null) return;
     unawaited(
       Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => RoutingTilesScreen(mapController: map),
+          builder: (_) => OfflineScreen(mapController: map),
         ),
       ),
     );

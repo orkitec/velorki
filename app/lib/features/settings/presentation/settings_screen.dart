@@ -6,11 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/app_config.dart';
 import '../../../features/assistant/presentation/ai_settings_section.dart';
 import '../../../features/integrations/presentation/connections_section.dart';
-import '../../../features/map/presentation/map_strings.dart';
-import '../../../features/map/presentation/offline_regions_screen.dart';
 import '../../../features/routing_tiles/data/routing_preference_controller.dart';
 import '../../../features/routing_tiles/domain/routing_preference.dart';
-import '../../../features/routing_tiles/presentation/routing_tiles_screen.dart';
+import '../../../features/offline/presentation/offline_entry.dart';
 import '../../../features/subscription/presentation/plus_settings_section.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/presentation/stat_tile.dart';
@@ -53,8 +51,7 @@ class SettingsScreen extends ConsumerWidget {
           AiSettingsSection(),
           Divider(height: 32),
           _SectionHeader.advanced(),
-          _OfflineMapsTile(),
-          _RoutingTilesTile(),
+          OfflineEntry(),
           _RoutingPreferenceSection(),
           _ServerUrlsSection(),
           Divider(height: 32),
@@ -106,48 +103,6 @@ enum _Section {
   ai,
   advanced,
   about,
-}
-
-/// Entry point into the map feature's offline regions screen.
-///
-/// Pushed with the root [Navigator] rather than go_router: offline maps are a
-/// detail of the map feature and do not need a route of their own.
-class _OfflineMapsTile extends StatelessWidget {
-  const _OfflineMapsTile();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: const Icon(Icons.download_for_offline_outlined),
-      title: const Text(MapStrings.offlineRegionsTitle),
-      subtitle: const Text(MapStrings.offlineRegionsSubtitle),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const OfflineRegionsScreen()),
-      ),
-    );
-  }
-}
-
-/// Entry point into the on-device routing data, pushed the same way as the
-/// offline maps screen. No map is alive here, so the screen offers the
-/// planner's tiles and the manifest, but not "the visible area".
-class _RoutingTilesTile extends ConsumerWidget {
-  const _RoutingTilesTile();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    return ListTile(
-      leading: const Icon(Icons.grid_on_outlined),
-      title: Text(l10n.routingTilesTitle),
-      subtitle: Text(l10n.routingTilesSubtitle),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const RoutingTilesScreen()),
-      ),
-    );
-  }
 }
 
 /// Where routes are computed: the composite rule, or one of the two ends of

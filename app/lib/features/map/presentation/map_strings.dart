@@ -23,7 +23,7 @@ abstract final class MapStrings {
   static const String followHeadingUp = 'Map turns with you';
   static const String followNorthUp = 'North up';
   static const String toggleCyclosm = 'Cycling map overlay';
-  static const String routingTiles = 'Offline routing data';
+  static const String offlineData = 'Offline data';
   static const String zoomIn = 'Zoom in';
   static const String zoomOut = 'Zoom out';
 
@@ -66,6 +66,10 @@ abstract final class MapStrings {
   static const String cancel = 'Cancel';
   static const String downloadFailed = 'Download failed.';
   static const String regionNameDefault = 'Map area';
+  static const String downloadedOn = 'Downloaded';
+  static const String downloadedUnknown = 'Downloaded before this app version';
+  static const String refreshDue = 'Refresh available';
+  static const String refreshRegion = 'Refresh';
 
   /// "12.3 MB", or "—" while the size is still unknown.
   static String formatBytes(int bytes) {
