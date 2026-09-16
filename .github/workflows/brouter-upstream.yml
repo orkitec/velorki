@@ -1,0 +1,156 @@
+name: brouter-upstream
+
+# Watches upstream BRouter. Once a week (or on demand) it asks GitHub for the
+# newest release; when that is newer than brouter/UPSTREAM_VERSION it replays
+# the oracle corpus against the new jar and opens one issue with the result,
+# so a new upstream version becomes a ticket with the behavioural diff
+# attached. It never changes the pin: bumping it is the porting work, see
+# app/packages/brouter_dart/README.md, "Keeping up with upstream".
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release tag to test instead of the newest (e.g. v1.7.11)"
+        required: false
+        default: ""
+  schedule:
+    # Mondays 05:41 UTC, the morning after the oracle's own Sunday run.
+    - cron: "41 5 * * 1"
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Compare the newest release with the pin
+        id: versions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pinned="$(cat brouter/UPSTREAM_VERSION)"
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            latest="${{ github.event.inputs.version }}"
+          else
+            latest="$(gh api repos/abrensch/brouter/releases/latest --jq .tag_name)"
+          fi
+          echo "pinned=$pinned" >> "$GITHUB_OUTPUT"
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          if [ "$pinned" = "$latest" ]; then
+            echo "newer=false" >> "$GITHUB_OUTPUT"
+            echo "pinned $pinned is the newest release"
+            exit 0
+          fi
+          echo "newer=true" >> "$GITHUB_OUTPUT"
+          echo "pinned $pinned, newest $latest"
+
+      - name: Compare the lookup table of the release with the pinned one
+        if: steps.versions.outputs.newer == 'true'
+        id: lookups
+        run: |
+          header() { sed -n 's/^---\(lookupversion\|minorversion\):[[:space:]]*//p' "$1" | head -2 | paste -sd. -; }
+          pinned="$(header brouter/profiles/lookups.dat)"
+          curl -fsSL "https://raw.githubusercontent.com/abrensch/brouter/${{ steps.versions.outputs.latest }}/misc/profiles2/lookups.dat" -o /tmp/lookups.dat \
+            && latest="$(header /tmp/lookups.dat)" || latest="unknown"
+          echo "pinned=$pinned" >> "$GITHUB_OUTPUT"
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          echo "lookup table: pinned $pinned, release $latest"
+
+      - name: Look for an open issue about this release
+        if: steps.versions.outputs.newer == 'true'
+        id: issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create brouter-upstream --color 5319E7 \
+            --description "A newer upstream BRouter release than the pin" --force
+          n="$(gh issue list --label brouter-upstream --state open \
+                --search '"${{ steps.versions.outputs.latest }}" in:title' \
+                --json number --jq '.[0].number // empty')"
+          echo "number=$n" >> "$GITHUB_OUTPUT"
+          [ -n "$n" ] && echo "already reported in #$n" || echo "not reported yet"
+
+      - uses: actions/setup-java@v4
+        if: steps.versions.outputs.newer == 'true' && steps.issue.outputs.number == ''
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Replay the corpus against the newer release
+        if: steps.versions.outputs.newer == 'true' && steps.issue.outputs.number == ''
+        id: replay
+        continue-on-error: true
+        working-directory: tools/brouter-oracle
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        # The pin is changed in the working copy only, so common.sh resolves the
+        # newer release; nothing is committed.
+        run: |
+          echo "${{ steps.versions.outputs.latest }}" > ../../brouter/UPSTREAM_VERSION
+          ./fetch.sh
+          ./serve.sh
+          python3 check_corpus.py --out .cache/check-diff.txt --bodies
+          status=$?
+          ./stop.sh || true
+          exit $status
+
+      - name: Upload the diff
+        if: always() && steps.versions.outputs.newer == 'true' && steps.issue.outputs.number == ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: brouter-upstream-${{ steps.versions.outputs.latest }}
+          if-no-files-found: ignore
+          retention-days: 90
+          path: |
+            tools/brouter-oracle/.cache/check-diff.txt
+            tools/brouter-oracle/.cache/check-bodies/
+            tools/brouter-oracle/.cache/routeserver.log
+
+      - name: Open the issue
+        if: steps.versions.outputs.newer == 'true' && steps.issue.outputs.number == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LATEST: ${{ steps.versions.outputs.latest }}
+          PINNED: ${{ steps.versions.outputs.pinned }}
+          OUTCOME: ${{ steps.replay.outcome }}
+          LOOKUPS_PINNED: ${{ steps.lookups.outputs.pinned }}
+          LOOKUPS_LATEST: ${{ steps.lookups.outputs.latest }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          diff=tools/brouter-oracle/.cache/check-diff.txt
+          {
+            echo "Upstream BRouter released **$LATEST**; the port is pinned to **$PINNED**."
+            echo
+            if [ "$OUTCOME" = "success" ]; then
+              echo "The recorded corpus still reproduces on $LATEST: no behavioural change in the covered paths. Bumping the pin should be a matter of the release-diff review."
+            elif [ -f "$diff" ]; then
+              echo "The recorded corpus does **not** reproduce on $LATEST. These are the behavioural changes to port:"
+              echo
+              echo '```'
+              head -60 "$diff"
+              echo '```'
+            else
+              echo "The oracle could not run against $LATEST (the release zip layout may have changed; see the run log)."
+            fi
+            echo
+            if [ "$LOOKUPS_LATEST" = "$LOOKUPS_PINNED" ]; then
+              echo "Lookup table (rd5 format): unchanged at $LOOKUPS_PINNED."
+            else
+              echo "**Lookup table (rd5 format) changed: pinned $LOOKUPS_PINNED, release $LOOKUPS_LATEST.** Tiles built with it need the new lookups.dat and profiles bundled in the app; older apps refuse them and ask for an update."
+            fi
+            echo
+            echo "- Release notes: https://github.com/abrensch/brouter/releases/tag/$LATEST"
+            echo "- Java diff: https://github.com/abrensch/brouter/compare/$PINNED...$LATEST"
+            echo "- Run and full diff: $RUN_URL"
+            echo
+            echo "Porting checklist: \`app/packages/brouter_dart/README.md\`, \"Keeping up with upstream\"."
+          } > /tmp/issue.md
+          gh issue create --label brouter-upstream \
+            --title "BRouter $LATEST is out (pinned $PINNED)" \
+            --body-file /tmp/issue.md

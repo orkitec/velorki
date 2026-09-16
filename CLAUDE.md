@@ -45,6 +45,10 @@ before changing structure.
 
 - Feature-first layout under `app/lib/features/<feature>/{data,domain,application,presentation}`;
   pure logic in `app/packages/*` (no Flutter imports).
+- `app/packages/brouter_dart` is a transliteration of upstream BRouter: no
+  behavioural changes inside ported files, upstream releases are ported as
+  patches and proven by re-recording the oracle corpus. See its README,
+  "Keeping up with upstream".
 - Riverpod 3 codegen, freezed, Drift. Screens read the map through
   `PlannerMapHost`; nothing outside `features/map` imports maplibre.
 - Maps: `MapChromeInsets` tells the map what a screen's chrome covers;

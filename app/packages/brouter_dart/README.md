@@ -12,6 +12,33 @@ class names, snake_case file names, the same method names, and no behavioural
 "improvements" (see the plan: parity first). Where Dart cannot express a Java
 construct the deviation is listed below.
 
+## Keeping up with upstream
+
+The port is a transliteration: same classes, same methods in the same order,
+same names down to upstream's typos, so that an upstream diff maps onto the
+Dart one to one. The table under each track below says which Java class is
+which Dart file and where the two had to differ. Keep it that way:
+
+* **No behavioural changes inside ported files.** Velorki-specific behaviour
+  goes in wrappers outside them. The moment a ported file "improves" on
+  upstream, the release diff no longer applies and the oracle stops proving
+  anything.
+* **Port a release as a patch.** Read the Java diff between the pinned tag
+  and the new one, find each changed class in the tables, and make the same
+  change in the same method. Where the change touches emulated behaviour
+  (`f32` rounding, `JavaHashMap` order, integer overflow), look twice.
+* **Then move the pin and re-record.** Write the new tag to
+  `brouter/UPSTREAM_VERSION`, run the oracle chain
+  (`tools/brouter-oracle/README.md`), commit the regenerated corpus, and run
+  `dart test` here. A wrongly ported fix shows up as a diverging case with a
+  diff; a correctly ported one turns the newly failing cases green.
+* **Profiles are part of the pin.** They are served in place from
+  `brouter/profiles/`, so an upstream profile change is adopted deliberately
+  and shows up in the corpus like any other change.
+* **The watch does the noticing.** `.github/workflows/brouter-upstream.yml`
+  checks weekly for a newer release, replays the corpus against it and opens
+  one issue with the diff. It never moves the pin.
+
 ## Track R1: `brouter-util` and `brouter-codec`
 
 ### Ported classes
@@ -562,8 +589,9 @@ before/after) are in the next section.
 
 ### What is not covered
 
-* `FormatGpx`/`FormatKml`/`FormatCsv` and the voice hints
-  (`timode > 0`) are ported but have no oracle vectors yet.
+* `FormatGpx`/`FormatKml`/`FormatCsv` are ported but have no oracle vectors
+  yet. The voice hints have: the `voice` cases run `timode` 2 (what the app
+  sends) and 1.
 * `getRandomDirectionFromData` (round trips without `direction`) and the
   `AreaReader` behind it; `rawTrackPath` (`OsmTrack.readBinary`, the
   incremental recalculation of the Android app), `doGetInfo`
