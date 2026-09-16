@@ -16,6 +16,7 @@ import '../../map/domain/map_controller.dart';
 import '../../map/presentation/location_rationale_dialog.dart';
 import '../../map/presentation/map_chrome.dart';
 import '../../navigation/application/navigation_controller.dart';
+import '../../navigation/application/turn_navigator.dart';
 import '../../navigation/domain/navigation_progress.dart';
 import '../../navigation/presentation/navigation_toggles.dart';
 import '../../navigation/presentation/turn_banner.dart';
@@ -42,6 +43,9 @@ import 'rides_list.dart';
 
 /// Id of the followed route's line on the map.
 const String followedRouteLineId = 'follow';
+
+/// Id of the way back onto that route, drawn as a branch beside it.
+const String detourRouteLineId = 'detour';
 
 /// Preference key of the one-time battery-optimisation explanation.
 const String batteryPromptShownKey = 'recording.batteryPromptShown';
@@ -90,13 +94,6 @@ const double cameraBearingMinSpeedMps = 1.5;
 /// map, so the compass has to push one itself — five times a second is more
 /// than the eye follows and far less than the sensor offers.
 const Duration compassPushInterval = Duration(milliseconds: 200);
-
-/// How far from the guided route a fix may be and still be drawn on it.
-///
-/// Wide enough for the usual few metres of GPS error and a cycleway drawn
-/// beside the road, narrow enough that a rider who really left the route is
-/// shown where they are.
-const double routeSnapMeters = 25;
 
 /// How far the rider's own course may differ from the route's direction
 /// before the route stops speaking for them. Riding the route backwards, or
@@ -154,6 +151,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   bool _recoveryHandled = false;
   int _drawnTrackPoints = -1;
   String? _drawnRouteId;
+  RouteLineStyle? _drawnRouteStyle;
+  String? _drawnBranchId;
 
   /// Whether the camera stays on the rider. On from the moment a ride starts,
   /// off as soon as the rider drags the map, back on with the locate button.
@@ -272,6 +271,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     controller.onCameraIdle = _handleCameraIdle;
     _drawnTrackPoints = -1;
     _drawnRouteId = null;
+    _drawnRouteStyle = null;
+    _drawnBranchId = null;
     _autoMoving = false;
     _followTarget = null;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -608,31 +609,48 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
         );
       }
     }
-    // A way back onto the route replaces it while it lasts: the detour is
-    // where the rider is being sent now. Failing that a chosen saved route
-    // wins, and failing that the route on the Plan tab is the one the rider
-    // is about to ride, saved or not.
-    final line = detour != null
-        ? detour.line
-        : route != null
+    // A rejoin is a branch: the plan stays on the map, muted, and the way
+    // back onto it is drawn beside it, because a rider has to see both to
+    // know what they are being asked to do. A whole new route to the
+    // destination has no branch and simply replaces the plan. Failing either,
+    // a chosen saved route wins, and failing that the route on the Plan tab
+    // is the one the rider is about to ride, saved or not.
+    final branch = detour != null && detour.branch.isNotEmpty
+        ? detour.branch
+        : const <LatLng>[];
+    final plan = route != null
         ? route.geometry.map((p) => p.pos).toList(growable: false)
         : planned;
-    final key = detour != null
-        ? detour.key
-        : route != null
+    final planKey = route != null
         ? route.id
         : planned.isEmpty
         ? null
         : 'plan:${planned.length}:${planned.first}:${planned.last}';
-    if (key != _drawnRouteId) {
+    final line = detour != null && branch.isEmpty ? detour.line : plan;
+    final key = detour != null && branch.isEmpty ? detour.key : planKey;
+    // Muted while a branch runs beside it, so the two never read alike.
+    final style = branch.isEmpty
+        ? RouteLineStyle.preview
+        : RouteLineStyle.alternative;
+    if (key != _drawnRouteId || style != _drawnRouteStyle) {
       _drawnRouteId = key;
+      _drawnRouteStyle = style;
       if (line.isEmpty) {
         unawaited(map.removeRouteLine(followedRouteLineId));
       } else {
+        unawaited(map.setRouteLine(followedRouteLineId, line, style: style));
+      }
+    }
+    final branchKey = branch.isEmpty ? null : detour!.key;
+    if (branchKey != _drawnBranchId) {
+      _drawnBranchId = branchKey;
+      if (branch.isEmpty) {
+        unawaited(map.removeRouteLine(detourRouteLineId));
+      } else {
         unawaited(
           map.setRouteLine(
-            followedRouteLineId,
-            line,
+            detourRouteLineId,
+            branch,
             style: RouteLineStyle.preview,
           ),
         );

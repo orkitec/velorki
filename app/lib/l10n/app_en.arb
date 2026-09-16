@@ -2775,9 +2775,29 @@
   "@navOffRoute": {
     "description": "Spoken and shown when the rider has left the planned route"
   },
-  "navBackOnRoute": "Back on the route",
-  "@navBackOnRoute": {
-    "description": "Spoken and shown when the rider has found the route again"
+  "navBackToRoute": "Back to the route{direction, select, left{, on your left} right{, on your right} ahead{, ahead} behind{, behind you} other{}}",
+  "@navBackToRoute": {
+    "description": "Shown and spoken while the rider is off the route and is being pointed back at it; direction is which way the way back lies relative to where the rider is headed",
+    "placeholders": {
+      "direction": {
+        "type": "String",
+        "example": "left"
+      }
+    }
+  },
+  "navCueOffRoute": "Off route. {instruction}",
+  "@navCueOffRoute": {
+    "description": "Spoken when the rider has left the route; the instruction is the way back, e.g. \"In 200 metres, back to the route on your left\"",
+    "placeholders": {
+      "instruction": {
+        "type": "String",
+        "example": "In 200 metres, back to the route on your left"
+      }
+    }
+  },
+  "navNewRouteFromHere": "New route from here",
+  "@navNewRouteFromHere": {
+    "description": "Button on the off-route banner that plans a whole new route to the destination from where the rider stands"
   },
   "navArrived": "You have arrived",
   "@navArrived": {

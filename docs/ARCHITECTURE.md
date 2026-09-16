@@ -246,12 +246,26 @@ the banner, `navigation.voice` speaks it, `navigation.reroute` repairs a ride
 that has gone astray. The same three are chips on the record sheet, and the
 banner carries a mute button that silences the voice for the rest of the ride
 only (`voiceMutedForRideProvider`, cleared whenever a ride starts or ends).
-A rider who is off route and still moving has a way back asked for — from where they are, through the plan's remaining waypoints — at
-most once every 20 s (30 s after a failure); the answer becomes the detour in
-`detourRouteProvider`, which `activeGuidedRouteProvider` puts in front of the
-plan and the record screen draws in its place. The detour is dropped, and the
-plan navigated again, as soon as the rider is within 30 m of the original line,
-and a new ride, a changed route or a stopped recording cancels the lot.
+A rider who leaves the route is repaired in three steps, and `OffRouteMachine`
+decides which: more than 50 m out for two fixes (or 8 s) is `guiding`, where the
+plan stays the active route and the banner and the voice point at the nearest
+route point still ahead, with a distance and a left/right/ahead/behind taken
+from the bearing minus the rider's heading — no routing at all, because most
+strays are a wrong turn undone within a block. Still off 30 s or 150 m later, or
+on a tap, it is `detour`: candidates 300 m, 800 m and 2 km further along the plan
+are routed from the rider in that order (through a via point 40 m along their
+heading above 1.5 m/s, BRouter having no heading parameter) and the first whose
+length is at most 3× the beeline to it wins — a bigger multiple is a river or a
+one-way, so the next candidate is tried, and if all three loop the shortest of
+them is taken. The goal is the nearest way back onto the plan, not the shortest
+way to the finish, which is only ever a candidate when it falls inside the 2 km
+window. The answer is stitched to the rest of the plan as one
+route in `detourRouteProvider` — drawn as a branch beside the plan, recomputed
+only on a 50 m drift and at most every 20 s. Within `routeSnapMeters` of the plan
+again the branch is dropped silently and its hints carry on. Only an explicit
+"New route from here", or 3 km out for over 5 minutes, re-plans the whole ride to
+its destination; `navigation.reroute` off leaves the rider with the guidance and
+nothing more.
 
 **Integrations and OAuth.** One `OAuthFlow`: build the authorise URL, open it
 with `flutter_web_auth_2`, receive the redirect on `velorki://oauth/<service>`,

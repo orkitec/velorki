@@ -201,6 +201,9 @@ String? _turnPhrase(
 /// they can no longer take — then the end of the route, then the next turn.
 String? _turnLabel(AppLocalizations l10n, NavigationProgress? progress) {
   if (progress == null) return null;
+  final guidance = progress.guidance;
+  // Off the route with a way back to give, the way back is the news.
+  if (guidance != null) return backToRouteLabel(guidance.direction, l10n);
   if (progress.offRoute) return l10n.navOffRoute;
   if (progress.arrived) return l10n.navArrived;
   final next = progress.next;
@@ -213,7 +216,10 @@ String? _turnDistance(
   UnitSystem units,
   NavigationProgress? progress,
 ) {
-  if (progress == null || progress.offRoute || progress.arrived) return null;
+  if (progress == null) return null;
+  final guidance = progress.guidance;
+  if (guidance != null) return distanceLabel(guidance.distanceM, l10n, units);
+  if (progress.offRoute || progress.arrived) return null;
   final next = progress.next;
   if (next == null) return null;
   return distanceLabel(progress.distanceToNextM, l10n, units);
@@ -221,7 +227,7 @@ String? _turnDistance(
 
 String _turnIcon(NavigationProgress? progress) {
   if (progress == null) return '';
-  if (progress.offRoute) return offRouteSymbol;
+  if (progress.offRoute || progress.guidance != null) return offRouteSymbol;
   if (progress.arrived) return turnSymbol(TurnKind.end);
   final next = progress.next;
   return next == null ? '' : turnSymbol(next.kind);

@@ -123,19 +123,40 @@ void main() {
   });
 
   test(
-    'three fixes 80 m out call the rider off route, one back on clears it',
+    'two fixes 80 m out call the rider off route, one back on clears it',
     () {
       final navigator = _navigator();
       navigator.update(_at(400));
 
+      // One fix thrown out by a bridge is not a detour.
       expect(navigator.update(_at(500, offsetM: 80)).offRoute, isFalse);
-      expect(navigator.update(_at(520, offsetM: 80)).offRoute, isFalse);
+      expect(navigator.update(_at(520, offsetM: 80)).offRoute, isTrue);
       expect(navigator.update(_at(540, offsetM: 80)).offRoute, isTrue);
-      expect(navigator.update(_at(560, offsetM: 80)).offRoute, isTrue);
 
       expect(navigator.update(_at(560)).offRoute, isFalse);
     },
   );
+
+  test('one stray fix for eight seconds is off route on its own', () {
+    final navigator = _navigator();
+    final start = DateTime.utc(2026, 9, 12, 10);
+    navigator.update(_at(400), now: start);
+
+    final first = navigator.update(_at(500, offsetM: 80), now: start);
+    expect(first.offRoute, isFalse);
+
+    // The next fix is the same one, a receiver that reports rarely; it is the
+    // clock, not the count, that calls the rider off route here.
+    expect(
+      navigator
+          .update(
+            _at(500, offsetM: 80),
+            now: start.add(const Duration(seconds: 9)),
+          )
+          .offRoute,
+      isTrue,
+    );
+  });
 
   test('a fix 40 m out stays on route but does not clear an old stray', () {
     final navigator = _navigator();
@@ -144,9 +165,22 @@ void main() {
     }
     expect(navigator.update(_at(560, offsetM: 80)).offRoute, isTrue);
 
-    // Inside the stray limit but outside the "back on" limit: still off.
+    // Inside the stray limit but outside the snap limit: still off.
     expect(navigator.update(_at(580, offsetM: 40)).offRoute, isTrue);
     expect(navigator.update(_at(600, offsetM: 10)).offRoute, isFalse);
+  });
+
+  test('a navigator resumed part-way matches there, not at the start', () {
+    final navigator = TurnNavigator(
+      line: _line,
+      turns: const [_left, _end],
+      resumeAlongM: 1500,
+    );
+
+    final progress = navigator.update(_at(1500));
+
+    expect(progress.alongM, closeTo(1500, 3));
+    expect(progress.next, _end);
   });
 
   test('the last point is an arrival', () {

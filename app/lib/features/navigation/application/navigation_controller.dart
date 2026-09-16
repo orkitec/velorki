@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,30 +17,25 @@ import '../../recording/domain/recording_snapshot.dart';
 import '../data/navigation_settings.dart';
 import '../data/turn_speaker.dart';
 import '../domain/navigation_progress.dart';
+import '../domain/off_route_guidance.dart';
 import '../presentation/turn_phrases.dart';
 import '../../settings/data/units.dart';
+import 'off_route_machine.dart';
 import 'route_geometry.dart';
 import 'turn_announcer.dart';
 import 'turn_navigator.dart';
 
 part 'navigation_controller.g.dart';
 
-/// How long after a re-route attempt the next one may go out.
+/// How long after a routing attempt the next one may go out.
 const Duration rerouteGap = Duration(seconds: 20);
 
 /// The same after a failed attempt: longer, so a router that is down or out
 /// of reach is asked again at a sensible pace.
 const Duration rerouteRetryGap = Duration(seconds: 30);
 
-/// How long a re-route request is given before it is abandoned.
+/// How long a routing request is given before it is abandoned.
 const Duration rerouteTimeout = Duration(seconds: 20);
-
-/// Slower than this and no re-route is asked for: a rider who has stopped is
-/// reading the map or waiting at a light, not riding away from the route.
-const double _rerouteMovingMps = 1;
-
-/// Nearer than this to the original route and a detour has done its job.
-const double _backOnPlanM = 30;
 
 /// The route a ride is being guided along, plus a key that says when it is a
 /// different route from the one before.
@@ -52,6 +48,9 @@ class GuidedRoute {
     required this.turns,
     this.waypoints = const <LatLng>[],
     this.options = const RoutingOptions(),
+    this.branch = const <LatLng>[],
+    this.rejoinAlongM = 0,
+    this.replacesPlan = false,
   });
 
   /// Identity of the route: the saved route's id, or, for a plan that was
@@ -59,6 +58,10 @@ class GuidedRoute {
   final String key;
 
   /// The geometry the rider is matched against.
+  ///
+  /// For a rejoin this is the whole way to the end of the ride: the way back
+  /// onto the plan followed by the rest of the plan, so the navigator and the
+  /// announcer see one continuous route rather than two.
   final List<LatLng> line;
 
   /// The turn instructions anchored to [line].
@@ -73,6 +76,21 @@ class GuidedRoute {
   /// The profile and alternative the route was computed with, so a re-route
   /// takes the same kind of roads.
   final RoutingOptions options;
+
+  /// The part of [line] that is new, for a rejoin: the way from where the
+  /// rider strayed to back onto the plan. Empty for a plain route.
+  ///
+  /// The map draws this on its own so the plan can stay where it is: a rider
+  /// has to see the branch and the road it leaves to know what is being asked
+  /// of them.
+  final List<LatLng> branch;
+
+  /// How far along the plan a rejoin meets it again, in metres.
+  final double rejoinAlongM;
+
+  /// Whether this route replaces the plan rather than rejoining it: the whole
+  /// ride re-planned to its destination from where the rider stood.
+  final bool replacesPlan;
 }
 
 /// The route the record screen draws and the navigator follows: the saved
@@ -119,8 +137,10 @@ GuidedRoute? guidedRoute(Ref ref) {
 /// The way back onto the route the controller worked out after the rider left
 /// it, or `null` while the plan itself is being navigated.
 ///
-/// Only [NavigationController] writes this; everyone else reads it, and the
-/// record screen draws it in place of the plan.
+/// Two different things live here. A rejoin carries a [GuidedRoute.branch] and
+/// leaves the plan on the map beside it; a whole new route to the destination
+/// carries none and takes the plan's place. Only [NavigationController] writes
+/// this; everyone else reads it.
 @Riverpod(keepAlive: true)
 class DetourRoute extends _$DetourRoute {
   @override
@@ -185,25 +205,36 @@ AppLocalizations navigationLocalizations(Ref ref) {
 /// so a ride keeps its navigator while the rider is on another tab; `HomeShell`
 /// reads it once so that session actually starts.
 ///
-/// It also repairs a ride that has gone astray: while the rider is off route
-/// and still moving it asks the router for a way from where they are back to
-/// the rest of the plan, and navigates that detour until the plan is under
-/// their wheels again.
+/// It also repairs a ride that has gone astray, in the order a rider would
+/// want it repaired: [OffRouteMachine] decides, and this acts. First the plan
+/// itself points them back at the nearest bit of it still ahead of them, with
+/// no routing at all; only if they are still off it half a minute later is a
+/// way back computed and hung off the plan as a branch; and only a rider who
+/// is kilometres away for minutes, or who asks for it, has the whole ride
+/// re-planned to its destination.
 @Riverpod(keepAlive: true)
 class NavigationController extends _$NavigationController {
   TurnNavigator? _navigator;
   TurnAnnouncer? _announcer;
+  OffRouteMachine? _machine;
 
   /// Whether the voice choice has reached the speaker, and which one.
   bool _voiceApplied = false;
   String? _appliedVoiceId;
 
-  /// Identity of the route the navigator was built for: the detour while one
+  /// Identity of the route the navigator was built for: the rejoin while one
   /// is up, the plan otherwise.
   String? _routeKey;
 
   /// Identity of the plan itself, so a different route starts from scratch.
   String? _planKey;
+
+  /// Identity of the plan the off-route machine was built for.
+  String? _machineKey;
+
+  /// Distance from the start of the plan to each of its points, kept because
+  /// every fix is projected onto the plan.
+  List<double> _planCumulative = const <double>[];
 
   /// The ride the current guidance belongs to, for the same reason.
   String? _rideId;
@@ -224,11 +255,15 @@ class NavigationController extends _$NavigationController {
   /// is lifted exactly once when one starts or ends.
   bool _recording = false;
 
-  /// How far along the plan the rider was when last matched to it. A detour
-  /// is planned from here on, so the corners already ridden are left alone.
+  /// How far along the plan the rider was when last matched to it. A rejoin
+  /// is aimed from here on, so the corners already ridden are left alone.
   double _planAlongM = 0;
 
-  /// Whether a re-route request is out right now.
+  /// Where the ride stands in relation to the plan, and the way back.
+  OffRouteState _offRouteState = OffRouteState.onRoute;
+  OffRouteGuidance? _guidance;
+
+  /// Whether a routing request is out right now.
   bool _rerouting = false;
 
   /// Cancels the request in flight.
@@ -274,12 +309,12 @@ class NavigationController extends _$NavigationController {
       _unmute();
     }
     final settings = ref.read(navigationSettingsProvider);
-    final plan = ref.read(guidedRouteProvider);
+    final chosen = ref.read(guidedRouteProvider);
     final guided =
         recording.isRecording &&
         settings.turns &&
-        (plan?.line.length ?? 0) >= 2;
-    if (!guided || plan == null) {
+        (chosen?.line.length ?? 0) >= 2;
+    if (!guided || chosen == null) {
       _stop();
       return null;
     }
@@ -287,39 +322,32 @@ class NavigationController extends _$NavigationController {
     final snapshot = recording.snapshot;
     final position = snapshot?.lastPosition;
 
-    // Another route, or another ride: an old detour belongs to neither.
+    // Another route, or another ride: anything worked out for the old one
+    // belongs to neither.
     final rideId = snapshot?.rideId;
-    if (plan.key != _planKey || (rideId != null && rideId != _rideId)) {
-      _planKey = plan.key;
+    if (chosen.key != _planKey || (rideId != null && rideId != _rideId)) {
+      _planKey = chosen.key;
       if (rideId != null) _rideId = rideId;
       _planAlongM = 0;
       _detours = 0;
+      _offRouteState = OffRouteState.onRoute;
+      _guidance = null;
       _cancelRouting();
       _setDetour(null);
     }
 
-    var detour = ref.read(detourRouteProvider);
-    final newFix =
-        snapshot != null &&
-        position != null &&
-        !identical(snapshot, _fedSnapshot);
-    // Back on the road that was planned in the first place: the detour has
-    // done its job, whether or not it ever reached its own end.
-    if (newFix &&
-        detour != null &&
-        projectOnLine(plan.line, position).distanceM < _backOnPlanM) {
-      _setDetour(null);
-      detour = null;
+    // The plan is the route the rider chose, unless the ride was re-planned
+    // to its destination, in which case that new route is the plan.
+    final held = ref.read(detourRouteProvider);
+    final plan = held != null && held.replacesPlan ? held : chosen;
+    final detour = held != null && !held.replacesPlan ? held : null;
+    if (plan.key != _machineKey) {
+      _machineKey = plan.key;
+      _machine = OffRouteMachine(line: plan.line);
+      _planCumulative = cumulativeDistances(plan.line);
     }
 
-    final route = detour ?? plan;
-    if (route.key != _routeKey) {
-      _routeKey = route.key;
-      _navigator = TurnNavigator(line: route.line, turns: route.turns);
-      _announcer = TurnAnnouncer();
-      _fedSnapshot = null;
-      _progress = null;
-    }
+    _ensureNavigator(detour ?? plan, plan);
     _guiding = true;
 
     // Nothing new to match: keep showing what the last fix said.
@@ -328,9 +356,20 @@ class NavigationController extends _$NavigationController {
         identical(snapshot, _fedSnapshot)) {
       return _decorate(_progress);
     }
+
+    final now = ref.read(navigationClockProvider)();
+    // Where the ride stands is worked out before the fix is matched, because
+    // the answer decides what it is matched against: a rider who has just
+    // found the plan again belongs on the plan from this fix, not the next.
+    _decide(plan, detour, snapshot, position, now, settings.reroute);
+    final stored = ref.read(detourRouteProvider);
+    _ensureNavigator(
+      stored != null && !stored.replacesPlan ? stored : plan,
+      plan,
+    );
     _fedSnapshot = snapshot;
 
-    final progress = _navigator!.update(position);
+    final progress = _navigator!.update(position, now: now);
     _progress = progress;
     final cues = _announcer!.update(
       progress,
@@ -339,36 +378,284 @@ class NavigationController extends _$NavigationController {
     );
     if (cues.isNotEmpty && settings.voice) _speak(cues);
 
-    // On the plan itself, remember how far the rider got: that is where the
-    // rest of the plan starts when a detour has to be worked out.
-    if (detour == null && !progress.offRoute) _planAlongM = progress.alongM;
-    if (settings.reroute) _considerReroute(plan, progress, snapshot, position);
-
     return _decorate(progress);
   }
 
-  /// Adds the re-routing flag to [progress], which the navigator knows
-  /// nothing about.
-  NavigationProgress? _decorate(NavigationProgress? progress) =>
-      progress?.withRerouting(_rerouting);
+  /// Builds the navigator and the announcer for [route], if they are not the
+  /// ones already running.
+  void _ensureNavigator(GuidedRoute route, GuidedRoute plan) {
+    if (route.key == _routeKey) return;
+    _routeKey = route.key;
+    _navigator = TurnNavigator(
+      line: route.line,
+      turns: route.turns,
+      // Handed back to the plan after a rejoin, the rider is already well
+      // along it; without this the first fix would be matched near its start.
+      resumeAlongM: identical(route, plan) ? _planAlongM : 0,
+    );
+    _announcer = TurnAnnouncer();
+    _fedSnapshot = null;
+    _progress = null;
+  }
 
-  /// Asks the router for a way back onto the plan, if this is the moment for
-  /// it: the rider is off route, moving, and the last attempt is long enough
-  /// ago that the next one is not simply the same question again.
-  void _considerReroute(
+  /// Runs one fix through the off-route machine and does what it asks for.
+  void _decide(
     GuidedRoute plan,
-    NavigationProgress progress,
+    GuidedRoute? detour,
     RecordingSnapshot snapshot,
     LatLng position,
+    DateTime now,
+    bool rerouteAllowed,
   ) {
-    if (!progress.offRoute || _rerouting) return;
-    if (snapshot.speedMps <= _rerouteMovingMps) return;
-    final now = ref.read(navigationClockProvider)();
-    final last = _lastAttemptAt;
-    if (last != null && now.difference(last) < _gap) return;
-    final backend = ref.read(routingBackendProvider);
-    if (backend == null) return;
+    final machine = _machine;
+    if (machine == null) return;
+    final onPlan = projectOnLine(
+      plan.line,
+      position,
+      cumulative: _planCumulative,
+    );
+    // Only a fix that is really on the plan moves the rider along it: a
+    // rejoin is aimed from the last corner they actually rode.
+    if (onPlan.distanceM <= routeSnapMeters) _planAlongM = onPlan.alongM;
 
+    final decision = machine.update(
+      position: position,
+      distanceFromRouteM: onPlan.distanceM,
+      alongM: _planAlongM,
+      speedMps: snapshot.speedMps,
+      headingDeg: snapshot.headingDeg,
+      now: now,
+      rerouteAllowed: rerouteAllowed,
+      distanceFromDetourM: detour == null
+          ? null
+          : projectOnLine(detour.branch, position).distanceM,
+    );
+    _offRouteState = decision.state;
+    _guidance = decision.guidance;
+
+    // Back on the plan: the branch has done its job, whether or not it ever
+    // reached its own rejoin point.
+    if (decision.restored && detour != null) {
+      _cancelRouting();
+      _setDetour(null);
+    }
+    if (decision.speakGuidance &&
+        ref.read(navigationSettingsProvider).voice &&
+        decision.guidance != null) {
+      _speak(<TurnCue>[
+        TurnCue(
+          kind: CueKind.backToRoute,
+          distanceM: roundedAheadMeters(decision.guidance!.distanceM),
+          direction: decision.guidance!.direction,
+        ),
+      ]);
+    }
+    if (decision.fullReroute) {
+      _startFullReroute(plan, position, now);
+    } else if (decision.planDetour) {
+      _startRejoin(plan, position, snapshot, now);
+    }
+  }
+
+  /// Adds the controller's own fields to [progress], which the navigator
+  /// knows nothing about.
+  NavigationProgress? _decorate(NavigationProgress? progress) =>
+      progress?.decorated(
+        rerouting: _rerouting,
+        offRouteState: _offRouteState,
+        guidance: _guidance,
+      );
+
+  /// Works out a way back onto the plan now, because the rider asked for one
+  /// by tapping the banner.
+  ///
+  /// Does nothing while the rider has re-routing switched off: then the plan
+  /// itself is the only guidance they asked for.
+  void requestRejoin() {
+    if (!ref.read(navigationSettingsProvider).reroute) return;
+    final plan = _currentPlan();
+    final snapshot = ref.read(recordingControllerProvider).snapshot;
+    final position = snapshot?.lastPosition;
+    if (plan == null || snapshot == null || position == null) return;
+    if (_offRouteState == OffRouteState.onRoute) return;
+    _lastAttemptAt = null;
+    _startRejoin(plan, position, snapshot, ref.read(navigationClockProvider)());
+    _refresh();
+  }
+
+  /// Plans a whole new route from where the rider stands to the end of the
+  /// ride, because they asked for one. Always allowed: it is the rider's own
+  /// decision, not something the app worked out for them.
+  void requestFullReroute() {
+    final plan = _currentPlan();
+    final position = ref
+        .read(recordingControllerProvider)
+        .snapshot
+        ?.lastPosition;
+    if (plan == null || position == null) return;
+    _lastAttemptAt = null;
+    _startFullReroute(plan, position, ref.read(navigationClockProvider)());
+    _refresh();
+  }
+
+  /// The route the ride is being held to: the re-planned one when there is
+  /// one, the chosen one otherwise.
+  GuidedRoute? _currentPlan() {
+    final stored = ref.read(detourRouteProvider);
+    if (stored != null && stored.replacesPlan) return stored;
+    return ref.read(guidedRouteProvider);
+  }
+
+  /// Whether a routing request may go out now: none in flight, a backend to
+  /// ask, and the last attempt long enough ago that the next one is not
+  /// simply the same question again.
+  RoutingBackend? _backendFor(DateTime now) {
+    if (_rerouting) return null;
+    final last = _lastAttemptAt;
+    if (last != null && now.difference(last) < _gap) return null;
+    return ref.read(routingBackendProvider);
+  }
+
+  /// Asks the router for a way from where the rider stands back onto the
+  /// plan, trying [rejoinTargetsM] metres further along it.
+  ///
+  /// The candidates are routed one after another rather than three at a time,
+  /// because on the device they share one engine — and because the first one
+  /// that works is the answer, so the later ones are usually never asked.
+  void _startRejoin(
+    GuidedRoute plan,
+    LatLng position,
+    RecordingSnapshot snapshot,
+    DateTime now,
+  ) {
+    final backend = _backendFor(now);
+    if (backend == null) return;
+    final targets = rejoinTargets(plan.line, _planCumulative, _planAlongM);
+    if (targets.isEmpty) return;
+
+    _lastAttemptAt = now;
+    _gap = rerouteGap;
+    _rerouting = true;
+    final generation = ++_generation;
+    final token = CancelToken();
+    _cancel = token;
+    // BRouter takes no heading, so the only way to say "I am going this way"
+    // is to ask for a route through a point that way.
+    final via = headingViaPoint(
+      position: position,
+      headingDeg: snapshot.headingDeg,
+      speedMps: snapshot.speedMps,
+    );
+    unawaited(
+      _routeRejoin(backend, plan, position, via, targets, token).then(
+        (best) => _rejoined(generation, plan, best),
+        onError: (Object error) => _routingFailed(generation, error),
+      ),
+    );
+  }
+
+  /// Routes the candidates in turn and takes the first that is a way back
+  /// rather than a loop, or the shortest of them when none is.
+  ///
+  /// `null` when nothing could be routed at all.
+  Future<_Rejoin?> _routeRejoin(
+    RoutingBackend backend,
+    GuidedRoute plan,
+    LatLng position,
+    LatLng? via,
+    List<RejoinTarget> targets,
+    CancelToken token,
+  ) async {
+    _Rejoin? shortest;
+    RoutingException? failure;
+    for (final target in targets) {
+      if (token.isCancelled) break;
+      final query = RouteQuery(
+        points: <LatLng>[position, ?via, target.point],
+        profile: plan.options.profile.brouterName,
+        alternativeIdx: 0,
+        timeout: rerouteTimeout,
+      );
+      try {
+        final result = await backend.route(query, cancel: token);
+        if (result.positions.length < 2) continue;
+        final rejoin = _Rejoin(result: result, target: target);
+        // Near enough its own beeline to be a road rather than a way round
+        // something: the nearest of those is the way back, and the candidates
+        // further on need not be asked for at all.
+        final beeline = haversineMeters(position, target.point);
+        if (result.lengthM <= beeline * rejoinDetourFactor) return rejoin;
+        if (shortest == null || result.lengthM < shortest.result.lengthM) {
+          shortest = rejoin;
+        }
+      } on RoutingException catch (error) {
+        // One target out of reach is normal — a one-way street, a river —
+        // and only matters when every one of them is.
+        failure = error;
+      }
+    }
+    if (shortest == null && failure != null) throw failure;
+    return shortest;
+  }
+
+  /// Hangs a rejoin off the plan: from here the rider is guided along the way
+  /// back and straight on into the rest of the plan.
+  void _rejoined(int generation, GuidedRoute plan, _Rejoin? best) {
+    if (generation != _generation) return;
+    _rerouting = false;
+    _cancel = null;
+    if (best == null) {
+      _refresh();
+      return;
+    }
+    _detours++;
+    _setDetour(_stitch(plan, best));
+    _machine?.detourStarted(ref.read(navigationClockProvider)());
+    _offRouteState = OffRouteState.detour;
+    _guidance = null;
+    _refresh();
+  }
+
+  /// The way back followed by the rest of the plan, as one route.
+  ///
+  /// The navigator and the announcer see a single line with a single run of
+  /// turns, so the rider is counted down to the corner after the rejoin
+  /// exactly as they would have been had they never left.
+  GuidedRoute _stitch(GuidedRoute plan, _Rejoin best) {
+    final branch = best.result.positions;
+    final index = math.min(best.target.index, plan.line.length - 1);
+    final tail = plan.line.sublist(math.min(index + 1, plan.line.length));
+    final shift = branch.length - index - 1;
+    final turns = <TurnHint>[
+      // The way back ends where the plan picks up again, so its own "arrive"
+      // is not an arrival at all.
+      for (final hint in best.result.turns)
+        if (hint.kind != TurnKind.end) hint,
+      for (final hint in plan.turns)
+        if (hint.pointIndex > index)
+          TurnHint(
+            pointIndex: hint.pointIndex + shift,
+            kind: hint.kind,
+            exitNumber: hint.exitNumber,
+            distanceToNextM: hint.distanceToNextM,
+            angleDeg: hint.angleDeg,
+          ),
+    ];
+    return GuidedRoute(
+      key: 'detour:$_detours:${branch.length}',
+      line: <LatLng>[...branch, ...tail],
+      turns: turns,
+      options: plan.options,
+      branch: branch,
+      rejoinAlongM: best.target.alongM,
+    );
+  }
+
+  /// Asks the router for a whole new route from where the rider stands to the
+  /// end of the ride. The answer takes the plan's place.
+  void _startFullReroute(GuidedRoute plan, LatLng position, DateTime now) {
+    final backend = _backendFor(now);
+    if (backend == null) return;
     _lastAttemptAt = now;
     _gap = rerouteGap;
     _rerouting = true;
@@ -388,15 +675,14 @@ class NavigationController extends _$NavigationController {
       backend
           .route(query, cancel: token)
           .then(
-            (result) => _rerouted(generation, result),
-            onError: (Object error) => _rerouteFailed(generation, error),
+            (result) => _replanned(generation, plan, result),
+            onError: (Object error) => _routingFailed(generation, error),
           ),
     );
   }
 
-  /// Takes a fresh route on: from here the rider is guided along it until it
-  /// meets the plan again.
-  void _rerouted(int generation, RouteResult result) {
+  /// Takes a fresh route on as the plan itself.
+  void _replanned(int generation, GuidedRoute plan, RouteResult result) {
     if (generation != _generation) return;
     _rerouting = false;
     _cancel = null;
@@ -407,11 +693,17 @@ class NavigationController extends _$NavigationController {
       return;
     }
     _detours++;
+    _planAlongM = 0;
+    _offRouteState = OffRouteState.onRoute;
+    _guidance = null;
     _setDetour(
       GuidedRoute(
-        key: 'detour:$_detours:${line.length}',
+        key: 'reroute:$_detours:${line.length}',
         line: line,
         turns: result.turns,
+        waypoints: plan.waypoints,
+        options: plan.options,
+        replacesPlan: true,
       ),
     );
     if (ref.read(navigationSettingsProvider).voice) {
@@ -422,7 +714,7 @@ class NavigationController extends _$NavigationController {
 
   /// A failed attempt changes nothing the rider can see: they are still off
   /// route, and the next attempt waits a little longer.
-  void _rerouteFailed(int generation, Object error) {
+  void _routingFailed(int generation, Object error) {
     if (generation != _generation) return;
     _rerouting = false;
     _cancel = null;
@@ -480,7 +772,10 @@ class NavigationController extends _$NavigationController {
     }
     for (final cue in cues) {
       final phrase = cuePhrase(cue, l10n, units: ref.read(unitSystemProvider));
-      if (phrase.isNotEmpty) unawaited(speaker.speak(phrase));
+      // Only the cue for the corner the rider is at may cut another one off.
+      if (phrase.isNotEmpty) {
+        unawaited(speaker.speak(phrase, urgent: cue.kind == CueKind.now));
+      }
     }
   }
 
@@ -498,12 +793,28 @@ class NavigationController extends _$NavigationController {
     _cancelRouting();
     _navigator = null;
     _announcer = null;
+    _machine = null;
     _routeKey = null;
     _planKey = null;
+    _machineKey = null;
+    _planCumulative = const <double>[];
     _rideId = null;
     _fedSnapshot = null;
     _progress = null;
     _planAlongM = 0;
     _detours = 0;
+    _offRouteState = OffRouteState.onRoute;
+    _guidance = null;
   }
+}
+
+/// One routed way back onto the plan.
+class _Rejoin {
+  const _Rejoin({required this.result, required this.target});
+
+  /// The way back itself.
+  final RouteResult result;
+
+  /// Where it meets the plan again.
+  final RejoinTarget target;
 }

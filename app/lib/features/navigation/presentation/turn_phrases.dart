@@ -4,6 +4,12 @@ import 'package:velorki_brouter/velorki_brouter.dart';
 import '../../../core/units/units.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../application/turn_announcer.dart';
+import '../domain/off_route_guidance.dart';
+
+/// The instruction that sends a rider who has left the route back onto it,
+/// e.g. "Back to the route, on your left".
+String backToRouteLabel(RelativeDirection? direction, AppLocalizations l10n) =>
+    l10n.navBackToRoute(direction?.name ?? 'unknown');
 
 /// The short banner text for [hint], e.g. "Turn left" or "Keep right".
 String turnLabel(TurnHint hint, AppLocalizations l10n) => switch (hint.kind) {
@@ -35,10 +41,18 @@ String cuePhrase(
   UnitSystem units = UnitSystem.metric,
 }) {
   switch (cue.kind) {
-    case CueKind.offRoute:
-      return l10n.navOffRoute;
-    case CueKind.backOnRoute:
-      return l10n.navBackOnRoute;
+    case CueKind.backToRoute:
+      // "Off route. In 200 metres, back to the route on your left": the same
+      // advance-warning sentence a turn gets, because that is the sentence a
+      // rider is already used to hearing.
+      return l10n.navCueOffRoute(
+        _aheadPhrase(
+          cue.distanceM,
+          _midSentence(backToRouteLabel(cue.direction, l10n), l10n),
+          l10n,
+          units,
+        ),
+      );
     case CueKind.rerouted:
       return l10n.navRerouted;
     case CueKind.arrived:

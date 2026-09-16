@@ -127,18 +127,13 @@ void main() {
     expect(cues.single.then, isNull);
   });
 
-  test('leaving and rejoining the route is said once each', () {
+  test('leaving the route is not the announcer\'s to say', () {
     final announcer = TurnAnnouncer();
 
-    expect(_kinds(announcer.update(_at(500, offRoute: true))), [
-      CueKind.offRoute,
-    ]);
+    // What a rider who has left the route needs to hear is which way to go,
+    // and only the off-route machine knows that.
     expect(announcer.update(_at(500, offRoute: true)), isEmpty);
-    expect(_kinds(announcer.update(_at(500))), [CueKind.backOnRoute]);
     expect(announcer.update(_at(500)), isEmpty);
-    expect(_kinds(announcer.update(_at(500, offRoute: true))), [
-      CueKind.offRoute,
-    ]);
   });
 
   test('arriving is said once', () {

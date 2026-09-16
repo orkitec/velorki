@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:velorki_brouter/velorki_brouter.dart';
 
 import '../domain/navigation_progress.dart';
+import '../domain/off_route_guidance.dart';
 
 /// How many seconds before a turn it is announced unless the rider says
 /// otherwise. Ten seconds at 20 km/h is 55 m: time to hear it, look up and
@@ -42,11 +43,10 @@ enum CueKind {
   /// Take the turn now.
   now,
 
-  /// The rider has left the route.
-  offRoute,
-
-  /// The rider is back on the route.
-  backOnRoute,
+  /// The rider has left the route and is being pointed back at it, from
+  /// [TurnCue.distanceM] metres away and [TurnCue.direction] of where they
+  /// are headed. Given by the controller, not by [TurnAnnouncer].
+  backToRoute,
 
   /// A new way back onto the route has been computed and is now being
   /// followed. Given by the controller, not by [TurnAnnouncer].
@@ -59,7 +59,13 @@ enum CueKind {
 /// One thing to say (or show) once.
 class TurnCue {
   /// Creates a cue.
-  const TurnCue({required this.kind, this.turn, this.distanceM = 0, this.then});
+  const TurnCue({
+    required this.kind,
+    this.turn,
+    this.distanceM = 0,
+    this.then,
+    this.direction,
+  });
 
   /// What kind of cue this is.
   final CueKind kind;
@@ -73,6 +79,10 @@ class TurnCue {
   /// A second turn following straight after [turn], for "..., then keep right".
   final TurnHint? then;
 
+  /// Which way the rider has to go, for [CueKind.backToRoute]; `null`
+  /// elsewhere, and when the rider's heading is unknown.
+  final RelativeDirection? direction;
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -80,29 +90,32 @@ class TurnCue {
           other.kind == kind &&
           other.turn == turn &&
           other.distanceM == distanceM &&
-          other.then == then;
+          other.then == then &&
+          other.direction == direction;
 
   @override
-  int get hashCode => Object.hash(kind, turn, distanceM, then);
+  int get hashCode => Object.hash(kind, turn, distanceM, then, direction);
 
   @override
   String toString() =>
       'TurnCue(${kind.name}'
       '${turn != null ? ' ${turn!.kind.name}@${turn!.pointIndex}' : ''}'
       '${distanceM != 0 ? ' in $distanceM m' : ''}'
-      '${then != null ? ' then ${then!.kind.name}' : ''})';
+      '${then != null ? ' then ${then!.kind.name}' : ''}'
+      '${direction != null ? ' ${direction!.name}' : ''})';
 }
 
 /// Turns a stream of [NavigationProgress] values into cues, each given once.
 ///
-/// The navigator reports the same turn on every fix; this decides when there
-/// is something new to say. Cues are remembered per turn (by its point index),
+/// Turns only: leaving the route is [OffRouteMachine]'s business, because
+/// what a rider needs to hear there is which way to go, not that something
+/// is wrong. The navigator reports the same turn on every fix; this decides
+/// when there is something new to say. Cues are remembered per turn (by its point index),
 /// so a turn that is passed during a GPS gap is simply left behind rather than
 /// announced late.
 class TurnAnnouncer {
   final Set<int> _aheadGiven = <int>{};
   final Set<int> _nowGiven = <int>{};
-  bool _offRoute = false;
   bool _arrived = false;
 
   /// The cues [p] calls for, in the order they should be said.
@@ -118,14 +131,6 @@ class TurnAnnouncer {
   }) {
     final cues = <TurnCue>[];
 
-    if (p.offRoute && !_offRoute) {
-      _offRoute = true;
-      cues.add(const TurnCue(kind: CueKind.offRoute));
-    } else if (!p.offRoute && _offRoute) {
-      _offRoute = false;
-      cues.add(const TurnCue(kind: CueKind.backOnRoute));
-    }
-
     final next = p.next;
     if (next != null) {
       final key = next.pointIndex;
@@ -136,7 +141,11 @@ class TurnAnnouncer {
       final d = p.distanceToNextM;
       if (d <= aheadAt && d > nowAt + sayingM && _aheadGiven.add(key)) {
         cues.add(
-          TurnCue(kind: CueKind.ahead, turn: next, distanceM: _roundedAhead(d)),
+          TurnCue(
+            kind: CueKind.ahead,
+            turn: next,
+            distanceM: roundedAheadMeters(d),
+          ),
         );
       }
       if (d <= nowAt && _nowGiven.add(key)) {
@@ -167,10 +176,10 @@ class TurnAnnouncer {
         ? after
         : null;
   }
-
-  /// Distances are announced in round numbers: the nearest 10 m up to
-  /// 100 m, the nearest 50 m beyond, never less than 50.
-  static int _roundedAhead(double metres) => metres < 100
-      ? math.max(50, (metres / 10).round() * 10)
-      : (metres / 50).round() * 50;
 }
+
+/// Distances are announced in round numbers: the nearest 10 m up to 100 m,
+/// the nearest 50 m beyond, never less than 50.
+int roundedAheadMeters(double metres) => metres < 100
+    ? math.max(50, (metres / 10).round() * 10)
+    : (metres / 50).round() * 50;

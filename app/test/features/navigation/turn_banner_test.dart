@@ -8,14 +8,41 @@ import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/theme.dart';
 import 'package:velorki/features/navigation/application/navigation_controller.dart';
 import 'package:velorki/features/navigation/domain/navigation_progress.dart';
+import 'package:velorki/features/navigation/domain/off_route_guidance.dart';
 import 'package:velorki/features/navigation/presentation/turn_banner.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
+import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/units.dart';
 
 const TurnHint _left = TurnHint(pointIndex: 10, kind: TurnKind.left);
+
+/// A way back onto the route, 120 m off to the left.
+const OffRouteGuidance _wayBack = OffRouteGuidance(
+  target: LatLng(48, 11),
+  distanceM: 120,
+  alongM: 400,
+  direction: RelativeDirection.left,
+);
+
+/// A navigation controller that only remembers what it was asked for, so the
+/// banner's buttons can be tapped without a ride behind them.
+class _RecordingNav extends NavigationController {
+  int rejoins = 0;
+  int reroutes = 0;
+
+  @override
+  NavigationProgress? build() => null;
+
+  @override
+  void requestRejoin() => rejoins++;
+
+  @override
+  void requestFullReroute() => reroutes++;
+}
+
 const TurnHint _keepRight = TurnHint(pointIndex: 14, kind: TurnKind.keepRight);
 
 /// Pumps the banner with the navigation settings [preferences] describes.
@@ -27,6 +54,7 @@ Future<ProviderContainer> _pumpBanner(
   NavigationProgress progress, {
   Override? units,
   Map<String, Object> preferences = const <String, Object>{},
+  NavigationController? navigation,
 }) async {
   SharedPreferences.setMockInitialValues(preferences);
   final prefs = await SharedPreferences.getInstance();
@@ -34,6 +62,8 @@ Future<ProviderContainer> _pumpBanner(
     overrides: [
       units ?? metricUnits,
       sharedPreferencesProvider.overrideWithValue(prefs),
+      if (navigation != null)
+        navigationControllerProvider.overrideWith(() => navigation),
     ],
   );
   addTearDown(container.dispose);
@@ -254,6 +284,131 @@ void main() {
 
     expect(container.read(voiceMutedForRideProvider), isFalse);
     expect(find.byIcon(Icons.volume_up), findsOneWidget);
+  });
+
+  group('off the route', () {
+    testWidgets('the way back replaces the turn, with how far and which way', (
+      tester,
+    ) async {
+      await _pumpBanner(
+        tester,
+        const NavigationProgress(
+          next: _left,
+          distanceToNextM: 300,
+          offRoute: true,
+          offRouteState: OffRouteState.guiding,
+          guidance: _wayBack,
+        ),
+      );
+
+      expect(find.text('120 m'), findsOneWidget);
+      expect(find.text('Back to the route, on your left'), findsOneWidget);
+      expect(find.text('Turn left'), findsNothing);
+      expect(find.text('Off route'), findsNothing);
+      expect(find.byIcon(Icons.u_turn_left), findsOneWidget);
+    });
+
+    testWidgets('a direction nobody knows is simply left out', (tester) async {
+      await _pumpBanner(
+        tester,
+        const NavigationProgress(
+          offRouteState: OffRouteState.guiding,
+          offRoute: true,
+          guidance: OffRouteGuidance(
+            target: LatLng(48, 11),
+            distanceM: 120,
+            alongM: 400,
+          ),
+        ),
+      );
+
+      expect(find.text('Back to the route'), findsOneWidget);
+    });
+
+    testWidgets('imperial reads the way back in feet', (tester) async {
+      await _pumpBanner(
+        tester,
+        const NavigationProgress(
+          offRouteState: OffRouteState.guiding,
+          offRoute: true,
+          guidance: _wayBack,
+        ),
+        units: imperialUnits,
+      );
+
+      expect(find.text('390 ft'), findsOneWidget);
+    });
+
+    testWidgets('the banner offers a new route from here', (tester) async {
+      final navigation = _RecordingNav();
+      await _pumpBanner(
+        tester,
+        const NavigationProgress(
+          offRouteState: OffRouteState.guiding,
+          offRoute: true,
+          guidance: _wayBack,
+        ),
+        navigation: navigation,
+      );
+
+      expect(find.text('New route from here'), findsOneWidget);
+
+      await tester.tap(find.text('New route from here'));
+      await tester.pumpAndSettle();
+
+      expect(navigation.reroutes, 1);
+      expect(navigation.rejoins, 0, reason: 'the button is not the banner');
+    });
+
+    testWidgets('tapping the banner asks for a way back now', (tester) async {
+      final navigation = _RecordingNav();
+      await _pumpBanner(
+        tester,
+        const NavigationProgress(
+          offRouteState: OffRouteState.guiding,
+          offRoute: true,
+          guidance: _wayBack,
+        ),
+        navigation: navigation,
+      );
+
+      await tester.tap(find.text('Back to the route, on your left'));
+      await tester.pumpAndSettle();
+
+      expect(navigation.rejoins, 1);
+      expect(navigation.reroutes, 0);
+    });
+
+    testWidgets('off a way back that is already up is the plain warning', (
+      tester,
+    ) async {
+      await _pumpBanner(
+        tester,
+        const NavigationProgress(
+          offRoute: true,
+          offRouteState: OffRouteState.detour,
+        ),
+      );
+
+      expect(find.text('Off route'), findsOneWidget);
+      expect(find.text('New route from here'), findsNothing);
+      expect(find.byIcon(Icons.error_outline), findsOneWidget);
+    });
+
+    testWidgets('the way back stays one row high', (tester) async {
+      await _pumpBanner(
+        tester,
+        const NavigationProgress(
+          offRouteState: OffRouteState.guiding,
+          offRoute: true,
+          guidance: _wayBack,
+        ),
+      );
+
+      expect(tester.getSize(find.byType(TurnBanner)).height, turnBannerHeight);
+      expect(tester.getSize(find.byType(GlassPanel)).height, turnBannerHeight);
+      expect(tester.takeException(), isNull);
+    });
   });
 
   testWidgets('the mute button leaves the banner one row and capped', (

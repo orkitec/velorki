@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/core/units/units.dart';
 import 'package:velorki/features/navigation/application/turn_announcer.dart';
+import 'package:velorki/features/navigation/domain/off_route_guidance.dart';
 import 'package:velorki/features/navigation/presentation/turn_phrases.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
@@ -77,11 +78,6 @@ void main() {
   });
 
   test('the route-wide cues have their own phrases', () {
-    expect(cuePhrase(const TurnCue(kind: CueKind.offRoute), l10n), 'Off route');
-    expect(
-      cuePhrase(const TurnCue(kind: CueKind.backOnRoute), l10n),
-      'Back on the route',
-    );
     expect(
       cuePhrase(const TurnCue(kind: CueKind.arrived), l10n),
       'You have arrived',
@@ -89,6 +85,39 @@ void main() {
     expect(
       cuePhrase(const TurnCue(kind: CueKind.rerouted), l10n),
       'Route recalculated',
+    );
+  });
+
+  test('the way back names the distance and the way to turn', () {
+    expect(
+      cuePhrase(
+        const TurnCue(
+          kind: CueKind.backToRoute,
+          distanceM: 200,
+          direction: RelativeDirection.left,
+        ),
+        l10n,
+      ),
+      'Off route. In 200 metres, back to the route, on your left',
+    );
+    expect(
+      cuePhrase(
+        const TurnCue(
+          kind: CueKind.backToRoute,
+          distanceM: 200,
+          direction: RelativeDirection.behind,
+        ),
+        l10n,
+        units: UnitSystem.imperial,
+      ),
+      'Off route. In 700 feet, back to the route, behind you',
+    );
+  });
+
+  test('the way back says no direction it does not know', () {
+    expect(
+      cuePhrase(const TurnCue(kind: CueKind.backToRoute, distanceM: 120), l10n),
+      'Off route. In 120 metres, back to the route',
     );
   });
 
@@ -144,12 +173,7 @@ void main() {
   });
 
   test('the cues that carry no distance are the same either way', () {
-    for (final kind in [
-      CueKind.offRoute,
-      CueKind.backOnRoute,
-      CueKind.rerouted,
-      CueKind.arrived,
-    ]) {
+    for (final kind in [CueKind.rerouted, CueKind.arrived]) {
       expect(
         cuePhrase(TurnCue(kind: kind), l10n, units: UnitSystem.imperial),
         cuePhrase(TurnCue(kind: kind), l10n),

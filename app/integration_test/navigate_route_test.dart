@@ -1,7 +1,8 @@
 // Turn-by-turn on the device: plan a route, ride it with the turn directions
 // on and the voice off, and watch the banner count the turns down, change
-// instruction at each of them, say the ride has arrived, and notice a rider
-// who has left the route.
+// instruction at each of them, say the ride has arrived, point a rider who
+// has left the route back at it, work out a way back when they stay off it,
+// and drop that way back when they walk onto the route again.
 //
 //   flutter test integration_test/navigate_route_test.dart -d emulator-5554 \
 //     --dart-define=VELORKI_BROUTER_URL= \
@@ -32,6 +33,7 @@ import 'package:velorki/features/navigation/application/navigation_controller.da
 import 'package:velorki/features/navigation/data/navigation_settings.dart';
 import 'package:velorki/features/navigation/data/turn_speaker.dart';
 import 'package:velorki/features/navigation/domain/navigation_progress.dart';
+import 'package:velorki/features/navigation/domain/off_route_guidance.dart';
 import 'package:velorki/features/navigation/presentation/navigation_toggles.dart';
 import 'package:velorki/features/navigation/presentation/turn_banner.dart';
 import 'package:velorki/features/navigation/presentation/turn_phrases.dart';
@@ -61,9 +63,15 @@ const double _rideM = 1800;
 /// taken, plus a little; see `_passedMarginM` in turn_navigator.dart.
 const double _pastTurnM = 40;
 
-/// How far off the route the stray fixes go. Over the navigator's 50 m stray
+/// How far off the route the stray fixes go. Over the 50 m off-route
 /// threshold by enough that no GPS jitter could explain it.
 const double _strayM = 150;
+
+/// How far off the route the rider goes before a way back is worked out.
+///
+/// The trigger is 150 m of travel since leaving the route, and the rider has
+/// already walked out to [_strayM] by the time they count as off it.
+const double _detourStrayM = 400;
 
 /// How long one tick of the recorder takes, plus a frame or two: the engine
 /// publishes a snapshot once a second, and navigation only ever sees the
@@ -272,6 +280,148 @@ void main() {
     );
     await screenshot(tester, 'navigation-turn-banner');
 
+    // --------------------------------------------------------- off the route
+    // Every state the controller passes through, because some of them do not
+    // last a frame.
+    final passed = <NavigationProgress?>[];
+    final watch = container.listen(
+      navigationControllerProvider,
+      (_, next) => passed.add(next),
+    );
+    addTearDown(watch.close);
+
+    // Walked out rather than teleported: a jump of 150 m in one fix implies a
+    // speed the recorder throws away as impossible, and it takes two stray
+    // fixes in a row before the rider counts as off the route anyway.
+    //
+    // First the plan itself points them back at it. Nothing is routed here:
+    // most strays are a wrong turn the rider undoes within a block, and a
+    // route computed for every one of them is exactly what made re-routing
+    // chaotic on the road.
+    for (var offset = 25.0; offset <= _strayM; offset += 25) {
+      await ride.strayTo(tester, offset);
+      await pumpFor(tester, _tick);
+    }
+    await waitUntil(
+      tester,
+      () => _progress(tester)?.guidance != null,
+      describe: 'the banner to point the rider back at the route',
+      timeout: const Duration(seconds: 20),
+      onTimeout: () => '${container.read(navigationControllerProvider)}',
+    );
+    var guiding = _progress(tester)!;
+    final guidance = guiding.guidance!;
+    debugPrint(
+      'VELORKI_NAV guiding: ${guidance.distanceM.round()}m back to '
+      '${guidance.alongM.round()}m along, ${guidance.direction?.name}',
+    );
+    expect(
+      guiding.offRouteState,
+      OffRouteState.guiding,
+      reason: 'a rider who has just left the route is guided back to it',
+    );
+    expect(
+      container.read(detourRouteProvider),
+      isNull,
+      reason: 'guiding a rider back costs no routing at all',
+    );
+    // Nothing is pumped between reading the progress and this, so the banner
+    // in the tree is still the one that progress built.
+    expect(
+      find.text(backToRouteLabel(guidance.direction, l10n)),
+      findsOneWidget,
+    );
+    expect(
+      find.text(distanceLabel(guidance.distanceM, l10n, units)),
+      findsOneWidget,
+    );
+    expect(find.text(l10n.navNewRouteFromHere), findsOneWidget);
+    await screenshot(tester, 'navigation-off-route');
+
+    // -------------------------------------------------- the way back onto it
+    // Still off the route a hundred and fifty metres of travel later: now a
+    // way back is worth computing, and it hangs off the plan as a branch.
+    for (
+      var offset = _strayM + 50;
+      offset <= _detourStrayM && container.read(detourRouteProvider) == null;
+      offset += 50
+    ) {
+      await ride.strayTo(tester, offset);
+      await pumpFor(tester, _tick);
+    }
+    await waitUntil(
+      tester,
+      () => container.read(detourRouteProvider) != null,
+      describe: 'a way back onto the route to be computed',
+      timeout: const Duration(seconds: 60),
+      onTimeout: () =>
+          '${container.read(navigationControllerProvider)} after '
+          '${passed.length} states',
+    );
+    final detour = container.read(detourRouteProvider)!;
+    debugPrint(
+      'VELORKI_NAV rejoin: ${detour.branch.length} branch points, '
+      '${detour.line.length} in all, rejoining at '
+      '${detour.rejoinAlongM.round()}m along',
+    );
+    expect(
+      detour.branch,
+      isNotEmpty,
+      reason: 'a rejoin is a branch, not a replacement',
+    );
+    expect(
+      detour.replacesPlan,
+      isFalse,
+      reason: 'the plan the rider chose is still the plan',
+    );
+    expect(
+      detour.line.length,
+      greaterThan(detour.branch.length),
+      reason: 'the rest of the plan follows the branch, as one route',
+    );
+    expect(
+      detour.rejoinAlongM,
+      lessThan(_cumulativeTo(line, line.length - 1)),
+      reason: 'a rejoin heads for the nearest bit of plan ahead, not the end',
+    );
+    expect(
+      detour.line.last,
+      line.last,
+      reason: 'it runs to the end of the ride',
+    );
+    await waitUntil(
+      tester,
+      () => _progress(tester)?.offRouteState == OffRouteState.detour,
+      describe: 'the banner to follow the way back',
+      timeout: const Duration(seconds: 20),
+      onTimeout: () => '${container.read(navigationControllerProvider)}',
+    );
+    await screenshot(tester, 'navigation-rejoin');
+
+    // ------------------------------------------------------ back on the plan
+    // Walked back onto the route: the branch goes, the plan carries on, and
+    // nothing is said about it.
+    for (var offset = _detourStrayM - 50; offset >= 0; offset -= 50) {
+      await ride.strayTo(tester, offset);
+      await pumpFor(tester, _tick);
+    }
+    await ride.strayTo(tester, 0);
+    await waitUntil(
+      tester,
+      () => container.read(detourRouteProvider) == null,
+      describe: 'the way back to be dropped once the plan is underfoot',
+      timeout: const Duration(seconds: 30),
+      onTimeout: () => '${container.read(navigationControllerProvider)}',
+    );
+    guiding = _progress(tester)!;
+    debugPrint(
+      'VELORKI_NAV restored: ${guiding.offRouteState.name}, '
+      '${guiding.alongM.round()}m along',
+    );
+    expect(guiding.offRouteState, OffRouteState.onRoute);
+    expect(guiding.guidance, isNull);
+    expect(find.text(l10n.navNewRouteFromHere), findsNothing);
+
     // ------------------------------------------------------------- the end
     await ride.rideTo(tester, ride.totalM);
     await waitUntil(
@@ -283,82 +433,6 @@ void main() {
     );
     expect(find.text(l10n.navArrived), findsOneWidget);
     await screenshot(tester, 'navigation-arrived');
-
-    // --------------------------------------------------------- off the route
-    // Every state the controller passes through, because some of them do not
-    // last a frame: the re-route answer comes back in well under a tenth of a
-    // second on the device, so "off route" can be gone before it is ever
-    // drawn.
-    final passed = <NavigationProgress?>[];
-    final watch = container.listen(
-      navigationControllerProvider,
-      (_, next) => passed.add(next),
-    );
-    addTearDown(watch.close);
-
-    // Walked out rather than teleported: a jump of 150 m in one fix implies a
-    // speed the recorder throws away as impossible, and it takes three stray
-    // fixes in a row before the navigator calls the rider off route anyway.
-    for (var offset = 25.0; offset <= _strayM; offset += 25) {
-      await ride.strayTo(tester, offset);
-      await pumpFor(tester, _tick);
-    }
-    await waitUntil(
-      tester,
-      () =>
-          container.read(detourRouteProvider) != null ||
-          passed.any((p) => p?.rerouting ?? false),
-      describe: 'a way back onto the route to be asked for',
-      timeout: const Duration(seconds: 20),
-      onTimeout: () => '${container.read(navigationControllerProvider)}',
-    );
-    final detour = container.read(detourRouteProvider);
-    debugPrint(
-      'VELORKI_NAV off route: ${passed.where((p) => p?.offRoute ?? false).length}'
-      ' of ${passed.length} states off route, '
-      'detour=${detour?.line.length ?? 0} points',
-    );
-    expect(
-      passed.any((p) => p?.offRoute ?? false),
-      isTrue,
-      reason: 'a fix $_strayM m off the route has to count as off route',
-    );
-    expect(
-      detour != null || passed.any((p) => p?.rerouting ?? false),
-      isTrue,
-      reason: 'leaving the route has to ask the router for a way back',
-    );
-
-    // The detour starts where the rider strayed to, so following it would put
-    // them back on a route. Carrying on away from it is what leaves the
-    // banner on "off route" long enough to read: the next re-route is a good
-    // twenty seconds off, and until then there is nothing else to show.
-    var offRouteShown = false;
-    for (
-      var offset = _strayM + 50;
-      offset <= 400 && !offRouteShown;
-      offset += 50
-    ) {
-      await ride.strayTo(tester, offset);
-      await pumpFor(tester, _tick);
-      final progress = _progress(tester);
-      if (progress == null || !(progress.offRoute || progress.rerouting)) {
-        continue;
-      }
-      // Nothing is pumped between reading the progress and this, so the
-      // banner in the tree is still the one that progress built.
-      expect(
-        find.text(progress.rerouting ? l10n.navRerouting : l10n.navOffRoute),
-        findsOneWidget,
-      );
-      offRouteShown = true;
-      await screenshot(tester, 'navigation-off-route');
-    }
-    expect(
-      offRouteShown,
-      isTrue,
-      reason: 'the banner has to tell the rider they left the route',
-    );
 
     // ------------------------------------------------------------- the voice
     expect(

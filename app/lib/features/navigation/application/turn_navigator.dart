@@ -11,12 +11,19 @@ const double _passedMarginM = 15;
 /// Farther than this from the route counts as a stray fix.
 const double _strayM = 50;
 
-/// Nearer than this and the rider is back on the route.
-const double _backOnM = 30;
+/// How near the route a fix has to be for the rider to count as on it.
+///
+/// One fix inside this is enough to be back on the route, and it is also the
+/// gap the record screen is willing to draw the puck across: the matched
+/// point is the honest answer only while the rider is really on the line.
+const double routeSnapMeters = 25;
 
 /// How many stray fixes in a row it takes to call the rider off route. GPS in
-/// a city throws the odd fix a long way out; three in a row is a real detour.
-const int _strayFixes = 3;
+/// a city throws the odd fix a long way out; two in a row is a real detour.
+const int _strayFixes = 2;
+
+/// ...or, for a receiver that reports rarely, how long straying it takes.
+const Duration _strayFor = Duration(seconds: 8);
 
 /// Within this distance of the last point the route is done.
 const double _arrivalM = 30;
@@ -40,17 +47,30 @@ class TurnNavigator {
   /// [turns] is expected sorted by `pointIndex`; hints pointing outside the
   /// line are dropped, because a route that was cut or stitched can carry
   /// them.
-  TurnNavigator({required List<LatLng> line, required List<TurnHint> turns})
-    : _line = List<LatLng>.unmodifiable(line),
-      _turns = List<TurnHint>.unmodifiable(
-        turns.where((h) => h.pointIndex >= 0 && h.pointIndex < line.length),
-      ) {
+  TurnNavigator({
+    required List<LatLng> line,
+    required List<TurnHint> turns,
+    double resumeAlongM = 0,
+  }) : _line = List<LatLng>.unmodifiable(line),
+       _turns = List<TurnHint>.unmodifiable(
+         turns.where((h) => h.pointIndex >= 0 && h.pointIndex < line.length),
+       ) {
     _cumulative = List<double>.filled(_line.length, 0);
     for (var i = 1; i < _line.length; i++) {
       _cumulative[i] =
           _cumulative[i - 1] + haversineMeters(_line[i - 1], _line[i]);
     }
     _announcedTurns = _turns.where(_announced).toList(growable: false);
+    // A rider handed back to the plan after a detour is already well along
+    // it; without this the first fix would be matched against the start.
+    if (resumeAlongM > 0) {
+      for (var i = 0; i < _cumulative.length - 1; i++) {
+        if (_cumulative[i + 1] >= resumeAlongM) {
+          _lastSegment = i;
+          break;
+        }
+      }
+    }
   }
 
   final List<LatLng> _line;
@@ -65,8 +85,9 @@ class TurnNavigator {
   /// The segment the last fix was matched to, the middle of the next search.
   int _lastSegment = 0;
 
-  /// Stray fixes in a row so far.
+  /// Stray fixes in a row so far, and when the run of them started.
   int _strayCount = 0;
+  DateTime? _strayingSince;
 
   bool _offRoute = false;
 
@@ -77,7 +98,11 @@ class TurnNavigator {
   List<TurnHint> get announcedTurns => _announcedTurns;
 
   /// Matches [position] to the route and reports what comes next.
-  NavigationProgress update(LatLng position) {
+  ///
+  /// [now] is only used for the off-route hysteresis: straying for
+  /// [_strayFor] counts as off route even when the fixes are too far apart to
+  /// have made [_strayFixes] of them.
+  NavigationProgress update(LatLng position, {DateTime? now}) {
     if (_line.isEmpty) return const NavigationProgress();
 
     final match = _snap(position);
@@ -85,10 +110,14 @@ class TurnNavigator {
 
     if (match.distanceM > _strayM) {
       _strayCount++;
-      if (_strayCount >= _strayFixes) _offRoute = true;
+      final since = _strayingSince ??= now;
+      final longEnough =
+          now != null && since != null && now.difference(since) >= _strayFor;
+      if (_strayCount >= _strayFixes || longEnough) _offRoute = true;
     } else {
       _strayCount = 0;
-      if (_offRoute && match.distanceM < _backOnM) _offRoute = false;
+      _strayingSince = null;
+      if (_offRoute && match.distanceM <= routeSnapMeters) _offRoute = false;
     }
 
     TurnHint? next;

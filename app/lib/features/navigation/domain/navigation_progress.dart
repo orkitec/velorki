@@ -1,6 +1,8 @@
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import 'off_route_guidance.dart';
+
 /// Where the rider stands on a route: the turn that is coming, the one after
 /// it, how much route is left and whether the rider is still on it.
 ///
@@ -21,6 +23,8 @@ class NavigationProgress {
     this.snapped,
     this.routeBearingDeg,
     this.distanceFromRouteM = 0,
+    this.offRouteState = OffRouteState.onRoute,
+    this.guidance,
   });
 
   /// The turn that has not been passed yet, or `null` when none is left.
@@ -73,8 +77,26 @@ class NavigationProgress {
   /// much of a gap is still worth snapping over.
   final double distanceFromRouteM;
 
-  /// The same progress with [rerouting] set to [value].
-  NavigationProgress withRerouting(bool value) => NavigationProgress(
+  /// Where the ride stands in relation to the route it was planned along.
+  ///
+  /// Not the same question as [offRoute], which is about the route being
+  /// navigated right now: a rider following a rejoin is on that route and
+  /// off the plan at the same time.
+  final OffRouteState offRouteState;
+
+  /// The way back onto the plan while [offRouteState] is
+  /// [OffRouteState.guiding], `null` otherwise.
+  final OffRouteGuidance? guidance;
+
+  /// The same progress with the controller's own fields filled in.
+  ///
+  /// The navigator knows nothing about re-routing or about the plan a rider
+  /// has left, so those three come from [NavigationController].
+  NavigationProgress decorated({
+    required bool rerouting,
+    required OffRouteState offRouteState,
+    OffRouteGuidance? guidance,
+  }) => NavigationProgress(
     next: next,
     distanceToNextM: distanceToNextM,
     after: after,
@@ -82,10 +104,12 @@ class NavigationProgress {
     remainingM: remainingM,
     alongM: alongM,
     arrived: arrived,
-    rerouting: value,
+    rerouting: rerouting,
     snapped: snapped,
     routeBearingDeg: routeBearingDeg,
     distanceFromRouteM: distanceFromRouteM,
+    offRouteState: offRouteState,
+    guidance: guidance,
   );
 
   @override
@@ -102,7 +126,9 @@ class NavigationProgress {
           other.rerouting == rerouting &&
           other.snapped == snapped &&
           other.routeBearingDeg == routeBearingDeg &&
-          other.distanceFromRouteM == distanceFromRouteM;
+          other.distanceFromRouteM == distanceFromRouteM &&
+          other.offRouteState == offRouteState &&
+          other.guidance == guidance;
 
   @override
   int get hashCode => Object.hash(
@@ -117,6 +143,8 @@ class NavigationProgress {
     snapped,
     routeBearingDeg,
     distanceFromRouteM,
+    offRouteState,
+    guidance,
   );
 
   @override
@@ -127,6 +155,7 @@ class NavigationProgress {
       'along ${alongM.toStringAsFixed(0)} m, '
       'remaining ${remainingM.toStringAsFixed(0)} m'
       '${offRoute ? ', off route' : ''}'
+      '${offRouteState != OffRouteState.onRoute ? ', ${offRouteState.name}' : ''}'
       '${rerouting ? ', re-routing' : ''}'
       '${arrived ? ', arrived' : ''})';
 }

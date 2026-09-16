@@ -8,6 +8,7 @@ import '../../shared/presentation/stat_tile.dart';
 import '../application/navigation_controller.dart';
 import '../data/navigation_settings.dart';
 import '../domain/navigation_progress.dart';
+import '../domain/off_route_guidance.dart';
 import 'turn_phrases.dart';
 
 /// How much room the banner takes at the top of the record screen, so the map
@@ -22,8 +23,14 @@ const double _maxWidthFactor = 0.8;
 ///
 /// One row, as wide as its content: the turn arrow, the distance in big
 /// figures and the instruction beside it. A turn that follows straight after
-/// is a second, smaller arrow at the end rather than a line of its own. Off
-/// route, re-routing and arrival replace all of that with a single tinted line.
+/// is a second, smaller arrow at the end rather than a line of its own.
+/// Re-routing and arrival replace all of that with a single tinted line.
+///
+/// A rider who has left the route is read the way back in the same shape as a
+/// turn — how far, and which way — because that is what they need and it is
+/// the layout they are already used to. Tapping it asks for a way back to be
+/// computed now instead of waiting the half minute out; the button beside it
+/// throws the rest of the plan away and re-routes to the destination.
 class TurnBanner extends ConsumerWidget {
   /// Creates the banner.
   const TurnBanner({required this.progress, super.key});
@@ -48,8 +55,33 @@ class TurnBanner extends ConsumerWidget {
     final IconData icon;
     final Color tint;
     final List<Widget> row;
+    final guidance = progress.guidance;
+    final guiding =
+        progress.offRouteState == OffRouteState.guiding && guidance != null;
 
-    if (progress.rerouting) {
+    if (guiding) {
+      // The plan is still the route; this only says where to pick it up.
+      icon = Icons.u_turn_left;
+      tint = colors.warning;
+      row = [
+        _distance(theme, distanceLabel(guidance.distanceM, l10n, units), tint),
+        _instruction(theme, backToRouteLabel(guidance.direction, l10n)),
+        const SizedBox(width: 4),
+        TextButton(
+          style: TextButton.styleFrom(
+            visualDensity: VisualDensity.compact,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            minimumSize: const Size(0, 36),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            textStyle: theme.textTheme.labelLarge,
+          ),
+          onPressed: () => ref
+              .read(navigationControllerProvider.notifier)
+              .requestFullReroute(),
+          child: Text(l10n.navNewRouteFromHere),
+        ),
+      ];
+    } else if (progress.rerouting) {
       // A request is out for a way back onto the route: say that rather than
       // leave the rider looking at a bare "off route".
       icon = Icons.autorenew;
@@ -105,45 +137,57 @@ class TurnBanner extends ConsumerWidget {
           children: [
             ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth: constraints.maxWidth * _maxWidthFactor,
+                // A rider who has left the route has more to read and less
+                // use for the map behind it, so the cap comes off.
+                maxWidth:
+                    constraints.maxWidth * (guiding ? 1 : _maxWidthFactor),
               ),
-              child: GlassPanel(
-                radius: 20,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(icon, size: 28, color: tint),
-                    const SizedBox(width: 10),
-                    ...row,
-                    // Quiet for this ride, without walking to Settings and
-                    // losing the choice for every ride after it. Nothing to
-                    // mute while the voice is off, so the button is gone.
-                    if (voice) ...[
-                      const SizedBox(width: 4),
-                      IconButton(
-                        icon: Icon(
-                          muted ? Icons.volume_off : Icons.volume_up,
-                          size: 22,
+              child: GestureDetector(
+                // Tapping the way back asks for one to be computed now,
+                // rather than waiting the half minute out.
+                onTap: guiding
+                    ? () => ref
+                          .read(navigationControllerProvider.notifier)
+                          .requestRejoin()
+                    : null,
+                child: GlassPanel(
+                  radius: 20,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon, size: 28, color: tint),
+                      const SizedBox(width: 10),
+                      ...row,
+                      // Quiet for this ride, without walking to Settings and
+                      // losing the choice for every ride after it. Nothing to
+                      // mute while the voice is off, so the button is gone.
+                      if (voice) ...[
+                        const SizedBox(width: 4),
+                        IconButton(
+                          icon: Icon(
+                            muted ? Icons.volume_off : Icons.volume_up,
+                            size: 22,
+                          ),
+                          color: muted
+                              ? theme.colorScheme.onSurfaceVariant
+                              : colors.accent,
+                          tooltip: muted
+                              ? l10n.navUnmuteVoice
+                              : l10n.navMuteVoice,
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 36,
+                            minHeight: 36,
+                          ),
+                          onPressed: () => ref
+                              .read(voiceMutedForRideProvider.notifier)
+                              .toggle(),
                         ),
-                        color: muted
-                            ? theme.colorScheme.onSurfaceVariant
-                            : colors.accent,
-                        tooltip: muted
-                            ? l10n.navUnmuteVoice
-                            : l10n.navMuteVoice,
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(
-                          minWidth: 36,
-                          minHeight: 36,
-                        ),
-                        onPressed: () => ref
-                            .read(voiceMutedForRideProvider.notifier)
-                            .toggle(),
-                      ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),

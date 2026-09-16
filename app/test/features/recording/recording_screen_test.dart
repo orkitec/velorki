@@ -11,6 +11,7 @@ import 'package:velorki/features/recording/domain/recording_state.dart';
 import 'package:velorki/features/recording/domain/ride.dart';
 import 'package:velorki/core/geo/ride_stats.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
+import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/navigation/application/navigation_controller.dart';
 import 'package:velorki/features/navigation/domain/navigation_progress.dart';
@@ -109,7 +110,7 @@ void main() {
     await unmountApp(tester);
   });
 
-  testWidgets('a way back onto the route is drawn in place of the plan', (
+  testWidgets('a whole new route to the destination takes the plan\'s place', (
     tester,
   ) async {
     final h = RecordingHarness();
@@ -130,14 +131,65 @@ void main() {
         .read(detourRouteProvider.notifier)
         .replace(
           const GuidedRoute(
-            key: 'detour:1:2',
+            key: 'reroute:1:2',
             line: detour,
             turns: <TurnHint>[],
+            replacesPlan: true,
           ),
         );
     await tester.pumpAndSettle();
 
     expect(h.map.lines[followedRouteLineId], detour);
+    expect(h.map.lines[detourRouteLineId], isNull);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('a way back onto the route is a branch beside the plan', (
+    tester,
+  ) async {
+    final h = RecordingHarness();
+    await pumpRecordingScreen(tester, const RecordingScreen(), harness: h);
+    await tester.pump();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(RecordingScreen)),
+    );
+    final planner = container.read(plannerControllerProvider.notifier);
+    planner.addWaypoint(const LatLng(48.0, 11.0));
+    planner.addWaypoint(const LatLng(48.1, 11.1));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+    final plan = h.map.lines[followedRouteLineId];
+    expect(plan, isNotNull);
+
+    const branch = <LatLng>[LatLng(48.05, 11.2), LatLng(48.08, 11.25)];
+    container
+        .read(detourRouteProvider.notifier)
+        .replace(
+          const GuidedRoute(
+            key: 'detour:1:2',
+            line: <LatLng>[...branch, LatLng(48.1, 11.1)],
+            turns: <TurnHint>[],
+            branch: branch,
+            rejoinAlongM: 900,
+          ),
+        );
+    await tester.pumpAndSettle();
+
+    // The plan stays where it was, muted, and the way back is drawn on its
+    // own beside it: a rider has to see both to know what is being asked.
+    expect(h.map.lines[followedRouteLineId], plan);
+    expect(h.map.styles[followedRouteLineId], RouteLineStyle.alternative);
+    expect(h.map.lines[detourRouteLineId], branch);
+    expect(h.map.styles[detourRouteLineId], RouteLineStyle.preview);
+
+    // Back on the plan, the branch goes and the plan reads as it did.
+    container.read(detourRouteProvider.notifier).replace(null);
+    await tester.pumpAndSettle();
+
+    expect(h.map.lines[detourRouteLineId], isNull);
+    expect(h.map.styles[followedRouteLineId], RouteLineStyle.preview);
 
     await unmountApp(tester);
   });
