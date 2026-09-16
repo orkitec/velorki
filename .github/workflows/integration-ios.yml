@@ -10,12 +10,23 @@ name: integration ios
 # permissions in-process, so nothing here depends on the simulator's own
 # location; the map, the on-device router and the recorder are real.
 #
-# Split three ways, like the Android run (VELORKI_ITEST_SHARD, see
-# app/tool/itest.sh). Three and no more: a public repository gets five
-# concurrent macOS runners, and the nightly and a push can overlap. What makes
-# a shard slow is the Xcode build every file pays for, so the pods and the
-# derived data are cached — the derived data weekly, because a stale Xcode
-# cache is worth less than a clean build and reuse beyond a week is thin.
+# One job, not the three shards the Android run uses. What costs time here is
+# not the tests: it is the Xcode build and the simulator boot, and
+# app/tool/itest.sh pays both once per entry point, so nine files meant nine
+# builds on every shard and 15–36 minutes each. VELORKI_ITEST_COMBINED=1 runs
+# integration_test/all_tests.dart instead — every file imported and grouped
+# into one process — so the build and the boot happen once for the whole
+# suite. Sharding that would only buy the builds back.
+#
+# Android keeps its shards (three shards x three API levels): re-installing on
+# an emulator is cheap, the matrix is there to cover the API levels anyway, and
+# a file per process is the stronger isolation — a leaked route or a recording
+# left running takes down one file rather than the run. Every test therefore
+# has to work both ways; integration_test/all_tests.dart says what that costs.
+#
+# The pods and the derived data are still cached, now one restore and one save,
+# and the derived data weekly, because a stale Xcode cache is worth less than a
+# clean build and reuse beyond a week is thin.
 on:
   workflow_dispatch:
   push:
@@ -42,10 +53,6 @@ jobs:
   simulator:
     runs-on: macos-15
     timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: ["1/3", "2/3", "3/3"]
 
     steps:
       - uses: actions/checkout@v7
@@ -72,8 +79,9 @@ jobs:
           key: pods-${{ hashFiles('app/ios/Podfile.lock') }}
           restore-keys: pods-
 
-      # Restored by every shard, stored by one: three uploads of the same
-      # multi-gigabyte derived data would cost more than they save.
+      # Restored here and saved after the run, which is what fills it. One job
+      # now, so this is a plain restore/save pair rather than the "every shard
+      # restores, one shard saves" dance the Android workflow still needs.
       - name: Restore the Xcode derived data
         uses: actions/cache/restore@v4
         with:
@@ -118,12 +126,16 @@ jobs:
           VELORKI_ITEST_DEVICE: ${{ steps.sim.outputs.udid }}
           VELORKI_ITEST_REGION: madeira
           VELORKI_SEGMENTS_URL: http://127.0.0.1:8000
-          VELORKI_ITEST_SHARD: ${{ matrix.shard }}
+          # One build, one attach, all nine files in one process.
+          VELORKI_ITEST_COMBINED: "1"
+          # The watchdog in tool/itest.sh guards one `flutter test` call, which
+          # is now the whole suite: 900 s would kill a healthy run.
+          VELORKI_ITEST_TIMEOUT: "2400"
         run: tool/itest.sh
 
       # After the run, which is what fills it, and even on a red one.
       - name: Save the Xcode derived data
-        if: always() && matrix.shard == '1/3'
+        if: always()
         uses: actions/cache/save@v4
         with:
           path: ~/Library/Developer/Xcode/DerivedData

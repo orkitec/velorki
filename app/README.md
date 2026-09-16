@@ -109,6 +109,7 @@ service, and the Photon geocoder).
 tool/itest.sh                 # the whole suite on emulator-5554
 tool/itest.sh close_loop      # only the files whose path matches
 VELORKI_ITEST_SHARD=1/3 tool/itest.sh   # one third of the files
+VELORKI_ITEST_COMBINED=1 tool/itest.sh  # every file in one run (iOS CI)
 ```
 
 `VELORKI_ITEST_SHARD=N/M` spreads the files over `M` shards by the weights in
@@ -118,12 +119,23 @@ three different shards; the split is a function of the file names only, so
 shards never disagree about it. `VELORKI_ITEST_DRY_RUN=1` prints the selection
 and stops.
 
+`VELORKI_ITEST_COMBINED=1` runs `integration_test/all_tests.dart` instead — it
+imports every file and runs each one's tests inside its own group — so one
+build, one install and one attach cover the whole suite. It takes no filter and
+no shard, and it needs a longer watchdog than a single file does
+(`VELORKI_ITEST_TIMEOUT=2400`). Because it exists, every test here has to hold
+in a shared process as well as in a fresh one: set up the preferences it reads,
+timestamp or diff whatever it writes to the database, and leave no recording
+running behind it.
+
 The runner passes `--dart-define=VELORKI_BROUTER_URL=` (nothing to route
 against but the device), `--dart-define=VELORKI_API_URL=` and
 `--dart-define=VELORKI_SEGMENTS_URL=http://10.0.2.2:8000`, and stops at the
-first failure. Each file is its own `flutter test` run, because the
-`integration_test` binding installs one test build per invocation; budget one
-to two minutes per file.
+first failure. Without `VELORKI_ITEST_COMBINED` each file is its own `flutter
+test` run, because the `integration_test` binding installs one test build per
+invocation; budget one to two minutes per file, or three to four minutes for a
+combined run on a device that already has the region's tile — the first run on
+a cold one downloads it before anything routes.
 
 What the emulator needs before the first run:
 
@@ -144,8 +156,11 @@ the `.gaz` fixtures, again nightly, and by hand from the Actions tab; a newer
 push cancels the older run, the nightly is never cancelled. Its matrix is API
 level (31, 35, 36) by shard (1/3, 2/3, 3/3), so a job is named `emulator (31,
 1/3)`, and it caches the Gradle directories and a booted AVD snapshot per API
-level. `.github/workflows/integration-ios.yml` is the same on an iOS
-simulator: three shards, with the pods and the Xcode derived data cached.
+level. `.github/workflows/integration-ios.yml` is the same suite on an iOS
+simulator, but in a single job with `VELORKI_ITEST_COMBINED=1`: there the Xcode
+build and the simulator boot dwarf the tests, and sharding made every shard pay
+them again for each of its files. The pods and the Xcode derived data are
+cached.
 
 `integration_test/plan_route_test.dart` is the exception: it wants a BRouter
 *server*, so `tool/itest.sh` skips it unless `VELORKI_BROUTER_URL` is set

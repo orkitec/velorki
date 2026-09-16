@@ -6,10 +6,19 @@
 #   VELORKI_ITEST_DEVICE=... tool/itest.sh
 #   VELORKI_ITEST_SHARD=1/3 tool/itest.sh   # one third of the files (CI)
 #   VELORKI_ITEST_SHARD=1/3 VELORKI_ITEST_DRY_RUN=1 tool/itest.sh  # list only
+#   VELORKI_ITEST_COMBINED=1 tool/itest.sh  # every file in one run (iOS CI)
 #
-# Each file is a separate `flutter test` run — the integration_test binding
-# installs one test build per invocation — and the first failure stops the
-# script, because a red test usually means every later one is red too.
+# By default each file is a separate `flutter test` run — the integration_test
+# binding installs one test build per invocation — and the first failure stops
+# the script, because a red test usually means every later one is red too.
+# That is what Android CI does, sharded three ways.
+#
+# VELORKI_ITEST_COMBINED=1 runs integration_test/all_tests.dart instead, which
+# imports every file and groups them: one build, one install, one attach, all
+# nine files in one process. It is what the iOS job runs, where the Xcode build
+# and the simulator boot cost far more than the tests and were being paid once
+# per file. A combined run needs a longer watchdog than one file does, so set
+# VELORKI_ITEST_TIMEOUT with it (the iOS workflow uses 2400).
 #
 # Configuration is fixed here on purpose:
 #   VELORKI_BROUTER_URL empty  -> nothing to route against but the device, so a
@@ -29,6 +38,11 @@
 #                                 record_ride) in three different shards. The
 #                                 split depends only on the file names, so
 #                                 every shard of a run agrees on it.
+#   VELORKI_ITEST_COMBINED=1   -> one `flutter test` over
+#                                 integration_test/all_tests.dart instead of
+#                                 one per file. Rules out a file filter and a
+#                                 shard: the combined entry point is the whole
+#                                 suite or nothing.
 #   VELORKI_ITEST_DRY_RUN=1    -> print the files this run would take and stop
 set -euo pipefail
 cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -110,24 +124,54 @@ if [ -n "$SHARD" ]; then
   fi
 fi
 
+# The combined entry point imports every file above and runs them as groups in
+# one process, so the shard split and the file filter have nothing to act on:
+# taking either silently would run far more than was asked for.
+COMBINED="${VELORKI_ITEST_COMBINED:-}"
+COMBINED_ENTRY=integration_test/all_tests.dart
+covered=("${tests[@]}")
+if [ -n "$COMBINED" ]; then
+  if [ -n "$filter" ] || [ -n "$SHARD" ]; then
+    printf 'VELORKI_ITEST_COMBINED runs the whole suite: no filter, no shard\n' >&2
+    exit 2
+  fi
+  if [ ! -e "$COMBINED_ENTRY" ]; then
+    printf '%s is missing\n' "$COMBINED_ENTRY" >&2
+    exit 2
+  fi
+  tests=("$COMBINED_ENTRY")
+fi
+
 if [ -n "${VELORKI_ITEST_DRY_RUN:-}" ]; then
-  printf '==> shard %s would run %d file(s):\n' "${SHARD:-1/1}" "${#tests[@]}"
-  printf '%s\n' "${tests[@]}"
+  if [ -n "$COMBINED" ]; then
+    printf '==> one combined run of %s, covering %d file(s):\n' \
+      "$COMBINED_ENTRY" "${#covered[@]}"
+  else
+    printf '==> shard %s would run %d file(s):\n' "${SHARD:-1/1}" "${#tests[@]}"
+  fi
+  printf '%s\n' "${covered[@]}"
   exit 0
 fi
 
-printf '==> %d test(s) (shard %s) on %s, region %s, segments %s\n' \
-  "${#tests[@]}" "${SHARD:-1/1}" "$DEVICE" "$REGION" "$SEGMENTS_URL"
+if [ -n "$COMBINED" ]; then
+  printf '==> %s, %d file(s) in one run, on %s, region %s, segments %s\n' \
+    "$COMBINED_ENTRY" "${#covered[@]}" "$DEVICE" "$REGION" "$SEGMENTS_URL"
+else
+  printf '==> %d test(s) (shard %s) on %s, region %s, segments %s\n' \
+    "${#tests[@]}" "${SHARD:-1/1}" "$DEVICE" "$REGION" "$SEGMENTS_URL"
+fi
 for f in ${skipped[@]+"${skipped[@]}"}; do
   printf '    skipping %s: it needs a BRouter server in VELORKI_BROUTER_URL\n' "$f"
 done
 printf '\n'
 
 started=$(date +%s)
-# How long one test file may take, in seconds. The longest flow (the loop
-# search) finishes in a few minutes; a run that goes beyond this is the
-# tooling hanging while it attaches to the app, which happened on the iOS
-# simulator, and is retried once like the other tooling failures.
+# How long one `flutter test` invocation may take, in seconds. The longest
+# flow (the loop search) finishes in a few minutes; a run that goes beyond
+# this is the tooling hanging while it attaches to the app, which happened on
+# the iOS simulator, and is retried once like the other tooling failures. A
+# combined run is the whole suite in one invocation and needs far more than
+# the default, which is why the iOS workflow sets VELORKI_ITEST_TIMEOUT.
 LIMIT="${VELORKI_ITEST_TIMEOUT:-900}"
 
 # How long the tooling may take, after the build, to install the app, attach
@@ -222,18 +266,23 @@ tooling_failed() {
   grep -qE "Failed to start Dart Development Service|^Failed to load \"|No tests ran|0 tests passed" "$log"
 }
 
+# Three tries per file: a freshly booted CI emulator has failed the first file
+# twice in a row before the tooling settled. A combined run gets one retry and
+# no more — a second one would be a third pass over the whole suite, well past
+# the job's own timeout, and the attach it is meant to rescue happens once.
+TRIES=3
+if [ -n "$COMBINED" ]; then TRIES=2; fi
+
 run_one() {
   local f=$1 log rc=0 try
   log=$(mktemp)
-  # Three tries: a freshly booted CI emulator has failed the first file twice
-  # in a row before the tooling settled.
-  for try in 1 2 3; do
+  for ((try = 1; try <= TRIES; try++)); do
     rc=0
     attempt "$f" "$log" || rc=$?
     if [ "$rc" -eq 0 ]; then break; fi
-    if [ "$try" -lt 3 ] && tooling_failed "$rc" "$log"; then
-      printf '    the tooling did not get going; running %s again (%s of 3)\n' \
-        "$(basename "$f")" "$((try + 1))"
+    if [ "$try" -lt "$TRIES" ] && tooling_failed "$rc" "$log"; then
+      printf '    the tooling did not get going; running %s again (%s of %s)\n' \
+        "$(basename "$f")" "$((try + 1))" "$TRIES"
       continue
     fi
     break

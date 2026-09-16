@@ -82,9 +82,13 @@ before changing structure.
 ## Tests
 
 - `app/test`: widget/unit tests per feature with `support/` harnesses and fakes.
-- `app/integration_test`: emulator flows; run all with `app/tool/itest.sh`.
-  `VELORKI_ITEST_SHARD=1/3` runs a third of the files (CI splits it three
-  ways), `VELORKI_ITEST_DRY_RUN=1` just lists what a shard would run.
+- `app/integration_test`: emulator flows; run all with `app/tool/itest.sh`,
+  one `flutter test` per file. `VELORKI_ITEST_SHARD=1/3` runs a third of the
+  files (Android CI splits it three ways), `VELORKI_ITEST_DRY_RUN=1` just lists
+  what a shard would run, and `VELORKI_ITEST_COMBINED=1` runs
+  `integration_test/all_tests.dart` — every file grouped into one process, one
+  build and one attach, which is what iOS CI does. So a test may assume neither
+  a fresh process nor anything a file before it left behind.
   `app/tool/itest_mirror.sh` builds and serves the tile mirror they download
   from — the oracle rd5 plus its `.gaz` fixture — on port 8000.
 - BRouter parity: `tools/brouter-oracle` with the two committed tiles in
@@ -95,11 +99,13 @@ before changing structure.
   `apk` builds the debug artifact beside it, and `gazetteer` builds the
   Liechtenstein extract and checks the `.gaz` fixtures), `integration.yml` and
   `integration-ios.yml` (every push to main that touches app/tiles/fixtures,
-  plus nightly; a newer push cancels the older run; both shard the suite three
-  ways, Android across API levels 31, 35 and 36, and cache Gradle and the AVD
-  snapshot / the pods and the derived data), `gazetteer-perf.yml`
-  (nightly, times the search against New York off the mirror),
-  `brouter-oracle.yml` (weekly). No rd5 comes off brouter.de; the oracle job
+  plus nightly; a newer push cancels the older run. Android shards the suite
+  three ways across API levels 31, 35 and 36 and caches Gradle and the AVD
+  snapshot; iOS is one job running the whole suite in one process
+  (`VELORKI_ITEST_COMBINED=1`), because there the Xcode build and the simulator
+  boot cost more than the tests, and caches the pods and the derived data),
+  `gazetteer-perf.yml` (nightly, times the search against New York off the
+  mirror), `brouter-oracle.yml` (weekly). No rd5 comes off brouter.de; the oracle job
   does fetch the pinned upstream release zip.
 
 ## Verifying on the emulator

@@ -19,6 +19,7 @@
 // are system UI outside the Flutter tree. The three gateways behind those
 // dialogs are faked for the same reason.
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
@@ -99,7 +100,19 @@ void main() {
 
     final rides = container.listen(ridesProvider, (_, _) {});
     addTearDown(rides.close);
-    final before = {for (final ride in rides.read().value ?? const []) ride.id};
+    // The ride this test finishes is found by being the one that was not here
+    // before, so "before" has to be the real contents of the database and not
+    // the empty list a stream that has yet to emit reads as. Every earlier ride
+    // is scripted from the same fake clock as this one, so a newest-first sort
+    // would not tell them apart either: this is the only handle there is.
+    await waitUntil(
+      tester,
+      () => rides.read().hasValue,
+      describe: 'the rides already in the database',
+      onTimeout: () => '${rides.read()}',
+    );
+    final before = {for (final ride in rides.read().requireValue) ride.id};
+    debugPrint('VELORKI_RIDE ${before.length} ride(s) before this one');
 
     await tapAndPump(tester, find.text('Record'));
     await waitForWidget(
@@ -217,11 +230,16 @@ void main() {
 
     // ----------------------------------------------------------- in the list
     await tapAndPump(tester, find.text('Record'));
+    // The row is found by the id in its Dismissible key, not by its name: a
+    // ride with no name of its own is called after the day it was ridden, so
+    // every ride this suite records in one run is called the same thing, and
+    // dragUntilVisible insists on exactly one match.
+    final row = find.byKey(ValueKey('ride-${ride.id}'));
     // The recent rides sit below the fold of the sheet, under the switches,
     // and the list only builds the rows on screen: pull the sheet up until
     // the ride's row exists.
     await tester.dragUntilVisible(
-      find.widgetWithText(ListTile, ride.name),
+      row,
       find
           .descendant(
             of: find.byType(DraggableScrollableSheet),
@@ -230,7 +248,11 @@ void main() {
           .first,
       const Offset(0, -300),
     );
-    await waitForWidget(tester, find.widgetWithText(ListTile, ride.name));
+    await waitForWidget(tester, row);
+    expect(
+      find.descendant(of: row, matching: find.text(ride.name)),
+      findsOneWidget,
+    );
     expect(wake.enabled, isFalse, reason: 'the wake lock is released');
 
     await unmountApp(tester);
