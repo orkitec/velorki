@@ -476,6 +476,14 @@
       }
     }
   },
+  "searchShowOffline": "Show offline results",
+  "@searchShowOffline": {
+    "description": "Last row of an online result list when the area under the map centre has a downloaded gazetteer; searches the device again"
+  },
+  "searchDownloadAreaOffline": "Download this area to search offline",
+  "@searchDownloadAreaOffline": {
+    "description": "Last row of the result list when the area under the map centre has no gazetteer; opens the offline data screen"
+  },
   "searchKindCity": "City",
   "@searchKindCity": {
     "description": "Second line of an offline search result that is a city"
@@ -1895,6 +1903,22 @@
   "mapLookBlack": "Black",
   "@mapLookBlack": {
     "description": "Map style option: always the black map"
+  },
+  "appearanceOverlayDarkTitle": "Cycling overlay on dark maps",
+  "@appearanceOverlayDarkTitle": {
+    "description": "Label above the choice of how the CyclOSM overlay is drawn on the night and black maps"
+  },
+  "appearanceOverlayDarkInverted": "Inverted",
+  "@appearanceOverlayDarkInverted": {
+    "description": "Cycling overlay option: inverted so it reads as part of a dark map"
+  },
+  "appearanceOverlayDarkDimmed": "Dimmed",
+  "@appearanceOverlayDarkDimmed": {
+    "description": "Cycling overlay option: darkened but keeping its own colours"
+  },
+  "appearanceOverlayDarkUnchanged": "Unchanged",
+  "@appearanceOverlayDarkUnchanged": {
+    "description": "Cycling overlay option: drawn as it comes, bright on a dark map"
   },
   "accentVolt": "Volt",
   "@accentVolt": {

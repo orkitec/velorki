@@ -12,7 +12,14 @@ import 'package:velorki/features/search/presentation/search_field.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../planner/support/pump.dart';
+import 'support/fake_http.dart';
 import 'support/gazetteer_fixture.dart';
+
+/// A map centre inside `E5_N45`, the tile the fixture gazetteer covers.
+const LatLng inTheTile = LatLng(47.1410, 9.5209);
+
+/// A map centre in `E10_N45`, which no gazetteer here covers.
+const LatLng outsideTheTile = LatLng(48.1374, 11.5755);
 
 void main() {
   group('kinds, icons and labels', _kindTable);
@@ -150,15 +157,26 @@ void main() {
       bool empty = false,
       bool withGeocoder = true,
       String text = 'vaduz',
-      LatLng? bias,
+      // The map is over the tile the fixture covers unless a test says
+      // otherwise: that is what makes the search a local one.
+      LatLng? bias = inTheTile,
       List<GazPoi> extraPois = const <GazPoi>[],
+      VoidCallback? onDownloadArea,
+      String photonBody = photonFixture,
     }) async {
       final h = await pumpScreen(
         tester,
         Scaffold(
-          body: SearchField(onSelected: (_) {}, bias: () => bias),
+          body: SearchField(
+            onSelected: (_) {},
+            bias: () => bias,
+            onDownloadArea: onDownloadArea,
+          ),
         ),
-        harness: PlannerHarness(withGeocoder: withGeocoder),
+        harness: PlannerHarness(
+          withGeocoder: withGeocoder,
+          photonBody: photonBody,
+        ),
         extraOverrides: storeOverride(empty: empty, extraPois: extraPois),
       );
       // The store is opened while the app starts; a frame stands in for that.
@@ -297,6 +315,110 @@ void main() {
         tester.widget<TextField>(find.byType(TextField)).enabled,
         isTrue,
         reason: 'the gazetteer alone is enough to search',
+      );
+    });
+
+    testWidgets('a centre outside the downloaded area offers the download', (
+      tester,
+    ) async {
+      var taps = 0;
+      final h = await pumpField(
+        tester,
+        text: 'munich',
+        bias: outsideTheTile,
+        onDownloadArea: () => taps++,
+      );
+
+      expect(
+        h.photonAdapter.requests,
+        hasLength(1),
+        reason: 'the gazetteer knows nothing about this area',
+      );
+      expect(find.text('Munich'), findsOneWidget);
+      final row = find.text('Download this area to search offline');
+      expect(row, findsOneWidget);
+      expect(find.byIcon(Icons.download_outlined), findsOneWidget);
+      expect(
+        find.text('Show offline results'),
+        findsNothing,
+        reason: 'there is nothing offline to show here',
+      );
+
+      await tester.tap(row);
+      await tester.pumpAndSettle();
+
+      expect(taps, 1);
+    });
+
+    testWidgets('over a downloaded area there is nothing to download', (
+      tester,
+    ) async {
+      await pumpField(tester, onDownloadArea: () {});
+
+      expect(find.text('Vaduz'), findsOneWidget);
+      expect(find.text('Download this area to search offline'), findsNothing);
+      expect(find.text('Search online for \u201cvaduz\u201d'), findsOneWidget);
+    });
+
+    testWidgets('without a map centre the download row stays away', (
+      tester,
+    ) async {
+      await pumpField(
+        tester,
+        text: 'munich',
+        bias: null,
+        onDownloadArea: () {},
+      );
+
+      expect(find.text('Munich'), findsOneWidget);
+      expect(find.text('Download this area to search offline'), findsNothing);
+    });
+
+    testWidgets('a search that failed still offers the download', (
+      tester,
+    ) async {
+      await pumpField(
+        tester,
+        text: 'munich',
+        bias: outsideTheTile,
+        photonBody: 'not json at all',
+        onDownloadArea: () {},
+      );
+
+      expect(find.text('Search failed.'), findsOneWidget);
+      expect(
+        find.text('Download this area to search offline'),
+        findsOneWidget,
+        reason: 'no network is when the download matters most',
+      );
+    });
+
+    testWidgets('the online results offer the way back to the local ones', (
+      tester,
+    ) async {
+      final h = await pumpField(tester, onDownloadArea: () {});
+      expect(find.text('Show offline results'), findsNothing);
+
+      await tester.tap(find.text('Search online for \u201cvaduz\u201d'));
+      await tester.pumpAndSettle();
+
+      expect(h.photonAdapter.requests, hasLength(1));
+      expect(find.text('Munich'), findsOneWidget);
+      final back = find.text('Show offline results');
+      expect(back, findsOneWidget);
+      expect(find.byIcon(Icons.offline_pin_outlined), findsOneWidget);
+      expect(find.text('Download this area to search offline'), findsNothing);
+
+      await tester.tap(back);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Vaduz'), findsOneWidget);
+      expect(find.text('Munich'), findsNothing);
+      expect(find.text('Search online for \u201cvaduz\u201d'), findsOneWidget);
+      expect(
+        h.photonAdapter.requests,
+        hasLength(1),
+        reason: 'the way back costs no request',
       );
     });
 

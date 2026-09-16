@@ -31,6 +31,7 @@ class PlaceSearchState {
     this.query = '',
     this.source = SearchSource.online,
     this.canSearchOnline = false,
+    this.offlineAvailableHere = false,
     this.correctedQuery,
   });
 
@@ -46,6 +47,15 @@ class PlaceSearchState {
   /// Whether a geocoder is configured, so "Search online" can be offered.
   final bool canSearchOnline;
 
+  /// Whether the area under the map centre has a gazetteer, so this query
+  /// could be answered on the device.
+  ///
+  /// False when there is no map centre to judge by, when nothing is
+  /// downloaded, and when what is downloaded is somewhere else. The list then
+  /// offers the download for the area on screen instead of "Show offline
+  /// results".
+  final bool offlineAvailableHere;
+
   /// What the on-device index was searched for when nothing matched [query]
   /// and the spelling was guessed at; `null` when [query] answered by itself.
   /// The list says so in a line above the results.
@@ -55,16 +65,20 @@ class PlaceSearchState {
   String toString() =>
       'PlaceSearchState(${results.length} ${source.name} results for '
       '"$query"${correctedQuery == null ? '' : ' (corrected to '
-                '"$correctedQuery")'}, online available: $canSearchOnline)';
+                '"$correctedQuery")'}, online available: $canSearchOnline, '
+      'offline available here: $offlineAvailableHere)';
 }
 
 /// The place search behind the planner's search field.
 ///
-/// A rider who downloaded routing tiles searches the `<TILE>.gaz` gazetteers
-/// next to them: instant, free and working with no signal. Photon is then one
-/// tap away, as the last row of the result list ([searchOnline]). Without a
-/// single gazetteer on the device the field goes straight to Photon, which is
-/// what it always did.
+/// What answers depends on the area under the map centre, not on what the
+/// device happens to hold: a rider looking at a region whose `<TILE>.gaz`
+/// gazetteer is downloaded searches it — instant, free and working with no
+/// signal — with Photon one tap away as the last row of the list
+/// ([searchOnline]). Anywhere else the field goes straight to Photon, exactly
+/// as a device with no gazetteer at all does, and the list offers the download
+/// for the area on screen. [searchOffline] is the way back from an online list
+/// to the local one, where there is one.
 ///
 /// Debounced, never fired below [searchMinChars] characters, and every
 /// keystroke cancels the request that is still in flight.
@@ -75,6 +89,9 @@ class PlaceSearch extends _$PlaceSearch {
   GazetteerStore? _store;
   String _query = '';
   bool _disposed = false;
+
+  /// Whether the last query's map centre had a gazetteer.
+  bool _coveredHere = false;
 
   @override
   AsyncValue<PlaceSearchState> build() {
@@ -90,6 +107,10 @@ class PlaceSearch extends _$PlaceSearch {
   }
 
   /// Searches for [text], biased towards [bias] when the map centre is known.
+  ///
+  /// [bias] is also what decides where the answer comes from: only a centre
+  /// whose tile has a gazetteer is searched on the device, everything else
+  /// goes to Photon.
   ///
   /// [keywords] is the localised kind table — "drinking water" → the
   /// `drinking_water` kind, in the language the app is running in — which only
@@ -107,13 +128,14 @@ class PlaceSearch extends _$PlaceSearch {
     _pending = null;
     final trimmed = text.trim();
     _query = trimmed;
+    _coveredHere = _covers(bias);
     if (trimmed.length < searchMinChars) {
       state = AsyncData<PlaceSearchState>(_emptyState(query: trimmed));
       return;
     }
     state = const AsyncLoading<PlaceSearchState>();
     _debounce = Timer(
-      _store?.hasTiles ?? false ? searchLocalDebounce : searchDebounce,
+      _coveredHere ? searchLocalDebounce : searchDebounce,
       () => unawaited(
         _search(trimmed, lang: lang, bias: bias, keywords: keywords),
       ),
@@ -135,6 +157,27 @@ class PlaceSearch extends _$PlaceSearch {
     await _searchOnline(text, lang: lang, bias: bias);
   }
 
+  /// Answers the text the field is showing from the device again.
+  ///
+  /// The way back from an online list to the local one, offered as the last
+  /// row whenever the results came off the network and the area under [bias]
+  /// has a gazetteer. Does nothing when it has none.
+  Future<void> searchOffline({
+    LatLng? bias,
+    Map<String, String> keywords = const <String, String>{},
+  }) async {
+    final text = _query;
+    final store = _store;
+    if (text.length < searchMinChars) return;
+    if (store == null || bias == null || !store.covers(bias)) return;
+    _debounce?.cancel();
+    _pending?.cancel('superseded');
+    _pending = null;
+    _coveredHere = true;
+    state = const AsyncLoading<PlaceSearchState>();
+    await _searchLocal(store, text, near: bias, keywords: keywords);
+  }
+
   /// Empties the result list and drops any pending request.
   void clear() {
     _debounce?.cancel();
@@ -154,7 +197,7 @@ class PlaceSearch extends _$PlaceSearch {
     // app starts, long before anyone has typed three characters, and a search
     // must never wait on the file system.
     final store = _store;
-    if (store != null && store.hasTiles) {
+    if (store != null && bias != null && store.covers(bias)) {
       await _searchLocal(store, text, near: bias, keywords: keywords);
       return;
     }
@@ -183,6 +226,7 @@ class PlaceSearch extends _$PlaceSearch {
         query: text,
         source: SearchSource.local,
         canSearchOnline: _hasGeocoder,
+        offlineAvailableHere: true,
         correctedQuery: found.correctedQuery,
       ),
     );
@@ -208,7 +252,12 @@ class PlaceSearch extends _$PlaceSearch {
       );
       if (_disposed || token.isCancelled) return;
       state = AsyncData<PlaceSearchState>(
-        PlaceSearchState(results: results, query: text, canSearchOnline: true),
+        PlaceSearchState(
+          results: results,
+          query: text,
+          canSearchOnline: true,
+          offlineAvailableHere: _coveredHere,
+        ),
       );
     } on SearchException catch (e, st) {
       if (_disposed || token.isCancelled) return;
@@ -223,12 +272,17 @@ class PlaceSearch extends _$PlaceSearch {
 
   bool get _hasGeocoder => ref.read(photonClientProvider) != null;
 
+  /// Whether the area under [bias] can be searched on this device.
+  bool _covers(LatLng? bias) {
+    final store = _store;
+    return bias != null && store != null && store.covers(bias);
+  }
+
   PlaceSearchState _emptyState({String query = ''}) => PlaceSearchState(
     query: query,
-    source: _store?.hasTiles ?? false
-        ? SearchSource.local
-        : SearchSource.online,
+    source: _coveredHere ? SearchSource.local : SearchSource.online,
     canSearchOnline: _hasGeocoder,
+    offlineAvailableHere: _coveredHere,
   );
 
   /// Remembers the gazetteer store as soon as it is open.

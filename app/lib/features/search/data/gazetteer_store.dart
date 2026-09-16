@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sqlite3/sqlite3.dart';
+import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../routing_tiles/data/brouter_storage.dart';
@@ -94,6 +95,27 @@ class GazetteerStore {
 
   /// The tiles that can be searched offline, sorted, for tests and logs.
   List<String> get tiles => _open.keys.toList()..sort();
+
+  /// Whether the 5° × 5° tile [point] falls into has an open gazetteer.
+  ///
+  /// [hasTiles] says the device can search *something* offline; this says it
+  /// can search *here*. A rider who downloaded Madeira and is looking at the
+  /// Alps has both a gazetteer and nothing to find in it, so the search goes
+  /// online instead and the list offers the download for the area on screen.
+  bool covers(LatLng point) {
+    if (_closed || _open.isEmpty) return false;
+    final TileName tile;
+    try {
+      tile = TileName.fromLatLng(point);
+    } on ArgumentError {
+      // A map that is not ready yet can answer with a non-finite centre.
+      return false;
+    }
+    for (final name in _open.keys) {
+      if (TileName.tryParse(name) == tile) return true;
+    }
+    return false;
+  }
 
   /// Opens gazetteers that appeared and closes those that are gone.
   ///

@@ -9,9 +9,16 @@ import 'package:velorki/features/search/application/place_search_controller.dart
 import 'package:velorki/features/search/data/gazetteer_store.dart';
 import 'package:velorki/features/search/data/photon_client.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
+import 'package:velorki_geo/velorki_geo.dart';
 
 import 'support/fake_http.dart';
 import 'support/gazetteer_fixture.dart';
+
+/// A map centre inside `E5_N45`, the tile the fixture gazetteer covers.
+const LatLng inTheTile = LatLng(47.1410, 9.5209);
+
+/// A map centre in `E10_N45`, which no gazetteer here covers.
+const LatLng outsideTheTile = LatLng(48.1374, 11.5755);
 
 void main() {
   late Directory dir;
@@ -76,16 +83,101 @@ void main() {
     final adapter = FakeHttpAdapter(body: photonFixture);
     final container = await containerFor(adapter: adapter);
 
-    container.read(placeSearchProvider.notifier).query('vaduz');
+    container
+        .read(placeSearchProvider.notifier)
+        .query('vaduz', bias: inTheTile);
     await settle();
 
     final state = container.read(placeSearchProvider).value!;
     expect(state.source, SearchSource.local);
     expect(state.query, 'vaduz');
     expect(state.canSearchOnline, isTrue);
+    expect(state.offlineAvailableHere, isTrue);
     expect(state.results.map((r) => r.name), contains('Vaduz'));
     expect(state.results.every((r) => r.source == SearchSource.local), isTrue);
     expect(adapter.requests, isEmpty, reason: 'nothing went to the network');
+  });
+
+  test('a centre outside the downloaded tile searches online', () async {
+    final adapter = FakeHttpAdapter(body: photonFixture);
+    final container = await containerFor(adapter: adapter);
+
+    container
+        .read(placeSearchProvider.notifier)
+        .query('vaduz', lang: 'en', bias: outsideTheTile);
+    await settle();
+
+    final state = container.read(placeSearchProvider).value!;
+    expect(
+      adapter.requests,
+      hasLength(1),
+      reason: 'the gazetteer on the device knows nothing about this area',
+    );
+    expect(state.source, SearchSource.online);
+    expect(state.offlineAvailableHere, isFalse);
+    expect(state.results.map((r) => r.name), contains('Munich'));
+  });
+
+  test('without a map centre there is no area to judge, so online', () async {
+    final adapter = FakeHttpAdapter(body: photonFixture);
+    final container = await containerFor(adapter: adapter);
+
+    container.read(placeSearchProvider.notifier).query('vaduz', lang: 'en');
+    await settle();
+
+    final state = container.read(placeSearchProvider).value!;
+    expect(adapter.requests, hasLength(1));
+    expect(state.source, SearchSource.online);
+    expect(state.offlineAvailableHere, isFalse);
+  });
+
+  test('the footer switches the same query both ways', () async {
+    final adapter = FakeHttpAdapter(body: photonFixture);
+    final container = await containerFor(adapter: adapter);
+    final notifier = container.read(placeSearchProvider.notifier);
+
+    notifier.query('vaduz', bias: inTheTile);
+    await settle();
+    expect(
+      container.read(placeSearchProvider).value!.source,
+      SearchSource.local,
+    );
+
+    await notifier.searchOnline(bias: inTheTile);
+    var state = container.read(placeSearchProvider).value!;
+    expect(state.source, SearchSource.online);
+    expect(state.results.map((r) => r.name), contains('Munich'));
+    expect(
+      state.offlineAvailableHere,
+      isTrue,
+      reason: 'the way back is offered while the area is downloaded',
+    );
+
+    await notifier.searchOffline(bias: inTheTile);
+    state = container.read(placeSearchProvider).value!;
+    expect(state.source, SearchSource.local);
+    expect(state.query, 'vaduz');
+    expect(state.results.map((r) => r.name), contains('Vaduz'));
+    expect(adapter.requests, hasLength(1), reason: 'nothing else was asked');
+  });
+
+  test('there is nothing to switch back to outside the tile', () async {
+    final adapter = FakeHttpAdapter(body: photonFixture);
+    final container = await containerFor(adapter: adapter);
+    final notifier = container.read(placeSearchProvider.notifier);
+
+    notifier.query('vaduz', bias: outsideTheTile);
+    await settle();
+    expect(
+      container.read(placeSearchProvider).value!.source,
+      SearchSource.online,
+    );
+
+    await notifier.searchOffline(bias: outsideTheTile);
+
+    final state = container.read(placeSearchProvider).value!;
+    expect(state.source, SearchSource.online);
+    expect(state.offlineAvailableHere, isFalse);
   });
 
   test('the online row runs Photon and replaces the results', () async {
@@ -93,11 +185,11 @@ void main() {
     final container = await containerFor(adapter: adapter);
     final notifier = container.read(placeSearchProvider.notifier);
 
-    notifier.query('vaduz');
+    notifier.query('vaduz', bias: inTheTile);
     await settle();
     expect(adapter.requests, isEmpty);
 
-    await notifier.searchOnline();
+    await notifier.searchOnline(bias: inTheTile);
 
     final state = container.read(placeSearchProvider).value!;
     expect(adapter.requests, hasLength(1));
@@ -110,7 +202,9 @@ void main() {
   test('without a geocoder there is nothing to offer online', () async {
     final container = await containerFor(withGeocoder: false);
 
-    container.read(placeSearchProvider.notifier).query('vaduz');
+    container
+        .read(placeSearchProvider.notifier)
+        .query('vaduz', bias: inTheTile);
     await settle();
 
     final state = container.read(placeSearchProvider).value!;
@@ -142,7 +236,7 @@ void main() {
     final adapter = FakeHttpAdapter(body: photonFixture);
     final container = await containerFor(adapter: adapter);
 
-    container.read(placeSearchProvider.notifier).query('va');
+    container.read(placeSearchProvider.notifier).query('va', bias: inTheTile);
     await settle();
 
     expect(container.read(placeSearchProvider).value!.results, isEmpty);
@@ -154,8 +248,8 @@ void main() {
   test('a keystroke supersedes the search before it', () async {
     final container = await containerFor();
     final notifier = container.read(placeSearchProvider.notifier)
-      ..query('schaan')
-      ..query('vaduz');
+      ..query('schaan', bias: inTheTile)
+      ..query('vaduz', bias: inTheTile);
     await settle();
 
     final state = container.read(placeSearchProvider).value!;
@@ -185,7 +279,7 @@ void main() {
   test('clear empties the list and forgets the query', () async {
     final container = await containerFor();
     final notifier = container.read(placeSearchProvider.notifier)
-      ..query('vaduz');
+      ..query('vaduz', bias: inTheTile);
     await settle();
     expect(container.read(placeSearchProvider).value!.results, isNotEmpty);
 

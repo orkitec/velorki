@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
+import 'package:velorki/features/map/data/map_preferences.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/routing_tiles/data/routing_tiles_repository.dart';
@@ -50,6 +51,10 @@ void main() {
         positionSourceProvider.overrideWithValue(
           FixedPositionSource(region.start),
         ),
+        // The search answers from the device only for the area under the map
+        // centre, so the map opens over the region rather than at the default
+        // view of central Europe.
+        lastMapCameraProvider.overrideWith(_RegionCamera.new),
       ],
     );
     await ensureRegionTile(tester, container);
@@ -126,4 +131,11 @@ void main() {
 
     await unmountApp(tester);
   });
+}
+
+/// The camera the app starts at: the region's tile, which is the one whose
+/// gazetteer this test downloads.
+class _RegionCamera extends LastMapCamera {
+  @override
+  MapCamera build() => MapCamera(center: region.start, zoom: 12);
 }

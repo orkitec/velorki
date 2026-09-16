@@ -47,6 +47,52 @@ void main() {
     expect(store.tiles, <String>['E5_N45']);
   });
 
+  test('covers says which area can be searched on the device', () async {
+    final store = await storeWithFixture();
+
+    // Inside E5_N45: everything from its south-west corner up to, but not
+    // including, the next tile's.
+    expect(store.covers(const LatLng(47.1410, 9.5209)), isTrue);
+    expect(store.covers(const LatLng(45.0, 5.0)), isTrue);
+    expect(store.covers(const LatLng(49.999, 9.999)), isTrue);
+    // The neighbours, and the far side of the planet.
+    expect(store.covers(const LatLng(50.0, 9.5)), isFalse);
+    expect(store.covers(const LatLng(47.0, 10.0)), isFalse);
+    expect(store.covers(const LatLng(48.1374, 11.5755)), isFalse);
+    expect(store.covers(const LatLng(32.65, -16.91)), isFalse);
+  });
+
+  test('covers is false with no gazetteer at all', () async {
+    final store = await openStore();
+
+    expect(store.hasTiles, isFalse);
+    expect(store.covers(const LatLng(47.1410, 9.5209)), isFalse);
+
+    final nowhere = GazetteerStore(null);
+    addTearDown(nowhere.close);
+    await nowhere.refresh();
+    expect(nowhere.covers(const LatLng(47.1410, 9.5209)), isFalse);
+  });
+
+  test('covers follows the files a rescan finds and a close drops', () async {
+    final store = await openStore();
+    expect(store.covers(const LatLng(32.65, -16.91)), isFalse);
+
+    buildGazetteer(
+      dir,
+      'W20_N30',
+      places: const <GazPlace>[
+        GazPlace(1, 'Funchal', 'city', 32.6500, -16.9100, population: 105000),
+      ],
+    );
+    await store.refresh();
+    expect(store.covers(const LatLng(32.65, -16.91)), isTrue);
+    expect(store.covers(const LatLng(47.1410, 9.5209)), isFalse);
+
+    store.close();
+    expect(store.covers(const LatLng(32.65, -16.91)), isFalse);
+  });
+
   test('a prefix of one token finds the place', () async {
     final store = await storeWithFixture();
     final results = await store.search('vad');

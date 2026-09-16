@@ -25,6 +25,7 @@ class SearchField extends ConsumerStatefulWidget {
     this.bias,
     this.onCleared,
     this.onFocusChanged,
+    this.onDownloadArea,
     super.key,
   });
 
@@ -41,6 +42,13 @@ class SearchField extends ConsumerStatefulWidget {
 
   /// The current map centre, read when a request goes out.
   final LatLng? Function()? bias;
+
+  /// Called when the rider taps "Download this area to search offline", which
+  /// the list offers while the area under the map centre has no gazetteer.
+  ///
+  /// The screen decides what that opens — the field knows nothing about
+  /// navigation — and leaving it `null` leaves the row out.
+  final VoidCallback? onDownloadArea;
 
   @override
   ConsumerState<SearchField> createState() => _SearchFieldState();
@@ -117,6 +125,17 @@ class _SearchFieldState extends ConsumerState<SearchField> {
     );
   }
 
+  void _searchOffline() {
+    unawaited(
+      ref
+          .read(placeSearchProvider.notifier)
+          .searchOffline(
+            bias: widget.bias?.call(),
+            keywords: localisedKindKeywords(AppLocalizations.of(context)),
+          ),
+    );
+  }
+
   void _select(SearchResult result) {
     _controller.text = searchResultTitle(AppLocalizations.of(context), result);
     _focusNode.unfocus();
@@ -133,9 +152,18 @@ class _SearchFieldState extends ConsumerState<SearchField> {
     final units = ref.watch(unitSystemProvider);
     // The field works with a geocoder, with a downloaded gazetteer, or both;
     // only a device with neither has nothing to search.
+    final store = ref.watch(gazetteerStoreProvider).value;
     final canSearch =
-        ref.watch(photonClientProvider) != null ||
-        (ref.watch(gazetteerStoreProvider).value?.hasTiles ?? false);
+        ref.watch(photonClientProvider) != null || (store?.hasTiles ?? false);
+    // Whether this list can offer the download: there is a map centre, it is
+    // not in a downloaded tile, and the screen knows where to send the rider.
+    // Read here rather than out of the state, because an errored search
+    // (no network) carries no state and is exactly when the row matters.
+    final centre = widget.bias?.call();
+    final canDownloadHere =
+        widget.onDownloadArea != null &&
+        centre != null &&
+        !(store?.covers(centre) ?? false);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _syncResults();
@@ -157,8 +185,11 @@ class _SearchFieldState extends ConsumerState<SearchField> {
                 child: _ResultsCard(
                   results: results,
                   units: units,
+                  canDownloadHere: canDownloadHere,
                   onSelected: _select,
                   onSearchOnline: _searchOnline,
+                  onSearchOffline: _searchOffline,
+                  onDownloadArea: widget.onDownloadArea,
                 ),
               ),
             ),
@@ -209,14 +240,22 @@ class _ResultsCard extends StatefulWidget {
   const _ResultsCard({
     required this.results,
     required this.units,
+    required this.canDownloadHere,
     required this.onSelected,
     required this.onSearchOnline,
+    required this.onSearchOffline,
+    this.onDownloadArea,
   });
 
   final AsyncValue<PlaceSearchState> results;
   final UnitSystem units;
+
+  /// Whether the area on screen can be downloaded to be searched offline.
+  final bool canDownloadHere;
   final ValueChanged<SearchResult> onSelected;
   final VoidCallback onSearchOnline;
+  final VoidCallback onSearchOffline;
+  final VoidCallback? onDownloadArea;
 
   @override
   State<_ResultsCard> createState() => _ResultsCardState();
@@ -259,23 +298,30 @@ class _ResultsCardState extends State<_ResultsCard> {
               padding: EdgeInsets.all(16),
               child: LinearProgressIndicator(),
             ),
-            error: (error, _) => ListTile(
-              leading: const Icon(Icons.error_outline),
-              title: Text(
-                error is SearchException && error.message.contains('configured')
-                    ? l10n.searchUnavailable
-                    : l10n.searchFailed,
-              ),
-              // The reason, so a failure is diagnosable from the screen.
-              subtitle:
+            // A search that failed with no gazetteer under the map centre is
+            // the moment the download matters most, so the row stays under
+            // the error as well.
+            error: (error, _) => _withFooter(
+              context,
+              ListTile(
+                leading: const Icon(Icons.error_outline),
+                title: Text(
                   error is SearchException &&
-                      !error.message.contains('configured')
-                  ? Text(
-                      error.message,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    )
-                  : null,
+                          error.message.contains('configured')
+                      ? l10n.searchUnavailable
+                      : l10n.searchFailed,
+                ),
+                // The reason, so a failure is diagnosable from the screen.
+                subtitle:
+                    error is SearchException &&
+                        !error.message.contains('configured')
+                    ? Text(
+                        error.message,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      )
+                    : null,
+              ),
             ),
             data: (state) => _list(context, state),
           ),
@@ -284,15 +330,19 @@ class _ResultsCardState extends State<_ResultsCard> {
     );
   }
 
-  /// The rows: the results, and under them the "search online" row when the
-  /// results came off the device and a geocoder is configured.
+  /// The rows: the results, and under them the one row that leads out of what
+  /// is on screen — "Search online for …" below local results, "Show offline
+  /// results" below online ones where the area is downloaded, and "Download
+  /// this area to search offline" where it is not.
   ///
-  /// The online row is a footer pinned below the scrolling list, not its last
-  /// item: it has to be visible whatever the list holds, because it is the
-  /// way out when the gazetteer does not know the place.
+  /// That row is a footer pinned below the scrolling list, not its last item:
+  /// it has to be visible whatever the list holds, because it is the way out
+  /// when what answered does not know the place.
   Widget _list(BuildContext context, PlaceSearchState state) {
     final l10n = AppLocalizations.of(context);
     final online = state.source == SearchSource.local && state.canSearchOnline;
+    final offline =
+        state.source == SearchSource.online && state.offlineAvailableHere;
     final items = state.results;
     final corrected = state.correctedQuery;
     final Widget list = items.isEmpty
@@ -320,7 +370,22 @@ class _ResultsCardState extends State<_ResultsCard> {
               },
             ),
           );
-    if (!online && corrected == null) return list;
+    final footer = online
+        ? ListTile(
+            dense: true,
+            leading: const Icon(Icons.travel_explore_outlined),
+            title: Text(l10n.searchOnlineFor(state.query)),
+            onTap: widget.onSearchOnline,
+          )
+        : offline
+        ? ListTile(
+            dense: true,
+            leading: const Icon(Icons.offline_pin_outlined),
+            title: Text(l10n.searchShowOffline),
+            onTap: widget.onSearchOffline,
+          )
+        : _downloadRow(context);
+    if (footer == null && corrected == null) return list;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -334,16 +399,35 @@ class _ResultsCardState extends State<_ResultsCard> {
             ),
           ),
         Flexible(child: list),
-        if (online) ...[
-          const Divider(height: 1),
-          ListTile(
-            dense: true,
-            leading: const Icon(Icons.travel_explore_outlined),
-            title: Text(l10n.searchOnlineFor(state.query)),
-            onTap: widget.onSearchOnline,
-          ),
-        ],
+        if (footer != null) ...[const Divider(height: 1), footer],
       ],
+    );
+  }
+
+  /// [child] with the download row pinned under it, where there is one.
+  Widget _withFooter(BuildContext context, Widget child) {
+    final row = _downloadRow(context);
+    if (row == null) return child;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Flexible(child: child),
+        const Divider(height: 1),
+        row,
+      ],
+    );
+  }
+
+  /// "Download this area to search offline", or `null` when the area under
+  /// the map centre is downloaded already (or there is no centre to judge).
+  Widget? _downloadRow(BuildContext context) {
+    final onDownload = widget.onDownloadArea;
+    if (!widget.canDownloadHere || onDownload == null) return null;
+    return ListTile(
+      dense: true,
+      leading: const Icon(Icons.download_outlined),
+      title: Text(AppLocalizations.of(context).searchDownloadAreaOffline),
+      onTap: onDownload,
     );
   }
 }

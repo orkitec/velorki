@@ -289,10 +289,15 @@ landmarks, cycling stops, overnight, nature, transport, services), which
 filters the local results and breaks bm25 ties before name length does. A query
 that matches nothing is run once more against the index vocabulary
 (`fts5vocab` in the connection's `temp` schema, Damerau-Levenshtein), and the
-list says what it searched for instead. Photon is
-then the last row of the list ("Search online for …"), one tap away; a device
-with no gazetteer goes to Photon straight away, as before. A failed gazetteer
-download never fails its tile: the region stays routable and its search stays
+list says what it searched for instead. What answers depends on the area, not
+on the device: only a map centre inside a tile whose gazetteer is open
+(`GazetteerStore.covers`, BRouter's 5° × 5° tile naming) is searched locally,
+with Photon the last row of the list ("Search online for …") and "Show offline
+results" the way back from an online list; anywhere else — no gazetteer, none
+for this area, or no map centre at all — the search goes straight to Photon and
+the pinned last row offers "Download this area to search offline", which opens
+the offline data screen for the visible area, error state included. A failed
+gazetteer download never fails its tile: the region stays routable and its search stays
 online. The files are built by `tools/gazetteer`.
 
 ## Configuration
