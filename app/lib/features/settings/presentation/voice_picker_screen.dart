@@ -13,6 +13,7 @@ import '../../navigation/data/voice_catalogue_asset.dart';
 import '../../navigation/domain/voice_catalogue.dart';
 import '../../navigation/domain/voice_naming.dart';
 import '../../navigation/domain/voice_option.dart';
+import '../../navigation/domain/voice_ranking.dart';
 import '../../navigation/presentation/turn_phrases.dart';
 import '../../navigation/presentation/voice_labels.dart';
 import '../data/units.dart';
@@ -46,11 +47,23 @@ class VoicePickerScreen extends ConsumerWidget {
       preferredLocaleTag: WidgetsBinding.instance.platformDispatcher.locale
           .toLanguageTag(),
     );
+    // What "System default" comes out as right now, worked out from the same
+    // list the speaker ranks, so the row and the ride agree. Named from
+    // [named] so it reads the way the rows below do.
+    final resolved = bestVoiceFor(
+      voices.value ?? const <VoiceOption>[],
+      cueLocaleTag(),
+    );
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsVoicePick)),
       body: voices.isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _VoiceList(voices: named, chosen: settings.voiceId, apple: apple),
+          : _VoiceList(
+              voices: named,
+              chosen: settings.voiceId,
+              apple: apple,
+              resolvedId: resolved?.id,
+            ),
     );
   }
 }
@@ -60,11 +73,16 @@ class _VoiceList extends ConsumerStatefulWidget {
     required this.voices,
     required this.chosen,
     required this.apple,
+    this.resolvedId,
   });
 
   final List<VoiceOption> voices;
   final String? chosen;
   final bool apple;
+
+  /// The voice "System default" resolves to, or `null` when the choice is
+  /// left to the engine.
+  final String? resolvedId;
 
   @override
   ConsumerState<_VoiceList> createState() => _VoiceListState();
@@ -82,15 +100,16 @@ class _VoiceListState extends ConsumerState<_VoiceList> {
     final shown = _showOnline
         ? widget.voices
         : widget.voices.where((voice) => !voice.needsNetwork).toList();
+    // What the default resolves to, by the name the rows use.
+    final resolved = widget.resolvedId == null
+        ? null
+        : widget.voices
+              .where((voice) => voice.id == widget.resolvedId)
+              .firstOrNull;
     // The card only helps where the rider can act on it: iOS keeps the good
-    // voices behind a download, Android ships them with the engine.
-    final needsBetter =
-        widget.apple &&
-        !widget.voices.any(
-          (voice) =>
-              voice.quality == VoiceQuality.enhanced ||
-              voice.quality == VoiceQuality.premium,
-        );
+    // voices behind a download, Android ships them with the engine. Nothing
+    // resolved means the best voice for the language is the compact one.
+    final needsBetter = widget.apple && widget.resolvedId == null;
     return ListView(
       padding: EdgeInsets.only(bottom: bottom + 24),
       children: [
@@ -103,7 +122,11 @@ class _VoiceListState extends ConsumerState<_VoiceList> {
                 : Icons.radio_button_off,
             color: widget.chosen == null ? theme.colorScheme.primary : null,
           ),
-          title: Text(l10n.settingsVoiceSystemDefault),
+          title: Text(
+            resolved == null
+                ? l10n.settingsVoiceSystemDefault
+                : l10n.settingsVoiceSystemDefaultNow(resolved.displayName),
+          ),
           subtitle: Text(l10n.settingsVoiceSystemDefaultHint),
           onTap: () => unawaited(_choose(null)),
         ),
@@ -219,7 +242,8 @@ class _VoiceTile extends StatelessWidget {
 ///
 /// Apple ships the compact voice and leaves the rest as a download, and
 /// there is no link straight to the voices page; `app-settings:` is as close
-/// as iOS lets an app get.
+/// as iOS lets an app get, which is why the way there is written out step by
+/// step and the button says where it lands.
 class _BetterVoicesCard extends ConsumerWidget {
   const _BetterVoicesCard();
 
@@ -227,6 +251,18 @@ class _BetterVoicesCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final language = languageNameOf(l10n, cueLocaleTag());
+    final body = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSecondaryContainer,
+    );
+    // Apple has no link to the voices page, so the way there is spelled out.
+    final steps = <String>[
+      l10n.voiceBetterStep1,
+      l10n.voiceBetterStep2,
+      l10n.voiceBetterStep3,
+      l10n.voiceBetterStep4(language),
+      l10n.voiceBetterStep5,
+    ];
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: DecoratedBox(
@@ -246,13 +282,25 @@ class _BetterVoicesCard extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                l10n.voiceBetterBody(languageNameOf(l10n, cueLocaleTag())),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSecondaryContainer,
-                ),
-              ),
+              Text(l10n.voiceBetterBody(language), style: body),
               const SizedBox(height: 8),
+              for (final (index, step) in steps.indexed)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        child: Text('${index + 1}.', style: body),
+                      ),
+                      Expanded(child: Text(step, style: body)),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 8),
+              Text(l10n.voiceBetterAfter, style: body),
+              const SizedBox(height: 12),
               Align(
                 alignment: Alignment.centerLeft,
                 child: FilledButton.tonal(
@@ -260,6 +308,13 @@ class _BetterVoicesCard extends ConsumerWidget {
                     ref.read(linkOpenerProvider)(Uri.parse('app-settings:')),
                   ),
                   child: Text(l10n.voiceBetterOpenSettings),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                l10n.voiceBetterOpenSettingsHint,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSecondaryContainer,
                 ),
               ),
             ],

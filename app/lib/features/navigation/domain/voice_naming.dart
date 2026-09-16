@@ -88,12 +88,12 @@ List<VoiceOption> describeVoices(
   // real one is there.
   final regionsWithVoices = <String>{
     for (final voice in voices)
-      if (!_isAlias(voice)) voice.localeTag.toLowerCase(),
+      if (!isRegionAlias(voice)) voice.localeTag.toLowerCase(),
   };
   final counters = <String, int>{};
   final described = <VoiceOption>[];
   for (final voice in voices) {
-    if (_isAlias(voice) &&
+    if (isRegionAlias(voice) &&
         regionsWithVoices.contains(voice.localeTag.toLowerCase())) {
       continue;
     }
@@ -136,6 +136,8 @@ List<VoiceOption> describeVoices(
   return described..sort(compare);
 }
 
-/// Whether [voice] is one of Google's per-region default aliases.
-bool _isAlias(VoiceOption voice) =>
+/// Whether [voice] is one of Google's per-region default aliases: the same
+/// voice the engine also lists under its own name, e.g. `en-US-language`
+/// beside `en-us-x-iog-local`.
+bool isRegionAlias(VoiceOption voice) =>
     voice.name.toLowerCase().endsWith('-language');

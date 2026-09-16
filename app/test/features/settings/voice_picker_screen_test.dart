@@ -24,6 +24,9 @@ final AppLocalizations _l10n = lookupAppLocalizations(const Locale('en'));
 /// An Apple name is a proper noun; only the badge behind it is translated.
 final String _zoeLabel = 'Zoe (${_l10n.voiceQualityEnhanced})';
 
+/// What the system default row reads once it resolves to Zoe.
+final String _defaultIsZoe = _l10n.settingsVoiceSystemDefaultNow(_zoeLabel);
+
 /// The compact voice an iPhone ships with.
 const VoiceOption _samantha = VoiceOption(
   id: 'com.apple.voice.compact.en-US.Samantha',
@@ -52,6 +55,23 @@ const VoiceOption _germanGoogle = VoiceOption(
   name: 'de-de-x-dea-local',
   localeTag: 'de-DE',
   quality: VoiceQuality.normal,
+);
+
+/// An enhanced voice that is only there with a signal.
+const VoiceOption _appleOnline = VoiceOption(
+  id: 'com.apple.voice.enhanced.en-US.Cloud',
+  name: 'Cloud',
+  localeTag: 'en-US',
+  quality: VoiceQuality.enhanced,
+  needsNetwork: true,
+);
+
+/// An Android voice the engine does grade.
+const VoiceOption _googleHigh = VoiceOption(
+  id: 'en-us-x-tpd-local|en-US',
+  name: 'en-us-x-tpd-local',
+  localeTag: 'en-US',
+  quality: VoiceQuality.enhanced,
 );
 const VoiceOption _online = VoiceOption(
   id: 'en-us-x-iom-network|en-US',
@@ -204,11 +224,69 @@ void main() {
 
     expect(find.text(_l10n.voiceBetterTitle), findsOneWidget);
     expect(find.text(_l10n.voiceBetterBody(_l10n.languageEn)), findsOneWidget);
+    // The way there, step by step, since Apple has no link to that page.
+    expect(find.text(_l10n.voiceBetterStep1), findsOneWidget);
+    expect(find.text('1.'), findsOneWidget);
+    expect(find.text(_l10n.voiceBetterStep2), findsOneWidget);
+    expect(find.text(_l10n.voiceBetterStep3), findsOneWidget);
+    expect(find.text(_l10n.voiceBetterStep4(_l10n.languageEn)), findsOneWidget);
+    expect(find.text(_l10n.voiceBetterStep5), findsOneWidget);
+    expect(find.text('5.'), findsOneWidget);
+    expect(find.text(_l10n.voiceBetterAfter), findsOneWidget);
+    // And where the button lands, which is not the voices page.
+    expect(find.text(_l10n.voiceBetterOpenSettingsHint), findsOneWidget);
 
     await tester.tap(find.text(_l10n.voiceBetterOpenSettings));
     await tester.pumpAndSettle();
 
     expect(opened, [Uri.parse('app-settings:')]);
+  });
+
+  testWidgets('an iPhone whose best voice is only online is told too', (
+    tester,
+  ) async {
+    await _pump(tester, voices: const [_samantha, _appleOnline]);
+
+    expect(find.text(_l10n.voiceBetterTitle), findsOneWidget);
+  });
+
+  testWidgets('the system default row says which voice it comes out as', (
+    tester,
+  ) async {
+    await _pump(tester);
+
+    expect(find.text(_defaultIsZoe), findsOneWidget);
+    expect(find.text(_l10n.settingsVoiceSystemDefault), findsNothing);
+    // The hint about the phone's own voice stays under it.
+    expect(find.text(_l10n.settingsVoiceSystemDefaultHint), findsOneWidget);
+  });
+
+  testWidgets('with nothing better than compact the row stays plain', (
+    tester,
+  ) async {
+    await _pump(tester, voices: const [_samantha]);
+
+    expect(find.text(_l10n.settingsVoiceSystemDefault), findsOneWidget);
+  });
+
+  testWidgets('on Android the row names the downloaded voice as well', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      voices: const [_googleHigh],
+      platform: TargetPlatform.android,
+      catalogue: const VoiceCatalogue.empty(),
+    );
+
+    expect(
+      find.text(
+        _l10n.settingsVoiceSystemDefaultNow(
+          _l10n.voiceLabelGeneric(1, _l10n.regionUS),
+        ),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('with an enhanced voice installed there is nothing to explain', (
@@ -289,7 +367,7 @@ void main() {
       },
     );
 
-    await tester.tap(find.text(_l10n.settingsVoiceSystemDefault));
+    await tester.tap(find.text(_defaultIsZoe));
     await tester.pumpAndSettle();
 
     expect(container.read(navigationSettingsProvider).voiceId, isNull);

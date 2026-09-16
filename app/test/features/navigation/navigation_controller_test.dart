@@ -289,6 +289,36 @@ void main() {
     );
   });
 
+  test(
+    'the voice is left to the speaker to resolve unless one was chosen',
+    () async {
+      final h = await _NavHarness.create(saved: _savedRoute());
+      await h.follow('route-1');
+
+      await h.ride(450);
+
+      // `null` is what makes the speaker rank the installed voices; the ride
+      // never names one itself.
+      expect(h.speaker.selections, <String?>[null]);
+    },
+  );
+
+  test('a chosen voice is the one the ride is spoken in', () async {
+    final h = await _NavHarness.create(
+      saved: _savedRoute(),
+      preferences: <String, Object>{
+        'navigation.voiceId': 'com.apple.voice.compact.en-US.Samantha',
+      },
+    );
+    await h.follow('route-1');
+
+    await h.ride(450);
+
+    expect(h.speaker.selections, <String?>[
+      'com.apple.voice.compact.en-US.Samantha',
+    ]);
+  });
+
   test('a silent ride still shows the turns', () async {
     final h = await _NavHarness.create(
       saved: _savedRoute(),

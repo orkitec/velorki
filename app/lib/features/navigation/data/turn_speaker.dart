@@ -5,6 +5,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
 import '../domain/voice_option.dart';
+import '../domain/voice_ranking.dart';
 
 /// Says a turn out loud.
 ///
@@ -21,9 +22,14 @@ abstract class TurnSpeaker {
   /// The voices the phone has for the language the cues are in, best first.
   Future<List<VoiceOption>> voices();
 
-  /// Says the turns in the voice with [id] from now on, or in the phone's
-  /// own voice for the language when [id] is `null` or no longer installed.
+  /// Says the turns in the voice with [id] from now on, or in the best
+  /// voice the phone has for the language when [id] is `null` or no longer
+  /// installed; see [defaultVoice].
   Future<void> selectVoice(String? id);
+
+  /// The voice "System default" resolves to right now, or `null` when the
+  /// choice is left to the engine. See [bestVoiceFor].
+  Future<VoiceOption?> defaultVoice();
 
   /// Releases the engine.
   Future<void> dispose();
@@ -67,6 +73,8 @@ class FlutterTtsSpeaker implements TurnSpeaker {
   final FlutterTts _tts;
   bool _configured = false;
   bool _broken = false;
+  String? _defaultKey;
+  VoiceOption? _defaultVoice;
   Future<void> _queue = Future<void>.value();
 
   @override
@@ -124,15 +132,18 @@ class FlutterTtsSpeaker implements TurnSpeaker {
     try {
       VoiceOption? voice;
       if (id != null) {
+        // A voice the rider chose is used as it is: it is never second-
+        // guessed by the ranking, however thin it sounds.
         for (final option in await voices()) {
           if (option.id == id) voice = option;
         }
-      } else if (_isIOS) {
-        // iPhones ship the compact voice for a language and leave the good
-        // one as a download, and the engine's own default is whatever is
-        // installed, compact included. A rider who has never opened the
-        // picker still gets the best voice the phone actually has.
-        voice = _bestInstalled(await voices());
+      }
+      if (id == null || voice == null) {
+        // Nothing chosen, or the chosen voice has been deleted. The engine's
+        // own default is whatever was installed first, compact included, so
+        // a rider who never opened the picker still gets the best voice the
+        // phone actually has.
+        voice = await defaultVoice();
       }
       if (voice == null) {
         await _tts.clearVoice();
@@ -145,14 +156,17 @@ class FlutterTtsSpeaker implements TurnSpeaker {
     }
   }
 
-  /// The best voice that is on the phone, or `null` when there is none to
-  /// beat the engine's own choice. Online voices are no good on a ride.
-  static VoiceOption? _bestInstalled(List<VoiceOption> voices) {
-    final installed = voices.where((voice) => !voice.needsNetwork).toList()
-      ..sort(VoiceOption.compare);
-    if (installed.isEmpty) return null;
-    final best = installed.first;
-    return best.quality == VoiceQuality.unknown ? null : best;
+  @override
+  Future<VoiceOption?> defaultVoice() async {
+    final installed = await voices();
+    // The ranking is worked out once per list of installed voices — the
+    // locale is fixed for the life of a speaker. Asking the engine is what
+    // spots a voice downloaded while the app runs; the answer only changes
+    // when that list does.
+    final key = installed.map((voice) => voice.id).join('\u0000');
+    if (key == _defaultKey) return _defaultVoice;
+    _defaultKey = key;
+    return _defaultVoice = bestVoiceFor(installed, localeTag);
   }
 
   @override

@@ -2885,6 +2885,15 @@
   "@settingsVoiceSystemDefaultHint": {
     "description": "Explanation under the system default voice"
   },
+  "settingsVoiceSystemDefaultNow": "System default \u00b7 {voice}",
+  "@settingsVoiceSystemDefaultNow": {
+    "description": "The system default voice row when it is known which voice the phone picks",
+    "placeholders": {
+      "voice": {
+        "type": "String"
+      }
+    }
+  },
   "settingsVoiceNetworkTitle": "Some voices need the internet",
   "@settingsVoiceNetworkTitle": {
     "description": "Heading of the note above the voice list when online voices are present"
@@ -3328,18 +3337,51 @@
   "@voiceBetterTitle": {
     "description": "Heading of the card that explains how to install a better iOS voice"
   },
-  "voiceBetterBody": "Your iPhone only has the compact voice for {language}. A fuller one is free: Settings › Accessibility › Spoken Content › Voices › {language}, then tap the cloud next to an Enhanced or Premium voice. The button below opens Velorki’s settings; the voices page is a few taps away from there.",
+  "voiceBetterBody": "Your iPhone only has the compact voice for {language}, which is the robotic one. Apple\u2019s Enhanced and Premium voices are free downloads; here is where to get one:",
   "@voiceBetterBody": {
-    "description": "Body of the card that explains how to install a better iOS voice",
+    "description": "Body of the card that explains how to install a better iOS voice, above the numbered steps",
     "placeholders": {
       "language": {
         "type": "String"
       }
     }
   },
-  "voiceBetterOpenSettings": "Open Settings",
+  "voiceBetterStep1": "Open Settings on your iPhone",
+  "@voiceBetterStep1": {
+    "description": "First step of the card that explains how to install a better iOS voice"
+  },
+  "voiceBetterStep2": "Tap Accessibility",
+  "@voiceBetterStep2": {
+    "description": "Second step of the card that explains how to install a better iOS voice"
+  },
+  "voiceBetterStep3": "Tap Spoken Content, then Voices",
+  "@voiceBetterStep3": {
+    "description": "Third step of the card that explains how to install a better iOS voice"
+  },
+  "voiceBetterStep4": "Tap {language}",
+  "@voiceBetterStep4": {
+    "description": "Fourth step of the card that explains how to install a better iOS voice",
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  "voiceBetterStep5": "Tap the cloud next to an Enhanced or Premium voice",
+  "@voiceBetterStep5": {
+    "description": "Fifth step of the card that explains how to install a better iOS voice"
+  },
+  "voiceBetterAfter": "Velorki then says the turns in the best voice on the phone by itself \u2014 there is nothing to choose here afterwards.",
+  "@voiceBetterAfter": {
+    "description": "Line under the steps of the card that explains how to install a better iOS voice"
+  },
+  "voiceBetterOpenSettings": "Open the Settings app",
   "@voiceBetterOpenSettings": {
     "description": "Button on the card that explains how to install a better iOS voice"
+  },
+  "voiceBetterOpenSettingsHint": "It opens on Velorki\u2019s own page; Accessibility is further down the main Settings list.",
+  "@voiceBetterOpenSettingsHint": {
+    "description": "Caption under the button of the card that explains how to install a better iOS voice"
   },
   "settingsVoiceNone": "No voice for your language is installed. Add one in the phone's settings, under text-to-speech or Spoken Content.",
   "@settingsVoiceNone": {
