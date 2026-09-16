@@ -2591,17 +2591,453 @@
   "@settingsVoiceNetworkHint": {
     "description": "Body of the note above the voice list when online voices are present"
   },
-  "settingsVoiceNeedsInternet": "Needs internet",
-  "@settingsVoiceNeedsInternet": {
+  "voiceNeedsNetwork": "Needs internet",
+  "@voiceNeedsNetwork": {
     "description": "Chip on a voice that is generated online"
   },
-  "settingsVoiceQualityEnhanced": "Enhanced",
-  "@settingsVoiceQualityEnhanced": {
+  "voiceQualityEnhanced": "Enhanced",
+  "@voiceQualityEnhanced": {
     "description": "Quality label of a better-than-standard voice"
   },
-  "settingsVoiceQualityPremium": "Premium",
-  "@settingsVoiceQualityPremium": {
+  "voiceQualityPremium": "Premium",
+  "@voiceQualityPremium": {
     "description": "Quality label of the best voices"
+  },
+  "voiceFemale": "Female",
+  "@voiceFemale": {
+    "description": "Word for a female voice, used in a made-up voice name"
+  },
+  "voiceMale": "Male",
+  "@voiceMale": {
+    "description": "Word for a male voice, used in a made-up voice name"
+  },
+  "voiceLabel": "{gender} voice {number} ({region})",
+  "@voiceLabel": {
+    "description": "A made-up voice name, e.g. Female voice 2 (United States), for a voice the phone only names with an identifier",
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      },
+      "number": {
+        "type": "int"
+      },
+      "region": {
+        "type": "String"
+      }
+    }
+  },
+  "voiceLabelGeneric": "Voice {number} ({region})",
+  "@voiceLabelGeneric": {
+    "description": "A made-up voice name for a voice whose gender the phone does not say",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "region": {
+        "type": "String"
+      }
+    }
+  },
+  "regionAR": "Argentina",
+  "@regionAR": {
+    "description": "Region name shown in a voice name, for the locale region AR"
+  },
+  "regionAU": "Australia",
+  "@regionAU": {
+    "description": "Region name shown in a voice name, for the locale region AU"
+  },
+  "regionBD": "Bangladesh",
+  "@regionBD": {
+    "description": "Region name shown in a voice name, for the locale region BD"
+  },
+  "regionBE": "Belgium",
+  "@regionBE": {
+    "description": "Region name shown in a voice name, for the locale region BE"
+  },
+  "regionBG": "Bulgaria",
+  "@regionBG": {
+    "description": "Region name shown in a voice name, for the locale region BG"
+  },
+  "regionBR": "Brazil",
+  "@regionBR": {
+    "description": "Region name shown in a voice name, for the locale region BR"
+  },
+  "regionCA": "Canada",
+  "@regionCA": {
+    "description": "Region name shown in a voice name, for the locale region CA"
+  },
+  "regionCL": "Chile",
+  "@regionCL": {
+    "description": "Region name shown in a voice name, for the locale region CL"
+  },
+  "regionCN": "China",
+  "@regionCN": {
+    "description": "Region name shown in a voice name, for the locale region CN"
+  },
+  "regionCO": "Colombia",
+  "@regionCO": {
+    "description": "Region name shown in a voice name, for the locale region CO"
+  },
+  "regionCZ": "Czechia",
+  "@regionCZ": {
+    "description": "Region name shown in a voice name, for the locale region CZ"
+  },
+  "regionDE": "Germany",
+  "@regionDE": {
+    "description": "Region name shown in a voice name, for the locale region DE"
+  },
+  "regionDK": "Denmark",
+  "@regionDK": {
+    "description": "Region name shown in a voice name, for the locale region DK"
+  },
+  "regionES": "Spain",
+  "@regionES": {
+    "description": "Region name shown in a voice name, for the locale region ES"
+  },
+  "regionFI": "Finland",
+  "@regionFI": {
+    "description": "Region name shown in a voice name, for the locale region FI"
+  },
+  "regionFR": "France",
+  "@regionFR": {
+    "description": "Region name shown in a voice name, for the locale region FR"
+  },
+  "regionGB": "United Kingdom",
+  "@regionGB": {
+    "description": "Region name shown in a voice name, for the locale region GB"
+  },
+  "regionGR": "Greece",
+  "@regionGR": {
+    "description": "Region name shown in a voice name, for the locale region GR"
+  },
+  "regionHK": "Hong Kong",
+  "@regionHK": {
+    "description": "Region name shown in a voice name, for the locale region HK"
+  },
+  "regionHR": "Croatia",
+  "@regionHR": {
+    "description": "Region name shown in a voice name, for the locale region HR"
+  },
+  "regionHU": "Hungary",
+  "@regionHU": {
+    "description": "Region name shown in a voice name, for the locale region HU"
+  },
+  "regionID": "Indonesia",
+  "@regionID": {
+    "description": "Region name shown in a voice name, for the locale region ID"
+  },
+  "regionIE": "Ireland",
+  "@regionIE": {
+    "description": "Region name shown in a voice name, for the locale region IE"
+  },
+  "regionIL": "Israel",
+  "@regionIL": {
+    "description": "Region name shown in a voice name, for the locale region IL"
+  },
+  "regionIN": "India",
+  "@regionIN": {
+    "description": "Region name shown in a voice name, for the locale region IN"
+  },
+  "regionIR": "Iran",
+  "@regionIR": {
+    "description": "Region name shown in a voice name, for the locale region IR"
+  },
+  "regionIT": "Italy",
+  "@regionIT": {
+    "description": "Region name shown in a voice name, for the locale region IT"
+  },
+  "regionJP": "Japan",
+  "@regionJP": {
+    "description": "Region name shown in a voice name, for the locale region JP"
+  },
+  "regionKR": "South Korea",
+  "@regionKR": {
+    "description": "Region name shown in a voice name, for the locale region KR"
+  },
+  "regionMX": "Mexico",
+  "@regionMX": {
+    "description": "Region name shown in a voice name, for the locale region MX"
+  },
+  "regionMY": "Malaysia",
+  "@regionMY": {
+    "description": "Region name shown in a voice name, for the locale region MY"
+  },
+  "regionNG": "Nigeria",
+  "@regionNG": {
+    "description": "Region name shown in a voice name, for the locale region NG"
+  },
+  "regionNL": "Netherlands",
+  "@regionNL": {
+    "description": "Region name shown in a voice name, for the locale region NL"
+  },
+  "regionNO": "Norway",
+  "@regionNO": {
+    "description": "Region name shown in a voice name, for the locale region NO"
+  },
+  "regionPL": "Poland",
+  "@regionPL": {
+    "description": "Region name shown in a voice name, for the locale region PL"
+  },
+  "regionPT": "Portugal",
+  "@regionPT": {
+    "description": "Region name shown in a voice name, for the locale region PT"
+  },
+  "regionRO": "Romania",
+  "@regionRO": {
+    "description": "Region name shown in a voice name, for the locale region RO"
+  },
+  "regionRU": "Russia",
+  "@regionRU": {
+    "description": "Region name shown in a voice name, for the locale region RU"
+  },
+  "regionSE": "Sweden",
+  "@regionSE": {
+    "description": "Region name shown in a voice name, for the locale region SE"
+  },
+  "regionSI": "Slovenia",
+  "@regionSI": {
+    "description": "Region name shown in a voice name, for the locale region SI"
+  },
+  "regionSK": "Slovakia",
+  "@regionSK": {
+    "description": "Region name shown in a voice name, for the locale region SK"
+  },
+  "regionTH": "Thailand",
+  "@regionTH": {
+    "description": "Region name shown in a voice name, for the locale region TH"
+  },
+  "regionTR": "Türkiye",
+  "@regionTR": {
+    "description": "Region name shown in a voice name, for the locale region TR"
+  },
+  "regionTW": "Taiwan",
+  "@regionTW": {
+    "description": "Region name shown in a voice name, for the locale region TW"
+  },
+  "regionUA": "Ukraine",
+  "@regionUA": {
+    "description": "Region name shown in a voice name, for the locale region UA"
+  },
+  "regionUS": "United States",
+  "@regionUS": {
+    "description": "Region name shown in a voice name, for the locale region US"
+  },
+  "regionVN": "Vietnam",
+  "@regionVN": {
+    "description": "Region name shown in a voice name, for the locale region VN"
+  },
+  "regionZA": "South Africa",
+  "@regionZA": {
+    "description": "Region name shown in a voice name, for the locale region ZA"
+  },
+  "languageAr": "Arabic",
+  "@languageAr": {
+    "description": "Language name shown where a voice's language is named, for the language code ar"
+  },
+  "languageBg": "Bulgarian",
+  "@languageBg": {
+    "description": "Language name shown where a voice's language is named, for the language code bg"
+  },
+  "languageBho": "Bhojpuri",
+  "@languageBho": {
+    "description": "Language name shown where a voice's language is named, for the language code bho"
+  },
+  "languageBn": "Bengali",
+  "@languageBn": {
+    "description": "Language name shown where a voice's language is named, for the language code bn"
+  },
+  "languageCa": "Catalan",
+  "@languageCa": {
+    "description": "Language name shown where a voice's language is named, for the language code ca"
+  },
+  "languageCmn": "Mandarin Chinese",
+  "@languageCmn": {
+    "description": "Language name shown where a voice's language is named, for the language code cmn"
+  },
+  "languageCs": "Czech",
+  "@languageCs": {
+    "description": "Language name shown where a voice's language is named, for the language code cs"
+  },
+  "languageDa": "Danish",
+  "@languageDa": {
+    "description": "Language name shown where a voice's language is named, for the language code da"
+  },
+  "languageDe": "German",
+  "@languageDe": {
+    "description": "Language name shown where a voice's language is named, for the language code de"
+  },
+  "languageEl": "Greek",
+  "@languageEl": {
+    "description": "Language name shown where a voice's language is named, for the language code el"
+  },
+  "languageEn": "English",
+  "@languageEn": {
+    "description": "Language name shown where a voice's language is named, for the language code en"
+  },
+  "languageEs": "Spanish",
+  "@languageEs": {
+    "description": "Language name shown where a voice's language is named, for the language code es"
+  },
+  "languageEu": "Basque",
+  "@languageEu": {
+    "description": "Language name shown where a voice's language is named, for the language code eu"
+  },
+  "languageFa": "Persian",
+  "@languageFa": {
+    "description": "Language name shown where a voice's language is named, for the language code fa"
+  },
+  "languageFi": "Finnish",
+  "@languageFi": {
+    "description": "Language name shown where a voice's language is named, for the language code fi"
+  },
+  "languageFr": "French",
+  "@languageFr": {
+    "description": "Language name shown where a voice's language is named, for the language code fr"
+  },
+  "languageGl": "Galician",
+  "@languageGl": {
+    "description": "Language name shown where a voice's language is named, for the language code gl"
+  },
+  "languageHe": "Hebrew",
+  "@languageHe": {
+    "description": "Language name shown where a voice's language is named, for the language code he"
+  },
+  "languageHi": "Hindi",
+  "@languageHi": {
+    "description": "Language name shown where a voice's language is named, for the language code hi"
+  },
+  "languageHr": "Croatian",
+  "@languageHr": {
+    "description": "Language name shown where a voice's language is named, for the language code hr"
+  },
+  "languageHu": "Hungarian",
+  "@languageHu": {
+    "description": "Language name shown where a voice's language is named, for the language code hu"
+  },
+  "languageId": "Indonesian",
+  "@languageId": {
+    "description": "Language name shown where a voice's language is named, for the language code id"
+  },
+  "languageIt": "Italian",
+  "@languageIt": {
+    "description": "Language name shown where a voice's language is named, for the language code it"
+  },
+  "languageJa": "Japanese",
+  "@languageJa": {
+    "description": "Language name shown where a voice's language is named, for the language code ja"
+  },
+  "languageKn": "Kannada",
+  "@languageKn": {
+    "description": "Language name shown where a voice's language is named, for the language code kn"
+  },
+  "languageKo": "Korean",
+  "@languageKo": {
+    "description": "Language name shown where a voice's language is named, for the language code ko"
+  },
+  "languageMr": "Marathi",
+  "@languageMr": {
+    "description": "Language name shown where a voice's language is named, for the language code mr"
+  },
+  "languageMs": "Malay",
+  "@languageMs": {
+    "description": "Language name shown where a voice's language is named, for the language code ms"
+  },
+  "languageNb": "Norwegian Bokmål",
+  "@languageNb": {
+    "description": "Language name shown where a voice's language is named, for the language code nb"
+  },
+  "languageNl": "Dutch",
+  "@languageNl": {
+    "description": "Language name shown where a voice's language is named, for the language code nl"
+  },
+  "languagePl": "Polish",
+  "@languagePl": {
+    "description": "Language name shown where a voice's language is named, for the language code pl"
+  },
+  "languagePt": "Portuguese",
+  "@languagePt": {
+    "description": "Language name shown where a voice's language is named, for the language code pt"
+  },
+  "languageRo": "Romanian",
+  "@languageRo": {
+    "description": "Language name shown where a voice's language is named, for the language code ro"
+  },
+  "languageRu": "Russian",
+  "@languageRu": {
+    "description": "Language name shown where a voice's language is named, for the language code ru"
+  },
+  "languageSk": "Slovak",
+  "@languageSk": {
+    "description": "Language name shown where a voice's language is named, for the language code sk"
+  },
+  "languageSl": "Slovenian",
+  "@languageSl": {
+    "description": "Language name shown where a voice's language is named, for the language code sl"
+  },
+  "languageSv": "Swedish",
+  "@languageSv": {
+    "description": "Language name shown where a voice's language is named, for the language code sv"
+  },
+  "languageTa": "Tamil",
+  "@languageTa": {
+    "description": "Language name shown where a voice's language is named, for the language code ta"
+  },
+  "languageTe": "Telugu",
+  "@languageTe": {
+    "description": "Language name shown where a voice's language is named, for the language code te"
+  },
+  "languageTh": "Thai",
+  "@languageTh": {
+    "description": "Language name shown where a voice's language is named, for the language code th"
+  },
+  "languageTr": "Turkish",
+  "@languageTr": {
+    "description": "Language name shown where a voice's language is named, for the language code tr"
+  },
+  "languageUk": "Ukrainian",
+  "@languageUk": {
+    "description": "Language name shown where a voice's language is named, for the language code uk"
+  },
+  "languageVi": "Vietnamese",
+  "@languageVi": {
+    "description": "Language name shown where a voice's language is named, for the language code vi"
+  },
+  "languageWuu": "Wu Chinese",
+  "@languageWuu": {
+    "description": "Language name shown where a voice's language is named, for the language code wuu"
+  },
+  "languageYue": "Cantonese",
+  "@languageYue": {
+    "description": "Language name shown where a voice's language is named, for the language code yue"
+  },
+  "languageZh": "Chinese",
+  "@languageZh": {
+    "description": "Language name shown where a voice's language is named, for the language code zh"
+  },
+  "voiceTry": "Try",
+  "@voiceTry": {
+    "description": "Button on a voice row that speaks a sample cue in it"
+  },
+  "voiceShowOnline": "Show online voices",
+  "@voiceShowOnline": {
+    "description": "Switch under the voice list that reveals the voices needing the internet"
+  },
+  "voiceBetterTitle": "Better voices are a download away",
+  "@voiceBetterTitle": {
+    "description": "Heading of the card that explains how to install a better iOS voice"
+  },
+  "voiceBetterBody": "Your iPhone only has the compact voice for {language}. A fuller one is free: Settings \u203A Accessibility \u203A Spoken Content \u203A Voices \u203A {language}, then tap the cloud next to an Enhanced or Premium voice. The button below opens Velorki\u2019s settings; the voices page is a few taps away from there.",
+  "@voiceBetterBody": {
+    "description": "Body of the card that explains how to install a better iOS voice",
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  "voiceBetterOpenSettings": "Open Settings",
+  "@voiceBetterOpenSettings": {
+    "description": "Button on the card that explains how to install a better iOS voice"
   },
   "settingsVoiceNone": "No voice for your language is installed. Add one in the phone's settings, under text-to-speech or Spoken Content.",
   "@settingsVoiceNone": {

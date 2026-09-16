@@ -1,0 +1,3122 @@
+{
+ "aaron": {
+  "label": "Aaron",
+  "gender": "male",
+  "quality": "low",
+  "language": "en-US"
+ },
+ "aasing": {
+  "label": "Aasing",
+  "gender": "male",
+  "quality": "normal",
+  "language": "yue-HK"
+ },
+ "alex": {
+  "label": "Alex",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "en-US"
+ },
+ "alice": {
+  "label": "Alice",
+  "gender": "female",
+  "quality": "normal",
+  "language": "it-IT"
+ },
+ "allison": {
+  "label": "Allison",
+  "gender": "female",
+  "quality": "normal",
+  "language": "en-US"
+ },
+ "alva": {
+  "label": "Alva",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "sv-SE"
+ },
+ "amira": {
+  "label": "Amira",
+  "gender": "female",
+  "quality": "normal",
+  "language": "ms-MY"
+ },
+ "amélie": {
+  "label": "Amélie",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "fr-CA"
+ },
+ "ananya": {
+  "label": "Ananya",
+  "gender": "female",
+  "quality": "normal",
+  "language": "mr-IN"
+ },
+ "angelica": {
+  "label": "Angelica",
+  "gender": "female",
+  "quality": "normal",
+  "language": "es-MX"
+ },
+ "anna": {
+  "label": "Anna",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "de-DE"
+ },
+ "ar-language": {
+  "label": "صوت انثوي 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ar"
+ },
+ "ar-xa-x-arc-local": {
+  "label": "صوت انثوي 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ar"
+ },
+ "ar-xa-x-arc-network": {
+  "label": "صوت انثوي 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ar"
+ },
+ "ar-xa-x-ard-local": {
+  "label": "صوت ذكر 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "ar"
+ },
+ "ar-xa-x-ard-network": {
+  "label": "صوت ذكر 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "ar"
+ },
+ "ar-xa-x-are-local": {
+  "label": "صوت ذكر 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "ar"
+ },
+ "ar-xa-x-are-network": {
+  "label": "صوت ذكر 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "ar"
+ },
+ "ar-xa-x-arz-local": {
+  "label": "صوت انثوي 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ar"
+ },
+ "ar-xa-x-arz-network": {
+  "label": "صوت انثوي 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ar"
+ },
+ "arthur": {
+  "label": "Arthur",
+  "gender": "male",
+  "quality": "low",
+  "language": "en-GB"
+ },
+ "aude": {
+  "label": "Aude",
+  "gender": "female",
+  "quality": "normal",
+  "language": "fr-BE"
+ },
+ "audrey": {
+  "label": "Audrey",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "fr-FR"
+ },
+ "aurélie": {
+  "label": "Aurélie",
+  "gender": "female",
+  "quality": "normal",
+  "language": "fr-FR"
+ },
+ "ava": {
+  "label": "Apple Ava",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-US"
+ },
+ "bg-bg-language": {
+  "label": "Женски глас",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "bg-BG"
+ },
+ "bg-bg-x-ifk-local": {
+  "label": "Женски глас",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "bg-BG"
+ },
+ "bg-bg-x-ifk-network": {
+  "label": "Женски глас",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "bg-BG"
+ },
+ "binbin": {
+  "label": "Binbin",
+  "gender": "male",
+  "quality": "normal",
+  "language": "cmn-CN"
+ },
+ "bn-bd-language": {
+  "label": "পুরুষ কন্ঠ",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "bn-BD"
+ },
+ "bn-bd-x-ban-local": {
+  "label": "পুরুষ কন্ঠ",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "bn-BD"
+ },
+ "bn-bd-x-ban-network": {
+  "label": "পুরুষ কন্ঠ",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "bn-BD"
+ },
+ "bn-in-language": {
+  "label": "মহিলা কণ্ঠস্বর 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "bn-IN"
+ },
+ "bn-in-x-bin-local": {
+  "label": "পুরুষ কন্ঠ 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "bn-IN"
+ },
+ "bn-in-x-bin-network": {
+  "label": "পুরুষ কন্ঠ 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "bn-IN"
+ },
+ "bn-in-x-bnf-local": {
+  "label": "মহিলা কণ্ঠস্বর 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "bn-IN"
+ },
+ "bn-in-x-bnf-network": {
+  "label": "মহিলা কণ্ঠস্বর 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "bn-IN"
+ },
+ "bn-in-x-bnm-local": {
+  "label": "পুরুষ কন্ঠ 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "bn-IN"
+ },
+ "bn-in-x-bnm-network": {
+  "label": "পুরুষ কন্ঠ 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "bn-IN"
+ },
+ "bn-in-x-bnx-local": {
+  "label": "মহিলা কণ্ঠস্বর 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "bn-IN"
+ },
+ "bn-in-x-bnx-network": {
+  "label": "মহিলা কণ্ঠস্বর 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "bn-IN"
+ },
+ "bobo": {
+  "label": "Bobo",
+  "gender": "male",
+  "quality": "normal",
+  "language": "cmn-CN"
+ },
+ "ca-es-language": {
+  "label": "Veu femenina catalana",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ca-ES"
+ },
+ "ca-es-x-caf-local": {
+  "label": "Veu femenina catalana",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ca-ES"
+ },
+ "ca-es-x-caf-network": {
+  "label": "Veu femenina catalana",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ca-ES"
+ },
+ "carlos": {
+  "label": "Carlos",
+  "gender": "male",
+  "quality": "normal",
+  "language": "es-CO"
+ },
+ "carmela": {
+  "label": "Carmela",
+  "gender": "female",
+  "quality": "normal",
+  "language": "gl-ES"
+ },
+ "carmit": {
+  "label": "Carmit",
+  "gender": "female",
+  "quality": "normal",
+  "language": "he-IL"
+ },
+ "catarina": {
+  "label": "Catarina",
+  "gender": "female",
+  "quality": "normal",
+  "language": "pt-PT"
+ },
+ "catherine": {
+  "label": "Catherine",
+  "gender": "female",
+  "quality": "low",
+  "language": "en-AU"
+ },
+ "cem": {
+  "label": "Cem",
+  "gender": "male",
+  "quality": "normal",
+  "language": "tr-TR"
+ },
+ "chantal": {
+  "label": "Chantal",
+  "gender": "female",
+  "quality": "normal",
+  "language": "fr-CA"
+ },
+ "claire": {
+  "label": "Claire",
+  "gender": "female",
+  "quality": "normal",
+  "language": "nl-NL"
+ },
+ "cmn-cn-x-ccc-local": {
+  "label": "女声1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "cmn-CN"
+ },
+ "cmn-cn-x-ccc-network": {
+  "label": "女声1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "cmn-CN"
+ },
+ "cmn-cn-x-ccd-local": {
+  "label": "男声1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "cmn-CN"
+ },
+ "cmn-cn-x-ccd-network": {
+  "label": "男声1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "cmn-CN"
+ },
+ "cmn-cn-x-cce-local": {
+  "label": "男声2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "cmn-CN"
+ },
+ "cmn-cn-x-cce-network": {
+  "label": "男声2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "cmn-CN"
+ },
+ "cmn-cn-x-ssa-local": {
+  "label": "女声2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "cmn-CN"
+ },
+ "cmn-cn-x-ssa-network": {
+  "label": "女声2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "cmn-CN"
+ },
+ "cmn-tw-x-ctc-local": {
+  "label": "女聲",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "cmn-TW"
+ },
+ "cmn-tw-x-ctc-network": {
+  "label": "女聲",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "cmn-TW"
+ },
+ "cmn-tw-x-ctd-local": {
+  "label": "男聲1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "cmn-TW"
+ },
+ "cmn-tw-x-ctd-network": {
+  "label": "男聲1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "cmn-TW"
+ },
+ "cmn-tw-x-cte-local": {
+  "label": "男聲2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "cmn-CTW"
+ },
+ "cmn-tw-x-cte-network": {
+  "label": "男聲2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "cmn-CTW"
+ },
+ "cs-cz-language": {
+  "label": "Ženský hlas",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "cs-CZ"
+ },
+ "cs-cz-x-jfs-local": {
+  "label": "Ženský hlas",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "cs-CZ"
+ },
+ "cs-cz-x-jfs-network": {
+  "label": "Ženský hlas",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "cs-CZ"
+ },
+ "da-dk-language": {
+  "label": "Kvindestemme 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "da-DK"
+ },
+ "da-dk-x-kfm-local": {
+  "label": "Kvindestemme 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "da-DK"
+ },
+ "da-dk-x-kfm-network": {
+  "label": "Kvindestemme 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "da-DK"
+ },
+ "da-dk-x-nmm-local": {
+  "label": "Mandsstemme",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "da-DK"
+ },
+ "da-dk-x-nmm-network": {
+  "label": "Mandsstemme",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "da-DK"
+ },
+ "da-dk-x-sfp-local": {
+  "label": "Kvindestemme 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "da-DK"
+ },
+ "da-dk-x-sfp-network": {
+  "label": "Kvindestemme 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "da-DK"
+ },
+ "da-dk-x-vfb-local": {
+  "label": "Kvindestemme 3",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "da-DK"
+ },
+ "da-dk-x-vfb-network": {
+  "label": "Kvindestemme 3",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "da-DK"
+ },
+ "damayanti": {
+  "label": "Damayanti",
+  "gender": "female",
+  "quality": "normal",
+  "language": "id-ID"
+ },
+ "daniel": {
+  "label": "Daniel",
+  "gender": "male",
+  "quality": "normal",
+  "language": "en-GB"
+ },
+ "daria": {
+  "label": "Daria",
+  "gender": "female",
+  "quality": "normal",
+  "language": "bg-BG"
+ },
+ "dariush": {
+  "label": "Dariush",
+  "gender": "male",
+  "quality": "normal",
+  "language": "fa-IR"
+ },
+ "de-de-language": {
+  "label": "Weibliche Stimme 1 (Deutschland)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "de-DE"
+ },
+ "de-de-x-dea-local": {
+  "label": "Weibliche Stimme 1 (Deutschland)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "de-DE"
+ },
+ "de-de-x-dea-network": {
+  "label": "Weibliche Stimme 1 (Deutschland)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "de-DE"
+ },
+ "de-de-x-deb-local": {
+  "label": "Männliche Stimme 1 (Deutschland)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "de-DE"
+ },
+ "de-de-x-deb-network": {
+  "label": "Männliche Stimme 1 (Deutschland)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "de-DE"
+ },
+ "de-de-x-deg-local": {
+  "label": "Männliche Stimme 2 (Deutschland)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "de-DE"
+ },
+ "de-de-x-deg-network": {
+  "label": "Männliche Stimme 2 (Deutschland)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "de-DE"
+ },
+ "de-de-x-nfh-local": {
+  "label": "Weibliche Stimme 2 (Deutschland)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "de-DE"
+ },
+ "de-de-x-nfh-network": {
+  "label": "Weibliche Stimme 2 (Deutschland)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "de-DE"
+ },
+ "diego": {
+  "label": "Diego",
+  "gender": "male",
+  "quality": "normal",
+  "language": "es-AR"
+ },
+ "dongmei": {
+  "label": "Dongmei",
+  "gender": "female",
+  "quality": "normal",
+  "language": "cmn-CN-liaoning"
+ },
+ "el-gr-language": {
+  "label": "Γυναικεία φωνή",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "el-GR"
+ },
+ "el-gr-x-vfz-local": {
+  "label": "Γυναικεία φωνή",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "el-GR"
+ },
+ "el-gr-x-vfz-network": {
+  "label": "Γυναικεία φωνή",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "el-GR"
+ },
+ "ellen": {
+  "label": "Ellen",
+  "gender": "female",
+  "quality": "normal",
+  "language": "nl-BE"
+ },
+ "emma": {
+  "label": "Emma",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "it-IT"
+ },
+ "en-au-language": {
+  "label": "Female voice 1 (Australia)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-AU"
+ },
+ "en-au-x-aua-local": {
+  "label": "Female voice 1 (Australia)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-AU"
+ },
+ "en-au-x-aua-network": {
+  "label": "Female voice 1 (Australia)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-AU"
+ },
+ "en-au-x-aub-local": {
+  "label": "Male voice 1 (Australia)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-AU"
+ },
+ "en-au-x-aub-network": {
+  "label": "Male voice 1 (Australia)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-AU"
+ },
+ "en-au-x-auc-local": {
+  "label": "Female voice 2 (Australia)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-AU"
+ },
+ "en-au-x-auc-network": {
+  "label": "Female voice 2 (Australia)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-AU"
+ },
+ "en-au-x-aud-local": {
+  "label": "Male voice 2 (Australia)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-AU"
+ },
+ "en-au-x-aud-network": {
+  "label": "Male voice 2 (Australia)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-AU"
+ },
+ "en-gb-language": {
+  "label": "Female voice 1 (UK)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-GB"
+ },
+ "en-gb-x-gba-local": {
+  "label": "Female voice 1 (UK)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-GB"
+ },
+ "en-gb-x-gba-network": {
+  "label": "Female voice 1 (UK)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-GB"
+ },
+ "en-gb-x-gbb-local": {
+  "label": "Male voice 2 (UK)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "en-GB"
+ },
+ "en-gb-x-gbb-network": {
+  "label": "Male voice 2 (UK)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "en-GB"
+ },
+ "en-gb-x-gbc-local": {
+  "label": "Female voice 2 (UK)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-GB"
+ },
+ "en-gb-x-gbc-network": {
+  "label": "Female voice 2 (UK)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-GB"
+ },
+ "en-gb-x-gbd-local": {
+  "label": "Male voice 3 (UK)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "en-GB"
+ },
+ "en-gb-x-gbd-network": {
+  "label": "Male voice 3 (UK)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "en-GB"
+ },
+ "en-gb-x-gbg-local": {
+  "label": "Female voice 3 (UK)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-GB"
+ },
+ "en-gb-x-gbg-network": {
+  "label": "Female voice 3 (UK)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-GB"
+ },
+ "en-gb-x-rjs-local": {
+  "label": "Male voice 1 (UK)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "en-GB"
+ },
+ "en-gb-x-rjs-network": {
+  "label": "Male voice 1 (UK)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "en-GB"
+ },
+ "en-in-language": {
+  "label": "Female voice 1 (India)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-IN"
+ },
+ "en-in-x-ena-local": {
+  "label": "Female voice 1 (India)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-IN"
+ },
+ "en-in-x-ena-network": {
+  "label": "Female voice 1 (India)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-IN"
+ },
+ "en-in-x-enc-local": {
+  "label": "Female voice 2 (India)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-IN"
+ },
+ "en-in-x-enc-network": {
+  "label": "Female voice 2 (India)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-IN"
+ },
+ "en-in-x-end-local": {
+  "label": "Male voice 1 (India)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "en-IN"
+ },
+ "en-in-x-end-network": {
+  "label": "Male voice 1 (India)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "en-IN"
+ },
+ "en-in-x-ene-local": {
+  "label": "Male voice 2 (India)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "en-IN"
+ },
+ "en-in-x-ene-network": {
+  "label": "Male voice 2 (India)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "en-IN"
+ },
+ "en-us-language": {
+  "label": "Female voice 1 (US)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-US"
+ },
+ "en-us-x-iob-local": {
+  "label": "Female voice 2 (US)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-US"
+ },
+ "en-us-x-iob-network": {
+  "label": "Female voice 2 (US)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-US"
+ },
+ "en-us-x-iog-local": {
+  "label": "Female voice 3 (US)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-US"
+ },
+ "en-us-x-iog-network": {
+  "label": "Female voice 3 (US)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-US"
+ },
+ "en-us-x-iol-local": {
+  "label": "Male voice 2 (US)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "en-US"
+ },
+ "en-us-x-iol-network": {
+  "label": "Male voice 2 (US)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "en-US"
+ },
+ "en-us-x-iom-local": {
+  "label": "Male voice 1 (US)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "en-US"
+ },
+ "en-us-x-iom-network": {
+  "label": "Male voice 1 (US)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "en-US"
+ },
+ "en-us-x-sfg-local": {
+  "label": "Female voice 5 (US)",
+  "gender": "female",
+  "quality": "normal",
+  "language": "en-US"
+ },
+ "en-us-x-sfg-network": {
+  "label": "Female voice 5 (US)",
+  "gender": "female",
+  "quality": "normal",
+  "language": "en-US"
+ },
+ "en-us-x-tpc-local": {
+  "label": "Female voice 1 (US)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-US"
+ },
+ "en-us-x-tpc-network": {
+  "label": "Female voice 1 (US)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-US"
+ },
+ "en-us-x-tpd-local": {
+  "label": "Male voice 3 (US)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "en-US"
+ },
+ "en-us-x-tpd-network": {
+  "label": "Male voice 3 (US)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "en-US"
+ },
+ "en-us-x-tpf-local": {
+  "label": "Female voice 4 (US)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-US"
+ },
+ "en-us-x-tpf-network": {
+  "label": "Female voice 4 (US)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-US"
+ },
+ "es-es-language": {
+  "label": "Voz femenina 1 (España)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "es-ES"
+ },
+ "es-es-x-eea-local": {
+  "label": "Voz femenina 2 (España)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "es-ES"
+ },
+ "es-es-x-eea-network": {
+  "label": "Voz femenina 2 (España)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "es-ES"
+ },
+ "es-es-x-eec-local": {
+  "label": "Voz femenina 3 (España)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "es-ES"
+ },
+ "es-es-x-eec-network": {
+  "label": "Voz femenina 3 (España)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "es-ES"
+ },
+ "es-es-x-eed-local": {
+  "label": "Voz masculina 1 (España)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "es-ES"
+ },
+ "es-es-x-eed-network": {
+  "label": "Voz masculina 1 (España)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "es-ES"
+ },
+ "es-es-x-eee-local": {
+  "label": "Voz femenina 1 (España)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "es-ES"
+ },
+ "es-es-x-eef-local": {
+  "label": "Voz masculina 2 (España)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "es-ES"
+ },
+ "es-us-language": {
+  "label": "Voz femenina 1 (Estados Unidos)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "es-US"
+ },
+ "es-us-x-esc-local": {
+  "label": "Voz femenina 1 (Estados Unidos)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "es-US"
+ },
+ "es-us-x-esc-network": {
+  "label": "Voz femenina 1 (Estados Unidos)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "es-US"
+ },
+ "es-us-x-esd-local": {
+  "label": "Voz masculina 1 (Estados Unidos)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "es-US"
+ },
+ "es-us-x-esd-network": {
+  "label": "Voz masculina 1 (Estados Unidos)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "es-US"
+ },
+ "es-us-x-esf-local": {
+  "label": "Voz masculina 2 (Estados Unidos)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "es-US"
+ },
+ "es-us-x-esf-network": {
+  "label": "Voz masculina 2 (Estados Unidos)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "es-US"
+ },
+ "es-us-x-sfb-local": {
+  "label": "Voz femenina 2 (Estados Unidos)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "es-US"
+ },
+ "es-us-x-sfb-network": {
+  "label": "Voz femenina 2 (Estados Unidos)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "es-US"
+ },
+ "evan": {
+  "label": "Evan",
+  "gender": "male",
+  "quality": "normal",
+  "language": "en-US"
+ },
+ "ewa": {
+  "label": "Ewa",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "pl-PL"
+ },
+ "federica": {
+  "label": "Federica",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "it-IT"
+ },
+ "felipe": {
+  "label": "Felipe",
+  "gender": "male",
+  "quality": "normal",
+  "language": "pt-BR"
+ },
+ "fernanda": {
+  "label": "Fernanda",
+  "gender": "female",
+  "quality": "normal",
+  "language": "pt-BR"
+ },
+ "fi-fi-language": {
+  "label": "Suomalainen naisääni",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "fi-FI"
+ },
+ "fi-fi-x-afi-local": {
+  "label": "Suomalainen naisääni",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "fi-FI"
+ },
+ "fi-fi-x-afi-network": {
+  "label": "Suomalainen naisääni",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "fi-FI"
+ },
+ "fiona": {
+  "label": "Fiona",
+  "gender": "female",
+  "quality": "normal",
+  "language": "en-GB-u-sd-gbsct"
+ },
+ "fr-ca-language": {
+  "label": "Voix féminine 1 (Canada)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "fr-CA"
+ },
+ "fr-ca-x-caa-local": {
+  "label": "Voix féminine 1 (Canada)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "fr-CA"
+ },
+ "fr-ca-x-caa-network": {
+  "label": "Voix féminine 1 (Canada)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "fr-CA"
+ },
+ "fr-ca-x-cab-local": {
+  "label": "Voix masculine 1 (Canada)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "fr-CA"
+ },
+ "fr-ca-x-cab-network": {
+  "label": "Voix masculine 1 (Canada)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "fr-CA"
+ },
+ "fr-ca-x-cac-local": {
+  "label": "Voix féminine 2 (Canada)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "fr-CA"
+ },
+ "fr-ca-x-cac-network": {
+  "label": "Voix féminine 2 (Canada)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "fr-CA"
+ },
+ "fr-ca-x-cad-local": {
+  "label": "Voix masculine 2 (Canada)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "fr-CA"
+ },
+ "fr-ca-x-cad-network": {
+  "label": "Voix masculine 2 (Canada)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "fr-CA"
+ },
+ "fr-fr-language": {
+  "label": "Voix féminine 1 (France)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "fr-FR"
+ },
+ "fr-fr-x-fra-local": {
+  "label": "Voix féminine 2 (France)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "fr-FR"
+ },
+ "fr-fr-x-fra-network": {
+  "label": "Voix féminine 2 (France)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "fr-FR"
+ },
+ "fr-fr-x-frb-local": {
+  "label": "Voix masculine 2 (France)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "fr-FR"
+ },
+ "fr-fr-x-frb-network": {
+  "label": "Voix masculine 2 (France)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "fr-FR"
+ },
+ "fr-fr-x-frc-local": {
+  "label": "Voix féminine 1 (France)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "fr-FR"
+ },
+ "fr-fr-x-frc-network": {
+  "label": "Voix féminine 1 (France)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "fr-FR"
+ },
+ "fr-fr-x-frd-local": {
+  "label": "Voix masculine 1 (France)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "fr-FR"
+ },
+ "fr-fr-x-frd-network": {
+  "label": "Voix masculine 1 (France)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "fr-FR"
+ },
+ "fr-fr-x-vlf-local": {
+  "label": "Voix féminine 3 (France)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "fr-FR"
+ },
+ "fr-fr-x-vlf-network": {
+  "label": "Voix féminine 3 (France)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "fr-FR"
+ },
+ "francisca": {
+  "label": "Francisca",
+  "gender": "female",
+  "quality": "normal",
+  "language": "es-CL"
+ },
+ "geeta": {
+  "label": "Geeta",
+  "gender": "female",
+  "quality": "normal",
+  "language": "te-IN"
+ },
+ "gordon": {
+  "label": "Gordon",
+  "gender": "male",
+  "quality": "low",
+  "language": "en-AU"
+ },
+ "han": {
+  "label": "Han",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "cmn-CN"
+ },
+ "haohao": {
+  "label": "Haohao",
+  "gender": "male",
+  "quality": "normal",
+  "language": "cmn-CN-shaanxi"
+ },
+ "hattori": {
+  "label": "Hattori",
+  "gender": "male",
+  "quality": "normal",
+  "language": "ja-JP"
+ },
+ "he-il-language": {
+  "label": "קול גברי 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "he-IL"
+ },
+ "he-il-x-heb-local": {
+  "label": "קול גברי 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "he-IL"
+ },
+ "he-il-x-heb-network": {
+  "label": "קול גברי 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "he-IL"
+ },
+ "he-il-x-hec-local": {
+  "label": "קול נשי 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "he-IL"
+ },
+ "he-il-x-hec-network": {
+  "label": "קול נשי 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "he-IL"
+ },
+ "he-il-x-hed-local": {
+  "label": "קול גברי 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "he-IL"
+ },
+ "he-il-x-hed-network": {
+  "label": "קול גברי 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "he-IL"
+ },
+ "he-il-x-hee-local": {
+  "label": "קול נשי 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "he-IL"
+ },
+ "he-il-x-hee-network": {
+  "label": "קול נשי 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "he-IL"
+ },
+ "helena": {
+  "label": "Helena",
+  "gender": "female",
+  "quality": "low",
+  "language": "de-DE"
+ },
+ "henrik": {
+  "label": "Henrik",
+  "gender": "male",
+  "quality": "normal",
+  "language": "nb-NO"
+ },
+ "hi-in-language": {
+  "label": "महिला आवाज़ 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "hi-IN"
+ },
+ "hi-in-x-hia-local": {
+  "label": "महिला आवाज़ 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "hi-IN"
+ },
+ "hi-in-x-hia-network": {
+  "label": "महिला आवाज़ 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "hi-IN"
+ },
+ "hi-in-x-hic-local": {
+  "label": "महिला आवाज़ 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "hi-IN"
+ },
+ "hi-in-x-hic-network": {
+  "label": "महिला आवाज़ 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "hi-IN"
+ },
+ "hi-in-x-hid-local": {
+  "label": "पुरुष आवाज 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "hi-IN"
+ },
+ "hi-in-x-hid-network": {
+  "label": "पुरुष आवाज 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "hi-IN"
+ },
+ "hi-in-x-hie-local": {
+  "label": "पुरुष आवाज 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "hi-IN"
+ },
+ "hi-in-x-hie-network": {
+  "label": "पुरुष आवाज 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "hi-IN"
+ },
+ "hr-hr-language": {
+  "label": "Muški glas",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "hr-HR"
+ },
+ "hr-hr-x-hra-local": {
+  "label": "Ženski glas",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "hr-HR"
+ },
+ "hr-hr-x-hra-network": {
+  "label": "Ženski glas",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "hr-HR"
+ },
+ "hr-hr-x-hrb-local": {
+  "label": "Muški glas",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "hr-HR"
+ },
+ "hr-hr-x-hrb-network": {
+  "label": "Muški glas",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "hr-HR"
+ },
+ "hu-hu-language": {
+  "label": "Női hang",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "hu-HU"
+ },
+ "hu-hu-x-kfl-local": {
+  "label": "Női hang",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "hu-HU"
+ },
+ "hu-hu-x-kfl-network": {
+  "label": "Női hang",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "hu-HU"
+ },
+ "id-id-language": {
+  "label": "Suara wanita 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "id-ID"
+ },
+ "id-id-x-dfz-local": {
+  "label": "Suara laki-laki 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "id-ID"
+ },
+ "id-id-x-dfz-network": {
+  "label": "Suara laki-laki 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "id-ID"
+ },
+ "id-id-x-idc-local": {
+  "label": "Suara wanita 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "id-ID"
+ },
+ "id-id-x-idc-network": {
+  "label": "Suara wanita 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "id-ID"
+ },
+ "id-id-x-idd-local": {
+  "label": "Suara wanita 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "id-ID"
+ },
+ "id-id-x-idd-network": {
+  "label": "Suara wanita 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "id-ID"
+ },
+ "id-id-x-ide-local": {
+  "label": "Suara laki-laki 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "id-ID"
+ },
+ "id-id-x-ide-network": {
+  "label": "Suara laki-laki 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "id-ID"
+ },
+ "ioana": {
+  "label": "Ioana",
+  "gender": "female",
+  "quality": "normal",
+  "language": "ro-RO"
+ },
+ "isabela": {
+  "label": "Isabela",
+  "gender": "female",
+  "quality": "normal",
+  "language": "es-AR"
+ },
+ "isha": {
+  "label": "Isha",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-IN"
+ },
+ "it-it-language": {
+  "label": "Voce femminile 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "it-IT"
+ },
+ "it-it-x-itb-local": {
+  "label": "Voce femminile 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "it-IT"
+ },
+ "it-it-x-itb-network": {
+  "label": "Voce femminile 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "it-IT"
+ },
+ "it-it-x-itc-local": {
+  "label": "Voce maschile 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "it-IT"
+ },
+ "it-it-x-itc-network": {
+  "label": "Voce maschile 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "it-IT"
+ },
+ "it-it-x-itd-local": {
+  "label": "Voce maschile 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "it-IT"
+ },
+ "it-it-x-itd-network": {
+  "label": "Voce maschile 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "it-IT"
+ },
+ "it-it-x-kda-local": {
+  "label": "Voce femminile 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "it-IT"
+ },
+ "it-it-x-kda-network": {
+  "label": "Voce femminile 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "it-IT"
+ },
+ "iveta": {
+  "label": "Iveta",
+  "gender": "female",
+  "quality": "normal",
+  "language": "cs-CZ"
+ },
+ "ja-jp-x-jab-local": {
+  "label": "女性の声2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ja-JP"
+ },
+ "ja-jp-x-jab-network": {
+  "label": "女性の声2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ja-JP"
+ },
+ "ja-jp-x-jac-local": {
+  "label": "男性の声1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "ja-JP"
+ },
+ "ja-jp-x-jac-network": {
+  "label": "男性の声1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "ja-JP"
+ },
+ "ja-jp-x-jad-local": {
+  "label": "男性の声2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "ja-JP"
+ },
+ "ja-jp-x-jad-network": {
+  "label": "男性の声2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "ja-JP"
+ },
+ "jamie": {
+  "label": "Jamie",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "en-GB"
+ },
+ "jaya": {
+  "label": "Jaya",
+  "gender": "female",
+  "quality": "normal",
+  "language": "bho-IN"
+ },
+ "jian": {
+  "label": "Jian",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ko-KR"
+ },
+ "jimena": {
+  "label": "Jimena",
+  "gender": "female",
+  "quality": "normal",
+  "language": "es-CO"
+ },
+ "joana": {
+  "label": "Joana",
+  "gender": "female",
+  "quality": "normal",
+  "language": "pt-PT"
+ },
+ "joaquim": {
+  "label": "Joaquim",
+  "gender": "male",
+  "quality": "normal",
+  "language": "pt-PT"
+ },
+ "joelle": {
+  "label": "Joelle",
+  "gender": "female",
+  "quality": "normal",
+  "language": "en-US"
+ },
+ "jordi": {
+  "label": "Jordi (Català)",
+  "gender": "male",
+  "quality": "normal",
+  "language": "ca-ES"
+ },
+ "jorge": {
+  "label": "Apple Jorge",
+  "gender": "male",
+  "quality": "normal",
+  "language": "es-ES"
+ },
+ "juan": {
+  "label": "Juan",
+  "gender": "male",
+  "quality": "normal",
+  "language": "es-MX"
+ },
+ "kanya": {
+  "label": "Kanya",
+  "gender": "female",
+  "quality": "normal",
+  "language": "th-TH"
+ },
+ "karen": {
+  "label": "Karen",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-AU"
+ },
+ "kate": {
+  "label": "Kate",
+  "gender": "female",
+  "quality": "normal",
+  "language": "en-GB"
+ },
+ "katya": {
+  "label": "Katya",
+  "gender": "female",
+  "quality": "normal",
+  "language": "ru-RU"
+ },
+ "kiyara": {
+  "label": "Kiyara",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "hi-IN"
+ },
+ "klara": {
+  "label": "Klara",
+  "gender": "female",
+  "quality": "normal",
+  "language": "sv-SE"
+ },
+ "kn-in-language": {
+  "label": "ಸ್ತ್ರೀ ಧ್ವನಿ",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "kn-IN"
+ },
+ "kn-in-x-knf-local": {
+  "label": "ಸ್ತ್ರೀ ಧ್ವನಿ",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "kn-IN"
+ },
+ "kn-in-x-knf-network": {
+  "label": "ಸ್ತ್ರೀ ಧ್ವನಿ",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "kn-IN"
+ },
+ "kn-in-x-knm-local": {
+  "label": "ಪುರುಷ ಧ್ವನಿ",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "kn-IN"
+ },
+ "kn-in-x-knm-network": {
+  "label": "ಪುರುಷ ಧ್ವನಿ",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "kn-IN"
+ },
+ "ko-kr-language": {
+  "label": "여성 목소리 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ko-KR"
+ },
+ "ko-kr-x-ism-local": {
+  "label": "여성 목소리 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ko-KR"
+ },
+ "ko-kr-x-ism-network": {
+  "label": "여성 목소리 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ko-KR"
+ },
+ "ko-kr-x-kob-local": {
+  "label": "여성 목소리 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ko-KR"
+ },
+ "ko-kr-x-kob-network": {
+  "label": "여성 목소리 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ko-KR"
+ },
+ "ko-kr-x-koc-local": {
+  "label": "남성 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "ko-KR"
+ },
+ "ko-kr-x-koc-network": {
+  "label": "남성 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "ko-KR"
+ },
+ "ko-kr-x-kod-local": {
+  "label": "남성 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "ko-KR"
+ },
+ "ko-kr-x-kod-network": {
+  "label": "남성 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "ko-KR"
+ },
+ "krzysztof": {
+  "label": "Krzysztof",
+  "gender": "male",
+  "quality": "normal",
+  "language": "pl-PL"
+ },
+ "kyoko": {
+  "label": "Kyoko",
+  "gender": "female",
+  "quality": "normal",
+  "language": "ja-JP"
+ },
+ "laila": {
+  "label": "Apple Laila",
+  "gender": "female",
+  "quality": "normal",
+  "language": "ar-001"
+ },
+ "lana": {
+  "label": "Lana",
+  "gender": "female",
+  "quality": "normal",
+  "language": "hr-HR"
+ },
+ "lana (hrvatski (hrvatska))": {
+  "label": "Lana",
+  "gender": "female",
+  "quality": "normal",
+  "language": "hr-HR"
+ },
+ "lana (poboljšani)": {
+  "label": "Lana",
+  "gender": "female",
+  "quality": "normal",
+  "language": "hr-HR"
+ },
+ "lanlan": {
+  "label": "Lanlan",
+  "gender": "female",
+  "quality": "normal",
+  "language": "cmn-CN"
+ },
+ "laura": {
+  "label": "Laura",
+  "gender": "female",
+  "quality": "normal",
+  "language": "sk-SK"
+ },
+ "lee": {
+  "label": "Lee",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "en-AU"
+ },
+ "lekha": {
+  "label": "Lekha",
+  "gender": "female",
+  "quality": "normal",
+  "language": "hi-IN"
+ },
+ "lesya": {
+  "label": "Lesya",
+  "gender": "female",
+  "quality": "normal",
+  "language": "uk-UA"
+ },
+ "li-mu": {
+  "label": "Li-Mu",
+  "gender": "male",
+  "quality": "normal",
+  "language": "cmn-CN"
+ },
+ "lili": {
+  "label": "Lili",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "cmn-CN"
+ },
+ "lilian": {
+  "label": "Lilian",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "cmn-CN"
+ },
+ "linh": {
+  "label": "Linh",
+  "gender": "female",
+  "quality": "normal",
+  "language": "vi-VN"
+ },
+ "lisheng": {
+  "label": "Lisheng",
+  "gender": "female",
+  "quality": "normal",
+  "language": "cmn-CN"
+ },
+ "luca": {
+  "label": "Luca",
+  "gender": "male",
+  "quality": "normal",
+  "language": "it-IT"
+ },
+ "luciana": {
+  "label": "Luciana",
+  "gender": "female",
+  "quality": "normal",
+  "language": "pt-BR"
+ },
+ "magnus": {
+  "label": "Magnus",
+  "gender": "male",
+  "quality": "normal",
+  "language": "da-DK"
+ },
+ "majed": {
+  "label": "Majed",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "ar-001"
+ },
+ "mariam": {
+  "label": "Mariam",
+  "gender": "female",
+  "quality": "normal",
+  "language": "ar-001"
+ },
+ "marie": {
+  "label": "Marie",
+  "gender": "female",
+  "quality": "low",
+  "language": "fr-FR"
+ },
+ "marisol": {
+  "label": "Marisol",
+  "gender": "female",
+  "quality": "normal",
+  "language": "es-ES"
+ },
+ "markus": {
+  "label": "Markus",
+  "gender": "male",
+  "quality": "normal",
+  "language": "de-DE"
+ },
+ "martha": {
+  "label": "Martha",
+  "gender": "female",
+  "quality": "low",
+  "language": "en-GB"
+ },
+ "martin": {
+  "label": "Martin",
+  "gender": "male",
+  "quality": "low",
+  "language": "de-DE"
+ },
+ "matilda": {
+  "label": "Matilda",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-AU"
+ },
+ "meijia": {
+  "label": "Meijia",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "cmn-TW"
+ },
+ "melina": {
+  "label": "Melina",
+  "gender": "female",
+  "quality": "normal",
+  "language": "el-GR"
+ },
+ "milena": {
+  "label": "Milena",
+  "gender": "female",
+  "quality": "normal",
+  "language": "ru-RU"
+ },
+ "minsu": {
+  "label": "Minsu",
+  "gender": "male",
+  "quality": "normal",
+  "language": "ko-KR"
+ },
+ "miren": {
+  "label": "Miren",
+  "gender": "female",
+  "quality": "normal",
+  "language": "eu-ES"
+ },
+ "moira": {
+  "label": "Moira",
+  "gender": "female",
+  "quality": "normal",
+  "language": "en-IE"
+ },
+ "montse": {
+  "label": "Montse (Català)",
+  "gender": "female",
+  "quality": "normal",
+  "language": "ca-ES"
+ },
+ "ms-my-language": {
+  "label": "Suara perempuan 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ms-MY"
+ },
+ "ms-my-x-msc-local": {
+  "label": "Suara perempuan 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ms-MY"
+ },
+ "ms-my-x-msc-network": {
+  "label": "Suara perempuan 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ms-MY"
+ },
+ "ms-my-x-msd-local": {
+  "label": "Suara lelaki 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "ms-MY"
+ },
+ "ms-my-x-msd-network": {
+  "label": "Suara lelaki 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "ms-MY"
+ },
+ "ms-my-x-mse-local": {
+  "label": "Suara perempuan 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ms-MY"
+ },
+ "ms-my-x-mse-network": {
+  "label": "Suara perempuan 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ms-MY"
+ },
+ "ms-my-x-msg-local": {
+  "label": "Suara lelaki 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "ms-MY"
+ },
+ "ms-my-x-msg-network": {
+  "label": "Suara lelaki 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "ms-MY"
+ },
+ "mónica": {
+  "label": "Mónica",
+  "gender": "female",
+  "quality": "normal",
+  "language": "es-ES"
+ },
+ "nannan": {
+  "label": "Nannan",
+  "gender": "female",
+  "quality": "normal",
+  "language": "wuu-CN"
+ },
+ "narisa": {
+  "label": "Narisa",
+  "gender": "female",
+  "quality": "normal",
+  "language": "th-TH"
+ },
+ "nathan": {
+  "label": "Nathan",
+  "gender": "male",
+  "quality": "normal",
+  "language": "en-US"
+ },
+ "nb-no-language": {
+  "label": "Kvinnestemme 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "nb-NO"
+ },
+ "nb-no-x-cfl-local": {
+  "label": "Kvinnestemme 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "nb-NO"
+ },
+ "nb-no-x-cfl-network": {
+  "label": "Kvinnestemme 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "nb-NO"
+ },
+ "nb-no-x-cmj-local": {
+  "label": "Mannsstemme 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "nb-NO"
+ },
+ "nb-no-x-cmj-network": {
+  "label": "Mannsstemme 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "nb-NO"
+ },
+ "nb-no-x-rfj-local": {
+  "label": "Kvinnestemme 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "nb-NO"
+ },
+ "nb-no-x-rfj-network": {
+  "label": "Kvinnestemme 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "nb-NO"
+ },
+ "nb-no-x-tfs-local": {
+  "label": "Kvinnestemme 3",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "nb-NO"
+ },
+ "nb-no-x-tfs-network": {
+  "label": "Kvinnestemme 3",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "nb-NO"
+ },
+ "nb-no-x-tmg-local": {
+  "label": "Mannsstemme 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "nb-NO"
+ },
+ "nb-no-x-tmg-network": {
+  "label": "Mannsstemme 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "nb-NO"
+ },
+ "neel": {
+  "label": "Neel",
+  "gender": "male",
+  "quality": "normal",
+  "language": "hi-IN"
+ },
+ "nicky": {
+  "label": "Nicky",
+  "gender": "female",
+  "quality": "normal",
+  "language": "en-US"
+ },
+ "nicolas": {
+  "label": "Nicolas",
+  "gender": "male",
+  "quality": "normal",
+  "language": "fr-CA"
+ },
+ "nikos": {
+  "label": "Nikos",
+  "gender": "male",
+  "quality": "normal",
+  "language": "el-GR"
+ },
+ "nl-be-language": {
+  "label": "Vrouwelijke stem (België)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "nl-BE"
+ },
+ "nl-be-x-bec-local": {
+  "label": "Vrouwelijke stem (België)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "nl-BE"
+ },
+ "nl-be-x-bec-network": {
+  "label": "Vrouwelijke stem (België)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "nl-BE"
+ },
+ "nl-be-x-bed-local": {
+  "label": "Mannelijke stem (België)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "nl-BE"
+ },
+ "nl-be-x-bed-network": {
+  "label": "Mannelijke stem (België)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "nl-BE"
+ },
+ "nl-nl-language": {
+  "label": "Vrouwelijke stem 1 (Nederland)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "nl-NL"
+ },
+ "nl-nl-x-bmh-local": {
+  "label": "Mannelijke stem 1 (Nederland)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "nl-NL"
+ },
+ "nl-nl-x-bmh-network": {
+  "label": "Mannelijke stem 1 (Nederland)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "nl-NL"
+ },
+ "nl-nl-x-dma-local": {
+  "label": "Mannelijke stem 2 (Nederland)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "nl-NL"
+ },
+ "nl-nl-x-dma-network": {
+  "label": "Mannelijke stem 2 (Nederland)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "nl-NL"
+ },
+ "nl-nl-x-lfc-local": {
+  "label": "Vrouwelijke stem 1 (Nederland)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "nl-NL"
+ },
+ "nl-nl-x-lfc-network": {
+  "label": "Vrouwelijke stem 1 (Nederland)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "nl-NL"
+ },
+ "nl-nl-x-tfb-local": {
+  "label": "Vrouwelijke stem 2 (Nederland)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "nl-NL"
+ },
+ "nl-nl-x-tfb-network": {
+  "label": "Vrouwelijke stem 2 (Nederland)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "nl-NL"
+ },
+ "nl-nl-x-yfr-local": {
+  "label": "Vrouwelijke stem 3 (Nederland)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "nl-NL"
+ },
+ "nl-nl-x-yfr-network": {
+  "label": "Vrouwelijke stem 3 (Nederland)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "nl-NL"
+ },
+ "nora": {
+  "label": "Nora",
+  "gender": "female",
+  "quality": "normal",
+  "language": "nb-NO"
+ },
+ "o-ren": {
+  "label": "O-Ren",
+  "gender": "female",
+  "quality": "normal",
+  "language": "ja-JP"
+ },
+ "oliver": {
+  "label": "Oliver",
+  "gender": "male",
+  "quality": "normal",
+  "language": "en-GB"
+ },
+ "onni": {
+  "label": "Onni",
+  "gender": "male",
+  "quality": "normal",
+  "language": "fi-FI"
+ },
+ "oskar": {
+  "label": "Oskar",
+  "gender": "male",
+  "quality": "normal",
+  "language": "sv-SE"
+ },
+ "otoya": {
+  "label": "Otoya",
+  "gender": "male",
+  "quality": "normal",
+  "language": "ja-JP"
+ },
+ "panpan": {
+  "label": "Panpan",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "cmn-CN-sichuan"
+ },
+ "paola": {
+  "label": "Paola",
+  "gender": "female",
+  "quality": "normal",
+  "language": "it-IT"
+ },
+ "pau": {
+  "label": "Pau (Valencià)",
+  "gender": "female",
+  "quality": "normal",
+  "language": "ca-ES-u-sd-esvc"
+ },
+ "paulina": {
+  "label": "Paulina",
+  "gender": "female",
+  "quality": "normal",
+  "language": "es-MX"
+ },
+ "petra": {
+  "label": "Petra",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "de-DE"
+ },
+ "piya": {
+  "label": "Piya",
+  "gender": "female",
+  "quality": "normal",
+  "language": "bn-IN"
+ },
+ "pl-pl-language": {
+  "label": "Głos żeński 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "pl-PL"
+ },
+ "pl-pl-x-afb-local": {
+  "label": "Głos żeński 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "pl-PL"
+ },
+ "pl-pl-x-afb-network": {
+  "label": "Głos żeński 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "pl-PL"
+ },
+ "pl-pl-x-bmg-local": {
+  "label": "Głos męski 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "pl-PL"
+ },
+ "pl-pl-x-bmg-network": {
+  "label": "Głos męski 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "pl-PL"
+ },
+ "pl-pl-x-jmk-local": {
+  "label": "Głos męski 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "pl-PL"
+ },
+ "pl-pl-x-jmk-network": {
+  "label": "Głos męski 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "pl-PL"
+ },
+ "pl-pl-x-oda-local": {
+  "label": "Głos żeński 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "pl-PL"
+ },
+ "pl-pl-x-oda-network": {
+  "label": "Głos żeński 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "pl-PL"
+ },
+ "pl-pl-x-zfg-local": {
+  "label": "Głos żeński 3",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "pl-PL"
+ },
+ "pl-pl-x-zfg-network": {
+  "label": "Głos żeński 3",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "pl-PL"
+ },
+ "pt-br-language": {
+  "label": "Voz feminina 1 (Brasil)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "pt-BR"
+ },
+ "pt-br-x-afs-local": {
+  "label": "Voz feminina 1 (Brasil)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "pt-BR"
+ },
+ "pt-br-x-afs-network": {
+  "label": "Voz feminina 1 (Brasil)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "pt-BR"
+ },
+ "pt-br-x-ptd-local": {
+  "label": "Voz masculina  (Brasil)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "pt-BR"
+ },
+ "pt-br-x-ptd-network": {
+  "label": "Voz masculina  (Brasil)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "pt-BR"
+ },
+ "pt-br-x-pte-local": {
+  "label": "Voz feminina 2 (Brasil)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "pt-BR"
+ },
+ "pt-br-x-pte-network": {
+  "label": "Voz feminina 2 (Brasil)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "pt-BR"
+ },
+ "pt-pt-language": {
+  "label": "Voz feminina 1 (Portugal)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "pt-PT"
+ },
+ "pt-pt-x-jfb-local": {
+  "label": "Voz feminina 1 (Portugal)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "pt-PT"
+ },
+ "pt-pt-x-jfb-network": {
+  "label": "Voz feminina 1 (Portugal)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "pt-PT"
+ },
+ "pt-pt-x-jmn-local": {
+  "label": "Voz masculina 1 (Portugal)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "pt-PT"
+ },
+ "pt-pt-x-jmn-network": {
+  "label": "Voz masculina 1 (Portugal)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "pt-PT"
+ },
+ "pt-pt-x-pmj-local": {
+  "label": "Voz masculina 2 (Portugal)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "pt-PT"
+ },
+ "pt-pt-x-pmj-network": {
+  "label": "Voz masculina 2 (Portugal)",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "pt-PT"
+ },
+ "pt-pt-x-sfs-local": {
+  "label": "Voz feminina 2 (Portugal)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "pt-PT"
+ },
+ "pt-pt-x-sfs-network": {
+  "label": "Voz feminina 2 (Portugal)",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "pt-PT"
+ },
+ "rishi": {
+  "label": "Rishi",
+  "gender": "male",
+  "quality": "normal",
+  "language": "en-IN"
+ },
+ "ro-ro-language": {
+  "label": "Voce feminină",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ro-RO"
+ },
+ "ro-ro-x-vfv-local": {
+  "label": "Voce feminină",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ro-RO"
+ },
+ "ro-ro-x-vfv-network": {
+  "label": "Voce feminină",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ro-RO"
+ },
+ "ru-ru-x-dfc-local": {
+  "label": "Женский голос 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ru-RU"
+ },
+ "ru-ru-x-dfc-network": {
+  "label": "Женский голос 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ru-RU"
+ },
+ "ru-ru-x-ruc-local": {
+  "label": "Женский голос 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ru-RU"
+ },
+ "ru-ru-x-ruc-network": {
+  "label": "Женский голос 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ru-RU"
+ },
+ "ru-ru-x-rud-local": {
+  "label": "Мужской голос 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "ru-RU"
+ },
+ "ru-ru-x-rud-network": {
+  "label": "Мужской голос 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "ru-RU"
+ },
+ "ru-ru-x-rue-local": {
+  "label": "Женский голос 3",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ru-RU"
+ },
+ "ru-ru-x-rue-network": {
+  "label": "Женский голос 3",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ru-RU"
+ },
+ "ru-ru-x-ruf-local": {
+  "label": "Мужской голос 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "ru-RU"
+ },
+ "ru-ru-x-ruf-network": {
+  "label": "Мужской голос 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "ru-RU"
+ },
+ "samantha": {
+  "label": "Samantha",
+  "gender": "female",
+  "quality": "normal",
+  "language": "en-US"
+ },
+ "sangeeta": {
+  "label": "Sangeeta",
+  "gender": "female",
+  "quality": "normal",
+  "language": "en-IN"
+ },
+ "sara": {
+  "label": "Sara",
+  "gender": "female",
+  "quality": "normal",
+  "language": "da-DK"
+ },
+ "satu": {
+  "label": "Satu",
+  "gender": "female",
+  "quality": "normal",
+  "language": "fi-FI"
+ },
+ "serena": {
+  "label": "Serena",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-GB"
+ },
+ "shanshan": {
+  "label": "Shanshan",
+  "gender": "female",
+  "quality": "normal",
+  "language": "cmn-CN"
+ },
+ "shasha": {
+  "label": "Shasha",
+  "gender": "female",
+  "quality": "normal",
+  "language": "cmn-CN"
+ },
+ "sinji": {
+  "label": "Sinji",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "yue-HK"
+ },
+ "sk-sk-language": {
+  "label": "Ženský hlas",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "sk-SK"
+ },
+ "sk-sk-x-sfk-local": {
+  "label": "Ženský hlas",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "sk-SK"
+ },
+ "sk-sk-x-sfk-network": {
+  "label": "Ženský hlas",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "sk-SK"
+ },
+ "sl-si-language": {
+  "label": "Ženski glas",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "sl-SI"
+ },
+ "sl-si-x-frm-local": {
+  "label": "Ženski glas",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "sl-SI"
+ },
+ "soledad": {
+  "label": "Soledad",
+  "gender": "female",
+  "quality": "normal",
+  "language": "es-CO"
+ },
+ "sora": {
+  "label": "Sora",
+  "gender": "female",
+  "quality": "normal",
+  "language": "ko-KR"
+ },
+ "soumya": {
+  "label": "Soumya",
+  "gender": "female",
+  "quality": "normal",
+  "language": "kn-IN"
+ },
+ "stephanie": {
+  "label": "Stephanie",
+  "gender": "female",
+  "quality": "normal",
+  "language": "en-GB"
+ },
+ "suhyun": {
+  "label": "Suhyun",
+  "gender": "female",
+  "quality": "normal",
+  "language": "ko-KR"
+ },
+ "sv-se-language": {
+  "label": "Kvinnlig röst 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "sv-SE"
+ },
+ "sv-se-x-afp-local": {
+  "label": "Kvinnlig röst 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "sv-SE"
+ },
+ "sv-se-x-afp-network": {
+  "label": "Kvinnlig röst 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "sv-SE"
+ },
+ "sv-se-x-cfg-local": {
+  "label": "Kvinnlig röst 3",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "sv-SE"
+ },
+ "sv-se-x-cfg-network": {
+  "label": "Kvinnlig röst 3",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "sv-SE"
+ },
+ "sv-se-x-cmh-local": {
+  "label": "Mansröst 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "sv-SE"
+ },
+ "sv-se-x-cmh-network": {
+  "label": "Mansröst 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "sv-SE"
+ },
+ "sv-se-x-dmc-local": {
+  "label": "Mansröst 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "sv-SE"
+ },
+ "sv-se-x-dmc-network": {
+  "label": "Mansröst 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "sv-SE"
+ },
+ "sv-se-x-lfs-local": {
+  "label": "Kvinnlig röst 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "sv-SE"
+ },
+ "sv-se-x-lfs-network": {
+  "label": "Kvinnlig röst 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "sv-SE"
+ },
+ "ta-in-language": {
+  "label": "பெண் குரல்",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ta-IN"
+ },
+ "ta-in-x-tac-local": {
+  "label": "பெண் குரல்",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ta-IN"
+ },
+ "ta-in-x-tac-network": {
+  "label": "பெண் குரல்",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ta-IN"
+ },
+ "ta-in-x-tad-local": {
+  "label": "ஆண் குரல்",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "ta-IN"
+ },
+ "ta-in-x-tad-network": {
+  "label": "ஆண் குரல்",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "ta-IN"
+ },
+ "taotao": {
+  "label": "Taotao",
+  "gender": "male",
+  "quality": "normal",
+  "language": "cmn-CN"
+ },
+ "tarik": {
+  "label": "Tarik",
+  "gender": "male",
+  "quality": "normal",
+  "language": "ar-001"
+ },
+ "te-in-language": {
+  "label": "స్త్రీ స్వరం",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "te-IN"
+ },
+ "te-in-x-tef-local": {
+  "label": "స్త్రీ స్వరం",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "te-IN"
+ },
+ "te-in-x-tef-network": {
+  "label": "స్త్రీ స్వరం",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "te-IN"
+ },
+ "te-in-x-tem-local": {
+  "label": "పురుష స్వరం",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "te-IN"
+ },
+ "te-in-x-tem-network": {
+  "label": "పురుష స్వరం",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "te-IN"
+ },
+ "tessa": {
+  "label": "Tessa",
+  "gender": "female",
+  "quality": "normal",
+  "language": "en-ZA"
+ },
+ "th-th-language": {
+  "label": "เสียงผู้หญิง",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "th-TH"
+ },
+ "th-th-x-mol-local": {
+  "label": "เสียงผู้หญิง",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "th-TH"
+ },
+ "th-th-x-mol-network": {
+  "label": "เสียงผู้หญิง",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "th-TH"
+ },
+ "thomas": {
+  "label": "Thomas",
+  "gender": "male",
+  "quality": "normal",
+  "language": "fr-FR"
+ },
+ "tiantian": {
+  "label": "Tiantian",
+  "gender": "female",
+  "quality": "normal",
+  "language": "cmn-CN"
+ },
+ "tina": {
+  "label": "Tina",
+  "gender": "female",
+  "quality": "normal",
+  "language": "sl-SI"
+ },
+ "tingting": {
+  "label": "Tingting",
+  "gender": "female",
+  "quality": "normal",
+  "language": "cmn-CN"
+ },
+ "tom": {
+  "label": "Tom",
+  "gender": "male",
+  "quality": "normal",
+  "language": "en-US"
+ },
+ "tr-tr-language": {
+  "label": "Kadın sesi 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "tr-TR"
+ },
+ "tr-tr-x-ama-local": {
+  "label": "Erkek sesi 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "tr-TR"
+ },
+ "tr-tr-x-ama-network": {
+  "label": "Erkek sesi 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "tr-TR"
+ },
+ "tr-tr-x-cfs-local": {
+  "label": "Kadın sesi 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "tr-TR"
+ },
+ "tr-tr-x-cfs-network": {
+  "label": "Kadın sesi 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "tr-TR"
+ },
+ "tr-tr-x-efu-local": {
+  "label": "Kadın sesi 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "tr-TR"
+ },
+ "tr-tr-x-efu-network": {
+  "label": "Kadın sesi 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "tr-TR"
+ },
+ "tr-tr-x-mfm-local": {
+  "label": "Kadın sesi 3",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "tr-TR"
+ },
+ "tr-tr-x-mfm-network": {
+  "label": "Kadın sesi 3",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "tr-TR"
+ },
+ "tr-tr-x-tmc-local": {
+  "label": "Erkek sesi 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "tr-TR"
+ },
+ "tr-tr-x-tmc-network": {
+  "label": "Erkek sesi 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "tr-TR"
+ },
+ "tünde": {
+  "label": "Tünde",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "hu-HU"
+ },
+ "uk-ua-language": {
+  "label": "Жіночий голос",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "uk-UA"
+ },
+ "uk-ua-x-hfd-local": {
+  "label": "Жіночий голос",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "uk-UA"
+ },
+ "uk-ua-x-hfd-network": {
+  "label": "Жіночий голос",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "uk-UA"
+ },
+ "vani": {
+  "label": "Vani",
+  "gender": "female",
+  "quality": "normal",
+  "language": "ta-IN"
+ },
+ "vi-vn-language": {
+  "label": "Giọng nữ 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "vi-VN"
+ },
+ "vi-vn-x-gft-local": {
+  "label": "Giọng nam 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "vi-VN"
+ },
+ "vi-vn-x-gft-network": {
+  "label": "Giọng nam 2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "vi-VN"
+ },
+ "vi-vn-x-vic-local": {
+  "label": "Giọng nữ 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "vi-VN"
+ },
+ "vi-vn-x-vic-network": {
+  "label": "Giọng nữ 1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "vi-VN"
+ },
+ "vi-vn-x-vid-local": {
+  "label": "Giọng nữ 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "vi-VN"
+ },
+ "vi-vn-x-vid-network": {
+  "label": "Giọng nữ 2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "vi-VN"
+ },
+ "vi-vn-x-vie-local": {
+  "label": "Giọng nam 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "vi-VN"
+ },
+ "vi-vn-x-vie-network": {
+  "label": "Giọng nam 1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "vi-VN"
+ },
+ "vi-vn-x-vif-local": {
+  "label": "Giọng nữ 3",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "vi-VN"
+ },
+ "vi-vn-x-vif-network": {
+  "label": "Giọng nữ 3",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "vi-VN"
+ },
+ "viktor": {
+  "label": "Viktor",
+  "gender": "male",
+  "quality": "normal",
+  "language": "de-DE"
+ },
+ "xander": {
+  "label": "Xander",
+  "gender": "male",
+  "quality": "normal",
+  "language": "nl-NL"
+ },
+ "yannick": {
+  "label": "Yannick",
+  "gender": "male",
+  "quality": "normal",
+  "language": "de-DE"
+ },
+ "yelda": {
+  "label": "Yelda",
+  "gender": "female",
+  "quality": "normal",
+  "language": "tr-TR"
+ },
+ "yelda (geliştirilmiş)": {
+  "label": "Yelda",
+  "gender": "female",
+  "quality": "normal",
+  "language": "tr-TR"
+ },
+ "yelda (türkçe (türkiye))": {
+  "label": "Yelda",
+  "gender": "female",
+  "quality": "normal",
+  "language": "tr-TR"
+ },
+ "yu-shu": {
+  "label": "Yu-shu",
+  "gender": "female",
+  "quality": "normal",
+  "language": "cmn-CN"
+ },
+ "yue": {
+  "label": "Yue",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "cmn-CN"
+ },
+ "yue-hk-language": {
+  "label": "女聲1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "yue-HK"
+ },
+ "yue-hk-x-jar-local": {
+  "label": "女聲1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "yue-HK"
+ },
+ "yue-hk-x-jar-network": {
+  "label": "女聲1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "yue-HK"
+ },
+ "yue-hk-x-yuc-local": {
+  "label": "女聲2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "yue-HK"
+ },
+ "yue-hk-x-yuc-network": {
+  "label": "女聲2",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "yue-HK"
+ },
+ "yue-hk-x-yud-local": {
+  "label": "男聲1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "yue-HK"
+ },
+ "yue-hk-x-yud-network": {
+  "label": "男聲1",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "yue-HK"
+ },
+ "yue-hk-x-yue-local": {
+  "label": "男聲2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "yue-HK"
+ },
+ "yue-hk-x-yue-network": {
+  "label": "男聲2",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "yue-HK"
+ },
+ "yue-hk-x-yuf-local": {
+  "label": "男聲3",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "yue-HK"
+ },
+ "yue-hk-x-yuf-network": {
+  "label": "男聲3",
+  "gender": "male",
+  "quality": "enhanced",
+  "language": "yue-HK"
+ },
+ "yuna": {
+  "label": "Yuna",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "ko-KR"
+ },
+ "yuri": {
+  "label": "Yuri",
+  "gender": "male",
+  "quality": "normal",
+  "language": "ru-RU"
+ },
+ "zh-cn-language": {
+  "label": "女声1",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "cmn-CN"
+ },
+ "zh-tw-language": {
+  "label": "女聲",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "cmn-TW"
+ },
+ "zoe": {
+  "label": "Zoe",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "en-US"
+ },
+ "zosia": {
+  "label": "Zosia",
+  "gender": "female",
+  "quality": "normal",
+  "language": "pl-PL"
+ },
+ "zuzana": {
+  "label": "Zuzana",
+  "gender": "female",
+  "quality": "enhanced",
+  "language": "cs-CZ"
+ }
+}

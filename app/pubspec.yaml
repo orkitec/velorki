@@ -87,6 +87,9 @@ flutter:
     - assets/strava/btn_strava_connect_with_white.png
     - assets/strava/api_logo_pwrdBy_strava_horiz_orange.png
     - assets/strava/api_logo_pwrdBy_strava_horiz_white.png
+    # Friendly names for the phone's text-to-speech voices. Built by
+    # tool/fetch_voices.py; see assets/voices/README.md.
+    - assets/voices/catalogue.json
 
   fonts:
     - family: BarlowCondensed

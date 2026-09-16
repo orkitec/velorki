@@ -1,5 +1,3 @@
-import 'dart:io' show Platform;
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -48,11 +46,23 @@ abstract class TurnSpeaker {
 /// still has the banner, so the failure is logged once and then ignored.
 class FlutterTtsSpeaker implements TurnSpeaker {
   /// Creates a speaker that talks in [localeTag], e.g. `en-GB`.
-  FlutterTtsSpeaker({this.localeTag = 'en-US', FlutterTts? engine})
-    : _tts = engine ?? FlutterTts();
+  FlutterTtsSpeaker({
+    this.localeTag = 'en-US',
+    FlutterTts? engine,
+    TargetPlatform? platform,
+  }) : _tts = engine ?? FlutterTts(),
+       _platform = platform ?? defaultTargetPlatform;
 
   /// The BCP-47 tag the cues are spoken in.
   final String localeTag;
+
+  /// Which set of engine quirks to work around; injected so tests can play
+  /// either phone on the desktop.
+  final TargetPlatform _platform;
+
+  bool get _isAndroid => !kIsWeb && _platform == TargetPlatform.android;
+
+  bool get _isIOS => !kIsWeb && _platform == TargetPlatform.iOS;
 
   final FlutterTts _tts;
   bool _configured = false;
@@ -117,6 +127,12 @@ class FlutterTtsSpeaker implements TurnSpeaker {
         for (final option in await voices()) {
           if (option.id == id) voice = option;
         }
+      } else if (_isIOS) {
+        // iPhones ship the compact voice for a language and leave the good
+        // one as a download, and the engine's own default is whatever is
+        // installed, compact included. A rider who has never opened the
+        // picker still gets the best voice the phone actually has.
+        voice = _bestInstalled(await voices());
       }
       if (voice == null) {
         await _tts.clearVoice();
@@ -127,6 +143,16 @@ class FlutterTtsSpeaker implements TurnSpeaker {
     } catch (error) {
       _fail(error);
     }
+  }
+
+  /// The best voice that is on the phone, or `null` when there is none to
+  /// beat the engine's own choice. Online voices are no good on a ride.
+  static VoiceOption? _bestInstalled(List<VoiceOption> voices) {
+    final installed = voices.where((voice) => !voice.needsNetwork).toList()
+      ..sort(VoiceOption.compare);
+    if (installed.isEmpty) return null;
+    final best = installed.first;
+    return best.quality == VoiceQuality.unknown ? null : best;
   }
 
   @override
@@ -154,7 +180,7 @@ class FlutterTtsSpeaker implements TurnSpeaker {
       // Wait for a cue to finish before the next one is handed over, so the
       // queue below actually holds.
       await _tts.awaitSpeakCompletion(true);
-      if (!kIsWeb && Platform.isAndroid) {
+      if (_isAndroid) {
         // QUEUE_ADD: a second cue waits instead of cutting the first one off
         // mid-word.
         await _tts.setQueueMode(1);
@@ -162,7 +188,12 @@ class FlutterTtsSpeaker implements TurnSpeaker {
         // than stopping and the cue follows the car/bike audio route.
         await _tts.setAudioAttributesForNavigation();
       }
-      if (!kIsWeb && Platform.isIOS) {
+      if (_isIOS) {
+        // The plugin's own default of 0.5 drawls on iOS, where the rate is
+        // an AVSpeechUtterance rate rather than a multiplier; a touch above
+        // it reads a cue at the pace a rider expects. Android's default is
+        // already right, and changing it there makes the cue race.
+        await _tts.setSpeechRate(0.52);
         await _tts.setSharedInstance(true);
         await _tts.setIosAudioCategory(IosTextToSpeechAudioCategory.playback, [
           IosTextToSpeechAudioCategoryOptions.duckOthers,
