@@ -1,9 +1,11 @@
 # Velorki
 
-Plan and ride bike routes. Free, open source, built on OpenStreetMap, and
-built to work with no signal.
+Plan the ride, find the café, follow the turns, and do all of it where the
+signal ends. Free, open source, built on OpenStreetMap.
 
-A Flutter app for iOS and Android. What it does:
+Download a region once and the whole app works without a network: the map,
+the routing, the place search and the spoken turns. A Flutter app for iOS and
+Android. What it does:
 
 - **Routing on the phone.** A Dart port of the BRouter engine routes on
   downloaded 5°×5° tiles, with touring, road, gravel, MTB and direct
