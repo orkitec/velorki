@@ -24,6 +24,8 @@ abstract class AppConfig with _$AppConfig {
     @Default('') String stravaClientId,
     @Default('') String rwgpsClientId,
     @Default('velorki') String oauthScheme,
+    @Default('') String storeUrlAndroid,
+    @Default('') String storeUrlIos,
   }) = _AppConfig;
 
   const AppConfig._();
@@ -42,6 +44,8 @@ abstract class AppConfig with _$AppConfig {
     revenueCatKeyIos: String.fromEnvironment('VELORKI_REVENUECAT_KEY_IOS'),
     stravaClientId: String.fromEnvironment('VELORKI_STRAVA_CLIENT_ID'),
     rwgpsClientId: String.fromEnvironment('VELORKI_RWGPS_CLIENT_ID'),
+    storeUrlAndroid: String.fromEnvironment('VELORKI_STORE_URL_ANDROID'),
+    storeUrlIos: String.fromEnvironment('VELORKI_STORE_URL_IOS'),
     oauthScheme: String.fromEnvironment(
       'VELORKI_OAUTH_SCHEME',
       defaultValue: 'velorki',

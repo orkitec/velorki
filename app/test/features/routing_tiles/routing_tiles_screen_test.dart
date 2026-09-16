@@ -14,7 +14,9 @@ import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/map/testing/testing.dart';
 import 'package:velorki/features/routing_tiles/data/brouter_assets.dart';
 import 'package:velorki/features/routing_tiles/data/brouter_storage.dart';
+import 'package:velorki/features/routing_tiles/data/rd5_format_support.dart';
 import 'package:velorki/features/routing_tiles/data/segments_manifest_service.dart';
+import 'package:velorki/features/routing_tiles/domain/rd5_format.dart';
 import 'package:velorki/features/routing_tiles/presentation/routing_tiles_screen.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
@@ -88,6 +90,7 @@ Future<TilesHarness> pumpTiles(
   WidgetTester tester, {
   FakeMapController? map,
   List<TileName> preselected = const <TileName>[],
+  List<Override> extraOverrides = const <Override>[],
 }) async {
   final harness = TilesHarness();
   addTearDown(harness.db.close);
@@ -102,6 +105,7 @@ Future<TilesHarness> pumpTiles(
       overrides: <Override>[
         sharedPreferencesProvider.overrideWithValue(prefs),
         ...harness.overrides,
+        ...extraOverrides,
       ],
       child: MaterialApp(
         theme: buildLightTheme(),
@@ -277,6 +281,52 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Try again'), findsOneWidget);
+    await unmountTiles(tester);
+  });
+
+  testWidgets('a tile in a newer format asks for an app update instead', (
+    tester,
+  ) async {
+    final map = FakeMapController()
+      ..visibleBounds = const BoundingBox(
+        south: 46.0,
+        west: 10.5,
+        north: 47.0,
+        east: 11.5,
+      );
+    // The mirror's manifest says 11.2; this build reads up to 11.1.
+    final harness = await pumpTiles(
+      tester,
+      map: map,
+      extraOverrides: <Override>[
+        supportedRd5FormatProvider.overrideWith(
+          (ref) async => const Rd5Format(11, 1),
+        ),
+      ],
+    );
+
+    await tester.tap(find.text('Download for the visible area'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Update Velorki first'), findsOneWidget);
+    expect(find.text('E10_N45'), findsWidgets);
+    expect(
+      find.textContaining(
+        'data format 11.2, and this Velorki reads up to 11.1',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Open store'), findsNothing);
+    expect(find.text('Not now'), findsOneWidget);
+
+    await tester.tap(find.text('Not now'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Download 1 tile'), findsNothing);
+    expect(
+      harness.adapter.requests.where((r) => r.uri.path.endsWith('.rd5')),
+      isEmpty,
+    );
     await unmountTiles(tester);
   });
 }

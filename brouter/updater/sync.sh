@@ -30,6 +30,7 @@ BROUTER_VERSION="${BROUTER_VERSION:-v1.7.10}"
 # misc/profiles2/lookups.dat ("---lookupversion:11" / "---minorversion:2").
 # BRouter refuses to read a segment whose header version differs from the
 # lookups.dat it was started with, so this pair *is* the format version.
+RD5_FORMAT_VERSION_SET="${RD5_FORMAT_VERSION:+1}"   # explicit override wins
 RD5_FORMAT_VERSION="${RD5_FORMAT_VERSION:-11.2}"
 
 LOCK_FILE="$SEGMENTS_DIR/.sync.lock"
@@ -96,6 +97,32 @@ human() {
 }
 
 json_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+
+# Reads the version pair from the lookups.dat published next to the tiles, so
+# the manifest says what the tiles really are when upstream moves on. The
+# default above is only a fallback for a mirror without the file.
+detect_format_version() {
+  [ -n "$RD5_FORMAT_VERSION_SET" ] && return 0
+  local f="$SEGMENTS_DIR/lookups.dat" major minor
+  if curl -fsSL --retry 3 --retry-delay 5 --max-time 120 \
+        -A "velorki-brouter-updater" "${SEGMENTS_URL%/}/lookups.dat" -o "$f.part"; then
+    mv -f "$f.part" "$f"
+  else
+    rm -f "$f.part"
+  fi
+  if [ ! -f "$f" ]; then
+    log "WARN no lookups.dat on the mirror; formatVersion stays $RD5_FORMAT_VERSION"
+    return 0
+  fi
+  major="$(sed -n 's/^---lookupversion:[[:space:]]*//p' "$f" | head -1 | tr -d '[:space:]')"
+  minor="$(sed -n 's/^---minorversion:[[:space:]]*//p' "$f" | head -1 | tr -d '[:space:]')"
+  if [ -n "$major" ] && [ -n "$minor" ]; then
+    RD5_FORMAT_VERSION="$major.$minor"
+    log "rd5 format version $RD5_FORMAT_VERSION (from lookups.dat)"
+  else
+    log "WARN lookups.dat has no version header; formatVersion stays $RD5_FORMAT_VERSION"
+  fi
+}
 
 # ---------------------------------------------------------------- one pass ---
 sync_once() {
@@ -213,6 +240,7 @@ sync_once() {
     log "WARNING SEGMENT_FILTER='$SEGMENT_FILTER' matched no tile in the index"
   fi
 
+  detect_format_version
   write_manifest
   log "done: $n_ok downloaded, $n_skip unchanged, $n_fail failed, $n_selected selected"
 

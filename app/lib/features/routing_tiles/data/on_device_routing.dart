@@ -2,7 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 
+import '../domain/routing_tile.dart';
 import 'brouter_assets.dart';
+import 'rd5_format_support.dart';
 import 'routing_tiles_repository.dart';
 
 part 'on_device_routing.g.dart';
@@ -44,16 +46,21 @@ Future<OnDeviceRouting> onDeviceRouting(Ref ref) async {
   final profiles = await ref.watch(brouterProfilesProvider.future);
   final repository = await ref.watch(routingTilesRepositoryProvider.future);
   final tiles = await ref.watch(routingTilesProvider.future);
+  final supported = await ref.watch(supportedRd5FormatProvider.future);
+  // A tile in a format newer than the bundled lookup table is left out: the
+  // engine could not decode its tags. The tiles screen says why.
+  final readable = <RoutingTile>[
+    for (final tile in tiles)
+      if (tile.isUsable &&
+          (supported?.canReadVersion(tile.formatVersion) ?? true))
+        tile,
+  ];
   return OnDeviceRouting(
     segmentsDir: repository.segmentsDir.path,
     profilesDir: profiles.path,
-    readyTiles: <TileName>{
-      for (final tile in tiles)
-        if (tile.isUsable) tile.tile,
-    },
+    readyTiles: <TileName>{for (final tile in readable) tile.tile},
     formatVersions: <TileName, String>{
-      for (final tile in tiles)
-        if (tile.isUsable) tile.tile: tile.formatVersion,
+      for (final tile in readable) tile.tile: tile.formatVersion,
     },
   );
 }

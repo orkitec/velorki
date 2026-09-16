@@ -1,10 +1,13 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 
+import '../../../app/app_config.dart';
 import '../../../app/theme.dart';
+import '../../../core/links/link_opener.dart';
 import '../../../core/db/database.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/domain/map_controller.dart';
@@ -12,8 +15,10 @@ import '../../map/presentation/map_strings.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../shared/presentation/placeholder_body.dart';
 import '../application/tile_download_controller.dart';
+import '../data/rd5_format_support.dart';
 import '../data/routing_tiles_repository.dart';
 import '../data/segments_manifest_service.dart';
+import '../domain/rd5_format.dart';
 import '../domain/routing_tile.dart';
 
 /// Settings → Advanced → "Offline routing data", and the planner's answer to
@@ -123,6 +128,66 @@ class RoutingTilesScreen extends ConsumerWidget {
 
 /// Asks whether [wanted] should be downloaded and enqueues them.
 ///
+/// What a download of [wanted] would fetch: the tiles not yet on the device
+/// that this build can read, and those it cannot. Throws
+/// [SegmentsManifestException] when the mirror cannot be read.
+class TileDownloadPlan {
+  /// Creates the plan.
+  const TileDownloadPlan({
+    required this.entries,
+    required this.tooNew,
+    required this.manifest,
+    required this.supported,
+  });
+
+  /// Tiles to fetch.
+  final List<SegmentEntry> entries;
+
+  /// Tiles in a format newer than this build reads.
+  final List<SegmentEntry> tooNew;
+
+  /// The mirror's manifest the plan was made from.
+  final SegmentsManifest manifest;
+
+  /// The format this build reads, or `null` when unknown.
+  final Rd5Format? supported;
+
+  /// How many bytes [entries] add up to.
+  int get bytes => entries.fold<int>(0, (sum, e) => sum + e.bytes);
+
+  /// The format of the first tile in [tooNew], for the explanation.
+  String get tooNewFormat => tooNew.isEmpty
+      ? ''
+      : tooNew.first.formatVersion ?? manifest.formatVersion ?? '';
+}
+
+/// Works out what downloading [wanted] means. Tiles already on the device are
+/// dropped silently.
+Future<TileDownloadPlan> planTileDownload(
+  WidgetRef ref,
+  List<TileName> wanted,
+) async {
+  final manifest = await ref.read(segmentsManifestSourceProvider.future);
+  final repository = await ref.read(routingTilesRepositoryProvider.future);
+  final supported = await ref.read(supportedRd5FormatProvider.future);
+  final present = repository.readyTiles();
+  final entries = <SegmentEntry>[];
+  final tooNew = <SegmentEntry>[];
+  for (final tile in wanted) {
+    if (present.contains(tile)) continue;
+    final entry = manifest[tile] ?? SegmentEntry(tile: tile, bytes: 0);
+    final version = entry.formatVersion ?? manifest.formatVersion;
+    final readable = supported?.canReadVersion(version) ?? true;
+    (readable ? entries : tooNew).add(entry);
+  }
+  return TileDownloadPlan(
+    entries: entries,
+    tooNew: tooNew,
+    manifest: manifest,
+    supported: supported,
+  );
+}
+
 /// The sizes come from the manifest, so the dialog can say what a download
 /// will cost before it starts. Tiles already on the device are dropped
 /// silently; when nothing is left the rider is told so instead of being shown
@@ -134,29 +199,34 @@ Future<void> confirmTileDownload(
 ) async {
   final l10n = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.maybeOf(context);
-  final SegmentsManifest manifest;
+  final TileDownloadPlan plan;
   try {
-    manifest = await ref.read(segmentsManifestSourceProvider.future);
+    plan = await planTileDownload(ref, wanted);
   } on Object catch (e) {
     messenger?.showSnackBar(
       SnackBar(content: Text(l10n.routingTilesManifestFailed(_message(e)))),
     );
     return;
   }
-  final repository = await ref.read(routingTilesRepositoryProvider.future);
-  final present = repository.readyTiles();
-  final entries = <SegmentEntry>[
-    for (final tile in wanted)
-      if (!present.contains(tile))
-        manifest[tile] ?? SegmentEntry(tile: tile, bytes: 0),
-  ];
+  final entries = plan.entries;
+  if (plan.tooNew.isNotEmpty && plan.supported != null) {
+    if (!context.mounted) return;
+    await explainNewerTileFormat(
+      context,
+      ref,
+      plan.tooNew,
+      tileFormat: plan.tooNewFormat,
+      appFormat: plan.supported!,
+    );
+    if (entries.isEmpty || !context.mounted) return;
+  }
   if (entries.isEmpty) {
     messenger?.showSnackBar(
       SnackBar(content: Text(l10n.routingTilesAllInView)),
     );
     return;
   }
-  final bytes = entries.fold<int>(0, (sum, e) => sum + e.bytes);
+  final bytes = plan.bytes;
   if (!context.mounted) return;
   final confirmed = await showDialog<bool>(
     context: context,
@@ -194,8 +264,61 @@ Future<void> confirmTileDownload(
   }
 }
 
-String _message(Object error) =>
+/// One sentence for a mirror failure.
+String manifestFailureMessage(Object error) =>
     error is SegmentsManifestException ? error.message : error.toString();
+
+String _message(Object error) => manifestFailureMessage(error);
+
+/// The store page of this build, or empty when none is configured. Each
+/// platform has its own listing, so its own key.
+String storeUrlFor(AppConfig config) => switch (defaultTargetPlatform) {
+  TargetPlatform.iOS || TargetPlatform.macOS => config.storeUrlIos,
+  TargetPlatform.android => config.storeUrlAndroid,
+  _ => '',
+};
+
+/// Tells the rider that [entries] are written in a format this build cannot
+/// read, and offers the store when the build knows its page there.
+Future<void> explainNewerTileFormat(
+  BuildContext context,
+  WidgetRef ref,
+  List<SegmentEntry> entries, {
+  required String tileFormat,
+  required Rd5Format appFormat,
+}) async {
+  final l10n = AppLocalizations.of(context);
+  final storeUrl = storeUrlFor(ref.read(appConfigProvider));
+  final openStore = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(l10n.routingTilesNeedsAppTitle),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          for (final entry in entries) Text(entry.tile.name),
+          const SizedBox(height: 12),
+          Text(l10n.routingTilesNeedsAppBody(tileFormat, appFormat.toString())),
+        ],
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: Text(l10n.routingTilesNeedsAppDismiss),
+        ),
+        if (storeUrl.isNotEmpty)
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.routingTilesOpenStore),
+          ),
+      ],
+    ),
+  );
+  if (openStore ?? false) {
+    await ref.read(linkOpenerProvider)(Uri.parse(storeUrl));
+  }
+}
 
 class _QueueHeader extends ConsumerWidget {
   const _QueueHeader({required this.state});
@@ -369,9 +492,20 @@ class _TileRow extends ConsumerWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final colors = theme.velorki;
+    // A newer build on the mirror that this app could not read: the update
+    // is the app's, not the tile's.
+    final manifest = ref.watch(segmentsManifestSourceProvider).value;
+    final supported = ref.watch(supportedRd5FormatProvider).value;
+    final needsApp =
+        tile.isStale &&
+        supported != null &&
+        !supported.canReadVersion(
+          manifest?[tile.tile]?.formatVersion ?? manifest?.formatVersion,
+        );
     final label = switch (tile.state) {
       RoutingTileState.ready => l10n.routingTilesStateReady,
-      RoutingTileState.stale => l10n.routingTilesStateStale,
+      RoutingTileState.stale =>
+        needsApp ? l10n.routingTilesStateNeedsApp : l10n.routingTilesStateStale,
       RoutingTileState.downloading => l10n.routingTilesStateDownloading,
       RoutingTileState.absent => l10n.routingTilesStateAbsent,
     };
@@ -384,7 +518,8 @@ class _TileRow extends ConsumerWidget {
     };
     final stateIcon = switch (tile.state) {
       RoutingTileState.ready => Icons.download_done_rounded,
-      RoutingTileState.stale => Icons.update_rounded,
+      RoutingTileState.stale =>
+        needsApp ? Icons.system_update_alt_rounded : Icons.update_rounded,
       RoutingTileState.downloading => Icons.downloading_rounded,
       RoutingTileState.absent => Icons.grid_on_outlined,
     };
@@ -437,7 +572,7 @@ class _TileRow extends ConsumerWidget {
           : Row(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                if (tile.isStale)
+                if (tile.isStale && !needsApp)
                   TextButton(
                     onPressed: () => unawaited(
                       confirmTileDownload(context, ref, <TileName>[tile.tile]),
