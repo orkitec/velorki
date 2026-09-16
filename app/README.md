@@ -37,7 +37,7 @@ app fully local.
 |-----|---------|
 | `VELORKI_BROUTER_URL` | BRouter routing server. Empty: on-device routing only (needs downloaded tiles). |
 | `VELORKI_API_URL` | The relay. Empty: Strava, RideWithGPS, AI assistant and link sharing are hidden. |
-| `VELORKI_SEGMENTS_URL` | Mirror of the rd5 routing tiles for on-device routing downloads. |
+| `VELORKI_SEGMENTS_URL` | Mirror of the rd5 routing tiles for on-device routing downloads: a directory with `manifest.json`, or a pointer such as the mirror's `latest.json` that names the current snapshot. |
 | `VELORKI_PHOTON_URL` | Photon geocoder for search. |
 | `VELORKI_MAP_STYLE_URL` | MapLibre style JSON. Default OpenFreeMap Liberty. |
 | `VELORKI_MAP_STYLE_URL_DARK` | MapLibre style JSON for dark mode. Default OpenFreeMap Fiord. |
@@ -45,6 +45,7 @@ app fully local.
 | `VELORKI_REVENUECAT_KEY_*` | RevenueCat public SDK keys per platform. Empty: subscription UI hidden. |
 | `VELORKI_STRAVA_CLIENT_ID`, `VELORKI_RWGPS_CLIENT_ID` | Public OAuth client ids. The secrets live in the relay. |
 | `VELORKI_OAUTH_SCHEME` | Custom URL scheme for OAuth callbacks and share links. |
+| `VELORKI_STORE_URL_ANDROID`, `VELORKI_STORE_URL_IOS` | The app's store page per platform, opened when a routing tile needs a newer app. Empty: the rider is only told. |
 
 ## Analysis
 
@@ -56,7 +57,7 @@ plugins, so run `dart analyze --fatal-infos lib test integration_test` as well t
 
 ## Database
 
-Drift, schema version 1, timestamps stored as ISO text
+Drift, schema version 3, timestamps stored as ISO text
 (`build.yaml → store_date_time_values_as_text`). Before changing the schema,
 bump `schemaVersion` and dump the new version so migrations stay testable:
 

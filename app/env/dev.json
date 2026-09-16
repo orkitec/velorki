@@ -1,7 +1,7 @@
 {
   "VELORKI_BROUTER_URL": "https://api.velorki.app/brouter",
   "VELORKI_API_URL": "https://api.velorki.app",
-  "VELORKI_SEGMENTS_URL": "https://api.velorki.app/segments4",
+  "VELORKI_SEGMENTS_URL": "https://raw.githubusercontent.com/orkitec/velorki-data/main/latest.json",
   "VELORKI_PHOTON_URL": "https://photon.komoot.io",
   "VELORKI_MAP_STYLE_URL": "https://tiles.openfreemap.org/styles/liberty",
   "VELORKI_MAP_STYLE_URL_DARK": "https://tiles.openfreemap.org/styles/fiord",
@@ -10,5 +10,7 @@
   "VELORKI_REVENUECAT_KEY_IOS": "",
   "VELORKI_STRAVA_CLIENT_ID": "",
   "VELORKI_RWGPS_CLIENT_ID": "",
-  "VELORKI_OAUTH_SCHEME": "velorki"
+  "VELORKI_OAUTH_SCHEME": "velorki",
+  "VELORKI_STORE_URL_ANDROID": "",
+  "VELORKI_STORE_URL_IOS": ""
 }

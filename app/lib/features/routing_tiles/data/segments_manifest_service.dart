@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 
 import '../../../core/http/user_agent.dart';
@@ -35,6 +37,12 @@ class SegmentsManifestException implements Exception {
 }
 
 /// Reads the list of downloadable rd5 tiles with their sizes and dates.
+///
+/// `VELORKI_SEGMENTS_URL` names either a directory holding `manifest.json`
+/// and the tiles, or a pointer file such as the mirror's `latest.json`, which
+/// carries the `baseUrl` of the current snapshot. A pointer lets the mirror
+/// move to a fresh snapshot without an app release; the first shard is used
+/// (the app does not merge shard manifests yet).
 class SegmentsManifestService {
   /// Creates the service. An empty [segmentsUrl] selects the brouter.de
   /// fallback.
@@ -47,14 +55,27 @@ class SegmentsManifestService {
 
   final Dio _dio;
   final String _segmentsUrl;
+  String? _resolvedBase;
 
   /// Whether the brouter.de directory listing is being used because no mirror
   /// is configured.
   bool get isFallback => _segmentsUrl.isEmpty;
 
+  /// Whether the configured URL is a pointer file rather than a directory.
+  bool get isPointer => _segmentsUrl.endsWith('.json');
+
   /// The directory the tiles are fetched from, without a trailing slash.
+  ///
+  /// For a pointer this is the snapshot it named the last time [fetch] ran;
+  /// before that, the pointer's own directory, which holds no tiles. Every
+  /// download follows a manifest fetch, so that state is never used.
   String get baseUrl {
-    final url = isFallback ? brouterDeSegmentsUrl : _segmentsUrl;
+    final url = isFallback
+        ? brouterDeSegmentsUrl
+        : isPointer
+        ? (_resolvedBase ??
+              _segmentsUrl.substring(0, _segmentsUrl.lastIndexOf('/')))
+        : _segmentsUrl;
     return url.endsWith('/') ? url.substring(0, url.length - 1) : url;
   }
 
@@ -65,6 +86,7 @@ class SegmentsManifestService {
   /// scraped directory listing from brouter.de.
   Future<SegmentsManifest> fetch() async {
     if (isFallback) return _fetchDirectoryListing();
+    if (isPointer) await _resolvePointer();
     final Response<Object?> response;
     try {
       response = await _dio.get<Object?>('$baseUrl/manifest.json');
@@ -82,6 +104,43 @@ class SegmentsManifestService {
         cause: e,
       );
     }
+  }
+
+  /// Reads the pointer and remembers the snapshot it names.
+  Future<void> _resolvePointer() async {
+    final Response<Object?> response;
+    try {
+      response = await _dio.get<Object?>(_segmentsUrl);
+    } on DioException catch (e) {
+      throw SegmentsManifestException(
+        'The tile mirror pointer at $_segmentsUrl could not be reached.',
+        cause: e,
+      );
+    }
+    // GitHub serves the raw file as text/plain, so dio hands over a string
+    // rather than a decoded map.
+    final Object? data;
+    try {
+      final raw = response.data;
+      data = raw is String ? jsonDecode(raw) : raw;
+    } on Object catch (e) {
+      throw SegmentsManifestException(
+        'The tile mirror pointer at $_segmentsUrl is not readable.',
+        cause: e,
+      );
+    }
+    final base = switch (data) {
+      {'baseUrl': final String url} when url.isNotEmpty => url,
+      {'shards': [{'baseUrl': final String url}, ...]} when url.isNotEmpty =>
+        url,
+      _ => null,
+    };
+    if (base == null) {
+      throw SegmentsManifestException(
+        'The tile mirror pointer at $_segmentsUrl names no snapshot.',
+      );
+    }
+    _resolvedBase = base;
   }
 
   Future<SegmentsManifest> _fetchDirectoryListing() async {

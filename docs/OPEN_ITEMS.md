@@ -13,7 +13,7 @@ exercised there. The items here are the parts not yet covered by that.
       most 1,000 assets and the planet is 1,142 tiles, so a full snapshot is
       sharded (`tiles-YYYYMMDD`, `-s2`, …) with a per-shard `manifest.json`;
       until the app merges shard manifests, one URL covers one shard (Europe
-      fits in shard 1). `app/env/dev.json` still points at `api.velorki.app`.
+      fits in shard 1). `app/env/dev.json` follows the mirror's `latest.json`.
 - [ ] **Relay on the VPS with Orkify**: `api/` (`npm run build`,
       `node dist/server.js`, health `/health`, Node ≥ 22.13). Fill `.env` from
       `api/.env.example`; `SHARE_DB_PATH` must be on a persistent volume.

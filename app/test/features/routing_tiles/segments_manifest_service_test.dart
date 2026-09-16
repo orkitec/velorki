@@ -682,4 +682,81 @@ void main() {
       },
     );
   });
+
+  group('with a pointer configured', () {
+    test('follows latest.json to the snapshot it names', () async {
+      final adapter = FakeSegmentsAdapter((options) {
+        if (options.uri.path.endsWith('latest.json')) {
+          return FakeSegmentsResponse.json(<String, Object?>{
+            'tag': 'tiles-20260913',
+            'formatVersion': '11.2',
+            'baseUrl': 'https://mirror.test/releases/tiles-20260913/',
+            'shards': <Object?>[
+              <String, Object?>{
+                'tag': 'tiles-20260913',
+                'baseUrl': 'https://mirror.test/releases/tiles-20260913/',
+              },
+            ],
+          });
+        }
+        return FakeSegmentsResponse.json(_manifest);
+      });
+      final service = SegmentsManifestService(
+        dio: segmentsDioWith(adapter),
+        segmentsUrl: 'https://mirror.test/main/latest.json',
+      );
+
+      final manifest = await service.fetch();
+
+      expect(service.isPointer, isTrue);
+      expect(manifest.tiles, hasLength(2));
+      expect(adapter.requests.map((r) => r.uri.toString()), <String>[
+        'https://mirror.test/main/latest.json',
+        'https://mirror.test/releases/tiles-20260913/manifest.json',
+      ]);
+      expect(
+        service.tileUrl(const TileName(10, 45)).toString(),
+        'https://mirror.test/releases/tiles-20260913/E10_N45.rd5',
+      );
+    });
+
+    test('a pointer served as plain text is read all the same', () async {
+      final adapter = FakeSegmentsAdapter((options) {
+        if (options.uri.path.endsWith('latest.json')) {
+          return FakeSegmentsResponse.text(
+            '{"tag":"tiles-20260913",'
+            '"baseUrl":"https://mirror.test/releases/tiles-20260913/"}',
+          );
+        }
+        return FakeSegmentsResponse.json(_manifest);
+      });
+      final service = SegmentsManifestService(
+        dio: segmentsDioWith(adapter),
+        segmentsUrl: 'https://mirror.test/main/latest.json',
+      );
+
+      final manifest = await service.fetch();
+
+      expect(manifest.tiles, hasLength(2));
+      expect(
+        service.tileUrl(const TileName(10, 45)).toString(),
+        'https://mirror.test/releases/tiles-20260913/E10_N45.rd5',
+      );
+    });
+
+    test('a pointer that names no snapshot is reported', () async {
+      final adapter = FakeSegmentsAdapter(
+        (_) => FakeSegmentsResponse.json(<String, Object?>{'tag': 'x'}),
+      );
+      final service = SegmentsManifestService(
+        dio: segmentsDioWith(adapter),
+        segmentsUrl: 'https://mirror.test/main/latest.json',
+      );
+
+      await expectLater(
+        service.fetch(),
+        throwsA(isA<SegmentsManifestException>()),
+      );
+    });
+  });
 }
