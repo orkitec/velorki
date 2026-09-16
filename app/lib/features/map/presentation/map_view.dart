@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
@@ -249,6 +251,12 @@ class _MapViewState extends ConsumerState<MapView> {
       attributionButtonPosition: ml.AttributionButtonPosition.bottomRight,
       rotateGesturesEnabled: true,
       tiltGesturesEnabled: false,
+      // The map claims every touch that lands on it. Inside a scroll view
+      // (the ride page) the list would otherwise win every vertical drag
+      // and the map could neither pan nor zoom.
+      gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+        Factory<OneSequenceGestureRecognizer>(EagerGestureRecognizer.new),
+      },
       // The puck is drawn by our own layers from `devicePositionProvider`;
       // the native location component would ask for permission by itself.
       myLocationEnabled: false,
