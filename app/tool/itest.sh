@@ -4,6 +4,8 @@
 #   tool/itest.sh                       # every test, on emulator-5554
 #   tool/itest.sh close_loop            # only the tests whose name matches
 #   VELORKI_ITEST_DEVICE=... tool/itest.sh
+#   VELORKI_ITEST_SHARD=1/3 tool/itest.sh   # one third of the files (CI)
+#   VELORKI_ITEST_SHARD=1/3 VELORKI_ITEST_DRY_RUN=1 tool/itest.sh  # list only
 #
 # Each file is a separate `flutter test` run — the integration_test binding
 # installs one test build per invocation — and the first failure stops the
@@ -19,6 +21,15 @@
 #   VELORKI_ITEST_REGION       -> nyc (default) or madeira; picks the
 #                                 coordinates and the tile, see
 #                                 integration_test/support/region.dart
+#   VELORKI_ITEST_SHARD=N/M    -> run only shard N of M. The files are spread
+#                                 over the shards by the weights in
+#                                 itest_weight below, heaviest first into the
+#                                 lightest shard so far, which keeps the three
+#                                 slow flows (close_loop, navigate_route,
+#                                 record_ride) in three different shards. The
+#                                 split depends only on the file names, so
+#                                 every shard of a run agrees on it.
+#   VELORKI_ITEST_DRY_RUN=1    -> print the files this run would take and stop
 set -euo pipefail
 cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
@@ -50,8 +61,64 @@ if [ ${#tests[@]} -eq 0 ]; then
   exit 1
 fi
 
-printf '==> %d test(s) on %s, region %s, segments %s\n' \
-  "${#tests[@]}" "$DEVICE" "$REGION" "$SEGMENTS_URL"
+# How expensive a file is, relative to the others: only the ratio matters, and
+# only for spreading the files over the shards. A file nobody weighed counts
+# as 1, so adding a test file needs no change here unless it is slow.
+itest_weight() {
+  case "$(basename "$1")" in
+    close_loop_test.dart) echo 5 ;;
+    navigate_route_test.dart | record_ride_test.dart) echo 3 ;;
+    *) echo 1 ;;
+  esac
+}
+
+SHARD="${VELORKI_ITEST_SHARD:-}"
+if [ -n "$SHARD" ]; then
+  if [[ ! "$SHARD" =~ ^[0-9]+/[0-9]+$ ]]; then
+    printf 'VELORKI_ITEST_SHARD must look like 1/3, not %q\n' "$SHARD" >&2
+    exit 2
+  fi
+  shard_index="${SHARD%%/*}"
+  shard_count="${SHARD##*/}"
+  if [ "$shard_index" -lt 1 ] || [ "$shard_count" -lt 1 ] \
+    || [ "$shard_index" -gt "$shard_count" ]; then
+    printf 'VELORKI_ITEST_SHARD %q is out of range\n' "$SHARD" >&2
+    exit 2
+  fi
+
+  # Heaviest file first, name second so the order never depends on the file
+  # system; then each file goes to the shard with the least work on it, ties
+  # to the lowest-numbered shard.
+  loads=()
+  for ((i = 0; i < shard_count; i++)); do loads+=(0); done
+  mine=()
+  while IFS=$'\t' read -r w f; do
+    least=0
+    for ((i = 1; i < shard_count; i++)); do
+      if [ "${loads[i]}" -lt "${loads[least]}" ]; then least=$i; fi
+    done
+    loads[least]=$((loads[least] + w))
+    if [ "$least" -eq $((shard_index - 1)) ]; then mine+=("$f"); fi
+  done < <(
+    for f in "${tests[@]}"; do printf '%s\t%s\n' "$(itest_weight "$f")" "$f"; done \
+      | LC_ALL=C sort -t$'\t' -k1,1nr -k2,2
+  )
+
+  tests=(${mine[@]+"${mine[@]}"})
+  if [ ${#tests[@]} -eq 0 ]; then
+    printf '==> shard %s has no test files; nothing to do\n' "$SHARD"
+    exit 0
+  fi
+fi
+
+if [ -n "${VELORKI_ITEST_DRY_RUN:-}" ]; then
+  printf '==> shard %s would run %d file(s):\n' "${SHARD:-1/1}" "${#tests[@]}"
+  printf '%s\n' "${tests[@]}"
+  exit 0
+fi
+
+printf '==> %d test(s) (shard %s) on %s, region %s, segments %s\n' \
+  "${#tests[@]}" "${SHARD:-1/1}" "$DEVICE" "$REGION" "$SEGMENTS_URL"
 for f in ${skipped[@]+"${skipped[@]}"}; do
   printf '    skipping %s: it needs a BRouter server in VELORKI_BROUTER_URL\n' "$f"
 done

@@ -15,6 +15,16 @@ name: integration
 # own concurrency group and are never cancelled. The per-push app workflow
 # keeps running the widget and unit tests.
 #
+# The suite is split three ways (VELORKI_ITEST_SHARD, see app/tool/itest.sh),
+# so the matrix is api-level x shard and the GitHub UI shows `emulator (34,
+# 1/3)`. Two things are cached to keep a shard from paying the same startup
+# three times: the Gradle caches, which the first test build otherwise fills
+# from scratch, and a booted AVD snapshot, which is created once per API level
+# in its own step and restored by every shard afterwards. On a cold cache all
+# three shards of an API level create the AVD and only the first one to finish
+# stores it; the others log a harmless "cache already exists" and the next run
+# is fast for all of them.
+#
 # The tile is the same committed rd5 fixture the BRouter parity corpus was
 # recorded against (tools/brouter-oracle/tiles/), so the routes this suite plans
 # are reproducible and nothing is downloaded. It is served to the emulator from
@@ -53,11 +63,14 @@ env:
 jobs:
   emulator:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
         api-level: [34, 35]
+        # Keep api-level first: the job name the UI renders is the matrix
+        # values in this order, i.e. `emulator (34, 1/3)`.
+        shard: ["1/3", "2/3", "3/3"]
 
     steps:
       - uses: actions/checkout@v7
@@ -76,11 +89,27 @@ jobs:
           distribution: temurin
           java-version: 21
 
+      # flutter-action's own cache: true covers the SDK and ~/.pub-cache;
+      # the Gradle caches below are the Android half it does not touch.
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           flutter-version: 3.47.4  # keep in sync with mise.toml and app/.fvmrc
           cache: true
+
+      # Restored by every shard, stored by one of them: the caches are
+      # identical, and three uploads of the same half-gigabyte buy nothing.
+      - name: Restore the Gradle caches
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: >-
+            gradle-itest-${{ matrix.api-level }}-${{
+            hashFiles('app/android/**/*.gradle*', 'app/pubspec.lock') }}
+          restore-keys: |
+            gradle-itest-${{ matrix.api-level }}-
 
       - name: Prepare the app package
         working-directory: app
@@ -88,6 +117,33 @@ jobs:
           flutter pub get
           dart run build_runner build
           flutter gen-l10n
+
+      - name: AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ matrix.api-level }}-x86_64-google_apis-pixel_6
+
+      # Only on a miss, and only to write the snapshot the run below boots
+      # from: no test is installed here, so -no-snapshot-save is absent on
+      # purpose and the animations are left alone (the real run disables them).
+      - name: Create the AVD snapshot
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: >-
+            -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect
+            -camera-back none -camera-front none
+          disable-animations: false
+          script: echo "AVD snapshot written."
 
       - name: Build and serve the segments mirror
         run: bash app/tool/itest_mirror.sh
@@ -100,9 +156,10 @@ jobs:
           arch: x86_64
           profile: pixel_6
           working-directory: app
+          force-avd-creation: false
           emulator-options: >-
-            -no-window -no-snapshot -no-audio -no-boot-anim -gpu swiftshader_indirect
-            -camera-back none -camera-front none
+            -no-window -no-snapshot-save -no-audio -no-boot-anim
+            -gpu swiftshader_indirect -camera-back none -camera-front none
           disable-animations: true
           script: |
             adb wait-for-device
@@ -112,7 +169,20 @@ jobs:
             adb shell settings put secure location_mode 3
             # One line: the emulator action runs the script line by line, so
             # a backslash continuation is handed to sh as a command.
-            VELORKI_ITEST_REGION=madeira VELORKI_SEGMENTS_URL=http://10.0.2.2:8000 tool/itest.sh
+            VELORKI_ITEST_REGION=madeira VELORKI_SEGMENTS_URL=http://10.0.2.2:8000 VELORKI_ITEST_SHARD=${{ matrix.shard }} tool/itest.sh
+
+      # After the run, because that is what fills them, and even on a red run:
+      # a failing test is no reason to rebuild Gradle from nothing next time.
+      - name: Save the Gradle caches
+        if: always() && matrix.shard == '1/3'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: >-
+            gradle-itest-${{ matrix.api-level }}-${{
+            hashFiles('app/android/**/*.gradle*', 'app/pubspec.lock') }}
 
       - name: Mirror log
         if: always()

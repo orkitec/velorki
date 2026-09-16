@@ -1,5 +1,11 @@
 name: app
 
+# Every push and pull request: the static checks, the unit and widget tests and
+# the package suites in `check`, and the debug APK in `apk` beside it. The two
+# jobs are split because the APK build is the longest single step here and
+# nothing in `check` needs it — run in parallel the workflow reports in about
+# the time of its slower half.
+
 on:
   workflow_dispatch:
   push:
@@ -57,6 +63,35 @@ jobs:
             echo "== $p"
             (cd "$p" && dart pub get && dart test)
           done
+
+  # The debug APK, for installing a push on a phone without building it. It
+  # repeats the pub get / codegen preamble because it runs beside `check`
+  # rather than after it; that costs about a minute and saves six.
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.4  # keep in sync with mise.toml and app/.fvmrc
+          cache: true
+      - name: Gradle cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-apk-${{ hashFiles('app/android/**/*.gradle*', 'app/pubspec.lock') }}
+          restore-keys: gradle-apk-
+      - run: flutter pub get
+      - run: dart run build_runner build
+      - run: flutter gen-l10n
       - run: flutter build apk --debug --dart-define-from-file=env/ci.json
       - uses: actions/upload-artifact@v7
         with:

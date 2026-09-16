@@ -75,9 +75,10 @@ produced by the GL Strings integration; do not edit them by hand. Run
 ## Tests
 
 `flutter test` for the app and `dart test` inside each `packages/*` directory —
-that is what `.github/workflows/app.yml` runs on every push, together with
-`flutter test --coverage`, `dart format`, both analyzers and the `brouter_dart`
-parity suites against the committed oracle tiles.
+that is what the `check` job of `.github/workflows/app.yml` runs on every push,
+together with `flutter test --coverage`, `dart format`, both analyzers and the
+`brouter_dart` parity suites against the committed oracle tiles. The debug APK
+is built by the `apk` job beside it, not after it.
 
 `test/perf/gazetteer_perf_test.dart` is the exception: it skips itself unless
 `GAZETTEER_PERF_FILE` points at a `<TILE>.gaz`, read from
@@ -107,7 +108,15 @@ service, and the Photon geocoder).
 ```
 tool/itest.sh                 # the whole suite on emulator-5554
 tool/itest.sh close_loop      # only the files whose path matches
+VELORKI_ITEST_SHARD=1/3 tool/itest.sh   # one third of the files
 ```
+
+`VELORKI_ITEST_SHARD=N/M` spreads the files over `M` shards by the weights in
+`itest_weight` (heaviest first into the lightest shard so far), which keeps
+`close_loop`, `navigate_route` and `record_ride` — the three slow flows — in
+three different shards; the split is a function of the file names only, so
+shards never disagree about it. `VELORKI_ITEST_DRY_RUN=1` prints the selection
+and stops.
 
 The runner passes `--dart-define=VELORKI_BROUTER_URL=` (nothing to route
 against but the device), `--dart-define=VELORKI_API_URL=` and
@@ -132,8 +141,11 @@ serves). `integration_test/support/region.dart` holds both sets.
 `.github/workflows/integration.yml` runs the suite on an emulator with the
 Madeira tile on every push to main that touches `app/`, the committed tiles or
 the `.gaz` fixtures, again nightly, and by hand from the Actions tab; a newer
-push cancels the older run, the nightly is never cancelled.
-`.github/workflows/integration-ios.yml` is the same on an iOS simulator.
+push cancels the older run, the nightly is never cancelled. Its matrix is API
+level (34, 35) by shard (1/3, 2/3, 3/3), so a job is named `emulator (34,
+1/3)`, and it caches the Gradle directories and a booted AVD snapshot per API
+level. `.github/workflows/integration-ios.yml` is the same on an iOS
+simulator: three shards, with the pods and the Xcode derived data cached.
 
 `integration_test/plan_route_test.dart` is the exception: it wants a BRouter
 *server*, so `tool/itest.sh` skips it unless `VELORKI_BROUTER_URL` is set
