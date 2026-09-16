@@ -307,12 +307,17 @@ def _check_query(db: sqlite3.Connection, path: str) -> None:
         if row is None:
             continue
         rowid, name = row
-        token = name.split()[0].replace('"', '""')
+        # The whole name as a phrase, not a prefix of its first word: "B"* in
+        # a tile the size of Mexico matches far more rows than any limit.
+        phrase = " ".join(
+            f'"{token}"' for token in name.replace('"', '""').split()
+        )
+        if not phrase:
+            continue
         try:
             hits = db.execute(
-                "SELECT rowid FROM search WHERE search MATCH ? "
-                "ORDER BY rank LIMIT 500",
-                (f'"{token}"*',),
+                "SELECT rowid FROM search WHERE search MATCH ? LIMIT 5000",
+                (phrase,),
             ).fetchall()
         except sqlite3.Error as error:
             raise GazetteerError(f"{path}: the FTS index does not answer ({error})")

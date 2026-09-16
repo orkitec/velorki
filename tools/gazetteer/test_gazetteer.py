@@ -653,14 +653,20 @@ class GazetteerTest(unittest.TestCase):
         )
 
     def test_check_accepts_a_file_without_the_osm_columns(self) -> None:
-        legacy = os.path.join(HERE, "fixtures", "W20_N30.gaz")
-        if not os.path.isfile(legacy):
-            self.skipTest("fixture not present")
-        db = sqlite3.connect(f"file:{legacy}?mode=ro", uri=True)
-        self.addCleanup(db.close)
+        # A file from before the osm columns existed: make one by dropping
+        # them from a copy of the fixture.
+        legacy = os.path.join(self.tmp, f"{TILE}.gaz")
+        shutil.copy(self.path(), legacy)
+        db = sqlite3.connect(legacy)
+        for table in ("places", "streets", "pois"):
+            db.execute(f"ALTER TABLE {table} DROP COLUMN osm_type")
+            db.execute(f"ALTER TABLE {table} DROP COLUMN osm_id")
+        db.commit()
         columns = {row[1] for row in db.execute("PRAGMA table_info(places)")}
-        self.assertNotIn("osm_type", columns, "fixture is no longer the legacy shape")
-        self.assertEqual(check.check(legacy).tile, "W20_N30")
+        db.close()
+        self.assertNotIn("osm_type", columns)
+        self.assertEqual(check.check(legacy).tile, TILE)
+        os.remove(legacy)
 
     # ----------------------------------------------------------- aliases ---
 
@@ -910,6 +916,43 @@ class GazetteerTest(unittest.TestCase):
         self.assertGreater(report.streets, 0)
         self.assertGreater(report.pois, 0)
         self.assertIn(TILE, report.summary())
+
+    def test_check_finds_a_name_among_thousands_sharing_its_first_word(
+        self,
+    ) -> None:
+        # A tile the size of Mexico has thousands of names starting with the
+        # same letter; the self-test must search the whole name, not a prefix
+        # of its first word.
+        crowded = os.path.join(self.tmp, f"{TILE}.gaz")
+        shutil.copy(self.path(), crowded)
+        db = sqlite3.connect(crowded)
+        first_id, first_name = db.execute(
+            "SELECT id, name FROM places WHERE name IS NOT NULL "
+            "ORDER BY id LIMIT 1"
+        ).fetchone()
+        word = first_name.split()[0]
+        # Ids come from one counter across all tables; start above them all.
+        next_id = 1 + max(
+            db.execute(f"SELECT max(id) FROM {table}").fetchone()[0] or 0
+            for table in ("places", "streets", "pois", "aliases")
+        )
+        rows = [
+            (next_id + i, f"{word} filler {i}", "locality", 471000000, 95000000)
+            for i in range(6000)
+        ]
+        db.executemany(
+            "INSERT INTO places(id, name, kind, lat, lon) VALUES (?, ?, ?, ?, ?)",
+            rows,
+        )
+        db.executemany(
+            "INSERT INTO search(rowid, name) VALUES (?, ?)",
+            [(r[0], r[1]) for r in rows],
+        )
+        db.commit()
+        db.close()
+        report = check.check(crowded)
+        self.assertGreater(report.places, 6000)
+        os.remove(crowded)
 
     def test_check_rejects_a_wrong_schema_version(self) -> None:
         broken = os.path.join(self.tmp, f"{TILE}.gaz")
