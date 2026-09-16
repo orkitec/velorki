@@ -85,6 +85,7 @@ N_PAIRS = 120          # 6 profiles x 4 alternativeidx x 5
 N_TRIPLES = 40
 N_NOGOS = 24
 N_ROUNDTRIPS = 16
+N_VOICE = 24           # turn instructions on; everything else runs timode=0
 
 ROUNDTRIP_RADII = [1200, 1800, 2500, 3000]
 ROUNDTRIP_DIRECTIONS = [0, 90, 180, 270]
@@ -296,6 +297,39 @@ def main() -> int:
              "profile": profile, "waypoints": [list(start)],
              "roundTripDistance": radius, "direction": direction,
              "roundTripPoints": 5, "query": q})
+        n += 1
+
+    # ----------------------------------------------------------- voice cases --
+    # Turn instructions on. The families above all run timode=0, so without
+    # these the port's VoiceHintProcessor and the "voicehints" block of the
+    # geojson have no vector at all. The app asks for timode=2; a few cases
+    # use timode=1, whose command table differs.
+    n = 0
+    guard = 0
+    while len([c for c in cases if c["kind"] == "voice"]) < N_VOICE and guard < 400:
+        guard += 1
+        region = REGIONS[n % len(REGIONS)]
+        profile = PROFILES[n % len(PROFILES)]
+        timode = 2 if n % 4 != 3 else 1
+        pool = anchors[region["name"]]
+        a = pool[rng.randrange(len(pool))]
+        b = pick_partner(rng, pool, a)
+        if b is None:
+            rejected += 1
+            continue
+        q = build_query([
+            ("lonlats", lonlats([a, b])),
+            ("profile", profile),
+            ("alternativeidx", 0),
+            ("format", "geojson"),
+            ("timode", timode),
+        ])
+        if validate(q) is None:
+            rejected += 1
+            continue
+        add({"id": "voice-%03d" % n, "kind": "voice", "region": region["name"],
+             "profile": profile, "alternativeidx": 0, "timode": timode,
+             "waypoints": [list(a), list(b)], "query": q})
         n += 1
 
     doc = {

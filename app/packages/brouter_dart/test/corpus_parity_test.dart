@@ -15,8 +15,8 @@ import 'mapaccess_support.dart';
 void main() {
   final skip = tilesMissing;
   final cases = loadCorpus();
-  if (cases.length != 200) {
-    throw StateError('expected 200 cases, got ${cases.length}');
+  if (cases.length != 224) {
+    throw StateError('expected 224 cases, got ${cases.length}');
   }
   final only = Platform.environment['BROUTER_CORPUS_ONLY'];
 

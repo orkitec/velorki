@@ -1,4 +1,4 @@
-// The L3 corpus of tools/brouter-oracle (200 recorded requests and their
+// The L3 corpus of tools/brouter-oracle (224 recorded requests and their
 // verbatim GeoJSON responses from the real 1.7.10 server).
 
 import 'dart:convert';
