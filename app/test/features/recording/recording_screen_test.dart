@@ -14,6 +14,8 @@ import 'package:velorki/features/recording/data/ride_repository.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/navigation/application/navigation_controller.dart';
 import 'package:velorki/features/navigation/domain/navigation_progress.dart';
+import 'package:velorki/features/navigation/data/navigation_settings.dart';
+import 'package:velorki/features/navigation/presentation/navigation_toggles.dart';
 import 'package:velorki/features/navigation/presentation/turn_banner.dart';
 import 'package:velorki/features/recording/data/recording_settings.dart';
 import 'package:velorki/features/recording/domain/gps_precision.dart';
@@ -359,6 +361,44 @@ void main() {
     await tester.tap(find.text('Keep screen on'));
     await tester.pumpAndSettle();
     expect(h.screenWake.enabled, isFalse);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('the navigation switches sit below the fold on both sheets', (
+    tester,
+  ) async {
+    final h = await pumpRecordingScreen(tester, const RecordingScreen());
+    await tester.pump();
+
+    expect(find.byType(NavigationToggles), findsOneWidget);
+    // The same rows as Settings > Navigation, after "Keep screen on".
+    final keep = tester.getTopLeft(find.text('Keep screen on'));
+    final voice = tester.getTopLeft(find.text('Voice'));
+    expect(voice.dy, greaterThan(keep.dy));
+
+    await tester.tap(find.text('Voice'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(RecordingScreen)),
+    );
+    expect(container.read(navigationSettingsProvider).voice, isFalse);
+
+    // The live sheet carries the same rows, below the figures.
+    await emitSnapshot(tester, h, _snapshot());
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationToggles), findsOneWidget);
+    expect(
+      tester
+          .widget<SwitchListTile>(
+            find.ancestor(
+              of: find.text('Voice'),
+              matching: find.byType(SwitchListTile),
+            ),
+          )
+          .value,
+      isFalse,
+    );
 
     await unmountApp(tester);
   });

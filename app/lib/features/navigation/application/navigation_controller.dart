@@ -130,6 +130,24 @@ class DetourRoute extends _$DetourRoute {
   void replace(GuidedRoute? route) => state = route;
 }
 
+/// Whether the spoken turns are silenced for the rest of this ride.
+///
+/// Not a setting: it is the button on the banner for a rider who wants quiet
+/// right now, so it lasts as long as the ride does and no longer. The cues are
+/// still worked out while it is on, so the banner keeps counting the turns
+/// down and the voice picks up again where it left off.
+@Riverpod(keepAlive: true)
+class VoiceMutedForRide extends _$VoiceMutedForRide {
+  @override
+  bool build() => false;
+
+  /// Silences the voice, or gives it back.
+  void toggle() => state = !state;
+
+  /// Gives the voice back, which is where every ride starts.
+  void reset() => state = false;
+}
+
 /// The route navigation is actually running on: the detour while one is up,
 /// the plan the rider chose otherwise.
 @Riverpod(keepAlive: true)
@@ -202,6 +220,10 @@ class NavigationController extends _$NavigationController {
   /// silenced exactly once when it stops.
   bool _guiding = false;
 
+  /// Whether a ride was running on the previous pass, so the ride-only mute
+  /// is lifted exactly once when one starts or ends.
+  bool _recording = false;
+
   /// How far along the plan the rider was when last matched to it. A detour
   /// is planned from here on, so the corners already ridden are left alone.
   double _planAlongM = 0;
@@ -245,6 +267,12 @@ class NavigationController extends _$NavigationController {
   /// route say right now.
   NavigationProgress? _compute() {
     final recording = ref.read(recordingControllerProvider);
+    // The mute belongs to one ride: starting or ending a ride gives the
+    // voice back, whether or not that ride was being guided.
+    if (recording.isRecording != _recording) {
+      _recording = recording.isRecording;
+      _unmute();
+    }
     final settings = ref.read(navigationSettingsProvider);
     final plan = ref.read(guidedRouteProvider);
     final guided =
@@ -415,6 +443,16 @@ class NavigationController extends _$NavigationController {
     ref.read(detourRouteProvider.notifier).replace(route);
   }
 
+  /// Lifts the ride-only mute. Silent when nothing is muted, which is the
+  /// usual case.
+  void _unmute() {
+    // A provider may not change another one while it is being created, and a
+    // controller that has just been built has no muted ride behind it.
+    if (_building) return;
+    if (!ref.read(voiceMutedForRideProvider)) return;
+    ref.read(voiceMutedForRideProvider.notifier).reset();
+  }
+
   /// Gives up on the request in flight and forgets the back-off.
   void _cancelRouting() {
     _cancel?.cancel('the route changed');
@@ -426,6 +464,9 @@ class NavigationController extends _$NavigationController {
   }
 
   void _speak(List<TurnCue> cues) {
+    // Muted for this ride: the cues were still worked out, they simply are
+    // not said.
+    if (ref.read(voiceMutedForRideProvider)) return;
     final l10n = ref.read(navigationLocalizationsProvider);
     final speaker = ref.read(turnSpeakerProvider);
     // The chosen voice is handed to the speaker before the first cue of a

@@ -17,6 +17,7 @@ import '../../map/presentation/location_rationale_dialog.dart';
 import '../../map/presentation/map_chrome.dart';
 import '../../navigation/application/navigation_controller.dart';
 import '../../navigation/domain/navigation_progress.dart';
+import '../../navigation/presentation/navigation_toggles.dart';
 import '../../navigation/presentation/turn_banner.dart';
 import '../../navigation/presentation/turn_phrases.dart';
 import '../../planner/application/planner_controller.dart';
@@ -1221,7 +1222,7 @@ class _IdlePanel extends ConsumerWidget {
           onChanged: (value) =>
               ref.read(recordingControllerProvider.notifier).selectRoute(value),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 12),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           value: keepScreenOn,
@@ -1238,6 +1239,10 @@ class _IdlePanel extends ConsumerWidget {
           ),
           title: Text(l10n.settingsBatterySaver),
         ),
+        // The navigation switches, the same rows as Settings > Navigation,
+        // below the fold: seen only when the sheet is pulled up, there for a
+        // rider who wants the voice off before they set out.
+        const NavigationToggles(contentPadding: EdgeInsets.zero),
         const SizedBox(height: 16),
         SectionCaption(l10n.recordingRecentRides),
         const SizedBox(height: 4),
@@ -1370,6 +1375,9 @@ class _LivePanel extends ConsumerWidget {
           onChanged: onKeepScreenOn,
           title: Text(l10n.recordingKeepScreenOn),
         ),
+        // The same switches as on the idle sheet, below the fold: mid-ride is
+        // when a rider usually decides they have heard enough of the voice.
+        const NavigationToggles(contentPadding: EdgeInsets.zero),
       ],
     );
   }

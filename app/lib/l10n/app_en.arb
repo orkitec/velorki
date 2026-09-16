@@ -252,7 +252,11 @@
   "plannerPointTitle": "Point {number}",
   "@plannerPointTitle": {
     "description": "Title of the sheet for a tapped waypoint without a name",
-    "placeholders": {"number": {"type": "int"}}
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
   },
   "plannerVisitEarlier": "Visit earlier",
   "@plannerVisitEarlier": {
@@ -2497,6 +2501,14 @@
   "@navRerouting": {
     "description": "Shown in the banner while a new way back onto the route is being computed"
   },
+  "navMuteVoice": "Mute the voice for this ride",
+  "@navMuteVoice": {
+    "description": "Tooltip of the banner button that silences the spoken turns until the ride ends"
+  },
+  "navUnmuteVoice": "Unmute the voice",
+  "@navUnmuteVoice": {
+    "description": "Tooltip of the banner button that gives the spoken turns back after a ride mute"
+  },
   "navDistanceMetres": "{distance} m",
   "@navDistanceMetres": {
     "description": "A short distance to the next turn, shown in the banner",
@@ -3026,7 +3038,7 @@
   "@voiceBetterTitle": {
     "description": "Heading of the card that explains how to install a better iOS voice"
   },
-  "voiceBetterBody": "Your iPhone only has the compact voice for {language}. A fuller one is free: Settings \u203A Accessibility \u203A Spoken Content \u203A Voices \u203A {language}, then tap the cloud next to an Enhanced or Premium voice. The button below opens Velorki\u2019s settings; the voices page is a few taps away from there.",
+  "voiceBetterBody": "Your iPhone only has the compact voice for {language}. A fuller one is free: Settings › Accessibility › Spoken Content › Voices › {language}, then tap the cloud next to an Enhanced or Premium voice. The button below opens Velorki’s settings; the voices page is a few taps away from there.",
   "@voiceBetterBody": {
     "description": "Body of the card that explains how to install a better iOS voice",
     "placeholders": {

@@ -303,6 +303,55 @@ void main() {
     expect(h.speaker.spoken, isEmpty);
   });
 
+  test(
+    'a ride muted from the banner keeps its turns but says nothing',
+    () async {
+      final h = await _NavHarness.create(saved: _savedRoute());
+      await h.follow('route-1');
+      await h.ride(0);
+
+      h.container.read(voiceMutedForRideProvider.notifier).toggle();
+      // At 6 m/s this is where the warning cue would have gone out.
+      await h.ride(250);
+      await h.ride(450);
+      await h.ride(460);
+
+      expect(h.progress!.next?.kind, TurnKind.left);
+      expect(h.progress!.distanceToNextM, closeTo(40, 2));
+      expect(h.speaker.spoken, isEmpty);
+
+      // The cue was still worked out while the rider had it muted, so the
+      // voice picks up at the next one rather than repeating itself.
+      h.container.read(voiceMutedForRideProvider.notifier).toggle();
+      await h.ride(480);
+
+      expect(h.speaker.spoken, <String>['Now turn left']);
+    },
+  );
+
+  test('the mute lasts one ride only', () async {
+    final h = await _NavHarness.create(saved: _savedRoute());
+    await h.follow('route-1');
+    await h.ride(250);
+
+    h.container.read(voiceMutedForRideProvider.notifier).toggle();
+    expect(h.container.read(voiceMutedForRideProvider), isTrue);
+
+    await h.stopRiding();
+
+    expect(h.container.read(voiceMutedForRideProvider), isFalse);
+  });
+
+  test('a new ride starts with the voice back on', () async {
+    final h = await _NavHarness.create(saved: _savedRoute());
+    await h.follow('route-1');
+    h.container.read(voiceMutedForRideProvider.notifier).toggle();
+
+    await h.ride(0);
+
+    expect(h.container.read(voiceMutedForRideProvider), isFalse);
+  });
+
   test('turn directions switched off leave the controller silent', () async {
     final h = await _NavHarness.create(
       saved: _savedRoute(),

@@ -11,6 +11,7 @@ import '../../../features/navigation/domain/voice_naming.dart';
 import '../../../features/navigation/domain/voice_option.dart';
 import '../../../features/navigation/presentation/voice_labels.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../navigation/presentation/navigation_toggles.dart';
 import 'voice_picker_screen.dart';
 
 /// Settings → Navigation: the turn directions, whether they are spoken, how
@@ -27,22 +28,9 @@ class NavigationSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SwitchListTile(
-          value: settings.turns,
-          title: Text(l10n.settingsTurnDirections),
-          subtitle: Text(l10n.settingsTurnDirectionsHint),
-          onChanged: (value) => unawaited(controller.setTurns(value)),
-        ),
-        // The voice only has anything to say while the turns are shown, so it
-        // greys out with them; the stored choice is kept either way.
-        SwitchListTile(
-          value: settings.voice,
-          title: Text(l10n.settingsVoiceDirections),
-          subtitle: Text(l10n.settingsVoiceDirectionsHint),
-          onChanged: settings.turns
-              ? (value) => unawaited(controller.setVoice(value))
-              : null,
-        ),
+        // Turn directions and voice; re-routing follows at the end so the
+        // voice's own rows sit next to its switch.
+        const NavigationToggles(only: NavigationToggle.turnsAndVoice),
         // Which voice: the chosen one by name, or the phone's own.
         ListTile(
           enabled: settings.turns && settings.voice,
@@ -74,16 +62,7 @@ class NavigationSection extends ConsumerWidget {
               ? (value) => unawaited(controller.setLeadSeconds(value.round()))
               : null,
         ),
-        // Re-routing needs a route to be matched against, which is what the
-        // turn directions do, so it greys out with them too.
-        SwitchListTile(
-          value: settings.reroute,
-          title: Text(l10n.settingsReroute),
-          subtitle: Text(l10n.settingsRerouteHint),
-          onChanged: settings.turns
-              ? (value) => unawaited(controller.setReroute(value))
-              : null,
-        ),
+        const NavigationToggles(only: NavigationToggle.reroute),
       ],
     );
   }

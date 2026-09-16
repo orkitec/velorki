@@ -195,8 +195,10 @@ whether the rider strayed. `TurnAnnouncer` turns that stream into cues given
 once each; `TurnBanner` shows the current one over the map and `TurnSpeaker`
 (`flutter_tts`) says it. Three switches in Settings: `navigation.turns` shows
 the banner, `navigation.voice` speaks it, `navigation.reroute` repairs a ride
-that has gone astray. A rider who is off route and still moving has a way back
-asked for — from where they are, through the plan's remaining waypoints — at
+that has gone astray. The same three are chips on the record sheet, and the
+banner carries a mute button that silences the voice for the rest of the ride
+only (`voiceMutedForRideProvider`, cleared whenever a ride starts or ends).
+A rider who is off route and still moving has a way back asked for — from where they are, through the plan's remaining waypoints — at
 most once every 20 s (30 s after a failure); the answer becomes the detour in
 `detourRouteProvider`, which `activeGuidedRouteProvider` puts in front of the
 plan and the record screen draws in its place. The detour is dropped, and the

@@ -5,6 +5,8 @@ import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../settings/data/units.dart';
 import '../../shared/presentation/stat_tile.dart';
+import '../application/navigation_controller.dart';
+import '../data/navigation_settings.dart';
 import '../domain/navigation_progress.dart';
 import 'turn_phrases.dart';
 
@@ -40,6 +42,8 @@ class TurnBanner extends ConsumerWidget {
     final units = ref.watch(unitSystemProvider);
     final colors = theme.velorki;
     final next = progress.next;
+    final voice = ref.watch(navigationSettingsProvider.select((s) => s.voice));
+    final muted = ref.watch(voiceMutedForRideProvider);
 
     final IconData icon;
     final Color tint;
@@ -112,6 +116,33 @@ class TurnBanner extends ConsumerWidget {
                     Icon(icon, size: 28, color: tint),
                     const SizedBox(width: 10),
                     ...row,
+                    // Quiet for this ride, without walking to Settings and
+                    // losing the choice for every ride after it. Nothing to
+                    // mute while the voice is off, so the button is gone.
+                    if (voice) ...[
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: Icon(
+                          muted ? Icons.volume_off : Icons.volume_up,
+                          size: 22,
+                        ),
+                        color: muted
+                            ? theme.colorScheme.onSurfaceVariant
+                            : colors.accent,
+                        tooltip: muted
+                            ? l10n.navUnmuteVoice
+                            : l10n.navMuteVoice,
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 36,
+                          minHeight: 36,
+                        ),
+                        onPressed: () => ref
+                            .read(voiceMutedForRideProvider.notifier)
+                            .toggle(),
+                      ),
+                    ],
                   ],
                 ),
               ),

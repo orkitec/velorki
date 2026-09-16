@@ -3,7 +3,10 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/theme.dart';
+import 'package:velorki/features/navigation/application/navigation_controller.dart';
 import 'package:velorki/features/navigation/domain/navigation_progress.dart';
 import 'package:velorki/features/navigation/presentation/turn_banner.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
@@ -15,31 +18,49 @@ import '../../support/units.dart';
 const TurnHint _left = TurnHint(pointIndex: 10, kind: TurnKind.left);
 const TurnHint _keepRight = TurnHint(pointIndex: 14, kind: TurnKind.keepRight);
 
-Future<void> _pumpBanner(
+/// Pumps the banner with the navigation settings [preferences] describes.
+///
+/// Returns the container, so a test can read the ride-only mute the button
+/// writes to.
+Future<ProviderContainer> _pumpBanner(
   WidgetTester tester,
   NavigationProgress progress, {
   Override? units,
-}) => tester.pumpWidget(
-  ProviderScope(
-    overrides: [units ?? metricUnits],
-    child: MaterialApp(
-      theme: buildLightTheme(),
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: Scaffold(
-        body: Align(
-          alignment: Alignment.topCenter,
-          child: TurnBanner(progress: progress),
+  Map<String, Object> preferences = const <String, Object>{},
+}) async {
+  SharedPreferences.setMockInitialValues(preferences);
+  final prefs = await SharedPreferences.getInstance();
+  final container = ProviderContainer(
+    overrides: [
+      units ?? metricUnits,
+      sharedPreferencesProvider.overrideWithValue(prefs),
+    ],
+  );
+  addTearDown(container.dispose);
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(
+        theme: buildLightTheme(),
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.topCenter,
+            child: TurnBanner(progress: progress),
+          ),
         ),
       ),
     ),
-  ),
-);
+  );
+  await tester.pumpAndSettle();
+  return container;
+}
 
 void main() {
   testWidgets('the banner shows the distance and the instruction', (
@@ -181,5 +202,76 @@ void main() {
     );
 
     expect(find.text('0.9 mi'), findsOneWidget);
+  });
+
+  testWidgets('the mute button is there while the voice is on', (tester) async {
+    final container = await _pumpBanner(
+      tester,
+      const NavigationProgress(next: _left, distanceToNextM: 248),
+    );
+
+    expect(find.byIcon(Icons.volume_up), findsOneWidget);
+    expect(find.byIcon(Icons.volume_off), findsNothing);
+    expect(container.read(voiceMutedForRideProvider), isFalse);
+    expect(
+      tester.widget<IconButton>(find.byType(IconButton)).tooltip,
+      'Mute the voice for this ride',
+    );
+  });
+
+  testWidgets('a silent ride has nothing to mute', (tester) async {
+    await _pumpBanner(
+      tester,
+      const NavigationProgress(next: _left, distanceToNextM: 248),
+      preferences: const <String, Object>{'navigation.voice': false},
+    );
+
+    expect(find.byIcon(Icons.volume_up), findsNothing);
+    expect(find.byIcon(Icons.volume_off), findsNothing);
+    expect(find.byType(IconButton), findsNothing);
+  });
+
+  testWidgets('the button mutes the ride and gives the voice back', (
+    tester,
+  ) async {
+    final container = await _pumpBanner(
+      tester,
+      const NavigationProgress(next: _left, distanceToNextM: 248),
+    );
+
+    await tester.tap(find.byIcon(Icons.volume_up));
+    await tester.pumpAndSettle();
+
+    expect(container.read(voiceMutedForRideProvider), isTrue);
+    expect(find.byIcon(Icons.volume_off), findsOneWidget);
+    expect(
+      tester.widget<IconButton>(find.byType(IconButton)).tooltip,
+      'Unmute the voice',
+    );
+
+    await tester.tap(find.byIcon(Icons.volume_off));
+    await tester.pumpAndSettle();
+
+    expect(container.read(voiceMutedForRideProvider), isFalse);
+    expect(find.byIcon(Icons.volume_up), findsOneWidget);
+  });
+
+  testWidgets('the mute button leaves the banner one row and capped', (
+    tester,
+  ) async {
+    await _pumpBanner(
+      tester,
+      const NavigationProgress(
+        next: _left,
+        distanceToNextM: 120,
+        after: _keepRight,
+      ),
+    );
+
+    final banner = tester.getSize(find.byType(TurnBanner));
+    final panel = tester.getSize(find.byType(GlassPanel));
+    expect(banner.height, turnBannerHeight);
+    expect(panel.height, turnBannerHeight);
+    expect(panel.width, lessThanOrEqualTo(banner.width * 0.8));
   });
 }
