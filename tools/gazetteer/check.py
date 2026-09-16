@@ -4,7 +4,8 @@
     check.py fixtures/E5_N45.gaz
 
 Checks the schema version, that `meta.tile` matches the file name, that the
-FTS index actually answers a query, and reports the row counts. Used by
+FTS index actually answers a query, and reports the row counts. The optional
+`osm_type`/`osm_id` columns are accepted whether or not a file has them. Used by
 manifest.py before it writes a gazetteer entry, and by the tests.
 """
 
@@ -101,6 +102,7 @@ def check(path: str) -> Report:
         if counts["search"] == 0:
             raise GazetteerError(f"{path}: holds no rows at all")
 
+        _check_osm_columns(db, path)
         _check_query(db, path)
     finally:
         db.close()
@@ -118,6 +120,22 @@ def check(path: str) -> Report:
         search=counts["search"],
         bytes=os.path.getsize(path),
     )
+
+
+def _check_osm_columns(db: sqlite3.Connection, path: str) -> None:
+    """`osm_type`/`osm_id` are optional; when a table has them they must hold
+    a real OSM type. Files built before the addendum have neither column and
+    are valid as they are."""
+    for table in ("places", "streets", "pois"):
+        columns = {row[1] for row in db.execute(f"PRAGMA table_info({table})")}
+        if not {"osm_type", "osm_id"} <= columns:
+            continue
+        bad = db.execute(
+            f"SELECT osm_type FROM {table} "
+            "WHERE osm_type IS NOT NULL AND osm_type NOT IN ('n','w','r') LIMIT 1"
+        ).fetchone()
+        if bad is not None:
+            raise GazetteerError(f"{path}: {table}.osm_type is {bad[0]!r}")
 
 
 def _check_query(db: sqlite3.Connection, path: str) -> None:

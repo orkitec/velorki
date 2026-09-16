@@ -13,6 +13,7 @@ at `<appSupport>/brouter/gazetteer/<TILE>.gaz`, read-only.
 | File | |
 |---|---|
 | `build.py` | reads an OSM PBF extract, writes one `<TILE>.gaz` per tile it touches |
+| `merge.py` | merges the partial tiles of several extracts into one file per tile |
 | `query.py` | runs the app's two queries from the command line |
 | `check.py` | validates one `.gaz` and prints a one-line summary |
 | `manifest.py` | adds the `gazetteer` object to a mirror's `manifest.json` |
@@ -47,7 +48,9 @@ CREATE TABLE places (
     lat        INTEGER NOT NULL, -- degrees * 1e7, rounded
     lon        INTEGER NOT NULL,
     population INTEGER,          -- NULL when OSM has none
-    admin_id   INTEGER           -- places.id of the town/city this sits in
+    admin_id   INTEGER,          -- places.id of the town/city this sits in
+    osm_type   TEXT,             -- 'n', 'w', 'r'; NULL when unknown
+    osm_id     INTEGER
 );
 
 CREATE TABLE streets (
@@ -55,7 +58,9 @@ CREATE TABLE streets (
     name     TEXT NOT NULL,
     lat      INTEGER NOT NULL,
     lon      INTEGER NOT NULL,
-    place_id INTEGER            -- places.id: addr:city, else nearest within 5 km
+    place_id INTEGER,           -- places.id: addr:city, else nearest within 5 km
+    osm_type TEXT,              -- always NULL: a street is merged out of many ways
+    osm_id   INTEGER
 );
 
 CREATE TABLE pois (
@@ -66,7 +71,9 @@ CREATE TABLE pois (
                                 --   peak, park
     lat      INTEGER NOT NULL,
     lon      INTEGER NOT NULL,
-    place_id INTEGER
+    place_id INTEGER,
+    osm_type TEXT,
+    osm_id   INTEGER
 );
 
 CREATE VIRTUAL TABLE search USING fts5(
@@ -81,7 +88,7 @@ CREATE INDEX idx_pois_pos    ON pois(lat, lon);
 
 Page size 4096, journal mode DELETE (the phone opens it read-only), `VACUUM`ed.
 
-Four decisions are load-bearing:
+Five decisions are load-bearing:
 
 **One id space.** `id` comes from a single counter across `places`, `streets`
 and `pois`, so an FTS `rowid` names exactly one row in exactly one table. A
@@ -98,6 +105,14 @@ third.
 
 **Integer coordinates.** SQLite stores a `REAL` in 8 bytes; 1e-7 degrees fits in
 4–5, which is a quarter of a dense street table and its index.
+
+**`osm_type` / `osm_id` are the merge key.** Both are nullable and the app
+ignores them; every tool accepts a file with or without the two columns (the
+`W20_N30` fixture predates them). A place or POI carries the node or way it
+came from, so `merge.py` can tell the same object out of two overlapping
+extracts from two different objects. A street row is the mean of many ways and
+has no single identity, so it keeps `NULL`s and is matched by name, place and
+position instead.
 
 **Foreign keys, not repeated names.** A place name is ~12 bytes repeated on
 every street of that place. `admin_id` and `place_id` can only point inside the
@@ -149,13 +164,46 @@ An object lands in a tile by its representative point: the node itself, or the
 mean of a way's nodes for an area-mapped place, park or street. A street that
 crosses a tile boundary appears once, in the tile its centre falls in.
 
+## Merging
+
+No Geofabrik extract covers a whole 5 degree tile and neighbouring extracts
+overlap, so a mirror is built one extract at a time and the partial tiles are
+merged:
+
+```sh
+./build.py liechtenstein.osm.pbf --out gaz/liechtenstein --streets
+./build.py switzerland.osm.pbf   --out gaz/switzerland   --streets
+./build.py austria.osm.pbf       --out gaz/austria       --streets
+./merge.py mirror gaz            # every *.gaz under gaz, grouped by tile name
+./manifest.py mirror             # then the manifest, over the merged files
+```
+
+`merge.py <out_dir> <in_dir>...` searches the input directories recursively, so
+one directory per extract or the flat download of a CI matrix both work. Per
+tile it
+
+* validates every input with `check.py` and stops before writing anything if
+  one fails,
+* drops rows that repeat an `(osm_type, osm_id)` already seen, and streets that
+  repeat a name + place name + position rounded to 1e-3 degrees (~100 m),
+* hands out ids from a single counter across the three tables, as `build.py`
+  does, and remaps `admin_id` / `place_id` onto the surviving rows (a dropped
+  duplicate's references go to its survivor),
+* rebuilds the FTS index, writes `meta` (`source` is the comma-joined distinct
+  sources of the inputs, `has_streets` / `has_pois` are set when any input has
+  them) and `VACUUM`s.
+
+A tile only one input holds goes through the same path, so the output is always
+canonical. `merge.py` uses the standard library only — the merge job needs no
+pyosmium.
+
 ## Fixtures
 
 `fixtures/fixtures.sha256` pins both files.
 
 | File | Built from | Content | Size |
 |---|---|---|---:|
-| `E5_N45.gaz` | `liechtenstein.osm.pbf`, `--streets` | 98 places, 1,313 streets, 95 pois | 139,264 B |
+| `E5_N45.gaz` | `liechtenstein.osm.pbf`, `--streets` | 98 places, 1,313 streets, 95 pois | 155,648 B |
 | `W20_N30.gaz` | `portugal-latest.osm.pbf`, `--tiles W20_N30` | 1,769 places, 1,022 pois | 262,144 B |
 
 ```sh
@@ -169,7 +217,9 @@ tokenizer folds them: `muhleholz` finds the village `Mühleholz` and the street
 `Im Mühleholz`, `vad` puts the town `Vaduz` first, `grauspitz` finds two peaks.
 Madeira is `W20_N30`, the tile the integration tests already mirror, and holds
 `Funchal`; Portugal is the only Geofabrik extract that covers it, so the
-mainland tiles are discarded with `--tiles`.
+mainland tiles are discarded with `--tiles`. `W20_N30.gaz` was built before the
+`osm_type` / `osm_id` columns existed and is kept that way on purpose: it is
+what proves the tools still read a file without them.
 
 Run the tests from the repo root:
 
@@ -254,6 +304,5 @@ default build holds only places and POIs and is far cheaper). The fix, if street
 builds are ever wanted planet-wide, is to spill that list to an on-disk staging
 table sorted by name; it is not written. Geofabrik continents overlap at their
 edges, so a few tiles (the Bosphorus, the Urals, Sinai, Panama) come out of two
-extracts and need merging or a re-run over a custom bounding box; that merge does
-not exist either. Not GitHub Actions: `ubuntu-latest` has ~14 GB of free disk,
-less than the `north-america` PBF.
+extracts; `merge.py` is what puts those back together. Not GitHub Actions:
+`ubuntu-latest` has ~14 GB of free disk, less than the `north-america` PBF.

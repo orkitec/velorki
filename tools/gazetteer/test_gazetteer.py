@@ -11,6 +11,7 @@ mirror tooling against it. Needs pyosmium and the extract; set
 
 from __future__ import annotations
 
+import ast
 import json
 import os
 import shutil
@@ -26,6 +27,7 @@ sys.path.insert(0, HERE)
 import build  # noqa: E402
 import check  # noqa: E402
 import manifest  # noqa: E402
+import merge  # noqa: E402
 import query  # noqa: E402
 
 EXTRACT_NAME = "liechtenstein.osm.pbf"
@@ -111,6 +113,8 @@ class GazetteerTest(unittest.TestCase):
                 ("lon", "INTEGER"),
                 ("population", "INTEGER"),
                 ("admin_id", "INTEGER"),
+                ("osm_type", "TEXT"),
+                ("osm_id", "INTEGER"),
             ],
         )
         self.assertEqual(
@@ -121,6 +125,8 @@ class GazetteerTest(unittest.TestCase):
                 ("lat", "INTEGER"),
                 ("lon", "INTEGER"),
                 ("place_id", "INTEGER"),
+                ("osm_type", "TEXT"),
+                ("osm_id", "INTEGER"),
             ],
         )
         self.assertEqual(
@@ -132,6 +138,8 @@ class GazetteerTest(unittest.TestCase):
                 ("lat", "INTEGER"),
                 ("lon", "INTEGER"),
                 ("place_id", "INTEGER"),
+                ("osm_type", "TEXT"),
+                ("osm_id", "INTEGER"),
             ],
         )
         sql = db.execute(
@@ -234,6 +242,43 @@ class GazetteerTest(unittest.TestCase):
                 "park",
             },
         )
+
+    def test_osm_identity_columns(self) -> None:
+        db = self.open()
+        for table in ("places", "pois"):
+            total, typed = db.execute(
+                f"SELECT count(*), count(osm_id) FROM {table}"
+            ).fetchone()
+            self.assertEqual(total, typed, f"{table} rows without an osm_id")
+            kinds = {
+                row[0] for row in db.execute(f"SELECT DISTINCT osm_type FROM {table}")
+            }
+            self.assertLessEqual(kinds, {"n", "w"})
+            self.assertEqual(
+                db.execute(
+                    f"SELECT count(*) FROM (SELECT osm_type, osm_id FROM {table}"
+                    " GROUP BY osm_type, osm_id HAVING count(*) > 1)"
+                ).fetchone()[0],
+                0,
+            )
+        # A street is merged out of many ways and has no single OSM identity.
+        self.assertEqual(
+            db.execute(
+                "SELECT count(*) FROM streets "
+                "WHERE osm_type IS NOT NULL OR osm_id IS NOT NULL"
+            ).fetchone()[0],
+            0,
+        )
+
+    def test_check_accepts_a_file_without_the_osm_columns(self) -> None:
+        legacy = os.path.join(HERE, "fixtures", "W20_N30.gaz")
+        if not os.path.isfile(legacy):
+            self.skipTest("fixture not present")
+        db = sqlite3.connect(f"file:{legacy}?mode=ro", uri=True)
+        self.addCleanup(db.close)
+        columns = {row[1] for row in db.execute("PRAGMA table_info(places)")}
+        self.assertNotIn("osm_type", columns, "fixture is no longer the legacy shape")
+        self.assertEqual(check.check(legacy).tile, "W20_N30")
 
     # ------------------------------------------------------------- query ---
 
@@ -358,6 +403,194 @@ class GazetteerTest(unittest.TestCase):
         db.close()
         with self.assertRaises(check.GazetteerError):
             manifest.update_manifest(mirror, verbose=False)
+
+    # ------------------------------------------------------------- merge ---
+
+    def run_merge(self, *inputs: str, expect: int = 0) -> str:
+        """Run merge.py over the given inputs; returns the merged tile path."""
+        out = tempfile.mkdtemp(prefix="gaz-merged-", dir=self.tmp)
+        self.addCleanup(shutil.rmtree, out, ignore_errors=True)
+        result = subprocess.run(
+            [sys.executable, os.path.join(HERE, "merge.py"), out] + list(inputs),
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, expect, result.stderr)
+        if expect == 0:
+            self.assertIn(TILE, result.stdout)
+        return os.path.join(out, f"{TILE}.gaz")
+
+    def copies(self, *sources: str) -> list[str]:
+        """One input directory per source file, so merge.py sees them apart."""
+        root = tempfile.mkdtemp(prefix="gaz-inputs-", dir=self.tmp)
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        made = []
+        for index, source in enumerate(sources):
+            directory = os.path.join(root, f"in{index}")
+            os.makedirs(directory)
+            shutil.copy(source, os.path.join(directory, f"{TILE}.gaz"))
+            made.append(directory)
+        return made
+
+    @staticmethod
+    def counts(path: str) -> dict[str, int]:
+        db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        try:
+            return {
+                table: db.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
+                for table in ("places", "streets", "pois")
+            }
+        finally:
+            db.close()
+
+    @staticmethod
+    def meta_of(path: str) -> dict:
+        db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        try:
+            return dict(db.execute("SELECT key, value FROM meta"))
+        finally:
+            db.close()
+
+    @staticmethod
+    def osm_keys(path: str, table: str) -> set:
+        db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        try:
+            return {
+                tuple(row)
+                for row in db.execute(f"SELECT osm_type, osm_id FROM {table}")
+            }
+        finally:
+            db.close()
+
+    def test_merge_of_two_builds_is_the_union_with_no_duplicates(self) -> None:
+        merged = self.run_merge(*self.copies(self.path(), self.path(streets=False)))
+        counts = self.counts(merged)
+        for table in ("places", "pois"):
+            union = self.osm_keys(self.path(), table) | self.osm_keys(
+                self.path(streets=False), table
+            )
+            self.assertEqual(counts[table], len(union))
+            self.assertEqual(self.osm_keys(merged, table), union)
+        # The streets only exist in one of the two inputs and survive whole.
+        self.assertEqual(counts["streets"], self.counts(self.path())["streets"])
+
+    def test_merge_renumbers_ids_and_resolves_the_references(self) -> None:
+        merged = self.run_merge(*self.copies(self.path(), self.path(streets=False)))
+        db = sqlite3.connect(f"file:{merged}?mode=ro", uri=True)
+        self.addCleanup(db.close)
+        ids = [
+            row[0]
+            for table in ("places", "streets", "pois")
+            for row in db.execute(f"SELECT id FROM {table}")
+        ]
+        self.assertEqual(len(ids), len(set(ids)))
+        self.assertEqual(sorted(ids), list(range(1, len(ids) + 1)))
+
+        place_ids = {row[0] for row in db.execute("SELECT id FROM places")}
+        for table, column in (
+            ("places", "admin_id"),
+            ("streets", "place_id"),
+            ("pois", "place_id"),
+        ):
+            refs = {
+                row[0]
+                for row in db.execute(
+                    f"SELECT {column} FROM {table} WHERE {column} IS NOT NULL"
+                )
+            }
+            self.assertTrue(refs, f"{table}.{column} is never set")
+            self.assertLessEqual(refs, place_ids, f"{table}.{column} dangles")
+
+    def test_merge_rebuilds_the_search_index(self) -> None:
+        merged = self.run_merge(*self.copies(self.path(), self.path(streets=False)))
+        db = sqlite3.connect(f"file:{merged}?mode=ro", uri=True)
+        self.addCleanup(db.close)
+        found = {(h.name, h.kind) for h in query.search(db, "muhleholz", 10)}
+        self.assertIn(("Mühleholz", "village"), found)
+        self.assertIn(("Im Mühleholz", "street"), found)
+
+    def test_merging_two_copies_of_one_file_changes_nothing(self) -> None:
+        merged = self.run_merge(*self.copies(self.path(), self.path()))
+        self.assertEqual(self.counts(merged), self.counts(self.path()))
+
+    def test_merge_output_passes_check(self) -> None:
+        merged = self.run_merge(*self.copies(self.path(), self.path(streets=False)))
+        report = check.check(merged)
+        self.assertEqual(report.tile, TILE)
+        self.assertTrue(report.has_streets)
+        self.assertTrue(report.has_pois)
+        self.assertGreater(report.streets, 0)
+
+    def test_merge_meta_joins_the_distinct_sources(self) -> None:
+        inputs = self.copies(self.path(), self.path(streets=False))
+        other = os.path.join(inputs[1], f"{TILE}.gaz")
+        db = sqlite3.connect(other)
+        db.execute("UPDATE meta SET value = 'austria.osm.pbf' WHERE key = 'source'")
+        db.commit()
+        db.close()
+
+        merged = self.run_merge(*inputs)
+        meta = self.meta_of(merged)
+        self.assertEqual(meta["schema_version"], "1")
+        self.assertEqual(meta["tile"], TILE)
+        self.assertEqual(meta["source"], "liechtenstein.osm.pbf,austria.osm.pbf")
+        self.assertEqual(meta["has_streets"], "1")
+        self.assertEqual(meta["has_pois"], "1")
+        self.assertRegex(meta["built_at"], r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$")
+
+    def test_merge_finds_inputs_in_nested_directories(self) -> None:
+        root = tempfile.mkdtemp(prefix="gaz-nested-", dir=self.tmp)
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        for leg in ("liechtenstein/tiles", "austria"):
+            os.makedirs(os.path.join(root, leg))
+            shutil.copy(self.path(), os.path.join(root, leg, f"{TILE}.gaz"))
+        merged = self.run_merge(root)
+        self.assertEqual(self.counts(merged), self.counts(self.path()))
+
+    def test_merge_of_a_single_input_is_canonical(self) -> None:
+        merged = self.run_merge(*self.copies(self.path(streets=False)))
+        self.assertEqual(self.counts(merged), self.counts(self.path(streets=False)))
+        self.assertEqual(self.meta_of(merged)["has_streets"], "0")
+        check.check(merged)
+
+    def test_merge_fails_on_a_broken_input(self) -> None:
+        inputs = self.copies(self.path(), self.path(streets=False))
+        broken = os.path.join(inputs[1], f"{TILE}.gaz")
+        db = sqlite3.connect(broken)
+        db.execute("UPDATE meta SET value = '2' WHERE key = 'schema_version'")
+        db.commit()
+        db.close()
+        merged = self.run_merge(*inputs, expect=1)
+        self.assertFalse(os.path.exists(merged), "a failed merge wrote a tile anyway")
+
+    def test_merge_writes_the_same_schema_as_build(self) -> None:
+        merged = self.run_merge(*self.copies(self.path()))
+
+        def schema(path: str) -> dict:
+            db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+            try:
+                return dict(
+                    db.execute(
+                        "SELECT name, sql FROM sqlite_master "
+                        "WHERE sql IS NOT NULL AND name NOT LIKE 'search_%'"
+                    )
+                )
+            finally:
+                db.close()
+
+        self.assertEqual(schema(merged), schema(self.path()))
+
+    def test_merge_needs_only_the_standard_library(self) -> None:
+        """The CI merge job runs without pyosmium, so merge.py must not use it."""
+        with open(os.path.join(HERE, "merge.py"), encoding="utf-8") as handle:
+            tree = ast.parse(handle.read())
+        imported = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                imported |= {alias.name.split(".")[0] for alias in node.names}
+            elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                imported.add(node.module.split(".")[0])
+        self.assertLessEqual(imported, sys.stdlib_module_names | {"check"})
 
     # ------------------------------------------------------------- misc ----
 

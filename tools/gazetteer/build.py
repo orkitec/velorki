@@ -142,6 +142,8 @@ class RawPlace(NamedTuple):
     lon: float
     population: int | None
     context: str | None  # is_in / addr:city, a name, not yet an id
+    osm_type: str  # 'n' or 'w'
+    osm_id: int
 
 
 class RawStreet(NamedTuple):
@@ -156,6 +158,8 @@ class RawPoi(NamedTuple):
     kind: str
     lat: float
     lon: float
+    osm_type: str
+    osm_id: int
 
 
 class Extract(NamedTuple):
@@ -237,6 +241,11 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
         if not name:
             continue
 
+        # The OSM identity travels with the row so two extracts that overlap
+        # can be merged without counting the same object twice.
+        osm_type = "n" if is_node else "w"
+        osm_id = obj.id
+
         if want_place:
             places.append(
                 RawPlace(
@@ -250,6 +259,8 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
                         or tags.get("addr:city")
                         or tags.get("is_in")
                     ),
+                    osm_type,
+                    osm_id,
                 )
             )
 
@@ -262,7 +273,7 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
             )
 
         if kind:
-            pois.append(RawPoi(name, kind, lat, lon))
+            pois.append(RawPoi(name, kind, lat, lon, osm_type, osm_id))
 
     return Extract(places, street_ways, pois)
 
@@ -280,6 +291,8 @@ class PlaceRow(NamedTuple):
     lon: float
     population: int | None
     admin_id: int | None
+    osm_type: str | None
+    osm_id: int | None
 
 
 class PlaceGrid:
@@ -322,7 +335,17 @@ def resolve_places(raw: list[RawPlace], first_id: int) -> list[PlaceRow]:
     nearest town falls in the neighbouring tile keeps a NULL.
     """
     rows = [
-        PlaceRow(first_id + index, p.name, p.kind, p.lat, p.lon, p.population, None)
+        PlaceRow(
+            first_id + index,
+            p.name,
+            p.kind,
+            p.lat,
+            p.lon,
+            p.population,
+            None,
+            p.osm_type,
+            p.osm_id,
+        )
         for index, p in enumerate(raw)
     ]
     towns = PlaceGrid(rows, CONTEXT_KINDS)
@@ -437,7 +460,9 @@ CREATE TABLE places (
     lat        INTEGER NOT NULL,
     lon        INTEGER NOT NULL,
     population INTEGER,
-    admin_id   INTEGER
+    admin_id   INTEGER,
+    osm_type   TEXT,
+    osm_id     INTEGER
 );
 
 CREATE TABLE streets (
@@ -445,7 +470,9 @@ CREATE TABLE streets (
     name     TEXT NOT NULL,
     lat      INTEGER NOT NULL,
     lon      INTEGER NOT NULL,
-    place_id INTEGER
+    place_id INTEGER,
+    osm_type TEXT,
+    osm_id   INTEGER
 );
 
 CREATE TABLE pois (
@@ -454,7 +481,9 @@ CREATE TABLE pois (
     kind     TEXT NOT NULL,
     lat      INTEGER NOT NULL,
     lon      INTEGER NOT NULL,
-    place_id INTEGER
+    place_id INTEGER,
+    osm_type TEXT,
+    osm_id   INTEGER
 );
 
 -- One id space across the three tables, so an FTS rowid names exactly one row
@@ -473,6 +502,11 @@ CREATE VIRTUAL TABLE search USING fts5(
     tokenize='unicode61 remove_diacritics 2'
 );
 
+-- osm_type ('n', 'w', 'r') and osm_id carry the OSM identity of a row, so
+-- merge.py can drop the duplicates two overlapping extracts produce. A street
+-- is merged out of many ways and has no single identity, so it keeps NULLs and
+-- merge.py falls back to name + place + rounded position for those.
+--
 -- Reverse lookup is a bounding box on lat/lon plus a sort, so a plain index on
 -- the coordinates is all it needs.
 CREATE INDEX idx_places_pos  ON places(lat, lon);
@@ -495,7 +529,7 @@ def write_tile(
     tile: str,
     places: list[PlaceRow],
     streets: list[StreetRow],
-    pois: list[tuple[int, str, str, float, float, int | None]],
+    pois: list[tuple[int, str, str, float, float, int | None, str, int]],
     source: str,
     has_streets: bool,
     built_at: str,
@@ -512,21 +546,36 @@ def write_tile(
     db.executescript(SCHEMA)
 
     db.executemany(
-        "INSERT INTO places VALUES (?,?,?,?,?,?,?)",
+        "INSERT INTO places (id, name, kind, lat, lon, population, admin_id,"
+        " osm_type, osm_id) VALUES (?,?,?,?,?,?,?,?,?)",
         [
-            (p.id, p.name, p.kind, scaled(p.lat), scaled(p.lon), p.population, p.admin_id)
+            (
+                p.id,
+                p.name,
+                p.kind,
+                scaled(p.lat),
+                scaled(p.lon),
+                p.population,
+                p.admin_id,
+                p.osm_type,
+                p.osm_id,
+            )
             for p in places
         ],
     )
+    # A street row is the mean of many ways, so it has no OSM identity of its
+    # own: osm_type and osm_id stay NULL and merge.py matches it by position.
     db.executemany(
-        "INSERT INTO streets VALUES (?,?,?,?,?)",
+        "INSERT INTO streets (id, name, lat, lon, place_id, osm_type, osm_id)"
+        " VALUES (?,?,?,?,?,NULL,NULL)",
         [(s.id, s.name, scaled(s.lat), scaled(s.lon), s.place_id) for s in streets],
     )
     db.executemany(
-        "INSERT INTO pois VALUES (?,?,?,?,?,?)",
+        "INSERT INTO pois (id, name, kind, lat, lon, place_id, osm_type, osm_id)"
+        " VALUES (?,?,?,?,?,?,?,?)",
         [
-            (pid, name, kind, scaled(lat), scaled(lon), place_id)
-            for pid, name, kind, lat, lon, place_id in pois
+            (pid, name, kind, scaled(lat), scaled(lon), place_id, osm_type, osm_id)
+            for pid, name, kind, lat, lon, place_id, osm_type, osm_id in pois
         ],
     )
 
@@ -600,6 +649,8 @@ def build_tile(
             poi.lat,
             poi.lon,
             place_of(poi.lat, poi.lon, None, grid, by_name),
+            poi.osm_type,
+            poi.osm_id,
         )
         for index, poi in enumerate(raw_pois)
     ]
