@@ -49,6 +49,11 @@ before changing structure.
   behavioural changes inside ported files, upstream releases are ported as
   patches and proven by re-recording the oracle corpus. See its README,
   "Keeping up with upstream".
+- The gazetteer file (`tools/gazetteer`, read by `GazetteerStore`) is on
+  riders' phones once a build ships: change it additively (new tables or
+  nullable columns the app treats as optional) and keep `schema_version`;
+  a breaking change bumps the version, and the app skips files it cannot
+  read. Before shipping, change it as freely as needed.
 - Riverpod 3 codegen, freezed, Drift. Screens read the map through
   `PlannerMapHost`; nothing outside `features/map` imports maplibre.
 - Maps: `MapChromeInsets` tells the map what a screen's chrome covers;
