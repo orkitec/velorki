@@ -20,9 +20,6 @@ exercised there. The items here are the parts not yet covered by that.
       tiles. A planet run of `publish-tiles`, followed by `publish-gazetteer`,
       is what makes the mirror usable for anyone but the maintainer — the app
       side of sharding is done.
-- [ ] **velorki-data's own docs**: its README still describes shards of 900
-      tiles in "Sharding, and why the planet is not one release", which the
-      gazetteer assets made wrong; the gazetteer sections say 480.
 - [ ] **Relay on the VPS with Orkify**: `api/` (`npm run build`,
       `node dist/server.js`, health `/health`, Node ≥ 22.13). Fill `.env` from
       `api/.env.example`; `SHARE_DB_PATH` must be on a persistent volume.

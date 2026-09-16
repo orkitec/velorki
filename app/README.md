@@ -142,7 +142,7 @@ serves). `integration_test/support/region.dart` holds both sets.
 Madeira tile on every push to main that touches `app/`, the committed tiles or
 the `.gaz` fixtures, again nightly, and by hand from the Actions tab; a newer
 push cancels the older run, the nightly is never cancelled. Its matrix is API
-level (34, 35) by shard (1/3, 2/3, 3/3), so a job is named `emulator (34,
+level (31, 35, 36) by shard (1/3, 2/3, 3/3), so a job is named `emulator (31,
 1/3)`, and it caches the Gradle directories and a booted AVD snapshot per API
 level. `.github/workflows/integration-ios.yml` is the same on an iOS
 simulator: three shards, with the pods and the Xcode derived data cached.

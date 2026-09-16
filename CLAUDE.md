@@ -6,6 +6,18 @@ of BRouter in `app/packages/brouter_dart`); a thin Node relay in `api/` only
 holds OAuth secrets, the hosted LLM and shared links. Read `docs/ARCHITECTURE.md`
 before changing structure.
 
+## Repositories
+
+- **`~/Work/velorki`** (this one, `orkitec/velorki`): the app, the relay, the
+  BRouter profiles and deploy files, the gazetteer builder and the oracle.
+- **`~/Work/velorki-data`** (`orkitec/velorki-data`): the tile mirror. Its
+  `publish-tiles` workflow copies brouter.de's rd5 tiles into GitHub Releases
+  monthly; `publish-gazetteer` then builds a `<TILE>.gaz` per tile from
+  Geofabrik extracts with *this* repo's `tools/gazetteer/build.py` and attaches
+  it beside the rd5. The app follows `main/latest.json` there and merges every
+  shard's `manifest.json`. A change to the `.gaz` format or the manifest shape
+  touches both repos; the file format is documented here, the mirror there.
+
 ## How to work here
 
 - **Verify on a device before committing.** Unit tests are not enough for UI
@@ -84,8 +96,24 @@ before changing structure.
   Liechtenstein extract and checks the `.gaz` fixtures), `integration.yml` and
   `integration-ios.yml` (every push to main that touches app/tiles/fixtures,
   plus nightly; a newer push cancels the older run; both shard the suite three
-  ways, Android across API levels 34 and 35, and cache Gradle and the AVD
+  ways, Android across API levels 31, 35 and 36, and cache Gradle and the AVD
   snapshot / the pods and the derived data), `gazetteer-perf.yml`
   (nightly, times the search against New York off the mirror),
   `brouter-oracle.yml` (weekly). No rd5 comes off brouter.de; the oracle job
   does fetch the pinned upstream release zip.
+
+## Verifying on the emulator
+
+1. `bash app/tool/itest_mirror.sh` serves the Madeira rd5 and its `.gaz` on
+   port 8000; `env/local.json` points `VELORKI_SEGMENTS_URL` at
+   `http://10.0.2.2:8000` (debug only — a profile build blocks cleartext, so
+   use `env/phone.json` or the real mirror there).
+2. `cd app && flutter build apk --debug --dart-define-from-file=env/local.json`
+   (`--profile` for anything about frame times), then
+   `adb -s emulator-5554 install -r build/app/outputs/flutter-apk/app-debug.apk`.
+3. Drive the flow and take a picture:
+   `adb -s emulator-5554 exec-out screencap -p > /tmp/shot.png`.
+4. `app/tool/itest.sh <name>` installs its own test build over the app with
+   `adb install -r`, so app data survives and the downloaded tile is reused.
+   A build signed differently (a release build over a debug one) does force an
+   uninstall, and then the region has to be downloaded again.

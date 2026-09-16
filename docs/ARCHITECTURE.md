@@ -4,6 +4,51 @@ What Velorki is made of. Toolchain and testing: [`app/README.md`](../app/README.
 The relay's HTTP contract: [`api/openapi.yaml`](../api/openapi.yaml), described
 in [`api/README.md`](../api/README.md).
 
+## Systems and data flow
+
+| System | Where it lives |
+|---|---|
+| Flutter app and its pure-Dart packages | this repo, `app/` — the only part that ships to a store |
+| Relay | this repo, `api/` — one Node process, `api.velorki.app` |
+| BRouter routing server and segment updater | this repo, `brouter/` + `deploy/` — optional, on a VPS |
+| Gazetteer builder | this repo, `tools/gazetteer/` — Python, run by CI in the mirror repo |
+| BRouter test oracle | this repo, `tools/brouter-oracle/` — parity runs only, never shipped |
+| Tile and search mirror | `orkitec/velorki-data`, GitHub Releases (local checkout `~/Work/velorki-data`) |
+| CI | GitHub Actions in both repositories |
+
+Upstreams: brouter.de (rd5 tiles), Geofabrik (the OSM extracts the `.gaz` files
+are built from), OpenFreeMap and CyclOSM (map tiles), Photon (online search).
+
+```
+ brouter.de/segments4                      Geofabrik extracts
+        |                                         |
+        | publish-tiles                           | publish-gazetteer
+        | (1st of the month, 03:00 UTC)           | (after publish-tiles)
+        v                                         v
+  +-----------------------------------------------------------+
+  | orkitec/velorki-data - GitHub Releases                    |
+  | tiles-YYYYMMDD (+ -s2, -s3): <= 480 tiles a shard,        |
+  |   <TILE>.rd5 + <TILE>.gaz + manifest.json per release     |
+  | main/latest.json: the pointer - formatVersion, shards[]   |
+  +-----------------------------------------------------------+
+        ^  1. VELORKI_SEGMENTS_URL is that latest.json
+        |  2. every shard's manifest.json, merged into one
+        |  3. <TILE>.rd5 (resumable), and <TILE>.gaz where the
+        |     tile entry carries a `gazetteer` object
+  +-----------------------------------------------------------+
+  | Phone: brouter_dart routes on the rd5, GazetteerStore     |
+  | searches the .gaz - both with no network                  |
+  +-----------------------------------------------------------+
+     |             |                  |               |
+ OpenFreeMap,   Photon            BRouter server    Relay (api/)
+ CyclOSM        online search,    (optional):       Plus only: OAuth
+ map tiles      no tiles needed   areas with no     exchange, LLM,
+                                  tiles             share links
+```
+File format and builder: [`tools/gazetteer/README.md`](../tools/gazetteer/README.md).
+Mirror layout, sharding, `latest.json` and the resume path:
+[velorki-data's README](https://github.com/orkitec/velorki-data#readme).
+
 ## The guiding rule
 
 **As much as possible runs on the device.**
@@ -250,8 +295,9 @@ the pinned server, against two committed rd5 fixtures in
 `tools/brouter-oracle/tiles/` (Madeira and SW Iceland, 4.2 MB, pinned by
 sha256). Parity has three levels: **L1** byte-identical `util`/`codec` round
 trips and rd5 decoding, **L2** bit-identical profile evaluation, **L3**
-identical coordinates, length, ascent and messages over the corpus — all three
-on every push, and the corpus again nightly.
+identical coordinates, length, ascent and messages over the corpus. All three
+run on every push as golden tests against the recorded corpus (`app.yml`);
+`brouter-oracle.yml` replays the corpus against the real server weekly.
 
 Tiles are 5°×5°, named `E10_N45` / `W5_S10` from `floor(lon/5)*5,
 floor(lat/5)*5`, 125–250 MB each in Central Europe, downloaded from
@@ -302,7 +348,10 @@ for this area, or no map centre at all — the search goes straight to Photon an
 the pinned last row offers "Download this area to search offline", which opens
 the offline data screen for the visible area, error state included. A failed
 gazetteer download never fails its tile: the region stays routable and its search stays
-online. The files are built by `tools/gazetteer`.
+online. A file whose `meta.schema_version` is not the one this build reads, or
+that will not open at all, is skipped with a log line: the other tiles keep
+answering and that area searches online. The files are built by
+`tools/gazetteer`.
 
 ## Configuration
 
@@ -321,6 +370,7 @@ in `AppConfig`. Builds pass `--dart-define-from-file=env/<name>.json`; `dev`,
 | `VELORKI_REVENUECAT_KEY_ANDROID` / `_IOS` | RevenueCat public SDK keys |
 | `VELORKI_STRAVA_CLIENT_ID`, `VELORKI_RWGPS_CLIENT_ID` | public OAuth client ids; the secrets stay in the relay |
 | `VELORKI_OAUTH_SCHEME` | the custom scheme for OAuth redirects and share links |
+| `VELORKI_STORE_URL_ANDROID` / `_IOS` | the store page, opened when a tile needs a newer app. Empty: the rider is only told |
 
 Settings → Advanced overrides the server URLs at runtime.
 

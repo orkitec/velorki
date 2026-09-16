@@ -356,7 +356,7 @@ FTS index 15%, `idx_pois_pos` 8%, `places` 5%, everything else (including
 
 ```sh
 ./build.py liechtenstein.osm.pbf --out fixtures
-./build.py portugal-latest.osm.pbf --out fixtures --tiles W20_N30 --no-streets
+./build.py portugal-latest.osm.pbf --out fixtures --tiles W20_N30
 (cd fixtures && sha256sum E5_N45.gaz W20_N30.gaz > fixtures.sha256)
 ```
 
@@ -460,8 +460,10 @@ Photon is a full geocoder; this is a search box that works on a plane.
 
 * **Exact house numbers.** Only anchors are stored, so a number that is not one
   of them is interpolated along the street and marked approximate.
-* **Fuzzy matching.** FTS5 does prefix matching and nothing else; "Munchen" for
-  "München" finds nothing.
+* **Fuzzy matching.** FTS5 does prefix matching and nothing else. Diacritics
+  fold in the tokenizer, so "Munchen" finds "München", but a real typo is only
+  caught by the app's own second pass over the index vocabulary (`fts5vocab`,
+  Damerau-Levenshtein); the file offers nothing for it.
 * **Admin hierarchy.** `admin_id` and `place_id` are geometry, not boundaries,
   and stop at the tile edge. No country, state or district, so Springfield,
   Massachusetts cannot be told from Springfield, Illinois.
