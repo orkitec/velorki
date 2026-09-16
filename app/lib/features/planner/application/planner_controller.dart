@@ -5,6 +5,7 @@ import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki_loops/velorki_loops.dart';
 
+import '../../routing_tiles/application/tile_update_check.dart';
 import '../data/routing_backend_provider.dart';
 import '../domain/planner_state.dart';
 import '../domain/route_profile.dart';
@@ -413,6 +414,18 @@ class PlannerController extends _$PlannerController {
     await _route();
   }
 
+  /// The weekly look at the mirror for rebuilt tiles, hung on the start of
+  /// a route so a phone that never restarts still gets it. Nothing about
+  /// routing may depend on it, so it can neither fail nor delay the route.
+  Future<void> _checkTileUpdates() async {
+    try {
+      await ref.read(tileUpdateCheckerProvider).checkIfDue();
+    } on Object {
+      // The checker logs its own failures; a missing collaborator (as in a
+      // test container) is simply no check.
+    }
+  }
+
   /// Whether two results are the same ride, near enough.
   ///
   /// Length plus the first and last few points: a different alternative that
@@ -432,6 +445,7 @@ class PlannerController extends _$PlannerController {
   }
 
   Future<void> _route() async {
+    unawaited(_checkTileUpdates());
     final backend = ref.read(routingBackendProvider);
     if (backend == null) {
       state = state.copyWith(

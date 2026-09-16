@@ -5,6 +5,7 @@ import 'package:logging/logging.dart';
 
 import '../data/brouter_assets.dart';
 import '../data/routing_tiles_repository.dart';
+import 'tile_update_check.dart';
 
 final Logger _log = Logger('velorki.routing_tiles');
 
@@ -15,13 +16,15 @@ final Logger _log = Logger('velorki.routing_tiles');
 /// per app version), and the tile table has to be reconciled with the files on
 /// disk. Neither blocks the first frame — until they are done the routing
 /// backend simply has no local half and the server answers, which is what a
-/// fresh install does anyway.
+/// fresh install does anyway. Once the tiles are known, the weekly look at
+/// the mirror for rebuilt tiles follows.
 void prepareOnDeviceRouting(ProviderContainer container) {
   unawaited(
     Future<void>(() async {
       try {
         await container.read(brouterProfilesProvider.future);
         await container.read(routingTilesRepositoryProvider.future);
+        await container.read(tileUpdateCheckerProvider).checkIfDue();
       } on Object catch (error, stackTrace) {
         // A device that cannot write to its own support directory still
         // routes against the server; it must not fail to start.
