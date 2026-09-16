@@ -150,6 +150,11 @@ void main() {
     await pumpTiles(tester);
 
     expect(find.text('Offline routing data'), findsOneWidget);
+    expect(
+      find.textContaining('also works for place search'),
+      findsOneWidget,
+      reason: 'a downloaded region brings the offline search with it',
+    );
     expect(find.textContaining('No routing tiles yet'), findsOneWidget);
     expect(find.text('Nothing downloaded yet'), findsOneWidget);
     expect(

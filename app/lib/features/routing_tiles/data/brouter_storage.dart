@@ -28,10 +28,14 @@ class BrouterStorage {
   /// The `.brf` profiles and `lookups.dat`, copied out of the app bundle.
   Directory get profiles => Directory(p.join(root.path, 'profiles'));
 
-  /// Creates both directories if they are not there yet.
+  /// The `<TILE>.gaz` offline gazetteers, one per downloaded tile.
+  Directory get gazetteer => Directory(p.join(root.path, 'gazetteer'));
+
+  /// Creates the three directories if they are not there yet.
   Future<BrouterStorage> create() async {
     await segments.create(recursive: true);
     await profiles.create(recursive: true);
+    await gazetteer.create(recursive: true);
     return this;
   }
 

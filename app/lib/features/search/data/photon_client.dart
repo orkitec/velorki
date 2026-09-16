@@ -168,6 +168,8 @@ List<SearchResult> parsePhotonResponse(String body) {
     if (lon == null || lat == null) continue;
     final name = _asString(props['name']) ?? _asString(props['street']);
     if (name == null || name.isEmpty) continue;
+    final osmKey = _asString(props['osm_key']);
+    final osmValue = _asString(props['osm_value']);
     out.add(
       SearchResult(
         name: name,
@@ -175,8 +177,10 @@ List<SearchResult> parsePhotonResponse(String body) {
         city: _asString(props['city']) ?? _asString(props['district']),
         state: _asString(props['state']),
         country: _asString(props['country']),
-        osmKey: _asString(props['osm_key']),
-        osmValue: _asString(props['osm_value']),
+        osmKey: osmKey,
+        osmValue: osmValue,
+        kind: searchKindOfOsmKey(osmKey),
+        detail: osmValue,
       ),
     );
   }

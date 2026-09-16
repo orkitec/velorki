@@ -466,6 +466,88 @@
   "@searchUnavailable": {
     "description": "Shown when the Photon URL is empty so no search is possible"
   },
+  "searchOnlineFor": "Search online for \u201c{query}\u201d",
+  "@searchOnlineFor": {
+    "description": "Last row of the offline result list; sends the typed text to the online geocoder",
+    "placeholders": {
+      "query": {
+        "type": "String",
+        "example": "Vaduz"
+      }
+    }
+  },
+  "searchKindCity": "City",
+  "@searchKindCity": {
+    "description": "Second line of an offline search result that is a city"
+  },
+  "searchKindTown": "Town",
+  "@searchKindTown": {
+    "description": "Second line of an offline search result that is a town"
+  },
+  "searchKindVillage": "Village",
+  "@searchKindVillage": {
+    "description": "Second line of an offline search result that is a village"
+  },
+  "searchKindHamlet": "Hamlet",
+  "@searchKindHamlet": {
+    "description": "Second line of an offline search result that is a hamlet"
+  },
+  "searchKindSuburb": "Suburb",
+  "@searchKindSuburb": {
+    "description": "Second line of an offline search result that is a suburb"
+  },
+  "searchKindNeighbourhood": "Neighbourhood",
+  "@searchKindNeighbourhood": {
+    "description": "Second line of an offline search result that is a neighbourhood"
+  },
+  "searchKindLocality": "Locality",
+  "@searchKindLocality": {
+    "description": "Second line of an offline search result that is a named locality"
+  },
+  "searchKindIsland": "Island",
+  "@searchKindIsland": {
+    "description": "Second line of an offline search result that is an island"
+  },
+  "searchKindStreet": "Street",
+  "@searchKindStreet": {
+    "description": "Second line of an offline search result that is a street"
+  },
+  "searchKindDrinkingWater": "Drinking water",
+  "@searchKindDrinkingWater": {
+    "description": "Second line of an offline search result that is a drinking water tap"
+  },
+  "searchKindCafe": "Cafe",
+  "@searchKindCafe": {
+    "description": "Second line of an offline search result that is a cafe"
+  },
+  "searchKindBikeRepair": "Bike repair station",
+  "@searchKindBikeRepair": {
+    "description": "Second line of an offline search result that is a public bike repair station"
+  },
+  "searchKindShelter": "Shelter",
+  "@searchKindShelter": {
+    "description": "Second line of an offline search result that is a shelter"
+  },
+  "searchKindBikeShop": "Bike shop",
+  "@searchKindBikeShop": {
+    "description": "Second line of an offline search result that is a bicycle shop"
+  },
+  "searchKindStation": "Station",
+  "@searchKindStation": {
+    "description": "Second line of an offline search result that is a train station"
+  },
+  "searchKindViewpoint": "Viewpoint",
+  "@searchKindViewpoint": {
+    "description": "Second line of an offline search result that is a viewpoint"
+  },
+  "searchKindPeak": "Peak",
+  "@searchKindPeak": {
+    "description": "Second line of an offline search result that is a summit"
+  },
+  "searchKindPark": "Park",
+  "@searchKindPark": {
+    "description": "Second line of an offline search result that is a park"
+  },
   "libraryRoutes": "Routes",
   "@libraryRoutes": {
     "description": "Library section switch: the saved routes"
@@ -2098,6 +2180,10 @@
         "example": "2"
       }
     }
+  },
+  "routingTilesSearchHint": "A downloaded region also works for place search without a signal.",
+  "@routingTilesSearchHint": {
+    "description": "Caption under the offline routing data header, saying that a region also brings offline place search"
   },
   "routingTilesSubtitle": "Route on this device, without a signal",
   "@routingTilesSubtitle": {

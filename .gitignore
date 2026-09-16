@@ -43,3 +43,7 @@ deploy/segments/
 
 # Misc
 *.log
+
+# Python bytecode from tools/
+__pycache__/
+*.pyc

@@ -2,6 +2,52 @@ import 'dart:convert';
 
 import 'tiles.dart';
 
+/// The offline gazetteer a mirror offers next to a tile's `.rd5`.
+///
+/// One small SQLite file per tile (`<TILE>.gaz`, a few MB at most) holding the
+/// tile's places, streets and named POIs with an FTS5 index, so a rider who
+/// downloaded the region can search for a place without a signal. The
+/// checksum is mandatory: the files are small, so they are always hashed.
+class GazetteerEntry {
+  /// Creates an entry.
+  const GazetteerEntry({
+    required this.tile,
+    required this.bytes,
+    required this.sha256,
+    this.updatedAt,
+  });
+
+  /// The tile this gazetteer belongs to.
+  final TileName tile;
+
+  /// Size of the `.gaz` file in bytes; `0` when the mirror does not say.
+  final int bytes;
+
+  /// Hex SHA-256 of the file.
+  final String sha256;
+
+  /// When the mirror last built the file, in UTC, or `null` when unknown.
+  final DateTime? updatedAt;
+
+  /// The `.gaz` file name.
+  String get fileName => tile.gazetteerFileName;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GazetteerEntry &&
+          other.tile == tile &&
+          other.bytes == bytes &&
+          other.sha256 == sha256 &&
+          other.updatedAt == updatedAt;
+
+  @override
+  int get hashCode => Object.hash(tile, bytes, sha256, updatedAt);
+
+  @override
+  String toString() => 'GazetteerEntry($fileName, $bytes B, $updatedAt)';
+}
+
 /// One rd5 segment tile offered by a mirror.
 class SegmentEntry {
   /// Creates an entry.
@@ -11,6 +57,7 @@ class SegmentEntry {
     this.updatedAt,
     this.formatVersion,
     this.sha256,
+    this.gazetteer,
   });
 
   /// Which tile this is.
@@ -33,6 +80,12 @@ class SegmentEntry {
   /// (`MANIFEST_SHA256=1` in the updater).
   final String? sha256;
 
+  /// The offline gazetteer for this tile, when the mirror publishes one.
+  ///
+  /// `null` means search stays online for this tile. A scraped directory
+  /// listing never has one.
+  final GazetteerEntry? gazetteer;
+
   /// The `.rd5` file name.
   String get fileName => tile.fileName;
 
@@ -44,14 +97,17 @@ class SegmentEntry {
           other.bytes == bytes &&
           other.updatedAt == updatedAt &&
           other.formatVersion == formatVersion &&
-          other.sha256 == sha256;
+          other.sha256 == sha256 &&
+          other.gazetteer == gazetteer;
 
   @override
   int get hashCode =>
-      Object.hash(tile, bytes, updatedAt, formatVersion, sha256);
+      Object.hash(tile, bytes, updatedAt, formatVersion, sha256, gazetteer);
 
   @override
-  String toString() => 'SegmentEntry($tile, $bytes B, $updatedAt)';
+  String toString() =>
+      'SegmentEntry($tile, $bytes B, $updatedAt'
+      '${gazetteer == null ? '' : ', +gazetteer'})';
 }
 
 /// What a segment mirror offers: the tile list of `manifest.json`, or the same
@@ -248,10 +304,29 @@ class SegmentsManifest {
           updatedAt: _dateTime(row['updatedAt'] ?? row['updated_at']),
           formatVersion: _string(row['formatVersion']) ?? fallback,
           sha256: _string(row['sha256']),
+          gazetteer: _gazetteer(tile, row['gazetteer']),
         ),
       );
     }
     return out;
+  }
+
+  /// Reads a row's optional `gazetteer` object.
+  ///
+  /// Anything that is not an object with a `sha256` is read as "no gazetteer":
+  /// the checksum is what makes the small file verifiable, and a tile whose
+  /// gazetteer cannot be verified is better served by the online search than
+  /// by an unchecked download.
+  static GazetteerEntry? _gazetteer(TileName tile, Object? value) {
+    if (value is! Map) return null;
+    final sha = _string(value['sha256']);
+    if (sha == null) return null;
+    return GazetteerEntry(
+      tile: tile,
+      bytes: _int(value['bytes'] ?? value['size']) ?? 0,
+      sha256: sha,
+      updatedAt: _dateTime(value['updatedAt'] ?? value['updated_at']),
+    );
   }
 
   /// Pulls the date and the size out of the text behind an index link.

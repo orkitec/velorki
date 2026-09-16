@@ -46,6 +46,32 @@ if [ "$want" != "$got" ]; then
   exit 1
 fi
 
+gaz="$root/tools/gazetteer/fixtures/${tile}.gaz"
+if [ -f "$gaz" ]; then
+  echo "==> copying $gaz"
+  cp -f "$gaz" "$mirror/${tile}.gaz"
+  echo "==> verifying against tools/gazetteer/fixtures/fixtures.sha256"
+  want=$(awk -v t="${tile}.gaz" '$2 == t || $2 == "./" t {print $1}' \
+    "$root/tools/gazetteer/fixtures/fixtures.sha256")
+  if [ -z "$want" ]; then
+    echo "::error::tools/gazetteer/fixtures/fixtures.sha256 has no entry for ${tile}.gaz."
+    exit 1
+  fi
+  if command -v sha256sum >/dev/null; then
+    got=$(sha256sum "$mirror/${tile}.gaz" | cut -d' ' -f1)
+  else
+    got=$(shasum -a 256 "$mirror/${tile}.gaz" | cut -d' ' -f1)
+  fi
+  if [ "$want" != "$got" ]; then
+    echo "::error::${tile}.gaz does not match fixtures.sha256 (want $want, got $got)."
+    rm -f "$mirror/${tile}.gaz"
+    exit 1
+  fi
+else
+  echo "==> no gazetteer fixture for $tile; the mirror serves routing data only"
+  rm -f "$mirror/${tile}.gaz"
+fi
+
 echo "==> writing manifest.json"
 ORACLE_TILE="$tile" RD5_FORMAT_VERSION="$format_version" python3 - "$mirror" <<'PY'
 import hashlib, json, os, sys, datetime
@@ -66,8 +92,13 @@ manifest = {
 }
 with open(os.path.join(mirror, "manifest.json"), "w") as out:
     json.dump(manifest, out, indent=1)
-print(json.dumps(manifest, indent=1))
 PY
+
+# Adds the "gazetteer" object for every <TILE>.gaz next to an rd5, and
+# validates the file while it is at it.
+echo "==> adding gazetteer entries"
+python3 "$root/tools/gazetteer/manifest.py" "$mirror"
+cat "$mirror/manifest.json"
 
 echo "==> serving $mirror on port $port"
 nohup python3 -m http.server "$port" --directory "$mirror" > "$root/mirror.log" 2>&1 &

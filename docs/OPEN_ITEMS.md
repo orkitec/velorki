@@ -43,15 +43,17 @@ exercised there. The items here are the parts not yet covered by that.
 - [ ] **GitHub secrets for release.yml**: `ANDROID_KEYSTORE_B64`,
       `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `APP_ENV_PROD_JSON`,
       `PLAY_SERVICE_ACCOUNT_JSON`.
-- [ ] **Geocoder**: search and reverse lookup go to Komoot's public Photon
-      (fair use, no SLA). Decided 2026-09-16: Apple and Google search are not
-      options — Apple's agreement (Attachment 6, "Map Data" includes
-      coordinates and points of interest; 2.4 results only on an Apple map;
-      2.5 not stored) and Google's terms (no Core Services with a non-Google
-      map) both forbid a search pin on our OpenStreetMap map. Plan: a relay
-      endpoint in front (Komoot first, a keyed OSM geocoder such as Geoapify
-      as fallback), then an on-device gazetteer per routing tile built and
-      hosted like the tiles, the way Organic Maps and OsmAnd search.
+- [ ] **Geocoder**: the on-device gazetteer is done — a rider with routing
+      tiles searches `<TILE>.gaz` first and only reaches Photon by tapping
+      "Search online for …". Remaining: build the gazetteers for the whole
+      planet in `tools/gazetteer` and publish them with the tile snapshots,
+      and put a relay endpoint in front of Photon (Komoot first, a keyed OSM
+      geocoder such as Geoapify as fallback) for everyone without tiles.
+      Decided 2026-09-16: Apple and Google search are not options — Apple's
+      agreement (Attachment 6, "Map Data" includes coordinates and points of
+      interest; 2.4 results only on an Apple map; 2.5 not stored) and Google's
+      terms (no Core Services with a non-Google map) both forbid a search pin
+      on our OpenStreetMap map.
 
 [data]: https://github.com/orkitec/velorki-data
 

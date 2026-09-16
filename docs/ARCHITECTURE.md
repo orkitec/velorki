@@ -265,6 +265,18 @@ matching `formatVersion`; otherwise the server, if one is configured; otherwise
 it offers the download. It never routes locally on partial coverage: BRouter
 treats a missing tile as empty land and would silently return a wrong route.
 
+**Place search.** A downloaded region also brings its gazetteer: one small
+SQLite file per tile (`<TILE>.gaz`, places, streets and named POIs in one FTS5
+index), fetched from the mirror next to the `.rd5` and stored under
+`<appSupport>/brouter/gazetteer/`. `GazetteerStore`
+(`app/lib/features/search/data/gazetteer_store.dart`) opens every file
+read-only and answers the search field first — instant and without a signal —
+ranked by bm25, then population, then distance to the map centre. Photon is
+then the last row of the list ("Search online for …"), one tap away; a device
+with no gazetteer goes to Photon straight away, as before. A failed gazetteer
+download never fails its tile: the region stays routable and its search stays
+online. The files are built by `tools/gazetteer`.
+
 ## Configuration
 
 Everything environment-specific comes from `String.fromEnvironment`, collected

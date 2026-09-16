@@ -82,6 +82,10 @@ class SegmentsManifestService {
   /// Where one tile is downloaded from.
   Uri tileUrl(TileName tile) => Uri.parse('$baseUrl/${tile.fileName}');
 
+  /// Where one tile's offline gazetteer is downloaded from.
+  Uri gazetteerUrl(TileName tile) =>
+      Uri.parse('$baseUrl/${tile.gazetteerFileName}');
+
   /// Fetches the manifest: `manifest.json` from our own mirror, or the
   /// scraped directory listing from brouter.de.
   Future<SegmentsManifest> fetch() async {

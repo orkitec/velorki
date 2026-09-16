@@ -19,27 +19,41 @@ part 'routing_tiles_repository.g.dart';
 /// `CompositeRoutingBackend.localTiles` calls before every single route, so it
 /// answers from a cache the repository keeps in step with the table.
 class RoutingTilesRepository {
-  /// Creates the repository over [dao] and [segmentsDir].
+  /// Creates the repository over [dao], [segmentsDir] and [gazetteerDir].
   RoutingTilesRepository({
     required RoutingTilesDao dao,
     required Directory segmentsDir,
+    required Directory gazetteerDir,
   }) // Named parameters cannot be private, so these cannot be initialising
     // formals.
     // ignore: prefer_initializing_formals
     : _dao = dao,
        // ignore: prefer_initializing_formals
-       _segmentsDir = segmentsDir;
+       _segmentsDir = segmentsDir,
+       // ignore: prefer_initializing_formals
+       _gazetteerDir = gazetteerDir;
 
   final RoutingTilesDao _dao;
   final Directory _segmentsDir;
+  final Directory _gazetteerDir;
   StreamSubscription<List<RoutingTile>>? _sub;
   List<RoutingTile> _cache = const <RoutingTile>[];
 
   /// Where the `.rd5` files live.
   Directory get segmentsDir => _segmentsDir;
 
+  /// Where the `.gaz` offline gazetteers live.
+  Directory get gazetteerDir => _gazetteerDir;
+
   /// The file of [tile], whether or not it exists.
   File fileFor(TileName tile) => File(p.join(_segmentsDir.path, tile.fileName));
+
+  /// The gazetteer file of [tile], whether or not it exists.
+  ///
+  /// A tile is routable without it; it only decides whether place search for
+  /// that area works offline.
+  File gazetteerFileFor(TileName tile) =>
+      File(p.join(_gazetteerDir.path, tile.gazetteerFileName));
 
   /// Every known tile, updated as rows change.
   Stream<List<RoutingTile>> watch() => _dao.watchTiles().map(_toTiles);
@@ -162,12 +176,16 @@ class RoutingTilesRepository {
     await load();
   }
 
-  /// Deletes the file and the row of [tile], and any interrupted `.part`.
+  /// Deletes the files and the row of [tile], and any interrupted `.part`.
+  ///
+  /// The tile's gazetteer goes with it: without the tile there is nothing to
+  /// route on in that area, and a search index for it would only take up room.
   Future<void> delete(TileName tile) async {
-    final file = fileFor(tile);
-    if (file.existsSync()) await file.delete();
-    final part = File('${file.path}.part');
-    if (part.existsSync()) await part.delete();
+    for (final file in <File>[fileFor(tile), gazetteerFileFor(tile)]) {
+      if (file.existsSync()) await file.delete();
+      final part = File('${file.path}.part');
+      if (part.existsSync()) await part.delete();
+    }
     await _dao.deleteTile(tile.name);
     await load();
   }
@@ -210,6 +228,7 @@ Future<RoutingTilesRepository> routingTilesRepository(Ref ref) async {
   final repository = RoutingTilesRepository(
     dao: ref.watch(routingTilesDaoProvider),
     segmentsDir: storage.segments,
+    gazetteerDir: storage.gazetteer,
   );
   ref.onDispose(repository.dispose);
   await repository.reconcile();

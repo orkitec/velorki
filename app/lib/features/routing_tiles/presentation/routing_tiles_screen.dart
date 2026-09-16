@@ -76,6 +76,7 @@ class RoutingTilesScreen extends ConsumerWidget {
             child: ListView(
               padding: const EdgeInsets.only(top: 4, bottom: 12),
               children: <Widget>[
+                _Notice(text: l10n.routingTilesSearchHint),
                 if (isFallback) _Notice(text: l10n.routingTilesFallbackNotice),
                 if (manifest.hasError)
                   _ManifestError(error: manifest.error!)

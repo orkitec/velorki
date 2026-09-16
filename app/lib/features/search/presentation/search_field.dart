@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -5,6 +7,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../application/place_search_controller.dart';
+import '../data/gazetteer_store.dart';
 import '../data/photon_client.dart';
 import '../domain/search_result.dart';
 
@@ -99,6 +102,17 @@ class _SearchFieldState extends ConsumerState<SearchField> {
     widget.onCleared?.call();
   }
 
+  void _searchOnline() {
+    unawaited(
+      ref
+          .read(placeSearchProvider.notifier)
+          .searchOnline(
+            lang: Localizations.localeOf(context).languageCode,
+            bias: widget.bias?.call(),
+          ),
+    );
+  }
+
   void _select(SearchResult result) {
     _controller.text = result.name;
     _focusNode.unfocus();
@@ -110,7 +124,11 @@ class _SearchFieldState extends ConsumerState<SearchField> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final results = ref.watch(placeSearchProvider);
-    final hasGeocoder = ref.watch(photonClientProvider) != null;
+    // The field works with a geocoder, with a downloaded gazetteer, or both;
+    // only a device with neither has nothing to search.
+    final canSearch =
+        ref.watch(photonClientProvider) != null ||
+        (ref.watch(gazetteerStoreProvider).value?.hasTiles ?? false);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _syncResults();
@@ -129,7 +147,11 @@ class _SearchFieldState extends ConsumerState<SearchField> {
               showWhenUnlinked: false,
               child: Material(
                 type: MaterialType.transparency,
-                child: _ResultsCard(results: results, onSelected: _select),
+                child: _ResultsCard(
+                  results: results,
+                  onSelected: _select,
+                  onSearchOnline: _searchOnline,
+                ),
               ),
             ),
           ),
@@ -141,10 +163,10 @@ class _SearchFieldState extends ConsumerState<SearchField> {
                 controller: _controller,
                 focusNode: _focusNode,
                 textInputAction: TextInputAction.search,
-                enabled: hasGeocoder,
+                enabled: canSearch,
                 style: Theme.of(context).textTheme.bodyLarge,
                 decoration: InputDecoration(
-                  hintText: hasGeocoder
+                  hintText: canSearch
                       ? l10n.searchHint
                       : l10n.searchUnavailable,
                   prefixIcon: const Icon(Icons.search_rounded),
@@ -176,10 +198,15 @@ class _SearchFieldState extends ConsumerState<SearchField> {
 }
 
 class _ResultsCard extends StatelessWidget {
-  const _ResultsCard({required this.results, required this.onSelected});
+  const _ResultsCard({
+    required this.results,
+    required this.onSelected,
+    required this.onSearchOnline,
+  });
 
-  final AsyncValue<List<SearchResult>> results;
+  final AsyncValue<PlaceSearchState> results;
   final ValueChanged<SearchResult> onSelected;
+  final VoidCallback onSearchOnline;
 
   @override
   Widget build(BuildContext context) {
@@ -224,26 +251,118 @@ class _ResultsCard extends StatelessWidget {
                     )
                   : null,
             ),
-            data: (items) => items.isEmpty
-                ? ListTile(title: Text(l10n.searchNoResults))
-                : ListView.builder(
-                    shrinkWrap: true,
-                    padding: EdgeInsets.zero,
-                    itemCount: items.length,
-                    itemBuilder: (context, i) {
-                      final r = items[i];
-                      return ListTile(
-                        dense: true,
-                        leading: const Icon(Icons.place_outlined),
-                        title: Text(r.name),
-                        subtitle: r.subtitle.isEmpty ? null : Text(r.subtitle),
-                        onTap: () => onSelected(r),
-                      );
-                    },
-                  ),
+            data: (state) => _list(context, state),
           ),
         ),
       ),
     );
   }
+
+  /// The rows: the results, and under them the "search online" row when the
+  /// results came off the device and a geocoder is configured.
+  ///
+  /// The online row is a footer pinned below the scrolling list, not its last
+  /// item: it has to be visible whatever the list holds, because it is the
+  /// way out when the gazetteer does not know the place.
+  Widget _list(BuildContext context, PlaceSearchState state) {
+    final l10n = AppLocalizations.of(context);
+    final online = state.source == SearchSource.local && state.canSearchOnline;
+    final items = state.results;
+    final Widget list = items.isEmpty
+        ? ListTile(title: Text(l10n.searchNoResults))
+        : ListView.builder(
+            shrinkWrap: true,
+            padding: EdgeInsets.zero,
+            itemCount: items.length,
+            itemBuilder: (context, i) {
+              final r = items[i];
+              final subtitle = r.source == SearchSource.local
+                  ? localResultSubtitle(l10n, r)
+                  : r.subtitle;
+              return ListTile(
+                dense: true,
+                leading: Icon(searchResultIcon(r)),
+                title: Text(r.name),
+                subtitle: subtitle.isEmpty ? null : Text(subtitle),
+                onTap: () => onSelected(r),
+              );
+            },
+          );
+    if (!online) return list;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Flexible(child: list),
+        const Divider(height: 1),
+        ListTile(
+          dense: true,
+          leading: const Icon(Icons.travel_explore_outlined),
+          title: Text(l10n.searchOnlineFor(state.query)),
+          onTap: onSearchOnline,
+        ),
+      ],
+    );
+  }
+}
+
+/// The icon for one result row.
+///
+/// Online rows keep the neutral pin they always had; a local row says what it
+/// is, because the on-device index answers with taps, cafes and peaks next to
+/// villages and the kind is what tells them apart at a glance.
+IconData searchResultIcon(SearchResult result) {
+  if (result.source != SearchSource.local) return Icons.place_outlined;
+  return switch (result.kind) {
+    SearchKind.place => Icons.location_city_outlined,
+    SearchKind.street => Icons.signpost_outlined,
+    SearchKind.poi => _poiIcon(result.detail),
+    SearchKind.unknown => Icons.place_outlined,
+  };
+}
+
+IconData _poiIcon(String? detail) => switch (detail) {
+  'drinking_water' => Icons.water_drop_outlined,
+  'cafe' => Icons.local_cafe_outlined,
+  'bicycle_repair_station' => Icons.build_outlined,
+  'shelter' => Icons.house_siding_outlined,
+  'bicycle_shop' => Icons.pedal_bike_outlined,
+  'station' => Icons.train_outlined,
+  'viewpoint' => Icons.landscape_outlined,
+  'peak' => Icons.terrain_outlined,
+  'park' => Icons.park_outlined,
+  _ => Icons.place_outlined,
+};
+
+/// The second line of a local row: what it is, and where it is when the
+/// gazetteer knows.
+String localResultSubtitle(AppLocalizations l10n, SearchResult result) {
+  final label = searchKindLabel(l10n, result);
+  final where = result.city;
+  if (where == null || where.isEmpty) return label;
+  return label.isEmpty ? where : '$label \u00b7 $where';
+}
+
+/// The localised name of a local result's kind.
+String searchKindLabel(AppLocalizations l10n, SearchResult result) {
+  if (result.kind == SearchKind.street) return l10n.searchKindStreet;
+  return switch (result.detail) {
+    'city' => l10n.searchKindCity,
+    'town' => l10n.searchKindTown,
+    'village' => l10n.searchKindVillage,
+    'hamlet' => l10n.searchKindHamlet,
+    'suburb' => l10n.searchKindSuburb,
+    'neighbourhood' => l10n.searchKindNeighbourhood,
+    'locality' => l10n.searchKindLocality,
+    'island' => l10n.searchKindIsland,
+    'drinking_water' => l10n.searchKindDrinkingWater,
+    'cafe' => l10n.searchKindCafe,
+    'bicycle_repair_station' => l10n.searchKindBikeRepair,
+    'shelter' => l10n.searchKindShelter,
+    'bicycle_shop' => l10n.searchKindBikeShop,
+    'station' => l10n.searchKindStation,
+    'viewpoint' => l10n.searchKindViewpoint,
+    'peak' => l10n.searchKindPeak,
+    'park' => l10n.searchKindPark,
+    _ => '',
+  };
 }

@@ -154,6 +154,7 @@ class TileDownloadQueue extends _$TileDownloadQueue {
         await repository.markDownloading(entry);
         try {
           final file = await downloader.download(entry, cancelToken: token);
+          await _fetchGazetteer(downloader, entry, token);
           await repository.markReady(entry, bytes: await file.length());
           if (_disposed) return;
           state = state.copyWith(
@@ -176,6 +177,27 @@ class TileDownloadQueue extends _$TileDownloadQueue {
       if (!_disposed) {
         state = state.copyWith(clearCurrent: true, clearProgress: true);
       }
+    }
+  }
+
+  /// Fetches [entry]'s offline gazetteer, when the mirror offers one.
+  ///
+  /// Runs after the rd5 has arrived and before the tile is marked ready, so
+  /// that by the time the tiles list changes the `.gaz` is already there for
+  /// `GazetteerStore` to pick up. A failure is only logged: the tile itself is
+  /// complete and routable, and place search simply stays online for that
+  /// area. Downloading the same (already ready) tile again retries it.
+  Future<void> _fetchGazetteer(
+    TileDownloader downloader,
+    SegmentEntry entry,
+    CancelToken token,
+  ) async {
+    final gazetteer = entry.gazetteer;
+    if (gazetteer == null) return;
+    try {
+      await downloader.downloadGazetteer(gazetteer, cancelToken: token);
+    } on TileDownloadException catch (e) {
+      debugPrint('velorki: no offline search for ${entry.tile}: ${e.message}');
     }
   }
 }

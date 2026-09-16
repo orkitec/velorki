@@ -14,6 +14,10 @@ static file host: any HTTPS directory with the `.rd5` files and a
 `brouterVersion`, `source`, `generatedAt` and a `tiles` array of
 `{tile, bytes, updatedAt}`.
 
+- The mirror may also host offline search files, `<TILE>.gaz` next to the rd5
+  (built by `tools/gazetteer/build.py`). `sync.sh` gives each such tile entry a
+  `gazetteer` object; `tools/gazetteer/manifest.py <dir>` adds them after the fact.
+
 The reference mirror is a GitHub Releases one, [orkitec/velorki-data][data],
 which costs nothing to run; see its README, and the "GitHub Releases tile
 mirror" item in [OPEN_ITEMS.md](OPEN_ITEMS.md) for the caveat that a release

@@ -88,11 +88,13 @@ class TileDownloadException implements Exception {
 /// the downloader does not know what the phone is connected to; the screen
 /// says so instead of pretending. See `docs/OPEN_ITEMS.md`.
 class TileDownloader {
-  /// Creates a downloader writing into [segmentsDir].
+  /// Creates a downloader writing into [segmentsDir] and [gazetteerDir].
   TileDownloader({
     required Dio dio,
     required Directory segmentsDir,
+    required Directory gazetteerDir,
     required Uri Function(TileName tile) urlFor,
+    required Uri Function(TileName tile) gazetteerUrlFor,
   }) // Named parameters cannot be private, so these cannot be initialising
     // formals.
     // ignore: prefer_initializing_formals
@@ -100,11 +102,17 @@ class TileDownloader {
        // ignore: prefer_initializing_formals
        _segmentsDir = segmentsDir,
        // ignore: prefer_initializing_formals
-       _urlFor = urlFor;
+       _gazetteerDir = gazetteerDir,
+       // ignore: prefer_initializing_formals
+       _urlFor = urlFor,
+       // ignore: prefer_initializing_formals
+       _gazetteerUrlFor = gazetteerUrlFor;
 
   final Dio _dio;
   final Directory _segmentsDir;
+  final Directory _gazetteerDir;
   final Uri Function(TileName tile) _urlFor;
+  final Uri Function(TileName tile) _gazetteerUrlFor;
   final StreamController<TileDownloadProgress> _progress =
       StreamController<TileDownloadProgress>.broadcast();
 
@@ -117,39 +125,88 @@ class TileDownloader {
   /// call resumes it.
   Future<File> download(SegmentEntry entry, {CancelToken? cancelToken}) async {
     await _segmentsDir.create(recursive: true);
-    final target = File('${_segmentsDir.path}/${entry.fileName}');
-    final part = File('${target.path}.part');
+    return _downloadTo(
+      File('${_segmentsDir.path}/${entry.fileName}'),
+      url: _urlFor(entry.tile),
+      fileName: entry.fileName,
+      bytes: entry.bytes,
+      sha256: entry.sha256,
+      onProgress: (received) => _emit(entry, received),
+      cancelToken: cancelToken,
+    );
+  }
 
-    var offset = part.existsSync() ? await part.length() : 0;
-    if (entry.bytes > 0 && offset > entry.bytes) {
-      // Longer than the mirror says: it cannot be a prefix of this tile.
-      await part.delete();
-      offset = 0;
-    }
-    _emit(entry, offset);
-
-    if (entry.bytes == 0 || offset < entry.bytes) {
-      await _fetch(entry, part, offset, cancelToken);
-    }
-    await _verify(entry, part);
-
-    if (target.existsSync()) await target.delete();
-    return part.rename(target.path);
+  /// Downloads the offline gazetteer [entry] into the gazetteer directory.
+  ///
+  /// Same resumable fetch and the same verification as a tile, but the file is
+  /// a couple of hundred kilobytes, so no progress is reported. Its checksum
+  /// is mandatory, so a truncated or rewritten file can never be opened as a
+  /// search index.
+  Future<File> downloadGazetteer(
+    GazetteerEntry entry, {
+    CancelToken? cancelToken,
+  }) async {
+    await _gazetteerDir.create(recursive: true);
+    return _downloadTo(
+      File('${_gazetteerDir.path}/${entry.fileName}'),
+      url: _gazetteerUrlFor(entry.tile),
+      fileName: entry.fileName,
+      bytes: entry.bytes,
+      sha256: entry.sha256,
+      cancelToken: cancelToken,
+    );
   }
 
   /// Closes the progress stream.
   void dispose() => unawaited(_progress.close());
 
-  Future<void> _fetch(
-    SegmentEntry entry,
-    File part,
-    int offset,
+  Future<File> _downloadTo(
+    File target, {
+    required Uri url,
+    required String fileName,
+    required int bytes,
+    required String? sha256,
+    void Function(int received)? onProgress,
     CancelToken? cancelToken,
-  ) async {
+  }) async {
+    final part = File('${target.path}.part');
+
+    var offset = part.existsSync() ? await part.length() : 0;
+    if (bytes > 0 && offset > bytes) {
+      // Longer than the mirror says: it cannot be a prefix of this file.
+      await part.delete();
+      offset = 0;
+    }
+    onProgress?.call(offset);
+
+    if (bytes == 0 || offset < bytes) {
+      await _fetch(
+        url: url,
+        fileName: fileName,
+        part: part,
+        offset: offset,
+        onProgress: onProgress,
+        cancelToken: cancelToken,
+      );
+    }
+    await _verify(part, fileName: fileName, bytes: bytes, sha256: sha256);
+
+    if (target.existsSync()) await target.delete();
+    return part.rename(target.path);
+  }
+
+  Future<void> _fetch({
+    required Uri url,
+    required String fileName,
+    required File part,
+    required int offset,
+    void Function(int received)? onProgress,
+    CancelToken? cancelToken,
+  }) async {
     final Response<ResponseBody> response;
     try {
       response = await _dio.getUri<ResponseBody>(
-        _urlFor(entry.tile),
+        url,
         cancelToken: cancelToken,
         options: Options(
           responseType: ResponseType.stream,
@@ -160,7 +217,7 @@ class TileDownloader {
         ),
       );
     } on DioException catch (e) {
-      throw _dioFailure(entry, e);
+      throw _dioFailure(fileName, e);
     }
 
     // 200 means the mirror ignored the range and is sending the whole file.
@@ -175,15 +232,15 @@ class TileDownloader {
       await for (final chunk in response.data!.stream) {
         sink.add(chunk);
         received += chunk.length;
-        _emit(entry, received);
+        onProgress?.call(received);
       }
       await sink.flush();
     } on DioException catch (e) {
-      throw _dioFailure(entry, e);
+      throw _dioFailure(fileName, e);
     } on FileSystemException catch (e) {
       throw TileDownloadException(
         TileDownloadFailure.storage,
-        'There is no room for ${entry.fileName} on this device.',
+        'There is no room for $fileName on this device.',
         cause: e,
       );
     } finally {
@@ -191,24 +248,27 @@ class TileDownloader {
     }
   }
 
-  Future<void> _verify(SegmentEntry entry, File part) async {
+  Future<void> _verify(
+    File part, {
+    required String fileName,
+    required int bytes,
+    required String? sha256,
+  }) async {
     final size = await part.length();
-    if (entry.bytes > 0 && size != entry.bytes) {
+    if (bytes > 0 && size != bytes) {
       await part.delete();
       throw TileDownloadException(
         TileDownloadFailure.sizeMismatch,
-        '${entry.fileName} arrived with $size bytes instead of '
-        '${entry.bytes}.',
+        '$fileName arrived with $size bytes instead of $bytes.',
       );
     }
-    final expected = entry.sha256;
-    if (expected != null && expected.isNotEmpty) {
+    if (sha256 != null && sha256.isNotEmpty) {
       final actual = await sha256OfFile(part);
-      if (actual.toLowerCase() != expected.toLowerCase()) {
+      if (actual.toLowerCase() != sha256.toLowerCase()) {
         await part.delete();
         throw TileDownloadException(
           TileDownloadFailure.checksumMismatch,
-          '${entry.fileName} does not match the checksum in the manifest.',
+          '$fileName does not match the checksum in the manifest.',
         );
       }
     }
@@ -225,16 +285,16 @@ class TileDownloader {
     );
   }
 
-  TileDownloadException _dioFailure(SegmentEntry entry, DioException e) =>
+  TileDownloadException _dioFailure(String fileName, DioException e) =>
       e.type == DioExceptionType.cancel
       ? TileDownloadException(
           TileDownloadFailure.cancelled,
-          'The download of ${entry.fileName} was cancelled.',
+          'The download of $fileName was cancelled.',
           cause: e,
         )
       : TileDownloadException(
           TileDownloadFailure.network,
-          '${entry.fileName} could not be downloaded '
+          '$fileName could not be downloaded '
           '(${e.response?.statusCode ?? e.type.name}).',
           cause: e,
         );
@@ -248,7 +308,9 @@ Future<TileDownloader> tileDownloader(Ref ref) async {
   final downloader = TileDownloader(
     dio: ref.watch(segmentsDioProvider),
     segmentsDir: repository.segmentsDir,
+    gazetteerDir: repository.gazetteerDir,
     urlFor: service.tileUrl,
+    gazetteerUrlFor: service.gazetteerUrl,
   );
   ref.onDispose(downloader.dispose);
   return downloader;

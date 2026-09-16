@@ -515,11 +515,14 @@ void main() {
 
     setUp(() async {
       db = VelorkiDatabase.memory();
-      segments = Directory('${tempDir('velorki-manifest').path}/segments')
+      final root = tempDir('velorki-manifest');
+      segments = Directory('${root.path}/segments')
         ..createSync(recursive: true);
       repository = RoutingTilesRepository(
         dao: db.routingTilesDao,
         segmentsDir: segments,
+        gazetteerDir: Directory('${root.path}/gazetteer')
+          ..createSync(recursive: true),
       );
       await repository.load();
       addTearDown(() async {

@@ -125,6 +125,89 @@ void main() {
     });
   });
 
+  group('the optional gazetteer object', () {
+    test('is read with its size, checksum and date', () {
+      final e = SegmentsManifest.parse(
+        '[{"tile": "W20_N30", "bytes": 1499136, "sha256": "rd5hash", '
+        '"gazetteer": {"bytes": 231424, "sha256": "GAZHASH", '
+        '"updatedAt": "2026-09-16T01:00:00Z"}}]',
+      ).tiles.single;
+      final gaz = e.gazetteer!;
+      expect(gaz.tile, const TileName(-20, 30));
+      expect(gaz.bytes, 231424);
+      expect(gaz.sha256, 'GAZHASH');
+      expect(gaz.updatedAt, DateTime.utc(2026, 9, 16, 1));
+      expect(gaz.fileName, 'W20_N30.gaz');
+      expect(e.sha256, 'rd5hash', reason: 'the rd5 checksum is untouched');
+    });
+
+    test('is null when the mirror has none, and for a directory listing', () {
+      expect(
+        SegmentsManifest.parse('[{"tile": "E5_N45", "bytes": 1}]')
+            .tiles
+            .single
+            .gazetteer,
+        isNull,
+      );
+      expect(
+        SegmentsManifest.parseDirectoryListing(
+          '<a href="E5_N45.rd5">E5_N45.rd5</a> 12-Sep-2026 01:03 10\n',
+        ).tiles.single.gazetteer,
+        isNull,
+      );
+    });
+
+    test('without a checksum it counts as no gazetteer', () {
+      expect(
+        SegmentsManifest.parse(
+          '[{"tile": "E5_N45", "bytes": 1, "gazetteer": {"bytes": 8}}]',
+        ).tiles.single.gazetteer,
+        isNull,
+        reason: 'an unverifiable file is not downloaded',
+      );
+      expect(
+        SegmentsManifest.parse(
+          '[{"tile": "E5_N45", "bytes": 1, "gazetteer": 7}]',
+        ).tiles.single.gazetteer,
+        isNull,
+      );
+    });
+
+    test('a missing size is zero and a missing date is null', () {
+      final gaz = SegmentsManifest.parse(
+        '[{"tile": "E5_N45", "gazetteer": {"sha256": "abc"}}]',
+      ).tiles.single.gazetteer!;
+      expect(gaz.bytes, 0);
+      expect(gaz.updatedAt, isNull);
+    });
+
+    test('entries compare by value and say what they are', () {
+      const a = GazetteerEntry(tile: TileName(5, 45), bytes: 3, sha256: 'abc');
+      const b = GazetteerEntry(tile: TileName(5, 45), bytes: 3, sha256: 'abc');
+      expect(a, b);
+      expect(a.hashCode, b.hashCode);
+      expect(
+        a,
+        isNot(
+          const GazetteerEntry(tile: TileName(5, 45), bytes: 4, sha256: 'abc'),
+        ),
+      );
+      expect(a.toString(), contains('E5_N45.gaz'));
+
+      const withGaz = SegmentEntry(
+        tile: TileName(5, 45),
+        bytes: 1,
+        gazetteer: a,
+      );
+      const without = SegmentEntry(tile: TileName(5, 45), bytes: 1);
+      expect(withGaz, isNot(without));
+      expect(withGaz.hashCode, isNot(without.hashCode));
+      expect(withGaz.toString(), contains('gazetteer'));
+      expect(without.toString(), isNot(contains('gazetteer')));
+      expect(const TileName(-20, 30).gazetteerFileName, 'W20_N30.gaz');
+    });
+  });
+
   group('the brouter.de directory listing fallback', () {
     late SegmentsManifest manifest;
 

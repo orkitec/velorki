@@ -12,6 +12,7 @@ import 'package:velorki/features/routing_tiles/application/tile_download_control
 import 'package:velorki/features/routing_tiles/data/brouter_storage.dart';
 import 'package:velorki/features/routing_tiles/data/routing_tiles_repository.dart';
 import 'package:velorki/features/routing_tiles/data/segments_manifest_service.dart';
+import 'package:velorki/features/routing_tiles/domain/sha256.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 
 import 'support/fake_segments.dart';
@@ -20,12 +21,33 @@ const TileName _first = TileName(10, 45);
 const TileName _second = TileName(5, 45);
 final Uint8List _body = Uint8List.fromList(utf8.encode('rd5-body'));
 
-SegmentEntry _entry(TileName tile, {int? bytes}) => SegmentEntry(
-  tile: tile,
-  bytes: bytes ?? _body.length,
-  updatedAt: DateTime.utc(2026, 9, 1),
-  formatVersion: '11.2',
+final Uint8List _gaz = Uint8List.fromList(utf8.encode('gazetteer-body'));
+
+SegmentEntry _entry(TileName tile, {int? bytes, bool gazetteer = false}) =>
+    SegmentEntry(
+      tile: tile,
+      bytes: bytes ?? _body.length,
+      updatedAt: DateTime.utc(2026, 9, 1),
+      formatVersion: '11.2',
+      gazetteer: gazetteer
+          ? GazetteerEntry(
+              tile: tile,
+              bytes: _gaz.length,
+              sha256: (Sha256()..add(_gaz)).hexDigest(),
+              updatedAt: DateTime.utc(2026, 9, 16),
+            )
+          : null,
+    );
+
+/// A mirror that serves the tile and its gazetteer.
+FakeSegmentsAdapter _servingBoth() => FakeSegmentsAdapter(
+  (options) => options.uri.path.endsWith('.gaz')
+      ? FakeSegmentsResponse.bytes(_gaz)
+      : FakeSegmentsResponse.bytes(_body),
 );
+
+File _gazFile(BrouterStorage storage, TileName tile) =>
+    File('${storage.gazetteer.path}/${tile.gazetteerFileName}');
 
 void main() {
   late VelorkiDatabase db;
@@ -35,7 +57,8 @@ void main() {
     db = VelorkiDatabase.memory();
     storage = BrouterStorage(tempDir('velorki-queue'))
       ..segments.createSync(recursive: true)
-      ..profiles.createSync(recursive: true);
+      ..profiles.createSync(recursive: true)
+      ..gazetteer.createSync(recursive: true);
     addTearDown(db.close);
   });
 
@@ -119,5 +142,86 @@ void main() {
     expect(container.read(tileDownloadQueueProvider).finished, <TileName>[
       _first,
     ]);
+  });
+
+  test('a tile with a gazetteer gets it after the rd5', () async {
+    final adapter = _servingBoth();
+    final container = await containerFor(adapter);
+
+    await container.read(tileDownloadQueueProvider.notifier).enqueue(
+      <SegmentEntry>[_entry(_first, gazetteer: true)],
+    );
+
+    expect(container.read(tileDownloadQueueProvider).finished, <TileName>[
+      _first,
+    ]);
+    expect(adapter.requests.map((r) => r.uri.path.split('/').last), <String>[
+      'E10_N45.rd5',
+      'E10_N45.gaz',
+    ], reason: 'the tile first, then its search index');
+    expect(_gazFile(storage, _first).readAsBytesSync(), _gaz);
+
+    final repository = await container.read(
+      routingTilesRepositoryProvider.future,
+    );
+    expect(repository.readyTiles(), <TileName>{_first});
+  });
+
+  test('a tile without a gazetteer asks for none', () async {
+    final adapter = _servingBoth();
+    final container = await containerFor(adapter);
+
+    await container.read(tileDownloadQueueProvider.notifier).enqueue(
+      <SegmentEntry>[_entry(_first)],
+    );
+
+    expect(adapter.requests, hasLength(1));
+    expect(_gazFile(storage, _first).existsSync(), isFalse);
+  });
+
+  test('a gazetteer that fails leaves the tile ready and moves on', () async {
+    final adapter = FakeSegmentsAdapter((options) {
+      if (options.uri.path.endsWith('.gaz')) {
+        return FakeSegmentsResponse.text('gone', status: 404);
+      }
+      return FakeSegmentsResponse.bytes(_body);
+    });
+    final container = await containerFor(adapter);
+
+    await container.read(tileDownloadQueueProvider.notifier).enqueue(
+      <SegmentEntry>[_entry(_first, gazetteer: true), _entry(_second)],
+    );
+
+    final state = container.read(tileDownloadQueueProvider);
+    expect(state.finished, <TileName>[_first, _second]);
+    expect(state.failure, isNull, reason: 'the rider is not told off for it');
+
+    final repository = await container.read(
+      routingTilesRepositoryProvider.future,
+    );
+    expect(repository.readyTiles(), <TileName>{_first, _second});
+    expect(_gazFile(storage, _first).existsSync(), isFalse);
+  });
+
+  test('downloading a tile again retries its gazetteer', () async {
+    var serveGazetteer = false;
+    final adapter = FakeSegmentsAdapter((options) {
+      if (!options.uri.path.endsWith('.gaz')) {
+        return FakeSegmentsResponse.bytes(_body);
+      }
+      return serveGazetteer
+          ? FakeSegmentsResponse.bytes(_gaz)
+          : FakeSegmentsResponse.text('gone', status: 404);
+    });
+    final container = await containerFor(adapter);
+    final queue = container.read(tileDownloadQueueProvider.notifier);
+
+    await queue.enqueue(<SegmentEntry>[_entry(_first, gazetteer: true)]);
+    expect(_gazFile(storage, _first).existsSync(), isFalse);
+
+    serveGazetteer = true;
+    await queue.enqueue(<SegmentEntry>[_entry(_first, gazetteer: true)]);
+
+    expect(_gazFile(storage, _first).readAsBytesSync(), _gaz);
   });
 }

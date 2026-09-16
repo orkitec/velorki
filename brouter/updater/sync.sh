@@ -255,8 +255,12 @@ sync_once() {
 #     "brouterVersion": "v1.7.10",
 #     "generatedAt": "...", "source": "...", "segmentFilter": "...",
 #     "tileCount": N, "totalBytes": N,
-#     "tiles": [ { "tile": "E5_N45", "bytes": 123, "updatedAt": "ISO" } ]
+#     "tiles": [ { "tile": "E5_N45", "bytes": 123, "updatedAt": "ISO",
+#                  "gazetteer": { "bytes": 1, "sha256": "..", "updatedAt": "ISO" } } ]
 #   }
+# The "gazetteer" object appears only for a tile that has an offline search
+# file "<TILE>.gaz" next to its rd5 (tools/gazetteer builds them); its sha256
+# is always written.
 # sha256 per tile is omitted by default: hashing ~10 GB on every pass costs
 # minutes of CPU for no benefit, since the size check against the index plus the
 # atomic rename already rule out truncated files. Set MANIFEST_SHA256=1 to
@@ -264,7 +268,7 @@ sync_once() {
 write_manifest() {
   local out="$SEGMENTS_DIR/manifest.json"
   local tmp="$out.part"
-  local first=1 f base bytes updated sha total=0 count=0
+  local first=1 f base bytes updated sha total=0 count=0 gaz gazjson
 
   {
     printf '{\n'
@@ -283,13 +287,23 @@ write_manifest() {
       count=$(( count + 1 ))
       [ "$first" = "1" ] || printf ',\n'
       first=0
+      # An offline gazetteer next to the rd5 is optional; it is always hashed,
+      # because the files are a few MB at most.
+      gaz="${f%.rd5}.gaz"
+      gazjson=""
+      if [ -f "$gaz" ]; then
+        gazjson="$(printf ', "gazetteer": { "bytes": %s, "sha256": "%s", "updatedAt": "%s" }' \
+          "$(stat -c%s "$gaz")" \
+          "$(sha256sum "$gaz" | cut -d' ' -f1)" \
+          "$(date -u -d "@$(stat -c%Y "$gaz")" +%Y-%m-%dT%H:%M:%SZ)")"
+      fi
       if [ "$MANIFEST_SHA256" = "1" ]; then
         sha="$(sha256sum "$f" | cut -d' ' -f1)"
-        printf '    { "tile": "%s", "bytes": %s, "updatedAt": "%s", "sha256": "%s" }' \
-          "${base%.rd5}" "$bytes" "$updated" "$sha"
+        printf '    { "tile": "%s", "bytes": %s, "updatedAt": "%s", "sha256": "%s"%s }' \
+          "${base%.rd5}" "$bytes" "$updated" "$sha" "$gazjson"
       else
-        printf '    { "tile": "%s", "bytes": %s, "updatedAt": "%s" }' \
-          "${base%.rd5}" "$bytes" "$updated"
+        printf '    { "tile": "%s", "bytes": %s, "updatedAt": "%s"%s }' \
+          "${base%.rd5}" "$bytes" "$updated" "$gazjson"
       fi
     done
     [ "$first" = "1" ] || printf '\n'

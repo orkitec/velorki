@@ -205,6 +205,35 @@ class CannedHttpAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+/// An HTTP adapter that fails every request.
+///
+/// The offline search test hands this to the geocoder: if anything reaches
+/// the network the test does not merely slow down, it goes red, which is the
+/// only way to prove that the results came off the device.
+class FailingHttpAdapter implements HttpClientAdapter {
+  /// Creates the adapter.
+  FailingHttpAdapter();
+
+  /// Every request that arrived, in order. Must stay empty.
+  final List<Uri> requests = <Uri>[];
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    requests.add(options.uri);
+    throw DioException.connectionError(
+      requestOptions: options,
+      reason: 'the offline search test allows no network',
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
 /// A one-feature Photon `FeatureCollection` for [name] at [position].
 String photonAnswer({
   required String name,

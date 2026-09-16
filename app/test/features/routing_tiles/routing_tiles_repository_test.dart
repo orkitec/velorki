@@ -25,15 +25,19 @@ SegmentEntry _entry(
 void main() {
   late VelorkiDatabase db;
   late Directory segments;
+  late Directory gazetteer;
   late RoutingTilesRepository repository;
 
   setUp(() async {
     db = VelorkiDatabase.memory();
-    segments = Directory('${tempDir('velorki-tiles').path}/segments')
+    final root = tempDir('velorki-tiles');
+    segments = Directory('${root.path}/segments')..createSync(recursive: true);
+    gazetteer = Directory('${root.path}/gazetteer')
       ..createSync(recursive: true);
     repository = RoutingTilesRepository(
       dao: db.routingTilesDao,
       segmentsDir: segments,
+      gazetteerDir: gazetteer,
     );
     await repository.load();
     addTearDown(() async {
@@ -141,6 +145,43 @@ void main() {
       File('${segments.path}/${_e10n45.fileName}.part').existsSync(),
       isFalse,
     );
+  });
+
+  test('delete takes the offline gazetteer with it', () async {
+    writeTile(_e10n45);
+    writeTile(_e5n45);
+    await repository.markReady(_entry(_e10n45, bytes: 14), bytes: 14);
+    repository.gazetteerFileFor(_e10n45).writeAsStringSync('gaz');
+    File('${repository.gazetteerFileFor(_e10n45).path}.part')
+        .writeAsStringSync('half');
+    repository.gazetteerFileFor(_e5n45).writeAsStringSync('gaz');
+
+    await repository.delete(_e10n45);
+
+    expect(repository.gazetteerFileFor(_e10n45).path, endsWith('.gaz'));
+    expect(
+      repository.gazetteerFileFor(_e10n45).path,
+      startsWith(gazetteer.path),
+    );
+    expect(repository.gazetteerFileFor(_e10n45).existsSync(), isFalse);
+    expect(
+      File('${repository.gazetteerFileFor(_e10n45).path}.part').existsSync(),
+      isFalse,
+    );
+    expect(
+      repository.gazetteerFileFor(_e5n45).existsSync(),
+      isTrue,
+      reason: 'the other tile keeps its search index',
+    );
+  });
+
+  test('delete works when there never was a gazetteer', () async {
+    writeTile(_e10n45);
+    await repository.markReady(_entry(_e10n45, bytes: 14), bytes: 14);
+
+    await repository.delete(_e10n45);
+
+    expect(repository.readyTiles(), isEmpty);
   });
 
   test('an interrupted download is forgotten but keeps its .part', () async {

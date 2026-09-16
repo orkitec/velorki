@@ -26,6 +26,8 @@ class ItestRegion {
     required this.searchPlace,
     required this.searchCity,
     required this.searchResult,
+    required this.localSearchText,
+    required this.localSearchPlace,
   });
 
   /// `nyc` or `madeira`, only for messages.
@@ -54,6 +56,13 @@ class ItestRegion {
 
   /// Where that place is; the destination of the search test's plan.
   final LatLng searchResult;
+
+  /// What the offline search test types: a place the region's `<TILE>.gaz`
+  /// gazetteer knows, so the row comes off the device and not off the network.
+  final String localSearchText;
+
+  /// The row that search has to produce.
+  final String localSearchPlace;
 }
 
 /// New York: the `W75_N40` tile, around Sakura Park and Central Park.
@@ -67,6 +76,8 @@ const ItestRegion _nyc = ItestRegion(
   searchPlace: 'Central Park',
   searchCity: 'New York',
   searchResult: LatLng(40.7829, -73.9654),
+  localSearchText: 'Brooklyn',
+  localSearchPlace: 'Brooklyn',
 );
 
 /// Madeira: the `W20_N30` tile the frozen oracle release serves, from Funchal
@@ -81,6 +92,8 @@ const ItestRegion _madeira = ItestRegion(
   searchPlace: 'Machico',
   searchCity: 'Madeira',
   searchResult: LatLng(32.720, -16.770),
+  localSearchText: 'Funchal',
+  localSearchPlace: 'Funchal',
 );
 
 const String _regionName = String.fromEnvironment(

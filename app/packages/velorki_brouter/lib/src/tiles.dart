@@ -85,6 +85,9 @@ class TileName implements Comparable<TileName> {
   /// The segment file name, e.g. `W5_S10.rd5`.
   String get fileName => '$name.rd5';
 
+  /// The offline gazetteer file name, e.g. `W5_S10.gaz`.
+  String get gazetteerFileName => '$name.gaz';
+
   /// The area the tile covers, as a closed box.
   BoundingBox get bounds => BoundingBox(
     south: lat0.toDouble(),
