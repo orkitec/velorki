@@ -25,20 +25,24 @@ at `<appSupport>/brouter/gazetteer/<TILE>.gaz`, read-only.
 | Table | Rows | What it is |
 |---|---|---|
 | `places` | one per settlement | `place=city\|town\|village\|hamlet\|suburb\|neighbourhood\|locality\|island` nodes and areas, with population where OSM has it |
-| `pois` | one per feature | what a rider needs on the road and what a rider searches for as a destination, always named: the 25 kinds below |
-| `streets` | one per street name per place | every named `highway=*` way, the many ways of one street merged into one row. Only with `--streets` |
-| `search` | one per row above | the FTS5 index the search box queries |
+| `pois` | one per feature | what a rider needs on the road and what a rider searches for as a destination, always named: the 32 kinds below |
+| `streets` | one per street name per place | every named `highway=*` way, the many ways of one street merged into one row |
+| `aliases` | one per extra name | `name:en`, `int_name`, `alt_name`, `old_name`, `official_name`, `short_name` of a row above |
+| `house_numbers` | at most 40 per street | anchor points along a street: the lowest number, the highest, every tenth in between |
+| `search` | one per place, street, poi and alias | the FTS5 index the search box queries |
 | `meta` | six | schema version, tile, build time, source, what is in the file |
 
-Default content is places plus POIs, which keeps every tile to a few MB.
-Streets are opt-in and roughly quadruple the file; the app handles them when
-`meta.has_streets` is `1`.
+Streets are built by default and are most of the file; `--no-streets` leaves
+them and the house numbers out and takes a tile back to a few hundred KB. The
+app reads `meta.has_streets` to know which it got.
 
 ## POI kinds
 
 The kind is the first match down this list, so a café in a historic building is
-a `cafe`, a museum in a building is a `museum`, and `building` is only ever the
-fallback. One object gets one row.
+a `cafe`, a hotel in one is a `hotel`, a museum in a building is a `museum`, and
+`building` is only ever the fallback. One object gets one row. The first
+sixteen are what a tour needs on the road; the rest are landmarks somebody
+types as a destination.
 
 | kind | tags |
 |---|---|
@@ -48,6 +52,13 @@ fallback. One object gets one row.
 | `viewpoint` | `tourism=viewpoint` |
 | `peak` | `natural=peak` |
 | `park` | `leisure=park` |
+| `mountain_pass` | `mountain_pass=yes`, `natural=saddle` |
+| `camp_site` | `tourism=camp_site\|caravan_site` |
+| `hotel` | `tourism=hotel\|motel` |
+| `hostel` | `tourism=hostel\|guest_house\|chalet` |
+| `alpine_hut` | `tourism=alpine_hut\|wilderness_hut` |
+| `supermarket` | `shop=supermarket\|convenience` |
+| `bakery` | `shop=bakery` |
 | `attraction` | `tourism=attraction\|theme_park\|zoo\|aquarium` |
 | `museum` | `tourism=museum\|gallery` |
 | `historic` | any `historic=*`; `historic=yes` only when nothing else fits |
@@ -107,13 +118,27 @@ CREATE TABLE streets (
 CREATE TABLE pois (
     id       INTEGER PRIMARY KEY,
     name     TEXT NOT NULL,     -- unnamed POIs are not stored
-    kind     TEXT NOT NULL,     -- one of the 25 kinds, see "POI kinds" above
+    kind     TEXT NOT NULL,     -- one of the 32 kinds, see "POI kinds" above
     lat      INTEGER NOT NULL,
     lon      INTEGER NOT NULL,
     place_id INTEGER,
     osm_type TEXT,
     osm_id   INTEGER
 );
+
+CREATE TABLE aliases (
+    id     INTEGER PRIMARY KEY,   -- from the same counter as the three above
+    ref_id INTEGER NOT NULL,      -- the places/streets/pois row this name belongs to
+    name   TEXT NOT NULL
+);
+
+CREATE TABLE house_numbers (
+    street_id INTEGER NOT NULL,   -- streets.id
+    number    INTEGER NOT NULL,   -- leading integer of addr:housenumber
+    lat       INTEGER NOT NULL,
+    lon       INTEGER NOT NULL,
+    PRIMARY KEY (street_id, number)
+) WITHOUT ROWID;
 
 CREATE VIRTUAL TABLE search USING fts5(
     name, content='', columnsize=0,
@@ -123,14 +148,16 @@ CREATE VIRTUAL TABLE search USING fts5(
 CREATE INDEX idx_places_pos  ON places(lat, lon);
 CREATE INDEX idx_streets_pos ON streets(lat, lon);
 CREATE INDEX idx_pois_pos    ON pois(lat, lon);
+CREATE INDEX idx_aliases_ref ON aliases(ref_id);
 ```
 
 Page size 4096, journal mode DELETE (the phone opens it read-only), `VACUUM`ed.
 
 Five decisions are load-bearing:
 
-**One id space.** `id` comes from a single counter across `places`, `streets`
-and `pois`, so an FTS `rowid` names exactly one row in exactly one table. A
+**One id space.** `id` comes from a single counter across `places`, `streets`,
+`pois` and `aliases`, so an FTS `rowid` names exactly one row in exactly one
+table; a rowid that is in none of the first three is an alias. A
 `UNION ALL` view over the three reads better but SQLite materialises it on every
 query: the same search went from 0.4 ms to 250 ms.
 
@@ -169,7 +196,9 @@ What the app runs, and what `query.py` runs:
    append `*` to the **last** token only: `west 125` → `"west" "125"*`.
 2. `SELECT rowid, bm25(search) AS rank FROM search WHERE search MATCH ? ORDER BY rank LIMIT 60`.
 3. Hydrate each rowid by primary key from `places`, `streets`, `pois` — one
-   prepared statement each, first hit wins.
+   prepared statement each, first hit wins. A rowid none of them holds is an
+   `aliases.id`: resolve it through `ref_id` and show the row's **primary**
+   name. Two hits resolving to the same row are one result, at the better rank.
 4. Rank: bm25 ascending, ties by the shorter name (the index keeps no column
    sizes, so bm25 cannot tell `Monte` from `Monte Tea House`), then population
    descending, then distance to the map centre when there is one. Return at
@@ -178,9 +207,27 @@ What the app runs, and what `query.py` runs:
 Do not query below 3 characters; two-letter prefixes match tens of thousands of
 rows and cost 10–70 ms on a dense tile.
 
+### House numbers
+
+A digits-only token at the **start or the end** of a multi-token query is the
+house number: `400 w 42nd` and `hauptstr 12`, but not `w 42nd st` (`42nd` is not
+digits only) and not a query that is nothing but digits. It comes out of the FTS
+match and is resolved against the anchors of each street hit:
+
+| | position | |
+|---|---|---|
+| the number is an anchor | the anchor | exact |
+| two anchors bracket it | interpolated by number between them | approximate |
+| past either end | the nearer end anchor | approximate |
+| the street has no anchors | the street's own point | approximate |
+
+An approximate position is marked `≈` (`SearchResult.approximate` in the app).
+
 ```sh
 ./query.py fixtures/E5_N45.gaz muhleholz
 ./query.py fixtures/E5_N45.gaz vad --near 47.141,9.521
+./query.py fixtures/E5_N45.gaz "114 landstrasse"      # exact anchor
+./query.py fixtures/E5_N45.gaz "landstrasse 120"      # ≈ interpolated
 ./query.py --reverse fixtures/E5_N45.gaz 47.1410 9.5215
 ```
 
@@ -188,8 +235,8 @@ rows and cost 10–70 ms on a dense tile.
 
 ```sh
 pip install osmium                                  # pyosmium 4.x, ships wheels
-./build.py liechtenstein.osm.pbf --out gaz          # places + pois
-./build.py liechtenstein.osm.pbf --out gaz --streets
+./build.py liechtenstein.osm.pbf --out gaz          # places + streets + pois
+./build.py liechtenstein.osm.pbf --out gaz --no-streets
 ./build.py portugal-latest.osm.pbf --out gaz --tiles W20_N30   # keep one tile
 ./check.py gaz/*.gaz
 ```
@@ -204,6 +251,16 @@ mean of a way's nodes, or the mean of the outer rings of an assembled area. A
 street that crosses a tile boundary appears once, in the tile its centre falls
 in.
 
+Addresses (`addr:housenumber` + `addr:street`) are read on the same pass and
+never become Python objects: a state's millions of them live in four `array`
+columns per tile, 16 bytes an address, plus one interned street name each. An
+address belongs to the street row of the same name (case-insensitively;
+diacritics are kept) nearest within 2 km, and is dropped when there is none or
+when the number has no leading integer. Per street the numbers are then sorted,
+the first address of a repeated number wins, and the list is thinned to the
+lowest, the highest and every tenth in between — at most 40, which only a
+street with more than ~380 numbers ever reaches.
+
 Areas cost a second pass over the file: osmium indexes the multipolygon and
 boundary relations first, then assembles each one while the ways stream past.
 On Liechtenstein that is +0.2 s of 0.5 s and +3 MB of peak RSS, on Malta
@@ -217,9 +274,9 @@ overlap, so a mirror is built one extract at a time and the partial tiles are
 merged:
 
 ```sh
-./build.py liechtenstein.osm.pbf --out gaz/liechtenstein --streets
-./build.py switzerland.osm.pbf   --out gaz/switzerland   --streets
-./build.py austria.osm.pbf       --out gaz/austria       --streets
+./build.py liechtenstein.osm.pbf --out gaz/liechtenstein
+./build.py switzerland.osm.pbf   --out gaz/switzerland
+./build.py austria.osm.pbf       --out gaz/austria
 ./merge.py mirror gaz            # every *.gaz under gaz, grouped by tile name
 ./manifest.py mirror             # then the manifest, over the merged files
 ```
@@ -232,9 +289,16 @@ tile it
   one fails,
 * drops rows that repeat an `(osm_type, osm_id)` already seen, and streets that
   repeat a name + place name + position rounded to 1e-3 degrees (~100 m),
-* hands out ids from a single counter across the three tables, as `build.py`
-  does, and remaps `admin_id` / `place_id` onto the surviving rows (a dropped
-  duplicate's references go to its survivor),
+* hands out ids from a single counter across the three tables and then the
+  aliases, as `build.py` does, and remaps `admin_id` / `place_id` onto the
+  surviving rows (a dropped duplicate's references go to its survivor),
+* carries the aliases over with `ref_id` remapped, one row per (surviving row,
+  name), and the anchors with `street_id` remapped, one per (street, number),
+  thinned back under 40 when a merged street holds more. The "every tenth" step
+  is **not** re-applied: its input is the addresses, which merge.py never sees,
+  so re-running it would throw away nine anchors in ten on every merge and
+  merging a file with a copy of itself would not be a no-op,
+* merges a file that predates either table fine — it simply contributes none,
 * rebuilds the FTS index, writes `meta` (`source` is the comma-joined distinct
   sources of the inputs, `has_streets` / `has_pois` are set when any input has
   them) and `VACUUM`s.
@@ -249,12 +313,16 @@ pyosmium.
 
 | File | Built from | Content | Size |
 |---|---|---|---:|
-| `E5_N45.gaz` | `liechtenstein.osm.pbf`, `--streets` | 98 places, 1,313 streets, 542 pois | 204,800 B |
+| `E5_N45.gaz` | `liechtenstein.osm.pbf` | 98 places, 1,313 streets, 595 pois, 44 aliases, 2,497 anchors | 266,240 B |
 | `W20_N30.gaz` | `portugal-latest.osm.pbf`, `--tiles W20_N30` | 1,769 places, 1,022 pois | 262,144 B |
 
+`E5_N45.gaz` by page share: `house_numbers` 20%, `streets` 18%, `pois` and the
+FTS index 14% each, `idx_streets_pos` 11%, `idx_pois_pos` 6%, `places` 5%,
+everything else (including `aliases` and its index) one page each.
+
 ```sh
-./build.py liechtenstein.osm.pbf --out fixtures --streets
-./build.py portugal-latest.osm.pbf --out fixtures --tiles W20_N30
+./build.py liechtenstein.osm.pbf --out fixtures
+./build.py portugal-latest.osm.pbf --out fixtures --tiles W20_N30 --no-streets
 (cd fixtures && sha256sum E5_N45.gaz W20_N30.gaz > fixtures.sha256)
 ```
 
@@ -263,9 +331,11 @@ tokenizer folds them: `muhleholz` finds the village `Mühleholz` and the street
 `Im Mühleholz`, `vad` puts the town `Vaduz` first, `grauspitz` finds two peaks.
 It also covers the landmarks: `Rathaus Vaduz` is a `building`, `Kathedrale St.
 Florin` a `place_of_worship`, `Schloss Vaduz` a `historic` built from a
-multipolygon relation. Landmarks took the file from 155,648 B to 204,800 B,
-1.3× — the street table is most of this one. Without `--streets` the same
-build went 65,536 B → 114,688 B (1.8×), and Malta, which is built up, 2.5×.
+multipolygon relation. `Liechtensteinisches Landesmuseum Vaduz` carries the
+`name:en` the alias test looks for, and `Landstrasse` in Triesen is the street
+with the most anchors. Landmarks took the file from 155,648 B to 204,800 B and
+Addendum 2 (the seven kinds, the aliases, the anchors) to 266,240 B, of which
+the anchors are 53 KB; `--no-streets` is 131,072 B.
 Madeira is `W20_N30`, the tile the integration tests already mirror, and holds
 `Funchal`; Portugal is the only Geofabrik extract that covers it, so the
 mainland tiles are discarded with `--tiles`. `W20_N30.gaz` was built before the
@@ -302,23 +372,30 @@ file name. `app/tool/itest_mirror.sh` uses both.
 Geofabrik extracts of 2026-09-15/16, 8-core laptop, 16 GB RAM, sizes after
 `VACUUM`.
 
-| Extract | PBF | Tile | places | pois | streets | Default | `--streets` |
+| Extract | PBF | Tile | places | pois | streets | `--no-streets` | Default |
 |---|---:|---|---:|---:|---:|---:|---:|
-| liechtenstein | 3.5 MB | `E5_N45` | 98 | 542 | 1,313 | 0.11 MB | 0.20 MB |
+| liechtenstein | 3.5 MB | `E5_N45` | 98 | 595 | 1,313 | 0.13 MB | 0.27 MB |
+| malta | 8.9 MB | `E10_N35` | 685 | 4,098 | 9,562 | — | 1.36 MB |
 | iceland | 65 MB | `W25_N60` | 366 | 851 | — | 0.14 MB | — |
 | berlin | 99 MB | `E10_N50` | 598 | 4,052 | 20,830 | 0.40 MB | 1.75 MB |
 | portugal | 423 MB | `W20_N30` | 1,769 | 1,022 | — | 0.26 MB | — |
 | new-york | 496 MB | `W75_N40` | 3,789 | 12,437 | 160,958 | 1.23 MB | 11.41 MB |
 
-| Extract | Wall, default | Wall, `--streets` | Peak RSS |
+| Extract | Wall, `--no-streets` | Wall, default | Peak RSS |
 |---|---:|---:|---:|
-| liechtenstein | 0.5 s | 0.7 s | 59 MB |
+| liechtenstein | 0.9 s | 1.2 s | 61 MB |
+| malta | 5.0 s | 7.0 s | 91 MB |
 | iceland | 4 s | — | 299 MB |
 | berlin | 11 s | 22 s | 247 MB |
 | portugal | 36 s | — | 969 MB |
 | new-york | 55 s | 77 s | 1.07 GB |
 
-Only the liechtenstein row was re-measured after landmarks and areas landed;
+Collecting the addresses costs nothing worth measuring: peak RSS went 61 → 61 MB
+on liechtenstein (12,560 addresses) and 89 → 91 MB on malta (3,886), because an
+address is 16 bytes in an `array` and is grouped for thinning by one more
+`array` of row indexes per street.
+
+Only the liechtenstein and malta rows were measured after landmarks and areas landed;
 the four bigger extracts are from before and their `pois` and sizes are now
 low by roughly 3–6× on POIs and 2–3× on the default file. Roughly 3–5 MB of
 PBF per second on one core now that every file is read twice. Streets are
@@ -331,17 +408,18 @@ the old schema and lands near 40 MB under this one, all of it streets.
 
 Photon is a full geocoder; this is a search box that works on a plane.
 
-* **House numbers.** Not collected. "Hauptstraße 12" finds the street and drops
-  the number.
+* **Exact house numbers.** Only anchors are stored, so a number that is not one
+  of them is interpolated along the street and marked approximate.
 * **Fuzzy matching.** FTS5 does prefix matching and nothing else; "Munchen" for
   "München" finds nothing.
 * **Admin hierarchy.** `admin_id` and `place_id` are geometry, not boundaries,
   and stop at the tile edge. No country, state or district, so Springfield,
   Massachusetts cannot be told from Springfield, Illinois.
-* **Anything outside places, streets and the 25 POI kinds** — squares, rivers,
+* **Anything outside places, streets and the 32 POI kinds** — squares, rivers,
   general shops, individual addresses.
-* **Alternative names.** `name:de`, `old_name`, `alt_name`, `short_name` are not
-  indexed.
+* **Language variants.** `name:en` and the five other alternative-name tags are
+  indexed; the rest of `name:<lang>` is not, because on a national extract that
+  is the primary name again on every object.
 
 ## Planet builds
 
@@ -355,5 +433,6 @@ runner has ~14 GB of disk and 16 GB of RAM, which is why the unit is the leaf
 extract and not the continent; the default build (places and POIs) needed about
 1 GB of RAM per 500 MB of PBF before areas, and area assembly adds the
 relation index and the assembler buffers on top — not measured on an extract
-that size yet. `--streets` planet-wide would also need the street list spilled
-to disk during the build, which is not written.
+that size yet. Streets planet-wide would also need the street list spilled to
+disk during the build, which is not written; `--no-streets` is the way out on a
+runner that cannot hold one.

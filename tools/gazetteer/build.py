@@ -6,9 +6,9 @@ after the tile (``gaz/W75_N40.gaz``), so a phone can download the search data
 for exactly the tiles it already has routing data for. The file format is
 version 1 of the Velorki gazetteer; see README.md for the schema.
 
-Default content is places plus named points of interest, which keeps every
-tile to a few MB. Streets are opt-in (``--streets``) and roughly quadruple the
-file.
+Content is places, streets and named points of interest. Streets are built by
+default and are most of the file; ``--no-streets`` leaves them out and takes a
+tile back to a few hundred KB.
 
 The PBF is streamed, never loaded whole. Node coordinates go through an osmium
 location cache (in memory for small extracts, a file on disk for big ones), so
@@ -18,7 +18,7 @@ lake, a park or a big building mapped as a multipolygon relation searchable.
 
 Usage:
     build.py liechtenstein.osm.pbf --out gaz
-    build.py liechtenstein.osm.pbf --out gaz --streets
+    build.py liechtenstein.osm.pbf --out gaz --no-streets
 """
 
 from __future__ import annotations
@@ -30,6 +30,7 @@ import sqlite3
 import sys
 import tempfile
 import time
+from array import array
 from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Iterable, NamedTuple
@@ -68,6 +69,15 @@ POI_AMENITIES = {
     "shelter": "shelter",
 }
 
+# Still the rider's kit: where a tour stops for the night, restocks, or crosses
+# a ridge. Matched with the nine above, before any landmark, so a hotel in a
+# historic building is a hotel.
+CAMP_TOURISM = frozenset("camp_site caravan_site".split())
+HOTEL_TOURISM = frozenset("hotel motel".split())
+HOSTEL_TOURISM = frozenset("hostel guest_house chalet".split())
+HUT_TOURISM = frozenset("alpine_hut wilderness_hut".split())
+SUPERMARKET_SHOPS = frozenset("supermarket convenience".split())
+
 # The second group is landmarks: what somebody types into the search box as a
 # destination. Matched in the order below, so the more specific kind wins and
 # `building` is only ever the fallback.
@@ -83,6 +93,18 @@ TOWER_MAN_MADE = frozenset(
 WATER_NATURAL = frozenset("water bay strait lagoon".split())
 RESERVE_BOUNDARIES = frozenset("national_park protected_area".split())
 
+# The tags that carry a second name for the same object, in the order an alias
+# row is written. `name:de` and the rest of the language keys are deliberately
+# not here: on a German extract that is the primary name again on every object.
+ALIAS_KEYS = (
+    "name:en",
+    "int_name",
+    "alt_name",
+    "old_name",
+    "official_name",
+    "short_name",
+)
+
 # Street grouping: a street with no place to hang off gets grouped by a coarse
 # grid cell instead, so two "Main Street"s in villages 40 km apart do not
 # collapse into one row at a meaningless midpoint.
@@ -90,6 +112,15 @@ ORPHAN_CELL_DEG = 0.1
 
 # How far a street or POI may look for the place it belongs to.
 PLACE_RADIUS_M = 5000.0
+
+# How far an address may look for the street of the same name.
+ADDRESS_RADIUS_M = 2000.0
+
+# Anchors kept per street: the lowest number, the highest, and every tenth in
+# between. 40 is the cap; only a street with more than ~380 distinct numbers
+# ever reaches it, and then the tenths are thinned evenly.
+ANCHOR_STEP = 10
+MAX_ANCHORS = 40
 
 # How far a smaller place may look for the town it sits in.
 CONTEXT_RADIUS_M = 25000.0
@@ -151,6 +182,38 @@ def scaled(value: float) -> int:
     return int(round(value * COORD_SCALE))
 
 
+def alias_names(tags, primary: str) -> tuple[str, ...]:
+    """Every distinct extra name of an object, in ALIAS_KEYS order.
+
+    Semicolon-separated values are one name each; the primary name and repeats
+    are dropped, so a `short_name` equal to `name` costs nothing.
+    """
+    found: dict[str, None] = {}
+    for key in ALIAS_KEYS:
+        raw = tags.get(key)
+        if not raw:
+            continue
+        for part in raw.split(";"):
+            name = clean_name(part)
+            if name and name != primary:
+                found[name] = None
+    return tuple(found)
+
+
+def leading_number(raw: str | None) -> int | None:
+    """The integer an `addr:housenumber` starts with: '12a' -> 12, 'A3' -> None."""
+    if not raw:
+        return None
+    digits = ""
+    for character in raw.strip():
+        if not character.isdigit():
+            break
+        digits += character
+    if not digits or len(digits) > 9:
+        return None
+    return int(digits)
+
+
 # --------------------------------------------------------------------------
 # reading the PBF
 # --------------------------------------------------------------------------
@@ -165,6 +228,7 @@ class RawPlace(NamedTuple):
     context: str | None  # is_in / addr:city, a name, not yet an id
     osm_type: str  # 'n', 'w' or 'r'
     osm_id: int
+    alts: tuple[str, ...]
 
 
 class RawStreet(NamedTuple):
@@ -172,6 +236,7 @@ class RawStreet(NamedTuple):
     addr_city: str | None
     lat: float
     lon: float
+    alts: tuple[str, ...]
 
 
 class RawPoi(NamedTuple):
@@ -181,12 +246,58 @@ class RawPoi(NamedTuple):
     lon: float
     osm_type: str
     osm_id: int
+    alts: tuple[str, ...]
+
+
+class AddressBook:
+    """Every `addr:housenumber` + `addr:street` of an extract, per tile.
+
+    A US state holds millions of these, so an address never becomes a Python
+    object: four `array` columns per tile — street name index, number, and the
+    scaled coordinates — at 16 bytes an address, plus one interned lower-case
+    string per distinct street name.
+    """
+
+    __slots__ = ("names", "index", "tiles")
+
+    def __init__(self) -> None:
+        self.names: list[str] = []
+        self.index: dict[str, int] = {}
+        self.tiles: dict[str, tuple[array, array, array, array]] = {}
+
+    def add(self, street: str, number: int, lat: float, lon: float) -> None:
+        key = street.lower()
+        name_index = self.index.get(key)
+        if name_index is None:
+            name_index = len(self.names)
+            self.index[key] = name_index
+            self.names.append(key)
+        tile = tile_name(lat, lon)
+        columns = self.tiles.get(tile)
+        if columns is None:
+            columns = self.tiles[tile] = (
+                array("i"),
+                array("i"),
+                array("i"),
+                array("i"),
+            )
+        columns[0].append(name_index)
+        columns[1].append(number)
+        columns[2].append(scaled(lat))
+        columns[3].append(scaled(lon))
+
+    def of(self, tile: str) -> tuple[array, array, array, array]:
+        return self.tiles.get(tile) or (array("i"), array("i"), array("i"), array("i"))
+
+    def total(self) -> int:
+        return sum(len(columns[1]) for columns in self.tiles.values())
 
 
 class Extract(NamedTuple):
     places: list[RawPlace]
     street_ways: list[RawStreet]
     pois: list[RawPoi]
+    addresses: AddressBook
 
 
 def poi_kind(tags) -> str | None:
@@ -215,6 +326,24 @@ def poi_kind(tags) -> str | None:
         return "peak"
     if leisure == "park":
         return "park"
+
+    # --- where a tour sleeps, eats and crosses ---------------------------
+    # A saddle only counts as a pass when it carries a name, which every POI
+    # here does: the caller drops the nameless objects before asking.
+    if tags.get("mountain_pass") == "yes" or natural == "saddle":
+        return "mountain_pass"
+    if tourism in CAMP_TOURISM:
+        return "camp_site"
+    if tourism in HOTEL_TOURISM:
+        return "hotel"
+    if tourism in HOSTEL_TOURISM:
+        return "hostel"
+    if tourism in HUT_TOURISM:
+        return "alpine_hut"
+    if shop in SUPERMARKET_SHOPS:
+        return "supermarket"
+    if shop == "bakery":
+        return "bakery"
 
     # --- landmarks -------------------------------------------------------
     if tourism in ATTRACTION_TOURISM:
@@ -315,6 +444,7 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
     places: dict[tuple[str, int], RawPlace] = {}
     pois: dict[tuple[str, int], RawPoi] = {}
     street_ways: list[RawStreet] = []
+    addresses = AddressBook()
     intern = sys.intern
 
     processor = (
@@ -333,19 +463,35 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
 
     for obj in processor:
         tags = obj.tags
-        name = clean_name(tags.get("name"))
-        if not name:
-            continue
         is_area = isinstance(obj, osmium.osm.Area)
         is_node = isinstance(obj, osmium.osm.Node)
 
+        # An address is not a row of its own, so it is read whether or not the
+        # object carries a name, and it is by far the most common thing in the
+        # loop. A closed way arrives twice, as the way and as the area osmium
+        # assembled from it, so only the areas built from a relation are asked:
+        # the rest would be a second copy of the same address.
+        address_street: str | None = None
+        address_number: int | None = None
+        if want_streets and not (is_area and obj.from_way()):
+            address_number = leading_number(tags.get("addr:housenumber"))
+            if address_number is not None:
+                address_street = clean_name(tags.get("addr:street"))
+
+        name = clean_name(tags.get("name"))
         place = tags.get("place")
-        want_place = place in PLACE_KINDS
-        want_street = want_streets and not is_node and not is_area and "highway" in tags
-        kind = poi_kind(tags)
+        want_place = bool(name) and place in PLACE_KINDS
+        want_street = (
+            bool(name)
+            and want_streets
+            and not is_node
+            and not is_area
+            and "highway" in tags
+        )
+        kind = poi_kind(tags) if name else None
         if kind and is_bare_number(name):
             kind = None
-        if not (want_place or want_street or kind):
+        if not (want_place or want_street or kind or address_street):
             continue
 
         # One representative point per object: the node itself, the mean of a
@@ -360,6 +506,11 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
                 continue
             lat, lon = point
 
+        if address_street is not None and address_number is not None:
+            addresses.add(address_street, address_number, lat, lon)
+            if not (want_place or want_street or kind):
+                continue
+
         # The OSM identity travels with the row so two extracts that overlap
         # can be merged without counting the same object twice. An area keeps
         # the identity of what it was built from: the relation, or the way.
@@ -370,6 +521,7 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
             osm_type = "n" if is_node else "w"
             osm_id = obj.id
         key = (osm_type, osm_id)
+        alts = alias_names(tags, name)
 
         if want_place and (is_area or key not in places):
             places[key] = RawPlace(
@@ -385,6 +537,7 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
                 ),
                 osm_type,
                 osm_id,
+                alts,
             )
 
         # Streets come from ways only; a named highway node is a bus stop or a
@@ -392,13 +545,13 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
         if want_street:
             city = clean_name(tags.get("addr:city"))
             street_ways.append(
-                RawStreet(intern(name), intern(city) if city else None, lat, lon)
+                RawStreet(intern(name), intern(city) if city else None, lat, lon, alts)
             )
 
         if kind and (is_area or key not in pois):
-            pois[key] = RawPoi(name, kind, lat, lon, osm_type, osm_id)
+            pois[key] = RawPoi(name, kind, lat, lon, osm_type, osm_id, alts)
 
-    return Extract(list(places.values()), street_ways, list(pois.values()))
+    return Extract(list(places.values()), street_ways, list(pois.values()), addresses)
 
 
 # --------------------------------------------------------------------------
@@ -526,6 +679,7 @@ class StreetRow(NamedTuple):
     lat: float
     lon: float
     place_id: int | None
+    alts: tuple[str, ...]
 
 
 def merge_streets(
@@ -534,8 +688,12 @@ def merge_streets(
     by_name: dict[str, list[PlaceRow]],
     first_id: int,
 ) -> list[StreetRow]:
-    """One row per street name per place, at the centre of its ways."""
-    groups: dict[tuple, list[float]] = {}
+    """One row per street name per place, at the centre of its ways.
+
+    The row's aliases are the union of the alternative names of the ways it was
+    merged out of, in the order the ways were read.
+    """
+    groups: dict[tuple, list] = {}
     for way in ways:
         place_id = place_of(way.lat, way.lon, way.addr_city, grid, by_name)
         if place_id is not None:
@@ -551,11 +709,15 @@ def merge_streets(
             )
         bucket = groups.get(key)
         if bucket is None:
-            groups[key] = [way.lat, way.lon, 1.0]
+            # A dict as an ordered set: most streets never reach the fourth
+            # slot, and the ones that do hold two or three names.
+            groups[key] = [way.lat, way.lon, 1.0, dict.fromkeys(way.alts)]
         else:
             bucket[0] += way.lat
             bucket[1] += way.lon
             bucket[2] += 1.0
+            if way.alts:
+                bucket[3].update(dict.fromkeys(way.alts))
 
     return [
         StreetRow(
@@ -564,9 +726,117 @@ def merge_streets(
             value[0] / value[2],
             value[1] / value[2],
             key[1],
+            tuple(value[3]),
         )
         for index, (key, value) in enumerate(groups.items())
     ]
+
+
+# --------------------------------------------------------------------------
+# house numbers
+# --------------------------------------------------------------------------
+
+
+class StreetNameGrid:
+    """Street rows bucketed by lower-case name *and* cell.
+
+    Putting the name in the key is what keeps address matching linear: a
+    lookup only ever touches the handful of cells around the address that hold
+    a street of that exact name, instead of every street in the neighbourhood.
+    """
+
+    def __init__(self, streets: Iterable[StreetRow]):
+        self.cells: dict[tuple[str, int, int], list[StreetRow]] = {}
+        for street in streets:
+            key = (street.name.lower(),) + self._cell(street.lat, street.lon)
+            self.cells.setdefault(key, []).append(street)
+
+    @staticmethod
+    def _cell(lat: float, lon: float) -> tuple[int, int]:
+        return int(math.floor(lat / GRID_DEG)), int(math.floor(lon / GRID_DEG))
+
+    def nearest(self, name_key: str, lat: float, lon: float) -> StreetRow | None:
+        cell_lat, cell_lon = self._cell(lat, lon)
+        lat_span = max(1, int(math.ceil(ADDRESS_RADIUS_M / (GRID_DEG * METERS_PER_DEG_LAT))))
+        lon_meters = GRID_DEG * METERS_PER_DEG_LAT * max(0.02, math.cos(math.radians(lat)))
+        lon_span = max(1, int(math.ceil(ADDRESS_RADIUS_M / lon_meters)))
+        best: StreetRow | None = None
+        best_distance = ADDRESS_RADIUS_M
+        for dlat in range(-lat_span, lat_span + 1):
+            for dlon in range(-lon_span, lon_span + 1):
+                bucket = self.cells.get((name_key, cell_lat + dlat, cell_lon + dlon))
+                if not bucket:
+                    continue
+                for street in bucket:
+                    distance = meters_between(lat, lon, street.lat, street.lon)
+                    if distance < best_distance:
+                        best_distance = distance
+                        best = street
+        return best
+
+
+def thin_anchors(entries: list[tuple[int, int, int]]) -> list[tuple[int, int, int]]:
+    """Lowest, highest and every tenth number in between, at most MAX_ANCHORS."""
+    count = len(entries)
+    if count <= 2:
+        return entries
+    picked = sorted({0, count - 1} | set(range(ANCHOR_STEP, count - 1, ANCHOR_STEP)))
+    if len(picked) > MAX_ANCHORS:
+        inner = picked[1:-1]
+        keep = MAX_ANCHORS - 2
+        picked = (
+            [picked[0]]
+            + [inner[(index * len(inner)) // keep] for index in range(keep)]
+            + [picked[-1]]
+        )
+    return [entries[index] for index in picked]
+
+
+def house_numbers(
+    columns: tuple[array, array, array, array],
+    names: list[str],
+    streets: list[StreetRow],
+) -> list[tuple[int, int, int, int]]:
+    """`(street_id, number, lat, lon)` anchors for one tile's addresses.
+
+    The addresses stay in their `array` columns throughout; they are grouped by
+    the street they matched with one `array` of row indexes per street, so the
+    only Python objects ever alive are those of the single street being thinned.
+    """
+    name_index, numbers, lats, lons = columns
+    if not numbers or not streets:
+        return []
+
+    grid = StreetNameGrid(streets)
+    by_street: dict[int, array] = {}
+    for row in range(len(numbers)):
+        street = grid.nearest(
+            names[name_index[row]], lats[row] / COORD_SCALE, lons[row] / COORD_SCALE
+        )
+        if street is None:
+            continue
+        bucket = by_street.get(street.id)
+        if bucket is None:
+            bucket = by_street[street.id] = array("i")
+        bucket.append(row)
+
+    out: list[tuple[int, int, int, int]] = []
+    for street_id in sorted(by_street):
+        seen: set[int] = set()
+        entries: list[tuple[int, int, int]] = []
+        # Sorted by number, so the first address of a repeated number wins only
+        # among equals; `sorted` is stable and the rows arrive in file order.
+        for row in sorted(by_street[street_id], key=numbers.__getitem__):
+            number = numbers[row]
+            if number in seen:
+                continue
+            seen.add(number)
+            entries.append((number, lats[row], lons[row]))
+        out += [
+            (street_id, number, lat, lon)
+            for number, lat, lon in thin_anchors(entries)
+        ]
+    return out
 
 
 # --------------------------------------------------------------------------
@@ -618,6 +888,28 @@ CREATE TABLE pois (
 -- normalisation, which buys nothing when every document is one short name.
 -- No prefix= option: measured slower at every query length and 14 MB bigger
 -- on a dense tile.
+-- A second name of a row above: name:en, int_name, alt_name, old_name,
+-- official_name, short_name. It gets an id out of the same counter and its own
+-- FTS entry, so a hit that is not in the three tables is looked up here and
+-- resolved through ref_id to the row whose primary name is shown.
+CREATE TABLE aliases (
+    id     INTEGER PRIMARY KEY,
+    ref_id INTEGER NOT NULL,
+    name   TEXT NOT NULL
+);
+
+-- Anchor points along a street: the lowest house number, the highest, and
+-- every tenth in between. A lookup interpolates between the two anchors that
+-- bracket the number asked for. WITHOUT ROWID because (street_id, number) is
+-- the whole row's key and the table is nothing but that key plus a point.
+CREATE TABLE house_numbers (
+    street_id INTEGER NOT NULL,
+    number    INTEGER NOT NULL,
+    lat       INTEGER NOT NULL,
+    lon       INTEGER NOT NULL,
+    PRIMARY KEY (street_id, number)
+) WITHOUT ROWID;
+
 CREATE VIRTUAL TABLE search USING fts5(
     name,
     content='',
@@ -635,6 +927,7 @@ CREATE VIRTUAL TABLE search USING fts5(
 CREATE INDEX idx_places_pos  ON places(lat, lon);
 CREATE INDEX idx_streets_pos ON streets(lat, lon);
 CREATE INDEX idx_pois_pos    ON pois(lat, lon);
+CREATE INDEX idx_aliases_ref ON aliases(ref_id);
 """
 
 
@@ -644,6 +937,8 @@ class TileStats(NamedTuple):
     places: int
     streets: int
     pois: int
+    aliases: int
+    numbers: int
     bytes: int
 
 
@@ -653,6 +948,8 @@ def write_tile(
     places: list[PlaceRow],
     streets: list[StreetRow],
     pois: list[tuple[int, str, str, float, float, int | None, str, int]],
+    aliases: list[tuple[int, int, str]],
+    numbers: list[tuple[int, int, int, int]],
     source: str,
     has_streets: bool,
     built_at: str,
@@ -702,11 +999,18 @@ def write_tile(
         ],
     )
 
+    db.executemany("INSERT INTO aliases (id, ref_id, name) VALUES (?,?,?)", aliases)
+    db.executemany(
+        "INSERT INTO house_numbers (street_id, number, lat, lon) VALUES (?,?,?,?)",
+        numbers,
+    )
+
     db.executemany(
         "INSERT INTO search(rowid, name) VALUES (?,?)",
         [(p.id, p.name) for p in places]
         + [(s.id, s.name) for s in streets]
-        + [(row[0], row[1]) for row in pois],
+        + [(row[0], row[1]) for row in pois]
+        + [(row[0], row[2]) for row in aliases],
     )
 
     db.executemany(
@@ -726,7 +1030,16 @@ def write_tile(
     db.execute("VACUUM")
     db.close()
 
-    return TileStats(tile, path, len(places), len(streets), len(pois), os.path.getsize(path))
+    return TileStats(
+        tile,
+        path,
+        len(places),
+        len(streets),
+        len(pois),
+        len(aliases),
+        len(numbers),
+        os.path.getsize(path),
+    )
 
 
 # --------------------------------------------------------------------------
@@ -750,6 +1063,7 @@ def build_tile(
     raw_places: list[RawPlace],
     raw_streets: list[RawStreet],
     raw_pois: list[RawPoi],
+    addresses: AddressBook,
     source: str,
     has_streets: bool,
     built_at: str,
@@ -777,6 +1091,25 @@ def build_tile(
         )
         for index, poi in enumerate(raw_pois)
     ]
+    next_id += len(pois)
+
+    # Aliases come last so places, streets and pois keep the ids a file without
+    # alternative names would have given them.
+    aliases: list[tuple[int, int, str]] = []
+    for row, alts in (
+        [(place.id, source_place.alts) for place, source_place in zip(places, raw_places)]
+        + [(street.id, street.alts) for street in streets]
+        + [(poi[0], source_poi.alts) for poi, source_poi in zip(pois, raw_pois)]
+    ):
+        for alias in alts:
+            aliases.append((next_id, row, alias))
+            next_id += 1
+
+    numbers = (
+        house_numbers(addresses.of(tile), addresses.names, streets)
+        if has_streets
+        else []
+    )
 
     return write_tile(
         os.path.join(out_dir, f"{tile}.gaz"),
@@ -784,6 +1117,8 @@ def build_tile(
         places,
         streets,
         pois,
+        aliases,
+        numbers,
         source,
         has_streets,
         built_at,
@@ -795,9 +1130,10 @@ def main() -> int:
     parser.add_argument("pbf", help="input .osm.pbf")
     parser.add_argument("--out", default="gaz", help="output directory")
     parser.add_argument(
-        "--streets",
-        action="store_true",
-        help="also write the street table (roughly 4x the file)",
+        "--no-streets",
+        dest="streets",
+        action="store_false",
+        help="leave the street table and the house numbers out (a much smaller file)",
     )
     parser.add_argument(
         "--tiles",
@@ -829,7 +1165,8 @@ def main() -> int:
     print(
         f"  {len(extract.places)} place objects, "
         f"{len(extract.street_ways)} named highway ways, "
-        f"{len(extract.pois)} named pois "
+        f"{len(extract.pois)} named pois, "
+        f"{extract.addresses.total()} addresses "
         f"in {read_done - started:.1f}s"
     )
 
@@ -841,6 +1178,8 @@ def main() -> int:
         tiles[tile_name(street.lat, street.lon)][1].append(street)
     for poi in extract.pois:
         tiles[tile_name(poi.lat, poi.lon)][2].append(poi)
+    # A tile can hold addresses and nothing else, and then it gets no file:
+    # an anchor without a street row is worthless.
 
     results: list[TileStats] = []
     for tile in sorted(tiles):
@@ -854,6 +1193,7 @@ def main() -> int:
                 tile_places,
                 tile_streets,
                 tile_pois,
+                extract.addresses,
                 source,
                 args.streets,
                 built_at,
@@ -861,14 +1201,21 @@ def main() -> int:
         )
 
     elapsed = time.monotonic() - started
-    print(f"\n{'tile':<12} {'places':>8} {'streets':>9} {'pois':>8} {'size':>10}")
+    print(
+        f"\n{'tile':<12} {'places':>8} {'streets':>9} {'pois':>8} "
+        f"{'aliases':>8} {'numbers':>8} {'size':>10}"
+    )
     for row in results:
         print(
             f"{row.tile:<12} {row.places:>8} {row.streets:>9} "
-            f"{row.pois:>8} {row.bytes / 1e6:>9.2f}M"
+            f"{row.pois:>8} {row.aliases:>8} {row.numbers:>8} "
+            f"{row.bytes / 1e6:>9.2f}M"
         )
     total = sum(r.bytes for r in results)
-    print(f"{'total':<12} {'':>8} {'':>9} {'':>8} {total / 1e6:>9.2f}M")
+    print(
+        f"{'total':<12} {'':>8} {'':>9} {'':>8} {'':>8} {'':>8} "
+        f"{total / 1e6:>9.2f}M"
+    )
     print(f"built in {elapsed:.1f}s")
     return 0
 

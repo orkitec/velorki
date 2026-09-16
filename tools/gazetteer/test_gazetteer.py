@@ -3,9 +3,9 @@
 
     venv/bin/python -m unittest tools/gazetteer/test_gazetteer.py
 
-Builds the Liechtenstein extract once with and once without `--streets` into a
-temporary directory, then asserts the file format, the query contract and the
-mirror tooling against it. Needs pyosmium and the extract; set
+Builds the Liechtenstein extract once as it comes and once with `--no-streets`
+into a temporary directory, then asserts the file format, the query contract and
+the mirror tooling against it. Needs pyosmium and the extract; set
 `GAZ_EXTRACT` to point at another copy of `liechtenstein.osm.pbf`.
 """
 
@@ -58,10 +58,17 @@ POI_KINDS = frozenset(
     """
     drinking_water cafe bicycle_repair_station shelter bicycle_shop station
     viewpoint peak park
+    mountain_pass camp_site hotel hostel alpine_hut supermarket bakery
     attraction museum historic place_of_worship hospital university stadium
     mall airport ferry_terminal tower lighthouse water beach nature_reserve
     building
     """.split()
+)
+
+# Addendum 2's seven: where a tour sleeps, eats and crosses. Liechtenstein has
+# at least one of each.
+CYCLING_KINDS = frozenset(
+    "mountain_pass camp_site hotel hostel alpine_hut supermarket bakery".split()
 )
 
 
@@ -84,7 +91,7 @@ class GazetteerTest(unittest.TestCase):
             os.makedirs(out)
             subprocess.run(
                 [sys.executable, os.path.join(HERE, "build.py"), extract, "--out", out]
-                + (["--streets"] if streets else []),
+                + ([] if streets else ["--no-streets"]),
                 check=True,
                 capture_output=True,
             )
@@ -153,6 +160,28 @@ class GazetteerTest(unittest.TestCase):
                 ("osm_id", "INTEGER"),
             ],
         )
+        self.assertEqual(
+            [(row[1], row[2]) for row in db.execute("PRAGMA table_info(aliases)")],
+            [("id", "INTEGER"), ("ref_id", "INTEGER"), ("name", "TEXT")],
+        )
+        self.assertEqual(
+            [
+                (row[1], row[2], row[5])
+                for row in db.execute("PRAGMA table_info(house_numbers)")
+            ],
+            [
+                ("street_id", "INTEGER", 1),
+                ("number", "INTEGER", 2),
+                ("lat", "INTEGER", 0),
+                ("lon", "INTEGER", 0),
+            ],
+        )
+        self.assertIn(
+            "WITHOUT ROWID",
+            db.execute(
+                "SELECT sql FROM sqlite_master WHERE name = 'house_numbers'"
+            ).fetchone()[0],
+        )
         sql = db.execute(
             "SELECT sql FROM sqlite_master WHERE name = 'search'"
         ).fetchone()[0]
@@ -167,7 +196,8 @@ class GazetteerTest(unittest.TestCase):
             )
         }
         self.assertLessEqual(
-            {"idx_places_pos", "idx_streets_pos", "idx_pois_pos"}, indexes
+            {"idx_places_pos", "idx_streets_pos", "idx_pois_pos", "idx_aliases_ref"},
+            indexes,
         )
         self.assertEqual(db.execute("PRAGMA page_size").fetchone()[0], 4096)
         self.assertEqual(
@@ -187,16 +217,27 @@ class GazetteerTest(unittest.TestCase):
         self.assertEqual(plain["has_streets"], "0")
         self.assertEqual(plain["has_pois"], "1")
 
-    def test_default_build_has_no_streets(self) -> None:
+    def test_streets_are_built_by_default(self) -> None:
+        db = self.open()
+        self.assertGreater(db.execute("SELECT count(*) FROM streets").fetchone()[0], 0)
+        self.assertGreater(
+            db.execute("SELECT count(*) FROM house_numbers").fetchone()[0], 0
+        )
+
+    def test_no_streets_leaves_out_streets_and_house_numbers(self) -> None:
         db = self.open(streets=False)
         self.assertEqual(db.execute("SELECT count(*) FROM streets").fetchone()[0], 0)
+        self.assertEqual(
+            db.execute("SELECT count(*) FROM house_numbers").fetchone()[0], 0
+        )
         self.assertGreater(db.execute("SELECT count(*) FROM pois").fetchone()[0], 0)
+        self.assertGreater(db.execute("SELECT count(*) FROM aliases").fetchone()[0], 0)
 
     def test_ids_are_unique_across_the_three_tables(self) -> None:
         db = self.open()
         ids = [
             row[0]
-            for table in ("places", "streets", "pois")
+            for table in ("places", "streets", "pois", "aliases")
             for row in db.execute(f"SELECT id FROM {table}")
         ]
         self.assertEqual(len(ids), len(set(ids)))
@@ -268,6 +309,30 @@ class GazetteerTest(unittest.TestCase):
             kinds,
         )
 
+    def test_cycling_stop_kinds_are_collected(self) -> None:
+        """Addendum 2's seven. Liechtenstein is alpine and touristy enough to
+        hold every one of them, so none of these needs a synthetic extract."""
+        kinds = {
+            row[0]: row[1]
+            for row in self.open().execute(
+                "SELECT kind, count(*) FROM pois GROUP BY kind"
+            )
+        }
+        self.assertLessEqual(CYCLING_KINDS, set(kinds), f"got {sorted(kinds)}")
+        for kind in sorted(CYCLING_KINDS):
+            self.assertGreater(kinds[kind], 0, kind)
+
+    def test_a_hotel_is_not_a_building(self) -> None:
+        """The seven sit with the rider's kit, ahead of every landmark kind, so
+        a hotel in a named historic building is still a hotel."""
+        self.assertEqual(build.poi_kind({"building": "yes", "tourism": "hotel"}), "hotel")
+        self.assertEqual(
+            build.poi_kind({"historic": "castle", "tourism": "alpine_hut"}), "alpine_hut"
+        )
+        self.assertEqual(
+            build.poi_kind({"shop": "supermarket", "building": "retail"}), "supermarket"
+        )
+
     def test_a_named_building_is_a_poi(self) -> None:
         """Vaduz town hall: amenity=townhall is not a kind of its own, so the
         building tag is what puts it in the search box."""
@@ -317,6 +382,18 @@ class GazetteerTest(unittest.TestCase):
             ({"tourism": "gallery"}, "museum"),
             ({"natural": "beach"}, "beach"),
             ({"highway": "residential"}, None),
+            ({"mountain_pass": "yes"}, "mountain_pass"),
+            ({"natural": "saddle"}, "mountain_pass"),
+            ({"tourism": "caravan_site"}, "camp_site"),
+            ({"tourism": "motel"}, "hotel"),
+            ({"tourism": "guest_house"}, "hostel"),
+            ({"tourism": "chalet"}, "hostel"),
+            ({"tourism": "wilderness_hut"}, "alpine_hut"),
+            ({"shop": "convenience"}, "supermarket"),
+            ({"shop": "bakery"}, "bakery"),
+            # The rider's own kit still wins over the seven.
+            ({"amenity": "cafe", "shop": "bakery"}, "cafe"),
+            ({"shop": "bicycle", "shop:name": "x"}, "bicycle_shop"),
         ]
         for tags, expected in cases:
             with self.subTest(tags=tags):
@@ -392,6 +469,133 @@ class GazetteerTest(unittest.TestCase):
         self.assertNotIn("osm_type", columns, "fixture is no longer the legacy shape")
         self.assertEqual(check.check(legacy).tile, "W20_N30")
 
+    # ----------------------------------------------------------- aliases ---
+
+    def test_alias_names_are_split_and_deduplicated(self) -> None:
+        tags = {
+            "name:en": "Old Bridge; Old Bridge",
+            "alt_name": "Alte Brücke",
+            "short_name": "Alte Rheinbrücke",  # equals the primary name
+            "old_name": "",
+        }
+        self.assertEqual(
+            build.alias_names(tags, "Alte Rheinbrücke"),
+            ("Old Bridge", "Alte Brücke"),
+        )
+        self.assertEqual(build.alias_names({}, "x"), ())
+
+    def test_aliases_of_a_known_object(self) -> None:
+        """Vaduz itself carries no `name:en`; the national museum does, and the
+        old Rhine bridge is a street whose alias comes off its ways."""
+        db = self.open()
+        self.assertEqual(
+            db.execute(
+                "SELECT a.name FROM aliases a JOIN pois p ON p.id = a.ref_id "
+                "WHERE p.name = 'Liechtensteinisches Landesmuseum Vaduz'"
+            ).fetchall(),
+            [("Liechtenstein National Museum",)],
+        )
+        self.assertEqual(
+            db.execute(
+                "SELECT a.name FROM aliases a JOIN streets s ON s.id = a.ref_id "
+                "WHERE s.name = 'Alte Rheinbrücke Vaduz'"
+            ).fetchall(),
+            [("Old Rhine Bridge Vaduz",)],
+        )
+        # No alias ever repeats the primary name of the row it belongs to.
+        self.assertEqual(
+            db.execute(
+                "SELECT count(*) FROM aliases a WHERE a.name IN "
+                "(SELECT name FROM places WHERE id = a.ref_id UNION ALL "
+                " SELECT name FROM streets WHERE id = a.ref_id UNION ALL "
+                " SELECT name FROM pois WHERE id = a.ref_id)"
+            ).fetchone()[0],
+            0,
+        )
+
+    def test_aliases_are_in_the_search_index(self) -> None:
+        db = self.open()
+        alias_id, ref_id = db.execute(
+            "SELECT id, ref_id FROM aliases WHERE name = 'Liechtenstein National Museum'"
+        ).fetchone()
+        hits = {
+            row[0]
+            for row in db.execute(
+                "SELECT rowid FROM search WHERE search MATCH ? LIMIT 100",
+                ('"Liechtenstein" "National" "Museum"*',),
+            )
+        }
+        self.assertIn(alias_id, hits)
+        self.assertNotIn(ref_id, hits, "the primary name does not hold these words")
+
+    def test_alias_search_returns_the_primary_row_once(self) -> None:
+        hits = query.search(self.open(), "liechtenstein national museum", 10)
+        names = [(h.name, h.kind) for h in hits]
+        self.assertEqual(
+            names.count(("Liechtensteinisches Landesmuseum Vaduz", "museum")), 1
+        )
+        self.assertEqual(len({h.id for h in hits}), len(hits), "a row hit twice")
+
+    # ----------------------------------------------------- house numbers ---
+
+    def test_thin_anchors_keeps_the_ends(self) -> None:
+        entries = [(number, number, 0) for number in range(1, 61)]
+        thinned = build.thin_anchors(entries)
+        self.assertEqual(thinned[0], entries[0])
+        self.assertEqual(thinned[-1], entries[-1])
+        self.assertLessEqual(len(thinned), build.MAX_ANCHORS)
+        self.assertEqual([e[0] for e in thinned], sorted(e[0] for e in thinned))
+        # Every tenth in between, so 1, 11, 21, ... plus the last.
+        self.assertEqual([e[0] for e in thinned], [1, 11, 21, 31, 41, 51, 60])
+        # Even 500 numbers stay under the cap.
+        many = build.thin_anchors([(n, n, 0) for n in range(1, 501)])
+        self.assertLessEqual(len(many), build.MAX_ANCHORS)
+        self.assertEqual((many[0][0], many[-1][0]), (1, 500))
+
+    def test_a_street_with_fifty_addresses_is_thinned(self) -> None:
+        """The whole path: addresses in, anchors out, on one synthetic street."""
+        street = build.StreetRow(7, "Teststrasse", 47.14, 9.52, None, ())
+        book = build.AddressBook()
+        for number in range(50, 0, -1):  # out of order on purpose
+            book.add("teststrasse", number, 47.14 + number * 1e-5, 9.52)
+        book.add("Teststrasse", 1, 47.145, 9.52)  # number 1 again, further off
+        book.add("Teststrasse", 2, 48.90, 9.52)  # 200 km away: no street near
+        anchors = build.house_numbers(book.of("E5_N45"), book.names, [street])
+        numbers = [row[1] for row in anchors]
+        self.assertTrue(all(row[0] == 7 for row in anchors))
+        self.assertLessEqual(len(anchors), build.MAX_ANCHORS)
+        self.assertEqual(numbers, sorted(numbers))
+        self.assertEqual((numbers[0], numbers[-1]), (1, 50))
+        # The first address of a repeated number wins, so number 1 keeps the
+        # position it was first seen at, not the one added later.
+        first = next(row for row in anchors if row[1] == 1)
+        self.assertAlmostEqual(first[2] / 1e7, 47.14 + 1e-5, places=6)
+
+    def test_house_numbers_in_the_built_file(self) -> None:
+        db = self.open()
+        street_ids = {row[0] for row in db.execute("SELECT id FROM streets")}
+        rows = db.execute(
+            "SELECT street_id, count(*), min(number), max(number) FROM house_numbers"
+            " GROUP BY street_id"
+        ).fetchall()
+        self.assertGreater(len(rows), 100)
+        for street_id, count, lowest, highest in rows:
+            self.assertIn(street_id, street_ids)
+            self.assertLessEqual(count, build.MAX_ANCHORS)
+            self.assertLessEqual(lowest, highest)
+        self.assertEqual(
+            db.execute("SELECT count(*) FROM house_numbers WHERE number < 1").fetchone()[0],
+            0,
+        )
+
+    def test_leading_number(self) -> None:
+        self.assertEqual(build.leading_number("12a"), 12)
+        self.assertEqual(build.leading_number(" 7 "), 7)
+        self.assertEqual(build.leading_number("12-14"), 12)
+        self.assertIsNone(build.leading_number("A3"))
+        self.assertIsNone(build.leading_number(""))
+        self.assertIsNone(build.leading_number(None))
+
     # ------------------------------------------------------------- query ---
 
     def test_fts_query_quotes_and_stars_the_last_token(self) -> None:
@@ -414,6 +618,88 @@ class GazetteerTest(unittest.TestCase):
         hits = query.search(self.open(), "vaduz", 10, near=(47.1393, 9.5228))
         self.assertTrue(all(h.distance_m is not None for h in hits))
         self.assertLess(hits[0].distance_m, 1000)
+
+    def test_a_digits_only_token_at_either_end_is_the_house_number(self) -> None:
+        self.assertEqual(query.split_house_number("400 w 42nd"), ("w 42nd", "400"))
+        self.assertEqual(query.split_house_number("hauptstr 12"), ("hauptstr", "12"))
+        self.assertEqual(query.split_house_number("w 42nd st"), ("w 42nd st", None))
+        self.assertEqual(query.split_house_number("400"), ("400", None))
+        self.assertEqual(query.split_house_number("w 12 st"), ("w 12 st", None))
+
+    def busiest_street(self) -> tuple[int, str, list[int]]:
+        db = self.open()
+        street_id, name = db.execute(
+            "SELECT s.id, s.name FROM streets s JOIN house_numbers h"
+            " ON h.street_id = s.id GROUP BY s.id"
+            " ORDER BY count(*) DESC, s.id LIMIT 1"
+        ).fetchone()
+        numbers = [
+            row[0]
+            for row in db.execute(
+                "SELECT number FROM house_numbers WHERE street_id = ? ORDER BY number",
+                (street_id,),
+            )
+        ]
+        return street_id, name, numbers
+
+    def test_query_finds_an_exact_anchor(self) -> None:
+        db = self.open()
+        street_id, name, numbers = self.busiest_street()
+        hits = query.search(db, f"{numbers[0]} {name}", 30)
+        hit = next(h for h in hits if h.id == street_id)
+        self.assertEqual(hit.house_number, str(numbers[0]))
+        self.assertFalse(hit.approximate)
+        lat, lon = db.execute(
+            "SELECT lat, lon FROM house_numbers WHERE street_id = ? AND number = ?",
+            (street_id, numbers[0]),
+        ).fetchone()
+        self.assertAlmostEqual(hit.lat, lat / 1e7, places=6)
+        self.assertAlmostEqual(hit.lon, lon / 1e7, places=6)
+
+    def test_query_interpolates_between_two_anchors(self) -> None:
+        db = self.open()
+        street_id, name, numbers = self.busiest_street()
+        low, high = next(
+            (a, b) for a, b in zip(numbers, numbers[1:]) if b - a > 1
+        )
+        between = low + 1
+        hits = query.search(db, f"{name} {between}", 30)
+        hit = next(h for h in hits if h.id == street_id)
+        self.assertEqual(hit.house_number, str(between))
+        self.assertTrue(hit.approximate)
+        ends = db.execute(
+            "SELECT lat, lon FROM house_numbers WHERE street_id = ? AND number IN (?, ?)",
+            (street_id, low, high),
+        ).fetchall()
+        self.assertEqual(len(ends), 2)
+        self.assertGreaterEqual(hit.lat, min(e[0] for e in ends) / 1e7 - 1e-9)
+        self.assertLessEqual(hit.lat, max(e[0] for e in ends) / 1e7 + 1e-9)
+
+    def test_query_falls_back_past_the_ends_and_to_the_street(self) -> None:
+        db = self.open()
+        street_id, name, numbers = self.busiest_street()
+        hit = next(
+            h for h in query.search(db, f"{numbers[-1] + 5000} {name}", 30)
+            if h.id == street_id
+        )
+        self.assertTrue(hit.approximate)
+        last = db.execute(
+            "SELECT lat, lon FROM house_numbers WHERE street_id = ? AND number = ?",
+            (street_id, numbers[-1]),
+        ).fetchone()
+        self.assertAlmostEqual(hit.lat, last[0] / 1e7, places=6)
+
+        # A street with no anchors at all answers with its own position.
+        row = db.execute(
+            "SELECT id, name, lat, lon FROM streets WHERE id NOT IN"
+            " (SELECT street_id FROM house_numbers) LIMIT 1"
+        ).fetchone()
+        hit = next(
+            (h for h in query.search(db, f"{row[1]} 9", 60) if h.id == row[0]), None
+        )
+        if hit is not None:
+            self.assertTrue(hit.approximate)
+            self.assertAlmostEqual(hit.lat, row[2] / 1e7, places=6)
 
     def test_reverse_lookup(self) -> None:
         db = self.open()
@@ -624,6 +910,94 @@ class GazetteerTest(unittest.TestCase):
     def test_merging_two_copies_of_one_file_changes_nothing(self) -> None:
         merged = self.run_merge(*self.copies(self.path(), self.path()))
         self.assertEqual(self.counts(merged), self.counts(self.path()))
+
+    def test_merge_of_two_copies_keeps_the_anchors_and_the_aliases(self) -> None:
+        merged = self.run_merge(*self.copies(self.path(), self.path()))
+        before = sqlite3.connect(f"file:{self.path()}?mode=ro", uri=True)
+        after = sqlite3.connect(f"file:{merged}?mode=ro", uri=True)
+        self.addCleanup(before.close)
+        self.addCleanup(after.close)
+
+        def rows(db: sqlite3.Connection, sql: str) -> list:
+            return db.execute(sql).fetchall()
+
+        # Ids are handed out again, so the anchors and aliases are compared
+        # through the names of the rows they hang off.
+        anchors = (
+            "SELECT s.name, h.number, h.lat, h.lon FROM house_numbers h "
+            "JOIN streets s ON s.id = h.street_id ORDER BY s.name, h.number"
+        )
+        self.assertEqual(rows(after, anchors), rows(before, anchors))
+        self.assertGreater(len(rows(after, anchors)), 100)
+
+        aliases = (
+            "SELECT a.name, (SELECT name FROM places WHERE id = a.ref_id),"
+            " (SELECT name FROM streets WHERE id = a.ref_id),"
+            " (SELECT name FROM pois WHERE id = a.ref_id)"
+            " FROM aliases a ORDER BY 1, 2, 3, 4"
+        )
+        self.assertEqual(rows(after, aliases), rows(before, aliases))
+        self.assertGreater(len(rows(after, aliases)), 10)
+
+    def test_merge_of_a_file_without_the_new_tables(self) -> None:
+        """A `.gaz` built before Addendum 2 merges fine and gains the tables."""
+        inputs = self.copies(self.path(), self.path(streets=False))
+        legacy = os.path.join(inputs[1], f"{TILE}.gaz")
+        db = sqlite3.connect(legacy)
+        db.executescript("DROP TABLE aliases; DROP TABLE house_numbers;")
+        db.commit()
+        db.close()
+        merged = self.run_merge(*inputs)
+        out = sqlite3.connect(f"file:{merged}?mode=ro", uri=True)
+        self.addCleanup(out.close)
+        self.assertGreater(
+            out.execute("SELECT count(*) FROM house_numbers").fetchone()[0], 100
+        )
+        self.assertGreater(out.execute("SELECT count(*) FROM aliases").fetchone()[0], 10)
+        check.check(merged)
+
+    def break_file(self, *statements: str) -> str:
+        broken = os.path.join(
+            tempfile.mkdtemp(prefix="gaz-broken-", dir=self.tmp), f"{TILE}.gaz"
+        )
+        self.addCleanup(shutil.rmtree, os.path.dirname(broken), ignore_errors=True)
+        shutil.copy(self.path(), broken)
+        db = sqlite3.connect(broken)
+        for statement in statements:
+            db.execute(statement)
+        db.commit()
+        db.close()
+        return broken
+
+    def test_check_rejects_a_dangling_alias(self) -> None:
+        broken = self.break_file(
+            "INSERT INTO aliases (id, ref_id, name) VALUES (9999999, 9999998, 'x')"
+        )
+        with self.assertRaises(check.GazetteerError) as caught:
+            check.check(broken)
+        self.assertIn("ref_id", str(caught.exception))
+
+    def test_check_rejects_a_dangling_anchor(self) -> None:
+        broken = self.break_file(
+            "INSERT INTO house_numbers (street_id, number, lat, lon)"
+            " VALUES (9999998, 1, 471400000, 95200000)"
+        )
+        with self.assertRaises(check.GazetteerError) as caught:
+            check.check(broken)
+        self.assertIn("street_id", str(caught.exception))
+
+    def test_check_rejects_a_street_over_the_anchor_cap(self) -> None:
+        street_id = self.open().execute("SELECT id FROM streets LIMIT 1").fetchone()[0]
+        broken = self.break_file(
+            "INSERT OR REPLACE INTO house_numbers (street_id, number, lat, lon)"
+            f" SELECT {street_id}, value, 471400000, 95200000"
+            f" FROM (WITH RECURSIVE n(value) AS (SELECT 1 UNION ALL"
+            f"   SELECT value + 1 FROM n WHERE value < {build.MAX_ANCHORS + 1})"
+            " SELECT value FROM n)"
+        )
+        with self.assertRaises(check.GazetteerError) as caught:
+            check.check(broken)
+        self.assertIn("anchors", str(caught.exception))
 
     def test_merge_output_passes_check(self) -> None:
         merged = self.run_merge(*self.copies(self.path(), self.path(streets=False)))

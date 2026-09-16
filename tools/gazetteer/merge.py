@@ -82,6 +82,20 @@ CREATE TABLE pois (
     osm_id   INTEGER
 );
 
+CREATE TABLE aliases (
+    id     INTEGER PRIMARY KEY,
+    ref_id INTEGER NOT NULL,
+    name   TEXT NOT NULL
+);
+
+CREATE TABLE house_numbers (
+    street_id INTEGER NOT NULL,
+    number    INTEGER NOT NULL,
+    lat       INTEGER NOT NULL,
+    lon       INTEGER NOT NULL,
+    PRIMARY KEY (street_id, number)
+) WITHOUT ROWID;
+
 CREATE VIRTUAL TABLE search USING fts5(
     name,
     content='',
@@ -92,7 +106,12 @@ CREATE VIRTUAL TABLE search USING fts5(
 CREATE INDEX idx_places_pos  ON places(lat, lon);
 CREATE INDEX idx_streets_pos ON streets(lat, lon);
 CREATE INDEX idx_pois_pos    ON pois(lat, lon);
+CREATE INDEX idx_aliases_ref ON aliases(ref_id);
 """
+
+# The anchor cap build.py applies. A merged street holds the union of its
+# inputs' anchors, which is thinned again to stay under it.
+MAX_ANCHORS = 40
 
 # The columns every version 1 file has, in order. osm_type and osm_id are read
 # separately because files built before the addendum do not have them.
@@ -165,8 +184,29 @@ def has_osm_columns(db: sqlite3.Connection, table: str) -> bool:
     return "osm_type" in columns and "osm_id" in columns
 
 
-def read_file(path: str, index: int) -> tuple[dict[str, Any], dict[str, list[Row]]]:
-    """The meta dict and every row of one input file."""
+def has_table(db: sqlite3.Connection, table: str) -> bool:
+    return (
+        db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (table,)
+        ).fetchone()
+        is not None
+    )
+
+
+class Input(NamedTuple):
+    """One input file: its rows, its aliases and its house numbers."""
+
+    rows: dict[str, list[Row]]
+    aliases: list[tuple[int, str]]  # (ref_id, name), in id order
+    numbers: list[tuple[int, int, int, int]]  # (street_id, number, lat, lon)
+
+
+def read_file(path: str, index: int) -> tuple[dict[str, Any], Input]:
+    """The meta dict and everything in one input file.
+
+    `aliases` and `house_numbers` are optional: a file built before they
+    existed simply contributes none.
+    """
     db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
     try:
         meta = dict(db.execute("SELECT key, value FROM meta"))
@@ -185,9 +225,28 @@ def read_file(path: str, index: int) -> tuple[dict[str, Any], dict[str, list[Row
                 )
                 for record in db.execute(f"SELECT {columns} FROM {table} ORDER BY id")
             ]
+        aliases = (
+            [
+                (record[0], record[1])
+                for record in db.execute("SELECT ref_id, name FROM aliases ORDER BY id")
+            ]
+            if has_table(db, "aliases")
+            else []
+        )
+        numbers = (
+            [
+                tuple(record)
+                for record in db.execute(
+                    "SELECT street_id, number, lat, lon FROM house_numbers"
+                    " ORDER BY street_id, number"
+                )
+            ]
+            if has_table(db, "house_numbers")
+            else []
+        )
     finally:
         db.close()
-    return meta, rows
+    return meta, Input(rows, aliases, numbers)
 
 
 # --------------------------------------------------------------------------
@@ -222,17 +281,40 @@ def dedup_key(row: Row, place_name: str | None) -> tuple | None:
     return None
 
 
+def thin_anchors(entries: list[tuple[int, int, int]]) -> list[tuple[int, int, int]]:
+    """The union of two inputs' anchors, back under MAX_ANCHORS.
+
+    What comes in here is already thinned — build.py's "every tenth" ran over
+    the addresses, which merge.py never sees — so running that step again would
+    throw away nine anchors in ten every time a file passed through a merge, and
+    merging a file with a copy of itself would not be a no-op. Only the cap is
+    re-applied: the lowest and the highest number always survive, and the rest
+    are sampled evenly.
+    """
+    if len(entries) <= MAX_ANCHORS:
+        return entries
+    inner = entries[1:-1]
+    keep = MAX_ANCHORS - 2
+    return (
+        [entries[0]]
+        + [inner[(index * len(inner)) // keep] for index in range(keep)]
+        + [entries[-1]]
+    )
+
+
 class Merged(NamedTuple):
     rows: dict[str, list[tuple]]  # table -> final rows, ids and refs remapped
+    aliases: list[tuple[int, int, str]]  # (id, ref_id, name)
+    numbers: list[tuple[int, int, int, int]]
     rows_in: int
     rows_out: int
 
 
-def merge_rows(files: list[dict[str, list[Row]]]) -> Merged:
+def merge_rows(files: list[Input]) -> Merged:
     """Deduplicate, renumber from one counter and remap the references."""
     # places.id -> name, per input file, for the street fallback key.
     place_names = [
-        {row.id: row.name for row in per_file["places"]} for per_file in files
+        {row.id: row.name for row in per_file.rows["places"]} for per_file in files
     ]
 
     # (file index, old id) -> new id of whichever row survived.
@@ -246,7 +328,7 @@ def merge_rows(files: list[dict[str, list[Row]]]) -> Merged:
     # order and a merged file should be indistinguishable from a built one.
     for table in TABLES:
         for per_file in files:
-            for row in per_file[table]:
+            for row in per_file.rows[table]:
                 rows_in += 1
                 place_id = row.values[BASE_COLUMNS[table].index(REFERENCE[table])]
                 key = dedup_key(
@@ -277,7 +359,42 @@ def merge_rows(files: list[dict[str, list[Row]]]) -> Merged:
             )
             final.append(tuple(values) + (row.osm_type, row.osm_id))
         out[table] = final
-    return Merged(out, rows_in, next_id - 1)
+
+    # Aliases come after the three tables, exactly as build.py hands them out.
+    # A name that two extracts both saw on the same object is one row.
+    aliases: list[tuple[int, int, str]] = []
+    seen_aliases: set[tuple[int, str]] = set()
+    for index, per_file in enumerate(files):
+        for ref_id, name in per_file.aliases:
+            new_ref = remap.get((index, ref_id))
+            if new_ref is None:
+                continue  # its row did not survive; nothing left to point at
+            key = (new_ref, name)
+            if key in seen_aliases:
+                continue
+            seen_aliases.add(key)
+            aliases.append((next_id, new_ref, name))
+            next_id += 1
+            rows_in += 1
+
+    # Two extracts see different stretches of the same street, so their anchors
+    # are the union and the thinning runs again over it.
+    per_street: dict[int, dict[int, tuple[int, int]]] = {}
+    for index, per_file in enumerate(files):
+        for street_id, number, lat, lon in per_file.numbers:
+            new_street = remap.get((index, street_id))
+            if new_street is None:
+                continue
+            per_street.setdefault(new_street, {}).setdefault(number, (lat, lon))
+    numbers: list[tuple[int, int, int, int]] = []
+    for street_id in sorted(per_street):
+        bucket = per_street[street_id]
+        entries = [(number,) + bucket[number] for number in sorted(bucket)]
+        numbers += [
+            (street_id, number, lat, lon) for number, lat, lon in thin_anchors(entries)
+        ]
+
+    return Merged(out, aliases, numbers, rows_in, next_id - 1)
 
 
 # --------------------------------------------------------------------------
@@ -304,12 +421,20 @@ def write_tile(path: str, tile: str, merged: Merged, meta: list[tuple[str, str]]
             merged.rows[table],
         )
     db.executemany(
+        "INSERT INTO aliases (id, ref_id, name) VALUES (?,?,?)", merged.aliases
+    )
+    db.executemany(
+        "INSERT INTO house_numbers (street_id, number, lat, lon) VALUES (?,?,?,?)",
+        merged.numbers,
+    )
+    db.executemany(
         "INSERT INTO search(rowid, name) VALUES (?,?)",
         [
             (row[0], row[1])
             for table in TABLES
             for row in merged.rows[table]
-        ],
+        ]
+        + [(row[0], row[2]) for row in merged.aliases],
     )
     db.executemany("INSERT INTO meta VALUES (?,?)", meta)
     db.commit()
@@ -346,11 +471,11 @@ class TileResult(NamedTuple):
 
 def merge_tile(out_dir: str, tile: str, paths: list[str], built_at: str) -> TileResult:
     metas: list[dict[str, Any]] = []
-    files: list[dict[str, list[Row]]] = []
+    files: list[Input] = []
     for index, path in enumerate(paths):
-        meta, rows = read_file(path, index)
+        meta, contents = read_file(path, index)
         metas.append(meta)
-        files.append(rows)
+        files.append(contents)
     merged = merge_rows(files)
     size = write_tile(
         os.path.join(out_dir, f"{tile}.gaz"),

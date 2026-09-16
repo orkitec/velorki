@@ -3,12 +3,19 @@
 
     query.py fixtures/E5_N45.gaz muhleholz
     query.py fixtures/E5_N45.gaz vad --near 47.141,9.521
+    query.py fixtures/E5_N45.gaz 12 landstrasse
     query.py --reverse fixtures/E5_N45.gaz 47.1410 9.5215
 
 The forward form is exactly what the app runs: one FTS statement, then three
 primary-key lookups per hit, then the ranking in Python (bm25, name length, population,
-distance to `--near`). The reverse form is the nearest street, place and POI
-to a coordinate, found with a bounding box on the lat/lon indexes.
+distance to `--near`). A hit that is none of the three is an alias, and is
+resolved through `aliases.ref_id` to the row whose primary name is shown. A
+digits-only token at the start or the end of a multi-token query is a house
+number: it is taken out of the match and resolved against the street's anchors,
+which prints `≈` when the position is interpolated rather than mapped.
+
+The reverse form is the nearest street, place and POI to a coordinate, found
+with a bounding box on the lat/lon indexes.
 """
 
 from __future__ import annotations
@@ -40,6 +47,7 @@ MIN_QUERY_CHARS = 3
 
 
 class Hit(NamedTuple):
+    id: int
     name: str
     kind: str
     lat: float
@@ -48,6 +56,8 @@ class Hit(NamedTuple):
     context: str | None
     rank: float
     distance_m: float | None
+    house_number: str | None = None
+    approximate: bool = False
 
 
 def fts_query(text: str) -> str:
@@ -72,28 +82,134 @@ def place_name(db: sqlite3.Connection, place_id: int | None) -> str | None:
     return row[0] if row else None
 
 
+def split_house_number(text: str) -> tuple[str, str | None]:
+    """Take the house number out of the text the user typed.
+
+    A digits-only token at the start or the end of a multi-token query is the
+    number — `12 Landstrasse`, `Landstrasse 12`. `42nd` is not digits only and
+    stays part of the match, and a query that is nothing but digits has no
+    street left to hang the number off, so it stays a plain search.
+    """
+    tokens = text.split()
+    if len(tokens) < 2:
+        return text, None
+    if tokens[0].isascii() and tokens[0].isdigit():
+        return " ".join(tokens[1:]), tokens[0]
+    if tokens[-1].isascii() and tokens[-1].isdigit():
+        return " ".join(tokens[:-1]), tokens[-1]
+    return text, None
+
+
+def hydrate(db: sqlite3.Connection, rowid: int) -> tuple | None:
+    """The one row an FTS rowid names, out of places, streets or pois."""
+    for statement in HYDRATE.values():
+        row = db.execute(statement, (rowid,)).fetchone()
+        if row is not None:
+            return row
+    return None
+
+
+def alias_ref(db: sqlite3.Connection, rowid: int) -> int | None:
+    """A rowid that is in none of the three tables is an alias, or nothing."""
+    try:
+        row = db.execute(
+            "SELECT ref_id FROM aliases WHERE id = ?", (rowid,)
+        ).fetchone()
+    except sqlite3.Error:
+        return None  # a file built before aliases existed
+    return row[0] if row else None
+
+
+def anchor_position(
+    db: sqlite3.Connection, street_id: int, number: int, lat: float, lon: float
+) -> tuple[float, float, bool]:
+    """Where house `number` is on street `street_id`, and whether that is a guess.
+
+    An exact anchor is the real position. Otherwise the two anchors that
+    bracket the number are interpolated by number; past either end the nearest
+    end anchor is used; with no anchors at all the street's own centre is the
+    answer. Everything but an exact anchor is approximate.
+    """
+    exact = db.execute(
+        "SELECT lat, lon FROM house_numbers WHERE street_id = ? AND number = ?",
+        (street_id, number),
+    ).fetchone()
+    if exact is not None:
+        return exact[0] / COORD_SCALE, exact[1] / COORD_SCALE, False
+
+    below = db.execute(
+        "SELECT number, lat, lon FROM house_numbers WHERE street_id = ? AND number < ?"
+        " ORDER BY number DESC LIMIT 1",
+        (street_id, number),
+    ).fetchone()
+    above = db.execute(
+        "SELECT number, lat, lon FROM house_numbers WHERE street_id = ? AND number > ?"
+        " ORDER BY number ASC LIMIT 1",
+        (street_id, number),
+    ).fetchone()
+    if below is not None and above is not None:
+        share = (number - below[0]) / (above[0] - below[0])
+        return (
+            (below[1] + (above[1] - below[1]) * share) / COORD_SCALE,
+            (below[2] + (above[2] - below[2]) * share) / COORD_SCALE,
+            True,
+        )
+    end = below or above
+    if end is not None:
+        return end[1] / COORD_SCALE, end[2] / COORD_SCALE, True
+    return lat, lon, True
+
+
+def locate(db: sqlite3.Connection, hit: Hit, number: str) -> Hit:
+    """Put a house number on a street hit; anything else keeps its own point."""
+    if hit.kind != "street":
+        return hit
+    try:
+        lat, lon, approximate = anchor_position(
+            db, hit.id, int(number), hit.lat, hit.lon
+        )
+    except sqlite3.Error:
+        return hit._replace(house_number=number, approximate=True)
+    return hit._replace(
+        lat=lat, lon=lon, house_number=number, approximate=approximate
+    )
+
+
 def search(
     db: sqlite3.Connection,
     text: str,
     limit: int,
     near: tuple[float, float] | None = None,
 ) -> list[Hit]:
-    hits: list[Hit] = []
-    for rowid, rank in db.execute(SEARCH_SQL, (fts_query(text),)):
-        for statement in HYDRATE.values():
-            row = db.execute(statement, (rowid,)).fetchone()
+    match_text, number = split_house_number(text)
+    # An object and its aliases are separate FTS rows: two hits resolving to
+    # the same row are one result, at the better of the two ranks.
+    best: dict[int, Hit] = {}
+    for rowid, rank in db.execute(SEARCH_SQL, (fts_query(match_text),)):
+        row = hydrate(db, rowid)
+        if row is None:
+            ref = alias_ref(db, rowid)
+            if ref is None:
+                continue
+            row = hydrate(db, ref)
             if row is None:
                 continue
-            name, kind, lat, lon, population, ref = row
-            lat, lon = lat / COORD_SCALE, lon / COORD_SCALE
-            distance = (
-                meters_between(near[0], near[1], lat, lon) if near is not None else None
-            )
-            hits.append(
-                Hit(name, kind, lat, lon, population, place_name(db, ref), rank, distance)
-            )
-            break
+            rowid = ref
+        previous = best.get(rowid)
+        if previous is not None and previous.rank <= rank:
+            continue
+        name, kind, lat, lon, population, ref = row
+        lat, lon = lat / COORD_SCALE, lon / COORD_SCALE
+        distance = (
+            meters_between(near[0], near[1], lat, lon) if near is not None else None
+        )
+        best[rowid] = Hit(
+            rowid, name, kind, lat, lon, population, place_name(db, ref), rank, distance
+        )
 
+    hits = list(best.values())
+    if number is not None:
+        hits = [locate(db, hit, number) for hit in hits]
     hits.sort(
         key=lambda h: (
             h.rank,
@@ -201,7 +317,11 @@ def main() -> int:
         if hit.distance_m is not None:
             extra.append(f"{hit.distance_m / 1000:.1f} km")
         suffix = f"  ({', '.join(extra)})" if extra else ""
-        print(f"{hit.kind:<14} {hit.name:<40} {hit.lat:>9.5f},{hit.lon:>10.5f}{suffix}")
+        label = hit.name
+        if hit.house_number is not None:
+            mark = "≈ " if hit.approximate else ""
+            label = f"{hit.name} {mark}{hit.house_number}"
+        print(f"{hit.kind:<14} {label:<40} {hit.lat:>9.5f},{hit.lon:>10.5f}{suffix}")
     if not rows:
         print("(no matches)")
     print(f"({len(rows)} rows, {elapsed:.1f} ms)")

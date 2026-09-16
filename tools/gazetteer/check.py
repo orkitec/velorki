@@ -5,8 +5,11 @@
 
 Checks the schema version, that `meta.tile` matches the file name, that the
 FTS index actually answers a query, and reports the row counts. The optional
-`osm_type`/`osm_id` columns are accepted whether or not a file has them. Used by
-manifest.py before it writes a gazetteer entry, and by the tests.
+`osm_type`/`osm_id` columns and the optional `aliases` / `house_numbers` tables
+are accepted whether or not a file has them; when a file does have them, every
+`ref_id` and `street_id` must resolve and no street may carry more than 40
+anchors. Used by manifest.py before it writes a gazetteer entry, and by the
+tests.
 """
 
 from __future__ import annotations
@@ -19,6 +22,9 @@ from typing import NamedTuple
 SCHEMA_VERSION = "1"
 
 TABLES = ("meta", "places", "streets", "pois", "search")
+
+# Must match build.py's MAX_ANCHORS.
+MAX_ANCHORS = 40
 
 
 class GazetteerError(Exception):
@@ -37,6 +43,8 @@ class Report(NamedTuple):
     pois: int
     search: int
     bytes: int
+    aliases: int = 0
+    house_numbers: int = 0
 
     def summary(self) -> str:
         kinds = ["places", "pois"] if self.has_pois else ["places"]
@@ -45,6 +53,7 @@ class Report(NamedTuple):
         return (
             f"{os.path.basename(self.path)}  {self.tile}  "
             f"{self.places} places, {self.streets} streets, {self.pois} pois, "
+            f"{self.aliases} aliases, {self.house_numbers} house numbers, "
             f"{self.search} indexed  {self.bytes / 1e6:.2f} MB  "
             f"[{'+'.join(kinds)}]  built {self.built_at}  from {self.source}"
         )
@@ -103,6 +112,9 @@ def check(path: str) -> Report:
             raise GazetteerError(f"{path}: holds no rows at all")
 
         _check_osm_columns(db, path)
+        extra = _check_extra_tables(db, path)
+        counts["search"] += extra["aliases"]
+        counts.update(extra)
         _check_query(db, path)
     finally:
         db.close()
@@ -119,6 +131,8 @@ def check(path: str) -> Report:
         pois=counts["pois"],
         search=counts["search"],
         bytes=os.path.getsize(path),
+        aliases=counts["aliases"],
+        house_numbers=counts["house_numbers"],
     )
 
 
@@ -136,6 +150,61 @@ def _check_osm_columns(db: sqlite3.Connection, path: str) -> None:
         ).fetchone()
         if bad is not None:
             raise GazetteerError(f"{path}: {table}.osm_type is {bad[0]!r}")
+
+
+def _has_table(db: sqlite3.Connection, table: str) -> bool:
+    return (
+        db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (table,)
+        ).fetchone()
+        is not None
+    )
+
+
+def _check_extra_tables(db: sqlite3.Connection, path: str) -> dict[str, int]:
+    """`aliases` and `house_numbers` are optional, but not optionally correct.
+
+    An alias has to point at a real row of one of the three tables, an anchor at
+    a real street, and no street may carry more than MAX_ANCHORS anchors.
+    """
+    counts = {"aliases": 0, "house_numbers": 0}
+
+    if _has_table(db, "aliases"):
+        counts["aliases"] = db.execute("SELECT count(*) FROM aliases").fetchone()[0]
+        dangling = db.execute(
+            "SELECT ref_id FROM aliases WHERE ref_id NOT IN "
+            "(SELECT id FROM places UNION ALL SELECT id FROM streets "
+            " UNION ALL SELECT id FROM pois) LIMIT 1"
+        ).fetchone()
+        if dangling is not None:
+            raise GazetteerError(
+                f"{path}: aliases.ref_id {dangling[0]} is not a place, street or poi"
+            )
+
+    if _has_table(db, "house_numbers"):
+        counts["house_numbers"] = db.execute(
+            "SELECT count(*) FROM house_numbers"
+        ).fetchone()[0]
+        dangling = db.execute(
+            "SELECT street_id FROM house_numbers "
+            "WHERE street_id NOT IN (SELECT id FROM streets) LIMIT 1"
+        ).fetchone()
+        if dangling is not None:
+            raise GazetteerError(
+                f"{path}: house_numbers.street_id {dangling[0]} is not a street"
+            )
+        crowded = db.execute(
+            "SELECT street_id, count(*) FROM house_numbers GROUP BY street_id "
+            "HAVING count(*) > ? LIMIT 1",
+            (MAX_ANCHORS,),
+        ).fetchone()
+        if crowded is not None:
+            raise GazetteerError(
+                f"{path}: street {crowded[0]} holds {crowded[1]} anchors, "
+                f"more than {MAX_ANCHORS}"
+            )
+
+    return counts
 
 
 def _check_query(db: sqlite3.Connection, path: str) -> None:
