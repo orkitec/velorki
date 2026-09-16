@@ -124,20 +124,31 @@ attempt() {
   return "$rc"
 }
 
+# A tooling failure: the watchdog killed a hang (143), the Dart Development
+# Service did not come up, or the file never loaded. None of them says
+# anything about the test.
+tooling_failed() {
+  local rc=$1 log=$2
+  [ "$rc" -eq 143 ] && return 0
+  grep -qE "Failed to start Dart Development Service|^Failed to load \"|No tests ran|0 tests passed" "$log"
+}
+
 run_one() {
-  local f=$1 log rc=0
+  local f=$1 log rc=0 try
   log=$(mktemp)
-  attempt "$f" "$log" || rc=$?
-  if [ "$rc" -eq 0 ]; then
-    rm -f "$log"
-    return 0
-  fi
-  # 143: the watchdog killed it. A load failure is the tooling, not the test.
-  if [ "$rc" -eq 143 ] || grep -qE "Failed to start Dart Development Service|^Failed to load \"" "$log"; then
-    printf '    the tooling did not get going; running %s once more\n' "$(basename "$f")"
+  # Three tries: a freshly booted CI emulator has failed the first file twice
+  # in a row before the tooling settled.
+  for try in 1 2 3; do
     rc=0
     attempt "$f" "$log" || rc=$?
-  fi
+    if [ "$rc" -eq 0 ]; then break; fi
+    if [ "$try" -lt 3 ] && tooling_failed "$rc" "$log"; then
+      printf '    the tooling did not get going; running %s again (%s of 3)\n' \
+        "$(basename "$f")" "$((try + 1))"
+      continue
+    fi
+    break
+  done
   rm -f "$log"
   return "$rc"
 }

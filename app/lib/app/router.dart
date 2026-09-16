@@ -139,7 +139,11 @@ class HomeShell extends ConsumerWidget {
     final recording = ref.watch(
       recordingControllerProvider.select((s) => s.isRecording),
     );
-    final hideBar = recording && shell.currentIndex == 1;
+    // Nor while the keyboard is up: a bar floating over the keyboard's edge
+    // takes the room the search results need. This context sits above the
+    // scaffold, so it still sees the inset the scaffold resizes for.
+    final keyboardUp = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final hideBar = (recording && shell.currentIndex == 1) || keyboardUp;
     return Scaffold(
       // The bar floats over the content; screens read the bottom padding
       // from MediaQuery to keep their last rows above it.

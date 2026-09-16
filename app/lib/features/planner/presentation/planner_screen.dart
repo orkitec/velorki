@@ -43,14 +43,43 @@ class PlannerScreen extends ConsumerStatefulWidget {
   ConsumerState<PlannerScreen> createState() => _PlannerScreenState();
 }
 
-class _PlannerScreenState extends ConsumerState<PlannerScreen> {
+class _PlannerScreenState extends ConsumerState<PlannerScreen>
+    with WidgetsBindingObserver {
   MapController? _map;
   PlannerMapBinding? _binding;
   SearchResult? _placeToStartFrom;
+
+  /// The chrome over the map (search field, place actions, profile chips),
+  /// measured after each layout so the map's control column starts below
+  /// it whatever the rows above happen to need.
+  final GlobalKey _chromeKey = GlobalKey();
+  double _chromeHeight = 8 + 56 + 10 + 44;
+
+  void _measureChrome() {
+    final height = _chromeKey.currentContext?.size?.height;
+    if (height == null || (height - _chromeHeight).abs() < 0.5) return;
+    setState(() => _chromeHeight = height);
+  }
+
   final DraggableScrollableController _sheet = DraggableScrollableController();
 
   @override
+  void initState() {
+    super.initState();
+    // The keyboard's inset is read from the window (the shell's scaffold
+    // resizes for it and no longer reports it), and the window does not
+    // rebuild this screen by itself: metrics changes are listened for.
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeMetrics() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _binding?.detach();
     _sheet.dispose();
     super.dispose();
@@ -172,6 +201,14 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
       return;
     }
     planner.addWaypoint(result.position, name: result.name);
+    unawaited(_map?.setSearchPin(null));
+    setState(() => _placeToStartFrom = null);
+  }
+
+  /// Forgets a searched place that was never used: the pin goes, and so do
+  /// the two buttons offering it.
+  void _clearSearchedPlace() {
+    if (_placeToStartFrom == null) return;
     unawaited(_map?.setSearchPin(null));
     setState(() => _placeToStartFrom = null);
   }
@@ -326,14 +363,23 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
       },
     );
 
+    // With the keyboard up the sheet would ride up with it and cover what is
+    // left of the map the rider is searching on, so it steps aside until the
+    // keyboard goes; its state is kept. Read from the window: the shell's
+    // scaffold resizes for the inset and no longer reports it.
+    final keyboardUp = View.of(context).viewInsets.bottom > 0;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _measureChrome();
+    });
+
     return Scaffold(
       body: Stack(
         children: [
           Positioned.fill(
-            // Search field, chips and their gaps: the control column starts
-            // underneath them.
+            // Search field, place actions, chips and their gaps: the control
+            // column starts underneath them.
             child: MapChromeInsets(
-              controlsTop: 8 + 56 + 10 + 44 + 12,
+              controlsTop: _chromeHeight + 12,
               child: PlannerMapHost(onMapReady: _onMapReady),
             ),
           ),
@@ -342,32 +388,16 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
               child: Column(
+                key: _chromeKey,
+                // Only as tall as its rows, so its height is the chrome's.
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   SearchField(
                     onSelected: _onPlaceSelected,
+                    onCleared: _clearSearchedPlace,
                     bias: () => _map?.center,
                   ),
-                  if (_placeToStartFrom != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          FilledButton.icon(
-                            onPressed: () => unawaited(_rideFromPosition()),
-                            icon: const Icon(Icons.near_me_rounded),
-                            label: Text(l10n.plannerRideFromPosition),
-                          ),
-                          FilledButton.tonalIcon(
-                            onPressed: _setSearchedPlaceAsStart,
-                            icon: const Icon(Icons.play_arrow_rounded),
-                            label: Text(l10n.plannerSetAsStart),
-                          ),
-                        ],
-                      ),
-                    ),
                   const SizedBox(height: 10),
                   _ProfileChooser(
                     selected: state.options.profile,
@@ -375,6 +405,39 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
                         .read(plannerControllerProvider.notifier)
                         .setProfile,
                   ),
+                  if (_placeToStartFrom != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      // One row, the two actions sharing the width. The X
+                      // in the search field is what forgets the place.
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: FilledButton.icon(
+                              onPressed: () => unawaited(_rideFromPosition()),
+                              icon: const Icon(Icons.near_me_rounded),
+                              label: Text(
+                                l10n.plannerRideFromPosition,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: FilledButton.tonalIcon(
+                              onPressed: _setSearchedPlaceAsStart,
+                              icon: const Icon(Icons.play_arrow_rounded),
+                              label: Text(
+                                l10n.plannerSetAsStart,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   if (!hasBackend)
                     const Padding(
                       padding: EdgeInsets.only(top: 8),
@@ -384,76 +447,80 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
               ),
             ),
           ),
-          DraggableScrollableSheet(
-            controller: _sheet,
-            // Enough for the headline, the toolbar and Save above the
-            // floating navigation bar on a 20:9 phone.
-            initialChildSize: hasVariants
-                ? variantsSheetSize
-                : restingSheetSize,
-            minChildSize: collapsedSheetSize,
-            maxChildSize: 0.9,
-            snap: true,
-            // One resting height, not both: with the two in the list a pull
-            // down from the top settled on the higher one and a pull up from
-            // the handle on the lower one, a chip row apart.
-            snapSizes: <double>[
-              hasVariants ? variantsSheetSize : restingSheetSize,
-            ],
-            builder: (context, scrollController) => DecoratedBox(
-              decoration: const BoxDecoration(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x40000000),
-                    blurRadius: 24,
-                    offset: Offset(0, -4),
-                  ),
-                ],
-              ),
-              child: Material(
-                color: theme.colorScheme.surface,
-                shape: RoundedRectangleBorder(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(28),
-                  ),
-                  side: BorderSide(color: theme.velorki.glassBorder),
+          Visibility(
+            visible: !keyboardUp,
+            maintainState: true,
+            child: DraggableScrollableSheet(
+              controller: _sheet,
+              // Enough for the headline, the toolbar and Save above the
+              // floating navigation bar on a 20:9 phone.
+              initialChildSize: hasVariants
+                  ? variantsSheetSize
+                  : restingSheetSize,
+              minChildSize: collapsedSheetSize,
+              maxChildSize: 0.9,
+              snap: true,
+              // One resting height, not both: with the two in the list a pull
+              // down from the top settled on the higher one and a pull up from
+              // the handle on the lower one, a chip row apart.
+              snapSizes: <double>[
+                hasVariants ? variantsSheetSize : restingSheetSize,
+              ],
+              builder: (context, scrollController) => DecoratedBox(
+                decoration: const BoxDecoration(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x40000000),
+                      blurRadius: 24,
+                      offset: Offset(0, -4),
+                    ),
+                  ],
                 ),
-                clipBehavior: Clip.antiAlias,
-                child: ListView(
-                  controller: scrollController,
-                  padding: EdgeInsets.fromLTRB(20, 10, 20, bottomInset + 24),
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        margin: const EdgeInsets.only(bottom: 14),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.outline,
-                          borderRadius: BorderRadius.circular(2),
+                child: Material(
+                  color: theme.colorScheme.surface,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(28),
+                    ),
+                    side: BorderSide(color: theme.velorki.glassBorder),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: ListView(
+                    controller: scrollController,
+                    padding: EdgeInsets.fromLTRB(20, 10, 20, bottomInset + 24),
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 14),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.outline,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
                         ),
                       ),
-                    ),
-                    _SheetHeader(state: state),
-                    const SizedBox(height: 14),
-                    // The variants right under the figures, where the sheet
-                    // grows to show them; then the actions, so Loop and Save
-                    // are visible at the sheet's resting height.
-                    if (hasVariants) ...[
-                      _AlternativeChips(state: state),
-                      const SizedBox(height: 12),
+                      _SheetHeader(state: state),
+                      const SizedBox(height: 14),
+                      // The variants right under the figures, where the sheet
+                      // grows to show them; then the actions, so Loop and Save
+                      // are visible at the sheet's resting height.
+                      if (hasVariants) ...[
+                        _AlternativeChips(state: state),
+                        const SizedBox(height: 12),
+                      ],
+                      _PlannerActions(
+                        state: state,
+                        onAlternatives: _loadAlternatives,
+                        onSmartLoop: _smartLoop,
+                        onAsk: _ask,
+                        onSave: _save,
+                      ),
+                      const SizedBox(height: 16),
+                      _SheetBody(state: state),
                     ],
-                    _PlannerActions(
-                      state: state,
-                      onAlternatives: _loadAlternatives,
-                      onSmartLoop: _smartLoop,
-                      onAsk: _ask,
-                      onSave: _save,
-                    ),
-                    const SizedBox(height: 16),
-                    _SheetBody(state: state),
-                  ],
+                  ),
                 ),
               ),
             ),

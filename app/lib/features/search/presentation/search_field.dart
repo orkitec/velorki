@@ -14,7 +14,16 @@ import '../domain/search_result.dart';
 /// waypoint or a camera move — is the screen's decision.
 class SearchField extends ConsumerStatefulWidget {
   /// Creates the search field.
-  const SearchField({required this.onSelected, this.bias, super.key});
+  const SearchField({
+    required this.onSelected,
+    this.bias,
+    this.onCleared,
+    super.key,
+  });
+
+  /// Called when the rider clears the field or edits it after picking a
+  /// result: the picked place is no longer what the field says.
+  final VoidCallback? onCleared;
 
   /// Called with the place the user picked.
   final ValueChanged<SearchResult> onSelected;
@@ -55,6 +64,9 @@ class _SearchFieldState extends ConsumerState<SearchField> {
   }
 
   void _onChanged(String text) {
+    // Typing over a picked result unpicks it: the pin on the map must not
+    // outlive the words that put it there.
+    if (_dismissed) widget.onCleared?.call();
     setState(() => _dismissed = false);
     ref
         .read(placeSearchProvider.notifier)
@@ -69,6 +81,7 @@ class _SearchFieldState extends ConsumerState<SearchField> {
     _controller.clear();
     ref.read(placeSearchProvider.notifier).clear();
     setState(() => _dismissed = false);
+    widget.onCleared?.call();
   }
 
   void _select(SearchResult result) {

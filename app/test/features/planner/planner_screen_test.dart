@@ -5,6 +5,7 @@ import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
 
 import 'package:velorki/features/planner/presentation/elevation_profile_chart.dart';
+import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
 import 'package:velorki/features/planner/presentation/surface_stats_bar.dart';
@@ -322,6 +323,75 @@ void main() {
     expect(h.map.waypoints.last.position, const LatLng(48.1374, 11.5755));
     expect(h.map.waypoints.last.label, 'Munich');
     expect(find.text('From my position'), findsNothing);
+  });
+
+  testWidgets('clearing the search forgets the searched place', (tester) async {
+    final h = await pumpScreen(tester, const PlannerScreen());
+
+    await tester.enterText(find.byType(TextField).first, 'munich');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bavaria, Germany'));
+    await tester.pumpAndSettle();
+    expect(h.map.searchPin, isNotNull);
+    expect(find.text('From my position'), findsOneWidget);
+
+    // The field's own clear button drops the place and its two actions.
+    await tester.tap(find.byTooltip('Clear search'));
+    await tester.pumpAndSettle();
+    expect(h.map.searchPin, isNull);
+    expect(find.text('From my position'), findsNothing);
+    expect(find.text('Start here'), findsNothing);
+
+    // Typing over a picked place forgets it too.
+    await tester.enterText(find.byType(TextField).first, 'munich');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bavaria, Germany'));
+    await tester.pumpAndSettle();
+    expect(h.map.searchPin, isNotNull);
+    await tester.enterText(find.byType(TextField).first, 'munic');
+    await tester.pump();
+    expect(h.map.searchPin, isNull);
+  });
+
+  testWidgets('the control column moves down under the place actions', (
+    tester,
+  ) async {
+    await pumpScreen(tester, const PlannerScreen());
+    MapChromeInsets chrome() =>
+        tester.widget<MapChromeInsets>(find.byType(MapChromeInsets).first);
+    final before = chrome().controlsTop!;
+
+    await tester.enterText(find.byType(TextField).first, 'munich');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bavaria, Germany'));
+    await tester.pumpAndSettle();
+
+    // The two action buttons add a row above the chips; the column must
+    // not sit on the chips because of it.
+    expect(chrome().controlsTop!, greaterThan(before + 30));
+
+    await tester.tap(find.byTooltip('Clear search'));
+    await tester.pumpAndSettle();
+    expect(chrome().controlsTop!, closeTo(before, 0.5));
+  });
+
+  testWidgets('the sheet steps aside while the keyboard is up', (tester) async {
+    await pumpScreen(tester, const PlannerScreen());
+    expect(find.byType(DraggableScrollableSheet), findsOneWidget);
+
+    tester.view.viewInsets = const FakeViewPadding(bottom: 600);
+    addTearDown(tester.view.resetViewInsets);
+    await tester.pumpAndSettle();
+
+    // Kept alive but out of the way; the map keeps its size.
+    expect(find.byType(DraggableScrollableSheet), findsNothing);
+    expect(
+      find.byType(DraggableScrollableSheet, skipOffstage: false),
+      findsOneWidget,
+    );
   });
 
   testWidgets('a searched place is appended once a plan exists', (

@@ -85,6 +85,17 @@ void main() {
     expect(find.text('Tap the map to set a start.'), findsOneWidget);
   });
 
+  testWidgets('the bar steps aside while the keyboard is up', (tester) async {
+    await _pumpShell(tester);
+    expect(find.byType(FloatingNavigationBar), findsOneWidget);
+
+    tester.view.viewInsets = const FakeViewPadding(bottom: 600);
+    addTearDown(tester.view.resetViewInsets);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FloatingNavigationBar), findsNothing);
+  });
+
   testWidgets('switches between all four branches', (tester) async {
     await _pumpShell(tester);
 
