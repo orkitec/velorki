@@ -36,7 +36,7 @@ mirrors the routing data.
 
   | Coverage | Tiles | Download | Recommended disk |
   |---|---:|---:|---:|
-  | Whole planet (`SEGMENT_FILTER=*`) | 1142 | ~9.3 GB | **40 GB** |
+  | Whole planet (`SEGMENT_FILTER=*`) | 1142 | ~10 GB | **40 GB** |
   | Europe (`E*_N4* E*_N5* W*_N5*`) | 224 | ~3.0 GB | **~5 GB** |
 
   (Measured against the mirror on 2026-09-12. Tiles grow over time, and an
@@ -68,7 +68,7 @@ it compiles the upstream repo with Gradle) and starts three containers:
 
 ### First sync
 
-**The first sync takes 1–3 hours for the planet** (~9 GB), or roughly 20–40
+**The first sync takes 1–3 hours for the planet** (~10 GB), or roughly 20–40
 minutes for Europe. Watch it:
 
 ```sh
@@ -171,9 +171,11 @@ actually on disk:
 (`---lookupversion:11` / `---minorversion:2`). BRouter refuses to read a segment
 whose version does not match the `lookups.dat` it started with, so this is the
 number to compare if routing suddenly fails after an upgrade. Per-tile `sha256`
-is omitted by default because hashing ~9 GB every pass is slow and the size
+is omitted by default because hashing ~10 GB every pass is slow and the size
 check against the mirror index already catches truncation — set
-`MANIFEST_SHA256=1` if you want it.
+`MANIFEST_SHA256=1` if you want it. A tile with an offline-search file
+(`<TILE>.gaz`, from `tools/gazetteer`) next to its rd5 also gets a `gazetteer`
+object of `bytes`, `sha256` and `updatedAt`; that one is always hashed.
 
 ## 5. Keeping data fresh
 
@@ -299,7 +301,7 @@ docker run --rm \
 cp .env "velorki-env-$(date +%F).bak"
 ```
 
-**Do not back up `brouter_segments`.** It is 9 GB of data you can re-download,
+**Do not back up `brouter_segments`.** It is 10 GB of data you can re-download,
 and a stale copy is worse than a fresh sync.
 
 ## Troubleshooting

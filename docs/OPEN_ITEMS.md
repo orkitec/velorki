@@ -10,21 +10,28 @@ exercised there. The items here are the parts not yet covered by that.
 - [ ] **rd5 tile mirror**: the app routes on the device, but `VELORKI_SEGMENTS_URL`
       has to point somewhere real. Either the VPS updater's `/segments4` or the
       GitHub Releases mirror in [orkitec/velorki-data][data]. A release holds at
-      most 1,000 assets and the planet is 1,142 tiles, so a full snapshot is
-      sharded (`tiles-YYYYMMDD`, `-s2`, …) with a per-shard `manifest.json`;
-      until the app merges shard manifests, one URL covers one shard (Europe
-      fits in shard 1). `app/env/dev.json` follows the mirror's `latest.json`.
+      most 1,000 assets and a tile now costs two of them (`.rd5` + `.gaz`), so
+      `publish-tiles.sh` fills a shard with 480 tiles and the planet's 1,142
+      tiles are three shards (`tiles-YYYYMMDD`, `-s2`, `-s3`), each with its own
+      `manifest.json`; until the app merges shard manifests, one URL covers one
+      shard (Europe fits in shard 1). `app/env/dev.json` follows the mirror's
+      `latest.json`.
+- [ ] **Publish a real snapshot**: the tag `latest.json` points at holds three
+      tiles. A planet run of `publish-tiles`, followed by `publish-gazetteer`,
+      is what makes the mirror usable for anyone but the maintainer.
+- [ ] **velorki-data's own docs**: its README still describes shards of 900
+      tiles in "Sharding, and why the planet is not one release", which the
+      gazetteer assets made wrong; the gazetteer sections say 480.
 - [ ] **Relay on the VPS with Orkify**: `api/` (`npm run build`,
       `node dist/server.js`, health `/health`, Node ≥ 22.13). Fill `.env` from
       `api/.env.example`; `SHARE_DB_PATH` must be on a persistent volume.
 - [ ] **BRouter on the VPS**: `deploy/` (compose with Caddy + BRouter + updater,
       or the systemd units). First planet sync 1–3 h; `SEGMENT_FILTER` for a
       regional start. Only needed for routing outside downloaded tiles.
-- [ ] **Battery saver while recording**: nothing from [BATTERY.md](BATTERY.md)
-      is implemented. Measure a baseline ride first, then stop sampling GPS
-      twice (`devicePositionProvider` still runs alongside the recorder), a
-      coarser GPS profile, dim/dark/black-map mode, and one "Battery saver"
-      switch on the record sheet.
+- [ ] **Measure the battery saver**: everything [BATTERY.md](BATTERY.md)
+      describes is in the app; the two comparison rides that would prove it are
+      not. That file's "How to measure" is the procedure; write both numbers
+      into it.
 - [ ] **Strava API application**: client id/secret into the relay;
       "Authorization Callback Domain" = `oauth`; the developer account needs an
       active Strava subscription; self-service up to 10 athletes, then review.
@@ -49,7 +56,8 @@ exercised there. The items here are the parts not yet covered by that.
       [velorki-data][data] builds them per Geofabrik extract after every
       tile snapshot. Remaining: a relay endpoint in front of Photon (Komoot
       first, a keyed OSM geocoder such as Geoapify as fallback) for everyone
-      without tiles.
+      without tiles — the app goes straight to the public Photon instance
+      today.
       Decided 2026-09-16: Apple and Google search are not options — Apple's
       agreement (Attachment 6, "Map Data" includes coordinates and points of
       interest; 2.4 results only on an Apple map; 2.5 not stored) and Google's
@@ -107,10 +115,6 @@ Everything still unticked in [STORE_CHECKLIST.md](STORE_CHECKLIST.md).
 - **Wi-Fi-only downloads**: `connectivity_plus` is not a dependency, so the app
   cannot tell Wi-Fi from mobile data; the download screen says so instead of
   offering a switch that would not work.
-- **rd5 format-version check**: every downloaded tile records the mirror's
-  `formatVersion`, but `CompositeRoutingBackend.requiredFormatVersion` is left
-  unset because nothing in the app knows which rd5 version this build of
-  `brouter_dart` reads. Switch it on when the engine reports its own.
 - **On-device routing performance**: about half the JVM's speed, heap 65–77 MB.
   Still to do: a measurement on a mid-range phone (target: 60 km under 3 s) and
   rd5 delta updates (`Rd5DiffTool` is a stub).

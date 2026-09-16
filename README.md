@@ -21,8 +21,8 @@ recorded corpus, against routing tiles downloaded per region. A BRouter server
 is optional, for areas without downloaded tiles.
 
 Not yet done: the store accounts and partner API registrations, the relay and
-the tile mirror deployment, and an iOS build. `docs/OPEN_ITEMS.md` lists every
-such item.
+the tile mirror deployment, and iOS release signing. `docs/OPEN_ITEMS.md` lists
+every such item.
 
 ## Layout
 
@@ -33,15 +33,16 @@ such item.
 | `brouter/` | routing profiles and the map-data updater for the BRouter routing server | Apache-2.0 |
 | `deploy/` | self-hosting with Docker Compose or systemd | Apache-2.0 |
 | `docs/` | architecture, self-hosting, privacy, store checklist | Apache-2.0 |
+| `tools/` | the BRouter test oracle and the gazetteer builder | Apache-2.0 |
 
 ## Design in one paragraph
 
 As much as possible runs on the device: the routes, the rides, the loop
-generator and the routing itself. The server side is optional — a stock BRouter
-routing server for areas without downloaded tiles, and a small relay that only
-does what an open-source app cannot: keep the Strava and RideWithGPS client
-secrets, call the language model, and store shared links. No accounts, no cloud
-database. See `docs/ARCHITECTURE.md`.
+generator, the place search and the routing itself. The server side is
+optional — a stock BRouter routing server for areas without downloaded tiles,
+and a small relay that only does what an open-source app cannot: keep the
+Strava and RideWithGPS client secrets, call the language model, and store
+shared links. No accounts, no cloud database. See `docs/ARCHITECTURE.md`.
 
 ## Building
 
@@ -58,5 +59,5 @@ the step-by-step for the last two. Forks must rebrand, see `TRADEMARK.md`.
 
 Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright)
 contributors, ODbL. Routing by [BRouter](https://brouter.de). Map tiles by
-[OpenFreeMap](https://openfreemap.org). Search by
+[OpenFreeMap](https://openfreemap.org). Online search by
 [Photon](https://photon.komoot.io).

@@ -7,7 +7,7 @@ name: integration
 #
 # Nightly rather than per-push: one run boots an emulator, installs a test
 # build per file and routes for real, which is minutes, not seconds. The
-# per-push app workflow keeps running the 611 widget and unit tests.
+# per-push app workflow keeps running the widget and unit tests.
 #
 # The tile is the same committed rd5 fixture the BRouter parity corpus was
 # recorded against (tools/brouter-oracle/tiles/), so the routes this suite plans

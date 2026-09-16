@@ -65,10 +65,11 @@ background-location app.
 
 ## Privacy labels and data safety
 
-What leaves the device: routing waypoints, search queries, map tile requests,
-the AI prompt with a coarse start position, the RevenueCat anonymous app user
-id and purchase receipts, and — only on user action — rides and routes to
-Strava or RideWithGPS, and shared routes to our share store.
+What leaves the device: routing waypoints, map tile requests, search queries
+when the rider asks for an online search, the AI prompt with a coarse start
+position, the RevenueCat anonymous app user id and purchase receipts, and —
+only on user action — rides and routes to Strava or RideWithGPS, and shared
+routes to our share store.
 
 - [x] **(iOS)** The privacy manifest in the bundle declares precise location,
       purchase history, the RevenueCat user id and other user content, all

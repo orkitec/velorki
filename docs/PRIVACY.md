@@ -5,7 +5,7 @@
 > privacy policy of a released app. Some points below are still marked "to be
 > decided".
 
-Last updated: 12 September 2026.
+Last updated: 16 September 2026.
 
 Velorki is a bike route planning and ride recording app made by Orkitec. This
 page explains what happens to your data.
@@ -14,16 +14,18 @@ page explains what happens to your data.
 
 - There is **no account**. You do not sign up, and we do not know who you are.
 - Your routes, your rides and your settings stay **on your phone**.
-- Some things need a server: search, map tiles, routing outside the areas you
-  have downloaded, and — if you use them — the AI assistant, the Strava and
-  RideWithGPS connections, and share links. Each is described below.
+- Some things need a server: map tiles, routing outside the areas you have
+  downloaded, search when you ask for it, and — if you use them — the AI
+  assistant, the Strava and RideWithGPS connections, and share links. Each is
+  described below.
 - We do not sell your data, and we do not use it for advertising or profiling.
 
 ## What stays on your device
 
 Planned routes, recorded rides, their GPS tracks, your settings, downloaded
-offline map regions and downloaded routing tiles are stored in the app's own
-storage on your phone. They are not uploaded anywhere unless you ask for it.
+offline map regions, downloaded routing tiles and the place-search indexes that
+come with them are stored in the app's own storage on your phone. They are not
+uploaded anywhere unless you ask for it.
 
 If you connect Strava or RideWithGPS, the access tokens for those accounts are
 stored in the phone's secure storage (Keychain on iOS, Keystore on Android) and
@@ -46,9 +48,14 @@ route; it does not receive your identity, your other routes or your rides.
 
 ### Search
 
-When you type in the search box, what you type is sent to Photon, a geocoding
-service, together with a rough position so that nearby results rank first.
-Photon returns place suggestions.
+Places are searched on your phone, in the search indexes that come with the
+routing tiles you downloaded. Nothing you type there leaves the device.
+
+If you tap "Search online for …" at the bottom of the results — or if you have
+downloaded no routing tiles, in which case the search box goes online straight
+away — what you typed is sent to Photon, a geocoding service, together with a
+rough position so that nearby results rank first. Photon returns place
+suggestions.
 
 ### Map tiles
 

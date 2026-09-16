@@ -14,9 +14,10 @@ before changing structure.
   Commit after that, push in batches, never one push per fix.
 - **Commits**: plain English, say what changed and why. No AI attribution,
   no `Co-Authored-By` or session trailers.
-- **Before any commit**: `dart format`, `flutter analyze`, `dart analyze lib test`
-  (riverpod_lint only runs through `dart analyze`), `flutter test` (from `app/`),
-  and `dart test` in any package you touched.
+- **Before any commit**, from `app/`, over `lib test integration_test` as
+  `app.yml` does: `dart format`, `flutter analyze --fatal-infos`,
+  `dart analyze --fatal-infos` (riverpod_lint only runs through `dart analyze`),
+  `flutter test`, and `dart test` in any package you touched.
 - **Delegation**: routine implementation goes to cheaper subagents with a
   precise brief; design decisions, verification and review stay with the
   main agent. Subagents must not commit.
@@ -70,7 +71,11 @@ before changing structure.
 
 - `app/test`: widget/unit tests per feature with `support/` harnesses and fakes.
 - `app/integration_test`: emulator flows; run all with `app/tool/itest.sh`.
+  `app/tool/itest_mirror.sh` builds and serves the tile mirror they download
+  from — the oracle rd5 plus its `.gaz` fixture — on port 8000.
 - BRouter parity: `tools/brouter-oracle` with the two committed tiles in
   `tools/brouter-oracle/tiles/`; the corpus is bound to those exact bytes.
-- CI: `app.yml` (every push), `integration.yml` (nightly, boots an emulator),
-  `brouter-oracle.yml` (nightly). Everything runs offline; no release to fetch.
+- CI: `app.yml` (every push), `integration.yml` and `integration-ios.yml`
+  (nightly, boot an emulator and a simulator), `brouter-oracle.yml` (weekly).
+  No rd5 comes off brouter.de; the oracle job does fetch the pinned upstream
+  release zip.

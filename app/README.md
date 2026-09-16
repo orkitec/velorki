@@ -37,8 +37,8 @@ app fully local.
 |-----|---------|
 | `VELORKI_BROUTER_URL` | BRouter routing server. Empty: on-device routing only (needs downloaded tiles). |
 | `VELORKI_API_URL` | The relay. Empty: Strava, RideWithGPS, AI assistant and link sharing are hidden. |
-| `VELORKI_SEGMENTS_URL` | Mirror of the rd5 routing tiles for on-device routing downloads: a directory with `manifest.json`, or a pointer such as the mirror's `latest.json` that names the current snapshot. |
-| `VELORKI_PHOTON_URL` | Photon geocoder for search. |
+| `VELORKI_SEGMENTS_URL` | Mirror of the rd5 routing tiles for on-device routing downloads, and of the `<TILE>.gaz` search indexes beside them: a directory with `manifest.json`, or a pointer such as the mirror's `latest.json` that names the current snapshot. |
+| `VELORKI_PHOTON_URL` | Photon geocoder, for "Search online for …" and for a device with no routing tiles. Places are otherwise searched in the `.gaz` files downloaded next to the tiles. |
 | `VELORKI_MAP_STYLE_URL` | MapLibre style JSON. Default OpenFreeMap Liberty. |
 | `VELORKI_MAP_STYLE_URL_DARK` | MapLibre style JSON for dark mode. Default OpenFreeMap Fiord. |
 | `VELORKI_CYCLOSM_TILE_URL` | CyclOSM raster tiles for the optional cycling overlay. |
@@ -103,11 +103,11 @@ to two minutes per file.
 
 What the emulator needs before the first run:
 
-- an rd5 tile mirror on the host at port 8000 — a directory with the `.rd5`
-  files and a `manifest.json` (`brouter/updater/sync.sh` writes that shape),
-  served with `python3 -m http.server 8000`. `10.0.2.2` is the host as the
-  emulator sees it. The suite downloads the tile it needs on the first run and
-  reuses it afterwards.
+- an rd5 tile mirror on the host at port 8000: `tool/itest_mirror.sh` builds
+  one out of the committed oracle tile and its `.gaz` search fixture, writes
+  the `manifest.json` and serves it in the background (`ITEST_MIRROR_PORT`
+  moves the port). `10.0.2.2` is the host as the emulator sees it. The suite
+  downloads the tile it needs on the first run and reuses it afterwards.
 - a virtual position in the region under test, e.g.
   `adb -s emulator-5554 emu geo fix -73.9645 40.8153` for New York.
 

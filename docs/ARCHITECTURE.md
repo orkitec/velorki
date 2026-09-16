@@ -275,7 +275,17 @@ ranked by bm25, then population, then distance to the map centre. A street
 whose house numbers the file anchors answers a typed number at the number's
 own position, interpolated between the two nearest anchors when it is not one
 of them and marked "≈" then; alternative names (`name:en`, `alt_name`, …) are
-indexed too and answer under the object's primary name. Photon is
+indexed too and answer under the object's primary name. Typing the name of a
+kind instead of a name ("drinking water", "bakery", the localised label) opens
+the list with the five nearest rows of that kind, found on the position index
+in a box grown from 5 to 50 km around the map centre and shown with their
+distance; those rows may be unnamed, and are then titled by their kind.
+Settings → Search orders and switches off eight groups (places, streets,
+landmarks, cycling stops, overnight, nature, transport, services), which
+filters the local results and breaks bm25 ties before name length does. A query
+that matches nothing is run once more against the index vocabulary
+(`fts5vocab` in the connection's `temp` schema, Damerau-Levenshtein), and the
+list says what it searched for instead. Photon is
 then the last row of the list ("Search online for …"), one tap away; a device
 with no gazetteer goes to Photon straight away, as before. A failed gazetteer
 download never fails its tile: the region stays routable and its search stays

@@ -4,8 +4,10 @@
 
 **Velorki needs no backend.** The app routes on the phone: `brouter_dart` is a
 Dart port of the BRouter engine and runs against rd5 segment tiles the rider
-downloads for the area they ride. Map tiles come from OpenFreeMap, search from
-the public Photon instance, both directly from the app.
+downloads for the area they ride, and those tiles bring their own place search
+(`<TILE>.gaz`). Map tiles come from OpenFreeMap, and Photon is asked only when
+the rider taps "Search online for …" or has no tiles at all — both directly
+from the app.
 
 The only thing you may want to serve yourself is the rd5 tiles, and that is a
 static file host: any HTTPS directory with the `.rd5` files and a
@@ -19,10 +21,10 @@ static file host: any HTTPS directory with the `.rd5` files and a
   `gazetteer` object; `tools/gazetteer/manifest.py <dir>` adds them after the fact.
 
 The reference mirror is a GitHub Releases one, [orkitec/velorki-data][data],
-which costs nothing to run; see its README, and the "GitHub Releases tile
-mirror" item in [OPEN_ITEMS.md](OPEN_ITEMS.md) for the caveat that a release
-holds at most 1,000 assets while the planet is 1,142 tiles, so a full snapshot
-is sharded across releases.
+which costs nothing to run; see its README, and the "rd5 tile mirror" item in
+[OPEN_ITEMS.md](OPEN_ITEMS.md) for the caveat that a release holds at most
+1,000 assets while a tile costs two of them (`.rd5` + `.gaz`), so a snapshot is
+sharded across releases at 480 tiles each — three for the planet.
 
 [data]: https://github.com/orkitec/velorki-data
 
@@ -39,7 +41,7 @@ for any area the rider has not downloaded tiles for. `deploy/` runs one:
   sync service and timer.
 
 BRouter runs at `-Xmx512M`, so 2–4 GB RAM is plenty; disk is the real
-requirement. The planet is 1,142 tiles (~9.3 GB, provision 40 GB); Europe with
+requirement. The planet is 1,142 tiles (~10 GB, provision 40 GB); Europe with
 `SEGMENT_FILTER="E*_N4* E*_N5* W*_N5*"` is 224 tiles (~3.0 GB). The first sync
 takes 1–3 hours for the planet. `deploy/README.md` is the step-by-step guide.
 
