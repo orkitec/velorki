@@ -12,9 +12,16 @@ final Logger _log = Logger('ShareLinks');
 /// The host of a share deep link: `velorki://share/<id>`.
 const String shareLinkHost = 'share';
 
+/// The host the public share pages live on: `https://velorki.com/s/<id>`.
+///
+/// Only the bare host counts. `www.velorki.com` redirects to it, and the
+/// App Links and Universal Links files are served for `velorki.com` alone, so
+/// no other host can hand us a share id.
+const String shareLinkWebHost = 'velorki.com';
+
 /// The share id in [uri], or `null` when it is not a share link.
 ///
-/// Two shapes are accepted: the custom scheme the relay's share page links to
+/// Two shapes are accepted: the custom scheme the share page links to
 /// (`velorki://share/7Kq2mZ0aTb`) and the public page's own URL
 /// (`https://velorki.com/s/7Kq2mZ0aTb`, with or without `.gpx`), so a
 /// universal link lands in the same place as the scheme.
@@ -23,7 +30,9 @@ String? shareIdOf(Uri uri) {
   final String? raw;
   if (uri.host == shareLinkHost) {
     raw = segments.isEmpty ? null : segments.first;
-  } else if (segments.length >= 2 && segments.first == 's') {
+  } else if (uri.host == shareLinkWebHost &&
+      segments.length >= 2 &&
+      segments.first == 's') {
     raw = segments[1];
   } else {
     raw = null;

@@ -60,6 +60,21 @@
                 <data android:scheme="velorki" android:host="share"/>
                 <data android:scheme="velorki" android:host="s"/>
             </intent-filter>
+            <!-- The same share links as https (App Links):
+                 https://velorki.com/s/<id>, with or without .gpx.
+                 android:autoVerify makes Android check
+                 https://velorki.com/.well-known/assetlinks.json on install and
+                 open the app without a chooser. That file is served by the
+                 website from its ANDROID_CERT_SHA256 setting, the release
+                 keystore's SHA-256 fingerprint; until it is live the link
+                 opens in the browser. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="velorki.com"
+                      android:pathPrefix="/s/"/>
+            </intent-filter>
             <!-- Open GPX and FIT files from file managers, mail, browsers and
                  the share sheet. Senders are inconsistent about MIME types, so
                  octet-stream with a path pattern is matched too; the app sniffs

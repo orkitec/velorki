@@ -43,10 +43,27 @@ void main() {
       );
     });
 
+    test('takes the production link a phone opens from a browser', () {
+      expect(
+        shareIdOf(Uri.parse('https://velorki.com/s/7Kq2mZ0aTb')),
+        '7Kq2mZ0aTb',
+      );
+    });
+
     test('every other link is somebody else\'s business', () {
       expect(shareIdOf(Uri.parse('velorki://oauth/strava?code=1')), isNull);
       expect(shareIdOf(Uri.parse('velorki://share/')), isNull);
       expect(shareIdOf(Uri.parse('https://velorki.com/')), isNull);
+      // Only the bare host: the site redirects www, and the App Links and
+      // Universal Links files are served for velorki.com alone.
+      expect(
+        shareIdOf(Uri.parse('https://www.velorki.com/s/7Kq2mZ0aTb')),
+        isNull,
+      );
+      expect(
+        shareIdOf(Uri.parse('https://velorki.example/s/7Kq2mZ0aTb')),
+        isNull,
+      );
     });
   });
 
