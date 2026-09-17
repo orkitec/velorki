@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { NextResponse, type NextRequest } from 'next/server';
 import { routing } from '@/i18n/routing';
+import { docSlugs } from '@/site/content';
 import { getConfig, getStore } from '@/server/singletons';
 import { requestIdFrom, REQUEST_ID_HEADER } from '@/server/requestid';
 import { errorBody } from '@/server/errors';
@@ -14,8 +15,9 @@ import { isApiRoute, parseSharePath, resolveHost, SHARE_ID_RE } from '@/hosts';
  * themselves: refuse a request whose Host is neither the api nor the site,
  * answer the api host's JSON 404 for an unknown (method, path), turn
  * `/s/<id>.gpx` into the `/s/<id>/gpx` route while rejecting a malformed id,
- * settle whether a share still exists so the 404 is a real one, and run
- * next-intl's locale negotiation for the website.
+ * settle whether a share still exists so the 404 is a real one, settle the same
+ * way whether a docs slug exists, and run next-intl's locale negotiation for
+ * the website.
  *
  * `cache-control` is only ever set on a response this file *produces*: the
  * JSON errors, the 308, the share page and the rewrite to `/s/gone`. A
@@ -58,6 +60,54 @@ const SITE_FILES = [
  * direct request for it gets the JSON 404 below.
  */
 const SHARE_GONE_PATH = '/s/gone';
+
+/**
+ * The segment an unknown `/docs/<slug>` is rewritten to, for the same reason as
+ * `SHARE_GONE_PATH`: under `cacheComponents` a `notFound()` inside the docs
+ * catch-all lands after the 200 has been committed, so every misspelt docs URL
+ * answers 200 with a not-found body, a canonical of its own and
+ * `robots: index`.
+ *
+ * `/<locale>/_missing` matches no route at all, so the router answers a real
+ * 404 - the same answer any other unknown URL on the site gets. A page of our
+ * own that only calls `notFound()` (what `/s/gone` is) cannot do the job here:
+ * the `[locale]` layout awaits its params, so the static shell, 200 and all, is
+ * committed before any page under it runs. `_missing` is not a well-formed
+ * slug or locale (`SEGMENT_RE` in site/content.ts), so nothing can ever claim
+ * the path.
+ */
+const DOCS_MISSING_SEGMENT = '_missing';
+
+/**
+ * The English docs slugs, read from the content directory once per process.
+ * Module state does not survive a proxy reload in development, so the cache
+ * hangs off `globalThis`; the set is a dozen short strings.
+ */
+function docSlugSet(): ReadonlySet<string> {
+  const store = globalThis as typeof globalThis & { __velorkiDocSlugs?: ReadonlySet<string> };
+  store.__velorkiDocSlugs ??= new Set(docSlugs());
+  return store.__velorkiDocSlugs;
+}
+
+/**
+ * The rewrite target for a docs URL that is not a page, or null when the path
+ * is a real docs page - or not a docs path at all.
+ *
+ * `/docs`, `/<locale>/docs` and `/<locale>/docs/<known slug>` pass; one unknown
+ * slug and anything deeper than one segment do not. The locale prefix is kept,
+ * so the request never leaves the language it arrived in.
+ */
+function docsNotFoundPath(pathname: string): string | null {
+  const segments = pathname.split('/').filter((segment) => segment !== '');
+  const prefixed = segments[0] !== undefined && (routing.locales as readonly string[]).includes(segments[0]);
+  const locale = prefixed ? segments[0]! : routing.defaultLocale;
+  const rest = prefixed ? segments.slice(1) : segments;
+  if (rest[0] !== 'docs') return null;
+  const slug = rest.slice(1);
+  if (slug.length === 0) return null;
+  if (slug.length === 1 && docSlugSet().has(slug[0]!)) return null;
+  return `/${locale}/${DOCS_MISSING_SEGMENT}`;
+}
 
 /** Paths the site serves as-is: no locale prefix, no share handling. */
 function isPassThrough(pathname: string): boolean {
@@ -206,6 +256,17 @@ export default async function proxy(request: NextRequest): Promise<NextResponse>
     return response;
   }
 
+  const missing = docsNotFoundPath(url.pathname);
+  if (missing !== null) {
+    const response = NextResponse.rewrite(new URL(missing, url), {
+      request: { headers: forwardHeaders(request, requestId) },
+    });
+    response.headers.set(REQUEST_ID_HEADER, requestId);
+    // A page that does not exist today may exist after the next deploy.
+    response.headers.set('cache-control', 'no-store');
+    return response;
+  }
+
   const response = await localeMiddleware(request);
   response.headers.set(REQUEST_ID_HEADER, requestId);
   // Only the localised pages: the generated site files are one fixed language
@@ -223,6 +284,9 @@ export const config = {
    */
   matcher: [
     '/((?!_next/static|_next/image|.*\\.(?!gpx$)[^./]+$).*)',
+    // The app-linking files carry a `.json` extension, and they are routes of
+    // ours: without this line they would skip the host gate.
+    '/.well-known/:path*',
     '/robots.txt',
     '/sitemap.xml',
     '/llms.txt',

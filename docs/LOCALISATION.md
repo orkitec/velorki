@@ -34,7 +34,19 @@ a language".
 - Placeholders are ICU, as in the ARB (`{count}`, `{distance}`). They must
   survive translation unchanged, in any order the language needs.
 - In Markdown, front matter keys stay as they are; only `title` and
-  `description` are translated. `draft: true` stays `true`.
+  `description` are translated. `draft: true` stays `true`: it marks a text
+  that has not been reviewed, and the site renders it with a banner and
+  `robots: noindex`, and leaves it out of the sitemap, `llms.txt` and
+  `llms-full.txt`. A legal text whose body still contains `{{` shows a short
+  notice instead of the template.
+- Turn-by-turn labels (`navTurnLeft`, `navTurnRight`, `navTurnSlightLeft`,
+  `navTurnSlightRight`, `navTurnSharpLeft`, `navTurnSharpRight`, `navKeepLeft`,
+  `navKeepRight`, `navUTurn`, `navRoundaboutExit`, `navExitLeft`,
+  `navExitRight`, `navArrive`, `navContinue`, `navBackToRoute`) are also spoken
+  inside a longer sentence ("In 200 metres, turn left"), where the app
+  lower-cases the first letter. They must be written so that survives: never
+  start one with a word that is capitalised wherever it stands, such as a
+  German noun. "Am Ziel ankommen", not "Ziel erreichen".
 - `app/test/l10n/arb_test.dart` checks that every translated ARB declares its
   own locale and carries no key English does not have. It runs in CI with the
   rest of `flutter test`.

@@ -2,6 +2,13 @@
 // Writes src/i18n/locales.generated.ts from the catalogues in messages/. A
 // translation merged from Crowdin (messages/fr.json) enables the locale on the
 // next run; routing.ts is imported by client code and cannot read the directory.
+//
+// `--check` verifies both halves of that contract without writing: the
+// generated file matches what is on disk, and every messages/<locale>.json has
+// exactly the keys of the English source. A missing key would fall back to
+// English at run time, but only since request.ts merges per key, and an extra
+// one is a string nobody renders - both are translator mistakes worth a red CI
+// run rather than a silent difference between the languages.
 import { readdirSync, writeFileSync, readFileSync } from 'node:fs';
 
 const root = new URL('..', import.meta.url).pathname;
@@ -16,11 +23,44 @@ export const LOCALES = [${locales.map((l) => `'${l}'`).join(', ')}] as const;
 export const DEFAULT_LOCALE = 'en';
 `;
 const target = `${root}src/i18n/locales.generated.ts`;
+
+/** Every leaf path of a catalogue, e.g. `docs.meta.title`. */
+function keyPaths(value, prefix = '') {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return [prefix];
+  return Object.entries(value).flatMap(([key, child]) =>
+    keyPaths(child, prefix === '' ? key : `${prefix}.${key}`),
+  );
+}
+
+function readCatalogue(locale) {
+  return JSON.parse(readFileSync(`${root}messages/${locale}.json`, 'utf8'));
+}
+
+/** Missing and extra keys of every translated catalogue against English. */
+function parityProblems() {
+  const source = new Set(keyPaths(readCatalogue('en')));
+  const problems = [];
+  for (const locale of locales.filter((l) => l !== 'en')) {
+    const own = new Set(keyPaths(readCatalogue(locale)));
+    for (const key of source) if (!own.has(key)) problems.push(`${locale}.json: missing ${key}`);
+    for (const key of own) if (!source.has(key)) problems.push(`${locale}.json: has ${key}, English does not`);
+  }
+  return problems;
+}
+
 if (process.argv.includes('--check')) {
+  let failed = false;
   if (readFileSync(target, 'utf8') !== out) {
     console.error('src/i18n/locales.generated.ts is stale; run `npm run locales`');
-    process.exit(1);
+    failed = true;
   }
+  const problems = parityProblems();
+  if (problems.length > 0) {
+    console.error(`locales: ${problems.length} key parity problem(s) against messages/en.json:`);
+    for (const problem of problems) console.error(`  - ${problem}`);
+    failed = true;
+  }
+  if (failed) process.exit(1);
 } else {
   writeFileSync(target, out);
 }

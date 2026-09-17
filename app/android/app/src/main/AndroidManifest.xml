@@ -46,19 +46,18 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- Shared route links (velorki://s/<id>). A custom scheme needs
-                 no android:autoVerify. The OAuth host is deliberately left to
-                 flutter_web_auth_2's CallbackActivity below: two activities
-                 matching the same URI would make Android ask the user which
-                 one should open it. -->
+            <!-- Shared route links (velorki://share/<id>). A custom scheme
+                 needs no android:autoVerify. The OAuth host is deliberately
+                 left to flutter_web_auth_2's CallbackActivity below: two
+                 activities matching the same URI would make Android ask the
+                 user which one should open it. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
-                <!-- Share links (velorki://share/<id>) and short links; the
-                     oauth host belongs to flutter_web_auth_2's CallbackActivity. -->
+                <!-- The oauth host belongs to flutter_web_auth_2's
+                     CallbackActivity. -->
                 <data android:scheme="velorki" android:host="share"/>
-                <data android:scheme="velorki" android:host="s"/>
             </intent-filter>
             <!-- The same share links as https (App Links):
                  https://velorki.com/s/<id>, with or without .gpx.

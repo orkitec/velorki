@@ -31,6 +31,8 @@ Die Seite wird von Suchmaschinen nicht indexiert, und sie trägt keine Skripte, 
 
 **In Velorki öffnen** lädt die GPX herunter und bringt die Empfängerin auf den gewöhnlichen [Importbildschirm](./import-and-export), wo sie den Eintrag benennt und wie jede andere Datei als Route oder Fahrt speichert.
 
+Auf einem Handy mit installierter Velorki-App macht der Link selbst dasselbe: Ein Tipp auf einen Teilen-Link, **GPX herunterladen** eingeschlossen, öffnet die App und landet auf diesem Importbildschirm statt im Browser.
+
 ## Was ein Link ist und was nicht
 
 Ein Teilen-Link ist eine lange zufällige Adresse und sonst nichts. Er trägt kein Passwort und keine Rechteprüfung: **Wer den Link hat, kann ihn öffnen**, auch jeder, an den er weitergeleitet wird.

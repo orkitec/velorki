@@ -31,6 +31,8 @@ The page is not indexed by search engines, and it carries no third-party scripts
 
 **Open in Velorki** downloads the GPX and takes the recipient to the ordinary [import screen](./import-and-export), where they name it and save it as a route or a ride like any other file.
 
+On a phone that has Velorki installed, the link itself does the same: tapping a share link, **Download GPX** included, opens the app and lands on that import screen instead of the browser.
+
 ## What a link is, and what it is not
 
 A share link is a long random address and nothing more. It carries no password and no permission check: **anyone who has the link can open it**, including anyone it gets forwarded to.

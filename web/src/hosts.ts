@@ -6,8 +6,13 @@ import type { Config } from '@/config';
  *
  * The API lives on `API_HOST` and nothing else; the website and the share
  * pages live on `SITE_HOST` and nothing else. A request arriving with any other
- * Host is answered 404 without reaching a handler, so a stray DNS name pointed
- * at the origin cannot be used to probe the service.
+ * Host is answered 404 before it reaches a handler on every route of ours, so a
+ * stray DNS name pointed at the origin cannot be used to probe the service.
+ *
+ * Static files in `public/` are the exception: they carry a file extension, the
+ * proxy's matcher excludes those, and Next serves them whatever the Host says.
+ * They are public assets - an icon, a screenshot - and say nothing about the
+ * service that a `GET /` on the site host would not.
  */
 
 export type HostRole = 'api' | 'site' | 'unknown';

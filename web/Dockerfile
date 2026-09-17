@@ -17,18 +17,23 @@ RUN npm run build
 RUN mkdir -p /var/lib/velorki && chown 65532:65532 /var/lib/velorki
 
 FROM gcr.io/distroless/nodejs22-debian12:nonroot
-WORKDIR /app
+# The standalone tree is the working directory, not its parent: content.ts,
+# ai/provider.ts and site/screenshot-files.ts read `content/`, `src/ai/prompts/`
+# and `public/screenshots/` relative to process.cwd(), and those exist inside
+# the standalone tree - `next.config.ts` traces them there. Started from /app
+# instead, POST /ai/plan would 500 on the missing prompts.
+WORKDIR /app/.next/standalone
 ENV NODE_ENV=production \
     PORT=8080 \
     HOSTNAME=0.0.0.0 \
     SHARE_DB_PATH=/var/lib/velorki/share.sqlite
-# Kept at the same path the repo uses everywhere else (package.json's `start`,
-# orkify.yml's `script`), so there is one entry point to remember.
-COPY --from=build --chown=nonroot:nonroot /app/.next/standalone ./.next/standalone
-COPY --from=build --chown=nonroot:nonroot /app/.next/static ./.next/standalone/.next/static
-COPY --from=build --chown=nonroot:nonroot /app/public ./.next/standalone/public
+COPY --from=build --chown=nonroot:nonroot /app/.next/standalone /app/.next/standalone
+COPY --from=build --chown=nonroot:nonroot /app/.next/static /app/.next/standalone/.next/static
+# public/ is already in the standalone tree: the postbuild hook
+# (scripts/standalone-assets.mjs) copies it there.
 COPY --from=build --chown=nonroot:nonroot /var/lib/velorki /var/lib/velorki
 VOLUME ["/var/lib/velorki"]
 EXPOSE 8080
-# The distroless image's entrypoint is node, so this is the script argument.
-CMD [".next/standalone/server.js"]
+# The distroless image's entrypoint is node, so this is the script argument,
+# resolved against the WORKDIR above.
+CMD ["server.js"]

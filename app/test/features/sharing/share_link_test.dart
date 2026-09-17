@@ -65,6 +65,22 @@ void main() {
         isNull,
       );
     });
+
+    test('only a well-formed id is accepted', () {
+      // The id ends up in the URL the app fetches, so anything that is not
+      // ten base62 characters is not a share link at all.
+      for (final link in <String>[
+        'velorki://share/..%2F..%2Fadmin',
+        'velorki://share/7Kq2mZ0aT',
+        'velorki://share/7Kq2mZ0aTbX',
+        'velorki://share/7Kq2mZ0aT-',
+        'velorki://share/7Kq2mZ0aT?x=1',
+        'https://velorki.com/s/..%2Fhealth',
+        'https://velorki.com/s/short.gpx',
+      ]) {
+        expect(shareIdOf(Uri.parse(link)), isNull, reason: link);
+      }
+    });
   });
 
   group('shareGpxUrl', () {

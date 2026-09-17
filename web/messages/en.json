@@ -2,8 +2,7 @@
   "site": {
     "name": "Velorki",
     "tagline": "Plan the ride, find the café, follow the turns, and do all of it where the signal ends. Free, open source, built on OpenStreetMap.",
-    "description": "Velorki plans bike routes, builds loops and records your rides — on the phone, offline, on OpenStreetMap data. Free and open source.",
-    "byline": "A bike route planner and ride recorder by Orkitec."
+    "description": "Velorki plans bike routes, builds loops and records your rides — on the phone, offline, on OpenStreetMap data. Free and open source."
   },
   "nav": {
     "home": "Velorki home",
@@ -13,8 +12,7 @@
     "download": "Download",
     "github": "GitHub",
     "primary": "Main",
-    "skip": "Skip to content",
-    "openMenu": "Menu"
+    "skip": "Skip to content"
   },
   "localeSwitcher": {
     "label": "Language",
@@ -35,7 +33,6 @@
   },
   "screenshots": {
     "missing": "Screenshot pending",
-    "missingHint": "{file}",
     "alt": {
       "planner": "The Velorki route planner: a bike route on the map with waypoints, distance, ascent and the elevation profile in a panel over the map.",
       "loop": "A generated loop: a round trip drawn on the map with its length, climbing and surface mix.",
@@ -167,7 +164,8 @@
         "rwgps": "Ride with GPS: routes and trips both ways",
         "sharing": "Share links for routes and rides"
       },
-      "note": "The code for all of it is here, so you can also run your own relay and skip the subscription entirely."
+      "note": "The code for all of it is here, so you can also run your own relay and skip the subscription entirely.",
+      "plusLink": "Velorki Plus →"
     },
     "openSource": {
       "eyebrow": "Open source, no account",
@@ -276,8 +274,7 @@
     "selfHostTitle": "Or run it yourself",
     "selfHostBody": "The relay is open source. Point a build at your own and every Plus feature works without a subscription.",
     "termsLink": "Terms of use",
-    "privacyLink": "Privacy policy",
-    "docsLink": "Velorki Plus in the docs"
+    "privacyLink": "Privacy policy"
   },
   "download": {
     "meta": {
@@ -298,8 +295,7 @@
     "apkLink": "GitHub Releases",
     "sourceTitle": "Build it yourself",
     "sourceBody": "The whole app is in the repository. `mise install` in the root installs Flutter, Java and Node at the pinned versions; the app README has the rest.",
-    "sourceLink": "Source on GitHub",
-    "pending": "The store listings are not live yet — until they are, GitHub Releases is the way in."
+    "sourceLink": "Source on GitHub"
   },
   "docs": {
     "meta": {
@@ -310,14 +306,15 @@
     "lead": "The user guide: how to plan, ride, record and get your rides back out again.",
     "sidebar": "Documentation",
     "breadcrumb": "Docs",
+    "breadcrumbLabel": "Breadcrumb",
     "home": "Home",
     "prev": "Previous",
     "next": "Next",
-    "onThisPage": "On this page",
+    "pagination": "Previous and next page",
     "empty": "The user guide is being written. Until it lands, the README and the docs folder in the repository have the detail.",
     "untranslatedTitle": "This page is not translated yet",
     "untranslatedBody": "The English text is shown instead. Translations come from the community — the source file is in the repository.",
-    "readMore": "Read"
+    "draft": "This text is a draft and has not been reviewed yet."
   },
   "legal": {
     "privacy": {
@@ -333,7 +330,7 @@
       "description": "The provider of velorki.com and how to reach us."
     },
     "missing": "This document has not been published yet. Write to {email} in the meantime.",
-    "updated": "Last updated"
+    "placeholder": "The imprint will be published before launch. Contact: {email} for now."
   },
   "footer": {
     "tagline": "A bike route planner and ride recorder that runs on your phone.",
@@ -341,7 +338,6 @@
     "resources": "Resources",
     "legalHeading": "Legal",
     "security": "Security: {email}",
-    "securityLabel": "Report a security issue",
     "osm": "Map data © OpenStreetMap contributors",
     "credits": "Routing by BRouter, tiles by OpenFreeMap, search by Photon.",
     "copyright": "© {year} Orkitec. App under Apache-2.0, website and relay under AGPL-3.0-only.",

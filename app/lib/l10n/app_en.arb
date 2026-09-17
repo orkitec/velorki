@@ -2613,43 +2613,43 @@
   },
   "navTurnLeft": "Turn left",
   "@navTurnLeft": {
-    "description": "Turn-by-turn instruction: a normal left turn"
+    "description": "Turn-by-turn instruction: a normal left turn. Spoken inside a longer sentence too, as in: In 200 metres, turn left - where the app lower-cases the first letter: do not start it with a word that is capitalised wherever it stands, such as a German noun."
   },
   "navTurnRight": "Turn right",
   "@navTurnRight": {
-    "description": "Turn-by-turn instruction: a normal right turn"
+    "description": "Turn-by-turn instruction: a normal right turn. Spoken inside a longer sentence too, as in: In 200 metres, turn left - where the app lower-cases the first letter: do not start it with a word that is capitalised wherever it stands, such as a German noun."
   },
   "navTurnSlightLeft": "Bear left",
   "@navTurnSlightLeft": {
-    "description": "Turn-by-turn instruction: a shallow left turn"
+    "description": "Turn-by-turn instruction: a shallow left turn. Spoken inside a longer sentence too, as in: In 200 metres, turn left - where the app lower-cases the first letter: do not start it with a word that is capitalised wherever it stands, such as a German noun."
   },
   "navTurnSlightRight": "Bear right",
   "@navTurnSlightRight": {
-    "description": "Turn-by-turn instruction: a shallow right turn"
+    "description": "Turn-by-turn instruction: a shallow right turn. Spoken inside a longer sentence too, as in: In 200 metres, turn left - where the app lower-cases the first letter: do not start it with a word that is capitalised wherever it stands, such as a German noun."
   },
   "navTurnSharpLeft": "Turn sharp left",
   "@navTurnSharpLeft": {
-    "description": "Turn-by-turn instruction: a hairpin left turn"
+    "description": "Turn-by-turn instruction: a hairpin left turn. Spoken inside a longer sentence too, as in: In 200 metres, turn left - where the app lower-cases the first letter: do not start it with a word that is capitalised wherever it stands, such as a German noun."
   },
   "navTurnSharpRight": "Turn sharp right",
   "@navTurnSharpRight": {
-    "description": "Turn-by-turn instruction: a hairpin right turn"
+    "description": "Turn-by-turn instruction: a hairpin right turn. Spoken inside a longer sentence too, as in: In 200 metres, turn left - where the app lower-cases the first letter: do not start it with a word that is capitalised wherever it stands, such as a German noun."
   },
   "navKeepLeft": "Keep left",
   "@navKeepLeft": {
-    "description": "Turn-by-turn instruction: stay on the left branch of a fork"
+    "description": "Turn-by-turn instruction: stay on the left branch of a fork. Spoken inside a longer sentence too, as in: In 200 metres, turn left - where the app lower-cases the first letter: do not start it with a word that is capitalised wherever it stands, such as a German noun."
   },
   "navKeepRight": "Keep right",
   "@navKeepRight": {
-    "description": "Turn-by-turn instruction: stay on the right branch of a fork"
+    "description": "Turn-by-turn instruction: stay on the right branch of a fork. Spoken inside a longer sentence too, as in: In 200 metres, turn left - where the app lower-cases the first letter: do not start it with a word that is capitalised wherever it stands, such as a German noun."
   },
   "navUTurn": "Turn around",
   "@navUTurn": {
-    "description": "Turn-by-turn instruction: go back the way you came"
+    "description": "Turn-by-turn instruction: go back the way you came. Spoken inside a longer sentence too, as in: In 200 metres, turn left - where the app lower-cases the first letter: do not start it with a word that is capitalised wherever it stands, such as a German noun."
   },
   "navRoundaboutExit": "At the roundabout, take exit {exit}",
   "@navRoundaboutExit": {
-    "description": "Turn-by-turn instruction at a roundabout, counting exits from 1",
+    "description": "Turn-by-turn instruction at a roundabout, counting exits from 1. Spoken inside a longer sentence too, as in: In 200 metres, turn left - where the app lower-cases the first letter: do not start it with a word that is capitalised wherever it stands, such as a German noun.",
     "placeholders": {
       "exit": {
         "type": "int",
@@ -2659,19 +2659,19 @@
   },
   "navExitLeft": "Take the exit on the left",
   "@navExitLeft": {
-    "description": "Turn-by-turn instruction: leave the road on the left"
+    "description": "Turn-by-turn instruction: leave the road on the left. Spoken inside a longer sentence too, as in: In 200 metres, turn left - where the app lower-cases the first letter: do not start it with a word that is capitalised wherever it stands, such as a German noun."
   },
   "navExitRight": "Take the exit on the right",
   "@navExitRight": {
-    "description": "Turn-by-turn instruction: leave the road on the right"
+    "description": "Turn-by-turn instruction: leave the road on the right. Spoken inside a longer sentence too, as in: In 200 metres, turn left - where the app lower-cases the first letter: do not start it with a word that is capitalised wherever it stands, such as a German noun."
   },
   "navContinue": "Continue",
   "@navContinue": {
-    "description": "Turn-by-turn instruction: carry on, nothing to do here"
+    "description": "Turn-by-turn instruction: carry on, nothing to do here. Spoken inside a longer sentence too, as in: In 200 metres, turn left - where the app lower-cases the first letter: do not start it with a word that is capitalised wherever it stands, such as a German noun."
   },
   "navArrive": "Arrive",
   "@navArrive": {
-    "description": "Turn-by-turn instruction for the end of the route"
+    "description": "Turn-by-turn instruction for the end of the route. Spoken inside a longer sentence too, as in: In 200 metres, turn left - where the app lower-cases the first letter: do not start it with a word that is capitalised wherever it stands, such as a German noun."
   },
   "navCueAhead": "In {distance} metres, {instruction}",
   "@navCueAhead": {
@@ -2785,7 +2785,7 @@
   },
   "navBackToRoute": "Back to the route{direction, select, left{, on your left} right{, on your right} ahead{, ahead} behind{, behind you} other{}}",
   "@navBackToRoute": {
-    "description": "Shown and spoken while the rider is off the route and is being pointed back at it; direction is which way the way back lies relative to where the rider is headed",
+    "description": "Shown and spoken while the rider is off the route and is being pointed back at it; direction is which way the way back lies relative to where the rider is headed. Spoken inside a longer sentence too, as in: In 200 metres, turn left - where the app lower-cases the first letter: do not start it with a word that is capitalised wherever it stands, such as a German noun.",
     "placeholders": {
       "direction": {
         "type": "String",

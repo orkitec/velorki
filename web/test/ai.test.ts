@@ -142,6 +142,50 @@ describe('POST /ai/plan: gating', () => {
       }
     });
   });
+
+  it('charges the per-IP limit before the body is read', async () => {
+    await withLlm(
+      { TRUST_PROXY: '1', CLIENT_IP_HEADER: 'cf-connecting-ip' },
+      { getModel: () => mockToolCallModel(VALID_ROUTE) },
+      async () => {
+        // One address, a different rider each time, so only the per-IP window
+        // fills up. The body is one a reader would reject with 400.
+        const bad = (rider: number) =>
+          call({ step: 'nope' }, {
+            ...CONSENT,
+            authorization: `Bearer rider-${String(rider)}`,
+            'cf-connecting-ip': '203.0.113.9',
+          });
+
+        for (let i = 0; i < 60; i += 1) {
+          expect((await bad(i)).status, `call ${String(i)}`).toBe(400);
+        }
+        // Over the limit the same body answers 429: the request is refused
+        // before anything is read, so it never gets as far as being invalid.
+        const limited = await bad(60);
+        expect(limited.status).toBe(429);
+        expect((await errOf(limited)).code).toBe('rate_limited');
+
+        // Another address still has its whole window.
+        const other = await call({ step: 'nope' }, {
+          ...CONSENT,
+          'cf-connecting-ip': '198.51.100.1',
+        });
+        expect(other.status).toBe(400);
+      },
+    );
+  });
+
+  it('refuses a budget without prices at load time', async () => {
+    const { loadConfig } = await import('@/config');
+    expect(() => loadConfig({ LLM_DAILY_BUDGET_USD: '5' })).toThrow(/LLM_USD_PER_1K_IN/);
+    expect(() => loadConfig({ LLM_DAILY_BUDGET_USD: '5', LLM_USD_PER_1K_IN: '1' })).toThrow(
+      /LLM_USD_PER_1K_OUT/,
+    );
+    expect(() =>
+      loadConfig({ LLM_DAILY_BUDGET_USD: '5', LLM_USD_PER_1K_IN: '1', LLM_USD_PER_1K_OUT: '2' }),
+    ).not.toThrow();
+  });
 });
 
 describe('POST /ai/plan: cache policy', () => {

@@ -28,7 +28,7 @@ export function LocaleSwitcher() {
             href={switchPath(locale, pathname)}
             hrefLang={locale}
             lang={locale}
-            aria-current={active ? 'true' : undefined}
+            aria-current={active ? 'page' : undefined}
             className={`rounded-full px-2.5 py-1 text-xs font-bold tracking-wide transition-colors ${
               active ? 'bg-accent text-on-accent' : 'text-muted hover:text-fg'
             }`}

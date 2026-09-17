@@ -40,6 +40,11 @@ export const LIMITS = {
   aiPlanPerDay: { name: 'ai_plan_day', limit: 100, windowS: 86_400 },
   aiPlanPerIpHour: { name: 'ai_plan_ip_hour', limit: 60, windowS: 3_600 },
   sharePerDay: { name: 'share_day', limit: 30, windowS: 86_400 },
+  /**
+   * Charged before the body is read, so an unauthenticated caller cannot keep
+   * a worker buffering megabytes; the per-user daily limit is the real one.
+   */
+  sharePerIpHour: { name: 'share_ip_hour', limit: 60, windowS: 3_600 },
 } as const satisfies Record<string, LimitSpec>;
 
 /** The counter key of one window. Exported so tests can assert the shape. */

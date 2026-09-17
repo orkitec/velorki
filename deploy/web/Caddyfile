@@ -9,7 +9,9 @@
 #
 # The app separates the two roles by the Host header (SITE_HOST / API_HOST), so
 # `header_up Host {host}` below is load-bearing: strip it and every request
-# arrives as `127.0.0.1:8080` and gets a 404.
+# arrives as `127.0.0.1:8080`, which the app reads as the api role (that is how
+# Orkify's header-less health probe reaches /health). The site would then be
+# unreachable and the relay would answer on every hostname.
 #
 # TLS is a Cloudflare Origin CA certificate (not ACME): it is only trusted by
 # Cloudflare, which is the only thing allowed to reach this box. Cloudflare runs

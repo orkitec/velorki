@@ -73,7 +73,10 @@ describe('config.matcher', () => {
     expect(matches('/_next/image')).toBe(false);
     expect(matches('/favicon.ico')).toBe(false);
     expect(matches('/screenshots/dark/library.png')).toBe(false);
-    expect(matches('/.well-known/assetlinks.json')).toBe(false);
+    // Named explicitly: the app-linking files are routes of ours, extension
+    // and all, so they have to pass the host gate.
+    expect(matches('/.well-known/assetlinks.json')).toBe(true);
+    expect(matches('/.well-known/apple-app-site-association')).toBe(true);
   });
 });
 
@@ -294,9 +297,53 @@ describe('share paths on the site host', () => {
 
   it('passes /.well-known through untouched', async () => {
     await withEnv({}, async () => {
-      const res = await proxy(request(`${SITE}/.well-known/apple-app-site-association`));
-      expect(res.status).toBe(200);
-      expect(isRewrite(res)).toBe(false);
+      for (const path of ['/.well-known/apple-app-site-association', '/.well-known/assetlinks.json']) {
+        expect(matches(path), path).toBe(true);
+        const res = await proxy(request(`${SITE}${path}`));
+        expect(res.status, path).toBe(200);
+        expect(isRewrite(res), path).toBe(false);
+      }
+    });
+  });
+});
+
+/**
+ * An unknown docs URL is settled here, not in the page: under
+ * `cacheComponents` a `notFound()` in the catch-all lands after the 200.
+ */
+describe('docs slugs', () => {
+  const MISSING = '/_missing';
+
+  it('rewrites an unknown slug to a path no route matches, in the right locale', async () => {
+    await withEnv({}, async () => {
+      for (const [path, target] of [
+        ['/docs/nope', `/en${MISSING}`],
+        ['/docs/a/b', `/en${MISSING}`],
+        ['/de/docs/nope', `/de${MISSING}`],
+        ['/de/docs/getting-started/extra', `/de${MISSING}`],
+      ] as const) {
+        const res = await proxy(request(`${SITE}${path}`));
+        expect(isRewrite(res), path).toBe(true);
+        expect(getRewrittenUrl(res), path).toBe(`${SITE}${target}`);
+        expect(res.headers.get('cache-control'), path).toBe('no-store');
+      }
+    });
+  });
+
+  it('leaves the index and a real page alone', async () => {
+    await withEnv({}, async () => {
+      for (const path of ['/docs', '/de/docs', '/docs/getting-started', '/de/docs/getting-started']) {
+        const res = await proxy(request(`${SITE}${path}`));
+        expect(isRewrite(res), path).toBe(false);
+      }
+    });
+  });
+
+  it('does not apply on the api host', async () => {
+    await withEnv({}, async () => {
+      const res = await proxy(request(`${API}/docs/nope`));
+      expect(res.status).toBe(404);
+      expect((await errOf(res)).code).toBe('not_found');
     });
   });
 });

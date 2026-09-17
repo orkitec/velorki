@@ -16,6 +16,9 @@ import type { Screen } from '@/site/screenshots';
 import { pageMetadata } from '@/site/seo';
 
 /** The six feature sections, each with the screen that shows it. */
+/** The screenshot in the hero; it is preloaded there and shown again below. */
+const HERO_SCREEN: Screen = 'planner';
+
 const FEATURES: ReadonlyArray<{ id: string; screen: Screen }> = [
   { id: 'plan', screen: 'planner' },
   { id: 'loops', screen: 'loop' },
@@ -106,7 +109,7 @@ function Hero({ locale }: { locale: string }) {
           <StoreBadges className="mt-10" />
         </div>
         <div className="flex justify-center lg:justify-end">
-          <PhoneFrame screen="planner" priority />
+          <PhoneFrame screen={HERO_SCREEN} priority />
         </div>
       </div>
     </section>
@@ -171,7 +174,7 @@ function Features() {
               </ul>
             </div>
             <div className="flex justify-center">
-              <PhoneFrame screen={feature.screen} />
+              <PhoneFrame screen={feature.screen} eager={feature.screen === HERO_SCREEN} />
             </div>
           </article>
         ))}
@@ -233,7 +236,7 @@ function Comparison({ locale }: { locale: string }) {
         <p className="mt-6 max-w-2xl text-sm text-muted">{t('note')}</p>
         <p className="mt-4">
           <Link href={localePath(locale, '/plus')} className="link-accent font-bold">
-            Velorki Plus →
+            {t('plusLink')}
           </Link>
         </p>
       </div>

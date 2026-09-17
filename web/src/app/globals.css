@@ -330,11 +330,14 @@ a {
    A CSS bezel, no image asset: a rounded ink shell with a hairline highlight,
    a screen that clips the screenshot, and a placeholder that says which file
    is missing when the pipeline has not produced it yet. */
+/* The aspect ratio belongs to the screen, not to the shell: with
+   `box-sizing: border-box` the bezel's padding would come out of the ratio and
+   the screen would be ~3 % shorter than the screenshot, which `object-fit:
+   cover` then crops. Here the shell is exactly the screen plus its bezel. */
 .phone {
   position: relative;
   width: 100%;
   max-width: 19rem;
-  aspect-ratio: 1080 / 2400;
   padding: 0.55rem;
   border-radius: 2.6rem;
   background: linear-gradient(160deg, #2a3039, #0e1115 45%, #1b1f26);
@@ -357,7 +360,7 @@ a {
 .phone-screen {
   position: relative;
   width: 100%;
-  height: 100%;
+  aspect-ratio: 1080 / 2400;
   overflow: hidden;
   border-radius: 2.15rem;
   background: var(--ink);

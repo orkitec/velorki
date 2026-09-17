@@ -3,7 +3,8 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  // tsconfig says jsx: preserve (Next compiles JSX); vitest needs the transform.
+  // tsconfig says `jsx: react-jsx`, which is what tsc and the editor use; the
+  // test runner transforms the .tsx files itself and needs telling separately.
   oxc: { jsx: { runtime: 'automatic', importSource: 'react' } },
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   test: {

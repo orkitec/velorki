@@ -21,7 +21,10 @@ function shareBody(extra: Record<string, unknown> = {}) {
   };
 }
 
-function create(extra: Record<string, unknown> = {}, headers = AUTH): Promise<Response> {
+function create(
+  extra: Record<string, unknown> = {},
+  headers: Record<string, string> = AUTH,
+): Promise<Response> {
   return createShare(jsonRequest(SHARE_URL, shareBody(extra), headers));
 }
 
@@ -79,6 +82,31 @@ describe('POST /share', () => {
       // A different rider has their own bucket.
       const other = await create({}, { authorization: 'Bearer someone-else' });
       expect(other.status).toBe(201);
+    });
+  });
+
+  it('charges the per-IP limit before the body is read', async () => {
+    await withEnv({ TRUST_PROXY: '1', CLIENT_IP_HEADER: 'cf-connecting-ip' }, async () => {
+      // One address, a different rider each time, so only the per-IP window
+      // fills up. The body is one the schema would reject with 400.
+      const bad = (rider: number) =>
+        create(
+          { kind: 'segment' },
+          { authorization: `Bearer rider-${String(rider)}`, 'cf-connecting-ip': '203.0.113.9' },
+        );
+
+      for (let i = 0; i < 60; i += 1) {
+        expect((await bad(i)).status, `call ${String(i)}`).toBe(400);
+      }
+      // Over the limit the same body answers 429: the request is refused
+      // before anything is read, so it never gets as far as being invalid.
+      const limited = await bad(60);
+      expect(limited.status).toBe(429);
+      expect((await errOf(limited)).code).toBe('rate_limited');
+
+      // Another address still has its whole window.
+      const other = await create({ kind: 'segment' }, { ...AUTH, 'cf-connecting-ip': '198.51.100.1' });
+      expect(other.status).toBe(400);
     });
   });
 });
@@ -201,18 +229,19 @@ describe('expiry', () => {
 });
 
 describe('share store', () => {
-  it('sweeps expired rows', () => {
+  it('sweeps the expired rows and leaves the live ones', () => {
     let now = Date.UTC(2026, 0, 1);
     const store = new ShareStore(':memory:', () => now);
 
-    const keep = store.create({
+    const drop = store.create({
       kind: 'route',
       name: 'a',
       gpx: '<gpx/>',
       summary: { distance_km: 1 },
     });
-    now += 1000;
-    const drop = store.create({
+    // Half a life later, so the two rows do not expire in the same sweep.
+    now += SHARE_TTL_MS / 2;
+    const keep = store.create({
       kind: 'ride',
       name: 'b',
       gpx: '<gpx/>',
@@ -221,10 +250,15 @@ describe('share store', () => {
 
     expect(store.sweep()).toBe(0);
 
-    now += SHARE_TTL_MS + 1;
-    expect(store.sweep()).toBe(2);
-    expect(store.get(keep.id)).toBeNull();
+    // Past the first row's year, with half a year left on the second.
+    now += SHARE_TTL_MS / 2 + 1;
+    expect(store.sweep()).toBe(1);
     expect(store.get(drop.id)).toBeNull();
+    expect(store.get(keep.id)).not.toBeNull();
+
+    now += SHARE_TTL_MS / 2;
+    expect(store.sweep()).toBe(1);
+    expect(store.get(keep.id)).toBeNull();
     store.close();
   });
 

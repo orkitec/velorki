@@ -35,18 +35,27 @@ jobs:
       - run: npm run typecheck
       - run: npm test
 
-      # No native addons and no install scripts: the app must stay a plain
-      # `node server.js` on a stock runtime, which is what keeps a fork cheap
-      # to self-host and the deploy free of a compiler.
-
       # Every messages/<locale>.json has the same keys as the English source
       # and src/i18n/locales.generated.ts matches what is on disk.
       - run: npm run locales -- --check
+
+      # Template placeholders in content/: a warning, not a failure. The pages
+      # render a notice instead of the template, so this is a reminder that the
+      # text is still waiting for its real values, not a broken build.
+      - name: Warn about unfilled placeholders in content/
+        run: |
+          files=$(grep -rl '{{' content || true)
+          if [ -n "$files" ]; then
+            echo "::warning::content files still carry {{ }} placeholders:"
+            printf '%s\n' "$files" | while read -r f; do echo "::warning file=web/$f::$f still has {{ }} placeholders"; done
+          fi
 
       # Runtime dependencies only: a high or critical advisory fails the run.
       - run: npm audit --omit=dev --audit-level=high
 
       - run: npm run build
       # Inspects the traced standalone tree, i.e. what is deployed, so it must
-      # run after the build.
+      # run after the build. No native addons and no install scripts: the app
+      # must stay a plain `node server.js` on a stock runtime, which is what
+      # keeps a fork cheap to self-host and the deploy free of a compiler.
       - run: npm run check:deps

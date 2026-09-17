@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/navigation/data/turn_speaker.dart';
@@ -222,5 +223,36 @@ void main() {
     final voices = await speaker.voices();
 
     expect(voices.map((voice) => voice.name), ['Zoe', 'Samantha']);
+  });
+
+  group('cueLocaleTag', () {
+    final dispatcher =
+        TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher;
+
+    tearDown(dispatcher.clearLocaleTestValue);
+
+    test('a picked language borrows the phone region when it can', () {
+      dispatcher.localeTestValue = const Locale('de', 'DE');
+      expect(cueLocaleTag(), 'de-DE');
+      expect(cueLocaleTag(const Locale('de')), 'de-DE');
+    });
+
+    test('English picked on a phone that is not English is en-US', () {
+      dispatcher.localeTestValue = const Locale('de', 'DE');
+      // A bare "en" is refused by some engines, and there is no English region
+      // on this phone to borrow.
+      expect(cueLocaleTag(const Locale('en')), 'en-US');
+    });
+
+    test('English picked on an English phone keeps that region', () {
+      dispatcher.localeTestValue = const Locale('en', 'GB');
+      expect(cueLocaleTag(const Locale('en')), 'en-GB');
+    });
+
+    test('a language the app is not translated into speaks English', () {
+      dispatcher.localeTestValue = const Locale('fr', 'FR');
+      expect(cueLocaleTag(), 'en-US');
+      expect(cueLocaleTag(const Locale('fr')), 'en-US');
+    });
   });
 }

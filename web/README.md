@@ -74,8 +74,11 @@ Everything under `/oauth/*`, `/ai/*` and `POST /share` requires
   `no-cache, no-transform` an event stream needs. The proxy sets a policy only
   on the answers it produces itself. The share page is `public, max-age=300`
   and the GPX `public, max-age=3600`.
-- Handler order is the Fastify one: body → entitlement → consent → rate limit →
-  handler.
+- Handler order is the Fastify one, with one addition in front: the per-IP
+  rate limit → body → entitlement → consent → per-rider rate limit → handler.
+  `POST /share` (60 per hour per IP) and `POST /ai/plan` (60 per hour per IP)
+  charge that first limit before reading up to 3 MB and 1 MB respectively, so
+  an unauthenticated caller cannot keep the workers buffering.
 
 ### Rate limits are fixed windows
 
@@ -238,7 +241,8 @@ and Orkify setup. The parts that matter here:
 - `SHARE_DB_PATH` must point at a **persistent volume** outside the release
   tree. On ephemeral storage every deploy silently breaks every share link.
 - `TRUST_PROXY=1` and `CLIENT_IP_HEADER=cf-connecting-ip` only when the origin
-  is firewalled to the proxy that sets them.
+  is firewalled to the proxy that sets them. `CLIENT_IP_HEADER` is read only
+  when `TRUST_PROXY=1`; without it every caller shares the key "unknown".
 - Worker `0` runs the daily share sweep; the others do not.
 
 **Keep this app free of native dependencies.** No `node-gyp`, no

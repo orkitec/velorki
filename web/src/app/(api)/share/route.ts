@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { z } from 'zod';
+import { clientIp } from '@/config';
 import { json, withApi } from '@/server/api';
 import { SHARE_BODY_LIMIT, readJsonBody } from '@/server/body';
 import { ApiError } from '@/server/errors';
@@ -29,10 +30,17 @@ const shareBodySchema = z.object({
 
 export const POST = withApi(async (request, ctx) => {
   const config = getConfig();
+  const counters = getCounters();
+  // Per IP before anything is read: the body is up to 3 MB and neither the
+  // entitlement nor the per-rider limit below can be checked without it, so an
+  // unauthenticated caller would otherwise be free to keep the workers
+  // buffering. The real limit is the per-rider one; this one only bounds how
+  // often a single address may make us read at all.
+  await enforce(counters, clientIp(config, request.headers), [LIMITS.sharePerIpHour], ctx.log);
   // The 2 MB GPX plus JSON escaping overhead; the exact limit is the schema's.
   const raw = await readJsonBody(request, SHARE_BODY_LIMIT);
   const appUserId = await requireEntitlement(getEntitlement(), request.headers, ctx.log);
-  await enforce(getCounters(), appUserId, [LIMITS.sharePerDay], ctx.log);
+  await enforce(counters, appUserId, [LIMITS.sharePerDay], ctx.log);
 
   const parsed = shareBodySchema.safeParse(raw);
   if (!parsed.success) {

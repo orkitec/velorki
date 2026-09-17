@@ -43,10 +43,13 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
-      - run: npm run check:deps
       - run: npm run locales -- --check
       - run: npm audit --omit=dev --audit-level=high
       - run: npm run build
+      # Inspects the traced standalone tree, i.e. what is deployed, so it must
+      # run after the build. Before it, .next/standalone does not exist and the
+      # check fails on every fresh runner.
+      - run: npm run check:deps
 
   deploy:
     needs: check
@@ -77,7 +80,6 @@ jobs:
           # build and the standalone server, so shipping it in the artefact is
           # how the value gets there. It holds no secret.
           printf 'NEXT_DEPLOYMENT_ID=%s\nAPP_VERSION=%s\n' "$SHA" "$TAG" > .env.production
-          cat .env.production
 
       - name: Pack the release
         # `orkify deploy pack` makes the tarball the server unpacks, installs

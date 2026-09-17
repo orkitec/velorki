@@ -2,8 +2,7 @@
   "site": {
     "name": "Velorki",
     "tagline": "Plane die Tour, finde das Café, folge den Abbiegehinweisen, und das alles dort, wo der Empfang endet. Kostenlos, quelloffen, auf OpenStreetMap gebaut.",
-    "description": "Velorki plant Radrouten, baut Runden und zeichnet deine Fahrten auf, auf dem Handy, offline, mit OpenStreetMap-Daten. Kostenlos und quelloffen.",
-    "byline": "Ein Radroutenplaner mit Fahrtenaufzeichnung von Orkitec."
+    "description": "Velorki plant Radrouten, baut Runden und zeichnet deine Fahrten auf, auf dem Handy, offline, mit OpenStreetMap-Daten. Kostenlos und quelloffen."
   },
   "nav": {
     "home": "Velorki Startseite",
@@ -13,8 +12,7 @@
     "download": "Download",
     "github": "GitHub",
     "primary": "Haupt",
-    "skip": "Zum Inhalt springen",
-    "openMenu": "Menü"
+    "skip": "Zum Inhalt springen"
   },
   "localeSwitcher": {
     "label": "Sprache",
@@ -35,7 +33,6 @@
   },
   "screenshots": {
     "missing": "Screenshot folgt",
-    "missingHint": "{file}",
     "alt": {
       "planner": "Der Velorki-Routenplaner: eine Radroute auf der Karte mit Wegpunkten, Distanz, Anstieg und dem Höhenprofil in einem Panel über der Karte.",
       "loop": "Eine erzeugte Runde: eine Rundfahrt auf der Karte, mit ihrer Länge, ihrem Anstieg und der Belagsmischung.",
@@ -167,7 +164,8 @@
         "rwgps": "Ride with GPS: Routen und Fahrten in beide Richtungen",
         "sharing": "Teilen-Links für Routen und Fahrten"
       },
-      "note": "Der Code für all das liegt hier, du kannst also auch einen eigenen Relay-Server betreiben und dir das Abo komplett sparen."
+      "note": "Der Code für all das liegt hier, du kannst also auch einen eigenen Relay-Server betreiben und dir das Abo komplett sparen.",
+      "plusLink": "Velorki Plus →"
     },
     "openSource": {
       "eyebrow": "Quelloffen, kein Konto",
@@ -276,8 +274,7 @@
     "selfHostTitle": "Oder betreib ihn selbst",
     "selfHostBody": "Der Relay ist quelloffen. Richte einen Build auf deinen eigenen aus und jede Plus-Funktion läuft ohne Abo.",
     "termsLink": "Nutzungsbedingungen",
-    "privacyLink": "Datenschutzerklärung",
-    "docsLink": "Velorki Plus in der Doku"
+    "privacyLink": "Datenschutzerklärung"
   },
   "download": {
     "meta": {
@@ -298,8 +295,7 @@
     "apkLink": "GitHub Releases",
     "sourceTitle": "Selbst bauen",
     "sourceBody": "Die ganze App liegt im Repository. `mise install` im Wurzelverzeichnis installiert Flutter, Java und Node in den festgelegten Versionen; den Rest hat die README der App.",
-    "sourceLink": "Quellcode auf GitHub",
-    "pending": "Die Store-Einträge sind noch nicht live; bis dahin führt der Weg über die GitHub Releases."
+    "sourceLink": "Quellcode auf GitHub"
   },
   "docs": {
     "meta": {
@@ -310,14 +306,15 @@
     "lead": "Das Handbuch: wie du planst, fährst, aufzeichnest und deine Fahrten wieder herausbekommst.",
     "sidebar": "Dokumentation",
     "breadcrumb": "Doku",
+    "breadcrumbLabel": "Navigationspfad",
     "home": "Start",
     "prev": "Zurück",
     "next": "Weiter",
-    "onThisPage": "Auf dieser Seite",
+    "pagination": "Vorherige und nächste Seite",
     "empty": "Das Handbuch wird gerade geschrieben. Bis es fertig ist, stehen die Details in der README und im Ordner docs des Repositorys.",
     "untranslatedTitle": "Diese Seite ist noch nicht übersetzt",
     "untranslatedBody": "Stattdessen steht hier der englische Text. Übersetzungen kommen aus der Community, die Quelldatei liegt im Repository.",
-    "readMore": "Lesen"
+    "draft": "Dieser Text ist ein Entwurf und wurde noch nicht geprüft."
   },
   "legal": {
     "privacy": {
@@ -333,7 +330,7 @@
       "description": "Der Anbieter von velorki.com und wie du uns erreichst."
     },
     "missing": "Dieses Dokument ist noch nicht veröffentlicht. Schreib in der Zwischenzeit an {email}.",
-    "updated": "Zuletzt aktualisiert"
+    "placeholder": "Das Impressum wird vor dem Start veröffentlicht. Bis dahin: {email}."
   },
   "footer": {
     "tagline": "Ein Radroutenplaner mit Fahrtenaufzeichnung, der auf deinem Handy läuft.",
@@ -341,7 +338,6 @@
     "resources": "Ressourcen",
     "legalHeading": "Rechtliches",
     "security": "Sicherheit: {email}",
-    "securityLabel": "Ein Sicherheitsproblem melden",
     "osm": "Kartendaten © OpenStreetMap-Mitwirkende",
     "credits": "Routing von BRouter, Kacheln von OpenFreeMap, Suche von Photon.",
     "copyright": "© {year} Orkitec. App unter Apache-2.0, Website und Relay unter AGPL-3.0-only.",

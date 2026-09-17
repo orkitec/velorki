@@ -6,7 +6,7 @@ import { GitHubIcon } from '@/components/Icons';
 import { PhoneFrame } from '@/components/PhoneFrame';
 import { StoreBadges } from '@/components/StoreBadges';
 import { routing } from '@/i18n/routing';
-import { GITHUB_URL, MIN_ANDROID, MIN_IOS, RELEASES_URL, STORE_URL_ANDROID, STORE_URL_IOS } from '@/site/config';
+import { GITHUB_URL, MIN_ANDROID, MIN_IOS, RELEASES_URL } from '@/site/config';
 import { pageMetadata } from '@/site/seo';
 
 export function generateStaticParams() {
@@ -27,7 +27,6 @@ export default async function DownloadPage({ params }: { params: Promise<{ local
 
 function DownloadContent() {
   const t = useTranslations('download');
-  const storesLive = STORE_URL_IOS !== '' || STORE_URL_ANDROID !== '';
   return (
     <>
       <section className="relative overflow-hidden">
@@ -37,8 +36,8 @@ function DownloadContent() {
             <p className="overline">{t('eyebrow')}</p>
             <h1 className="mt-3 text-6xl sm:text-7xl">{t('title')}</h1>
             <p className="mt-5 text-xl text-muted">{t('lead')}</p>
+            {/* StoreBadges says by itself that the stores are not live yet. */}
             <StoreBadges className="mt-8" />
-            {!storesLive && <p className="mt-4 max-w-md text-sm text-muted">{t('pending')}</p>}
           </div>
           <div className="flex justify-center lg:justify-end">
             <PhoneFrame screen="ride" priority />

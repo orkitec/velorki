@@ -33,17 +33,15 @@ describe('GET /health', () => {
     });
   });
 
-  it('answers HEAD with the same body and headers', async () => {
+  it('answers HEAD with the same status and headers', async () => {
     await withEnv({ APP_VERSION: '2.0.0' }, async () => {
       const res = await HEAD(new Request(URL_HEALTH, { method: 'HEAD' }));
+      // The body is deliberately not asserted: Next and undici strip it from a
+      // HEAD response on the wire, so no client ever sees the one built here.
       expect(res.status).toBe(200);
       expect(res.headers.get('cache-control')).toBe('no-store');
-      expect(await bodyOf<{ version: string }>(res)).toEqual({
-        status: 'ok',
-        version: '2.0.0',
-        brouter: 'unconfigured',
-        llm: 'unconfigured',
-      });
+      expect(res.headers.get('content-type')).toContain('application/json');
+      expect(res.headers.get('x-request-id')).toBeTruthy();
     });
   });
 

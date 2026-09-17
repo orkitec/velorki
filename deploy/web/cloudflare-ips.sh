@@ -76,8 +76,11 @@ fi
 if command -v ufw >/dev/null 2>&1; then
   current=$(ufw status numbered 2>/dev/null | grep "# $UFW_COMMENT" || true)
 
-  # Delete stale rules from the bottom up, so the numbering stays valid.
-  echo "$current" | grep -oE '^\[[ 0-9]+\].*' | tac | while read -r line; do
+  # Delete stale rules from the bottom up, so the numbering stays valid. The
+  # loop reads from a process substitution rather than a pipe: at the end of a
+  # pipeline it would run in a subshell and `changed=1` would be lost, so a
+  # removed range alone would never reload Caddy.
+  while read -r line; do
     num=$(printf '%s' "$line" | sed -E 's/^\[ *([0-9]+)\].*/\1/')
     cidr=$(printf '%s' "$line" | grep -oE '[0-9a-fA-F:.]+/[0-9]{1,3}' | tail -1)
     if [ -n "$cidr" ] && ! grep -qxF "$cidr" "$tmp/cidrs"; then
@@ -85,7 +88,7 @@ if command -v ufw >/dev/null 2>&1; then
       log "ufw: removed $cidr"
       changed=1
     fi
-  done
+  done < <(echo "$current" | grep -oE '^\[[ 0-9]+\].*' | tac)
 
   while read -r cidr; do
     if ! printf '%s' "$current" | grep -qF "$cidr"; then

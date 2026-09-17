@@ -129,7 +129,20 @@ const envSchema = z
     // Orkify's cache only exists inside an orkify-managed process; everywhere
     // else (dev, tests, a plain `next start`) the memory backend is correct.
     COUNTERS: v.COUNTERS ?? (v.ORKIFY_EXEC_MODE === undefined ? 'memory' : 'orkify'),
-  }));
+  }))
+  // A budget without prices costs nothing per request, so it never bites: the
+  // spend stays 0 and the circuit breaker silently does nothing. Someone who
+  // sets a budget means it, so this is fatal rather than a log line.
+  .superRefine((v, ctx) => {
+    if (v.LLM_DAILY_BUDGET_USD === undefined) return;
+    if (v.LLM_USD_PER_1K_IN > 0 && v.LLM_USD_PER_1K_OUT > 0) return;
+    ctx.addIssue({
+      code: 'custom',
+      path: ['LLM_DAILY_BUDGET_USD'],
+      message:
+        'needs LLM_USD_PER_1K_IN and LLM_USD_PER_1K_OUT to be greater than 0; with both at 0 the estimated spend stays 0 and the budget never applies',
+    });
+  });
 
 export type Config = z.infer<typeof envSchema>;
 
@@ -172,19 +185,23 @@ export function workerId(c: Config): string {
 /**
  * The client IP used as a rate-limit key.
  *
- * `CLIENT_IP_HEADER` wins when configured (Cloudflare's `CF-Connecting-IP`,
- * which the edge overwrites and the origin firewall makes unforgeable).
- * Otherwise X-Forwarded-For is only believed behind a trusted proxy, and its
- * left-most entry is the original client as appended by the first proxy.
+ * Nothing in a request is believed unless `TRUST_PROXY` says a proxy we control
+ * is in front: a client that can reach the origin directly would otherwise pick
+ * its own rate-limit bucket per request, simply by sending the header.
+ *
+ * Behind such a proxy, `CLIENT_IP_HEADER` wins when configured (Cloudflare's
+ * `CF-Connecting-IP`, which the edge overwrites and the origin firewall makes
+ * unforgeable); otherwise the left-most `X-Forwarded-For` entry is the original
+ * client as appended by the first proxy. Everything else shares the key
+ * "unknown", which is a shared bucket, not an open door.
  */
 export function clientIp(c: Config, headers: Headers): string {
+  if (!c.TRUST_PROXY) return 'unknown';
   if (c.CLIENT_IP_HEADER !== undefined) {
     const direct = headers.get(c.CLIENT_IP_HEADER)?.trim();
     if (direct !== undefined && direct !== '') return direct;
   }
-  if (c.TRUST_PROXY) {
-    const first = headers.get('x-forwarded-for')?.split(',')[0]?.trim();
-    if (first !== undefined && first !== '') return first;
-  }
+  const first = headers.get('x-forwarded-for')?.split(',')[0]?.trim();
+  if (first !== undefined && first !== '') return first;
   return 'unknown';
 }

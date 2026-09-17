@@ -18,11 +18,12 @@ function body(): string {
   ];
 
   const intro = loadDocsIndex('en');
-  if (intro) {
+  if (intro && !intro.frontMatter.draft) {
     parts.push('---', '', intro.markdown, '');
   }
 
-  for (const entry of listDocs('en')) {
+  // A `draft: true` page renders with `noindex`; it is not offered here either.
+  for (const entry of listDocs('en').filter((doc) => !doc.draft)) {
     const page = loadDoc('en', entry.slug);
     if (!page) continue;
     parts.push(

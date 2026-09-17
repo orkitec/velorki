@@ -30,6 +30,12 @@ on:
 permissions:
   contents: read
 
+# Upload and download talk to the same Crowdin project, and a manual run with
+# `upload_translations=false` would otherwise start both at once.
+concurrency:
+  group: crowdin
+  cancel-in-progress: false
+
 jobs:
   token:
     if: ${{ github.repository_owner == 'orkitec' }}

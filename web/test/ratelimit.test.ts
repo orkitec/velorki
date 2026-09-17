@@ -56,6 +56,8 @@ describe('HTTP rate limiting', () => {
         STRAVA_CLIENT_ID: '1',
         STRAVA_CLIENT_SECRET: 's',
         OAUTH_REDIRECT_ALLOWLIST: 'velorki://oauth/strava',
+        // The header is only read behind a trusted proxy.
+        TRUST_PROXY: '1',
         CLIENT_IP_HEADER: 'cf-connecting-ip',
       },
       async () => {
@@ -87,9 +89,16 @@ describe('clientIp', () => {
     expect(clientIp(testConfig({ TRUST_PROXY: '1' }), headers)).toBe('203.0.113.7');
     expect(
       clientIp(
-        testConfig({ CLIENT_IP_HEADER: 'cf-connecting-ip' }),
+        testConfig({ TRUST_PROXY: '1', CLIENT_IP_HEADER: 'cf-connecting-ip' }),
         new Headers({ 'cf-connecting-ip': '198.51.100.4', 'x-forwarded-for': '1.1.1.1' }),
       ),
     ).toBe('198.51.100.4');
+    // Without a trusted proxy the header is just something a client sent.
+    expect(
+      clientIp(
+        testConfig({ CLIENT_IP_HEADER: 'cf-connecting-ip' }),
+        new Headers({ 'cf-connecting-ip': '198.51.100.4', 'x-forwarded-for': '1.1.1.1' }),
+      ),
+    ).toBe('unknown');
   });
 });

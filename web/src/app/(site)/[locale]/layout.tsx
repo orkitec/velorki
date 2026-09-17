@@ -107,8 +107,11 @@ export default async function SiteLayout({
     errors: catalogue.errors,
   };
 
+  // `data-scroll-behavior`: globals.css sets `scroll-behavior: smooth` on
+  // `html`, and Next 16 wants the attribute alongside it, or it warns and
+  // animates the scroll on every route change.
   return (
-    <html lang={locale} className={`${barlow.variable} ${manrope.variable}`}>
+    <html lang={locale} data-scroll-behavior="smooth" className={`${barlow.variable} ${manrope.variable}`}>
       <body className="min-h-dvh bg-canvas text-fg antialiased">
         <NextIntlClientProvider locale={locale} messages={clientMessages}>
           <a href="#main" className="skip-link">

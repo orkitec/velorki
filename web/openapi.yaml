@@ -29,6 +29,11 @@ info:
     it. (The Fastify relay this service replaced used per-process token
     buckets; the numbers are unchanged, the refill behaviour is not.)
 
+    On the two routes with a large body, `POST /share` and `POST /ai/plan`,
+    the per-IP limit is charged **before the body is read**, so an over-limit
+    caller gets 429 rather than having a megabyte buffered for it. A malformed
+    body from such a caller therefore answers 429, not 400.
+
     The API is served on `api.velorki.com` only. Share links live on
     `velorki.com`; a request for `/s/<id>` on the api host answers 308 to the
     site host, and any other unknown (method, path) pair on the api host
@@ -254,10 +259,10 @@ paths:
         The prompt never contains the `app_user_id`. `context.start` is rounded
         to two decimals server-side.
 
-        Rate limits: 20 per hour and 100 per day per app user, plus 60 per hour
-        per IP, as fixed windows. A global daily spend budget
-        (`LLM_DAILY_BUDGET_USD`), counted across the cluster, answers 503
-        `unavailable` once exceeded.
+        Rate limits: 60 per hour per IP, charged before the body is read, then
+        20 per hour and 100 per day per app user, all as fixed windows. A
+        global daily spend budget (`LLM_DAILY_BUDGET_USD`), counted across the
+        cluster, answers 503 `unavailable` once exceeded.
 
         The stream opens with a `: open` comment frame and carries a `: ping`
         comment every 20 seconds so an intermediary cannot idle it out.
@@ -370,7 +375,8 @@ paths:
         sweep removes expired rows. Nothing links the row to the rider who
         created it.
 
-        Rate limit: 30 per day, per app user.
+        Rate limits: 60 per hour per IP, charged before the body is read, then
+        30 per day per app user.
       requestBody:
         required: true
         content:

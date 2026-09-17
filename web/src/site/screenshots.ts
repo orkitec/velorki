@@ -43,11 +43,6 @@ export function screenshotSrc(mode: Mode, accent: Accent, screen: Screen): strin
   return `/screenshots/${variantKey(mode, accent)}/${screen}.png`;
 }
 
-/** Every variant key, in a stable order. */
-export function allVariantKeys(): VariantKey[] {
-  return MODES.flatMap((mode) => ACCENTS.map((accent) => variantKey(mode, accent)));
-}
-
 /**
  * The variant to show for a wanted mode and accent: the exact one if it is
  * there, else the same mode in volt, else the default, else none at all.

@@ -406,7 +406,9 @@ final turnSpeakerProvider = Provider<TurnSpeaker>((ref) {
 /// [appLocale] is what the rider picked under Settings → Language, or `null`
 /// while the app follows the phone. A picked language keeps the phone's
 /// region when they speak the same language, so a German phone still asks
-/// for `de-DE` rather than a bare `de`.
+/// for `de-DE` rather than a bare `de`. English picked on a phone that is not
+/// English has no region to borrow, and some engines refuse a bare `en`, so it
+/// gets the same `en-US` as the untranslated fallback above.
 String cueLocaleTag([Locale? appLocale]) {
   final system = WidgetsBinding.instance.platformDispatcher.locale;
   final wanted = appLocale ?? system;
@@ -417,6 +419,9 @@ String cueLocaleTag([Locale? appLocale]) {
   if (wanted.countryCode == null &&
       wanted.languageCode == system.languageCode) {
     return system.toLanguageTag();
+  }
+  if (wanted.countryCode == null && wanted.languageCode == 'en') {
+    return 'en-US';
   }
   return wanted.toLanguageTag();
 }

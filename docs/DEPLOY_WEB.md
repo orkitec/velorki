@@ -117,7 +117,7 @@ sudo install -d -o velorki -g velorki -m 0755 /srv/velorki            # releases
 sudo install -d -o velorki -g velorki -m 0750 /srv/velorki/incoming   # artefacts
 sudo install -d -o velorki -g velorki -m 0700 /var/lib/velorki        # share.sqlite
 sudo install -d -o velorki -g velorki -m 0700 /var/backups/velorki
-sudo install -d -o velorki -g velorki -m 0755 /var/log/caddy
+sudo install -d -o caddy -g caddy -m 0755 /var/log/caddy      # Caddy writes here
 sudo apt install -y sqlite3
 ```
 
@@ -266,8 +266,10 @@ and `sudo systemctl reload caddy`. The commented block at the bottom of
 - If: `Hostname` equals `api.velorki.com`
 - Then: **Bypass cache**
 
-The relay sends `cache-control: no-store` on every response anyway; this makes
-sure no future Cloudflare default ever caches a token exchange.
+The relay sends `cache-control: no-store` on every response that does not bring
+a policy of its own - `POST /ai/plan` keeps the `no-cache, no-transform` an
+event stream needs - and this makes sure no future Cloudflare default ever
+caches a token exchange or buffers a stream.
 
 **Do not enable Cache Everything for `velorki.com`.** The site negotiates the
 language of an unprefixed path from `Accept-Language` and the `NEXT_LOCALE`

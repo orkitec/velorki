@@ -21,6 +21,8 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     path: `/${DOC}`,
     title: page?.frontMatter.title ?? t('title'),
     description: page?.frontMatter.description || t('description'),
+    // An unreviewed text is served, but it is not offered to a crawler.
+    noIndex: page?.frontMatter.draft ?? true,
   });
 }
 

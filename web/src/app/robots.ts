@@ -2,6 +2,9 @@
 import type { MetadataRoute } from 'next';
 import { SITE_URL } from '@/site/config';
 
+/** The `Host` directive takes a hostname, not a URL. */
+const SITE_HOSTNAME = new URL(SITE_URL).hostname;
+
 /**
  * Everything on the site is public and meant to be read — by people, by search
  * engines and by language models alike — so every crawler is allowed
@@ -44,6 +47,6 @@ export default function robots(): MetadataRoute.Robots {
       disallow: '/s/',
     })),
     sitemap: `${SITE_URL}/sitemap.xml`,
-    host: SITE_URL,
+    host: SITE_HOSTNAME,
   };
 }

@@ -108,7 +108,18 @@ export function loadLegal(locale: string, doc: LegalDoc): LoadedPage | null {
   return { slug: doc, translated: resolved.translated, ...rendered };
 }
 
-/** Which legal documents exist at all; the footer only links those. */
-export function availableLegalDocs(): LegalDoc[] {
-  return LEGAL_DOCS.filter((doc) => resolveFile(SOURCE_LOCALE, 'legal', doc) !== null);
+/**
+ * Front matter of the English source of one legal document, or null when the
+ * document has not been written yet. The sitemap and llms.txt read it to leave
+ * a `draft: true` text out of both.
+ */
+export function legalFrontMatter(doc: LegalDoc): FrontMatter | null {
+  const resolved = resolveFile(SOURCE_LOCALE, 'legal', doc);
+  if (!resolved) return null;
+  return readFrontMatter(readFileSync(/*turbopackIgnore: true*/ resolved.file, 'utf8'), titleFromSlug(doc));
+}
+
+/** The legal documents that are written and reviewed, in footer order. */
+export function publishedLegalDocs(): LegalDoc[] {
+  return LEGAL_DOCS.filter((doc) => legalFrontMatter(doc)?.draft === false);
 }

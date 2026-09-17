@@ -19,6 +19,14 @@ const String shareLinkHost = 'share';
 /// no other host can hand us a share id.
 const String shareLinkWebHost = 'velorki.com';
 
+/// What a share id looks like: ten base62 characters, as the relay mints them.
+///
+/// The id is interpolated into the URL the app then fetches, so it is checked
+/// here and not only on the server: without this, any page could send
+/// `velorki://share/..%2F..%2Fadmin` and make the app request a path of the
+/// sender's choosing on the relay host.
+final RegExp _shareIdPattern = RegExp(r'^[A-Za-z0-9]{10}$');
+
 /// The share id in [uri], or `null` when it is not a share link.
 ///
 /// Two shapes are accepted: the custom scheme the share page links to
@@ -41,7 +49,7 @@ String? shareIdOf(Uri uri) {
   final id = raw.endsWith('.gpx')
       ? raw.substring(0, raw.length - '.gpx'.length)
       : raw;
-  return id.isEmpty ? null : id;
+  return _shareIdPattern.hasMatch(id) ? id : null;
 }
 
 /// Fetches the GPX behind share [id] and sends it into the import preview.

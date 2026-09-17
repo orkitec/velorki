@@ -3,7 +3,7 @@
 // sections of links with a short description each. Everything here is the
 // English source; llms-full.txt carries the whole guide inline.
 import { GITHUB_URL, MIN_ANDROID, MIN_IOS, SITE_URL } from '@/site/config';
-import { LEGAL_DOCS, listDocs } from '@/site/content';
+import { listDocs, publishedLegalDocs } from '@/site/content';
 import { localeUrl } from '@/site/paths';
 
 const SUMMARY =
@@ -18,7 +18,8 @@ const LEGAL_DESCRIPTIONS: Record<string, string> = {
 };
 
 function body(): string {
-  const docs = listDocs('en');
+  // A `draft: true` text renders with `noindex`; it is not offered here either.
+  const docs = listDocs('en').filter((doc) => !doc.draft);
   const lines: string[] = [
     '# Velorki',
     '',
@@ -51,10 +52,13 @@ function body(): string {
     lines.push(`- [${doc.title}](${localeUrl('en', `/docs/${doc.slug}`)})${description}`);
   }
 
-  lines.push('', '## Legal', '');
-  for (const doc of LEGAL_DOCS) {
-    const title = doc[0]!.toUpperCase() + doc.slice(1);
-    lines.push(`- [${title}](${localeUrl('en', `/${doc}`)}): ${LEGAL_DESCRIPTIONS[doc] ?? ''}`);
+  const legal = publishedLegalDocs();
+  if (legal.length > 0) {
+    lines.push('', '## Legal', '');
+    for (const doc of legal) {
+      const title = doc[0]!.toUpperCase() + doc.slice(1);
+      lines.push(`- [${title}](${localeUrl('en', `/${doc}`)}): ${LEGAL_DESCRIPTIONS[doc] ?? ''}`);
+    }
   }
 
   lines.push(

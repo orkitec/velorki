@@ -37,13 +37,16 @@ export const POST = withApi(async (request, ctx) => {
 
   /* ---- everything that can still be answered with a plain JSON error ---- */
 
+  // The per-IP cap is charged before the body is read: it is the only limit
+  // that can be applied to a caller who has not authenticated yet, and reading
+  // first would let one address keep the workers buffering. It is looser than
+  // the per-rider limits below and also catches many accounts coming from one
+  // place.
+  await enforce(counters, clientIp(config, request.headers), [LIMITS.aiPlanPerIpHour], ctx.log);
   const raw = await readJsonBody(request);
   const appUserId = await requireEntitlement(getEntitlement(), request.headers, ctx.log);
   requireConsent(request.headers);
-  // Per rider first, then a looser per-IP cap that catches many accounts
-  // coming from one place.
   await enforce(counters, appUserId, [LIMITS.aiPlanPerHour, LIMITS.aiPlanPerDay], ctx.log);
-  await enforce(counters, clientIp(config, request.headers), [LIMITS.aiPlanPerIpHour], ctx.log);
 
   if (!llmConfigured(config)) {
     throw new ApiError('unavailable', 'AI features are not configured on this server.');

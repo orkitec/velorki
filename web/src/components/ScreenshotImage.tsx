@@ -15,11 +15,14 @@ export function ScreenshotImage({
   available,
   alt,
   priority = false,
+  eager = false,
 }: {
   screen: Screen;
   available: Record<string, boolean>;
   alt: string;
   priority?: boolean;
+  /** Load at once without preloading; see PhoneFrame. */
+  eager?: boolean;
 }) {
   const t = useTranslations('screenshots');
   const { mode, accent } = useAppearance();
@@ -42,6 +45,7 @@ export function ScreenshotImage({
       height={SHOT_HEIGHT}
       sizes="(min-width: 1024px) 304px, 70vw"
       priority={priority}
+      loading={!priority && eager ? 'eager' : undefined}
     />
   );
 }

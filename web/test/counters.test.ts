@@ -76,8 +76,9 @@ describe('fixed-window rate limits', () => {
   it('reports the seconds left in the window, at least one', async () => {
     const counters = new MemoryCounters();
     const spec = { name: 't', limit: 1, windowS: 60 };
-    // 59.5 s into the window: half a second left, reported as 1.
-    const now = 1_700_000_040_000 - 1_700_000_040_000 + 59_500;
+    // 59.5 s into the window. The clock is floored to whole seconds, so the
+    // window has 60 - 59 = 1 second left.
+    const now = 59_500;
     await consume(counters, 'k', [spec], now);
     const denied = await consume(counters, 'k', [spec], now);
     expect(denied.allowed).toBe(false);
@@ -120,6 +121,8 @@ describe('fixed-window rate limits', () => {
       aiPlanPerDay: { name: 'ai_plan_day', limit: 100, windowS: 86_400 },
       aiPlanPerIpHour: { name: 'ai_plan_ip_hour', limit: 60, windowS: 3_600 },
       sharePerDay: { name: 'share_day', limit: 30, windowS: 86_400 },
+      // New: charged per IP before the body is read.
+      sharePerIpHour: { name: 'share_ip_hour', limit: 60, windowS: 3_600 },
     });
   });
 });
