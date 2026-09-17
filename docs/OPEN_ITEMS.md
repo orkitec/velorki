@@ -62,7 +62,11 @@ exercised there. The items here are the parts not yet covered by that.
 
 ## On the Mac (Xcode)
 
-- [ ] iOS release signing: fastlane (match repo, App Store Connect API key).
+- [ ] iOS release signing, once: follow [RELEASE_IOS.md](RELEASE_IOS.md) —
+      the private `velorki-certs` repo, `fastlane ios certs` with
+      `MATCH_READONLY=false`, the App Store Connect API key, the six GitHub
+      secrets. The lanes (`app/fastlane/Fastfile`) and the tag workflow
+      (`.github/workflows/ios-release.yml`) are written and wait on it.
       Development builds sign automatically with the orkitec team and run on
       a phone; the file-open handler in `ios/Runner/AppDelegate.swift` has
       not been tried yet.
@@ -111,4 +115,15 @@ Everything still unticked in [STORE_CHECKLIST.md](STORE_CHECKLIST.md).
   rd5 delta updates (`Rd5DiffTool` is a stub).
 - The tile grid overlay on the map; the viewport and the planner's
   missing-tiles banner are already wired.
+- **Data hosting before launch**: the mirror is GitHub Releases, which has no
+  service commitment and undocumented bandwidth limits. Decided 2026-09-16:
+  move `latest.json` and the files to an S3-compatible object store with free
+  egress (Cloudflare R2, or Hetzner Object Storage for a German provider),
+  keep GitHub Releases as the fallback, and teach the app a list of mirrors
+  in the pointer. Both publish workflows gain an upload step.
+- **One Node app for relay and website**: `api/` (Fastify) and the site
+  (privacy, terms, share pages) as a single Next.js app on Orkify under
+  `velorki.app`, the relay routes as route handlers on the Node runtime,
+  same dependency rule (no native addons, `node:sqlite`). Decided
+  2026-09-16 as the direction; not started.
 - Photon self-hosting; cloud sync.

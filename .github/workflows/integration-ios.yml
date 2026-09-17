@@ -40,6 +40,10 @@ on:
     # 04:41 UTC, an hour after the Android run.
     - cron: "41 4 * * *"
 
+# Reads the repository and writes nothing back to it.
+permissions:
+  contents: read
+
 concurrency:
   group: integration-ios-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'push' }}
@@ -55,10 +59,10 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       # flutter-action's cache: true already covers the SDK and ~/.pub-cache.
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -71,7 +75,7 @@ jobs:
         run: echo "week=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
 
       - name: CocoaPods cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             app/ios/Pods
@@ -83,7 +87,7 @@ jobs:
       # now, so this is a plain restore/save pair rather than the "every shard
       # restores, one shard saves" dance the Android workflow still needs.
       - name: Restore the Xcode derived data
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/Library/Developer/Xcode/DerivedData
           key: >-
@@ -136,7 +140,7 @@ jobs:
       # After the run, which is what fills it, and even on a red one.
       - name: Save the Xcode derived data
         if: always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/Library/Developer/Xcode/DerivedData
           key: >-

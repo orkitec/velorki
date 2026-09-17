@@ -1,0 +1,33 @@
+# match: where the iOS signing identities live.
+#
+# A private git repository holds the distribution certificate and one App Store
+# provisioning profile per bundle id, encrypted with MATCH_PASSWORD. Nothing
+# secret is in this file: the repository URL comes from the environment so a
+# fork can point match at its own, and the passphrase and the git credentials
+# are never written down here.
+#
+#   MATCH_GIT_URL                  ssh or https URL of the private certs repo
+#   MATCH_PASSWORD                 the encryption passphrase
+#   MATCH_GIT_BASIC_AUTHORIZATION  base64 "user:token" for an https clone (CI)
+#
+# See docs/RELEASE_IOS.md for the one-time bootstrap.
+
+git_url(ENV["MATCH_GIT_URL"] || "https://github.com/orkitec/velorki-certs.git")
+storage_mode("git")
+
+type("appstore")
+
+# All three targets are signed for one upload: the app, the Live Activity
+# widget extension and the share extension. Keep this in step with IOS_APP_IDS
+# in the Fastfile.
+app_identifier([
+  "com.orkitec.velorki",
+  "com.orkitec.velorki.VelorkiLiveActivity",
+  "com.orkitec.velorki.share",
+])
+
+team_id(ENV["APPLE_TEAM_ID"] || "8Z44M8DMKK")
+
+# Read-only by default: only the deliberate bootstrap run (MATCH_READONLY=false,
+# `fastlane ios certs`) may create or revoke anything in the Apple account.
+readonly(ENV["MATCH_READONLY"] != "false")

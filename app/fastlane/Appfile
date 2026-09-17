@@ -4,11 +4,14 @@
 # and a fork can point it at its own accounts without editing Ruby:
 #
 #   PLAY_SERVICE_ACCOUNT_JSON_PATH  path to the Play service account JSON
-#   FASTLANE_APPLE_ID               Apple ID of the App Store Connect user
 #   APPLE_TEAM_ID                   10-character developer team id
+#   FASTLANE_APPLE_ID               Apple ID, only for the rare interactive run
 #   ITC_TEAM_ID                     App Store Connect team id (numeric)
 #
-# See fastlane/README.md for what has to exist in the two consoles first.
+# The App Store Connect API key is *not* here: the Appfile only understands the
+# identity keys below, so the key is built in the Fastfile (`asc_api_key`) from
+# ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_P8_BASE64 and passed to match, pilot and
+# deliver explicitly. See docs/RELEASE_IOS.md.
 
 for_platform :android do
   package_name(ENV["ANDROID_PACKAGE_NAME"] || "com.orkitec.velorki")
@@ -17,8 +20,9 @@ end
 
 for_platform :ios do
   app_identifier(ENV["IOS_BUNDLE_ID"] || "com.orkitec.velorki")
-  # Placeholders: fill in from the Apple Developer account, or export them.
-  apple_id(ENV["FASTLANE_APPLE_ID"] || "REPLACE-ME@orkitec.com")
-  team_id(ENV["APPLE_TEAM_ID"] || "REPLACEME")           # Developer Portal
-  itc_team_id(ENV["ITC_TEAM_ID"] || "")                  # App Store Connect
+  team_id(ENV["APPLE_TEAM_ID"] || "8Z44M8DMKK")          # Developer Portal
+  itc_team_id(ENV["ITC_TEAM_ID"]) unless ENV["ITC_TEAM_ID"].to_s.empty?
+  # Only set when something really needs an interactive Apple login; the lanes
+  # authenticate with the API key and never prompt.
+  apple_id(ENV["FASTLANE_APPLE_ID"]) unless ENV["FASTLANE_APPLE_ID"].to_s.empty?
 end

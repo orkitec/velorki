@@ -20,6 +20,10 @@ on:
     # 05:41 UTC, an hour after the iOS run and clear of the nightly emulator.
     - cron: "41 5 * * *"
 
+# Reads the repository and the public mirror; writes nothing.
+permissions:
+  contents: read
+
 env:
   PERF_TILE: W75_N40
   MIRROR_LATEST: https://raw.githubusercontent.com/orkitec/velorki-data/main/latest.json
@@ -29,9 +33,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           channel: stable
           flutter-version: 3.47.4  # keep in sync with mise.toml and app/.fvmrc

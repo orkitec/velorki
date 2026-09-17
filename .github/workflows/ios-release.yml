@@ -1,0 +1,105 @@
+name: ios release
+
+# Tag `vX.Y.Z` → signed .ipa → TestFlight, and the .ipa attached to the GitHub
+# Release the Android job created for the same tag. `release.yml` does the same
+# for Android; the two run in parallel off one tag.
+#
+# The flow, in one pass on a macOS runner:
+#
+#   1. Flutter compiles the Dart and assembles Runner.app with --no-codesign.
+#   2. `fastlane ios beta` fetches the distribution certificate and the three
+#      App Store profiles from the private match repository (read-only),
+#      switches Runner, VelorkiLiveActivity and VelorkiShare to manual signing,
+#      archives, exports and uploads to TestFlight.
+#   3. The .ipa is attached to the tag's GitHub Release.
+#
+# The approval gate is the `release` environment: it has a required reviewer, so
+# a tag push queues this job and nothing is signed or uploaded until Steffen
+# approves the run on the Actions tab. Nothing here promotes a build to the App
+# Store — `fastlane ios release` does that, by hand, from the Mac.
+#
+# Every signing and upload step is guarded by the presence of its secret, so a
+# fork or a secret-less run builds an unsigned archive and finishes green.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # One run per tag; never cancel a half-finished upload.
+  group: ios-release-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  testflight:
+    runs-on: macos-15
+    timeout-minutes: 90
+    # Required reviewer: the approval gate for signing and uploading.
+    environment: release
+    permissions:
+      # Only to attach the .ipa to the GitHub Release of the tag.
+      contents: write
+    env:
+      HAVE_SIGNING: ${{ secrets.MATCH_PASSWORD != '' && secrets.ASC_KEY_ID != '' && 'true' || 'false' }}
+      HAVE_ENV: ${{ secrets.APP_ENV_PROD_JSON != '' && 'true' || 'false' }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: 3.47.4  # keep in sync with mise.toml and app/.fvmrc
+          cache: true
+
+      - uses: ruby/setup-ruby@984c0c890880bbf811283d6f09c4607c62d210a4 # v1.323.0
+        with:
+          ruby-version: "3.3"
+          # Runs `bundle install` against app/Gemfile and caches the gems.
+          bundler-cache: true
+          working-directory: app
+
+      - run: flutter pub get
+      - run: dart run build_runner build
+      - run: flutter gen-l10n
+
+      - name: Restore env/prod.json from secrets
+        if: ${{ env.HAVE_ENV == 'true' }}
+        env:
+          APP_ENV_PROD_JSON: ${{ secrets.APP_ENV_PROD_JSON }}
+        run: echo "$APP_ENV_PROD_JSON" > env/prod.json
+
+      - name: Build and upload to TestFlight
+        if: ${{ env.HAVE_SIGNING == 'true' && env.HAVE_ENV == 'true' }}
+        env:
+          # match: the private certificates repository and its passphrase.
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+          # App Store Connect API key; no Apple ID, no app-specific password.
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+          # App Store Connect refuses a build number it has already seen.
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: bundle exec fastlane ios beta
+
+      - name: Build unsigned (no secrets)
+        if: ${{ env.HAVE_SIGNING != 'true' || env.HAVE_ENV != 'true' }}
+        run: |
+          echo "::notice::No iOS signing secrets configured — building an unsigned archive and skipping TestFlight. See docs/RELEASE_IOS.md."
+          flutter build ios --release --no-codesign --dart-define-from-file=env/ci.json
+
+      - name: Attach the .ipa to the GitHub Release
+        if: ${{ env.HAVE_SIGNING == 'true' && env.HAVE_ENV == 'true' && startsWith(github.ref, 'refs/tags/v') }}
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
+        with:
+          files: app/build/ios/ipa/Velorki.ipa

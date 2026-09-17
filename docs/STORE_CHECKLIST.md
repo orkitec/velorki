@@ -277,8 +277,10 @@ routes to our share store.
       **organisation**: a personal account requires a 14-day closed test with at
       least 12 testers before production access. Plan the timeline accordingly.
 - [ ] App signing is configured (Play App Signing; iOS signing via fastlane
-      `match`). — the lanes exist (`app/fastlane/Fastfile`), the keystore, the
-      match repository and the App Store Connect API key do not.
+      `match`). — the lanes and the tag workflow exist
+      (`app/fastlane/Fastfile`, `.github/workflows/ios-release.yml`); the
+      keystore, the match repository and the App Store Connect API key do not.
+      The one-time iOS setup is [RELEASE_IOS.md](RELEASE_IOS.md).
 - [x] Store listing copy exists as a first draft. —
       `app/fastlane/metadata/android/en-US/{title,short_description,full_description}.txt`
       and `app/fastlane/metadata/ios/en-US/{name,subtitle,description,keywords}.txt`,
@@ -313,8 +315,10 @@ Add `ios/Runner/PrivacyInfo.xcprivacy` to the **Runner** target: select the file
 in the navigator, File inspector → Target Membership → Runner, and check it
 appears under Runner → Build Phases → Copy Bundle Resources. Until then the
 manifest is in the repository but not in the app. The Share Extension target
-exists and only needs one signed build to register its app group; the rest of
-the Mac work — release signing — is in [OPEN_ITEMS.md](OPEN_ITEMS.md).
+exists and only needs one signed build to register its app group — the
+`fastlane ios certs` run in [RELEASE_IOS.md](RELEASE_IOS.md) registers the App
+Group along with the three profiles. The rest of the Mac work is in
+[OPEN_ITEMS.md](OPEN_ITEMS.md).
 
 ### In App Store Connect
 

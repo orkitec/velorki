@@ -78,44 +78,194 @@ platform :android do
   end
 end
 
-platform :ios do
-  desc "Build and upload a build to TestFlight"
-  lane :beta do
-    setup_ci if ENV["CI"]
-    # Signing identities come from the private match repository; readonly so a
-    # build never creates or revokes a certificate by accident.
-    match(type: "appstore", readonly: true)
-    build_ios_app(
-      workspace: File.join(IOS_DIR, "Runner.xcworkspace"),
-      scheme: "Runner",
-      configuration: "Release",
-      export_method: "app-store",
-      output_directory: File.join(APP_DIR, "build/ios/ipa"),
+# ---------------------------------------------------------------------------
+# iOS
+#
+# One upload signs three bundle ids: the app, the Live Activity widget
+# extension and the share extension. Each needs its own App Store provisioning
+# profile, and match keeps all of them — plus the distribution certificate — in
+# a private git repository (see docs/RELEASE_IOS.md).
+IOS_APP_ID  = ENV["IOS_BUNDLE_ID"] || "com.orkitec.velorki"
+IOS_APP_IDS = [
+  IOS_APP_ID,                               # the app
+  "#{IOS_APP_ID}.VelorkiLiveActivity",      # Live Activity / widget extension
+  "#{IOS_APP_ID}.share",                    # share extension
+].freeze
+# The Xcode target behind each bundle id; update_code_signing_settings writes
+# the build settings per target, not per bundle id.
+IOS_TARGETS = {
+  IOS_APP_IDS[0] => "Runner",
+  IOS_APP_IDS[1] => "VelorkiLiveActivity",
+  IOS_APP_IDS[2] => "VelorkiShare",
+}.freeze
+IOS_TEAM_ID   = ENV["APPLE_TEAM_ID"] || "8Z44M8DMKK"
+IOS_XCODEPROJ = File.join(IOS_DIR, "Runner.xcodeproj")
+IOS_WORKSPACE = File.join(IOS_DIR, "Runner.xcworkspace")
+IPA_DIR       = File.join(APP_DIR, "build/ios/ipa")
+
+# The App Store Connect API key, assembled from three environment values so no
+# .p8 file and no Apple ID password is ever written to disk — CI keeps them as
+# secrets, the Mac exports them from the password manager. Fails loudly rather
+# than falling through to an interactive Apple login, which never completes on
+# a runner.
+def asc_api_key
+  %w[ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8_BASE64].each do |name|
+    next unless ENV[name].to_s.empty?
+    UI.user_error!("#{name} is not set — see docs/RELEASE_IOS.md")
+  end
+
+  app_store_connect_api_key(
+    key_id: ENV["ASC_KEY_ID"],
+    issuer_id: ENV["ASC_ISSUER_ID"],
+    key_content: ENV["ASC_KEY_P8_BASE64"],
+    is_key_content_base64: true,
+    in_house: false,
+  )
+end
+
+# Why `flutter build ios --no-codesign` and then `build_app`, rather than
+# `flutter build ipa --export-options-plist=...`:
+#
+#   * `flutter build ipa` wants a finished export options plist, so the three
+#     profile names would have to be written into a file before the build —
+#     exactly the mapping match already hands back in its lane context.
+#   * fastlane cannot see inside that build: no xcodebuild log parsing, no
+#     archive in the lane context, and `upload_to_testflight` would have to be
+#     pointed at the .ipa by hand.
+#   * The extensions make it worse: `flutter build ipa` signs whatever the
+#     project says, and the project is set to automatic signing for local
+#     development on the Mac.
+#
+# So Flutter only compiles the Dart and assembles Runner.app
+# (`--no-codesign`), then `update_code_signing_settings` switches the three
+# targets to manual signing with the match profiles and `build_app` archives,
+# signs and exports. This is the flow fastlane documents for Flutter apps.
+def flutter_build_ios
+  UI.user_error!("Missing #{ENV_FILE}") unless File.exist?(ENV_FILE)
+
+  args = [
+    "flutter", "build", "ios",
+    "--release",
+    "--no-codesign",
+    "--dart-define-from-file=#{ENV_FILE}",
+  ]
+  # App Store Connect rejects a build number it has already seen; CI passes its
+  # run number, a local build falls back to the pubspec's.
+  args << "--build-number=#{ENV['BUILD_NUMBER']}" unless ENV["BUILD_NUMBER"].to_s.empty?
+
+  # fastlane runs `sh` from the fastlane directory; Flutter has to run from app/.
+  Dir.chdir(APP_DIR) { sh(*args) }
+end
+
+# Archive, sign and export the .ipa with the profiles match just installed.
+# Run after `match`: it reads the profile names out of the lane context.
+#
+# `update_code_signing_settings` edits ios/Runner.xcodeproj/project.pbxproj in
+# place. That is fine on a runner and harmless on the Mac, but it leaves the
+# working tree dirty — `git checkout app/ios/Runner.xcodeproj` after a local
+# run, or the next Xcode session will build with manual signing.
+def ios_archive
+  profiles = lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING] || {}
+  missing = IOS_APP_IDS.reject { |id| profiles[id] }
+  UI.user_error!("match returned no profile for #{missing.join(', ')}") unless missing.empty?
+
+  IOS_APP_IDS.each do |app_id|
+    update_code_signing_settings(
+      path: IOS_XCODEPROJ,
+      use_automatic_signing: false,
+      team_id: IOS_TEAM_ID,
+      targets: [IOS_TARGETS[app_id]],
+      build_configurations: ["Release"],
+      bundle_identifier: app_id,
+      code_sign_identity: "Apple Distribution",
+      profile_name: profiles[app_id],
+      sdk: "iphoneos*",
     )
+  end
+
+  build_app(
+    workspace: IOS_WORKSPACE,
+    scheme: "Runner",
+    configuration: "Release",
+    export_method: "app-store",
+    # build_app merges the match mapping in by itself; passing it explicitly
+    # keeps the lane readable and fails loudly if a profile is missing.
+    export_options: {
+      signingStyle: "manual",
+      provisioningProfiles: profiles,
+    },
+    # The profiles come from match, so gym must not go guessing in the project.
+    skip_profile_detection: true,
+    output_directory: IPA_DIR,
+    output_name: "Velorki.ipa",
+  )
+end
+
+platform :ios do
+  desc "Create or fetch the distribution certificate and the App Store profiles"
+  lane :certs do
+    # readonly unless MATCH_READONLY=false is set on purpose: only the one-time
+    # bootstrap run on the Mac may create or revoke anything in the account.
+    readonly = ENV["MATCH_READONLY"] != "false"
+    UI.important("match is running with write access") unless readonly
+
+    match(
+      type: "appstore",
+      app_identifier: IOS_APP_IDS,
+      api_key: asc_api_key,
+      team_id: IOS_TEAM_ID,
+      readonly: readonly,
+    )
+  end
+
+  desc "Build a signed .ipa and upload it to TestFlight"
+  lane :beta do
+    # Temporary keychain for the match certificates, and match forced readonly.
+    setup_ci if ENV["CI"]
+    api_key = asc_api_key
+
+    match(
+      type: "appstore",
+      app_identifier: IOS_APP_IDS,
+      api_key: api_key,
+      team_id: IOS_TEAM_ID,
+      readonly: true,
+    )
+    flutter_build_ios
+    ios_archive
+
     upload_to_testflight(
-      api_key_path: ENV["APP_STORE_CONNECT_API_KEY_PATH"],
+      api_key: api_key,
+      app_identifier: IOS_APP_ID,
+      ipa: lane_context[SharedValues::IPA_OUTPUT_PATH],
       skip_waiting_for_build_processing: true,
       # No account, so no demo credentials; the review notes explain it.
       distribute_external: false,
     )
   end
 
-  desc "Build and upload a build to App Store Connect for review"
+  desc "Build a signed .ipa and upload it to App Store Connect, without submitting"
   lane :release do
     setup_ci if ENV["CI"]
-    match(type: "appstore", readonly: true)
-    build_ios_app(
-      workspace: File.join(IOS_DIR, "Runner.xcworkspace"),
-      scheme: "Runner",
-      configuration: "Release",
-      export_method: "app-store",
-      output_directory: File.join(APP_DIR, "build/ios/ipa"),
+    api_key = asc_api_key
+
+    match(
+      type: "appstore",
+      app_identifier: IOS_APP_IDS,
+      api_key: api_key,
+      team_id: IOS_TEAM_ID,
+      readonly: true,
     )
+    flutter_build_ios
+    ios_archive
+
     upload_to_app_store(
-      api_key_path: ENV["APP_STORE_CONNECT_API_KEY_PATH"],
+      api_key: api_key,
+      app_identifier: IOS_APP_ID,
+      ipa: lane_context[SharedValues::IPA_OUTPUT_PATH],
       # The App Privacy answers, the age rating and the export compliance
       # question are answered in App Store Connect, not here; see
-      # docs/STORE_CHECKLIST.md.
+      # docs/STORE_CHECKLIST.md. Submitting stays a human decision.
       submit_for_review: false,
       automatic_release: false,
       precheck_include_in_app_purchases: false,

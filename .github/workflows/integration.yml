@@ -46,6 +46,10 @@ on:
     # 03:41 UTC, before the brouter-oracle job and well clear of the push CI.
     - cron: "41 3 * * *"
 
+# Reads the repository and writes nothing back to it.
+permissions:
+  contents: read
+
 concurrency:
   # The event name is in the group so a push never cancels the nightly and the
   # nightly never cancels a push; cancel-in-progress is gated on push as well,
@@ -76,7 +80,7 @@ jobs:
         shard: ["1/3", "2/3", "3/3"]
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       # The emulator is unusably slow without hardware acceleration, and the
       # hosted runner needs the device node opened up by hand.
@@ -87,14 +91,14 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
         with:
           distribution: temurin
           java-version: 21
 
       # flutter-action's own cache: true covers the SDK and ~/.pub-cache;
       # the Gradle caches below are the Android half it does not touch.
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           channel: stable
           flutter-version: 3.47.4  # keep in sync with mise.toml and app/.fvmrc
@@ -103,7 +107,7 @@ jobs:
       # Restored by every shard, stored by one of them: the caches are
       # identical, and three uploads of the same half-gigabyte buy nothing.
       - name: Restore the Gradle caches
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.gradle/caches
@@ -122,7 +126,7 @@ jobs:
           flutter gen-l10n
 
       - name: AVD cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: avd-cache
         with:
           path: |
@@ -135,7 +139,7 @@ jobs:
       # purpose and the animations are left alone (the real run disables them).
       - name: Create the AVD snapshot
         if: steps.avd-cache.outputs.cache-hit != 'true'
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
           api-level: ${{ matrix.api-level }}
           target: google_apis
@@ -152,7 +156,7 @@ jobs:
         run: bash app/tool/itest_mirror.sh
 
       - name: Run the emulator suite
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
           api-level: ${{ matrix.api-level }}
           target: google_apis
@@ -178,7 +182,7 @@ jobs:
       # a failing test is no reason to rebuild Gradle from nothing next time.
       - name: Save the Gradle caches
         if: always() && matrix.shard == '1/3'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.gradle/caches
