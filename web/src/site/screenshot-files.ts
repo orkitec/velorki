@@ -1,21 +1,43 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // The build-time half of the screenshot manifest: which files the pipeline has
-// actually produced. Server components only — it touches the filesystem.
+// actually produced, and in which language. Server components only — it
+// touches the filesystem.
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { ACCENTS, MODES, type Screen, type VariantKey, variantKey } from './screenshots';
+import {
+  ACCENTS,
+  DEFAULT_SHOT_LOCALE,
+  MODES,
+  type Screen,
+  type ScreenshotLocales,
+  type VariantKey,
+  variantKey,
+} from './screenshots';
 
 /**
- * Which variants of `screen` are on disk. The result is a plain object of
- * booleans so it can cross to the client component that swaps the image when
- * the appearance switcher changes.
+ * Which variants of `screen` are on disk for a page in `locale`, and which
+ * language's file each of them is. The pipeline takes one language at a time
+ * (`app/tool/screenshots.sh --lang de`), so a set can be complete in English
+ * and pending in German: the fallback to `en` is per file, not per language.
+ *
+ * The result is a plain object of strings so it can cross to the client
+ * component that swaps the image when the appearance switcher changes; a
+ * variant with no file in either language is left out, and the frame shows a
+ * placeholder naming the file it wanted.
  */
-export function availableVariants(screen: Screen): Record<string, boolean> {
-  const available: Record<string, boolean> = {};
+export function availableVariants(screen: Screen, locale: string): ScreenshotLocales {
+  const available: ScreenshotLocales = {};
+  const languages = locale === DEFAULT_SHOT_LOCALE ? [DEFAULT_SHOT_LOCALE] : [locale, DEFAULT_SHOT_LOCALE];
   for (const mode of MODES) {
     for (const accent of ACCENTS) {
       const key: VariantKey = variantKey(mode, accent);
-      available[key] = existsSync(path.join(process.cwd(), 'public', 'screenshots', key, `${screen}.png`));
+      for (const language of languages) {
+        const file = path.join(process.cwd(), 'public', 'screenshots', language, key, `${screen}.png`);
+        if (existsSync(file)) {
+          available[key] = language;
+          break;
+        }
+      }
     }
   }
   return available;
