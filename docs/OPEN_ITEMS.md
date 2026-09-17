@@ -7,19 +7,15 @@ exercised there. The items here are the parts not yet covered by that.
 
 ## Servers and accounts (Steffen)
 
-- [ ] **rd5 tile mirror**: the app routes on the device, but `VELORKI_SEGMENTS_URL`
-      has to point somewhere real. Either the VPS updater's `/segments4` or the
-      GitHub Releases mirror in [orkitec/velorki-data][data]. A release holds at
-      most 1,000 assets and a tile now costs two of them (`.rd5` + `.gaz`), so
-      `publish-tiles.sh` fills a shard with 480 tiles and the planet's 1,142
-      tiles are three shards (`tiles-YYYYMMDD`, `-s2`, `-s3`), each with its own
-      `manifest.json`. The app reads them all: it follows `latest.json`, fetches
-      every shard's manifest and merges them, so one pointer URL covers the
-      whole planet. `app/env/dev.json` follows the mirror's `latest.json`.
-- [ ] **Publish a real snapshot**: the tag `latest.json` points at holds three
-      tiles. A planet run of `publish-tiles`, followed by `publish-gazetteer`,
-      is what makes the mirror usable for anyone but the maintainer — the app
-      side of sharding is done.
+- [ ] **Publish a real tile snapshot**: the mirror ([orkitec/velorki-data][data],
+      GitHub Releases) and the app side are done — the app follows
+      `latest.json`, merges every shard's `manifest.json` (480 tiles a shard,
+      the planet is three) and downloads each tile's `.rd5` and `.gaz` from
+      its shard. What is missing is the data: the tag `latest.json` points at
+      holds three test tiles. A planet run of `publish-tiles` (the monthly
+      schedule does it on the 1st, or dispatch it), followed automatically by
+      `publish-gazetteer`, makes the mirror usable for anyone but the
+      maintainer.
 - [ ] **Relay on the VPS with Orkify**: `api/` (`npm run build`,
       `node dist/server.js`, health `/health`, Node ≥ 22.13). Fill `.env` from
       `api/.env.example`; `SHARE_DB_PATH` must be on a persistent volume.
