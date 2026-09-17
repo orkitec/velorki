@@ -6,7 +6,7 @@
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { usePathname } from '@/i18n/navigation';
-import { LOCALES, localePath } from '@/site/paths';
+import { LOCALES, switchPath } from '@/site/paths';
 import { GlobeIcon } from './Icons';
 
 const LOCALE_LABEL: Record<string, string> = { en: 'EN', de: 'DE' };
@@ -25,7 +25,7 @@ export function LocaleSwitcher() {
         return (
           <Link
             key={locale}
-            href={localePath(locale, pathname)}
+            href={switchPath(locale, pathname)}
             hrefLang={locale}
             lang={locale}
             aria-current={active ? 'true' : undefined}

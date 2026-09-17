@@ -16,6 +16,17 @@ export function localePath(locale: string, path = '/'): string {
   return `/${locale}${clean}`;
 }
 
+/**
+ * The path a locale switcher links to: always prefixed, `/en` included.
+ * The unprefixed English path is the canonical one, but a rider who has
+ * visited `/de` carries a NEXT_LOCALE=de cookie, and `/` would only send them
+ * back there; `/en` resets the cookie and redirects to `/`.
+ */
+export function switchPath(locale: string, path = '/'): string {
+  const clean = path === '/' ? '' : `/${path.replace(/^\/+|\/+$/g, '')}`;
+  return `/${locale}${clean}`;
+}
+
 /** The absolute, canonical URL of `path` in `locale`. */
 export function localeUrl(locale: string, path = '/'): string {
   const p = localePath(locale, path);
