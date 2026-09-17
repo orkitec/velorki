@@ -47,9 +47,11 @@ void main() {
       const b = LatLng(48.01, 11.0);
       // 48.000001 rounds to 48.0000, so this is the same segment again.
       const aJitter = LatLng(48.000001, 11.000001);
+      // Two of the three legs repeat; they are a hair shorter than the first,
+      // and the ratio is measured in metres, hence the loose tolerance.
       expect(
         RouteScorer.repeatedSegmentRatio([a, b, aJitter, b]),
-        closeTo(2 / 3, 1e-12),
+        closeTo(2 / 3, 1e-4),
       );
       expect(RouteScorer.repeatPrecision, 4);
     });
@@ -335,5 +337,38 @@ void main() {
     );
     expect(f.lengthError, 0);
     expect(f.ascentPerKm, closeTo(10, 1e-9));
+  });
+
+  test('the least doubled loop wins, even a few kilometres off the target', () {
+    // What the rider sees on the map is the spur, not the odometer: a ring
+    // that is 15 % too long beats a bang-on one that doubles a tenth of
+    // itself out to the next village and back.
+    const scorer = RouteScorer(LoopPrefs());
+    final spur = scorer.scoreFeatures(
+      const LoopFeatures(
+        lengthM: 30000,
+        targetM: 30000,
+        lengthError: 0,
+        ascentPerKm: 12,
+        unpavedShare: 0,
+        cyclewayShare: 0,
+        busyShare: 0,
+        repeatedSegmentRatio: 0.098,
+      ),
+    );
+    final ring = scorer.scoreFeatures(
+      const LoopFeatures(
+        lengthM: 34500,
+        targetM: 30000,
+        lengthError: 0.15,
+        ascentPerKm: 12,
+        unpavedShare: 0,
+        cyclewayShare: 0,
+        busyShare: 0,
+        repeatedSegmentRatio: 0.01,
+      ),
+    );
+    expect(ring.total, lessThan(spur.total));
+    expect(RouteScorer.repeatWeight, greaterThan(RouteScorer.lengthWeight));
   });
 }

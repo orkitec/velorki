@@ -49,6 +49,7 @@ class RouteQuery {
     this.roundTripDirectionDeg,
     this.allowSameWayBack = true,
     this.nogos = const <NoGo>[],
+    this.profileParams = const <String, String>{},
     this.timeout,
   });
 
@@ -75,11 +76,26 @@ class RouteQuery {
   /// north. `null` lets BRouter choose.
   final double? roundTripDirectionDeg;
 
-  /// Whether the route may return along the way it came.
+  /// In round-trip mode: whether the ride comes home along the way it went
+  /// out (`true`) or round a circle (`false`).
+  ///
+  /// It is BRouter's `allowSamewayback`, which the engine only reads in
+  /// round-trip mode — for a point-to-point query it would *append* the
+  /// mirrored waypoints and double the route, which is not what a caller of
+  /// [RouteQuery] means by it, so it is only sent for a [roundTrip].
   final bool allowSameWayBack;
 
   /// Areas to avoid.
   final List<NoGo> nogos;
+
+  /// Profile variables to override for this query, sent as BRouter's
+  /// `profile:<name>=<value>` parameters.
+  ///
+  /// They are injected as `assign`s in front of the profile, so a variable the
+  /// profile declares (`assign allow_ferries = true`) keeps the injected value
+  /// and one it does not declare is simply unused. That makes
+  /// `{'allow_ferries': '0'}` safe to send to any profile.
+  final Map<String, String> profileParams;
 
   /// Client-side deadline for the whole request.
   ///
@@ -100,6 +116,7 @@ class RouteQuery {
     double? roundTripDirectionDeg,
     bool? allowSameWayBack,
     List<NoGo>? nogos,
+    Map<String, String>? profileParams,
     Duration? timeout,
   }) => RouteQuery(
     points: points ?? this.points,
@@ -110,6 +127,7 @@ class RouteQuery {
     roundTripDirectionDeg: roundTripDirectionDeg ?? this.roundTripDirectionDeg,
     allowSameWayBack: allowSameWayBack ?? this.allowSameWayBack,
     nogos: nogos ?? this.nogos,
+    profileParams: profileParams ?? this.profileParams,
     timeout: timeout ?? this.timeout,
   );
 
@@ -125,6 +143,7 @@ class RouteQuery {
           other.roundTripDirectionDeg == roundTripDirectionDeg &&
           other.allowSameWayBack == allowSameWayBack &&
           _listEquals(other.nogos, nogos) &&
+          _mapEquals(other.profileParams, profileParams) &&
           other.timeout == timeout;
 
   @override
@@ -137,6 +156,9 @@ class RouteQuery {
     roundTripDirectionDeg,
     allowSameWayBack,
     Object.hashAll(nogos),
+    Object.hashAllUnordered(
+      profileParams.entries.map((e) => Object.hash(e.key, e.value)),
+    ),
     timeout,
   );
 
@@ -145,7 +167,17 @@ class RouteQuery {
       'RouteQuery(${points.length} pts, profile: $profile, '
       'alt: $alternativeIdx, roundTrip: $roundTrip, '
       'dist: $roundTripDistanceM, dir: $roundTripDirectionDeg, '
-      'sameWayBack: $allowSameWayBack, nogos: ${nogos.length})';
+      'sameWayBack: $allowSameWayBack, nogos: ${nogos.length}'
+      '${profileParams.isEmpty ? '' : ', params: $profileParams'})';
+}
+
+bool _mapEquals(Map<String, String> a, Map<String, String> b) {
+  if (identical(a, b)) return true;
+  if (a.length != b.length) return false;
+  for (final e in a.entries) {
+    if (b[e.key] != e.value) return false;
+  }
+  return true;
 }
 
 bool _listEquals<T>(List<T> a, List<T> b) {

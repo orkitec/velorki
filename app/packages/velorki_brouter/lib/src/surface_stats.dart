@@ -15,6 +15,7 @@ class SurfaceStats {
     required this.busyShare,
     required this.coveredLengthM,
     required this.totalLengthM,
+    this.offRoadShare = 0,
   });
 
   /// All-zero statistics, for a route with no messages or no length.
@@ -26,6 +27,7 @@ class SurfaceStats {
     busyShare: 0,
     coveredLengthM: 0,
     totalLengthM: 0,
+    offRoadShare: 0,
   );
 
   /// `surface=*` values counted as paved.
@@ -99,6 +101,16 @@ class SurfaceStats {
   /// surface shares on purpose.
   final double busyShare;
 
+  /// Share of the route that is not on a road at all, 0..1.
+  ///
+  /// A bike profile only ever routes over a way with a `highway=*` tag, a
+  /// ferry (`route=ferry`) or — when the profile sets `add_beeline` — a
+  /// beeline drawn straight from a waypoint to the nearest way. So everything
+  /// without a `highway` tag is a leg the rider cannot pedal: it is what turns
+  /// a "loop" into a line across open water, and `velorki_loops` rejects a
+  /// candidate that has any.
+  final double offRoadShare;
+
   /// Length the messages actually accounted for, in metres.
   final double coveredLengthM;
 
@@ -120,7 +132,8 @@ class SurfaceStats {
   ///
   /// Cycleway: `highway=cycleway`, or any `cycleway*` key (`cycleway`,
   /// `cycleway:left`, `cycleway:both`, …) with a value other than `no`.
-  /// Busy: `highway` in [busyHighways].
+  /// Busy: `highway` in [busyHighways]. Off-road: no `highway` tag at all,
+  /// which is a ferry or a beeline.
   factory SurfaceStats.fromMessages(
     List<SegmentMessage> messages,
     double totalLengthM,
@@ -131,6 +144,7 @@ class SurfaceStats {
     var unknown = 0.0;
     var cycleway = 0.0;
     var busy = 0.0;
+    var offRoad = 0.0;
     var covered = 0.0;
 
     for (final m in messages) {
@@ -160,6 +174,9 @@ class SurfaceStats {
       if (highway != null && busyHighways.contains(highway)) {
         busy += d;
       }
+      if (highway == null) {
+        offRoad += d;
+      }
     }
 
     return SurfaceStats(
@@ -170,6 +187,7 @@ class SurfaceStats {
       busyShare: busy / totalLengthM,
       coveredLengthM: covered,
       totalLengthM: totalLengthM,
+      offRoadShare: offRoad / totalLengthM,
     );
   }
 
@@ -194,7 +212,8 @@ class SurfaceStats {
           other.cyclewayShare == cyclewayShare &&
           other.busyShare == busyShare &&
           other.coveredLengthM == coveredLengthM &&
-          other.totalLengthM == totalLengthM;
+          other.totalLengthM == totalLengthM &&
+          other.offRoadShare == offRoadShare;
 
   @override
   int get hashCode => Object.hash(
@@ -205,13 +224,15 @@ class SurfaceStats {
     busyShare,
     coveredLengthM,
     totalLengthM,
+    offRoadShare,
   );
 
   @override
   String toString() =>
       'SurfaceStats(paved: ${_pct(pavedShare)}, '
       'unpaved: ${_pct(unpavedShare)}, unknown: ${_pct(unknownShare)}, '
-      'cycleway: ${_pct(cyclewayShare)}, busy: ${_pct(busyShare)})';
+      'cycleway: ${_pct(cyclewayShare)}, busy: ${_pct(busyShare)}, '
+      'offRoad: ${_pct(offRoadShare)})';
 
   static String _pct(double v) => '${(v * 100).toStringAsFixed(1)}%';
 }

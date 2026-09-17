@@ -60,6 +60,16 @@ Map<String, String> buildQueryParams(RouteQuery q, {int? roundTripPoints}) {
   }
   if (!q.allowSameWayBack) {
     params['allowSamewayback'] = '0';
+  } else if (q.roundTrip) {
+    // Only in round-trip mode does `1` mean "ride home the way you came"; on
+    // a point-to-point query the engine would append the mirrored waypoints
+    // and double the route, so there it stays unsaid (`0` is its default
+    // anyway). Without this the sheet's "different way back" switch had no
+    // effect at all on the device, whose default is `0` either way.
+    params['allowSamewayback'] = '1';
+  }
+  for (final e in q.profileParams.entries) {
+    params['profile:${e.key}'] = e.value;
   }
   if (q.nogos.isNotEmpty) {
     params['nogos'] = q.nogos

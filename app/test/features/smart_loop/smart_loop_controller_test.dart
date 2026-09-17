@@ -43,6 +43,22 @@ void main() {
       expect(backend.maxInFlight, lessThanOrEqualTo(smartLoopConcurrency));
     });
 
+    test('no loop query may ride a ferry', () async {
+      // The nearest way to a round-trip point invented out at sea is the
+      // ferry line, which BRouter rides out and back as a straight segment
+      // over open water. The sheet must never ask for one.
+      final backend = FakeLoopBackend();
+      await _container(backend)
+          .read(smartLoopControllerProvider.notifier)
+          .search(_request);
+
+      expect(backend.queries, isNotEmpty);
+      expect(
+        backend.queries.every((q) => q.profileParams['allow_ferries'] == '0'),
+        isTrue,
+      );
+    });
+
     test('the switch becomes BRouter\'s allowSamewayback', () async {
       final backend = FakeLoopBackend();
       await _container(backend)

@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:velorki_brouter/velorki_brouter.dart';
 
 import 'loop_request.dart';
+import 'quality.dart';
 import 'scorer.dart';
 import 'strategies.dart';
 
@@ -16,6 +17,7 @@ class LoopCandidate {
     required this.result,
     required this.score,
     required this.strategy,
+    required this.quality,
   });
 
   /// The query that produced [result].
@@ -29,6 +31,10 @@ class LoopCandidate {
 
   /// Which [CandidateStrategy] proposed it.
   final String strategy;
+
+  /// What the geometry is made of: beeline metres and repeated metres. The
+  /// planner's [LoopFilter] has already accepted this one.
+  final LoopQuality quality;
 
   @override
   String toString() =>
@@ -57,6 +63,8 @@ class LoopPlanner {
     this.timeout = const Duration(seconds: 25),
     this.maxCandidates = 12,
     this.topN = 3,
+    this.filter = const LoopFilter(),
+    this.maxRetries = 3,
   }) : strategies =
            strategies ??
            <CandidateStrategy>[
@@ -86,11 +94,28 @@ class LoopPlanner {
   /// How many candidates [plan] returns.
   final int topN;
 
+  /// What a routed candidate has to look like to count as a loop at all.
+  final LoopFilter filter;
+
+  /// How often a query that failed to route, or came back as something the
+  /// [filter] rejected, is tried again with a rotated bearing and a corrected
+  /// radius ([retryQuery]). Zero switches retrying off.
+  ///
+  /// The first rotation is always tried. Past that a strategy only keeps
+  /// turning the wheel while it has produced **nothing** — a coastal start
+  /// where every invented bearing runs into the sea needs three rotations to
+  /// find land, and a strategy that already has a loop to show does not need
+  /// to spend the deadline on more.
+  final int maxRetries;
+
   /// Routes and scores candidates and returns the best [topN], best first.
   ///
   /// Queries that fail to route are skipped, so a partial network or an
-  /// unroutable direction degrades the result instead of breaking it. Returns
-  /// an empty list when nothing routed.
+  /// unroutable direction degrades the result instead of breaking it, and so
+  /// are results the [filter] does not consider loops. Either is retried with
+  /// a rotated bearing, and a strategy that has produced nothing at all keeps
+  /// rotating up to [maxRetries] times. Returns an empty list when nothing
+  /// routed.
   Future<List<LoopCandidate>> plan(LoopRequest request) async {
     final found = await planStream(request).toList();
     found.sort((a, b) => a.score.total.compareTo(b.score.total));
@@ -125,6 +150,22 @@ class LoopPlanner {
     final deadline = Timer(timeout, () => cancel.cancel('planning timed out'));
     var next = 0;
 
+    final accepted = <String, int>{};
+
+    // Queues another attempt at an entry, with the bearing rotated and the
+    // radius corrected by what the result (when there is one) came back as.
+    void retry(_PendingQuery entry, RouteResult? result) {
+      if (entry.attempt >= maxRetries || cancel.isCancelled) return;
+      // Everything gets one rotation; only a strategy with nothing to show
+      // keeps going, since by then its own queries have all been answered.
+      if (entry.attempt >= 1 && (accepted[entry.strategy] ?? 0) > 0) return;
+      final again = retryQuery(request, entry.query, result: result);
+      if (again == null) return;
+      pending.add(
+        _PendingQuery(again, entry.strategy, attempt: entry.attempt + 1),
+      );
+    }
+
     Future<void> worker() async {
       while (!cancel.isCancelled) {
         final i = next++;
@@ -133,16 +174,35 @@ class LoopPlanner {
         try {
           final result = await backend.route(entry.query, cancel: cancel);
           if (out.isClosed) return;
+          final quality = LoopQuality.of(
+            result,
+            waypoints: syntheticPoints(request, entry.query),
+          );
+          final rejected = filter.reject(
+            quality,
+            ridesBackTheSameWay: entry.query.allowSameWayBack,
+          );
+          if (rejected != null) {
+            // Not a loop: a beeline over water, the same road twice, or a
+            // waypoint the engine had to snap somewhere else entirely. Ask
+            // again in another direction rather than offering the rider this.
+            retry(entry, result);
+            continue;
+          }
+          accepted[entry.strategy] = (accepted[entry.strategy] ?? 0) + 1;
           out.add(
             LoopCandidate(
               query: entry.query,
               result: result,
               score: scorer.score(result, targetM: request.targetM),
               strategy: entry.strategy,
+              quality: quality,
             ),
           );
-        } on RoutingException {
-          // A candidate that does not route is simply not a candidate.
+        } on RoutingException catch (e) {
+          // A candidate that does not route is simply not a candidate — but a
+          // direction with no road in it is worth one more try, rotated.
+          if (e.kind == RoutingErrorKind.noRoute) retry(entry, null);
         } catch (_) {
           // Neither is one whose answer we cannot make sense of.
         }
@@ -170,7 +230,10 @@ class LoopPlanner {
 }
 
 class _PendingQuery {
-  const _PendingQuery(this.query, this.strategy);
+  const _PendingQuery(this.query, this.strategy, {this.attempt = 0});
   final RouteQuery query;
   final String strategy;
+
+  /// 0 for a query a strategy proposed, 1 for its first retry.
+  final int attempt;
 }

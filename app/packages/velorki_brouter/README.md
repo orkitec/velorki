@@ -25,8 +25,9 @@ class RouteQuery {
     bool roundTrip = false,
     double? roundTripDistanceM,      // BRouter radius, metres (see below)
     double? roundTripDirectionDeg,
-    bool allowSameWayBack = true,
+    bool allowSameWayBack = true,    // round trips only (see below)
     List<NoGo> nogos = const [],
+    Map<String, String> profileParams = const {},  // profile:<name>=<value>
     Duration? timeout,               // enforced client-side
   });
   LatLng get start;
@@ -60,6 +61,7 @@ class SegmentMessage {
 class SurfaceStats {
   factory SurfaceStats.fromMessages(List<SegmentMessage> messages, double totalLengthM);
   double pavedShare, unpavedShare, unknownShare, cyclewayShare, busyShare;
+  double offRoadShare;              // no highway tag: a ferry, or a beeline
   double coveredLengthM, totalLengthM;
   static const SurfaceStats empty;
 }
@@ -234,7 +236,8 @@ checked 2026-09-12.
 | round-trip size | `roundTripDistance=<metres>` | camelCase; **metres, not kilometres**, and it is the *radius* of the generated circle, not the route length. Server default 1500. |
 | round-trip heading | `direction=<deg>` | without it BRouter chooses a random bearing; `roundTripStartDirection` does not exist in 1.7.10 |
 | generated points | `roundTripPoints=3..20` | default 5 |
-| no way back | `allowSamewayback=0\|1` | lower-case `w` and `b` |
+| no way back | `allowSamewayback=0\|1` | lower-case `w` and `b`; only sent as `1` for a round trip, where it means "home the way you came". On a plain route the engine reads `1` as "append the mirrored waypoints" and doubles the route |
+| profile variables | `profile:<name>=<value>` | injected as an `assign` in front of the profile, so it overrides what the profile declares (`profile:allow_ferries=0`) and is harmless when the profile has no such variable |
 | avoid areas | `nogos=lon,lat,radius[,weight]\|...` | radius in metres |
 | time limit | — | there is no `timeout` query parameter; the server limit is the JVM property `maxRunningTime`, so `RouteQuery.timeout` is enforced by this client |
 

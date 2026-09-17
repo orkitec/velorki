@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-17T07:41:56Z",
+  "generatedAt": "2026-09-17T13:12:21Z",
   "device": {
     "name": "Android emulator, Pixel-class phone",
     "platform": "android",
@@ -30,7 +30,7 @@
           "screen": "loop",
           "title": "Smart Loop, a ride of about the length you asked for",
           "file": "light-volt/loop.png",
-          "bytes": 590419
+          "bytes": 590518
         },
         {
           "screen": "search",
@@ -90,7 +90,7 @@
           "screen": "loop",
           "title": "Smart Loop, a ride of about the length you asked for",
           "file": "dark-volt/loop.png",
-          "bytes": 483553
+          "bytes": 482909
         },
         {
           "screen": "search",
@@ -150,7 +150,7 @@
           "screen": "loop",
           "title": "Smart Loop, a ride of about the length you asked for",
           "file": "dark-ember/loop.png",
-          "bytes": 483028
+          "bytes": 480699
         },
         {
           "screen": "search",
@@ -210,7 +210,7 @@
           "screen": "loop",
           "title": "Smart Loop, a ride of about the length you asked for",
           "file": "dark-glacier/loop.png",
-          "bytes": 482978
+          "bytes": 480767
         },
         {
           "screen": "search",
@@ -270,7 +270,7 @@
           "screen": "loop",
           "title": "Smart Loop, a ride of about the length you asked for",
           "file": "dark-berry/loop.png",
-          "bytes": 485178
+          "bytes": 483771
         },
         {
           "screen": "search",

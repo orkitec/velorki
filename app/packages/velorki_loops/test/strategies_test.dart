@@ -42,6 +42,25 @@ void main() {
       },
     );
 
+    test('no loop query may ride a ferry', () async {
+      // The nearest way to a round-trip point invented out at sea is the
+      // ferry line, and BRouter will happily ride it out and back.
+      const request = LoopRequest(start: start, via: [lake], targetM: 60000);
+      final strategies = <CandidateStrategy>[
+        const RoundtripStrategy(),
+        const ViaOutAndBackStrategy(),
+        PerimeterStrategy(),
+      ];
+      expect(loopProfileParams, <String, String>{'allow_ferries': '0'});
+      for (final strategy in strategies) {
+        final queries = await strategy.queries(request).toList();
+        expect(queries, isNotEmpty, reason: strategy.name);
+        for (final q in queries) {
+          expect(q.profileParams, loopProfileParams, reason: strategy.name);
+        }
+      }
+    });
+
     test('the radius inverts BRouter\'s (pi + 2) * radius round trip', () {
       expect(RoundtripStrategy.lengthPerRadius, closeTo(math.pi + 2, 1e-12));
       expect(

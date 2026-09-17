@@ -33,7 +33,12 @@ import 'routing_exception.dart';
 ///   reproducible results. (`roundTripStartDirection` does not exist in 1.7.10;
 ///   verified against the jar's `RoutingParamCollector`.)
 /// * `roundTripPoints` — 3..20 generated points, default 5.
-/// * `allowSamewayback=0|1` — lower-case `w` and `b`.
+/// * `allowSamewayback=0|1` — lower-case `w` and `b`. It is read in round-trip
+///   mode; on a plain route `1` appends the mirrored waypoints and doubles it,
+///   so [buildQueryParams] only sends `1` for a round trip.
+/// * `profile:<name>=<value>` — injects `assign <name> = <value>` in front of
+///   the profile, the way a query overrides a profile variable such as
+///   `allow_ferries`.
 /// * `nogos=lon,lat,radius[,weight]|...` — radius in metres.
 /// * There is **no** `timeout` query parameter. The server's limit is the JVM
 ///   system property `maxRunningTime`, so [RouteQuery.timeout] is enforced

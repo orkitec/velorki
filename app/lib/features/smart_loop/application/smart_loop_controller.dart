@@ -50,8 +50,9 @@ List<Waypoint> waypointsForCandidate(LoopCandidate candidate) =>
 /// The engine behind the "Make a loop" sheet.
 ///
 /// One search runs at a time: [search] fires BRouter's own round-trip mode off
-/// in [smartLoopDirections] directions, scores whatever comes back and hands
-/// the best loop straight to the planner. [another] walks down that ranking
+/// in [smartLoopDirections] directions, throws away what is not a loop (a
+/// beeline over water, the same road twice — `LoopFilter`), scores the rest
+/// and hands the best one straight to the planner. [another] walks down that ranking
 /// without touching the network and only searches again — rotated — when the
 /// list is used up.
 @Riverpod(keepAlive: true)
@@ -222,14 +223,19 @@ class SmartLoopController extends _$SmartLoopController {
 class _LoopRun {
   _LoopRun(this.planned);
 
-  /// How many routing requests this search will send.
-  final int planned;
+  /// How many routing requests this search will send, at least.
+  int planned;
 
   /// Cancelled when the search is abandoned; see [_CountingBackend].
   final CancelToken token = CancelToken();
 
   /// How many requests have finished, successfully or not.
   int done = 0;
+
+  /// How many have been started. The planner adds a retry of its own for a
+  /// direction that came back unroutable or unridable, so a run can be longer
+  /// than it was planned to be; the bar follows rather than sitting at 100 %.
+  int started = 0;
 
   /// Called whenever [done] changes, so the sheet's progress bar moves on a
   /// failed request too and not only on a candidate.
@@ -239,6 +245,13 @@ class _LoopRun {
   String? lastFailure;
 
   double get progress => planned == 0 ? 1 : math.min(1, done / planned);
+
+  /// Notes one more request going out, growing [planned] when the planner
+  /// retries more than it was given.
+  void starting() {
+    started++;
+    if (started > planned) planned = started;
+  }
 
   void cancel() => token.cancel('loop search cancelled');
 }
@@ -284,6 +297,7 @@ class _CountingBackend implements RoutingBackend {
 
   @override
   Future<RouteResult> route(RouteQuery q, {CancelToken? cancel}) async {
+    _run.starting();
     if (cancel != null) {
       if (_run.token.isCancelled) cancel.cancel(_run.token.reason!);
       unawaited(

@@ -4,6 +4,7 @@ import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import 'loop_request.dart';
+import 'quality.dart';
 
 /// The raw, preference-independent measurements a loop is judged on.
 ///
@@ -43,7 +44,7 @@ class LoopFeatures {
   /// Share of the route on primary or trunk roads, 0..1.
   final double busyShare;
 
-  /// Share of consecutive point pairs the route rides more than once, 0..1.
+  /// Share of the route's **length** ridden more than once, 0..1.
   /// A pure out-and-back scores 0.5.
   final double repeatedSegmentRatio;
 
@@ -115,7 +116,12 @@ class RouteScorer {
   static const double busyWeight = 2.0;
 
   /// Weight of the repeated-segment penalty.
-  static const double repeatWeight = 2.5;
+  ///
+  /// High on purpose, and higher than the length term: among the candidates
+  /// that survive [LoopFilter] the least doubled one should win even when it
+  /// is a few kilometres further from the target. At this weight a tenth of
+  /// the route ridden twice costs as much as being 27 % off the distance.
+  static const double repeatWeight = 8.0;
 
   /// Decimal places used to hash a coordinate when detecting repeats.
   /// Four places is about 11 m, one OSM node's worth of jitter.
@@ -193,31 +199,11 @@ class RouteScorer {
     }
   }
 
-  /// The share of consecutive point pairs that the route rides more than once.
+  /// The share of the route's length that it rides more than once.
   ///
-  /// Coordinates are rounded to [repeatPrecision] decimals and each pair is
-  /// keyed without direction, so riding a road back the other way counts as a
-  /// repeat. Pairs whose two ends round to the same coordinate are ignored;
-  /// they carry no length and would only dilute the ratio.
-  static double repeatedSegmentRatio(List<LatLng> points) {
-    if (points.length < 2) return 0;
-    final seen = <String>{};
-    var total = 0;
-    var duplicates = 0;
-    for (var i = 1; i < points.length; i++) {
-      final a = _key(points[i - 1]);
-      final b = _key(points[i]);
-      if (a == b) continue;
-      final key = a.compareTo(b) <= 0 ? '$a|$b' : '$b|$a';
-      total++;
-      if (!seen.add(key)) duplicates++;
-    }
-    return total == 0 ? 0 : duplicates / total;
-  }
-
-  static String _key(LatLng p) {
-    final r = p.round(repeatPrecision);
-    return '${r.lat.toStringAsFixed(repeatPrecision)},'
-        '${r.lon.toStringAsFixed(repeatPrecision)}';
-  }
+  /// See [RepeatedGeometry], which does the measuring: metres rather than
+  /// point pairs, because a route's points are OSM nodes and are nowhere near
+  /// evenly spaced.
+  static double repeatedSegmentRatio(List<LatLng> points) =>
+      RepeatedGeometry.of(points, precision: repeatPrecision).ratio;
 }

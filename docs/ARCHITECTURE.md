@@ -291,6 +291,13 @@ Garmin are file-based only.
 fallback. `RouteScorer` weighs length error, ascent per km against the preferred
 band, unpaved share, cycleway and bike-network share, repeated segments and
 primary/trunk share; `LoopPlanner.plan()` runs at most 12 with a 25 s timeout.
+Every query carries `profile:allow_ferries=0`, and `LoopFilter` drops what is
+not a loop before it is scored: a candidate with more than 100 m off the road
+network (a ferry, a beeline), more than a tenth of its length ridden twice, or
+an invented waypoint that ended up over 500 m from the route it produced. Any of
+those is retried with the bearing rotated 18° and the round-trip radius
+corrected by how far the answer missed the target; a strategy that has produced
+nothing keeps rotating up to three times.
 
 **Assistant.** A bottom sheet over the planner, reading `PlannerState`. On first
 open a consent dialog stores `aiConsent: denied | textOnly | withLocation`. The

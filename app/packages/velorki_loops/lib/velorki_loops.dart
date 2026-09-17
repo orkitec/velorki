@@ -8,6 +8,7 @@ library;
 export 'src/close_loop.dart';
 export 'src/loop_planner.dart';
 export 'src/loop_request.dart';
+export 'src/quality.dart';
 export 'src/scorer.dart';
 export 'src/strategies.dart';
 export 'src/version.dart';

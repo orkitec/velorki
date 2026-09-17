@@ -4,6 +4,20 @@ import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import 'loop_request.dart';
+import 'quality.dart';
+
+/// Profile variables every loop query carries.
+///
+/// `allow_ferries=0`: a loop is a ride, and a ferry is not part of one. It
+/// matters more than it sounds, because BRouter's round-trip mode invents its
+/// waypoints on a circle and snaps each of them to the nearest way — and for a
+/// coastal town the nearest way to a point in the sea is the ferry line, which
+/// is drawn as one straight segment over open water and gets ridden out and
+/// back. Profiles that declare `allow_ferries` (trekking, fastbike, mtb) obey
+/// this; for the ones that do not, [LoopFilter] throws the result away.
+const Map<String, String> loopProfileParams = <String, String>{
+  'allow_ferries': '0',
+};
 
 /// Turns a [LoopRequest] into concrete [RouteQuery]s for the planner to try.
 ///
@@ -66,6 +80,7 @@ class RoundtripStrategy implements CandidateStrategy {
         roundTripDistanceM: radius,
         roundTripDirectionDeg: offsetDeg + i * step,
         allowSameWayBack: allowSameWayBack,
+        profileParams: loopProfileParams,
       );
     }
   }
@@ -97,6 +112,7 @@ class ViaOutAndBackStrategy implements CandidateStrategy {
       points: plain,
       profile: request.profile,
       allowSameWayBack: false,
+      profileParams: loopProfileParams,
     );
 
     final turnaround = via.last;
@@ -113,12 +129,14 @@ class ViaOutAndBackStrategy implements CandidateStrategy {
         points: [request.start, synthetic, ...via, request.start],
         profile: request.profile,
         allowSameWayBack: false,
+        profileParams: loopProfileParams,
       );
       // ... and on the way back.
       yield RouteQuery(
         points: [request.start, ...via, synthetic, request.start],
         profile: request.profile,
         allowSameWayBack: false,
+        profileParams: loopProfileParams,
       );
     }
   }
@@ -173,6 +191,7 @@ class PerimeterStrategy implements CandidateStrategy {
         points: [request.start, ...ring, request.start],
         profile: request.profile,
         allowSameWayBack: false,
+        profileParams: loopProfileParams,
       );
     }
   }

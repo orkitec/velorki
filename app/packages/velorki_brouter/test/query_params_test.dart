@@ -71,6 +71,46 @@ void main() {
     expect(params['lonlats'], '11.575612,48.137213');
   });
 
+  test('a round trip that may come back the same way says so', () {
+    // The engine's own default is 0, so leaving it unsaid made the sheet's
+    // "different way back" switch do nothing at all on the device.
+    final params = buildQueryParams(
+      const RouteQuery(
+        points: [start],
+        roundTrip: true,
+        roundTripDistanceM: 4200,
+      ),
+    );
+    expect(params['allowSamewayback'], '1');
+  });
+
+  test('a plain route never says allowSamewayback=1', () {
+    // There it means "append the mirrored waypoints", which would double the
+    // route behind the caller's back.
+    final params = buildQueryParams(const RouteQuery(points: [start, end]));
+    expect(params.containsKey('allowSamewayback'), isFalse);
+  });
+
+  test('profile parameters are sent as profile:<name>', () {
+    final params = buildQueryParams(
+      const RouteQuery(
+        points: [start, end],
+        profileParams: {'allow_ferries': '0', 'maxSpeed': '25'},
+      ),
+    );
+    expect(params['profile:allow_ferries'], '0');
+    expect(params['profile:maxSpeed'], '25');
+    expect(
+      buildQueryString(
+        const RouteQuery(
+          points: [start, end],
+          profileParams: {'allow_ferries': '0'},
+        ),
+      ),
+      contains('profile%3Aallow_ferries=0'),
+    );
+  });
+
   test('rejects a query that cannot become a request', () {
     expect(
       () => buildQueryParams(const RouteQuery(points: [])),

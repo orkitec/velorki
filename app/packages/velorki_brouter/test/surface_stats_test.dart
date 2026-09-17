@@ -136,4 +136,28 @@ void main() {
     expect(a.hashCode, b.hashCode);
     expect(a, isNot(SurfaceStats.empty));
   });
+
+  test('a ferry or a beeline counts as off the road network', () {
+    // What a round-trip waypoint invented out at sea snaps to: the ferry
+    // line, ridden out and back as one straight segment over open water.
+    final s = SurfaceStats.fromMessages(
+      table([
+        ('highway=residential surface=asphalt', 1600),
+        ('route=ferry foot=yes bicycle=yes', 4200),
+        ('', 200),
+      ]),
+      6000,
+    );
+    expect(s.offRoadShare, closeTo(4400 / 6000, 1e-9));
+    expect(s.toString(), contains('offRoad'));
+  });
+
+  test('a route entirely on roads is nothing off them', () {
+    final s = SurfaceStats.fromMessages(
+      table([('highway=residential surface=asphalt', 1000)]),
+      1000,
+    );
+    expect(s.offRoadShare, 0);
+    expect(SurfaceStats.empty.offRoadShare, 0);
+  });
 }
