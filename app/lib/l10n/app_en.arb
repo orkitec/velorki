@@ -1888,6 +1888,14 @@
   "@unitsImperial": {
     "description": "Units option: miles, feet and mph"
   },
+  "languageTitle": "Language",
+  "@languageTitle": {
+    "description": "Settings row and picker title for the app language"
+  },
+  "languageSystem": "System",
+  "@languageSystem": {
+    "description": "Language option: follow the phone's language"
+  },
   "mapLookAuto": "Follows theme",
   "@mapLookAuto": {
     "description": "Map style option: light map in light mode, night map in dark mode"

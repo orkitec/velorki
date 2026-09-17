@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/recording/data/battery_saver.dart';
 import '../features/settings/data/appearance_controller.dart';
+import '../features/settings/data/language_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'router.dart';
 import 'theme.dart';
@@ -22,6 +23,10 @@ class VelorkiApp extends ConsumerWidget {
       theme: buildLightTheme(appearance.accent),
       darkTheme: buildDarkTheme(appearance.accent),
       themeMode: override?.mode ?? appearance.mode,
+      // Null keeps Flutter's own resolution: it walks the phone's preferred
+      // locales against supportedLocales, which is all a language-only
+      // translation set needs — no localeResolutionCallback.
+      locale: ref.watch(appLocaleProvider),
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,

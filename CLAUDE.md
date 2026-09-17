@@ -120,7 +120,10 @@ changing structure.
   `npm audit --omit=dev` and `next build`). No rd5 comes off brouter.de; the oracle job
   does fetch the pinned upstream release zip. Every workflow declares the least
   privilege it needs (the default token is read-only) and every `uses:` is
-  pinned to a commit SHA with the tag in a comment (GitHub's "require SHA
+  pinned to a commit SHA with the tag in a comment. The repository allows
+  only selected third-party actions: a new `uses:` from another owner must
+  be added to the patterns under Settings → Actions → General first, or
+  the run ends in `startup_failure` with no log. (GitHub's "require SHA
   pinning" setting stays off: it also rejects the unpinned actions that
   composite actions such as flutter-action call internally); a `v*` tag push runs `release.yml` (Android)
   and `ios-release.yml` (fastlane, TestFlight; one-time setup in

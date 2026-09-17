@@ -16,6 +16,7 @@ import '../../navigation/domain/voice_option.dart';
 import '../../navigation/domain/voice_ranking.dart';
 import '../../navigation/presentation/turn_phrases.dart';
 import '../../navigation/presentation/voice_labels.dart';
+import '../data/language_controller.dart';
 import '../data/units.dart';
 
 /// Settings → Navigation → Speaking voice: which of the phone's voices says
@@ -52,7 +53,7 @@ class VoicePickerScreen extends ConsumerWidget {
     // [named] so it reads the way the rows below do.
     final resolved = bestVoiceFor(
       voices.value ?? const <VoiceOption>[],
-      cueLocaleTag(),
+      cueLocaleTag(ref.watch(appLocaleProvider)),
     );
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsVoicePick)),
@@ -192,7 +193,9 @@ class _VoiceListState extends ConsumerState<_VoiceList> {
 
 /// The strings for the sample cue, looked up the same way the ride does.
 final _l10nProvider = Provider<AppLocalizations>(
-  (ref) => lookupAppLocalizations(Locale(cueLocaleTag().split('-').first)),
+  (ref) => lookupAppLocalizations(
+    Locale(cueLocaleTag(ref.watch(appLocaleProvider)).split('-').first),
+  ),
 );
 
 class _VoiceTile extends StatelessWidget {
@@ -251,7 +254,10 @@ class _BetterVoicesCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final language = languageNameOf(l10n, cueLocaleTag());
+    final language = languageNameOf(
+      l10n,
+      cueLocaleTag(ref.watch(appLocaleProvider)),
+    );
     final body = theme.textTheme.bodySmall?.copyWith(
       color: theme.colorScheme.onSecondaryContainer,
     );

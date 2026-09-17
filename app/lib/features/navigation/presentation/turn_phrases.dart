@@ -48,7 +48,7 @@ String cuePhrase(
       return l10n.navCueOffRoute(
         _aheadPhrase(
           cue.distanceM,
-          _midSentence(backToRouteLabel(cue.direction, l10n), l10n),
+          _midSentence(backToRouteLabel(cue.direction, l10n)),
           l10n,
           units,
         ),
@@ -62,17 +62,17 @@ String cuePhrase(
       if (turn == null) return '';
       return _aheadPhrase(
         cue.distanceM,
-        _midSentence(turnLabel(turn, l10n), l10n),
+        _midSentence(turnLabel(turn, l10n)),
         l10n,
         units,
       );
     case CueKind.now:
       final turn = cue.turn;
       if (turn == null) return '';
-      final phrase = l10n.navCueNow(_midSentence(turnLabel(turn, l10n), l10n));
+      final phrase = l10n.navCueNow(_midSentence(turnLabel(turn, l10n)));
       final then = cue.then;
       if (then == null) return phrase;
-      return l10n.navCueThen(phrase, _midSentence(turnLabel(then, l10n), l10n));
+      return l10n.navCueThen(phrase, _midSentence(turnLabel(then, l10n)));
   }
 }
 
@@ -146,13 +146,15 @@ IconData turnIcon(TurnKind kind) => switch (kind) {
 
 /// An instruction dropped into the middle of a sentence.
 ///
-/// English lower-cases it ("In 200 metres, turn left"); languages that capitalise
-/// mid-sentence words keep the label as their translators wrote it.
-String _midSentence(String label, AppLocalizations l10n) {
-  if (!l10n.localeName.startsWith('en') || label.isEmpty) return label;
+/// The first letter is lower-cased ("In 200 metres, turn left"), so a turn
+/// label has to be written to survive that: it may not start with a word that
+/// is capitalised wherever it stands — a German noun, say. "Am Ziel ankommen"
+/// rather than "Ziel erreichen".
+String _midSentence(String label) {
+  if (label.isEmpty) return label;
   return label[0].toLowerCase() + label.substring(1);
 }
 
 /// The banner's preview of the turn after the next one, e.g. "then keep right".
 String thenLabel(TurnHint hint, AppLocalizations l10n) =>
-    l10n.navThen(_midSentence(turnLabel(hint, l10n), l10n));
+    l10n.navThen(_midSentence(turnLabel(hint, l10n)));

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
+import '../../settings/data/language_controller.dart';
 import '../domain/voice_option.dart';
 import '../domain/voice_ranking.dart';
 
@@ -388,21 +389,36 @@ class _VoiceJob extends _Job {
 ///
 /// Kept alive for the whole app (a plain [Provider] is not auto-disposed), so
 /// the engine is configured once rather than on every guided ride. It speaks
-/// the language the cues are written in: the phone's, when the app has that
-/// translation, otherwise English, which is what the cue text falls back to.
+/// the language the cues are written in: the one the app is shown in, when
+/// the app has that translation, otherwise English, which is what the cue
+/// text falls back to. Picking another language in Settings rebuilds the
+/// speaker, so the next ride is spoken in it.
 final turnSpeakerProvider = Provider<TurnSpeaker>((ref) {
-  final speaker = FlutterTtsSpeaker(localeTag: cueLocaleTag());
+  final speaker = FlutterTtsSpeaker(
+    localeTag: cueLocaleTag(ref.watch(appLocaleProvider)),
+  );
   ref.onDispose(speaker.dispose);
   return speaker;
 });
 
 /// The BCP-47 tag the cues are spoken in. See [turnSpeakerProvider].
-String cueLocaleTag() {
-  final locale = WidgetsBinding.instance.platformDispatcher.locale;
+///
+/// [appLocale] is what the rider picked under Settings → Language, or `null`
+/// while the app follows the phone. A picked language keeps the phone's
+/// region when they speak the same language, so a German phone still asks
+/// for `de-DE` rather than a bare `de`.
+String cueLocaleTag([Locale? appLocale]) {
+  final system = WidgetsBinding.instance.platformDispatcher.locale;
+  final wanted = appLocale ?? system;
   final translated = AppLocalizations.supportedLocales.any(
-    (supported) => supported.languageCode == locale.languageCode,
+    (supported) => supported.languageCode == wanted.languageCode,
   );
-  return translated ? locale.toLanguageTag() : 'en-US';
+  if (!translated) return 'en-US';
+  if (wanted.countryCode == null &&
+      wanted.languageCode == system.languageCode) {
+    return system.toLanguageTag();
+  }
+  return wanted.toLanguageTag();
 }
 
 /// The voices the phone offers for the cues, best first. Auto-disposed so a

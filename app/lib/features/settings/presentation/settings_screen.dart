@@ -15,6 +15,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/presentation/stat_tile.dart';
 import 'about_section.dart';
 import 'appearance_section.dart';
+import 'language_section.dart';
 import 'navigation_section.dart';
 import 'recording_section.dart';
 import 'units_section.dart';
@@ -35,6 +36,7 @@ class SettingsScreen extends ConsumerWidget {
           _SectionHeader.appearance(),
           AppearanceSection(),
           UnitsSection(),
+          LanguageSection(),
           Divider(height: 32),
           _SectionHeader.navigation(),
           NavigationSection(),
