@@ -1,0 +1,39 @@
+# Crowdin: what is translated, and where the translations land.
+#
+# Credentials come from the environment, never from this file:
+#   CROWDIN_PROJECT_ID      the numeric project id
+#   CROWDIN_PERSONAL_TOKEN  a personal access token
+# .github/workflows/crowdin.yml passes both as repository secrets; locally,
+# export them before running the CLI. The `_env` form is the only one the CLI
+# accepts: `project_id: ${CROWDIN_PROJECT_ID}` fails validation, because the
+# value is checked as a number before any substitution happens.
+#
+# English is the source language. Only the three `source` paths below are
+# edited by hand; every `translation` path is written by Crowdin and arrives
+# in a pull request on `l10n/crowdin`. See docs/LOCALISATION.md.
+project_id_env: CROWDIN_PROJECT_ID
+api_token_env: CROWDIN_PERSONAL_TOKEN
+
+# Keep the repository layout inside Crowdin, so a file's place in the project
+# is its place here.
+preserve_hierarchy: true
+
+files:
+  # The Flutter app's strings. %two_letters_code% is the target language, so
+  # German lands in app/lib/l10n/app_de.arb; `supportedLocales` is generated
+  # from the ARB files present, so a merged file enables the language with no
+  # code change. The pattern only ever resolves to a target language, and
+  # English is the source, so app_en.arb is never written by Crowdin.
+  - source: /app/lib/l10n/app_en.arb
+    translation: /app/lib/l10n/app_%two_letters_code%.arb
+
+  # The website's UI strings (next-intl). Same rule: messages/en.json is the
+  # source and can never be a translation target.
+  - source: /web/messages/en.json
+    translation: /web/messages/%two_letters_code%.json
+
+  # The website's Markdown content: the user guide and the legal pages. The
+  # tree under content/en is mirrored per language — `**` carries the
+  # sub-directories (docs/, legal/), %original_file_name% the file name.
+  - source: /web/content/en/**/*.md
+    translation: /web/content/%two_letters_code%/**/%original_file_name%

@@ -1,0 +1,101 @@
+name: crowdin
+
+# English sources go up when they change on main; finished translations come
+# back once a week as a pull request on `l10n/crowdin`. Both need the
+# CROWDIN_PROJECT_ID and CROWDIN_PERSONAL_TOKEN secrets; without them the jobs
+# are skipped rather than shown green for doing nothing. Forks never talk to
+# our project. What is translated is in `crowdin.yml`; the day-to-day is in
+# docs/LOCALISATION.md.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/lib/l10n/app_en.arb"
+      - "web/messages/en.json"
+      - "web/content/en/**/*.md"
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      upload_translations:
+        description: >-
+          Push the translations already in the repository to Crowdin and
+          approve them. Needed once, before the first download, so the
+          hand-made German is not overwritten by empty strings.
+        type: boolean
+        default: false
+
+# Read-only by default; only the `download` job writes a branch and a pull
+# request.
+permissions:
+  contents: read
+
+jobs:
+  token:
+    if: ${{ github.repository_owner == 'orkitec' }}
+    runs-on: ubuntu-latest
+    outputs:
+      present: ${{ steps.check.outputs.present }}
+    steps:
+      - id: check
+        env:
+          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
+        run: |
+          if [ -n "$CROWDIN_PROJECT_ID" ] && [ -n "$CROWDIN_PERSONAL_TOKEN" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::CROWDIN_PROJECT_ID / CROWDIN_PERSONAL_TOKEN are not set; Crowdin is not contacted."
+          fi
+
+  # Push to main that touched a source file, or a manual run.
+  upload:
+    needs: token
+    if: ${{ needs.token.outputs.present == 'true' && github.event_name != 'schedule' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: crowdin/github-action@0d5670f539973aea2f01abce61a8989934df0025 # v3.0.2
+        with:
+          upload_sources: true
+          # Only on a manual run with the box ticked: the translations in the
+          # repository become the approved ones in Crowdin.
+          upload_translations: ${{ inputs.upload_translations || false }}
+          auto_approve_imported: ${{ inputs.upload_translations || false }}
+          import_eq_suggestions: ${{ inputs.upload_translations || false }}
+          download_translations: false
+        env:
+          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
+
+  # Weekly, or a manual run that is not the one-off translation upload.
+  # Translations never land on main without review.
+  # The pull request cannot touch app_en.arb or messages/en.json: the
+  # translation patterns in crowdin.yml resolve to a target language only, and
+  # English is the source language of the project.
+  download:
+    needs: token
+    if: ${{ needs.token.outputs.present == 'true' && github.event_name != 'push' && !inputs.upload_translations }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: crowdin/github-action@0d5670f539973aea2f01abce61a8989934df0025 # v3.0.2
+        with:
+          upload_sources: false
+          download_translations: true
+          localization_branch_name: l10n/crowdin
+          create_pull_request: true
+          pull_request_title: "Update translations"
+          pull_request_base_branch_name: main
+          # A language nobody has started yet brings no half-empty file.
+          skip_untranslated_files: true
+          # Proofreading is not set up; a translated string is good enough.
+          export_only_approved: false
+        env:
+          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

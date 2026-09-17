@@ -68,8 +68,8 @@ dart run drift_dev schema generate drift_schemas/ test/core/db/generated/
 
 ## Strings
 
-All user-facing text lives in `lib/l10n/app_en.arb`. Other languages are
-produced by the GL Strings integration; do not edit them by hand. Run
+All user-facing text lives in `lib/l10n/app_en.arb`. Other languages come
+from Crowdin (`docs/LOCALISATION.md`); do not edit them by hand. Run
 `flutter gen-l10n` after changing the ARB (build_runner does not do it).
 
 ## Tests
