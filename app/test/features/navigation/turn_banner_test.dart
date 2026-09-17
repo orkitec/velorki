@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -55,6 +56,8 @@ Future<ProviderContainer> _pumpBanner(
   Override? units,
   Map<String, Object> preferences = const <String, Object>{},
   NavigationController? navigation,
+  Locale? locale,
+  double? width,
 }) async {
   SharedPreferences.setMockInitialValues(preferences);
   final prefs = await SharedPreferences.getInstance();
@@ -79,10 +82,17 @@ Future<ProviderContainer> _pumpBanner(
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: AppLocalizations.supportedLocales,
+        locale: locale,
         home: Scaffold(
           body: Align(
             alignment: Alignment.topCenter,
-            child: TurnBanner(progress: progress),
+            // A width stands in for the phone the banner really runs on: the
+            // test surface is 800 logical pixels wide, where even the longest
+            // German instruction would never have to wrap.
+            child: SizedBox(
+              width: width,
+              child: TurnBanner(progress: progress),
+            ),
           ),
         ),
       ),
@@ -207,7 +217,7 @@ void main() {
 
     final banner = tester.getSize(find.byType(TurnBanner)).width;
     final panel = tester.getSize(find.byType(GlassPanel)).width;
-    expect(panel, lessThanOrEqualTo(banner * 0.8));
+    expect(panel, lessThan(banner));
     // Left-aligned: the panel starts where the banner does.
     expect(
       tester.getTopLeft(find.byType(GlassPanel)).dx,
@@ -411,9 +421,7 @@ void main() {
     });
   });
 
-  testWidgets('the mute button leaves the banner one row and capped', (
-    tester,
-  ) async {
+  testWidgets('the mute button leaves the banner one row', (tester) async {
     await _pumpBanner(
       tester,
       const NavigationProgress(
@@ -427,6 +435,101 @@ void main() {
     final panel = tester.getSize(find.byType(GlassPanel));
     expect(banner.height, turnBannerHeight);
     expect(panel.height, turnBannerHeight);
-    expect(panel.width, lessThanOrEqualTo(banner.width * 0.8));
+    expect(panel.width, lessThan(banner.width));
+  });
+
+  group('a long instruction', () {
+    // Narrow enough that a German instruction has to wrap, wide enough that
+    // it still can: the test font draws every glyph as a square of the font
+    // size, so a word here is about twice as wide as the same word on a
+    // phone, and a phone's 369 logical pixels would leave no room at all.
+    const double phone = 600;
+
+    /// The paragraph [text] is drawn in, to ask what it did with the room.
+    RenderParagraph paragraph(WidgetTester tester, String text) =>
+        tester.renderObject<RenderParagraph>(find.text(text));
+
+    testWidgets('a long German turn wraps instead of being cut off', (
+      tester,
+    ) async {
+      await _pumpBanner(
+        tester,
+        const NavigationProgress(
+          next: TurnHint(
+            pointIndex: 10,
+            kind: TurnKind.roundabout,
+            exitNumber: 2,
+          ),
+          distanceToNextM: 248,
+        ),
+        locale: const Locale('de'),
+        width: phone,
+      );
+
+      const String instruction = 'Im Kreisverkehr die 2. Ausfahrt nehmen';
+      expect(find.text(instruction), findsOneWidget);
+      // Every word of it is on screen: no ellipsis, no clipped last line.
+      expect(paragraph(tester, instruction).didExceedMaxLines, isFalse);
+      expect(tester.widget<Text>(find.text(instruction)).overflow, isNull);
+      // It did not fit on one line, so it took the second one.
+      expect(tester.widget<Text>(find.text(instruction)).maxLines, 2);
+      expect(paragraph(tester, instruction).size.height, greaterThan(20));
+      // And the distance is still the figure it was.
+      expect(find.text('250 m'), findsOneWidget);
+      expect(
+        tester.widget<Text>(find.text('250 m')).style?.fontSize,
+        buildLightTheme().textTheme.statMedium.fontSize,
+      );
+      // All of it inside the row the screen reserved.
+      expect(tester.getSize(find.byType(TurnBanner)).height, turnBannerHeight);
+      expect(tester.getSize(find.byType(GlassPanel)).height, turnBannerHeight);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('the German turns that used to be cut off are whole', (
+      tester,
+    ) async {
+      for (final (TurnKind kind, String instruction) in <(TurnKind, String)>[
+        (TurnKind.right, 'Rechts abbiegen'),
+        (TurnKind.sharpLeft, 'Scharf links abbiegen'),
+        (TurnKind.slightRight, 'Leicht rechts abbiegen'),
+      ]) {
+        await _pumpBanner(
+          tester,
+          NavigationProgress(
+            next: TurnHint(pointIndex: 10, kind: kind),
+            distanceToNextM: 248,
+            after: _keepRight,
+          ),
+          locale: const Locale('de'),
+          width: phone,
+        );
+
+        expect(find.text(instruction), findsOneWidget);
+        expect(paragraph(tester, instruction).didExceedMaxLines, isFalse);
+        expect(tester.takeException(), isNull);
+      }
+    });
+
+    testWidgets('a short English turn keeps the one-line look', (tester) async {
+      await _pumpBanner(
+        tester,
+        const NavigationProgress(
+          next: _left,
+          distanceToNextM: 248,
+          after: _keepRight,
+        ),
+        width: phone,
+      );
+
+      final Text text = tester.widget<Text>(find.text('Turn left'));
+      expect(text.maxLines, 1);
+      // Full size, not shrunk to make room for a line it does not need.
+      expect(
+        text.style?.fontSize,
+        buildLightTheme().textTheme.titleSmall?.fontSize,
+      );
+      expect(paragraph(tester, 'Turn left').didExceedMaxLines, isFalse);
+    });
   });
 }

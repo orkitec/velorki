@@ -15,9 +15,9 @@ import 'turn_phrases.dart';
 /// controls can be pushed below it.
 const double turnBannerHeight = 56;
 
-/// How wide the banner may grow, as a share of the room it is given. The rest
-/// of the row stays map, which is what the rider is actually looking at.
-const double _maxWidthFactor = 0.8;
+/// The smallest share of its own size the instruction may shrink to before a
+/// rider on a handlebar would stop reading it at a glance.
+const double _minInstructionScale = 0.78;
 
 /// The next turn, over the map, while a guided ride is running.
 ///
@@ -126,9 +126,9 @@ class TurnBanner extends ConsumerWidget {
       ];
     }
 
-    // Left-aligned and only as wide as it needs to be, so the map keeps the
-    // rest of the row. The outer row stretches the panel to the full banner
-    // height; the cap keeps a long instruction from taking the whole width.
+    // Left-aligned and only as wide as it needs to be, so a short instruction
+    // leaves the rest of the row to the map. The outer row stretches the
+    // panel to the full banner height.
     return SizedBox(
       height: turnBannerHeight,
       child: LayoutBuilder(
@@ -136,12 +136,12 @@ class TurnBanner extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             ConstrainedBox(
-              constraints: BoxConstraints(
-                // A rider who has left the route has more to read and less
-                // use for the map behind it, so the cap comes off.
-                maxWidth:
-                    constraints.maxWidth * (guiding ? 1 : _maxWidthFactor),
-              ),
+              // The whole row, minus nothing: while the banner is up the
+              // control column starts below it (`controlsTop`), so there is
+              // no chrome beside it to keep clear of. A row does not bound
+              // its inflexible child's width by itself, and the instruction
+              // has to know how much room it has, so it is bounded here.
+              constraints: BoxConstraints(maxWidth: constraints.maxWidth),
               child: GestureDetector(
                 // Tapping the way back asks for one to be computed now,
                 // rather than waiting the half minute out.
@@ -208,16 +208,10 @@ class TurnBanner extends ConsumerWidget {
     ),
   );
 
-  // Flexible, not fixed: at the 80 % cap a long instruction gives way rather
-  // than pushing the arrows out of the panel.
-  Widget _instruction(ThemeData theme, String text) => Flexible(
-    child: Text(
-      text,
-      style: theme.textTheme.titleSmall,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-    ),
-  );
+  // Flexible, not fixed: the instruction gives way to the figures and the
+  // arrows rather than pushing them out of the panel.
+  Widget _instruction(ThemeData theme, String text) =>
+      _Instruction(text: text, style: theme.textTheme.titleSmall!);
 
   Widget _state(ThemeData theme, String text, Color color) => Flexible(
     child: Text(
@@ -230,4 +224,94 @@ class TurnBanner extends ConsumerWidget {
       overflow: TextOverflow.ellipsis,
     ),
   );
+}
+
+/// The instruction beside the distance, in as much of the style as fits.
+///
+/// A turn instruction cut off at an ellipsis is worse than a small one: "Im
+/// Kreisverkehr die 2. Ausfahrt nehmen" is three times the length of "Turn
+/// right", and "Rechts abbieg…" tells a rider nothing they can act on. So the
+/// text is measured against the room it actually has — a [TextPainter], no
+/// package — and the first of these that fits is what is drawn: one line at
+/// the full style, which is every short instruction and so the usual look,
+/// then two lines, shrinking in small steps down to [_minInstructionScale].
+class _Instruction extends StatelessWidget {
+  const _Instruction({required this.text, required this.style});
+
+  /// The instruction to draw.
+  final String text;
+
+  /// The style it is drawn in while it fits on one line.
+  final TextStyle style;
+
+  /// How much smaller each step makes the text.
+  static const double _step = 0.06;
+
+  @override
+  Widget build(BuildContext context) => Flexible(
+    child: LayoutBuilder(
+      builder: (context, constraints) {
+        // The same scaler the Text will use, or the measurement would be of
+        // a different size than the one on screen.
+        final scaler = MediaQuery.textScalerOf(context);
+        final direction = Directionality.of(context);
+        final fit = _fit(constraints, direction, scaler);
+        return Text(
+          text,
+          style: fit.style,
+          maxLines: fit.lines,
+          textScaler: scaler,
+        );
+      },
+    ),
+  );
+
+  /// The largest style, and the fewest lines, the whole instruction fits in.
+  ({TextStyle style, int lines}) _fit(
+    BoxConstraints constraints,
+    TextDirection direction,
+    TextScaler scaler,
+  ) {
+    final width = constraints.maxWidth;
+    final height = constraints.hasBoundedHeight
+        ? constraints.maxHeight
+        : double.infinity;
+    final base = style.fontSize ?? 14;
+    if (_fits(style, 1, width, height, direction, scaler)) {
+      return (style: style, lines: 1);
+    }
+    for (var scale = 1.0; scale >= _minInstructionScale; scale -= _step) {
+      final smaller = style.copyWith(fontSize: base * scale);
+      if (_fits(smaller, 2, width, height, direction, scaler)) {
+        return (style: smaller, lines: 2);
+      }
+    }
+    // Two lines at the smallest size the rider can still read: past this the
+    // instruction is longer than any turn phrase we have, and a readable
+    // couple of lines beats a legible-but-useless ellipsis.
+    return (
+      style: style.copyWith(fontSize: base * _minInstructionScale),
+      lines: 2,
+    );
+  }
+
+  /// Whether [text] fits in [lines] lines of [style] inside the given room.
+  bool _fits(
+    TextStyle style,
+    int lines,
+    double width,
+    double height,
+    TextDirection direction,
+    TextScaler scaler,
+  ) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      maxLines: lines,
+      textDirection: direction,
+      textScaler: scaler,
+    )..layout(maxWidth: width);
+    final fits = !painter.didExceedMaxLines && painter.height <= height;
+    painter.dispose();
+    return fits;
+  }
 }
