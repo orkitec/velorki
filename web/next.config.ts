@@ -16,9 +16,16 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 // only remote hosts are the map tiles. 'unsafe-inline' for scripts is what the
 // React Server Components payload needs without a per-request nonce (a nonce
 // would force dynamic rendering and defeat the cacheable share page).
+// React's development build needs eval() for its debugging features; the
+// production policy never allows it.
+const SCRIPT_SRC =
+  process.env.NODE_ENV === 'development'
+    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+    : "script-src 'self' 'unsafe-inline'";
+
 const CSP = [
   "default-src 'none'",
-  "script-src 'self' 'unsafe-inline'",
+  SCRIPT_SRC,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://tiles.openfreemap.org",
   "connect-src 'self' https://tiles.openfreemap.org",
