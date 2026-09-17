@@ -45,7 +45,8 @@ abstract class IncomingSources {
   Stream<Uri> linkStream();
 
   /// Paths pushed over the `velorki/files` channel; this is how iOS reports an
-  /// "Open in Velorki" without a share extension.
+  /// "Open in Velorki" (the share sheet goes through the Share Extension and
+  /// `receive_sharing_intent` instead).
   Stream<String> openedFilePaths();
 
   /// Reads [path] from the file system, or `null` when it cannot be read.
@@ -139,7 +140,8 @@ class PlatformIncomingSources implements IncomingSources {
 ///   URI — on Android a content URI is read back through the platform's
 ///   `ContentResolver`;
 /// * the **`velorki/files` method channel**, which is how iOS reports
-///   `application(_:open:options:)` without a share extension.
+///   `application(_:open:options:)` for "Open in Velorki"; the share sheet
+///   arrives through the Share Extension and `receive_sharing_intent`.
 ///
 /// Whatever arrives is read into bytes, sniffed (never trusting the MIME type
 /// the sender claimed) and decoded; the result appears on [imports]. Links

@@ -7,7 +7,12 @@ import UIKit
   private static let filesChannelName = "velorki/files"
   private static let openedFileMethod = "opened"
 
+  /// Mirrored in `lib/core/files/backup_exclusion.dart`.
+  private static let backupChannelName = "app.velorki/backup"
+  private static let excludeFromBackupMethod = "excludeFromBackup"
+
   private var filesChannel: FlutterMethodChannel?
+  private var backupChannel: FlutterMethodChannel?
 
   /// Files that arrived before the Dart side was listening.
   private var pendingPaths: [String] = []
@@ -26,7 +31,62 @@ import UIKit
       binaryMessenger: engineBridge.applicationRegistrar.messenger()
     )
     filesChannel = channel
+
+    let backup = FlutterMethodChannel(
+      name: AppDelegate.backupChannelName,
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
+    )
+    backup.setMethodCallHandler { call, result in
+      AppDelegate.handleBackupCall(call, result: result)
+    }
+    backupChannel = backup
+
     flushPendingPaths()
+  }
+
+  /// Marks a directory `NSURLIsExcludedFromBackupKey`, which Apple's data
+  /// storage guidelines require for anything the app can download again —
+  /// here `<appSupport>/brouter` with its tiles, gazetteers and profiles.
+  ///
+  /// Answers true when the flag is set, false when there is nothing at the
+  /// path, and a `FlutterError` when iOS refused.
+  private static func handleBackupCall(
+    _ call: FlutterMethodCall,
+    result: @escaping FlutterResult
+  ) {
+    guard call.method == excludeFromBackupMethod else {
+      result(FlutterMethodNotImplemented)
+      return
+    }
+    guard let path = call.arguments as? String, !path.isEmpty else {
+      result(
+        FlutterError(
+          code: "invalid_argument",
+          message: "\(excludeFromBackupMethod) expects a non-empty path",
+          details: nil
+        )
+      )
+      return
+    }
+    guard FileManager.default.fileExists(atPath: path) else {
+      result(false)
+      return
+    }
+    var url = URL(fileURLWithPath: path, isDirectory: true)
+    do {
+      var values = URLResourceValues()
+      values.isExcludedFromBackup = true
+      try url.setResourceValues(values)
+      result(true)
+    } catch {
+      result(
+        FlutterError(
+          code: "exclude_failed",
+          message: "could not exclude \(path) from the backup",
+          details: error.localizedDescription
+        )
+      )
+    }
   }
 
   /// "Open in Velorki" from Files, Mail, Safari or another app.

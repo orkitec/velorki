@@ -5,22 +5,28 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/files/backup_exclusion.dart';
+
 part 'brouter_storage.g.dart';
 
 /// Where the on-device routing engine finds its files.
 ///
 /// Everything lives under `<appSupport>/brouter/`, which is the plan's
 /// location: not the documents directory, so the tiles stay out of the file
-/// pickers and out of iCloud Drive. Marking the segments directory
-/// `NSURLIsExcludedFromBackupKey` on iOS still has to happen in `ios/Runner`
-/// (see `docs/OPEN_ITEMS.md`); a 250 MB tile has no business in a backup.
+/// pickers and out of iCloud Drive. [create] additionally marks the whole
+/// tree `NSURLIsExcludedFromBackupKey` on iOS through [BackupExclusion], so
+/// none of it reaches an iCloud or iTunes backup; a 250 MB tile has no
+/// business in one, and everything here can be downloaded again.
 @immutable
 class BrouterStorage {
-  /// Creates the layout under [root].
-  const BrouterStorage(this.root);
+  /// Creates the layout under [root]; [backup] is injected in tests.
+  const BrouterStorage(this.root, {BackupExclusion? backup})
+    : _backup = backup ?? const BackupExclusion();
 
   /// `<appSupport>/brouter`.
   final Directory root;
+
+  final BackupExclusion _backup;
 
   /// The `.rd5` segment tiles.
   Directory get segments => Directory(p.join(root.path, 'segments'));
@@ -31,11 +37,14 @@ class BrouterStorage {
   /// The `<TILE>.gaz` offline gazetteers, one per downloaded tile.
   Directory get gazetteer => Directory(p.join(root.path, 'gazetteer'));
 
-  /// Creates the three directories if they are not there yet.
+  /// Creates the three directories if they are not there yet and asks the
+  /// platform to keep [root] out of the backup. A refused exclusion is logged
+  /// and ignored: it must not stop the app from routing.
   Future<BrouterStorage> create() async {
     await segments.create(recursive: true);
     await profiles.create(recursive: true);
     await gazetteer.create(recursive: true);
+    await _backup.exclude(root);
     return this;
   }
 

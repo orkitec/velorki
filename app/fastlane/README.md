@@ -64,9 +64,9 @@ see `.github/workflows/release.yml`.
    - add `ios/Runner/PrivacyInfo.xcprivacy` to the Runner target
      (*Target → Build Phases → Copy Bundle Resources*) — the file exists, but
      it is not in the bundle until Xcode knows about it;
-   - the **Share Extension** target for `receive_sharing_intent`, with its own
-     bundle id, an App Group shared with the app, and profiles for both
-     (see `lib/features/import_export/README.md`);
+   - one signed build so automatic signing registers the App Group of the
+     **Share Extension** target `VelorkiShare` (the target itself is in the
+     project; see `lib/features/import_export/README.md`);
    - the In-App Purchase capability and the subscription products.
 5. **Subscriptions** in App Store Connect (monthly and yearly, one group,
    seven-day introductory free trial) and the same product ids in RevenueCat.

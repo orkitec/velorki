@@ -66,12 +66,9 @@ exercised there. The items here are the parts not yet covered by that.
       Development builds sign automatically with the orkitec team and run on
       a phone; the file-open handler in `ios/Runner/AppDelegate.swift` has
       not been tried yet.
-- [ ] Add the **Share Extension** target for `receive_sharing_intent`; "Open in
-      Velorki" already works without it. See
-      `app/lib/features/import_export/README.md`.
-- [ ] Exclude `<appSupport>/brouter/segments` from the iOS backup
-      (`NSURLIsExcludedFromBackupKey`; the TODO is in
-      `app/lib/features/routing_tiles/data/brouter_storage.dart`).
+- [ ] Sign once with the **Share Extension**: the `VelorkiShare` target exists
+      and CI compiles it, but the App Group `group.com.orkitec.velorki` is only
+      registered in the developer portal after one signed build on the Mac.
 - [ ] Background recording on an iPhone: screen off for a long ride, the blue
       indicator, force-quit → interrupted-ride dialog on relaunch.
 

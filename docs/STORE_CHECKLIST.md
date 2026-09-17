@@ -102,6 +102,11 @@ routes to our share store.
       `res/xml/data_extraction_rules.xml`.
 - [x] **(iOS)** No tracking, so `NSUserTrackingUsageDescription` is
       deliberately **not** in `Info.plist` and no ATT prompt is shown.
+- [x] **(iOS)** Re-downloadable data is excluded from the backup, as Apple's
+      data storage guidelines require: `<appSupport>/brouter` (tiles,
+      gazetteers, profiles) is flagged `NSURLIsExcludedFromBackupKey` when it
+      is created. — `lib/core/files/backup_exclusion.dart` over the
+      `app.velorki/backup` channel in `ios/Runner/AppDelegate.swift`.
 
 ## Privacy policy
 
@@ -307,9 +312,9 @@ Everything above that is still open, grouped by where the work happens.
 Add `ios/Runner/PrivacyInfo.xcprivacy` to the **Runner** target: select the file
 in the navigator, File inspector → Target Membership → Runner, and check it
 appears under Runner → Build Phases → Copy Bundle Resources. Until then the
-manifest is in the repository but not in the app. The rest of the Mac work —
-the Share Extension target, `fastlane match` — is in
-[OPEN_ITEMS.md](OPEN_ITEMS.md).
+manifest is in the repository but not in the app. The Share Extension target
+exists and only needs one signed build to register its app group; the rest of
+the Mac work — release signing — is in [OPEN_ITEMS.md](OPEN_ITEMS.md).
 
 ### In App Store Connect
 

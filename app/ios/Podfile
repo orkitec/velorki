@@ -36,6 +36,16 @@ target 'Runner' do
   end
 end
 
+# The two app extensions, VelorkiLiveActivity and VelorkiShare, have no target
+# block here on purpose. Neither uses a pod: the live activity is pure
+# SwiftUI/WidgetKit, and receive_sharing_intent — the only dependency the share
+# extension has — ships as a Swift package with no podspec at all (see its
+# README, "Make the plugin available to the Share Extension"). VelorkiShare
+# links the `receive-sharing-intent` library through Swift Package Manager
+# instead; Runner.xcodeproj carries the package reference. An empty
+# `inherit! :search_paths` block would only add a Pods aggregate target and a
+# base-configuration warning for xcconfigs nothing reads.
+
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
