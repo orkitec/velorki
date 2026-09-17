@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
-import '../../map/presentation/map_strings.dart';
+import '../../shared/presentation/byte_size.dart';
 import '../data/segments_manifest_service.dart';
 import 'routing_tiles_screen.dart';
 
@@ -62,7 +62,7 @@ class MissingTilesBanner extends ConsumerWidget {
                 child: Text(
                   l10n.routingTilesDownloadCount(
                     tiles.length,
-                    MapStrings.formatBytes(bytes),
+                    formatBytes(bytes),
                   ),
                 ),
               ),

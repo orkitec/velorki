@@ -193,9 +193,10 @@ class _MapViewState extends ConsumerState<MapView> {
     _adapter = adapter;
     await adapter.attachToStyle();
     if (!mounted) return;
-    await adapter.setCyclosmOverlay(ref.read(cyclosmOverlayProvider));
-    if (!mounted) return;
     setState(() {});
+    // The fresh style has none of our layers, so the owner re-applies what it
+    // draws; the CyclOSM overlay comes back the same way, from the host that
+    // holds the app-wide setting.
     widget.onControllerReady(adapter);
     // A fix that arrived before the style finished loading would otherwise
     // wait for the next one, which is up to five metres of riding away.

@@ -14,10 +14,13 @@ import 'package:velorki/features/map/data/position_provider.dart';
 import 'package:velorki/features/map/presentation/map_attribution.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
-import 'package:velorki/features/map/presentation/map_strings.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki/features/map/testing/testing.dart';
+import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki_geo/velorki_geo.dart';
+
+/// The address the OpenStreetMap licence link points at.
+const String _osmUrl = 'https://www.openstreetmap.org/copyright';
 
 Future<Widget> _wrap(
   Widget child, {
@@ -35,6 +38,8 @@ Future<Widget> _wrap(
     ],
     child: MaterialApp(
       theme: buildLightTheme(),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(body: Center(child: child)),
     ),
   );
@@ -125,9 +130,7 @@ void main() {
       await tester.pumpWidget(await _wrap(const MapAttributionChip()));
 
       expect(
-        find.text(
-          '${MapStrings.attributionOsm} · ${MapStrings.attributionOpenFreeMap}',
-        ),
+        find.text('© OpenStreetMap contributors · OpenFreeMap'),
         findsOneWidget,
       );
     });
@@ -137,10 +140,7 @@ void main() {
         await _wrap(const MapAttributionChip(), cyclosm: true),
       );
 
-      expect(
-        find.textContaining(MapStrings.attributionCyclosm),
-        findsOneWidget,
-      );
+      expect(find.textContaining('CyclOSM'), findsOneWidget);
     });
 
     testWidgets('opens the licence dialog with the source URLs', (
@@ -151,15 +151,15 @@ void main() {
       await tester.tap(find.byType(MapAttributionChip));
       await tester.pumpAndSettle();
 
-      expect(find.text(MapStrings.attributionTitle), findsWidgets);
-      expect(find.text(MapStrings.attributionOsmUrl), findsOneWidget);
-      expect(find.text(MapStrings.attributionOpenFreeMapUrl), findsOneWidget);
+      expect(find.text('Map data and tiles'), findsWidgets);
+      expect(find.text(_osmUrl), findsOneWidget);
+      expect(find.text('https://openfreemap.org/'), findsOneWidget);
       // Not active, so it is not listed.
-      expect(find.text(MapStrings.attributionCyclosmUrl), findsNothing);
+      expect(find.text('https://www.cyclosm.org/'), findsNothing);
 
-      await tester.tap(find.text(MapStrings.close));
+      await tester.tap(find.text('Close'));
       await tester.pumpAndSettle();
-      expect(find.text(MapStrings.attributionOsmUrl), findsNothing);
+      expect(find.text(_osmUrl), findsNothing);
     });
   });
 
@@ -203,7 +203,9 @@ void main() {
       expect(controller.cameraMoves.single.zoom, 22);
     });
 
-    testWidgets('toggles the CyclOSM overlay and remembers it', (tester) async {
+    testWidgets('toggles the app-wide CyclOSM setting and remembers it', (
+      tester,
+    ) async {
       final controller = FakeMapController();
       await tester.pumpWidget(await _wrap(MapControls(controller: controller)));
       final element = tester.element(find.byType(MapControls));
@@ -212,14 +214,31 @@ void main() {
       await tester.tap(find.widgetWithIcon(IconButton, Icons.directions_bike));
       await tester.pumpAndSettle();
 
-      expect(controller.cyclosmOverlayCalls, [true]);
       expect(container.read(cyclosmOverlayProvider), isTrue);
 
       await tester.tap(find.widgetWithIcon(IconButton, Icons.directions_bike));
       await tester.pumpAndSettle();
 
-      expect(controller.cyclosmOverlayCalls, [true, false]);
       expect(container.read(cyclosmOverlayProvider), isFalse);
+      // The button drives the setting, not the one map it happens to sit on:
+      // every map alive follows the setting through its PlannerMapHost, so a
+      // toggle on one tab is not lost on the map of another.
+      expect(controller.cyclosmOverlayCalls, isEmpty);
+    });
+
+    testWidgets('draws the CyclOSM button in the accent while it is on', (
+      tester,
+    ) async {
+      final controller = FakeMapController();
+      await tester.pumpWidget(
+        await _wrap(MapControls(controller: controller), cyclosm: true),
+      );
+      await tester.pump();
+
+      expect(
+        _buttonColor(tester, Icons.directions_bike),
+        buildLightTheme().velorki.accent,
+      );
     });
 
     testWidgets('draws the locate button in the accent while following', (
@@ -279,7 +298,7 @@ void main() {
               find.widgetWithIcon(IconButton, Icons.navigation),
             )
             .tooltip,
-        MapStrings.followNorthUp,
+        'North up',
       );
 
       await tester.tap(find.widgetWithIcon(IconButton, Icons.navigation));
@@ -307,13 +326,13 @@ void main() {
       // North-up is on, so the tap switches to heading-up and says so.
       await tester.tap(find.widgetWithIcon(IconButton, Icons.navigation));
       await tester.pump();
-      expect(find.text(MapStrings.followHeadingUp), findsOneWidget);
+      expect(find.text('Map turns with you'), findsOneWidget);
       // A label, not a slab: the overlay offers the whole screen and the
       // hint must take only what its text needs.
       final slab = tester.getSize(
         find
             .ancestor(
-              of: find.text(MapStrings.followHeadingUp),
+              of: find.text('Map turns with you'),
               matching: find.byType(GlassPanel),
             )
             .first,
@@ -324,7 +343,7 @@ void main() {
 
       await tester.pump(const Duration(seconds: 2));
       await tester.pump();
-      expect(find.text(MapStrings.followHeadingUp), findsNothing);
+      expect(find.text('Map turns with you'), findsNothing);
     });
 
     testWidgets('draws the compass in the accent in heading up', (
@@ -350,7 +369,7 @@ void main() {
               find.widgetWithIcon(IconButton, Icons.navigation),
             )
             .tooltip,
-        MapStrings.followHeadingUp,
+        'Map turns with you',
       );
       // The locate button is a plain crosshair either way.
       expect(find.byIcon(Icons.my_location), findsOneWidget);

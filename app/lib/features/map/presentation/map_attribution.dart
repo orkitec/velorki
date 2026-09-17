@@ -2,9 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../l10n/generated/app_localizations.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../data/map_preferences.dart';
-import 'map_strings.dart';
+
+/// Where each source of the map explains itself. Addresses, not prose: they
+/// are the same in every language.
+const String _osmUrl = 'https://www.openstreetmap.org/copyright';
+const String _openFreeMapUrl = 'https://openfreemap.org/';
+const String _cyclosmUrl = 'https://www.cyclosm.org/';
 
 /// The attribution required by the OpenStreetMap licence, drawn by us rather
 /// than by the native SDK so it survives our own map chrome.
@@ -21,14 +27,15 @@ class MapAttributionChip extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final bool cyclosm = cyclosmActive ?? ref.watch(cyclosmOverlayProvider);
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final parts = <String>[
-      MapStrings.attributionOsm,
-      MapStrings.attributionOpenFreeMap,
-      if (cyclosm) MapStrings.attributionCyclosm,
+      l10n.osmAttribution,
+      l10n.mapAttributionOpenFreeMap,
+      if (cyclosm) l10n.mapAttributionCyclosm,
     ];
     return Semantics(
       button: true,
-      label: MapStrings.attributionTitle,
+      label: l10n.mapAttributionTitle,
       child: GlassPanel(
         radius: 999,
         child: Material(
@@ -54,38 +61,38 @@ Future<void> showMapAttributionDialog(
 }) {
   return showDialog<void>(
     context: context,
-    builder: (context) => AlertDialog(
-      title: const Text(MapStrings.attributionTitle),
-      content: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            const Text(MapStrings.attributionBody),
-            const SizedBox(height: 12),
-            const _AttributionLink(
-              label: MapStrings.attributionOsm,
-              url: MapStrings.attributionOsmUrl,
-            ),
-            const _AttributionLink(
-              label: MapStrings.attributionOpenFreeMap,
-              url: MapStrings.attributionOpenFreeMapUrl,
-            ),
-            if (cyclosmActive)
-              const _AttributionLink(
-                label: MapStrings.attributionCyclosm,
-                url: MapStrings.attributionCyclosmUrl,
+    builder: (context) {
+      final l10n = AppLocalizations.of(context);
+      return AlertDialog(
+        title: Text(l10n.mapAttributionTitle),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text(l10n.mapAttributionBody),
+              const SizedBox(height: 12),
+              _AttributionLink(label: l10n.osmAttribution, url: _osmUrl),
+              _AttributionLink(
+                label: l10n.mapAttributionOpenFreeMap,
+                url: _openFreeMapUrl,
               ),
-          ],
+              if (cyclosmActive)
+                _AttributionLink(
+                  label: l10n.mapAttributionCyclosm,
+                  url: _cyclosmUrl,
+                ),
+            ],
+          ),
         ),
-      ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text(MapStrings.close),
-        ),
-      ],
-    ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.mapAttributionClose),
+          ),
+        ],
+      );
+    },
   );
 }
 

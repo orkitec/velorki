@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../map/data/map_preferences.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/map_chrome.dart';
 
@@ -24,7 +27,15 @@ MapViewBuilder mapViewBuilder(Ref ref) =>
     (onReady) => const ColoredBox(color: Color(0xFFE8E6E1));
 
 /// Places the map and forwards its controller, so no screen imports maplibre.
-class PlannerMapHost extends ConsumerWidget {
+///
+/// It is also where the app-wide map settings reach a map: the CyclOSM
+/// overlay is one setting for the whole app ([cyclosmOverlayProvider]), and
+/// several maps are alive at once — the tabs of the shell keep their screens
+/// in an `IndexedStack`. Every host applies the setting to its own map when
+/// the map becomes usable (which is again after a style reload, when every
+/// layer we added is gone) and whenever the setting changes, so a toggle on
+/// one tab is on the map of every other tab as well.
+class PlannerMapHost extends ConsumerStatefulWidget {
   /// Creates the host.
   const PlannerMapHost({
     required this.onMapReady,
@@ -42,9 +53,30 @@ class PlannerMapHost extends ConsumerWidget {
   final bool embedded;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final map = ref.watch(mapViewBuilderProvider)(onMapReady);
-    if (!embedded) return map;
+  ConsumerState<PlannerMapHost> createState() => _PlannerMapHostState();
+}
+
+class _PlannerMapHostState extends ConsumerState<PlannerMapHost> {
+  MapController? _map;
+
+  /// Takes the map the builder just handed over, puts the app-wide map
+  /// settings on it and passes it to the screen.
+  void _handleMapReady(MapController controller) {
+    _map = controller;
+    unawaited(controller.setCyclosmOverlay(ref.read(cyclosmOverlayProvider)));
+    widget.onMapReady(controller);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Not only the map of the screen the rider is looking at: every map that
+    // is alive follows the setting, so switching tabs never shows a map that
+    // disagrees with the overlay button.
+    ref.listen<bool>(cyclosmOverlayProvider, (_, next) {
+      unawaited(_map?.setCyclosmOverlay(next));
+    });
+    final map = ref.watch(mapViewBuilderProvider)(_handleMapReady);
+    if (!widget.embedded) return map;
     // An embedded map keeps the chrome its owner declared, minus the
     // routing-tile download that only the planner needs.
     final inherited = MapChromeInsets.maybeOf(context);

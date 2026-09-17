@@ -8,7 +8,7 @@ import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/data/offline_regions_repository.dart';
 import '../../map/domain/map_controller.dart';
-import '../../map/presentation/map_strings.dart';
+import '../../shared/presentation/byte_size.dart';
 import '../../map/presentation/offline_regions_screen.dart';
 import '../../routing_tiles/application/tile_download_controller.dart';
 import '../../routing_tiles/data/routing_tiles_repository.dart';
@@ -68,7 +68,7 @@ class OfflineScreen extends ConsumerWidget {
                   source: l10n.offlineMapsSource,
                   summary: l10n.offlineMapsSummary(
                     regions.length,
-                    MapStrings.formatBytes(regionBytes),
+                    formatBytes(regionBytes),
                   ),
                   hint: refreshDue == 0
                       ? null
@@ -93,7 +93,7 @@ class OfflineScreen extends ConsumerWidget {
                   source: l10n.offlineRoutingSource,
                   summary: l10n.routingTilesTotal(
                     downloaded.length,
-                    MapStrings.formatBytes(tileBytes),
+                    formatBytes(tileBytes),
                   ),
                   hint: stale == 0 ? null : l10n.routingTilesUpdatesHint(stale),
                   progress: queue.isRunning
@@ -119,7 +119,7 @@ class OfflineScreen extends ConsumerWidget {
             action: FilledButton.icon(
               icon: const Icon(Icons.download_outlined),
               label: Text(
-                busy ? MapStrings.downloading : l10n.offlineDownloadVisible,
+                busy ? l10n.mapOfflineDownloading : l10n.offlineDownloadVisible,
               ),
               onPressed: blockedReason != null || busy
                   ? null
@@ -178,9 +178,7 @@ class OfflineScreen extends ConsumerWidget {
               Text(l10n.offlineDialogRoutingPresent)
             else
               for (final entry in entries)
-                Text(
-                  '${entry.tile.name} · ${MapStrings.formatBytes(entry.bytes)}',
-                ),
+                Text('${entry.tile.name} · ${formatBytes(entry.bytes)}'),
             const SizedBox(height: 12),
             Text(l10n.routingTilesDataNotice),
           ],
@@ -204,7 +202,7 @@ class OfflineScreen extends ConsumerWidget {
     }
     final existing = await ref.read(offlineRegionsRepositoryProvider).regions();
     final spec = OfflineRegionSpec(
-      name: '${MapStrings.regionNameDefault} ${existing.length + 1}',
+      name: l10n.mapOfflineRegionName(existing.length + 1),
       bounds: bounds,
       styleUrl: ref.read(offlineStyleUrlProvider),
     );

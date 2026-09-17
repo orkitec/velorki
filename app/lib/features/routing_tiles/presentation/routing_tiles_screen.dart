@@ -11,7 +11,7 @@ import '../../../core/links/link_opener.dart';
 import '../../../core/db/database.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/domain/map_controller.dart';
-import '../../map/presentation/map_strings.dart';
+import '../../shared/presentation/byte_size.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../shared/presentation/placeholder_body.dart';
 import '../application/tile_download_controller.dart';
@@ -95,7 +95,7 @@ class RoutingTilesScreen extends ConsumerWidget {
           _BottomBar(
             total: l10n.routingTilesTotal(
               downloaded.length,
-              MapStrings.formatBytes(totalBytes),
+              formatBytes(totalBytes),
             ),
             note: mapController?.visibleBounds == null
                 ? l10n.routingTilesNeedsMap
@@ -238,7 +238,7 @@ Future<void> confirmTileDownload(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           for (final entry in entries)
-            Text('${entry.tile.name} · ${MapStrings.formatBytes(entry.bytes)}'),
+            Text('${entry.tile.name} · ${formatBytes(entry.bytes)}'),
           const SizedBox(height: 12),
           Text(l10n.routingTilesDataNotice),
         ],
@@ -251,10 +251,7 @@ Future<void> confirmTileDownload(
         FilledButton(
           onPressed: () => Navigator.of(context).pop(true),
           child: Text(
-            l10n.routingTilesDownloadCount(
-              entries.length,
-              MapStrings.formatBytes(bytes),
-            ),
+            l10n.routingTilesDownloadCount(entries.length, formatBytes(bytes)),
           ),
         ),
       ],
@@ -341,8 +338,8 @@ class _QueueHeader extends ConsumerWidget {
               children: <Widget>[
                 Text(
                   '${state.current?.name ?? ''} · '
-                  '${MapStrings.formatBytes(progress?.received ?? 0)} / '
-                  '${MapStrings.formatBytes(progress?.total ?? 0)}',
+                  '${formatBytes(progress?.received ?? 0)} / '
+                  '${formatBytes(progress?.total ?? 0)}',
                   style: theme.textTheme.labelMedium,
                 ),
                 const SizedBox(height: 6),
@@ -469,7 +466,7 @@ class _MissingTilesCard extends ConsumerWidget {
                   child: Text(
                     l10n.routingTilesDownloadCount(
                       tiles.length,
-                      MapStrings.formatBytes(bytes),
+                      formatBytes(bytes),
                     ),
                   ),
                 ),
@@ -534,10 +531,7 @@ class _TileRow extends ConsumerWidget {
           const SizedBox(height: 2),
           Row(
             children: <Widget>[
-              Text(
-                MapStrings.formatBytes(tile.bytes),
-                style: theme.textTheme.labelMedium,
-              ),
+              Text(formatBytes(tile.bytes), style: theme.textTheme.labelMedium),
               Text(
                 '  ·  ',
                 style: theme.textTheme.labelMedium?.copyWith(

@@ -7,6 +7,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/theme.dart';
 import '../../../core/permissions/location_permission.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../offline/presentation/offline_screen.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../data/map_preferences.dart';
@@ -14,7 +15,6 @@ import '../data/position_provider.dart';
 import '../domain/map_controller.dart';
 import 'location_rationale_dialog.dart';
 import 'map_chrome.dart';
-import 'map_strings.dart';
 
 /// The zoom the locate button jumps to when the map is further out.
 const double locateZoom = 15;
@@ -32,6 +32,7 @@ class MapControls extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cyclosm = ref.watch(cyclosmOverlayProvider);
+    final l10n = AppLocalizations.of(context);
     final chrome = MapChromeInsets.maybeOf(context);
     final enabled = controller != null;
     final headingUp = chrome?.headingUp ?? false;
@@ -45,7 +46,7 @@ class MapControls extends ConsumerWidget {
         children: <Widget>[
           _ControlButton(
             icon: Icons.my_location,
-            tooltip: MapStrings.locateMe,
+            tooltip: l10n.mapLocateMe,
             // Accent while the screen keeps the camera on the rider, so the
             // button says whether the map is following or has been let go.
             selected: chrome?.following ?? false,
@@ -61,7 +62,7 @@ class MapControls extends ConsumerWidget {
             ),
           _ControlButton(
             icon: Icons.directions_bike,
-            tooltip: MapStrings.toggleCyclosm,
+            tooltip: l10n.mapToggleCyclosm,
             selected: cyclosm,
             onPressed: enabled ? () => unawaited(_toggleCyclosm(ref)) : null,
           ),
@@ -71,18 +72,18 @@ class MapControls extends ConsumerWidget {
           if (chrome?.showRoutingTiles ?? true)
             _ControlButton(
               icon: Icons.download_for_offline_outlined,
-              tooltip: MapStrings.offlineData,
+              tooltip: l10n.offlineEntryTitle,
               onPressed: enabled ? () => _openOffline(context) : null,
             ),
           const _ControlDivider(),
           _ControlButton(
             icon: Icons.add,
-            tooltip: MapStrings.zoomIn,
+            tooltip: l10n.mapZoomIn,
             onPressed: enabled ? () => unawaited(_zoomBy(1)) : null,
           ),
           _ControlButton(
             icon: Icons.remove,
-            tooltip: MapStrings.zoomOut,
+            tooltip: l10n.mapZoomOut,
             onPressed: enabled ? () => unawaited(_zoomBy(-1)) : null,
           ),
         ],
@@ -102,11 +103,11 @@ class MapControls extends ConsumerWidget {
     );
   }
 
-  Future<void> _toggleCyclosm(WidgetRef ref) async {
-    final notifier = ref.read(cyclosmOverlayProvider.notifier);
-    await notifier.toggle();
-    await controller?.setCyclosmOverlay(ref.read(cyclosmOverlayProvider));
-  }
+  /// Flips the app-wide overlay setting and nothing else: every map alive
+  /// follows that setting through its `PlannerMapHost`, so the map under
+  /// these buttons is not a special case.
+  Future<void> _toggleCyclosm(WidgetRef ref) =>
+      ref.read(cyclosmOverlayProvider.notifier).toggle();
 
   Future<void> _zoomBy(double delta) async {
     final map = controller;
@@ -120,6 +121,9 @@ class MapControls extends ConsumerWidget {
     final map = controller;
     if (map == null) return;
     final messenger = ScaffoldMessenger.maybeOf(context);
+    // Read before the first await: the context may be gone by the time a
+    // permission answer or a fix comes back.
+    final l10n = AppLocalizations.of(context);
     final chrome = MapChromeInsets.maybeOf(context);
     final onLocate = chrome?.onLocate;
     // A screen that already keeps the camera on the rider has the position;
@@ -141,14 +145,14 @@ class MapControls extends ConsumerWidget {
       case LocationPermissionStatus.granted:
         break;
       case LocationPermissionStatus.denied:
-        _show(messenger, MapStrings.locationDenied);
+        _show(messenger, l10n.mapLocationDenied);
         return;
       case LocationPermissionStatus.deniedForever:
         _show(
           messenger,
-          MapStrings.locationDeniedForever,
+          l10n.mapLocationDeniedForever,
           action: SnackBarAction(
-            label: MapStrings.openSettings,
+            label: l10n.mapOpenSettings,
             onPressed: () => unawaited(permissions.openAppSettings()),
           ),
         );
@@ -156,9 +160,9 @@ class MapControls extends ConsumerWidget {
       case LocationPermissionStatus.serviceDisabled:
         _show(
           messenger,
-          MapStrings.locationServiceDisabled,
+          l10n.mapLocationServiceDisabled,
           action: SnackBarAction(
-            label: MapStrings.openSettings,
+            label: l10n.mapOpenSettings,
             onPressed: () => unawaited(permissions.openLocationSettings()),
           ),
         );
@@ -171,7 +175,7 @@ class MapControls extends ConsumerWidget {
     final source = ref.read(positionSourceProvider);
     final fix = await source.current() ?? await source.lastKnown();
     if (fix == null) {
-      _show(messenger, MapStrings.locationUnavailable);
+      _show(messenger, l10n.mapLocationUnavailable);
       return;
     }
     await map.moveTo(
@@ -232,10 +236,11 @@ class _CompassButtonState extends State<_CompassButton> {
   void _tap() {
     final onPressed = widget.onPressed;
     if (onPressed == null) return;
+    final l10n = AppLocalizations.of(context);
     // The name of the style the tap switches to, not the one it leaves.
     _hintText = widget.headingUp
-        ? MapStrings.followNorthUp
-        : MapStrings.followHeadingUp;
+        ? l10n.mapFollowNorthUp
+        : l10n.mapFollowHeadingUp;
     onPressed();
     _hide?.cancel();
     setState(() {});
@@ -248,6 +253,7 @@ class _CompassButtonState extends State<_CompassButton> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return CompositedTransformTarget(
       link: _link,
       child: OverlayPortal(
@@ -288,8 +294,8 @@ class _CompassButtonState extends State<_CompassButton> {
           // however the rider has twisted the camera.
           iconTurns: -widget.bearingDeg * math.pi / 180,
           tooltip: widget.headingUp
-              ? MapStrings.followHeadingUp
-              : MapStrings.followNorthUp,
+              ? l10n.mapFollowHeadingUp
+              : l10n.mapFollowNorthUp,
           selected: widget.headingUp,
           onPressed: widget.onPressed == null ? null : _tap,
         ),

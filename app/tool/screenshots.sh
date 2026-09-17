@@ -58,11 +58,8 @@
 #   so the emulator is handed back on System. Every label the script waits for
 #   or taps is translated too, so the selectors live in one table (`UI`) keyed
 #   by language; a name with no entry for the language falls back to English,
-#   which is right both for the demo route names (proper nouns, seeded once)
-#   and for the strings the app does not translate yet —
-#   `lib/features/map/presentation/map_strings.dart` is still hard-coded
-#   English, so the map's own controls keep their English labels in every
-#   language.
+#   which is right for the demo route and ride names: proper nouns, seeded
+#   once and never re-imported per language.
 # * **Appearance** is written straight into `shared_prefs/FlutterSharedPreferences.xml`
 #   through `run-as`, with the app force-stopped first — shared_preferences
 #   holds the map in memory and would write it back over anything changed
@@ -140,10 +137,8 @@ require_device() {
 # Every label the script waits for or taps, per language, because the app is
 # shown in --lang and its own widgets are translated with it. `ui <name>` takes
 # the entry for the current language and falls back to the English one, which
-# is what the strings the app does not translate need: the map controls
-# (`lib/features/map/presentation/map_strings.dart` is still hard-coded
-# English) and the demo route and ride names, which are proper nouns seeded
-# once and never re-imported per language.
+# is what the demo route and ride names need: proper nouns, seeded once and
+# never re-imported per language.
 #
 # Upper-case names are the captions `StatTile`, `SectionCaption` and the
 # recording pill render with `toUpperCase()`, so they are matched upper-case.
@@ -183,11 +178,16 @@ declare -A UI=(
   [de:empty_plan]='Karte antippen, um den Start zu setzen'
   [en:DISTANCE]='DISTANCE'
   [de:DISTANCE]='DISTANZ'
-  # MapStrings, hard-coded English in every language.
+  # The map's own controls and the location rationale, from the ARB like
+  # everything else since the map strings moved into it.
   [en:locate]='^Show my position$'
+  [de:locate]='^Meine Position anzeigen$'
   [en:zoom_out]='^Zoom out$'
+  [de:zoom_out]='^Herauszoomen$'
   [en:offline_entry]='^Offline data$'
+  [de:offline_entry]='^Offline-Daten$'
   [en:rationale_allow]='^Continue$'
+  [de:rationale_allow]='^Weiter$'
   [en:download_visible]='^Download the visible area$'
   [de:download_visible]='^Sichtbares Gebiet herunterladen$'
   [en:download]='^Download$'
@@ -220,10 +220,9 @@ declare -A UI=(
   [de:no_route]='Keine Route'
   [en:start_ride]='^Start ride$'
   [de:start_ride]='^Fahrt starten$'
-  # Two dialogs say it: the battery one from the ARB, the location rationale
-  # from MapStrings.
+  # Two dialogs say it: the battery one and the location rationale.
   [en:not_now]='^Not now$'
-  [de:not_now]='^Not now$|^Jetzt nicht$'
+  [de:not_now]='^Jetzt nicht$'
   [en:RECORDING]='RECORDING'
   [de:RECORDING]='AUFNAHME'
   [en:finish]='^Finish$'

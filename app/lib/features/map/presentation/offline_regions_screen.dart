@@ -5,12 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme.dart';
 import '../../../core/db/database.dart';
+import '../../../l10n/generated/app_localizations.dart';
+import '../../planner/presentation/route_format.dart';
+import '../../shared/presentation/byte_size.dart';
 import '../../shared/presentation/placeholder_body.dart';
 import '../data/offline_regions_repository.dart';
 import '../domain/map_controller.dart';
-import 'map_strings.dart';
-import '../../../l10n/generated/app_localizations.dart';
-import '../../planner/presentation/route_format.dart';
 
 /// Downloaded map areas: list, delete, and download the area the map is
 /// currently showing.
@@ -25,6 +25,7 @@ class OfflineRegionsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final regions = ref.watch(offlineRegionsProvider);
     final progress = ref.watch(offlineDownloadControllerProvider);
     final bounds = mapController?.visibleBounds;
@@ -32,12 +33,10 @@ class OfflineRegionsScreen extends ConsumerWidget {
     // The pack is built from the base style, so the CyclOSM overlay (whose
     // tile policy forbids bulk downloads) never comes along, whatever the
     // map shows.
-    final String? blockedReason = bounds == null
-        ? MapStrings.downloadNeedsMap
-        : null;
+    final String? blockedReason = bounds == null ? l10n.offlineNeedsMap : null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text(MapStrings.offlineRegionsTitle)),
+      appBar: AppBar(title: Text(l10n.mapOfflineRegionsTitle)),
       body: Column(
         children: <Widget>[
           if (progress != null)
@@ -66,8 +65,8 @@ class OfflineRegionsScreen extends ConsumerWidget {
               icon: const Icon(Icons.download_outlined),
               label: Text(
                 progress == null
-                    ? MapStrings.downloadVisibleArea
-                    : MapStrings.downloading,
+                    ? l10n.mapOfflineDownloadVisible
+                    : l10n.mapOfflineDownloading,
               ),
               onPressed: blockedReason != null || progress != null
                   ? null
@@ -83,9 +82,10 @@ class OfflineRegionsScreen extends ConsumerWidget {
     final bounds = mapController?.visibleBounds;
     if (bounds == null) return;
     final messenger = ScaffoldMessenger.maybeOf(context);
+    final l10n = AppLocalizations.of(context);
     final existing = await ref.read(offlineRegionsRepositoryProvider).regions();
     final spec = OfflineRegionSpec(
-      name: '${MapStrings.regionNameDefault} ${existing.length + 1}',
+      name: l10n.mapOfflineRegionName(existing.length + 1),
       bounds: bounds,
       styleUrl: ref.read(offlineStyleUrlProvider),
     );
@@ -93,7 +93,7 @@ class OfflineRegionsScreen extends ConsumerWidget {
       await ref.read(offlineDownloadControllerProvider.notifier).download(spec);
     } on Object catch (error) {
       messenger?.showSnackBar(
-        SnackBar(content: Text('${MapStrings.downloadFailed} $error')),
+        SnackBar(content: Text(l10n.mapOfflineDownloadFailed('$error'))),
       );
     }
   }
@@ -103,9 +103,9 @@ class _EmptyState extends StatelessWidget {
   const _EmptyState();
 
   @override
-  Widget build(BuildContext context) => const PlaceholderBody(
+  Widget build(BuildContext context) => PlaceholderBody(
     icon: Icons.download_for_offline_outlined,
-    message: MapStrings.offlineRegionsEmpty,
+    message: AppLocalizations.of(context).mapOfflineRegionsEmpty,
   );
 }
 
@@ -160,8 +160,8 @@ class _RegionTile extends ConsumerWidget {
     final downloadedAt = row.downloadedAt;
     final due = OfflineRegionsRepository.isRefreshDue(row, DateTime.now());
     final when = downloadedAt == null
-        ? MapStrings.downloadedUnknown
-        : '${MapStrings.downloadedOn} ${formatDate(l10n, downloadedAt)}';
+        ? l10n.mapOfflineDownloadedUnknown
+        : l10n.mapOfflineDownloadedOn(formatDate(l10n, downloadedAt));
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
       // Every region in this list is on the device already.
@@ -181,8 +181,8 @@ class _RegionTile extends ConsumerWidget {
       ),
       title: Text(row.name, style: theme.textTheme.titleMedium),
       subtitle: Text(
-        '${MapStrings.formatBytes(row.sizeBytes)}  ·  $when'
-        '${due ? '  ·  ${MapStrings.refreshDue}' : ''}',
+        '${formatBytes(row.sizeBytes)}  ·  $when'
+        '${due ? '  ·  ${l10n.mapOfflineRefreshDue}' : ''}',
         style: theme.textTheme.labelMedium?.copyWith(
           color: due ? theme.velorki.warning : null,
         ),
@@ -195,14 +195,14 @@ class _RegionTile extends ConsumerWidget {
           if (due)
             IconButton(
               icon: const Icon(Icons.refresh),
-              tooltip: MapStrings.refreshRegion,
+              tooltip: l10n.mapOfflineRefresh,
               onPressed: downloading
                   ? null
                   : () => unawaited(_refresh(context, ref)),
             ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
-            tooltip: MapStrings.deleteRegion,
+            tooltip: l10n.commonDelete,
             onPressed: () => unawaited(_confirmDelete(context, ref)),
           ),
         ],
@@ -212,13 +212,14 @@ class _RegionTile extends ConsumerWidget {
 
   Future<void> _refresh(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
+    final l10n = AppLocalizations.of(context);
     try {
       await ref
           .read(offlineDownloadControllerProvider.notifier)
           .refresh(row.id);
     } on Object catch (error) {
       messenger?.showSnackBar(
-        SnackBar(content: Text('${MapStrings.downloadFailed} $error')),
+        SnackBar(content: Text(l10n.mapOfflineDownloadFailed('$error'))),
       );
     }
   }
@@ -226,20 +227,23 @@ class _RegionTile extends ConsumerWidget {
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text(MapStrings.deleteRegionTitle),
-        content: const Text(MapStrings.deleteRegionBody),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text(MapStrings.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text(MapStrings.deleteRegion),
-          ),
-        ],
-      ),
+      builder: (context) {
+        final l10n = AppLocalizations.of(context);
+        return AlertDialog(
+          title: Text(l10n.mapOfflineDeleteTitle),
+          content: Text(l10n.mapOfflineDeleteBody),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(l10n.commonCancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(l10n.commonDelete),
+            ),
+          ],
+        );
+      },
     );
     if (confirmed ?? false) {
       await ref.read(offlineRegionsRepositoryProvider).delete(row.id);

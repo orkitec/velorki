@@ -3478,5 +3478,150 @@
   "settingsBatterySaverHint": "Dark map, no animations, a plain page with the numbers after 30 s; the screen is what drains the battery",
   "@settingsBatterySaverHint": {
     "description": "Explanation under the battery saver switch"
+  },
+  "mapAttributionTitle": "Map data and tiles",
+  "@mapAttributionTitle": {
+    "description": "Title of the map attribution chip and of the dialog it opens"
+  },
+  "mapAttributionBody": "Map data from OpenStreetMap, available under the Open Database Licence. Vector tiles by OpenFreeMap; the optional cycling overlay is rendered by CyclOSM on OpenStreetMap Foundation tile servers.",
+  "@mapAttributionBody": {
+    "description": "The full attribution notice in the dialog. The licence and the project names are kept as they are."
+  },
+  "mapAttributionOpenFreeMap": "OpenFreeMap",
+  "@mapAttributionOpenFreeMap": {
+    "description": "The tile provider, in the attribution line and as a link. A project name: keep it."
+  },
+  "mapAttributionCyclosm": "CyclOSM",
+  "@mapAttributionCyclosm": {
+    "description": "The cycling overlay renderer, in the attribution line and as a link. A project name: keep it."
+  },
+  "mapAttributionClose": "Close",
+  "@mapAttributionClose": {
+    "description": "Button that closes the map attribution dialog"
+  },
+  "mapLocateMe": "Show my position",
+  "@mapLocateMe": {
+    "description": "Tooltip of the map button that centres the map on the rider"
+  },
+  "mapFollowHeadingUp": "Map turns with you",
+  "@mapFollowHeadingUp": {
+    "description": "The compass style in which the map turns with the rider's heading"
+  },
+  "mapFollowNorthUp": "North up",
+  "@mapFollowNorthUp": {
+    "description": "The compass style in which the map keeps north at the top"
+  },
+  "mapToggleCyclosm": "Cycling map overlay",
+  "@mapToggleCyclosm": {
+    "description": "Tooltip of the map button that switches the CyclOSM overlay on and off"
+  },
+  "mapZoomIn": "Zoom in",
+  "@mapZoomIn": {
+    "description": "Tooltip of the map's zoom-in button"
+  },
+  "mapZoomOut": "Zoom out",
+  "@mapZoomOut": {
+    "description": "Tooltip of the map's zoom-out button"
+  },
+  "mapLocationRationaleTitle": "Show your position?",
+  "@mapLocationRationaleTitle": {
+    "description": "Title of the dialog shown before the system location prompt"
+  },
+  "mapLocationRationaleBody": "Velorki uses your location to centre the map on you and to record rides. The position stays on this device; it is never uploaded.",
+  "@mapLocationRationaleBody": {
+    "description": "Why Velorki asks for the location permission, shown before the system prompt"
+  },
+  "mapLocationRationaleAllow": "Continue",
+  "@mapLocationRationaleAllow": {
+    "description": "Button that goes on to the system location prompt"
+  },
+  "mapLocationRationaleDeny": "Not now",
+  "@mapLocationRationaleDeny": {
+    "description": "Button that declines the location permission for now"
+  },
+  "mapLocationDenied": "Location permission is needed to show your position.",
+  "@mapLocationDenied": {
+    "description": "Snackbar after the location permission was refused"
+  },
+  "mapLocationDeniedForever": "Location permission is turned off for Velorki. Enable it in the system settings.",
+  "@mapLocationDeniedForever": {
+    "description": "Snackbar when the location permission is refused permanently"
+  },
+  "mapLocationServiceDisabled": "Location services are switched off on this device.",
+  "@mapLocationServiceDisabled": {
+    "description": "Snackbar when the device's location services are off"
+  },
+  "mapOpenSettings": "Settings",
+  "@mapOpenSettings": {
+    "description": "Snackbar action that opens the system settings"
+  },
+  "mapLocationUnavailable": "No position fix yet.",
+  "@mapLocationUnavailable": {
+    "description": "Snackbar when no GPS fix has arrived yet"
+  },
+  "mapOfflineRegionsTitle": "Offline maps",
+  "@mapOfflineRegionsTitle": {
+    "description": "Title of the screen listing the downloaded map areas"
+  },
+  "mapOfflineRegionsEmpty": "No offline areas yet. Open the planner, move the map to the area you want and download it from here.",
+  "@mapOfflineRegionsEmpty": {
+    "description": "Empty state of the offline maps screen"
+  },
+  "mapOfflineDownloadVisible": "Download visible area",
+  "@mapOfflineDownloadVisible": {
+    "description": "Button that downloads the map area the map is showing"
+  },
+  "mapOfflineDownloading": "Downloading…",
+  "@mapOfflineDownloading": {
+    "description": "Label of the download button while a download runs"
+  },
+  "mapOfflineDownloadFailed": "Download failed. {error}",
+  "@mapOfflineDownloadFailed": {
+    "description": "Snackbar when a map area download fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "mapOfflineRegionName": "Map area {number}",
+  "@mapOfflineRegionName": {
+    "description": "The name Velorki gives a downloaded map area",
+    "placeholders": {
+      "number": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "mapOfflineDownloadedOn": "Downloaded {date}",
+  "@mapOfflineDownloadedOn": {
+    "description": "When a map area was downloaded, in the row's second line",
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "example": "14 Sept 2026"
+      }
+    }
+  },
+  "mapOfflineDownloadedUnknown": "Downloaded before this app version",
+  "@mapOfflineDownloadedUnknown": {
+    "description": "Shown instead of a date for an area downloaded by a version that did not record one"
+  },
+  "mapOfflineRefreshDue": "Refresh available",
+  "@mapOfflineRefreshDue": {
+    "description": "Says a downloaded map area is old enough to be downloaded again"
+  },
+  "mapOfflineRefresh": "Refresh",
+  "@mapOfflineRefresh": {
+    "description": "Tooltip of the button that downloads a map area again"
+  },
+  "mapOfflineDeleteTitle": "Delete offline area?",
+  "@mapOfflineDeleteTitle": {
+    "description": "Title of the dialog confirming a downloaded area is deleted"
+  },
+  "mapOfflineDeleteBody": "The downloaded tiles are removed from this device.",
+  "@mapOfflineDeleteBody": {
+    "description": "Body of the dialog confirming a downloaded area is deleted"
   }
 }
