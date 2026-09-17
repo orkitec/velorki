@@ -42,8 +42,14 @@ function filePath(locale: string, kind: 'docs' | 'legal', slug: string): string 
   return path.join(CONTENT_DIR, locale, kind, `${slug}.md`);
 }
 
+/** What a slug or locale segment may look like: one path segment, nothing else. */
+const SEGMENT_RE = /^[a-z0-9][a-z0-9-]*$/;
+
 /** The file for `slug` in `locale`, or the English one, or null. */
 function resolveFile(locale: string, kind: 'docs' | 'legal', slug: string): { file: string; translated: boolean } | null {
+  // The slug comes from the URL. Only a plain segment may become a file name;
+  // anything else (`..`, a slash, an encoded path) is simply not a page.
+  if (!SEGMENT_RE.test(slug) || !SEGMENT_RE.test(locale)) return null;
   const own = filePath(locale, kind, slug);
   if (existsSync(own)) return { file: own, translated: true };
   const source = filePath(SOURCE_LOCALE, kind, slug);
