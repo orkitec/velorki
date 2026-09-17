@@ -173,8 +173,8 @@
       "body": "There is no account and no sign-up. Routes, rides and settings stay on your phone. Nothing goes to Strava or Ride with GPS until you connect the account and ask for it. The assistant asks for your consent before any text leaves the device, and the position it sends is rounded to about a kilometre.",
       "cards": {
         "license": {
-          "title": "Apache-2.0 app, AGPL relay",
-          "body": "The Flutter app and its pure-Dart packages are Apache-2.0. The relay — and this website — are AGPL-3.0-only, so a modified hosted relay has to publish its source."
+          "title": "AGPL-3.0, all of it",
+          "body": "The app, its pure-Dart packages, the relay and this website are all AGPL-3.0-only, so a fork that ships a modified app or runs a modified relay has to publish its source."
         },
         "device": {
           "title": "On-device first",
@@ -222,7 +222,7 @@
         },
         "opensource": {
           "q": "Is Velorki really open source?",
-          "a": "Yes. The app and its pure-Dart packages are Apache-2.0 and the relay is AGPL-3.0-only; all of it is on GitHub. The name, logo and icon are reserved, so a fork has to rebrand before publishing it to a store."
+          "a": "Yes. The app, its pure-Dart packages, the relay and this website are AGPL-3.0-only; all of it is on GitHub. The name, logo and icon are reserved, so a fork has to rebrand before publishing it to a store."
         },
         "selfhost": {
           "q": "Can I run the server parts myself?",
@@ -340,7 +340,7 @@
     "security": "Security: {email}",
     "osm": "Map data © OpenStreetMap contributors",
     "credits": "Routing by BRouter, tiles by OpenFreeMap, search by Photon.",
-    "copyright": "© {year} Orkitec. App under Apache-2.0, website and relay under AGPL-3.0-only.",
+    "copyright": "© {year} Orkitec. App, website and relay under AGPL-3.0-only.",
     "github": "GitHub"
   },
   "notFound": {

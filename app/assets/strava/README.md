@@ -1,8 +1,8 @@
 # Strava brand assets
 
 These are Strava's official API brand assets, used unmodified. They are
-**not** covered by the app's Apache-2.0 licence: they are Strava's trademarks,
-licensed to API applications through the
+**not** covered by the app's AGPL-3.0-only licence: they are Strava's
+trademarks, licensed to API applications through the
 [Strava brand guidelines](https://developers.strava.com/guidelines/). A fork
 that is not a registered Strava API application must remove this directory.
 

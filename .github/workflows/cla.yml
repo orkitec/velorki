@@ -1,0 +1,41 @@
+name: cla
+
+# Every outside contribution needs a signed Contributor Licence Agreement
+# (CLA.md): the repository is AGPL-3.0-only, and the app can only also go into
+# the App Store and Google Play because Orkitec may license the code under
+# other terms too. The bot asks on the pull request, the contributor answers
+# with one comment, and the signature is stored on the `cla-signatures` branch.
+on:
+  # pull_request_target, not pull_request: the action writes the signature file
+  # and a comment, which a fork's read-only token cannot do.
+  pull_request_target:
+    types: [opened, synchronize]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+
+jobs:
+  cla:
+    runs-on: ubuntu-latest
+    # Only on pull requests and on comments made on one.
+    if: github.event_name == 'pull_request_target' || github.event.issue.pull_request
+    permissions:
+      # Re-running the pull request's own checks after a signature.
+      actions: write
+      # Committing the signature file to the `cla-signatures` branch.
+      contents: write
+      # The instructions comment on the pull request.
+      pull-requests: write
+      # The CLA status on the head commit.
+      statuses: write
+    steps:
+      - uses: contributor-assistant/github-action@ca4a40a7d1004f18d9960b404b97e5f30a505a08 # v2.6.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          path-to-signatures: signatures/version1/cla.json
+          path-to-document: https://github.com/orkitec/velorki/blob/main/CLA.md
+          branch: cla-signatures
+          allowlist: dependabot[bot],github-actions[bot]

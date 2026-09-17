@@ -193,6 +193,13 @@ routes to our share store.
       before submission — vector regions come from OpenFreeMap, and the raster
       overlay must stay out of them.
 - [ ] `brouter/profiles` keeps BRouter's MIT header.
+- [ ] The repository is AGPL-3.0-only. A GPL-family app is acceptable in the
+      App Store and on Google Play only because Orkitec holds the copyright on
+      the code and can also distribute it under the stores' terms. That breaks
+      the moment code arrives from someone else: **never merge an outside
+      contribution without a signed CLA** (`CLA.md`, enforced by
+      `.github/workflows/cla.yml`). Before a submission, check that every
+      commit since the last release came from a signed contributor.
 
 ## Strava brand and API rules
 

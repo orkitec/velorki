@@ -55,12 +55,11 @@ von denen wir nichts steuern.
 
 ## 3. Lizenz zur Nutzung der App
 
-Velorki ist freie Software. Der Quellcode der App ist unter der Apache License
-2.0 veröffentlicht; der Relay und die Website sind unter der GNU Affero General
-Public License, Version 3 only, veröffentlicht. Die Kopie, die du aus dem App
-Store oder von Google Play installierst, steht unter denselben
-Open-Source-Lizenzen, und nichts in diesen Bedingungen nimmt dir ein Recht, das
-diese Lizenzen dir geben.
+Velorki ist freie Software. Der Quellcode der App, des Relays und der Website
+ist unter der GNU Affero General Public License, Version 3 only,
+veröffentlicht. Die Kopie, die du aus dem App Store oder von Google Play
+installierst, steht unter derselben Open-Source-Lizenz, und nichts in diesen
+Bedingungen nimmt dir ein Recht, das diese Lizenz dir gibt.
 
 Komponenten Dritter kommen mit eigenen Lizenzen. Die vollständige Liste steht
 in der App unter **Einstellungen → Über → Open-Source-Lizenzen**.

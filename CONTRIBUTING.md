@@ -6,11 +6,11 @@ Thanks for helping. A few rules keep the project easy to work on.
 
 | Directory | What | Licence |
 |-----------|------|---------|
-| `app/` | Flutter app (iOS + Android) and its pure-Dart packages | Apache-2.0 |
+| `app/` | Flutter app (iOS + Android) and its pure-Dart packages | AGPL-3.0-only |
 | `web/` | the website and the thin relay (OAuth token exchange, AI relay, share links), Next.js on Node | AGPL-3.0-only |
-| `brouter/` | routing profiles and the segment updater | Apache-2.0 (profiles carry BRouter's MIT header) |
-| `deploy/` | self-hosting: compose file, Caddy, systemd units | Apache-2.0 |
-| `docs/` | architecture, self-hosting, privacy, store checklist | Apache-2.0 |
+| `brouter/` | routing profiles and the segment updater | AGPL-3.0-only (profiles carry BRouter's MIT header) |
+| `deploy/` | self-hosting: compose file, Caddy, systemd units | AGPL-3.0-only |
+| `docs/` | architecture, self-hosting, privacy, store checklist | AGPL-3.0-only |
 
 `docs/ARCHITECTURE.md` explains the design and the rule behind it: as much as
 possible runs on the phone; the relay only holds what cannot ship in an
@@ -41,8 +41,22 @@ open-source app. `docs/OPEN_ITEMS.md` is what is still open.
   See [docs/LOCALISATION.md](docs/LOCALISATION.md).
 - Commit messages: imperative subject, a body that says why. No trailers or
   tool attributions.
-- By contributing you agree that your contribution is licensed under the licence
-  of the directory it lands in.
+- By contributing you agree that your contribution is licensed under
+  AGPL-3.0-only, the licence of the whole repository, and you sign the
+  Contributor Licence Agreement below.
+
+## Contributor Licence Agreement
+
+The repository is AGPL-3.0-only, but the app also ships through the App Store
+and Google Play, whose terms do not sit well with the GPL. That works only
+because Orkitec can distribute the app under other terms as well, and that in
+turn needs a licence from every contributor. [`CLA.md`](CLA.md) is that
+agreement — it covers individuals and companies, and it does not take your
+copyright away.
+
+You sign it once, on your first pull request: a bot comments there with the
+sentence to post as a reply, you post it, and the check goes green. Later pull
+requests need nothing. Without a signature a pull request cannot be merged.
 
 ## Reporting bugs
 

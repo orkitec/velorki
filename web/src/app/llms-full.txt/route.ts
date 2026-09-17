@@ -13,7 +13,7 @@ function body(): string {
     '> Planning, loops, offline maps, offline place search, turn-by-turn navigation, recording and',
     '> GPX/FIT files all run on the phone, on OpenStreetMap data, with no account.',
     '',
-    `Source: ${GITHUB_URL} · Website: ${SITE_URL} · Licence: app Apache-2.0, relay and website AGPL-3.0-only.`,
+    `Source: ${GITHUB_URL} · Website: ${SITE_URL} · Licence: AGPL-3.0-only.`,
     '',
   ];
 

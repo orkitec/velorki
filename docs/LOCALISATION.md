@@ -63,7 +63,7 @@ a language".
 2. Request the open-source plan at
    <https://crowdin.com/page/open-source-project-setup-request>. What to say:
    the repository is `github.com/orkitec/velorki`, all of it public and open
-   source (Apache-2.0 for the app, AGPL-3.0-only for the relay and website);
+   source (AGPL-3.0-only, all of it);
    the app itself is free, and the only paid part is the "Velorki Plus"
    subscription for the few features that need our servers or a partner
    account; the strings being translated are the app and the website, both

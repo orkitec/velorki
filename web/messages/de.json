@@ -173,8 +173,8 @@
       "body": "Es gibt kein Konto und keine Anmeldung. Routen, Fahrten und Einstellungen bleiben auf deinem Handy. Zu Strava oder Ride with GPS geht nichts, bis du das Konto verbindest und es verlangst. Der Assistent fragt um deine Zustimmung, bevor Text das Gerät verlässt, und die Position, die er sendet, ist auf etwa einen Kilometer gerundet.",
       "cards": {
         "license": {
-          "title": "App unter Apache-2.0, Relay unter AGPL",
-          "body": "Die Flutter-App und ihre reinen Dart-Pakete stehen unter Apache-2.0. Der Relay-Server und diese Website stehen unter AGPL-3.0-only, ein veränderter gehosteter Relay muss seinen Quellcode also veröffentlichen."
+          "title": "AGPL-3.0, alles davon",
+          "body": "Die App, ihre reinen Dart-Pakete, der Relay-Server und diese Website stehen alle unter AGPL-3.0-only. Ein Fork, der eine veränderte App ausliefert oder einen veränderten Relay betreibt, muss seinen Quellcode also veröffentlichen."
         },
         "device": {
           "title": "Zuerst auf dem Gerät",
@@ -222,7 +222,7 @@
         },
         "opensource": {
           "q": "Ist Velorki wirklich quelloffen?",
-          "a": "Ja. Die App und ihre reinen Dart-Pakete stehen unter Apache-2.0, der Relay unter AGPL-3.0-only; alles davon liegt auf GitHub. Name, Logo und Icon sind vorbehalten, ein Fork muss sich also umbenennen, bevor er in einem Store veröffentlicht wird."
+          "a": "Ja. Die App, ihre reinen Dart-Pakete, der Relay und diese Website stehen unter AGPL-3.0-only; alles davon liegt auf GitHub. Name, Logo und Icon sind vorbehalten, ein Fork muss sich also umbenennen, bevor er in einem Store veröffentlicht wird."
         },
         "selfhost": {
           "q": "Kann ich die Server-Teile selbst betreiben?",
@@ -340,7 +340,7 @@
     "security": "Sicherheit: {email}",
     "osm": "Kartendaten © OpenStreetMap-Mitwirkende",
     "credits": "Routing von BRouter, Kacheln von OpenFreeMap, Suche von Photon.",
-    "copyright": "© {year} Orkitec. App unter Apache-2.0, Website und Relay unter AGPL-3.0-only.",
+    "copyright": "© {year} Orkitec. App, Website und Relay unter AGPL-3.0-only.",
     "github": "GitHub"
   },
   "notFound": {

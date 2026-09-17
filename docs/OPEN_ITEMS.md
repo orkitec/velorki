@@ -37,7 +37,9 @@ exercised there. The items here are the parts not yet covered by that.
       [DEPLOY_WEB.md](DEPLOY_WEB.md).)
 - [ ] **Website legal pages**: fill the imprint placeholders in
       `web/content/en/legal/imprint.md`, set the effective dates in
-      `privacy.md` and `terms.md`, have a lawyer read both.
+      `privacy.md` and `terms.md`, have a lawyer read both — and `CLA.md`, the
+      Contributor Licence Agreement, with them: it is written in plain language
+      and has not been reviewed by one.
 - [ ] **Crowdin**: create the project (source English, target German), request
       the open-source plan, and add the `CROWDIN_PROJECT_ID` and
       `CROWDIN_PERSONAL_TOKEN` secrets in the GitHub repo.

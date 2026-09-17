@@ -73,10 +73,9 @@ learn of one.
 **Copyright**
 
 The content of the Velorki app and this website is, where not marked otherwise,
-open source: the app is licensed under the Apache License 2.0, the website and
-the relay under the GNU Affero General Public License, version 3 only. Map data
-is © OpenStreetMap contributors, licensed under the Open Database License
-(ODbL). "Velorki", the Velorki logo and the Velorki app icon are trademarks of
+open source: the app, the website and the relay are licensed under the GNU
+Affero General Public License, version 3 only. Map data is © OpenStreetMap
+contributors, licensed under the Open Database License (ODbL). "Velorki", the Velorki logo and the Velorki app icon are trademarks of
 {{COMPANY_NAME}} and are not covered by those licences; see the
 [trademark policy](https://github.com/orkitec/velorki/blob/main/TRADEMARK.md).
 
@@ -147,10 +146,10 @@ umgehend.
 **Urheberrecht**
 
 Die Inhalte der Velorki-App und dieser Website stehen, soweit nicht anders
-gekennzeichnet, unter Open-Source-Lizenzen: die App unter der Apache License
-2.0, die Website und der Relay unter der GNU Affero General Public License,
-Version 3 only. Kartendaten © OpenStreetMap-Mitwirkende, lizenziert unter der
-Open Database License (ODbL). "Velorki", das Velorki-Logo und das
+gekennzeichnet, unter einer Open-Source-Lizenz: die App, die Website und der
+Relay stehen unter der GNU Affero General Public License, Version 3 only.
+Kartendaten © OpenStreetMap-Mitwirkende, lizenziert unter der Open Database
+License (ODbL). "Velorki", das Velorki-Logo und das
 App-Symbol sind Marken von {{COMPANY_NAME}} und werden von diesen Lizenzen
 nicht erfasst; siehe die
 [Markenrichtlinie](https://github.com/orkitec/velorki/blob/main/TRADEMARK.md).

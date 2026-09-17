@@ -16,8 +16,9 @@ explicitly chose to share.
 - **Runtime:** stock Node 22.13+ (`node:sqlite` is unflagged from there). No
   native addons, no compiled dependencies, no packages with install scripts.
   `npm run check:deps` enforces this.
-- **Licence:** AGPL-3.0-only, see [LICENSE](./LICENSE). Every `.ts`/`.tsx` file
-  starts with `// SPDX-License-Identifier: AGPL-3.0-only`.
+- **Licence:** AGPL-3.0-only, as the whole repository is; see
+  [LICENSE](../LICENSE). Every `.ts`/`.tsx` file starts with
+  `// SPDX-License-Identifier: AGPL-3.0-only`.
 
 The full HTTP contract lives in [openapi.yaml](./openapi.yaml).
 

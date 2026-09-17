@@ -21,7 +21,7 @@
   "settingsVersionUnknown": "Version nicht verfügbar",
   "settingsLicenses": "Open-Source-Lizenzen",
   "settingsLicensesSubtitle": "Die Software und die Kartendaten, auf denen Velorki aufbaut.",
-  "settingsLegalese": "Velorki ist Open Source unter der Apache License 2.0. Kartendaten © OpenStreetMap contributors.",
+  "settingsLegalese": "Velorki ist Open Source unter der GNU Affero General Public License v3.0 only. Kartendaten © OpenStreetMap contributors.",
   "settingsPrivacyPolicy": "Datenschutzerklärung",
   "settingsTerms": "Nutzungsbedingungen",
   "settingsReportProblem": "Problem melden",

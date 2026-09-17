@@ -2,9 +2,9 @@
 
 "Velorki", the Velorki logo and the Velorki app icon are trademarks of Orkitec.
 
-The source code in this repository is licensed under open-source licences (see
-`LICENSE` and `api/LICENSE`). Those licences cover the code. They do not grant
-any right to use the Velorki name, logo or icon.
+The source code in this repository is licensed under AGPL-3.0-only (see
+`LICENSE`). That licence covers the code. It does not grant any right to use
+the Velorki name, logo or icon.
 
 You may:
 

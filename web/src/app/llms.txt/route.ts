@@ -32,7 +32,7 @@ function body(): string {
     'connection, the Ride with GPS connection and share links. The price is shown in the app by',
     'the store, and is deliberately not quoted on the website.',
     '',
-    `The app is Apache-2.0; the relay and this website are AGPL-3.0-only. Requires Android ${MIN_ANDROID}+ or iOS ${MIN_IOS}+.`,
+    `The app, the relay and this website are AGPL-3.0-only. Requires Android ${MIN_ANDROID}+ or iOS ${MIN_IOS}+.`,
     'Map data © OpenStreetMap contributors (ODbL), routing by BRouter, vector tiles by OpenFreeMap,',
     'online place search by Photon, cycling overlay by CyclOSM.',
     '',

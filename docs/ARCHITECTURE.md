@@ -97,10 +97,10 @@ expects the client secret inside the app) and `latlong2`.
 
 One monorepo — a Dart pub workspace in the root `pubspec.yaml`, no melos — so
 app, site and relay change in the same commit and a fork can self-host from a
-single clone: `app/` the Flutter app and its pure-Dart `packages/`
-(Apache-2.0), `web/` the website and the relay in one Next.js app
-(AGPL-3.0-only), `brouter/` the `.brf` profiles and the rd5 updater image,
-`deploy/` compose file, Caddy and systemd units, `tools/` the oracle.
+single clone: `app/` the Flutter app and its pure-Dart `packages/`, `web/` the
+website and the relay in one Next.js app, `brouter/` the `.brf` profiles and
+the rd5 updater image, `deploy/` compose file, Caddy and systemd units,
+`tools/` the oracle. All of it is AGPL-3.0-only.
 
 Inside `app/lib` the layout is feature-first: one directory per feature under
 `features/`, each with `data/`, `domain/`, `application/` and `presentation/`,
@@ -416,7 +416,13 @@ connections, link sharing. `app/lib/core/plus/plus_gate.dart` is the switch.
 
 ## Licences
 
-Apache-2.0 for everything except `web/`, which is AGPL-3.0-only so that a
-modified hosted relay has to publish its source; the HTTP boundary keeps the app
-unaffected. `TRADEMARK.md` reserves the name, logo and icon: forks must rebrand
-before publishing to a store and may not point at the official servers.
+AGPL-3.0-only for the whole repository — app, packages, site, relay, profiles,
+deploy files, tools and docs — so that a fork publishes its changes whether it
+ships a modified app or runs a modified relay. `LICENSE` at the root is the only
+licence file. Distribution through the App Store and Google Play works because
+Orkitec holds the copyright on the code and can license it under other terms as
+well; outside contributions therefore need the Contributor Licence Agreement in
+`CLA.md`, checked by `.github/workflows/cla.yml`. Versions released before the
+relicensing commit stay available under Apache-2.0 from the git history.
+`TRADEMARK.md` reserves the name, logo and icon: forks must rebrand before
+publishing to a store and may not point at the official servers.

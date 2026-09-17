@@ -59,12 +59,12 @@ every such item.
 
 | Directory | Contents | Licence |
 |-----------|----------|---------|
-| `app/` | the Flutter app and its pure-Dart packages (`app/packages/`) | Apache-2.0 |
+| `app/` | the Flutter app and its pure-Dart packages (`app/packages/`) | AGPL-3.0-only |
 | `web/` | velorki.com: the website and the relay (OAuth token exchange, AI relay, share links) in one Next.js app | AGPL-3.0-only |
-| `brouter/` | routing profiles and the map-data updater for the BRouter routing server | Apache-2.0 |
-| `deploy/` | self-hosting with Docker Compose or systemd | Apache-2.0 |
-| `docs/` | architecture, self-hosting, privacy, store checklist | Apache-2.0 |
-| `tools/` | the BRouter test oracle and the gazetteer builder | Apache-2.0 |
+| `brouter/` | routing profiles and the map-data updater for the BRouter routing server | AGPL-3.0-only |
+| `deploy/` | self-hosting with Docker Compose or systemd | AGPL-3.0-only |
+| `docs/` | architecture, self-hosting, privacy, store checklist | AGPL-3.0-only |
+| `tools/` | the BRouter test oracle and the gazetteer builder | AGPL-3.0-only |
 
 ## Design in one paragraph
 
@@ -85,6 +85,17 @@ pinned versions. Then see `app/README.md` and `web/README.md`.
 Velorki needs no backend. `docs/SELF_HOSTING.md` says what you can run yourself
 anyway — a tile host, a routing server, the relay — and `deploy/README.md` is
 the step-by-step for the last two. Forks must rebrand, see `TRADEMARK.md`.
+
+## Licence
+
+Everything in this repository is [AGPL-3.0-only](LICENSE). In practice that
+means a fork has to publish its changes: when you distribute a modified app, or
+let anyone use a modified relay or website over a network, the corresponding
+source has to be available under the same licence. The name, the logo and the
+app icon stay reserved, see `TRADEMARK.md`.
+
+Versions released before this commit were published under Apache-2.0 and remain
+available under that licence from the git history.
 
 ## Credits
 

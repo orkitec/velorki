@@ -125,8 +125,12 @@ way to try your routing server against an existing build.
 
 ## If you publish your fork
 
-`TRADEMARK.md` is binding. The code is open source; the name, the logo and the
-app icon are not. Before publishing a modified build anywhere you must choose a
+The code is AGPL-3.0-only, so a fork publishes its changes: ship a modified app
+or run a modified relay or website for others, and the corresponding source has
+to be available to those users under the same licence.
+
+`TRADEMARK.md` is binding too. The code is open source; the name, the logo and
+the app icon are not. Before publishing a modified build anywhere you must choose a
 different name and icon, remove the Velorki branding from the app, the store
 listing and the share pages, and replace the server URLs with your own. You may
 say your project is "based on Velorki" and link back here; you may not suggest

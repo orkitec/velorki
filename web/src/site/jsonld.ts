@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // The structured data the site emits. Every builder returns a plain object; the
 // <JsonLd> component serialises it into a single <script type="application/ld+json">.
-import { GITHUB_URL, LICENSE_APP_URL, MIN_ANDROID, MIN_IOS, ORG_NAME, ORG_URL, SITE_URL } from './config';
+import { GITHUB_URL, LICENSE_URL, MIN_ANDROID, MIN_IOS, ORG_NAME, ORG_URL, SITE_URL } from './config';
 import { localeUrl } from './paths';
 
 export type JsonLdObject = Record<string, unknown>;
@@ -65,7 +65,7 @@ export function mobileApplicationJsonLd(description: string): JsonLdObject {
     },
     author: { '@id': ORGANIZATION_ID },
     publisher: { '@id': ORGANIZATION_ID },
-    license: LICENSE_APP_URL,
+    license: LICENSE_URL,
     codeRepository: GITHUB_URL,
     isBasedOn: 'https://www.openstreetmap.org/',
     softwareHelp: `${SITE_URL}/docs`,

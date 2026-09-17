@@ -87,7 +87,7 @@
   "@settingsLicensesSubtitle": {
     "description": "Subtitle of the open-source licences tile"
   },
-  "settingsLegalese": "Velorki is open source under the Apache License 2.0. Map data © OpenStreetMap contributors.",
+  "settingsLegalese": "Velorki is open source under the GNU Affero General Public License v3.0 only. Map data © OpenStreetMap contributors.",
   "@settingsLegalese": {
     "description": "Legal line at the bottom of the licence page"
   },

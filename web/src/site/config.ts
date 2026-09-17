@@ -18,9 +18,8 @@ export const SECURITY_EMAIL = 'security@orkitec.com';
 
 export const OSM_COPYRIGHT_URL = 'https://www.openstreetmap.org/copyright';
 
-/** Licences: the app is Apache-2.0, the relay (and this site) AGPL-3.0-only. */
-export const LICENSE_APP_URL = 'https://www.apache.org/licenses/LICENSE-2.0';
-export const LICENSE_RELAY_URL = 'https://www.gnu.org/licenses/agpl-3.0.html';
+/** Licence: the whole repository — app, relay and this site — is AGPL-3.0-only. */
+export const LICENSE_URL = 'https://www.gnu.org/licenses/agpl-3.0.html';
 
 /**
  * Store links. Empty until the listings exist; every badge that has no URL is

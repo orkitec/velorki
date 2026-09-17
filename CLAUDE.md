@@ -43,6 +43,9 @@ changing structure.
 - **Delegation**: routine implementation goes to cheaper subagents with a
   precise brief; design decisions, verification and review stay with the
   main agent. Subagents must not commit.
+- **Licence**: AGPL-3.0-only for the whole repository (one `LICENSE` at the
+  root); an outside contribution may only be merged once its author has signed
+  the CLA (`CLA.md`, checked by `.github/workflows/cla.yml`).
 - Keep docs terse and current. Delete rather than rewrite. No plan history.
 
 ## Toolchain facts
