@@ -2,7 +2,7 @@
 # Compose. The official instance runs it with Orkify as a plain Node process
 # instead - see ../docs/DEPLOY_WEB.md.
 # syntax=docker/dockerfile:1
-FROM node:22-slim AS build
+FROM node:26-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
