@@ -7,15 +7,6 @@ exercised there. The items here are the parts not yet covered by that.
 
 ## Servers and accounts (Steffen)
 
-- [ ] **Publish a real tile snapshot**: the mirror ([orkitec/velorki-data][data],
-      GitHub Releases) and the app side are done — the app follows
-      `latest.json`, merges every shard's `manifest.json` (480 tiles a shard,
-      the planet is three) and downloads each tile's `.rd5` and `.gaz` from
-      its shard. What is missing is the data: the tag `latest.json` points at
-      holds three test tiles. A planet run of `publish-tiles` (the monthly
-      schedule does it on the 1st, or dispatch it), followed automatically by
-      `publish-gazetteer`, makes the mirror usable for anyone but the
-      maintainer.
 - [ ] **Relay on the VPS with Orkify**: `api/` (`npm run build`,
       `node dist/server.js`, health `/health`, Node ≥ 22.13). Fill `.env` from
       `api/.env.example`; `SHARE_DB_PATH` must be on a persistent volume.

@@ -811,6 +811,12 @@ class GazetteerTest(unittest.TestCase):
         self.assertEqual(build.leading_number(" 7 "), 7)
         self.assertEqual(build.leading_number("12-14"), 12)
         self.assertIsNone(build.leading_number("A3"))
+        # Unicode digits that str.isdigit() accepts and int() does not.
+        self.assertEqual(build.leading_number("218⁰"), 218)
+        self.assertEqual(build.leading_number("6²"), 6)
+        self.assertIsNone(build.leading_number("⁴20"))
+        self.assertIsNone(build.leading_number("⑦"))
+        self.assertIsNone(build.leading_number("٣"))
         self.assertIsNone(build.leading_number(""))
         self.assertIsNone(build.leading_number(None))
 

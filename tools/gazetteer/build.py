@@ -215,7 +215,9 @@ def leading_number(raw: str | None) -> int | None:
         return None
     digits = ""
     for character in raw.strip():
-        if not character.isdigit():
+        # ASCII only: str.isdigit() also accepts superscripts and circled
+        # digits ("218⁰", "⑦"), which int() then rejects.
+        if not "0" <= character <= "9":
             break
         digits += character
     if not digits or len(digits) > 9:
