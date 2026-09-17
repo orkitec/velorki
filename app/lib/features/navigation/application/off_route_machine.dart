@@ -68,8 +68,11 @@ const double fullRerouteMeters = 3000;
 /// See [fullRerouteMeters].
 const Duration fullRerouteAfter = Duration(minutes: 5);
 
-/// How often the way back is repeated while the rider is still off route.
-const Duration guidanceRepeatGap = Duration(seconds: 60);
+/// How much further from the plan the rider has to get before the way back
+/// is said again. Said once on leaving and once when the detour starts; a
+/// rider who left on purpose is not nagged every minute, only told when the
+/// gap keeps growing.
+const double guidanceRepeatMeters = 300;
 
 /// Ends this near each other and the plan is a loop, so a point near its
 /// start is ahead of the rider rather than behind them.
@@ -169,7 +172,7 @@ class OffRouteMachine {
   LatLng? _lastPosition;
 
   /// When the way back was last said out loud.
-  DateTime? _spokeAt;
+  double? _spokenDistanceM;
 
   /// When the rejoin in use was computed.
   DateTime? _detourAt;
@@ -218,7 +221,7 @@ class OffRouteMachine {
       _state = OffRouteState.guiding;
       _offSince = now;
       _offTravelM = 0;
-      _spokeAt = null;
+      _spokenDistanceM = null;
       _detourAt = null;
     }
 
@@ -244,8 +247,10 @@ class OffRouteMachine {
 
     final guidance = _guidanceTo(position, headingDeg, alongM);
     final due =
-        _spokeAt == null || now.difference(_spokeAt!) >= guidanceRepeatGap;
-    if (due && guidance != null) _spokeAt = now;
+        _spokenDistanceM == null ||
+        (guidance != null &&
+            guidance.distanceM >= _spokenDistanceM! + guidanceRepeatMeters);
+    if (due && guidance != null) _spokenDistanceM = guidance.distanceM;
     return OffRouteDecision(
       state: _state,
       guidance: guidance,
@@ -286,7 +291,7 @@ class OffRouteMachine {
     _strayingSince = null;
     _offSince = null;
     _offTravelM = 0;
-    _spokeAt = null;
+    _spokenDistanceM = null;
     _detourAt = null;
   }
 

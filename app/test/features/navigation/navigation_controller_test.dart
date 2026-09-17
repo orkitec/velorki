@@ -536,19 +536,23 @@ void main() {
       },
     );
 
-    test('it is said once, and then only every minute', () async {
+    test('it is said once, and again only when the gap grows', () async {
       final h = await _NavHarness.create(saved: _savedRoute());
       await h.follow('route-1');
       await h.strayOff();
-      final said = h.speaker.spoken.where(_isWayBack).length;
-      expect(said, 1);
+      expect(h.speaker.spoken.where(_isWayBack), hasLength(1));
 
+      // Time alone never repeats it: fixes at the same distance stay quiet
+      // (short steps, so the rejoin trigger does not fire first).
+      h.clock.advance(const Duration(seconds: 8));
       await h.stray(340);
+      h.clock.advance(const Duration(seconds: 8));
       await h.stray(360);
       expect(h.speaker.spoken.where(_isWayBack), hasLength(1));
 
-      h.clock.advance(const Duration(seconds: 61));
-      await h.stray(380);
+      // Another 300 m further from the plan, and it is said once more.
+      h.clock.advance(const Duration(seconds: 8));
+      await h.stray(380, asideM: 520);
       expect(h.speaker.spoken.where(_isWayBack), hasLength(2));
     });
 

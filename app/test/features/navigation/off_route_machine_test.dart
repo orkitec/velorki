@@ -283,10 +283,34 @@ void main() {
       expect(decision.guidance!.direction, isNull);
     });
 
-    test('the way back is said once and then only every minute', () {
+    test('the way back is said once, and again only when the gap grows', () {
       final machine = _machine();
       final spokenAt = <int>[];
-      for (var second = 0; second <= 130; second += 2) {
+      // Drifting away at 2 m per fix: 80 m at first, 480 m by the end.
+      for (var second = 0; second <= 400; second += 2) {
+        final aside = 80.0 + second;
+        final decision = _fix(
+          machine,
+          _at(300, asideM: aside),
+          distanceFromRouteM: aside,
+          alongM: 300,
+          at: Duration(seconds: second),
+          rerouteAllowed: false,
+        );
+        if (decision.speakGuidance) spokenAt.add(second);
+      }
+
+      // Once on leaving the route — the second stray fix, 82 m out — and
+      // again 300 m further out; time alone never repeats it.
+      expect(spokenAt, hasLength(2));
+      expect(spokenAt.first, 2);
+      expect(spokenAt.last, greaterThanOrEqualTo(2 + 300));
+    });
+
+    test('staying at the same distance never repeats it', () {
+      final machine = _machine();
+      var spoken = 0;
+      for (var second = 0; second <= 300; second += 2) {
         final decision = _fix(
           machine,
           _at(300, asideM: 80),
@@ -295,12 +319,9 @@ void main() {
           at: Duration(seconds: second),
           rerouteAllowed: false,
         );
-        if (decision.speakGuidance) spokenAt.add(second);
+        if (decision.speakGuidance) spoken++;
       }
-
-      // Once on leaving the route — the second stray fix — then a minute
-      // later, and a minute after that. Nothing in between.
-      expect(spokenAt, <int>[2, 62, 122]);
+      expect(spoken, 1);
     });
   });
 
