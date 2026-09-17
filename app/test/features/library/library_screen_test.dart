@@ -8,6 +8,8 @@ import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../support/app.dart';
+import '../../support/format.dart';
 import '../planner/support/fakes.dart';
 import '../planner/support/pump.dart';
 
@@ -37,7 +39,7 @@ void main() {
     await pumpApp(tester);
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('No saved routes yet.'), findsOneWidget);
+    expect(find.textContaining(l10n.libraryEmpty), findsOneWidget);
     await unmountApp(tester);
   });
 
@@ -50,7 +52,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Isar loop'), findsOneWidget);
-    expect(find.text('Sep 12, 2026 · 10.0 km · ↑120 m'), findsOneWidget);
+    expect(
+      find.text(
+        l10n.libraryRouteSubtitle(
+          testDate(DateTime.utc(2026, 9, 12, 10).toLocal()),
+          testDistance(10000),
+          testHeight(120),
+        ),
+      ),
+      findsOneWidget,
+    );
     await unmountApp(tester);
   });
 
@@ -64,13 +75,13 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.more_vert));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Delete'));
+    await tester.tap(find.text(l10n.commonDelete));
     await tester.pumpAndSettle();
 
     expect(find.text('Isar loop'), findsNothing);
-    expect(find.text('Isar loop deleted'), findsOneWidget);
+    expect(find.text(l10n.libraryRouteDeleted('Isar loop')), findsOneWidget);
 
-    await tester.tap(find.text('Undo'));
+    await tester.tap(find.text(l10n.commonUndo));
     await tester.pumpAndSettle();
 
     expect(find.text('Isar loop'), findsOneWidget);
@@ -98,7 +109,7 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.more_vert));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Rename'));
+    await tester.tap(find.text(l10n.commonRename));
     await tester.pumpAndSettle();
 
     await tester.enterText(
@@ -108,7 +119,7 @@ void main() {
       ),
       'Ammersee',
     );
-    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.tap(find.widgetWithText(FilledButton, l10n.commonSave));
     await tester.pumpAndSettle();
 
     expect(find.text('Ammersee'), findsOneWidget);
@@ -126,21 +137,27 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.widgetWithText(AppBar, 'Isar loop'), findsOneWidget);
-    expect(find.text('10.0 km'), findsOneWidget);
-    expect(find.text('120 m'), findsOneWidget);
-    expect(find.text('80 m'), findsOneWidget);
+    expect(find.text(testDistance(10000)), findsOneWidget);
+    expect(find.text(testHeight(120)), findsOneWidget);
+    expect(find.text(testHeight(80)), findsOneWidget);
     // 10 km at the gravel profile's 16 km/h.
-    expect(find.text('37 min'), findsOneWidget);
-    expect(find.textContaining('Gravel'), findsWidgets);
+    expect(
+      find.text(testDuration(const Duration(minutes: 37))),
+      findsOneWidget,
+    );
+    expect(find.textContaining(l10n.profileGravel), findsWidgets);
 
     // The preview is drawn through the map contract, bounds included.
     expect(h.map.lines[mainRouteLineId], hasLength(saved.geometry.length));
     expect(h.map.fittedBounds, isNotNull);
 
-    expect(find.text('Open in planner'), findsOneWidget);
+    expect(find.text(l10n.routeDetailOpenInPlanner), findsOneWidget);
     // The export menu itself is covered by
     // test/features/import_export/route_export_test.dart.
-    expect(find.widgetWithText(OutlinedButton, 'Export'), findsOneWidget);
+    expect(
+      find.widgetWithText(OutlinedButton, l10n.routeDetailExport),
+      findsOneWidget,
+    );
     await unmountApp(tester);
   });
 }

@@ -215,16 +215,21 @@ class LabeledIconButton extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        Text(
-          label,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: enabled
-                ? scheme.onSurfaceVariant
-                : scheme.onSurfaceVariant.withValues(alpha: 0.5),
+        // The buttons share the row evenly, so a longer translation would be
+        // cut in the middle of the word: let the caption shrink into its
+        // share instead. German "Rückgängig" is twice the width of "Undo".
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: enabled
+                  ? scheme.onSurfaceVariant
+                  : scheme.onSurfaceVariant.withValues(alpha: 0.5),
+            ),
+            maxLines: 1,
+            softWrap: false,
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          softWrap: false,
         ),
       ],
     );

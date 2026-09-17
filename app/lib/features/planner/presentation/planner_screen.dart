@@ -671,11 +671,16 @@ class _ProfileChooser extends StatelessWidget {
                 child: ChoiceChip(
                   label: SizedBox(
                     width: double.infinity,
-                    child: Text(
-                      profileLabel(l10n, profile),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    // A label that is longer in another language shrinks into
+                    // its fifth rather than ending in an ellipsis: German
+                    // "Trekking" and "Rennrad" do not fit at 360 dp.
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        profileLabel(l10n, profile),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                      ),
                     ),
                   ),
                   selected: profile == selected,

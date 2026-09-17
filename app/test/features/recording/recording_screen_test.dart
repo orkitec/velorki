@@ -25,6 +25,8 @@ import 'package:velorki/features/recording/presentation/ride_detail_screen.dart'
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../support/app.dart';
+import '../../support/format.dart';
 import '../planner/support/fakes.dart' show MapCall;
 import 'support/pump.dart';
 
@@ -77,11 +79,11 @@ void main() {
     await pumpRecordingScreen(tester, const RecordingScreen());
     await tester.pump();
 
-    expect(find.text('Ready to ride'), findsOneWidget);
-    expect(find.text('Start ride'), findsOneWidget);
-    expect(find.text('RECENT RIDES'), findsOneWidget);
-    expect(find.text('No rides yet.'), findsOneWidget);
-    expect(find.text('Follow a route'), findsOneWidget);
+    expect(find.text(l10n.recordingIdleTitle), findsOneWidget);
+    expect(find.text(l10n.recordingStart), findsOneWidget);
+    expect(find.text(l10n.recordingRecentRides.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.recordingNoRides), findsOneWidget);
+    expect(find.text(l10n.recordingFollowRoute), findsOneWidget);
 
     await unmountApp(tester);
   });
@@ -92,7 +94,7 @@ void main() {
     final h = RecordingHarness();
     await pumpRecordingScreen(tester, const RecordingScreen(), harness: h);
     await tester.pump();
-    expect(find.text('No route'), findsOneWidget);
+    expect(find.text(l10n.recordingFollowNone), findsOneWidget);
 
     final container = ProviderScope.containerOf(
       tester.element(find.byType(RecordingScreen)),
@@ -105,7 +107,7 @@ void main() {
 
     final drawn = h.map.calls.where((c) => c.method == 'setRouteLine');
     expect(drawn, isNotEmpty, reason: 'the plan is the route to ride');
-    expect(find.text('The route on the Plan tab'), findsOneWidget);
+    expect(find.text(l10n.recordingFollowPlan), findsOneWidget);
 
     await unmountApp(tester);
   });
@@ -207,8 +209,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Ride 12 Sept 2026'), findsOneWidget);
-    expect(find.textContaining('12.3 km'), findsOneWidget);
-    expect(find.text('No rides yet.'), findsNothing);
+    expect(find.textContaining(testDistance(12345)), findsOneWidget);
+    expect(find.text(l10n.recordingNoRides), findsNothing);
 
     await unmountApp(tester);
   });
@@ -219,7 +221,7 @@ void main() {
     final h = await pumpRecordingScreen(tester, const RecordingScreen());
     await tester.pump();
 
-    await tester.tap(find.text('Start ride'));
+    await tester.tap(find.text(l10n.recordingStart));
     await tester.pumpAndSettle();
 
     expect(h.service.calls, <String>['start(null)']);
@@ -236,14 +238,11 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(find.text('Start ride'));
+    await tester.tap(find.text(l10n.recordingStart));
     await tester.pumpAndSettle();
 
     expect(h.service.calls, isEmpty);
-    expect(
-      find.text('Velorki needs location access to record a ride.'),
-      findsOneWidget,
-    );
+    expect(find.text(l10n.recordingLocationDenied), findsOneWidget);
     await unmountApp(tester);
   });
 
@@ -257,11 +256,11 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(find.text('Start ride'));
+    await tester.tap(find.text(l10n.recordingStart));
     await tester.pumpAndSettle();
 
-    expect(find.text('Keep recording in the background'), findsOneWidget);
-    await tester.tap(find.text('Allow'));
+    expect(find.text(l10n.recordingBatteryTitle), findsOneWidget);
+    await tester.tap(find.text(l10n.recordingBatteryAllow));
     await tester.pumpAndSettle();
 
     expect(h.battery.requests, 1);
@@ -282,7 +281,10 @@ void main() {
       _snapshot(newPoints: const [LatLng(48.0, 11.0), LatLng(48.1, 11.2)]),
     );
 
-    expect(find.text('RECORDING'), findsOneWidget);
+    expect(
+      find.text(l10n.recordingStatusRecording.toUpperCase()),
+      findsOneWidget,
+    );
     expect(find.byType(NavigationBar), findsNothing);
 
     await unmountApp(tester);
@@ -300,13 +302,16 @@ void main() {
       _snapshot(newPoints: const [LatLng(48.0, 11.0), LatLng(48.1, 11.2)]),
     );
 
-    expect(find.text('RECORDING'), findsOneWidget);
-    expect(find.text('12.3 km'), findsOneWidget);
+    expect(
+      find.text(l10n.recordingStatusRecording.toUpperCase()),
+      findsOneWidget,
+    );
+    expect(find.text(testDistance(12345)), findsOneWidget);
     expect(find.text('42:07'), findsOneWidget);
     expect(find.text('40:00'), findsOneWidget);
-    expect(find.text('210 m'), findsOneWidget);
-    expect(find.byTooltip('Pause'), findsOneWidget);
-    expect(find.byTooltip('Finish'), findsOneWidget);
+    expect(find.text(testHeight(210)), findsOneWidget);
+    expect(find.byTooltip(l10n.recordingPause), findsOneWidget);
+    expect(find.byTooltip(l10n.recordingFinish), findsOneWidget);
 
     final track = h.map.calls.where((c) => c.method == 'setTrackLine').last;
     expect(track.arguments.first, hasLength(2));
@@ -320,14 +325,14 @@ void main() {
     await tester.pump();
 
     await emitSnapshot(tester, h, _snapshot());
-    await tester.tap(find.byTooltip('Pause'));
+    await tester.tap(find.byTooltip(l10n.recordingPause));
     await tester.pump();
     expect(h.service.calls, contains('pause'));
 
     await emitSnapshot(tester, h, _snapshot(status: RecordingStatus.paused));
-    expect(find.text('PAUSED'), findsOneWidget);
+    expect(find.text(l10n.recordingStatusPaused.toUpperCase()), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Resume'));
+    await tester.tap(find.byTooltip(l10n.recordingResume));
     await tester.pump();
     expect(h.service.calls, contains('resume'));
 
@@ -344,7 +349,10 @@ void main() {
       _snapshot(status: RecordingStatus.paused, autoPaused: true),
     );
 
-    expect(find.text('AUTO-PAUSED'), findsOneWidget);
+    expect(
+      find.text(l10n.recordingStatusAutoPaused.toUpperCase()),
+      findsOneWidget,
+    );
     await unmountApp(tester);
   });
 
@@ -355,11 +363,11 @@ void main() {
     await tester.pump();
 
     await emitSnapshot(tester, h, _snapshot());
-    await tester.tap(find.byTooltip('Finish'));
+    await tester.tap(find.byTooltip(l10n.recordingFinish));
     await tester.pumpAndSettle();
 
     expect(h.service.calls.last, startsWith('stop('));
-    expect(find.text('Nothing was recorded.'), findsOneWidget);
+    expect(find.text(l10n.recordingNothingRecorded), findsOneWidget);
     await unmountApp(tester);
   });
 
@@ -370,7 +378,7 @@ void main() {
     await tester.pump();
 
     await emitSnapshot(tester, harness, _snapshot());
-    await tester.tap(find.byTooltip('Finish'));
+    await tester.tap(find.byTooltip(l10n.recordingFinish));
     await tester.pumpAndSettle();
 
     expect(find.byType(RideDetailScreen), findsOneWidget);
@@ -387,18 +395,21 @@ void main() {
     await tester.pump();
 
     await emitSnapshot(tester, harness, _snapshot());
-    await tester.tap(find.byTooltip('Finish'));
+    await tester.tap(find.byTooltip(l10n.recordingFinish));
     await tester.pumpAndSettle();
     expect(find.byType(RideDetailScreen), findsOneWidget);
 
     // The foreground isolate flushes one last time after the stop; the
     // Record tab must stay ready for the next ride, not go live again.
     await emitSnapshot(tester, harness, _snapshot());
-    await tester.tap(find.text('Record'));
+    await tester.tap(find.text(l10n.tabRecord));
     await tester.pumpAndSettle();
 
-    expect(find.text('Ready to ride'), findsOneWidget);
-    expect(find.text('RECORDING'), findsNothing);
+    expect(find.text(l10n.recordingIdleTitle), findsOneWidget);
+    expect(
+      find.text(l10n.recordingStatusRecording.toUpperCase()),
+      findsNothing,
+    );
     await unmountApp(tester);
   });
 
@@ -406,11 +417,11 @@ void main() {
     final h = await pumpRecordingScreen(tester, const RecordingScreen());
     await tester.pump();
 
-    await tester.tap(find.text('Keep screen on'));
+    await tester.tap(find.text(l10n.recordingKeepScreenOn));
     await tester.pumpAndSettle();
     expect(h.screenWake.enabled, isTrue);
 
-    await tester.tap(find.text('Keep screen on'));
+    await tester.tap(find.text(l10n.recordingKeepScreenOn));
     await tester.pumpAndSettle();
     expect(h.screenWake.enabled, isFalse);
 
@@ -425,11 +436,14 @@ void main() {
 
     expect(find.byType(NavigationToggles), findsOneWidget);
     // The same rows as Settings > Navigation, after "Keep screen on".
-    final keep = tester.getTopLeft(find.text('Keep screen on'));
-    final voice = tester.getTopLeft(find.text('Voice'));
+    final keep = tester.getTopLeft(find.text(l10n.recordingKeepScreenOn));
+    final voice = tester.getTopLeft(find.text(l10n.settingsVoiceDirections));
     expect(voice.dy, greaterThan(keep.dy));
 
-    await tester.tap(find.text('Voice'), warnIfMissed: false);
+    await tester.tap(
+      find.text(l10n.settingsVoiceDirections),
+      warnIfMissed: false,
+    );
     await tester.pumpAndSettle();
     final container = ProviderScope.containerOf(
       tester.element(find.byType(RecordingScreen)),
@@ -444,7 +458,7 @@ void main() {
       tester
           .widget<SwitchListTile>(
             find.ancestor(
-              of: find.text('Voice'),
+              of: find.text(l10n.settingsVoiceDirections),
               matching: find.byType(SwitchListTile),
             ),
           )
@@ -473,7 +487,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(harness.service.calls, <String>['reattach']);
-    expect(find.text('Unfinished ride'), findsNothing);
+    expect(find.text(l10n.recordingRecoveryTitle), findsNothing);
     await unmountApp(tester);
   });
 
@@ -504,9 +518,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Unfinished ride'), findsOneWidget);
-      expect(find.textContaining('12.3 km'), findsOneWidget);
-      expect(find.textContaining('42 min'), findsOneWidget);
+      expect(find.text(l10n.recordingRecoveryTitle), findsOneWidget);
+      expect(find.textContaining(testDistance(12345)), findsOneWidget);
+      expect(
+        find.textContaining(testDuration(const Duration(minutes: 42))),
+        findsOneWidget,
+      );
       await unmountApp(tester);
     });
 
@@ -515,7 +532,7 @@ void main() {
       await pumpRecordingScreen(tester, const RecordingScreen(), harness: h);
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Resume'));
+      await tester.tap(find.widgetWithText(FilledButton, l10n.recordingResume));
       await tester.pumpAndSettle();
       await settleAsync(tester);
 
@@ -528,7 +545,7 @@ void main() {
       await pumpRecordingScreen(tester, const RecordingScreen(), harness: h);
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Finish'));
+      await tester.tap(find.text(l10n.recordingFinish));
       await tester.pumpAndSettle();
 
       expect(h.service.calls, <String>['finishInterrupted(ride-1)']);
@@ -540,7 +557,7 @@ void main() {
       await pumpRecordingScreen(tester, const RecordingScreen(), harness: h);
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Discard'));
+      await tester.tap(find.text(l10n.recordingRecoveryDiscard));
       await tester.pumpAndSettle();
 
       expect(h.service.calls, <String>['discardInterrupted(ride-1)']);
@@ -1202,8 +1219,8 @@ void main() {
       await emitSnapshot(tester, h, _snapshot());
 
       expect(find.byType(TurnBanner), findsOneWidget);
-      expect(find.text('200 m'), findsOneWidget);
-      expect(find.text('Turn left'), findsOneWidget);
+      expect(find.text(testHeight(200)), findsOneWidget);
+      expect(find.text(l10n.navTurnLeft), findsOneWidget);
       expect(
         tester
             .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
@@ -1247,7 +1264,7 @@ void main() {
       await pumpRecordingScreen(tester, const RecordingScreen());
       await tester.pump();
 
-      final tile = find.widgetWithText(SwitchListTile, 'Battery saver');
+      final tile = find.widgetWithText(SwitchListTile, l10n.gpsPrecisionSaver);
       expect(tester.widget<SwitchListTile>(tile).value, isFalse);
 
       await tester.tap(tile);
@@ -1275,7 +1292,7 @@ void main() {
       );
       await tester.pump();
 
-      await tester.tap(find.text('Start ride'));
+      await tester.tap(find.text(l10n.recordingStart));
       await tester.pumpAndSettle();
 
       // The saver overrules the precision the rider picked.
@@ -1329,7 +1346,9 @@ void main() {
       await emitSnapshot(tester, h, _snapshot());
       expect(h.dimmer.brightness, isNull, reason: 'the screen may sleep');
 
-      await tester.tap(find.widgetWithText(SwitchListTile, 'Keep screen on'));
+      await tester.tap(
+        find.widgetWithText(SwitchListTile, l10n.recordingKeepScreenOn),
+      );
       await tester.pumpAndSettle();
 
       expect(h.dimmer.brightness, saverBrightness);
@@ -1358,11 +1377,11 @@ void main() {
       await tester.pump(glanceAfter + const Duration(seconds: 1));
 
       expect(find.byType(DraggableScrollableSheet), findsNothing);
-      expect(find.text('DISTANCE'), findsOneWidget);
-      expect(find.text('12.3 km'), findsOneWidget);
-      expect(find.text('SPEED'), findsOneWidget);
+      expect(find.text(l10n.statDistance.toUpperCase()), findsOneWidget);
+      expect(find.text(testDistance(12345)), findsOneWidget);
+      expect(find.text(l10n.statSpeed.toUpperCase()), findsOneWidget);
       // Nothing that could stop the ride by accident.
-      expect(find.byTooltip('Finish'), findsNothing);
+      expect(find.byTooltip(l10n.recordingFinish), findsNothing);
       // The map is still there, only not drawn.
       expect(find.byType(MapChromeInsets, skipOffstage: false), findsWidgets);
 
@@ -1404,7 +1423,10 @@ void main() {
       await tester.pump(glanceAfter + const Duration(seconds: 1));
 
       expect(find.byType(DraggableScrollableSheet), findsOneWidget);
-      expect(find.text('RECORDING'), findsOneWidget);
+      expect(
+        find.text(l10n.recordingStatusRecording.toUpperCase()),
+        findsOneWidget,
+      );
 
       await unmountApp(tester);
     });
@@ -1425,7 +1447,7 @@ void main() {
       await emitSnapshot(tester, h, _snapshot(status: RecordingStatus.idle));
 
       expect(find.byType(DraggableScrollableSheet), findsOneWidget);
-      expect(find.text('Ready to ride'), findsOneWidget);
+      expect(find.text(l10n.recordingIdleTitle), findsOneWidget);
 
       await unmountApp(tester);
     });
@@ -1436,13 +1458,10 @@ void main() {
     h.service.startError = const RecordingException('service timeout');
     await tester.pump();
 
-    await tester.tap(find.text('Start ride'));
+    await tester.tap(find.text(l10n.recordingStart));
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('Recording could not be started: service timeout'),
-      findsOneWidget,
-    );
+    expect(find.text(l10n.recordingFailed('service timeout')), findsOneWidget);
     await unmountApp(tester);
   });
 
@@ -1459,11 +1478,26 @@ void main() {
     await emitSnapshot(tester, h, _snapshot());
 
     // 12 345 m, 6 m/s, 5 m/s average, 210 m up and 190 m down.
-    expect(find.text('7.7 mi'), findsOneWidget);
-    expect(find.text('13.4 mph'), findsOneWidget);
-    expect(find.text('11.2 mph'), findsOneWidget);
-    expect(find.text('689 ft'), findsOneWidget);
-    expect(find.text('623 ft'), findsOneWidget);
+    expect(
+      find.text(testDistance(12345, system: UnitSystem.imperial)),
+      findsOneWidget,
+    );
+    expect(
+      find.text(testSpeed(6, system: UnitSystem.imperial)),
+      findsOneWidget,
+    );
+    expect(
+      find.text(testSpeed(5, system: UnitSystem.imperial)),
+      findsOneWidget,
+    );
+    expect(
+      find.text(testHeight(210, system: UnitSystem.imperial)),
+      findsOneWidget,
+    );
+    expect(
+      find.text(testHeight(190, system: UnitSystem.imperial)),
+      findsOneWidget,
+    );
     expect(find.textContaining('km'), findsNothing);
 
     await unmountApp(tester);

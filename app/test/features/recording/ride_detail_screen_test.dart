@@ -9,6 +9,8 @@ import 'package:velorki/features/recording/presentation/ride_detail_screen.dart'
 import 'package:velorki/features/recording/presentation/ride_splits.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../support/app.dart';
+import '../../support/format.dart';
 import 'support/pump.dart';
 
 List<TrackPoint> _track() => <TrackPoint>[
@@ -71,7 +73,7 @@ Future<void> _seed(RecordingHarness harness) =>
 Future<void> _tapContinue(WidgetTester tester) async {
   await tester.tap(find.byIcon(Icons.more_vert));
   await tester.pumpAndSettle();
-  await tester.tap(find.text('Continue this ride').last);
+  await tester.tap(find.text(l10n.rideContinue).last);
   await tester.pumpAndSettle();
   // Handing the ride back reads the journal off the real file system, which
   // only a real turn of the event loop finishes.
@@ -93,13 +95,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Morning loop'), findsOneWidget);
-    expect(find.text('DISTANCE'), findsOneWidget);
+    expect(find.text(l10n.statDistance.toUpperCase()), findsOneWidget);
     // Once in the tiles, once as a column of the splits table.
-    expect(find.text('MOVING'), findsNWidgets(2));
-    expect(find.text('ASCENT'), findsNWidgets(2));
+    expect(find.text(l10n.statMovingTime.toUpperCase()), findsNWidgets(2));
+    expect(find.text(l10n.statAscent.toUpperCase()), findsNWidgets(2));
     expect(find.text('00:59'), findsWidgets);
-    expect(find.text('Export GPX track'), findsWidgets);
-    expect(find.text('Export FIT activity'), findsWidgets);
+    expect(find.text(l10n.rideDetailExportGpx), findsWidgets);
+    expect(find.text(l10n.rideDetailExportFit), findsWidgets);
 
     // The track went on the map coloured by speed, and the camera was fitted
     // to it.
@@ -122,7 +124,7 @@ void main() {
     await pumpRecordingScreen(tester, const RideDetailScreen(rideId: 'gone'));
     await tester.pumpAndSettle();
 
-    expect(find.text('This ride no longer exists.'), findsOneWidget);
+    expect(find.text(l10n.rideDetailNotFound), findsOneWidget);
     await unmountApp(tester);
   });
 
@@ -136,7 +138,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Export GPX track'));
+    await tester.tap(
+      find.widgetWithText(OutlinedButton, l10n.rideDetailExportGpx),
+    );
     await tester.pumpAndSettle();
 
     expect(harness.exporter.exports, hasLength(1));
@@ -162,7 +166,7 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.more_vert));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Export FIT activity').last);
+    await tester.tap(find.text(l10n.rideDetailExportFit).last);
     await tester.pumpAndSettle();
 
     expect(harness.exporter.exports.single.format, TrackFormat.fit);
@@ -180,10 +184,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Export GPX track'));
+    await tester.tap(
+      find.widgetWithText(OutlinedButton, l10n.rideDetailExportGpx),
+    );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Export failed:'), findsOneWidget);
+    expect(
+      find.textContaining(l10n.rideDetailExportFailed('').trim()),
+      findsOneWidget,
+    );
     await unmountApp(tester);
   });
 
@@ -222,22 +231,19 @@ void main() {
     await tester.pumpAndSettle();
 
     await _tapContinue(tester);
-    expect(
-      find.text(
-        'Another ride is being recorded. It will be finished and '
-        'saved first.',
-      ),
-      findsOneWidget,
-    );
+    expect(find.text(l10n.rideContinueRunning), findsOneWidget);
     expect(harness.service.calls, isEmpty);
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Continue this ride'));
+    await tester.tap(find.widgetWithText(FilledButton, l10n.rideContinue));
     await tester.pumpAndSettle();
     await settleAsync(tester);
     await tester.pumpAndSettle();
 
     expect(harness.service.calls, hasLength(2));
-    expect(harness.service.calls.first, startsWith('stop(Ride '));
+    expect(
+      harness.service.calls.first,
+      startsWith('stop(${l10n.recordingRideName('')}'.trimRight()),
+    );
     expect(harness.service.calls.last, 'continueRide(ride-1)');
 
     await unmountApp(tester);
@@ -266,12 +272,12 @@ void main() {
 
     await _tapContinue(tester);
     expect(
-      find.textContaining('It was already sent to Strava'),
+      find.textContaining(l10n.rideContinueUploaded('Strava')),
       findsOneWidget,
     );
 
     // Backing out leaves the ride alone.
-    await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+    await tester.tap(find.widgetWithText(TextButton, l10n.commonCancel));
     await tester.pumpAndSettle();
     expect(harness.service.calls, isEmpty);
     expect(find.byType(RideDetailScreen), findsOneWidget);
@@ -291,11 +297,11 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.more_vert));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Rename'));
+    await tester.tap(find.text(l10n.commonRename));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), 'Sunday spin');
-    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.tap(find.widgetWithText(FilledButton, l10n.commonSave));
     await tester.pumpAndSettle();
 
     expect(find.text('Sunday spin'), findsOneWidget);
@@ -310,13 +316,13 @@ void main() {
     expect(find.byType(RideElevationChart), findsOneWidget);
     expect(find.byType(RideSpeedChart), findsOneWidget);
     expect(find.byType(RideSplitsTable), findsOneWidget);
-    expect(find.text('ELEVATION'), findsOneWidget);
-    expect(find.text('SPEED'), findsOneWidget);
-    expect(find.text('SPLITS'), findsOneWidget);
+    expect(find.text(l10n.elevationTitle.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.statSpeed.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.rideSplits.toUpperCase()), findsOneWidget);
     // The legend under the map.
     expect(find.byType(RideSpeedLegend), findsOneWidget);
-    expect(find.text('SLOW'), findsOneWidget);
-    expect(find.text('FAST'), findsOneWidget);
+    expect(find.text(l10n.rideSpeedSlow.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.rideSpeedFast.toUpperCase()), findsOneWidget);
 
     await unmountApp(tester);
   });
@@ -328,10 +334,10 @@ void main() {
     await _open(tester, harness, _threeKilometres(withElevation: false));
 
     expect(find.byType(RideElevationChart), findsNothing);
-    expect(find.text('ELEVATION'), findsNothing);
+    expect(find.text(l10n.elevationTitle.toUpperCase()), findsNothing);
     // The speed chart and the splits are still there.
-    expect(find.text('SPEED'), findsOneWidget);
-    expect(find.text('SPLITS'), findsOneWidget);
+    expect(find.text(l10n.statSpeed.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.rideSplits.toUpperCase()), findsOneWidget);
 
     await unmountApp(tester);
   });
@@ -342,9 +348,9 @@ void main() {
     final harness = RecordingHarness();
     await _open(tester, harness, _threeKilometres());
 
-    expect(find.text('1 km'), findsNWidgets(3));
+    expect(find.text(testSplitLength(1000)), findsNWidgets(3));
     expect(find.text('03:00'), findsNWidgets(3));
-    expect(find.text('20.0 km/h'), findsWidgets);
+    expect(find.text(testSpeed(20000 / 3600)), findsWidgets);
 
     await unmountApp(tester);
   });
@@ -359,8 +365,14 @@ void main() {
     );
 
     // 1.86 miles: one whole mile and the remainder, flagged by its own length.
-    expect(find.text('1 mi'), findsOneWidget);
-    expect(find.text('0.9 mi'), findsOneWidget);
+    expect(
+      find.text(testSplitLength(1609.344, system: UnitSystem.imperial)),
+      findsOneWidget,
+    );
+    expect(
+      find.text(testSplitLength(3000 - 1609.344, system: UnitSystem.imperial)),
+      findsOneWidget,
+    );
     expect(find.text('04:50'), findsOneWidget);
     expect(find.text('04:10'), findsOneWidget);
 

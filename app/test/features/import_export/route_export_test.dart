@@ -8,6 +8,7 @@ import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../support/app.dart';
 import '../planner/support/fakes.dart';
 import '../planner/support/pump.dart';
 
@@ -59,7 +60,7 @@ Future<SavedRoute> _seed(PlannerHarness h) =>
     );
 
 Future<void> _openExportMenu(WidgetTester tester) async {
-  await tester.tap(find.widgetWithText(OutlinedButton, 'Export'));
+  await tester.tap(find.widgetWithText(OutlinedButton, l10n.routeDetailExport));
   await tester.pumpAndSettle();
 }
 
@@ -79,10 +80,10 @@ void main() {
     await tester.pumpAndSettle();
 
     await _openExportMenu(tester);
-    expect(find.text('GPX route'), findsOneWidget);
-    expect(find.text('FIT course'), findsOneWidget);
+    expect(find.text(l10n.exportGpxRoute), findsOneWidget);
+    expect(find.text(l10n.exportFitCourse), findsOneWidget);
 
-    await tester.tap(find.text('GPX route'));
+    await tester.tap(find.text(l10n.exportGpxRoute));
     await tester.pumpAndSettle();
 
     expect(exporter.calls, hasLength(1));
@@ -107,7 +108,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await _openExportMenu(tester);
-    await tester.tap(find.text('FIT course'));
+    await tester.tap(find.text(l10n.exportFitCourse));
     await tester.pumpAndSettle();
 
     expect(exporter.calls.single.format, TrackFormat.fit);
@@ -128,10 +129,10 @@ void main() {
     await tester.pumpAndSettle();
 
     await _openExportMenu(tester);
-    await tester.tap(find.text('GPX route'));
+    await tester.tap(find.text(l10n.exportGpxRoute));
     await tester.pumpAndSettle();
 
-    expect(find.text('The file could not be exported.'), findsOneWidget);
+    expect(find.text(l10n.exportFailed), findsOneWidget);
     await unmountApp(tester);
   });
 }

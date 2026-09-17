@@ -1,12 +1,10 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
-import 'package:velorki/app/theme.dart';
 import 'package:velorki/core/plus/plus_gate.dart';
 import 'package:velorki/features/import_export/data/incoming_file_service.dart';
 import 'package:velorki/features/import_export/domain/imported_track.dart';
@@ -14,10 +12,10 @@ import 'package:velorki/features/integrations/common/data/relay_client_provider.
 import 'package:velorki/features/sharing/application/share_link_listener.dart';
 import 'package:velorki/features/sharing/data/share_service.dart';
 import 'package:velorki/features/sharing/presentation/share_link_button.dart';
-import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki_api/velorki_api.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../support/app.dart';
 import '../import_export/support/fixtures.dart';
 import '../integrations/support/fakes.dart';
 
@@ -290,15 +288,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp(
-            theme: buildLightTheme(),
-            localizationsDelegates: const [
-              AppLocalizations.delegate,
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
-            supportedLocales: AppLocalizations.supportedLocales,
+          child: testApp(
             home: const Scaffold(
               body: ShareLinkButton(
                 name: 'Isar loop',
@@ -320,15 +310,15 @@ void main() {
       );
       await pump(tester, relay: relay);
 
-      await tester.tap(find.text('Share link'));
+      await tester.tap(find.text(l10n.shareLinkAction));
       await tester.pumpAndSettle();
 
       expect(find.text('https://velorki.com/s/abc'), findsOneWidget);
       expect(relay.shareCalls, hasLength(1));
 
-      await tester.tap(find.text('Copy link'));
+      await tester.tap(find.text(l10n.shareLinkCopy));
       await tester.pumpAndSettle();
-      expect(find.text('Link copied.'), findsOneWidget);
+      expect(find.text(l10n.shareLinkCopied), findsOneWidget);
     });
 
     testWidgets('without Velorki Plus it offers the paywall instead', (
@@ -337,20 +327,17 @@ void main() {
       final relay = FakeRelayClient();
       await pump(tester, relay: relay, entitled: false);
 
-      await tester.tap(find.text('Share link'));
+      await tester.tap(find.text(l10n.shareLinkAction));
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('Link sharing is part of Velorki Plus.'),
-        findsOneWidget,
-      );
-      expect(find.text('See Velorki Plus'), findsOneWidget);
+      expect(find.text(l10n.shareLinkPlus), findsOneWidget);
+      expect(find.text(l10n.plusSeeDetails), findsOneWidget);
       expect(relay.shareCalls, isEmpty);
     });
 
     testWidgets('a build without a relay hides the button', (tester) async {
       await pump(tester, relay: FakeRelayClient(), withRelay: false);
-      expect(find.text('Share link'), findsNothing);
+      expect(find.text(l10n.shareLinkAction), findsNothing);
     });
 
     testWidgets('a failure is reported', (tester) async {
@@ -365,7 +352,7 @@ void main() {
       );
       await pump(tester, relay: relay);
 
-      await tester.tap(find.text('Share link'));
+      await tester.tap(find.text(l10n.shareLinkAction));
       await tester.pumpAndSettle();
 
       expect(find.textContaining('the server is down'), findsOneWidget);

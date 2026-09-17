@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
-import 'package:velorki/app/theme.dart';
 import 'package:velorki/features/navigation/data/navigation_settings.dart';
 import 'package:velorki/features/navigation/data/turn_speaker.dart';
 import 'package:velorki/features/navigation/testing/fake_turn_speaker.dart';
 import 'package:velorki/features/settings/presentation/voice_picker_screen.dart';
 import 'package:velorki/features/settings/presentation/navigation_section.dart';
-import 'package:velorki/l10n/generated/app_localizations.dart';
+
+import '../../support/app.dart';
 
 Future<ProviderContainer> _pump(
   WidgetTester tester, {
@@ -29,20 +28,11 @@ Future<ProviderContainer> _pump(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: MaterialApp(
-        theme: buildLightTheme(),
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: const Scaffold(body: NavigationSection()),
-      ),
+      child: testApp(home: const Scaffold(body: NavigationSection())),
     ),
   );
   await tester.pumpAndSettle();
+  expectNoClippedText(tester);
   return container;
 }
 
@@ -53,21 +43,15 @@ void main() {
   testWidgets('all three switches start on', (tester) async {
     await _pump(tester);
 
-    expect(find.text('Turn directions'), findsOneWidget);
-    expect(
-      find.text('Show the next turn while you record along a route'),
-      findsOneWidget,
-    );
-    expect(find.text('Voice'), findsOneWidget);
-    expect(find.text('Say the turns out loud'), findsOneWidget);
-    expect(find.text('Re-route when off course'), findsOneWidget);
-    expect(
-      find.text('Plan a new way back onto the route when you leave it'),
-      findsOneWidget,
-    );
-    expect(_tile(tester, 'Turn directions').value, isTrue);
-    expect(_tile(tester, 'Voice').value, isTrue);
-    expect(_tile(tester, 'Re-route when off course').value, isTrue);
+    expect(find.text(l10n.settingsTurnDirections), findsOneWidget);
+    expect(find.text(l10n.settingsTurnDirectionsHint), findsOneWidget);
+    expect(find.text(l10n.settingsVoiceDirections), findsOneWidget);
+    expect(find.text(l10n.settingsVoiceDirectionsHint), findsOneWidget);
+    expect(find.text(l10n.settingsReroute), findsOneWidget);
+    expect(find.text(l10n.settingsRerouteHint), findsOneWidget);
+    expect(_tile(tester, l10n.settingsTurnDirections).value, isTrue);
+    expect(_tile(tester, l10n.settingsVoiceDirections).value, isTrue);
+    expect(_tile(tester, l10n.settingsReroute).value, isTrue);
   });
 
   testWidgets('switching the turns off persists and greys out the rest', (
@@ -75,24 +59,24 @@ void main() {
   ) async {
     final container = await _pump(tester);
 
-    await tester.tap(find.text('Turn directions'));
+    await tester.tap(find.text(l10n.settingsTurnDirections));
     await tester.pumpAndSettle();
 
     expect(container.read(navigationSettingsProvider).turns, isFalse);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getBool('navigation.turns'), isFalse);
-    expect(_tile(tester, 'Voice').onChanged, isNull);
-    expect(_tile(tester, 'Re-route when off course').onChanged, isNull);
+    expect(_tile(tester, l10n.settingsVoiceDirections).onChanged, isNull);
+    expect(_tile(tester, l10n.settingsReroute).onChanged, isNull);
   });
 
   testWidgets('switching the voice off persists', (tester) async {
     final container = await _pump(tester);
 
-    await tester.tap(find.text('Voice'));
+    await tester.tap(find.text(l10n.settingsVoiceDirections));
     await tester.pumpAndSettle();
 
     expect(container.read(navigationSettingsProvider).voice, isFalse);
-    expect(_tile(tester, 'Voice').value, isFalse);
+    expect(_tile(tester, l10n.settingsVoiceDirections).value, isFalse);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getBool('navigation.voice'), isFalse);
   });
@@ -105,9 +89,12 @@ void main() {
       initial: const <String, Object>{'navigation.turns': false},
     );
 
-    expect(_tile(tester, 'Voice').onChanged, isNull);
+    expect(_tile(tester, l10n.settingsVoiceDirections).onChanged, isNull);
 
-    await tester.tap(find.text('Voice'), warnIfMissed: false);
+    await tester.tap(
+      find.text(l10n.settingsVoiceDirections),
+      warnIfMissed: false,
+    );
     await tester.pumpAndSettle();
 
     expect(container.read(navigationSettingsProvider).voice, isTrue);
@@ -116,11 +103,11 @@ void main() {
   testWidgets('switching re-routing off persists', (tester) async {
     final container = await _pump(tester);
 
-    await tester.tap(find.text('Re-route when off course'));
+    await tester.tap(find.text(l10n.settingsReroute));
     await tester.pumpAndSettle();
 
     expect(container.read(navigationSettingsProvider).reroute, isFalse);
-    expect(_tile(tester, 'Re-route when off course').value, isFalse);
+    expect(_tile(tester, l10n.settingsReroute).value, isFalse);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getBool('navigation.reroute'), isFalse);
   });
@@ -133,12 +120,9 @@ void main() {
       initial: const <String, Object>{'navigation.turns': false},
     );
 
-    expect(_tile(tester, 'Re-route when off course').onChanged, isNull);
+    expect(_tile(tester, l10n.settingsReroute).onChanged, isNull);
 
-    await tester.tap(
-      find.text('Re-route when off course'),
-      warnIfMissed: false,
-    );
+    await tester.tap(find.text(l10n.settingsReroute), warnIfMissed: false);
     await tester.pumpAndSettle();
 
     expect(container.read(navigationSettingsProvider).reroute, isTrue);
@@ -153,9 +137,9 @@ void main() {
       },
     );
 
-    expect(_tile(tester, 'Turn directions').value, isTrue);
-    expect(_tile(tester, 'Voice').value, isFalse);
-    expect(_tile(tester, 'Re-route when off course').value, isFalse);
+    expect(_tile(tester, l10n.settingsTurnDirections).value, isTrue);
+    expect(_tile(tester, l10n.settingsVoiceDirections).value, isFalse);
+    expect(_tile(tester, l10n.settingsReroute).value, isFalse);
   });
 
   testWidgets('the announce-turns slider shows and stores the lead', (
@@ -163,13 +147,8 @@ void main() {
   ) async {
     final container = await _pump(tester);
 
-    expect(find.text('Announce turns'), findsOneWidget);
-    expect(
-      find.text(
-        '10 seconds before the turn at your speed, never closer than 50 metres',
-      ),
-      findsOneWidget,
-    );
+    expect(find.text(l10n.settingsTurnLead), findsOneWidget);
+    expect(find.text(l10n.settingsTurnLeadHint(10)), findsOneWidget);
     final slider = tester.widget<Slider>(find.byType(Slider));
     expect(slider.value, 10);
     expect(slider.min, 5);
@@ -179,7 +158,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(container.read(navigationSettingsProvider).leadSeconds, 20);
-    expect(find.textContaining('20 seconds before the turn'), findsOneWidget);
+    expect(find.text(l10n.settingsTurnLeadHint(20)), findsOneWidget);
   });
 
   testWidgets('the slider greys out without a voice', (tester) async {
@@ -193,10 +172,10 @@ void main() {
   ) async {
     await _pump(tester);
 
-    expect(find.text('Speaking voice'), findsOneWidget);
-    expect(find.text('System default'), findsOneWidget);
+    expect(find.text(l10n.settingsVoicePick), findsOneWidget);
+    expect(find.text(l10n.settingsVoiceSystemDefault), findsOneWidget);
 
-    await tester.tap(find.text('Speaking voice'));
+    await tester.tap(find.text(l10n.settingsVoicePick));
     await tester.pumpAndSettle();
 
     expect(find.byType(VoicePickerScreen), findsOneWidget);
@@ -208,7 +187,7 @@ void main() {
     await _pump(tester, initial: const {'navigation.voice': false});
 
     final tile = tester.widget<ListTile>(
-      find.widgetWithText(ListTile, 'Speaking voice'),
+      find.widgetWithText(ListTile, l10n.settingsVoicePick),
     );
     expect(tile.enabled, isFalse);
   });

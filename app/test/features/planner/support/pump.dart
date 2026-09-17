@@ -1,21 +1,19 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/router.dart';
-import 'package:velorki/app/theme.dart';
 import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki/features/planner/data/routing_backend_provider.dart';
 import 'package:velorki/features/planner/presentation/planner_map_host.dart';
 import 'package:velorki/features/search/data/photon_client.dart';
 import 'package:velorki/features/settings/data/units.dart';
-import 'package:velorki/l10n/generated/app_localizations.dart';
 
+import '../../../support/app.dart';
 import '../../search/support/fake_http.dart';
 import 'fakes.dart';
 
@@ -128,20 +126,11 @@ Future<PlannerHarness> pumpScreen(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [...h.overrides(prefs), ...extraOverrides],
-      child: MaterialApp(
-        theme: buildLightTheme(),
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: child,
-      ),
+      child: testApp(home: child),
     ),
   );
   await tester.pump();
+  expectNoClippedText(tester);
   return h;
 }
 
@@ -164,20 +153,13 @@ Future<PlannerHarness> pumpApp(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [...h.overrides(prefs), ...extraOverrides],
-      child: MaterialApp.router(
-        theme: buildLightTheme(),
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
+      child: testRouterApp(
         routerConfig: createRouter(initialLocation: initialLocation),
       ),
     ),
   );
   await tester.pump();
+  expectNoClippedText(tester);
   return h;
 }
 

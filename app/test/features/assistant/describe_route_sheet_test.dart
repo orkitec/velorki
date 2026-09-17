@@ -15,6 +15,7 @@ import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki_api/velorki_api.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../support/app.dart';
 import '../planner/support/pump.dart';
 import 'support/fakes.dart';
 
@@ -96,7 +97,7 @@ Future<_Opened> _openSheet(
   }
   await container.read(routeRepositoryProvider).restore(subject);
 
-  await tester.tap(find.text('Describe this route'));
+  await tester.tap(find.text(l10n.describeAction));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 500));
   await tester.pump(const Duration(milliseconds: 500));
@@ -105,7 +106,7 @@ Future<_Opened> _openSheet(
 
 /// The sheet's "Save as description" button.
 FilledButton _saveButton(WidgetTester tester) => tester.widget<FilledButton>(
-  find.widgetWithText(FilledButton, 'Save as description'),
+  find.widgetWithText(FilledButton, l10n.describeSave),
 );
 
 /// Streams [parts] into the open request and closes it, as the relay does.
@@ -131,8 +132,8 @@ void main() {
     // The request went out on its own: the rider already pressed a button.
     expect(opened.relay.planCalls.single.step, 'describe');
     expect(opened.relay.planCalls.single.routeSummary?.distanceKm, 42);
-    expect(find.text('Description'), findsOneWidget);
-    expect(find.text('Writing…'), findsOneWidget);
+    expect(find.text(l10n.describeTitle), findsOneWidget);
+    expect(find.text(l10n.describeRunning), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     expect(_saveButton(tester).onPressed, isNull);
 
@@ -140,7 +141,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('A gentle loop '), findsOneWidget);
-    expect(find.text('Writing…'), findsOneWidget);
+    expect(find.text(l10n.describeRunning), findsOneWidget);
     // Nothing to keep while the model is still writing.
     expect(_saveButton(tester).onPressed, isNull);
 
@@ -153,7 +154,7 @@ void main() {
     await opened.relay.finish();
     await tester.pump();
 
-    expect(find.text('Writing…'), findsNothing);
+    expect(find.text(l10n.describeRunning), findsNothing);
     expect(find.byType(CircularProgressIndicator), findsNothing);
     expect(find.text('A gentle loop along the Isar.'), findsOneWidget);
     expect(_saveButton(tester).onPressed, isNotNull);
@@ -165,7 +166,7 @@ void main() {
     final opened = await _openSheet(tester);
     await _stream(tester, opened.relay, ['A gentle loop ', 'along the Isar.']);
 
-    await tester.tap(find.text('Save as description'));
+    await tester.tap(find.text(l10n.describeSave));
     await tester.pumpAndSettle();
 
     final stored = await opened.repository.routeById('r1');
@@ -173,7 +174,7 @@ void main() {
     expect(stored?.aiDescriptionGenerated, isTrue);
     // The sheet has done its job and gets out of the way.
     expect(find.byType(DescribeRouteSheet), findsNothing);
-    expect(find.text('The description was saved.'), findsOneWidget);
+    expect(find.text(l10n.describeSaved), findsOneWidget);
 
     await unmountApp(tester);
   });
@@ -191,13 +192,13 @@ void main() {
     final opened = await _openSheet(tester);
     await _stream(tester, opened.relay, ['A gentle loop along the Isar.']);
 
-    await tester.tap(find.text('Write again'));
+    await tester.tap(find.text(l10n.describeAgain));
     await tester.pump();
 
     expect(opened.relay.planCalls.length, 2);
     // The old text went with the old answer.
     expect(find.text('A gentle loop along the Isar.'), findsNothing);
-    expect(find.text('Writing…'), findsOneWidget);
+    expect(find.text(l10n.describeRunning), findsOneWidget);
 
     await _stream(tester, opened.relay, ['A hilly ride ', 'up to Grünwald.']);
 
@@ -223,20 +224,19 @@ void main() {
 
     expect(
       find.text(
-        'The description could not be written: The assistant could not '
-        'answer: the model is unavailable',
+        l10n.describeFailed(l10n.assistantFailed('the model is unavailable')),
       ),
       findsOneWidget,
     );
-    expect(find.text('Writing…'), findsNothing);
+    expect(find.text(l10n.describeRunning), findsNothing);
     expect(_saveButton(tester).onPressed, isNull);
 
-    await tester.tap(find.text('Write again'));
+    await tester.tap(find.text(l10n.describeAgain));
     await tester.pump();
     await _stream(tester, opened.relay, ['A gentle loop along the Isar.']);
 
     expect(opened.relay.planCalls.length, 2);
-    expect(find.textContaining('could not be written'), findsNothing);
+    expect(find.textContaining(l10n.describeFailed('').trim()), findsNothing);
     expect(find.text('A gentle loop along the Isar.'), findsOneWidget);
     expect(_saveButton(tester).onPressed, isNotNull);
   });
@@ -246,10 +246,7 @@ void main() {
     final opened = await _openSheet(tester, entitled: false);
 
     expect(
-      find.text(
-        'The description could not be written: The AI assistant is part of '
-        'Velorki Plus.',
-      ),
+      find.text(l10n.describeFailed(l10n.assistantNotEntitled)),
       findsOneWidget,
     );
     expect(opened.relay.planCalls, isEmpty);
@@ -262,10 +259,7 @@ void main() {
     final opened = await _openSheet(tester, withRelay: false);
 
     expect(
-      find.text(
-        'The description could not be written: This build of Velorki has no '
-        'server configured, so the assistant is unavailable.',
-      ),
+      find.text(l10n.describeFailed(l10n.assistantNoRelay)),
       findsOneWidget,
     );
     expect(opened.relay.planCalls, isEmpty);
@@ -275,10 +269,10 @@ void main() {
       'sent', (tester) async {
     final opened = await _openSheet(tester, consent: null);
 
-    expect(find.text('Before the assistant asks'), findsOneWidget);
+    expect(find.text(l10n.aiConsentTitle), findsOneWidget);
     expect(opened.relay.planCalls, isEmpty);
 
-    await tester.tap(find.text('Allow, text only'));
+    await tester.tap(find.text(l10n.aiConsentAllowTextOnly));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
@@ -297,7 +291,7 @@ void main() {
   ) async {
     final opened = await _openSheet(tester, consent: null);
 
-    await tester.tap(find.text('Not now'));
+    await tester.tap(find.text(l10n.recordingBatteryLater));
     await tester.pumpAndSettle();
 
     expect(opened.relay.planCalls, isEmpty);
@@ -306,7 +300,7 @@ void main() {
       AiConsent.denied,
     );
     expect(find.byType(DescribeRouteSheet), findsOneWidget);
-    expect(find.text('Writing…'), findsNothing);
+    expect(find.text(l10n.describeRunning), findsNothing);
     expect(_saveButton(tester).onPressed, isNull);
   });
 
@@ -315,6 +309,6 @@ void main() {
   ) async {
     await pumpScreen(tester, _Host(_route(source: RouteSource.strava)));
 
-    expect(find.text('Describe this route'), findsNothing);
+    expect(find.text(l10n.describeAction), findsNothing);
   });
 }

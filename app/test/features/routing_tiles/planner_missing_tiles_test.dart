@@ -10,6 +10,7 @@ import 'package:velorki/features/routing_tiles/presentation/routing_tiles_screen
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../support/app.dart';
 import '../planner/support/fakes.dart';
 import '../planner/support/pump.dart';
 import 'support/fake_segments.dart';
@@ -72,19 +73,19 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
 
+    expect(find.text(l10n.plannerMissingTiles), findsOneWidget);
     expect(
-      find.text('This route needs routing tiles that are not on this device.'),
+      find.text(l10n.routingTilesDownloadCount(1, '125 MB')),
       findsOneWidget,
     );
-    expect(find.text('Download 1 tile (125 MB)'), findsOneWidget);
     // The rider gets one clear action, not a snack bar they cannot act on.
     expect(find.byType(SnackBar), findsNothing);
 
-    await tester.tap(find.text('Download 1 tile (125 MB)'));
+    await tester.tap(find.text(l10n.routingTilesDownloadCount(1, '125 MB')));
     await tester.pumpAndSettle();
 
     expect(find.byType(RoutingTilesScreen), findsOneWidget);
-    expect(find.text('Needed for this route'), findsOneWidget);
+    expect(find.text(l10n.routingTilesRouteTitle), findsOneWidget);
     expect(find.text('E10_N45'), findsOneWidget);
 
     await unmountApp(tester);

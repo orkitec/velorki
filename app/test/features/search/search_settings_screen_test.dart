@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
-import 'package:velorki/app/theme.dart';
 import 'package:velorki/features/search/data/search_preferences_controller.dart';
 import 'package:velorki/features/search/domain/search_group.dart';
 import 'package:velorki/features/search/presentation/search_settings_screen.dart';
-import 'package:velorki/l10n/generated/app_localizations.dart';
+
+import '../../support/app.dart';
 
 Future<ProviderContainer> pumpPage(
   WidgetTester tester, {
@@ -24,20 +23,11 @@ Future<ProviderContainer> pumpPage(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: MaterialApp(
-        theme: buildLightTheme(),
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: const SearchSettingsScreen(),
-      ),
+      child: testApp(home: const SearchSettingsScreen()),
     ),
   );
   await tester.pumpAndSettle();
+  expectNoClippedText(tester);
   return container;
 }
 
@@ -53,23 +43,17 @@ void main() {
   ) async {
     await pumpPage(tester);
 
-    expect(find.text('Search'), findsOneWidget);
-    expect(
-      find.text(
-        'What offline search shows, and in which order. Drag to change the '
-        'priority.',
-      ),
-      findsOneWidget,
-    );
+    expect(find.text(l10n.searchSettingsTitle), findsOneWidget);
+    expect(find.text(l10n.searchSettingsCaption), findsOneWidget);
     expect(shownOrder(tester), <String>[
-      'Places',
-      'Streets and addresses',
-      'Landmarks',
-      'Cycling stops',
-      'Overnight',
-      'Nature',
-      'Transport',
-      'Services',
+      l10n.searchGroupPlaces,
+      l10n.searchGroupStreets,
+      l10n.searchGroupLandmarks,
+      l10n.searchGroupCyclingStops,
+      l10n.searchGroupOvernight,
+      l10n.searchGroupNature,
+      l10n.searchGroupTransport,
+      l10n.searchGroupServices,
     ]);
     expect(find.byType(Switch), findsNWidgets(8));
     expect(
@@ -98,7 +82,7 @@ void main() {
     await gesture.up();
     await tester.pumpAndSettle();
 
-    expect(shownOrder(tester).first, 'Cycling stops');
+    expect(shownOrder(tester).first, l10n.searchGroupCyclingStops);
     expect(
       container.read(searchPreferencesProvider).order.first,
       SearchGroup.cyclingStops,
@@ -139,7 +123,10 @@ void main() {
       },
     );
 
-    expect(shownOrder(tester).take(2), <String>['Nature', 'Places']);
+    expect(shownOrder(tester).take(2), <String>[
+      l10n.searchGroupNature,
+      l10n.searchGroupPlaces,
+    ]);
     expect(tester.widgetList<Switch>(find.byType(Switch)).first.value, isFalse);
   });
 }

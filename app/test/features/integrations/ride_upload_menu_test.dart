@@ -11,6 +11,7 @@ import 'package:velorki/features/recording/domain/ride.dart';
 import 'package:velorki/features/recording/domain/ride_upload.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../support/app.dart';
 import 'support/fake_dio.dart';
 import 'support/pump.dart';
 
@@ -83,8 +84,8 @@ void main() {
     await tester.tap(find.byIcon(Icons.cloud_upload_outlined));
     await tester.pumpAndSettle();
 
-    expect(find.text('Upload to Strava'), findsOneWidget);
-    expect(find.text('Upload to Ride with GPS'), findsNothing);
+    expect(find.text(l10n.rideDetailUploadTo('Strava')), findsOneWidget);
+    expect(find.text(l10n.rideDetailUploadTo('Ride with GPS')), findsNothing);
   });
 
   testWidgets('both connected services are offered', (tester) async {
@@ -103,8 +104,8 @@ void main() {
     await tester.tap(find.byIcon(Icons.cloud_upload_outlined));
     await tester.pumpAndSettle();
 
-    expect(find.text('Upload to Strava'), findsOneWidget);
-    expect(find.text('Upload to Ride with GPS'), findsOneWidget);
+    expect(find.text(l10n.rideDetailUploadTo('Strava')), findsOneWidget);
+    expect(find.text(l10n.rideDetailUploadTo('Ride with GPS')), findsOneWidget);
   });
 
   testWidgets('nothing connected means no menu at all', (tester) async {
@@ -158,17 +159,17 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.cloud_upload_outlined));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Upload to Strava'));
+    await tester.tap(find.text(l10n.rideDetailUploadTo('Strava')));
     await tester.pump();
 
-    expect(find.text('Uploading to Strava…'), findsOneWidget);
+    expect(find.text(l10n.rideDetailUploading('Strava')), findsOneWidget);
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Uploaded to Strava'), findsOneWidget);
-    expect(find.text('View on Strava'), findsOneWidget);
+    expect(find.text(l10n.rideDetailUploaded('Strava')), findsOneWidget);
+    expect(find.text(l10n.rideDetailViewOnStrava), findsOneWidget);
 
-    await tester.tap(find.text('View on Strava'));
+    await tester.tap(find.text(l10n.rideDetailViewOnStrava));
     await tester.pumpAndSettle();
     expect(
       harness.openedLinks.single.toString(),
@@ -202,10 +203,13 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.cloud_upload_outlined));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Upload to Strava'));
+    await tester.tap(find.text(l10n.rideDetailUploadTo('Strava')));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Upload failed:'), findsOneWidget);
+    expect(
+      find.textContaining(l10n.rideDetailUploadFailed('').trim()),
+      findsOneWidget,
+    );
     expect(find.textContaining('Bad Request'), findsOneWidget);
   });
 
@@ -242,10 +246,10 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.cloud_upload_outlined));
     await tester.pumpAndSettle();
-    expect(find.text('Upload to Strava'), findsNothing);
-    expect(find.text('View on Strava'), findsOneWidget);
+    expect(find.text(l10n.rideDetailUploadTo('Strava')), findsNothing);
+    expect(find.text(l10n.rideDetailViewOnStrava), findsOneWidget);
 
-    await tester.tap(find.text('View on Strava'));
+    await tester.tap(find.text(l10n.rideDetailViewOnStrava));
     await tester.pumpAndSettle();
 
     expect(

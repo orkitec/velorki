@@ -9,7 +9,8 @@ import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
 import 'package:velorki/features/map/testing/testing.dart';
 import 'package:velorki/features/planner/presentation/planner_map_host.dart';
-import 'package:velorki/l10n/generated/app_localizations.dart';
+
+import '../../support/app.dart';
 
 /// Stands in for the maplibre view: it hands out its own controller once and
 /// draws the real control column over it, the way [MapControls] sits on the
@@ -134,12 +135,7 @@ Future<Widget> _wrap(
       sharedPreferencesProvider.overrideWithValue(prefs),
       ...overrides,
     ],
-    child: MaterialApp(
-      theme: buildLightTheme(),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: Scaffold(body: child),
-    ),
+    child: testApp(home: Scaffold(body: child)),
   );
 }
 

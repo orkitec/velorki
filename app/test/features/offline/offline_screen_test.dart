@@ -2,13 +2,11 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
-import 'package:velorki/app/theme.dart';
 import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/map/data/offline_regions_repository.dart';
 import 'package:velorki/features/map/testing/testing.dart';
@@ -16,9 +14,9 @@ import 'package:velorki/features/offline/presentation/offline_screen.dart';
 import 'package:velorki/features/routing_tiles/data/brouter_assets.dart';
 import 'package:velorki/features/routing_tiles/data/brouter_storage.dart';
 import 'package:velorki/features/routing_tiles/data/segments_manifest_service.dart';
-import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../support/app.dart';
 import '../map/support/offline_fakes.dart';
 import '../routing_tiles/support/fake_segments.dart';
 
@@ -81,20 +79,11 @@ Future<_Harness> _pump(WidgetTester tester, {FakeMapController? map}) async {
         sharedPreferencesProvider.overrideWithValue(prefs),
         ...h.overrides,
       ],
-      child: MaterialApp(
-        theme: buildLightTheme(),
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: OfflineScreen(mapController: map),
-      ),
+      child: testApp(home: OfflineScreen(mapController: map)),
     ),
   );
   await tester.pumpAndSettle();
+  expectNoClippedText(tester);
   return h;
 }
 
@@ -125,26 +114,17 @@ void main() {
       'off without a map', (tester) async {
     await _pump(tester);
 
-    expect(find.text('Offline'), findsOneWidget);
-    expect(
-      find.textContaining('Two things make a ride work without a signal'),
-      findsOneWidget,
-    );
-    expect(find.textContaining('OpenFreeMap'), findsOneWidget);
-    expect(
-      find.textContaining('BRouter tiles from the Velorki mirror'),
-      findsOneWidget,
-    );
-    expect(find.text('No areas downloaded'), findsOneWidget);
-    expect(find.text('Nothing downloaded yet'), findsOneWidget);
-    expect(find.text('Manage'), findsNWidgets(2));
-    expect(
-      find.textContaining('Open this screen from the map'),
-      findsOneWidget,
-    );
+    expect(find.text(l10n.offlineTitle), findsOneWidget);
+    expect(find.textContaining(l10n.offlineIntro), findsOneWidget);
+    expect(find.textContaining(l10n.mapAttributionOpenFreeMap), findsOneWidget);
+    expect(find.textContaining(l10n.offlineRoutingSource), findsOneWidget);
+    expect(find.text(l10n.offlineMapsSummary(0, '')), findsOneWidget);
+    expect(find.text(l10n.routingTilesTotal(0, '')), findsOneWidget);
+    expect(find.text(l10n.plusManage), findsNWidgets(2));
+    expect(find.textContaining(l10n.offlineNeedsMap), findsOneWidget);
     final button = tester.widget<FilledButton>(
       find.ancestor(
-        of: find.text('Download the visible area'),
+        of: find.text(l10n.offlineDownloadVisible),
         matching: find.byType(FilledButton),
       ),
     );
@@ -157,18 +137,15 @@ void main() {
   ) async {
     final h = await _pump(tester, map: _mapOverTyrol());
 
-    await tester.tap(find.text('Download the visible area'));
+    await tester.tap(find.text(l10n.offlineDownloadVisible));
     await tester.pumpAndSettle();
 
-    expect(find.text('Download the visible area'), findsNWidgets(2));
-    expect(find.textContaining('Map of the visible area'), findsOneWidget);
+    expect(find.text(l10n.offlineDownloadVisible), findsNWidgets(2));
+    expect(find.textContaining(l10n.offlineDialogMap), findsOneWidget);
     expect(find.textContaining('E10_N45 ·'), findsOneWidget);
-    expect(
-      find.textContaining('Start a download when you are on Wi-Fi'),
-      findsWidgets,
-    );
+    expect(find.textContaining(l10n.routingTilesDataNotice), findsWidgets);
 
-    await tester.tap(find.text('Download'));
+    await tester.tap(find.text(l10n.offlineDialogDownload));
     await _runDownloads(tester);
     await tester.pumpAndSettle();
 
@@ -177,17 +154,23 @@ void main() {
     expect(h.storage.segments.listSync().map((f) => f.path.split('/').last), [
       'E10_N45.rd5',
     ]);
-    expect(find.textContaining('1 area'), findsOneWidget);
-    expect(find.textContaining('1 tile'), findsOneWidget);
+    expect(
+      find.textContaining(l10n.offlineMapsSummary(1, '').split(',').first),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining(l10n.routingTilesTotal(1, '').split(',').first),
+      findsOneWidget,
+    );
     await _unmount(tester);
   });
 
   testWidgets('cancelling the confirmation downloads nothing', (tester) async {
     final h = await _pump(tester, map: _mapOverTyrol());
 
-    await tester.tap(find.text('Download the visible area'));
+    await tester.tap(find.text(l10n.offlineDownloadVisible));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Cancel'));
+    await tester.tap(find.text(l10n.commonCancel));
     await _runDownloads(tester);
 
     expect(h.api.downloads, isEmpty);
@@ -200,17 +183,15 @@ void main() {
   ) async {
     await _pump(tester);
 
-    await tester.tap(find.text('Manage').first);
+    await tester.tap(find.text(l10n.plusManage).first);
     await tester.pumpAndSettle();
-    expect(find.text('Offline maps'), findsOneWidget);
-    await tester.pageBack();
-    await tester.pumpAndSettle();
+    expect(find.text(l10n.mapOfflineRegionsTitle), findsOneWidget);
+    await tapBack(tester);
 
-    await tester.tap(find.text('Manage').last);
+    await tester.tap(find.text(l10n.plusManage).last);
     await tester.pumpAndSettle();
-    expect(find.text('Offline routing data'), findsOneWidget);
-    await tester.pageBack();
-    await tester.pumpAndSettle();
+    expect(find.text(l10n.routingTilesTitle), findsOneWidget);
+    await tapBack(tester);
     await _unmount(tester);
   });
 }

@@ -13,6 +13,7 @@ import 'package:velorki/features/smart_loop/presentation/smart_loop_sheet.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../support/app.dart';
 import '../assistant/support/fakes.dart';
 import '../planner/support/fakes.dart';
 import '../planner/support/pump.dart';
@@ -76,13 +77,15 @@ Future<PlannerHarness> _openSheet(
   }
   await tester.pumpAndSettle();
 
-  await tester.tap(find.widgetWithText(LabeledIconButton, 'Loop'));
+  await tester.tap(find.widgetWithText(LabeledIconButton, l10n.loopAction));
   await tester.pumpAndSettle();
   return h;
 }
 
 Future<void> _make(WidgetTester tester) async {
-  await tester.tap(_inSheet(find.widgetWithText(FilledButton, 'Make a loop')));
+  await tester.tap(
+    _inSheet(find.widgetWithText(FilledButton, l10n.loopMakeTitle)),
+  );
   await tester.pumpAndSettle();
 }
 
@@ -91,16 +94,16 @@ void main() {
     testWidgets('offers to close it, a different way back', (tester) async {
       await _openSheet(tester, points: const [_first, _second]);
 
-      expect(find.text('Make a loop'), findsOneWidget);
-      expect(find.text('Ride back to where you started.'), findsOneWidget);
-      expect(find.text('Different way back'), findsOneWidget);
-      expect(find.text('Avoids the roads you already rode.'), findsOneWidget);
+      expect(find.text(l10n.loopMakeTitle), findsOneWidget);
+      expect(find.text(l10n.loopBackToStart), findsOneWidget);
+      expect(find.text(l10n.loopDifferentWayBack), findsOneWidget);
+      expect(find.text(l10n.loopDifferentWayBackHint), findsOneWidget);
       expect(
         tester.widget<Switch>(_inSheet(find.byType(Switch))).value,
         isTrue,
       );
       expect(
-        _inSheet(find.widgetWithText(FilledButton, 'Close the loop')),
+        _inSheet(find.widgetWithText(FilledButton, l10n.loopClose)),
         findsOneWidget,
       );
       // None of the from-scratch controls are in the way.
@@ -112,19 +115,24 @@ void main() {
       h.backend.queries.clear();
 
       await tester.tap(
-        _inSheet(find.widgetWithText(FilledButton, 'Close the loop')),
+        _inSheet(find.widgetWithText(FilledButton, l10n.loopClose)),
       );
       await tester.pumpAndSettle();
 
       // The sheet stays open on what it made.
       expect(find.byType(SmartLoopSheet), findsOneWidget);
-      expect(_inSheet(find.textContaining('up')), findsOneWidget);
       expect(
-        _inSheet(find.widgetWithText(OutlinedButton, 'Another way back')),
+        _inSheet(
+          find.textContaining(l10n.loopResult('', '').split('·').last.trim()),
+        ),
         findsOneWidget,
       );
       expect(
-        _inSheet(find.widgetWithText(FilledButton, 'Done')),
+        _inSheet(find.widgetWithText(OutlinedButton, l10n.loopAnotherWayBack)),
+        findsOneWidget,
+      );
+      expect(
+        _inSheet(find.widgetWithText(FilledButton, l10n.loopDone)),
         findsOneWidget,
       );
       final planner = _container(tester).read(plannerControllerProvider);
@@ -151,7 +159,7 @@ void main() {
       await tester.tap(_inSheet(find.byType(Switch)));
       await tester.pumpAndSettle();
       await tester.tap(
-        _inSheet(find.widgetWithText(FilledButton, 'Close the loop')),
+        _inSheet(find.widgetWithText(FilledButton, l10n.loopClose)),
       );
       await tester.pumpAndSettle();
 
@@ -172,13 +180,13 @@ void main() {
         harness: PlannerHarness(backend: VariedRoutingBackend()),
       );
       await tester.tap(
-        _inSheet(find.widgetWithText(FilledButton, 'Close the loop')),
+        _inSheet(find.widgetWithText(FilledButton, l10n.loopClose)),
       );
       await tester.pumpAndSettle();
       h.backend.queries.clear();
 
       await tester.tap(
-        _inSheet(find.widgetWithText(OutlinedButton, 'Another way back')),
+        _inSheet(find.widgetWithText(OutlinedButton, l10n.loopAnotherWayBack)),
       );
       await tester.pumpAndSettle();
 
@@ -193,7 +201,7 @@ void main() {
 
       // And again, one variant further.
       await tester.tap(
-        _inSheet(find.widgetWithText(OutlinedButton, 'Another way back')),
+        _inSheet(find.widgetWithText(OutlinedButton, l10n.loopAnotherWayBack)),
       );
       await tester.pumpAndSettle();
       expect(
@@ -210,7 +218,7 @@ void main() {
     ) async {
       final h = await _openSheet(tester, points: const [_first, _second]);
       await tester.tap(
-        _inSheet(find.widgetWithText(FilledButton, 'Close the loop')),
+        _inSheet(find.widgetWithText(FilledButton, l10n.loopClose)),
       );
       await tester.pumpAndSettle();
       h.backend.queries.clear();
@@ -235,7 +243,9 @@ void main() {
       expect(
         tester
             .widget<OutlinedButton>(
-              _inSheet(find.widgetWithText(OutlinedButton, 'Another way back')),
+              _inSheet(
+                find.widgetWithText(OutlinedButton, l10n.loopAnotherWayBack),
+              ),
             )
             .onPressed,
         isNull,
@@ -245,18 +255,20 @@ void main() {
     testWidgets('reopening a closed loop lands on the result', (tester) async {
       await _openSheet(tester, points: const [_first, _second]);
       await tester.tap(
-        _inSheet(find.widgetWithText(FilledButton, 'Close the loop')),
+        _inSheet(find.widgetWithText(FilledButton, l10n.loopClose)),
       );
       await tester.pumpAndSettle();
-      await tester.tap(_inSheet(find.widgetWithText(FilledButton, 'Done')));
+      await tester.tap(
+        _inSheet(find.widgetWithText(FilledButton, l10n.loopDone)),
+      );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(LabeledIconButton, 'Loop'));
+      await tester.tap(find.widgetWithText(LabeledIconButton, l10n.loopAction));
       await tester.pumpAndSettle();
 
-      expect(_inSheet(find.text('Close the loop')), findsNothing);
+      expect(_inSheet(find.text(l10n.loopClose)), findsNothing);
       expect(
-        _inSheet(find.widgetWithText(OutlinedButton, 'Another way back')),
+        _inSheet(find.widgetWithText(OutlinedButton, l10n.loopAnotherWayBack)),
         findsOneWidget,
       );
     });
@@ -268,13 +280,18 @@ void main() {
     ) async {
       final h = await _openSheet(tester, points: const [_first, _second]);
 
-      expect(_inSheet(find.text('BIKE')), findsOneWidget);
       expect(
-        _inSheet(find.widgetWithText(ChoiceChip, 'Touring')),
+        _inSheet(find.text(l10n.loopProfile.toUpperCase())),
+        findsOneWidget,
+      );
+      expect(
+        _inSheet(find.widgetWithText(ChoiceChip, l10n.profileTrekking)),
         findsOneWidget,
       );
 
-      await tester.tap(_inSheet(find.widgetWithText(ChoiceChip, 'Gravel')));
+      await tester.tap(
+        _inSheet(find.widgetWithText(ChoiceChip, l10n.profileGravel)),
+      );
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
 
@@ -290,7 +307,9 @@ void main() {
     ) async {
       await _openSheet(tester);
 
-      await tester.tap(_inSheet(find.widgetWithText(ChoiceChip, 'MTB')));
+      await tester.tap(
+        _inSheet(find.widgetWithText(ChoiceChip, l10n.profileMtb)),
+      );
       await tester.pumpAndSettle();
       await _make(tester);
 
@@ -306,16 +325,21 @@ void main() {
       await _openSheet(tester);
       await _make(tester);
       expect(
-        _inSheet(find.widgetWithText(FilledButton, 'Done')),
+        _inSheet(find.widgetWithText(FilledButton, l10n.loopDone)),
         findsOneWidget,
       );
 
-      await tester.tap(_inSheet(find.widgetWithText(ChoiceChip, 'Road')));
+      await tester.tap(
+        _inSheet(find.widgetWithText(ChoiceChip, l10n.profileFastbike)),
+      );
       await tester.pumpAndSettle();
 
-      expect(_inSheet(find.widgetWithText(FilledButton, 'Done')), findsNothing);
       expect(
-        _inSheet(find.widgetWithText(FilledButton, 'Make a loop')),
+        _inSheet(find.widgetWithText(FilledButton, l10n.loopDone)),
+        findsNothing,
+      );
+      expect(
+        _inSheet(find.widgetWithText(FilledButton, l10n.loopMakeTitle)),
         findsOneWidget,
       );
     });
@@ -325,11 +349,11 @@ void main() {
     testWidgets('offers a distance and makes a loop', (tester) async {
       await _openSheet(tester);
 
-      expect(find.text('Make a loop'), findsNWidgets(2));
-      expect(find.text('Ride back to where you started.'), findsNothing);
+      expect(find.text(l10n.loopMakeTitle), findsNWidgets(2));
+      expect(find.text(l10n.loopBackToStart), findsNothing);
       expect(_inSheet(find.text('30 km')), findsOneWidget);
       expect(_inSheet(find.byType(Slider)), findsOneWidget);
-      expect(find.text('Different way back'), findsOneWidget);
+      expect(find.text(l10n.loopDifferentWayBack), findsOneWidget);
 
       await tester.drag(_inSheet(find.byType(Slider)), const Offset(-2000, 0));
       await tester.pumpAndSettle();
@@ -346,10 +370,18 @@ void main() {
         _container(tester).read(plannerControllerProvider).result,
         state.current!.result,
       );
-      expect(_inSheet(find.textContaining('up')), findsOneWidget);
-      expect(_inSheet(find.widgetWithText(FilledButton, 'Done')), findsOne);
       expect(
-        _inSheet(find.widgetWithText(OutlinedButton, 'Another')),
+        _inSheet(
+          find.textContaining(l10n.loopResult('', '').split('·').last.trim()),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        _inSheet(find.widgetWithText(FilledButton, l10n.loopDone)),
+        findsOne,
+      );
+      expect(
+        _inSheet(find.widgetWithText(OutlinedButton, l10n.loopAnother)),
         findsOne,
       );
     });
@@ -373,7 +405,7 @@ void main() {
       final routed = h.backend.queries.length;
 
       await tester.tap(
-        _inSheet(find.widgetWithText(OutlinedButton, 'Another')),
+        _inSheet(find.widgetWithText(OutlinedButton, l10n.loopAnother)),
       );
       await tester.pumpAndSettle();
 
@@ -385,7 +417,9 @@ void main() {
       await _openSheet(tester);
       await _make(tester);
 
-      await tester.tap(_inSheet(find.widgetWithText(FilledButton, 'Done')));
+      await tester.tap(
+        _inSheet(find.widgetWithText(FilledButton, l10n.loopDone)),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byType(SmartLoopSheet), findsNothing);
@@ -405,10 +439,7 @@ void main() {
 
       await _make(tester);
 
-      expect(
-        find.text('No loop found here, try another distance.'),
-        findsOneWidget,
-      );
+      expect(find.text(l10n.loopNoneFound), findsOneWidget);
     });
 
     testWidgets('a broken routing server is reported', (tester) async {
@@ -421,22 +452,16 @@ void main() {
 
       await _make(tester);
 
-      expect(
-        find.text('Loop search failed: connection refused'),
-        findsOneWidget,
-      );
+      expect(find.text(l10n.loopFailed('connection refused')), findsOneWidget);
     });
 
     testWidgets('without a position it asks for one', (tester) async {
       await _openSheet(tester, points: const <LatLng>[], withPosition: false);
 
-      expect(_inSheet(find.text('From your position')), findsOneWidget);
+      expect(_inSheet(find.text(l10n.loopFromPosition)), findsOneWidget);
       await _make(tester);
 
-      expect(
-        find.text('Turn on location or tap the map to set a start.'),
-        findsOneWidget,
-      );
+      expect(find.text(l10n.loopNoPosition), findsOneWidget);
     });
 
     testWidgets('falls back to the map centre and says so', (tester) async {
@@ -451,7 +476,7 @@ void main() {
 
       await _make(tester);
 
-      expect(_inSheet(find.text('From the map centre')), findsOneWidget);
+      expect(_inSheet(find.text(l10n.loopFromMapCentre)), findsOneWidget);
       expect(
         _container(tester).read(smartLoopControllerProvider).request!.start,
         _second,

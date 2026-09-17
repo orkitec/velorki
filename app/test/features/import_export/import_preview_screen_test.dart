@@ -11,6 +11,8 @@ import 'package:velorki/features/import_export/presentation/import_file_action.d
 import 'package:velorki/features/import_export/presentation/import_preview_screen.dart';
 import 'package:velorki/features/planner/application/planner_map_binding.dart';
 
+import '../../support/app.dart';
+import '../../support/format.dart';
 import '../planner/support/pump.dart';
 import 'support/fixtures.dart';
 
@@ -43,8 +45,8 @@ void main() {
           ?.text,
       'Starnberger See loop',
     );
-    expect(find.text('GPX · 4 points'), findsOneWidget);
-    expect(find.text('The file carries no timestamps.'), findsOneWidget);
+    expect(find.text(l10n.importSummary('GPX', 4)), findsOneWidget);
+    expect(find.text(l10n.importNoTime), findsOneWidget);
 
     // The preview is drawn through the map contract, bounds included.
     expect(h.map.lines[mainRouteLineId], hasLength(4));
@@ -68,8 +70,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('GPX · 3 points'), findsOneWidget);
-    expect(find.textContaining('Jun 12, 2024'), findsOneWidget);
+    expect(find.text(l10n.importSummary('GPX', 3)), findsOneWidget);
+    expect(
+      find.textContaining(
+        testDate(DateTime.utc(2024, 6, 12, 16, 4, 41).toLocal()),
+      ),
+      findsOneWidget,
+    );
     final toggle = tester.widget<SegmentedButton<ImportKind>>(
       find.byType(SegmentedButton<ImportKind>),
     );
@@ -88,7 +95,7 @@ void main() {
         .go(importRoute, extra: _candidate('route.gpx'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.tap(find.widgetWithText(FilledButton, l10n.commonSave));
     await tester.pumpAndSettle();
 
     final rows = await h.db.routesDao.allRoutes();
@@ -99,7 +106,7 @@ void main() {
     // It landed on the route's detail screen.
     expect(find.widgetWithText(AppBar, 'Starnberger See loop'), findsOneWidget);
     expect(
-      find.text('Starnberger See loop added to the library'),
+      find.text(l10n.importSavedRoute('Starnberger See loop')),
       findsOneWidget,
     );
     await unmountApp(tester);
@@ -116,9 +123,9 @@ void main() {
         .go(importRoute, extra: _candidate('route.gpx'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Ride'));
+    await tester.tap(find.text(l10n.importKindRide));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.tap(find.widgetWithText(FilledButton, l10n.commonSave));
     await tester.pumpAndSettle();
 
     expect(await h.db.routesDao.allRoutes(), isEmpty);
@@ -140,7 +147,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), 'Sunday tour');
-    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.tap(find.widgetWithText(FilledButton, l10n.commonSave));
     await tester.pumpAndSettle();
 
     expect((await h.db.routesDao.allRoutes()).single.name, 'Sunday tour');
@@ -153,7 +160,7 @@ void main() {
     await pumpApp(tester, initialLocation: importRoute);
     await tester.pumpAndSettle();
 
-    expect(find.text('There is nothing to import.'), findsOneWidget);
+    expect(find.text(l10n.importNothing), findsOneWidget);
     await unmountApp(tester);
   });
 
@@ -173,11 +180,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Import file'));
+    await tester.tap(find.byTooltip(l10n.libraryImportFile));
     await tester.pumpAndSettle();
 
     expect(find.widgetWithText(AppBar, 'Import'), findsOneWidget);
-    expect(find.text('GPX · 4 points'), findsOneWidget);
+    expect(find.text(l10n.importSummary('GPX', 4)), findsOneWidget);
     await unmountApp(tester);
   });
 
@@ -197,11 +204,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Import file'));
+    await tester.tap(find.byTooltip(l10n.libraryImportFile));
     await tester.pumpAndSettle();
 
-    expect(find.text('That is not a GPX or FIT file.'), findsOneWidget);
-    expect(find.widgetWithText(AppBar, 'Library'), findsOneWidget);
+    expect(find.text(l10n.importFailedUnknown), findsOneWidget);
+    expect(find.widgetWithText(AppBar, l10n.tabLibrary), findsOneWidget);
     await unmountApp(tester);
   });
 
@@ -214,10 +221,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Import file'));
+    await tester.tap(find.byTooltip(l10n.libraryImportFile));
     await tester.pumpAndSettle();
 
-    expect(find.widgetWithText(AppBar, 'Library'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, l10n.tabLibrary), findsOneWidget);
     await unmountApp(tester);
   });
 }

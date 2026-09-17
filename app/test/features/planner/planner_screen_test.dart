@@ -8,12 +8,16 @@ import 'package:velorki/features/planner/presentation/elevation_profile_chart.da
 import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/planner/presentation/planner_map_host.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
+import 'package:velorki/features/planner/domain/route_profile.dart';
+import 'package:velorki/features/planner/presentation/route_format.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
 import 'package:velorki/features/planner/presentation/surface_stats_bar.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../support/app.dart';
+import '../../support/format.dart';
 import '../assistant/support/fakes.dart';
 import 'support/fakes.dart';
 import 'support/pump.dart';
@@ -32,13 +36,13 @@ void main() {
   testWidgets('the empty state explains the first gesture', (tester) async {
     await pumpScreen(tester, const PlannerScreen());
 
-    expect(find.text('Tap the map to set a start.'), findsOneWidget);
-    expect(find.text('Save'), findsOneWidget);
+    expect(find.text(l10n.plannerEmptyState), findsOneWidget);
+    expect(find.text(l10n.commonSave), findsOneWidget);
     expect(
       tester
           .widget<FilledButton>(
             find.ancestor(
-              of: find.text('Save'),
+              of: find.text(l10n.commonSave),
               matching: find.byType(FilledButton),
             ),
           )
@@ -57,7 +61,7 @@ void main() {
     );
     await _plotRoute(tester, h);
 
-    final save = find.widgetWithText(FilledButton, 'Save');
+    final save = find.widgetWithText(FilledButton, l10n.commonSave);
     final rect = tester.getRect(save);
     expect(rect.bottom, lessThanOrEqualTo(2400));
     expect(rect.top, greaterThanOrEqualTo(0));
@@ -66,7 +70,7 @@ void main() {
     expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
     await tester.tap(save);
     await tester.pumpAndSettle();
-    expect(find.text('Save route'), findsOneWidget);
+    expect(find.text(l10n.plannerSaveDialogTitle), findsOneWidget);
   });
 
   testWidgets('tapping the map twice plots a route with stats', (tester) async {
@@ -74,15 +78,28 @@ void main() {
 
     await _plotRoute(tester, h);
 
-    expect(find.text('10.0 km'), findsOneWidget);
-    expect(find.text('120 m'), findsOneWidget);
-    expect(find.text('80 m'), findsOneWidget);
+    expect(find.text(testDistance(10000)), findsOneWidget);
+    expect(find.text(testHeight(120)), findsOneWidget);
+    expect(find.text(testHeight(80)), findsOneWidget);
     // 10 km at the trekking profile's 18 km/h.
-    expect(find.text('33 min'), findsOneWidget);
+    expect(
+      find.text(testDuration(const Duration(minutes: 33))),
+      findsOneWidget,
+    );
     expect(find.byType(ElevationProfileChart), findsOneWidget);
     expect(find.byType(SurfaceStatsBar), findsOneWidget);
-    expect(find.textContaining('Paved 60%'), findsOneWidget);
-    expect(find.textContaining('Unpaved 40%'), findsOneWidget);
+    expect(
+      find.textContaining(
+        l10n.labelWithPercent(l10n.surfacePaved, testPercent(0.6)),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining(
+        l10n.labelWithPercent(l10n.surfaceUnpaved, testPercent(0.4)),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('switching the profile re-routes and changes the estimate', (
@@ -91,7 +108,7 @@ void main() {
     final h = await pumpScreen(tester, const PlannerScreen());
     await _plotRoute(tester, h);
 
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Road'));
+    await tester.tap(find.widgetWithText(ChoiceChip, l10n.profileFastbike));
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
 
@@ -115,7 +132,10 @@ void main() {
     await _plotRoute(tester, h);
 
     // Once in the sheet, once as the snack bar.
-    expect(find.text('Routing failed: position not mapped'), findsWidgets);
+    expect(
+      find.text(l10n.plannerRoutingFailed('position not mapped')),
+      findsWidgets,
+    );
   });
 
   testWidgets('without a routing server the planner points at Settings', (
@@ -127,32 +147,28 @@ void main() {
       harness: PlannerHarness(withRoutingBackend: false),
     );
 
-    expect(
-      find.text(
-        'No routing server configured, set one in Settings → '
-        'Advanced.',
-      ),
-      findsOneWidget,
-    );
+    expect(find.text(l10n.plannerNoRoutingServer), findsOneWidget);
   });
 
   testWidgets('undo, reverse and clear drive the plan', (tester) async {
     final h = await pumpScreen(tester, const PlannerScreen());
     await _plotRoute(tester, h);
 
-    await tester.tap(find.widgetWithText(LabeledIconButton, 'Reverse'));
+    await tester.tap(
+      find.widgetWithText(LabeledIconButton, l10n.plannerReverse),
+    );
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
     expect(h.backend.queries.last.points, [_b, _a]);
 
-    await tester.tap(find.widgetWithText(LabeledIconButton, 'Undo'));
+    await tester.tap(find.widgetWithText(LabeledIconButton, l10n.commonUndo));
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
     expect(h.backend.queries.last.points, [_a, _b]);
 
-    await tester.tap(find.widgetWithText(LabeledIconButton, 'Clear'));
+    await tester.tap(find.widgetWithText(LabeledIconButton, l10n.plannerClear));
     await tester.pumpAndSettle();
-    expect(find.text('Tap the map to set a start.'), findsOneWidget);
+    expect(find.text(l10n.plannerEmptyState), findsOneWidget);
     expect(h.map.lines, isEmpty);
   });
 
@@ -163,16 +179,26 @@ void main() {
     h.backend.byAlternative[1] = syntheticRoute(lengthM: 11000);
     await _plotRoute(tester, h);
 
-    await tester.tap(find.widgetWithText(LabeledIconButton, 'Variants'));
+    await tester.tap(
+      find.widgetWithText(LabeledIconButton, l10n.plannerVariants),
+    );
     await tester.pumpAndSettle();
 
-    expect(find.widgetWithText(ChoiceChip, 'Main'), findsOneWidget);
-    expect(find.widgetWithText(ChoiceChip, 'Alt 1'), findsOneWidget);
+    expect(
+      find.widgetWithText(ChoiceChip, l10n.plannerMainRoute),
+      findsOneWidget,
+    );
+    expect(
+      find.widgetWithText(ChoiceChip, l10n.plannerAlternativeIndex(1)),
+      findsOneWidget,
+    );
 
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Alt 1'));
+    await tester.tap(
+      find.widgetWithText(ChoiceChip, l10n.plannerAlternativeIndex(1)),
+    );
     await tester.pumpAndSettle();
 
-    expect(find.text('11.0 km'), findsOneWidget);
+    expect(find.text(testDistance(11000)), findsOneWidget);
   });
 
   testWidgets('saving asks for a name and writes a library row', (
@@ -181,10 +207,10 @@ void main() {
     final h = await pumpScreen(tester, const PlannerScreen());
     await _plotRoute(tester, h);
 
-    await tester.tap(find.text('Save'));
+    await tester.tap(find.text(l10n.commonSave));
     await tester.pumpAndSettle();
 
-    expect(find.text('Save route'), findsOneWidget);
+    expect(find.text(l10n.plannerSaveDialogTitle), findsOneWidget);
     final field = find.descendant(
       of: find.byType(AlertDialog),
       matching: find.byType(TextField),
@@ -198,7 +224,7 @@ void main() {
     await tester.tap(
       find.descendant(
         of: find.byType(AlertDialog),
-        matching: find.widgetWithText(FilledButton, 'Save'),
+        matching: find.widgetWithText(FilledButton, l10n.commonSave),
       ),
     );
     await tester.pumpAndSettle();
@@ -207,7 +233,7 @@ void main() {
     expect(rows, hasLength(1));
     expect(rows.single.name, 'Isar loop');
     expect(rows.single.distanceM, 10000);
-    expect(find.text('Route saved'), findsOneWidget);
+    expect(find.text(l10n.plannerRouteSaved), findsOneWidget);
   });
 
   testWidgets('a searched place becomes the start of an empty plan', (
@@ -224,15 +250,15 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(h.map.movedTo, const LatLng(48.1374, 11.5755));
-    expect(find.text('Start here'), findsOneWidget);
+    expect(find.text(l10n.plannerSetAsStart), findsOneWidget);
     // The found place is pinned until the rider decides what it is.
     expect(h.map.searchPin, const LatLng(48.1374, 11.5755));
 
-    await tester.tap(find.text('Start here'));
+    await tester.tap(find.text(l10n.plannerSetAsStart));
     await tester.pumpAndSettle();
 
     expect(h.map.waypoints.single.position, const LatLng(48.1374, 11.5755));
-    expect(find.text('Start here'), findsNothing);
+    expect(find.text(l10n.plannerSetAsStart), findsNothing);
     expect(h.map.searchPin, isNull, reason: 'it is a waypoint now');
   });
 
@@ -244,13 +270,13 @@ void main() {
     h.map.onWaypointTapped!(1);
     await tester.pumpAndSettle();
 
-    expect(find.text('Point 2'), findsOneWidget);
-    await tester.tap(find.text('Remove point'));
+    expect(find.text(l10n.plannerPointTitle(2)), findsOneWidget);
+    await tester.tap(find.text(l10n.plannerRemovePoint));
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
 
     expect(h.map.waypoints, hasLength(1));
-    expect(find.text('Remove point'), findsNothing);
+    expect(find.text(l10n.plannerRemovePoint), findsNothing);
   });
 
   testWidgets('the sheet has one resting height without variants', (
@@ -280,12 +306,12 @@ void main() {
     expect(
       tester
           .widget<OutlinedButton>(
-            find.widgetWithText(OutlinedButton, 'Visit later'),
+            find.widgetWithText(OutlinedButton, l10n.plannerVisitLater),
           )
           .onPressed,
       isNull,
     );
-    await tester.tap(find.text('Visit earlier'));
+    await tester.tap(find.text(l10n.plannerVisitEarlier));
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
 
@@ -315,7 +341,7 @@ void main() {
     await tester.tap(find.text('Bavaria, Germany'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('From my position'));
+    await tester.tap(find.text(l10n.plannerRideFromPosition));
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
 
@@ -323,7 +349,7 @@ void main() {
     expect(h.map.waypoints.first.position, const LatLng(48.0, 11.0));
     expect(h.map.waypoints.last.position, const LatLng(48.1374, 11.5755));
     expect(h.map.waypoints.last.label, 'Munich');
-    expect(find.text('From my position'), findsNothing);
+    expect(find.text(l10n.plannerRideFromPosition), findsNothing);
   });
 
   testWidgets('clearing the search forgets the searched place', (tester) async {
@@ -335,14 +361,14 @@ void main() {
     await tester.tap(find.text('Bavaria, Germany'));
     await tester.pumpAndSettle();
     expect(h.map.searchPin, isNotNull);
-    expect(find.text('From my position'), findsOneWidget);
+    expect(find.text(l10n.plannerRideFromPosition), findsOneWidget);
 
     // The field's own clear button drops the place and its two actions.
-    await tester.tap(find.byTooltip('Clear search'));
+    await tester.tap(find.byTooltip(l10n.searchClear));
     await tester.pumpAndSettle();
     expect(h.map.searchPin, isNull);
-    expect(find.text('From my position'), findsNothing);
-    expect(find.text('Start here'), findsNothing);
+    expect(find.text(l10n.plannerRideFromPosition), findsNothing);
+    expect(find.text(l10n.plannerSetAsStart), findsNothing);
 
     // Typing over a picked place forgets it too.
     await tester.enterText(find.byType(TextField).first, 'munich');
@@ -374,7 +400,7 @@ void main() {
     // not sit on the chips because of it.
     expect(chrome().controlsTop!, greaterThan(before + 30));
 
-    await tester.tap(find.byTooltip('Clear search'));
+    await tester.tap(find.byTooltip(l10n.searchClear));
     await tester.pumpAndSettle();
     expect(chrome().controlsTop!, closeTo(before, 0.5));
   });
@@ -384,7 +410,7 @@ void main() {
   ) async {
     await pumpScreen(tester, const PlannerScreen());
     final sheet = find.byType(DraggableScrollableSheet);
-    final headline = find.text('Tap the map to set a start.');
+    final headline = find.text(l10n.plannerEmptyState);
     expect(headline, findsOneWidget);
     final screenHeight = tester.getSize(find.byType(PlannerScreen)).height;
     final restingTop = tester.getTopLeft(headline).dy;
@@ -457,7 +483,10 @@ void main() {
         surfaceSize: Size(width, 780),
       );
 
-      for (final label in ['Touring', 'Road', 'Gravel', 'MTB', 'Direct']) {
+      final labels = [
+        for (final profile in RouteProfile.values) profileLabel(l10n, profile),
+      ];
+      for (final label in labels) {
         expect(
           find.widgetWithText(ChoiceChip, label),
           findsOneWidget,
@@ -468,11 +497,15 @@ void main() {
       // The five chips share the search field's width: the first starts
       // where it starts, the last ends where it ends, and no label is cut.
       final search = tester.getRect(find.byType(SearchField));
-      final first = tester.getRect(find.widgetWithText(ChoiceChip, 'Touring'));
-      final last = tester.getRect(find.widgetWithText(ChoiceChip, 'Direct'));
+      final first = tester.getRect(
+        find.widgetWithText(ChoiceChip, l10n.profileTrekking),
+      );
+      final last = tester.getRect(
+        find.widgetWithText(ChoiceChip, l10n.profileShortest),
+      );
       expect(first.left, closeTo(search.left, 0.5), reason: 'at $width dp');
       expect(last.right, closeTo(search.right, 0.5), reason: 'at $width dp');
-      for (final label in ['Touring', 'Road', 'Gravel', 'MTB', 'Direct']) {
+      for (final label in labels) {
         final chipWidget = tester.widget<ChoiceChip>(
           find.widgetWithText(ChoiceChip, label),
         );
@@ -481,10 +514,24 @@ void main() {
           textDirection: TextDirection.ltr,
         )..layout();
         final chip = tester.getRect(find.widgetWithText(ChoiceChip, label));
+        final drawn = tester.getRect(
+          find.descendant(
+            of: find.widgetWithText(ChoiceChip, label),
+            matching: find.text(label),
+          ),
+        );
+        // The label is inside its chip, and it got there by fitting or by a
+        // gentle shrink — not by being cut (`expectNoClippedText`) and not by
+        // being squeezed to a fifth of its size.
         expect(
-          painter.width,
+          drawn.width,
           lessThanOrEqualTo(chip.width - 8),
           reason: '$label does not fit its chip at $width dp',
+        );
+        expect(
+          drawn.width,
+          greaterThanOrEqualTo(painter.width * 0.8),
+          reason: '$label is shrunk too far to read at $width dp',
         );
       }
 

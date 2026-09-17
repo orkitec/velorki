@@ -6,6 +6,7 @@ import 'package:velorki/features/integrations/common/domain/integration_exceptio
 import 'package:velorki/features/integrations/presentation/connections_section.dart';
 import 'package:velorki/features/integrations/presentation/strava_brand.dart';
 
+import '../../support/app.dart';
 import 'support/pump.dart';
 
 const ConnectedAccount _strava = ConnectedAccount(
@@ -21,18 +22,18 @@ void main() {
   ) async {
     await pumpIntegrations(tester, const ConnectionsSection());
 
-    expect(find.text('Strava'), findsOneWidget);
-    expect(find.text('Ride with GPS'), findsOneWidget);
-    expect(find.text('Not connected'), findsNWidgets(2));
-    expect(find.text('Connect with Ride with GPS'), findsOneWidget);
-    expect(find.text('Velorki Plus'), findsNothing);
+    expect(find.text(l10n.serviceStrava), findsOneWidget);
+    expect(find.text(l10n.serviceRwgps), findsOneWidget);
+    expect(find.text(l10n.connectionsNotConnected), findsNWidgets(2));
+    expect(find.text(l10n.connectionsConnectRwgps), findsOneWidget);
+    expect(find.text(l10n.connectionsPlusTitle), findsNothing);
 
     // Strava's official button carries the artwork; the wording lives in its
     // accessibility label, which their guidelines require verbatim.
     final strava = tester.widget<StravaConnectButton>(
       find.byType(StravaConnectButton),
     );
-    expect(strava.label, 'Connect with Strava');
+    expect(strava.label, l10n.connectionsConnectStrava);
     expect(strava.onPressed, isNotNull);
   });
 
@@ -47,13 +48,13 @@ void main() {
 
     final button = find.widgetWithText(
       FilledButton,
-      'Connect with Ride with GPS',
+      l10n.connectionsConnectRwgps,
     );
     expect(
       find.descendant(of: find.byType(ListTile), matching: button),
       findsNothing,
     );
-    final title = tester.getRect(find.text('Ride with GPS'));
+    final title = tester.getRect(find.text(l10n.serviceRwgps));
     expect(tester.getRect(button).top, greaterThanOrEqualTo(title.bottom));
     // One line of title, not three.
     expect(title.height, lessThan(40));
@@ -67,14 +68,14 @@ void main() {
       harness: IntegrationsHarness(entitled: false),
     );
 
-    expect(find.text('Velorki Plus'), findsOneWidget);
-    expect(find.textContaining('part of Velorki Plus'), findsOneWidget);
+    expect(find.text(l10n.connectionsPlusTitle), findsOneWidget);
+    expect(find.textContaining(l10n.connectionsPlusBody), findsOneWidget);
     final strava = tester.widget<StravaConnectButton>(
       find.byType(StravaConnectButton),
     );
     expect(strava.onPressed, isNull);
     final rwgps = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'Connect with Ride with GPS'),
+      find.widgetWithText(FilledButton, l10n.connectionsConnectRwgps),
     );
     expect(rwgps.onPressed, isNull);
   });
@@ -88,7 +89,7 @@ void main() {
       harness: IntegrationsHarness(config: const AppConfig()),
     );
 
-    expect(find.text('Not available in this build'), findsNWidgets(2));
+    expect(find.text(l10n.connectionsUnavailable), findsNWidgets(2));
   });
 
   testWidgets('a connected account shows the athlete and a Disconnect button', (
@@ -105,7 +106,7 @@ void main() {
     );
 
     expect(find.text('Steffen Römer'), findsOneWidget);
-    expect(find.text('Disconnect'), findsOneWidget);
+    expect(find.text(l10n.connectionsDisconnect), findsOneWidget);
     expect(find.byType(StravaConnectButton), findsNothing);
   });
 
@@ -145,10 +146,13 @@ void main() {
           'the relay is down',
         );
 
-    await tester.tap(find.text('Connect with Ride with GPS'));
+    await tester.tap(find.text(l10n.connectionsConnectRwgps));
     await tester.pumpAndSettle();
 
-    expect(find.text('Could not connect: the relay is down'), findsOneWidget);
+    expect(
+      find.text(l10n.connectionsConnectFailed('the relay is down')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('disconnecting asks first and then forgets the token', (
@@ -164,16 +168,21 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('Disconnect'));
+    await tester.tap(find.text(l10n.connectionsDisconnect));
     await tester.pumpAndSettle();
-    expect(find.text('Disconnect Strava?'), findsOneWidget);
+    expect(
+      find.text(l10n.connectionsDisconnectTitle('Strava')),
+      findsOneWidget,
+    );
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Disconnect'));
+    await tester.tap(
+      find.widgetWithText(FilledButton, l10n.connectionsDisconnect),
+    );
     await tester.pumpAndSettle();
 
     expect(harness.connectors[IntegrationService.strava]!.revokes, 1);
     expect(harness.store.values, isEmpty);
-    expect(find.text('Strava disconnected'), findsOneWidget);
+    expect(find.text(l10n.connectionsDisconnected('Strava')), findsOneWidget);
     expect(find.byType(StravaConnectButton), findsOneWidget);
   });
 
@@ -190,9 +199,9 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('Disconnect'));
+    await tester.tap(find.text(l10n.connectionsDisconnect));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+    await tester.tap(find.widgetWithText(TextButton, l10n.commonCancel));
     await tester.pumpAndSettle();
 
     expect(harness.connectors[IntegrationService.strava]!.revokes, 0);

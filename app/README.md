@@ -80,6 +80,11 @@ together with `flutter test --coverage`, `dart format`, both analyzers and the
 `brouter_dart` parity suites against the committed oracle tiles. The debug APK
 is built by the `apk` job beside it, not after it.
 
+`flutter test --dart-define=VELORKI_TEST_LOCALE=de` runs the same widget suite
+in German — every harness-built screen is pumped in that locale, and a string
+that no longer fits its layout fails as an overflow or as cut-off text — and CI
+runs it beside the English one.
+
 `test/perf/gazetteer_perf_test.dart` is the exception: it skips itself unless
 `GAZETTEER_PERF_FILE` points at a `<TILE>.gaz`, read from
 `--dart-define=GAZETTEER_PERF_FILE=...` first and from the environment second.

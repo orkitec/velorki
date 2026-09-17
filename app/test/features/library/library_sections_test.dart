@@ -9,6 +9,8 @@ import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../support/app.dart';
+import '../../support/format.dart';
 import '../planner/support/fakes.dart' show syntheticRoute;
 import '../recording/support/pump.dart';
 
@@ -59,11 +61,11 @@ void main() {
     final switcher = find.byType(SegmentedButton<LibrarySection>);
     expect(switcher, findsOneWidget);
     expect(
-      find.descendant(of: switcher, matching: find.text('Routes')),
+      find.descendant(of: switcher, matching: find.text(l10n.libraryRoutes)),
       findsOneWidget,
     );
     expect(
-      find.descendant(of: switcher, matching: find.text('Rides')),
+      find.descendant(of: switcher, matching: find.text(l10n.libraryRides)),
       findsOneWidget,
     );
 
@@ -82,7 +84,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Isar loop'), findsOneWidget);
-    expect(find.text('Sep 12, 2026 · 10.0 km · ↑120 m'), findsOneWidget);
+    expect(
+      find.text(
+        l10n.libraryRouteSubtitle(
+          testDate(DateTime.utc(2026, 9, 12, 10).toLocal()),
+          testDistance(10000),
+          testHeight(120),
+        ),
+      ),
+      findsOneWidget,
+    );
     expect(find.byIcon(Icons.more_vert), findsOneWidget);
 
     // The file import stays in the app bar next to the new switch. Its
@@ -105,11 +116,11 @@ void main() {
     await pumpRecordingApp(tester, initialLocation: libraryRoute, harness: h);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Rides'));
+    await tester.tap(find.text(l10n.libraryRides));
     await tester.pumpAndSettle();
 
     expect(find.text('Morning loop'), findsOneWidget);
-    expect(find.text('1 RIDE'), findsOneWidget);
+    expect(find.text(l10n.libraryRidesCount(1).toUpperCase()), findsOneWidget);
     expect(find.text('Isar loop'), findsNothing);
 
     final prefs = await SharedPreferences.getInstance();
@@ -117,7 +128,7 @@ void main() {
 
     // And back again, which forgets the choice rather than storing the
     // default.
-    await tester.tap(find.text('Routes'));
+    await tester.tap(find.text(l10n.libraryRoutes));
     await tester.pumpAndSettle();
 
     expect(find.text('Isar loop'), findsOneWidget);
@@ -153,7 +164,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('No rides yet.'), findsOneWidget);
+    expect(find.text(l10n.recordingNoRides), findsOneWidget);
     await unmountApp(tester);
   });
 
@@ -171,10 +182,10 @@ void main() {
     await tester.tap(find.text('Morning loop'));
     await tester.pumpAndSettle();
 
-    expect(find.text('DISTANCE'), findsOneWidget);
+    expect(find.text(l10n.statDistance.toUpperCase()), findsOneWidget);
     // Twice: the stat tile, and the column of the splits table.
-    expect(find.text('MOVING'), findsWidgets);
-    expect(find.text('Export GPX track'), findsWidgets);
+    expect(find.text(l10n.statMovingTime.toUpperCase()), findsWidgets);
+    expect(find.text(l10n.rideDetailExportGpx), findsWidgets);
     await unmountApp(tester);
   });
 }

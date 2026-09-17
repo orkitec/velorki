@@ -50,6 +50,11 @@ a language".
 - `app/test/l10n/arb_test.dart` checks that every translated ARB declares its
   own locale and carries no key English does not have. It runs in CI with the
   rest of `flutter test`.
+- A language must pass the widget suite in its own locale:
+  `flutter test --dart-define=VELORKI_TEST_LOCALE=<lang>` from `app/` pumps
+  every harness-built screen in that language, and CI runs it for German, so a
+  translation that no longer fits its layout is a failed build, not a bug
+  report.
 
 ## One-time setup (Steffen)
 

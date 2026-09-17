@@ -10,6 +10,8 @@ import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../support/app.dart';
+import '../../support/format.dart';
 import '../planner/support/fakes.dart';
 import '../planner/support/pump.dart';
 
@@ -37,7 +39,7 @@ void main() {
     await pumpApp(tester, initialLocation: routeDetailLocation('gone'));
     await tester.pumpAndSettle();
 
-    expect(find.text('This route no longer exists.'), findsOneWidget);
+    expect(find.text(l10n.routeDetailNotFound), findsOneWidget);
     await unmountApp(tester);
   });
 
@@ -53,7 +55,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Open in planner'));
+    await tester.tap(find.text(l10n.routeDetailOpenInPlanner));
     await tester.pumpAndSettle();
 
     final container = ProviderScope.containerOf(
@@ -70,7 +72,7 @@ void main() {
 
     // It is drawn on the planner's map through the binding.
     expect(h.map.waypoints, hasLength(2));
-    expect(find.text('10.0 km'), findsOneWidget);
+    expect(find.text(testDistance(10000)), findsOneWidget);
     await unmountApp(tester);
   });
 
@@ -86,9 +88,24 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Paved 60%'), findsOneWidget);
-    expect(find.textContaining('Unpaved 40%'), findsOneWidget);
-    expect(find.textContaining('Busy roads 0%'), findsOneWidget);
+    expect(
+      find.textContaining(
+        l10n.labelWithPercent(l10n.surfacePaved, testPercent(0.6)),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining(
+        l10n.labelWithPercent(l10n.surfaceUnpaved, testPercent(0.4)),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining(
+        l10n.labelWithPercent(l10n.surfaceBusy, testPercent(0)),
+      ),
+      findsOneWidget,
+    );
     await unmountApp(tester);
   });
 }

@@ -208,6 +208,10 @@ class _SearchFieldState extends ConsumerState<SearchField> {
                   hintText: canSearch
                       ? l10n.searchHint
                       : l10n.searchUnavailable,
+                  // The "no server configured" hint is a sentence, and in
+                  // German a longer one than the field is wide: let it wrap
+                  // rather than end in an ellipsis.
+                  hintMaxLines: canSearch ? 1 : 2,
                   prefixIcon: const Icon(Icons.search_rounded),
                   filled: false,
                   border: InputBorder.none,

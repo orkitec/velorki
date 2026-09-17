@@ -7,11 +7,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/router.dart';
-import 'package:velorki/app/theme.dart';
 import 'package:velorki/features/import_export/application/incoming_import_listener.dart';
 import 'package:velorki/features/import_export/data/incoming_file_service.dart';
-import 'package:velorki/l10n/generated/app_localizations.dart';
 
+import '../../support/app.dart';
 import '../planner/support/pump.dart';
 import 'support/fixtures.dart';
 
@@ -74,12 +73,7 @@ Future<ProviderContainer> _pumpAppWith(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: MaterialApp.router(
-        theme: buildLightTheme(),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        routerConfig: router,
-      ),
+      child: testRouterApp(routerConfig: router),
     ),
   );
   await tester.pumpAndSettle();
@@ -99,7 +93,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.widgetWithText(AppBar, 'Import'), findsOneWidget);
-    expect(find.text('GPX · 4 points'), findsOneWidget);
+    expect(find.text(l10n.importSummary('GPX', 4)), findsOneWidget);
     await unmountApp(tester);
   });
 
@@ -114,7 +108,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.widgetWithText(AppBar, 'Import'), findsNothing);
-    expect(find.widgetWithText(AppBar, 'Library'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, l10n.tabLibrary), findsOneWidget);
     await unmountApp(tester);
   });
 }

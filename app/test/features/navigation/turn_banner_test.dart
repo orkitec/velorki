@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
@@ -9,13 +8,14 @@ import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/theme.dart';
 import 'package:velorki/features/navigation/application/navigation_controller.dart';
 import 'package:velorki/features/navigation/domain/navigation_progress.dart';
+import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki/features/navigation/domain/off_route_guidance.dart';
 import 'package:velorki/features/navigation/presentation/turn_banner.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
-import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../support/app.dart';
 import '../../support/units.dart';
 
 const TurnHint _left = TurnHint(pointIndex: 10, kind: TurnKind.left);
@@ -73,15 +73,7 @@ Future<ProviderContainer> _pumpBanner(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: MaterialApp(
-        theme: buildLightTheme(),
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
+      child: testApp(
         locale: locale,
         home: Scaffold(
           body: Align(
@@ -112,7 +104,7 @@ void main() {
     );
 
     expect(find.text('250 m'), findsOneWidget);
-    expect(find.text('Turn left'), findsOneWidget);
+    expect(find.text(l10n.navTurnLeft), findsOneWidget);
     expect(find.byIcon(Icons.turn_left), findsOneWidget);
     expect(find.textContaining('then'), findsNothing);
   });
@@ -130,7 +122,7 @@ void main() {
     );
 
     expect(find.text('120 m'), findsOneWidget);
-    expect(find.text('Turn left'), findsOneWidget);
+    expect(find.text(l10n.navTurnLeft), findsOneWidget);
     // The preview is an arrow on the same row, not a "then ..." line.
     expect(find.byIcon(Icons.fork_right), findsOneWidget);
     expect(find.textContaining('then'), findsNothing);
@@ -158,8 +150,8 @@ void main() {
       ),
     );
 
-    expect(find.text('Off route'), findsOneWidget);
-    expect(find.text('Turn left'), findsNothing);
+    expect(find.text(l10n.navOffRoute), findsOneWidget);
+    expect(find.text(l10n.navTurnLeft), findsNothing);
     expect(find.byIcon(Icons.error_outline), findsOneWidget);
   });
 
@@ -176,15 +168,15 @@ void main() {
       ),
     );
 
-    expect(find.text('Recalculating…'), findsOneWidget);
-    expect(find.text('Off route'), findsNothing);
+    expect(find.text(l10n.navRerouting), findsOneWidget);
+    expect(find.text(l10n.navOffRoute), findsNothing);
     expect(find.byIcon(Icons.autorenew), findsOneWidget);
   });
 
   testWidgets('the end of the route says so', (tester) async {
     await _pumpBanner(tester, const NavigationProgress(arrived: true));
 
-    expect(find.text('You have arrived'), findsOneWidget);
+    expect(find.text(l10n.navArrived), findsOneWidget);
     expect(find.byIcon(Icons.flag), findsOneWidget);
   });
 
@@ -233,7 +225,7 @@ void main() {
     );
 
     expect(find.text('390 ft'), findsOneWidget);
-    expect(find.text('Turn left'), findsOneWidget);
+    expect(find.text(l10n.navTurnLeft), findsOneWidget);
 
     await _pumpBanner(
       tester,
@@ -255,7 +247,7 @@ void main() {
     expect(container.read(voiceMutedForRideProvider), isFalse);
     expect(
       tester.widget<IconButton>(find.byType(IconButton)).tooltip,
-      'Mute the voice for this ride',
+      l10n.navMuteVoice,
     );
   });
 
@@ -286,7 +278,7 @@ void main() {
     expect(find.byIcon(Icons.volume_off), findsOneWidget);
     expect(
       tester.widget<IconButton>(find.byType(IconButton)).tooltip,
-      'Unmute the voice',
+      l10n.navUnmuteVoice,
     );
 
     await tester.tap(find.byIcon(Icons.volume_off));
@@ -312,9 +304,9 @@ void main() {
       );
 
       expect(find.text('120 m'), findsOneWidget);
-      expect(find.text('Back to the route, on your left'), findsOneWidget);
-      expect(find.text('Turn left'), findsNothing);
-      expect(find.text('Off route'), findsNothing);
+      expect(find.text(l10n.navBackToRoute('left')), findsOneWidget);
+      expect(find.text(l10n.navTurnLeft), findsNothing);
+      expect(find.text(l10n.navOffRoute), findsNothing);
       expect(find.byIcon(Icons.u_turn_left), findsOneWidget);
     });
 
@@ -332,7 +324,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Back to the route'), findsOneWidget);
+      expect(find.text(l10n.navBackToRoute('none')), findsOneWidget);
     });
 
     testWidgets('imperial reads the way back in feet', (tester) async {
@@ -361,9 +353,9 @@ void main() {
         navigation: navigation,
       );
 
-      expect(find.text('New route from here'), findsOneWidget);
+      expect(find.text(l10n.navNewRouteFromHere), findsOneWidget);
 
-      await tester.tap(find.text('New route from here'));
+      await tester.tap(find.text(l10n.navNewRouteFromHere));
       await tester.pumpAndSettle();
 
       expect(navigation.reroutes, 1);
@@ -382,7 +374,7 @@ void main() {
         navigation: navigation,
       );
 
-      await tester.tap(find.text('Back to the route, on your left'));
+      await tester.tap(find.text(l10n.navBackToRoute('left')));
       await tester.pumpAndSettle();
 
       expect(navigation.rejoins, 1);
@@ -400,8 +392,8 @@ void main() {
         ),
       );
 
-      expect(find.text('Off route'), findsOneWidget);
-      expect(find.text('New route from here'), findsNothing);
+      expect(find.text(l10n.navOffRoute), findsOneWidget);
+      expect(find.text(l10n.navNewRouteFromHere), findsNothing);
       expect(find.byIcon(Icons.error_outline), findsOneWidget);
     });
 
@@ -512,6 +504,9 @@ void main() {
     });
 
     testWidgets('a short English turn keeps the one-line look', (tester) async {
+      // Pinned to English: the point is what a *short* instruction looks
+      // like, and the German one beside it is the long case above.
+      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
       await _pumpBanner(
         tester,
         const NavigationProgress(
@@ -519,17 +514,18 @@ void main() {
           distanceToNextM: 248,
           after: _keepRight,
         ),
+        locale: const Locale('en'),
         width: phone,
       );
 
-      final Text text = tester.widget<Text>(find.text('Turn left'));
+      final Text text = tester.widget<Text>(find.text(en.navTurnLeft));
       expect(text.maxLines, 1);
       // Full size, not shrunk to make room for a line it does not need.
       expect(
         text.style?.fontSize,
         buildLightTheme().textTheme.titleSmall?.fontSize,
       );
-      expect(paragraph(tester, 'Turn left').didExceedMaxLines, isFalse);
+      expect(paragraph(tester, en.navTurnLeft).didExceedMaxLines, isFalse);
     });
   });
 }

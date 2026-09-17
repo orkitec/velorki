@@ -51,6 +51,10 @@ jobs:
       - run: flutter analyze --fatal-infos lib test integration_test
       - run: dart analyze --fatal-infos lib test integration_test
       - run: flutter test --coverage
+      # The same widget suite in German. Every harness-built screen is
+      # pumped in that locale, so a translation that no longer fits its
+      # layout overflows or is cut off and fails here.
+      - run: flutter test --dart-define=VELORKI_TEST_LOCALE=de
       - name: Stage the BRouter oracle tiles (parity tests)
         # Offline: the rd5 tiles the corpus and the brouter_dart fixtures were
         # recorded against are committed in tools/brouter-oracle/tiles/, and

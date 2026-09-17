@@ -3,13 +3,11 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
-import 'package:velorki/app/theme.dart';
 import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/map/testing/testing.dart';
 import 'package:velorki/features/routing_tiles/data/brouter_assets.dart';
@@ -18,10 +16,10 @@ import 'package:velorki/features/routing_tiles/data/rd5_format_support.dart';
 import 'package:velorki/features/routing_tiles/data/segments_manifest_service.dart';
 import 'package:velorki/features/routing_tiles/domain/rd5_format.dart';
 import 'package:velorki/features/routing_tiles/presentation/routing_tiles_screen.dart';
-import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../support/app.dart';
 import 'support/fake_segments.dart';
 
 const TileName _tile = TileName(10, 45);
@@ -107,20 +105,13 @@ Future<TilesHarness> pumpTiles(
         ...harness.overrides,
         ...extraOverrides,
       ],
-      child: MaterialApp(
-        theme: buildLightTheme(),
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
+      child: testApp(
         home: RoutingTilesScreen(mapController: map, preselected: preselected),
       ),
     ),
   );
   await tester.pumpAndSettle();
+  expectNoClippedText(tester);
   return harness;
 }
 
@@ -149,21 +140,18 @@ void main() {
   ) async {
     await pumpTiles(tester);
 
-    expect(find.text('Offline routing data'), findsOneWidget);
+    expect(find.text(l10n.routingTilesTitle), findsOneWidget);
     expect(
-      find.textContaining('also works for place search'),
+      find.textContaining(l10n.routingTilesSearchHint),
       findsOneWidget,
       reason: 'a downloaded region brings the offline search with it',
     );
-    expect(find.textContaining('No routing tiles yet'), findsOneWidget);
-    expect(find.text('Nothing downloaded yet'), findsOneWidget);
-    expect(
-      find.textContaining('Open this screen from the map'),
-      findsOneWidget,
-    );
+    expect(find.textContaining(l10n.routingTilesEmpty), findsOneWidget);
+    expect(find.text(l10n.routingTilesTotal(0, '')), findsOneWidget);
+    expect(find.textContaining(l10n.routingTilesNeedsMap), findsOneWidget);
     final button = tester.widget<FilledButton>(
       find.ancestor(
-        of: find.text('Download for the visible area'),
+        of: find.text(l10n.routingTilesVisibleArea),
         matching: find.byType(FilledButton),
       ),
     );
@@ -183,20 +171,27 @@ void main() {
       );
     final harness = await pumpTiles(tester, map: map);
 
-    await tester.tap(find.text('Download for the visible area'));
+    await tester.tap(find.text(l10n.routingTilesVisibleArea));
     await tester.pumpAndSettle();
 
     // One tile covers the whole visible box, and the manifest knows its size.
     expect(find.textContaining('E10_N45 ·'), findsOneWidget);
-    expect(find.textContaining('Tiles are large'), findsWidgets);
-    await tester.tap(find.textContaining('Download 1 tile'));
+    expect(find.textContaining(l10n.routingTilesDataNotice), findsWidgets);
+    await tester.tap(
+      find.textContaining(
+        l10n.routingTilesDownloadCount(1, '').split('(').first.trim(),
+      ),
+    );
     await tester.pump();
     await runDownloads(tester);
 
     expect(harness.tileFile(_tile).existsSync(), isTrue);
     expect(find.text('E10_N45'), findsOneWidget);
-    expect(find.textContaining('On this device'), findsOneWidget);
-    expect(find.text('1 tile, ${_body.length} B'), findsOneWidget);
+    expect(find.textContaining(l10n.routingTilesStateReady), findsOneWidget);
+    expect(
+      find.text(l10n.routingTilesTotal(1, '${_body.length} B')),
+      findsOneWidget,
+    );
     await unmountTiles(tester);
   });
 
@@ -205,9 +200,12 @@ void main() {
   ) async {
     await pumpTiles(tester, preselected: const <TileName>[TileName(5, 45)]);
 
-    expect(find.text('Needed for this route'), findsOneWidget);
+    expect(find.text(l10n.routingTilesRouteTitle), findsOneWidget);
     expect(find.text('E5_N45'), findsOneWidget);
-    expect(find.text('Download 1 tile (4.0 kB)'), findsOneWidget);
+    expect(
+      find.text(l10n.routingTilesDownloadCount(1, '4.0 kB')),
+      findsOneWidget,
+    );
     await unmountTiles(tester);
   });
 
@@ -220,22 +218,26 @@ void main() {
         east: 11.5,
       );
     final harness = await pumpTiles(tester, map: map);
-    await tester.tap(find.text('Download for the visible area'));
+    await tester.tap(find.text(l10n.routingTilesVisibleArea));
     await tester.pumpAndSettle();
-    await tester.tap(find.textContaining('Download 1 tile'));
+    await tester.tap(
+      find.textContaining(
+        l10n.routingTilesDownloadCount(1, '').split('(').first.trim(),
+      ),
+    );
     await tester.pump();
     await runDownloads(tester);
     expect(harness.tileFile(_tile).existsSync(), isTrue);
 
     await tester.tap(find.byIcon(Icons.delete_outline));
     await tester.pumpAndSettle();
-    expect(find.text('Delete E10_N45?'), findsOneWidget);
-    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+    expect(find.text(l10n.routingTilesDeleteTitle('E10_N45')), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, l10n.commonDelete));
     await tester.pump();
     await runDownloads(tester);
 
     expect(harness.tileFile(_tile).existsSync(), isFalse);
-    expect(find.text('Nothing downloaded yet'), findsOneWidget);
+    expect(find.text(l10n.routingTilesTotal(0, '')), findsOneWidget);
     await unmountTiles(tester);
   });
 
@@ -267,25 +269,16 @@ void main() {
             ),
           ),
         ],
-        child: MaterialApp(
-          localizationsDelegates: const [
-            AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: const RoutingTilesScreen(),
-        ),
+        child: testApp(home: const RoutingTilesScreen()),
       ),
     );
     await tester.pumpAndSettle();
 
     expect(
-      find.textContaining('The tile list could not be loaded'),
+      find.textContaining(l10n.routingTilesManifestFailed('').trim()),
       findsOneWidget,
     );
-    expect(find.text('Try again'), findsOneWidget);
+    expect(find.text(l10n.assistantRetry), findsOneWidget);
     await unmountTiles(tester);
   });
 
@@ -310,24 +303,27 @@ void main() {
       ],
     );
 
-    await tester.tap(find.text('Download for the visible area'));
+    await tester.tap(find.text(l10n.routingTilesVisibleArea));
     await tester.pumpAndSettle();
 
-    expect(find.text('Update Velorki first'), findsOneWidget);
+    expect(find.text(l10n.routingTilesNeedsAppTitle), findsOneWidget);
     expect(find.text('E10_N45'), findsWidgets);
     expect(
-      find.textContaining(
-        'data format 11.2, and this Velorki reads up to 11.1',
-      ),
+      find.textContaining(l10n.routingTilesNeedsAppBody('11.2', '11.1')),
       findsOneWidget,
     );
-    expect(find.text('Open store'), findsNothing);
-    expect(find.text('Not now'), findsOneWidget);
+    expect(find.text(l10n.routingTilesOpenStore), findsNothing);
+    expect(find.text(l10n.recordingBatteryLater), findsOneWidget);
 
-    await tester.tap(find.text('Not now'));
+    await tester.tap(find.text(l10n.recordingBatteryLater));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Download 1 tile'), findsNothing);
+    expect(
+      find.textContaining(
+        l10n.routingTilesDownloadCount(1, '').split('(').first.trim(),
+      ),
+      findsNothing,
+    );
     expect(
       harness.adapter.requests.where((r) => r.uri.path.endsWith('.rd5')),
       isEmpty,

@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:velorki/app/theme.dart';
 import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/offline/presentation/offline_entry.dart';
 import 'package:velorki/features/routing_tiles/data/routing_tiles_repository.dart';
 import 'package:velorki/features/routing_tiles/domain/routing_tile.dart';
-import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
+
+import '../../support/app.dart';
 
 RoutingTile _tile(int lon, RoutingTileState state) => RoutingTile(
   tile: TileName(lon, 40),
@@ -24,31 +23,19 @@ Future<void> _pump(WidgetTester tester, List<RoutingTile> tiles) async {
       overrides: [
         routingTilesProvider.overrideWith((ref) => Stream.value(tiles)),
       ],
-      child: MaterialApp(
-        theme: buildLightTheme(),
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: const Scaffold(body: OfflineEntry()),
-      ),
+      child: testApp(home: const Scaffold(body: OfflineEntry())),
     ),
   );
   await tester.pumpAndSettle();
+  expectNoClippedText(tester);
 }
 
 void main() {
   testWidgets('with nothing to update the row is plain', (tester) async {
     await _pump(tester, [_tile(-75, RoutingTileState.ready)]);
 
-    expect(find.text('Offline data'), findsOneWidget);
-    expect(
-      find.text('Maps and routing data for rides without a signal'),
-      findsOneWidget,
-    );
+    expect(find.text(l10n.offlineEntryTitle), findsOneWidget);
+    expect(find.text(l10n.offlineEntrySubtitle), findsOneWidget);
     expect(find.byType(Badge), findsNothing);
   });
 
@@ -59,13 +46,13 @@ void main() {
       _tile(-85, RoutingTileState.ready),
     ]);
 
-    expect(find.text('2 tiles have updates'), findsOneWidget);
+    expect(find.text(l10n.routingTilesUpdatesHint(2)), findsOneWidget);
     expect(find.widgetWithText(Badge, '2'), findsOneWidget);
   });
 
   testWidgets('one rebuilt tile reads as one', (tester) async {
     await _pump(tester, [_tile(-75, RoutingTileState.stale)]);
 
-    expect(find.text('1 tile has an update'), findsOneWidget);
+    expect(find.text(l10n.routingTilesUpdatesHint(1)), findsOneWidget);
   });
 }

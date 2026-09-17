@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
-import 'package:velorki/app/theme.dart';
 import 'package:velorki/core/plus/plus_gate.dart';
 import 'package:velorki/features/import_export/data/incoming_file_service.dart';
 import 'package:velorki/features/integrations/application/connections_controller.dart';
@@ -18,8 +16,9 @@ import 'package:velorki/features/integrations/common/data/secure_key_value_store
 import 'package:velorki/features/integrations/common/domain/connected_account.dart';
 import 'package:velorki/features/settings/data/package_info_provider.dart';
 import 'package:velorki/features/settings/data/units.dart';
-import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki_api/velorki_api.dart';
+
+import '../../../support/app.dart';
 
 /// A build with a relay and both client ids, so the integrations exist.
 const AppConfig configuredBuild = AppConfig(
@@ -186,19 +185,10 @@ Future<IntegrationsHarness> pumpIntegrations(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: MaterialApp(
-        theme: buildLightTheme(),
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(body: child),
-      ),
+      child: testApp(home: Scaffold(body: child)),
     ),
   );
   await tester.pumpAndSettle();
+  expectNoClippedText(tester);
   return h;
 }

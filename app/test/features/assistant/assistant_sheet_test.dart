@@ -16,6 +16,7 @@ import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki_api/velorki_api.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../support/app.dart';
 import '../integrations/support/fakes.dart';
 import '../planner/support/pump.dart';
 import 'support/fakes.dart';
@@ -57,7 +58,9 @@ Future<PlannerHarness> _openSheet(
   if (consent != null) {
     await container.read(aiConsentControllerProvider.notifier).set(consent);
   }
-  await tester.tap(find.widgetWithText(LabeledIconButton, 'Ask'));
+  await tester.tap(
+    find.widgetWithText(LabeledIconButton, l10n.assistantAction),
+  );
   await tester.pumpAndSettle();
   return harness;
 }
@@ -72,9 +75,9 @@ void main() {
       consent: AiConsent.textOnly,
     );
 
-    expect(find.text('Ask for a route'), findsOneWidget);
+    expect(find.text(l10n.assistantTitle), findsOneWidget);
     expect(_inSheet(find.byType(TextField)), findsOneWidget);
-    expect(_inSheet(find.text('A flat 30 km loop from here')), findsOneWidget);
+    expect(_inSheet(find.text(l10n.assistantExampleFlatLoop)), findsOneWidget);
   });
 
   testWidgets('the first request asks for consent and says what is sent', (
@@ -89,17 +92,16 @@ void main() {
     await _openSheet(tester, relay: relay);
 
     await tester.enterText(_inSheet(find.byType(TextField)), 'a 30 km loop');
-    await tester.tap(_inSheet(find.widgetWithText(FilledButton, 'Ask')));
+    await tester.tap(
+      _inSheet(find.widgetWithText(FilledButton, l10n.assistantAction)),
+    );
     await tester.pumpAndSettle();
 
-    expect(find.text('Before the assistant asks'), findsOneWidget);
-    expect(
-      find.textContaining('forwards it to our AI provider'),
-      findsOneWidget,
-    );
+    expect(find.text(l10n.aiConsentTitle), findsOneWidget);
+    expect(find.textContaining(l10n.aiConsentBody), findsOneWidget);
     expect(relay.planCalls, isEmpty);
 
-    await tester.tap(find.text('Allow, text only'));
+    await tester.tap(find.text(l10n.aiConsentAllowTextOnly));
     await tester.pumpAndSettle();
 
     // Consent given, request sent, and the loop search was handed the result.
@@ -117,9 +119,11 @@ void main() {
     await _openSheet(tester, relay: relay);
 
     await tester.enterText(_inSheet(find.byType(TextField)), 'a 30 km loop');
-    await tester.tap(_inSheet(find.widgetWithText(FilledButton, 'Ask')));
+    await tester.tap(
+      _inSheet(find.widgetWithText(FilledButton, l10n.assistantAction)),
+    );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Not now'));
+    await tester.tap(find.text(l10n.recordingBatteryLater));
     await tester.pumpAndSettle();
 
     expect(relay.planCalls, isEmpty);
@@ -150,10 +154,15 @@ void main() {
     );
 
     await tester.enterText(_inSheet(find.byType(TextField)), 'past Neustadt');
-    await tester.tap(_inSheet(find.widgetWithText(FilledButton, 'Ask')));
+    await tester.tap(
+      _inSheet(find.widgetWithText(FilledButton, l10n.assistantAction)),
+    );
     await tester.pumpAndSettle();
 
-    expect(_inSheet(find.text('Which Neustadt?')), findsOneWidget);
+    expect(
+      _inSheet(find.text(l10n.assistantChoose('Neustadt'))),
+      findsOneWidget,
+    );
     expect(_inSheet(find.text('Neustadt, Rheinland-Pfalz')), findsOneWidget);
 
     await tester.ensureVisible(_inSheet(find.text('Neustadt, Thüringen')));
@@ -185,14 +194,13 @@ void main() {
     );
 
     await tester.enterText(_inSheet(find.byType(TextField)), 'a 30 km loop');
-    await tester.tap(_inSheet(find.widgetWithText(FilledButton, 'Ask')));
+    await tester.tap(
+      _inSheet(find.widgetWithText(FilledButton, l10n.assistantAction)),
+    );
     await tester.pumpAndSettle();
 
-    expect(
-      _inSheet(find.text('The AI assistant is part of Velorki Plus.')),
-      findsOneWidget,
-    );
-    expect(_inSheet(find.text('See Velorki Plus')), findsOneWidget);
+    expect(_inSheet(find.text(l10n.assistantNotEntitled)), findsOneWidget);
+    expect(_inSheet(find.text(l10n.plusSeeDetails)), findsOneWidget);
     expect(relay.planCalls, isEmpty);
   });
 
@@ -210,11 +218,13 @@ void main() {
     await _openSheet(tester, relay: relay, consent: AiConsent.textOnly);
 
     await tester.enterText(_inSheet(find.byType(TextField)), 'a 30 km loop');
-    await tester.tap(_inSheet(find.widgetWithText(FilledButton, 'Ask')));
+    await tester.tap(
+      _inSheet(find.widgetWithText(FilledButton, l10n.assistantAction)),
+    );
     await tester.pumpAndSettle();
 
     expect(
-      _inSheet(find.textContaining('Try again in 90 seconds')),
+      _inSheet(find.textContaining(l10n.assistantRateLimited(90))),
       findsOneWidget,
     );
   });

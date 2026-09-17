@@ -2,21 +2,19 @@ import 'dart:async';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
-import 'package:velorki/app/theme.dart';
 import 'package:velorki/core/db/daos/offline_regions_dao.dart';
 import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/map/data/offline_regions_repository.dart';
 import 'package:velorki/features/map/presentation/offline_regions_screen.dart';
 import 'package:velorki/features/map/testing/testing.dart';
-import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../support/app.dart';
 import 'support/offline_fakes.dart';
 
 const String _styleUrl = 'https://tiles.example/style.json';
@@ -99,20 +97,11 @@ Future<OfflineHarness> pumpOfflineRegions(
         offlineMapApiProvider.overrideWithValue(h.api),
         ...extraOverrides,
       ],
-      child: MaterialApp(
-        theme: buildLightTheme(),
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: OfflineRegionsScreen(mapController: map),
-      ),
+      child: testApp(home: OfflineRegionsScreen(mapController: map)),
     ),
   );
   await tester.pumpAndSettle();
+  expectNoClippedText(tester);
   return h;
 }
 
@@ -150,13 +139,10 @@ void main() {
   ) async {
     await pumpOfflineRegions(tester);
 
-    expect(find.text('Offline maps'), findsOneWidget);
-    expect(find.textContaining('No offline areas yet.'), findsOneWidget);
-    expect(
-      find.textContaining('Open this screen from the map'),
-      findsOneWidget,
-    );
-    expect(find.text('Download visible area'), findsOneWidget);
+    expect(find.text(l10n.mapOfflineRegionsTitle), findsOneWidget);
+    expect(find.textContaining(l10n.mapOfflineRegionsEmpty), findsOneWidget);
+    expect(find.textContaining(l10n.offlineNeedsMap), findsOneWidget);
+    expect(find.text(l10n.mapOfflineDownloadVisible), findsOneWidget);
     expect(_downloadButton(tester).onPressed, isNull);
     await _unmount(tester);
   });
@@ -182,7 +168,7 @@ void main() {
     expect(names, ['Aargau', 'Zurich']);
     expect(find.textContaining('4.0 kB'), findsOneWidget);
     expect(find.textContaining('5.0 MB'), findsOneWidget);
-    expect(find.textContaining('No offline areas yet.'), findsNothing);
+    expect(find.textContaining(l10n.mapOfflineRegionsEmpty), findsNothing);
     await _unmount(tester);
   });
 
@@ -210,10 +196,10 @@ void main() {
     await pumpOfflineRegions(tester, harness: h, map: _mapAt());
     expect(find.byType(LinearProgressIndicator), findsNothing);
 
-    await tester.tap(find.text('Download visible area'));
+    await tester.tap(find.text(l10n.mapOfflineDownloadVisible));
     await _tick(tester);
 
-    expect(find.text('Downloading…'), findsOneWidget);
+    expect(find.text(l10n.routingTilesStateDownloading), findsOneWidget);
     expect(_downloadButton(tester).onPressed, isNull);
     expect(
       tester
@@ -223,7 +209,7 @@ void main() {
     );
     // The screen names the area after the ones already stored and downloads
     // the style the map is showing.
-    expect(h.api.downloads.single.name, 'Map area 1');
+    expect(h.api.downloads.single.name, l10n.mapOfflineRegionName(1));
     expect(h.api.downloads.single.bounds, _visible);
     expect(h.api.downloads.single.styleUrl, _styleUrl);
 
@@ -231,9 +217,9 @@ void main() {
     await _tick(tester);
 
     expect(find.byType(LinearProgressIndicator), findsNothing);
-    expect(find.text('Map area 1'), findsOneWidget);
+    expect(find.text(l10n.mapOfflineRegionName(1)), findsOneWidget);
     expect(find.textContaining('4.0 kB'), findsOneWidget);
-    expect(find.text('Download visible area'), findsOneWidget);
+    expect(find.text(l10n.mapOfflineDownloadVisible), findsOneWidget);
     await _unmount(tester);
   });
 
@@ -249,18 +235,15 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.delete_outline));
     await tester.pumpAndSettle();
-    expect(find.text('Delete offline area?'), findsOneWidget);
-    expect(
-      find.text('The downloaded tiles are removed from this device.'),
-      findsOneWidget,
-    );
-    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+    expect(find.text(l10n.mapOfflineDeleteTitle), findsOneWidget);
+    expect(find.text(l10n.mapOfflineDeleteBody), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, l10n.commonDelete));
     await tester.pumpAndSettle();
 
     expect(h.api.deleted, [7]);
     expect(await h.dao.allRegions(), isEmpty);
     expect(find.text('Zurich'), findsNothing);
-    expect(find.textContaining('No offline areas yet.'), findsOneWidget);
+    expect(find.textContaining(l10n.mapOfflineRegionsEmpty), findsOneWidget);
     await _unmount(tester);
   });
 
@@ -276,7 +259,7 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.delete_outline));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+    await tester.tap(find.widgetWithText(TextButton, l10n.commonCancel));
     await tester.pumpAndSettle();
 
     expect(h.api.deleted, isEmpty);
@@ -291,13 +274,16 @@ void main() {
     h.api.failWith = OfflineDownloadException('no space left on device');
     await pumpOfflineRegions(tester, harness: h, map: _mapAt());
 
-    await tester.tap(find.text('Download visible area'));
+    await tester.tap(find.text(l10n.mapOfflineDownloadVisible));
     await _tick(tester);
 
-    expect(find.textContaining('Download failed.'), findsOneWidget);
+    expect(
+      find.textContaining(l10n.mapOfflineDownloadFailed('').trim()),
+      findsOneWidget,
+    );
     expect(find.textContaining('no space left on device'), findsOneWidget);
     expect(await h.dao.allRegions(), isEmpty);
-    expect(find.textContaining('No offline areas yet.'), findsOneWidget);
+    expect(find.textContaining(l10n.mapOfflineRegionsEmpty), findsOneWidget);
     expect(_downloadButton(tester).onPressed, isNotNull);
     await _unmount(tester);
   });
@@ -320,7 +306,7 @@ void main() {
       find.textContaining('offline database is unreadable'),
       findsOneWidget,
     );
-    expect(find.textContaining('No offline areas yet.'), findsNothing);
+    expect(find.textContaining(l10n.mapOfflineRegionsEmpty), findsNothing);
     await _unmount(tester);
   });
 
@@ -346,9 +332,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Downloaded'), findsOneWidget);
-    expect(find.textContaining('Refresh available'), findsNothing);
-    expect(find.byTooltip('Refresh'), findsNothing);
+    expect(
+      find.textContaining(l10n.mapOfflineDownloadedOn('').trim()),
+      findsOneWidget,
+    );
+    expect(find.textContaining(l10n.mapOfflineRefreshDue), findsNothing);
+    expect(find.byTooltip(l10n.externalRoutesRefresh), findsNothing);
     await _unmount(tester);
   });
 
@@ -365,15 +354,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Refresh available'), findsOneWidget);
+    expect(find.textContaining(l10n.mapOfflineRefreshDue), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Refresh'));
+    await tester.tap(find.byTooltip(l10n.externalRoutesRefresh));
     await tester.pumpAndSettle();
 
     expect(h.api.downloads, hasLength(1));
     expect(h.api.downloads.single.name, 'Old area');
     expect(h.api.deleted, [3]);
-    expect(find.textContaining('Refresh available'), findsNothing);
+    expect(find.textContaining(l10n.mapOfflineRefreshDue), findsNothing);
     expect(find.text('Old area'), findsOneWidget);
     await _unmount(tester);
   });
@@ -390,8 +379,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('before this app version'), findsOneWidget);
-    expect(find.byTooltip('Refresh'), findsOneWidget);
+    expect(
+      find.textContaining(l10n.mapOfflineDownloadedUnknown),
+      findsOneWidget,
+    );
+    expect(find.byTooltip(l10n.externalRoutesRefresh), findsOneWidget);
     await _unmount(tester);
   });
 }

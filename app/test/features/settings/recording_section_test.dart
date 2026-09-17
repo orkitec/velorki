@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
-import 'package:velorki/app/theme.dart';
 import 'package:velorki/features/recording/data/recording_settings.dart';
 import 'package:velorki/features/recording/domain/gps_precision.dart';
 import 'package:velorki/features/settings/presentation/recording_section.dart';
-import 'package:velorki/l10n/generated/app_localizations.dart';
+
+import '../../support/app.dart';
 
 Future<ProviderContainer> _pump(
   WidgetTester tester, {
@@ -24,20 +23,11 @@ Future<ProviderContainer> _pump(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: MaterialApp(
-        theme: buildLightTheme(),
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: const Scaffold(body: RecordingSection()),
-      ),
+      child: testApp(home: const Scaffold(body: RecordingSection())),
     ),
   );
   await tester.pumpAndSettle();
+  expectNoClippedText(tester);
   return container;
 }
 
@@ -45,21 +35,15 @@ void main() {
   testWidgets('offers the three profiles and the saver switch', (tester) async {
     await _pump(tester);
 
-    expect(find.text('GPS precision'), findsOneWidget);
-    expect(find.text('Battery saver'), findsNWidgets(2)); // segment and switch
-    expect(find.text('Normal'), findsOneWidget);
-    expect(find.text('Precise'), findsOneWidget);
+    expect(find.text(l10n.settingsGpsPrecision), findsOneWidget);
     expect(
-      find.text('Precise is for trails; Normal is enough for roads'),
-      findsOneWidget,
-    );
-    expect(
-      find.text(
-        'Dark map, no animations, a plain page with the numbers after 30 s; '
-        'the screen is what drains the battery',
-      ),
-      findsOneWidget,
-    );
+      find.text(l10n.gpsPrecisionSaver),
+      findsNWidgets(2),
+    ); // segment and switch
+    expect(find.text(l10n.gpsPrecisionNormal), findsOneWidget);
+    expect(find.text(l10n.gpsPrecisionPrecise), findsOneWidget);
+    expect(find.text(l10n.settingsGpsPrecisionHint), findsOneWidget);
+    expect(find.text(l10n.settingsBatterySaverHint), findsOneWidget);
     expect(
       tester
           .widget<SegmentedButton<GpsPrecision>>(
@@ -73,7 +57,7 @@ void main() {
   testWidgets('picking Precise is remembered', (tester) async {
     final container = await _pump(tester);
 
-    await tester.tap(find.text('Precise'));
+    await tester.tap(find.text(l10n.gpsPrecisionPrecise));
     await tester.pumpAndSettle();
 
     expect(

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,7 +6,8 @@ import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/theme.dart';
 import 'package:velorki/features/settings/data/appearance_controller.dart';
 import 'package:velorki/features/settings/presentation/appearance_section.dart';
-import 'package:velorki/l10n/generated/app_localizations.dart';
+
+import '../../support/app.dart';
 
 Future<ProviderContainer> _pump(
   WidgetTester tester, {
@@ -29,20 +29,11 @@ Future<ProviderContainer> _pump(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: MaterialApp(
-        theme: buildLightTheme(),
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: const Scaffold(body: AppearanceSection()),
-      ),
+      child: testApp(home: const Scaffold(body: AppearanceSection())),
     ),
   );
   await tester.pumpAndSettle();
+  expectNoClippedText(tester);
   return container;
 }
 
@@ -58,7 +49,11 @@ void main() {
     await _pump(tester);
 
     expect(find.byType(SegmentedButton<ThemeMode>), findsOneWidget);
-    for (final label in ['System', 'Light', 'Dark']) {
+    for (final label in [
+      l10n.appearanceModeSystem,
+      l10n.appearanceModeLight,
+      l10n.appearanceModeDark,
+    ]) {
       // "Light" is also a map look chip, so look inside the segments.
       expect(
         find.descendant(
@@ -68,10 +63,19 @@ void main() {
         findsOneWidget,
       );
     }
-    for (final label in ['Follows theme', 'Night', 'Black']) {
+    for (final label in [
+      l10n.mapLookAuto,
+      l10n.mapLookNight,
+      l10n.mapLookBlack,
+    ]) {
       expect(find.widgetWithText(ChoiceChip, label), findsOneWidget);
     }
-    for (final label in ['Volt', 'Ember', 'Glacier', 'Berry']) {
+    for (final label in [
+      l10n.accentVolt,
+      l10n.accentEmber,
+      l10n.accentGlacier,
+      l10n.accentBerry,
+    ]) {
       expect(_swatch(label), findsOneWidget);
       // A screen reader hears the accent's name on the swatch.
       expect(tester.getSemantics(_swatch(label)).label, contains(label));
@@ -87,7 +91,7 @@ void main() {
   testWidgets('tapping Dark switches the mode and stores it', (tester) async {
     final container = await _pump(tester);
 
-    await tester.tap(find.text('Dark'));
+    await tester.tap(find.text(l10n.appearanceModeDark));
     await tester.pumpAndSettle();
 
     expect(container.read(appearanceSettingProvider).mode, ThemeMode.dark);
@@ -101,7 +105,7 @@ void main() {
     final container = await _pump(tester);
     expect(container.read(appearanceSettingProvider).accent, AccentPreset.volt);
 
-    await tester.tap(_swatch('Ember'));
+    await tester.tap(_swatch(l10n.accentEmber));
     await tester.pumpAndSettle();
 
     expect(
@@ -128,7 +132,7 @@ void main() {
     // The selected swatch is the one wearing the check mark.
     expect(
       find.descendant(
-        of: _swatch('Berry'),
+        of: _swatch(l10n.accentBerry),
         matching: find.byIcon(Icons.check_rounded),
       ),
       findsOneWidget,
@@ -140,7 +144,7 @@ void main() {
     final container = await _pump(tester);
     expect(container.read(appearanceSettingProvider).mapLook, MapLook.auto);
 
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Night'));
+    await tester.tap(find.widgetWithText(ChoiceChip, l10n.mapLookNight));
     await tester.pumpAndSettle();
 
     expect(container.read(appearanceSettingProvider).mapLook, MapLook.night);
@@ -152,7 +156,7 @@ void main() {
     await _pump(tester);
 
     expect(find.byType(SegmentedButton<OverlayDarkMode>), findsNothing);
-    expect(find.text('Cycling overlay on dark maps'), findsNothing);
+    expect(find.text(l10n.appearanceOverlayDarkTitle), findsNothing);
   });
 
   testWidgets('choosing Dimmed switches the overlay and stores it', (
@@ -162,7 +166,7 @@ void main() {
       tester,
       cyclosmTileUrl: 'https://{s}.tile.cyclosm.org/{z}/{x}/{y}.png',
     );
-    expect(find.text('Cycling overlay on dark maps'), findsOneWidget);
+    expect(find.text(l10n.appearanceOverlayDarkTitle), findsOneWidget);
     expect(
       tester
           .widget<SegmentedButton<OverlayDarkMode>>(
@@ -172,7 +176,7 @@ void main() {
       {OverlayDarkMode.inverted},
     );
 
-    await tester.tap(find.text('Dimmed'));
+    await tester.tap(find.text(l10n.appearanceOverlayDarkDimmed));
     await tester.pumpAndSettle();
 
     expect(

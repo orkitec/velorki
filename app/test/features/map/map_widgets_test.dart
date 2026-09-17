@@ -16,8 +16,9 @@ import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki/features/map/testing/testing.dart';
-import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki_geo/velorki_geo.dart';
+
+import '../../support/app.dart';
 
 /// The address the OpenStreetMap licence link points at.
 const String _osmUrl = 'https://www.openstreetmap.org/copyright';
@@ -36,10 +37,7 @@ Future<Widget> _wrap(
       sharedPreferencesProvider.overrideWithValue(prefs),
       ...overrides,
     ],
-    child: MaterialApp(
-      theme: buildLightTheme(),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
+    child: testApp(
       home: Scaffold(body: Center(child: child)),
     ),
   );
@@ -130,7 +128,7 @@ void main() {
       await tester.pumpWidget(await _wrap(const MapAttributionChip()));
 
       expect(
-        find.text('© OpenStreetMap contributors · OpenFreeMap'),
+        find.text('${l10n.osmAttribution} · ${l10n.mapAttributionOpenFreeMap}'),
         findsOneWidget,
       );
     });
@@ -140,7 +138,7 @@ void main() {
         await _wrap(const MapAttributionChip(), cyclosm: true),
       );
 
-      expect(find.textContaining('CyclOSM'), findsOneWidget);
+      expect(find.textContaining(l10n.mapAttributionCyclosm), findsOneWidget);
     });
 
     testWidgets('opens the licence dialog with the source URLs', (
@@ -151,13 +149,13 @@ void main() {
       await tester.tap(find.byType(MapAttributionChip));
       await tester.pumpAndSettle();
 
-      expect(find.text('Map data and tiles'), findsWidgets);
+      expect(find.text(l10n.mapAttributionTitle), findsWidgets);
       expect(find.text(_osmUrl), findsOneWidget);
       expect(find.text('https://openfreemap.org/'), findsOneWidget);
       // Not active, so it is not listed.
       expect(find.text('https://www.cyclosm.org/'), findsNothing);
 
-      await tester.tap(find.text('Close'));
+      await tester.tap(find.text(l10n.mapAttributionClose));
       await tester.pumpAndSettle();
       expect(find.text(_osmUrl), findsNothing);
     });
@@ -298,7 +296,7 @@ void main() {
               find.widgetWithIcon(IconButton, Icons.navigation),
             )
             .tooltip,
-        'North up',
+        l10n.mapFollowNorthUp,
       );
 
       await tester.tap(find.widgetWithIcon(IconButton, Icons.navigation));
@@ -326,13 +324,13 @@ void main() {
       // North-up is on, so the tap switches to heading-up and says so.
       await tester.tap(find.widgetWithIcon(IconButton, Icons.navigation));
       await tester.pump();
-      expect(find.text('Map turns with you'), findsOneWidget);
+      expect(find.text(l10n.mapFollowHeadingUp), findsOneWidget);
       // A label, not a slab: the overlay offers the whole screen and the
       // hint must take only what its text needs.
       final slab = tester.getSize(
         find
             .ancestor(
-              of: find.text('Map turns with you'),
+              of: find.text(l10n.mapFollowHeadingUp),
               matching: find.byType(GlassPanel),
             )
             .first,
@@ -343,7 +341,7 @@ void main() {
 
       await tester.pump(const Duration(seconds: 2));
       await tester.pump();
-      expect(find.text('Map turns with you'), findsNothing);
+      expect(find.text(l10n.mapFollowHeadingUp), findsNothing);
     });
 
     testWidgets('draws the compass in the accent in heading up', (
@@ -369,7 +367,7 @@ void main() {
               find.widgetWithIcon(IconButton, Icons.navigation),
             )
             .tooltip,
-        'Map turns with you',
+        l10n.mapFollowHeadingUp,
       );
       // The locate button is a plain crosshair either way.
       expect(find.byIcon(Icons.my_location), findsOneWidget);

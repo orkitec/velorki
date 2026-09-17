@@ -20,6 +20,8 @@ import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../support/app.dart';
+import '../../support/format.dart';
 import '../import_export/support/fixtures.dart';
 import 'support/fake_dio.dart';
 import 'support/pump.dart';
@@ -119,11 +121,11 @@ void main() {
         ]),
       );
 
-      expect(find.text('Strava routes'), findsOneWidget);
+      expect(find.text(l10n.externalRoutesTitle('Strava')), findsOneWidget);
       expect(find.text('Sunday loop'), findsOneWidget);
-      expect(find.textContaining('42.5 km'), findsOneWidget);
+      expect(find.textContaining(testDistance(42500)), findsOneWidget);
       expect(find.textContaining('620 m'), findsOneWidget);
-      expect(find.text('Import'), findsOneWidget);
+      expect(find.text(l10n.externalRoutesImport), findsOneWidget);
     });
 
     testWidgets('Import writes a route with source strava', (tester) async {
@@ -134,10 +136,13 @@ void main() {
         ]),
       );
 
-      await tester.tap(find.text('Import'));
+      await tester.tap(find.text(l10n.externalRoutesImport));
       await tester.pumpAndSettle();
 
-      expect(find.text('Sunday loop imported'), findsOneWidget);
+      expect(
+        find.text(l10n.externalRoutesImported('Sunday loop')),
+        findsOneWidget,
+      );
       final rows = await db.routesDao.allRoutes();
       expect(rows, hasLength(1));
       expect(rows.single.name, 'Sunday loop');
@@ -152,7 +157,7 @@ void main() {
       );
 
       expect(
-        find.textContaining('No routes in this Ride with GPS account.'),
+        find.textContaining(l10n.externalRoutesEmpty('Ride with GPS')),
         findsOneWidget,
       );
     });
@@ -166,7 +171,10 @@ void main() {
         connected: false,
       );
 
-      expect(find.textContaining('Connect Strava in Settings'), findsOneWidget);
+      expect(
+        find.textContaining(l10n.externalRoutesNotConnected('Strava')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('Refresh goes back to the service', (tester) async {
@@ -217,20 +225,20 @@ void main() {
 
       await tester.tap(find.byType(OutlinedButton));
       await tester.pumpAndSettle();
-      expect(find.text('Send to Strava'), findsOneWidget);
+      expect(find.text(l10n.routeDetailSendToStrava), findsOneWidget);
       // Nothing is connected, so Ride with GPS is not offered.
-      expect(find.text('Send to Ride with GPS'), findsNothing);
+      expect(find.text(l10n.routeDetailSendToRwgps), findsNothing);
 
-      await tester.tap(find.text('Send to Strava'));
+      await tester.tap(find.text(l10n.routeDetailSendToStrava));
       await tester.pumpAndSettle();
 
-      expect(find.text('Strava cannot receive routes'), findsOneWidget);
+      expect(find.text(l10n.routeDetailSendToStravaTitle), findsOneWidget);
       expect(
-        find.textContaining('can read routes but not create them'),
+        find.textContaining(l10n.routeDetailSendToStravaBody),
         findsOneWidget,
       );
 
-      await tester.tap(find.text('Export GPX'));
+      await tester.tap(find.text(l10n.routeDetailSendToStravaAction));
       await tester.pumpAndSettle();
       expect(exported, 1);
     });
@@ -269,13 +277,13 @@ void main() {
 
       await tester.tap(find.byType(OutlinedButton));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Send to Ride with GPS'));
+      await tester.tap(find.text(l10n.routeDetailSendToRwgps));
       await tester.pumpAndSettle();
 
-      expect(find.text('Sent to Ride with GPS'), findsOneWidget);
+      expect(find.text(l10n.routeDetailSent('Ride with GPS')), findsOneWidget);
       expect(multipartFields(adapter.requests.single)['name'], 'Isar loop');
 
-      await tester.tap(find.text('Open'));
+      await tester.tap(find.text(l10n.routeDetailOpenSent));
       await tester.pumpAndSettle();
       expect(
         harness.openedLinks.single.toString(),

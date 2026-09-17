@@ -1,13 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/router.dart';
-import 'package:velorki/app/theme.dart';
 import 'package:velorki/core/files/track_exporter.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/map/data/compass_heading.dart';
@@ -17,8 +15,8 @@ import 'package:velorki/features/recording/data/recording_journal.dart';
 import 'package:velorki/features/recording/data/recording_recovery.dart';
 import 'package:velorki/features/recording/data/recording_service.dart';
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
-import 'package:velorki/l10n/generated/app_localizations.dart';
 
+import '../../../support/app.dart';
 import '../../planner/support/fakes.dart' show TestMapController;
 import '../../planner/support/pump.dart';
 import 'fakes.dart';
@@ -153,20 +151,11 @@ Future<RecordingHarness> pumpRecordingScreen(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [...h.overrides(await _prefs(preferences)), ...extraOverrides],
-      child: MaterialApp(
-        theme: buildLightTheme(),
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: child,
-      ),
+      child: testApp(home: child),
     ),
   );
   await tester.pump();
+  expectNoClippedText(tester);
   return h;
 }
 
@@ -189,19 +178,12 @@ Future<RecordingHarness> pumpRecordingApp(
   await tester.pumpWidget(
     ProviderScope(
       overrides: h.overrides(await _prefs(preferences)),
-      child: MaterialApp.router(
-        theme: buildLightTheme(),
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
+      child: testRouterApp(
         routerConfig: createRouter(initialLocation: initialLocation),
       ),
     ),
   );
   await tester.pump();
+  expectNoClippedText(tester);
   return h;
 }

@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/router.dart';
-import 'package:velorki/app/theme.dart';
 import 'package:velorki/core/db/database.dart';
-import 'package:velorki/l10n/generated/app_localizations.dart';
+
+import '../support/app.dart';
 
 Future<void> _pumpShell(WidgetTester tester) async {
   // The settings tab is long — subscription, connections, AI, advanced,
@@ -27,17 +26,7 @@ Future<void> _pumpShell(WidgetTester tester) async {
         sharedPreferencesProvider.overrideWithValue(prefs),
         velorkiDatabaseProvider.overrideWithValue(db),
       ],
-      child: MaterialApp.router(
-        theme: buildLightTheme(),
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
-        routerConfig: createRouter(),
-      ),
+      child: testRouterApp(routerConfig: createRouter()),
     ),
   );
   await tester.pumpAndSettle();
@@ -79,10 +68,15 @@ void main() {
       isTrue,
     );
     expect(find.byType(NavigationDestination), findsNWidgets(4));
-    for (final label in ['Plan', 'Record', 'Library', 'Settings']) {
+    for (final label in [
+      l10n.tabPlan,
+      l10n.tabRecord,
+      l10n.tabLibrary,
+      l10n.tabSettings,
+    ]) {
       expect(find.widgetWithText(NavigationDestination, label), findsOneWidget);
     }
-    expect(find.text('Tap the map to set a start.'), findsOneWidget);
+    expect(find.text(l10n.plannerEmptyState), findsOneWidget);
   });
 
   testWidgets('the bar steps aside while the keyboard is up', (tester) async {
@@ -99,20 +93,20 @@ void main() {
   testWidgets('switches between all four branches', (tester) async {
     await _pumpShell(tester);
 
-    await _tapTab(tester, 'Record');
-    expect(find.text('Ready to ride'), findsOneWidget);
+    await _tapTab(tester, l10n.tabRecord);
+    expect(find.text(l10n.recordingIdleTitle), findsOneWidget);
 
-    await _tapTab(tester, 'Library');
-    expect(find.textContaining('No saved routes yet.'), findsOneWidget);
+    await _tapTab(tester, l10n.tabLibrary);
+    expect(find.textContaining(l10n.libraryEmpty), findsOneWidget);
 
-    await _tapTab(tester, 'Settings');
+    await _tapTab(tester, l10n.tabSettings);
     // Advanced sits below the fold as the settings list grows.
     await tester.scrollUntilVisible(
-      find.text('Server URLs'),
+      find.text(l10n.settingsServerUrls),
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('Server URLs'), findsOneWidget);
+    expect(find.text(l10n.settingsServerUrls), findsOneWidget);
     // The About section sits below it again, the version at its top and the
     // attribution under it — far enough apart that one scroll per line is
     // what it takes as the list grows.
@@ -123,14 +117,14 @@ void main() {
     );
     expect(find.text('Version 0.1.0+1'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.text('© OpenStreetMap contributors'),
+      find.text(l10n.osmAttribution),
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('© OpenStreetMap contributors'), findsOneWidget);
+    expect(find.text(l10n.osmAttribution), findsOneWidget);
 
-    await _tapTab(tester, 'Plan');
-    expect(find.text('Tap the map to set a start.'), findsOneWidget);
+    await _tapTab(tester, l10n.tabPlan);
+    expect(find.text(l10n.plannerEmptyState), findsOneWidget);
 
     // Unmount so the library's database stream can finish closing; drift
     // schedules a zero-duration timer when its last listener goes away.
@@ -142,16 +136,16 @@ void main() {
     tester,
   ) async {
     await _pumpShell(tester);
-    await _tapTab(tester, 'Settings');
+    await _tapTab(tester, l10n.tabSettings);
     // Advanced sits below the fold as the settings list grows.
     await tester.scrollUntilVisible(
-      find.widgetWithText(TextField, 'BRouter URL'),
+      find.widgetWithText(TextField, l10n.settingsBrouterUrl),
       200,
       scrollable: find.byType(Scrollable).first,
     );
 
     await tester.enterText(
-      find.widgetWithText(TextField, 'BRouter URL'),
+      find.widgetWithText(TextField, l10n.settingsBrouterUrl),
       'http://10.0.2.2:17777',
     );
     await tester.testTextInput.receiveAction(TextInputAction.done);

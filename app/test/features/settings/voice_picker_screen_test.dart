@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -15,11 +14,12 @@ import 'package:velorki/features/navigation/testing/fake_turn_speaker.dart';
 import 'package:velorki/features/settings/presentation/voice_picker_screen.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
 
+import '../../support/app.dart';
 import '../../support/units.dart';
 
 /// Every label the rider reads comes from the translations, so no test here
-/// spells one out.
-final AppLocalizations _l10n = lookupAppLocalizations(const Locale('en'));
+/// spells one out; `l10n` is the locale the suite runs in.
+final AppLocalizations _l10n = l10n;
 
 /// An Apple name is a proper noun; only the badge behind it is translated.
 final String _zoeLabel = 'Zoe (${_l10n.voiceQualityEnhanced})';
@@ -124,20 +124,14 @@ Future<(ProviderContainer, FakeTurnSpeaker)> _pump(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: MaterialApp(
+      child: testApp(
         theme: buildLightTheme().copyWith(platform: platform),
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
         home: const VoicePickerScreen(),
       ),
     ),
   );
   await tester.pumpAndSettle();
+  expectNoClippedText(tester);
   return (container, speaker);
 }
 
