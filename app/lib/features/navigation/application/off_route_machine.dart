@@ -3,11 +3,8 @@ import 'dart:math' as math;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../domain/off_route_guidance.dart';
+import 'off_route_thresholds.dart';
 import 'route_geometry.dart';
-import 'turn_navigator.dart';
-
-/// Farther than this from the plan and the fix counts as a stray one.
-const double offRouteMeters = 50;
 
 /// How many stray fixes in a row it takes to call the rider off route.
 ///
@@ -54,11 +51,8 @@ const double headingViaMeters = 40;
 /// Below this speed a heading says nothing, so no via point is asked for.
 const double headingViaSpeedMps = 1.5;
 
-/// Drifting this far from the rejoin itself asks for another one.
-const double detourDriftMeters = 50;
-
-/// ...at most this often, so a rider weaving around a rejoin is not
-/// re-routed on every fix.
+/// How often drifting off a rejoin — see [detourDriftMeters] — may ask for
+/// another one, so a rider weaving around one is not re-routed on every fix.
 const Duration detourRecomputeGap = Duration(seconds: 20);
 
 /// Farther than this from the plan, for longer than [fullRerouteAfter], and
@@ -139,8 +133,8 @@ class OffRouteDecision {
 /// and with the things to do. It holds no router, no clock and no providers —
 /// [NavigationController] owns those and acts on what this returns.
 ///
-/// The order it works in is the point of it. A rider who is fifty metres out
-/// is guided back by the plan they already chose, not sent down a route they
+/// The order it works in is the point of it. A rider who is seventy-five
+/// metres out is guided back by the plan they already chose, not sent down a route they
 /// have never seen; only a rider who is still off it half a minute later gets
 /// a rejoin computed, and only one who is kilometres away for minutes gets
 /// the whole ride re-planned.
@@ -190,6 +184,9 @@ class OffRouteMachine {
   /// distance from the rejoin in use, or `null` while none is.
   /// [rerouteAllowed] is the rider's re-route setting: with it off the ride
   /// never gets past [OffRouteState.guiding] on its own.
+  /// [accuracyM] is the horizontal accuracy the fix came with, in metres,
+  /// which widens every distance threshold here — see [strayThresholdM] and
+  /// [snapThresholdM]. Unknown accuracy leaves the base distances standing.
   OffRouteDecision update({
     required LatLng position,
     required double distanceFromRouteM,
@@ -199,6 +196,7 @@ class OffRouteMachine {
     required DateTime now,
     required bool rerouteAllowed,
     double? distanceFromDetourM,
+    double? accuracyM,
   }) {
     final previous = _lastPosition;
     _lastPosition = position;
@@ -207,7 +205,7 @@ class OffRouteMachine {
     }
 
     if (_state == OffRouteState.onRoute) {
-      if (distanceFromRouteM <= offRouteMeters) {
+      if (distanceFromRouteM <= strayThresholdM(accuracyM)) {
         _strayCount = 0;
         _strayingSince = null;
         return const OffRouteDecision(state: OffRouteState.onRoute);
@@ -227,7 +225,7 @@ class OffRouteMachine {
 
     // Back on the plan, from either off-route state: the rider found it
     // again, and whatever was worked out for them is not needed.
-    if (distanceFromRouteM <= routeSnapMeters) return _restore();
+    if (distanceFromRouteM <= snapThresholdM(accuracyM)) return _restore();
 
     if (rerouteAllowed && _wantsFullReroute(distanceFromRouteM, now)) {
       return OffRouteDecision(state: _state, fullReroute: true);
@@ -238,7 +236,9 @@ class OffRouteMachine {
       final planned = _detourAt;
       final stale =
           planned == null || now.difference(planned) >= detourRecomputeGap;
-      final adrift = drift != null && drift > detourDriftMeters;
+      final adrift =
+          drift != null &&
+          drift > strayThresholdM(accuracyM, baseM: detourDriftMeters);
       return OffRouteDecision(
         state: _state,
         planDetour: rerouteAllowed && adrift && stale,

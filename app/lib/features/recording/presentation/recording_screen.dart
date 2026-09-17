@@ -16,7 +16,7 @@ import '../../map/domain/map_controller.dart';
 import '../../map/presentation/location_rationale_dialog.dart';
 import '../../map/presentation/map_chrome.dart';
 import '../../navigation/application/navigation_controller.dart';
-import '../../navigation/application/turn_navigator.dart';
+import '../../navigation/application/off_route_thresholds.dart';
 import '../../navigation/domain/navigation_progress.dart';
 import '../../navigation/presentation/navigation_toggles.dart';
 import '../../navigation/presentation/turn_banner.dart';
@@ -480,11 +480,17 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// drawn on it, `null` otherwise.
   ///
   /// Off route, or a long way off the line, the raw fix is the honest answer:
-  /// a puck glued to a road the rider has left is worse than a shaky one.
-  NavigationProgress? _routeSnap(NavigationProgress? navigation) {
+  /// a puck glued to a road the rider has left is worse than a shaky one. The
+  /// gap widens with [accuracyM], exactly as the navigator's own back-on-route
+  /// gate does, so the puck is not thrown off the line the moment the fix the
+  /// navigator still counts as on it gets shaky.
+  NavigationProgress? _routeSnap(
+    NavigationProgress? navigation,
+    double? accuracyM,
+  ) {
     if (navigation == null || navigation.offRoute) return null;
     if (navigation.snapped == null) return null;
-    if (navigation.distanceFromRouteM > routeSnapMeters) return null;
+    if (navigation.distanceFromRouteM > snapThresholdM(accuracyM)) return null;
     return navigation;
   }
 
@@ -527,7 +533,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       // matched point does not wander with the fix, and the direction the
       // road runs beats a GNSS course by a wide margin — which is exactly
       // what every other navigation app draws.
-      final onRoute = _routeSnap(navigation);
+      final onRoute = _routeSnap(navigation, snapshot?.accuracyM);
       final course = snapshot?.headingDeg;
       final speed = snapshot?.speedMps;
       final moving = (speed ?? 0) >= headingConeOnSpeedMps;

@@ -21,6 +21,7 @@ import '../domain/off_route_guidance.dart';
 import '../presentation/turn_phrases.dart';
 import '../../settings/data/units.dart';
 import 'off_route_machine.dart';
+import 'off_route_thresholds.dart';
 import 'route_geometry.dart';
 import 'turn_announcer.dart';
 import 'turn_navigator.dart';
@@ -369,7 +370,11 @@ class NavigationController extends _$NavigationController {
     );
     _fedSnapshot = snapshot;
 
-    final progress = _navigator!.update(position, now: now);
+    final progress = _navigator!.update(
+      position,
+      now: now,
+      accuracyM: snapshot.accuracyM,
+    );
     _progress = progress;
     final cues = _announcer!.update(
       progress,
@@ -415,8 +420,12 @@ class NavigationController extends _$NavigationController {
       cumulative: _planCumulative,
     );
     // Only a fix that is really on the plan moves the rider along it: a
-    // rejoin is aimed from the last corner they actually rode.
-    if (onPlan.distanceM <= routeSnapMeters) _planAlongM = onPlan.alongM;
+    // rejoin is aimed from the last corner they actually rode. The same gate
+    // the machine restores on, so the two never disagree about where the
+    // rider stands.
+    if (onPlan.distanceM <= snapThresholdM(snapshot.accuracyM)) {
+      _planAlongM = onPlan.alongM;
+    }
 
     final decision = machine.update(
       position: position,
@@ -429,6 +438,7 @@ class NavigationController extends _$NavigationController {
       distanceFromDetourM: detour == null
           ? null
           : projectOnLine(detour.branch, position).distanceM,
+      accuracyM: snapshot.accuracyM,
     );
     _offRouteState = decision.state;
     _guidance = decision.guidance;

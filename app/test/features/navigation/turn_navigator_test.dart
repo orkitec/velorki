@@ -123,26 +123,90 @@ void main() {
   });
 
   test(
-    'two fixes 80 m out call the rider off route, one back on clears it',
+    'two fixes 120 m out call the rider off route, one back on clears it',
     () {
       final navigator = _navigator();
       navigator.update(_at(400));
 
       // One fix thrown out by a bridge is not a detour.
-      expect(navigator.update(_at(500, offsetM: 80)).offRoute, isFalse);
-      expect(navigator.update(_at(520, offsetM: 80)).offRoute, isTrue);
-      expect(navigator.update(_at(540, offsetM: 80)).offRoute, isTrue);
+      expect(navigator.update(_at(500, offsetM: 120)).offRoute, isFalse);
+      expect(navigator.update(_at(520, offsetM: 120)).offRoute, isTrue);
+      expect(navigator.update(_at(540, offsetM: 120)).offRoute, isTrue);
 
       expect(navigator.update(_at(560)).offRoute, isFalse);
     },
   );
+
+  test('seventy metres out is still on the route, eighty is not', () {
+    final near = _navigator();
+    near.update(_at(400));
+    expect(near.update(_at(500, offsetM: 70)).offRoute, isFalse);
+    expect(near.update(_at(520, offsetM: 70)).offRoute, isFalse);
+    expect(near.update(_at(540, offsetM: 70)).offRoute, isFalse);
+
+    final far = _navigator();
+    far.update(_at(400));
+    expect(far.update(_at(500, offsetM: 80)).offRoute, isFalse);
+    expect(far.update(_at(520, offsetM: 80)).offRoute, isTrue);
+  });
+
+  test('a shaky receiver has to stray twice its own error circle', () {
+    final navigator = _navigator();
+    navigator.update(_at(400), accuracyM: 50);
+
+    // 90 m out with 50 m of accuracy is inside 2 × 50: the fix could be on
+    // the road, so the rider is not sent a detour over it.
+    expect(
+      navigator.update(_at(500, offsetM: 90), accuracyM: 50).offRoute,
+      isFalse,
+    );
+    expect(
+      navigator.update(_at(520, offsetM: 90), accuracyM: 50).offRoute,
+      isFalse,
+    );
+
+    // The same 90 m from a receiver that knows where it is, is a detour.
+    final sure = _navigator();
+    sure.update(_at(400), accuracyM: 5);
+    expect(
+      sure.update(_at(500, offsetM: 90), accuracyM: 5).offRoute,
+      isFalse,
+      reason: 'one fix is still noise',
+    );
+    expect(sure.update(_at(520, offsetM: 90), accuracyM: 5).offRoute, isTrue);
+  });
+
+  test('coming back on is one error circle, not two', () {
+    final sure = _navigator();
+    for (var i = 0; i < 2; i++) {
+      sure.update(_at(500 + i * 20, offsetM: 120), accuracyM: 5);
+    }
+    expect(sure.update(_at(540, offsetM: 120), accuracyM: 5).offRoute, isTrue);
+    // 28 m with a 5 m fix is inside the 30 m base.
+    expect(sure.update(_at(560, offsetM: 28), accuracyM: 5).offRoute, isFalse);
+
+    final shaky = _navigator();
+    for (var i = 0; i < 2; i++) {
+      shaky.update(_at(500 + i * 20, offsetM: 200), accuracyM: 50);
+    }
+    expect(
+      shaky.update(_at(540, offsetM: 200), accuracyM: 50).offRoute,
+      isTrue,
+    );
+    // 45 m would be too far for a good fix; with 50 m of accuracy the rider
+    // is as likely as not on the line, and the plan is the better answer.
+    expect(
+      shaky.update(_at(560, offsetM: 45), accuracyM: 50).offRoute,
+      isFalse,
+    );
+  });
 
   test('one stray fix for eight seconds is off route on its own', () {
     final navigator = _navigator();
     final start = DateTime.utc(2026, 9, 12, 10);
     navigator.update(_at(400), now: start);
 
-    final first = navigator.update(_at(500, offsetM: 80), now: start);
+    final first = navigator.update(_at(500, offsetM: 120), now: start);
     expect(first.offRoute, isFalse);
 
     // The next fix is the same one, a receiver that reports rarely; it is the
@@ -150,7 +214,7 @@ void main() {
     expect(
       navigator
           .update(
-            _at(500, offsetM: 80),
+            _at(500, offsetM: 120),
             now: start.add(const Duration(seconds: 9)),
           )
           .offRoute,
@@ -161,9 +225,9 @@ void main() {
   test('a fix 40 m out stays on route but does not clear an old stray', () {
     final navigator = _navigator();
     for (var i = 0; i < 3; i++) {
-      navigator.update(_at(500 + i * 20, offsetM: 80));
+      navigator.update(_at(500 + i * 20, offsetM: 120));
     }
-    expect(navigator.update(_at(560, offsetM: 80)).offRoute, isTrue);
+    expect(navigator.update(_at(560, offsetM: 120)).offRoute, isTrue);
 
     // Inside the stray limit but outside the snap limit: still off.
     expect(navigator.update(_at(580, offsetM: 40)).offRoute, isTrue);

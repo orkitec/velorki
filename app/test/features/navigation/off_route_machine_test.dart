@@ -34,6 +34,7 @@ OffRouteDecision _fix(
   Duration at = Duration.zero,
   bool rerouteAllowed = true,
   double? distanceFromDetourM,
+  double? accuracyM,
 }) => machine.update(
   position: position,
   distanceFromRouteM: distanceFromRouteM,
@@ -43,6 +44,7 @@ OffRouteDecision _fix(
   now: _t0.add(at),
   rerouteAllowed: rerouteAllowed,
   distanceFromDetourM: distanceFromDetourM,
+  accuracyM: accuracyM,
 );
 
 OffRouteMachine _machine() => OffRouteMachine(line: _line);
@@ -54,8 +56,8 @@ void main() {
 
       final decision = _fix(
         machine,
-        _at(300, asideM: 80),
-        distanceFromRouteM: 80,
+        _at(300, asideM: 120),
+        distanceFromRouteM: 120,
         alongM: 300,
       );
 
@@ -65,12 +67,17 @@ void main() {
 
     test('two stray fixes in a row are', () {
       final machine = _machine();
-      _fix(machine, _at(300, asideM: 80), distanceFromRouteM: 80, alongM: 300);
+      _fix(
+        machine,
+        _at(300, asideM: 120),
+        distanceFromRouteM: 120,
+        alongM: 300,
+      );
 
       final decision = _fix(
         machine,
-        _at(320, asideM: 90),
-        distanceFromRouteM: 90,
+        _at(320, asideM: 130),
+        distanceFromRouteM: 130,
         alongM: 300,
         at: const Duration(seconds: 1),
       );
@@ -79,36 +86,49 @@ void main() {
       expect(decision.guidance, isNotNull);
     });
 
-    test('a fix that comes back inside fifty metres starts the count over', () {
-      final machine = _machine();
-      _fix(machine, _at(300, asideM: 80), distanceFromRouteM: 80, alongM: 300);
-      _fix(
-        machine,
-        _at(320, asideM: 10),
-        distanceFromRouteM: 10,
-        alongM: 320,
-        at: const Duration(seconds: 1),
-      );
+    test(
+      'a fix that comes back inside the threshold starts the count over',
+      () {
+        final machine = _machine();
+        _fix(
+          machine,
+          _at(300, asideM: 120),
+          distanceFromRouteM: 120,
+          alongM: 300,
+        );
+        _fix(
+          machine,
+          _at(320, asideM: 10),
+          distanceFromRouteM: 10,
+          alongM: 320,
+          at: const Duration(seconds: 1),
+        );
 
-      final decision = _fix(
-        machine,
-        _at(340, asideM: 80),
-        distanceFromRouteM: 80,
-        alongM: 320,
-        at: const Duration(seconds: 2),
-      );
+        final decision = _fix(
+          machine,
+          _at(340, asideM: 120),
+          distanceFromRouteM: 120,
+          alongM: 320,
+          at: const Duration(seconds: 2),
+        );
 
-      expect(decision.state, OffRouteState.onRoute);
-    });
+        expect(decision.state, OffRouteState.onRoute);
+      },
+    );
 
     test('one stray fix held for eight seconds is a detour on its own', () {
       final machine = _machine();
-      _fix(machine, _at(300, asideM: 80), distanceFromRouteM: 80, alongM: 300);
+      _fix(
+        machine,
+        _at(300, asideM: 120),
+        distanceFromRouteM: 120,
+        alongM: 300,
+      );
 
       // The same fix again, from a receiver that reports rarely.
       final decision = machine.update(
-        position: _at(300, asideM: 80),
-        distanceFromRouteM: 80,
+        position: _at(300, asideM: 120),
+        distanceFromRouteM: 120,
         alongM: 300,
         speedMps: 6,
         headingDeg: 0,
@@ -121,11 +141,16 @@ void main() {
 
     test('one fix within the snap distance puts the rider back on', () {
       final machine = _machine();
-      _fix(machine, _at(300, asideM: 80), distanceFromRouteM: 80, alongM: 300);
       _fix(
         machine,
-        _at(320, asideM: 90),
-        distanceFromRouteM: 90,
+        _at(300, asideM: 120),
+        distanceFromRouteM: 120,
+        alongM: 300,
+      );
+      _fix(
+        machine,
+        _at(320, asideM: 130),
+        distanceFromRouteM: 130,
         alongM: 300,
         at: const Duration(seconds: 1),
       );
@@ -142,21 +167,26 @@ void main() {
       expect(decision.restored, isTrue);
     });
 
-    test('thirty metres out is off the route but not back on it', () {
+    test('forty metres out is off the route but not back on it', () {
       final machine = _machine();
-      _fix(machine, _at(300, asideM: 80), distanceFromRouteM: 80, alongM: 300);
       _fix(
         machine,
-        _at(320, asideM: 90),
-        distanceFromRouteM: 90,
+        _at(300, asideM: 120),
+        distanceFromRouteM: 120,
+        alongM: 300,
+      );
+      _fix(
+        machine,
+        _at(320, asideM: 130),
+        distanceFromRouteM: 130,
         alongM: 300,
         at: const Duration(seconds: 1),
       );
 
       final decision = _fix(
         machine,
-        _at(340, asideM: 30),
-        distanceFromRouteM: 30,
+        _at(340, asideM: 40),
+        distanceFromRouteM: 40,
         alongM: 300,
         at: const Duration(seconds: 2),
       );
@@ -165,15 +195,143 @@ void main() {
     });
   });
 
+  group('the thresholds follow the accuracy', () {
+    /// Two fixes the same distance out, which is what a detour takes.
+    OffRouteDecision twoFixes(double distanceM, {double? accuracyM}) {
+      final machine = _machine();
+      _fix(
+        machine,
+        _at(300, asideM: distanceM),
+        distanceFromRouteM: distanceM,
+        alongM: 300,
+        accuracyM: accuracyM,
+      );
+      return _fix(
+        machine,
+        _at(320, asideM: distanceM),
+        distanceFromRouteM: distanceM,
+        alongM: 300,
+        at: const Duration(seconds: 1),
+        accuracyM: accuracyM,
+      );
+    }
+
+    test('seventy metres out is on the route, eighty is off it', () {
+      expect(twoFixes(70).state, OffRouteState.onRoute);
+      expect(twoFixes(80).state, OffRouteState.guiding);
+    });
+
+    test('ninety metres out with fifty metres of accuracy is on it', () {
+      // 2 × 50 is a hundred: the fix could be on the road it left.
+      expect(twoFixes(90, accuracyM: 50).state, OffRouteState.onRoute);
+      expect(twoFixes(90, accuracyM: 5).state, OffRouteState.guiding);
+    });
+
+    test('an accuracy of kilometres cannot switch detection off', () {
+      // Capped at a hundred metres, so 250 m out is still a detour.
+      expect(twoFixes(250, accuracyM: 5000).state, OffRouteState.guiding);
+    });
+
+    test('coming back on widens by one error circle', () {
+      final sure = _machine();
+      _fix(sure, _at(300, asideM: 120), distanceFromRouteM: 120, alongM: 300);
+      _fix(
+        sure,
+        _at(320, asideM: 120),
+        distanceFromRouteM: 120,
+        alongM: 300,
+        at: const Duration(seconds: 1),
+      );
+      final near = _fix(
+        sure,
+        _at(340, asideM: 28),
+        distanceFromRouteM: 28,
+        alongM: 300,
+        at: const Duration(seconds: 2),
+        accuracyM: 5,
+      );
+      expect(near.state, OffRouteState.onRoute, reason: '28 m is inside 30');
+      expect(near.restored, isTrue);
+
+      final shaky = _machine();
+      for (var i = 0; i < 2; i++) {
+        _fix(
+          shaky,
+          _at(300, asideM: 200),
+          distanceFromRouteM: 200,
+          alongM: 300,
+          at: Duration(seconds: i),
+          accuracyM: 50,
+        );
+      }
+      // 45 m would be too far for a good fix; with 50 m of accuracy the
+      // rider is as likely as not on the plan.
+      final back = _fix(
+        shaky,
+        _at(340, asideM: 45),
+        distanceFromRouteM: 45,
+        alongM: 300,
+        at: const Duration(seconds: 2),
+        accuracyM: 50,
+      );
+      expect(back.state, OffRouteState.onRoute);
+      expect(back.restored, isTrue);
+    });
+
+    test('drifting off a rejoin follows the accuracy too', () {
+      OffRouteMachine onDetour() {
+        final machine = _machine();
+        for (var i = 0; i < 2; i++) {
+          _fix(
+            machine,
+            _at(300, asideM: 300),
+            distanceFromRouteM: 300,
+            alongM: 300,
+            at: Duration(seconds: i),
+          );
+        }
+        machine.detourStarted(_t0.add(const Duration(seconds: 2)));
+        return machine;
+      }
+
+      // 60 m off the rejoin is past the 50 m base with a good fix...
+      expect(
+        _fix(
+          onDetour(),
+          _at(320, asideM: 300),
+          distanceFromRouteM: 300,
+          alongM: 300,
+          at: const Duration(seconds: 30),
+          distanceFromDetourM: 60,
+          accuracyM: 5,
+        ).planDetour,
+        isTrue,
+      );
+      // ...and inside 2 × 40 m of accuracy with a shaky one.
+      expect(
+        _fix(
+          onDetour(),
+          _at(320, asideM: 300),
+          distanceFromRouteM: 300,
+          alongM: 300,
+          at: const Duration(seconds: 30),
+          distanceFromDetourM: 60,
+          accuracyM: 40,
+        ).planDetour,
+        isFalse,
+      );
+    });
+  });
+
   group('guiding', () {
-    /// Puts [machine] into the guiding state 80 m east of 300 m along.
+    /// Puts [machine] into the guiding state 120 m east of 300 m along.
     OffRouteMachine guidingAt({double? headingDeg = 0}) {
       final machine = _machine();
       for (var i = 0; i < 2; i++) {
         _fix(
           machine,
-          _at(300, asideM: 80),
-          distanceFromRouteM: 80,
+          _at(300, asideM: 120),
+          distanceFromRouteM: 120,
           alongM: 300,
           headingDeg: headingDeg,
           at: Duration(seconds: i),
@@ -187,15 +345,15 @@ void main() {
 
       final decision = _fix(
         machine,
-        _at(300, asideM: 80),
-        distanceFromRouteM: 80,
+        _at(300, asideM: 120),
+        distanceFromRouteM: 120,
         alongM: 300,
         at: const Duration(seconds: 2),
       );
 
       final guidance = decision.guidance!;
       expect(guidance.alongM, closeTo(300, 1));
-      expect(guidance.distanceM, closeTo(80, 2));
+      expect(guidance.distanceM, closeTo(120, 2));
     });
 
     test('a point already ridden is never the way back', () {
@@ -205,8 +363,8 @@ void main() {
       // is forwards, never to a corner already taken.
       final decision = _fix(
         machine,
-        _at(100, asideM: 60),
-        distanceFromRouteM: 60,
+        _at(100, asideM: 120),
+        distanceFromRouteM: 120,
         alongM: 500,
         at: const Duration(seconds: 2),
       );
@@ -224,8 +382,8 @@ void main() {
       for (var i = 0; i < 2; i++) {
         _fix(
           machine,
-          _at(50, asideM: 80),
-          distanceFromRouteM: 80,
+          _at(50, asideM: 120),
+          distanceFromRouteM: 120,
           alongM: 1500,
           at: Duration(seconds: i),
         );
@@ -233,8 +391,8 @@ void main() {
 
       final decision = _fix(
         machine,
-        _at(50, asideM: 80),
-        distanceFromRouteM: 80,
+        _at(50, asideM: 120),
+        distanceFromRouteM: 120,
         alongM: 1500,
         at: const Duration(seconds: 2),
       );
@@ -244,12 +402,12 @@ void main() {
     });
 
     test('the direction is the bearing to it minus the rider\'s heading', () {
-      // Riding north, 80 m east of the plan: the way back is to the left.
+      // Riding north, 120 m east of the plan: the way back is to the left.
       final machine = guidingAt();
       final left = _fix(
         machine,
-        _at(300, asideM: 80),
-        distanceFromRouteM: 80,
+        _at(300, asideM: 120),
+        distanceFromRouteM: 120,
         alongM: 300,
         at: const Duration(seconds: 2),
       );
@@ -259,8 +417,8 @@ void main() {
       final other = guidingAt(headingDeg: 180);
       final right = _fix(
         other,
-        _at(300, asideM: 80),
-        distanceFromRouteM: 80,
+        _at(300, asideM: 120),
+        distanceFromRouteM: 120,
         alongM: 300,
         headingDeg: 180,
         at: const Duration(seconds: 2),
@@ -273,8 +431,8 @@ void main() {
 
       final decision = _fix(
         machine,
-        _at(300, asideM: 80),
-        distanceFromRouteM: 80,
+        _at(300, asideM: 120),
+        distanceFromRouteM: 120,
         alongM: 300,
         headingDeg: null,
         at: const Duration(seconds: 2),
@@ -286,9 +444,9 @@ void main() {
     test('the way back is said once, and again only when the gap grows', () {
       final machine = _machine();
       final spokenAt = <int>[];
-      // Drifting away at 2 m per fix: 80 m at first, 480 m by the end.
+      // Drifting away at 2 m per fix: 120 m at first, 520 m by the end.
       for (var second = 0; second <= 400; second += 2) {
-        final aside = 80.0 + second;
+        final aside = 120.0 + second;
         final decision = _fix(
           machine,
           _at(300, asideM: aside),
@@ -300,7 +458,7 @@ void main() {
         if (decision.speakGuidance) spokenAt.add(second);
       }
 
-      // Once on leaving the route — the second stray fix, 82 m out — and
+      // Once on leaving the route — the second stray fix, 122 m out — and
       // again 300 m further out; time alone never repeats it.
       expect(spokenAt, hasLength(2));
       expect(spokenAt.first, 2);
@@ -313,8 +471,8 @@ void main() {
       for (var second = 0; second <= 300; second += 2) {
         final decision = _fix(
           machine,
-          _at(300, asideM: 80),
-          distanceFromRouteM: 80,
+          _at(300, asideM: 120),
+          distanceFromRouteM: 120,
           alongM: 300,
           at: Duration(seconds: second),
           rerouteAllowed: false,
@@ -332,8 +490,8 @@ void main() {
       for (var second = 0; second <= 40; second += 10) {
         final decision = _fix(
           machine,
-          _at(300, asideM: 80),
-          distanceFromRouteM: 80,
+          _at(300, asideM: 120),
+          distanceFromRouteM: 120,
           alongM: 300,
           at: Duration(seconds: second),
         );
@@ -351,7 +509,7 @@ void main() {
       var asked = false;
       // Walking away from the route, a fix every 40 m and every second.
       for (var i = 0; i <= 6; i++) {
-        final aside = 60.0 + i * 40;
+        final aside = 100.0 + i * 40;
         final decision = _fix(
           machine,
           _at(300, asideM: aside),
@@ -362,19 +520,24 @@ void main() {
         asked |= decision.planDetour;
       }
 
-      expect(asked, isTrue, reason: '240 m of travel is well past 150');
+      expect(asked, isTrue, reason: '200 m of travel is well past 150');
       expect(machine.offTravelM, greaterThan(detourAfterMeters));
     });
 
     test('re-routing switched off never asks', () {
       final machine = _machine();
-      _fix(machine, _at(300, asideM: 80), distanceFromRouteM: 80, alongM: 300);
+      _fix(
+        machine,
+        _at(300, asideM: 120),
+        distanceFromRouteM: 120,
+        alongM: 300,
+      );
 
       for (var second = 10; second <= 600; second += 10) {
         final decision = _fix(
           machine,
-          _at(300, asideM: 80.0 + second * 10),
-          distanceFromRouteM: 80.0 + second * 10,
+          _at(300, asideM: 120.0 + second * 10),
+          distanceFromRouteM: 120.0 + second * 10,
           alongM: 300,
           at: Duration(seconds: second),
           rerouteAllowed: false,
@@ -393,8 +556,8 @@ void main() {
       for (var i = 0; i < 2; i++) {
         _fix(
           machine,
-          _at(300, asideM: 80),
-          distanceFromRouteM: 80,
+          _at(300, asideM: 120),
+          distanceFromRouteM: 120,
           alongM: 300,
           at: Duration(seconds: i),
         );
@@ -408,8 +571,8 @@ void main() {
 
       final decision = _fix(
         machine,
-        _at(320, asideM: 80),
-        distanceFromRouteM: 80,
+        _at(320, asideM: 120),
+        distanceFromRouteM: 120,
         alongM: 300,
         at: const Duration(seconds: 40),
         distanceFromDetourM: 10,

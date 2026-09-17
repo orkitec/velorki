@@ -195,7 +195,8 @@ following up again, and the compass button below it swaps the style, its
 needle turned to the map's bearing. The choice is kept in
 `recording.follow`, so the next ride starts the way the last one was ridden,
 and a pan or a twist of the map hands it back to the rider. While the rider is
-within 25 m of the guided route the puck is drawn at `NavigationProgress.snapped`
+within `routeSnapMeters` (30 m, or the fix's own accuracy when that is worse)
+of the guided route the puck is drawn at `NavigationProgress.snapped`
 and pointed along `routeBearingDeg`, so neither wanders with the fix; the
 adapter then walks the puck to each new fix over 800 ms instead of hopping.
 The camera glides over a one-second fix interval and is only turned when the
@@ -247,7 +248,8 @@ that has gone astray. The same three are chips on the record sheet, and the
 banner carries a mute button that silences the voice for the rest of the ride
 only (`voiceMutedForRideProvider`, cleared whenever a ride starts or ends).
 A rider who leaves the route is repaired in three steps, and `OffRouteMachine`
-decides which: more than 50 m out for two fixes (or 8 s) is `guiding`, where the
+decides which: more than `max(75 m, 2 × accuracy)` out for two fixes (or 8 s) is
+`guiding`, where the
 plan stays the active route and the banner and the voice point at the nearest
 route point still ahead, with a distance and a left/right/ahead/behind taken
 from the bearing minus the rider's heading — no routing at all, because most
@@ -261,8 +263,12 @@ them is taken. The goal is the nearest way back onto the plan, not the shortest
 way to the finish, which is only ever a candidate when it falls inside the 2 km
 window. The answer is stitched to the rest of the plan as one
 route in `detourRouteProvider` — drawn as a branch beside the plan, recomputed
-only on a 50 m drift and at most every 20 s. Within `routeSnapMeters` of the plan
-again the branch is dropped silently and its hints carry on. Only an explicit
+only on a `max(50 m, 2 × accuracy)` drift and at most every 20 s. Within
+`max(30 m, accuracy)` of the plan again the branch is dropped silently and its
+hints carry on. Every one of those distances scales with the fix's reported
+horizontal accuracy the way OsmAnd and Organic Maps do, capped at 100 m of
+accuracy so a phone that has lost the sky cannot switch off-route detection off
+(`off_route_thresholds.dart` holds the two formulas and the constants). Only an explicit
 "New route from here", or 3 km out for over 5 minutes, re-plans the whole ride to
 its destination; `navigation.reroute` off leaves the rider with the guidance and
 nothing more.

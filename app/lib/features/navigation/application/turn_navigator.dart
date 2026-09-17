@@ -4,19 +4,10 @@ import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../domain/navigation_progress.dart';
+import 'off_route_thresholds.dart';
 
 /// How far past a turn the rider has to be before it counts as taken.
 const double _passedMarginM = 15;
-
-/// Farther than this from the route counts as a stray fix.
-const double _strayM = 50;
-
-/// How near the route a fix has to be for the rider to count as on it.
-///
-/// One fix inside this is enough to be back on the route, and it is also the
-/// gap the record screen is willing to draw the puck across: the matched
-/// point is the honest answer only while the rider is really on the line.
-const double routeSnapMeters = 25;
 
 /// How many stray fixes in a row it takes to call the rider off route. GPS in
 /// a city throws the odd fix a long way out; two in a row is a real detour.
@@ -102,13 +93,23 @@ class TurnNavigator {
   /// [now] is only used for the off-route hysteresis: straying for
   /// [_strayFor] counts as off route even when the fixes are too far apart to
   /// have made [_strayFixes] of them.
-  NavigationProgress update(LatLng position, {DateTime? now}) {
+  ///
+  /// [accuracyM] is the horizontal accuracy the fix came with, in metres, and
+  /// widens both thresholds with it — see [strayThresholdM] and
+  /// [snapThresholdM]. Unknown accuracy leaves the base distances standing.
+  NavigationProgress update(
+    LatLng position, {
+    DateTime? now,
+    double? accuracyM,
+  }) {
     if (_line.isEmpty) return const NavigationProgress();
 
-    final match = _snap(position);
+    final strayM = strayThresholdM(accuracyM);
+    final snapM = snapThresholdM(accuracyM);
+    final match = _snap(position, strayM);
     final alongM = match.alongM;
 
-    if (match.distanceM > _strayM) {
+    if (match.distanceM > strayM) {
       _strayCount++;
       final since = _strayingSince ??= now;
       final longEnough =
@@ -117,7 +118,7 @@ class TurnNavigator {
     } else {
       _strayCount = 0;
       _strayingSince = null;
-      if (_offRoute && match.distanceM <= routeSnapMeters) _offRoute = false;
+      if (_offRoute && match.distanceM <= snapM) _offRoute = false;
     }
 
     TurnHint? next;
@@ -176,10 +177,10 @@ class TurnNavigator {
   /// Finds the point of the route nearest to [position].
   ///
   /// Looks in a window around the last match first, which is both faster and
-  /// right where a route crosses itself. Only when that match is far from the
-  /// line does it fall back to the whole route, so a rider who jumped ahead
-  /// (or restarted mid-route) is found again.
-  _Match _snap(LatLng position) {
+  /// right where a route crosses itself. Only when that match is farther than
+  /// [strayM] from the line does it fall back to the whole route, so a rider
+  /// who jumped ahead (or restarted mid-route) is found again.
+  _Match _snap(LatLng position, double strayM) {
     if (_line.length == 1) {
       return _Match(0, haversineMeters(position, _line.first), 0, _line.first);
     }
@@ -187,7 +188,7 @@ class TurnNavigator {
     final from = math.max(0, _lastSegment - 5);
     final to = math.min(segments - 1, _lastSegment + 60);
     var best = _search(position, from, to);
-    if (best.distanceM > _strayM) {
+    if (best.distanceM > strayM) {
       final whole = _search(position, 0, segments - 1);
       if (whole.distanceM < best.distanceM) best = whole;
     }
