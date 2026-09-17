@@ -32,7 +32,3 @@ updates:
     directory: /web
     schedule:
       interval: monthly
-  - package-ecosystem: docker-compose
-    directory: /deploy
-    schedule:
-      interval: monthly
