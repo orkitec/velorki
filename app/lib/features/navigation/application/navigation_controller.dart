@@ -252,6 +252,10 @@ class NavigationController extends _$NavigationController {
   /// silenced exactly once when it stops.
   bool _guiding = false;
 
+  /// Whether the speaker is holding the phone's audio right now; see
+  /// [_holdAudio].
+  bool _audioHeld = false;
+
   /// Whether a ride was running on the previous pass, so the ride-only mute
   /// is lifted exactly once when one starts or ends.
   bool _recording = false;
@@ -290,6 +294,10 @@ class NavigationController extends _$NavigationController {
     ref.listen(recordingControllerProvider, (previous, next) => _refresh());
     ref.listen(navigationSettingsProvider, (previous, next) => _refresh());
     ref.listen(guidedRouteProvider, (previous, next) => _refresh());
+    // The mute is the one switch that is not read on every pass anyway, and
+    // it has to reach the speaker the moment it is flipped: it is what gives
+    // the phone's audio back mid-ride.
+    ref.listen(voiceMutedForRideProvider, (previous, next) => _refresh());
     ref.onDispose(_forget);
     _building = true;
     final initial = _compute();
@@ -350,6 +358,7 @@ class NavigationController extends _$NavigationController {
 
     _ensureNavigator(detour ?? plan, plan);
     _guiding = true;
+    _holdAudio(settings.voice && !ref.read(voiceMutedForRideProvider));
 
     // Nothing new to match: keep showing what the last fix said.
     if (snapshot == null ||
@@ -794,9 +803,24 @@ class NavigationController extends _$NavigationController {
   void _stop() {
     _setDetour(null);
     _forget();
+    _holdAudio(false);
     if (!_guiding) return;
     _guiding = false;
     unawaited(ref.read(turnSpeakerProvider).stop());
+  }
+
+  /// Claims the phone's audio while the turns are being spoken, and gives it
+  /// back as soon as they are not: the voice switched off, the ride muted
+  /// from the banner, or the guidance over.
+  ///
+  /// On iOS that is one audio session held open for the whole stretch rather
+  /// than one per cue, which is what a Bluetooth headset needs; see
+  /// [TurnSpeaker.beginGuidance]. On Android it costs nothing.
+  void _holdAudio(bool wanted) {
+    if (wanted == _audioHeld) return;
+    _audioHeld = wanted;
+    final speaker = ref.read(turnSpeakerProvider);
+    unawaited(wanted ? speaker.beginGuidance() : speaker.endGuidance());
   }
 
   void _forget() {

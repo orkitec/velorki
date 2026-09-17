@@ -82,6 +82,10 @@ exercised there. The items here are the parts not yet covered by that.
       `.well-known` files for the links to verify, which needs `APPLE_TEAM_ID`
       and `ANDROID_CERT_SHA256` — the release keystore's SHA-256 fingerprint
       from `keytool -list -v` — in its environment.
+- [ ] Voice cues over a Bluetooth headset: one ride with the headset paired,
+      to confirm the held audio session and the silent lead-in really do stop
+      cues arriving scrambled or cut short (`turn_speaker.dart`,
+      `LeadInPlayer` in `ios/Runner/AppDelegate.swift`).
 
 ## Still to try on the Android phone
 

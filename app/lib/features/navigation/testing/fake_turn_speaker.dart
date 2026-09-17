@@ -23,6 +23,15 @@ class FakeTurnSpeaker implements TurnSpeaker {
   /// How often [stop] was called.
   int stops = 0;
 
+  /// How often [beginGuidance] and [endGuidance] were called.
+  int guidanceStarts = 0;
+
+  /// See [guidanceStarts].
+  int guidanceEnds = 0;
+
+  /// Whether the speaker is holding the phone's audio for a guided ride.
+  bool get holdingAudio => guidanceStarts > guidanceEnds;
+
   /// Whether [dispose] was called.
   bool disposed = false;
 
@@ -43,6 +52,12 @@ class FakeTurnSpeaker implements TurnSpeaker {
 
   @override
   Future<void> stop() async => stops++;
+
+  @override
+  Future<void> beginGuidance() async => guidanceStarts++;
+
+  @override
+  Future<void> endGuidance() async => guidanceEnds++;
 
   @override
   Future<List<VoiceOption>> voices() async => available;

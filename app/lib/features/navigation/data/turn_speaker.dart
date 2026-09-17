@@ -9,6 +9,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../settings/data/language_controller.dart';
 import '../domain/voice_option.dart';
 import '../domain/voice_ranking.dart';
+import 'navigation_audio.dart';
 
 /// Says a turn out loud.
 ///
@@ -27,6 +28,17 @@ abstract class TurnSpeaker {
 
   /// Drops whatever is being said and whatever is queued.
   Future<void> stop();
+
+  /// Claims the phone's audio for a guided ride.
+  ///
+  /// Called when the cues start — guidance running, voice on, not muted —
+  /// and matched by [endGuidance] when any of that stops being true. On iOS
+  /// the audio session is held open in between; see [FlutterTtsSpeaker].
+  Future<void> beginGuidance();
+
+  /// Gives the phone's audio back. Stops the speaker with it, and does
+  /// nothing when no ride is being guided.
+  Future<void> endGuidance();
 
   /// The voices the phone has for the language the cues are in, best first.
   Future<List<VoiceOption>> voices();
@@ -64,10 +76,14 @@ class FlutterTtsSpeaker implements TurnSpeaker {
   FlutterTtsSpeaker({
     this.localeTag = 'en-US',
     FlutterTts? engine,
+    NavigationAudio? audio,
     TargetPlatform? platform,
     DateTime Function()? clock,
   }) : _tts = engine ?? FlutterTts(),
        _platform = platform ?? defaultTargetPlatform,
+       _audio =
+           audio ??
+           NavigationAudio(platform: platform ?? defaultTargetPlatform),
        _now = clock ?? DateTime.now;
 
   /// How long a cue may wait its turn before it is dropped unsaid.
@@ -77,6 +93,19 @@ class FlutterTtsSpeaker implements TurnSpeaker {
   /// wrong, and long enough that a cue queued behind an ordinary one is still
   /// said.
   static const Duration staleAfter = Duration(seconds: 6);
+
+  /// How long the silent lead-in before a cue lasts on iOS.
+  ///
+  /// The length of `assets/audio/silence.wav`: change one and change the
+  /// other. A Bluetooth headset takes about a second to bring an idle A2DP
+  /// link back up, and speech started before it is up is what arrives
+  /// scrambled or missing its first syllables.
+  static const Duration leadIn = Duration(milliseconds: 1500);
+
+  /// How long a lead-in may take before the cue is spoken anyway: half a
+  /// second more than the file lasts.
+  static final Duration leadInTimeout =
+      leadIn + const Duration(milliseconds: 500);
 
   /// The BCP-47 tag the cues are spoken in.
   final String localeTag;
@@ -93,7 +122,12 @@ class FlutterTtsSpeaker implements TurnSpeaker {
   bool get _isIOS => !kIsWeb && _platform == TargetPlatform.iOS;
 
   final FlutterTts _tts;
+  final NavigationAudio _audio;
   bool _configured = false;
+
+  /// Whether a guided ride is holding the phone's audio right now; see
+  /// [beginGuidance].
+  bool _guiding = false;
   bool _broken = false;
   String? _defaultKey;
   VoiceOption? _defaultVoice;
@@ -209,6 +243,49 @@ class FlutterTtsSpeaker implements TurnSpeaker {
   }
 
   @override
+  Future<void> beginGuidance() async {
+    if (_guiding) return;
+    _guiding = true;
+    await _configure();
+    if (!_isIOS || _broken) return;
+    try {
+      // The plugin deactivates the shared audio session after every single
+      // utterance (`speechSynthesizer(_:didFinish:)` calls
+      // `setActive(false, options: .notifyOthersOnDeactivation)` whenever the
+      // category options hold `duckOthers` or
+      // `interruptSpokenAudioAndMixWithOthers`, which ours do). On a
+      // Bluetooth headset that tears the A2DP stream down between cues and
+      // the next cue starts into a link that is still coming up — the cue
+      // that arrives scrambled, or without its first syllables. The session
+      // is held open for the whole guided ride instead, and given back in
+      // [endGuidance].
+      await _tts.autoStopSharedSession(false);
+    } catch (error) {
+      _fail(error);
+    }
+  }
+
+  @override
+  Future<void> endGuidance() async {
+    if (!_guiding) return;
+    _guiding = false;
+    await stop();
+    if (!_isIOS) return;
+    if (_configured && !_broken) {
+      try {
+        // Back to the plugin's own behaviour, so a voice tried out in
+        // Settings does not hold the session open.
+        await _tts.autoStopSharedSession(true);
+      } catch (error) {
+        _fail(error);
+      }
+    }
+    // Once, and whatever the engine is doing: the session outlives a broken
+    // engine, and whatever was playing before the ride is waiting on it.
+    await _audio.deactivateSession();
+  }
+
+  @override
   Future<void> stop() async {
     // Whatever is waiting its turn is dropped with what is being said.
     for (final job in _waiting) {
@@ -221,6 +298,9 @@ class FlutterTtsSpeaker implements TurnSpeaker {
 
   @override
   Future<void> dispose() async {
+    // A speaker that is thrown away mid-ride still owes the phone its audio
+    // session back.
+    await endGuidance();
     await stop();
   }
 
@@ -256,7 +336,25 @@ class FlutterTtsSpeaker implements TurnSpeaker {
       job.finish();
       return;
     }
+    // The cut is armed before the lead-in, so an urgent cue arriving while
+    // the headset wakes up does not have to wait the silence out.
     final cut = _cut = Completer<void>();
+    if (_isIOS && _guiding) {
+      // Silence first, so the headset is streaming by the time the voice
+      // starts. Nothing plays between cues: the link is left to idle, which
+      // is what the rider's battery wants.
+      await Future.any<void>(<Future<void>>[
+        _audio.playLeadIn(leadInTimeout),
+        cut.future,
+      ]);
+      if (cut.isCompleted) {
+        // Cut off before a word of it was said: the turn it was about is the
+        // one the rider is taking now.
+        if (identical(_cut, cut)) _cut = null;
+        job.finish();
+        return;
+      }
+    }
     // `_fail` swallows the error, so the cue's own future is a plain
     // completion whichever way the utterance ends.
     final said = _tts.speak(job.text).then<void>((_) {}, onError: _fail);
@@ -326,17 +424,18 @@ class FlutterTtsSpeaker implements TurnSpeaker {
         await _tts.setSharedInstance(true);
         // `playback` is the category that keeps speaking with the screen
         // locked and the Ring/Silent switch on silent, which is why
-        // `UIBackgroundModes` in Info.plist has `audio` in it. The options
-        // are the set Apple names for turn-by-turn guidance: mix with (and
-        // duck) music rather than being silenced by it, and pause a podcast
-        // or an audiobook for the few seconds a cue takes rather than talking
-        // over the top of it. `voicePrompt` tells the system this is spoken
-        // guidance, not media.
+        // `UIBackgroundModes` in Info.plist has `audio` in it. Music is mixed
+        // with rather than ducked: ducking makes iOS ramp the other app down
+        // and back up around every utterance, which on a Bluetooth headset
+        // costs the first word of a cue. A podcast or an audiobook is still
+        // paused for the few seconds a cue takes rather than talked over.
+        // `voicePrompt` tells the system this is spoken guidance, not media.
+        // No `allowBluetooth`: that is the hands-free call profile, and the
+        // playback category already routes to A2DP.
         await _tts.setIosAudioCategory(
           IosTextToSpeechAudioCategory.playback,
           const [
             IosTextToSpeechAudioCategoryOptions.mixWithOthers,
-            IosTextToSpeechAudioCategoryOptions.duckOthers,
             IosTextToSpeechAudioCategoryOptions
                 .interruptSpokenAudioAndMixWithOthers,
           ],

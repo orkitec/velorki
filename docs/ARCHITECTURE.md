@@ -248,6 +248,12 @@ the banner, `navigation.voice` speaks it, `navigation.reroute` repairs a ride
 that has gone astray. The same three are chips on the record sheet, and the
 banner carries a mute button that silences the voice for the rest of the ride
 only (`voiceMutedForRideProvider`, cleared whenever a ride starts or ends).
+On iOS the speaker holds one audio session for the whole spoken stretch rather
+than the one per cue `flutter_tts` would otherwise take and give back, and each
+cue is preceded by 1.5 s of silence (`assets/audio/silence.wav`, played by
+`AppDelegate` over `app.velorki/audio`). Both are for Bluetooth headsets, whose
+A2DP link goes idle between cues and takes about a second to come back — long
+enough to swallow the first syllables of a turn.
 A rider who leaves the route is repaired in three steps, and `OffRouteMachine`
 decides which: more than `max(75 m, 2 × accuracy)` out for two fixes (or 8 s) is
 `guiding`, where the

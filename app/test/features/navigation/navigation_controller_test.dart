@@ -424,6 +424,36 @@ void main() {
     },
   );
 
+  test('muting a ride gives the phone\'s audio back', () async {
+    final h = await _NavHarness.create(saved: _savedRoute());
+    await h.follow('route-1');
+    await h.ride(0);
+    // Held for the whole guided stretch, which on iOS is one audio session
+    // rather than one per cue.
+    expect(h.speaker.holdingAudio, isTrue);
+
+    h.container.read(voiceMutedForRideProvider.notifier).toggle();
+    expect(h.speaker.holdingAudio, isFalse);
+
+    h.container.read(voiceMutedForRideProvider.notifier).toggle();
+    expect(h.speaker.holdingAudio, isTrue);
+
+    await h.stopRiding();
+    expect(h.speaker.holdingAudio, isFalse);
+  });
+
+  test('a silent ride never claims the phone\'s audio', () async {
+    final h = await _NavHarness.create(
+      saved: _savedRoute(),
+      preferences: <String, Object>{'navigation.voice': false},
+    );
+    await h.follow('route-1');
+
+    await h.ride(250);
+
+    expect(h.speaker.holdingAudio, isFalse);
+  });
+
   test('the mute lasts one ride only', () async {
     final h = await _NavHarness.create(saved: _savedRoute());
     await h.follow('route-1');

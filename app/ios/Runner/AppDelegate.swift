@@ -1,3 +1,4 @@
+import AVFoundation
 import Flutter
 import UIKit
 
@@ -11,8 +12,17 @@ import UIKit
   private static let backupChannelName = "app.velorki/backup"
   private static let excludeFromBackupMethod = "excludeFromBackup"
 
+  /// Mirrored in `lib/features/navigation/data/navigation_audio.dart`.
+  private static let audioChannelName = "app.velorki/audio"
+  private static let playLeadInMethod = "playLeadIn"
+  private static let deactivateSessionMethod = "deactivateSession"
+
   private var filesChannel: FlutterMethodChannel?
   private var backupChannel: FlutterMethodChannel?
+  private var audioChannel: FlutterMethodChannel?
+
+  /// The silence played just before a spoken turn cue.
+  private let leadIn = LeadInPlayer()
 
   /// Files that arrived before the Dart side was listening.
   private var pendingPaths: [String] = []
@@ -40,6 +50,15 @@ import UIKit
       AppDelegate.handleBackupCall(call, result: result)
     }
     backupChannel = backup
+
+    let audio = FlutterMethodChannel(
+      name: AppDelegate.audioChannelName,
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
+    )
+    audio.setMethodCallHandler { [weak self] call, result in
+      self?.handleAudioCall(call, result: result)
+    }
+    audioChannel = audio
 
     flushPendingPaths()
   }
@@ -86,6 +105,41 @@ import UIKit
           details: error.localizedDescription
         )
       )
+    }
+  }
+
+  /// The audio a guided ride needs and `flutter_tts` does not offer.
+  ///
+  /// `playLeadIn` plays `assets/audio/silence.wav` and answers when it has
+  /// finished; `deactivateSession` hands the audio session back to whatever
+  /// was playing before the ride. See
+  /// `lib/features/navigation/data/navigation_audio.dart`.
+  private func handleAudioCall(
+    _ call: FlutterMethodCall,
+    result: @escaping FlutterResult
+  ) {
+    switch call.method {
+    case AppDelegate.playLeadInMethod:
+      leadIn.play(result: result)
+    case AppDelegate.deactivateSessionMethod:
+      leadIn.stop()
+      do {
+        try AVAudioSession.sharedInstance().setActive(
+          false,
+          options: .notifyOthersOnDeactivation
+        )
+        result(nil)
+      } catch {
+        result(
+          FlutterError(
+            code: "deactivate_failed",
+            message: "could not give the audio session back",
+            details: error.localizedDescription
+          )
+        )
+      }
+    default:
+      result(FlutterMethodNotImplemented)
     }
   }
 
@@ -157,5 +211,93 @@ import UIKit
     for path in paths {
       channel.invokeMethod(AppDelegate.openedFileMethod, arguments: path)
     }
+  }
+}
+
+/// Plays the bundled silence that goes before a spoken turn cue.
+///
+/// A Bluetooth headset lets its A2DP link go idle when nothing is playing and
+/// takes about a second to bring it back up; a cue started into that gap
+/// arrives scrambled or without its first syllables. The silence wakes the
+/// link, so the voice starts into a stream that is already open. It is played
+/// per cue rather than looped for the whole ride: a link held open all ride
+/// costs the rider battery for nothing.
+///
+/// It lives here rather than in a file of its own so the Runner target needs
+/// no new entry in `project.pbxproj`; the file itself is a Flutter asset, so
+/// it needs none either.
+final class LeadInPlayer: NSObject, AVAudioPlayerDelegate {
+  /// Where the silence lives, as `pubspec.yaml` declares it.
+  private static let asset = "assets/audio/silence.wav"
+
+  private var player: AVAudioPlayer?
+
+  /// The Dart call waiting for the silence to finish, if there is one.
+  private var pending: FlutterResult?
+
+  /// Plays the silence and answers [result] when it has finished.
+  ///
+  /// Answers straight away when there is nothing to play, so a cue is never
+  /// held up by a missing or unreadable file. Dart caps the wait as well.
+  func play(result: @escaping FlutterResult) {
+    // A cue that comes in while the last lead-in is still playing takes the
+    // player over; the call it interrupts is answered rather than left
+    // hanging.
+    answerPending()
+    guard let player = player ?? load() else {
+      result(nil)
+      return
+    }
+    self.player = player
+    // The session is the one `flutter_tts` set up (playback, voicePrompt).
+    // Activating it again is what brings it back after an interruption — a
+    // phone call — has taken it away.
+    try? AVAudioSession.sharedInstance().setActive(true)
+    player.currentTime = 0
+    pending = result
+    if !player.play() {
+      pending = nil
+      result(nil)
+    }
+  }
+
+  /// Stops the silence, answering whatever was waiting on it.
+  func stop() {
+    player?.stop()
+    answerPending()
+  }
+
+  private func load() -> AVAudioPlayer? {
+    let key = FlutterDartProject.lookupKey(forAsset: LeadInPlayer.asset)
+    guard let path = Bundle.main.path(forResource: key, ofType: nil) else {
+      NSLog("velorki: the silent lead-in is not in the bundle")
+      return nil
+    }
+    do {
+      let player = try AVAudioPlayer(contentsOf: URL(fileURLWithPath: path))
+      player.delegate = self
+      // Low rather than zero: a player at zero volume is not guaranteed to
+      // render anything, and rendering is the whole point of this file.
+      player.volume = 0.01
+      player.prepareToPlay()
+      return player
+    } catch {
+      NSLog("velorki: could not open the silent lead-in: \(error)")
+      return nil
+    }
+  }
+
+  func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+    answerPending()
+  }
+
+  func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
+    answerPending()
+  }
+
+  private func answerPending() {
+    guard let waiting = pending else { return }
+    pending = nil
+    waiting(nil)
   }
 }

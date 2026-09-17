@@ -74,6 +74,10 @@ flutter:
   uses-material-design: true
   generate: true
   assets:
+    # 1.5 s of silence, played on iOS just before a spoken turn cue so a
+    # Bluetooth headset is awake by the time the voice starts. See
+    # assets/audio/README.md.
+    - assets/audio/silence.wav
     # The pinned BRouter release's routing profiles and tag lookup table.
     # BrouterAssets copies them to <appSupport>/brouter/profiles/ at startup,
     # because the on-device engine reads them as files, not as assets.
