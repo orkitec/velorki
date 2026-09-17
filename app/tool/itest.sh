@@ -220,8 +220,11 @@ flutter_test_one() {
       | grep -E '^[0-9]+:[0-9]+ \+[0-9]+: ' | grep -qv ': loading '; then
       running_at=$now
     fi
-    if [ -z "$running_at" ] && [ -n "$built_at" ] \
-      && [ $((now - built_at)) -ge "$STARTUP" ]; then
+    # Emulators only: the attach hang was only ever seen there, and on the
+    # simulator the reporter's progress lines never reach this log, so the
+    # window would close on a healthy run.
+    if [[ "$DEVICE" == emulator-* ]] && [ -z "$running_at" ] \
+      && [ -n "$built_at" ] && [ $((now - built_at)) -ge "$STARTUP" ]; then
       outcome=hung; kill "$pid" 2>/dev/null; break
     fi
     # On the iOS simulator the tooling has been seen to sit for good after
