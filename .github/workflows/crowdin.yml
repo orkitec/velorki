@@ -76,7 +76,7 @@ jobs:
   # English is the source language of the project.
   download:
     needs: token
-    if: ${{ needs.token.outputs.present == 'true' && github.event_name != 'push' && !inputs.upload_translations }}
+    if: ${{ needs.token.outputs.present == 'true' && github.event_name != 'push' && inputs.upload_translations != true }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
