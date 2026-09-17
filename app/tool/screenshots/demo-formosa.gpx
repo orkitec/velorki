@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Velorki screenshots" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+  <metadata>
+    <name>Praia Formosa and back</name>
+    <desc>A planned 7.6 km ride around Funchal, Madeira.</desc>
+  </metadata>
+  <rte>
+    <name>Praia Formosa and back</name>
+    <type>cycling</type>
+    <rtept lat="32.646500" lon="-16.907500">
+      <ele>5.0</ele>
+    </rtept>
+    <rtept lat="32.646130" lon="-16.908796">
+      <ele>5.4</ele>
+    </rtept>
+    <rtept lat="32.645760" lon="-16.910091">
+      <ele>5.7</ele>
+    </rtept>
+    <rtept lat="32.645444" lon="-16.911403">
+      <ele>6.2</ele>
+    </rtept>
+    <rtept lat="32.645255" lon="-16.912753">
+      <ele>7.1</ele>
+    </rtept>
+    <rtept lat="32.645066" lon="-16.914103">
+      <ele>7.9</ele>
+    </rtept>
+    <rtept lat="32.644877" lon="-16.915453">
+      <ele>8.7</ele>
+    </rtept>
+    <rtept lat="32.644659" lon="-16.916796">
+      <ele>10.6</ele>
+    </rtept>
+    <rtept lat="32.644421" lon="-16.918135">
+      <ele>13.3</ele>
+    </rtept>
+    <rtept lat="32.644183" lon="-16.919473">
+      <ele>15.9</ele>
+    </rtept>
+    <rtept lat="32.643938" lon="-16.920810">
+      <ele>18.5</ele>
+    </rtept>
+    <rtept lat="32.643672" lon="-16.922142">
+      <ele>20.6</ele>
+    </rtept>
+    <rtept lat="32.643405" lon="-16.923473">
+      <ele>22.8</ele>
+    </rtept>
+    <rtept lat="32.643139" lon="-16.924804">
+      <ele>24.9</ele>
+    </rtept>
+    <rtept lat="32.642826" lon="-16.926120">
+      <ele>25.5</ele>
+    </rtept>
+    <rtept lat="32.642463" lon="-16.927418">
+      <ele>24.5</ele>
+    </rtept>
+    <rtept lat="32.642099" lon="-16.928716">
+      <ele>23.4</ele>
+    </rtept>
+    <rtept lat="32.641736" lon="-16.930015">
+      <ele>22.4</ele>
+    </rtept>
+    <rtept lat="32.641413" lon="-16.931327">
+      <ele>22.6</ele>
+    </rtept>
+    <rtept lat="32.641113" lon="-16.932649">
+      <ele>23.6</ele>
+    </rtept>
+    <rtept lat="32.640814" lon="-16.933970">
+      <ele>24.6</ele>
+    </rtept>
+    <rtept lat="32.640515" lon="-16.935291">
+      <ele>25.6</ele>
+    </rtept>
+    <rtept lat="32.640277" lon="-16.936629">
+      <ele>23.5</ele>
+    </rtept>
+    <rtept lat="32.640078" lon="-16.937976">
+      <ele>19.6</ele>
+    </rtept>
+    <rtept lat="32.639878" lon="-16.939324">
+      <ele>15.6</ele>
+    </rtept>
+    <rtept lat="32.639678" lon="-16.940671">
+      <ele>11.6</ele>
+    </rtept>
+    <rtept lat="32.639541" lon="-16.942028">
+      <ele>10.6</ele>
+    </rtept>
+    <rtept lat="32.639443" lon="-16.943392">
+      <ele>11.6</ele>
+    </rtept>
+    <rtept lat="32.639346" lon="-16.944755">
+      <ele>12.5</ele>
+    </rtept>
+    <rtept lat="32.639249" lon="-16.946118">
+      <ele>13.5</ele>
+    </rtept>
+    <rtept lat="32.639249" lon="-16.946118">
+      <ele>13.5</ele>
+    </rtept>
+    <rtept lat="32.639346" lon="-16.944755">
+      <ele>12.5</ele>
+    </rtept>
+    <rtept lat="32.639443" lon="-16.943392">
+      <ele>11.6</ele>
+    </rtept>
+    <rtept lat="32.639541" lon="-16.942028">
+      <ele>10.6</ele>
+    </rtept>
+    <rtept lat="32.639678" lon="-16.940671">
+      <ele>11.6</ele>
+    </rtept>
+    <rtept lat="32.639878" lon="-16.939324">
+      <ele>15.6</ele>
+    </rtept>
+    <rtept lat="32.640078" lon="-16.937976">
+      <ele>19.6</ele>
+    </rtept>
+    <rtept lat="32.640277" lon="-16.936629">
+      <ele>23.5</ele>
+    </rtept>
+    <rtept lat="32.640515" lon="-16.935291">
+      <ele>25.6</ele>
+    </rtept>
+    <rtept lat="32.640814" lon="-16.933970">
+      <ele>24.6</ele>
+    </rtept>
+    <rtept lat="32.641113" lon="-16.932649">
+      <ele>23.6</ele>
+    </rtept>
+    <rtept lat="32.641413" lon="-16.931327">
+      <ele>22.6</ele>
+    </rtept>
+    <rtept lat="32.641736" lon="-16.930015">
+      <ele>22.4</ele>
+    </rtept>
+    <rtept lat="32.642099" lon="-16.928716">
+      <ele>23.4</ele>
+    </rtept>
+    <rtept lat="32.642463" lon="-16.927418">
+      <ele>24.5</ele>
+    </rtept>
+    <rtept lat="32.642826" lon="-16.926120">
+      <ele>25.5</ele>
+    </rtept>
+    <rtept lat="32.643139" lon="-16.924804">
+      <ele>24.9</ele>
+    </rtept>
+    <rtept lat="32.643405" lon="-16.923473">
+      <ele>22.8</ele>
+    </rtept>
+    <rtept lat="32.643672" lon="-16.922142">
+      <ele>20.6</ele>
+    </rtept>
+    <rtept lat="32.643938" lon="-16.920810">
+      <ele>18.5</ele>
+    </rtept>
+    <rtept lat="32.644183" lon="-16.919473">
+      <ele>15.9</ele>
+    </rtept>
+    <rtept lat="32.644421" lon="-16.918135">
+      <ele>13.3</ele>
+    </rtept>
+    <rtept lat="32.644659" lon="-16.916796">
+      <ele>10.6</ele>
+    </rtept>
+    <rtept lat="32.644877" lon="-16.915453">
+      <ele>8.7</ele>
+    </rtept>
+    <rtept lat="32.645066" lon="-16.914103">
+      <ele>7.9</ele>
+    </rtept>
+    <rtept lat="32.645255" lon="-16.912753">
+      <ele>7.1</ele>
+    </rtept>
+    <rtept lat="32.645444" lon="-16.911403">
+      <ele>6.2</ele>
+    </rtept>
+    <rtept lat="32.645760" lon="-16.910091">
+      <ele>5.7</ele>
+    </rtept>
+    <rtept lat="32.646130" lon="-16.908796">
+      <ele>5.4</ele>
+    </rtept>
+    <rtept lat="32.646500" lon="-16.907500">
+      <ele>5.0</ele>
+    </rtept>
+  </rte>
+</gpx>

@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Velorki screenshots" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+  <metadata>
+    <name>Monte and the Levada dos Tornos</name>
+    <desc>A planned 6.1 km ride around Funchal, Madeira.</desc>
+  </metadata>
+  <rte>
+    <name>Monte and the Levada dos Tornos</name>
+    <type>cycling</type>
+    <rtept lat="32.678800" lon="-16.963600">
+      <ele>688.0</ele>
+    </rtept>
+    <rtept lat="32.678154" lon="-16.962810">
+      <ele>673.3</ele>
+    </rtept>
+    <rtept lat="32.677508" lon="-16.962020">
+      <ele>658.6</ele>
+    </rtept>
+    <rtept lat="32.676861" lon="-16.961231">
+      <ele>643.8</ele>
+    </rtept>
+    <rtept lat="32.676215" lon="-16.960441">
+      <ele>629.1</ele>
+    </rtept>
+    <rtept lat="32.675569" lon="-16.959651">
+      <ele>614.4</ele>
+    </rtept>
+    <rtept lat="32.674840" lon="-16.959000">
+      <ele>597.8</ele>
+    </rtept>
+    <rtept lat="32.674000" lon="-16.958533">
+      <ele>578.7</ele>
+    </rtept>
+    <rtept lat="32.673160" lon="-16.958067">
+      <ele>559.5</ele>
+    </rtept>
+    <rtept lat="32.672320" lon="-16.957600">
+      <ele>540.4</ele>
+    </rtept>
+    <rtept lat="32.671612" lon="-16.957044">
+      <ele>523.3</ele>
+    </rtept>
+    <rtept lat="32.671699" lon="-16.955947">
+      <ele>518.7</ele>
+    </rtept>
+    <rtept lat="32.671785" lon="-16.954851">
+      <ele>514.1</ele>
+    </rtept>
+    <rtept lat="32.671872" lon="-16.953754">
+      <ele>509.5</ele>
+    </rtept>
+    <rtept lat="32.671959" lon="-16.952658">
+      <ele>504.9</ele>
+    </rtept>
+    <rtept lat="32.672045" lon="-16.951561">
+      <ele>500.3</ele>
+    </rtept>
+    <rtept lat="32.672132" lon="-16.950465">
+      <ele>495.6</ele>
+    </rtept>
+    <rtept lat="32.672156" lon="-16.949373">
+      <ele>490.0</ele>
+    </rtept>
+    <rtept lat="32.671947" lon="-16.948300">
+      <ele>480.4</ele>
+    </rtept>
+    <rtept lat="32.671739" lon="-16.947227">
+      <ele>470.9</ele>
+    </rtept>
+    <rtept lat="32.671530" lon="-16.946154">
+      <ele>461.4</ele>
+    </rtept>
+    <rtept lat="32.671321" lon="-16.945081">
+      <ele>451.8</ele>
+    </rtept>
+    <rtept lat="32.671113" lon="-16.944007">
+      <ele>442.3</ele>
+    </rtept>
+    <rtept lat="32.670904" lon="-16.942934">
+      <ele>432.7</ele>
+    </rtept>
+    <rtept lat="32.670689" lon="-16.941863">
+      <ele>424.8</ele>
+    </rtept>
+    <rtept lat="32.670469" lon="-16.940793">
+      <ele>418.5</ele>
+    </rtept>
+    <rtept lat="32.670249" lon="-16.939723">
+      <ele>412.3</ele>
+    </rtept>
+    <rtept lat="32.670029" lon="-16.938653">
+      <ele>406.0</ele>
+    </rtept>
+    <rtept lat="32.669808" lon="-16.937584">
+      <ele>399.7</ele>
+    </rtept>
+    <rtept lat="32.669588" lon="-16.936514">
+      <ele>393.4</ele>
+    </rtept>
+    <rtept lat="32.669391" lon="-16.935440">
+      <ele>388.3</ele>
+    </rtept>
+    <rtept lat="32.669332" lon="-16.934341">
+      <ele>390.4</ele>
+    </rtept>
+    <rtept lat="32.669273" lon="-16.933241">
+      <ele>392.5</ele>
+    </rtept>
+    <rtept lat="32.669213" lon="-16.932142">
+      <ele>394.5</ele>
+    </rtept>
+    <rtept lat="32.669154" lon="-16.931043">
+      <ele>396.6</ele>
+    </rtept>
+    <rtept lat="32.669094" lon="-16.929944">
+      <ele>398.7</ele>
+    </rtept>
+    <rtept lat="32.669035" lon="-16.928845">
+      <ele>400.8</ele>
+    </rtept>
+    <rtept lat="32.669082" lon="-16.927756">
+      <ele>404.9</ele>
+    </rtept>
+    <rtept lat="32.669280" lon="-16.926680">
+      <ele>412.0</ele>
+    </rtept>
+    <rtept lat="32.669478" lon="-16.925604">
+      <ele>419.1</ele>
+    </rtept>
+    <rtept lat="32.669676" lon="-16.924528">
+      <ele>426.2</ele>
+    </rtept>
+    <rtept lat="32.669875" lon="-16.923452">
+      <ele>433.2</ele>
+    </rtept>
+    <rtept lat="32.670073" lon="-16.922376">
+      <ele>440.3</ele>
+    </rtept>
+    <rtept lat="32.670271" lon="-16.921300">
+      <ele>447.4</ele>
+    </rtept>
+    <rtept lat="32.670492" lon="-16.920231">
+      <ele>456.9</ele>
+    </rtept>
+    <rtept lat="32.670756" lon="-16.919176">
+      <ele>471.0</ele>
+    </rtept>
+    <rtept lat="32.671020" lon="-16.918120">
+      <ele>485.1</ele>
+    </rtept>
+    <rtept lat="32.671284" lon="-16.917064">
+      <ele>499.1</ele>
+    </rtept>
+    <rtept lat="32.671548" lon="-16.916008">
+      <ele>513.2</ele>
+    </rtept>
+    <rtept lat="32.671812" lon="-16.914953">
+      <ele>527.3</ele>
+    </rtept>
+    <rtept lat="32.672076" lon="-16.913897">
+      <ele>541.4</ele>
+    </rtept>
+    <rtept lat="32.672299" lon="-16.912829">
+      <ele>547.6</ele>
+    </rtept>
+    <rtept lat="32.672487" lon="-16.911750">
+      <ele>546.9</ele>
+    </rtept>
+    <rtept lat="32.672674" lon="-16.910672">
+      <ele>546.2</ele>
+    </rtept>
+    <rtept lat="32.672862" lon="-16.909593">
+      <ele>545.5</ele>
+    </rtept>
+    <rtept lat="32.673050" lon="-16.908514">
+      <ele>544.8</ele>
+    </rtept>
+    <rtept lat="32.673237" lon="-16.907436">
+      <ele>544.1</ele>
+    </rtept>
+    <rtept lat="32.673425" lon="-16.906357">
+      <ele>543.4</ele>
+    </rtept>
+    <rtept lat="32.673612" lon="-16.905279">
+      <ele>542.7</ele>
+    </rtept>
+    <rtept lat="32.673800" lon="-16.904200">
+      <ele>542.0</ele>
+    </rtept>
+  </rte>
+</gpx>

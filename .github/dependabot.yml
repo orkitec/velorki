@@ -15,6 +15,12 @@ updates:
       web:
         patterns: ["*"]
     ignore:
+      # eslint-config-next supports eslint 9 only; eslint 10 and @eslint/js 10
+      # break `npm ci` (peer conflict) and the lint run.
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/js"
+        update-types: ["version-update:semver-major"]
       # typescript-eslint pins typescript < 6.1; a TS major bump breaks lint.
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
@@ -23,6 +29,10 @@ updates:
     schedule:
       interval: monthly
   - package-ecosystem: docker
+    directory: /web
+    schedule:
+      interval: monthly
+  - package-ecosystem: docker-compose
     directory: /deploy
     schedule:
       interval: monthly

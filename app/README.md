@@ -166,6 +166,43 @@ cached.
 *server*, so `tool/itest.sh` skips it unless `VELORKI_BROUTER_URL` is set
 (`tools/brouter-oracle/serve.sh` starts one on port 17777).
 
+## Screenshots
+
+`tool/screenshots.sh` takes the product shots the website shows, on the
+emulator, and writes them to `web/public/screenshots/<mode>-<accent>/<screen>.png`
+with a `manifest.json` beside them. The matrix is light + volt and dark with
+each of volt, ember, glacier and berry; the screens are planner, loop, search,
+navigation, recording, ride, library, offline and settings.
+
+```
+tool/screenshots.sh                    # build, seed, take all of them
+tool/screenshots.sh --no-build         # keep the installed app
+tool/screenshots.sh --no-seed          # keep the demo route, ride and tile
+tool/screenshots.sh --only dark-ember  # one appearance
+tool/screenshots.sh --screens planner,settings
+```
+
+It needs the `velorki` emulator booted (`~/Work/bin/velorki-emu`; the serial is
+`emulator-5554` unless `VELORKI_SHOT_DEVICE` says otherwise), `mise`, the
+Android platform tools, python3, `env/local.json`, and a network for the
+OpenFreeMap map style. Everything else — routing, the gazetteer, the loop
+search — runs on the device against the Madeira tile `tool/itest_mirror.sh`
+serves, the same one the integration suite uses.
+
+The demo data lives in `tool/screenshots/`: a 24.5 km loop around Funchal as a
+`<trk>` with timestamps (imported as a ride) and as a `<rte>` (imported as a
+route), plus a few shorter files so the library is not empty, all regenerated
+by `tool/screenshots/gen_demo_gpx.py`. The script seeds them once and skips
+whatever it finds in the app database, so a second run only re-takes pictures.
+
+Two things are worth knowing before changing it. The debug banner is patched
+out of `lib/app/app.dart` for the length of the build and put back immediately
+(a debug build is required: `env/local.json` points at a cleartext mirror).
+And nothing is typed with `adb shell input text` — a key event puts the window
+into Android's focus-highlight mode, which draws an accent-coloured border
+around every screenshot after it, so the script taps the on-screen keyboard
+instead. The header of the script explains the rest.
+
 ## Platform notes
 
 Android `minSdk` is 26. Both platforms register the `velorki://` URL scheme for
