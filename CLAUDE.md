@@ -108,8 +108,9 @@ before changing structure.
   mirror), `brouter-oracle.yml` (weekly). No rd5 comes off brouter.de; the oracle job
   does fetch the pinned upstream release zip. Every workflow declares the least
   privilege it needs (the default token is read-only) and every `uses:` is
-  pinned to a commit SHA with the tag in a comment (the repo setting makes an
-  unpinned `uses:` a hard error); a `v*` tag push runs `release.yml` (Android)
+  pinned to a commit SHA with the tag in a comment (GitHub's "require SHA
+  pinning" setting stays off: it also rejects the unpinned actions that
+  composite actions such as flutter-action call internally); a `v*` tag push runs `release.yml` (Android)
   and `ios-release.yml` (fastlane, TestFlight; one-time setup in
   `docs/RELEASE_IOS.md`) in the `release` environment, so both wait for the
   maintainer's approval in the Actions UI before anything is signed or
