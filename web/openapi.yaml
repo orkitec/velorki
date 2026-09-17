@@ -1,0 +1,855 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+openapi: 3.1.0
+
+info:
+  title: Velorki API
+  version: 1.0.0
+  summary: Relay service for the Velorki bike app.
+  description: |
+    The Velorki app is open source and therefore cannot hold client secrets.
+    This service keeps them: it relays OAuth token exchanges to Strava and
+    Ride with GPS, verifies entitlements against RevenueCat, proxies route
+    planning to a language model, and hosts share links.
+
+    All errors share one body shape:
+
+    ```json
+    { "error": { "code": "invalid_request", "message": "...", "retry_after_s": 30 } }
+    ```
+
+    Every response carries `X-Request-Id`, echoing the request header when one
+    was supplied and generated otherwise. Clients should send
+    `X-Velorki-Client` (e.g. `android/1.0.0+1`); it is logged when present.
+
+    Rate limits are **fixed windows** shared by every worker of the cluster:
+    a limit of "10 per minute" allows 10 requests inside one wall-clock minute
+    and resets at its boundary, with no burst credit carried over. A rejected
+    request answers 429 with `retry_after_s` in the body and a `Retry-After`
+    header, both being the number of seconds left in the window that rejected
+    it. (The Fastify relay this service replaced used per-process token
+    buckets; the numbers are unchanged, the refill behaviour is not.)
+
+    The API is served on `api.velorki.com` only. Share links live on
+    `velorki.com`; a request for `/s/<id>` on the api host answers 308 to the
+    site host, and any other unknown (method, path) pair on the api host
+    answers 404 `not_found`.
+  license:
+    name: AGPL-3.0-only
+    identifier: AGPL-3.0-only
+
+servers:
+  - url: https://api.velorki.com
+    description: Production (the API host)
+  - url: https://velorki.com
+    description: Production (the site host; serves /s/{id} and /s/{id}.gpx only)
+  - url: http://localhost:3000
+    description: |
+      Local development. With DEV_HOSTS=1 the api role is reached at
+      api.localhost:3000, under the /__api prefix, or with the header
+      `X-Velorki-Host: api`; the site role, share pages included, is the
+      default for localhost.
+
+tags:
+  - name: health
+    description: Liveness and configuration.
+  - name: oauth
+    description: Token exchange with third-party services.
+  - name: ai
+    description: Language-model assisted route planning.
+  - name: share
+    description: |
+      Public share links for routes and rides. `POST /share` is on the API
+      host; the two public paths below are served by `velorki.com`.
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      operationId: getHealth
+      summary: Liveness and integration status.
+      description: |
+        Unauthenticated. Returns 200 whenever the process is running; the
+        `brouter` and `llm` fields describe integrations, not liveness.
+
+        The BRouter probe is a short trekking query cached for 60 seconds with
+        a 3 second timeout.
+      security: []
+      responses:
+        '200':
+          description: The service is up.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/XRequestId'
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, version, brouter, llm]
+                additionalProperties: false
+                properties:
+                  status:
+                    type: string
+                    const: ok
+                  version:
+                    type: string
+                    description: The APP_VERSION environment variable, or "dev".
+                    examples: ['1.4.2', 'dev']
+                  brouter:
+                    type: string
+                    enum: [ok, degraded, unconfigured]
+                  llm:
+                    type: string
+                    enum: [configured, unconfigured]
+              examples:
+                configured:
+                  value:
+                    status: ok
+                    version: '1.4.2'
+                    brouter: ok
+                    llm: configured
+
+  /oauth/strava/token:
+    post:
+      tags: [oauth]
+      operationId: stravaToken
+      summary: Exchange a Strava authorization code for tokens.
+      description: |
+        Adds `client_id` and `client_secret` and posts the form-encoded
+        exchange to `https://www.strava.com/oauth/token` with
+        `grant_type=authorization_code`. Strava's JSON is returned unchanged,
+        with its status code, on success.
+
+        `redirect_uri` must match one entry of `OAUTH_REDIRECT_ALLOWLIST`
+        exactly; prefixes and wildcards are not accepted.
+
+        Rate limit: 10 per minute and 60 per day, per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OAuthCodeRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/OAuthTokenPassthrough'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/NotEntitled'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '502':
+          $ref: '#/components/responses/UpstreamError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /oauth/strava/refresh:
+    post:
+      tags: [oauth]
+      operationId: stravaRefresh
+      summary: Refresh a Strava access token.
+      description: |
+        Posts `grant_type=refresh_token` to Strava and returns the answer
+        unchanged. Rate limit: 30 per hour, per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OAuthRefreshRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/OAuthTokenPassthrough'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/NotEntitled'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '502':
+          $ref: '#/components/responses/UpstreamError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /oauth/rwgps/token:
+    post:
+      tags: [oauth]
+      operationId: rwgpsToken
+      summary: Exchange a Ride with GPS authorization code for a token.
+      description: |
+        Posts `client_id`, `client_secret`, `code`, `redirect_uri` and
+        `grant_type=authorization_code` to
+        `https://ridewithgps.com/oauth/token.json` and returns the answer
+        unchanged. `redirect_uri` must be on `OAUTH_REDIRECT_ALLOWLIST`.
+
+        Rate limit: 10 per minute and 60 per day, per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OAuthCodeRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/OAuthTokenPassthrough'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/NotEntitled'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '502':
+          $ref: '#/components/responses/UpstreamError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /oauth/rwgps/refresh:
+    post:
+      tags: [oauth]
+      operationId: rwgpsRefresh
+      summary: Not implemented.
+      description: |
+        Ride with GPS access tokens do not expire, so there is nothing to
+        refresh. Always answers 501 with the error code `unavailable`; the
+        route exists so the app receives a structured answer rather than a 404.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OAuthRefreshRequest'
+      responses:
+        '401':
+          $ref: '#/components/responses/NotEntitled'
+        '501':
+          description: Not implemented.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                notImplemented:
+                  value:
+                    error:
+                      code: unavailable
+                      message: >-
+                        Ride with GPS does not support refresh tokens;
+                        re-authorize instead.
+
+  /ai/plan:
+    post:
+      tags: [ai]
+      operationId: aiPlan
+      summary: Plan or describe a route, as a Server-Sent Events stream.
+      description: |
+        Requires `X-AI-Consent: 1` on every request; there is no server-side
+        memory of consent. Without it the request is rejected with 403
+        `consent_required`.
+
+        `step=plan` runs a single non-streaming model call forced to answer
+        with one `propose_route` tool call, whose validated arguments are
+        emitted as the `route_request` event. `step=describe` streams a 60-90
+        word description of an already computed route as `text` events.
+
+        The prompt never contains the `app_user_id`. `context.start` is rounded
+        to two decimals server-side.
+
+        Rate limits: 20 per hour and 100 per day per app user, plus 60 per hour
+        per IP, as fixed windows. A global daily spend budget
+        (`LLM_DAILY_BUDGET_USD`), counted across the cluster, answers 503
+        `unavailable` once exceeded.
+
+        The stream opens with a `: open` comment frame and carries a `: ping`
+        comment every 20 seconds so an intermediary cannot idle it out.
+
+        Errors detected before the stream opens are ordinary JSON error
+        responses. Once the stream is open the status is already 200, so
+        failures arrive as an `error` event carrying the same error body.
+      parameters:
+        - $ref: '#/components/parameters/AiConsent'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanRequest'
+            examples:
+              plan:
+                summary: step=plan
+                value:
+                  step: plan
+                  locale: de-CH
+                  units: metric
+                  prompt: Eine hügelige Runde von etwa 65 km mit einem Kaffeehalt.
+                  context:
+                    start: { lat: 47.38, lon: 8.54 }
+                    start_label: Zürich
+                    today: '2026-09-12'
+              describe:
+                summary: step=describe
+                value:
+                  step: describe
+                  locale: de-CH
+                  units: metric
+                  prompt: Beschreibe diese Route.
+                  route_summary:
+                    distance_km: 64.2
+                    ascent_m: 810
+                    surface: { paved: 0.8, gravel: 0.2 }
+                    waypoints: [Uetliberg, Albispass]
+                    highlights: [Aussicht über den Zürichsee]
+      responses:
+        '200':
+          description: |
+            An SSE stream. Event names and their `data` payloads:
+
+            | event | data | when |
+            | --- | --- | --- |
+            | `route_request` | the validated `propose_route` arguments | once, `step=plan` |
+            | `text` | `{ "delta": "..." }` | repeatedly, `step=describe` |
+            | `done` | `{ "usage": { "in": 0, "out": 0 }, "model": "..." }` | last event on success |
+            | `error` | an error body | instead of `done` on failure |
+
+            A successful stream always ends with `done`.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/XRequestId'
+          content:
+            text/event-stream:
+              schema:
+                type: string
+              examples:
+                plan:
+                  summary: step=plan
+                  value: |
+                    : open
+
+                    event: route_request
+                    data: {"distance_km":65,"loop":true,"start":{"use_current":true},"via":["Uetliberg"],"surface":"mixed","hills":"seek","traffic_tolerance":"low","stops":["cafe"],"profile_hint":"trekking","notes":"Hügelige Runde ab deinem Standort.","confidence":0.8}
+
+                    event: done
+                    data: {"usage":{"in":412,"out":96},"model":"some-model"}
+
+                describe:
+                  summary: step=describe
+                  value: |
+                    : open
+
+                    event: text
+                    data: {"delta":"Diese Runde führt "}
+
+                    event: done
+                    data: {"usage":{"in":300,"out":110},"model":"some-model"}
+
+                failure:
+                  summary: the model produced unusable arguments
+                  value: |
+                    : open
+
+                    event: error
+                    data: {"error":{"code":"invalid_request","message":"The proposed route was not usable: distance_km Too small: expected number to be >=5"}}
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/NotEntitled'
+        '403':
+          $ref: '#/components/responses/ConsentRequired'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /share:
+    post:
+      tags: [share]
+      operationId: createShare
+      summary: Store a route or ride and return a public link.
+      description: |
+        The GPX is stored verbatim, together with a small summary, under a
+        random 10-character base62 id. Shares expire after 365 days and a daily
+        sweep removes expired rows. Nothing links the row to the rider who
+        created it.
+
+        Rate limit: 30 per day, per app user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShareRequest'
+      responses:
+        '201':
+          description: The share was created.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/XRequestId'
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, url]
+                additionalProperties: false
+                properties:
+                  id:
+                    type: string
+                    pattern: '^[A-Za-z0-9]{10}$'
+                  url:
+                    type: string
+                    format: uri
+              examples:
+                created:
+                  value:
+                    id: 7Kq2mZ0aTb
+                    url: https://velorki.com/s/7Kq2mZ0aTb
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/NotEntitled'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /s/{id}:
+    get:
+      tags: [share]
+      operationId: getSharePage
+      summary: The public share page.
+      description: |
+        **Served by `https://velorki.com`, not by the API host.** A request for
+        this path on `api.velorki.com` answers 308 to the site host.
+
+        Unauthenticated. The page carries its own CSS and bundles MapLibre from
+        npm - no third-party script source at all; the OpenFreeMap "liberty"
+        style is the only remote resource. The GPX is fetched and parsed in the
+        browser. `noindex`. Cached `public, max-age=300`.
+
+        A malformed id is refused before the page runs, with the JSON
+        `not_found` body; an unknown or expired id renders the HTML "this link
+        is no longer available" page with status 404.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ShareId'
+      responses:
+        '200':
+          description: The share page.
+          content:
+            text/html:
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /s/{id}.gpx:
+    get:
+      tags: [share]
+      operationId: getShareGpx
+      summary: The shared GPX file.
+      description: |
+        **Served by `https://velorki.com`, not by the API host.**
+        Unauthenticated. Returns the stored GPX byte for byte, as
+        `application/gpx+xml; charset=utf-8`, with a `Content-Disposition`
+        attachment filename derived from the share name, cached
+        `public, max-age=3600`. Unknown, malformed and expired ids all answer
+        404 with the JSON `not_found` body.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ShareId'
+      responses:
+        '200':
+          description: The GPX document.
+          content:
+            application/gpx+xml:
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    revenueCatAppUserId:
+      type: http
+      scheme: bearer
+      bearerFormat: revenuecat_app_user_id
+      description: |
+        `Authorization: Bearer <revenuecat_app_user_id>`.
+
+        The service verifies the id against
+        `GET https://api.revenuecat.com/v1/subscribers/{app_user_id}` using its
+        own RevenueCat secret key. The caller is entitled when the configured
+        entitlement (`REVENUECAT_ENTITLEMENT`, default `plus`) has an
+        `expires_date` that is null or in the future. Answers are cached across
+        the cluster for 10 minutes (entitled) or 1 minute (not entitled).
+
+        When `REVENUECAT_MODE=stub` every caller is entitled; that mode is for
+        forks and local development. A missing or malformed header is 401
+        `not_entitled`.
+
+  headers:
+    XRequestId:
+      description: Echo of the request's X-Request-Id, or a generated one.
+      schema:
+        type: string
+    RetryAfter:
+      description: Seconds to wait before retrying.
+      schema:
+        type: integer
+        minimum: 1
+
+  parameters:
+    ShareId:
+      name: id
+      in: path
+      required: true
+      description: The 10-character base62 share id.
+      schema:
+        type: string
+        pattern: '^[A-Za-z0-9]{10}$'
+    AiConsent:
+      name: X-AI-Consent
+      in: header
+      required: true
+      description: Must be exactly `1`. Asserts the rider consented to AI processing.
+      schema:
+        type: string
+        const: '1'
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      additionalProperties: false
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          additionalProperties: false
+          properties:
+            code:
+              type: string
+              enum:
+                - invalid_request
+                - not_entitled
+                - consent_required
+                - not_found
+                - rate_limited
+                - upstream_error
+                - unavailable
+            message:
+              type: string
+            retry_after_s:
+              type: number
+              minimum: 0
+              description: Present on 429 responses.
+
+    OAuthCodeRequest:
+      type: object
+      required: [code, redirect_uri]
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 512
+        redirect_uri:
+          type: string
+          minLength: 1
+          maxLength: 2048
+          description: Must match an entry of OAUTH_REDIRECT_ALLOWLIST exactly.
+
+    OAuthRefreshRequest:
+      type: object
+      required: [refresh_token]
+      additionalProperties: false
+      properties:
+        refresh_token:
+          type: string
+          minLength: 1
+          maxLength: 2048
+
+    LatLon:
+      type: object
+      required: [lat, lon]
+      additionalProperties: false
+      properties:
+        lat:
+          type: number
+          minimum: -90
+          maximum: 90
+        lon:
+          type: number
+          minimum: -180
+          maximum: 180
+
+    RouteSummary:
+      type: object
+      required: [distance_km, ascent_m, surface]
+      additionalProperties: false
+      properties:
+        distance_km:
+          type: number
+          minimum: 0
+        ascent_m:
+          type: number
+          minimum: 0
+        surface:
+          type: object
+          additionalProperties: false
+          description: Fractions of the route by surface type, each 0 to 1.
+          properties:
+            paved: { type: number, minimum: 0, maximum: 1 }
+            gravel: { type: number, minimum: 0, maximum: 1 }
+            unpaved: { type: number, minimum: 0, maximum: 1 }
+        waypoints:
+          type: array
+          maxItems: 50
+          items: { type: string, maxLength: 120 }
+        highlights:
+          type: array
+          maxItems: 20
+          items: { type: string, maxLength: 200 }
+
+    PlanRequest:
+      type: object
+      required: [step, prompt]
+      additionalProperties: false
+      properties:
+        step:
+          type: string
+          enum: [plan, describe]
+        locale:
+          type: string
+          default: en
+          pattern: '^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$'
+          description: BCP47 language tag.
+        units:
+          type: string
+          enum: [metric, imperial]
+          default: metric
+        prompt:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        context:
+          type: object
+          additionalProperties: false
+          properties:
+            start:
+              $ref: '#/components/schemas/LatLon'
+            start_label:
+              type: string
+              maxLength: 120
+            today:
+              type: string
+              maxLength: 40
+        route_summary:
+          $ref: '#/components/schemas/RouteSummary'
+      allOf:
+        - if:
+            properties:
+              step: { const: describe }
+            required: [step]
+          then:
+            required: [route_summary]
+
+    ProposeRoute:
+      type: object
+      description: |
+        The `data` payload of the `route_request` SSE event: the validated
+        arguments of the model's single `propose_route` tool call.
+      required:
+        [distance_km, loop, start, via, surface, hills, traffic_tolerance, stops, profile_hint, notes, confidence]
+      additionalProperties: false
+      properties:
+        distance_km:
+          type: number
+          minimum: 5
+          maximum: 300
+        loop:
+          type: boolean
+        start:
+          type: object
+          required: [use_current]
+          additionalProperties: false
+          properties:
+            use_current: { type: boolean }
+            name: { type: string, maxLength: 120 }
+        via:
+          type: array
+          maxItems: 4
+          items: { type: string, maxLength: 120 }
+        surface:
+          type: string
+          enum: [paved, mixed, gravel]
+        hills:
+          type: string
+          enum: [avoid, neutral, seek]
+        traffic_tolerance:
+          type: string
+          enum: [low, medium, high]
+        stops:
+          type: array
+          items:
+            type: string
+            enum: [cafe, bakery, viewpoint, lake, water, none]
+        profile_hint:
+          type: string
+          enum: [trekking, fastbike, mtb, gravel]
+        notes:
+          type: string
+          maxLength: 200
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+
+    ShareRequest:
+      type: object
+      required: [kind, name, gpx, summary]
+      additionalProperties: false
+      properties:
+        kind:
+          type: string
+          enum: [route, ride]
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        gpx:
+          type: string
+          minLength: 1
+          maxLength: 2097152
+          description: A GPX 1.1 document, at most 2 MB.
+        summary:
+          type: object
+          required: [distance_km]
+          additionalProperties: false
+          properties:
+            distance_km: { type: number, minimum: 0 }
+            ascent_m: { type: number, minimum: 0 }
+            duration_s: { type: number, minimum: 0 }
+
+  responses:
+    OAuthTokenPassthrough:
+      description: |
+        The provider's JSON response, unchanged, with its own status code.
+        The shape is defined by Strava or Ride with GPS, not by this service.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/XRequestId'
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: true
+          examples:
+            strava:
+              value:
+                token_type: Bearer
+                expires_at: 1893456000
+                expires_in: 21600
+                refresh_token: '...'
+                access_token: '...'
+                athlete: { id: 7 }
+
+    InvalidRequest:
+      description: The request body or parameters did not validate.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            badRedirect:
+              value:
+                error:
+                  code: invalid_request
+                  message: redirect_uri is not allowed.
+
+    NotEntitled:
+      description: Missing, malformed or unentitled Authorization header.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            notEntitled:
+              value:
+                error:
+                  code: not_entitled
+                  message: An active Velorki subscription is required.
+
+    ConsentRequired:
+      description: The X-AI-Consent header was missing or not `1`.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            consent:
+              value:
+                error:
+                  code: consent_required
+                  message: AI features require the rider to consent first.
+
+    NotFound:
+      description: Unknown, malformed or expired.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            notFound:
+              value:
+                error:
+                  code: not_found
+                  message: No such share.
+
+    RateLimited:
+      description: A rate limit was exceeded.
+      headers:
+        Retry-After:
+          $ref: '#/components/headers/RetryAfter'
+        X-Request-Id:
+          $ref: '#/components/headers/XRequestId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            limited:
+              value:
+                error:
+                  code: rate_limited
+                  message: Too many requests. Please slow down.
+                  retry_after_s: 6
+
+    UpstreamError:
+      description: |
+        The upstream provider failed or answered with a non-2xx status. The
+        provider's message is forwarded, scrubbed of any client secret.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            upstream:
+              value:
+                error:
+                  code: upstream_error
+                  message: Bad Request
+
+    Unavailable:
+      description: |
+        The integration this route needs is not configured on this server, or a
+        global budget is exhausted.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            unconfigured:
+              value:
+                error:
+                  code: unavailable
+                  message: Strava is not configured on this server.
+
+security:
+  - revenueCatAppUserId: []

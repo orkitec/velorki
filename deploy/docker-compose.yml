@@ -4,9 +4,9 @@
 #   docker compose up -d                 # caddy + brouter + brouter-updater
 #   docker compose --profile api up -d   # ...and the Velorki API as a container
 #
-# On the official Velorki VPS the API is NOT run here: Orkify deploys it as a
-# plain Node process from ../api. That is why the `api` service sits behind a
-# compose profile - see README.md, "Running the API".
+# On the official Velorki VPS the API is NOT run here: Orkify deploys ../web as
+# a plain Node process. That is why the `api` service sits behind a compose
+# profile - see README.md, "Running the website and API".
 
 name: velorki
 
@@ -89,34 +89,49 @@ services:
     mem_limit: 256m
 
   # ----------------------------------------------------------------- api ---
-  # Velorki API. Only started with `--profile api`.
+  # The Velorki website + relay (web/): one Next.js app serving both the site
+  # and the API. Only started with `--profile api`.
   api:
     profiles: ["api"]
     container_name: velorki-api
     restart: unless-stopped
-    # DEFAULT: build the API from the monorepo checkout.
+    # DEFAULT: build the app from the monorepo checkout.
     build:
-      context: ../api
+      context: ../web
     # TO USE THE PREBUILT IMAGE INSTEAD: comment out the two `build:` lines
     # above and uncomment the line below, then set API_TAG in .env.
-    # image: ghcr.io/orkitec/velorki-api:${API_TAG:-latest}
+    # image: ghcr.io/orkitec/velorki-web:${API_TAG:-latest}
+    # The base image's entrypoint is node; this is the script it runs.
+    command: [".next/standalone/server.js"]
     env_file: .env
     environment:
       BROUTER_URL: http://brouter:17777
       PORT: "8080"
+      HOSTNAME: "0.0.0.0"
       TRUST_PROXY: "1"   # sit behind Caddy: honour X-Forwarded-For / -Proto
+      # One process, two roles, separated by the Host header. Set both to your
+      # own domain; with a single Caddy site block they are the same name.
+      SITE_HOST: ${DOMAIN:?set DOMAIN in .env}
+      API_HOST: ${DOMAIN:?set DOMAIN in .env}
+      SHARE_DB_PATH: /var/lib/velorki/share.sqlite
     expose:
       - "8080"
     volumes:
-      - api_data:/app/data   # share-link SQLite etc. - BACK THIS UP
+      - api_data:/var/lib/velorki   # share-link SQLite - BACK THIS UP
     depends_on:
       - brouter
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      # The image is distroless: no shell, no wget, only node. A loopback Host
+      # reaches the API role, so /health answers here.
+      test:
+        - CMD
+        - /nodejs/bin/node
+        - -e
+        - "fetch('http://127.0.0.1:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 60s
 
 volumes:
   caddy_data:

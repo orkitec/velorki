@@ -7,9 +7,13 @@ exercised there. The items here are the parts not yet covered by that.
 
 ## Servers and accounts (Steffen)
 
-- [ ] **Relay on the VPS with Orkify**: `api/` (`npm run build`,
-      `node dist/server.js`, health `/health`, Node ≥ 22.13). Fill `.env` from
-      `api/.env.example`; `SHARE_DB_PATH` must be on a persistent volume.
+- [ ] **Web + relay on the VPS**: follow [docs/DEPLOY_WEB.md](DEPLOY_WEB.md) —
+      Ubuntu 24.04, Node 22, Orkify, Caddy with a Cloudflare Origin CA
+      certificate, the Cloudflare zone on Full (strict), backups. Then the
+      `release`-environment secrets for `web-deploy.yml`: `DEPLOY_SSH_KEY`,
+      `DEPLOY_HOST`, `DEPLOY_HOST_KEY`, `DEPLOY_USER`; and the process
+      environment from `deploy/web/velorki-web.env.example` in the Orkify
+      dashboard (`SHARE_DB_PATH` must stay outside the release tree).
 - [ ] **BRouter on the VPS**: `deploy/` (compose with Caddy + BRouter + updater,
       or the systemd units). First planet sync 1–3 h; `SEGMENT_FILTER` for a
       regional start. Only needed for routing outside downloaded tiles.
@@ -28,10 +32,16 @@ exercised there. The items here are the parts not yet covered by that.
       `stub` explicitly until then).
 - [ ] **LLM**: `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`,
       `LLM_DAILY_BUDGET_USD` in the relay.
-- [ ] **velorki.com**: DNS for `api.velorki.com`; pages at `/privacy` and
-      `/terms` (`docs/PRIVACY.md` is the draft; a lawyer should read it);
-      `support@velorki.com` and `security@orkitec.com` mailboxes.
-- [ ] **GL Strings**: `APPLANGA_ACCESS_TOKEN` secret in the GitHub repo.
+- [ ] **velorki.com**: the `support@velorki.com` and `security@orkitec.com`
+      mailboxes. (Nameservers, DNS and TLS are step 5 of
+      [DEPLOY_WEB.md](DEPLOY_WEB.md).)
+- [ ] **Website legal pages**: fill the imprint placeholders in
+      `web/content/en/legal/imprint.md`, set the effective dates in
+      `privacy.md` and `terms.md`, have a lawyer read both.
+- [ ] **Crowdin**: create the project (source English, target German), request
+      the open-source plan, and add the `CROWDIN_PROJECT_ID` and
+      `CROWDIN_PERSONAL_TOKEN` secrets in the GitHub repo.
+      [docs/LOCALISATION.md](LOCALISATION.md) has the steps.
 - [ ] **GitHub secrets for release.yml**: `ANDROID_KEYSTORE_B64`,
       `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `APP_ENV_PROD_JSON`,
       `PLAY_SERVICE_ACCOUNT_JSON`.
@@ -66,6 +76,12 @@ exercised there. The items here are the parts not yet covered by that.
       registered in the developer portal after one signed build on the Mac.
 - [ ] Background recording on an iPhone: screen off for a long ride, the blue
       indicator, force-quit → interrupted-ride dialog on relaunch.
+- [ ] **Associated Domains**, once: enable the capability for the app id in
+      the developer portal (the `applinks:velorki.com` entitlement is already
+      in `ios/Runner/Runner.entitlements`). The website must serve the two
+      `.well-known` files for the links to verify, which needs `APPLE_TEAM_ID`
+      and `ANDROID_CERT_SHA256` — the release keystore's SHA-256 fingerprint
+      from `keytool -list -v` — in its environment.
 
 ## Still to try on the Android phone
 
@@ -87,6 +103,8 @@ stopped ride, the Library's rides list.
 - [ ] Sandbox purchase, restore after reinstall, a lapsed subscription, the
       store subscription-management page.
 - [ ] `velorki://share/<id>` from a browser opens the import preview.
+- [ ] Tap a `https://velorki.com/s/<id>` link in Chrome: the app opens
+      directly (App Links verification), not the website.
 
 ## Store consoles
 
@@ -112,9 +130,4 @@ Everything still unticked in [STORE_CHECKLIST.md](STORE_CHECKLIST.md).
   egress (Cloudflare R2, or Hetzner Object Storage for a German provider),
   keep GitHub Releases as the fallback, and teach the app a list of mirrors
   in the pointer. Both publish workflows gain an upload step.
-- **One Node app for relay and website**: `api/` (Fastify) and the site
-  (privacy, terms, share pages) as a single Next.js app on Orkify under
-  `velorki.com`, the relay routes as route handlers on the Node runtime,
-  same dependency rule (no native addons, `node:sqlite`). Decided
-  2026-09-16 as the direction; not started.
 - Photon self-hosting; cloud sync.

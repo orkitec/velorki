@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+# Forced command for the deploy SSH key: receive one tarball and deploy it.
+#
+#   sudo install -m 0755 velorki-deploy /usr/local/bin/velorki-deploy
+#
+# In the velorki user's ~/.ssh/authorized_keys, one line:
+#
+#   command="/usr/local/bin/velorki-deploy",restrict ssh-ed25519 AAAA... deploy@github
+#
+# `restrict` turns off port, agent and X11 forwarding, pty allocation and
+# ~/.ssh/rc, so the key can do exactly one thing: run this script. Whatever the
+# client asked for arrives in SSH_ORIGINAL_COMMAND and is ignored except as an
+# argument list.
+#
+# Note that a forced command also blocks scp/sftp - there is no second channel
+# to upload with. So the artefact comes in on **stdin**:
+#
+#   ssh velorki@host 'velorki-deploy velorki-web-<sha>.tar.gz <sha256>' < velorki-web.tar.gz
+#
+# and a rollback re-runs an artefact that is already on the box:
+#
+#   ssh velorki@host 'velorki-deploy deploy /srv/velorki/incoming/velorki-web-<sha>.tar.gz'
+set -euo pipefail
+
+INCOMING=/srv/velorki/incoming
+MAX_BYTES=${MAX_BYTES:-536870912}   # 512 MB; the real artefact is a few MB
+KEEP=${KEEP:-5}                     # artefacts kept for a manual rollback
+
+log() { printf '%s velorki-deploy: %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*"; }
+die() { log "ERROR: $*" >&2; exit 2; }
+
+cmd=${SSH_ORIGINAL_COMMAND:-}
+[ -n "$cmd" ] || die "no command (this key is deploy-only)"
+
+# A forced command's job is that nothing else can be smuggled in: reject every
+# shell metacharacter before the string is split.
+case "$cmd" in
+  *[\;\&\|\$\`\<\>\(\)\*\?\'\"\\]*) die "illegal characters in command" ;;
+esac
+
+# shellcheck disable=SC2086  # deliberate word splitting of a sanitised string
+set -- $cmd
+[ "${1:-}" = "velorki-deploy" ] || die "unknown command: ${1:-}"
+shift
+
+install -d -m 0750 "$INCOMING"
+
+deploy() {
+  local tarball=$1
+  # Must be literally inside the incoming directory and end in .tar.gz ...
+  case "$tarball" in
+    "$INCOMING"/*.tar.gz) : ;;
+    *) die "tarball must be $INCOMING/<name>.tar.gz" ;;
+  esac
+  case "$tarball" in *..*) die "path traversal" ;; esac
+  # ... and still be inside it after symlinks are resolved.
+  local real
+  real=$(readlink -f -- "$tarball") || die "cannot resolve $tarball"
+  case "$real" in
+    "$INCOMING"/*) : ;;
+    *) die "resolved path escapes $INCOMING: $real" ;;
+  esac
+  [ -f "$real" ] || die "no such file: $real"
+
+  log "deploying $real"
+  # Unpacks the release, runs deploy.install and deploy.build from orkify.yml,
+  # then rolling-reloads velorki-web. Orkify keeps the previous release on disk
+  # and rolls back by itself if a worker crashes inside crashWindow.
+  orkify deploy local "$real"
+  log "deployed $real"
+}
+
+case "${1:-}" in
+  deploy)
+    # Re-deploy something already on the box (rollback).
+    [ "$#" -eq 2 ] || die "usage: velorki-deploy deploy <tarball>"
+    deploy "$2"
+    ;;
+  *.tar.gz)
+    # Upload on stdin, then deploy. Second argument is the expected sha256.
+    [ "$#" -ge 1 ] && [ "$#" -le 2 ] || die "usage: velorki-deploy <name>.tar.gz [sha256]"
+    name=$1
+    # Basename only: no slashes, no dots at the front, nothing exotic.
+    case "$name" in
+      */*|.*) die "name must be a plain file name" ;;
+    esac
+    printf '%s' "$name" | grep -qE '^[A-Za-z0-9._-]+\.tar\.gz$' || die "bad artefact name: $name"
+
+    dest="$INCOMING/$name"
+    tmp="$dest.part"
+    log "receiving $name on stdin"
+    # head -c caps what a compromised workflow could write to the disk.
+    head -c "$MAX_BYTES" > "$tmp"
+    chmod 0640 "$tmp"
+    [ -s "$tmp" ] || { rm -f "$tmp"; die "empty upload"; }
+
+    if [ "$#" -eq 2 ]; then
+      want=$2
+      printf '%s' "$want" | grep -qE '^[0-9a-f]{64}$' || { rm -f "$tmp"; die "bad sha256"; }
+      got=$(sha256sum "$tmp" | cut -d' ' -f1)
+      [ "$got" = "$want" ] || { rm -f "$tmp"; die "sha256 mismatch: got $got, expected $want"; }
+      log "sha256 ok"
+    else
+      log "WARNING: no sha256 given, artefact not verified"
+    fi
+
+    # Only now does the file get its real name, so a truncated transfer can
+    # never be deployed.
+    mv -f "$tmp" "$dest"
+    log "stored $dest ($(stat -c %s "$dest") bytes)"
+    deploy "$dest"
+
+    # Keep the last few artefacts for a manual rollback; drop the rest.
+    ls -1t "$INCOMING"/*.tar.gz 2>/dev/null | tail -n "+$((KEEP + 1))" | xargs -r rm -f --
+    ;;
+  *)
+    die "usage: velorki-deploy <name>.tar.gz [sha256] | velorki-deploy deploy <tarball>"
+    ;;
+esac

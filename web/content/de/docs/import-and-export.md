@@ -1,0 +1,72 @@
+---
+title: Import und Export
+description: GPX- und FIT-Dateien von überall auf dem Handy öffnen, als Route oder Fahrt speichern und eigene zu Komoot, Garmin oder sonst wohin exportieren.
+order: 9
+---
+
+Velorki liest und schreibt GPX- und FIT-Dateien, und so wandern Routen und Fahrten zwischen der App und dem Rest der Welt. Alles davon ist kostenlos, braucht kein Konto und keine Verbindung und funktioniert mit Komoot, Garmin Connect, Strava, einem Radcomputer oder einer schlichten Datei auf dem Handy.
+
+## Eine Datei hereinbekommen
+
+Es gibt drei Wege, und alle drei enden auf demselben Importbildschirm.
+
+**Öffnen mit.** Tippe in deiner Dateien-App, in einer E-Mail oder in den Downloads des Browsers auf eine GPX- oder FIT-Datei und wähle Velorki. Auf einem iPhone ist das "In Velorki öffnen" aus Dateien, Mail oder Safari.
+
+**Teilen-Menü.** Teile die Datei in einer anderen App und wähle Velorki. So kommt eine Route von Komoot oder aus der Nachricht eines Freundes an.
+
+**Die Dateiauswahl.** Tippe im Tab **Bibliothek** oben rechts auf **Datei importieren** und such die Datei selbst heraus.
+
+Velorki erkennt am Anfang der Datei, was sie ist, und vertraut weder ihrem Namen noch ihrem Typ, eine `.gpx`, die in Wahrheit eine FIT-Datei ist, wird also trotzdem importiert.
+
+## Der Importbildschirm
+
+Er heißt **Import** und zeigt:
+
+- eine Kartenvorschau des Tracks,
+- ein Feld **Name**, vorbelegt aus dem Dateinamen,
+- Format und Größe, "GPX · 4.812 Punkte",
+- den Zeitraum, "16. Sept. 2026, 09:12 – 16. Sept. 2026, 13:40", oder "Die Datei enthält keine Zeitstempel.",
+- Distanz, Anstieg, Abstieg und Dauer sowie das Höhenprofil,
+- **Speichern als**, einen Umschalter zwischen **Route** und **Fahrt**.
+
+Velorki rät **Route** oder **Fahrt** danach, ob die Punkte Zeiten tragen: eine Aufnahme tut das, eine geplante Route nicht. FIT-Strecken tragen eine künstliche Zeitbasis und werden darum als Fahrt geraten, stell sie also von Hand um. Nichts wird geschrieben, bevor du auf **Speichern** tippst.
+
+Danach bekommst du "Alpenrunde zur Bibliothek hinzugefügt" oder "Alpenrunde zu deinen Fahrten hinzugefügt" und landest auf der Seite des neuen Eintrags.
+
+Lässt sich die Datei nicht öffnen, sagt Velorki, woran es lag: "Das ist keine GPX- oder FIT-Datei.", "Die Datei konnte nicht gelesen werden.", "Die Datei enthält keine Trackpunkte." oder "Die Datei konnte nicht geöffnet werden."
+
+## Eine Datei hinausbekommen
+
+**Aus einer Route** (Bibliothek → Routen → öffnen → **Export**):
+
+| Format | Wofür |
+|---|---|
+| **GPX-Route** | eine geplante Route für einen anderen Planer, eine Handy-App oder einen Radcomputer |
+| **FIT-Strecke** | ein Garmin, Wahoo oder ähnliches Gerät, das eine Strecke erwartet |
+
+**Aus einer Fahrt** (Bibliothek → Fahrten → öffnen, oder die Fahrtenseite nach dem Beenden):
+
+| Format | Wofür |
+|---|---|
+| **GPX-Track exportieren** | der aufgezeichnete Track mit seinen Zeitstempeln |
+| **FIT-Aktivität exportieren** | eine Aktivitätsdatei für eine Trainingsplattform |
+
+So oder so schreibt Velorki die Datei und reicht sie an das Teilen-Menü des Systems weiter, du kannst sie also in deine Dateien legen, per Mail verschicken oder in eine andere App schicken.
+
+## Komoot, Garmin und der Rest
+
+Velorki hat keine Anbindung an Komoot oder Garmin und braucht auch keine: Beide sprechen GPX und FIT.
+
+- **Von Komoot zu Velorki**: Exportiere die Tour in Komoot als GPX und teile sie dann zu Velorki, oder speichere sie und öffne sie über die Schaltfläche **Datei importieren**.
+- **Von Velorki zu Komoot**: Exportiere die Route als **GPX-Route** und teile sie in den Import von Komoot.
+- **Auf einen Garmin-Radcomputer**: Exportiere die Route als **FIT-Strecke**, oder als **GPX-Route**, falls dein Gerät das lieber mag, und bring sie wie gewohnt auf das Gerät, über Garmin Connect oder durch Kopieren der Datei.
+- **Von einem Garmin**: Die `.fit`-Aktivität vom Gerät wird als Fahrt importiert.
+
+Eine Route **an Strava** zu senden, läuft ebenfalls über eine Datei, weil die API von Strava keine Routen anlegen kann. Siehe [Strava und Ride with GPS](./strava-and-ridewithgps).
+
+## Weiterlesen
+
+- [Bibliothek](./library)
+- [Strava und Ride with GPS](./strava-and-ridewithgps)
+- [Teilen](./sharing)
+- [Fahrt aufzeichnen](./recording-a-ride)

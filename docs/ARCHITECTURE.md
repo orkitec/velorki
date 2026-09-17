@@ -1,15 +1,15 @@
 # Architecture
 
 What Velorki is made of. Toolchain and testing: [`app/README.md`](../app/README.md).
-The relay's HTTP contract: [`api/openapi.yaml`](../api/openapi.yaml), described
-in [`api/README.md`](../api/README.md).
+The relay's HTTP contract: [`web/openapi.yaml`](../web/openapi.yaml), described
+in [`web/README.md`](../web/README.md).
 
 ## Systems and data flow
 
 | System | Where it lives |
 |---|---|
 | Flutter app and its pure-Dart packages | this repo, `app/` — the only part that ships to a store |
-| Relay | this repo, `api/` — one Node process, `api.velorki.com` |
+| Web + relay | this repo, `web/` — one Next.js app, two hostnames: `velorki.com` (site, docs, legal, share pages) and `api.velorki.com` (the relay). Deployed by Orkify as a two-worker cluster behind Caddy and Cloudflare, see [DEPLOY_WEB.md](DEPLOY_WEB.md) |
 | BRouter routing server and segment updater | this repo, `brouter/` + `deploy/` — optional, on a VPS |
 | Gazetteer builder | this repo, `tools/gazetteer/` — Python, run by CI in the mirror repo |
 | BRouter test oracle | this repo, `tools/brouter-oracle/` — parity runs only, never shipped |
@@ -40,7 +40,7 @@ are built from), OpenFreeMap and CyclOSM (map tiles), Photon (online search).
   | searches the .gaz - both with no network                  |
   +-----------------------------------------------------------+
      |             |                  |               |
- OpenFreeMap,   Photon            BRouter server    Relay (api/)
+ OpenFreeMap,   Photon            BRouter server    Relay (web/)
  CyclOSM        online search,    (optional):       Plus only: OAuth
  map tiles      no tiles needed   areas with no     exchange, LLM,
                                   tiles             share links
@@ -70,7 +70,7 @@ and hides the Plus features — see [SELF_HOSTING.md](SELF_HOSTING.md).
    routes, rides, loops,    tiles, search, routing-tile downloads
    GPX/FIT, recording,  ──► BRouter server (optional) — routes for areas with
    brouter_dart on rd5      no downloaded tiles
-                        ──► Relay (api/, Node 22, no accounts, no user DB)
+                        ──► Relay (web/, Node 22, no accounts, no user DB)
                               ├─ OAuth code → token (secrets added) → Strava,
                               │  RideWithGPS; the phone then talks to them direct
                               ├─ AI: prompt → an OpenAI-compatible LLM provider
@@ -96,15 +96,16 @@ expects the client secret inside the app) and `latlong2`.
 ## Layout
 
 One monorepo — a Dart pub workspace in the root `pubspec.yaml`, no melos — so
-app and relay change in the same commit and a fork can self-host from a single
-clone: `app/` the Flutter app and its pure-Dart `packages/` (Apache-2.0), `api/`
-the relay (AGPL-3.0-only), `brouter/` the `.brf` profiles and the rd5 updater
-image, `deploy/` compose file, Caddy and systemd units, `tools/` the oracle.
+app, site and relay change in the same commit and a fork can self-host from a
+single clone: `app/` the Flutter app and its pure-Dart `packages/`
+(Apache-2.0), `web/` the website and the relay in one Next.js app
+(AGPL-3.0-only), `brouter/` the `.brf` profiles and the rd5 updater image,
+`deploy/` compose file, Caddy and systemd units, `tools/` the oracle.
 
 Inside `app/lib` the layout is feature-first: one directory per feature under
 `features/`, each with `data/`, `domain/`, `application/` and `presentation/`,
 plus `core/`, `app/` and `l10n/`. Only `app_en.arb` is edited by hand; the other
-ARB files come from the GL Strings integration.
+ARB files come from Crowdin (`docs/LOCALISATION.md`).
 
 ### Look and feel (`app/lib/app/theme.dart`)
 
@@ -402,7 +403,7 @@ connections, link sharing. `app/lib/core/plus/plus_gate.dart` is the switch.
 
 ## Licences
 
-Apache-2.0 for everything except `api/`, which is AGPL-3.0-only so that a
+Apache-2.0 for everything except `web/`, which is AGPL-3.0-only so that a
 modified hosted relay has to publish its source; the HTTP boundary keeps the app
 unaffected. `TRADEMARK.md` reserves the name, logo and icon: forks must rebrand
 before publishing to a store and may not point at the official servers.

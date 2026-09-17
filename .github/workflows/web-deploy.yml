@@ -1,0 +1,142 @@
+name: web deploy
+
+# Tag `web-vX.Y.Z` → checks → `orkify deploy pack` → the VPS.
+#
+# The `release` environment has the maintainer as a required reviewer, so a tag
+# push queues the deploy job and nothing reaches the server until it is
+# approved in the Actions UI. The checks run before the gate, so an approval is
+# never spent on a broken build.
+#
+# There is no scp step: the deploy key on the server is bound to a forced
+# command (deploy/web/velorki-deploy), which blocks scp and sftp by design, so
+# the artefact is streamed to that command on stdin and verified by sha256 on
+# the far side. docs/DEPLOY_WEB.md step 7 has the authorized_keys line.
+on:
+  push:
+    tags: ["web-v*"]
+  workflow_dispatch:
+
+permissions:
+  # Nothing here writes to the repository.
+  contents: read
+
+concurrency:
+  # One deploy at a time, and never cancel one half-way through.
+  group: web-deploy
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: web
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run check:deps
+      - run: npm run locales -- --check
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run build
+
+  deploy:
+    needs: check
+    runs-on: ubuntu-latest
+    # The approval gate. Holds DEPLOY_SSH_KEY, DEPLOY_HOST, DEPLOY_HOST_KEY and
+    # DEPLOY_USER.
+    environment: release
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install the orkify CLI
+        # Pinned by the lockfile: @orkify/cli is a devDependency of web/.
+        run: npm ci
+
+      - name: Stamp the release
+        env:
+          TAG: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          # next.config.ts reads NEXT_DEPLOYMENT_ID at build time, and the build
+          # happens on the server (`orkify deploy local` runs deploy.install and
+          # deploy.build). Next loads .env.production automatically for both the
+          # build and the standalone server, so shipping it in the artefact is
+          # how the value gets there. It holds no secret.
+          printf 'NEXT_DEPLOYMENT_ID=%s\nAPP_VERSION=%s\n' "$SHA" "$TAG" > .env.production
+          cat .env.production
+
+      - name: Pack the release
+        # `orkify deploy pack` makes the tarball the server unpacks, installs
+        # and builds. Source plus lockfile plus orkify.yml - node_modules and
+        # .next are rebuilt on the box.
+        run: npx orkify deploy pack . --output "$RUNNER_TEMP/velorki-web.tar.gz"
+
+      - name: Checksum
+        id: art
+        run: |
+          sha256sum "$RUNNER_TEMP/velorki-web.tar.gz" | cut -d' ' -f1 > "$RUNNER_TEMP/sha256"
+          {
+            echo "sha256=$(cat "$RUNNER_TEMP/sha256")"
+            echo "name=velorki-web-${GITHUB_SHA}.tar.gz"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: velorki-web-${{ github.ref_name }}
+          path: ${{ runner.temp }}/velorki-web.tar.gz
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Deploy over SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_HOST_KEY: ${{ secrets.DEPLOY_HOST_KEY }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          ARTEFACT: ${{ steps.art.outputs.name }}
+          SHA256: ${{ steps.art.outputs.sha256 }}
+        run: |
+          # No `set -x`, no `echo` of any secret: the key and the hostname only
+          # ever move from the environment into a 0600 file.
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+
+          # Host key pinning: DEPLOY_HOST_KEY is the `ssh-keyscan -t ed25519
+          # <host>` output, captured once by hand. StrictHostKeyChecking=yes
+          # then refuses to talk to anything else, so a hijacked DNS record or a
+          # rebuilt box cannot collect the deploy key.
+          printf '%s\n' "$DEPLOY_HOST_KEY" > ~/.ssh/known_hosts
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/known_hosts ~/.ssh/id_deploy
+
+          # The remote key is bound to `command="/usr/local/bin/velorki-deploy"`,
+          # so this string is only ever the argument list; the server decides
+          # what runs. It stores the artefact under /srv/velorki/incoming, checks
+          # the sha256, then `orkify deploy local`s it.
+          ssh -i ~/.ssh/id_deploy \
+              -o IdentitiesOnly=yes \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile=~/.ssh/known_hosts \
+              -o BatchMode=yes \
+              -o ConnectTimeout=20 \
+              "$DEPLOY_USER@$DEPLOY_HOST" \
+              "velorki-deploy $ARTEFACT $SHA256" < "$RUNNER_TEMP/velorki-web.tar.gz"
+
+      - name: Clean up the key
+        if: always()
+        run: rm -f ~/.ssh/id_deploy

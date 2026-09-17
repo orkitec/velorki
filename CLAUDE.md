@@ -2,14 +2,17 @@
 
 Velorki is a free, open-source Flutter bike route planner and ride recorder
 (iOS + Android) on OpenStreetMap data. Routing runs on the phone (a Dart port
-of BRouter in `app/packages/brouter_dart`); a thin Node relay in `api/` only
-holds OAuth secrets, the hosted LLM and shared links. Read `docs/ARCHITECTURE.md`
-before changing structure.
+of BRouter in `app/packages/brouter_dart`); `web/` is one Next.js app serving
+velorki.com and the thin relay on api.velorki.com, which only holds OAuth
+secrets, the hosted LLM and shared links. Read `docs/ARCHITECTURE.md` before
+changing structure.
 
 ## Repositories
 
-- **`~/Work/velorki`** (this one, `orkitec/velorki`): the app, the relay, the
-  BRouter profiles and deploy files, the gazetteer builder and the oracle.
+- **`~/Work/velorki`** (this one, `orkitec/velorki`): the app, the website and
+  relay (`web/`), the BRouter profiles and deploy files, the gazetteer builder
+  and the oracle. The site and the relay deploy together, by Orkify onto the
+  VPS — `docs/DEPLOY_WEB.md` is the runbook.
 - **`~/Work/velorki-data`** (`orkitec/velorki-data`): the tile mirror. Its
   `publish-tiles` workflow copies brouter.de's rd5 tiles into GitHub Releases
   monthly; `publish-gazetteer` then builds a `<TILE>.gaz` per tile from
@@ -30,6 +33,13 @@ before changing structure.
   `app.yml` does: `dart format`, `flutter analyze --fatal-infos`,
   `dart analyze --fatal-infos` (riverpod_lint only runs through `dart analyze`),
   `flutter test`, and `dart test` in any package you touched.
+- **In `web/`** (npm, Next.js 16): `npm run dev`, `npm run build`,
+  `npm test`, `npm run lint`, `npm run typecheck`, `npm run check:deps`
+  (no native addons, no install scripts — the rule that keeps a fork cheap to
+  host), `npm run locales -- --check`. Run
+  `npm run lint && npm run typecheck && npm test` before committing anything
+  under `web/`. After the first Crowdin sync, only `messages/en.json` and
+  `content/en/` are edited by hand.
 - **Delegation**: routine implementation goes to cheaper subagents with a
   precise brief; design decisions, verification and review stay with the
   main agent. Subagents must not commit.
@@ -41,8 +51,8 @@ before changing structure.
   permission_handler needs compileSdk 37. Android SDK at `~/Android/Sdk`.
 - Codegen: `bash tool/gen.sh` (riverpod, freezed, drift, gen-l10n). build_runner
   here has no `--delete-conflicting-outputs`.
-- Strings live in `app/lib/l10n/app_en.arb` only (other locales come from GL
-  Strings); run `gen.sh` after editing it.
+- Strings live in `app/lib/l10n/app_en.arb` only (other locales come from
+  Crowdin); run `gen.sh` after editing it.
 - Config is `--dart-define-from-file=env/<name>.json`. `env/local.json` and
   `env/phone.json` are git-ignored: local points the tile mirror at
   `http://10.0.2.2:8000` (emulator only, debug builds only — profile builds
@@ -105,7 +115,9 @@ before changing structure.
   (`VELORKI_ITEST_COMBINED=1`), because there the Xcode build and the simulator
   boot cost more than the tests, and caches the pods and the derived data),
   `gazetteer-perf.yml` (nightly, times the search against New York off the
-  mirror), `brouter-oracle.yml` (weekly). No rd5 comes off brouter.de; the oracle job
+  mirror), `brouter-oracle.yml` (weekly), `web.yml` (every push touching
+  `web/`: lint, typecheck, vitest, `check:deps`, the locale check,
+  `npm audit --omit=dev` and `next build`). No rd5 comes off brouter.de; the oracle job
   does fetch the pinned upstream release zip. Every workflow declares the least
   privilege it needs (the default token is read-only) and every `uses:` is
   pinned to a commit SHA with the tag in a comment (GitHub's "require SHA
@@ -114,7 +126,10 @@ before changing structure.
   and `ios-release.yml` (fastlane, TestFlight; one-time setup in
   `docs/RELEASE_IOS.md`) in the `release` environment, so both wait for the
   maintainer's approval in the Actions UI before anything is signed or
-  published.
+  published. A `web-v*` tag runs `web-deploy.yml` in the same environment:
+  it packs `web/` with `orkify deploy pack` and streams the artefact to the
+  VPS over a deploy key bound to a forced command
+  (`deploy/web/velorki-deploy`); `docs/DEPLOY_WEB.md` is the runbook.
 
 ## Verifying on the emulator
 

@@ -1,0 +1,100 @@
+/* SPDX-License-Identifier: AGPL-3.0-only */
+/* The share page is handed to people who never agreed to anything: no fonts,
+   no analytics, no third-party anything. The palette is the relay page's. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.header {
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.kind {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.title {
+  margin: 2px 0 10px;
+  font-size: 21px;
+  line-height: 1.25;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.statLabel {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.statValue {
+  font-size: 17px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.map {
+  flex: 1 1 auto;
+  min-height: 280px;
+  background: var(--line);
+}
+
+.mapError {
+  padding: 20px;
+  color: var(--muted);
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--line);
+}
+
+.btn {
+  display: inline-block;
+  padding: 10px 16px;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  border: 1px solid var(--line);
+  color: var(--fg);
+}
+
+.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.credit {
+  margin-left: auto;
+  align-self: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.credit a {
+  color: inherit;
+}

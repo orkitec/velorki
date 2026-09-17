@@ -7,7 +7,7 @@ Thanks for helping. A few rules keep the project easy to work on.
 | Directory | What | Licence |
 |-----------|------|---------|
 | `app/` | Flutter app (iOS + Android) and its pure-Dart packages | Apache-2.0 |
-| `api/` | the thin relay (OAuth token exchange, AI relay, share links), TypeScript on Node | AGPL-3.0-only |
+| `web/` | the website and the thin relay (OAuth token exchange, AI relay, share links), Next.js on Node | AGPL-3.0-only |
 | `brouter/` | routing profiles and the segment updater | Apache-2.0 (profiles carry BRouter's MIT header) |
 | `deploy/` | self-hosting: compose file, Caddy, systemd units | Apache-2.0 |
 | `docs/` | architecture, self-hosting, privacy, store checklist | Apache-2.0 |
@@ -31,12 +31,14 @@ open-source app. `docs/OPEN_ITEMS.md` is what is still open.
 
 - One topic per PR. Keep the description short and factual.
 - CI must be green: `dart format`, `flutter analyze`, tests for `app/` and the
-  packages; `npm run lint`, `typecheck`, `test`, `check:deps` for `api/`.
+  packages; `npm run lint`, `typecheck`, `test`, `build`, `check:deps` for `web/`.
 - The relay must stay deployable as a plain Node process: no native addons, no
   Bun/Deno/edge-only dependencies. `npm run check:deps` enforces it.
 - New user-facing strings go into `app/lib/l10n/app_en.arb` only; other
-  languages are handled by the GL Strings integration. Do not edit the other
-  ARB files by hand.
+  languages come from Crowdin. After the first Crowdin sync, do not edit the
+  other ARB files by hand, and the same holds for `web/messages/*.json` and
+  `web/content/*` outside `en`.
+  See [docs/LOCALISATION.md](docs/LOCALISATION.md).
 - Commit messages: imperative subject, a body that says why. No trailers or
   tool attributions.
 - By contributing you agree that your contribution is licensed under the licence

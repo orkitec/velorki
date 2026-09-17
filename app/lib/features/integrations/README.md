@@ -1,7 +1,7 @@
 # Integrations: Strava and Ride with GPS
 
 Everything in this folder talks to a partner service **directly from the
-phone**. The relay (`api/`) is involved exactly twice: it exchanges an OAuth
+phone**. The relay (`web/`) is involved exactly twice: it exchanges an OAuth
 code for a token and it refreshes a Strava token, because both need a client
 secret that an open-source app cannot hold. No ride data ever passes through
 our servers.

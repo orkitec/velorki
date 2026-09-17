@@ -1,0 +1,362 @@
+{
+  "site": {
+    "name": "Velorki",
+    "tagline": "Plan the ride, find the café, follow the turns, and do all of it where the signal ends. Free, open source, built on OpenStreetMap.",
+    "description": "Velorki plans bike routes, builds loops and records your rides — on the phone, offline, on OpenStreetMap data. Free and open source.",
+    "byline": "A bike route planner and ride recorder by Orkitec."
+  },
+  "nav": {
+    "home": "Velorki home",
+    "features": "Features",
+    "docs": "Docs",
+    "plus": "Plus",
+    "download": "Download",
+    "github": "GitHub",
+    "primary": "Main",
+    "skip": "Skip to content",
+    "openMenu": "Menu"
+  },
+  "localeSwitcher": {
+    "label": "Language",
+    "en": "English",
+    "de": "Deutsch"
+  },
+  "appearance": {
+    "legend": "Show the app in",
+    "mode": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "accent": "Accent",
+    "volt": "Volt",
+    "ember": "Ember",
+    "glacier": "Glacier",
+    "berry": "Berry",
+    "hint": "The app ships light and dark with four accents. Switching here swaps every screenshot on this page."
+  },
+  "screenshots": {
+    "missing": "Screenshot pending",
+    "missingHint": "{file}",
+    "alt": {
+      "planner": "The Velorki route planner: a bike route on the map with waypoints, distance, ascent and the elevation profile in a panel over the map.",
+      "loop": "A generated loop: a round trip drawn on the map with its length, climbing and surface mix.",
+      "search": "Offline place search: a list of nearby cafés and drinking water taps with their distance, found without a connection.",
+      "navigation": "Turn-by-turn navigation: the next turn in a banner above the map while the route is being followed.",
+      "recording": "A ride being recorded: distance, time, speed and ascent in large figures over the map.",
+      "ride": "A finished ride: the speed-coloured track on the map with elevation, speed and split statistics.",
+      "library": "The library: saved routes and recorded rides as a list with their distance and ascent.",
+      "offline": "Offline downloads: map and routing regions on the phone with their size and state.",
+      "settings": "Settings: the appearance section with the light, dark and system switch and the four accents."
+    }
+  },
+  "home": {
+    "meta": {
+      "title": "Velorki — bike route planner and ride recorder, offline and open source",
+      "description": "Plan bike routes, generate loops, search places and follow spoken turns — all on the phone, with no connection. Free, open source, built on OpenStreetMap."
+    },
+    "hero": {
+      "eyebrow": "Free and open source",
+      "title": "Ride where the signal ends",
+      "lead": "Plan the ride, find the café, follow the turns, and do all of it where the signal ends. Free, open source, built on OpenStreetMap.",
+      "body": "Download a region once and the whole app works without a network: the map, the routing, the place search and the spoken turns. No account, no ads, no paywall on the ride itself, and no server in the loop unless you ask for one.",
+      "primaryCta": "Get Velorki",
+      "secondaryCta": "Read the docs",
+      "stores": "Get the app",
+      "storeIos": "Download on the App Store",
+      "storeAndroid": "Get it on Google Play",
+      "storeGithub": "Get it on GitHub",
+      "storesPending": "The store listings are not live yet. The source and the builds are on GitHub in the meantime."
+    },
+    "free": {
+      "title": "Everything on the phone is free",
+      "body": "Planning, loops, offline maps and routing, search, navigation, recording, ride stats, GPX and FIT files — for everyone, for good. The routing data and the search index are mirrored for you at no charge.",
+      "items": {
+        "routing": "Routing on the phone",
+        "loops": "Loops",
+        "search": "Offline search",
+        "maps": "Offline maps",
+        "navigation": "Turn-by-turn",
+        "recording": "Recording",
+        "files": "GPX and FIT"
+      }
+    },
+    "features": {
+      "title": "What it does",
+      "lead": "Six things you will use on every ride. Every screenshot below is the real app.",
+      "plan": {
+        "eyebrow": "Planning",
+        "title": "A route for the bike you are on",
+        "body": "Tap waypoints on the map and a Dart port of the BRouter engine routes on the phone, on downloaded 5°×5° tiles. Touring, road, gravel, MTB and direct profiles, up to three alternatives, the elevation profile and a breakdown of the surfaces you will ride on.",
+        "bullets": {
+          "one": "Five bike profiles, up to three alternatives per route",
+          "two": "Elevation profile and surface statistics for every option",
+          "three": "A BRouter server is optional, for areas with no tiles"
+        }
+      },
+      "loops": {
+        "eyebrow": "Loops",
+        "title": "“A 60 km round trip from here via the lake”",
+        "body": "Say how far you want to ride and, if you like, one place to pass. Candidates are generated on the phone and scored on length, climbing, surface and repeated roads, so what comes back is a ride, not a detour.",
+        "bullets": {
+          "one": "Round trips that come back to where you started",
+          "two": "Scored on length, climbing, surface and repeated roads",
+          "three": "Pick a place to pass and the loop goes through it"
+        }
+      },
+      "offline": {
+        "eyebrow": "Offline",
+        "title": "The map, the routing and the search, with no connection",
+        "body": "Each routing tile brings a search index of its places, streets with house numbers and points of interest: cafés, drinking water, toilets, repair stations, shelters, bike shops, campsites, hotels, passes, peaks, viewpoints, stations and landmarks. Typing “water” lists the nearest taps by distance, and typos are corrected from the index itself.",
+        "bullets": {
+          "one": "Vector map areas from OpenFreeMap saved per region",
+          "two": "Search by category: cafés, water, toilets, repair stations",
+          "three": "Online search through Photon is one tap away"
+        }
+      },
+      "navigate": {
+        "eyebrow": "Navigation",
+        "title": "Spoken turns, on the phone",
+        "body": "A turn banner and spoken cues while you ride a route, re-routing on the phone when you leave it, compass or north-up follow modes. The cues are generated from the same routing data that planned the ride, so they work where there is no network.",
+        "bullets": {
+          "one": "Turn banner and voice cues, offline",
+          "two": "Re-routes on the device when you leave the line",
+          "three": "Compass or north-up follow modes"
+        }
+      },
+      "record": {
+        "eyebrow": "Recording",
+        "title": "It keeps recording when the phone does not",
+        "body": "Recording runs in the background with a foreground notification on Android and a live activity on iOS, and survives the app being killed. Battery saver dims the screen and coarsens the GPS. Afterwards, ride pages with elevation, speed, splits and a speed-coloured track.",
+        "bullets": {
+          "one": "Background recording that survives the app being killed",
+          "two": "Auto-pause, battery saver, distance, time, speed and ascent",
+          "three": "Ride pages with splits and a speed-coloured track"
+        }
+      },
+      "files": {
+        "eyebrow": "Files and services",
+        "title": "Your rides are files you own",
+        "body": "GPX and FIT import and export through the share sheet and open-with, so routes and rides move to Komoot, Garmin Connect, Strava or anything else that reads those formats. Strava and Ride with GPS connections and share links are the Plus part.",
+        "bullets": {
+          "one": "GPX and FIT in and out, from Files, Mail or a browser",
+          "two": "A library of saved routes and recorded rides",
+          "three": "Strava, Ride with GPS and share links with Plus"
+        }
+      }
+    },
+    "comparison": {
+      "eyebrow": "Free vs Plus",
+      "title": "Free is everything that runs on the phone",
+      "lead": "Velorki Plus is a small subscription only for the parts that need our servers or a partner account. Everything else is free, for everyone, for good.",
+      "feature": "Feature",
+      "free": "Free",
+      "plus": "Plus",
+      "included": "Included",
+      "notIncluded": "Not included",
+      "rows": {
+        "planning": "Route planning, five bike profiles, alternatives",
+        "elevation": "Elevation profile and surface statistics",
+        "loops": "Loops and round trips",
+        "offlineMaps": "Offline map and routing regions",
+        "offlineSearch": "Offline place and POI search",
+        "navigation": "Turn-by-turn with spoken cues",
+        "recording": "Ride recording, stats and splits",
+        "library": "Library of routes and rides",
+        "files": "GPX and FIT import and export",
+        "assistant": "The assistant: a sentence becomes a route",
+        "strava": "Strava: upload rides, import routes",
+        "rwgps": "Ride with GPS: routes and trips both ways",
+        "sharing": "Share links for routes and rides"
+      },
+      "note": "The code for all of it is here, so you can also run your own relay and skip the subscription entirely."
+    },
+    "openSource": {
+      "eyebrow": "Open source, no account",
+      "title": "There is nothing to sign up for",
+      "body": "There is no account and no sign-up. Routes, rides and settings stay on your phone. Nothing goes to Strava or Ride with GPS until you connect the account and ask for it. The assistant asks for your consent before any text leaves the device, and the position it sends is rounded to about a kilometre.",
+      "cards": {
+        "license": {
+          "title": "Apache-2.0 app, AGPL relay",
+          "body": "The Flutter app and its pure-Dart packages are Apache-2.0. The relay — and this website — are AGPL-3.0-only, so a modified hosted relay has to publish its source."
+        },
+        "device": {
+          "title": "On-device first",
+          "body": "The routes, the rides, the loop generator, the place search and the routing itself all run on the phone. The server side is optional."
+        },
+        "data": {
+          "title": "No cloud database",
+          "body": "No accounts, no analytics profile, no ride history on a server. The relay only keeps the partner secrets, calls the language model and stores the links you choose to share."
+        },
+        "osm": {
+          "title": "Built on OpenStreetMap",
+          "body": "Map data from OpenStreetMap, routing by BRouter, tiles by OpenFreeMap, online search by Photon, cycling overlay by CyclOSM."
+        }
+      },
+      "privacyLink": "Read the privacy policy",
+      "sourceLink": "Read the source on GitHub"
+    },
+    "faq": {
+      "eyebrow": "Questions",
+      "title": "Frequently asked",
+      "items": {
+        "account": {
+          "q": "Do I need an account?",
+          "a": "No. There is no account and no sign-up, not even for Velorki Plus — a subscription is restored through the store you bought it in, without an account with us."
+        },
+        "offline": {
+          "q": "Does it really work without a connection?",
+          "a": "Yes. Download a region once and the map, the routing, the place search and the spoken turns all run on the phone. Only the assistant, the Strava and Ride with GPS connections and share links need a network, and those are the Plus features."
+        },
+        "price": {
+          "q": "What does Velorki cost?",
+          "a": "Everything that runs on the phone is free: planning, loops, offline maps and routing, search, navigation, recording, ride stats and GPX and FIT files. Velorki Plus is a subscription for the server-side features; the current price is shown in the app, in your currency, by the store."
+        },
+        "plus": {
+          "q": "What is Velorki Plus?",
+          "a": "A small subscription for the parts that need our servers or a partner account: the assistant, the Strava connection, the Ride with GPS connection and share links. It is bought, managed and cancelled in the App Store or Google Play."
+        },
+        "data": {
+          "q": "What leaves my phone?",
+          "a": "Nothing, unless you ask for it. Routes, rides and settings are stored on the device. The assistant asks for consent before any text leaves, and rounds the position it sends to about a kilometre. Map tiles and online search are fetched only when you are not using downloaded data."
+        },
+        "osm": {
+          "q": "Where does the map data come from?",
+          "a": "OpenStreetMap, under the ODbL. Routing is by BRouter, vector tiles by OpenFreeMap, online place search by Photon and the cycling overlay by CyclOSM."
+        },
+        "opensource": {
+          "q": "Is Velorki really open source?",
+          "a": "Yes. The app and its pure-Dart packages are Apache-2.0 and the relay is AGPL-3.0-only; all of it is on GitHub. The name, logo and icon are reserved, so a fork has to rebrand before publishing it to a store."
+        },
+        "selfhost": {
+          "q": "Can I run the server parts myself?",
+          "a": "Yes. The relay, a BRouter routing server and a tile host can all be self-hosted; the repository has the compose files and the systemd units. A fork that points at its own relay needs no subscription at all."
+        }
+      }
+    },
+    "cta": {
+      "title": "Get the app and ride",
+      "body": "Free on both stores, and the source is on GitHub. No account, no ads, no trial on the parts that run on your phone.",
+      "action": "Download Velorki"
+    }
+  },
+  "plus": {
+    "meta": {
+      "title": "Velorki Plus",
+      "description": "Velorki Plus is a small subscription for the parts that need our servers or a partner account: the assistant, Strava, Ride with GPS and share links."
+    },
+    "eyebrow": "Subscription",
+    "title": "Velorki Plus",
+    "lead": "Everything that runs on your phone is free. Plus pays for the parts that need our servers or a partner account.",
+    "includes": "What Plus includes",
+    "features": {
+      "assistant": {
+        "title": "The assistant",
+        "body": "Describe the ride you want in a sentence — “40 km, mostly gravel, a café stop” — and Velorki turns it into a route and plans it on your phone. The model runs behind a relay that holds the key; the app never sees it."
+      },
+      "strava": {
+        "title": "Strava connection",
+        "body": "Upload a recorded ride to Strava and import your Strava routes into the library."
+      },
+      "rwgps": {
+        "title": "Ride with GPS connection",
+        "body": "Routes and trips both ways, between Ride with GPS and your library."
+      },
+      "sharing": {
+        "title": "Share links",
+        "body": "Turn a route or a ride into a link anyone can open in a browser, with the map, the stats and a GPX download."
+      }
+    },
+    "freeTitle": "What stays free",
+    "freeBody": "Planning, loops, offline maps and routing, search, turn-by-turn navigation, recording, ride stats and GPX and FIT files stay free, with or without Plus.",
+    "priceTitle": "What it costs",
+    "priceBody": "See the price in the app. The store shows the current monthly and yearly price in your own currency, with a free trial, and the price is never quoted here so it cannot go stale.",
+    "restoreTitle": "Restoring a subscription",
+    "restoreBody": "Already subscribed? Restore purchases in Settings → Velorki Plus. Restoring works without an account: the store you bought it in is the only record.",
+    "cancelTitle": "Cancelling",
+    "cancelBody": "The subscription renews automatically at the end of each period unless it is cancelled at least 24 hours before. Payment is taken by the App Store or Google Play, where the subscription can be managed or cancelled at any time. A free trial that is not cancelled becomes a paid subscription.",
+    "selfHostTitle": "Or run it yourself",
+    "selfHostBody": "The relay is open source. Point a build at your own and every Plus feature works without a subscription.",
+    "termsLink": "Terms of use",
+    "privacyLink": "Privacy policy",
+    "docsLink": "Velorki Plus in the docs"
+  },
+  "download": {
+    "meta": {
+      "title": "Download Velorki",
+      "description": "Velorki for Android and iOS: the stores, the APK from GitHub Releases, and the minimum system versions."
+    },
+    "eyebrow": "Download",
+    "title": "Get Velorki",
+    "lead": "Free on both platforms. Everything that runs on the phone works without an account and without a connection.",
+    "requirementsTitle": "What it needs",
+    "android": "Android",
+    "ios": "iOS",
+    "androidRequirement": "Android {version} or newer",
+    "iosRequirement": "iOS {version} or newer",
+    "storage": "About 60 MB for the app, plus whatever you download in map and routing regions.",
+    "apkTitle": "APK and source builds",
+    "apkBody": "Every release is tagged on GitHub with its APK attached, for people who would rather not use a store. Updates are manual when you install this way.",
+    "apkLink": "GitHub Releases",
+    "sourceTitle": "Build it yourself",
+    "sourceBody": "The whole app is in the repository. `mise install` in the root installs Flutter, Java and Node at the pinned versions; the app README has the rest.",
+    "sourceLink": "Source on GitHub",
+    "pending": "The store listings are not live yet — until they are, GitHub Releases is the way in."
+  },
+  "docs": {
+    "meta": {
+      "title": "Documentation",
+      "description": "The Velorki user guide: planning, loops, offline maps and search, navigation, recording, files, sharing and settings."
+    },
+    "title": "Documentation",
+    "lead": "The user guide: how to plan, ride, record and get your rides back out again.",
+    "sidebar": "Documentation",
+    "breadcrumb": "Docs",
+    "home": "Home",
+    "prev": "Previous",
+    "next": "Next",
+    "onThisPage": "On this page",
+    "empty": "The user guide is being written. Until it lands, the README and the docs folder in the repository have the detail.",
+    "untranslatedTitle": "This page is not translated yet",
+    "untranslatedBody": "The English text is shown instead. Translations come from the community — the source file is in the repository.",
+    "readMore": "Read"
+  },
+  "legal": {
+    "privacy": {
+      "title": "Privacy policy",
+      "description": "What Velorki stores, what leaves your phone and what never does."
+    },
+    "terms": {
+      "title": "Terms of use",
+      "description": "The terms for using the Velorki app, Velorki Plus and shared links."
+    },
+    "imprint": {
+      "title": "Imprint",
+      "description": "The provider of velorki.com and how to reach us."
+    },
+    "missing": "This document has not been published yet. Write to {email} in the meantime.",
+    "updated": "Last updated"
+  },
+  "footer": {
+    "tagline": "A bike route planner and ride recorder that runs on your phone.",
+    "product": "Product",
+    "resources": "Resources",
+    "legalHeading": "Legal",
+    "security": "Security: {email}",
+    "securityLabel": "Report a security issue",
+    "osm": "Map data © OpenStreetMap contributors",
+    "credits": "Routing by BRouter, tiles by OpenFreeMap, search by Photon.",
+    "copyright": "© {year} Orkitec. App under Apache-2.0, website and relay under AGPL-3.0-only.",
+    "github": "GitHub"
+  },
+  "notFound": {
+    "title": "Off the route",
+    "body": "This page does not exist. It may have moved, or the link may have been mistyped.",
+    "home": "Back to the start",
+    "docs": "Go to the docs"
+  },
+  "errors": {
+    "title": "Something went wrong",
+    "body": "This page could not be rendered. Trying again usually helps.",
+    "retry": "Try again",
+    "home": "Back to the start"
+  }
+}

@@ -18,7 +18,8 @@ mirrors the routing data.
 | Path | What it is |
 |---|---|
 | `docker-compose.yml` | The stack: `caddy`, `brouter`, `brouter-updater`, optional `api` |
-| `Caddyfile` | TLS + routing: `/brouter*` → BRouter, everything else → API |
+| `Caddyfile` | TLS + routing: `/brouter*` → BRouter, everything else → the app |
+| `web/` | The official deployment: Caddy config, Cloudflare and backup scripts, the deploy forced command — see [docs/DEPLOY_WEB.md](../docs/DEPLOY_WEB.md) |
 | `.env.example` | Configuration template |
 | `Makefile`, `bin/` | `sync-now`, `logs`, `route-test` helpers |
 | `systemd/` | Docker-free alternative: run BRouter straight from a jar |
@@ -208,42 +209,26 @@ Keep `../brouter/profiles/lookups.dat` and `BROUTER_VERSION` on the *same*
 upstream tag. If the lookup version changes between releases, the mirrored
 segments must be re-downloaded too — delete the volume and re-sync.
 
-## 7. Running the API
+## 7. Running the website and API
 
-The stack serves everything that is not `/brouter*` from the API. There are two
-ways to run it.
+`web/` is one Next.js app that serves both the website and the relay API,
+separated by the Host header. There are two ways to run it.
 
 ### a) With Orkify, as a plain Node process — what the official VPS does
 
-The official Velorki deployment does **not** run the API in Docker. Orkify
-deploys it from the monorepo as an ordinary Node process:
+The official Velorki deployment does **not** run it in Docker. Orkify deploys
+`web/` from the monorepo as an ordinary Node cluster on `velorki.com` and
+`api.velorki.com`, behind Caddy and Cloudflare.
 
-```sh
-cd ../api
-npm ci
-npm run build
-node dist/server.js        # health: GET /health
-```
+**[docs/DEPLOY_WEB.md](../docs/DEPLOY_WEB.md) is the complete runbook** — the
+VPS, Node, Orkify, Caddy with a Cloudflare Origin CA certificate, the Cloudflare
+zone, the deploy workflow, backups and operations. The pieces it installs live
+in `deploy/web/`: `Caddyfile`, `cloudflare-ips.sh`, `backup-sqlite.sh`,
+`velorki-deploy` and `velorki-web.env.example`.
 
-Give that process the API environment variables (the "API" section at the bottom
-of `.env.example` lists them all), including:
-
-```sh
-PORT=8080
-BROUTER_URL=http://127.0.0.1:17777   # or wherever your brouter listens
-TRUST_PROXY=1
-```
-
-Caddy proxies to `api:8080`. If the API runs on the host rather than in the
-compose network, point it at the host instead — in `Caddyfile`, change
-`reverse_proxy api:8080` to `reverse_proxy host.docker.internal:8080` and add
-
-```yaml
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-```
-
-to the `caddy` service, then `docker compose up -d caddy`.
+That Caddy config replaces this directory's `Caddyfile`, which only knows about
+BRouter and a single domain. If you run BRouter on the same box, copy the
+`/brouter*` block out of `deploy/Caddyfile` into `deploy/web/Caddyfile`.
 
 ### b) In compose — for a self-contained box
 
@@ -254,13 +239,17 @@ in mode (a). Start it explicitly:
 docker compose --profile api up -d      # or: make up-api
 ```
 
-It builds from `../api` by default. To use the prebuilt image instead, follow
-the comment in `docker-compose.yml`: comment out the two `build:` lines,
-uncomment `image: ghcr.io/orkitec/velorki-api:${API_TAG:-latest}`, set `API_TAG`
+It builds `../web` with `web/Dockerfile` by default (Node 22 build stage,
+distroless runtime, `.next/standalone`). To use the prebuilt image instead,
+follow the comment in `docker-compose.yml`: comment out the two `build:` lines,
+uncomment `image: ghcr.io/orkitec/velorki-web:${API_TAG:-latest}`, set `API_TAG`
 in `.env`, and `docker compose --profile api up -d`.
 
 Note that `api` reads **all** of `.env` (`env_file`), so fill in the API section
-there in this mode. `make logs` and `make down` already include the profile.
+there in this mode; `SITE_HOST` and `API_HOST` both default to `DOMAIN`, which
+is right when one Caddy site block serves everything. The share database is the
+`api_data` volume at `/var/lib/velorki`. `make logs` and `make down` already
+include the profile.
 
 ## 8. Without Docker
 
@@ -290,7 +279,7 @@ Only three things are not reproducible from this repo:
 |---|---|
 | `deploy/.env` | Your secrets. Not in git. |
 | `caddy_data` volume | TLS certificates and the ACME account key. Losing it means re-issuing certs and burning Let's Encrypt rate limit. |
-| `api_data` volume | Share links and other API state (`SHARE_DB_PATH`). |
+| `api_data` volume | Share links (`SHARE_DB_PATH`). |
 
 ```sh
 docker run --rm \

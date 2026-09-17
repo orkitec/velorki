@@ -1,0 +1,94 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# Orkify process definition for the Velorki website + relay.
+# Schema reference: https://orkify.com/docs/cli ("Configuration File: orkify.yml").
+#
+# `orkify deploy local <tarball>` reads this file from the unpacked release:
+# it runs `deploy.install`, then `deploy.build`, then reconciles the processes
+# below against what is running (new ones start, unchanged ones get a
+# zero-downtime rolling reload). Secrets are NOT in here - they come from the
+# Orkify dashboard (per project, injected on the agent's next heartbeat,
+# https://orkify.com/docs/secrets) or from /etc/orkify/env. See
+# ../docs/DEPLOY_WEB.md and ../deploy/web/velorki-web.env.example.
+
+# Schema version of this file. Only `1` exists today.
+version: 1
+
+deploy:
+  # Install step, run in the unpacked release directory. `npm ci` and nothing
+  # else: the committed lockfile is the source of truth and `npm run
+  # check:deps` guarantees no dependency has an install script or a
+  # binding.gyp, so this never compiles anything.
+  install: npm ci
+
+  # Build step. Just `next build` - package.json's `postbuild` already runs
+  # scripts/standalone-assets.mjs, which copies `.next/static` and `public/`
+  # into `.next/standalone/`. Do NOT repeat the `cp -r` from Orkify's Next.js
+  # example (https://orkify.com/docs/nextjs) here; it would be a second copy.
+  build: npm run build
+
+  # Seconds a freshly started worker has to stay alive before the release
+  # counts as good. A crash inside this window rolls back to the previous
+  # release on disk. 30 s covers Next's cold start plus the first health probe.
+  crashWindow: 30
+
+processes:
+  # One process, clustered. Everything (site, share pages, relay routes) is in
+  # this single Node app; the two public hostnames are separated inside it by
+  # API_HOST / SITE_HOST, not by two processes.
+  - name: velorki-web
+
+    # Entry point produced by `next build` with `output: 'standalone'`
+    # (next.config.ts). Relative to the release directory.
+    script: .next/standalone/server.js
+
+    # `cluster`, so all workers accept on the same socket and a reload can
+    # replace them one at a time with no dropped connection. `fork` would need
+    # a load balancer in front.
+    execMode: cluster
+
+    # Two workers. Enough for a 2 vCPU box and the minimum that actually
+    # exercises the cross-worker paths: rate limits and the entitlement cache
+    # go through @orkify/cache, and only ORKIFY_WORKER_ID=0 runs the share
+    # sweeper.
+    workerCount: 2
+
+    # The port Orkify knows the app listens on. It is what the health probe
+    # dials and what sticky routing would use. Next's server.js reads PORT from
+    # the environment, so it is set in `env` below as well - keep the two equal.
+    port: 8080
+
+    # Readiness probe for every start and every rolling reload: Orkify requests
+    # `http://localhost:8080/health` and retries 3 times with 1 s between
+    # attempts; a non-2xx after that marks the worker failed.
+    # (https://orkify.com/docs/cli, "Health Check Mechanism")
+    #
+    # The probe dials loopback and cannot be given headers, so it arrives with
+    # `Host: localhost:8080` and no `x-velorki-host`. `/health` is an API-host
+    # route, so the host gate treats a loopback Host (`localhost:<PORT>`,
+    # `127.0.0.1:<PORT>`, `[::1]:<PORT>`) as the API role - that is the only
+    # way the probe reaches it, and it is safe because Caddy always forwards
+    # the real public Host and the origin only accepts Cloudflare's addresses.
+    # On the box, `curl -s http://127.0.0.1:8080/health` is the same request.
+    healthCheck: /health
+
+    # Grace period for SIGTERM before SIGKILL, in ms. Long enough to finish an
+    # in-flight SSE plan stream and close the SQLite handle cleanly; Orkify's
+    # default of 5000 is not.
+    killTimeout: 15000
+
+    # Non-secret environment. Everything with a value belongs in the repo;
+    # everything else (provider keys, RevenueCat, LLM) comes from the Orkify
+    # dashboard's secrets, which take precedence over this block.
+    env:
+      # Production mode for Next and for the app's own logging defaults.
+      NODE_ENV: 'production'
+      # Port Next's standalone server binds. Must match `port:` above.
+      PORT: '8080'
+      # Interface Next binds. 0.0.0.0 so Caddy on the same host can reach it;
+      # the box is firewalled to Cloudflare's ranges, nothing else can.
+      HOSTNAME: '0.0.0.0'
+      # SQLite file for share links. Absolute and OUTSIDE the release tree:
+      # Orkify keeps releases in their own directories, so a relative path
+      # would hand out links that break on the next deploy.
+      SHARE_DB_PATH: '/var/lib/velorki/share.sqlite'

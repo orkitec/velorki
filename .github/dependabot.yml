@@ -8,11 +8,11 @@ updates:
       flutter:
         patterns: ["*"]
   - package-ecosystem: npm
-    directory: /api
+    directory: /web
     schedule:
       interval: weekly
     groups:
-      api:
+      web:
         patterns: ["*"]
     ignore:
       # typescript-eslint pins typescript < 6.1; a TS major bump breaks lint.

@@ -1,0 +1,52 @@
+name: web
+
+# The website + relay (web/): static checks, tests, the dependency guard and a
+# production build. Replaces api.yml, which goes away with api/ at the cutover.
+on:
+  push:
+    branches: [main]
+    paths: ["web/**", ".github/workflows/web.yml"]
+  pull_request:
+    paths: ["web/**", ".github/workflows/web.yml"]
+
+permissions:
+  # Nothing in this workflow writes anything.
+  contents: read
+
+defaults:
+  run:
+    working-directory: web
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          # The VPS runs Node 22 LTS; build on what production runs.
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+
+      # No native addons and no install scripts: the app must stay a plain
+      # `node server.js` on a stock runtime, which is what keeps a fork cheap
+      # to self-host and the deploy free of a compiler.
+
+      # Every messages/<locale>.json has the same keys as the English source
+      # and src/i18n/locales.generated.ts matches what is on disk.
+      - run: npm run locales -- --check
+
+      # Runtime dependencies only: a high or critical advisory fails the run.
+      - run: npm audit --omit=dev --audit-level=high
+
+      - run: npm run build
+      # Inspects the traced standalone tree, i.e. what is deployed, so it must
+      # run after the build.
+      - run: npm run check:deps

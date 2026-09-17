@@ -1,0 +1,362 @@
+{
+  "site": {
+    "name": "Velorki",
+    "tagline": "Plane die Tour, finde das Café, folge den Abbiegehinweisen, und das alles dort, wo der Empfang endet. Kostenlos, quelloffen, auf OpenStreetMap gebaut.",
+    "description": "Velorki plant Radrouten, baut Runden und zeichnet deine Fahrten auf, auf dem Handy, offline, mit OpenStreetMap-Daten. Kostenlos und quelloffen.",
+    "byline": "Ein Radroutenplaner mit Fahrtenaufzeichnung von Orkitec."
+  },
+  "nav": {
+    "home": "Velorki Startseite",
+    "features": "Funktionen",
+    "docs": "Doku",
+    "plus": "Plus",
+    "download": "Download",
+    "github": "GitHub",
+    "primary": "Haupt",
+    "skip": "Zum Inhalt springen",
+    "openMenu": "Menü"
+  },
+  "localeSwitcher": {
+    "label": "Sprache",
+    "en": "English",
+    "de": "Deutsch"
+  },
+  "appearance": {
+    "legend": "App anzeigen in",
+    "mode": "Design",
+    "light": "Hell",
+    "dark": "Dunkel",
+    "accent": "Akzent",
+    "volt": "Volt",
+    "ember": "Glut",
+    "glacier": "Gletscher",
+    "berry": "Beere",
+    "hint": "Die App kommt hell und dunkel mit vier Akzentfarben. Schaltest du hier um, wechselt jeder Screenshot auf dieser Seite mit."
+  },
+  "screenshots": {
+    "missing": "Screenshot folgt",
+    "missingHint": "{file}",
+    "alt": {
+      "planner": "Der Velorki-Routenplaner: eine Radroute auf der Karte mit Wegpunkten, Distanz, Anstieg und dem Höhenprofil in einem Panel über der Karte.",
+      "loop": "Eine erzeugte Runde: eine Rundfahrt auf der Karte, mit ihrer Länge, ihrem Anstieg und der Belagsmischung.",
+      "search": "Offline-Ortssuche: eine Liste von Cafés und Trinkwasserstellen in der Nähe mit ihrer Entfernung, gefunden ohne Verbindung.",
+      "navigation": "Abbiegehinweise: die nächste Abbiegung in einem Banner über der Karte, während der Route gefolgt wird.",
+      "recording": "Eine Fahrt wird aufgezeichnet: Distanz, Zeit, Geschwindigkeit und Anstieg in großen Zahlen über der Karte.",
+      "ride": "Eine fertige Fahrt: der nach Geschwindigkeit eingefärbte Track auf der Karte, mit Höhen-, Geschwindigkeits- und Split-Statistik.",
+      "library": "Die Bibliothek: gespeicherte Routen und aufgezeichnete Fahrten als Liste mit ihrer Distanz und ihrem Anstieg.",
+      "offline": "Offline-Downloads: Karten- und Routing-Regionen auf dem Handy mit ihrer Größe und ihrem Status.",
+      "settings": "Einstellungen: der Bereich Darstellung mit dem Schalter für Hell, Dunkel und System und den vier Akzentfarben."
+    }
+  },
+  "home": {
+    "meta": {
+      "title": "Velorki: Radroutenplaner und Fahrtenaufzeichnung, offline und quelloffen",
+      "description": "Plane Radrouten, erzeuge Runden, such nach Orten und folge gesprochenen Abbiegehinweisen, alles auf dem Handy, ganz ohne Verbindung. Kostenlos, quelloffen, auf OpenStreetMap gebaut."
+    },
+    "hero": {
+      "eyebrow": "Kostenlos und quelloffen",
+      "title": "Fahr dort, wo der Empfang endet",
+      "lead": "Plane die Tour, finde das Café, folge den Abbiegehinweisen, und das alles dort, wo der Empfang endet. Kostenlos, quelloffen, auf OpenStreetMap gebaut.",
+      "body": "Lade eine Region einmal herunter und die ganze App läuft ohne Netz: die Karte, das Routing, die Ortssuche und die gesprochenen Abbiegehinweise. Kein Konto, keine Werbung, keine Bezahlschranke vor der Fahrt selbst, und kein Server dazwischen, außer du willst einen.",
+      "primaryCta": "Velorki holen",
+      "secondaryCta": "Doku lesen",
+      "stores": "App holen",
+      "storeIos": "Laden im App Store",
+      "storeAndroid": "Jetzt bei Google Play",
+      "storeGithub": "Auf GitHub holen",
+      "storesPending": "Die Store-Einträge sind noch nicht live. Bis dahin liegen der Quellcode und die Builds auf GitHub."
+    },
+    "free": {
+      "title": "Alles auf dem Handy ist kostenlos",
+      "body": "Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufnahme, Fahrtstatistik, GPX- und FIT-Dateien, für alle, für immer. Die Routing-Daten und den Suchindex spiegeln wir kostenlos für dich.",
+      "items": {
+        "routing": "Routing auf dem Handy",
+        "loops": "Runden",
+        "search": "Offline-Suche",
+        "maps": "Offline-Karten",
+        "navigation": "Abbiegehinweise",
+        "recording": "Aufnahme",
+        "files": "GPX und FIT"
+      }
+    },
+    "features": {
+      "title": "Was sie kann",
+      "lead": "Sechs Dinge, die du auf jeder Fahrt brauchst. Jeder Screenshot hier unten zeigt die echte App.",
+      "plan": {
+        "eyebrow": "Planen",
+        "title": "Eine Route für das Rad, auf dem du sitzt",
+        "body": "Tippe Wegpunkte auf der Karte und ein Dart-Port der BRouter-Engine berechnet die Route auf dem Handy, auf heruntergeladenen 5°×5°-Kacheln. Profile für Trekking, Rennrad, Gravel, MTB und direkt, bis zu drei Alternativen, das Höhenprofil und eine Aufschlüsselung der Beläge, über die es geht.",
+        "bullets": {
+          "one": "Fünf Radprofile, bis zu drei Alternativen pro Route",
+          "two": "Höhenprofil und Belagsstatistik für jede Variante",
+          "three": "Ein BRouter-Server ist optional, für Gebiete ohne Kacheln"
+        }
+      },
+      "loops": {
+        "eyebrow": "Runden",
+        "title": "„Eine 60-km-Runde von hier am See vorbei“",
+        "body": "Sag, wie weit du fahren willst, und wenn du magst einen Ort, an dem es vorbeigehen soll. Die Kandidaten entstehen auf dem Handy und werden nach Länge, Anstieg, Belag und doppelt gefahrenen Wegen bewertet, damit dabei eine Fahrt herauskommt und kein Umweg.",
+        "bullets": {
+          "one": "Rundfahrten, die dorthin zurückführen, wo du gestartet bist",
+          "two": "Bewertet nach Länge, Anstieg, Belag und doppelt gefahrenen Wegen",
+          "three": "Wähl einen Ort zum Vorbeifahren und die Runde führt daran vorbei"
+        }
+      },
+      "offline": {
+        "eyebrow": "Offline",
+        "title": "Die Karte, das Routing und die Suche, ganz ohne Verbindung",
+        "body": "Jede Routing-Kachel bringt einen Suchindex ihrer Orte mit, dazu Straßen mit Hausnummern und Points of Interest: Cafés, Trinkwasser, Toiletten, Reparaturstationen, Schutzhütten, Fahrradläden, Campingplätze, Hotels, Pässe, Gipfel, Aussichtspunkte, Bahnhöfe und Sehenswürdigkeiten. Tippst du „Wasser“, kommen die nächsten Trinkwasserstellen nach Entfernung sortiert, und Tippfehler korrigiert der Index von selbst.",
+        "bullets": {
+          "one": "Vektorkarten-Gebiete von OpenFreeMap, pro Region gespeichert",
+          "two": "Suche nach Kategorie: Cafés, Wasser, Toiletten, Reparaturstationen",
+          "three": "Die Online-Suche über Photon ist einen Tipp entfernt"
+        }
+      },
+      "navigate": {
+        "eyebrow": "Navigation",
+        "title": "Gesprochene Abbiegehinweise, auf dem Handy",
+        "body": "Ein Abbiegebanner und gesprochene Hinweise, während du eine Route fährst, Neuberechnung auf dem Handy, wenn du sie verlässt, Folgemodus mit Kompass oder nach Norden ausgerichtet. Die Hinweise entstehen aus denselben Routing-Daten, die schon die Fahrt geplant haben, also funktionieren sie auch dort, wo kein Netz ist.",
+        "bullets": {
+          "one": "Abbiegebanner und Sprachhinweise, offline",
+          "two": "Berechnet auf dem Gerät neu, wenn du die Linie verlässt",
+          "three": "Folgemodus mit Kompass oder nach Norden ausgerichtet"
+        }
+      },
+      "record": {
+        "eyebrow": "Aufnahme",
+        "title": "Sie zeichnet weiter auf, auch wenn das Handy es nicht tut",
+        "body": "Die Aufnahme läuft im Hintergrund, mit einer Benachrichtigung im Vordergrund auf Android und einer Live-Aktivität auf iOS, und übersteht es, wenn die App beendet wird. Der Akkusparmodus dimmt den Bildschirm und macht das GPS gröber. Danach gibt es Fahrtseiten mit Höhe, Geschwindigkeit, Splits und einem nach Geschwindigkeit eingefärbten Track.",
+        "bullets": {
+          "one": "Aufnahme im Hintergrund, die das Beenden der App übersteht",
+          "two": "Auto-Pause, Akkusparmodus, Distanz, Zeit, Geschwindigkeit und Anstieg",
+          "three": "Fahrtseiten mit Splits und nach Geschwindigkeit eingefärbtem Track"
+        }
+      },
+      "files": {
+        "eyebrow": "Dateien und Dienste",
+        "title": "Deine Fahrten sind Dateien, die dir gehören",
+        "body": "GPX- und FIT-Import und -Export über das Teilen-Menü und „Öffnen mit“, damit Routen und Fahrten zu Komoot, Garmin Connect, Strava oder allem anderen wandern, das diese Formate liest. Die Verbindungen zu Strava und Ride with GPS und die Teilen-Links sind der Plus-Teil.",
+        "bullets": {
+          "one": "GPX und FIT rein und raus, aus Dateien, Mail oder dem Browser",
+          "two": "Eine Bibliothek gespeicherter Routen und aufgezeichneter Fahrten",
+          "three": "Strava, Ride with GPS und Teilen-Links mit Plus"
+        }
+      }
+    },
+    "comparison": {
+      "eyebrow": "Kostenlos vs. Plus",
+      "title": "Kostenlos ist alles, was auf dem Handy läuft",
+      "lead": "Velorki Plus ist ein kleines Abo, nur für die Teile, die unsere Server oder ein Partnerkonto brauchen. Alles andere ist kostenlos, für alle, für immer.",
+      "feature": "Funktion",
+      "free": "Kostenlos",
+      "plus": "Plus",
+      "included": "Enthalten",
+      "notIncluded": "Nicht enthalten",
+      "rows": {
+        "planning": "Routenplanung, fünf Radprofile, Alternativen",
+        "elevation": "Höhenprofil und Belagsstatistik",
+        "loops": "Runden und Rundfahrten",
+        "offlineMaps": "Offline-Karten- und Routing-Regionen",
+        "offlineSearch": "Offline-Suche nach Orten und POIs",
+        "navigation": "Abbiegehinweise mit Sprachausgabe",
+        "recording": "Fahrtenaufzeichnung, Statistik und Splits",
+        "library": "Bibliothek mit Routen und Fahrten",
+        "files": "GPX- und FIT-Import und -Export",
+        "assistant": "Der Assistent: ein Satz wird zur Route",
+        "strava": "Strava: Fahrten hochladen, Routen importieren",
+        "rwgps": "Ride with GPS: Routen und Fahrten in beide Richtungen",
+        "sharing": "Teilen-Links für Routen und Fahrten"
+      },
+      "note": "Der Code für all das liegt hier, du kannst also auch einen eigenen Relay-Server betreiben und dir das Abo komplett sparen."
+    },
+    "openSource": {
+      "eyebrow": "Quelloffen, kein Konto",
+      "title": "Es gibt nichts, wofür du dich anmelden müsstest",
+      "body": "Es gibt kein Konto und keine Anmeldung. Routen, Fahrten und Einstellungen bleiben auf deinem Handy. Zu Strava oder Ride with GPS geht nichts, bis du das Konto verbindest und es verlangst. Der Assistent fragt um deine Zustimmung, bevor Text das Gerät verlässt, und die Position, die er sendet, ist auf etwa einen Kilometer gerundet.",
+      "cards": {
+        "license": {
+          "title": "App unter Apache-2.0, Relay unter AGPL",
+          "body": "Die Flutter-App und ihre reinen Dart-Pakete stehen unter Apache-2.0. Der Relay-Server und diese Website stehen unter AGPL-3.0-only, ein veränderter gehosteter Relay muss seinen Quellcode also veröffentlichen."
+        },
+        "device": {
+          "title": "Zuerst auf dem Gerät",
+          "body": "Die Routen, die Fahrten, der Rundengenerator, die Ortssuche und das Routing selbst laufen alle auf dem Handy. Die Serverseite ist optional."
+        },
+        "data": {
+          "title": "Keine Cloud-Datenbank",
+          "body": "Keine Konten, kein Analyse-Profil, keine Fahrtenhistorie auf einem Server. Der Relay verwahrt nur die Partner-Geheimnisse, ruft das Sprachmodell auf und speichert die Links, die du teilen willst."
+        },
+        "osm": {
+          "title": "Auf OpenStreetMap gebaut",
+          "body": "Kartendaten von OpenStreetMap, Routing von BRouter, Kacheln von OpenFreeMap, Online-Suche von Photon, Rad-Overlay von CyclOSM."
+        }
+      },
+      "privacyLink": "Datenschutzerklärung lesen",
+      "sourceLink": "Quellcode auf GitHub lesen"
+    },
+    "faq": {
+      "eyebrow": "Fragen",
+      "title": "Häufig gefragt",
+      "items": {
+        "account": {
+          "q": "Brauche ich ein Konto?",
+          "a": "Nein. Es gibt kein Konto und keine Anmeldung, nicht einmal für Velorki Plus: ein Abo wird über den Store wiederhergestellt, in dem du es gekauft hast, ganz ohne Konto bei uns."
+        },
+        "offline": {
+          "q": "Funktioniert das wirklich ohne Verbindung?",
+          "a": "Ja. Lade eine Region einmal herunter und die Karte, das Routing, die Ortssuche und die gesprochenen Abbiegehinweise laufen alle auf dem Handy. Nur der Assistent, die Verbindungen zu Strava und Ride with GPS und die Teilen-Links brauchen Netz, und genau das sind die Plus-Funktionen."
+        },
+        "price": {
+          "q": "Was kostet Velorki?",
+          "a": "Alles, was auf dem Handy läuft, ist kostenlos: Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufnahme, Fahrtstatistik sowie GPX- und FIT-Dateien. Velorki Plus ist ein Abo für die serverseitigen Funktionen; den aktuellen Preis zeigt dir der Store in der App, in deiner Währung."
+        },
+        "plus": {
+          "q": "Was ist Velorki Plus?",
+          "a": "Ein kleines Abo für die Teile, die unsere Server oder ein Partnerkonto brauchen: den Assistenten, die Strava-Verbindung, die Verbindung zu Ride with GPS und die Teilen-Links. Gekauft, verwaltet und gekündigt wird es im App Store oder bei Google Play."
+        },
+        "data": {
+          "q": "Was verlässt mein Handy?",
+          "a": "Nichts, außer du verlangst es. Routen, Fahrten und Einstellungen liegen auf dem Gerät. Der Assistent fragt um Zustimmung, bevor Text das Gerät verlässt, und rundet die Position, die er sendet, auf etwa einen Kilometer. Kartenkacheln und die Online-Suche werden nur geholt, wenn du gerade keine heruntergeladenen Daten nutzt."
+        },
+        "osm": {
+          "q": "Woher kommen die Kartendaten?",
+          "a": "Von OpenStreetMap, unter der ODbL. Das Routing kommt von BRouter, die Vektorkacheln von OpenFreeMap, die Online-Ortssuche von Photon und das Rad-Overlay von CyclOSM."
+        },
+        "opensource": {
+          "q": "Ist Velorki wirklich quelloffen?",
+          "a": "Ja. Die App und ihre reinen Dart-Pakete stehen unter Apache-2.0, der Relay unter AGPL-3.0-only; alles davon liegt auf GitHub. Name, Logo und Icon sind vorbehalten, ein Fork muss sich also umbenennen, bevor er in einem Store veröffentlicht wird."
+        },
+        "selfhost": {
+          "q": "Kann ich die Server-Teile selbst betreiben?",
+          "a": "Ja. Der Relay, ein BRouter-Routing-Server und ein Kachel-Host lassen sich alle selbst hosten; im Repository liegen die Compose-Dateien und die systemd-Units. Ein Fork, der auf seinen eigenen Relay zeigt, braucht überhaupt kein Abo."
+        }
+      }
+    },
+    "cta": {
+      "title": "Hol dir die App und fahr los",
+      "body": "Kostenlos in beiden Stores, und der Quellcode liegt auf GitHub. Kein Konto, keine Werbung, keine Testphase für die Teile, die auf deinem Handy laufen.",
+      "action": "Velorki herunterladen"
+    }
+  },
+  "plus": {
+    "meta": {
+      "title": "Velorki Plus",
+      "description": "Velorki Plus ist ein kleines Abo für die Teile, die unsere Server oder ein Partnerkonto brauchen: den Assistenten, Strava, Ride with GPS und die Teilen-Links."
+    },
+    "eyebrow": "Abo",
+    "title": "Velorki Plus",
+    "lead": "Alles, was auf deinem Handy läuft, ist kostenlos. Plus bezahlt die Teile, die unsere Server oder ein Partnerkonto brauchen.",
+    "includes": "Was Plus enthält",
+    "features": {
+      "assistant": {
+        "title": "Der Assistent",
+        "body": "Beschreib die gewünschte Fahrt in einem Satz, „40 km, überwiegend Gravel, ein Café-Stopp“, und Velorki macht daraus eine Route und plant sie auf deinem Handy. Das Modell läuft hinter einem Relay, der den Schlüssel hält; die App sieht ihn nie."
+      },
+      "strava": {
+        "title": "Strava-Verbindung",
+        "body": "Lade eine aufgezeichnete Fahrt zu Strava hoch und importiere deine Strava-Routen in die Bibliothek."
+      },
+      "rwgps": {
+        "title": "Verbindung zu Ride with GPS",
+        "body": "Routen und Fahrten in beide Richtungen, zwischen Ride with GPS und deiner Bibliothek."
+      },
+      "sharing": {
+        "title": "Teilen-Links",
+        "body": "Mach aus einer Route oder einer Fahrt einen Link, den jeder im Browser öffnen kann, mit der Karte, der Statistik und einem GPX-Download."
+      }
+    },
+    "freeTitle": "Was kostenlos bleibt",
+    "freeBody": "Planen, Runden, Offline-Karten und -Routing, Suche, Abbiegenavigation, Aufnahme, Fahrtstatistik sowie GPX- und FIT-Dateien bleiben kostenlos, mit oder ohne Plus.",
+    "priceTitle": "Was es kostet",
+    "priceBody": "Den Preis siehst du in der App. Der Store zeigt den aktuellen Monats- und Jahrespreis in deiner eigenen Währung, mit kostenloser Testphase, und hier steht er nie, damit er nicht veralten kann.",
+    "restoreTitle": "Ein Abo wiederherstellen",
+    "restoreBody": "Schon abonniert? Unter Einstellungen → Velorki Plus die Käufe wiederherstellen. Das klappt ohne Konto: der Store, in dem du gekauft hast, ist der einzige Nachweis.",
+    "cancelTitle": "Kündigen",
+    "cancelBody": "Das Abo verlängert sich automatisch zum Ende jeder Laufzeit, sofern es nicht mindestens 24 Stunden vorher gekündigt wird. Die Zahlung läuft über den App Store oder Google Play, dort lässt sich das Abo jederzeit verwalten oder kündigen. Eine kostenlose Testphase, die nicht gekündigt wird, geht in ein kostenpflichtiges Abo über.",
+    "selfHostTitle": "Oder betreib ihn selbst",
+    "selfHostBody": "Der Relay ist quelloffen. Richte einen Build auf deinen eigenen aus und jede Plus-Funktion läuft ohne Abo.",
+    "termsLink": "Nutzungsbedingungen",
+    "privacyLink": "Datenschutzerklärung",
+    "docsLink": "Velorki Plus in der Doku"
+  },
+  "download": {
+    "meta": {
+      "title": "Velorki herunterladen",
+      "description": "Velorki für Android und iOS: die Stores, die APK aus den GitHub Releases und die minimalen Systemversionen."
+    },
+    "eyebrow": "Download",
+    "title": "Velorki holen",
+    "lead": "Kostenlos auf beiden Plattformen. Alles, was auf dem Handy läuft, funktioniert ohne Konto und ohne Verbindung.",
+    "requirementsTitle": "Was es braucht",
+    "android": "Android",
+    "ios": "iOS",
+    "androidRequirement": "Android {version} oder neuer",
+    "iosRequirement": "iOS {version} oder neuer",
+    "storage": "Etwa 60 MB für die App, dazu alles, was du an Karten- und Routing-Regionen herunterlädst.",
+    "apkTitle": "APK und Builds aus dem Quellcode",
+    "apkBody": "Jedes Release ist auf GitHub getaggt und hat seine APK angehängt, für alle, die lieber keinen Store nutzen. Updates laufen bei dieser Installation von Hand.",
+    "apkLink": "GitHub Releases",
+    "sourceTitle": "Selbst bauen",
+    "sourceBody": "Die ganze App liegt im Repository. `mise install` im Wurzelverzeichnis installiert Flutter, Java und Node in den festgelegten Versionen; den Rest hat die README der App.",
+    "sourceLink": "Quellcode auf GitHub",
+    "pending": "Die Store-Einträge sind noch nicht live; bis dahin führt der Weg über die GitHub Releases."
+  },
+  "docs": {
+    "meta": {
+      "title": "Dokumentation",
+      "description": "Das Velorki-Handbuch: Planen, Runden, Offline-Karten und -Suche, Navigation, Aufnahme, Dateien, Teilen und Einstellungen."
+    },
+    "title": "Dokumentation",
+    "lead": "Das Handbuch: wie du planst, fährst, aufzeichnest und deine Fahrten wieder herausbekommst.",
+    "sidebar": "Dokumentation",
+    "breadcrumb": "Doku",
+    "home": "Start",
+    "prev": "Zurück",
+    "next": "Weiter",
+    "onThisPage": "Auf dieser Seite",
+    "empty": "Das Handbuch wird gerade geschrieben. Bis es fertig ist, stehen die Details in der README und im Ordner docs des Repositorys.",
+    "untranslatedTitle": "Diese Seite ist noch nicht übersetzt",
+    "untranslatedBody": "Stattdessen steht hier der englische Text. Übersetzungen kommen aus der Community, die Quelldatei liegt im Repository.",
+    "readMore": "Lesen"
+  },
+  "legal": {
+    "privacy": {
+      "title": "Datenschutzerklärung",
+      "description": "Was Velorki speichert, was dein Handy verlässt und was nie."
+    },
+    "terms": {
+      "title": "Nutzungsbedingungen",
+      "description": "Die Bedingungen für die Nutzung der Velorki-App, von Velorki Plus und von geteilten Links."
+    },
+    "imprint": {
+      "title": "Impressum",
+      "description": "Der Anbieter von velorki.com und wie du uns erreichst."
+    },
+    "missing": "Dieses Dokument ist noch nicht veröffentlicht. Schreib in der Zwischenzeit an {email}.",
+    "updated": "Zuletzt aktualisiert"
+  },
+  "footer": {
+    "tagline": "Ein Radroutenplaner mit Fahrtenaufzeichnung, der auf deinem Handy läuft.",
+    "product": "Produkt",
+    "resources": "Ressourcen",
+    "legalHeading": "Rechtliches",
+    "security": "Sicherheit: {email}",
+    "securityLabel": "Ein Sicherheitsproblem melden",
+    "osm": "Kartendaten © OpenStreetMap-Mitwirkende",
+    "credits": "Routing von BRouter, Kacheln von OpenFreeMap, Suche von Photon.",
+    "copyright": "© {year} Orkitec. App unter Apache-2.0, Website und Relay unter AGPL-3.0-only.",
+    "github": "GitHub"
+  },
+  "notFound": {
+    "title": "Von der Route abgekommen",
+    "body": "Diese Seite gibt es nicht. Vielleicht ist sie umgezogen, oder im Link steckt ein Tippfehler.",
+    "home": "Zurück zum Start",
+    "docs": "Zur Doku"
+  },
+  "errors": {
+    "title": "Da ist etwas schiefgelaufen",
+    "body": "Diese Seite konnte nicht dargestellt werden. Ein neuer Versuch hilft meistens.",
+    "retry": "Erneut versuchen",
+    "home": "Zurück zum Start"
+  }
+}

@@ -34,8 +34,8 @@ Point `VELORKI_BROUTER_URL` at a BRouter server and the app routes through it
 for any area the rider has not downloaded tiles for. `deploy/` runs one:
 
 - `docker-compose.yml` — Caddy (TLS), BRouter, the segment updater, and the
-  relay behind a compose profile;
-- `Caddyfile` — `/brouter*` to BRouter, everything else to the relay;
+  web app behind a compose profile;
+- `Caddyfile` — `/brouter*` to BRouter, everything else to the web app;
 - `.env.example`, `Makefile` and `bin/{route-test,sync-now,logs}`;
 - `systemd/` — the Docker-free alternative, BRouter straight from a jar plus a
   sync service and timer.
@@ -48,24 +48,51 @@ takes 1–3 hours for the planet. `deploy/README.md` is the step-by-step guide.
 The same server also serves the tiles the app downloads: point
 `VELORKI_SEGMENTS_URL` at the updater's `/segments4`.
 
-## Optional: the relay
+## Optional: the website and relay
 
-`api/` exists only for the Plus features: the Strava and RideWithGPS OAuth
-token exchange, the AI assistant and share links. **Leave `VELORKI_API_URL`
-empty and the app hides all three**; everything else keeps working.
+`web/` is one Next.js app holding both the website (landing page, user guide,
+privacy, terms, imprint) and the relay. The relay exists only for the Plus
+features: the Strava and RideWithGPS OAuth token exchange, the AI assistant and
+share links. **Leave `VELORKI_API_URL` empty and the app hides all three**;
+everything else keeps working.
 
-It is a plain Node 22 process (`npm ci && npm run build && node dist/server.js`,
-health at `/health`). To run it usefully you need your own credentials, in
-`api/.env` (see `api/.env.example`):
+It serves **two hostnames from one process**, separated by the Host header:
+
+| Host | Serves |
+|---|---|
+| `SITE_HOST` (`velorki.com`) | the site, the user guide, the legal pages, the `/s/<id>` share pages |
+| `API_HOST` (`api.velorki.com`) | the relay: `/health`, `/oauth/*`, `/ai/plan`, `POST /share` |
+
+Anything arriving with a third hostname gets a 404, so a stray name pointed at
+the box never reaches a handler. Point both at the same name if you only have
+one.
+
+Two ways to run it:
+
+- **Docker**: `web/Dockerfile` (Node 22 build stage, distroless runtime) is
+  what `deploy/docker-compose.yml`'s `api` profile builds —
+  `docker compose --profile api up -d`.
+- **A plain Node process**: `npm ci && npm run build && node .next/standalone/server.js`,
+  health at `/health`. That is what the official instance does, managed by
+  [Orkify](https://orkify.com) as a two-worker cluster;
+  [DEPLOY_WEB.md](DEPLOY_WEB.md) is the whole runbook, including Caddy and
+  Cloudflare, and works just as well for a fork.
+
+To run it usefully you need your own credentials, in `web/.env` (see
+`web/.env.example`, and `deploy/web/velorki-web.env.example` for a filled-in
+production shape):
 
 | Key | For |
 |---|---|
+| `SITE_HOST` / `API_HOST` | the two hostnames above |
+| `PUBLIC_BASE_URL` | the origin share links are built from (the site host) |
 | `STRAVA_CLIENT_ID` / `_SECRET` | Strava sign-in; missing means `/oauth/strava/*` → 503 |
 | `RWGPS_CLIENT_ID` / `_SECRET` | RideWithGPS sign-in |
 | `OAUTH_REDIRECT_ALLOWLIST` | the exact redirect URIs your build uses |
 | `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` | any OpenAI-compatible endpoint, for the assistant |
 | `REVENUECAT_SECRET_KEY` | entitlement checks; `REVENUECAT_MODE=stub` leaves the endpoints open, which is the right setting for a fork |
-| `SHARE_DB_PATH` | the share-link SQLite file. It must be on a persistent volume, or every deploy breaks the links already handed out |
+| `SHARE_DB_PATH` | the share-link SQLite file. It must be on a persistent volume outside the release tree, or every deploy breaks the links already handed out |
+| `COUNTERS` | `orkify` for the shared cross-worker cache, `memory` for a single process |
 
 That file and the segment tiles are the only server-side state. There is no
 user database, no sync service and no account system to operate.

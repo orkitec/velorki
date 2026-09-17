@@ -60,7 +60,7 @@ every such item.
 | Directory | Contents | Licence |
 |-----------|----------|---------|
 | `app/` | the Flutter app and its pure-Dart packages (`app/packages/`) | Apache-2.0 |
-| `api/` | the thin relay: OAuth token exchange, AI relay, share links | AGPL-3.0-only |
+| `web/` | velorki.com: the website and the relay (OAuth token exchange, AI relay, share links) in one Next.js app | AGPL-3.0-only |
 | `brouter/` | routing profiles and the map-data updater for the BRouter routing server | Apache-2.0 |
 | `deploy/` | self-hosting with Docker Compose or systemd | Apache-2.0 |
 | `docs/` | architecture, self-hosting, privacy, store checklist | Apache-2.0 |
@@ -78,7 +78,7 @@ shared links. No accounts, no cloud database. See `docs/ARCHITECTURE.md`.
 ## Building
 
 `mise install` in the repository root installs Flutter, Java and Node at the
-pinned versions. Then see `app/README.md` and `api/README.md`.
+pinned versions. Then see `app/README.md` and `web/README.md`.
 
 ## Self-hosting
 
