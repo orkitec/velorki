@@ -166,12 +166,16 @@ class LoopQuality {
 ///   the sea (or up a cliff): the engine snapped it somewhere else entirely,
 ///   so the loop is not the one the strategy proposed. The rider's own start
 ///   and vias are never judged this way — only [syntheticPoints].
+///
+/// [tooFarFromTarget] is a fourth rule and a softer one: it does not throw a
+/// candidate away, it says the planner should ask again before showing it.
 class LoopFilter {
   /// Creates a filter.
   const LoopFilter({
     this.maxOffRoadM = 100,
     this.maxRepeatedShare = 0.1,
     this.maxWaypointOffsetM = 500,
+    this.maxLengthError = loopMaxLengthError,
   });
 
   /// Accepts everything, for a caller that wants to score the raw pool.
@@ -179,6 +183,7 @@ class LoopFilter {
     maxOffRoadM: double.infinity,
     maxRepeatedShare: double.infinity,
     maxWaypointOffsetM: double.infinity,
+    maxLengthError: double.infinity,
   );
 
   /// How many metres off the road network a candidate may have. A hundred
@@ -194,6 +199,11 @@ class LoopFilter {
   /// metres. Half a kilometre is a point snapped across a field; more than
   /// that and it was never on land.
   final double maxWaypointOffsetM;
+
+  /// How far from the requested distance a candidate may be before the
+  /// planner would rather ask again, as a share of the target. See
+  /// [tooFarFromTarget].
+  final double maxLengthError;
 
   /// Why [quality] is not a loop worth showing, or `null` when it is.
   ///
@@ -218,11 +228,33 @@ class LoopFilter {
     return null;
   }
 
+  /// Why [quality] misses [targetM] by too much to be worth showing while
+  /// there is retry budget left, or `null` when it is close enough.
+  ///
+  /// This is not a rejection. A 38 km answer to a 30 km request is a real
+  /// loop — it is simply not the loop that was asked for, and the same query
+  /// with the round-trip radius scaled by `target / length` usually comes
+  /// back at the right distance ([retryQuery]). So the planner holds it back
+  /// and asks again, and shows it only once the retries are spent: a loop
+  /// that is too long beats no loop at all.
+  ///
+  /// The text is for the log and for test failures, not for the rider.
+  String? tooFarFromTarget(LoopQuality quality, {required double targetM}) {
+    if (targetM <= 0) return null;
+    final error = (quality.lengthM - targetM).abs() / targetM;
+    if (error <= maxLengthError) return null;
+    return '${(quality.lengthM / 1000).toStringAsFixed(1)} km is '
+        '${(error * 100).toStringAsFixed(0)} % off the '
+        '${(targetM / 1000).toStringAsFixed(1)} km asked for '
+        '(max ${(maxLengthError * 100).toStringAsFixed(0)} %)';
+  }
+
   @override
   String toString() =>
       'LoopFilter(offRoad <= ${maxOffRoadM.round()} m, '
       'repeated <= ${(maxRepeatedShare * 100).toStringAsFixed(0)} %, '
-      'waypoint <= ${maxWaypointOffsetM.round()} m)';
+      'waypoint <= ${maxWaypointOffsetM.round()} m, '
+      'length within ${(maxLengthError * 100).toStringAsFixed(0)} %)';
 }
 
 /// The points in [query] that a strategy invented, rather than the rider.
@@ -237,6 +269,14 @@ List<LatLng> syntheticPoints(LoopRequest request, RouteQuery query) {
       if (!rider.contains(p)) p,
   ];
 }
+
+/// How far off the requested distance a loop may be and still be shown
+/// straight away, as a share of the target.
+///
+/// A quarter is the width of the band a rider reads as "about what I asked
+/// for": 22.5 to 37.5 km for a 30 km request. Past that the planner spends
+/// retry budget on a corrected radius before it offers the answer.
+const double loopMaxLengthError = 0.25;
 
 /// How far a retry rotates the direction it heads off in, in degrees.
 const double loopRetryRotationDeg = 18;

@@ -18,6 +18,7 @@ class LoopCandidate {
     required this.score,
     required this.strategy,
     required this.quality,
+    this.farFromTarget = false,
   });
 
   /// The query that produced [result].
@@ -36,11 +37,21 @@ class LoopCandidate {
   /// planner's [LoopFilter] has already accepted this one.
   final LoopQuality quality;
 
+  /// Whether this one misses the requested distance by more than
+  /// [LoopFilter.maxLengthError] and is only being shown because the planner
+  /// spent its whole retry budget without finding anything closer.
+  ///
+  /// The planner never emits one of these while it still has a loop at the
+  /// right distance to offer, so a `true` here says "this is the best that
+  /// was reachable", which is worth a line in the log.
+  final bool farFromTarget;
+
   @override
   String toString() =>
       'LoopCandidate($strategy, '
       '${(result.lengthM / 1000).toStringAsFixed(1)} km, '
-      'score ${score.total.toStringAsFixed(3)})';
+      'score ${score.total.toStringAsFixed(3)}'
+      '${farFromTarget ? ', far from the target' : ''})';
 }
 
 /// Generates loop candidates, routes them and keeps the best few.
@@ -97,9 +108,10 @@ class LoopPlanner {
   /// What a routed candidate has to look like to count as a loop at all.
   final LoopFilter filter;
 
-  /// How often a query that failed to route, or came back as something the
-  /// [filter] rejected, is tried again with a rotated bearing and a corrected
-  /// radius ([retryQuery]). Zero switches retrying off.
+  /// How often a query that failed to route, came back as something the
+  /// [filter] rejected, or answered too far from the requested distance
+  /// ([LoopFilter.tooFarFromTarget]), is tried again with a rotated bearing
+  /// and a corrected radius ([retryQuery]). Zero switches retrying off.
   ///
   /// The first rotation is always tried. Past that a strategy only keeps
   /// turning the wheel while it has produced **nothing** — a coastal start
@@ -116,6 +128,13 @@ class LoopPlanner {
   /// a rotated bearing, and a strategy that has produced nothing at all keeps
   /// rotating up to [maxRetries] times. Returns an empty list when nothing
   /// routed.
+  ///
+  /// A loop that routed fine but missed the requested distance by more than
+  /// [LoopFilter.maxLengthError] is held back rather than skipped: the same
+  /// query is asked again with the radius corrected towards the target, and
+  /// the held candidate is only shown once the retries are spent and nothing
+  /// nearer the target came back — so the answer is never empty when
+  /// something routed and passed the [filter].
   Future<List<LoopCandidate>> plan(LoopRequest request) async {
     final found = await planStream(request).toList();
     found.sort((a, b) => a.score.total.compareTo(b.score.total));
@@ -151,6 +170,10 @@ class LoopPlanner {
     var next = 0;
 
     final accepted = <String, int>{};
+    // Loops that are real loops but the wrong length: kept aside in case the
+    // retries find nothing better.
+    final held = <LoopCandidate>[];
+    var shown = 0;
 
     // Queues another attempt at an entry, with the bearing rotated and the
     // radius corrected by what the result (when there is one) came back as.
@@ -189,16 +212,30 @@ class LoopPlanner {
             retry(entry, result);
             continue;
           }
-          accepted[entry.strategy] = (accepted[entry.strategy] ?? 0) + 1;
-          out.add(
-            LoopCandidate(
-              query: entry.query,
-              result: result,
-              score: scorer.score(result, targetM: request.targetM),
-              strategy: entry.strategy,
-              quality: quality,
-            ),
+          final tooFar = filter.tooFarFromTarget(
+            quality,
+            targetM: request.targetM,
           );
+          final candidate = LoopCandidate(
+            query: entry.query,
+            result: result,
+            score: scorer.score(result, targetM: request.targetM),
+            strategy: entry.strategy,
+            quality: quality,
+            farFromTarget: tooFar != null,
+          );
+          if (tooFar != null) {
+            // A loop, but not the distance that was asked for: a 30 km
+            // request answered with 38 km. Hold it as a fallback and spend
+            // the retry on the same query with the radius scaled by
+            // target / length, which is what lands on the right ring.
+            held.add(candidate);
+            retry(entry, result);
+            continue;
+          }
+          accepted[entry.strategy] = (accepted[entry.strategy] ?? 0) + 1;
+          shown++;
+          out.add(candidate);
         } on RoutingException catch (e) {
           // A candidate that does not route is simply not a candidate — but a
           // direction with no road in it is worth one more try, rotated.
@@ -211,6 +248,18 @@ class LoopPlanner {
 
     final workers = math.max(1, math.min(concurrency, pending.length));
     await Future.wait(List.generate(workers, (_) => worker()));
+
+    // Every retry is spent and nothing came back at the distance that was
+    // asked for, so the held loops are all there is. Show them, best first:
+    // a 38 km answer to a 30 km request is worse than a 30.7 km one and
+    // better than an empty sheet.
+    if (shown == 0 && held.isNotEmpty && !out.isClosed) {
+      held.sort((a, b) => a.score.total.compareTo(b.score.total));
+      for (final candidate in held) {
+        out.add(candidate);
+      }
+    }
+
     deadline.cancel();
     if (!cancel.isCancelled) cancel.cancel('planning finished');
     await out.close();

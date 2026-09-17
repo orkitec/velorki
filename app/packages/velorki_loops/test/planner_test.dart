@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:test/test.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -213,6 +215,97 @@ void main() {
         backend.seen.map((q) => q.roundTripDirectionDeg),
         containsAll(<double>[153, 198, 243]),
       );
+    });
+  });
+
+  group('the target distance', () {
+    const thirty = LoopRequest(start: start, targetM: 30000);
+
+    test('a candidate far off the target is retried with a corrected '
+        'radius', () async {
+      // Whatever radius it is given, the engine answers 27 % long: the
+      // Funchal 30 km request that keeps coming back as 38 km. Correcting the
+      // radius by target / length is what lands on the right ring.
+      final backend = FakeRoutingBackend(
+        lengthFor: (q) => (q.roundTripDistanceM ?? 0) * (math.pi + 2) * 1.27,
+      );
+      final planner = LoopPlanner(
+        backend: backend,
+        strategies: const [RoundtripStrategy(directions: 1)],
+      );
+      final found = await planner.plan(thirty);
+
+      expect(found, hasLength(1), reason: 'the 38 km one is not shown');
+      expect(found.first.result.lengthM, closeTo(30000, 1));
+      expect(found.first.farFromTarget, isFalse);
+      expect(backend.seen, hasLength(2));
+      expect(
+        backend.seen.last.roundTripDistanceM,
+        lessThan(backend.seen.first.roundTripDistanceM!),
+      );
+      expect(backend.seen.last.roundTripDirectionDeg, loopRetryRotationDeg);
+    });
+
+    test(
+      'an exhausted retry budget still shows the best far candidate',
+      () async {
+        // No radius and no bearing helps here: the north is 60 km long, the
+        // south 42. Once the budget is spent the rider gets the 42 km one
+        // rather than an empty sheet.
+        final backend = FakeRoutingBackend(
+          lengthFor: (q) =>
+              ((q.roundTripDirectionDeg ?? 0) % 360) < 90 ? 60000 : 42000,
+        );
+        final planner = LoopPlanner(
+          backend: backend,
+          strategies: const [RoundtripStrategy(directions: 2)],
+        );
+        final found = await planner.plan(thirty);
+
+        expect(found, isNotEmpty);
+        expect(found.first.result.lengthM, 42000);
+        expect(found.first.farFromTarget, isTrue);
+        expect(found.first.toString(), contains('far from the target'));
+        expect(
+          backend.seen,
+          hasLength(8),
+          reason: '2 directions, three retries each',
+        );
+      },
+    );
+
+    test('a candidate within 25 % is shown straight away', () async {
+      final backend = FakeRoutingBackend(
+        lengthFor: (q) => (q.roundTripDistanceM ?? 0) * (math.pi + 2) * 1.2,
+      );
+      final planner = LoopPlanner(
+        backend: backend,
+        strategies: const [RoundtripStrategy(directions: 1)],
+      );
+      final found = await planner.plan(thirty);
+
+      expect(found, hasLength(1));
+      expect(found.first.result.lengthM, closeTo(36000, 1));
+      expect(found.first.farFromTarget, isFalse);
+      expect(backend.seen, hasLength(1), reason: 'nothing to correct');
+    });
+
+    test('a far candidate is dropped once a nearer one is found', () async {
+      // The first bearing is hopeless whatever radius it gets; the second is
+      // exactly right. The hopeless one never reaches the rider.
+      final backend = FakeRoutingBackend(
+        lengthFor: (q) => ((q.roundTripDirectionDeg ?? 0) % 360) < 90
+            ? 60000
+            : (q.roundTripDistanceM ?? 0) * (math.pi + 2),
+      );
+      final planner = LoopPlanner(
+        backend: backend,
+        strategies: const [RoundtripStrategy(directions: 2)],
+      );
+      final found = await planner.plan(thirty);
+
+      expect(found.every((c) => !c.farFromTarget), isTrue);
+      expect(found.single.result.lengthM, closeTo(30000, 1));
     });
   });
 

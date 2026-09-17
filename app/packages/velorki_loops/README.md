@@ -66,15 +66,17 @@ class LoopQuality {
 }
 class LoopFilter {
   const LoopFilter({double maxOffRoadM = 100, double maxRepeatedShare = 0.1,
-      double maxWaypointOffsetM = 500});
+      double maxWaypointOffsetM = 500, double maxLengthError = 0.25});
   static const LoopFilter none;
   String? reject(LoopQuality quality, {bool ridesBackTheSameWay = false});
+  String? tooFarFromTarget(LoopQuality quality, {required double targetM});
 }
+const double loopMaxLengthError;                 // 0.25
 List<LatLng> syntheticPoints(LoopRequest request, RouteQuery query);
 RouteQuery? retryQuery(LoopRequest request, RouteQuery query, {RouteResult? result});
 
 class LoopCandidate { RouteQuery query; RouteResult result; LoopScore score;
-    String strategy; LoopQuality quality; }
+    String strategy; LoopQuality quality; bool farFromTarget; }
 class LoopPlanner {
   LoopPlanner({required RoutingBackend backend, List<CandidateStrategy>? strategies,
       RouteScorer? scorer, int concurrency = 3,
@@ -154,6 +156,20 @@ loop at all, and the planner drops what it rejects:
 | `maxRepeatedShare` | 0.1 | a tenth is the street the ride leaves and comes home on; a fifth is a two-kilometre spur out and back, which is what a coastal round trip keeps producing and what a rider calls "not a loop". Skipped when the query allows the same way back, which is the rider asking for one |
 | `maxWaypointOffsetM` | 500 m | how far an invented point ended up from the route it produced. More than that and it was in the water: the engine snapped it somewhere else and the loop is not the one the strategy proposed. Only `syntheticPoints` are judged — never the rider's `start` or `via` |
 
+**Too far from the target** is a fourth rule and a softer one, `maxLengthError`
+(a quarter), asked through `tooFarFromTarget` rather than `reject`: a 38 km
+answer to a 30 km request *is* a loop, it is just not the one the rider asked
+for. The planner holds it back instead of throwing it away, retries the query
+with the radius scaled by `target / length`, and shows the held candidate only
+once every retry is spent and nothing nearer the target came back — flagged
+`LoopCandidate.farFromTarget`, so the sheet's log says the budget ran out
+rather than leaving the rider wondering. A quarter is the band a rider reads
+as "about what I asked for"; it is deliberately wider than the scorer's
+`lengthError` term, which then ranks what is inside it. From Funchal a 30 km
+request used to answer 38 km first, because the candidates nearest the target
+were the ones rejected as doubled and only a later rotated search found the
+30.7 km ring.
+
 A rejected candidate, and one that did not route at all, is retried through
 `retryQuery`: the bearing rotates by 18 degrees so the invented waypoints land
 somewhere else, and the round-trip radius is scaled by how far the answer missed
@@ -185,6 +201,12 @@ routes them through a simple `concurrency`-wide worker pool, filters and scores
 what comes back, and returns the best `topN`. Queries that fail to route are
 skipped, so a flaky network or an unroutable direction degrades the result
 instead of breaking it; a retry may be appended to the queue while it runs. A `timeout` cancels the whole run through a shared `CancelToken`.
+
+A candidate the filter accepts but `tooFarFromTarget` flags is held back
+rather than emitted, and only the held pool is emitted — best first, with
+`farFromTarget` set — when the run ends with nothing inside the band. So a run
+that routed anything the filter accepts never answers with nothing, whether it
+ended on its own or on the deadline.
 
 `planStream` does the same work but emits each candidate as soon as it is
 scored, in **completion order**, for progressive UI; nothing is routed until

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:logging/logging.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 
@@ -13,6 +14,8 @@ import '../domain/loops.dart';
 import '../domain/smart_loop_state.dart';
 
 part 'smart_loop_controller.g.dart';
+
+final Logger _log = Logger('SmartLoop');
 
 /// How many routing requests a loop search keeps in flight.
 ///
@@ -191,6 +194,16 @@ class SmartLoopController extends _$SmartLoopController {
   bool adopt() {
     final candidate = state.current;
     if (candidate == null) return false;
+    // What the rider is looking at, in the two numbers that say whether the
+    // search did its job: the distance and how much of it is ridden twice.
+    // A loop the planner marked far is it saying it spent every retry and
+    // found nothing closer to the distance that was asked for.
+    _log.fine(
+      'showing ${(candidate.result.lengthM / 1000).toStringAsFixed(1)} km, '
+      '${(candidate.quality.repeatedShare * 100).toStringAsFixed(0)} % '
+      'ridden twice, score ${candidate.score.total.toStringAsFixed(3)}'
+      '${candidate.farFromTarget ? ', retry budget exhausted' : ''}',
+    );
     ref
         .read(plannerControllerProvider.notifier)
         .loadComputedRoute(

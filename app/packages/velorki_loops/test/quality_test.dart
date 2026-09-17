@@ -247,6 +247,66 @@ void main() {
       );
     });
 
+    test('a loop far off the requested distance is held back', () {
+      const long = LoopQuality(
+        lengthM: 38100,
+        offRoadM: 0,
+        repeated: RepeatedGeometry(repeatedM: 0, totalM: 38100),
+      );
+      // Nothing wrong with it as a loop — it is just not 30 km.
+      expect(filter.reject(long), isNull);
+      final reason = filter.tooFarFromTarget(long, targetM: 30000);
+      expect(reason, contains('27 % off'));
+      expect(reason, contains('38.1 km'));
+    });
+
+    test('a quarter off is close enough to show', () {
+      const quarterLong = LoopQuality(
+        lengthM: 37500,
+        offRoadM: 0,
+        repeated: RepeatedGeometry(repeatedM: 0, totalM: 37500),
+      );
+      expect(filter.tooFarFromTarget(quarterLong, targetM: 30000), isNull);
+      // Short by a quarter is the same band on the other side.
+      expect(
+        filter.tooFarFromTarget(
+          const LoopQuality(
+            lengthM: 22500,
+            offRoadM: 0,
+            repeated: RepeatedGeometry(repeatedM: 0, totalM: 22500),
+          ),
+          targetM: 30000,
+        ),
+        isNull,
+      );
+      // Shorter than that is as wrong as longer.
+      expect(
+        filter.tooFarFromTarget(
+          const LoopQuality(
+            lengthM: 20000,
+            offRoadM: 0,
+            repeated: RepeatedGeometry(repeatedM: 0, totalM: 20000),
+          ),
+          targetM: 30000,
+        ),
+        isNotNull,
+      );
+    });
+
+    test('a request with no distance in it is never too far', () {
+      expect(
+        filter.tooFarFromTarget(
+          const LoopQuality(
+            lengthM: 38100,
+            offRoadM: 0,
+            repeated: RepeatedGeometry(repeatedM: 0, totalM: 38100),
+          ),
+          targetM: 0,
+        ),
+        isNull,
+      );
+    });
+
     test('LoopFilter.none takes anything', () {
       expect(
         LoopFilter.none.reject(
@@ -258,7 +318,19 @@ void main() {
         ),
         isNull,
       );
+      expect(
+        LoopFilter.none.tooFarFromTarget(
+          const LoopQuality(
+            lengthM: 120000,
+            offRoadM: 0,
+            repeated: RepeatedGeometry(repeatedM: 0, totalM: 120000),
+          ),
+          targetM: 30000,
+        ),
+        isNull,
+      );
       expect(filter.toString(), contains('LoopFilter'));
+      expect(filter.toString(), contains('length within 25 %'));
     });
   });
 
