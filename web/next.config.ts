@@ -4,6 +4,11 @@ import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
 
 const require = createRequire(import.meta.url);
+
+// `next dev` serves the site on localhost and the relay under api.localhost,
+// /__api/* or `x-velorki-host: api`. Production keeps the strict host gate,
+// where a loopback Host is the API role for Orkify's health probe.
+if (process.env.NODE_ENV === 'development') process.env.DEV_HOSTS ??= '1';
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 // One policy for every HTML page, share page included. No third-party script

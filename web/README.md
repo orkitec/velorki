@@ -287,8 +287,9 @@ through Crowdin. The house style and the front-matter reference are in
 | JSON-LD | `src/site/jsonld.ts`: Organization, WebSite, MobileApplication, TechArticle, BreadcrumbList, FAQPage |
 
 **Running just the site.** `npm run dev` and open `http://localhost:3000/`;
-nothing on the site half needs an API key or a database. Add `DEV_HOSTS=1` to
-`.env.local` only when the relay routes are wanted too.
+nothing on the site half needs an API key or a database. `next dev` sets
+`DEV_HOSTS=1` by itself; a production build (`npm start`) needs it in the
+environment to serve the site on localhost.
 
 Translation workflow: [docs/LOCALISATION.md](../docs/LOCALISATION.md).
 Deployment: [docs/DEPLOY_WEB.md](../docs/DEPLOY_WEB.md).
