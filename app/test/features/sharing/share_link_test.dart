@@ -34,11 +34,11 @@ void main() {
 
     test('reads the id of the public page URL, with or without .gpx', () {
       expect(
-        shareIdOf(Uri.parse('https://velorki.app/s/7Kq2mZ0aTb')),
+        shareIdOf(Uri.parse('https://velorki.com/s/7Kq2mZ0aTb')),
         '7Kq2mZ0aTb',
       );
       expect(
-        shareIdOf(Uri.parse('https://velorki.app/s/7Kq2mZ0aTb.gpx')),
+        shareIdOf(Uri.parse('https://velorki.com/s/7Kq2mZ0aTb.gpx')),
         '7Kq2mZ0aTb',
       );
     });
@@ -46,7 +46,7 @@ void main() {
     test('every other link is somebody else\'s business', () {
       expect(shareIdOf(Uri.parse('velorki://oauth/strava?code=1')), isNull);
       expect(shareIdOf(Uri.parse('velorki://share/')), isNull);
-      expect(shareIdOf(Uri.parse('https://velorki.app/')), isNull);
+      expect(shareIdOf(Uri.parse('https://velorki.com/')), isNull);
     });
   });
 
@@ -70,7 +70,7 @@ void main() {
   group('ShareService', () {
     test('a route is stored as a GPX route with its numbers', () async {
       final relay = FakeRelayClient(
-        shareLink: const ShareLink(id: 'abc', url: 'https://velorki.app/s/abc'),
+        shareLink: const ShareLink(id: 'abc', url: 'https://velorki.com/s/abc'),
       );
 
       final link = await ShareService(relay).share(
@@ -81,7 +81,7 @@ void main() {
         ascentM: 380,
       );
 
-      expect(link.url, 'https://velorki.app/s/abc');
+      expect(link.url, 'https://velorki.com/s/abc');
       final call = relay.shareCalls.single;
       expect(call.kind, ShareKind.route);
       expect(call.name, 'Isar loop');
@@ -283,14 +283,14 @@ void main() {
 
     testWidgets('creates the link and shows it', (tester) async {
       final relay = FakeRelayClient(
-        shareLink: const ShareLink(id: 'abc', url: 'https://velorki.app/s/abc'),
+        shareLink: const ShareLink(id: 'abc', url: 'https://velorki.com/s/abc'),
       );
       await pump(tester, relay: relay);
 
       await tester.tap(find.text('Share link'));
       await tester.pumpAndSettle();
 
-      expect(find.text('https://velorki.app/s/abc'), findsOneWidget);
+      expect(find.text('https://velorki.com/s/abc'), findsOneWidget);
       expect(relay.shareCalls, hasLength(1));
 
       await tester.tap(find.text('Copy link'));

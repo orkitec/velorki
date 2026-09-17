@@ -183,7 +183,7 @@ class FakeRelayClient extends RelayClient {
     return shareLink ??
         const ShareLink(
           id: '7Kq2mZ0aTb',
-          url: 'https://velorki.app/s/7Kq2mZ0aTb',
+          url: 'https://velorki.com/s/7Kq2mZ0aTb',
         );
   }
 

@@ -50,7 +50,7 @@ class _FakeRelay extends RelayClient {
   }) async {
     if (failure != null) throw failure!;
     calls.add(_ShareCall(name: name, gpx: gpx, summary: summary, kind: kind));
-    return link ?? const ShareLink(id: 'abc', url: 'https://velorki.app/s/abc');
+    return link ?? const ShareLink(id: 'abc', url: 'https://velorki.com/s/abc');
   }
 }
 
@@ -138,7 +138,7 @@ void main() {
       final relay = _FakeRelay(
         link: const ShareLink(
           id: '7Kq2mZ0aTb',
-          url: 'https://velorki.app/s/7Kq2mZ0aTb',
+          url: 'https://velorki.com/s/7Kq2mZ0aTb',
           expiresAt: 1789214400,
         ),
       );
@@ -151,8 +151,8 @@ void main() {
       );
 
       expect(link.id, '7Kq2mZ0aTb');
-      expect(link.url, 'https://velorki.app/s/7Kq2mZ0aTb');
-      expect(link.gpxUrl, 'https://velorki.app/s/7Kq2mZ0aTb.gpx');
+      expect(link.url, 'https://velorki.com/s/7Kq2mZ0aTb');
+      expect(link.gpxUrl, 'https://velorki.com/s/7Kq2mZ0aTb.gpx');
       expect(link.expiresAtUtc, DateTime.utc(2026, 9, 12, 12));
     });
 
@@ -426,13 +426,13 @@ void main() {
       addTearDown(container.dispose);
 
       await container.read(clipboardWriterProvider)(
-        'https://velorki.app/s/abc',
+        'https://velorki.com/s/abc',
       );
 
       final call = calls.singleWhere((c) => c.method == 'Clipboard.setData');
       expect(
         (call.arguments as Map<Object?, Object?>)['text'],
-        'https://velorki.app/s/abc',
+        'https://velorki.com/s/abc',
       );
     });
 
@@ -454,7 +454,7 @@ void main() {
         addTearDown(container.dispose);
 
         await expectLater(
-          container.read(clipboardWriterProvider)('https://velorki.app/s/abc'),
+          container.read(clipboardWriterProvider)('https://velorki.com/s/abc'),
           completes,
         );
       },

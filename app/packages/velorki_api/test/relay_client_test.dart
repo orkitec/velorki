@@ -27,7 +27,7 @@ class Captured {
 }
 
 void main() {
-  const base = 'https://relay.velorki.app';
+  const base = 'https://relay.velorki.com';
 
   const stravaBody = <String, Object?>{
     'token_type': 'Bearer',

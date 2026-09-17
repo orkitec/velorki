@@ -103,7 +103,7 @@ abstract final class RelayErrorCode { /* invalid_request, not_entitled, ... */ }
 
 ```dart
 final client = RelayClient(
-  'https://relay.velorki.app',
+  'https://relay.velorki.com',
   clientId: 'android/1.4.0',
   appUserId: revenueCatAppUserId,
 );

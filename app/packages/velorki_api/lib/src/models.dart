@@ -934,7 +934,7 @@ class ShareLink {
   /// The opaque share id; the only capability guarding the stored GPX.
   final String id;
 
-  /// The public page, e.g. `https://relay.velorki.app/s/<id>`.
+  /// The public page, e.g. `https://relay.velorki.com/s/<id>`.
   final String url;
 
   /// When the share is deleted, as a Unix timestamp in seconds.

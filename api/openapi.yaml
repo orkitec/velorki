@@ -28,7 +28,7 @@ info:
     identifier: AGPL-3.0-only
 
 servers:
-  - url: https://api.velorki.app
+  - url: https://api.velorki.com
     description: Production
   - url: http://localhost:8080
     description: Local development
@@ -378,7 +378,7 @@ paths:
                 created:
                   value:
                     id: 7Kq2mZ0aTb
-                    url: https://api.velorki.app/s/7Kq2mZ0aTb
+                    url: https://api.velorki.com/s/7Kq2mZ0aTb
         '400':
           $ref: '#/components/responses/InvalidRequest'
         '401':

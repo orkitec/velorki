@@ -9,7 +9,7 @@ in [`api/README.md`](../api/README.md).
 | System | Where it lives |
 |---|---|
 | Flutter app and its pure-Dart packages | this repo, `app/` — the only part that ships to a store |
-| Relay | this repo, `api/` — one Node process, `api.velorki.app` |
+| Relay | this repo, `api/` — one Node process, `api.velorki.com` |
 | BRouter routing server and segment updater | this repo, `brouter/` + `deploy/` — optional, on a VPS |
 | Gazetteer builder | this repo, `tools/gazetteer/` — Python, run by CI in the mirror repo |
 | BRouter test oracle | this repo, `tools/brouter-oracle/` — parity runs only, never shipped |

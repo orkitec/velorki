@@ -110,7 +110,7 @@ routes to our share store.
 
 ## Privacy policy
 
-- [ ] A public privacy policy URL is live. — `https://velorki.app/privacy`
+- [ ] A public privacy policy URL is live. — `https://velorki.com/privacy`
       must be published; nothing serves it yet.
 - [x] It is linked from the app: Settings → About → "Privacy policy", and from
       the paywall. — `lib/features/settings/presentation/about_section.dart`,

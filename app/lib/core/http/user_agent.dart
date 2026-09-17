@@ -4,7 +4,7 @@ import 'package:dio/dio.dart';
 /// as Photon reject Dart's default `Dart/x (dart:io)` agent, and the OSM
 /// usage policies ask for a distinct, identifiable one.
 const String velorkiUserAgent =
-    'Velorki (+https://velorki.app; +https://github.com/orkitec/velorki)';
+    'Velorki (+https://velorki.com; +https://github.com/orkitec/velorki)';
 
 /// [BaseOptions] carrying the app's User-Agent on top of [base].
 BaseOptions velorkiBaseOptions([BaseOptions? base]) {

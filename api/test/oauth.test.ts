@@ -16,7 +16,7 @@ const env = {
   STRAVA_CLIENT_SECRET: 'super-secret-strava-value',
   RWGPS_CLIENT_ID: 'rw-1',
   RWGPS_CLIENT_SECRET: 'super-secret-rwgps-value',
-  OAUTH_REDIRECT_ALLOWLIST: 'velorki://oauth/strava,https://velorki.app/oauth/callback',
+  OAUTH_REDIRECT_ALLOWLIST: 'velorki://oauth/strava,https://velorki.com/oauth/callback',
 };
 
 const STRAVA_TOKEN_RESPONSE = {
@@ -70,7 +70,7 @@ describe('POST /oauth/strava/token', () => {
     for (const redirect of [
       'velorki://oauth/evil',
       'velorki://oauth/strava/extra',
-      'https://velorki.app/oauth/callback?x=1',
+      'https://velorki.com/oauth/callback?x=1',
       '',
     ]) {
       const res = await app.inject({
@@ -211,7 +211,7 @@ describe('Ride with GPS', () => {
       method: 'POST',
       url: '/oauth/rwgps/token',
       headers: AUTH,
-      payload: { code: 'c', redirect_uri: 'https://velorki.app/oauth/callback' },
+      payload: { code: 'c', redirect_uri: 'https://velorki.com/oauth/callback' },
     });
 
     expect(res.statusCode).toBe(200);
@@ -223,7 +223,7 @@ describe('Ride with GPS', () => {
       client_secret: 'super-secret-rwgps-value',
       code: 'c',
       grant_type: 'authorization_code',
-      redirect_uri: 'https://velorki.app/oauth/callback',
+      redirect_uri: 'https://velorki.com/oauth/callback',
     });
     await app.close();
   });

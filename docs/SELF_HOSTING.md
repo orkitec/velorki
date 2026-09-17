@@ -105,5 +105,5 @@ listing and the share pages, and replace the server URLs with your own. You may
 say your project is "based on Velorki" and link back here; you may not suggest
 it is official or endorsed by Orkitec.
 
-Do not point a fork at `api.velorki.app` or the official routing server: they
+Do not point a fork at `api.velorki.com` or the official routing server: they
 are sized and paid for the official app, and the trademark policy forbids it.

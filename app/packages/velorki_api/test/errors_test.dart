@@ -7,7 +7,7 @@ import 'package:velorki_api/velorki_api.dart';
 
 /// Builds a client whose every request gets [response].
 RelayClient clientReturning(http.Response response) => RelayClient(
-  'https://relay.velorki.app',
+  'https://relay.velorki.com',
   client: MockClient((_) async => response),
   clientId: 'test/0.0.1',
 );
@@ -224,7 +224,7 @@ void main() {
   group('transport failures become RelayException', () {
     test('an http.ClientException becomes unavailable', () async {
       final client = RelayClient(
-        'https://relay.velorki.app',
+        'https://relay.velorki.com',
         client: MockClient((_) async {
           throw http.ClientException('Connection closed before full header');
         }),
@@ -250,7 +250,7 @@ void main() {
       // Stands in for dart:io's SocketException, which this package
       // deliberately does not import.
       final client = RelayClient(
-        'https://relay.velorki.app',
+        'https://relay.velorki.com',
         client: MockClient((_) async {
           throw const _SocketLike('No route to host');
         }),
@@ -273,7 +273,7 @@ void main() {
 
     test('the exception message stays readable', () async {
       final client = RelayClient(
-        'https://relay.velorki.app',
+        'https://relay.velorki.com',
         client: MockClient((_) async => http.Response('', 503)),
       );
       addTearDown(client.close);

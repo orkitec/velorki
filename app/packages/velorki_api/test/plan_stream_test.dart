@@ -29,7 +29,7 @@ MockClient sseClient(
 });
 
 void main() {
-  const base = 'https://relay.velorki.app';
+  const base = 'https://relay.velorki.com';
 
   const routeJson =
       '{"distance_km":62.5,"loop":true,'

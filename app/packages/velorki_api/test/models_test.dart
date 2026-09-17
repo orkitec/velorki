@@ -335,16 +335,16 @@ void main() {
     test('ShareLink derives the gpx url and tolerates a missing expiry', () {
       final link = ShareLink.fromJson(const <String, Object?>{
         'id': 'aB3dE5',
-        'url': 'https://relay.velorki.app/s/aB3dE5',
+        'url': 'https://relay.velorki.com/s/aB3dE5',
       });
-      expect(link.gpxUrl, 'https://relay.velorki.app/s/aB3dE5.gpx');
+      expect(link.gpxUrl, 'https://relay.velorki.com/s/aB3dE5.gpx');
       expect(link.expiresAt, isNull);
       expect(link.expiresAtUtc, isNull);
       expect(ShareLink.fromJson(link.toJson()), link);
 
       final expiring = ShareLink.fromJson(const <String, Object?>{
         'id': 'aB3dE5',
-        'url': 'https://relay.velorki.app/s/aB3dE5',
+        'url': 'https://relay.velorki.com/s/aB3dE5',
         'expires_at': 1_789_000_000,
       });
       expect(expiring.expiresAtUtc, DateTime.utc(2026, 9, 10, 0, 26, 40));

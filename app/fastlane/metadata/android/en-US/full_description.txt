@@ -36,14 +36,14 @@ with another service:
 • Share links for routes and rides.
 
 Velorki Plus is offered with a free trial and renews until you cancel it in
-Google Play. Terms: https://velorki.app/terms
+Google Play. Terms: https://velorki.com/terms
 
 PRIVACY
 There is no account and no sign-up. Routes, rides and settings stay on your
 phone. Nothing goes to Strava or Ride with GPS until you connect the account
 and ask for it. The assistant asks for your consent before any text leaves the
 device, and the position it sends is rounded to about a kilometre.
-Privacy policy: https://velorki.app/privacy
+Privacy policy: https://velorki.com/privacy
 
 Map data © OpenStreetMap contributors. Routing by BRouter, map tiles by
 OpenFreeMap, place search by Photon, cycling overlay by CyclOSM.

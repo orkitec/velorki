@@ -28,8 +28,8 @@ void main() {
 
     test('feature flags follow the configured URLs and keys', () {
       const config = AppConfig(
-        apiUrl: 'https://api.velorki.app',
-        brouterUrl: 'https://api.velorki.app/brouter',
+        apiUrl: 'https://api.velorki.com',
+        brouterUrl: 'https://api.velorki.com/brouter',
         revenueCatKeyIos: 'appl_xxx',
       );
       expect(config.hasApi, isTrue);

@@ -37,9 +37,9 @@ exercised there. The items here are the parts not yet covered by that.
       `stub` explicitly until then).
 - [ ] **LLM**: `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`,
       `LLM_DAILY_BUDGET_USD` in the relay.
-- [ ] **velorki.app**: DNS for `api.velorki.app`; pages at `/privacy` and
+- [ ] **velorki.com**: DNS for `api.velorki.com`; pages at `/privacy` and
       `/terms` (`docs/PRIVACY.md` is the draft; a lawyer should read it);
-      `support@velorki.app` and `security@orkitec.com` mailboxes.
+      `support@velorki.com` and `security@orkitec.com` mailboxes.
 - [ ] **GL Strings**: `APPLANGA_ACCESS_TOKEN` secret in the GitHub repo.
 - [ ] **GitHub secrets for release.yml**: `ANDROID_KEYSTORE_B64`,
       `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `APP_ENV_PROD_JSON`,
@@ -123,7 +123,7 @@ Everything still unticked in [STORE_CHECKLIST.md](STORE_CHECKLIST.md).
   in the pointer. Both publish workflows gain an upload step.
 - **One Node app for relay and website**: `api/` (Fastify) and the site
   (privacy, terms, share pages) as a single Next.js app on Orkify under
-  `velorki.app`, the relay routes as route handlers on the Node runtime,
+  `velorki.com`, the relay routes as route handlers on the Node runtime,
   same dependency rule (no native addons, `node:sqlite`). Decided
   2026-09-16 as the direction; not started.
 - Photon self-hosting; cloud sync.

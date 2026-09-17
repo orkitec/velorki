@@ -16,7 +16,7 @@ const String shareLinkHost = 'share';
 ///
 /// Two shapes are accepted: the custom scheme the relay's share page links to
 /// (`velorki://share/7Kq2mZ0aTb`) and the public page's own URL
-/// (`https://velorki.app/s/7Kq2mZ0aTb`, with or without `.gpx`), so a
+/// (`https://velorki.com/s/7Kq2mZ0aTb`, with or without `.gpx`), so a
 /// universal link lands in the same place as the scheme.
 String? shareIdOf(Uri uri) {
   final segments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
