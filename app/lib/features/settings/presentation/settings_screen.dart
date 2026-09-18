@@ -9,6 +9,8 @@ import '../../../features/integrations/presentation/connections_section.dart';
 import '../../../features/routing_tiles/data/routing_preference_controller.dart';
 import '../../../features/routing_tiles/domain/routing_preference.dart';
 import '../../../features/search/presentation/search_settings_screen.dart';
+import '../../../features/sensors/data/health_gateway.dart';
+import '../../../features/sensors/presentation/sensors_section.dart';
 import '../../../features/offline/presentation/offline_entry.dart';
 import '../../../features/subscription/presentation/plus_settings_section.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -32,35 +34,42 @@ class SettingsScreen extends ConsumerWidget {
         padding: EdgeInsets.only(
           bottom: MediaQuery.paddingOf(context).bottom + 24,
         ),
-        children: const [
-          _SectionHeader.appearance(),
-          AppearanceSection(),
-          UnitsSection(),
-          LanguageSection(),
-          Divider(height: 32),
-          _SectionHeader.navigation(),
-          NavigationSection(),
-          Divider(height: 32),
-          _SectionHeader.recording(),
-          RecordingSection(),
-          Divider(height: 32),
-          _SectionHeader.subscription(),
-          PlusSettingsSection(),
-          Divider(height: 32),
-          _SectionHeader.connections(),
-          ConnectionsSection(),
-          Divider(height: 32),
-          _SectionHeader.ai(),
-          AiSettingsSection(),
-          Divider(height: 32),
-          _SectionHeader.advanced(),
-          OfflineEntry(),
-          SearchSettingsEntry(),
-          _RoutingPreferenceSection(),
-          _ServerUrlsSection(),
-          Divider(height: 32),
-          _SectionHeader.about(),
-          AboutSection(),
+        children: [
+          const _SectionHeader.appearance(),
+          const AppearanceSection(),
+          const UnitsSection(),
+          const LanguageSection(),
+          const Divider(height: 32),
+          const _SectionHeader.navigation(),
+          const NavigationSection(),
+          const Divider(height: 32),
+          const _SectionHeader.recording(),
+          const RecordingSection(),
+          // Hidden where there is no health store to talk to, rather than
+          // shown as a switch that cannot do anything.
+          if (ref.watch(healthGatewayProvider) != null) ...const [
+            Divider(height: 32),
+            _SectionHeader.sensors(),
+            SensorsSection(),
+          ],
+          const Divider(height: 32),
+          const _SectionHeader.subscription(),
+          const PlusSettingsSection(),
+          const Divider(height: 32),
+          const _SectionHeader.connections(),
+          const ConnectionsSection(),
+          const Divider(height: 32),
+          const _SectionHeader.ai(),
+          const AiSettingsSection(),
+          const Divider(height: 32),
+          const _SectionHeader.advanced(),
+          const OfflineEntry(),
+          const SearchSettingsEntry(),
+          const _RoutingPreferenceSection(),
+          const _ServerUrlsSection(),
+          const Divider(height: 32),
+          const _SectionHeader.about(),
+          const AboutSection(),
         ],
       ),
     );
@@ -71,6 +80,7 @@ class _SectionHeader extends StatelessWidget {
   const _SectionHeader.appearance() : _section = _Section.appearance;
   const _SectionHeader.navigation() : _section = _Section.navigation;
   const _SectionHeader.recording() : _section = _Section.recording;
+  const _SectionHeader.sensors() : _section = _Section.sensors;
   const _SectionHeader.subscription() : _section = _Section.subscription;
   const _SectionHeader.connections() : _section = _Section.connections;
   const _SectionHeader.ai() : _section = _Section.ai;
@@ -88,6 +98,7 @@ class _SectionHeader extends StatelessWidget {
         _Section.appearance => l10n.settingsAppearance,
         _Section.navigation => l10n.settingsNavigation,
         _Section.recording => l10n.settingsRecording,
+        _Section.sensors => l10n.settingsSensors,
         _Section.subscription => l10n.settingsSubscription,
         _Section.connections => l10n.settingsConnections,
         _Section.ai => l10n.settingsAi,
@@ -102,6 +113,7 @@ enum _Section {
   appearance,
   navigation,
   recording,
+  sensors,
   subscription,
   connections,
   ai,

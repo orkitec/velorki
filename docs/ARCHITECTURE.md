@@ -239,8 +239,13 @@ onto the track point, and once per snapshot for what the sheet shows. On iOS
 the engine reads the provider directly; on Android it lives in the service
 isolate, so the main isolate pushes each change across the port with
 `sendDataToTask`, at most once a second, and the task handler holds the last
-one. Nothing platform-shaped lives here yet: the sources themselves are a
-later slice.
+one. The first source is the phone's own health store, Apple Health or Health
+Connect behind one `HealthGateway`: with the switch in Settings → Sensors on
+and a ride recording, `HealthSensorSource` polls it every 5 s (30 s in battery
+saver) and turns each new sample into a reading. When the ride is saved,
+`RideHealthSync` fills the fixes that carry no heart rate from that same store,
+recomputes the statistics if it filled any, and writes the ride back as a
+cycling workout — once per ride, and nothing at all while the switch is off.
 
 
 **Lock screen.** While a ride records, `RideNotificationUpdater` (kept alive

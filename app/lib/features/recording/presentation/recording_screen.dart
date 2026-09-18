@@ -28,6 +28,7 @@ import '../../planner/domain/saved_route.dart';
 import '../../planner/presentation/planner_map_host.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../search/data/gazetteer_store.dart';
+import '../../sensors/application/ride_health_sync.dart';
 import '../../settings/data/units.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../application/recording_controller.dart';
@@ -950,6 +951,11 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
           );
           return;
         }
+        // Stamps the heart rate the phone's health store knows about onto the
+        // track and saves the ride there as a workout. Not awaited: it does
+        // nothing at all unless the rider switched Health on, and the ride
+        // page follows its own row, so the numbers appear when they appear.
+        unawaited(ref.read(rideHealthSyncProvider).afterRide(ride));
         if (mounted) context.go(rideDetailLocation(ride.id));
       case DiscardRide():
         final recording = await take();

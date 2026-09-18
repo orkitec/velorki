@@ -11,6 +11,13 @@
 	     /.well-known/apple-app-site-association from its APPLE_TEAM_ID
 	     setting; Associated Domains must also be enabled for the app id in
 	     the developer portal (docs/OPEN_ITEMS.md). -->
+	<!-- HealthKit, used only after the rider switches Health on in Settings →
+	     Sensors: heart rate is read for a ride, and a finished ride is saved
+	     as a cycling workout. -->
+	<key>com.apple.developer.healthkit</key>
+	<true/>
+	<key>com.apple.developer.healthkit.access</key>
+	<array/>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
 		<string>applinks:velorki.com</string>

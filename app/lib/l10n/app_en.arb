@@ -3799,5 +3799,29 @@
   "mapOfflineDeleteBody": "The downloaded tiles are removed from this device.",
   "@mapOfflineDeleteBody": {
     "description": "Body of the dialog confirming a downloaded area is deleted"
+  },
+  "settingsSensors": "Sensors",
+  "@settingsSensors": {
+    "description": "Settings section header for heart rate and other sensors"
+  },
+  "settingsSensorsAppleHealth": "Apple Health",
+  "@settingsSensorsAppleHealth": {
+    "description": "Switch that lets Velorki read from and write to Apple Health on iOS"
+  },
+  "settingsSensorsHealthConnect": "Health Connect",
+  "@settingsSensorsHealthConnect": {
+    "description": "Switch that lets Velorki read from and write to Health Connect on Android"
+  },
+  "settingsSensorsHealthHint": "Heart rate from your watch or any app that writes it; rides are saved as workouts",
+  "@settingsSensorsHealthHint": {
+    "description": "Second line of the switch that connects Velorki to the phone's health store"
+  },
+  "settingsSensorsHealthWrite": "Save rides to Health",
+  "@settingsSensorsHealthWrite": {
+    "description": "Switch that saves each finished ride to the health store as a cycling workout"
+  },
+  "settingsSensorsHealthDenied": "Velorki was not given access to your health data.",
+  "@settingsSensorsHealthDenied": {
+    "description": "Snack bar shown when the operating system refused access to the health store"
   }
 }

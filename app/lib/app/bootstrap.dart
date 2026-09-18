@@ -16,6 +16,7 @@ import '../features/map/presentation/map_view.dart';
 import '../features/planner/presentation/planner_map_host.dart';
 import '../features/recording/data/recording_recovery.dart';
 import '../features/routing_tiles/application/routing_tiles_startup.dart';
+import '../features/sensors/application/sensor_sources_controller.dart';
 import '../features/sharing/application/share_link_listener.dart';
 import '../features/subscription/application/subscription_controller.dart';
 import 'app.dart';
@@ -70,6 +71,12 @@ Future<void> bootstrap() async {
   // the downloaded rd5 tiles with what is on disk, so the planner can route on
   // the device as soon as both are done.
   prepareOnDeviceRouting(container);
+
+  // Watches the Health switch and the recorder, and registers the health
+  // source with the hub while both are on. Read here because a provider
+  // nobody reads is a provider that never exists; with the switch off it
+  // touches neither the plugin nor the operating system.
+  container.read(sensorSourcesProvider);
 
   // Attached before the first frame so a file the app was launched with is
   // not missed.

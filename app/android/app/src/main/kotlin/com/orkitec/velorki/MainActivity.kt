@@ -1,6 +1,6 @@
 package com.orkitec.velorki
 
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.IOException
@@ -16,8 +16,13 @@ import java.io.IOException
  *
  * The channel name and method names are mirrored in
  * `lib/features/import_export/data/incoming_file_service.dart`.
+ *
+ * `FlutterFragmentActivity` rather than `FlutterActivity` because Health
+ * Connect asks for its permissions through `registerForActivityResult`, which
+ * needs a `ComponentActivity`; see the `health` package README, "Android 14".
+ * Nothing else in the app cares which of the two it is.
  */
-class MainActivity : FlutterActivity() {
+class MainActivity : FlutterFragmentActivity() {
     private companion object {
         const val CHANNEL = "velorki/files"
         const val METHOD_OPEN_INPUT_STREAM = "openInputStream"

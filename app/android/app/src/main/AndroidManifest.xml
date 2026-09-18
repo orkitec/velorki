@@ -13,6 +13,15 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Health Connect, only ever used after the rider switches Health on in
+         Settings → Sensors: heart rate is read to show and store with a ride,
+         and a finished ride is written back as a cycling workout (an exercise
+         session with its distance). Declaring a permission asks for nothing;
+         the Health Connect sheet is only raised by that switch. See the
+         `health` package README, "Google Health Connect (Android)". -->
+    <uses-permission android:name="android.permission.health.READ_HEART_RATE"/>
+    <uses-permission android:name="android.permission.health.WRITE_EXERCISE"/>
+    <uses-permission android:name="android.permission.health.WRITE_DISTANCE"/>
     <!-- Rides, routes and the OAuth tokens in the keystore stay on the device:
          android:allowBackup="false" keeps them out of Google's cloud backup
          (and out of any backup at all on Android 11 and below, which is why no
@@ -119,6 +128,21 @@
                 <data android:mimeType="text/xml" />
             </intent-filter>
         </activity>
+        <!-- Health Connect links to the app from its permission screen, and
+             requires the target to be exported behind START_VIEW_PERMISSION_USAGE.
+             It points at MainActivity, which opens the app's own screens; the
+             privacy policy is reachable from Settings → About. Required setup
+             from the `health` package README. -->
+        <activity-alias
+            android:name="ViewPermissionUsageActivity"
+            android:exported="true"
+            android:targetActivity=".MainActivity"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
         <!-- flutter_web_auth_2: catches velorki://oauth/<service>?code=...
              and hands it back to the pending authentication session. Required
              by the plugin; android:exported and the empty android:taskAffinity
@@ -164,6 +188,14 @@
              spoken turn directions (Android 11+ package visibility). -->
         <intent>
             <action android:name="android.intent.action.TTS_SERVICE"/>
+        </intent>
+        <!-- health: see whether Health Connect is installed at all, and reach
+             its permissions rationale. Package visibility only; nothing is
+             read or asked for until the rider switches Health on. Required
+             setup from the `health` package README. -->
+        <package android:name="com.google.android.apps.healthdata" />
+        <intent>
+            <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
         </intent>
     </queries>
 </manifest>
