@@ -3,9 +3,10 @@
 `icon.svg` is the source. Everything else is generated from it.
 
 The mark is a rounded square in the app's seed colour — `velorkiSeedColor`,
-`#1B7F5A`, from `lib/app/theme.dart` — with a white route glyph: two waypoint
-circles joined by a curved line. No text, and no reference to any partner
-brand (Strava's guidelines forbid their name in an app icon).
+`#1B7F5A`, from `lib/app/theme.dart` — with a white route glyph: three
+waypoint circles — a start, a via point and a finish — joined by two gently
+bowed route strokes, which read as a V. No text, and no reference to any
+partner brand (Strava's guidelines forbid their name in an app icon).
 
 ## Regenerating
 

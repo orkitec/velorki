@@ -31,17 +31,21 @@ function s(v: number): number {
   return Number((512 + (v - 512) * GLYPH_SCALE).toFixed(2));
 }
 
-// The glyph, in the coordinates of assets/icon/icon.svg: two waypoint rings
-// joined by a curved route. Pre-scaled here rather than wrapped in a
+// The glyph, in the coordinates of assets/icon/icon.svg: three waypoint rings
+// — a start, a via point and a finish — joined by two gently bowed route
+// strokes that read as a V. Pre-scaled here rather than wrapped in a
 // `transform`, because `next/og` (satori) draws the flat attributes and
 // ignores a group transform.
-const ROUTE = `M${s(296)} ${s(716)} Q ${s(360)} ${s(400)} ${s(728)} ${s(308)}`;
+const ROUTE =
+  `M${s(296)} ${s(308)} Q ${s(337)} ${s(545)} ${s(512)} ${s(716)}` +
+  ` Q ${s(687)} ${s(545)} ${s(728)} ${s(308)}`;
 const STROKE = Number((72 * GLYPH_SCALE).toFixed(2));
 const RING = Number((104 * GLYPH_SCALE).toFixed(2));
 const HOLE = Number((44 * GLYPH_SCALE).toFixed(2));
 const WAYPOINTS = [
-  { cx: s(296), cy: s(716) },
+  { cx: s(296), cy: s(308) },
   { cx: s(728), cy: s(308) },
+  { cx: s(512), cy: s(716) },
 ];
 
 export interface AppIconProps extends Omit<SVGProps<SVGSVGElement>, 'width' | 'height'> {

@@ -1,18 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Velorki app icon, source of assets/icon/icon.png.
      A square in the seed colour (lib/app/theme.dart) with a white route
-     glyph: two waypoint circles joined by a curved line. The square is drawn
-     full bleed and opaque on purpose: iOS and Android both round the corners
-     with their own mask, and both stores reject an icon with transparency. -->
+     glyph: three waypoint circles - start, finish and a via point - joined by
+     two gently bowed route strokes into a V. The square is drawn full bleed
+     and opaque on purpose: iOS and Android both round the corners with their
+     own mask, and both stores reject an icon with transparency. -->
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <rect x="0" y="0" width="1024" height="1024" fill="#1B7F5A"/>
   <g fill="none" stroke="#FFFFFF" stroke-width="72" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M296 716 Q 360 400 728 308"/>
+    <path d="M296 308 Q 337 545 512 716 Q 687 545 728 308"/>
   </g>
   <g>
-    <circle cx="296" cy="716" r="104" fill="#FFFFFF"/>
-    <circle cx="296" cy="716" r="44" fill="#1B7F5A"/>
+    <circle cx="296" cy="308" r="104" fill="#FFFFFF"/>
+    <circle cx="296" cy="308" r="44" fill="#1B7F5A"/>
     <circle cx="728" cy="308" r="104" fill="#FFFFFF"/>
     <circle cx="728" cy="308" r="44" fill="#1B7F5A"/>
+    <circle cx="512" cy="716" r="104" fill="#FFFFFF"/>
+    <circle cx="512" cy="716" r="44" fill="#1B7F5A"/>
   </g>
 </svg>

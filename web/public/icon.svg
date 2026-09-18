@@ -10,9 +10,11 @@
      that keeps only the inner 72 of the 108 dp canvas). -->
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <rect x="0" y="0" width="1024" height="1024" rx="225.28" ry="225.28" fill="#1B7F5A"/>
-  <path d="M313.71 699.27 Q 372.46 409.18 710.29 324.73" fill="none" stroke="#FFFFFF" stroke-width="66.1" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="313.71" cy="699.27" r="95.47" fill="#FFFFFF"/>
+  <path d="M313.71 324.73 Q 351.35 542.29 512 699.27 Q 672.65 542.29 710.29 324.73" fill="none" stroke="#FFFFFF" stroke-width="66.1" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="313.71" cy="324.73" r="95.47" fill="#FFFFFF"/>
   <circle cx="710.29" cy="324.73" r="95.47" fill="#FFFFFF"/>
-  <circle cx="313.71" cy="699.27" r="40.39" fill="#1B7F5A"/>
+  <circle cx="512" cy="699.27" r="95.47" fill="#FFFFFF"/>
+  <circle cx="313.71" cy="324.73" r="40.39" fill="#1B7F5A"/>
   <circle cx="710.29" cy="324.73" r="40.39" fill="#1B7F5A"/>
+  <circle cx="512" cy="699.27" r="40.39" fill="#1B7F5A"/>
 </svg>
