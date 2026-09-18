@@ -80,6 +80,13 @@ export function GlobeIcon(props: IconProps) {
   );
 }
 
+export function ChevronDownIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="m6 9.5 6 6 6-6" />
+    </Icon>
+  );
+}
 
 export function SystemThemeIcon(props: IconProps) {
   return (

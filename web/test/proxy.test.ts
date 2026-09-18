@@ -18,13 +18,33 @@ import { errOf, sampleGpx, withEnv } from './helpers';
  * exercised against a stand-in that answers the way next-intl does, `Vary`
  * header included, so what is asserted is the proxy's own contribution.
  */
-vi.mock('next-intl/middleware', () => ({
-  default: () => (): NextResponse => {
-    const response = NextResponse.next();
-    response.headers.set('vary', 'accept-language');
-    return response;
-  },
+const intl = vi.hoisted(() => ({
+  /** Swapped per test; `null` is the pass-through every other test wants. */
+  answer: null as null | ((request: NextRequest) => NextResponse),
 }));
+
+vi.mock('next-intl/middleware', () => ({
+  default: () =>
+    (request: NextRequest): NextResponse => {
+      if (intl.answer !== null) return intl.answer(request);
+      const response = NextResponse.next();
+      response.headers.set('vary', 'accept-language');
+      return response;
+    },
+}));
+
+/** Run `body` with next-intl standing in as `answer`, and restore afterwards. */
+async function withIntl(
+  answer: (request: NextRequest) => NextResponse,
+  body: () => Promise<void>,
+): Promise<void> {
+  intl.answer = answer;
+  try {
+    await body();
+  } finally {
+    intl.answer = null;
+  }
+}
 
 /**
  * Next 16.3.5 still names the matcher helper `unstable_doesMiddlewareMatch`;
@@ -414,6 +434,39 @@ describe('locale negotiation', () => {
       // No duplicates, whatever next-intl contributed.
       expect(entries.length).toBe(new Set(entries).size);
       expect(entries).toContain('accept-language');
+    });
+  });
+
+  /**
+   * What the locale switcher rides on. `/en` is the link every switcher entry
+   * points at: next-intl answers it with a 307 to the unprefixed English page
+   * and a `Set-Cookie` that resets NEXT_LOCALE - but only for a document
+   * request, which is why the switcher uses plain `<a>` links rather than
+   * `next/link`. The proxy must hand that redirect through untouched: a
+   * swallowed `Set-Cookie` sends the reader straight back to `/de`, and a
+   * missing `Vary` lets a shared cache serve the German redirect to an English
+   * reader.
+   */
+  it('hands a locale switch redirect through with its cookie and Vary intact', async () => {
+    const switchToEnglish = (): NextResponse => {
+      const response = NextResponse.redirect(new URL(`${SITE}/`), 307);
+      response.cookies.set('NEXT_LOCALE', 'en', { path: '/', maxAge: 60 * 60 * 24 * 365 });
+      return response;
+    };
+    await withIntl(switchToEnglish, async () => {
+      await withEnv({}, async () => {
+        const res = await proxy(
+          request(`${SITE}/en`, {
+            headers: { cookie: 'NEXT_LOCALE=de', 'accept-language': 'de-DE,de;q=0.9' },
+          }),
+        );
+        expect(res.status).toBe(307);
+        expect(res.headers.get('location')).toBe(`${SITE}/`);
+        expect(res.headers.get('set-cookie')).toContain('NEXT_LOCALE=en');
+        expect(vary(res)).toContain('accept-language');
+        expect(vary(res)).toContain('cookie');
+        expect(res.headers.get('x-request-id')).toMatch(/^[0-9a-f-]{36}$/);
+      });
     });
   });
 

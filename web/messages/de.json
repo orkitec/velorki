@@ -15,9 +15,7 @@
     "skip": "Zum Inhalt springen"
   },
   "localeSwitcher": {
-    "label": "Sprache",
-    "en": "English",
-    "de": "Deutsch"
+    "label": "Sprache"
   },
   "theme": {
     "label": "Design",

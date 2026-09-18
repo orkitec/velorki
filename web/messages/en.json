@@ -15,9 +15,7 @@
     "skip": "Skip to content"
   },
   "localeSwitcher": {
-    "label": "Language",
-    "en": "English",
-    "de": "Deutsch"
+    "label": "Language"
   },
   "theme": {
     "label": "Theme",
