@@ -20,6 +20,20 @@ import '../../support/units.dart';
 
 const TurnHint _left = TurnHint(pointIndex: 10, kind: TurnKind.left);
 
+/// A left turn with the next turn 120 m behind it.
+const TurnHint _leftThenSoon = TurnHint(
+  pointIndex: 10,
+  kind: TurnKind.left,
+  distanceToNextM: 120,
+);
+
+/// A left turn with the next turn far behind it.
+const TurnHint _leftThenLater = TurnHint(
+  pointIndex: 10,
+  kind: TurnKind.left,
+  distanceToNextM: 600,
+);
+
 /// A way back onto the route, 120 m off to the left.
 const OffRouteGuidance _wayBack = OffRouteGuidance(
   target: LatLng(48, 11),
@@ -109,7 +123,43 @@ void main() {
     expect(find.textContaining('then'), findsNothing);
   });
 
-  testWidgets('a turn close behind the next one is a second arrow', (
+  testWidgets('a turn close behind the next one is a "then" and an arrow', (
+    tester,
+  ) async {
+    await _pumpBanner(
+      tester,
+      const NavigationProgress(
+        next: _leftThenSoon,
+        distanceToNextM: 120,
+        after: _keepRight,
+      ),
+    );
+
+    expect(find.text('120 m'), findsOneWidget);
+    expect(find.text(l10n.navTurnLeft), findsOneWidget);
+    // The preview is a word and an arrow on the same row, not a sentence.
+    expect(find.text('then'), findsOneWidget);
+    expect(find.byIcon(Icons.fork_right), findsOneWidget);
+    expect(tester.getSize(find.byType(GlassPanel)).height, turnBannerHeight);
+  });
+
+  testWidgets('a turn far behind the next one is not previewed', (
+    tester,
+  ) async {
+    await _pumpBanner(
+      tester,
+      const NavigationProgress(
+        next: _leftThenLater,
+        distanceToNextM: 120,
+        after: _keepRight,
+      ),
+    );
+
+    expect(find.text('then'), findsNothing);
+    expect(find.byIcon(Icons.fork_right), findsNothing);
+  });
+
+  testWidgets('an unknown gap to the following turn is not previewed', (
     tester,
   ) async {
     await _pumpBanner(
@@ -121,12 +171,8 @@ void main() {
       ),
     );
 
-    expect(find.text('120 m'), findsOneWidget);
-    expect(find.text(l10n.navTurnLeft), findsOneWidget);
-    // The preview is an arrow on the same row, not a "then ..." line.
-    expect(find.byIcon(Icons.fork_right), findsOneWidget);
-    expect(find.textContaining('then'), findsNothing);
-    expect(tester.getSize(find.byType(GlassPanel)).height, turnBannerHeight);
+    expect(find.text('then'), findsNothing);
+    expect(find.byIcon(Icons.fork_right), findsNothing);
   });
 
   testWidgets('kilometres are shown with one decimal', (tester) async {

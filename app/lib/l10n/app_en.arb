@@ -2879,6 +2879,10 @@
       }
     }
   },
+  "navThenLabel": "then",
+  "@navThenLabel": {
+    "description": "Word in front of the small arrow that previews the turn after the next one on the banner"
+  },
   "navThen": "then {instruction}",
   "@navThen": {
     "description": "Banner row previewing the turn after the next one",

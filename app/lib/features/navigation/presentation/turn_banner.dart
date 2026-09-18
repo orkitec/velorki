@@ -31,6 +31,12 @@ const double _minInstructionScale = 0.78;
 /// the layout they are already used to. Tapping it asks for a way back to be
 /// computed now instead of waiting the half minute out; the button beside it
 /// throws the rest of the plan away and re-routes to the destination.
+
+/// How close behind the next turn the one after it has to follow for the
+/// banner to preview it. Further than this the rider will be told in time by
+/// the banner itself once the first turn is done.
+const double thenPreviewM = 250;
+
 class TurnBanner extends ConsumerWidget {
   /// Creates the banner.
   const TurnBanner({required this.progress, super.key});
@@ -106,6 +112,13 @@ class TurnBanner extends ConsumerWidget {
       icon = turnIcon(next.kind);
       tint = colors.accent;
       final after = progress.after;
+      // The turn behind the next one is a word and an arrow, not a sentence:
+      // it only has to say which way the road goes after this one, and only
+      // when that comes soon enough to matter at the first turn.
+      final showAfter =
+          after != null &&
+          next.distanceToNextM > 0 &&
+          next.distanceToNextM <= thenPreviewM;
       row = [
         _distance(
           theme,
@@ -113,10 +126,15 @@ class TurnBanner extends ConsumerWidget {
           tint,
         ),
         _instruction(theme, turnLabel(next, l10n)),
-        // The turn behind the next one is an arrow, not a sentence: it only
-        // has to tell the rider which way the road goes after this one.
-        if (after != null) ...[
-          const SizedBox(width: 8),
+        if (showAfter) ...[
+          const SizedBox(width: 10),
+          Text(
+            l10n.navThenLabel,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: 4),
           Icon(
             turnIcon(after.kind),
             size: 18,
