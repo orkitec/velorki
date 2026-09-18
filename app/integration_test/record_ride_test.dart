@@ -251,6 +251,8 @@ void main() {
     // ----------------------------------------------------------- in the list
     // The Library is the rides list; the record tab has none.
     await tapAndPump(tester, find.text('Library'));
+    // The Library opens on its routes; the rides are the second segment.
+    await tapAndPump(tester, find.text('Rides'));
     // The row is found by the id in its Dismissible key, not by its name: a
     // ride with no name of its own is named after the time of day and the
     // place, so every ride this suite records in one run is called the same
