@@ -40,3 +40,13 @@ export function paintedTheme(attribute: string | null | undefined, prefersDark: 
   if (attribute === 'light' || attribute === 'dark') return attribute;
   return prefersDark ? 'dark' : 'light';
 }
+
+/**
+ * The state after the next tap of the compact switch: System → Light → Dark →
+ * System. Below `md` the three buttons do not fit next to the language menu and
+ * the menu button, so there the switch is one button that cycles; its label says
+ * where it stands and where a tap takes it, because the icon alone cannot.
+ */
+export function nextTheme(theme: Theme): Theme {
+  return THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length] ?? DEFAULT_THEME;
+}

@@ -192,18 +192,20 @@ function Comparison({ locale }: { locale: string }) {
         </h2>
         <p className="mt-4 max-w-3xl text-lg text-muted">{t('lead')}</p>
 
+        {/* Tight cells below `sm`: with the roomy ones the German table paints
+            past the edge of a 320 px screen. */}
         <div className="panel mt-10 overflow-x-auto">
           <table className="w-full border-collapse text-left">
             <caption className="sr-only">{t('title')}</caption>
             <thead>
               <tr className="border-b border-line">
-                <th scope="col" className="p-4 text-sm font-bold">
+                <th scope="col" className="px-2 py-4 text-sm font-bold sm:px-4">
                   {t('feature')}
                 </th>
-                <th scope="col" className="w-24 p-4 text-center text-sm font-bold">
+                <th scope="col" className="w-20 px-2 py-4 text-center text-sm font-bold sm:w-24 sm:px-4">
                   {t('free')}
                 </th>
-                <th scope="col" className="w-24 p-4 text-center text-sm font-bold text-accent">
+                <th scope="col" className="w-20 px-2 py-4 text-center text-sm font-bold text-accent sm:w-24 sm:px-4">
                   {t('plus')}
                 </th>
               </tr>
@@ -211,16 +213,16 @@ function Comparison({ locale }: { locale: string }) {
             <tbody>
               {COMPARISON.map((row) => (
                 <tr key={row.id} className="border-b border-line-soft last:border-0">
-                  <th scope="row" className="p-4 text-sm font-medium">
+                  <th scope="row" className="px-2 py-4 text-sm font-medium sm:px-4">
                     {t(`rows.${row.id}`)}
                   </th>
-                  <td className="p-4">
+                  <td className="px-2 py-4 sm:px-4">
                     <span className="flex justify-center">
                       {row.free ? <CheckIcon className="text-accent" /> : <DashIcon className="text-muted" />}
                       <span className="sr-only">{row.free ? t('included') : t('notIncluded')}</span>
                     </span>
                   </td>
-                  <td className="p-4">
+                  <td className="px-2 py-4 sm:px-4">
                     <span className="flex justify-center">
                       <CheckIcon className="text-accent" />
                       <span className="sr-only">{t('included')}</span>

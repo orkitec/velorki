@@ -11,6 +11,7 @@
     "plus": "Plus",
     "download": "Download",
     "github": "GitHub",
+    "menu": "Menu",
     "primary": "Main",
     "skip": "Skip to content"
   },
@@ -21,7 +22,8 @@
     "label": "Theme",
     "system": "System",
     "light": "Light",
-    "dark": "Dark"
+    "dark": "Dark",
+    "cycle": "Theme: {current}. Switch to {next}."
   },
   "appearance": {
     "legend": "Show the app in",

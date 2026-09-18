@@ -285,6 +285,18 @@ Pages are prerendered per locale. English is unprefixed (`localePrefix:
 is the single place that knows that rule, and every canonical URL, hreflang and
 Open Graph tag is built through it.
 
+**The header** is one row at every width. From `md` it is the wordmark, the
+links, the theme switch, the language menu and the Download pill, with the
+GitHub word and the language's full name held back until `lg` so the German
+labels still fit a 768 px screen. Below `md` the links and the pill move into a
+`<details>` menu behind a hamburger, the theme switch becomes one button that
+cycles System - Light - Dark, and the language menu is the globe plus the code:
+three 44 px controls and the wordmark, which is what a 320 px screen holds. The
+disclosure is the browser's own, so the menu opens with JavaScript off; the
+panel hangs off the header, which is `overflow-x-clip` as a guard the layout
+does not rely on. `components/HeaderMenu.tsx` is the markup, apart from
+`SiteHeader.tsx` so a test can render it.
+
 **The docs menu** is one tree, built from the same headings the Markdown
 pipeline already collects (`collectHeadings` in `src/site/markdown.ts`): every
 page in front-matter order, and under the open page its own `h2`s with the

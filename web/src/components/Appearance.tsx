@@ -166,7 +166,9 @@ export function AppearanceSwitcher() {
       </fieldset>
       <fieldset className="flex items-center gap-3">
         <legend className="sr-only">{t('accent')}</legend>
-        <div className="flex gap-2">
+        {/* Five chips are wider than a phone: they wrap rather than push the
+            page sideways. */}
+        <div className="flex flex-wrap gap-2">
           {ACCENTS.map((value) => {
             // Light is captured in Volt only. `aria-disabled` rather than the
             // `disabled` attribute: a disabled control receives no pointer

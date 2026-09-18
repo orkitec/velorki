@@ -11,6 +11,7 @@
     "plus": "Plus",
     "download": "Download",
     "github": "GitHub",
+    "menu": "Menü",
     "primary": "Haupt",
     "skip": "Zum Inhalt springen"
   },
@@ -21,7 +22,8 @@
     "label": "Design",
     "system": "System",
     "light": "Hell",
-    "dark": "Dunkel"
+    "dark": "Dunkel",
+    "cycle": "Design: {current}. Zu {next} wechseln."
   },
   "appearance": {
     "legend": "App anzeigen in",

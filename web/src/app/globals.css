@@ -52,18 +52,11 @@
   --shell: 76rem;
 
   /* How far below the top of the viewport an anchored heading lands: the
-     sticky header plus a little. Below `md` the header carries a second row
-     of links, so it is taller there. Written once, read by `scroll-padding`,
-     by every heading's `scroll-margin` and - through `getComputedStyle` - by
-     TocSpy, so the smooth scroll it does lands exactly where the browser's
-     own jump would. */
-  --scroll-offset: 7.25rem;
-}
-
-@media (min-width: 768px) {
-  :root {
-    --scroll-offset: 6rem;
-  }
+     sticky header (4rem at every width) plus a little. Written once, read by
+     `scroll-padding`, by every heading's `scroll-margin` and - through
+     `getComputedStyle` - by TocSpy, so the smooth scroll it does lands exactly
+     where the browser's own jump would. */
+  --scroll-offset: 6rem;
 }
 
 /* The accents, volt on :root because that is the app's default. A block here

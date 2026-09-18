@@ -3,6 +3,11 @@
 // apart from LocaleSwitcher.tsx for one reason: that file reaches for
 // next-intl's client navigation, which is published as ESM that only resolves
 // inside a bundler, and this is the half worth asserting in a test.
+//
+// The summary is the globe plus the language: its name from `lg`, and below
+// that only the code ("DE"), which is what keeps the header on a 320 px phone
+// and what keeps the German labels inside a 768 px one. The menu itself is the
+// same list at every width.
 import { localeName, localeNames } from '@/site/locales';
 import { switchPath } from '@/site/paths';
 import { ChevronDownIcon, GlobeIcon } from './Icons';
@@ -19,10 +24,15 @@ export function LocaleSwitcherMenu({
   return (
     <nav aria-label={label} className="relative">
       <details className="group">
-        <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-bold tracking-wide text-muted transition-colors hover:text-fg [&::-webkit-details-marker]:hidden">
+        <summary className="flex h-11 cursor-pointer list-none items-center gap-1 rounded-full border border-line-soft px-2.5 text-xs font-bold tracking-wide text-muted transition-colors hover:text-fg md:h-auto md:gap-1.5 md:border-transparent md:py-1.5 lg:gap-1.5 [&::-webkit-details-marker]:hidden">
           <GlobeIcon width={16} height={16} />
-          <span>{localeName(current)}</span>
-          <ChevronDownIcon width={14} height={14} className="transition-transform group-open:rotate-180" />
+          <span className="lg:hidden">{current.toUpperCase()}</span>
+          <span className="hidden lg:inline">{localeName(current)}</span>
+          <ChevronDownIcon
+            width={14}
+            height={14}
+            className="hidden transition-transform group-open:rotate-180 lg:block"
+          />
         </summary>
         <ul className="absolute right-0 z-50 mt-1 min-w-40 rounded-2xl border border-line-soft bg-panel p-1 shadow-lg">
           {localeNames().map(({ locale, name }) => {

@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { GITHUB_URL } from '@/site/config';
 import { localePath } from '@/site/paths';
 import { AppIcon } from './AppIcon';
+import { HeaderMenu, type HeaderLink } from './HeaderMenu';
 import { GitHubIcon } from './Icons';
 import { LocaleSwitcher } from './LocaleSwitcher';
 import { ThemeSwitcher } from './ThemeSwitcher';
@@ -18,12 +19,25 @@ const NAV = [
 export function SiteHeader({ locale }: { locale: string }) {
   const t = useTranslations('nav');
   const home = localePath(locale, '/');
+  const links: HeaderLink[] = [
+    ...NAV.map((item) => ({ href: localePath(locale, item.href), label: t(item.key) })),
+    { href: GITHUB_URL, label: t('github'), external: true },
+  ];
+  const download: HeaderLink = { href: localePath(locale, '/download'), label: t('download') };
   return (
-    <header className="sticky top-0 z-50 border-b border-line-soft bg-canvas/85 backdrop-blur-lg">
-      <div className="shell flex h-16 items-center gap-3">
+    // The header is `sticky`, so it is a positioned element already and the
+    // menu panel below hangs off it without a `relative` that would fight it.
+    // `overflow-x-clip`: belt and braces. The row fits from 320 px up, and if a
+    // longer translation ever stops fitting, the page still must not scroll
+    // sideways. `clip` rather than `hidden`, because the language menu and the
+    // menu panel drop out of the header and only the horizontal axis is cut.
+    <header className="sticky top-0 z-50 overflow-x-clip border-b border-line-soft bg-canvas/85 backdrop-blur-lg">
+      <div className="shell flex h-16 items-center gap-2 md:gap-3">
         <Link href={home} aria-label={t('home')} className="flex shrink-0 items-center gap-2">
           <AppIcon size={32} />
-          <span className="font-display text-2xl leading-none font-bold tracking-tight text-fg">Velorki</span>
+          <span className="font-display text-xl leading-none font-bold tracking-tight text-fg sm:text-2xl">
+            Velorki
+          </span>
         </Link>
 
         <nav aria-label={t('primary')} className="ml-auto hidden items-center gap-1 md:flex">
@@ -31,46 +45,41 @@ export function SiteHeader({ locale }: { locale: string }) {
             <Link
               key={item.key}
               href={localePath(locale, item.href)}
-              className="rounded-full px-3 py-2 text-sm font-bold text-muted transition-colors hover:bg-accent/10 hover:text-fg"
+              className="rounded-full px-2 py-2 text-sm font-bold text-muted transition-colors hover:bg-accent/10 hover:text-fg lg:px-3"
             >
               {t(item.key)}
             </Link>
           ))}
+          {/* The word only from `lg`: at 768 the German labels and the right
+              cluster together are wider than the row, and the mark alone still
+              says GitHub. `sr-only` rather than `hidden`, so the link keeps
+              its name for anyone who is not looking at it. */}
           <a
             href={GITHUB_URL}
             rel="noreferrer"
-            className="flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-bold text-muted transition-colors hover:text-fg"
+            className="flex items-center gap-1.5 rounded-full px-2 py-2 text-sm font-bold text-muted transition-colors hover:text-fg lg:px-3"
           >
             <GitHubIcon width={16} height={16} />
-            {t('github')}
+            <span className="sr-only lg:not-sr-only">{t('github')}</span>
           </a>
         </nav>
 
-        <div className="ml-auto flex items-center gap-2 md:ml-0">
+        {/* Below `md` the links live in the menu and the Download pill with
+            them: three 44 px controls and the wordmark are what a 320 px
+            viewport holds. From `md` the pill is back in the row. */}
+        <div className="ml-auto flex items-center gap-1.5 md:ml-0 md:gap-2">
           <ThemeSwitcher />
           <LocaleSwitcher />
-          <Link href={localePath(locale, '/download')} className="btn btn-primary !min-h-10 px-4 text-sm">
-            {t('download')}
-          </Link>
+          {/* The wrapper, not a `hidden` on the pill: `.btn` is unlayered CSS
+              and would beat the utility's `display: none`. */}
+          <div className="hidden md:block">
+            <Link href={download.href} className="btn btn-primary !min-h-10 px-4 text-sm">
+              {download.label}
+            </Link>
+          </div>
+          <HeaderMenu label={t('menu')} navLabel={t('primary')} links={links} download={download} />
         </div>
       </div>
-
-      {/* Below md the links move to their own scrollable row: no menu button,
-          no JavaScript, and nothing that can be left open. */}
-      <nav aria-label={t('primary')} className="shell -mt-px flex gap-1 overflow-x-auto pb-2 md:hidden">
-        {NAV.map((item) => (
-          <Link
-            key={item.key}
-            href={localePath(locale, item.href)}
-            className="shrink-0 rounded-full px-3 py-1.5 text-sm font-bold text-muted"
-          >
-            {t(item.key)}
-          </Link>
-        ))}
-        <a href={GITHUB_URL} rel="noreferrer" className="shrink-0 rounded-full px-3 py-1.5 text-sm font-bold text-muted">
-          {t('github')}
-        </a>
-      </nav>
     </header>
   );
 }
