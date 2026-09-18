@@ -19,6 +19,7 @@ import '../data/turn_speaker.dart';
 import '../domain/navigation_progress.dart';
 import '../domain/off_route_guidance.dart';
 import '../presentation/turn_phrases.dart';
+import '../../settings/data/language_controller.dart';
 import '../../settings/data/units.dart';
 import 'off_route_machine.dart';
 import 'off_route_thresholds.dart';
@@ -184,15 +185,19 @@ DateTime Function() navigationClock(Ref ref) => DateTime.now;
 
 /// The localisations the spoken cues are built from.
 ///
-/// The controller has no [BuildContext], so it looks the strings up by the
-/// platform locale instead. A locale the app has no translation for falls back
-/// to English. Tests override this provider to pin the language.
+/// The controller has no [BuildContext], so it looks the strings up itself:
+/// by the app's own language setting when the rider chose one, else by the
+/// platform locale, the same rule the screens follow. The voice follows the
+/// same choice (see `cueLocaleTag`), so text and voice never part ways. A
+/// locale the app has no translation for falls back to English. Tests
+/// override this provider to pin the language.
 @Riverpod(keepAlive: true)
 AppLocalizations navigationLocalizations(Ref ref) {
+  final locale =
+      ref.watch(appLocaleProvider) ??
+      WidgetsBinding.instance.platformDispatcher.locale;
   try {
-    return lookupAppLocalizations(
-      WidgetsBinding.instance.platformDispatcher.locale,
-    );
+    return lookupAppLocalizations(locale);
   } catch (_) {
     return lookupAppLocalizations(const Locale('en'));
   }
