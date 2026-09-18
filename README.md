@@ -88,14 +88,10 @@ the step-by-step for the last two. Forks must rebrand, see `TRADEMARK.md`.
 
 ## Licence
 
-Everything in this repository is [AGPL-3.0-only](LICENSE). In practice that
-means a fork has to publish its changes: when you distribute a modified app, or
-let anyone use a modified relay or website over a network, the corresponding
-source has to be available under the same licence. The name, the logo and the
-app icon stay reserved, see `TRADEMARK.md`.
-
-Versions released before this commit were published under Apache-2.0 and remain
-available under that licence from the git history.
+[AGPL-3.0](LICENSE). Modified versions have to flow back: whoever distributes
+a changed app, or serves a changed relay or website, publishes the source
+under the same licence. The name, the logo and the app icon stay reserved, see
+`TRADEMARK.md`.
 
 ## Credits
 
