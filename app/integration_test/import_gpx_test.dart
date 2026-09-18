@@ -78,6 +78,9 @@ void main() {
     await waitForWidget(tester, find.widgetWithText(AppBar, name));
 
     await tapAndPump(tester, find.text('Library'));
+    // The Library remembers its last segment across launches, and another
+    // test may have left it on the rides; this one wants the routes.
+    await tapAndPump(tester, find.text('Routes'));
     await waitForWidget(tester, find.widgetWithText(ListTile, name));
 
     await unmountApp(tester);

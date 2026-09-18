@@ -109,6 +109,9 @@ void main() {
 
     // ----------------------------------------------------------- the library
     await tapAndPump(tester, find.text('Library'));
+    // The Library remembers its last segment across launches, and another
+    // test may have left it on the rides; this one wants the routes.
+    await tapAndPump(tester, find.text('Routes'));
     final row = find.widgetWithText(ListTile, name);
     await waitForWidget(tester, row);
     await tapAndPump(tester, row);
