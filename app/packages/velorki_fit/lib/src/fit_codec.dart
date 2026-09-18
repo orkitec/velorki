@@ -45,8 +45,11 @@ const int _fEventType = 1;
 const int _fRecordPositionLat = 0;
 const int _fRecordPositionLong = 1;
 const int _fRecordAltitude = 2;
+const int _fRecordHeartRate = 3;
+const int _fRecordCadence = 4;
 const int _fRecordDistance = 5;
 const int _fRecordSpeed = 6;
+const int _fRecordPower = 7;
 const int _fRecordEnhancedSpeed = 73;
 const int _fRecordEnhancedAltitude = 78;
 
@@ -62,6 +65,11 @@ const int _fLapTotalElapsedTime = 7;
 const int _fLapTotalTimerTime = 8;
 const int _fLapTotalDistance = 9;
 const int _fLapAvgSpeed = 13;
+const int _fLapAvgHeartRate = 15;
+const int _fLapMaxHeartRate = 16;
+const int _fLapAvgCadence = 17;
+const int _fLapAvgPower = 19;
+const int _fLapMaxPower = 20;
 const int _fLapSport = 25;
 
 // session
@@ -76,6 +84,11 @@ const int _fSessionTotalElapsedTime = 7;
 const int _fSessionTotalTimerTime = 8;
 const int _fSessionTotalDistance = 9;
 const int _fSessionAvgSpeed = 14;
+const int _fSessionAvgHeartRate = 16;
+const int _fSessionMaxHeartRate = 17;
+const int _fSessionAvgCadence = 18;
+const int _fSessionAvgPower = 20;
+const int _fSessionMaxPower = 21;
 const int _fSessionFirstLapIndex = 25;
 const int _fSessionNumLaps = 26;
 const int _fSessionTrigger = 28;
@@ -102,6 +115,7 @@ const int _lnSession = 5;
 const int _lnActivity = 6;
 
 // Representable ranges of the scaled integer fields we write.
+const int _uint8Max = 254; // 255 is the "invalid" sentinel
 const int _uint16Max = 65534; // 65535 is the "invalid" sentinel
 const int _uint32Max = 4294967294; // 4294967295 is the "invalid" sentinel
 const int _sint32PositionMax = 2147483646; // 2147483647 is "invalid"
@@ -122,7 +136,8 @@ class FitCodec {
   ///
   /// Positions are converted from FIT semicircles to degrees. Elevation comes
   /// from the `altitude` field, falling back to `enhanced_altitude`; speed
-  /// comes from `speed`, falling back to `enhanced_speed`; the timestamp is
+  /// comes from `speed`, falling back to `enhanced_speed`; heart rate, cadence
+  /// and power come from the record fields of those names; the timestamp is
   /// the FIT `date_time` converted to a UTC [DateTime]. Records without a
   /// position are skipped, because a track point without coordinates carries
   /// no information for this package. A valid FIT file that contains no
@@ -166,6 +181,9 @@ class FitCodec {
   /// per point, and the `lap`, `session` and `activity` messages a Garmin
   /// activity file needs. Total distance is the great circle length of the
   /// track; total elapsed and timer time are taken from the point timestamps.
+  /// A track that carries heart rate, cadence or power writes those record
+  /// fields too, and the `lap` and `session` messages carry their averages and
+  /// maxima, which is where a head unit and Strava read them from.
   ///
   /// Points that have no timestamp are given one second per point starting at
   /// [startTime] (defaulting to the first known point time, else "now"), so
@@ -229,6 +247,15 @@ class FitCodec {
     if (track.avgSpeed != null) {
       lap.setFieldValue(_fLapAvgSpeed, track.avgSpeed);
     }
+    _setSensorSummary(
+      lap,
+      track,
+      avgHeartRate: _fLapAvgHeartRate,
+      maxHeartRate: _fLapMaxHeartRate,
+      avgCadence: _fLapAvgCadence,
+      avgPower: _fLapAvgPower,
+      maxPower: _fLapMaxPower,
+    );
     _writeMesg(encoder, lap, _lnLap);
 
     final session = Mesg.fromMesgNum(MesgNum.session)
@@ -257,6 +284,15 @@ class FitCodec {
     if (track.avgSpeed != null) {
       session.setFieldValue(_fSessionAvgSpeed, track.avgSpeed);
     }
+    _setSensorSummary(
+      session,
+      track,
+      avgHeartRate: _fSessionAvgHeartRate,
+      maxHeartRate: _fSessionMaxHeartRate,
+      avgCadence: _fSessionAvgCadence,
+      avgPower: _fSessionAvgPower,
+      maxPower: _fSessionMaxPower,
+    );
     _writeMesg(encoder, session, _lnSession);
 
     final activity = Mesg.fromMesgNum(MesgNum.activity)
@@ -372,6 +408,9 @@ class FitCodec {
       ..setFieldValue(_fRecordDistance, null);
     if (track.hasElevation) template.setFieldValue(_fRecordAltitude, null);
     if (track.hasSpeed) template.setFieldValue(_fRecordSpeed, null);
+    if (track.hasHeartRate) template.setFieldValue(_fRecordHeartRate, null);
+    if (track.hasCadence) template.setFieldValue(_fRecordCadence, null);
+    if (track.hasPower) template.setFieldValue(_fRecordPower, null);
 
     final definition = MesgDefinition.fromMesg(template);
     encoder.writeMesgDefinition(definition);
@@ -391,8 +430,49 @@ class FitCodec {
       if (track.hasSpeed) {
         mesg.setFieldValue(_fRecordSpeed, _speedOrNull(point.speedMps));
       }
+      if (track.hasHeartRate) {
+        mesg.setFieldValue(
+          _fRecordHeartRate,
+          _inRange(point.heartRateBpm, _uint8Max),
+        );
+      }
+      if (track.hasCadence) {
+        mesg.setFieldValue(
+          _fRecordCadence,
+          _inRange(point.cadenceRpm, _uint8Max),
+        );
+      }
+      if (track.hasPower) {
+        mesg.setFieldValue(_fRecordPower, _inRange(point.powerW, _uint16Max));
+      }
       encoder.writeMesg(mesg, definition);
     }
+  }
+
+  /// Puts the track's sensor averages on a `lap` or `session` message.
+  ///
+  /// The field numbers differ between the two messages, so they are passed in;
+  /// a figure the track does not have is left off the message entirely rather
+  /// than written as the invalid sentinel.
+  static void _setSensorSummary(
+    Mesg mesg,
+    _Track track, {
+    required int avgHeartRate,
+    required int maxHeartRate,
+    required int avgCadence,
+    required int avgPower,
+    required int maxPower,
+  }) {
+    void set(int field, int? value, int max) {
+      final clamped = _inRange(value, max);
+      if (clamped != null) mesg.setFieldValue(field, clamped);
+    }
+
+    set(avgHeartRate, track.avgHeartRate, _uint8Max);
+    set(maxHeartRate, track.maxHeartRate, _uint8Max);
+    set(avgCadence, track.avgCadence, _uint8Max);
+    set(avgPower, track.avgPower, _uint16Max);
+    set(maxPower, track.maxPower, _uint16Max);
   }
 
   /// Writes [mesg] at local message number [localNum], emitting its definition
@@ -431,6 +511,9 @@ class FitCodec {
       ele: ele?.toDouble(),
       time: stamp == null ? null : _fromFitTime(stamp.toInt()),
       speedMps: speed?.toDouble(),
+      heartRateBpm: _asNum(mesg.getFieldValue(_fRecordHeartRate))?.round(),
+      cadenceRpm: _asNum(mesg.getFieldValue(_fRecordCadence))?.round(),
+      powerW: _asNum(mesg.getFieldValue(_fRecordPower))?.round(),
     );
   }
 
@@ -444,13 +527,57 @@ class _Track {
         points.map((p) => p.pos).toList(growable: false),
       ),
       hasElevation = points.any((p) => p.ele != null),
-      hasSpeed = points.any((p) => p.speedMps != null);
+      hasSpeed = points.any((p) => p.speedMps != null),
+      hasHeartRate = points.any((p) => p.heartRateBpm != null),
+      hasCadence = points.any((p) => p.cadenceRpm != null),
+      hasPower = points.any((p) => p.powerW != null);
 
   final List<TrackPoint> points;
   final List<DateTime> times;
   final List<double> cumulativeDistance;
   final bool hasElevation;
   final bool hasSpeed;
+  final bool hasHeartRate;
+  final bool hasCadence;
+  final bool hasPower;
+
+  /// Mean heart rate over the points that carried one, `null` when none did.
+  int? get avgHeartRate => _mean((p) => p.heartRateBpm);
+
+  /// Highest heart rate seen, `null` when no point carried one.
+  int? get maxHeartRate => _max((p) => p.heartRateBpm);
+
+  /// Mean cadence over the points that carried one.
+  int? get avgCadence => _mean((p) => p.cadenceRpm);
+
+  /// Mean power over the points that carried one.
+  int? get avgPower => _mean((p) => p.powerW);
+
+  /// Highest power seen.
+  int? get maxPower => _max((p) => p.powerW);
+
+  int? _mean(int? Function(TrackPoint) of) {
+    var sum = 0;
+    var count = 0;
+    for (final point in points) {
+      final value = of(point);
+      if (value == null) continue;
+      sum += value;
+      count++;
+    }
+    return count == 0 ? null : (sum / count).round();
+  }
+
+  int? _max(int? Function(TrackPoint) of) {
+    int? highest;
+    for (final point in points) {
+      final value = of(point);
+      if (value != null && (highest == null || value > highest)) {
+        highest = value;
+      }
+    }
+    return highest;
+  }
 
   DateTime get start => times.first;
 
@@ -539,6 +666,18 @@ double? _speedOrNull(double? mps) {
   final raw = (mps * 1000.0).round();
   if (raw < 0 || raw > _uint16Max) return null;
   return mps;
+}
+
+/// [value] clamped into `0..max`, or `null` when there is nothing to write.
+///
+/// The sensor fields have no scaling, so the only thing that can go wrong is a
+/// reading outside the range of the integer they are stored in; clamping keeps
+/// a nonsensical value from landing on the "invalid" sentinel and reading back
+/// as no measurement at all.
+int? _inRange(int? value, int max) {
+  if (value == null) return null;
+  if (value < 0) return 0;
+  return value > max ? max : value;
 }
 
 /// Trims [value] to something a FIT string field can hold: no NUL bytes, at

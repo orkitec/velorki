@@ -70,13 +70,14 @@ class Split {
       '+${ascentM.round()} m${partial ? ', partial' : ''})';
 }
 
-/// One point of the elevation and speed charts.
+/// One point of the elevation, speed and heart rate charts.
 class ChartSample {
   /// Creates a sample.
   const ChartSample({
     required this.distanceM,
     required this.speedMps,
     this.elevationM,
+    this.heartRateBpm,
   });
 
   /// Distance from the start in metres.
@@ -88,10 +89,16 @@ class ChartSample {
   /// Elevation in metres, smoothed; `null` where the track carried none.
   final double? elevationM;
 
+  /// Heart rate in beats per minute; `null` where no sensor reported one.
+  ///
+  /// Not smoothed: a strap already reports a filtered figure, and smoothing it
+  /// again would only flatten the sprints out of the line.
+  final int? heartRateBpm;
+
   @override
   String toString() =>
       'ChartSample(${distanceM.round()} m, ${speedMps.toStringAsFixed(1)} m/s, '
-      '${elevationM?.round()} m)';
+      '${elevationM?.round()} m, ${heartRateBpm ?? '-'} bpm)';
 }
 
 /// A stretch of track that was ridden at roughly one speed.
@@ -176,6 +183,11 @@ class RideAnalysis {
 
   /// Whether there is a speed chart to draw.
   bool get hasSpeed => _spansDistance && samples.any((s) => s.speedMps > 0);
+
+  /// Whether there is a heart rate chart to draw.
+  bool get hasHeartRate =>
+      _spansDistance &&
+      samples.where((s) => s.heartRateBpm != null).length >= 2;
 
   bool get _spansDistance => samples.length >= 2 && samples.last.distanceM > 0;
 
@@ -474,22 +486,29 @@ List<Split> _splits(
 // ---------------------------------------------------------------- samples
 
 class _RawSample {
-  _RawSample(this.distanceM, this.elevationM, this.speedMps);
+  _RawSample(this.distanceM, this.elevationM, this.speedMps, this.heartRateBpm);
 
   final double distanceM;
   double? elevationM;
   double speedMps;
+  final int? heartRateBpm;
 }
 
 List<ChartSample> _samples(_Walk walk, {required int maxSamples}) {
   if (walk.firstIndex < 0) return const <ChartSample>[];
   final raw = <_RawSample>[
-    _RawSample(0, _finite(walk.points[walk.firstIndex].ele), 0),
+    _RawSample(
+      0,
+      _finite(walk.points[walk.firstIndex].ele),
+      0,
+      walk.points[walk.firstIndex].heartRateBpm,
+    ),
     for (final leg in walk.legs)
       _RawSample(
         walk.distanceAt[leg.toIndex],
         _finite(walk.points[leg.toIndex].ele),
         leg.isBreak ? 0 : leg.speedMps,
+        walk.points[leg.toIndex].heartRateBpm,
       ),
   ];
   if (raw.length < 2) return const <ChartSample>[];
@@ -573,6 +592,7 @@ List<ChartSample> _resample(List<_RawSample> raw, int maxSamples) {
     distanceM: s.distanceM,
     speedMps: s.speedMps,
     elevationM: s.elevationM,
+    heartRateBpm: s.heartRateBpm,
   );
   if (maxSamples < 2 || raw.length <= maxSamples) {
     return <ChartSample>[for (final s in raw) toSample(s)];
@@ -603,6 +623,11 @@ List<ChartSample> _resample(List<_RawSample> raw, int maxSamples) {
         distanceM: target,
         speedMps: a.speedMps + (b.speedMps - a.speedMps) * f,
         elevationM: _lerpOrNull(a.elevationM, b.elevationM, f),
+        heartRateBpm: _lerpOrNull(
+          a.heartRateBpm?.toDouble(),
+          b.heartRateBpm?.toDouble(),
+          f,
+        )?.round(),
       ),
     );
   }

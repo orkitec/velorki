@@ -72,6 +72,57 @@ void main() {
       expect(read.stats.distanceM, row.distanceM);
     });
 
+    test('the sensor averages go into the row and come back', () async {
+      final points = <TrackPoint>[
+        for (final (i, point) in _track(4).indexed)
+          point.copyWith(
+            heartRateBpm: 140 + i * 10,
+            cadenceRpm: 80,
+            powerW: 200 + i,
+          ),
+      ];
+
+      final ride = await repository.finalizeRide(
+        rideId: 'ride-1',
+        name: 'Morning loop',
+        points: points,
+        startedAt: DateTime.utc(2026, 9, 12, 10),
+        endedAt: DateTime.utc(2026, 9, 12, 10, 0, 3),
+      );
+
+      expect(ride.stats.avgHeartRateBpm, 155);
+      expect(ride.stats.maxHeartRateBpm, 170);
+
+      final row = await db.ridesDao.rideById('ride-1');
+      expect(row!.avgHeartRateBpm, 155);
+      expect(row.maxHeartRateBpm, 170);
+      expect(row.avgCadenceRpm, 80);
+      expect(row.avgPowerW, 202);
+
+      final read = await repository.rideById('ride-1');
+      expect(read!.stats.avgHeartRateBpm, 155);
+      expect(read.stats.maxHeartRateBpm, 170);
+      expect(read.stats.avgCadenceRpm, 80);
+      expect(read.stats.avgPowerW, 202);
+      expect(read.points.last.powerW, 203);
+    });
+
+    test('a ride without sensors leaves the columns null', () async {
+      await repository.finalizeRide(
+        rideId: 'ride-1',
+        name: 'Morning loop',
+        points: _track(4),
+        startedAt: DateTime.utc(2026, 9, 12, 10),
+        endedAt: DateTime.utc(2026, 9, 12, 10, 0, 3),
+      );
+
+      final row = await db.ridesDao.rideById('ride-1');
+      expect(row!.avgHeartRateBpm, isNull);
+      expect(row.maxHeartRateBpm, isNull);
+      expect(row.avgCadenceRpm, isNull);
+      expect(row.avgPowerW, isNull);
+    });
+
     test('keeps the pauses and the followed route', () async {
       await db.routesDao.upsertRoute(
         RoutesCompanion.insert(

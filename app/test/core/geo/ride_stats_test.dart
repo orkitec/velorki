@@ -359,5 +359,86 @@ void main() {
     test('an empty file is all zeroes rather than a crash', () {
       expect(computeImportedStats(const <TrackPoint>[]), RideStats.empty);
     });
+
+    test('a file without timestamps keeps what its sensors reported', () {
+      final stats = computeImportedStats([
+        _plain(0).copyWith(heartRateBpm: 120),
+        _plain(1).copyWith(heartRateBpm: 130),
+      ]);
+      expect(stats.avgHeartRateBpm, 125);
+      expect(stats.maxHeartRateBpm, 130);
+      expect(stats.hasTime, isFalse);
+    });
+  });
+
+  group('sensor statistics', () {
+    test('a ride without sensors reports none of them', () {
+      final stats = computeRideStats([_point(0), _point(1), _point(2)]);
+      expect(stats.avgHeartRateBpm, isNull);
+      expect(stats.maxHeartRateBpm, isNull);
+      expect(stats.avgCadenceRpm, isNull);
+      expect(stats.avgPowerW, isNull);
+      expect(stats.hasSensors, isFalse);
+    });
+
+    test('averages and the maximum come from the whole ride', () {
+      final stats = computeRideStats([
+        _point(0).copyWith(heartRateBpm: 120, cadenceRpm: 80, powerW: 200),
+        _point(1).copyWith(heartRateBpm: 140, cadenceRpm: 90, powerW: 220),
+        _point(2).copyWith(heartRateBpm: 160, cadenceRpm: 85, powerW: 210),
+      ]);
+      expect(stats.avgHeartRateBpm, 140);
+      expect(stats.maxHeartRateBpm, 160);
+      expect(stats.avgCadenceRpm, 85);
+      expect(stats.avgPowerW, 210);
+      expect(stats.hasSensors, isTrue);
+    });
+
+    test('the mean is rounded rather than truncated', () {
+      final stats = computeRideStats([
+        _point(0).copyWith(heartRateBpm: 120),
+        _point(1).copyWith(heartRateBpm: 121),
+      ]);
+      expect(stats.avgHeartRateBpm, 121);
+    });
+
+    test('only the fixes that carried a value are averaged', () {
+      final stats = computeRideStats([
+        _point(0),
+        _point(1).copyWith(heartRateBpm: 150),
+        _point(2).copyWith(heartRateBpm: 154),
+      ]);
+      expect(stats.avgHeartRateBpm, 152);
+      expect(stats.maxHeartRateBpm, 154);
+      expect(stats.avgCadenceRpm, isNull);
+    });
+
+    test('a freewheeling zero is a reading, not an absence', () {
+      final stats = computeRideStats([
+        _point(0).copyWith(cadenceRpm: 0, powerW: 0),
+        _point(1).copyWith(cadenceRpm: 90, powerW: 200),
+      ]);
+      expect(stats.avgCadenceRpm, 45);
+      expect(stats.avgPowerW, 100);
+    });
+
+    test('a rejected fix contributes nothing', () {
+      final accumulator = RideStatsAccumulator();
+      expect(accumulator.add(_point(0).copyWith(heartRateBpm: 100)), isTrue);
+      // The same timestamp as the fix before it: out of order, so dropped.
+      expect(accumulator.add(_point(0).copyWith(heartRateBpm: 200)), isFalse);
+
+      expect(accumulator.stats.avgHeartRateBpm, 100);
+      expect(accumulator.stats.maxHeartRateBpm, 100);
+    });
+
+    test('the figures are part of equality', () {
+      const plain = RideStats(distanceM: 10);
+      expect(plain, isNot(const RideStats(distanceM: 10, avgPowerW: 5)));
+      expect(
+        const RideStats(distanceM: 10, avgPowerW: 5).hashCode,
+        const RideStats(distanceM: 10, avgPowerW: 5).hashCode,
+      );
+    });
   });
 }

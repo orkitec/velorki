@@ -87,6 +87,29 @@ RidesCompanion _ride(
   );
 }
 
+/// The `rides` table exactly as schema 3 created it: everything the app has
+/// now except the four sensor averages.
+const String _ridesV3Ddl = '''
+CREATE TABLE rides (
+  id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  ended_at TEXT NOT NULL,
+  distance_m REAL NOT NULL,
+  moving_time_s INTEGER NOT NULL,
+  elapsed_time_s INTEGER NOT NULL,
+  ascent_m REAL NOT NULL,
+  descent_m REAL NOT NULL,
+  avg_speed_mps REAL NOT NULL,
+  max_speed_mps REAL NOT NULL,
+  route_id TEXT NULL REFERENCES routes (id) ON DELETE SET NULL,
+  geometry BLOB NOT NULL,
+  pauses_json TEXT NOT NULL,
+  uploads_json TEXT NULL,
+  notes TEXT NULL,
+  PRIMARY KEY (id)
+)''';
+
 /// The `offline_regions` table as schemas 1 and 2 created it, without the
 /// download date.
 const String _offlineRegionsV1Ddl =
@@ -98,8 +121,8 @@ void main() {
   setUp(() => db = VelorkiDatabase.memory());
   tearDown(() => db.close());
 
-  test('schema version is 3', () {
-    expect(db.schemaVersion, 3);
+  test('schema version is 4', () {
+    expect(db.schemaVersion, 4);
   });
 
   test('a schema 1 database is upgraded and keeps its routes', () async {
@@ -107,14 +130,15 @@ void main() {
     await db.close();
 
     // A database as schema 1 left it: the routes table without turns_json and
-    // one row in it, and the offline_regions table the upgrade to 3 alters.
-    // Nothing else is created — the migrations touch nothing else.
+    // one row in it, plus the two tables the later upgrades alter. Nothing
+    // else is created — the migrations touch nothing else.
     final v1 = VelorkiDatabase(
       NativeDatabase.memory(
         setup: (raw) {
           raw
             ..execute(_routesV1Ddl)
             ..execute(_offlineRegionsV1Ddl)
+            ..execute(_ridesV3Ddl)
             ..execute(
               "INSERT INTO routes VALUES ('old', 'Before the upgrade', NULL, "
               "'planned', 'trekking', '2026-09-12T10:00:00.000Z', "
@@ -149,6 +173,7 @@ void main() {
               ..execute(_routesV1Ddl)
               ..execute('ALTER TABLE routes ADD COLUMN turns_json TEXT NULL')
               ..execute(_offlineRegionsV1Ddl)
+              ..execute(_ridesV3Ddl)
               ..execute(
                 "INSERT INTO offline_regions VALUES ('area', 'Old area', "
                 '47.0, 8.0, 47.5, 8.6, 7, 4096)',
@@ -166,6 +191,44 @@ void main() {
       expect(row.downloadedAt, isNull, reason: 'the new column starts empty');
     },
   );
+
+  test('a schema 3 database gains the sensor averages of its rides', () async {
+    await db.close();
+
+    final v3 = VelorkiDatabase(
+      NativeDatabase.memory(
+        setup: (raw) {
+          raw
+            ..execute(_routesV1Ddl)
+            ..execute('ALTER TABLE routes ADD COLUMN turns_json TEXT NULL')
+            ..execute(_offlineRegionsV1Ddl)
+            ..execute(
+              'ALTER TABLE offline_regions ADD COLUMN downloaded_at TEXT NULL',
+            )
+            ..execute(_ridesV3Ddl)
+            ..execute(
+              "INSERT INTO rides VALUES ('old', 'Before the upgrade', "
+              "'2026-09-12T08:00:00.000Z', '2026-09-12T10:00:00.000Z', "
+              "38000.0, 6400, 7200, 280.0, 275.0, 5.9, 13.2, NULL, x'0909', "
+              "'[]', NULL, NULL)",
+            )
+            ..userVersion = 3;
+        },
+      ),
+    );
+    addTearDown(v3.close);
+
+    final row = await v3.ridesDao.rideById('old');
+
+    expect(row, isNotNull);
+    expect(row!.name, 'Before the upgrade');
+    expect(row.distanceM, 38000);
+    expect(row.maxSpeedMps, 13.2);
+    expect(row.avgHeartRateBpm, isNull, reason: 'the new column starts empty');
+    expect(row.maxHeartRateBpm, isNull);
+    expect(row.avgCadenceRpm, isNull);
+    expect(row.avgPowerW, isNull);
+  });
 
   group('routes', () {
     test('insert and read back', () async {
@@ -227,6 +290,24 @@ void main() {
       expect(row!.movingTimeS, 6400);
       expect(row.routeId, isNull);
       expect(row.uploadsJson, isNull);
+      expect(row.avgHeartRateBpm, isNull);
+    });
+
+    test('keeps the sensor averages it was given', () async {
+      await db.ridesDao.upsertRide(
+        _ride('ride1').copyWith(
+          avgHeartRateBpm: const Value(148),
+          maxHeartRateBpm: const Value(176),
+          avgCadenceRpm: const Value(82),
+          avgPowerW: const Value(198),
+        ),
+      );
+
+      final row = await db.ridesDao.rideById('ride1');
+      expect(row!.avgHeartRateBpm, 148);
+      expect(row.maxHeartRateBpm, 176);
+      expect(row.avgCadenceRpm, 82);
+      expect(row.avgPowerW, 198);
     });
 
     test('watchRides emits newest started_at first', () async {

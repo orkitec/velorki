@@ -195,4 +195,89 @@ void main() {
       expect(second.type, isNull);
     });
   });
+
+  group('sensor round trip', () {
+    test('heart rate, cadence and power survive a track', () {
+      final points = <TrackPoint>[
+        _points.first.copyWith(heartRateBpm: 142, cadenceRpm: 0, powerW: 210),
+        _points[1].copyWith(heartRateBpm: 151, cadenceRpm: 88, powerW: 230),
+        _points.last,
+      ];
+
+      final decoded = GpxCodec.decode(GpxCodec.encodeTrack(points: points))
+          .tracks
+          .single
+          .points;
+
+      expect(decoded, points);
+      expect(decoded.first.cadenceRpm, 0, reason: 'a real reading, not absent');
+      expect(decoded.last.heartRateBpm, isNull);
+      expect(decoded.last.powerW, isNull);
+    });
+
+    test('a route keeps them as well', () {
+      final points = <TrackPoint>[
+        for (final point in _points) point.copyWith(heartRateBpm: 120),
+      ];
+
+      final decoded = GpxCodec.decode(GpxCodec.encodeRoute(points: points))
+          .routes
+          .single
+          .points;
+
+      expect(decoded.map((p) => p.heartRateBpm), everyElement(120));
+    });
+
+    test('the ns3 spelling other exporters use is read too', () {
+      const xml =
+          '<?xml version="1.0" encoding="UTF-8"?>'
+          '<gpx version="1.1" creator="Garmin Connect" '
+          'xmlns="http://www.topografix.com/GPX/1/1" '
+          'xmlns:ns3="http://www.garmin.com/xmlschemas/TrackPointExtension/v1">'
+          '<trk><trkseg>'
+          '<trkpt lat="48.1" lon="11.5"><extensions>'
+          '<ns3:TrackPointExtension>'
+          '<ns3:hr>147</ns3:hr><ns3:cad>91</ns3:cad>'
+          '</ns3:TrackPointExtension>'
+          '</extensions></trkpt>'
+          '</trkseg></trk></gpx>';
+
+      final point = GpxCodec.decode(xml).tracks.single.points.single;
+
+      expect(point.heartRateBpm, 147);
+      expect(point.cadenceRpm, 91);
+    });
+
+    test('power is read wherever the writer put it', () {
+      String track(String extensions) =>
+          '<?xml version="1.0" encoding="UTF-8"?>'
+          '<gpx version="1.1" creator="t" '
+          'xmlns="http://www.topografix.com/GPX/1/1">'
+          '<trk><trkseg><trkpt lat="48.1" lon="11.5">'
+          '<extensions>$extensions</extensions>'
+          '</trkpt></trkseg></trk></gpx>';
+
+      int? powerOf(String extensions) =>
+          GpxCodec.decode(track(extensions)).tracks.single.points.single.powerW;
+
+      expect(powerOf('<power>210</power>'), 210, reason: 'Strava');
+      expect(
+        powerOf(
+          '<TrackPointExtension><PowerInWatts>212</PowerInWatts>'
+          '</TrackPointExtension>',
+        ),
+        212,
+      );
+      expect(
+        powerOf(
+          '<TrackPointExtension><Extensions>'
+          '<PowerInWatts>214</PowerInWatts>'
+          '</Extensions></TrackPointExtension>',
+        ),
+        214,
+        reason: 'Garmin nests it once more',
+      );
+      expect(powerOf('<atemp>19</atemp>'), isNull);
+    });
+  });
 }

@@ -376,4 +376,44 @@ void main() {
       expect(snapshot.isManuallyPaused, isFalse);
     });
   });
+
+  group('sensor values', () {
+    test('the live values and the averages survive the port', () {
+      final snapshot = RecordingSnapshot.fromStats(
+        rideId: 'ride-1',
+        status: RecordingStatus.active,
+        startedAt: DateTime.utc(2026, 9, 12, 10),
+        stats: const RideStats(
+          distanceM: 1234.5,
+          avgHeartRateBpm: 148,
+          maxHeartRateBpm: 176,
+          avgCadenceRpm: 0,
+          avgPowerW: 198,
+        ),
+        elapsed: const Duration(minutes: 13),
+        heartRateBpm: 151,
+        cadenceRpm: 88,
+        powerW: 230,
+      );
+
+      final back = RecordingSnapshot.fromMap(snapshot.toMap());
+
+      expect(back.heartRateBpm, 151);
+      expect(back.cadenceRpm, 88);
+      expect(back.powerW, 230);
+      expect(back.avgHeartRateBpm, 148);
+      expect(back.maxHeartRateBpm, 176);
+      expect(back.avgCadenceRpm, 0);
+      expect(back.avgPowerW, 198);
+      expect(back.hasSensors, isTrue);
+    });
+
+    test('a ride without sensors leaves the keys out', () {
+      final map = _snapshot().toMap();
+
+      expect(map.containsKey('heartRateBpm'), isFalse);
+      expect(map.containsKey('avgPowerW'), isFalse);
+      expect(RecordingSnapshot.fromMap(map).hasSensors, isFalse);
+    });
+  });
 }

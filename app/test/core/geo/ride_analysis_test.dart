@@ -323,5 +323,51 @@ void main() {
     expect(analysis.speedBands.isEmpty, isTrue);
     expect(analysis.hasElevation, isFalse);
     expect(analysis.hasSpeed, isFalse);
+    expect(analysis.hasHeartRate, isFalse);
+  });
+
+  group('heart rate samples', () {
+    test('the chart samples carry what the strap reported', () {
+      final points = <TrackPoint>[
+        for (final (i, point) in _ride(seconds: 60).indexed)
+          point.copyWith(heartRateBpm: 120 + i),
+      ];
+
+      final analysis = analyseRide(points);
+
+      expect(analysis.hasHeartRate, isTrue);
+      expect(analysis.samples.first.heartRateBpm, 120);
+      expect(analysis.samples.last.heartRateBpm, 180);
+    });
+
+    test('a ride without a strap has no heart rate chart', () {
+      final analysis = analyseRide(_ride(seconds: 60));
+
+      expect(analysis.hasHeartRate, isFalse);
+      expect(analysis.samples.map((s) => s.heartRateBpm), everyElement(isNull));
+    });
+
+    test('one reading alone is not a chart', () {
+      final points = _ride(seconds: 60);
+      points[10] = points[10].copyWith(heartRateBpm: 140);
+
+      final analysis = analyseRide(points);
+
+      expect(analysis.hasHeartRate, isFalse);
+    });
+
+    test('thinning a long ride interpolates the readings', () {
+      final points = <TrackPoint>[
+        for (final (i, point) in _ride(seconds: 2000).indexed)
+          point.copyWith(heartRateBpm: 100 + i ~/ 40),
+      ];
+
+      final analysis = analyseRide(points, maxSamples: 50);
+
+      expect(analysis.samples, hasLength(50));
+      expect(analysis.samples.first.heartRateBpm, 100);
+      expect(analysis.samples.last.heartRateBpm, 150);
+      expect(analysis.hasHeartRate, isTrue);
+    });
   });
 }

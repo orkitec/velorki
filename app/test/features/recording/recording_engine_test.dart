@@ -7,6 +7,7 @@ import 'package:velorki/features/recording/data/recording_journal.dart';
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/features/recording/domain/recording_state.dart';
 import 'package:velorki/features/recording/domain/ride.dart';
+import 'package:velorki/features/sensors/domain/sensor_snapshot.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 /// Drives an engine on a fake clock: no timers, no real GPS, no waiting on
@@ -18,10 +19,13 @@ import 'package:velorki_geo/velorki_geo.dart';
 /// fixed delay would allow. So the harness waits for the snapshot the engine
 /// emits at the end of that chain instead of for a stretch of real time.
 class _Harness {
-  _Harness(this.store, {this.autoPause = true});
+  _Harness(this.store, {this.autoPause = true, this.sensors});
 
   final RecordingStore store;
   final bool autoPause;
+
+  /// What the fake sensor hub is saying, or null for a recorder without one.
+  final SensorSnapshot Function()? sensors;
   final StreamController<TrackPoint> fixes = StreamController<TrackPoint>();
   final StreamController<DateTime> ticks = StreamController<DateTime>();
   final List<RecordingSnapshot> snapshots = <RecordingSnapshot>[];
@@ -54,6 +58,7 @@ class _Harness {
       ticks: ticks.stream,
       clock: () => now,
       autoPause: autoPause,
+      sensors: sensors,
     )..seed(seed);
     engine.snapshots.listen((snapshot) {
       snapshots.add(snapshot);
@@ -348,5 +353,131 @@ void main() {
     // The state file survives: only writing the rides row may remove it.
     expect(await store.readState(), isNotNull);
     await h.dispose();
+  });
+
+  group('sensors', () {
+    /// A snapshot as the hub would publish it, measured at [second].
+    SensorSnapshot reading(
+      int second, {
+      int? heartRate,
+      int? cadence,
+      int? power,
+    }) {
+      final at = DateTime.utc(2026, 9, 12, 10, 0, second);
+      return SensorSnapshot(
+        heartRateBpm: heartRate,
+        cadenceRpm: cadence,
+        powerW: power,
+        heartRateAt: heartRate == null ? null : at,
+        cadenceAt: cadence == null ? null : at,
+        powerAt: power == null ? null : at,
+      );
+    }
+
+    test('a fix is journalled with the values of the moment', () async {
+      var live = reading(1, heartRate: 142, cadence: 0, power: 210);
+      final h = _Harness(store, sensors: () => live);
+      await h.start();
+
+      await h.fix(1, meters: 10);
+      live = reading(2, heartRate: 151, cadence: 88, power: 230);
+      await h.fix(2, meters: 20);
+      await h.tick(2);
+
+      final points = await store.readJournal('ride-1');
+      expect(points, hasLength(2));
+      expect(points.first.heartRateBpm, 142);
+      expect(points.first.cadenceRpm, 0);
+      expect(points.first.powerW, 210);
+      expect(points.last.heartRateBpm, 151);
+      expect(points.last.cadenceRpm, 88);
+      expect(points.last.powerW, 230);
+
+      await h.engine.stop();
+      await h.dispose();
+    });
+
+    test('the averages reach the snapshot', () async {
+      var live = reading(1, heartRate: 140, cadence: 80, power: 200);
+      final h = _Harness(store, sensors: () => live);
+      await h.start();
+
+      await h.fix(1, meters: 10);
+      live = reading(2, heartRate: 160, cadence: 90, power: 220);
+      await h.fix(2, meters: 20);
+      await h.tick(2);
+
+      expect(h.latest.heartRateBpm, 160);
+      expect(h.latest.avgHeartRateBpm, 150);
+      expect(h.latest.maxHeartRateBpm, 160);
+      expect(h.latest.avgCadenceRpm, 85);
+      expect(h.latest.avgPowerW, 210);
+      expect(h.latest.hasSensors, isTrue);
+
+      await h.engine.stop();
+      await h.dispose();
+    });
+
+    test('a reading older than the window is not stamped on', () async {
+      // Measured at second 1, but the fixes arrive much later.
+      final live = reading(1, heartRate: 142, power: 210);
+      final h = _Harness(store, sensors: () => live);
+      await h.start();
+
+      await h.fix(5, meters: 10);
+      await h.fix(20, meters: 200);
+      await h.tick(20);
+
+      final points = await store.readJournal('ride-1');
+      expect(points.first.heartRateBpm, 142, reason: 'four seconds old');
+      expect(points.last.heartRateBpm, isNull, reason: 'nineteen seconds old');
+      expect(points.last.powerW, isNull);
+      expect(h.latest.heartRateBpm, isNull);
+      expect(h.latest.avgHeartRateBpm, 142, reason: 'the one fix that had it');
+
+      await h.engine.stop();
+      await h.dispose();
+    });
+
+    test('one stale kind does not take the fresh ones with it', () async {
+      final h = _Harness(
+        store,
+        sensors: () => SensorSnapshot(
+          heartRateBpm: 142,
+          powerW: 210,
+          heartRateAt: DateTime.utc(2026, 9, 12, 10, 0, 1),
+          powerAt: DateTime.utc(2026, 9, 12, 10, 0, 14),
+        ),
+      );
+      await h.start();
+
+      await h.fix(15, meters: 10);
+      await h.tick(15);
+
+      final point = (await store.readJournal('ride-1')).single;
+      expect(point.heartRateBpm, isNull);
+      expect(point.powerW, 210);
+
+      await h.engine.stop();
+      await h.dispose();
+    });
+
+    test('without a hub the fixes carry no sensor values', () async {
+      final h = _Harness(store);
+      await h.start();
+
+      await h.fix(1, meters: 10);
+      await h.tick(1);
+
+      final point = (await store.readJournal('ride-1')).single;
+      expect(point.heartRateBpm, isNull);
+      expect(point.cadenceRpm, isNull);
+      expect(point.powerW, isNull);
+      expect(h.latest.hasSensors, isFalse);
+      expect(h.latest.avgHeartRateBpm, isNull);
+
+      await h.engine.stop();
+      await h.dispose();
+    });
   });
 }

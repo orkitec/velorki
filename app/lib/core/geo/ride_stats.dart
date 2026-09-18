@@ -73,6 +73,10 @@ class RideStats {
     this.pointCount = 0,
     this.startedAt,
     this.endedAt,
+    this.avgHeartRateBpm,
+    this.maxHeartRateBpm,
+    this.avgCadenceRpm,
+    this.avgPowerW,
   });
 
   /// A ride that has not started yet.
@@ -105,6 +109,25 @@ class RideStats {
   /// Timestamp of the last fix, if any fix carried one.
   final DateTime? endedAt;
 
+  /// Mean heart rate in beats per minute over the fixes that carried one,
+  /// `null` when none did.
+  final int? avgHeartRateBpm;
+
+  /// Highest heart rate seen, `null` when no fix carried one.
+  final int? maxHeartRateBpm;
+
+  /// Mean cadence in revolutions per minute over the fixes that carried one,
+  /// `null` when none did. Freewheeling counts: a zero is a reading.
+  final int? avgCadenceRpm;
+
+  /// Mean power in watts over the fixes that carried one, `null` when none
+  /// did.
+  final int? avgPowerW;
+
+  /// Whether a sensor contributed anything to these figures.
+  bool get hasSensors =>
+      avgHeartRateBpm != null || avgCadenceRpm != null || avgPowerW != null;
+
   /// Distance divided by moving time; zero while nothing has moved.
   double get avgSpeedMps {
     final seconds = movingTime.inMicroseconds / Duration.microsecondsPerSecond;
@@ -129,7 +152,11 @@ class RideStats {
           other.maxSpeedMps == maxSpeedMps &&
           other.pointCount == pointCount &&
           other.startedAt == startedAt &&
-          other.endedAt == endedAt;
+          other.endedAt == endedAt &&
+          other.avgHeartRateBpm == avgHeartRateBpm &&
+          other.maxHeartRateBpm == maxHeartRateBpm &&
+          other.avgCadenceRpm == avgCadenceRpm &&
+          other.avgPowerW == avgPowerW;
 
   @override
   int get hashCode => Object.hash(
@@ -142,6 +169,10 @@ class RideStats {
     pointCount,
     startedAt,
     endedAt,
+    avgHeartRateBpm,
+    maxHeartRateBpm,
+    avgCadenceRpm,
+    avgPowerW,
   );
 
   @override
@@ -193,6 +224,13 @@ class RideStatsAccumulator {
   DateTime? _lastTime;
   DateTime? _lastMovingAt;
   double? _elevationAnchor;
+  int _heartRateSum = 0;
+  int _heartRateCount = 0;
+  int _maxHeartRate = 0;
+  int _cadenceSum = 0;
+  int _cadenceCount = 0;
+  int _powerSum = 0;
+  int _powerCount = 0;
 
   /// The statistics as they stand.
   RideStats get stats {
@@ -210,8 +248,15 @@ class RideStatsAccumulator {
       pointCount: _pointCount,
       startedAt: first,
       endedAt: last,
+      avgHeartRateBpm: _mean(_heartRateSum, _heartRateCount),
+      maxHeartRateBpm: _heartRateCount == 0 ? null : _maxHeartRate,
+      avgCadenceRpm: _mean(_cadenceSum, _cadenceCount),
+      avgPowerW: _mean(_powerSum, _powerCount),
     );
   }
+
+  static int? _mean(int sum, int count) =>
+      count == 0 ? null : (sum / count).round();
 
   /// Speed of the segment that ended at the last accepted fix, in m/s. Zero
   /// after a break, so a resumed recording does not look like it is moving.
@@ -242,6 +287,7 @@ class RideStatsAccumulator {
         _lastTime = time;
       }
       _elevationAnchor = _finite(point.ele);
+      _accumulateSensors(point);
       return true;
     }
 
@@ -285,7 +331,33 @@ class RideStatsAccumulator {
       _firstTime ??= to;
       _lastTime = to;
     }
+    _accumulateSensors(point);
     return true;
+  }
+
+  /// Folds the sensor readings of an accepted fix in.
+  ///
+  /// A kind is averaged over the fixes that carried it, not over the whole
+  /// ride: a heart rate strap that was paired halfway through still reports the
+  /// mean of the half it measured, rather than one dragged towards zero by the
+  /// fixes it never saw.
+  void _accumulateSensors(TrackPoint point) {
+    final heartRate = point.heartRateBpm;
+    if (heartRate != null) {
+      _heartRateSum += heartRate;
+      _heartRateCount++;
+      if (heartRate > _maxHeartRate) _maxHeartRate = heartRate;
+    }
+    final cadence = point.cadenceRpm;
+    if (cadence != null) {
+      _cadenceSum += cadence;
+      _cadenceCount++;
+    }
+    final power = point.powerW;
+    if (power != null) {
+      _powerSum += power;
+      _powerCount++;
+    }
   }
 
   bool _spansBreak(DateTime? from, DateTime? to) {
@@ -422,5 +494,11 @@ RideStats computeImportedStats(List<TrackPoint> points) {
     ascentM: geometry.ascentM,
     descentM: geometry.descentM,
     pointCount: points.length,
+    // The sensors do not need timestamps to mean something, so a file that
+    // carries readings but no times keeps them.
+    avgHeartRateBpm: ridden.avgHeartRateBpm,
+    maxHeartRateBpm: ridden.maxHeartRateBpm,
+    avgCadenceRpm: ridden.avgCadenceRpm,
+    avgPowerW: ridden.avgPowerW,
   );
 }

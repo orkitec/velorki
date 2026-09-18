@@ -16,10 +16,18 @@ const String recordingJournalExtension = '.vtj';
 
 /// Appends fixes to `<appSupport>/recording/<rideId>.vtj`.
 ///
-/// Every fix is written through to the file as a 36-byte
-/// `PackedTrack.encodePoint` record, so killing the app loses nothing; the
-/// expensive `fsync` only happens every [flushEveryPoints] fixes or
-/// [flushInterval], which is what a power cut may cost.
+/// Every fix is written through to the file as one `PackedTrack.encodePoint`
+/// record, so killing the app loses nothing; the expensive `fsync` only
+/// happens every [flushEveryPoints] fixes or [flushInterval], which is what a
+/// power cut may cost.
+///
+/// A journal carries the same one-byte format version a packed blob does. A
+/// file left behind by an older build holds the shorter version 1 records, and
+/// appending today's longer ones to it would leave the file unreadable; [open]
+/// therefore reads such a file in full and rewrites it as version 2 before the
+/// appending handle is opened. Journals are a few hundred kilobytes at most,
+/// so the rewrite is cheaper than carrying two record sizes through the
+/// writer.
 ///
 /// All writes go through one future chain, so appends, flushes and the close
 /// at the end of a ride can never interleave.
@@ -58,7 +66,10 @@ class RecordingJournal {
   /// Opens the file for appending, writing the header when it is new.
   ///
   /// A trailing partial record — what a crash mid-write leaves behind — is
-  /// truncated away first, so the records stay aligned.
+  /// truncated away first, so the records stay aligned. A file in an older
+  /// format version is read and rewritten in the current one, and a file whose
+  /// header this build cannot read at all is replaced by an empty journal:
+  /// nothing in it could be recovered anyway.
   Future<void> open() async {
     if (_handle != null) return;
     await file.parent.create(recursive: true);
@@ -67,21 +78,43 @@ class RecordingJournal {
       await file.writeAsBytes(PackedTrack.header(), flush: true);
       _pointCount = 0;
     } else {
-      final records = _wholeRecords(length);
-      final aligned =
-          PackedTrack.headerLength + records * PackedTrack.bytesPerPoint;
-      if (aligned != length) {
-        // Truncated before the appending handle is opened: an appending handle
-        // keeps writing at the old end of the file and would leave a hole.
-        final fixer = await file.open(mode: FileMode.writeOnlyAppend);
-        await fixer.truncate(aligned);
-        await fixer.close();
+      final version = (await _readHeader()) ?? PackedTrack.version;
+      if (!PackedTrack.supportsVersion(version)) {
+        await file.writeAsBytes(PackedTrack.header(), flush: true);
+        _pointCount = 0;
+      } else if (version != PackedTrack.version) {
+        final points = await readJournalPoints(file);
+        await file.writeAsBytes(PackedTrack.encode(points), flush: true);
+        _pointCount = points.length;
+      } else {
+        final records = _wholeRecords(length);
+        final aligned =
+            PackedTrack.headerLength + records * PackedTrack.bytesPerPoint;
+        if (aligned != length) {
+          // Truncated before the appending handle is opened: an appending
+          // handle keeps writing at the old end of the file and would leave a
+          // hole.
+          final fixer = await file.open(mode: FileMode.writeOnlyAppend);
+          await fixer.truncate(aligned);
+          await fixer.close();
+        }
+        _pointCount = records;
       }
-      _pointCount = records;
     }
     _handle = await file.open(mode: FileMode.append);
     _sinceFlush = 0;
     _lastFlush = _clock();
+  }
+
+  /// The format version byte of the file, or `null` when it has none.
+  Future<int?> _readHeader() async {
+    final handle = await file.open();
+    try {
+      final head = await handle.read(PackedTrack.headerLength);
+      return head.isEmpty ? null : head.first;
+    } finally {
+      await handle.close();
+    }
   }
 
   /// Appends [point], flushing when the budget is used up.
@@ -136,8 +169,9 @@ class RecordingJournal {
       (length - PackedTrack.headerLength) ~/ PackedTrack.bytesPerPoint;
 }
 
-/// Reads the whole records of a journal file; a missing or headerless file
-/// reads as no points, and a trailing partial record is ignored.
+/// Reads the whole records of a journal file, in whichever format version its
+/// header names; a missing, headerless or unreadable file reads as no points,
+/// and a trailing partial record is ignored.
 Future<List<TrackPoint>> readJournalPoints(File file) async {
   if (!await file.exists()) return const <TrackPoint>[];
   final bytes = await file.readAsBytes();

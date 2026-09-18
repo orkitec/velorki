@@ -39,6 +39,10 @@ const String recordingStoppedMessage = 'stopped';
 /// A command travelling from the UI to the recorder.
 const String recordingCommandMessage = 'command';
 
+/// A `SensorSnapshot` travelling from the UI isolate, which owns the sensor
+/// hub, to the recorder, which stamps it onto the fixes.
+const String recordingSensorsMessage = 'sensors';
+
 /// Key of the command name inside a [recordingCommandMessage].
 const String recordingCommandKey = 'command';
 
@@ -79,6 +83,13 @@ class RecordingSnapshot {
     this.headingDeg,
     this.pointCount = 0,
     this.newPoints = const <LatLng>[],
+    this.heartRateBpm,
+    this.cadenceRpm,
+    this.powerW,
+    this.avgHeartRateBpm,
+    this.maxHeartRateBpm,
+    this.avgCadenceRpm,
+    this.avgPowerW,
   });
 
   /// Builds a snapshot from [stats] plus the live state the statistics do not
@@ -93,6 +104,9 @@ class RecordingSnapshot {
     double speedMps = 0,
     TrackPoint? lastPoint,
     List<LatLng> newPoints = const <LatLng>[],
+    int? heartRateBpm,
+    int? cadenceRpm,
+    int? powerW,
   }) => RecordingSnapshot(
     rideId: rideId,
     status: status,
@@ -111,6 +125,13 @@ class RecordingSnapshot {
     headingDeg: lastPoint?.headingDeg,
     pointCount: stats.pointCount,
     newPoints: newPoints,
+    heartRateBpm: heartRateBpm,
+    cadenceRpm: cadenceRpm,
+    powerW: powerW,
+    avgHeartRateBpm: stats.avgHeartRateBpm,
+    maxHeartRateBpm: stats.maxHeartRateBpm,
+    avgCadenceRpm: stats.avgCadenceRpm,
+    avgPowerW: stats.avgPowerW,
   );
 
   /// Reads a snapshot back from [toMap].
@@ -148,6 +169,13 @@ class RecordingSnapshot {
       headingDeg: (map['headingDeg'] as num?)?.toDouble(),
       pointCount: (map['pointCount'] as num? ?? 0).toInt(),
       newPoints: points,
+      heartRateBpm: (map['heartRateBpm'] as num?)?.toInt(),
+      cadenceRpm: (map['cadenceRpm'] as num?)?.toInt(),
+      powerW: (map['powerW'] as num?)?.toInt(),
+      avgHeartRateBpm: (map['avgHeartRateBpm'] as num?)?.toInt(),
+      maxHeartRateBpm: (map['maxHeartRateBpm'] as num?)?.toInt(),
+      avgCadenceRpm: (map['avgCadenceRpm'] as num?)?.toInt(),
+      avgPowerW: (map['avgPowerW'] as num?)?.toInt(),
     );
   }
 
@@ -204,6 +232,32 @@ class RecordingSnapshot {
   /// track line without the whole track being sent every second.
   final List<LatLng> newPoints;
 
+  /// Heart rate a sensor is reporting right now, `null` when none is or the
+  /// last reading has gone stale.
+  final int? heartRateBpm;
+
+  /// Cadence a sensor is reporting right now.
+  final int? cadenceRpm;
+
+  /// Power a sensor is reporting right now.
+  final int? powerW;
+
+  /// Mean heart rate over the fixes that carried one.
+  final int? avgHeartRateBpm;
+
+  /// Highest heart rate seen so far.
+  final int? maxHeartRateBpm;
+
+  /// Mean cadence over the fixes that carried one.
+  final int? avgCadenceRpm;
+
+  /// Mean power over the fixes that carried one.
+  final int? avgPowerW;
+
+  /// Whether a sensor is reporting anything at all right now.
+  bool get hasSensors =>
+      heartRateBpm != null || cadenceRpm != null || powerW != null;
+
   /// Whether the user pressed pause, as opposed to auto-pause.
   bool get isManuallyPaused => status == RecordingStatus.paused && !autoPaused;
 
@@ -225,6 +279,13 @@ class RecordingSnapshot {
     if (lastPosition != null) 'lon': lastPosition!.lon,
     if (accuracyM != null) 'accuracyM': accuracyM,
     if (headingDeg != null) 'headingDeg': headingDeg,
+    if (heartRateBpm != null) 'heartRateBpm': heartRateBpm,
+    if (cadenceRpm != null) 'cadenceRpm': cadenceRpm,
+    if (powerW != null) 'powerW': powerW,
+    if (avgHeartRateBpm != null) 'avgHeartRateBpm': avgHeartRateBpm,
+    if (maxHeartRateBpm != null) 'maxHeartRateBpm': maxHeartRateBpm,
+    if (avgCadenceRpm != null) 'avgCadenceRpm': avgCadenceRpm,
+    if (avgPowerW != null) 'avgPowerW': avgPowerW,
     'pointCount': pointCount,
     'newPoints': <double>[
       for (final point in newPoints) ...[point.lat, point.lon],

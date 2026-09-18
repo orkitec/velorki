@@ -36,7 +36,7 @@ class VelorkiDatabase extends _$VelorkiDatabase {
   factory VelorkiDatabase.open() => VelorkiDatabase(_openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -48,6 +48,14 @@ class VelorkiDatabase extends _$VelorkiDatabase {
       // null and count as due for a refresh.
       if (from < 3) {
         await m.addColumn(offlineRegions, offlineRegions.downloadedAt);
+      }
+      // 4 added what the paired sensors averaged over a ride; rides recorded
+      // without one keep null.
+      if (from < 4) {
+        await m.addColumn(rides, rides.avgHeartRateBpm);
+        await m.addColumn(rides, rides.maxHeartRateBpm);
+        await m.addColumn(rides, rides.avgCadenceRpm);
+        await m.addColumn(rides, rides.avgPowerW);
       }
     },
     beforeOpen: (_) async {

@@ -57,7 +57,7 @@ plugins, so run `dart analyze --fatal-infos lib test integration_test` as well t
 
 ## Database
 
-Drift, schema version 3, timestamps stored as ISO text
+Drift, schema version 4, timestamps stored as ISO text
 (`build.yaml → store_date_time_values_as_text`). Before changing the schema,
 bump `schemaVersion` and dump the new version so migrations stay testable:
 

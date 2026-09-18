@@ -16,6 +16,11 @@ const String xmlSchemaInstanceNamespace =
 /// The value written into `xsi:schemaLocation` on the root element.
 const String gpx11SchemaLocation = '$gpx11Namespace $gpx11Namespace/gpx.xsd';
 
+/// Namespace URI of Garmin's `TrackPointExtension`, the schema every recorder
+/// writes heart rate and cadence into.
+const String garminTrackPointExtensionNamespace =
+    'http://www.garmin.com/xmlschemas/TrackPointExtension/v1';
+
 /// Reads and writes GPX 1.1 documents.
 ///
 /// The heavy lifting is done by `package:gpx`; this codec adds the parts
@@ -89,6 +94,10 @@ abstract final class GpxCodec {
   /// track, so that readers which only look at one of the two find them.
   /// Timestamps are written in UTC with whole-second precision; sub-second
   /// parts are dropped, which is the resolution GPX is used at in practice.
+  ///
+  /// A point that carries sensor values gets an `<extensions>` block: heart
+  /// rate and cadence inside Garmin's `TrackPointExtension`, power as a bare
+  /// `<power>` beside it.
   static String encodeTrack({
     required List<TrackPoint> points,
     String? name,
@@ -110,7 +119,7 @@ abstract final class GpxCodec {
           ],
         ),
       ];
-    return _render(gpx);
+    return _render(gpx, garminExtensions: _needsGarminNamespace(points));
   }
 
   /// Encodes [points] as a GPX 1.1 file holding a single `<rte>`, plus any
@@ -136,7 +145,7 @@ abstract final class GpxCodec {
           rtepts: [for (final p in points) _fromPoint(p)],
         ),
       ];
-    return _render(gpx);
+    return _render(gpx, garminExtensions: _needsGarminNamespace(points));
   }
 
   // --- decoding helpers ----------------------------------------------------
@@ -184,11 +193,37 @@ abstract final class GpxCodec {
     time: wpt.time?.toUtc(),
   );
 
-  static TrackPoint _toTrackPoint(gpxlib.Wpt wpt) => TrackPoint(
-    LatLng(wpt.lat ?? 0, wpt.lon ?? 0),
-    ele: wpt.ele,
-    time: wpt.time?.toUtc(),
-  );
+  static TrackPoint _toTrackPoint(gpxlib.Wpt wpt) {
+    final sensors = _toExtensions(wpt.extensions);
+    return TrackPoint(
+      LatLng(wpt.lat ?? 0, wpt.lon ?? 0),
+      ele: wpt.ele,
+      time: wpt.time?.toUtc(),
+      heartRateBpm: sensors?.heartRate,
+      cadenceRpm: sensors?.cadence,
+      powerW: _powerIn(wpt.extensions),
+    );
+  }
+
+  /// Power in watts out of an `<extensions>` map.
+  ///
+  /// There is no agreed element for it: Strava writes a bare `<power>` beside
+  /// the `TrackPointExtension`, Garmin a `<gpxpx:PowerInWatts>` inside the
+  /// nested `<gpxtpx:Extensions>`, and some tools put either of the two inside
+  /// the `TrackPointExtension` itself. All of them are read.
+  static int? _powerIn(Map<String, Object> raw) {
+    if (raw.isEmpty) return null;
+    final direct = _intIn(raw, 'power') ?? _intIn(raw, 'PowerInWatts');
+    if (direct != null) return direct;
+    final container = _childByLocalName(raw, 'TrackPointExtension');
+    if (container == null) return null;
+    final inside =
+        _intIn(container, 'power') ?? _intIn(container, 'PowerInWatts');
+    if (inside != null) return inside;
+    final nested = _childByLocalName(container, 'Extensions');
+    if (nested == null) return null;
+    return _intIn(nested, 'power') ?? _intIn(nested, 'PowerInWatts');
+  }
 
   /// Pulls heart rate, cadence and temperature out of a raw `<extensions>`
   /// map as `package:gpx` hands it over.
@@ -319,12 +354,39 @@ abstract final class GpxCodec {
           ..name = name
           ..desc = description);
 
-  static gpxlib.Wpt _fromPoint(TrackPoint point) => gpxlib.Wpt(
-    lat: point.lat,
-    lon: point.lon,
-    ele: point.ele,
-    time: point.time,
-  );
+  /// A `<trkpt>` or `<rtept>`, with the sensor values in `<extensions>` when
+  /// the point carries any.
+  ///
+  /// Heart rate and cadence go into Garmin's `TrackPointExtension`, which is
+  /// what every reader understands. Power has no place in that schema, so it
+  /// is written as a bare `<power>` element beside it — the spelling Strava
+  /// writes and reads.
+  static gpxlib.Wpt _fromPoint(TrackPoint point) {
+    final wpt = gpxlib.Wpt(
+      lat: point.lat,
+      lon: point.lon,
+      ele: point.ele,
+      time: point.time,
+    );
+    if (point.heartRateBpm != null || point.cadenceRpm != null) {
+      wpt.typedExtensions = gpxlib.WptTypedExtensions(
+        garmin: gpxlib.GarminWptExtensions(
+          trackPointV1: gpxlib.GarminTrackPointExtensionV1(
+            heartRate: point.heartRateBpm,
+            cadence: point.cadenceRpm,
+          ),
+        ),
+      );
+    }
+    if (point.powerW case final int watts) {
+      wpt.extensions['power'] = '$watts';
+    }
+    return wpt;
+  }
+
+  /// Whether any of [points] needs the `gpxtpx` namespace on the root.
+  static bool _needsGarminNamespace(Iterable<TrackPoint> points) =>
+      points.any((p) => p.heartRateBpm != null || p.cadenceRpm != null);
 
   static gpxlib.Wpt _fromWaypoint(GpxWaypoint waypoint) => gpxlib.Wpt(
     lat: waypoint.lat,
@@ -346,7 +408,12 @@ abstract final class GpxCodec {
   /// (`version`, `creator`, then the namespaces) and to cut the milliseconds
   /// off every `<time>`, which the writer emits because it calls
   /// `DateTime.toIso8601String()`.
-  static String _render(gpxlib.Gpx gpx) {
+  ///
+  /// [garminExtensions] adds the `gpxtpx` namespace, which the writer uses as
+  /// a prefix but never declares. It is only added when a point actually
+  /// carries a heart rate or a cadence, so an ordinary track keeps the root
+  /// element it has always had.
+  static String _render(gpxlib.Gpx gpx, {bool garminExtensions = false}) {
     final document = XmlDocument.parse(
       gpxlib.GpxWriter().asString(
         gpx,
@@ -376,6 +443,11 @@ abstract final class GpxCodec {
           XmlName.parts('schemaLocation', prefix: 'xsi'),
           gpx11SchemaLocation,
         ),
+        if (garminExtensions)
+          XmlAttribute(
+            const XmlName.namespace(name: 'gpxtpx'),
+            garminTrackPointExtensionNamespace,
+          ),
       ]);
 
     for (final element in root.findAllElements('time')) {

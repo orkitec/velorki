@@ -3,6 +3,9 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+// Prefixed: the FIT profile has a `File` type of its own, which would hide
+// `dart:io`'s.
+import 'package:fit_sdk/fit_sdk.dart' as fit;
 import 'package:test/test.dart';
 import 'package:velorki_fit/velorki_fit.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -55,6 +58,20 @@ Uint8List gpxBytes() => Uint8List.fromList(
     '</trkseg></trk></gpx>',
   ),
 );
+
+/// The first message of type [messageNumber] in [bytes], so a test can look at
+/// the summary fields the public decoder does not return.
+fit.Mesg _messageOf(Uint8List bytes, int messageNumber) {
+  fit.Mesg? found;
+  fit.Decode()
+    ..onMesg = (fit.Mesg mesg) {
+      if (found == null && mesg.num == messageNumber) found = mesg;
+    }
+    ..read(bytes);
+  final mesg = found;
+  if (mesg == null) throw StateError('no message $messageNumber in the file');
+  return mesg;
+}
 
 void main() {
   group('encode/decode round trip', () {
@@ -325,6 +342,94 @@ void main() {
       ]);
       expect(looksLikeFit(bytes), isTrue);
       expect(FitCodec.decodeActivity(bytes), hasLength(1));
+    });
+  });
+
+  group('sensor fields', () {
+    /// The synthetic track with a strap, a crank and a power meter on it.
+    List<TrackPoint> withSensors({int count = 20}) => <TrackPoint>[
+      for (final (i, point) in syntheticTrack(count: count).indexed)
+        point.copyWith(
+          heartRateBpm: 120 + i,
+          cadenceRpm: i.isEven ? 0 : 85,
+          powerW: 200 + i * 2,
+        ),
+    ];
+
+    test('heart rate, cadence and power round trip through the records', () {
+      final points = withSensors();
+
+      final out = FitCodec.decodeActivity(FitCodec.encodeActivity(points));
+
+      expect(out, hasLength(points.length));
+      for (var i = 0; i < points.length; i++) {
+        expect(out[i].heartRateBpm, points[i].heartRateBpm, reason: 'point $i');
+        expect(out[i].cadenceRpm, points[i].cadenceRpm, reason: 'point $i');
+        expect(out[i].powerW, points[i].powerW, reason: 'point $i');
+      }
+    });
+
+    test('a cadence of zero comes back as zero, not as nothing', () {
+      final points = <TrackPoint>[
+        for (final point in syntheticTrack(count: 3))
+          point.copyWith(cadenceRpm: 0, powerW: 0),
+      ];
+
+      final out = FitCodec.decodeActivity(FitCodec.encodeActivity(points));
+
+      expect(out.map((p) => p.cadenceRpm), everyElement(0));
+      expect(out.map((p) => p.powerW), everyElement(0));
+    });
+
+    test('a track without sensors decodes without them', () {
+      final out = FitCodec.decodeActivity(
+        FitCodec.encodeActivity(syntheticTrack(count: 3)),
+      );
+
+      expect(out.map((p) => p.heartRateBpm), everyElement(isNull));
+      expect(out.map((p) => p.cadenceRpm), everyElement(isNull));
+      expect(out.map((p) => p.powerW), everyElement(isNull));
+    });
+
+    test('the session and the lap carry the averages', () {
+      final bytes = FitCodec.encodeActivity(withSensors(count: 4));
+
+      final session = _messageOf(bytes, fit.MesgNum.session);
+      final lap = _messageOf(bytes, fit.MesgNum.lap);
+
+      // 120..123 beats: mean 122 (121.5 rounds up), maximum 123.
+      expect(session.getFieldValue(16), 122, reason: 'avg_heart_rate');
+      expect(session.getFieldValue(17), 123, reason: 'max_heart_rate');
+      expect(session.getFieldValue(18), 43, reason: 'avg_cadence, 0/85/0/85');
+      expect(session.getFieldValue(20), 203, reason: 'avg_power');
+      expect(session.getFieldValue(21), 206, reason: 'max_power');
+
+      expect(lap.getFieldValue(15), 122, reason: 'lap avg_heart_rate');
+      expect(lap.getFieldValue(16), 123, reason: 'lap max_heart_rate');
+      expect(lap.getFieldValue(17), 43, reason: 'lap avg_cadence');
+      expect(lap.getFieldValue(19), 203, reason: 'lap avg_power');
+      expect(lap.getFieldValue(20), 206, reason: 'lap max_power');
+    });
+
+    test('a track without sensors leaves the summary fields off', () {
+      final bytes = FitCodec.encodeActivity(syntheticTrack(count: 4));
+
+      final session = _messageOf(bytes, fit.MesgNum.session);
+
+      expect(session.getFieldValue(16), isNull);
+      expect(session.getFieldValue(20), isNull);
+    });
+
+    test('a reading beyond the field is clamped, not lost', () {
+      final points = <TrackPoint>[
+        for (final point in syntheticTrack(count: 2))
+          point.copyWith(heartRateBpm: 400, powerW: 100000),
+      ];
+
+      final out = FitCodec.decodeActivity(FitCodec.encodeActivity(points));
+
+      expect(out.first.heartRateBpm, 254);
+      expect(out.first.powerW, 65534);
     });
   });
 

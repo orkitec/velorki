@@ -17,6 +17,32 @@ TrackPoint _point(int index) => TrackPoint(
   accuracyM: 4,
 );
 
+/// A journal file as a build before the sensor fields wrote it: header byte 1
+/// and 36-byte records, built here rather than with today's encoder.
+Uint8List _v1Journal(List<TrackPoint> points) {
+  final bytes = Uint8List(
+    PackedTrack.headerLength + points.length * PackedTrack.bytesPerPointV1,
+  );
+  bytes[0] = PackedTrack.versionWithoutSensors;
+  final data = ByteData.sublistView(bytes);
+  for (var i = 0; i < points.length; i++) {
+    final at = PackedTrack.headerLength + i * PackedTrack.bytesPerPointV1;
+    final point = points[i];
+    data
+      ..setFloat64(at, point.pos.lat, Endian.little)
+      ..setFloat64(at + 8, point.pos.lon, Endian.little)
+      ..setFloat32(at + 16, point.ele ?? double.nan, Endian.little)
+      ..setInt64(
+        at + 20,
+        point.time?.toUtc().millisecondsSinceEpoch ?? 0,
+        Endian.little,
+      )
+      ..setFloat32(at + 28, point.speedMps ?? double.nan, Endian.little)
+      ..setFloat32(at + 32, point.accuracyM ?? double.nan, Endian.little);
+  }
+  return bytes;
+}
+
 void main() {
   late Directory directory;
   late RecordingStore store;
@@ -37,7 +63,7 @@ void main() {
       expect(journal.flushInterval, const Duration(seconds: 10));
     });
 
-    test('appends 36-byte records behind a version header', () async {
+    test('appends version 2 records behind a version header', () async {
       final journal = store.openJournal('ride');
       await journal.open();
       await journal.append(_point(0));
@@ -51,6 +77,20 @@ void main() {
         PackedTrack.headerLength + 2 * PackedTrack.bytesPerPoint,
       );
       expect(journal.pointCount, 2);
+    });
+
+    test('round trips the sensor values of a fix', () async {
+      final journal = store.openJournal('ride');
+      await journal.open();
+      await journal.append(
+        _point(0).copyWith(heartRateBpm: 148, cadenceRpm: 0, powerW: 240),
+      );
+      await journal.close();
+
+      final point = (await store.readJournal('ride')).single;
+      expect(point.heartRateBpm, 148);
+      expect(point.cadenceRpm, 0);
+      expect(point.powerW, 240);
     });
 
     test('decodes back every field that was appended', () async {
@@ -117,6 +157,57 @@ void main() {
         expect(points.last.pos, _point(2).pos);
       },
     );
+
+    test('reads a journal an older build left behind', () async {
+      final file = store.journalFile('ride');
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(_v1Journal([_point(0), _point(1)]));
+
+      final points = await readJournalPoints(file);
+
+      expect(points, hasLength(2));
+      expect(points.first.pos, _point(0).pos);
+      expect(points.last.speedMps, 6);
+      expect(points.last.heartRateBpm, isNull);
+    });
+
+    test('opening an older journal converts it and keeps appending', () async {
+      final file = store.journalFile('ride');
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(_v1Journal([_point(0), _point(1)]));
+
+      final journal = store.openJournal('ride');
+      await journal.open();
+      expect(journal.pointCount, 2);
+      await journal.append(_point(2).copyWith(heartRateBpm: 151));
+      await journal.close();
+
+      final bytes = await file.readAsBytes();
+      expect(bytes.first, PackedTrack.version);
+      expect(
+        bytes.length,
+        PackedTrack.headerLength + 3 * PackedTrack.bytesPerPoint,
+      );
+      final points = await store.readJournal('ride');
+      expect(points, hasLength(3));
+      expect(points.first.pos, _point(0).pos);
+      expect(points.first.heartRateBpm, isNull);
+      expect(points.last.heartRateBpm, 151);
+    });
+
+    test('an unreadable header starts the journal over', () async {
+      final file = store.journalFile('ride');
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(<int>[99, 1, 2, 3, 4, 5]);
+
+      final journal = store.openJournal('ride');
+      await journal.open();
+      expect(journal.pointCount, 0);
+      await journal.append(_point(0));
+      await journal.close();
+
+      expect(await store.readJournal('ride'), hasLength(1));
+    });
 
     test('an empty or missing file reads as no points', () async {
       expect(await store.readJournal('nothing'), isEmpty);

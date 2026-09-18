@@ -3,8 +3,10 @@ import 'lat_lng.dart';
 /// One sample of a track: a position plus whatever the source knew about it.
 ///
 /// Planned routes carry [pos] and [ele]; recorded rides add [time], [speedMps]
-/// and [accuracyM]. Absent values stay `null` all the way through the packed
-/// codec. [headingDeg] is the live course of a fix; it is not stored.
+/// and [accuracyM], and, when a sensor was paired, [heartRateBpm],
+/// [cadenceRpm] and [powerW]. Absent values stay `null` all the way through
+/// the packed codec. [headingDeg] is the live course of a fix; it is not
+/// stored.
 class TrackPoint {
   /// Creates a track point.
   const TrackPoint(
@@ -14,6 +16,9 @@ class TrackPoint {
     this.speedMps,
     this.accuracyM,
     this.headingDeg,
+    this.heartRateBpm,
+    this.cadenceRpm,
+    this.powerW,
   });
 
   /// The position.
@@ -34,11 +39,27 @@ class TrackPoint {
   /// Course over ground in degrees clockwise from north, if the fix had one.
   final double? headingDeg;
 
+  /// Heart rate in beats per minute, if a sensor reported one.
+  final int? heartRateBpm;
+
+  /// Pedalling cadence in revolutions per minute, if a sensor reported one.
+  ///
+  /// Zero is a real reading — a rider freewheeling — so an absent value is
+  /// `null` and never 0.
+  final int? cadenceRpm;
+
+  /// Power in watts, if a sensor reported one. Zero is a real reading.
+  final int? powerW;
+
   /// Latitude shortcut.
   double get lat => pos.lat;
 
   /// Longitude shortcut.
   double get lon => pos.lon;
+
+  /// Whether this point carries any sensor reading at all.
+  bool get hasSensors =>
+      heartRateBpm != null || cadenceRpm != null || powerW != null;
 
   /// A copy with the given fields replaced. Passing `null` keeps the old
   /// value; use [TrackPoint.new] to build a point without a field.
@@ -49,6 +70,9 @@ class TrackPoint {
     double? speedMps,
     double? accuracyM,
     double? headingDeg,
+    int? heartRateBpm,
+    int? cadenceRpm,
+    int? powerW,
   }) => TrackPoint(
     pos ?? this.pos,
     ele: ele ?? this.ele,
@@ -56,6 +80,9 @@ class TrackPoint {
     speedMps: speedMps ?? this.speedMps,
     accuracyM: accuracyM ?? this.accuracyM,
     headingDeg: headingDeg ?? this.headingDeg,
+    heartRateBpm: heartRateBpm ?? this.heartRateBpm,
+    cadenceRpm: cadenceRpm ?? this.cadenceRpm,
+    powerW: powerW ?? this.powerW,
   );
 
   @override
@@ -67,14 +94,27 @@ class TrackPoint {
           other.time == time &&
           other.speedMps == speedMps &&
           other.accuracyM == accuracyM &&
-          other.headingDeg == headingDeg;
+          other.headingDeg == headingDeg &&
+          other.heartRateBpm == heartRateBpm &&
+          other.cadenceRpm == cadenceRpm &&
+          other.powerW == powerW;
 
   @override
-  int get hashCode =>
-      Object.hash(pos, ele, time, speedMps, accuracyM, headingDeg);
+  int get hashCode => Object.hash(
+    pos,
+    ele,
+    time,
+    speedMps,
+    accuracyM,
+    headingDeg,
+    heartRateBpm,
+    cadenceRpm,
+    powerW,
+  );
 
   @override
   String toString() =>
       'TrackPoint($pos, ele: $ele, time: $time, '
-      'speed: $speedMps, acc: $accuracyM, heading: $headingDeg)';
+      'speed: $speedMps, acc: $accuracyM, heading: $headingDeg, '
+      'hr: $heartRateBpm, cad: $cadenceRpm, power: $powerW)';
 }

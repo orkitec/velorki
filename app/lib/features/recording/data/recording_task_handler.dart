@@ -4,6 +4,7 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../map/data/position_provider.dart';
+import '../../sensors/domain/sensor_snapshot.dart';
 import '../domain/gps_precision.dart';
 import '../domain/recording_snapshot.dart';
 import 'recording_engine.dart';
@@ -117,6 +118,15 @@ class RecordingTaskHandler extends TaskHandler {
   /// `null` while this isolate is the only writer.
   DateTime? _leasedUntil;
 
+  /// The last sensor snapshot the main isolate pushed across the port.
+  ///
+  /// This isolate has no sensor hub of its own — the plugins that talk to a
+  /// watch or a strap live in the app — so the readings are sent here and the
+  /// engine reads them from this field. Staleness still applies, so a value
+  /// that stopped arriving stops being stamped onto the fixes even though the
+  /// last message is still sitting here.
+  SensorSnapshot _sensors = SensorSnapshot.empty;
+
   /// Seconds between two notification updates. The rider glances at it; one
   /// redraw per second would only cost battery.
   static const Duration notificationInterval = Duration(seconds: 5);
@@ -144,6 +154,7 @@ class RecordingTaskHandler extends TaskHandler {
       fixes: _fixes(state.precision),
       ticks: _ticks.stream,
       clock: _clock,
+      sensors: () => _sensors,
     )..seed(existing);
     _snapshots = engine.snapshots.listen(_onSnapshot);
     await engine.start();
@@ -161,6 +172,10 @@ class RecordingTaskHandler extends TaskHandler {
   @override
   void onReceiveData(Object data) {
     if (data is! Map) return;
+    if (data[recordingMessageKind] == recordingSensorsMessage) {
+      _sensors = SensorSnapshot.fromMap(data);
+      return;
+    }
     final command = data[recordingCommandKey];
     final engine = _engine;
     switch (command) {

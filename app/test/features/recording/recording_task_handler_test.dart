@@ -8,6 +8,7 @@ import 'package:velorki/features/recording/data/recording_task_handler.dart';
 import 'package:velorki/features/recording/domain/gps_precision.dart';
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/features/recording/domain/recording_state.dart';
+import 'package:velorki/features/sensors/domain/sensor_snapshot.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import 'support/fakes.dart';
@@ -450,6 +451,56 @@ void main() {
     h.handler.onNotificationPressed();
 
     expect(h.host.launchAppCalls, 1);
+
+    await h.dispose();
+  });
+
+  test('stamps the fixes with what the UI isolate sent over', () async {
+    await writeState();
+
+    final h = _Harness(store);
+    await h.start();
+    await h.deliver(<String, Object?>{
+      recordingMessageKind: recordingSensorsMessage,
+      ...SensorSnapshot(
+        heartRateBpm: 148,
+        cadenceRpm: 0,
+        powerW: 230,
+        heartRateAt: _at(5),
+        cadenceAt: _at(5),
+        powerAt: _at(5),
+      ).toMap(),
+    });
+
+    await h.fix(5, meters: 10);
+    await h.tick(5);
+
+    final point = (await store.readJournal('ride-1')).single;
+    expect(point.heartRateBpm, 148);
+    expect(point.cadenceRpm, 0);
+    expect(point.powerW, 230);
+    expect(h.latest.heartRateBpm, 148);
+    expect(h.latest.avgPowerW, 230);
+
+    await h.dispose();
+  });
+
+  test('a sensor message that stops arriving goes stale', () async {
+    await writeState();
+
+    final h = _Harness(store);
+    await h.start();
+    await h.deliver(<String, Object?>{
+      recordingMessageKind: recordingSensorsMessage,
+      ...SensorSnapshot(heartRateBpm: 148, heartRateAt: _at(5)).toMap(),
+    });
+
+    // Nothing else arrives; the fix is twenty seconds past the reading.
+    await h.fix(25, meters: 100);
+    await h.tick(25);
+
+    expect((await store.readJournal('ride-1')).single.heartRateBpm, isNull);
+    expect(h.latest.heartRateBpm, isNull);
 
     await h.dispose();
   });

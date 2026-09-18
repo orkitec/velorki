@@ -7,6 +7,8 @@ import 'package:uuid/uuid.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../map/data/position_provider.dart';
+import '../../sensors/application/sensor_hub.dart';
+import '../../sensors/domain/sensor_snapshot.dart';
 import '../domain/gps_precision.dart';
 import '../domain/recording_snapshot.dart';
 import '../domain/recording_state.dart';
@@ -291,10 +293,15 @@ final class MainIsolateRecordingService extends BaseRecordingService {
     super.uuid,
     super.clock,
     this.platform,
+    this.sensors,
   });
 
   /// Where the fixes come from.
   final PositionSource positions;
+
+  /// What the paired sensors are saying; the hub lives in this isolate, so
+  /// the engine simply reads it.
+  final SensorSnapshot Function()? sensors;
 
   /// Overrides the platform the location settings are built for; tests only.
   final TargetPlatform? platform;
@@ -390,6 +397,7 @@ final class MainIsolateRecordingService extends BaseRecordingService {
         (_) => clock(),
       ),
       clock: clock,
+      sensors: sensors,
     )..seed(seed);
     _subscription = engine.snapshots.listen(publish);
     await engine.start();
@@ -399,6 +407,10 @@ final class MainIsolateRecordingService extends BaseRecordingService {
 
 /// Id of the recording notification, so it is replaced rather than stacked.
 const int recordingServiceId = 4711;
+
+/// Sends one message to the recording task; a seam over
+/// `FlutterForegroundTask.sendDataToTask`, which needs a platform channel.
+typedef SendToRecordingTask = void Function(Map<String, Object?> message);
 
 /// The recorder on Android: a foreground service with the `location` type.
 ///
@@ -412,10 +424,55 @@ final class ForegroundTaskRecordingService extends BaseRecordingService {
     required super.rides,
     super.uuid,
     super.clock,
-  });
+    SendToRecordingTask? sendToTask,
+  }) : _sendToTask = sendToTask ?? FlutterForegroundTask.sendDataToTask;
+
+  /// At most one sensor snapshot this often reaches the service isolate.
+  ///
+  /// A strap reports several times a second and the fixes arrive at one a
+  /// second at best, so anything faster would only cost wake-ups.
+  static const Duration sensorInterval = Duration(seconds: 1);
+
+  final SendToRecordingTask _sendToTask;
 
   bool _listening = false;
   Completer<void>? _stopped;
+  SensorSnapshot? _sensorsSent;
+  SensorSnapshot? _sensorsPending;
+  DateTime? _sensorsAt;
+  Timer? _sensorsTimer;
+
+  /// Forwards what the sensors are saying to the recorder in the service
+  /// isolate, at most once per [sensorInterval].
+  ///
+  /// A snapshot that arrives inside the interval is held and sent when it
+  /// runs out, so the recorder always ends up with the newest one rather than
+  /// with whichever happened to fall on the boundary.
+  void publishSensors(SensorSnapshot snapshot) {
+    if (snapshot == _sensorsSent) return;
+    _sensorsPending = snapshot;
+    final last = _sensorsAt;
+    final waited = last == null ? sensorInterval : clock().difference(last);
+    if (waited < sensorInterval) {
+      _sensorsTimer ??= Timer(sensorInterval - waited, _flushSensors);
+      return;
+    }
+    _flushSensors();
+  }
+
+  void _flushSensors() {
+    _sensorsTimer?.cancel();
+    _sensorsTimer = null;
+    final snapshot = _sensorsPending;
+    if (snapshot == null) return;
+    _sensorsPending = null;
+    _sensorsSent = snapshot;
+    _sensorsAt = clock();
+    _sendToTask(<String, Object?>{
+      recordingMessageKind: recordingSensorsMessage,
+      ...snapshot.toMap(),
+    });
+  }
 
   @override
   Future<bool> get isRunning => FlutterForegroundTask.isRunningService;
@@ -489,6 +546,8 @@ final class ForegroundTaskRecordingService extends BaseRecordingService {
 
   @override
   Future<void> dispose() async {
+    _sensorsTimer?.cancel();
+    _sensorsTimer = null;
     _detach();
     await super.dispose();
   }
@@ -542,11 +601,10 @@ final class ForegroundTaskRecordingService extends BaseRecordingService {
     FlutterForegroundTask.removeTaskDataCallback(_onTaskData);
   }
 
-  void _command(String command) =>
-      FlutterForegroundTask.sendDataToTask(<String, Object?>{
-        recordingMessageKind: recordingCommandMessage,
-        recordingCommandKey: command,
-      });
+  void _command(String command) => _sendToTask(<String, Object?>{
+    recordingMessageKind: recordingCommandMessage,
+    recordingCommandKey: command,
+  });
 
   void _onTaskData(Object data) {
     if (data is! Map) return;
@@ -571,17 +629,29 @@ final recordingStoreProvider = Provider<Future<RecordingStore>>((ref) {
 });
 
 /// The recorder, picked for the platform the app is running on.
+///
+/// The sensor hub lives in this isolate either way. On iOS the engine reads it
+/// straight through a callback; on Android the recorder is behind an isolate
+/// boundary, so every change is pushed across the port instead.
 final recordingServiceProvider = Provider<RecordingService>((ref) {
-  final service = defaultTargetPlatform == TargetPlatform.android
-      ? ForegroundTaskRecordingService(
-          store: ref.watch(recordingStoreProvider),
-          rides: ref.watch(rideRepositoryProvider),
-        )
-      : MainIsolateRecordingService(
-          store: ref.watch(recordingStoreProvider),
-          rides: ref.watch(rideRepositoryProvider),
-          positions: ref.watch(positionSourceProvider),
-        );
+  if (defaultTargetPlatform == TargetPlatform.android) {
+    final service = ForegroundTaskRecordingService(
+      store: ref.watch(recordingStoreProvider),
+      rides: ref.watch(rideRepositoryProvider),
+    );
+    ref.listen<SensorSnapshot>(
+      sensorHubProvider,
+      (_, next) => service.publishSensors(next),
+    );
+    ref.onDispose(service.dispose);
+    return service;
+  }
+  final service = MainIsolateRecordingService(
+    store: ref.watch(recordingStoreProvider),
+    rides: ref.watch(rideRepositoryProvider),
+    positions: ref.watch(positionSourceProvider),
+    sensors: () => ref.read(sensorHubProvider),
+  );
   ref.onDispose(service.dispose);
   return service;
 });

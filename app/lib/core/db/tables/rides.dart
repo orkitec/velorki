@@ -16,6 +16,12 @@ class Rides extends Table {
   RealColumn get avgSpeedMps => real()();
   RealColumn get maxSpeedMps => real()();
 
+  /// What the paired sensors averaged over the ride; null when none reported.
+  IntColumn get avgHeartRateBpm => integer().nullable()();
+  IntColumn get maxHeartRateBpm => integer().nullable()();
+  IntColumn get avgCadenceRpm => integer().nullable()();
+  IntColumn get avgPowerW => integer().nullable()();
+
   /// Deleting the followed route keeps the ride; the link is simply cleared.
   TextColumn get routeId =>
       text().nullable().references(Routes, #id, onDelete: KeyAction.setNull)();

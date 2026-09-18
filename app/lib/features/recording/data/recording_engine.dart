@@ -5,6 +5,7 @@ import 'package:logging/logging.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../core/geo/ride_stats.dart';
+import '../../sensors/domain/sensor_snapshot.dart';
 import '../domain/recording_snapshot.dart';
 import '../domain/recording_state.dart';
 import '../domain/ride.dart';
@@ -30,6 +31,7 @@ class RecordingEngine {
     DateTime Function()? clock,
     this.autoPauseAfter = const Duration(seconds: 10),
     this.autoPause = true,
+    this.sensors,
     RideStatsAccumulator? accumulator,
   }) : _state = initialState,
        _clock = clock ?? DateTime.now,
@@ -57,6 +59,15 @@ class RecordingEngine {
   /// One event per second; on Android it is the foreground service's repeat
   /// event, so the clock keeps ticking with the screen off.
   final Stream<DateTime> ticks;
+
+  /// What the paired sensors are saying, asked once per fix and once per
+  /// snapshot; `null` when the recorder runs without any.
+  ///
+  /// A callback rather than a stream because the hub lives in the main isolate
+  /// and the recorder may not: on Android the latest snapshot is pushed across
+  /// the port and handed back from here, which is the same shape as reading
+  /// the provider directly on iOS.
+  final SensorSnapshot Function()? sensors;
 
   final DateTime Function() _clock;
   final RideStatsAccumulator _accumulator;
@@ -159,11 +170,12 @@ class RecordingEngine {
     return _accumulator.stats;
   }
 
-  void _onFix(TrackPoint fix) {
+  void _onFix(TrackPoint rawFix) {
     if (_stopped) return;
     // A manual pause drops fixes outright; an auto-pause keeps listening,
     // because moving again is the only way out of it.
     if (_state.status == RecordingStatus.paused && !_autoPaused) return;
+    final fix = _stamped(rawFix);
     if (!_accumulator.add(fix)) return;
     unawaited(journal.append(fix));
     _lastPoint = fix;
@@ -173,6 +185,23 @@ class RecordingEngine {
       _lastMovementAt = _clock();
       if (_autoPaused) unawaited(resume());
     }
+  }
+
+  /// [fix] with whatever the sensors were saying when it was taken.
+  ///
+  /// The readings are judged against the fix's own timestamp, so a value that
+  /// had already gone stale by then is left off rather than freezing onto the
+  /// track.
+  TrackPoint _stamped(TrackPoint fix) {
+    final reported = sensors?.call();
+    if (reported == null || reported.isEmpty) return fix;
+    final fresh = reported.readingsAt(fix.time ?? _clock());
+    if (fresh.isEmpty) return fix;
+    return fix.copyWith(
+      heartRateBpm: fresh.heartRateBpm,
+      cadenceRpm: fresh.cadenceRpm,
+      powerW: fresh.powerW,
+    );
   }
 
   void _onTick(DateTime now) {
@@ -240,15 +269,25 @@ class RecordingEngine {
   RecordingSnapshot _snapshot(
     List<LatLng> newPoints, {
     RecordingStatus? status,
-  }) => RecordingSnapshot.fromStats(
-    rideId: _state.rideId,
-    status: status ?? _state.status,
-    startedAt: _state.startedAt,
-    stats: _accumulator.stats,
-    elapsed: _clock().toUtc().difference(_state.startedAt.toUtc()),
-    autoPaused: _autoPaused,
-    speedMps: _speedMps,
-    lastPoint: _lastPoint,
-    newPoints: newPoints,
-  );
+  }) {
+    final now = _clock();
+    // What the screen shows comes from the hub rather than from the last fix:
+    // with a five metre distance filter a standing rider produces no fixes at
+    // all, and their heart is still beating.
+    final live = sensors?.call().readingsAt(now) ?? SensorSnapshot.empty;
+    return RecordingSnapshot.fromStats(
+      rideId: _state.rideId,
+      status: status ?? _state.status,
+      startedAt: _state.startedAt,
+      stats: _accumulator.stats,
+      elapsed: now.toUtc().difference(_state.startedAt.toUtc()),
+      autoPaused: _autoPaused,
+      speedMps: _speedMps,
+      lastPoint: _lastPoint,
+      newPoints: newPoints,
+      heartRateBpm: live.heartRateBpm,
+      cadenceRpm: live.cadenceRpm,
+      powerW: live.powerW,
+    );
+  }
 }

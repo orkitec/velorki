@@ -126,4 +126,92 @@ void main() {
       expect(GpxCodec.decode(xml).name, 'Tour & <ride>');
     });
   });
+
+  group('sensor extensions', () {
+    /// The same track with a strap, a crank and a power meter on the first
+    /// point and nothing on the second.
+    List<TrackPoint> sensed({
+      int? heartRate = 142,
+      int? cadence = 85,
+      int? power = 210,
+    }) => <TrackPoint>[
+      _points.first.copyWith(
+        heartRateBpm: heartRate,
+        cadenceRpm: cadence,
+        powerW: power,
+      ),
+      _points.last,
+    ];
+
+    XmlElement firstPoint(String xml) =>
+        XmlDocument.parse(xml).rootElement.findAllElements('trkpt').first;
+
+    test('heart rate and cadence go into the Garmin extension', () {
+      final xml = GpxCodec.encodeTrack(points: sensed());
+
+      final extensions = firstPoint(xml).findElements('extensions').single;
+      final tpx = extensions.findElements('gpxtpx:TrackPointExtension').single;
+      expect(tpx.findElements('gpxtpx:hr').single.innerText, '142');
+      expect(tpx.findElements('gpxtpx:cad').single.innerText, '85');
+    });
+
+    test('power is a bare element beside it, as Strava writes it', () {
+      final xml = GpxCodec.encodeTrack(points: sensed());
+
+      final extensions = firstPoint(xml).findElements('extensions').single;
+      expect(extensions.findElements('power').single.innerText, '210');
+    });
+
+    test('the gpxtpx namespace is declared on the root', () {
+      final xml = GpxCodec.encodeTrack(points: sensed());
+
+      final root = XmlDocument.parse(xml).rootElement;
+      expect(
+        root.getAttribute('xmlns:gpxtpx'),
+        'http://www.garmin.com/xmlschemas/TrackPointExtension/v1',
+      );
+      expect(
+        root.getAttribute('xmlns:gpxtpx'),
+        garminTrackPointExtensionNamespace,
+      );
+    });
+
+    test('a track without sensors declares no extra namespace', () {
+      final xml = GpxCodec.encodeTrack(points: _points);
+
+      final root = XmlDocument.parse(xml).rootElement;
+      expect(root.getAttribute('xmlns:gpxtpx'), isNull);
+      expect(xml, isNot(contains('<extensions>')));
+    });
+
+    test('power alone needs no Garmin namespace', () {
+      final xml = GpxCodec.encodeTrack(
+        points: sensed(heartRate: null, cadence: null),
+      );
+
+      final root = XmlDocument.parse(xml).rootElement;
+      expect(root.getAttribute('xmlns:gpxtpx'), isNull);
+      expect(xml, contains('<power>210</power>'));
+    });
+
+    test('a cadence of zero is written rather than left out', () {
+      final xml = GpxCodec.encodeTrack(
+        points: sensed(heartRate: null, cadence: 0, power: 0),
+      );
+
+      expect(xml, contains('<gpxtpx:cad>0</gpxtpx:cad>'));
+      expect(xml, contains('<power>0</power>'));
+      expect(xml, isNot(contains('gpxtpx:hr')));
+    });
+
+    test('a route carries them too', () {
+      final xml = GpxCodec.encodeRoute(points: sensed());
+
+      expect(xml, contains('<gpxtpx:hr>142</gpxtpx:hr>'));
+      expect(
+        XmlDocument.parse(xml).rootElement.getAttribute('xmlns:gpxtpx'),
+        isNotNull,
+      );
+    });
+  });
 }
