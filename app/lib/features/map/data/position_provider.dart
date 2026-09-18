@@ -6,6 +6,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../core/permissions/location_permission.dart';
 import '../../recording/application/recording_controller.dart';
+import 'shared_position_source.dart';
 
 part 'position_provider.g.dart';
 
@@ -144,8 +145,11 @@ class GeolocatorPositionSource implements PositionSource {
   }
 }
 
+/// One shared platform stream for every consumer: geolocator on iOS refuses
+/// a second stream, and the recorder subscribes while the map's is open.
 @Riverpod(keepAlive: true)
-PositionSource positionSource(Ref ref) => const GeolocatorPositionSource();
+PositionSource positionSource(Ref ref) =>
+    SharedPositionSource(const GeolocatorPositionSource());
 
 /// The device position, or `null` while the permission is not granted.
 ///

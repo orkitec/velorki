@@ -189,7 +189,11 @@ the `flutter_foreground_task` isolate owns the geolocator stream, the journal
 and the live statistics; the manifest deliberately does **not** request
 `ACCESS_BACKGROUND_LOCATION`, because the service always starts in the
 foreground, which avoids the stricter Play review. On iOS "When In Use" plus
-`UIBackgroundModes location` suffices. While a ride runs the camera follows
+`UIBackgroundModes location` suffices, and every consumer of fixes goes
+through one `SharedPositionSource`: geolocator on iOS allows a single
+position stream, and the recorder subscribes while the map's is still open,
+so the source runs one platform stream with the strongest settings asked for
+(the recorder's background-capable ones win) and fans the fixes out. While a ride runs the camera follows
 the rider in one of two styles, north-up or heading-up (the map turned to the
 smoothed course, as `HeadingSmoother` gives it); the locate button picks the
 following up again, and the compass button below it swaps the style, its

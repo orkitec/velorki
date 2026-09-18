@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:logging/logging.dart';
+
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../core/geo/ride_stats.dart';
@@ -7,6 +9,8 @@ import '../domain/recording_snapshot.dart';
 import '../domain/recording_state.dart';
 import '../domain/ride.dart';
 import 'recording_journal.dart';
+
+final Logger _log = Logger('velorki.recording');
 
 /// The recorder itself: fixes in, journal and statistics out.
 ///
@@ -103,7 +107,13 @@ class RecordingEngine {
   Future<void> start() async {
     if (_stopped) throw StateError('the recording engine was already stopped');
     _lastMovementAt ??= _clock();
-    _fixSubscription = fixes.listen(_onFix, onError: (Object _) {});
+    // A failing fix stream must not take the recorder down, but it must not
+    // vanish either: a ride that records nothing is worse than a crash.
+    _fixSubscription = fixes.listen(
+      _onFix,
+      onError: (Object error, StackTrace stackTrace) =>
+          _log.severe('the fix stream failed', error, stackTrace),
+    );
     _tickSubscription = ticks.listen(_onTick);
     await _writeState();
     _emit();
