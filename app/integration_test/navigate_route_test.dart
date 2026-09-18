@@ -44,6 +44,7 @@ import 'package:velorki/features/recording/data/recording_gateways.dart';
 import 'package:velorki/features/recording/data/recording_recovery.dart';
 import 'package:velorki/features/recording/data/recording_service.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
+import 'package:velorki/features/recording/presentation/save_ride_sheet.dart';
 import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
@@ -442,10 +443,17 @@ void main() {
     );
     expect(speaker.selections, isEmpty);
 
-    // Leaves the device without a running recording for the next test.
+    // Leaves the device without a running recording for the next test:
+    // Finish opens the save sheet, and the test saves under the proposed name.
     await tapAndPump(
       tester,
       find.byTooltip('Finish'),
+      settle: const Duration(seconds: 2),
+    );
+    await waitForWidget(tester, find.byType(SaveRideSheet));
+    await tapAndPump(
+      tester,
+      find.widgetWithText(FilledButton, 'Save'),
       settle: const Duration(seconds: 2),
     );
     await waitUntil(
