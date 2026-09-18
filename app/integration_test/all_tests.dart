@@ -39,6 +39,7 @@ import 'package:integration_test/integration_test.dart';
 import 'appearance_test.dart' as appearance;
 import 'close_loop_test.dart' as close_loop;
 import 'import_gpx_test.dart' as import_gpx;
+import 'live_ride_test.dart' as live_ride;
 import 'navigate_route_test.dart' as navigate_route;
 import 'offline_search_test.dart' as offline_search;
 import 'on_device_route_test.dart' as on_device_route;
@@ -52,6 +53,7 @@ void main() {
   group('appearance_test.dart', appearance.main);
   group('close_loop_test.dart', close_loop.main);
   group('import_gpx_test.dart', import_gpx.main);
+  group('live_ride_test.dart', live_ride.main);
   group('navigate_route_test.dart', navigate_route.main);
   group('offline_search_test.dart', offline_search.main);
   group('on_device_route_test.dart', on_device_route.main);

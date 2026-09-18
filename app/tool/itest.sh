@@ -80,7 +80,7 @@ fi
 # as 1, so adding a test file needs no change here unless it is slow.
 itest_weight() {
   case "$(basename "$1")" in
-    close_loop_test.dart | navigate_route_test.dart | record_ride_test.dart) echo 2 ;;
+    close_loop_test.dart | navigate_route_test.dart | record_ride_test.dart | live_ride_test.dart) echo 2 ;;
     *) echo 1 ;;
   esac
 }
@@ -192,6 +192,11 @@ flutter_test_one() {
   # seen to stall the next attach; on Android the tooling restarts it itself.
   if command -v xcrun >/dev/null 2>&1 && [[ "$DEVICE" != emulator-* ]]; then
     xcrun simctl terminate "$DEVICE" com.orkitec.velorki >/dev/null 2>&1 || true
+    # live_ride_test.dart records from the simulator's own GPS: set the
+    # simulated rider moving and grant the location permission the moment
+    # the app is installed (a grant before that does not survive the install).
+    python3 tool/sim_ride.py "$DEVICE" "$REGION" &
+    sim_ride_pid=$!
   fi
   flutter test "$1" \
     -d "$DEVICE" \
@@ -258,6 +263,7 @@ attempt() {
   flutter_test_one "$f" "$log" || rc=$?
   sleep 1
   kill "$reader" 2>/dev/null || true
+  [ -n "${sim_ride_pid:-}" ] && { kill "$sim_ride_pid" 2>/dev/null || true; }
   wait "$reader" 2>/dev/null || true
   return "$rc"
 }
