@@ -255,20 +255,37 @@ routes to our share store.
 ## Icons, splash and store graphics
 
 - [x] The app icon is generated for both platforms from committed SVGs. —
-      `app/assets/icon/icon.svg` → `icon.png` and `icon_foreground.svg` →
-      `icon_foreground.png` →
+      `app/assets/icon/icon.svg` → `icon.png`, `icon_foreground.svg` →
+      `icon_foreground.png` and `icon_monochrome.svg` → `icon_monochrome.png` →
       `dart run flutter_launcher_icons` (configured in `app/pubspec.yaml`:
-      `android: true`, `ios: true`, adaptive background `#1B7F5A`, adaptive
-      foreground, `remove_alpha_ios: true`). Regeneration steps:
-      `app/assets/icon/README.md`.
+      `android: true`, `ios: true`, **adaptive background `#3F7A00`** — the
+      volt accent's light tone, the colour of the light icon tile — adaptive
+      foreground, adaptive monochrome, `remove_alpha_ios: true`). Regeneration
+      steps: `app/assets/icon/README.md`.
+- [x] The Android 13 themed icon is provided. — the `<monochrome>` layer in
+      `res/mipmap-anydpi-v26/ic_launcher.xml` and
+      `res/drawable-*/ic_launcher_monochrome.png`, the glyph alone with the
+      ring holes transparent so the launcher's recolouring keeps the shape.
+- [x] The iOS icon has the dark and tinted appearances of iOS 18. — the two
+      `appearances` entries for the 1024 image in
+      `AppIcon.appiconset/Contents.json` with
+      `Icon-App-1024x1024@1x-{dark,tinted}.png`. `flutter_launcher_icons`
+      rewrites that file, so re-add them after every run.
 - [x] The iOS icon has no alpha channel (App Store rejects one). —
       `remove_alpha_ios: true`, and the source square is opaque and full bleed
-      because both platforms apply their own corner mask.
-- [x] The Android launch screen is the seed colour instead of a white or black
-      flash. — `res/values/colors.xml` (`velorki_splash_background`),
-      `res/drawable{,-v21}/launch_background.xml`, and
-      `android:windowSplashScreenBackground` in `res/values{,-night}/styles.xml`
-      for the Android 12+ splash screen. No splash package is used.
+      because both platforms apply their own corner mask. Only the tinted
+      appearance keeps an alpha channel, which is what iOS builds the tint from.
+- [x] The launch screen is the app icon filling the screen — the tile colour
+      with the glyph centred — instead of a white or black flash, in both
+      themes. — Android: `res/values/colors.xml` and `res/values-night/colors.xml`
+      (`velorki_splash_background`, `velorki_splash_glyph`),
+      `res/drawable/splash_icon.xml` (the glyph, tinted from those colours),
+      `res/drawable{,-v21}/launch_background.xml`,
+      and `android:windowSplashScreenBackground` plus
+      `android:windowSplashScreenAnimatedIcon` in `res/values{,-night}/styles.xml`
+      for the Android 12+ splash screen. iOS: `LaunchScreen.storyboard` over the
+      `LaunchBackground` colour set and the `LaunchImage` image set, both with
+      an Any and a Dark appearance. No splash package is used.
 - [ ] Store icon exports are uploaded: **512 × 512** for Play, **1024 × 1024**
       for App Store Connect, both without transparency. Generated on demand
       from the same SVG, see `app/assets/icon/README.md`; they are not

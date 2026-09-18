@@ -2,17 +2,18 @@
 <!-- Adaptive-icon foreground: the same glyph on transparency, scaled to 90 %
      so that, after the extra 16 % inset flutter_launcher_icons puts into
      mipmap-anydpi-v26/ic_launcher.xml, it stays inside the adaptive-icon safe
-     zone. The background is the flat seed colour, set in pubspec.yaml. -->
+     zone. The background is the flat light tile colour, set in pubspec.yaml;
+     the ring holes carry it so the mark reads the same over it. -->
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <g transform="translate(512 512) scale(0.9) translate(-512 -512)">
     <g fill="none" stroke="#FFFFFF" stroke-width="72" stroke-linecap="round" stroke-linejoin="round">
       <path d="M296 308 Q 337 545 512 716 Q 687 545 728 308"/>
     </g>
     <circle cx="296" cy="308" r="104" fill="#FFFFFF"/>
-    <circle cx="296" cy="308" r="44" fill="#1B7F5A"/>
+    <circle cx="296" cy="308" r="44" fill="#3F7A00"/>
     <circle cx="728" cy="308" r="104" fill="#FFFFFF"/>
-    <circle cx="728" cy="308" r="44" fill="#1B7F5A"/>
+    <circle cx="728" cy="308" r="44" fill="#3F7A00"/>
     <circle cx="512" cy="716" r="104" fill="#FFFFFF"/>
-    <circle cx="512" cy="716" r="44" fill="#1B7F5A"/>
+    <circle cx="512" cy="716" r="44" fill="#3F7A00"/>
   </g>
 </svg>

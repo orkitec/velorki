@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The launch splash in dark mode: the dark icon, full screen — the neon
+         tile with the ink glyph. Both drawables and both LaunchThemes read
+         these names, so the splash follows the system theme without a second
+         copy of the layer list. -->
+    <color name="velorki_splash_background">#C8F542</color>
+    <color name="velorki_splash_glyph">#0E1115</color>
+</resources>

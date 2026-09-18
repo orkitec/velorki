@@ -1,0 +1,30 @@
+/* SPDX-License-Identifier: AGPL-3.0-only */
+/* The two colours of the app icon, as custom properties so `AppIcon.tsx` can
+ * follow the site's theme: the light icon (the volt accent's light tone with a
+ * white glyph) on a light page, the dark one (neon tile, ink glyph) on a dark
+ * page. Same rule shape as the rest of the site: the media query is the system
+ * preference, guarded so an explicit `data-theme` on <html> wins either way.
+ * Anything that cannot read CSS — the share card drawn by satori, the PNG
+ * favicons, the manifest icons — uses the dark icon and passes its colours in.
+ */
+:root {
+  --app-icon-tile: #3f7a00;
+  --app-icon-glyph: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --app-icon-tile: #c8f542;
+    --app-icon-glyph: #0e1115;
+  }
+}
+
+:root[data-theme='dark'] {
+  --app-icon-tile: #c8f542;
+  --app-icon-glyph: #0e1115;
+}
+
+:root[data-theme='light'] {
+  --app-icon-tile: #3f7a00;
+  --app-icon-glyph: #ffffff;
+}

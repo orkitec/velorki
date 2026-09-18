@@ -3,10 +3,12 @@
     <!-- Theme applied to the Android Window while the process is starting when the OS's Dark Mode setting is on -->
     <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
         <!-- Show a splash screen on the activity. Automatically removed when
-             the Flutter engine draws its first frame. The same green as in
-             light mode: the seed colour reads on both. -->
+             the Flutter engine draws its first frame. Same two resources as
+             in light mode; values-night/colors.xml gives them the dark
+             icon's colours. -->
         <item name="android:windowBackground">@drawable/launch_background</item>
         <item name="android:windowSplashScreenBackground">@color/velorki_splash_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
     </style>
     <!-- Theme applied to the Android Window as soon as the process has started.
          This theme determines the color of the Android Window while your

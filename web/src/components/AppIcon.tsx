@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // The app icon as the launcher draws it, in one place: the site header, the
 // footer, the favicons and the share card all come from here, so the logo on
-// the web cannot drift away from the one on the phone.
+// the web cannot drift away from the one on the phone. The colours come from
+// `AppIcon.css`, so the icon is the light one on a light page and the dark
+// (neon) one on a dark page; a caller that satori or a rasteriser draws — the
+// share card, the generated PNGs — passes `tile` and `glyph` instead.
 //
 // Why the glyph is scaled: `app/assets/icon/icon_foreground.svg` draws the
 // route mark at 90 % of its 1024 canvas, and Android's adaptive icon
@@ -15,11 +18,21 @@
 // Drawing the raw foreground into a tile — which is what the site used to do —
 // makes the mark 1.5× too small and the wrong shape. See assets/icon/README.md.
 import type { SVGProps } from 'react';
+import './AppIcon.css';
 
-/** Seed colour of the app theme (`lib/app/theme.dart`), and of the icon. */
-export const ICON_BACKGROUND = '#1B7F5A';
-/** The route glyph; white on both platforms' icons. */
-export const ICON_FOREGROUND = '#FFFFFF';
+/** The light icon: the volt accent's light tone (`AccentPreset.volt.light`). */
+export const ICON_TILE_LIGHT = '#3F7A00';
+/** The glyph on the light icon. */
+export const ICON_GLYPH_LIGHT = '#FFFFFF';
+/** The dark icon: the volt accent itself (`AccentPreset.volt.dark`). */
+export const ICON_TILE_DARK = '#C8F542';
+/** The glyph on the dark icon: the app's ink. */
+export const ICON_GLYPH_DARK = '#0E1115';
+
+// Themed by `AppIcon.css`; the fallback is the dark icon, which is what
+// everything that cannot read CSS gets.
+const TILE = `var(--app-icon-tile, ${ICON_TILE_DARK})`;
+const GLYPH = `var(--app-icon-glyph, ${ICON_GLYPH_DARK})`;
 
 /** 0.9 × 0.68 × 1.5 — see the note above. */
 const GLYPH_SCALE = 0.918;
@@ -51,13 +64,18 @@ const WAYPOINTS = [
 export interface AppIconProps extends Omit<SVGProps<SVGSVGElement>, 'width' | 'height'> {
   /** Edge length in pixels; the icon is always square. */
   size?: number;
+  /** The tile, when the caller cannot use the themed custom property. */
+  tile?: string;
+  /** The glyph, likewise. */
+  glyph?: string;
 }
 
 /**
- * The Velorki app icon: the seed-colour tile with the route glyph, at the size
- * and corner rounding a launcher gives it.
+ * The Velorki app icon: the tile with the route glyph, at the size and corner
+ * rounding a launcher gives it. Light or dark with the page, unless the caller
+ * names the two colours.
  */
-export function AppIcon({ size = 32, ...props }: AppIconProps) {
+export function AppIcon({ size = 32, tile = TILE, glyph = GLYPH, ...props }: AppIconProps) {
   return (
     <svg
       viewBox="0 0 1024 1024"
@@ -67,20 +85,20 @@ export function AppIcon({ size = 32, ...props }: AppIconProps) {
       focusable="false"
       {...props}
     >
-      <rect width="1024" height="1024" rx={CORNER_RADIUS} ry={CORNER_RADIUS} fill={ICON_BACKGROUND} />
+      <rect width="1024" height="1024" rx={CORNER_RADIUS} ry={CORNER_RADIUS} fill={tile} />
       <path
         d={ROUTE}
         fill="none"
-        stroke={ICON_FOREGROUND}
+        stroke={glyph}
         strokeWidth={STROKE}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       {WAYPOINTS.map((p) => (
-        <circle key={`${p.cx},${p.cy}`} cx={p.cx} cy={p.cy} r={RING} fill={ICON_FOREGROUND} />
+        <circle key={`${p.cx},${p.cy}`} cx={p.cx} cy={p.cy} r={RING} fill={glyph} />
       ))}
       {WAYPOINTS.map((p) => (
-        <circle key={`hole-${p.cx},${p.cy}`} cx={p.cx} cy={p.cy} r={HOLE} fill={ICON_BACKGROUND} />
+        <circle key={`hole-${p.cx},${p.cy}`} cx={p.cx} cy={p.cy} r={HOLE} fill={tile} />
       ))}
     </svg>
   );

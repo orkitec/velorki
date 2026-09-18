@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The launch splash: a flat fill in the app's seed colour. The layer-list
-     is kept (rather than pointing windowBackground straight at the colour) so
-     a launch image can be added on top later. -->
+<!-- The launch splash before Android 12: the icon's tile colour with the
+     route glyph centred on it. Android 12+ ignores this and draws its own
+     splash from the windowSplashScreen* attributes in values{,-night}/styles.xml,
+     which use the same two resources. Both follow the system theme through
+     values-night/colors.xml. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@color/velorki_splash_background" />
+    <item android:drawable="@drawable/splash_icon" android:gravity="center" />
 </layer-list>

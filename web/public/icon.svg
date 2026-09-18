@@ -3,18 +3,33 @@
      Mirror of web/src/components/AppIcon.tsx; regenerate both together, see
      web/public/icons/README.md.
 
-     The source artwork is app/assets/icon/icon.svg. Here the tile carries the
-     corner rounding (22 %) that Android and iOS apply with their own masks,
-     and the glyph is scaled by 0.918 = 0.9 (icon_foreground.svg) x 0.68
-     (the 16 % inset in mipmap-anydpi-v26/ic_launcher.xml) x 1.5 (the mask
-     that keeps only the inner 72 of the 108 dp canvas). -->
+     The source artwork is app/assets/icon/icon.svg (light) and icon_dark.svg
+     (dark). Here the tile carries the corner rounding (22 %) that Android and
+     iOS apply with their own masks, and the glyph is scaled by 0.918 = 0.9
+     (icon_foreground.svg) x 0.68 (the 16 % inset in
+     mipmap-anydpi-v26/ic_launcher.xml) x 1.5 (the mask that keeps only the
+     inner 72 of the 108 dp canvas).
+
+     The dark icon is the default, so a rasteriser - which matches no media
+     query - produces the same neon icon as the PNGs next to this file; a
+     browser tab on a light desktop gets the light one. -->
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <rect x="0" y="0" width="1024" height="1024" rx="225.28" ry="225.28" fill="#1B7F5A"/>
-  <path d="M313.71 324.73 Q 351.35 542.29 512 699.27 Q 672.65 542.29 710.29 324.73" fill="none" stroke="#FFFFFF" stroke-width="66.1" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="313.71" cy="324.73" r="95.47" fill="#FFFFFF"/>
-  <circle cx="710.29" cy="324.73" r="95.47" fill="#FFFFFF"/>
-  <circle cx="512" cy="699.27" r="95.47" fill="#FFFFFF"/>
-  <circle cx="313.71" cy="324.73" r="40.39" fill="#1B7F5A"/>
-  <circle cx="710.29" cy="324.73" r="40.39" fill="#1B7F5A"/>
-  <circle cx="512" cy="699.27" r="40.39" fill="#1B7F5A"/>
+  <style>
+    .tile { fill: #C8F542 }
+    .glyph { fill: #0E1115 }
+    .route { fill: none; stroke: #0E1115 }
+    @media (prefers-color-scheme: light) {
+      .tile { fill: #3F7A00 }
+      .glyph { fill: #FFFFFF }
+      .route { stroke: #FFFFFF }
+    }
+  </style>
+  <rect class="tile" x="0" y="0" width="1024" height="1024" rx="225.28" ry="225.28"/>
+  <path class="route" d="M313.71 324.73 Q 351.35 542.29 512 699.27 Q 672.65 542.29 710.29 324.73" stroke-width="66.1" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle class="glyph" cx="313.71" cy="324.73" r="95.47"/>
+  <circle class="glyph" cx="710.29" cy="324.73" r="95.47"/>
+  <circle class="glyph" cx="512" cy="699.27" r="95.47"/>
+  <circle class="tile" cx="313.71" cy="324.73" r="40.39"/>
+  <circle class="tile" cx="710.29" cy="324.73" r="40.39"/>
+  <circle class="tile" cx="512" cy="699.27" r="40.39"/>
 </svg>

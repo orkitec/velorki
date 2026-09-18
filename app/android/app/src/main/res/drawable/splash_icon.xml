@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The route glyph of assets/icon/icon.svg, for the launch screen: the
+     Android 12+ splash icon (windowSplashScreenAnimatedIcon) and the centred
+     mark of launch_background.xml below it. Tinted from
+     values{,-night}/colors.xml, so it follows the system theme.
+
+     Same composition as the icon: the three ring holes are filled with the
+     splash background, painted over the route strokes, because the route ends
+     in a round cap at the centre of each ring and would otherwise close it.
+
+     The glyph is scaled to two thirds about the centre: the splash icon is a
+     288 dp canvas whose visible area is the inner 192 dp circle. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="288dp"
+    android:height="288dp"
+    android:viewportWidth="1024"
+    android:viewportHeight="1024">
+    <group
+        android:pivotX="512"
+        android:pivotY="512"
+        android:scaleX="0.667"
+        android:scaleY="0.667">
+        <path
+            android:pathData="M296,308 Q337,545 512,716 Q687,545 728,308"
+            android:strokeColor="@color/velorki_splash_glyph"
+            android:strokeWidth="72"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M192,308 a104,104 0 1,0 208,0 a104,104 0 1,0 -208,0"
+            android:fillColor="@color/velorki_splash_glyph" />
+        <path
+            android:pathData="M624,308 a104,104 0 1,0 208,0 a104,104 0 1,0 -208,0"
+            android:fillColor="@color/velorki_splash_glyph" />
+        <path
+            android:pathData="M408,716 a104,104 0 1,0 208,0 a104,104 0 1,0 -208,0"
+            android:fillColor="@color/velorki_splash_glyph" />
+        <path
+            android:pathData="M252,308 a44,44 0 1,0 88,0 a44,44 0 1,0 -88,0"
+            android:fillColor="@color/velorki_splash_background" />
+        <path
+            android:pathData="M684,308 a44,44 0 1,0 88,0 a44,44 0 1,0 -88,0"
+            android:fillColor="@color/velorki_splash_background" />
+        <path
+            android:pathData="M468,716 a44,44 0 1,0 88,0 a44,44 0 1,0 -88,0"
+            android:fillColor="@color/velorki_splash_background" />
+    </group>
+</vector>

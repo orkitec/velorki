@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The glyph alone, no tile: white strokes on transparency, with the ring
+     holes punched out by a mask instead of filled with the tile colour, so
+     the mark keeps its shape whatever is drawn behind it. Source of the iOS
+     tinted appearance (the system recolours it from the alpha channel) and of
+     the launch images. Same coordinates as icon.svg. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <mask id="holes" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
+    <rect x="0" y="0" width="1024" height="1024" fill="#FFFFFF"/>
+    <circle cx="296" cy="308" r="44" fill="#000000"/>
+    <circle cx="728" cy="308" r="44" fill="#000000"/>
+    <circle cx="512" cy="716" r="44" fill="#000000"/>
+  </mask>
+  <g mask="url(#holes)">
+    <g fill="none" stroke="#FFFFFF" stroke-width="72" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M296 308 Q 337 545 512 716 Q 687 545 728 308"/>
+    </g>
+    <circle cx="296" cy="308" r="104" fill="#FFFFFF"/>
+    <circle cx="728" cy="308" r="104" fill="#FFFFFF"/>
+    <circle cx="512" cy="716" r="104" fill="#FFFFFF"/>
+  </g>
+</svg>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Android 13 themed icon: the <monochrome> layer of the adaptive icon. The
+     glyph of icon_tinted.svg at the 90 % of icon_foreground.svg, because the
+     monochrome layer takes the same 16 % inset in
+     mipmap-anydpi-v26/ic_launcher.xml. The launcher ignores the colour and
+     recolours the alpha channel, so the ring holes have to be transparent. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <mask id="holes" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
+    <rect x="0" y="0" width="1024" height="1024" fill="#FFFFFF"/>
+    <circle cx="296" cy="308" r="44" fill="#000000"/>
+    <circle cx="728" cy="308" r="44" fill="#000000"/>
+    <circle cx="512" cy="716" r="44" fill="#000000"/>
+  </mask>
+  <g transform="translate(512 512) scale(0.9) translate(-512 -512)">
+    <g mask="url(#holes)">
+      <g fill="none" stroke="#FFFFFF" stroke-width="72" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M296 308 Q 337 545 512 716 Q 687 545 728 308"/>
+      </g>
+      <circle cx="296" cy="308" r="104" fill="#FFFFFF"/>
+      <circle cx="728" cy="308" r="104" fill="#FFFFFF"/>
+      <circle cx="512" cy="716" r="104" fill="#FFFFFF"/>
+    </g>
+  </g>
+</svg>

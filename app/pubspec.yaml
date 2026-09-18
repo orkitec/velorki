@@ -120,9 +120,11 @@ flutter_launcher_icons:
   android: true
   ios: true
   image_path: assets/icon/icon.png
-  # Velorki green of the launcher icon (independent of the in-app accents).
-  adaptive_icon_background: "#1B7F5A"
+  # The volt accent's light tone, the colour of the light icon tile.
+  adaptive_icon_background: "#3F7A00"
   adaptive_icon_foreground: assets/icon/icon_foreground.png
+  # Android 13 themed icons: the glyph alone, recoloured by the launcher.
+  adaptive_icon_monochrome: assets/icon/icon_monochrome.png
   # App Store rejects an icon with an alpha channel.
   remove_alpha_ios: true
   min_sdk_android: 26

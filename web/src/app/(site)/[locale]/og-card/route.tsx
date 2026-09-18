@@ -12,7 +12,7 @@
 // both a direct 200. `src/site/seo.ts` writes the tags.
 import { ImageResponse } from 'next/og';
 import { getTranslations } from 'next-intl/server';
-import { AppIcon } from '@/components/AppIcon';
+import { AppIcon, ICON_GLYPH_DARK, ICON_TILE_DARK } from '@/components/AppIcon';
 import { routing } from '@/i18n/routing';
 import { OG_IMAGE_SIZE } from '@/site/seo';
 
@@ -42,7 +42,8 @@ export async function GET(
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <AppIcon size={72} />
+          {/* satori draws no CSS custom properties, and the card is dark. */}
+          <AppIcon size={72} tile={ICON_TILE_DARK} glyph={ICON_GLYPH_DARK} />
           <div style={{ fontSize: 56, fontWeight: 700, letterSpacing: -1 }}>Velorki</div>
         </div>
 

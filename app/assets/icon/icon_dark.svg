@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Velorki app icon, dark variant: the volt accent's dark tone
+     (AccentPreset.volt.dark) with the glyph in ink. Same geometry as
+     icon.svg. Used for the iOS dark appearance of the AppIcon set and for
+     the site, which shows the neon icon. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <rect x="0" y="0" width="1024" height="1024" fill="#C8F542"/>
+  <g fill="none" stroke="#0E1115" stroke-width="72" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M296 308 Q 337 545 512 716 Q 687 545 728 308"/>
+  </g>
+  <g>
+    <circle cx="296" cy="308" r="104" fill="#0E1115"/>
+    <circle cx="296" cy="308" r="44" fill="#C8F542"/>
+    <circle cx="728" cy="308" r="104" fill="#0E1115"/>
+    <circle cx="728" cy="308" r="44" fill="#C8F542"/>
+    <circle cx="512" cy="716" r="104" fill="#0E1115"/>
+    <circle cx="512" cy="716" r="44" fill="#C8F542"/>
+  </g>
+</svg>

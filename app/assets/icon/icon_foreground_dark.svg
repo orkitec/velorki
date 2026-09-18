@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The dark counterpart of icon_foreground.svg: the ink glyph, ring holes in
+     the neon tile colour. Nothing on the phone uses it - Android's adaptive
+     icon is the light one - but the site's maskable icon and the iOS dark
+     launch image are drawn from it, both over a #C8F542 field. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <g transform="translate(512 512) scale(0.9) translate(-512 -512)">
+    <g fill="none" stroke="#0E1115" stroke-width="72" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M296 308 Q 337 545 512 716 Q 687 545 728 308"/>
+    </g>
+    <circle cx="296" cy="308" r="104" fill="#0E1115"/>
+    <circle cx="296" cy="308" r="44" fill="#C8F542"/>
+    <circle cx="728" cy="308" r="104" fill="#0E1115"/>
+    <circle cx="728" cy="308" r="44" fill="#C8F542"/>
+    <circle cx="512" cy="716" r="104" fill="#0E1115"/>
+    <circle cx="512" cy="716" r="44" fill="#C8F542"/>
+  </g>
+</svg>
