@@ -30,6 +30,14 @@ class FakeRecordingService implements RecordingService {
   /// What [pendingState] answers.
   RecordingState? pending;
 
+  /// What [halt] answers: the recording left waiting for a name, or `null`
+  /// when nothing was recorded.
+  RecordingState? haltedRecording;
+
+  /// The names [stop] and [finishInterrupted] were asked to save under, in
+  /// order.
+  final List<String> savedNames = <String>[];
+
   /// What [reattach] answers.
   bool reattaches = false;
 
@@ -84,8 +92,16 @@ class FakeRecordingService implements RecordingService {
   @override
   Future<Ride?> stop({required String rideName}) async {
     calls.add('stop($rideName)');
+    savedNames.add(rideName);
     running = false;
     return finishedRide;
+  }
+
+  @override
+  Future<RecordingState?> halt() async {
+    calls.add('halt');
+    running = false;
+    return haltedRecording;
   }
 
   @override
@@ -123,6 +139,7 @@ class FakeRecordingService implements RecordingService {
     required String rideName,
   }) async {
     calls.add('finishInterrupted(${state.rideId})');
+    savedNames.add(rideName);
     return finishedRide;
   }
 

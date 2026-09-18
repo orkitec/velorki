@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/app_config.dart';
+import '../../../core/geo/ride_stats.dart';
 import '../../../core/permissions/location_permission.dart';
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -26,6 +27,7 @@ import '../../planner/data/route_repository.dart';
 import '../../planner/domain/saved_route.dart';
 import '../../planner/presentation/planner_map_host.dart';
 import '../../planner/presentation/route_format.dart';
+import '../../search/data/gazetteer_store.dart';
 import '../../settings/data/units.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../application/recording_controller.dart';
@@ -37,8 +39,10 @@ import '../data/recording_service.dart';
 import '../data/recording_settings.dart';
 import '../domain/recording_snapshot.dart';
 import '../domain/recording_state.dart';
+import '../domain/ride_naming.dart';
 import 'recording_format.dart';
 import 'ride_detail_screen.dart';
+import 'save_ride_sheet.dart';
 
 /// Id of the followed route's line on the map.
 const String followedRouteLineId = 'follow';
@@ -739,11 +743,20 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
           notificationTitle: l10n.recordingNotificationTitle,
         );
       case _RecoveryDecision.finish:
-        final ride = await controller.finishInterrupted(
-          recovery.state,
-          rideName: _defaultRideName(l10n, recovery.state.startedAt.toLocal()),
+        // The same sheet a ride stopped by hand goes through: an interrupted
+        // recording is finished the way every other one is, and "Continue"
+        // there means picking the recording up again.
+        await _finishRecording(
+          rideId: recovery.state.rideId,
+          routeId: recovery.state.routeId,
+          startedAt: recovery.state.startedAt,
+          stats: recovery.stats,
+          take: () async => recovery.state,
+          onContinue: () => controller.resumeInterrupted(
+            recovery.state,
+            notificationTitle: l10n.recordingNotificationTitle,
+          ),
         );
-        if (ride != null && mounted) context.go(rideDetailLocation(ride.id));
       case _RecoveryDecision.discard:
         await controller.discardInterrupted(recovery.state);
     }
@@ -851,19 +864,97 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     if (allow ?? false) await gateway.request();
   }
 
+  /// Ends the recording and hands it to the save sheet.
+  ///
+  /// The recorder is *paused*, not stopped: the stop button is easy to hit by
+  /// accident and the sheet offers to carry on, which only a recorder that
+  /// still has its journal open can do. Saving stops it for good and writes
+  /// the row; until then the journal and the state file are all there is,
+  /// which is exactly what the launch check knows how to recover.
   Future<void> _stop() async {
+    final controller = ref.read(recordingControllerProvider.notifier);
+    final state = ref.read(recordingControllerProvider);
+    final snapshot = state.snapshot;
+    if (snapshot == null) return;
+    // A ride the rider paused themselves must not be resumed by a "Continue"
+    // they did not ask for, so only a running recorder is paused here.
+    final resumable = !state.isPaused;
+    if (resumable) await controller.pause();
+    if (!mounted) return;
+    await _finishRecording(
+      rideId: snapshot.rideId,
+      routeId: state.followedRouteId,
+      startedAt: snapshot.startedAt,
+      stats: _liveStats(snapshot),
+      take: controller.halt,
+      onContinue: () async {
+        if (resumable) await controller.resume();
+      },
+    );
+  }
+
+  /// Names the recording, asks the rider what to do with it, and does it.
+  ///
+  /// The one path both a ride stopped by hand and one recovered on relaunch
+  /// take. [take] hands over the recording to write or throw away — stopping
+  /// the recorder for a live ride, the state file itself for a recovered one
+  /// — and [onContinue] puts the recorder back to work.
+  Future<void> _finishRecording({
+    required String rideId,
+    required String? routeId,
+    required DateTime startedAt,
+    required RideStats stats,
+    required Future<RecordingState?> Function() take,
+    required Future<void> Function() onContinue,
+  }) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    final ride = await ref
-        .read(recordingControllerProvider.notifier)
-        .stop(rideName: _defaultRideName(l10n, DateTime.now()));
-    if (ride == null) {
+    final controller = ref.read(recordingControllerProvider.notifier);
+    final ends = await controller.trackEnds(rideId);
+    if (!mounted) return;
+    final name = await _defaultRideName(l10n, routeId, startedAt, ends);
+    if (!mounted) return;
+
+    Future<void> nothingRecorded() async {
+      final recording = await take();
+      if (recording != null) {
+        await controller.finishInterrupted(recording, rideName: name);
+      }
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.recordingNothingRecorded)),
       );
-      return;
     }
-    if (mounted) context.go(rideDetailLocation(ride.id));
+
+    // Too little to keep: it is thrown away and said so, rather than the
+    // rider being asked to name nothing.
+    if (ends == null) return nothingRecorded();
+
+    final outcome = await showSaveRideSheet(
+      context,
+      defaultName: name,
+      stats: stats,
+    );
+    switch (outcome) {
+      case ContinueRide():
+        await onContinue();
+      case SaveRide(name: final chosen):
+        final recording = await take();
+        if (recording == null) return nothingRecorded();
+        final ride = await controller.finishInterrupted(
+          recording,
+          rideName: chosen,
+        );
+        if (ride == null) {
+          messenger.showSnackBar(
+            SnackBar(content: Text(l10n.recordingNothingRecorded)),
+          );
+          return;
+        }
+        if (mounted) context.go(rideDetailLocation(ride.id));
+      case DiscardRide():
+        final recording = await take();
+        if (recording != null) await controller.discardInterrupted(recording);
+    }
   }
 
   Future<void> _setKeepScreenOn(bool value) async {
@@ -873,8 +964,54 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     await (value ? wake.enable() : wake.disable());
   }
 
-  static String _defaultRideName(AppLocalizations l10n, DateTime date) =>
-      l10n.recordingRideName(formatDate(l10n, date));
+  /// The name the save sheet starts with: the followed route's name, or the
+  /// time of day and the places the ride ran between.
+  Future<String> _defaultRideName(
+    AppLocalizations l10n,
+    String? routeId,
+    DateTime startedAt,
+    ({LatLng start, LatLng end})? ends,
+  ) async {
+    final route = routeId == null
+        ? null
+        : await ref.read(routeRepositoryProvider).routeById(routeId);
+    return defaultRideName(
+      l10n,
+      startedAt: startedAt.toLocal(),
+      routeName: route?.name,
+      startPlace: await _settlementName(ends?.start),
+      endPlace: await _settlementName(ends?.end),
+      isLoop: isRideLoop(ends?.start, ends?.end),
+    );
+  }
+
+  /// What the offline gazetteer calls the settlement at [point], or `null`
+  /// when no downloaded tile covers it.
+  Future<String?> _settlementName(LatLng? point) async {
+    if (point == null) return null;
+    try {
+      final store = await ref.read(gazetteerStoreProvider.future);
+      return (await store.nearestSettlement(point))?.name;
+    } on Object catch (e) {
+      // A ride always gets a name; the places are the part that may be
+      // missing.
+      debugPrint('velorki: no place for $point: $e');
+      return null;
+    }
+  }
+
+  /// The live figures as a [RideStats], so the save sheet shows the very
+  /// numbers the rider was watching.
+  RideStats _liveStats(RecordingSnapshot? snapshot) => snapshot == null
+      ? RideStats.empty
+      : RideStats(
+          distanceM: snapshot.distanceM,
+          movingTime: snapshot.moving,
+          elapsedTime: snapshot.elapsed,
+          ascentM: snapshot.ascentM,
+          descentM: snapshot.descentM,
+          pointCount: snapshot.pointCount,
+        );
 
   // ----------------------------------------------------------------- build
 

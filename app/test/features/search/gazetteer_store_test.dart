@@ -93,6 +93,154 @@ void main() {
     expect(store.covers(const LatLng(32.65, -16.91)), isFalse);
   });
 
+  group('nearestSettlement names the ground under a point', () {
+    test('the closest of the same standing wins', () async {
+      final store = await storeWithFixture();
+
+      // Standing in Mühleholz: the village is 100 m away, Vaduz 700 m, and a
+      // village is as good a name for a ride as a town.
+      final here = await store.nearestSettlement(const LatLng(47.1466, 9.5151));
+      expect(here?.name, 'Mühleholz');
+      expect(here?.kind, SearchKind.place);
+      expect(here?.detail, 'village');
+      expect(here?.city, 'Vaduz', reason: 'the admin area it belongs to');
+      expect(here?.distanceMeters, lessThan(200));
+
+      final vaduz = await store.nearestSettlement(
+        const LatLng(47.1408, 9.5215),
+      );
+      expect(vaduz?.name, 'Vaduz');
+    });
+
+    test('a suburb does not outrank the town it belongs to', () async {
+      buildGazetteer(
+        dir,
+        'E5_N45',
+        places: const <GazPlace>[
+          GazPlace(1, 'Vaduz', 'town', 47.1410, 9.5209, population: 5450),
+          // A parish a few hundred metres away: where the rider is standing,
+          // but not what they call the ride.
+          GazPlace(2, 'Ebenholz', 'suburb', 47.1440, 9.5209, adminId: 1),
+          GazPlace(3, 'Haberfeld', 'neighbourhood', 47.1442, 9.5209),
+          GazPlace(4, 'Vorderer Weiler', 'hamlet', 47.1444, 9.5209),
+        ],
+      );
+      final store = await openStore();
+
+      final named = await store.nearestSettlement(
+        const LatLng(47.1442, 9.5209),
+      );
+      expect(named?.name, 'Vaduz');
+      expect(named?.detail, 'town');
+    });
+
+    test(
+      'the smaller kinds name a ride when nothing larger is in range',
+      () async {
+        buildGazetteer(
+          dir,
+          'E5_N45',
+          places: const <GazPlace>[
+            // Six kilometres off: past the reach of a town, let alone a suburb.
+            GazPlace(1, 'Vaduz', 'town', 47.0870, 9.5209, population: 5450),
+            GazPlace(2, 'Ebenholz', 'suburb', 47.1440, 9.5209),
+          ],
+        );
+        final store = await openStore();
+
+        final named = await store.nearestSettlement(
+          const LatLng(47.1442, 9.5209),
+        );
+        expect(named?.name, 'Ebenholz');
+        expect(named?.detail, 'suburb');
+      },
+    );
+
+    test('a city reaches further than a village', () async {
+      buildGazetteer(
+        dir,
+        'E5_N45',
+        places: const <GazPlace>[
+          // Both four kilometres away: inside a city's reach, outside the
+          // three kilometres everything smaller gets.
+          GazPlace(1, 'Vaduz', 'city', 47.1050, 9.5209, population: 5450),
+          GazPlace(2, 'Triesen', 'village', 47.1830, 9.5209),
+        ],
+      );
+      final store = await openStore();
+
+      final named = await store.nearestSettlement(
+        const LatLng(47.1440, 9.5209),
+      );
+      expect(named?.name, 'Vaduz');
+      expect(named?.detail, 'city');
+    });
+
+    test('nothing within the radius is null', () async {
+      final store = await storeWithFixture();
+
+      // Falknis, the peak in the fixture: 3 km of mountain and no village.
+      expect(
+        await store.nearestSettlement(const LatLng(47.0900, 9.5800)),
+        isNull,
+      );
+      // The same point answers once the radius reaches Triesenberg.
+      expect(
+        (await store.nearestSettlement(
+          const LatLng(47.0900, 9.5800),
+          maxKm: 10,
+        ))?.name,
+        'Triesenberg',
+      );
+    });
+
+    test('a point no tile covers is null, and so is no tile at all', () async {
+      final store = await storeWithFixture();
+      expect(
+        await store.nearestSettlement(const LatLng(32.6669, -16.9241)),
+        isNull,
+      );
+
+      final nowhere = GazetteerStore(null);
+      addTearDown(nowhere.close);
+      await nowhere.refresh();
+      expect(
+        await nowhere.nearestSettlement(const LatLng(47.1466, 9.5151)),
+        isNull,
+      );
+    });
+
+    test('only settlement kinds answer', () async {
+      buildGazetteer(
+        dir,
+        'E5_N45',
+        places: const <GazPlace>[
+          GazPlace(1, 'Insel', 'island', 47.1000, 9.5000),
+          GazPlace(2, 'Weiler', 'hamlet', 47.1050, 9.5000),
+        ],
+      );
+      final store = await openStore();
+
+      final found = await store.nearestSettlement(const LatLng(47.1001, 9.5));
+      expect(
+        found?.name,
+        'Weiler',
+        reason: 'an island is not what a rider calls where they set off from',
+      );
+    });
+
+    test('a locality is no name for a ride even standing on it', () async {
+      buildGazetteer(
+        dir,
+        'E5_N45',
+        places: const <GazPlace>[GazPlace(1, 'Flur', 'locality', 47.1, 9.5)],
+      );
+      final store = await openStore();
+
+      expect(await store.nearestSettlement(const LatLng(47.1001, 9.5)), isNull);
+    });
+  });
+
   test('a prefix of one token finds the place', () async {
     final store = await storeWithFixture();
     final results = await store.search('vad');

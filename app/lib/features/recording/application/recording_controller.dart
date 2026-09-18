@@ -136,6 +136,42 @@ class RecordingController extends Notifier<RecordingUiState> {
     }
   }
 
+  /// Stops the recorder without saving anything, and hands back the recording
+  /// that is now waiting for a name; `null` when nothing was recorded.
+  ///
+  /// Finishing a ride is two steps, because the rider names it in between:
+  /// this ends the recording, [finishInterrupted] then writes the row with the
+  /// name they typed and [discardInterrupted] throws the whole thing away. The
+  /// state stays busy in between, so the panel under the sheet is inert.
+  Future<RecordingState?> halt() async {
+    if (state.busy) return null;
+    state = state.copyWith(busy: true);
+    _listening = false;
+    final RecordingState? recording;
+    try {
+      recording = await _service.halt();
+    } on Object {
+      state = state.copyWith(busy: false);
+      _listening = true;
+      rethrow;
+    }
+    if (recording == null) state = const RecordingUiState();
+    return recording;
+  }
+
+  /// Where the recording [rideId] began and where it ended, read back out of
+  /// the journal, or `null` when it holds too little to become a ride.
+  ///
+  /// What the default ride name is built from: the journal is the truth for
+  /// both a ride that has just been stopped and one recovered on relaunch.
+  /// The two-fix floor is the one the recorder saves by, so a `null` here is
+  /// also the answer to "is this worth naming at all".
+  Future<({LatLng start, LatLng end})?> trackEnds(String rideId) async {
+    final points = await _journalTrack(rideId);
+    if (points.length < 2) return null;
+    return (start: points.first, end: points.last);
+  }
+
   /// Listens to a recorder that outlived the UI and puts its track back on the
   /// map. Returns whether one was still running.
   Future<bool> reattach(RecordingState recording) async {

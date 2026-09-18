@@ -1084,6 +1084,116 @@
       }
     }
   },
+  "rideTimeMorning": "Morning",
+  "@rideTimeMorning": {
+    "description": "Time-of-day word for a ride that started between 04:00 and 10:59; combined with rideName* into the default ride name"
+  },
+  "rideTimeLunch": "Lunch",
+  "@rideTimeLunch": {
+    "description": "Time-of-day word for a ride that started between 11:00 and 13:59; combined with rideName* into the default ride name"
+  },
+  "rideTimeAfternoon": "Afternoon",
+  "@rideTimeAfternoon": {
+    "description": "Time-of-day word for a ride that started between 14:00 and 16:59; combined with rideName* into the default ride name"
+  },
+  "rideTimeEvening": "Evening",
+  "@rideTimeEvening": {
+    "description": "Time-of-day word for a ride that started between 17:00 and 20:59; combined with rideName* into the default ride name"
+  },
+  "rideTimeNight": "Night",
+  "@rideTimeNight": {
+    "description": "Time-of-day word for a ride that started between 21:00 and 03:59; combined with rideName* into the default ride name"
+  },
+  "rideNameLoopFrom": "{time} loop from {start}",
+  "@rideNameLoopFrom": {
+    "description": "Default name of a ride that ends where it started, near a known place. German glues the two together, so the pattern carries the whole word: \"{time}runde ab {start}\"",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "Morning"
+      },
+      "start": {
+        "type": "String",
+        "example": "Funchal"
+      }
+    }
+  },
+  "rideNameFromTo": "{time} ride from {start} to {end}",
+  "@rideNameFromTo": {
+    "description": "Default name of a ride between two known places",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "Morning"
+      },
+      "start": {
+        "type": "String",
+        "example": "Funchal"
+      },
+      "end": {
+        "type": "String",
+        "example": "Monte"
+      }
+    }
+  },
+  "rideNameFrom": "{time} ride from {start}",
+  "@rideNameFrom": {
+    "description": "Default name of a ride whose start is a known place but whose end is not",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "Morning"
+      },
+      "start": {
+        "type": "String",
+        "example": "Funchal"
+      }
+    }
+  },
+  "rideNameLoop": "{time} loop",
+  "@rideNameLoop": {
+    "description": "Default name of a ride that ends where it started, with no place known",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "Morning"
+      }
+    }
+  },
+  "rideNameRide": "{time} ride",
+  "@rideNameRide": {
+    "description": "Default name of a ride with no place known",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "Morning"
+      }
+    }
+  },
+  "rideSaveTitle": "Save ride",
+  "@rideSaveTitle": {
+    "description": "Title of the sheet that names and saves a ride the rider has just finished"
+  },
+  "rideSaveNameLabel": "Ride name",
+  "@rideSaveNameLabel": {
+    "description": "Label of the name field on the save-ride sheet"
+  },
+  "rideSaveContinue": "Continue ride",
+  "@rideSaveContinue": {
+    "description": "Button on the save-ride sheet that carries on recording, for a stop hit by accident"
+  },
+  "rideSaveDiscard": "Discard",
+  "@rideSaveDiscard": {
+    "description": "Button on the save-ride sheet that throws the finished ride away"
+  },
+  "rideSaveDiscardTitle": "Discard this ride?",
+  "@rideSaveDiscardTitle": {
+    "description": "Title of the dialog that confirms throwing a finished ride away"
+  },
+  "rideSaveDiscardBody": "The ride and its recorded track are deleted. This cannot be undone.",
+  "@rideSaveDiscardBody": {
+    "description": "Body of the dialog that confirms throwing a finished ride away"
+  },
   "statSpeed": "Speed",
   "@statSpeed": {
     "description": "Label of the current speed figure"

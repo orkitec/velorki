@@ -13,8 +13,11 @@ import 'package:velorki/features/map/testing/fake_compass_source.dart';
 import 'package:velorki/features/recording/data/recording_gateways.dart';
 import 'package:velorki/features/recording/data/recording_journal.dart';
 import 'package:velorki/features/recording/data/recording_recovery.dart';
+import 'package:velorki/features/recording/data/notification_updater.dart';
 import 'package:velorki/features/recording/data/recording_service.dart';
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
+import 'package:velorki/features/recording/testing/fake_notification_updater.dart';
+import 'package:velorki/features/search/data/gazetteer_store.dart';
 
 import '../../../support/app.dart';
 import '../../planner/support/fakes.dart' show TestMapController;
@@ -51,6 +54,9 @@ class RecordingHarness {
   /// The exporter the ride detail screen hands files to.
   final FakeTrackExporter exporter = FakeTrackExporter();
 
+  /// The ongoing notification, which on Android would be a platform channel.
+  final FakeNotificationUpdater notificationUpdater = FakeNotificationUpdater();
+
   /// The keep-screen-on gateway.
   final FakeScreenWake screenWake = FakeScreenWake();
 
@@ -78,6 +84,13 @@ class RecordingHarness {
     'velorki_recording_ui',
   );
 
+  /// A throw-away gazetteer directory, empty unless a test writes a `.gaz`
+  /// into it. Naming a finished ride asks the gazetteer where it ran, and
+  /// the real store would go looking for the app support directory.
+  final Directory gazetteerDirectory = Directory.systemTemp.createTempSync(
+    'velorki_gazetteer_ui',
+  );
+
   /// The map the screens draw on.
   TestMapController get map => planner.map;
 
@@ -85,10 +98,17 @@ class RecordingHarness {
   List<Override> overrides(SharedPreferences prefs) => <Override>[
     ...planner.overrides(prefs),
     recordingServiceProvider.overrideWithValue(service),
+    notificationUpdaterProvider.overrideWithValue(notificationUpdater),
     recordingStoreProvider.overrideWithValue(
       Future<RecordingStore>.value(RecordingStore(directory)),
     ),
     recordingRecoveryProvider.overrideWith((ref) async => recovery),
+    gazetteerStoreProvider.overrideWith((ref) async {
+      final store = GazetteerStore(gazetteerDirectory);
+      ref.onDispose(store.close);
+      await store.refresh();
+      return store;
+    }),
     locationPermissionGatewayProvider.overrideWithValue(permission),
     notificationPermissionProvider.overrideWithValue(notifications),
     batteryOptimizationProvider.overrideWithValue(battery),
@@ -98,9 +118,12 @@ class RecordingHarness {
     compassSourceProvider.overrideWithValue(compass),
   ];
 
-  /// Removes the throw-away journal directory.
+  /// Removes the throw-away directories.
   void cleanUp() {
     if (directory.existsSync()) directory.deleteSync(recursive: true);
+    if (gazetteerDirectory.existsSync()) {
+      gazetteerDirectory.deleteSync(recursive: true);
+    }
   }
 }
 

@@ -189,11 +189,6 @@ final ridesProvider = StreamProvider.autoDispose<List<Ride>>(
   (ref) => ref.watch(rideRepositoryProvider).watchRides(),
 );
 
-/// The newest rides, for the "Recent rides" block on the record tab.
-final recentRidesProvider = StreamProvider.autoDispose<List<Ride>>(
-  (ref) => ref.watch(rideRepositoryProvider).watchRecentRides(),
-);
-
 /// One ride, `null` once it is deleted.
 final rideProvider = StreamProvider.autoDispose.family<Ride?, String>(
   (ref, id) => ref.watch(rideRepositoryProvider).watchRide(id),

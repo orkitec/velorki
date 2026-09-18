@@ -12,28 +12,16 @@ import '../data/ride_repository.dart';
 import '../domain/ride.dart';
 import 'ride_detail_screen.dart';
 
-/// The recorded rides, newest first.
-///
-/// The library's rides section. [limit] and [shrinkWrap] are there for a host
-/// that shows only the newest rides inside its own scroll view.
+/// The recorded rides, newest first: the library's rides section.
 class RidesList extends ConsumerWidget {
   /// Creates the list.
-  const RidesList({super.key, this.limit, this.shrinkWrap = false});
-
-  /// How many rides to show; `null` shows all of them.
-  final int? limit;
-
-  /// Whether the list sizes itself to its content, which it must when it is
-  /// embedded in another scroll view.
-  final bool shrinkWrap;
+  const RidesList({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final rides = ref.watch(
-      limit == null ? ridesProvider : recentRidesProvider,
-    );
+    final rides = ref.watch(ridesProvider);
     return rides.when(
       loading: () => const Padding(
         padding: EdgeInsets.all(24),
@@ -46,13 +34,7 @@ class RidesList extends ConsumerWidget {
       data: (items) {
         if (items.isEmpty) {
           return Padding(
-            // Inside an already padded host the text lines up with its
-            // caption; standing alone (the library) it keeps the 20 dp
-            // gutter itself.
-            padding: EdgeInsets.symmetric(
-              horizontal: shrinkWrap ? 4 : 20,
-              vertical: 16,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Text(
               l10n.recordingNoRides,
               style: theme.textTheme.bodyMedium?.copyWith(
@@ -62,21 +44,13 @@ class RidesList extends ConsumerWidget {
           );
         }
         return ListView.builder(
-          shrinkWrap: shrinkWrap,
-          physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
-          // Embedded, the host scroll view already clears the floating
-          // navigation bar; on its own the list has to do it itself.
-          padding: shrinkWrap
-              ? EdgeInsets.zero
-              : EdgeInsets.only(
-                  top: 6,
-                  bottom: MediaQuery.paddingOf(context).bottom + 24,
-                ),
+          // The floating navigation bar overlays the content.
+          padding: EdgeInsets.only(
+            top: 6,
+            bottom: MediaQuery.paddingOf(context).bottom + 24,
+          ),
           itemCount: items.length,
-          // Embedded lists sit inside a padded host, so the tiles drop their
-          // own horizontal inset.
-          itemBuilder: (context, i) =>
-              RideTile(ride: items[i], inset: !shrinkWrap),
+          itemBuilder: (context, i) => RideTile(ride: items[i]),
         );
       },
     );
@@ -108,14 +82,10 @@ class _TileIcon extends StatelessWidget {
 /// One row of [RidesList]; swiping it away deletes the ride.
 class RideTile extends ConsumerWidget {
   /// Creates the tile.
-  const RideTile({required this.ride, super.key, this.inset = true});
+  const RideTile({required this.ride, super.key});
 
   /// The ride shown.
   final Ride ride;
-
-  /// Whether the tile carries the screen's own 20dp horizontal inset; `false`
-  /// when it is embedded in a host that already pads its content.
-  final bool inset;
 
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context);
@@ -154,10 +124,7 @@ class RideTile extends ConsumerWidget {
       ),
       onDismissed: (_) => unawaited(_delete(context, ref)),
       child: ListTile(
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: inset ? 20 : 0,
-          vertical: 6,
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
         leading: const _TileIcon(Icons.directions_bike_rounded),
         title: Text(
           ride.name,

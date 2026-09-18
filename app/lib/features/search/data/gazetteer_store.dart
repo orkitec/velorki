@@ -45,6 +45,36 @@ const int kindSearchLimit = 5;
 /// kilometres away is only worth showing when there is nothing else.
 const List<double> kindSearchRadiiMeters = <double>[5000, 10000, 25000, 50000];
 
+/// The `places.kind` values a ride can be named after. Everything else in
+/// `places` — an island, a locality — is not a place a rider sets off from.
+const List<String> settlementKinds = <String>[
+  'city',
+  'town',
+  'village',
+  'suburb',
+  'neighbourhood',
+  'hamlet',
+];
+
+/// The settlements that name a ride before any smaller place does.
+///
+/// A rider who sets off in São Roque says they rode from Funchal, not from
+/// the parish they happened to be standing in, so a suburb, a neighbourhood
+/// or a hamlet only names a ride when none of these is in range.
+const List<String> primarySettlementKinds = <String>['city', 'town', 'village'];
+
+/// How far a city or a town still names a ride from, in kilometres.
+///
+/// Wider than the radius the smaller kinds get: a ride that starts on the
+/// edge of a city is a ride from that city, and the edge of a city is
+/// further from its centre than the edge of a village is from theirs.
+const double citySettlementMaxKm = 5;
+
+/// Where [kind] stands in the order settlements name a ride: 0 for a city, a
+/// town or a village, 1 for everything smaller.
+int settlementRank(String? kind) =>
+    primarySettlementKinds.contains(kind) ? 0 : 1;
+
 /// The most rows one file hands back per kind search, before the distances
 /// are measured. A bounding box over a dense city can hold thousands of bike
 /// parkings and only the five nearest ever matter.
@@ -115,6 +145,45 @@ class GazetteerStore {
       if (TileName.tryParse(name) == tile) return true;
     }
     return false;
+  }
+
+  /// The settlement [point] is named after, or `null` when none is in range —
+  /// which is also the answer when no downloaded tile covers the point.
+  ///
+  /// This is the reverse of the search box: not "where is Funchal" but "what
+  /// is this place called", which is how a finished ride gets a name. The
+  /// answer is the best [settlementKinds] row in range: a city, a town or a
+  /// village first and the nearest of those, and only when none is in range
+  /// the nearest suburb, neighbourhood or hamlet. [maxKm] is how far that
+  /// reaches, except for a city or a town, which reach [citySettlementMaxKm].
+  ///
+  /// One indexed bounding-box query per open file, so it is cheap enough to
+  /// run twice while a ride is being saved.
+  Future<SearchResult?> nearestSettlement(
+    LatLng point, {
+    double maxKm = 3,
+  }) async {
+    if (_closed || _open.isEmpty) return null;
+    SearchResult? best;
+    for (final file in _open.values) {
+      try {
+        final found = file.nearestSettlement(point, maxKm);
+        if (found == null) continue;
+        if (best == null || _outranks(found, best)) best = found;
+      } on Object catch (e) {
+        debugPrint('velorki: gazetteer ${file.tile} has no place index: $e');
+      }
+    }
+    return best;
+  }
+
+  /// Whether [row] is the better name for a ride than [other]: a bigger kind
+  /// first, the nearer of two of the same standing second.
+  static bool _outranks(SearchResult row, SearchResult other) {
+    final rank = settlementRank(row.detail);
+    final otherRank = settlementRank(other.detail);
+    if (rank != otherRank) return rank < otherRank;
+    return (row.distanceMeters ?? 0) < (other.distanceMeters ?? 0);
   }
 
   /// Opens gazetteers that appeared and closes those that are gone.
@@ -685,6 +754,74 @@ class _GazetteerFile {
     return found.length > kindSearchLimit
         ? found.sublist(0, kindSearchLimit)
         : found;
+  }
+
+  /// The settlement of this file that names a ride starting at [near], or
+  /// `null` when none is in range.
+  ///
+  /// One box wide enough for the furthest-reaching kind, on `idx_places_pos`
+  /// — the same shape as [nearest] — and every row measured properly
+  /// afterwards against the reach its own kind gets: [citySettlementMaxKm]
+  /// for a city or a town, [maxKm] for everything smaller. A city or a town
+  /// or a village then beats anything smaller however close that is, and two
+  /// of the same standing are decided by distance.
+  SearchResult? nearestSettlement(LatLng near, double maxKm) {
+    final radius = math.max(maxKm, citySettlementMaxKm) * 1000;
+    final dLat = radius / _metersPerDegree;
+    final dLon =
+        radius /
+        (_metersPerDegree *
+            math.max(math.cos(near.lat * math.pi / 180).abs(), 0.01));
+    final placeholders = List<String>.filled(
+      settlementKinds.length,
+      '?',
+    ).join(', ');
+    final rows = _db.select(
+      'SELECT name, kind, lat, lon, admin_id FROM places '
+      'WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? '
+      'AND kind IN ($placeholders) LIMIT ?',
+      <Object?>[
+        ((near.lat - dLat) * 1e7).round(),
+        ((near.lat + dLat) * 1e7).round(),
+        ((near.lon - dLon) * 1e7).round(),
+        ((near.lon + dLon) * 1e7).round(),
+        ...settlementKinds,
+        _kindFetchLimit,
+      ],
+    );
+    SearchResult? best;
+    var bestRank = 2;
+    var bestMeters = double.infinity;
+    for (final row in rows) {
+      final position = _position(row);
+      if (position == null) continue;
+      final name = row['name']?.toString() ?? '';
+      if (name.isEmpty) continue;
+      final kind = row['kind']?.toString();
+      final reach =
+          (kind == 'city' || kind == 'town'
+              ? math.max(maxKm, citySettlementMaxKm)
+              : maxKm) *
+          1000;
+      final meters = haversineMeters(near, position);
+      if (meters > reach) continue;
+      final rank = settlementRank(kind);
+      if (rank > bestRank || (rank == bestRank && meters >= bestMeters)) {
+        continue;
+      }
+      bestRank = rank;
+      bestMeters = meters;
+      best = SearchResult(
+        name: name,
+        position: position,
+        city: _contextName(_asInt(row['admin_id'])),
+        source: SearchSource.local,
+        kind: SearchKind.place,
+        detail: kind,
+        distanceMeters: meters,
+      );
+    }
+    return best;
   }
 
   /// The index terms that could be what [folded] was meant to be: the same

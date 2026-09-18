@@ -30,6 +30,7 @@ import 'package:velorki/features/recording/data/recording_recovery.dart';
 import 'package:velorki/features/recording/data/recording_service.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
 import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
+import 'package:velorki/features/recording/presentation/save_ride_sheet.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -198,6 +199,25 @@ void main() {
       find.byTooltip('Finish'),
       settle: const Duration(seconds: 2),
     );
+    // The save sheet: the ride is only written once it has a name.
+    await waitForWidget(tester, find.byType(SaveRideSheet));
+    final suggested = tester
+        .widget<TextField>(
+          find.descendant(
+            of: find.byType(SaveRideSheet),
+            matching: find.byType(TextField),
+          ),
+        )
+        .controller!
+        .text;
+    debugPrint('VELORKI_RIDE suggested name: $suggested');
+    expect(suggested, isNotEmpty);
+    await screenshot(tester, 'save-ride');
+    await tapAndPump(
+      tester,
+      find.widgetWithText(FilledButton, 'Save'),
+      settle: const Duration(seconds: 2),
+    );
     await waitUntil(
       tester,
       () => (rides.read().value ?? const []).any(
@@ -229,25 +249,13 @@ void main() {
     await screenshot(tester, 'ride-detail');
 
     // ----------------------------------------------------------- in the list
-    await tapAndPump(tester, find.text('Record'));
+    // The Library is the rides list; the record tab has none.
+    await tapAndPump(tester, find.text('Library'));
     // The row is found by the id in its Dismissible key, not by its name: a
-    // ride with no name of its own is called after the day it was ridden, so
-    // every ride this suite records in one run is called the same thing, and
-    // dragUntilVisible insists on exactly one match.
+    // ride with no name of its own is named after the time of day and the
+    // place, so every ride this suite records in one run is called the same
+    // thing, and dragUntilVisible insists on exactly one match.
     final row = find.byKey(ValueKey('ride-${ride.id}'));
-    // The recent rides sit below the fold of the sheet, under the switches,
-    // and the list only builds the rows on screen: pull the sheet up until
-    // the ride's row exists.
-    await tester.dragUntilVisible(
-      row,
-      find
-          .descendant(
-            of: find.byType(DraggableScrollableSheet),
-            matching: find.byType(Scrollable),
-          )
-          .first,
-      const Offset(0, -300),
-    );
     await waitForWidget(tester, row);
     expect(
       find.descendant(of: row, matching: find.text(ride.name)),

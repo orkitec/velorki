@@ -73,6 +73,17 @@ abstract class RecordingService {
   /// the journal and the state file are removed either way.
   Future<Ride?> stop({required String rideName});
 
+  /// Stops the recorder without writing anything, and hands back the
+  /// recording that is now waiting for a name.
+  ///
+  /// The journal and the state file stay on disk, so what is left behind is
+  /// an interrupted recording like any other: [finishInterrupted] turns it
+  /// into a ride, [discardInterrupted] throws it away, and a crash in between
+  /// leaves the launch check to offer the rider the same two choices.
+  ///
+  /// Returns `null` when nothing was being recorded.
+  Future<RecordingState?> halt();
+
   /// Re-subscribes to a recorder that outlived the UI. Returns whether one was
   /// still running.
   Future<bool> reattach();
@@ -329,17 +340,20 @@ final class MainIsolateRecordingService extends BaseRecordingService {
 
   @override
   Future<Ride?> stop({required String rideName}) async {
+    final state = await halt();
+    return state == null ? null : finalize(state, rideName: rideName);
+  }
+
+  @override
+  Future<RecordingState?> halt() async {
     final engine = _engine;
     _engine = null;
     await _subscription?.cancel();
     _subscription = null;
-    if (engine == null) {
-      final pending = await pendingState();
-      return pending == null ? null : finalize(pending, rideName: rideName);
-    }
+    if (engine == null) return pendingState();
     await engine.stop();
     publish(engine.snapshot);
-    return finalize(engine.state, rideName: rideName);
+    return engine.state;
   }
 
   @override
@@ -442,6 +456,12 @@ final class ForegroundTaskRecordingService extends BaseRecordingService {
 
   @override
   Future<Ride?> stop({required String rideName}) async {
+    final state = await halt();
+    return state == null ? null : finalize(state, rideName: rideName);
+  }
+
+  @override
+  Future<RecordingState?> halt() async {
     final state = await pendingState();
     if (await isRunning) {
       final stopped = _stopped = Completer<void>();
@@ -456,8 +476,7 @@ final class ForegroundTaskRecordingService extends BaseRecordingService {
       await FlutterForegroundTask.stopService();
     }
     _detach();
-    if (state == null) return null;
-    return finalize(state, rideName: rideName);
+    return state;
   }
 
   @override

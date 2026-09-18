@@ -4,11 +4,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
+import 'package:velorki/features/recording/data/recording_journal.dart';
 import 'package:velorki/features/recording/data/recording_recovery.dart';
 import 'package:velorki/features/recording/data/recording_service.dart';
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/features/recording/domain/recording_state.dart';
 import 'package:velorki/features/recording/domain/ride.dart';
+import 'package:velorki/features/recording/domain/ride_naming.dart';
 import 'package:velorki/core/geo/ride_stats.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
@@ -23,11 +25,13 @@ import 'package:velorki/features/recording/domain/gps_precision.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
 import 'package:velorki/features/recording/presentation/rides_list.dart';
+import 'package:velorki/features/recording/presentation/save_ride_sheet.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
 import '../../support/format.dart';
+import '../search/support/gazetteer_fixture.dart';
 import '../planner/support/fakes.dart' show MapCall;
 import 'support/pump.dart';
 
@@ -71,6 +75,65 @@ Ride _ride() => Ride(
       time: DateTime.utc(2026, 9, 12, 10, 0, 30),
     ),
   ]),
+);
+
+/// The recording a stopped ride leaves behind for the save sheet.
+RecordingState _recording() => RecordingState(
+  rideId: 'ride-1',
+  startedAt: DateTime.utc(2026, 9, 12, 10),
+  status: RecordingStatus.active,
+);
+
+/// A journal that starts and ends in the same spot: a loop, with no gazetteer
+/// to name the ground it ran over.
+List<TrackPoint> _journalPoints() => <TrackPoint>[
+  TrackPoint(
+    const LatLng(32.6669, -16.9241),
+    time: DateTime.utc(2026, 9, 12, 10),
+  ),
+  TrackPoint(
+    const LatLng(32.6687, -16.9241),
+    time: DateTime.utc(2026, 9, 12, 10, 30),
+  ),
+  TrackPoint(
+    const LatLng(32.6669, -16.9241),
+    time: DateTime.utc(2026, 9, 12, 11),
+  ),
+];
+
+/// The name the sheet offers for [_recording] over [_journalPoints]: a loop,
+/// named after the part of the day the ride started in locally.
+String get _defaultName => defaultRideName(
+  l10n,
+  startedAt: DateTime.utc(2026, 9, 12, 10).toLocal(),
+  isLoop: true,
+);
+
+/// Lets the journal read and the place lookup behind the sheet finish, then
+/// settles the sheet's animation.
+///
+/// Naming a ride is a chain of real file system work — the journal, then the
+/// gazetteer — and [WidgetTester.pumpAndSettle] drives only the frame
+/// scheduler, so each link needs its own turn of the real event loop.
+Future<void> settleSheet(WidgetTester tester) async {
+  for (var i = 0; i < 6; i++) {
+    await settleAsync(tester);
+  }
+  await tester.pumpAndSettle();
+}
+
+/// Writes [_journalPoints] as the journal of `ride-1` in [harness].
+///
+/// Through [WidgetTester.runAsync]: a test body runs in fake time, where a
+/// real file write never completes.
+Future<void> writeJournal(
+  WidgetTester tester,
+  RecordingHarness harness, [
+  List<TrackPoint>? points,
+]) => tester.runAsync(
+  () =>
+      RecordingStore(harness.directory)
+          .writeJournal('ride-1', points ?? _journalPoints()),
 );
 
 void main() {
@@ -369,22 +432,49 @@ void main() {
 
     await emitSnapshot(tester, h, _snapshot());
     await tester.tap(find.byTooltip(l10n.recordingFinish));
-    await tester.pumpAndSettle();
+    await settleSheet(tester);
 
-    expect(h.service.calls.last, startsWith('stop('));
+    expect(h.service.calls, <String>['pause', 'halt']);
+    expect(find.byType(SaveRideSheet), findsNothing);
     expect(find.text(l10n.recordingNothingRecorded), findsOneWidget);
     await unmountApp(tester);
   });
 
-  testWidgets('finishing a ride opens its detail screen', (tester) async {
-    final harness = RecordingHarness()..service.finishedRide = _ride();
+  testWidgets('a ride with nothing in its journal is not worth naming', (
+    tester,
+  ) async {
+    final h = RecordingHarness()..service.haltedRecording = _recording();
+    await pumpRecordingScreen(tester, const RecordingScreen(), harness: h);
+    await tester.pump();
+
+    await emitSnapshot(tester, h, _snapshot());
+    await tester.tap(find.byTooltip(l10n.recordingFinish));
+    await settleSheet(tester);
+
+    expect(find.byType(SaveRideSheet), findsNothing);
+    expect(h.service.calls, <String>[
+      'pause',
+      'halt',
+      'finishInterrupted(ride-1)',
+    ]);
+    expect(find.text(l10n.recordingNothingRecorded), findsOneWidget);
+    await unmountApp(tester);
+  });
+
+  testWidgets('saving a ride opens its detail screen', (tester) async {
+    final harness = RecordingHarness()
+      ..service.finishedRide = _ride()
+      ..service.haltedRecording = _recording();
+    await writeJournal(tester, harness);
     await RideRepository(harness.planner.db.ridesDao).save(_ride());
     await pumpRecordingApp(tester, harness: harness);
     await tester.pump();
 
     await emitSnapshot(tester, harness, _snapshot());
     await tester.tap(find.byTooltip(l10n.recordingFinish));
-    await tester.pumpAndSettle();
+    await settleSheet(tester);
+    await tester.tap(find.widgetWithText(FilledButton, l10n.commonSave));
+    await settleSheet(tester);
 
     expect(find.byType(RideDetailScreen), findsOneWidget);
     expect(find.text('Ride 12 Sept 2026'), findsWidgets);
@@ -394,14 +484,19 @@ void main() {
   testWidgets('a late snapshot after finishing does not revive the ride', (
     tester,
   ) async {
-    final harness = RecordingHarness()..service.finishedRide = _ride();
+    final harness = RecordingHarness()
+      ..service.finishedRide = _ride()
+      ..service.haltedRecording = _recording();
+    await writeJournal(tester, harness);
     await RideRepository(harness.planner.db.ridesDao).save(_ride());
     await pumpRecordingApp(tester, harness: harness);
     await tester.pump();
 
     await emitSnapshot(tester, harness, _snapshot());
     await tester.tap(find.byTooltip(l10n.recordingFinish));
-    await tester.pumpAndSettle();
+    await settleSheet(tester);
+    await tester.tap(find.widgetWithText(FilledButton, l10n.commonSave));
+    await settleSheet(tester);
     expect(find.byType(RideDetailScreen), findsOneWidget);
 
     // The foreground isolate flushes one last time after the stop; the
@@ -545,15 +640,22 @@ void main() {
       await unmountApp(tester);
     });
 
-    testWidgets('Finish turns it into a ride', (tester) async {
+    testWidgets('Finish goes through the save sheet', (tester) async {
       final h = harnessWith();
+      await writeJournal(tester, h);
       await pumpRecordingScreen(tester, const RecordingScreen(), harness: h);
       await tester.pumpAndSettle();
 
       await tester.tap(find.text(l10n.recordingFinish));
-      await tester.pumpAndSettle();
+      await settleSheet(tester);
+      expect(find.byType(SaveRideSheet), findsOneWidget);
+      expect(find.text(l10n.rideSaveTitle), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(FilledButton, l10n.commonSave));
+      await settleSheet(tester);
 
       expect(h.service.calls, <String>['finishInterrupted(ride-1)']);
+      expect(h.service.savedNames, <String>[_defaultName]);
       await unmountApp(tester);
     });
 
@@ -566,6 +668,246 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(h.service.calls, <String>['discardInterrupted(ride-1)']);
+      await unmountApp(tester);
+    });
+  });
+
+  group('the save sheet', () {
+    /// A stopped ride waiting to be named, with a loop in its journal.
+    ///
+    /// The whole shell, not the bare screen: saving goes on to the ride's
+    /// detail page, which needs the router.
+    Future<RecordingHarness> pumpStopped(
+      WidgetTester tester, {
+      List<GazPlace> places = const <GazPlace>[],
+    }) async {
+      final h = RecordingHarness()
+        ..service.haltedRecording = _recording()
+        ..service.finishedRide = _ride();
+      await writeJournal(tester, h);
+      if (places.isNotEmpty) {
+        buildGazetteer(h.gazetteerDirectory, 'W20_N30', places: places);
+      }
+      await RideRepository(h.planner.db.ridesDao).save(_ride());
+      await pumpRecordingApp(tester, harness: h);
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot());
+      await tester.tap(find.byTooltip(l10n.recordingFinish));
+      await settleSheet(tester);
+      return h;
+    }
+
+    /// A finder inside the sheet, so the live panel behind it is not matched.
+    Finder inSheet(Finder finder) =>
+        find.descendant(of: find.byType(SaveRideSheet), matching: finder);
+
+    Finder saveButton() => find.widgetWithText(FilledButton, l10n.commonSave);
+
+    testWidgets('opens on stop with the default name selected', (tester) async {
+      final h = await pumpStopped(tester);
+
+      expect(find.byType(SaveRideSheet), findsOneWidget);
+      expect(find.text(l10n.rideSaveTitle), findsOneWidget);
+      expect(h.service.calls, <String>['pause']);
+
+      final field = tester.widget<TextField>(inSheet(find.byType(TextField)));
+      expect(field.controller?.text, _defaultName);
+      expect(
+        field.controller?.selection,
+        TextSelection(baseOffset: 0, extentOffset: _defaultName.length),
+        reason: 'typing replaces the suggestion',
+      );
+      expectNoClippedText(tester);
+      await unmountApp(tester);
+    });
+
+    testWidgets('shows what was ridden', (tester) async {
+      await pumpStopped(tester);
+
+      expect(
+        inSheet(find.text(l10n.statDistance.toUpperCase())),
+        findsOneWidget,
+      );
+      expect(inSheet(find.text(testDistance(12345))), findsOneWidget);
+      expect(
+        inSheet(find.text(l10n.statMovingTime.toUpperCase())),
+        findsOneWidget,
+      );
+      expect(inSheet(find.text(l10n.statAscent.toUpperCase())), findsOneWidget);
+      expect(inSheet(find.text(testHeight(210))), findsOneWidget);
+      await unmountApp(tester);
+    });
+
+    testWidgets('the name carries the place the gazetteer knows', (
+      tester,
+    ) async {
+      await pumpStopped(
+        tester,
+        places: const <GazPlace>[
+          GazPlace(1, 'Funchal', 'city', 32.6669, -16.9241, population: 105000),
+        ],
+      );
+
+      final field = tester.widget<TextField>(inSheet(find.byType(TextField)));
+      expect(
+        field.controller?.text,
+        defaultRideName(
+          l10n,
+          startedAt: DateTime.utc(2026, 9, 12, 10).toLocal(),
+          startPlace: 'Funchal',
+          endPlace: 'Funchal',
+          isLoop: true,
+        ),
+      );
+      expectNoClippedText(tester);
+      await unmountApp(tester);
+    });
+
+    testWidgets('Save keeps the name the rider typed', (tester) async {
+      final h = await pumpStopped(tester);
+
+      await tester.enterText(
+        inSheet(find.byType(TextField)),
+        'Levada do Norte',
+      );
+      await tester.tap(saveButton());
+      await settleSheet(tester);
+
+      expect(find.byType(SaveRideSheet), findsNothing);
+      expect(h.service.calls, <String>[
+        'pause',
+        'halt',
+        'finishInterrupted(ride-1)',
+      ]);
+      expect(h.service.savedNames, <String>['Levada do Norte']);
+      await unmountApp(tester);
+    });
+
+    testWidgets('a name of nothing but spaces falls back to the default', (
+      tester,
+    ) async {
+      final h = await pumpStopped(tester);
+
+      await tester.enterText(inSheet(find.byType(TextField)), '   ');
+      await tester.tap(saveButton());
+      await settleSheet(tester);
+
+      expect(h.service.savedNames, <String>[_defaultName]);
+      await unmountApp(tester);
+    });
+
+    testWidgets('Discard asks once and then throws the ride away', (
+      tester,
+    ) async {
+      final h = await pumpStopped(tester);
+
+      await tester.tap(find.widgetWithText(TextButton, l10n.rideSaveDiscard));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.rideSaveDiscardTitle), findsOneWidget);
+      expect(find.text(l10n.rideSaveDiscardBody), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(FilledButton, l10n.rideSaveDiscard));
+      await settleSheet(tester);
+
+      expect(find.byType(SaveRideSheet), findsNothing);
+      expect(h.service.calls, <String>[
+        'pause',
+        'halt',
+        'discardInterrupted(ride-1)',
+      ]);
+      expect(h.service.savedNames, isEmpty);
+      await unmountApp(tester);
+    });
+
+    testWidgets('cancelling the question leaves the sheet standing', (
+      tester,
+    ) async {
+      final h = await pumpStopped(tester);
+
+      await tester.tap(find.widgetWithText(TextButton, l10n.rideSaveDiscard));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, l10n.commonCancel));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.rideSaveDiscardTitle), findsNothing);
+      expect(find.byType(SaveRideSheet), findsOneWidget);
+      expect(h.service.calls, <String>['pause']);
+      await unmountApp(tester);
+    });
+
+    testWidgets('a tap outside does not leave the ride half-finished', (
+      tester,
+    ) async {
+      final h = await pumpStopped(tester);
+
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SaveRideSheet), findsOneWidget);
+      expect(h.service.calls, <String>['pause']);
+      await unmountApp(tester);
+    });
+
+    testWidgets('Continue resumes the recording with the same ride', (
+      tester,
+    ) async {
+      final h = await pumpStopped(tester);
+
+      await tester.tap(
+        find.widgetWithText(OutlinedButton, l10n.rideSaveContinue),
+      );
+      await settleSheet(tester);
+
+      expect(find.byType(SaveRideSheet), findsNothing);
+      expect(h.service.calls, <String>[
+        'pause',
+        'resume',
+      ], reason: 'nothing is written and nothing is thrown away');
+      expect(h.service.savedNames, isEmpty);
+      // The live panel is still there, on the ride that was never finished.
+      expect(
+        find.text(l10n.recordingStatusRecording.toUpperCase()),
+        findsOneWidget,
+      );
+      await unmountApp(tester);
+    });
+
+    testWidgets('back acts like Continue', (tester) async {
+      final h = await pumpStopped(tester);
+
+      await tester.binding.handlePopRoute();
+      await settleSheet(tester);
+
+      expect(find.byType(SaveRideSheet), findsNothing);
+      expect(h.service.calls, <String>['pause', 'resume']);
+      expect(h.service.savedNames, isEmpty);
+      await unmountApp(tester);
+    });
+
+    testWidgets('a ride the rider paused first is not resumed by Continue', (
+      tester,
+    ) async {
+      final h = RecordingHarness()
+        ..service.haltedRecording = _recording()
+        ..service.finishedRide = _ride();
+      await writeJournal(tester, h);
+      await RideRepository(h.planner.db.ridesDao).save(_ride());
+      await pumpRecordingApp(tester, harness: h);
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot(status: RecordingStatus.paused));
+      await tester.tap(find.byTooltip(l10n.recordingFinish));
+      await settleSheet(tester);
+
+      await tester.tap(
+        find.widgetWithText(OutlinedButton, l10n.rideSaveContinue),
+      );
+      await settleSheet(tester);
+
+      expect(
+        h.service.calls,
+        isEmpty,
+        reason: 'it was already paused, so there is nothing to undo',
+      );
       await unmountApp(tester);
     });
   });
