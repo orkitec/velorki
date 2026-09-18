@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:live_activities/live_activities.dart';
+import 'package:logging/logging.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 
 /// The App Group both the app and the widget extension are members of.
@@ -9,6 +10,8 @@ import 'package:velorki_brouter/velorki_brouter.dart';
 /// `UserDefaults` of this group, so the same string has to be set as an App
 /// Group capability on the `Runner` and the `VelorkiLiveActivity` targets in
 /// Xcode. See `ios/VelorkiLiveActivity/README.md`.
+final Logger _log = Logger('velorki.recording');
+
 const String liveActivityAppGroupId = 'group.com.orkitec.velorki';
 
 /// Id of the ride activity. One ride, one activity, so a fixed string is
@@ -63,8 +66,14 @@ class PluginRideLiveActivity implements RideLiveActivity {
   /// Whether the app group was handed to the plugin already.
   bool _initialized = false;
 
-  /// Whether a card is up, so an update goes nowhere before a start.
-  bool _running = false;
+  /// ActivityKit's id for the card that is up, as `createActivity` handed it
+  /// back; `null` while there is none. The plugin finds an activity by this
+  /// id, not by the name it was requested under: updates and the end sent
+  /// under the name went to "Activity not found", and the card sat at its
+  /// first figures for the whole ride.
+  String? _activityId;
+
+  bool get _running => _activityId != null;
 
   @override
   Future<void> start(Map<String, Object?> data) async {
@@ -81,7 +90,7 @@ class PluginRideLiveActivity implements RideLiveActivity {
         _initialized = true;
       }
       if (!await _plugin.areActivitiesSupported()) return;
-      await _plugin.createActivity(
+      _activityId = await _plugin.createActivity(
         rideActivityId,
         Map<String, dynamic>.of(data),
         // Remote updates would need the Push Notifications capability, and
@@ -89,31 +98,34 @@ class PluginRideLiveActivity implements RideLiveActivity {
         iOSEnableRemoteUpdates: false,
         removeWhenAppIsKilled: true,
       );
-      _running = true;
+      if (_activityId == null) _log.warning('Live activity: no id came back');
     });
   }
 
   @override
   Future<void> update(Map<String, Object?> data) async {
-    if (!_running) return;
+    final id = _activityId;
+    if (id == null) return;
     await _quietly(
-      () =>
-          _plugin.updateActivity(rideActivityId, Map<String, dynamic>.of(data)),
+      () => _plugin.updateActivity(id, Map<String, dynamic>.of(data)),
     );
   }
 
   @override
   Future<void> end() async {
-    if (!_running) return;
-    _running = false;
-    await _quietly(() => _plugin.endActivity(rideActivityId));
+    final id = _activityId;
+    if (id == null) return;
+    _activityId = null;
+    await _quietly(() => _plugin.endActivity(id));
   }
 
+  /// Nothing here may take the ride down, but nothing may vanish either: a
+  /// card that silently stops updating is what this looked like once.
   Future<void> _quietly(Future<void> Function() call) async {
     try {
       await call();
-    } catch (error) {
-      debugPrint('Live activity: $error');
+    } catch (error, stackTrace) {
+      _log.warning('Live activity call failed', error, stackTrace);
     }
   }
 }
