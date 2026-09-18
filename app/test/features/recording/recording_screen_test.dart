@@ -22,6 +22,7 @@ import 'package:velorki/features/navigation/presentation/navigation_toggles.dart
 import 'package:velorki/features/navigation/presentation/turn_banner.dart';
 import 'package:velorki/features/recording/data/recording_settings.dart';
 import 'package:velorki/features/recording/domain/gps_precision.dart';
+import 'package:velorki/features/recording/presentation/recording_format.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
 import 'package:velorki/features/recording/presentation/rides_list.dart';
@@ -43,6 +44,9 @@ RecordingSnapshot _snapshot({
   LatLng lastPosition = const LatLng(48.1, 11.2),
   double? headingDeg,
   double speedMps = 6,
+  int? heartRateBpm,
+  int? cadenceRpm,
+  int? powerW,
 }) => RecordingSnapshot(
   rideId: 'ride-1',
   status: status,
@@ -60,6 +64,9 @@ RecordingSnapshot _snapshot({
   accuracyM: 4,
   pointCount: 120,
   newPoints: newPoints,
+  heartRateBpm: heartRateBpm,
+  cadenceRpm: cadenceRpm,
+  powerW: powerW,
 );
 
 Ride _ride() => Ride(
@@ -380,10 +387,45 @@ void main() {
     expect(find.text(testHeight(210)), findsOneWidget);
     expect(find.byTooltip(l10n.recordingPause), findsOneWidget);
     expect(find.byTooltip(l10n.recordingFinish), findsOneWidget);
+    // No sensor is paired, so the third row is not there at all.
+    expect(find.text(l10n.statHeartRate.toUpperCase()), findsNothing);
 
     final track = h.map.calls.where((c) => c.method == 'setTrackLine').last;
     expect(track.arguments.first, hasLength(2));
     expect(h.map.calls.where((c) => c.method == 'setPosition'), isNotEmpty);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('the sensor row appears once something reports', (tester) async {
+    final h = await pumpRecordingScreen(tester, const RecordingScreen());
+    await tester.pump();
+
+    await emitSnapshot(
+      tester,
+      h,
+      _snapshot(heartRateBpm: 142, cadenceRpm: 0, powerW: 210),
+    );
+
+    expect(find.text(l10n.statHeartRate.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.statCadence.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.statPower.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.unitBpm('142')), findsOneWidget);
+    expect(find.text(l10n.unitRpm('0')), findsOneWidget);
+    expect(find.text(l10n.unitWatts('210')), findsOneWidget);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('a value that has gone stale reads as a dash', (tester) async {
+    final h = await pumpRecordingScreen(tester, const RecordingScreen());
+    await tester.pump();
+
+    await emitSnapshot(tester, h, _snapshot(heartRateBpm: 142));
+
+    expect(find.text(l10n.unitBpm('142')), findsOneWidget);
+    // Cadence and power have no sensor at all; both tiles say so.
+    expect(find.text(absentSensorValue), findsNWidgets(2));
 
     await unmountApp(tester);
   });

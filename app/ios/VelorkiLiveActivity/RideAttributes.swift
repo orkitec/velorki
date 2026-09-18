@@ -50,6 +50,10 @@ import Foundation
     /// How fast the rider is going right now, e.g. "18.0 km/h".
     let speed: String
 
+    /// The heart rate as a bare number, e.g. "142"; empty when no sensor is
+    /// reporting one.
+    let heartRate: String
+
     /// The SF Symbol of the next turn, empty when nothing is being navigated.
     let turnIcon: String
 
@@ -69,6 +73,7 @@ import Foundation
       distance = text("distance")
       elapsed = text("elapsed")
       speed = text("speed")
+      heartRate = text("heartRate")
       turnIcon = text("turnIcon")
       turnLabel = text("turnLabel")
       turnDistance = text("turnDistance")
@@ -79,6 +84,11 @@ import Foundation
     /// Whether there is a turn worth showing.
     var hasTurn: Bool {
       !turnLabel.isEmpty && !turnIcon.isEmpty
+    }
+
+    /// Whether a sensor is reporting a heart rate.
+    var hasHeartRate: Bool {
+      !heartRate.isEmpty
     }
   }
 #endif

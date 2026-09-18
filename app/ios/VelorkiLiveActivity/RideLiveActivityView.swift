@@ -26,8 +26,15 @@ import WidgetKit
             }
           }
           DynamicIslandExpandedRegion(.trailing) {
-            Text(ride.speed)
-              .font(.title3.weight(.medium))
+            VStack(alignment: .trailing, spacing: 2) {
+              Text(ride.speed)
+                .font(.title3.weight(.medium))
+              if ride.hasHeartRate {
+                Label(ride.heartRate, systemImage: "heart.fill")
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+              }
+            }
           }
           DynamicIslandExpandedRegion(.bottom) {
             if ride.hasTurn {
@@ -68,6 +75,9 @@ import WidgetKit
         HStack(spacing: 20) {
           Label(ride.elapsed, systemImage: "clock")
           Label(ride.speed, systemImage: "speedometer")
+          if ride.hasHeartRate {
+            Label(ride.heartRate, systemImage: "heart.fill")
+          }
         }
         .font(.subheadline)
         .monospacedDigit()

@@ -113,6 +113,59 @@ class RideSpeedChart extends ConsumerWidget {
   }
 }
 
+/// How hard a recorded ride was ridden, over its distance.
+///
+/// Draws nothing when the track carried no heart rate — no sensor was paired,
+/// or it was paired halfway through and never reported twice.
+class RideHeartRateChart extends ConsumerWidget {
+  /// Creates the chart.
+  const RideHeartRateChart({required this.samples, super.key});
+
+  /// The analysed samples of the ride.
+  final List<ChartSample> samples;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final system = ref.watch(unitSystemProvider);
+    // Only the samples that have a reading; a gap in the middle simply closes.
+    final withHeartRate = <ChartSample>[
+      for (final sample in samples)
+        if (sample.heartRateBpm != null) sample,
+    ];
+    if (withHeartRate.length < 2) return const SizedBox.shrink();
+
+    final spots = <FlSpot>[
+      for (final sample in withHeartRate)
+        FlSpot(
+          units.distanceToDisplay(system, sample.distanceM),
+          sample.heartRateBpm!.toDouble(),
+        ),
+    ];
+    var lowest = spots.first.y;
+    var highest = spots.first.y;
+    for (final spot in spots) {
+      if (spot.y < lowest) lowest = spot.y;
+      if (spot.y > highest) highest = spot.y;
+    }
+    // Five to twenty beats of air around the line: a resting heart rate is
+    // nowhere near zero, so an axis that starts there would draw a flat line.
+    final padding = ((highest - lowest) * 0.1).clamp(5.0, 20.0);
+
+    return MetricChart(
+      title: l10n.rideHeartRate,
+      spots: spots,
+      height: rideChartHeight,
+      minY: lowest - padding,
+      maxY: highest + padding,
+      readoutAt: (index) => l10n.rideChartPoint(
+        formatDistance(l10n, system, withHeartRate[index].distanceM),
+        formatHeartRate(l10n, withHeartRate[index].heartRateBpm),
+      ),
+    );
+  }
+}
+
 /// What the colours of the track under it mean: slow at one end of the ramp,
 /// fast at the other. No numbers — the classes are the ride's own quantiles,
 /// so the only thing worth saying is which way round they run.

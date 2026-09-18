@@ -2,6 +2,24 @@ import '../../../core/units/units.dart' as units;
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/presentation/route_format.dart';
 
+/// What a sensor figure reads while nothing is reporting it.
+const String absentSensorValue = '—';
+
+/// A heart rate, or [absentSensorValue] when no sensor is reporting one.
+String formatHeartRate(AppLocalizations l10n, int? bpm) =>
+    bpm == null ? absentSensorValue : l10n.unitBpm('$bpm');
+
+/// A cadence, or [absentSensorValue] when no sensor is reporting one.
+///
+/// Zero is a figure, not an absence: a rider freewheeling downhill pedals at
+/// nothing and the tile should say so.
+String formatCadence(AppLocalizations l10n, int? rpm) =>
+    rpm == null ? absentSensorValue : l10n.unitRpm('$rpm');
+
+/// A power, or [absentSensorValue] when no sensor is reporting one.
+String formatPower(AppLocalizations l10n, int? watts) =>
+    watts == null ? absentSensorValue : l10n.unitWatts('$watts');
+
 /// A speed, in the rider's own units with one decimal.
 String formatSpeed(
   AppLocalizations l10n,

@@ -340,6 +340,32 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                           label: l10n.statDescent,
                           value: formatHeight(l10n, units, stats.descentM),
                         ),
+                        // Only what a sensor actually reported: an empty
+                        // heart rate tile on every ride would say nothing.
+                        if (stats.avgHeartRateBpm != null)
+                          RideStatItem(
+                            icon: Icons.favorite,
+                            label: l10n.statAvgHeartRate,
+                            value: formatHeartRate(l10n, stats.avgHeartRateBpm),
+                          ),
+                        if (stats.maxHeartRateBpm != null)
+                          RideStatItem(
+                            icon: Icons.favorite_border,
+                            label: l10n.statMaxHeartRate,
+                            value: formatHeartRate(l10n, stats.maxHeartRateBpm),
+                          ),
+                        if (stats.avgCadenceRpm != null)
+                          RideStatItem(
+                            icon: Icons.rotate_right,
+                            label: l10n.statAvgCadence,
+                            value: formatCadence(l10n, stats.avgCadenceRpm),
+                          ),
+                        if (stats.avgPowerW != null)
+                          RideStatItem(
+                            icon: Icons.electric_bolt,
+                            label: l10n.statAvgPower,
+                            value: formatPower(l10n, stats.avgPowerW),
+                          ),
                       ],
                     ),
                     if (analysis != null) ...[
@@ -350,6 +376,10 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                       if (analysis.hasSpeed) ...[
                         const SizedBox(height: 28),
                         RideSpeedChart(samples: analysis.samples),
+                      ],
+                      if (analysis.hasHeartRate) ...[
+                        const SizedBox(height: 28),
+                        RideHeartRateChart(samples: analysis.samples),
                       ],
                       if (analysis.splits.isNotEmpty) ...[
                         const SizedBox(height: 28),

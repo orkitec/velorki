@@ -178,6 +178,9 @@ Map<String, Object?> rideActivityData(
   'distance': formatDistance(l10n, units, snapshot.distanceM),
   'elapsed': formatClock(snapshot.elapsed),
   'speed': formatSpeed(l10n, units, snapshot.speedMps),
+  // The bare number: the lock screen puts a heart beside it instead of a
+  // unit, and an empty string is how the widget learns there is no sensor.
+  'heartRate': snapshot.heartRateBpm == null ? '' : '${snapshot.heartRateBpm}',
   'turnIcon': _turnIcon(progress),
   'turnLabel': _turnLabel(l10n, progress) ?? '',
   'turnDistance': _turnDistance(l10n, units, progress) ?? '',

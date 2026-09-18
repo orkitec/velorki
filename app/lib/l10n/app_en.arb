@@ -358,6 +358,36 @@
       }
     }
   },
+  "unitBpm": "{value} bpm",
+  "@unitBpm": {
+    "description": "A heart rate in beats per minute",
+    "placeholders": {
+      "value": {
+        "type": "String",
+        "example": "142"
+      }
+    }
+  },
+  "unitRpm": "{value} rpm",
+  "@unitRpm": {
+    "description": "A pedalling cadence in revolutions per minute",
+    "placeholders": {
+      "value": {
+        "type": "String",
+        "example": "85"
+      }
+    }
+  },
+  "unitWatts": "{value} W",
+  "@unitWatts": {
+    "description": "A power in watts",
+    "placeholders": {
+      "value": {
+        "type": "String",
+        "example": "210"
+      }
+    }
+  },
   "valueHoursMinutes": "{hours} h {minutes} min",
   "@valueHoursMinutes": {
     "description": "A duration of an hour or more",
@@ -1205,6 +1235,38 @@
   "statMaxSpeed": "Max",
   "@statMaxSpeed": {
     "description": "Label of the highest speed figure, short for maximum"
+  },
+  "statHeartRate": "Heart rate",
+  "@statHeartRate": {
+    "description": "Label of the heart rate figure on the record sheet"
+  },
+  "statCadence": "Cadence",
+  "@statCadence": {
+    "description": "Label of the pedalling cadence figure on the record sheet"
+  },
+  "statPower": "Power",
+  "@statPower": {
+    "description": "Label of the pedalling power figure on the record sheet"
+  },
+  "statAvgHeartRate": "Avg HR",
+  "@statAvgHeartRate": {
+    "description": "Label of the average heart rate of a ride, short for average heart rate"
+  },
+  "statMaxHeartRate": "Max HR",
+  "@statMaxHeartRate": {
+    "description": "Label of the highest heart rate of a ride, short for maximum heart rate"
+  },
+  "statAvgCadence": "Avg cadence",
+  "@statAvgCadence": {
+    "description": "Label of the average pedalling cadence of a ride"
+  },
+  "statAvgPower": "Avg power",
+  "@statAvgPower": {
+    "description": "Label of the average pedalling power of a ride"
+  },
+  "rideHeartRate": "Heart rate",
+  "@rideHeartRate": {
+    "description": "Caption above the heart rate chart of a recorded ride"
   },
   "statMovingTime": "Moving",
   "@statMovingTime": {

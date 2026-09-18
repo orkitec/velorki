@@ -83,7 +83,7 @@ and hides the Plus features — see [SELF_HOSTING.md](SELF_HOSTING.md).
 |---|---|---|
 | State and DI | Riverpod 3 with `riverpod_annotation` codegen, no `get_it` | doubles as dependency injection; testable through `ProviderContainer(overrides:)` |
 | Persistence | Drift 2 (SQLite) for routes, rides, offline regions and tiles; `shared_preferences` for settings; `flutter_secure_storage` for OAuth tokens | typed SQL, migrations, streams |
-| Geometry storage | one packed `BLOB` per route or ride (`velorki_geo/PackedTrack`: lat f64, lon f64, ele f32, timeMs i64, speed f32, acc f32 = 36 bytes per point, with a version byte) | 10k points are one row of 360 KB instead of 10k rows; the same format is the recording journal |
+| Geometry storage | one packed `BLOB` per route or ride (`velorki_geo/PackedTrack` v2: lat f64, lon f64, ele f32, timeMs i64, speed f32, acc f32, heart rate u16, cadence u16, power u16 = 42 bytes per point, with a version byte; v1 records are the first 36 of those and still decode) | 10k points are one row of 420 KB instead of 10k rows; the same format is the recording journal |
 | Navigation | go_router with `StatefulShellRoute` and four tabs (Plan, Record, Library, Settings); deep links through `app_links` | few routes, so no `go_router_builder` |
 | Codegen | freezed, json_serializable, drift_dev, riverpod_generator, gen-l10n; generated files are not committed, `app/tool/gen.sh` runs them | |
 | HTTP | dio | interceptors for token refresh, the rate-limit bucket, multipart, cancellation |
@@ -156,8 +156,10 @@ storage, not in the database.
   distance, ascent, descent, bbox, the geometry blob, and waypoints, routing
   options, surface stats, external ids and `external_fetched_at` as JSON.
 - **`rides`** — id, name, start and end, distance, moving and elapsed time,
-  ascent, descent, average and maximum speed, an optional `route_id`, the
-  geometry blob including time, pauses, uploads, notes.
+  ascent, descent, average and maximum speed, average and maximum heart rate,
+  average cadence and average power (null without a sensor), an optional
+  `route_id`, the geometry blob including time and the per-fix sensor values,
+  pauses, uploads, notes.
 - **`offline_regions`** — the downloaded MapLibre offline map regions.
 - **`routing_tiles`** — the rd5 segment tiles downloaded for on-device routing:
   name, bytes, `updated_at`, `format_version`, state.
@@ -179,7 +181,7 @@ comes from sniffing the bytes — `<gpx` or `<?xml` versus the FIT header at
 offset 8 — not the MIME type; timestamps decide route or ride. Both manifests
 must declare the file types.
 
-**Recording that survives an app kill.** The recorder appends 36-byte
+**Recording that survives an app kill.** The recorder appends 42-byte
 `PackedTrack` records to `<appSupport>/recording/<rideId>.vtj`, flushing every
 5 points or 10 seconds, next to a `recording_state.json`. On launch
 `RecoveryService` reattaches to a running recording or offers Resume/Finish for
@@ -220,9 +222,25 @@ animation, 40 % brightness while the screen is held awake, and a black glance
 page of figures after 30 s without a touch. See [BATTERY.md](BATTERY.md).
 A finished ride is measured a second time by `core/geo/ride_analysis.dart`
 (`analyseRide`, once per ride and unit system through `rideAnalysisProvider`):
-kilometre or mile splits, at most 400 smoothed chart samples for the elevation
-and speed charts, and the track cut into five speed classes by its own
-quantiles, which the ride page draws through `MapController.setTrackSegments`.
+kilometre or mile splits, at most 400 smoothed chart samples for the elevation,
+speed and heart rate charts, and the track cut into five speed classes by its
+own quantiles, which the ride page draws through
+`MapController.setTrackSegments`.
+
+**Sensors.** `features/sensors` is one `SensorHub` (a keep-alive Riverpod
+notifier) that every source registers with: heart rate, cadence, wheel speed
+and power, each reading tagged with the source it came from. For every kind the
+hub publishes the reading of the highest-priority source that has reported
+inside 10 s — a watch (3) beats a Bluetooth sensor (2) beats a health store
+(1) — and hands back to a lower one as soon as the higher falls silent, so a
+strap left at home is simply not there. The hub is the only thing the recorder
+talks to: `RecordingEngine` asks it once per fix and stamps the fresh values
+onto the track point, and once per snapshot for what the sheet shows. On iOS
+the engine reads the provider directly; on Android it lives in the service
+isolate, so the main isolate pushes each change across the port with
+`sendDataToTask`, at most once a second, and the task handler holds the last
+one. Nothing platform-shaped lives here yet: the sources themselves are a
+later slice.
 
 
 **Lock screen.** While a ride records, `RideNotificationUpdater` (kept alive

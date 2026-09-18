@@ -24,6 +24,11 @@ exercised there. The items here are the parts not yet covered by that.
 - [ ] **Strava API application**: client id/secret into the relay;
       "Authorization Callback Domain" = `oauth`; the developer account needs an
       active Strava subscription; self-service up to 10 athletes, then review.
+- [ ] **Head-unit sync** (Plus): send a route to Garmin, Wahoo and Hammerhead.
+      None takes courses over Bluetooth from a third party; each has a cloud
+      API behind a partner programme (Garmin Courses via Connect, Wahoo Cloud
+      API, Hammerhead dashboard) that needs a server-side secret, so it lives
+      in the relay. Garmin first. GPX export into the makers' apps works today.
 - [ ] **RideWithGPS API client**: self-service key + OAuth client id/secret.
 - [ ] **RevenueCat project**: entitlement `plus`, one offering with
       monthly/yearly packages, a 7-day introductory offer; public SDK keys into

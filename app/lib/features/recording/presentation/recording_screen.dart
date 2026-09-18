@@ -1524,6 +1524,30 @@ class _LivePanel extends ConsumerWidget {
             ),
           ],
         ),
+        // Only when something is paired: three empty tiles would be three
+        // lines of nothing on a sheet that has to be read at a glance.
+        if (snapshot.hasSensors) ...[
+          const SizedBox(height: 16),
+          StatRow(
+            children: [
+              StatTile(
+                label: l10n.statHeartRate,
+                value: formatHeartRate(l10n, snapshot.heartRateBpm),
+                size: StatSize.medium,
+              ),
+              StatTile(
+                label: l10n.statCadence,
+                value: formatCadence(l10n, snapshot.cadenceRpm),
+                size: StatSize.medium,
+              ),
+              StatTile(
+                label: l10n.statPower,
+                value: formatPower(l10n, snapshot.powerW),
+                size: StatSize.medium,
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: 16),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,

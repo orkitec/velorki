@@ -36,6 +36,7 @@ RecordingSnapshot _snapshot({
   Duration elapsed = const Duration(seconds: 42),
   double speedMps = 5,
   RecordingStatus status = RecordingStatus.active,
+  int? heartRateBpm,
 }) => RecordingSnapshot(
   rideId: 'ride-1',
   status: status,
@@ -44,6 +45,7 @@ RecordingSnapshot _snapshot({
   elapsed: elapsed,
   speedMps: speedMps,
   lastPosition: const LatLng(48, 11),
+  heartRateBpm: heartRateBpm,
 );
 
 /// A navigator that reports whatever the test puts in it.
@@ -277,6 +279,7 @@ void main() {
         'distance': '3.2 km',
         'elapsed': '00:42',
         'speed': '18.0 km/h',
+        'heartRate': '',
         'turnIcon': 'arrow.turn.up.left',
         'turnLabel': 'Turn left',
         'turnDistance': '150 m',
@@ -285,6 +288,14 @@ void main() {
 
       await harness.finish();
       expect(harness.activity.calls, <String>['start', 'end']);
+    });
+
+    test('the heart rate reaches the card when a sensor reports one', () async {
+      final harness = await _Harness.create();
+
+      await harness.record(_snapshot(heartRateBpm: 142));
+
+      expect(harness.activity.last!['heartRate'], '142');
     });
 
     test('is redrawn at most once every five seconds', () async {

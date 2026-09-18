@@ -24,7 +24,10 @@ List<TrackPoint> _track() => <TrackPoint>[
 
 /// Exactly 20 km/h for three kilometres, one fix a second: three whole
 /// kilometre splits of three minutes each.
-List<TrackPoint> _threeKilometres({bool withElevation = true}) {
+List<TrackPoint> _threeKilometres({
+  bool withElevation = true,
+  bool withSensors = false,
+}) {
   const speedMps = 1000 / 180;
   var position = const LatLng(48, 11);
   return <TrackPoint>[
@@ -33,6 +36,9 @@ List<TrackPoint> _threeKilometres({bool withElevation = true}) {
         i == 0 ? position : position = destinationPoint(position, 0, speedMps),
         ele: withElevation ? 400 + i * 0.1 : null,
         time: DateTime.utc(2026, 9, 12, 10).add(Duration(seconds: i)),
+        heartRateBpm: withSensors ? 120 + i ~/ 20 : null,
+        cadenceRpm: withSensors ? 85 : null,
+        powerW: withSensors ? 200 : null,
       ),
   ];
 }
@@ -323,6 +329,39 @@ void main() {
     expect(find.byType(RideSpeedLegend), findsOneWidget);
     expect(find.text(l10n.rideSpeedSlow.toUpperCase()), findsOneWidget);
     expect(find.text(l10n.rideSpeedFast.toUpperCase()), findsOneWidget);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('a ride with a sensor shows its figures and its chart', (
+    tester,
+  ) async {
+    final harness = RecordingHarness();
+    await _open(tester, harness, _threeKilometres(withSensors: true));
+
+    expect(find.byType(RideHeartRateChart), findsOneWidget);
+    expect(find.text(l10n.rideHeartRate.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.statAvgHeartRate.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.statMaxHeartRate.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.statAvgCadence.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.statAvgPower.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.unitRpm('85')), findsOneWidget);
+    expect(find.text(l10n.unitWatts('200')), findsOneWidget);
+    // 120 bpm rising to 147: a mean of 133 and a maximum of 147.
+    expect(find.text(l10n.unitBpm('133')), findsOneWidget);
+    expect(find.text(l10n.unitBpm('147')), findsOneWidget);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('a ride without a sensor shows none of that', (tester) async {
+    final harness = RecordingHarness();
+    await _open(tester, harness, _threeKilometres());
+
+    expect(find.byType(RideHeartRateChart), findsNothing);
+    expect(find.text(l10n.rideHeartRate.toUpperCase()), findsNothing);
+    expect(find.text(l10n.statAvgHeartRate.toUpperCase()), findsNothing);
+    expect(find.text(l10n.statAvgPower.toUpperCase()), findsNothing);
 
     await unmountApp(tester);
   });
