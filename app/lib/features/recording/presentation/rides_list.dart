@@ -14,8 +14,8 @@ import 'ride_detail_screen.dart';
 
 /// The recorded rides, newest first.
 ///
-/// Lives in its own widget because it is shown twice: under the start button
-/// on the record tab, and — once the library grows a rides section — there.
+/// The library's rides section. [limit] and [shrinkWrap] are there for a host
+/// that shows only the newest rides inside its own scroll view.
 class RidesList extends ConsumerWidget {
   /// Creates the list.
   const RidesList({super.key, this.limit, this.shrinkWrap = false});
@@ -46,9 +46,9 @@ class RidesList extends ConsumerWidget {
       data: (items) {
         if (items.isEmpty) {
           return Padding(
-            // Inside an already padded host (the record tab) the text lines
-            // up with its caption; standing alone (the library) it keeps
-            // the 20 dp gutter itself.
+            // Inside an already padded host the text lines up with its
+            // caption; standing alone (the library) it keeps the 20 dp
+            // gutter itself.
             padding: EdgeInsets.symmetric(
               horizontal: shrinkWrap ? 4 : 20,
               vertical: 16,

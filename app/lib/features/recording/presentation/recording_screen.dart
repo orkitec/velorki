@@ -39,7 +39,6 @@ import '../domain/recording_snapshot.dart';
 import '../domain/recording_state.dart';
 import 'recording_format.dart';
 import 'ride_detail_screen.dart';
-import 'rides_list.dart';
 
 /// Id of the followed route's line on the map.
 const String followedRouteLineId = 'follow';
@@ -1267,10 +1266,6 @@ class _IdlePanel extends ConsumerWidget {
         // below the fold: seen only when the sheet is pulled up, there for a
         // rider who wants the voice off before they set out.
         const NavigationToggles(contentPadding: EdgeInsets.zero),
-        const SizedBox(height: 16),
-        SectionCaption(l10n.recordingRecentRides),
-        const SizedBox(height: 4),
-        const RidesList(limit: 5, shrinkWrap: true),
       ],
     );
   }

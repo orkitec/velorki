@@ -22,6 +22,7 @@ import 'package:velorki/features/recording/data/recording_settings.dart';
 import 'package:velorki/features/recording/domain/gps_precision.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
+import 'package:velorki/features/recording/presentation/rides_list.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -73,7 +74,7 @@ Ride _ride() => Ride(
 );
 
 void main() {
-  testWidgets('the idle tab offers a start button and the recent rides', (
+  testWidgets('the idle tab offers a start button and the route chooser', (
     tester,
   ) async {
     await pumpRecordingScreen(tester, const RecordingScreen());
@@ -81,8 +82,6 @@ void main() {
 
     expect(find.text(l10n.recordingIdleTitle), findsOneWidget);
     expect(find.text(l10n.recordingStart), findsOneWidget);
-    expect(find.text(l10n.recordingRecentRides.toUpperCase()), findsOneWidget);
-    expect(find.text(l10n.recordingNoRides), findsOneWidget);
     expect(find.text(l10n.recordingFollowRoute), findsOneWidget);
 
     await unmountApp(tester);
@@ -196,7 +195,7 @@ void main() {
     await unmountApp(tester);
   });
 
-  testWidgets('the recent rides are listed under the start button', (
+  testWidgets('the idle tab lists no rides, on a small screen either', (
     tester,
   ) async {
     final harness = RecordingHarness();
@@ -205,12 +204,18 @@ void main() {
       tester,
       const RecordingScreen(),
       harness: harness,
+      // The smallest phone the app is drawn for: the sheet still holds the
+      // start button and the options, and scrolls for the rest.
+      surfaceSize: const Size(360, 640),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Ride 12 Sept 2026'), findsOneWidget);
-    expect(find.textContaining(testDistance(12345)), findsOneWidget);
+    // The rides belong to the Library tab; the record tab is the map, the
+    // start button and the options.
+    expect(find.byType(RidesList), findsNothing);
+    expect(find.text('Ride 12 Sept 2026'), findsNothing);
     expect(find.text(l10n.recordingNoRides), findsNothing);
+    expect(find.text(l10n.recordingStart), findsOneWidget);
 
     await unmountApp(tester);
   });

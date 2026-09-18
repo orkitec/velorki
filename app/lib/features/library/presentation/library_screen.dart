@@ -111,9 +111,9 @@ class _RoutesSection extends ConsumerWidget {
 
 /// Every recorded ride, newest first.
 ///
-/// The list itself is the record tab's [RidesList] without its limit, so the
-/// rows, the swipe-to-delete and the tap into the ride detail behave exactly
-/// as they do there; only the count above it is the library's own.
+/// The list itself is [RidesList], which owns the rows, the swipe-to-delete
+/// and the tap into the ride detail; only the count above it is the
+/// library's own.
 class _RidesSection extends ConsumerWidget {
   const _RidesSection();
 

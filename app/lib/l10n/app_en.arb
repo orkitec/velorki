@@ -990,10 +990,6 @@
   "@recordingNotificationTitle": {
     "description": "First line of the Android notification of the recording service"
   },
-  "recordingRecentRides": "Recent rides",
-  "@recordingRecentRides": {
-    "description": "Heading above the list of the last recorded rides"
-  },
   "recordingNoRides": "No rides yet.",
   "@recordingNoRides": {
     "description": "Empty state of the rides list"
