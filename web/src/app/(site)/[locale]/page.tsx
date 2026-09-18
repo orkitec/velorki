@@ -49,8 +49,6 @@ const COMPARISON: ReadonlyArray<{ id: string; free: boolean }> = [
   { id: 'sharing', free: false },
 ];
 
-const OPEN_SOURCE_CARDS = ['license', 'device', 'data', 'osm'] as const;
-
 const FAQ_IDS = ['account', 'offline', 'price', 'plus', 'data', 'osm', 'opensource', 'selfhost'] as const;
 
 export function generateStaticParams() {
@@ -75,7 +73,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
       <Features />
       <Comparison locale={locale} />
       <OpenSource locale={locale} />
-      <Faq />
+      <Faq locale={locale} />
       <FinalCta locale={locale} />
       <JsonLd
         data={faqJsonLd(FAQ_IDS.map((id) => ({ question: faq(`items.${id}.q`), answer: faq(`items.${id}.a`) })))}
@@ -248,34 +246,25 @@ function OpenSource({ locale }: { locale: string }) {
   const t = useTranslations('home.openSource');
   return (
     <section aria-labelledby="open-source-title" className="py-20">
-      <div className="shell">
-        <p className="overline">{t('eyebrow')}</p>
-        <h2 id="open-source-title" className="mt-3 text-4xl sm:text-5xl">
+      <div className="shell max-w-3xl">
+        <h2 id="open-source-title" className="text-4xl sm:text-5xl">
           {t('title')}
         </h2>
-        <p className="mt-4 max-w-3xl text-lg text-muted">{t('body')}</p>
-        <ul className="mt-10 grid gap-4 sm:grid-cols-2">
-          {OPEN_SOURCE_CARDS.map((card) => (
-            <li key={card} className="panel p-6">
-              <h3 className="font-display text-2xl">{t(`cards.${card}.title`)}</h3>
-              <p className="mt-2 text-muted">{t(`cards.${card}.body`)}</p>
-            </li>
-          ))}
-        </ul>
+        <p className="mt-4 text-lg text-muted">{t('body')}</p>
         <div className="mt-8 flex flex-wrap gap-4">
-          <Link href={localePath(locale, '/privacy')} className="link-accent font-bold">
-            {t('privacyLink')}
-          </Link>
           <a href={GITHUB_URL} rel="noreferrer" className="link-accent font-bold">
-            {t('sourceLink')}
+            {t('githubLink')}
           </a>
+          <Link href={localePath(locale, '/credits')} className="link-accent font-bold">
+            {t('creditsLink')}
+          </Link>
         </div>
       </div>
     </section>
   );
 }
 
-function Faq() {
+function Faq({ locale }: { locale: string }) {
   const t = useTranslations('home.faq');
   return (
     <section aria-labelledby="faq-title" className="hairline bg-panel/40 py-20">
@@ -296,6 +285,14 @@ function Faq() {
                 </span>
               </summary>
               <p className="mt-3 text-muted">{t(`items.${id}.a`)}</p>
+              {/* The open-data answer stays short and sends the detail to /credits. */}
+              {id === 'osm' && (
+                <p className="mt-3">
+                  <Link href={localePath(locale, '/credits')} className="link-accent font-bold">
+                    {t('creditsLink')}
+                  </Link>
+                </p>
+              )}
             </details>
           ))}
         </div>

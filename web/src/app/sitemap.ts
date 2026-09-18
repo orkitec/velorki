@@ -17,6 +17,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/download', priority: 0.9, changeFrequency: 'weekly' },
     { path: '/plus', priority: 0.8, changeFrequency: 'monthly' },
     { path: '/docs', priority: 0.8, changeFrequency: 'weekly' },
+    { path: '/credits', priority: 0.4, changeFrequency: 'yearly' },
     ...listDocs('en')
       .filter((doc) => !doc.draft)
       .map((doc) => ({ path: `/docs/${doc.slug}`, priority: 0.7, changeFrequency: 'monthly' as const })),

@@ -82,11 +82,11 @@
       "plan": {
         "eyebrow": "Planning",
         "title": "A route for the bike you are on",
-        "body": "Tap waypoints on the map and a Dart port of the BRouter engine routes on the phone, on downloaded 5°×5° tiles. Touring, road, gravel, MTB and direct profiles, up to three alternatives, the elevation profile and a breakdown of the surfaces you will ride on.",
+        "body": "Tap waypoints on the map and the route is calculated on the phone, on downloaded 5°×5° tiles. Touring, road, gravel, MTB and direct profiles, up to three alternatives, the elevation profile and a breakdown of the surfaces you will ride on.",
         "bullets": {
           "one": "Five bike profiles, up to three alternatives per route",
           "two": "Elevation profile and surface statistics for every option",
-          "three": "A BRouter server is optional, for areas with no tiles"
+          "three": "An online routing server is optional, for areas with no tiles"
         }
       },
       "loops": {
@@ -104,9 +104,9 @@
         "title": "The map, the routing and the search, with no connection",
         "body": "Each routing tile brings a search index of its places, streets with house numbers and points of interest: cafés, drinking water, toilets, repair stations, shelters, bike shops, campsites, hotels, passes, peaks, viewpoints, stations and landmarks. Typing “water” lists the nearest taps by distance, and typos are corrected from the index itself.",
         "bullets": {
-          "one": "Vector map areas from OpenFreeMap saved per region",
+          "one": "Vector map areas saved per region",
           "two": "Search by category: cafés, water, toilets, repair stations",
-          "three": "Online search through Photon is one tap away"
+          "three": "Online place search is one tap away"
         }
       },
       "navigate": {
@@ -168,29 +168,10 @@
       "plusLink": "Velorki Plus →"
     },
     "openSource": {
-      "eyebrow": "Open source, no account",
-      "title": "There is nothing to sign up for",
-      "body": "There is no account and no sign-up. Routes, rides and settings stay on your phone. Nothing goes to Strava or Ride with GPS until you connect the account and ask for it. The assistant asks for your consent before any text leaves the device, and the position it sends is rounded to about a kilometre.",
-      "cards": {
-        "license": {
-          "title": "AGPL-3.0, all of it",
-          "body": "The app, its pure-Dart packages, the relay and this website are all AGPL-3.0-only, so a fork that ships a modified app or runs a modified relay has to publish its source."
-        },
-        "device": {
-          "title": "On-device first",
-          "body": "The routes, the rides, the loop generator, the place search and the routing itself all run on the phone. The server side is optional."
-        },
-        "data": {
-          "title": "No cloud database",
-          "body": "No accounts, no analytics profile, no ride history on a server. The relay only keeps the partner secrets, calls the language model and stores the links you choose to share."
-        },
-        "osm": {
-          "title": "Built on OpenStreetMap",
-          "body": "Map data from OpenStreetMap, routing by BRouter, tiles by OpenFreeMap, online search by Photon, cycling overlay by CyclOSM."
-        }
-      },
-      "privacyLink": "Read the privacy policy",
-      "sourceLink": "Read the source on GitHub"
+      "title": "Open source, open data",
+      "body": "Velorki is open source under the AGPL: the app, the relay and this website. Everything it draws, routes on and searches in comes from OpenStreetMap, the map anyone can edit. So anyone can read the code, check what it does and improve it.",
+      "githubLink": "Read the source on GitHub",
+      "creditsLink": "Credits and licences"
     },
     "faq": {
       "eyebrow": "Questions",
@@ -218,7 +199,7 @@
         },
         "osm": {
           "q": "Where does the map data come from?",
-          "a": "OpenStreetMap, under the ODbL. Routing is by BRouter, vector tiles by OpenFreeMap, online place search by Photon and the cycling overlay by CyclOSM."
+          "a": "From OpenStreetMap, under the ODbL. The map, the routing and the place search all run on that open data; the projects and licences behind it are on the credits page."
         },
         "opensource": {
           "q": "Is Velorki really open source?",
@@ -226,9 +207,10 @@
         },
         "selfhost": {
           "q": "Can I run the server parts myself?",
-          "a": "Yes. The relay, a BRouter routing server and a tile host can all be self-hosted; the repository has the compose files and the systemd units. A fork that points at its own relay needs no subscription at all."
+          "a": "Yes. The relay, a routing server and a tile host can all be self-hosted; the repository has the compose files and the systemd units. A fork that points at its own relay needs no subscription at all."
         }
-      }
+      },
+      "creditsLink": "Credits and licences"
     },
     "cta": {
       "title": "Get the app and ride",
@@ -316,6 +298,58 @@
     "untranslatedBody": "The English text is shown instead. Translations come from the community — the source file is in the repository.",
     "draft": "This text is a draft and has not been reviewed yet."
   },
+  "credits": {
+    "meta": {
+      "title": "Credits",
+      "description": "The open data, the open source projects and the fonts Velorki is built on, with their licences."
+    },
+    "title": "Credits",
+    "lead": "Velorki is built on open data and open source. These are the projects behind the map, the routes, the search and the type, with the licences they are published under.",
+    "licenceLabel": "Licence:",
+    "items": {
+      "osm": {
+        "title": "OpenStreetMap",
+        "body": "Map data © OpenStreetMap contributors. The map data Velorki draws, routes on and searches in comes from OpenStreetMap.",
+        "licence": "Open Database License (ODbL) 1.0; rendered tiles under CC BY-SA 2.0."
+      },
+      "brouter": {
+        "title": "BRouter",
+        "body": "The routing engine. Velorki plans bike routes with BRouter and ships its routing profiles; the routing that runs on the phone follows the same upstream source. © Arndt Brenschede and contributors.",
+        "licence": "MIT licence."
+      },
+      "openfreemap": {
+        "title": "OpenFreeMap and OpenMapTiles",
+        "body": "Vector map tiles by OpenFreeMap, built with OpenMapTiles from OpenStreetMap data. OpenFreeMap serves the default map style and requires no key.",
+        "licence": "Software under the MIT licence, the OpenMapTiles schema and styles under BSD 3-Clause, the tiles under ODbL 1.0, the design attributed as © OpenMapTiles."
+      },
+      "cyclosm": {
+        "title": "CyclOSM",
+        "body": "The optional cycling overlay: a cycle-oriented map style for OpenStreetMap, served by the OpenStreetMap Foundation's tile servers.",
+        "licence": "CC BY-SA 4.0."
+      },
+      "photon": {
+        "title": "Photon",
+        "body": "Online place search, by komoot. Photon geocodes the place names typed into the search field and the names the assistant proposes, and is built on OpenStreetMap data. © komoot GmbH and contributors.",
+        "licence": "Apache License 2.0."
+      },
+      "fonts": {
+        "title": "Barlow Condensed and Manrope",
+        "body": "The two typefaces of the app and this website. Copyright 2017 The Barlow Project Authors, copyright 2018 The Manrope Project Authors.",
+        "licence": "SIL Open Font License (OFL) 1.1."
+      },
+      "maplibre": {
+        "title": "MapLibre GL",
+        "body": "The map renderer: MapLibre GL in the app and MapLibre GL JS on the share pages of this website.",
+        "licence": "BSD 3-Clause licence."
+      },
+      "flutter": {
+        "title": "Flutter",
+        "body": "The framework the app is built with, together with the Dart packages that come with it.",
+        "licence": "BSD 3-Clause licence."
+      }
+    },
+    "appNote": "The full list of third-party licences, including every Dart package in the app, is in the app itself, under Settings → About → Open-source licences."
+  },
   "legal": {
     "privacy": {
       "title": "Privacy policy",
@@ -339,7 +373,7 @@
     "legalHeading": "Legal",
     "security": "Security: {email}",
     "osm": "Map data © OpenStreetMap contributors",
-    "credits": "Routing by BRouter, tiles by OpenFreeMap, search by Photon.",
+    "credits": "Credits",
     "copyright": "© {year} Orkitec. App, website and relay under AGPL-3.0-only.",
     "github": "GitHub"
   },

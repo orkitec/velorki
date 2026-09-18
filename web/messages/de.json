@@ -82,11 +82,11 @@
       "plan": {
         "eyebrow": "Planen",
         "title": "Eine Route für das Rad, auf dem du sitzt",
-        "body": "Tippe Wegpunkte auf der Karte und ein Dart-Port der BRouter-Engine berechnet die Route auf dem Handy, auf heruntergeladenen 5°×5°-Kacheln. Profile für Trekking, Rennrad, Gravel, MTB und direkt, bis zu drei Alternativen, das Höhenprofil und eine Aufschlüsselung der Beläge, über die es geht.",
+        "body": "Tippe Wegpunkte auf der Karte und die Route wird auf dem Handy berechnet, auf heruntergeladenen 5°×5°-Kacheln. Profile für Trekking, Rennrad, Gravel, MTB und direkt, bis zu drei Alternativen, das Höhenprofil und eine Aufschlüsselung der Beläge, über die es geht.",
         "bullets": {
           "one": "Fünf Radprofile, bis zu drei Alternativen pro Route",
           "two": "Höhenprofil und Belagsstatistik für jede Variante",
-          "three": "Ein BRouter-Server ist optional, für Gebiete ohne Kacheln"
+          "three": "Ein Online-Routing-Server ist optional, für Gebiete ohne Kacheln"
         }
       },
       "loops": {
@@ -104,9 +104,9 @@
         "title": "Die Karte, das Routing und die Suche, ganz ohne Verbindung",
         "body": "Jede Routing-Kachel bringt einen Suchindex ihrer Orte mit, dazu Straßen mit Hausnummern und Points of Interest: Cafés, Trinkwasser, Toiletten, Reparaturstationen, Schutzhütten, Fahrradläden, Campingplätze, Hotels, Pässe, Gipfel, Aussichtspunkte, Bahnhöfe und Sehenswürdigkeiten. Tippst du „Wasser“, kommen die nächsten Trinkwasserstellen nach Entfernung sortiert, und Tippfehler korrigiert der Index von selbst.",
         "bullets": {
-          "one": "Vektorkarten-Gebiete von OpenFreeMap, pro Region gespeichert",
+          "one": "Vektorkarten-Gebiete, pro Region gespeichert",
           "two": "Suche nach Kategorie: Cafés, Wasser, Toiletten, Reparaturstationen",
-          "three": "Die Online-Suche über Photon ist einen Tipp entfernt"
+          "three": "Die Online-Ortssuche ist einen Tipp entfernt"
         }
       },
       "navigate": {
@@ -168,29 +168,10 @@
       "plusLink": "Velorki Plus →"
     },
     "openSource": {
-      "eyebrow": "Quelloffen, kein Konto",
-      "title": "Es gibt nichts, wofür du dich anmelden müsstest",
-      "body": "Es gibt kein Konto und keine Anmeldung. Routen, Fahrten und Einstellungen bleiben auf deinem Handy. Zu Strava oder Ride with GPS geht nichts, bis du das Konto verbindest und es verlangst. Der Assistent fragt um deine Zustimmung, bevor Text das Gerät verlässt, und die Position, die er sendet, ist auf etwa einen Kilometer gerundet.",
-      "cards": {
-        "license": {
-          "title": "AGPL-3.0, alles davon",
-          "body": "Die App, ihre reinen Dart-Pakete, der Relay-Server und diese Website stehen alle unter AGPL-3.0-only. Ein Fork, der eine veränderte App ausliefert oder einen veränderten Relay betreibt, muss seinen Quellcode also veröffentlichen."
-        },
-        "device": {
-          "title": "Zuerst auf dem Gerät",
-          "body": "Die Routen, die Fahrten, der Rundengenerator, die Ortssuche und das Routing selbst laufen alle auf dem Handy. Die Serverseite ist optional."
-        },
-        "data": {
-          "title": "Keine Cloud-Datenbank",
-          "body": "Keine Konten, kein Analyse-Profil, keine Fahrtenhistorie auf einem Server. Der Relay verwahrt nur die Partner-Geheimnisse, ruft das Sprachmodell auf und speichert die Links, die du teilen willst."
-        },
-        "osm": {
-          "title": "Auf OpenStreetMap gebaut",
-          "body": "Kartendaten von OpenStreetMap, Routing von BRouter, Kacheln von OpenFreeMap, Online-Suche von Photon, Rad-Overlay von CyclOSM."
-        }
-      },
-      "privacyLink": "Datenschutzerklärung lesen",
-      "sourceLink": "Quellcode auf GitHub lesen"
+      "title": "Open Source, offene Daten",
+      "body": "Velorki ist Open Source unter der AGPL: die App, der Relay und diese Website. Alles, was die App zeichnet, routet und durchsucht, kommt von OpenStreetMap, der Karte, die jeder bearbeiten kann. So kann jeder den Code lesen, nachprüfen, was er tut, und ihn verbessern.",
+      "githubLink": "Quellcode auf GitHub lesen",
+      "creditsLink": "Danksagung und Lizenzen"
     },
     "faq": {
       "eyebrow": "Fragen",
@@ -218,7 +199,7 @@
         },
         "osm": {
           "q": "Woher kommen die Kartendaten?",
-          "a": "Von OpenStreetMap, unter der ODbL. Das Routing kommt von BRouter, die Vektorkacheln von OpenFreeMap, die Online-Ortssuche von Photon und das Rad-Overlay von CyclOSM."
+          "a": "Von OpenStreetMap, unter der ODbL. Die Karte, das Routing und die Ortssuche laufen alle auf diesen offenen Daten; die Projekte und Lizenzen dahinter stehen auf der Seite mit der Danksagung."
         },
         "opensource": {
           "q": "Ist Velorki wirklich quelloffen?",
@@ -226,9 +207,10 @@
         },
         "selfhost": {
           "q": "Kann ich die Server-Teile selbst betreiben?",
-          "a": "Ja. Der Relay, ein BRouter-Routing-Server und ein Kachel-Host lassen sich alle selbst hosten; im Repository liegen die Compose-Dateien und die systemd-Units. Ein Fork, der auf seinen eigenen Relay zeigt, braucht überhaupt kein Abo."
+          "a": "Ja. Der Relay, ein Routing-Server und ein Kachel-Host lassen sich alle selbst hosten; im Repository liegen die Compose-Dateien und die systemd-Units. Ein Fork, der auf seinen eigenen Relay zeigt, braucht überhaupt kein Abo."
         }
-      }
+      },
+      "creditsLink": "Danksagung und Lizenzen"
     },
     "cta": {
       "title": "Hol dir die App und fahr los",
@@ -316,6 +298,58 @@
     "untranslatedBody": "Stattdessen steht hier der englische Text. Übersetzungen kommen aus der Community, die Quelldatei liegt im Repository.",
     "draft": "Dieser Text ist ein Entwurf und wurde noch nicht geprüft."
   },
+  "credits": {
+    "meta": {
+      "title": "Danksagung",
+      "description": "Die offenen Daten, die Open-Source-Projekte und die Schriften, auf denen Velorki aufbaut, mit ihren Lizenzen."
+    },
+    "title": "Danksagung",
+    "lead": "Velorki baut auf offenen Daten und Open Source auf. Das sind die Projekte hinter der Karte, den Routen, der Suche und der Schrift, mit den Lizenzen, unter denen sie stehen.",
+    "licenceLabel": "Lizenz:",
+    "items": {
+      "osm": {
+        "title": "OpenStreetMap",
+        "body": "Kartendaten © OpenStreetMap-Mitwirkende. Die Kartendaten, die Velorki zeichnet, für das Routing nutzt und durchsucht, kommen von OpenStreetMap.",
+        "licence": "Open Database License (ODbL) 1.0; gerenderte Kacheln unter CC BY-SA 2.0."
+      },
+      "brouter": {
+        "title": "BRouter",
+        "body": "Die Routing-Engine. Velorki plant Radrouten mit BRouter und liefert dessen Routing-Profile mit; das Routing auf dem Handy folgt demselben Quellcode. © Arndt Brenschede und Mitwirkende.",
+        "licence": "MIT-Lizenz."
+      },
+      "openfreemap": {
+        "title": "OpenFreeMap und OpenMapTiles",
+        "body": "Vektorkacheln von OpenFreeMap, gebaut mit OpenMapTiles aus OpenStreetMap-Daten. OpenFreeMap liefert den Standard-Kartenstil und braucht keinen Schlüssel.",
+        "licence": "Software unter der MIT-Lizenz, Schema und Stile von OpenMapTiles unter BSD 3-Clause, die Kacheln unter ODbL 1.0, das Design ausgewiesen als © OpenMapTiles."
+      },
+      "cyclosm": {
+        "title": "CyclOSM",
+        "body": "Das optionale Rad-Overlay: ein fahrradorientierter Kartenstil für OpenStreetMap, ausgeliefert von den Kachel-Servern der OpenStreetMap Foundation.",
+        "licence": "CC BY-SA 4.0."
+      },
+      "photon": {
+        "title": "Photon",
+        "body": "Die Online-Ortssuche, von komoot. Photon findet die Ortsnamen, die ins Suchfeld getippt werden, und die, die der Assistent vorschlägt, und baut auf OpenStreetMap-Daten auf. © komoot GmbH und Mitwirkende.",
+        "licence": "Apache License 2.0."
+      },
+      "fonts": {
+        "title": "Barlow Condensed und Manrope",
+        "body": "Die beiden Schriften der App und dieser Website. Copyright 2017 The Barlow Project Authors, Copyright 2018 The Manrope Project Authors.",
+        "licence": "SIL Open Font License (OFL) 1.1."
+      },
+      "maplibre": {
+        "title": "MapLibre GL",
+        "body": "Der Karten-Renderer: MapLibre GL in der App und MapLibre GL JS auf den Teilen-Seiten dieser Website.",
+        "licence": "BSD-3-Clause-Lizenz."
+      },
+      "flutter": {
+        "title": "Flutter",
+        "body": "Das Framework, mit dem die App gebaut ist, samt der Dart-Pakete, die dazugehören.",
+        "licence": "BSD-3-Clause-Lizenz."
+      }
+    },
+    "appNote": "Die vollständige Liste der Lizenzen von Drittanbietern, samt jedem Dart-Paket der App, steht in der App selbst, unter Einstellungen → Über → Open-Source-Lizenzen."
+  },
   "legal": {
     "privacy": {
       "title": "Datenschutzerklärung",
@@ -339,7 +373,7 @@
     "legalHeading": "Rechtliches",
     "security": "Sicherheit: {email}",
     "osm": "Kartendaten © OpenStreetMap-Mitwirkende",
-    "credits": "Routing von BRouter, Kacheln von OpenFreeMap, Suche von Photon.",
+    "credits": "Danksagung",
     "copyright": "© {year} Orkitec. App, Website und Relay unter AGPL-3.0-only.",
     "github": "GitHub"
   },

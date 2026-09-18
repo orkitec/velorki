@@ -261,7 +261,7 @@ the four accents) taken from `app/lib/app/theme.dart`.
 
 | Where | What |
 | --- | --- |
-| `src/app/(site)/[locale]/` | the pages: landing, `plus`, `download`, `docs/[[...slug]]`, `privacy`, `terms`, `imprint` |
+| `src/app/(site)/[locale]/` | the pages: landing, `plus`, `download`, `docs/[[...slug]]`, `credits`, `privacy`, `terms`, `imprint` |
 | `content/<locale>/` | the Markdown behind `/docs` and the legal pages - see [content/README.md](./content/README.md) |
 | `messages/<locale>.json` | the UI strings; `src/i18n/locales.generated.ts` lists the locales that exist |
 | `src/components/` | header, footer, docs navigation, the phone frame, the appearance and locale switchers |

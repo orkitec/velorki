@@ -91,7 +91,10 @@ export function SiteFooter({ locale }: { locale: string }) {
           <a href={OSM_COPYRIGHT_URL} rel="noreferrer" className="hover:text-fg">
             {t('osm')}
           </a>{' '}
-          · {t('credits')}
+          ·{' '}
+          <Link href={localePath(locale, '/credits')} className="hover:text-fg">
+            {t('credits')}
+          </Link>
         </p>
         <p>{t('copyright', { year })}</p>
       </div>
