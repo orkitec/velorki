@@ -89,9 +89,21 @@ class _SaveRideSheetState extends ConsumerState<SaveRideSheet> {
           baseOffset: 0,
           extentOffset: widget.defaultName.length,
         );
+  late final FocusNode _focusNode = FocusNode()..addListener(_selectAllOnFocus);
+
+  /// A tap into the field selects the whole proposed name, so typing replaces
+  /// it; the field is not focused on open, so no keyboard covers the sheet.
+  void _selectAllOnFocus() {
+    if (!_focusNode.hasFocus) return;
+    _controller.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: _controller.text.length,
+    );
+  }
 
   @override
   void dispose() {
+    _focusNode.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -158,7 +170,7 @@ class _SaveRideSheetState extends ConsumerState<SaveRideSheet> {
             const SizedBox(height: 16),
             TextField(
               controller: _controller,
-              autofocus: true,
+              focusNode: _focusNode,
               textInputAction: TextInputAction.done,
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(

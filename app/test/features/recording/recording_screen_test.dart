@@ -721,6 +721,41 @@ void main() {
       await unmountApp(tester);
     });
 
+    testWidgets('the keyboard stays down when the sheet opens', (tester) async {
+      await pumpStopped(tester);
+
+      final field = tester.widget<TextField>(inSheet(find.byType(TextField)));
+      expect(
+        field.focusNode?.hasFocus,
+        isFalse,
+        reason: 'a keyboard on open would cover the sheet and its buttons',
+      );
+      expect(FocusManager.instance.primaryFocus, isNot(field.focusNode));
+      await unmountApp(tester);
+    });
+
+    testWidgets('a tap into the name selects all of it', (tester) async {
+      await pumpStopped(tester);
+
+      await tester.tap(inSheet(find.byType(TextField)));
+      await tester.pump();
+
+      final field = tester.widget<TextField>(inSheet(find.byType(TextField)));
+      expect(field.focusNode?.hasFocus, isTrue);
+      expect(
+        field.controller?.selection,
+        TextSelection(baseOffset: 0, extentOffset: _defaultName.length),
+        reason: 'the whole proposed name is selected, so typing replaces it',
+      );
+
+      await tester.enterText(
+        inSheet(find.byType(TextField)),
+        'Levada do Norte',
+      );
+      expect(field.controller?.text, 'Levada do Norte');
+      await unmountApp(tester);
+    });
+
     testWidgets('shows what was ridden', (tester) async {
       await pumpStopped(tester);
 
