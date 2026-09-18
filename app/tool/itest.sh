@@ -80,7 +80,7 @@ fi
 # as 1, so adding a test file needs no change here unless it is slow.
 itest_weight() {
   case "$(basename "$1")" in
-    close_loop_test.dart | navigate_route_test.dart | record_ride_test.dart | live_ride_test.dart) echo 2 ;;
+    close_loop_test.dart | navigate_route_test.dart | record_ride_test.dart | live_ride_test.dart | live_navigate_test.dart) echo 2 ;;
     *) echo 1 ;;
   esac
 }

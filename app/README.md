@@ -110,6 +110,14 @@ real BRouter port — only the things a test runner cannot have are faked (the
 GPS, the location and notification permissions, the Android foreground
 service, and the Photon geocoder).
 
+The `live_*` files are the exception: on the iOS simulator they use the real
+geolocator, the real speaker and the real Live Activity, with the map's own
+position stream open. `tool/sim_ride.py`, started by `itest.sh` for any
+simulator, walks the simulated location along the region's route, grants the
+location permission the moment the app is installed, and rides whatever route
+a test writes to the app's `itest/route.txt`. They are what a fake position
+source cannot see, and they are skipped off iOS.
+
 ```
 tool/itest.sh                 # the whole suite on emulator-5554
 tool/itest.sh close_loop      # only the files whose path matches
