@@ -5,6 +5,7 @@
 // navigation - ESM that only resolves inside a bundler - and this is the half
 // worth asserting in a test.
 import Link from 'next/link';
+import { HeaderMenuClose } from './HeaderMenuClose';
 import { CloseIcon, GitHubIcon, MenuIcon } from './Icons';
 
 export interface HeaderLink {
@@ -20,7 +21,9 @@ export interface HeaderLink {
  * of it - can be rendered in a test without an intl context.
  *
  * It is the browser's own disclosure, like the locale switcher and the docs
- * menu: no handler, no state, and the links still work with JavaScript off. The
+ * menu: no handler, no state, and the links still work with JavaScript off -
+ * `HeaderMenuClose` only closes the panel behind a tap once JavaScript is
+ * there. The
  * panel is absolute against the header, so opening it does not move the page,
  * and the header's `overflow-x-clip` cannot cut it off - `clip` on one axis
  * leaves the other visible.
@@ -40,7 +43,7 @@ export function HeaderMenu({
   download: HeaderLink;
 }) {
   return (
-    <details className="group md:hidden">
+    <details data-header-menu className="group md:hidden">
       <summary
         aria-label={label}
         className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-full border border-line-soft text-fg [&::-webkit-details-marker]:hidden"
@@ -78,6 +81,7 @@ export function HeaderMenu({
           </Link>
         </div>
       </div>
+      <HeaderMenuClose />
     </details>
   );
 }
