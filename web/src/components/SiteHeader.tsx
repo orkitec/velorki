@@ -3,7 +3,8 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { GITHUB_URL } from '@/site/config';
 import { localePath } from '@/site/paths';
-import { GitHubIcon, VelorkiMark } from './Icons';
+import { AppIcon } from './AppIcon';
+import { GitHubIcon } from './Icons';
 import { LocaleSwitcher } from './LocaleSwitcher';
 
 /** Features, Docs and Plus, in that order; Download is the call to action. */
@@ -19,8 +20,8 @@ export function SiteHeader({ locale }: { locale: string }) {
   return (
     <header className="sticky top-0 z-50 border-b border-line-soft bg-canvas/85 backdrop-blur-lg">
       <div className="shell flex h-16 items-center gap-3">
-        <Link href={home} aria-label={t('home')} className="flex shrink-0 items-center gap-2 text-accent">
-          <VelorkiMark />
+        <Link href={home} aria-label={t('home')} className="flex shrink-0 items-center gap-2">
+          <AppIcon size={32} />
           <span className="font-display text-2xl leading-none font-bold tracking-tight text-fg">Velorki</span>
         </Link>
 

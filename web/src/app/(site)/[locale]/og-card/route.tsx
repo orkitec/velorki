@@ -12,6 +12,7 @@
 // both a direct 200. `src/site/seo.ts` writes the tags.
 import { ImageResponse } from 'next/og';
 import { getTranslations } from 'next-intl/server';
+import { AppIcon } from '@/components/AppIcon';
 import { routing } from '@/i18n/routing';
 import { OG_IMAGE_SIZE } from '@/site/seo';
 
@@ -41,11 +42,7 @@ export async function GET(
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <svg width="64" height="64" viewBox="0 0 1024 1024">
-            <path d="M296 716 Q 360 400 728 308" fill="none" stroke="#C8F542" strokeWidth="96" strokeLinecap="round" />
-            <circle cx="296" cy="716" r="118" fill="#C8F542" />
-            <circle cx="728" cy="308" r="118" fill="#C8F542" />
-          </svg>
+          <AppIcon size={72} />
           <div style={{ fontSize: 56, fontWeight: 700, letterSpacing: -1 }}>Velorki</div>
         </div>
 

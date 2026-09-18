@@ -4,7 +4,11 @@ import type { MetadataRoute } from 'next';
 /**
  * The web app manifest. The site is not an installable app — this is here so
  * the browser has a name, a colour and an icon for a bookmark or a pinned tab.
- * The icons are rasterised from the app icon (app/assets/icon/icon.svg).
+ * The icons are the app icon as a launcher draws it — the rounded tile of
+ * `public/icon.svg`, mirrored by `src/components/AppIcon.tsx`. The maskable
+ * one is the adaptive icon before the mask (full bleed, glyph inset), so a
+ * launcher that crops it to its own shape lands on the same picture as the
+ * installed app. See `public/icons/README.md`.
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -22,6 +26,7 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: '/icon.svg', type: 'image/svg+xml', sizes: 'any', purpose: 'any' },
       { src: '/icons/icon-192.png', type: 'image/png', sizes: '192x192' },
       { src: '/icons/icon-512.png', type: 'image/png', sizes: '512x512' },
+      { src: '/icons/icon-512-maskable.png', type: 'image/png', sizes: '512x512', purpose: 'maskable' },
       { src: '/icons/apple-touch-icon.png', type: 'image/png', sizes: '180x180' },
     ],
   };

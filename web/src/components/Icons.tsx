@@ -80,13 +80,3 @@ export function GlobeIcon(props: IconProps) {
   );
 }
 
-/** The route glyph from the app icon, used as the wordmark's mark. */
-export function VelorkiMark(props: IconProps) {
-  return (
-    <svg viewBox="0 0 1024 1024" width="28" height="28" aria-hidden="true" focusable="false" {...props}>
-      <path d="M296 716 Q 360 400 728 308" fill="none" stroke="currentColor" strokeWidth="96" strokeLinecap="round" />
-      <circle cx="296" cy="716" r="118" fill="currentColor" />
-      <circle cx="728" cy="308" r="118" fill="currentColor" />
-    </svg>
-  );
-}

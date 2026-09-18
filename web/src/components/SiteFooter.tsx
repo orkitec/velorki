@@ -4,7 +4,8 @@ import { useTranslations } from 'next-intl';
 import { COPYRIGHT_YEAR, GITHUB_URL, OSM_COPYRIGHT_URL, SECURITY_EMAIL } from '@/site/config';
 import { LEGAL_DOCS } from '@/site/content';
 import { localePath } from '@/site/paths';
-import { GitHubIcon, VelorkiMark } from './Icons';
+import { AppIcon } from './AppIcon';
+import { GitHubIcon } from './Icons';
 
 const PRODUCT = [
   { key: 'features', href: '/#features' },
@@ -24,8 +25,8 @@ export function SiteFooter({ locale }: { locale: string }) {
     <footer className="hairline mt-24 bg-canvas-deep/40">
       <div className="shell grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
         <div className="lg:col-span-1">
-          <Link href={localePath(locale, '/')} className="flex items-center gap-2 text-accent">
-            <VelorkiMark width={24} height={24} />
+          <Link href={localePath(locale, '/')} className="flex items-center gap-2">
+            <AppIcon size={28} />
             <span className="font-display text-xl leading-none font-bold text-fg">Velorki</span>
           </Link>
           <p className="mt-3 max-w-xs text-sm text-muted">{t('tagline')}</p>

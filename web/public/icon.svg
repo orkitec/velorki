@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Velorki app icon, source of assets/icon/icon.png.
-     A square in the seed colour (lib/app/theme.dart) with a white route
-     glyph: two waypoint circles joined by a curved line. The square is drawn
-     full bleed and opaque on purpose: iOS and Android both round the corners
-     with their own mask, and both stores reject an icon with transparency. -->
+<!-- Velorki app icon as a launcher draws it, and the site's favicon.
+     Mirror of web/src/components/AppIcon.tsx; regenerate both together, see
+     web/public/icons/README.md.
+
+     The source artwork is app/assets/icon/icon.svg. Here the tile carries the
+     corner rounding (22 %) that Android and iOS apply with their own masks,
+     and the glyph is scaled by 0.918 = 0.9 (icon_foreground.svg) x 0.68
+     (the 16 % inset in mipmap-anydpi-v26/ic_launcher.xml) x 1.5 (the mask
+     that keeps only the inner 72 of the 108 dp canvas). -->
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <rect x="0" y="0" width="1024" height="1024" fill="#1B7F5A"/>
-  <g fill="none" stroke="#FFFFFF" stroke-width="72" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M296 716 Q 360 400 728 308"/>
-  </g>
-  <g>
-    <circle cx="296" cy="716" r="104" fill="#FFFFFF"/>
-    <circle cx="296" cy="716" r="44" fill="#1B7F5A"/>
-    <circle cx="728" cy="308" r="104" fill="#FFFFFF"/>
-    <circle cx="728" cy="308" r="44" fill="#1B7F5A"/>
-  </g>
+  <rect x="0" y="0" width="1024" height="1024" rx="225.28" ry="225.28" fill="#1B7F5A"/>
+  <path d="M313.71 699.27 Q 372.46 409.18 710.29 324.73" fill="none" stroke="#FFFFFF" stroke-width="66.1" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="313.71" cy="699.27" r="95.47" fill="#FFFFFF"/>
+  <circle cx="710.29" cy="324.73" r="95.47" fill="#FFFFFF"/>
+  <circle cx="313.71" cy="699.27" r="40.39" fill="#1B7F5A"/>
+  <circle cx="710.29" cy="324.73" r="40.39" fill="#1B7F5A"/>
 </svg>
