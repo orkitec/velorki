@@ -3,9 +3,31 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { DocEntry } from '@/site/content';
 import { localePath } from '@/site/paths';
+import type { TocSection } from '@/site/toc';
 import { ArrowIcon } from './Icons';
 
-function DocsList({ locale, docs, current }: { locale: string; docs: DocEntry[]; current?: string }) {
+/**
+ * The page list, with the open page unfolded into its own sections: one tree,
+ * the sections a step in and a step quieter than the page titles, the h3s a
+ * step in again. No heading over them - the indent is what says whose they are.
+ *
+ * It takes no translated string, so the markup - which is the whole contract
+ * of this component - can be rendered in a test without an intl context.
+ * `data-toc-id` is what TocSpy attaches to; without it the anchors are still
+ * ordinary in-page links and still work.
+ */
+export function DocsList({
+  locale,
+  docs,
+  current,
+  sections,
+}: {
+  locale: string;
+  docs: DocEntry[];
+  current?: string;
+  /** The open page's h2/h3 tree, empty when there is nothing to navigate. */
+  sections: TocSection[];
+}) {
   return (
     <ul className="space-y-0.5 border-l border-line">
       {docs.map((doc) => {
@@ -21,6 +43,28 @@ function DocsList({ locale, docs, current }: { locale: string; docs: DocEntry[];
             >
               {doc.title}
             </Link>
+            {active && sections.length > 0 && (
+              <ul className="mb-2 space-y-0.5">
+                {sections.map((section) => (
+                  <li key={section.id}>
+                    <a href={`#${section.id}`} data-toc-id={section.id} className="toc-link pl-7">
+                      {section.text}
+                    </a>
+                    {section.children.length > 0 && (
+                      <ul className="space-y-0.5">
+                        {section.children.map((child) => (
+                          <li key={child.id}>
+                            <a href={`#${child.id}`} data-toc-id={child.id} className="toc-link pl-11">
+                              {child.text}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </li>
         );
       })}
@@ -29,26 +73,47 @@ function DocsList({ locale, docs, current }: { locale: string; docs: DocEntry[];
 }
 
 /**
- * The docs sidebar, in front-matter order, straight from the content directory.
+ * The docs menu: every page in front-matter order, straight from the content
+ * directory, with the open page unfolded into its sections.
  *
  * Below `lg` the full list would push the heading of the page a screen and a
- * half down, so there it is a closed disclosure above the article; from `lg` it
- * is the sticky column and the summary is not rendered at all. Only one of the
- * two is ever in the layout, so the nav landmark stays single.
+ * half down, so there it is a closed disclosure above the article, summarised
+ * by the page the reader is on and - once TocSpy is running - by the section
+ * they are in. From `lg` it is the left column: sticky under the header, and
+ * its own scroller when the page has more sections than the viewport is tall.
+ * Only one of the two is ever in the layout, so the nav landmark stays single.
  */
-export function DocsSidebar({ locale, docs, current }: { locale: string; docs: DocEntry[]; current?: string }) {
+export function DocsSidebar({
+  locale,
+  docs,
+  current,
+  sections = [],
+}: {
+  locale: string;
+  docs: DocEntry[];
+  current?: string;
+  sections?: TocSection[];
+}) {
   const t = useTranslations('docs');
+  const currentTitle = docs.find((doc) => doc.slug === current)?.title ?? t('sidebar');
+  const list = <DocsList locale={locale} docs={docs} current={current} sections={sections} />;
   return (
-    <nav aria-label={t('sidebar')} className="lg:sticky lg:top-24">
+    <nav aria-label={t('sidebar')}>
       <details className="panel p-4 lg:hidden">
-        <summary className="overline cursor-pointer">{t('sidebar')}</summary>
-        <div className="mt-3">
-          <DocsList locale={locale} docs={docs} current={current} />
-        </div>
+        {/* The one line of the menu on screen while reading: which page, and
+            once TocSpy is running which section of it. */}
+        <summary className="cursor-pointer text-sm font-bold">
+          {currentTitle}
+          <span className="font-normal text-muted" data-toc-summary-section hidden />
+        </summary>
+        <div className="mt-3">{list}</div>
       </details>
-      <div className="hidden lg:block">
+      <div
+        data-toc-scroll
+        className="hidden lg:sticky lg:top-24 lg:block lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pb-8"
+      >
         <h2 className="overline mb-3">{t('sidebar')}</h2>
-        <DocsList locale={locale} docs={docs} current={current} />
+        {list}
       </div>
     </nav>
   );

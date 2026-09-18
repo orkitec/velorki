@@ -7,11 +7,14 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Breadcrumbs, DocsSidebar, DraftNotice, PrevNext, TranslationNotice } from '@/components/DocsNav';
 import { JsonLd } from '@/components/JsonLd';
 import { Prose } from '@/components/Prose';
+import { TocSpy } from '@/components/TocSpy';
 import { routing } from '@/i18n/routing';
 import { type DocEntry, docSlugs, listDocs, loadDoc, loadDocsIndex } from '@/site/content';
 import { breadcrumbJsonLd, techArticleJsonLd } from '@/site/jsonld';
+import type { Heading } from '@/site/markdown';
 import { localePath } from '@/site/paths';
 import { pageMetadata } from '@/site/seo';
+import { docToc } from '@/site/toc';
 
 interface DocsParams {
   locale: string;
@@ -70,7 +73,7 @@ export default async function DocsPage({ params }: { params: Promise<DocsParams>
   const next = index >= 0 && index < docs.length - 1 ? docs[index + 1] : undefined;
 
   return (
-    <DocsShell locale={locale} docs={docs} current={page.slug}>
+    <DocsShell locale={locale} docs={docs} current={page.slug} headings={page.headings}>
       <DocArticle
         locale={locale}
         title={page.frontMatter.title}
@@ -105,20 +108,27 @@ function DocsShell({
   locale,
   docs,
   current,
+  headings = [],
   children,
 }: {
   locale: string;
   docs: DocEntry[];
   current?: string;
+  /** The open page's headings; the menu unfolds them under its entry. */
+  headings?: Heading[];
   children: React.ReactNode;
 }) {
-  // The article comes first in the source order: below `lg` the sidebar is a
-  // closed disclosure under it, and from `lg` the explicit grid placement puts
-  // it back into the left column.
+  const sections = docToc(headings);
+  // The menu comes first in the source order, which is where it belongs in
+  // both layouts: the left column from `lg`, and above the article below it,
+  // where it is a closed disclosure naming the page and the section in view.
   return (
-    <div className="shell grid gap-12 py-12 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-16">
-      <div className="min-w-0 lg:col-start-2 lg:row-start-1">{children}</div>
-      <DocsSidebar locale={locale} docs={docs} current={current} />
+    <div className="shell grid gap-8 py-8 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-16 lg:py-12">
+      <DocsSidebar locale={locale} docs={docs} current={current} sections={sections} />
+      <div className="min-w-0">{children}</div>
+      {/* Renders nothing; it only marks the section in view and smooths the
+          jump. No sections, nothing to spy on. */}
+      {sections.length > 0 && <TocSpy ids={headings.map((heading) => heading.id)} />}
     </div>
   );
 }

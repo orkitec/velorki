@@ -285,6 +285,20 @@ Pages are prerendered per locale. English is unprefixed (`localePrefix:
 is the single place that knows that rule, and every canonical URL, hreflang and
 Open Graph tag is built through it.
 
+**The docs menu** is one tree, built from the same headings the Markdown
+pipeline already collects (`collectHeadings` in `src/site/markdown.ts`): every
+page in front-matter order, and under the open page its own `h2`s with the
+`h3`s nested a step further, as plain `#anchor` links. From `lg` it is the
+sticky left column with its own scroller; below `lg` it is a closed disclosure
+above the article, summarised by the page and the section the reader is in.
+`components/TocSpy.tsx` is the only script involved and renders nothing: an
+IntersectionObserver over the article's headings marks the section in view
+(`data-active`, `aria-current="location"`), smooths the jump, and closes the
+disclosure once a section has been chosen. The list itself is static markup, so
+the page still works with JavaScript off; a page with fewer than two headings
+gets no section list at all. `--scroll-offset` in globals.css is the single
+place that says how far below the sticky header an anchored heading lands.
+
 **Adding a docs page.** Write `content/en/docs/<slug>.md` with `title`,
 `description` and `order` in the front matter, and finish it with a `## Related`
 list. Nothing else: the route, the sidebar, the sitemap and the previous/next
