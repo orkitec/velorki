@@ -2050,6 +2050,10 @@
   "@accentBerry": {
     "description": "Accent colour name: hot pink"
   },
+  "accentForest": "Forest",
+  "@accentForest": {
+    "description": "Accent colour name: pine green, the app icon's colour"
+  },
   "plannerVariants": "Variants",
   "@plannerVariants": {
     "description": "Short label under the alternative-routes icon button in the planner toolbar"

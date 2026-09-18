@@ -19,6 +19,12 @@
     "en": "English",
     "de": "Deutsch"
   },
+  "theme": {
+    "label": "Theme",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark"
+  },
   "appearance": {
     "legend": "Show the app in",
     "mode": "Theme",
@@ -29,7 +35,8 @@
     "ember": "Ember",
     "glacier": "Glacier",
     "berry": "Berry",
-    "hint": "The app ships light and dark with four accents. Switching here swaps every screenshot on this page."
+    "forest": "Forest",
+    "hint": "The app ships light and dark with five accents. Switching here swaps every screenshot on this page."
   },
   "screenshots": {
     "missing": "Screenshot pending",
@@ -42,7 +49,7 @@
       "ride": "A finished ride: the speed-coloured track on the map with elevation, speed and split statistics.",
       "library": "The library: saved routes and recorded rides as a list with their distance and ascent.",
       "offline": "Offline downloads: map and routing regions on the phone with their size and state.",
-      "settings": "Settings: the appearance section with the light, dark and system switch and the four accents."
+      "settings": "Settings: the appearance section with the light, dark and system switch and the five accents."
     }
   },
   "home": {

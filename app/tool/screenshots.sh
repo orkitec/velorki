@@ -11,7 +11,8 @@
 # Output: web/public/screenshots/<lang>/<mode>-<accent>/<screen>.png plus
 # web/public/screenshots/manifest.json. Screens are planner, loop, search,
 # navigation, recording, ride, library, offline and settings; the appearance
-# matrix is light-volt, dark-volt, dark-ember, dark-glacier and dark-berry.
+# matrix is light-volt, dark-volt, dark-ember, dark-glacier, dark-berry and
+# dark-forest.
 # One run takes one language; the manifest lists every language found on disk,
 # so a German run leaves the English set alone.
 #
@@ -91,7 +92,7 @@ WORK="$(mktemp -d)"
 export PATH="$HOME/Android/Sdk/platform-tools:$PATH"
 
 ALL_SCREENS=(planner loop search navigation recording ride library offline settings)
-ALL_LOOKS=(light-volt dark-volt dark-ember dark-glacier dark-berry)
+ALL_LOOKS=(light-volt dark-volt dark-ember dark-glacier dark-berry dark-forest)
 DO_BUILD=1
 DO_SEED=1
 LANG_TAG=en
@@ -227,6 +228,10 @@ declare -A UI=(
   [de:RECORDING]='AUFNAHME'
   [en:finish]='^Finish$'
   [de:finish]='^Beenden$'
+  [en:ride_save]='^Save ride$'
+  [de:ride_save]='^Fahrt speichern$'
+  [en:discard]='^Discard$'
+  [de:discard]='^Verwerfen$'
   [en:lib_routes]='^Routes$'
   [de:lib_routes]='^Routen$'
   [en:lib_rides]='^Rides$'
@@ -385,7 +390,7 @@ set_prefs() {  # set_prefs key=value ...  (the app is stopped and left stopped)
   done
   A shell am force-stop "$PKG"
   sleep 2
-  A shell "run-as $PKG sh -c 'cat > shared_prefs/FlutterSharedPreferences.xml'" << XML
+  A shell "run-as $PKG sh -c 'mkdir -p shared_prefs && cat > shared_prefs/FlutterSharedPreferences.xml'" << XML
 <?xml version='1.0' encoding='utf-8' standalone='yes' ?>
 <map>
 $entries</map>
@@ -429,7 +434,9 @@ if tag not in ("en", "system"):
         f'<map>\n    <string name="flutter.language.locale">{tag}</string>', 1)
 open(path, "w").write(body)
 PY
-  A shell "run-as $PKG sh -c 'cat > shared_prefs/FlutterSharedPreferences.xml'" < "$WORK/prefs.xml"
+  # `mkdir -p`: right after a clean install the app has never run, so the
+  # directory the prefs live in is not there yet.
+  A shell "run-as $PKG sh -c 'mkdir -p shared_prefs && cat > shared_prefs/FlutterSharedPreferences.xml'" < "$WORK/prefs.xml"
 }
 
 restart_with() {  # restart_with <mode> <accent>
@@ -827,6 +834,16 @@ start_ride() {  # start_ride <dropdown item: "No route" or a saved route>
 stop_ride() {
   tap "$(ui finish)" 2> /dev/null || true
   sleep 12
+  # Finishing opens the Save-ride sheet: throw the recording away, twice,
+  # because discarding asks for a confirmation. Left standing it is a modal
+  # that swallows every tap the next capture makes.
+  if has "$(ui ride_save)"; then
+    tap "$(ui discard)"
+    sleep 3
+    tap "$(ui discard)" 2> /dev/null || true
+    sleep 5
+    dismiss_snackbar
+  fi
   if has "$(ui menu)"; then  # the finished ride's detail screen
     tap "$(ui menu)"
     sleep 3

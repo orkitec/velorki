@@ -109,8 +109,8 @@ ARB files come from Crowdin (`docs/LOCALISATION.md`).
 
 ### Look and feel (`app/lib/app/theme.dart`)
 
-`buildLightTheme(preset)` / `buildDarkTheme(preset)` with four accent presets
-(`AccentPreset`: volt, ember, glacier, berry), chosen under Settings →
+`buildLightTheme(preset)` / `buildDarkTheme(preset)` with five accent presets
+(`AccentPreset`: volt, ember, glacier, berry, forest), chosen under Settings →
 Appearance next to the light/dark/system switch (`AppearanceSetting`). Two
 typefaces ship as assets: Barlow Condensed for headlines and figures, Manrope
 for everything else. `VelorkiColors` (a `ThemeExtension`) carries what Material

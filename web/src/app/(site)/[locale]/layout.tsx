@@ -8,6 +8,7 @@ import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server
 import { JsonLd } from '@/components/JsonLd';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SiteHeader } from '@/components/SiteHeader';
+import { ThemeScript } from '@/components/ThemeScript';
 import { routing } from '@/i18n/routing';
 import { ORG_NAME, ORG_URL } from '@/site/config';
 import { mobileApplicationJsonLd, organizationJsonLd, webSiteJsonLd } from '@/site/jsonld';
@@ -104,6 +105,7 @@ export default async function SiteLayout({
   const clientMessages = {
     appearance: catalogue.appearance,
     localeSwitcher: catalogue.localeSwitcher,
+    theme: catalogue.theme,
     screenshots: catalogue.screenshots,
     errors: catalogue.errors,
   };
@@ -111,9 +113,18 @@ export default async function SiteLayout({
   // `data-scroll-behavior`: globals.css sets `scroll-behavior: smooth` on
   // `html`, and Next 16 wants the attribute alongside it, or it warns and
   // animates the scroll on every route change.
+  // `suppressHydrationWarning`: `ThemeScript` puts `data-theme` on this very
+  // element before React hydrates, which is the whole point of it. The flag is
+  // shallow — only this element's own attributes — so nothing else is hidden.
   return (
-    <html lang={locale} data-scroll-behavior="smooth" className={`${barlow.variable} ${manrope.variable}`}>
+    <html
+      lang={locale}
+      data-scroll-behavior="smooth"
+      className={`${barlow.variable} ${manrope.variable}`}
+      suppressHydrationWarning
+    >
       <body className="min-h-dvh bg-canvas text-fg antialiased">
+        <ThemeScript />
         <NextIntlClientProvider locale={locale} messages={clientMessages}>
           <a href="#main" className="skip-link">
             {t('skip')}

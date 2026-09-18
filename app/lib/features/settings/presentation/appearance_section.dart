@@ -135,6 +135,7 @@ String accentLabel(AppLocalizations l10n, AccentPreset preset) =>
       AccentPreset.ember => l10n.accentEmber,
       AccentPreset.glacier => l10n.accentGlacier,
       AccentPreset.berry => l10n.accentBerry,
+      AccentPreset.forest => l10n.accentForest,
     };
 
 class _AccentSwatch extends StatelessWidget {

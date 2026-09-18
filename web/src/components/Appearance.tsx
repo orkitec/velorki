@@ -47,6 +47,7 @@ const ACCENT_SWATCH: Record<Accent, { dark: string; light: string }> = {
   ember: { dark: '#FF7A45', light: '#C63D12' },
   glacier: { dark: '#5CD6FF', light: '#0071A6' },
   berry: { dark: '#FF66B0', light: '#B8155F' },
+  forest: { dark: '#3FBF8A', light: '#1B7F5A' },
 };
 
 /** The light/dark and accent controls above the feature tour. */

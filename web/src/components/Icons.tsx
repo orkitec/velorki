@@ -80,3 +80,41 @@ export function GlobeIcon(props: IconProps) {
   );
 }
 
+
+export function SystemThemeIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="3" y="4.5" width="18" height="12.5" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" d="M9 20.5h6" />
+    </Icon>
+  );
+}
+
+export function LightThemeIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        d="M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6 7 7m10 10 1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"
+      />
+    </Icon>
+  );
+}
+
+export function DarkThemeIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+        d="M20 14.2A8.2 8.2 0 0 1 9.8 4a8.2 8.2 0 1 0 10.2 10.2Z"
+      />
+    </Icon>
+  );
+}

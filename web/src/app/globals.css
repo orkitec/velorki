@@ -9,113 +9,183 @@
    Straight from the app: app/lib/app/theme.dart. Ink is the dark ground,
    paper the light one, and each accent ships a vivid variant for dark
    surfaces and a deeper one that still reads as text on light surfaces.
-   Light is the default declaration, dark comes from prefers-color-scheme, and
-   the whole site is built dark-first: ink, glass panels, volt. */
-:root {
-  color-scheme: light dark;
 
+   Every colour is written once, as a `-light` / `-dark` pair; the three
+   "which palette is live" blocks below only point the semantic names at one
+   half of each pair. Light is the default, `prefers-color-scheme` swaps it,
+   and `data-theme` on <html> — set by the header's theme switch — overrules
+   both. The site is designed dark-first: ink, glass panels, volt. */
+:root {
   --ink: #0e1115;
   --ink-light: #14171a;
   --paper: #f5f6f3;
   --white: #ffffff;
 
-  /* Semantic, light mode. */
-  --canvas: #f5f6f3;
-  --canvas-deep: #e9ebe6;
-  --panel: #ffffff;
-  --panel-2: #edefeb;
-  --fg: #14171a;
-  --muted: #5b636c;
-  --line: #d7dbd5;
-  --line-soft: #e4e7e2;
+  --canvas-light: #f5f6f3;
+  --canvas-deep-light: #e9ebe6;
+  --panel-light: #ffffff;
+  --panel-2-light: #edefeb;
+  --fg-light: #14171a;
+  --muted-light: #5b636c;
+  --line-light: #d7dbd5;
+  --line-soft-light: #e4e7e2;
+  --glass-light: rgb(255 255 255 / 0.82);
+  --glass-border-light: rgb(0 0 0 / 0.1);
+  --success-light: #1fa85f;
+  --warning-light: #c77800;
 
-  --accent: #3f7a00;
-  --on-accent: #ffffff;
-  --accent-soft: rgb(63 122 0 / 0.12);
-  --accent-glow: rgb(63 122 0 / 0.18);
-
-  --glass: rgb(255 255 255 / 0.82);
-  --glass-border: rgb(0 0 0 / 0.1);
-
-  --success: #1fa85f;
-  --warning: #c77800;
+  --canvas-dark: #0e1115;
+  --canvas-deep-dark: #0a0d10;
+  --panel-dark: #1b1f26;
+  --panel-2-dark: #21262e;
+  --fg-dark: #f1f3f5;
+  --muted-dark: #aab2bc;
+  --line-dark: #2c333c;
+  --line-soft-dark: #232930;
+  --glass-dark: rgb(27 31 38 / 0.72);
+  --glass-border-dark: rgb(255 255 255 / 0.18);
+  --success-dark: #3ddc84;
+  --warning-dark: #f0b84a;
 
   --radius-panel: 20px;
   --radius-pill: 999px;
   --shell: 76rem;
 }
 
+/* The accents, volt on :root because that is the app's default. A block here
+   carries both halves; the selection blocks pick one. */
+:root,
 [data-accent='volt'] {
-  --accent: #3f7a00;
-  --on-accent: #ffffff;
-  --accent-soft: rgb(63 122 0 / 0.12);
-  --accent-glow: rgb(63 122 0 / 0.18);
+  --accent-light: #3f7a00;
+  --on-accent-light: #ffffff;
+  --accent-soft-light: rgb(63 122 0 / 0.12);
+  --accent-glow-light: rgb(63 122 0 / 0.18);
+  --accent-dark: #c8f542;
+  --on-accent-dark: #0e1115;
+  --accent-soft-dark: rgb(200 245 66 / 0.14);
+  --accent-glow-dark: rgb(200 245 66 / 0.22);
 }
 [data-accent='ember'] {
-  --accent: #c63d12;
-  --on-accent: #ffffff;
-  --accent-soft: rgb(198 61 18 / 0.12);
-  --accent-glow: rgb(198 61 18 / 0.18);
+  --accent-light: #c63d12;
+  --on-accent-light: #ffffff;
+  --accent-soft-light: rgb(198 61 18 / 0.12);
+  --accent-glow-light: rgb(198 61 18 / 0.18);
+  --accent-dark: #ff7a45;
+  --on-accent-dark: #0e1115;
+  --accent-soft-dark: rgb(255 122 69 / 0.16);
+  --accent-glow-dark: rgb(255 122 69 / 0.24);
 }
 [data-accent='glacier'] {
-  --accent: #0071a6;
-  --on-accent: #ffffff;
-  --accent-soft: rgb(0 113 166 / 0.12);
-  --accent-glow: rgb(0 113 166 / 0.18);
+  --accent-light: #0071a6;
+  --on-accent-light: #ffffff;
+  --accent-soft-light: rgb(0 113 166 / 0.12);
+  --accent-glow-light: rgb(0 113 166 / 0.18);
+  --accent-dark: #5cd6ff;
+  --on-accent-dark: #0e1115;
+  --accent-soft-dark: rgb(92 214 255 / 0.16);
+  --accent-glow-dark: rgb(92 214 255 / 0.24);
 }
 [data-accent='berry'] {
-  --accent: #b8155f;
-  --on-accent: #ffffff;
-  --accent-soft: rgb(184 21 95 / 0.12);
-  --accent-glow: rgb(184 21 95 / 0.18);
+  --accent-light: #b8155f;
+  --on-accent-light: #ffffff;
+  --accent-soft-light: rgb(184 21 95 / 0.12);
+  --accent-glow-light: rgb(184 21 95 / 0.18);
+  --accent-dark: #ff66b0;
+  --on-accent-dark: #0e1115;
+  --accent-soft-dark: rgb(255 102 176 / 0.16);
+  --accent-glow-dark: rgb(255 102 176 / 0.24);
+}
+[data-accent='forest'] {
+  --accent-light: #1b7f5a;
+  --on-accent-light: #ffffff;
+  --accent-soft-light: rgb(27 127 90 / 0.12);
+  --accent-glow-light: rgb(27 127 90 / 0.18);
+  --accent-dark: #3fbf8a;
+  --on-accent-dark: #0e1115;
+  --accent-soft-dark: rgb(63 191 138 / 0.16);
+  --accent-glow-dark: rgb(63 191 138 / 0.24);
 }
 
+/* Which palette is live — 1: the default, and what `data-theme="light"` forces.
+   The accent half of each block repeats for [data-accent], because a custom
+   property is substituted where it is declared: a descendant that redefines
+   `--accent-dark` needs the `--accent: var(--accent-dark)` rule to reach it
+   too. The three blocks must stay in step. */
+:root,
+[data-accent] {
+  --accent: var(--accent-light);
+  --on-accent: var(--on-accent-light);
+  --accent-soft: var(--accent-soft-light);
+  --accent-glow: var(--accent-glow-light);
+}
+:root {
+  color-scheme: light dark;
+
+  --canvas: var(--canvas-light);
+  --canvas-deep: var(--canvas-deep-light);
+  --panel: var(--panel-light);
+  --panel-2: var(--panel-2-light);
+  --fg: var(--fg-light);
+  --muted: var(--muted-light);
+  --line: var(--line-light);
+  --line-soft: var(--line-soft-light);
+  --glass: var(--glass-light);
+  --glass-border: var(--glass-border-light);
+  --success: var(--success-light);
+  --warning: var(--warning-light);
+}
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+/* 2: the reader's system, unless they have forced light here. */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --canvas: #0e1115;
-    --canvas-deep: #0a0d10;
-    --panel: #1b1f26;
-    --panel-2: #21262e;
-    --fg: #f1f3f5;
-    --muted: #aab2bc;
-    --line: #2c333c;
-    --line-soft: #232930;
+  :root:not([data-theme='light']),
+  :root:not([data-theme='light']) [data-accent] {
+    --accent: var(--accent-dark);
+    --on-accent: var(--on-accent-dark);
+    --accent-soft: var(--accent-soft-dark);
+    --accent-glow: var(--accent-glow-dark);
+  }
+  :root:not([data-theme='light']) {
+    --canvas: var(--canvas-dark);
+    --canvas-deep: var(--canvas-deep-dark);
+    --panel: var(--panel-dark);
+    --panel-2: var(--panel-2-dark);
+    --fg: var(--fg-dark);
+    --muted: var(--muted-dark);
+    --line: var(--line-dark);
+    --line-soft: var(--line-soft-dark);
+    --glass: var(--glass-dark);
+    --glass-border: var(--glass-border-dark);
+    --success: var(--success-dark);
+    --warning: var(--warning-dark);
+  }
+}
 
-    --accent: #c8f542;
-    --on-accent: #0e1115;
-    --accent-soft: rgb(200 245 66 / 0.14);
-    --accent-glow: rgb(200 245 66 / 0.22);
+/* 3: forced by the header's theme switch, whatever the system says. */
+:root[data-theme='dark'],
+:root[data-theme='dark'] [data-accent] {
+  --accent: var(--accent-dark);
+  --on-accent: var(--on-accent-dark);
+  --accent-soft: var(--accent-soft-dark);
+  --accent-glow: var(--accent-glow-dark);
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
 
-    --glass: rgb(27 31 38 / 0.72);
-    --glass-border: rgb(255 255 255 / 0.18);
-
-    --success: #3ddc84;
-    --warning: #f0b84a;
-  }
-  [data-accent='volt'] {
-    --accent: #c8f542;
-    --on-accent: #0e1115;
-    --accent-soft: rgb(200 245 66 / 0.14);
-    --accent-glow: rgb(200 245 66 / 0.22);
-  }
-  [data-accent='ember'] {
-    --accent: #ff7a45;
-    --on-accent: #0e1115;
-    --accent-soft: rgb(255 122 69 / 0.16);
-    --accent-glow: rgb(255 122 69 / 0.24);
-  }
-  [data-accent='glacier'] {
-    --accent: #5cd6ff;
-    --on-accent: #0e1115;
-    --accent-soft: rgb(92 214 255 / 0.16);
-    --accent-glow: rgb(92 214 255 / 0.24);
-  }
-  [data-accent='berry'] {
-    --accent: #ff66b0;
-    --on-accent: #0e1115;
-    --accent-soft: rgb(255 102 176 / 0.16);
-    --accent-glow: rgb(255 102 176 / 0.24);
-  }
+  --canvas: var(--canvas-dark);
+  --canvas-deep: var(--canvas-deep-dark);
+  --panel: var(--panel-dark);
+  --panel-2: var(--panel-2-dark);
+  --fg: var(--fg-dark);
+  --muted: var(--muted-dark);
+  --line: var(--line-dark);
+  --line-soft: var(--line-soft-dark);
+  --glass: var(--glass-dark);
+  --glass-border: var(--glass-border-dark);
+  --success: var(--success-dark);
+  --warning: var(--warning-dark);
 }
 
 @theme inline {
@@ -165,14 +235,21 @@ h4 {
   text-wrap: balance;
 }
 
-a {
-  color: inherit;
+/* In its own layer, so a colour utility (`text-on-accent` on the locale pill)
+   still wins: unlayered CSS beats everything in Tailwind's utilities layer. */
+@layer base {
+  a {
+    color: inherit;
+  }
 }
 
+/* Neutral, not the accent: a green ring around the wordmark read as a state
+   rather than as focus. `:focus-visible` only, so a mouse or a finger never
+   draws it. No `border-radius` here on purpose — the outline already follows
+   the element's own corners, and setting one would square off the pills. */
 :focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 3px;
-  border-radius: 4px;
+  outline: 2px solid color-mix(in srgb, var(--fg) 55%, transparent);
+  outline-offset: 2px;
 }
 
 ::selection {

@@ -47,6 +47,15 @@ enum AccentPreset {
     lightContainer: Color(0xFFFFD4E7),
     route: Color(0xFFFF4FA3),
     routeOnLight: Color(0xFFC81C6B),
+  ),
+
+  /// Pine green: the app icon's own colour.
+  forest(
+    dark: Color(0xFF3FBF8A),
+    light: Color(0xFF1B7F5A),
+    lightContainer: Color(0xFFC9EFDD),
+    route: Color(0xFF22B57C),
+    routeOnLight: Color(0xFF1F9468),
   );
 
   const AccentPreset({

@@ -176,8 +176,8 @@ cached.
 `tool/screenshots.sh` takes the product shots the website shows, on the
 emulator, and writes them to `web/public/screenshots/<mode>-<accent>/<screen>.png`
 with a `manifest.json` beside them. The matrix is light + volt and dark with
-each of volt, ember, glacier and berry; the screens are planner, loop, search,
-navigation, recording, ride, library, offline and settings.
+each of volt, ember, glacier, berry and forest; the screens are planner, loop,
+search, navigation, recording, ride, library, offline and settings.
 
 ```
 tool/screenshots.sh                    # build, seed, take all of them

@@ -257,7 +257,7 @@ someone to self-host a fork. `npm run check:deps` is the guard; run it in CI.
 legal pages, and the download page. App Router pages under
 `src/app/(site)/[locale]/`, Tailwind 4 for the styling, next-intl for the
 locales, and everything the app's own look needs (Barlow Condensed, Manrope,
-the four accents) taken from `app/lib/app/theme.dart`.
+the five accents) taken from `app/lib/app/theme.dart`.
 
 | Where | What |
 | --- | --- |

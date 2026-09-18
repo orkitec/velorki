@@ -42,7 +42,7 @@ Finder _swatch(String label) =>
     find.ancestor(of: find.text(label), matching: find.byType(InkWell));
 
 void main() {
-  testWidgets('the section offers the three modes and the four accents', (
+  testWidgets('the section offers the three modes and the five accents', (
     tester,
   ) async {
     final semantics = tester.ensureSemantics();
@@ -75,6 +75,7 @@ void main() {
       l10n.accentEmber,
       l10n.accentGlacier,
       l10n.accentBerry,
+      l10n.accentForest,
     ]) {
       expect(_swatch(label), findsOneWidget);
       // A screen reader hears the accent's name on the swatch.

@@ -19,6 +19,12 @@
     "en": "English",
     "de": "Deutsch"
   },
+  "theme": {
+    "label": "Design",
+    "system": "System",
+    "light": "Hell",
+    "dark": "Dunkel"
+  },
   "appearance": {
     "legend": "App anzeigen in",
     "mode": "Design",
@@ -29,7 +35,8 @@
     "ember": "Glut",
     "glacier": "Gletscher",
     "berry": "Beere",
-    "hint": "Die App kommt hell und dunkel mit vier Akzentfarben. Schaltest du hier um, wechselt jeder Screenshot auf dieser Seite mit."
+    "forest": "Wald",
+    "hint": "Die App kommt hell und dunkel mit fünf Akzentfarben. Schaltest du hier um, wechselt jeder Screenshot auf dieser Seite mit."
   },
   "screenshots": {
     "missing": "Screenshot folgt",
@@ -42,7 +49,7 @@
       "ride": "Eine fertige Fahrt: der nach Geschwindigkeit eingefärbte Track auf der Karte, mit Höhen-, Geschwindigkeits- und Split-Statistik.",
       "library": "Die Bibliothek: gespeicherte Routen und aufgezeichnete Fahrten als Liste mit ihrer Distanz und ihrem Anstieg.",
       "offline": "Offline-Downloads: Karten- und Routing-Regionen auf dem Handy mit ihrer Größe und ihrem Status.",
-      "settings": "Einstellungen: der Bereich Darstellung mit dem Schalter für Hell, Dunkel und System und den vier Akzentfarben."
+      "settings": "Einstellungen: der Bereich Darstellung mit dem Schalter für Hell, Dunkel und System und den fünf Akzentfarben."
     }
   },
   "home": {

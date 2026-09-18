@@ -6,6 +6,7 @@ import { localePath } from '@/site/paths';
 import { AppIcon } from './AppIcon';
 import { GitHubIcon } from './Icons';
 import { LocaleSwitcher } from './LocaleSwitcher';
+import { ThemeSwitcher } from './ThemeSwitcher';
 
 /** Features, Docs and Plus, in that order; Download is the call to action. */
 const NAV = [
@@ -46,6 +47,7 @@ export function SiteHeader({ locale }: { locale: string }) {
         </nav>
 
         <div className="ml-auto flex items-center gap-2 md:ml-0">
+          <ThemeSwitcher />
           <LocaleSwitcher />
           <Link href={localePath(locale, '/download')} className="btn btn-primary !min-h-10 px-4 text-sm">
             {t('download')}

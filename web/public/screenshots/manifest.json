@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-17T14:54:35Z",
+  "generatedAt": "2026-09-18T04:20:12Z",
   "device": {
     "name": "Android emulator, Pixel-class phone",
     "platform": "android",
@@ -326,6 +326,67 @@
       ]
     },
     {
+      "language": "en",
+      "mode": "dark",
+      "accent": "forest",
+      "screenshots": [
+        {
+          "screen": "planner",
+          "title": "Planning the Funchal coast and Monte loop",
+          "file": "en/dark-forest/planner.png",
+          "bytes": 719832
+        },
+        {
+          "screen": "loop",
+          "title": "Smart Loop, a ride of about the length you asked for",
+          "file": "en/dark-forest/loop.png",
+          "bytes": 480473
+        },
+        {
+          "screen": "search",
+          "title": "Searching the offline gazetteer",
+          "file": "en/dark-forest/search.png",
+          "bytes": 316854
+        },
+        {
+          "screen": "navigation",
+          "title": "Turn-by-turn guidance while recording",
+          "file": "en/dark-forest/navigation.png",
+          "bytes": 709208
+        },
+        {
+          "screen": "recording",
+          "title": "A ride being recorded",
+          "file": "en/dark-forest/recording.png",
+          "bytes": 584308
+        },
+        {
+          "screen": "ride",
+          "title": "A finished ride, with its charts and splits",
+          "file": "en/dark-forest/ride.png",
+          "bytes": 174091
+        },
+        {
+          "screen": "library",
+          "title": "Saved routes and rides",
+          "file": "en/dark-forest/library.png",
+          "bytes": 150068
+        },
+        {
+          "screen": "offline",
+          "title": "Offline map and routing data",
+          "file": "en/dark-forest/offline.png",
+          "bytes": 218053
+        },
+        {
+          "screen": "settings",
+          "title": "Settings, with the appearance block",
+          "file": "en/dark-forest/settings.png",
+          "bytes": 225068
+        }
+      ]
+    },
+    {
       "language": "de",
       "mode": "light",
       "accent": "volt",
@@ -627,6 +688,67 @@
           "title": "Settings, with the appearance block",
           "file": "de/dark-berry/settings.png",
           "bytes": 224626
+        }
+      ]
+    },
+    {
+      "language": "de",
+      "mode": "dark",
+      "accent": "forest",
+      "screenshots": [
+        {
+          "screen": "planner",
+          "title": "Planning the Funchal coast and Monte loop",
+          "file": "de/dark-forest/planner.png",
+          "bytes": 724242
+        },
+        {
+          "screen": "loop",
+          "title": "Smart Loop, a ride of about the length you asked for",
+          "file": "de/dark-forest/loop.png",
+          "bytes": 477687
+        },
+        {
+          "screen": "search",
+          "title": "Searching the offline gazetteer",
+          "file": "de/dark-forest/search.png",
+          "bytes": 319537
+        },
+        {
+          "screen": "navigation",
+          "title": "Turn-by-turn guidance while recording",
+          "file": "de/dark-forest/navigation.png",
+          "bytes": 729819
+        },
+        {
+          "screen": "recording",
+          "title": "A ride being recorded",
+          "file": "de/dark-forest/recording.png",
+          "bytes": 574069
+        },
+        {
+          "screen": "ride",
+          "title": "A finished ride, with its charts and splits",
+          "file": "de/dark-forest/ride.png",
+          "bytes": 174652
+        },
+        {
+          "screen": "library",
+          "title": "Saved routes and rides",
+          "file": "de/dark-forest/library.png",
+          "bytes": 149412
+        },
+        {
+          "screen": "offline",
+          "title": "Offline map and routing data",
+          "file": "de/dark-forest/offline.png",
+          "bytes": 241882
+        },
+        {
+          "screen": "settings",
+          "title": "Settings, with the appearance block",
+          "file": "de/dark-forest/settings.png",
+          "bytes": 234080
         }
       ]
     }

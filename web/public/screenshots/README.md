@@ -13,7 +13,7 @@ public/screenshots/<lang>/<mode>-<accent>/<screen>.png
 - `<lang>`: the app's own language setting for the run — `en` (the app on
   System, which is English here) or `de`
 - `<mode>`: `light` or `dark`
-- `<accent>`: `volt`, `ember`, `glacier` or `berry`
+- `<accent>`: `volt`, `ember`, `glacier`, `berry` or `forest`
 - `<screen>`: `planner`, `loop`, `search`, `navigation`, `recording`, `ride`,
   `library`, `offline`, `settings`
 

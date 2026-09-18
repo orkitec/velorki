@@ -7,7 +7,7 @@
 // renders a labelled placeholder for the rest, so the pages are complete
 // before the pipeline has run.
 export const MODES = ['dark', 'light'] as const;
-export const ACCENTS = ['volt', 'ember', 'glacier', 'berry'] as const;
+export const ACCENTS = ['volt', 'ember', 'glacier', 'berry', 'forest'] as const;
 export const SCREENS = [
   'planner',
   'loop',
