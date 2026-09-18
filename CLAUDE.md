@@ -45,7 +45,8 @@ changing structure.
   main agent. Subagents must not commit.
 - **Licence**: AGPL-3.0-only for the whole repository (one `LICENSE` at the
   root); an outside contribution may only be merged once its author has signed
-  the CLA (`CLA.md`, checked by `.github/workflows/cla.yml`).
+  the CLA (`CLA.md`, checked by `.github/workflows/cla.yml`). `ADDITIONAL_TERMS.md`
+  is the section 7(b) attribution term; do not add further terms.
 - Keep docs terse and current. Delete rather than rewrite. No plan history.
 
 ## Toolchain facts

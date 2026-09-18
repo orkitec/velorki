@@ -90,7 +90,9 @@ the step-by-step for the last two. Forks must rebrand, see `TRADEMARK.md`.
 
 [AGPL-3.0](LICENSE). Modified versions have to flow back: whoever distributes
 a changed app, or serves a changed relay or website, publishes the source
-under the same licence. The name, the logo and the app icon stay reserved, see
+under the same licence, and keeps a "Based on Velorki (velorki.com) by
+Orkitec" line in its about screen or website footer, see
+`ADDITIONAL_TERMS.md`. The name, the logo and the app icon stay reserved, see
 `TRADEMARK.md`.
 
 ## Credits
