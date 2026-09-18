@@ -36,10 +36,15 @@
     "glacier": "Glacier",
     "berry": "Berry",
     "forest": "Forest",
+    "lightVoltOnly": "Light screenshots are available in Volt",
     "hint": "The app ships light and dark with five accents. Switching here swaps every screenshot on this page."
   },
   "screenshots": {
     "missing": "Screenshot pending",
+    "look": {
+      "light": "{description} Shown in the app's light theme.",
+      "dark": "{description} Shown in the app's dark theme."
+    },
     "alt": {
       "planner": "The Velorki route planner: a bike route on the map with waypoints, distance, ascent and the elevation profile in a panel over the map.",
       "loop": "A generated loop: a round trip drawn on the map with its length, climbing and surface mix.",

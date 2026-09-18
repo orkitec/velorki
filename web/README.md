@@ -266,7 +266,19 @@ the five accents) taken from `app/lib/app/theme.dart`.
 | `messages/<locale>.json` | the UI strings; `src/i18n/locales.generated.ts` lists the locales that exist |
 | `src/components/` | header, footer, docs navigation, the phone frame, the appearance and locale switchers |
 | `src/site/` | content loading, the Markdown pipeline, SEO helpers, the screenshot manifest |
-| `public/screenshots/<mode>-<accent>/` | written by `app/tool/screenshots.sh`; a missing file renders as a labelled placeholder |
+| `public/screenshots/<lang>/<mode>-<accent>/` | written by `app/tool/screenshots.sh`; a missing file renders as a labelled placeholder |
+
+**The screenshots follow the site.** A reader on a light page sees the app in
+light, one on a dark page sees it dark: `src/site/appearance.ts` resolves the
+look from the palette the page is painted in (`data-theme` on `<html>`, else
+`prefers-color-scheme`), and `components/Appearance.tsx` reads that through the
+same `useSyncExternalStore` the theme switch uses, plus a `MutationObserver`, so
+flipping the header switch swaps every phone frame. Picking a side in the
+appearance switcher above the feature tour overrules it for that page view and
+is not remembered. Light is captured in Volt only, so the other accent chips are
+disabled while the look is light and the accent comes back when it is dark
+again. The server has no theme knowledge and renders the app's own default look
+(`dark-volt`); the client corrects it during hydration, which costs one frame.
 
 Pages are prerendered per locale. English is unprefixed (`localePrefix:
 'as-needed'`), so `/docs` is English and `/de/docs` German; `src/site/paths.ts`

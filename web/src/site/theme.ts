@@ -28,3 +28,15 @@ export function resolveTheme(stored: string | null | undefined): Theme {
 export function themeAttribute(theme: Theme): 'light' | 'dark' | null {
   return theme === 'system' ? null : theme;
 }
+
+/**
+ * The palette a page is actually painted in, from what a browser can see: the
+ * attribute the switch (or `ThemeScript`) left on `<html>` when a reader forced
+ * one, and `prefers-color-scheme` for everyone still on System. The counterpart
+ * of `themeAttribute`, for the parts of the page that have to follow the site's
+ * look rather than set it.
+ */
+export function paintedTheme(attribute: string | null | undefined, prefersDark: boolean): 'light' | 'dark' {
+  if (attribute === 'light' || attribute === 'dark') return attribute;
+  return prefersDark ? 'dark' : 'light';
+}

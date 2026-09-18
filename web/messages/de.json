@@ -36,10 +36,15 @@
     "glacier": "Gletscher",
     "berry": "Beere",
     "forest": "Wald",
+    "lightVoltOnly": "Helle Screenshots gibt es in Volt",
     "hint": "Die App kommt hell und dunkel mit fünf Akzentfarben. Schaltest du hier um, wechselt jeder Screenshot auf dieser Seite mit."
   },
   "screenshots": {
     "missing": "Screenshot folgt",
+    "look": {
+      "light": "{description} Gezeigt im hellen Design der App.",
+      "dark": "{description} Gezeigt im dunklen Design der App."
+    },
     "alt": {
       "planner": "Der Velorki-Routenplaner: eine Radroute auf der Karte mit Wegpunkten, Distanz, Anstieg und dem Höhenprofil in einem Panel über der Karte.",
       "loop": "Eine erzeugte Runde: eine Rundfahrt auf der Karte, mit ihrer Länge, ihrem Anstieg und der Belagsmischung.",
