@@ -94,7 +94,10 @@ exercised there. The items here are the parts not yet covered by that.
       session at every standstill, auto-pause included, and the first reading
       after a resume takes a few seconds; a minimum pause length before the
       sensor rests is the likely refinement. Still to be seen on the device:
-      the "Ride started from your watch" notification and the pause behaviour.
+      the "Ride started from your watch" notification, the pause behaviour,
+      the sensor tile that stays with a broken-link mark, the average heart
+      rate under it, and the elevation profile view (checked on the simulator
+      and in a rendered widget test only).
 - [ ] **Bluetooth on the Android phone**: scan, pair and ride with a strap or a
       cadence sensor on the Pixel; the manifest's `neverForLocation` scan flag
       and the capped legacy permissions were written without an Android SDK
