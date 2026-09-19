@@ -12,6 +12,8 @@ import '../../../core/permissions/location_permission.dart';
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/data/compass_heading.dart';
+import '../../sensors/application/sensors_seen.dart';
+import 'ride_profile_view.dart';
 import '../../map/data/heading_smoother.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/location_rationale_dialog.dart';
@@ -162,6 +164,10 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
 
   /// Whether the save sheet is up (or on its way), from any stop.
   bool _stopping = false;
+
+  /// Whether the elevation profile is up instead of the map. Off again when
+  /// the ride ends.
+  bool _profileShown = false;
 
   int _drawnTrackPoints = -1;
   String? _drawnRouteId;
@@ -474,6 +480,11 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   ///
   /// A tap while the map has been let go picks the following up again too:
   /// asking for a style only to watch the map stay put would be a riddle.
+  void _handleProfile() {
+    if (!mounted) return;
+    setState(() => _profileShown = !_profileShown);
+  }
+
   void _handleCompass() {
     if (!mounted) return;
     final next = ref.read(followModeProvider) == FollowMode.headingUp
@@ -530,6 +541,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       _wasRecording = state.isRecording;
       _following = state.isRecording;
       _followTarget = null;
+      if (ended) _profileShown = false;
     }
     final map = _map;
     if (map == null) return;
@@ -1156,8 +1168,11 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                   bearingDeg: _bearing,
                   onLocate: _handleLocate,
                   // Only a running ride has a camera to hold, so only a
-                  // running ride shows the compass.
+                  // running ride shows the compass, and only it has a road
+                  // ahead to draw as a profile.
                   onCompass: state.isRecording ? _handleCompass : null,
+                  onProfile: state.isRecording ? _handleProfile : null,
+                  profileShown: _profileShown,
                   // The turn banner sits over the top of the map, so the
                   // control column starts below it while one is showing.
                   controlsTop: guiding ? turnBannerHeight + 24 : null,
@@ -1172,6 +1187,20 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                 ),
               ),
             ),
+            // The profile sits over the map, under the turn banner and the
+            // sheet: the map keeps its state and comes back with one tap.
+            if (_profileShown && state.isRecording && !glance)
+              Positioned.fill(
+                child: RideProfileView(
+                  // Watched only while the profile is up: the samples are
+                  // computed from the route's geometry once per route, and
+                  // a rider who never opens the view never pays for it.
+                  samples: ref.watch(guidedRouteProfileProvider),
+                  alongM: navigation?.alongM ?? 0,
+                  topInset: guiding ? turnBannerHeight + 12 : 0,
+                  onShowMap: _handleProfile,
+                ),
+              ),
             if (guiding && !glance)
               Positioned(
                 top: 0,
@@ -1476,6 +1505,30 @@ class _IdlePanel extends ConsumerWidget {
   }
 }
 
+/// One sensor's tile: the current value, or the last one dimmed and marked
+/// with a broken link while the sensor is silent mid-ride. `null` for a sensor
+/// that has not reported this ride.
+Widget? _sensorTile(
+  String label, {
+  required int? current,
+  required int? last,
+  required String Function(int?) format,
+  required bool paused,
+  String? detail,
+}) {
+  final value = current ?? last;
+  if (value == null) return null;
+  final lost = current == null && !paused;
+  return StatTile(
+    label: label,
+    value: format(value),
+    size: StatSize.medium,
+    icon: lost ? Icons.link_off : null,
+    muted: lost,
+    detail: detail,
+  );
+}
+
 class _LivePanel extends ConsumerWidget {
   const _LivePanel({
     required this.state,
@@ -1503,6 +1556,37 @@ class _LivePanel extends ConsumerWidget {
     final theme = Theme.of(context);
     final units = ref.watch(unitSystemProvider);
     final snapshot = state.snapshot!;
+    final seen = ref.watch(sensorsSeenProvider);
+    final remembered = seen.rideId == snapshot.rideId
+        ? seen
+        : const SensorsSeenState();
+    final avgHeartRate = snapshot.avgHeartRateBpm;
+    final sensorTiles = <Widget>[
+      ?_sensorTile(
+        l10n.statHeartRate,
+        current: snapshot.heartRateBpm,
+        last: remembered.heartRateBpm,
+        format: (bpm) => formatHeartRate(l10n, bpm),
+        paused: state.isPaused,
+        detail: avgHeartRate == null
+            ? null
+            : '${l10n.statAvgHeartRate} ${formatHeartRate(l10n, avgHeartRate)}',
+      ),
+      ?_sensorTile(
+        l10n.statCadence,
+        current: snapshot.cadenceRpm,
+        last: remembered.cadenceRpm,
+        format: (rpm) => formatCadence(l10n, rpm),
+        paused: state.isPaused,
+      ),
+      ?_sensorTile(
+        l10n.statPower,
+        current: snapshot.powerW,
+        last: remembered.powerW,
+        format: (watts) => formatPower(l10n, watts),
+        paused: state.isPaused,
+      ),
+    ];
     final status = switch (snapshot) {
       RecordingSnapshot(status: RecordingStatus.paused, autoPaused: true) =>
         l10n.recordingStatusAutoPaused,
@@ -1598,33 +1682,15 @@ class _LivePanel extends ConsumerWidget {
                   ),
                 ],
               ),
-              // Only the figures a sensor is reporting: a rider with a
-              // watch and nothing else gets one tile, not one and two
-              // dashes, and a rider with no sensor gets no row at all.
-              if (snapshot.hasSensors) ...[
+              // Only the figures a sensor has reported this ride: a rider
+              // with a watch and nothing else gets one tile, not one and two
+              // dashes, and a rider with no sensor gets no row at all. A
+              // sensor that fell silent keeps its tile, dimmed and marked,
+              // with the last value; paused, the sensor rests on purpose
+              // and nothing is marked.
+              if (sensorTiles.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                StatRow(
-                  children: [
-                    if (snapshot.heartRateBpm != null)
-                      StatTile(
-                        label: l10n.statHeartRate,
-                        value: formatHeartRate(l10n, snapshot.heartRateBpm),
-                        size: StatSize.medium,
-                      ),
-                    if (snapshot.cadenceRpm != null)
-                      StatTile(
-                        label: l10n.statCadence,
-                        value: formatCadence(l10n, snapshot.cadenceRpm),
-                        size: StatSize.medium,
-                      ),
-                    if (snapshot.powerW != null)
-                      StatTile(
-                        label: l10n.statPower,
-                        value: formatPower(l10n, snapshot.powerW),
-                        size: StatSize.medium,
-                      ),
-                  ],
-                ),
+                StatRow(children: sensorTiles),
               ],
             ],
           ),

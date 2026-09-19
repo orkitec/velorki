@@ -25,9 +25,13 @@ Velorki pausiert nach etwa zehn Sekunden ohne Bewegung von selbst; die Plakette 
 
 ## Puls, Trittfrequenz und Leistung
 
-Ist ein Sensor eingeschaltet, kommt in der Übersicht eine dritte Zeile mit Zahlen dazu, solange er meldet, und nur mit dem, was gemeldet wird: **Herzfrequenz**, **Trittfrequenz** und **Leistung**, eine Uhr allein bringt also eine Kachel. Sie können von einem Bluetooth-Sensor, von einer Apple Watch oder von der Health-App des Handys kommen, werden während der Fahrt in den Track geschrieben, und auf dem iPhone steht der Puls auch auf der Sperrbildschirm-Karte. Solange ein Radsensor meldet, ist seine Geschwindigkeit das, was **Tempo** zeigt.
+Ist ein Sensor eingeschaltet, kommt in der Übersicht eine dritte Zeile mit dem dazu, was in dieser Fahrt gemeldet wurde: **Herzfrequenz**, **Trittfrequenz** und **Leistung**, eine Uhr allein bringt also eine Kachel. Unter der Herzfrequenz steht der **Ø Puls** der Fahrt. Ein Sensor, der mitten in der Fahrt verstummt, eine Uhr außer Reichweite oder ein verrutschter Gurt, behält seine Kachel mit dem letzten Wert, abgedunkelt und mit einem Zeichen für die unterbrochene Verbindung, damit zu sehen ist, dass etwas nicht mehr meldet; solange die Fahrt pausiert ist, ruht der Sensor absichtlich und nichts wird markiert. Sie können von einem Bluetooth-Sensor, von einer Apple Watch oder von der Health-App des Handys kommen, werden während der Fahrt in den Track geschrieben, und auf dem iPhone steht der Puls auch auf der Sperrbildschirm-Karte. Solange ein Radsensor meldet, ist seine Geschwindigkeit das, was **Tempo** zeigt.
 
 Ohne Sensor erscheint nichts davon, und eingeschaltet wird nichts, bevor du es unter **Einstellungen → Sensoren** tust. Siehe [Sensoren und deine Uhr](./sensors-and-watch).
+
+## Das Höhenprofil
+
+Solange eine Fahrt aufgezeichnet wird, hat die Knopfleiste der Karte einen Knopf mehr, **Höhenprofil**. Er tauscht die Karte gegen die gefolgte Route als Höhe über Distanz: der schon gefahrene Teil in der Akzentfarbe gefüllt, die Straße voraus in Grau, eine Linie, wo du bist, und darüber, was noch kommt, "12,4 km übrig, 320 m Anstieg". Das Abbiege-Banner bleibt oben. **Karte** holt die Karte zurück, und mit dem Ende der Fahrt kommt sie von selbst wieder. Ohne Route sagt die Ansicht es: "Folge einer Route, um hier ihr Höhenprofil zu sehen."
 
 ## Was beim ersten Mal gefragt wird
 

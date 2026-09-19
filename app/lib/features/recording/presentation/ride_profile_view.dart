@@ -1,0 +1,251 @@
+import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../app/theme.dart';
+import '../../../core/units/units.dart' as units;
+import '../../../l10n/generated/app_localizations.dart';
+import '../../planner/domain/elevation_profile.dart';
+import '../../planner/presentation/route_format.dart';
+import '../../settings/data/units.dart';
+import '../../shared/presentation/stat_tile.dart';
+
+/// The followed route as a profile instead of a map, while a ride records.
+///
+/// What ClimbPro and its kin draw: the road ahead as height over distance,
+/// the part already ridden filled in the accent, the rider as a line across
+/// it, and above it what is left — the distance and the climbing. It swaps
+/// places with the map at the rider's request and gives the map back with the
+/// button at its foot.
+class RideProfileView extends ConsumerWidget {
+  /// Creates the view.
+  const RideProfileView({
+    required this.samples,
+    required this.alongM,
+    required this.onShowMap,
+    this.topInset = 0,
+    super.key,
+  });
+
+  /// The followed route's profile, already downsampled; fewer than two
+  /// samples means there is no route to draw.
+  final List<ElevationSample> samples;
+
+  /// How far along the route the rider is, in metres.
+  final double alongM;
+
+  /// Brings the map back.
+  final VoidCallback onShowMap;
+
+  /// Room to leave at the top, for a turn banner over this view.
+  final double topInset;
+
+  /// The climbing left from [alongM] to the end: the positive steps between
+  /// the samples ahead.
+  double get ascentLeftM {
+    var ascent = 0.0;
+    ElevationSample? previous;
+    for (final sample in samples) {
+      if (sample.distanceM < alongM) continue;
+      if (previous != null && sample.elevationM > previous.elevationM) {
+        ascent += sample.elevationM - previous.elevationM;
+      }
+      previous = sample;
+    }
+    return ascent;
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final system = ref.watch(unitSystemProvider);
+    return ColoredBox(
+      color: scheme.surface,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(20, 12 + topInset, 20, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (samples.length < 2)
+                Text(
+                  l10n.recordingProfileNoRoute,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                )
+              else ...[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(child: SectionCaption(l10n.elevationTitle)),
+                    Flexible(
+                      child: Text(
+                        l10n.recordingProfileLeft(
+                          formatDistance(
+                            l10n,
+                            system,
+                            (samples.last.distanceM - alongM).clamp(
+                              0,
+                              double.infinity,
+                            ),
+                          ),
+                          formatHeight(l10n, system, ascentLeftM),
+                        ),
+                        style: theme.textTheme.statMedium.copyWith(
+                          color: theme.velorki.accent,
+                        ),
+                        textAlign: TextAlign.end,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                SizedBox(height: 200, child: _chart(context, system)),
+              ],
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FilledButton.tonalIcon(
+                  onPressed: onShowMap,
+                  icon: const Icon(Icons.map_outlined),
+                  label: Text(l10n.recordingShowMap),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _chart(BuildContext context, units.UnitSystem system) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final accent = theme.velorki.accent;
+    final spots = <FlSpot>[
+      for (final s in samples)
+        FlSpot(
+          units.distanceToDisplay(system, s.distanceM),
+          units.elevationToDisplay(system, s.elevationM),
+        ),
+    ];
+    final alongX = units.distanceToDisplay(
+      system,
+      alongM.clamp(samples.first.distanceM, samples.last.distanceM),
+    );
+    // The ridden part ends at the rider; the part ahead starts there. Both
+    // share the rider's own spot so the fills meet without a gap.
+    final ridden = <FlSpot>[
+      for (final s in spots)
+        if (s.x <= alongX) s,
+    ];
+    final ahead = <FlSpot>[
+      for (final s in spots)
+        if (s.x >= alongX) s,
+    ];
+    final here = _interpolate(spots, alongX);
+    if (ridden.isEmpty || ridden.last.x < alongX) ridden.add(here);
+    if (ahead.isEmpty || ahead.first.x > alongX) ahead.insert(0, here);
+
+    var minY = spots.first.y;
+    var maxY = spots.first.y;
+    for (final s in spots) {
+      if (s.y < minY) minY = s.y;
+      if (s.y > maxY) maxY = s.y;
+    }
+    final padding = ((maxY - minY) * 0.1).clamp(
+      units.elevationToDisplay(system, 5),
+      units.elevationToDisplay(system, 100),
+    );
+    // Bare numbers on both axes; heights as whole figures rather than the
+    // chart's own "2.5K".
+    Widget label(String text) => Padding(
+      padding: const EdgeInsets.all(4),
+      child: Text(
+        text,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: scheme.onSurfaceVariant,
+        ),
+      ),
+    );
+
+    return LineChart(
+      LineChartData(
+        minY: minY - padding,
+        maxY: maxY + padding,
+        minX: spots.first.x,
+        maxX: spots.last.x,
+        gridData: const FlGridData(show: false),
+        borderData: FlBorderData(show: false),
+        titlesData: FlTitlesData(
+          topTitles: const AxisTitles(),
+          rightTitles: const AxisTitles(),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 24,
+              getTitlesWidget: (value, meta) => label(meta.formattedValue),
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 40,
+              getTitlesWidget: (value, meta) => label(value.round().toString()),
+            ),
+          ),
+        ),
+        lineTouchData: const LineTouchData(enabled: false),
+        extraLinesData: ExtraLinesData(
+          verticalLines: [
+            VerticalLine(x: alongX, color: accent, strokeWidth: 2),
+          ],
+        ),
+        lineBarsData: [
+          if (ridden.length >= 2)
+            LineChartBarData(
+              spots: ridden,
+              barWidth: 2.5,
+              color: accent,
+              dotData: const FlDotData(show: false),
+              belowBarData: BarAreaData(
+                show: true,
+                color: accent.withValues(alpha: 0.35),
+              ),
+            ),
+          LineChartBarData(
+            spots: ahead,
+            barWidth: 2.5,
+            color: scheme.onSurfaceVariant,
+            dotData: const FlDotData(show: false),
+            belowBarData: BarAreaData(
+              show: true,
+              color: scheme.onSurfaceVariant.withValues(alpha: 0.15),
+            ),
+          ),
+        ],
+      ),
+      duration: Duration.zero,
+    );
+  }
+
+  /// The height of the line at [x], between the two spots around it.
+  static FlSpot _interpolate(List<FlSpot> spots, double x) {
+    for (var i = 1; i < spots.length; i++) {
+      final a = spots[i - 1];
+      final b = spots[i];
+      if (x >= a.x && x <= b.x) {
+        final t = b.x == a.x ? 0.0 : (x - a.x) / (b.x - a.x);
+        return FlSpot(x, a.y + (b.y - a.y) * t);
+      }
+    }
+    return x <= spots.first.x ? spots.first : spots.last;
+  }
+}

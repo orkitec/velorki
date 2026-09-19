@@ -20,6 +20,8 @@ class MapChromeInsets extends InheritedWidget {
     this.bearingDeg = 0,
     this.onLocate,
     this.onCompass,
+    this.onProfile,
+    this.profileShown = false,
   });
 
   /// Whether the control column offers the routing-tile download. Only a
@@ -58,6 +60,13 @@ class MapChromeInsets extends InheritedWidget {
   /// altogether, which is what every map but a running ride wants.
   final VoidCallback? onCompass;
 
+  /// Called when the elevation-profile button was tapped; `null` leaves it
+  /// out. Only a recording ride has a profile to swap the map for.
+  final VoidCallback? onProfile;
+
+  /// Whether the profile is up instead of the map, so the button shows it.
+  final bool profileShown;
+
   /// The nearest insets, or `null` when the screen declared none.
   static MapChromeInsets? maybeOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<MapChromeInsets>();
@@ -71,5 +80,7 @@ class MapChromeInsets extends InheritedWidget {
       oldWidget.headingUp != headingUp ||
       oldWidget.bearingDeg != bearingDeg ||
       oldWidget.onLocate != onLocate ||
-      oldWidget.onCompass != onCompass;
+      oldWidget.onCompass != onCompass ||
+      oldWidget.onProfile != onProfile ||
+      oldWidget.profileShown != profileShown;
 }

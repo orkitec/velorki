@@ -110,7 +110,7 @@ Diese Quelle ist der Puls, den dein Handy ohnehin schon kennt: was eine Apple Wa
 
 ### Während der Fahrt
 
-In der Aufnahmeübersicht erscheint eine dritte Zeile mit dem, was gerade gemeldet wird: **Herzfrequenz**, **Trittfrequenz** und **Leistung**, jede nur, solange ein Sensor sie liefert. Eine Uhr allein bringt also eine Kachel, und ohne Sensor steht dort gar nichts. Auf dem iPhone kommt der Puls zu den Zahlen auf der Sperrbildschirm-Karte und in der Dynamic Island dazu.
+In der Aufnahmeübersicht erscheint eine dritte Zeile mit dem, was in der Fahrt gemeldet wurde: **Herzfrequenz** mit dem **Ø Puls** der Fahrt darunter, **Trittfrequenz** und **Leistung**. Eine Uhr allein bringt also eine Kachel, und ohne Sensor steht dort gar nichts. Ein Sensor, der verstummt, behält seine Kachel, abgedunkelt und mit dem Zeichen für die unterbrochene Verbindung, bis die Fahrt endet. Auf dem iPhone kommt der Puls zu den Zahlen auf der Sperrbildschirm-Karte und in der Dynamic Island dazu.
 
 ### Auf einer gespeicherten Fahrt
 

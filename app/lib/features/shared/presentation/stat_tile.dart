@@ -28,10 +28,18 @@ class StatTile extends StatelessWidget {
     this.size = StatSize.large,
     this.emphasize = false,
     this.alignEnd = false,
+    this.detail,
+    this.muted = false,
   });
 
   /// The caption.
   final String label;
+
+  /// A small line under the figure: the ride's average, say.
+  final String? detail;
+
+  /// Draws the figure dimmed: a last-known value whose source fell silent.
+  final bool muted;
 
   /// The figure, unit included.
   final String value;
@@ -90,11 +98,26 @@ class StatTile extends StatelessWidget {
           child: Text(
             value,
             style: valueStyle.copyWith(
-              color: emphasize ? theme.velorki.accent : scheme.onSurface,
+              color: muted
+                  ? scheme.onSurfaceVariant
+                  : emphasize
+                  ? theme.velorki.accent
+                  : scheme.onSurface,
             ),
             maxLines: 1,
           ),
         ),
+        if (detail != null) ...[
+          const SizedBox(height: 2),
+          Text(
+            detail!,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ],
     );
   }

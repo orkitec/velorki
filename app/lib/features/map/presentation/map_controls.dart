@@ -37,6 +37,7 @@ class MapControls extends ConsumerWidget {
     final enabled = controller != null;
     final headingUp = chrome?.headingUp ?? false;
     final onCompass = chrome?.onCompass;
+    final onProfile = chrome?.onProfile;
     // One glass column rather than five floating buttons: less chrome over
     // the map, and the group reads as one control.
     return GlassPanel(
@@ -59,6 +60,15 @@ class MapControls extends ConsumerWidget {
               headingUp: headingUp,
               bearingDeg: chrome?.bearingDeg ?? 0,
               onPressed: enabled ? onCompass : null,
+            ),
+          // The road ahead as a profile instead of a map: only a recording
+          // ride offers it, and only it has a route to draw.
+          if (onProfile != null)
+            _ControlButton(
+              icon: Icons.area_chart_outlined,
+              tooltip: l10n.recordingProfileView,
+              selected: chrome?.profileShown ?? false,
+              onPressed: onProfile,
             ),
           _ControlButton(
             icon: Icons.directions_bike,

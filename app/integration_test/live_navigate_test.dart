@@ -17,6 +17,7 @@ import 'package:velorki/features/navigation/application/navigation_controller.da
 import 'package:velorki/features/navigation/data/navigation_settings.dart';
 import 'package:velorki/features/navigation/data/turn_speaker.dart';
 import 'package:velorki/features/navigation/domain/navigation_progress.dart';
+import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/navigation/presentation/turn_banner.dart';
 import 'package:velorki/features/navigation/testing/fake_turn_speaker.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
@@ -25,6 +26,7 @@ import 'package:velorki/features/recording/data/live_activity.dart'
     show liveActivityAppGroupId;
 import 'package:velorki/features/recording/data/recording_gateways.dart';
 import 'package:velorki/features/recording/data/recording_recovery.dart';
+import 'package:velorki/features/recording/presentation/ride_profile_view.dart';
 import 'package:velorki/features/recording/presentation/save_ride_sheet.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -152,6 +154,19 @@ void main() {
       onTimeout: () => '${recording.read().snapshot}',
     );
     debugPrint('VELORKI_NAV spoken: ${speaker.spoken}');
+
+    // The road ahead as a profile: the followed route with the rider on it,
+    // and the map back on request.
+    final chrome = tester.widget<MapChromeInsets>(
+      find.byType(MapChromeInsets).first,
+    );
+    chrome.onProfile!();
+    await pumpFor(tester, const Duration(seconds: 1));
+    expect(find.byType(RideProfileView), findsOneWidget);
+    expect(find.text('Elevation'.toUpperCase()), findsOneWidget);
+    await screenshot(tester, 'ride-profile');
+    await tapAndPump(tester, find.text('Map'));
+    expect(find.byType(RideProfileView), findsNothing);
 
     // The card is up, with the ride.
     final activities = LiveActivities();

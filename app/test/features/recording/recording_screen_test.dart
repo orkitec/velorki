@@ -24,6 +24,7 @@ import 'package:velorki/features/navigation/presentation/turn_banner.dart';
 import 'package:velorki/features/recording/data/recording_settings.dart';
 import 'package:velorki/features/recording/domain/gps_precision.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
+import 'package:velorki/features/recording/presentation/ride_profile_view.dart';
 import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
 import 'package:velorki/features/recording/presentation/rides_list.dart';
 import 'package:velorki/features/recording/presentation/save_ride_sheet.dart';
@@ -47,6 +48,7 @@ RecordingSnapshot _snapshot({
   int? heartRateBpm,
   int? cadenceRpm,
   int? powerW,
+  int? avgHeartRateBpm,
 }) => RecordingSnapshot(
   rideId: 'ride-1',
   status: status,
@@ -67,6 +69,7 @@ RecordingSnapshot _snapshot({
   heartRateBpm: heartRateBpm,
   cadenceRpm: cadenceRpm,
   powerW: powerW,
+  avgHeartRateBpm: avgHeartRateBpm,
 );
 
 Ride _ride() => Ride(
@@ -414,6 +417,78 @@ void main() {
     expect(find.text(l10n.unitRpm('0')), findsOneWidget);
     expect(find.text(l10n.unitWatts('210')), findsOneWidget);
 
+    await unmountApp(tester);
+  });
+
+  testWidgets('a sensor that falls silent keeps its tile, dimmed and marked, '
+      'with the last value', (tester) async {
+    final h = await pumpRecordingScreen(tester, const RecordingScreen());
+    await tester.pump();
+
+    await emitSnapshot(tester, h, _snapshot(heartRateBpm: 142));
+    expect(find.byIcon(Icons.link_off), findsNothing);
+
+    // The watch went out of range: the reading is gone from the snapshot.
+    await emitSnapshot(tester, h, _snapshot());
+    expect(find.text(l10n.statHeartRate.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.unitBpm('142')), findsOneWidget);
+    expect(find.byIcon(Icons.link_off), findsOneWidget);
+
+    // Paused, the sensor rests on purpose: nothing to mark.
+    await emitSnapshot(tester, h, _snapshot(status: RecordingStatus.paused));
+    expect(find.text(l10n.unitBpm('142')), findsOneWidget);
+    expect(find.byIcon(Icons.link_off), findsNothing);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('the average heart rate rides along under the tile', (
+    tester,
+  ) async {
+    final h = await pumpRecordingScreen(tester, const RecordingScreen());
+    await tester.pump();
+
+    await emitSnapshot(
+      tester,
+      h,
+      _snapshot(heartRateBpm: 142, avgHeartRateBpm: 138),
+    );
+
+    expect(
+      find.text('${l10n.statAvgHeartRate} ${l10n.unitBpm('138')}'),
+      findsOneWidget,
+    );
+    await unmountApp(tester);
+  });
+
+  testWidgets('the elevation profile swaps places with the map on request', (
+    tester,
+  ) async {
+    final h = await pumpRecordingScreen(tester, const RecordingScreen());
+    await tester.pump();
+    await emitSnapshot(tester, h, _snapshot());
+    expect(find.byType(RideProfileView), findsNothing);
+
+    // What the profile button in the map's control column calls.
+    final chrome = tester.widget<MapChromeInsets>(
+      find.byType(MapChromeInsets).first,
+    );
+    chrome.onProfile!();
+    await tester.pump();
+
+    // No route is followed, so the view says what it would show.
+    expect(find.byType(RideProfileView), findsOneWidget);
+    expect(find.text(l10n.recordingProfileNoRoute), findsOneWidget);
+    expect(
+      tester
+          .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
+          .profileShown,
+      isTrue,
+    );
+
+    await tester.tap(find.text(l10n.recordingShowMap));
+    await tester.pump();
+    expect(find.byType(RideProfileView), findsNothing);
     await unmountApp(tester);
   });
 

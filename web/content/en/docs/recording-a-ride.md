@@ -25,9 +25,13 @@ Velorki pauses itself after about ten seconds without movement; the pill then re
 
 ## Heart rate, cadence and power
 
-Once a sensor is switched on, a third row of figures joins the sheet while it is reporting, with only what is reported: **Heart rate**, **Cadence** and **Power**, so a watch alone adds one tile. They can come from a Bluetooth sensor, from an Apple Watch or from the phone's health app, they are written onto the track as you ride, and on an iPhone the pulse shows on the lock screen card as well. While a wheel sensor is reporting, its speed is what **Speed** shows.
+Once a sensor is switched on, a third row of figures joins the sheet with what has been reported during this ride: **Heart rate**, **Cadence** and **Power**, so a watch alone adds one tile. The heart-rate tile carries the ride's **Avg HR** underneath. A sensor that falls silent mid-ride, a watch out of range or a strap that slipped, keeps its tile with the last value dimmed and a broken-link mark, so you can see that something stopped reporting; while the ride is paused the sensor rests on purpose and nothing is marked. They can come from a Bluetooth sensor, from an Apple Watch or from the phone's health app, they are written onto the track as you ride, and on an iPhone the pulse shows on the lock screen card as well. While a wheel sensor is reporting, its speed is what **Speed** shows.
 
 Without a sensor none of it appears, and nothing is switched on until you do it in **Settings → Sensors**. See [sensors and your watch](./sensors-and-watch).
+
+## The elevation profile
+
+While a ride records, the map's control column has an extra button, **Elevation profile**. It swaps the map for the followed route as height over distance: the part already ridden filled in the accent colour, the road ahead in grey, a line where you are, and above it what is left, "12.4 km left, 320 m to climb". The turn banner stays on top. **Map** brings the map back, and the map comes back by itself when the ride ends. Without a route to follow the view says so: "Follow a route to see its elevation profile here."
 
 ## What it asks for the first time
 

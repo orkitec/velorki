@@ -110,7 +110,7 @@ This source is the heart rate your phone already knows about: what an Apple Watc
 
 ### While you ride
 
-A third row of figures appears on the Record sheet with whatever is being reported: **Heart rate**, **Cadence** and **Power**, each only while a sensor gives it, so a watch alone adds one tile and no sensor adds nothing at all. On an iPhone the pulse joins the figures on the lock screen card and in the Dynamic Island.
+A third row of figures appears on the Record sheet with whatever has been reported during the ride: **Heart rate** with the ride's **Avg HR** underneath, **Cadence** and **Power**, so a watch alone adds one tile and no sensor adds nothing at all. A sensor that falls silent keeps its tile, dimmed and marked with a broken link, until the ride ends. On an iPhone the pulse joins the figures on the lock screen card and in the Dynamic Island.
 
 ### On a saved ride
 

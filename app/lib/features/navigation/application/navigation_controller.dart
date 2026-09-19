@@ -9,6 +9,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/application/planner_controller.dart';
+import '../../planner/domain/elevation_profile.dart';
 import '../../planner/data/route_repository.dart';
 import '../../planner/data/routing_backend_provider.dart';
 import '../../planner/domain/routing_options.dart';
@@ -101,6 +102,26 @@ class GuidedRoute {
 /// A provider of its own because the saved route is a family whose argument
 /// changes while the app runs; this one is allowed to rebuild, so the
 /// navigation controller below never has to.
+/// The followed route as height over distance, for the profile view of a
+/// recording ride: the saved route's geometry, or the plan's, whichever
+/// [guidedRoute] follows. Empty without a route or without elevations.
+@Riverpod(keepAlive: true)
+List<ElevationSample> guidedRouteProfile(Ref ref) {
+  final followed = ref.watch(
+    recordingControllerProvider.select((s) => s.followedRouteId),
+  );
+  if (followed != null) {
+    final route = ref.watch(savedRouteProvider(followed)).value;
+    return route == null
+        ? const <ElevationSample>[]
+        : elevationProfile(route.geometry);
+  }
+  final result = ref.watch(plannerControllerProvider.select((s) => s.result));
+  return result == null
+      ? const <ElevationSample>[]
+      : elevationProfile(result.geometry);
+}
+
 @Riverpod(keepAlive: true)
 GuidedRoute? guidedRoute(Ref ref) {
   final followed = ref.watch(
