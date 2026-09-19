@@ -75,6 +75,11 @@ next to "Keep screen on". While it is on and a ride is running
 Doze prevents delayed fixes, which would otherwise cost more in catch-up
 bursts.
 
+**On the wrist**, a paused ride (by hand or auto-pause) ends the
+`HKWorkoutSession`, so the optical sensor stops; **Stop heart rate** does the
+same while the ride goes on. watchOS Low Power Mode lowers the sampling rate
+of a third-party session by itself.
+
 ## What is not implemented
 
 - **Auto-pause does not raise the GPS interval.** A rider standing at a café

@@ -100,8 +100,10 @@ A paired sensor that says **Not connected** is out of range, asleep or flat. Vel
 
 - **There is no Apple Watch switch.** It appears in **Settings → Sensors** only on an iPhone that has a watch paired to it.
 - **The watch app is not on the watch.** It ships inside the iPhone app; if it did not arrive by itself, install Velorki from the **Watch** app on the iPhone.
-- **The ride is running but the watch measures nothing.** The phone can only ask a watch app that is running. Open Velorki on the watch and tap **Start ride**, which starts both ends.
+- **The ride is running but the watch measures nothing.** A ride started on the phone opens the watch app and starts it measuring by itself. If the watch app shows two dashes anyway, tap **Start heart rate** on it; an orange line under the heart says what went wrong, if the watch knows.
 - **The watch shows no pulse.** The watch asks for permission to read your heart rate the first time a workout starts there. If that was refused, grant it in the watch's own privacy settings.
+- **Start ride on the watch does nothing on the phone.** With Velorki in the background the ride starts and the phone shows a notification to tap. An app you swiped away cannot be woken by the watch, which is an iOS rule: the watch says "The phone did not answer", and opening Velorki on the phone is the fix.
+- **The track only begins once I open the phone.** iOS gives an app woken in the background no GPS until it has been opened once. Tap the notification, or open Velorki, and the track starts; the phone can be locked after that.
 
 ## No heart rate from Health
 

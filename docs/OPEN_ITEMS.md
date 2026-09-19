@@ -90,7 +90,11 @@ exercised there. The items here are the parts not yet covered by that.
       are English only (the ARB cannot reach a native target; add
       `Localizable.strings` for German); no complications. A ride on the
       Series 6 with the phone locked is the real check: pulse arriving, wrist
-      taps on time, watch battery after a ride.
+      taps on time, watch battery after a ride. A paused ride ends the watch's
+      session at every standstill, auto-pause included, and the first reading
+      after a resume takes a few seconds; a minimum pause length before the
+      sensor rests is the likely refinement. Still to be seen on the device:
+      the "Ride started from your watch" notification and the pause behaviour.
 - [ ] **Bluetooth on the Android phone**: scan, pair and ride with a strap or a
       cadence sensor on the Pixel; the manifest's `neverForLocation` scan flag
       and the capped legacy permissions were written without an Android SDK

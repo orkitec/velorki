@@ -68,11 +68,12 @@ The watch app is a display and a sensor, never a second recorder. The phone reco
 
 ### Getting the watch app
 
-Velorki's watch app ships inside the iPhone app. It arrives on the watch by itself if your watch installs companion apps automatically; otherwise open the **Watch** app on the iPhone and install Velorki from the list of available apps. Then switch **Apple Watch** on in **Settings → Sensors**. The first time a workout starts on the watch, the watch asks for permission to read your heart rate. That prompt comes from the watch, not from the phone.
+Velorki's watch app ships inside the iPhone app. It arrives on the watch by itself if your watch installs companion apps automatically; otherwise open the **Watch** app on the iPhone and install Velorki from the list of available apps. Then switch **Apple Watch** on in **Settings → Sensors**; that also asks once to post notifications, for the one described under the buttons. The first time a workout starts on the watch, the watch asks for permission to read your heart rate. That prompt comes from the watch, not from the phone.
 
 ### What the watch shows
 
-- Your **heart rate** in large figures, or two dashes while nothing is measuring.
+- Your **heart rate** in large figures, with the heart beating while the watch measures; two dashes while nothing is measuring, and the last reading dimmed while the ride is paused. The heart and the buttons take the accent colour you chose in the app.
+- A line in orange when something is wrong: Health access refused, a workout the watch would not run, or a phone that did not answer.
 - While a ride runs, its distance, the elapsed clock and the speed, and **Paused** when it is paused. The phone formats all of them, so they are in your units and your language.
 - The next turn with its icon, its name and the distance to it, as the lock screen has it, in orange while you are off route.
 - One tap on the wrist when a turn cue is due, and one when you leave the route. A watch that slept through three turns taps once rather than three times.
@@ -87,12 +88,13 @@ The watch's own words, which is to say the buttons and the two footnotes, are En
 | **Pause**, **Resume** | pause the ride and carry on, as on the phone |
 | **Finish** | stops the recording; "Finish opens the save sheet on the phone." |
 | **Stop heart rate** | ends the measuring on the watch while the ride goes on |
+| **Start heart rate** | starts it again, or starts it for a ride the watch app was opened into late |
 
-When a ride starts on the phone and the watch app is running, the phone asks the watch to start measuring by itself, so there is nothing to tap. If the watch app is closed the message cannot reach it, so tap **Start ride** on the wrist instead, which starts both ends. A ride you finish from the wrist is saved like any other: the recording stops, and the save sheet is waiting on the phone next time you look at it.
+When a ride starts on the phone, the watch app opens by itself and starts measuring, so there is nothing to tap on the wrist. The other way round, **Start ride** on the watch starts the recording on the phone and brings the phone to its **Record** tab. A phone in your pocket, with Velorki in the background, gets a notification, "Ride started from your watch", and a tap on it opens the app; that matters because iOS gives an app woken in the background no GPS until it has been opened once, so the track starts then. An app you have swiped away entirely cannot be woken by the watch at all, which is an iOS rule; after a few tries the watch says "The phone did not answer. Open Velorki on the phone and try again." A ride you finish from the wrist is saved like any other: the recording stops, and the save sheet is waiting on the phone next time you look at it.
 
 ### Battery on the wrist
 
-Measuring a heart rate for hours is what costs the watch its day, so there is one lever for it: **Stop heart rate** ends the measuring without touching the ride. The footnote on the screen says the rest, "Low Power Mode in the watch's settings makes a long ride last." Switching **Apple Watch** off in Settings also ends a session that is still running.
+Measuring a heart rate for hours is what costs the watch its day. A paused ride, whether you paused it or the phone auto-paused at a standstill, rests the sensor and measures again a few seconds after the ride goes on, so a wait at a light costs nothing and is not part of the ride's heart rate. **Stop heart rate** ends the measuring without touching the ride. The footnote on the screen says the rest, "Low Power Mode in the watch's settings makes a long ride last." Switching **Apple Watch** off in Settings also ends a session that is still running.
 
 ## Apple Health and Health Connect
 
@@ -108,7 +110,7 @@ This source is the heart rate your phone already knows about: what an Apple Watc
 
 ### While you ride
 
-A third row of figures appears on the Record sheet, **Heart rate**, **Cadence** and **Power**, but only while something is reporting: with no sensor there is nothing there at all. On an iPhone the pulse joins the figures on the lock screen card and in the Dynamic Island.
+A third row of figures appears on the Record sheet with whatever is being reported: **Heart rate**, **Cadence** and **Power**, each only while a sensor gives it, so a watch alone adds one tile and no sensor adds nothing at all. On an iPhone the pulse joins the figures on the lock screen card and in the Dynamic Island.
 
 ### On a saved ride
 

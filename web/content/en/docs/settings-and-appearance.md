@@ -44,7 +44,7 @@ The three switches here are the same ones as on the Record tab's sheet.
 
 **Save rides to Health**: writes each finished ride into the store as a cycling workout. It can be switched off on its own and does nothing while the switch above it is off.
 
-**Apple Watch**: "Heart rate from the watch, ride controls on the wrist". The row is there only on an iPhone that has a watch paired to it.
+**Apple Watch**: "Heart rate from the watch, ride controls on the wrist". The row is there only on an iPhone that has a watch paired to it. Turning it on asks once to post notifications, for the "Ride started from your watch" notice.
 
 **Bluetooth sensors**: "Heart-rate straps, speed and cadence sensors, power meters", or how many sensors are paired. It opens the screen where **Scan** looks for them. All of it is walked through in [sensors and your watch](./sensors-and-watch).
 

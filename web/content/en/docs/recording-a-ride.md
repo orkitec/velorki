@@ -14,7 +14,7 @@ Recording is free and works with no connection at all.
 2. Optionally pick a route under **Follow a route**, which turns on the guidance described in [turn-by-turn navigation](./navigation).
 3. Tap **Start ride**.
 4. While riding the sheet shows a status pill, the elapsed clock, and the figures: **Distance**, **Speed**, **Avg**, then **Ascent**, **Descent**, **Moving**.
-5. **Pause** stops the track where you are; **Resume** carries on. The break shows as a gap in the track.
+5. **Pause** stops the track where you are; **Resume** carries on. The break shows as a gap in the track. While paused the figures fade and the pill turns to **PAUSED**, so the state is plain at a glance.
 6. **Finish** saves the ride under a default name like **Ride 17 Sept 2026** and opens its page.
 
 If you finish having recorded nothing, Velorki says "Nothing was recorded." and saves no ride.
@@ -25,7 +25,7 @@ Velorki pauses itself after about ten seconds without movement; the pill then re
 
 ## Heart rate, cadence and power
 
-Once a sensor is switched on, a third row of figures joins the sheet while it is reporting: **Heart rate**, **Cadence** and **Power**. They can come from a Bluetooth sensor, from an Apple Watch or from the phone's health app, they are written onto the track as you ride, and on an iPhone the pulse shows on the lock screen card as well. While a wheel sensor is reporting, its speed is what **Speed** shows.
+Once a sensor is switched on, a third row of figures joins the sheet while it is reporting, with only what is reported: **Heart rate**, **Cadence** and **Power**, so a watch alone adds one tile. They can come from a Bluetooth sensor, from an Apple Watch or from the phone's health app, they are written onto the track as you ride, and on an iPhone the pulse shows on the lock screen card as well. While a wheel sensor is reporting, its speed is what **Speed** shows.
 
 Without a sensor none of it appears, and nothing is switched on until you do it in **Settings → Sensors**. See [sensors and your watch](./sensors-and-watch).
 
