@@ -86,6 +86,16 @@ exercised there. The items here are the parts not yet covered by that.
       resuming an interrupted ride and the speaker are covered on the
       simulator by `integration_test/live_*_test.dart`; the locked screen is
       not scriptable there.)
+- [ ] **Apple Watch app** (`app/ios/VelorkiWatch`): no app icon yet (the
+      system placeholder shows; needs an `AppIcon` set and
+      `ASSETCATALOG_COMPILER_APPICON_NAME`); its buttons and footnotes are
+      English only (the ARB cannot reach a native target; add
+      `Localizable.strings` for German); no complications. A ride on the
+      Series 6 with the phone locked is the real check: pulse arriving, wrist
+      taps on time, watch battery after a ride.
+- [ ] `watch_connectivity` pulls `play-services-wearable` into the APK for an
+      iOS-only feature; replace it with a small iOS-only channel if an F-Droid
+      listing is wanted.
 - [ ] **Associated Domains**, once: enable the capability for the app id in
       the developer portal (the `applinks:velorki.com` entitlement is already
       in `ios/Runner/Runner.entitlements`). The website must serve the two
