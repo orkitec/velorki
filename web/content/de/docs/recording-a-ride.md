@@ -14,7 +14,7 @@ Die Aufnahme ist kostenlos und funktioniert ganz ohne Verbindung.
 2. Wähle bei Bedarf unter **Einer Route folgen** eine Route, was die Führung aus [Navigation mit Abbiegehinweisen](./navigation) einschaltet.
 3. Tippe auf **Fahrt starten**.
 4. Während der Fahrt zeigt die Übersicht eine Zustandsplakette, die laufende Uhr und die Zahlen: **Distanz**, **Tempo**, **Ø**, dann **Anstieg**, **Abstieg**, **Fahrzeit**.
-5. **Pause** hält den Track an deiner Stelle an; **Fortsetzen** macht weiter. Die Unterbrechung zeigt sich als Lücke im Track.
+5. **Pause** hält den Track an deiner Stelle an; **Fortsetzen** macht weiter. Die Unterbrechung zeigt sich als Lücke im Track. Solange pausiert ist, verblassen die Zahlen und die Plakette wechselt zu **Pausiert**, der Zustand ist also auf einen Blick klar.
 6. **Beenden** speichert die Fahrt unter einem voreingestellten Namen wie **Fahrt 17. Sept. 2026** und öffnet ihre Seite.
 
 Beendest du, ohne dass etwas aufgezeichnet wurde, sagt Velorki "Es wurde nichts aufgezeichnet." und speichert keine Fahrt.
@@ -25,7 +25,7 @@ Velorki pausiert nach etwa zehn Sekunden ohne Bewegung von selbst; die Plakette 
 
 ## Puls, Trittfrequenz und Leistung
 
-Ist ein Sensor eingeschaltet, kommt in der Übersicht eine dritte Zeile mit Zahlen dazu, solange er meldet: **Herzfrequenz**, **Trittfrequenz** und **Leistung**. Sie können von einem Bluetooth-Sensor, von einer Apple Watch oder von der Health-App des Handys kommen, werden während der Fahrt in den Track geschrieben, und auf dem iPhone steht der Puls auch auf der Sperrbildschirm-Karte. Solange ein Radsensor meldet, ist seine Geschwindigkeit das, was **Tempo** zeigt.
+Ist ein Sensor eingeschaltet, kommt in der Übersicht eine dritte Zeile mit Zahlen dazu, solange er meldet, und nur mit dem, was gemeldet wird: **Herzfrequenz**, **Trittfrequenz** und **Leistung**, eine Uhr allein bringt also eine Kachel. Sie können von einem Bluetooth-Sensor, von einer Apple Watch oder von der Health-App des Handys kommen, werden während der Fahrt in den Track geschrieben, und auf dem iPhone steht der Puls auch auf der Sperrbildschirm-Karte. Solange ein Radsensor meldet, ist seine Geschwindigkeit das, was **Tempo** zeigt.
 
 Ohne Sensor erscheint nichts davon, und eingeschaltet wird nichts, bevor du es unter **Einstellungen → Sensoren** tust. Siehe [Sensoren und deine Uhr](./sensors-and-watch).
 

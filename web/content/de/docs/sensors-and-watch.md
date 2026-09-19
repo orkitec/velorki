@@ -68,11 +68,12 @@ Die App auf der Uhr ist Anzeige und Sensor, nie ein zweites Aufnahmegerät. Das 
 
 ### Die App auf die Uhr bekommen
 
-Velorkis Uhren-App steckt in der iPhone-App. Sie landet von selbst auf der Uhr, wenn diese Begleit-Apps automatisch installiert; sonst öffne die App **Watch** auf dem iPhone und installiere Velorki aus der Liste der verfügbaren Apps. Schalte danach **Apple Watch** unter **Einstellungen → Sensoren** ein. Beim ersten Training fragt die Uhr um Erlaubnis, deinen Puls zu lesen. Diese Abfrage kommt von der Uhr, nicht vom Handy.
+Velorkis Uhren-App steckt in der iPhone-App. Sie landet von selbst auf der Uhr, wenn diese Begleit-Apps automatisch installiert; sonst öffne die App **Watch** auf dem iPhone und installiere Velorki aus der Liste der verfügbaren Apps. Schalte danach **Apple Watch** unter **Einstellungen → Sensoren** ein; das fragt einmal auch, ob Velorki Mitteilungen zeigen darf, für die unter den Knöpfen beschriebene. Beim ersten Training fragt die Uhr um Erlaubnis, deinen Puls zu lesen. Diese Abfrage kommt von der Uhr, nicht vom Handy.
 
 ### Was die Uhr zeigt
 
-- Deinen **Puls** in großen Ziffern, oder zwei Striche, solange nichts gemessen wird.
+- Deinen **Puls** in großen Ziffern, mit schlagendem Herz, solange die Uhr misst; zwei Striche, solange nichts gemessen wird, und den letzten Wert abgedunkelt, solange die Fahrt pausiert ist. Herz und Knöpfe tragen die Akzentfarbe, die du in der App gewählt hast.
+- Eine Zeile in Orange, wenn etwas nicht stimmt: Health-Zugriff abgelehnt, ein Training, das die Uhr nicht starten wollte, oder ein Handy, das nicht geantwortet hat.
 - Während einer Fahrt ihre Distanz, die laufende Uhr und das Tempo, und **Paused**, wenn pausiert ist. Formatiert wird alles vom Handy, es steht also in deinen Einheiten und deiner Sprache da.
 - Die nächste Abbiegung mit Symbol, Namen und Entfernung, so wie auf dem Sperrbildschirm, in Orange, solange du von der Route ab bist.
 - Ein Tippen aufs Handgelenk, wenn ein Abbiegehinweis fällig ist, und eines, wenn du die Route verlässt. Eine Uhr, die drei Abbiegungen verschlafen hat, tippt einmal statt dreimal.
@@ -87,12 +88,13 @@ Die eigenen Worte der Uhr, also die Knöpfe und die zwei Fußnoten, sind englisc
 | **Pause**, **Resume** | pausieren und weiterfahren, wie am Handy |
 | **Finish** | beendet die Aufnahme; "Finish opens the save sheet on the phone." |
 | **Stop heart rate** | beendet das Messen auf der Uhr, während die Fahrt weiterläuft |
+| **Start heart rate** | startet es wieder, oder startet es für eine Fahrt, in die die Uhren-App erst später geöffnet wurde |
 
-Startet eine Fahrt am Handy und läuft die Uhren-App, bittet das Handy die Uhr von sich aus ums Messen, du musst also nichts tippen. Ist die App auf der Uhr geschlossen, erreicht sie diese Nachricht nicht: Tippe dann auf der Uhr auf **Start ride**, das startet beide Enden. Eine Fahrt, die du am Handgelenk beendest, wird gespeichert wie jede andere: Die Aufnahme hört auf, und die Speichern-Übersicht wartet auf dem Handy, wenn du das nächste Mal hinsiehst.
+Startet eine Fahrt am Handy, öffnet sich die Uhren-App von selbst und beginnt zu messen, am Handgelenk ist also nichts zu tippen. Umgekehrt startet **Start ride** auf der Uhr die Aufnahme auf dem Handy und bringt das Handy auf seinen Tab **Aufnahme**. Ein Handy in der Tasche, mit Velorki im Hintergrund, bekommt eine Mitteilung, "Ride started from your watch", und ein Tipp darauf öffnet die App; das zählt, weil iOS einer im Hintergrund geweckten App kein GPS gibt, bis sie einmal geöffnet wurde, der Track beginnt also dann. Eine App, die du ganz weggewischt hast, kann die Uhr gar nicht wecken, das ist eine Regel von iOS; nach ein paar Versuchen sagt die Uhr "The phone did not answer. Open Velorki on the phone and try again." Eine Fahrt, die du am Handgelenk beendest, wird gespeichert wie jede andere: Die Aufnahme hört auf, und die Speichern-Übersicht wartet auf dem Handy, wenn du das nächste Mal hinsiehst.
 
 ### Akku am Handgelenk
 
-Stundenlang einen Puls zu messen ist es, was die Uhr ihren Tag kostet, dafür gibt es genau einen Hebel: **Stop heart rate** beendet das Messen, ohne die Fahrt anzurühren. Den Rest sagt die Fußnote auf dem Bildschirm, "Low Power Mode in the watch's settings makes a long ride last." Schaltest du **Apple Watch** in den Einstellungen aus, endet eine noch laufende Sitzung ebenfalls.
+Stundenlang einen Puls zu messen ist es, was die Uhr ihren Tag kostet. Eine pausierte Fahrt, ob von dir pausiert oder vom Handy im Stand automatisch, lässt den Sensor ruhen und misst ein paar Sekunden nach dem Weiterfahren wieder; eine Ampel kostet also nichts und gehört nicht zum Puls der Fahrt. **Stop heart rate** beendet das Messen, ohne die Fahrt anzurühren. Den Rest sagt die Fußnote auf dem Bildschirm, "Low Power Mode in the watch's settings makes a long ride last." Schaltest du **Apple Watch** in den Einstellungen aus, endet eine noch laufende Sitzung ebenfalls.
 
 ## Apple Health und Health Connect
 
@@ -108,7 +110,7 @@ Diese Quelle ist der Puls, den dein Handy ohnehin schon kennt: was eine Apple Wa
 
 ### Während der Fahrt
 
-In der Aufnahmeübersicht erscheint eine dritte Zeile mit Zahlen, **Herzfrequenz**, **Trittfrequenz** und **Leistung**, aber nur, solange etwas meldet: Ohne Sensor steht dort gar nichts. Auf dem iPhone kommt der Puls zu den Zahlen auf der Sperrbildschirm-Karte und in der Dynamic Island dazu.
+In der Aufnahmeübersicht erscheint eine dritte Zeile mit dem, was gerade gemeldet wird: **Herzfrequenz**, **Trittfrequenz** und **Leistung**, jede nur, solange ein Sensor sie liefert. Eine Uhr allein bringt also eine Kachel, und ohne Sensor steht dort gar nichts. Auf dem iPhone kommt der Puls zu den Zahlen auf der Sperrbildschirm-Karte und in der Dynamic Island dazu.
 
 ### Auf einer gespeicherten Fahrt
 

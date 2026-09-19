@@ -100,8 +100,10 @@ Ein gekoppelter Sensor, der **Nicht verbunden** zeigt, ist außer Reichweite, sc
 
 - **Es gibt keinen Schalter Apple Watch.** Er erscheint unter **Einstellungen → Sensoren** nur auf einem iPhone, mit dem eine Uhr gekoppelt ist.
 - **Die App ist nicht auf der Uhr.** Sie steckt in der iPhone-App; kam sie nicht von selbst an, installiere Velorki aus der App **Watch** auf dem iPhone.
-- **Die Fahrt läuft, aber die Uhr misst nichts.** Das Handy kann nur eine laufende Uhren-App ansprechen. Öffne Velorki auf der Uhr und tippe auf **Start ride**, das startet beide Enden.
+- **Die Fahrt läuft, aber die Uhr misst nichts.** Eine am Handy gestartete Fahrt öffnet die Uhren-App und lässt sie von selbst messen. Zeigt die Uhr trotzdem zwei Striche, tippe dort auf **Start heart rate**; eine orange Zeile unter dem Herz sagt, was schiefging, wenn die Uhr es weiß.
 - **Die Uhr zeigt keinen Puls.** Sie fragt beim ersten Training um Erlaubnis, deinen Puls zu lesen. Wurde das abgelehnt, erteile die Erlaubnis in den Datenschutzeinstellungen der Uhr.
+- **Start ride auf der Uhr tut am Handy nichts.** Mit Velorki im Hintergrund startet die Fahrt, und das Handy zeigt eine Mitteilung zum Antippen. Eine weggewischte App kann die Uhr nicht wecken, das ist eine Regel von iOS: Die Uhr sagt "The phone did not answer", und Velorki am Handy zu öffnen ist die Abhilfe.
+- **Der Track beginnt erst, wenn ich das Handy öffne.** iOS gibt einer im Hintergrund geweckten App kein GPS, bis sie einmal geöffnet wurde. Tippe auf die Mitteilung oder öffne Velorki, dann beginnt der Track; danach darf das Handy gesperrt sein.
 
 ## Kein Puls aus Health
 
