@@ -72,6 +72,12 @@ on every change and at most every 5 s while a ride runs:
  "cue": <ms since epoch, 0 for none>, "accent": "#C8F542"}
 ```
 
+A command is resent every 2 s, up to 8 times, until the phone's context
+shows the status it should lead to (`start` → `active` or `paused`): a phone
+whose app is closed is launched by the first message but only listens a
+moment later, and that first message is lost. The phone ignores a command
+its recorder is already in the state of, so a repeat is harmless.
+
 `accent` is the app's accent colour (its dark-theme shade); the watch tints
 its heart and buttons with it.
 

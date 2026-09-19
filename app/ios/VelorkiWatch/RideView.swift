@@ -14,6 +14,10 @@ struct RideView: View {
     /// not said yet. Buttons and the heart take it, so the wrist matches.
     private var accent: Color { Color(hex: ride.accent) ?? Color(hex: "#C8F542")! }
 
+    /// Text on a filled accent button: black on a light accent such as the
+    /// default lime, white on a dark one. The system would use white on both.
+    private var onAccent: Color { Color.isLight(hex: ride.accent.isEmpty ? "#C8F542" : ride.accent) ? .black : .white }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
@@ -96,6 +100,7 @@ struct RideView: View {
         if !ride.riding {
             Button("Start ride", action: ride.start)
                 .buttonStyle(.borderedProminent)
+                .foregroundStyle(onAccent)
         } else {
             HStack(spacing: 8) {
                 if ride.status == "paused" {
@@ -114,6 +119,13 @@ struct RideView: View {
 }
 
 extension Color {
+    /// Whether `#RRGGBB` is light enough to want black text on it.
+    static func isLight(hex: String) -> Bool {
+        guard hex.count == 7, let rgb = UInt32(hex.dropFirst(), radix: 16) else { return false }
+        let r = Double((rgb >> 16) & 0xFF), g = Double((rgb >> 8) & 0xFF), b = Double(rgb & 0xFF)
+        return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6
+    }
+
     /// `#RRGGBB` as sent by the phone; nil for anything else.
     init?(hex: String) {
         guard hex.count == 7, hex.hasPrefix("#"),

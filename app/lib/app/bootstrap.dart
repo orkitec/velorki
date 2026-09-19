@@ -24,6 +24,7 @@ import '../features/subscription/application/subscription_controller.dart';
 import 'app.dart';
 import 'app_config.dart';
 import 'licenses.dart';
+import 'router.dart';
 
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -83,6 +84,13 @@ Future<void> bootstrap() async {
   // The other half of the same rule for the watch: with the Apple Watch
   // switch off this registers nothing, sends nothing and wakes no watch.
   container.read(watchRideBridgeProvider);
+  // A ride started from the wrist brings the Record tab up: the phone comes
+  // out of the pocket showing the ride, not the planner it was left on.
+  container.listen(watchRideStartsProvider, (previous, next) {
+    if (previous != null && next > previous) {
+      container.read(routerProvider).go(recordingRoute);
+    }
+  });
 
   // And for the Bluetooth sensors: with nothing paired this never reaches the
   // radio, and even with something paired it only connects while a ride

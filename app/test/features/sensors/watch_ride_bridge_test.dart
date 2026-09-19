@@ -242,6 +242,22 @@ void main() {
       expect(harness.service.calls, <String>['start(null)']);
     });
 
+    test('a start from the wrist is counted, so the app can show the ride, '
+        'and a repeat of it is not', () async {
+      final harness = await _Harness.create();
+      expect(harness.container.read(watchRideStartsProvider), 0);
+
+      await harness.tap(watchCommandStart);
+      expect(harness.container.read(watchRideStartsProvider), 1);
+
+      // The watch resends until the phone confirms; the recorder is already
+      // running, so nothing happens twice.
+      await harness.record(_snapshot());
+      await harness.tap(watchCommandStart);
+      expect(harness.service.calls, <String>['start(null)']);
+      expect(harness.container.read(watchRideStartsProvider), 1);
+    });
+
     test('pause and resume the recorder', () async {
       final harness = await _Harness.create();
       await harness.record(_snapshot());

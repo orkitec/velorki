@@ -62,6 +62,15 @@ final class RideSession: NSObject, ObservableObject {
     /// Heart rate samples seen in this session, for the log.
     private var samples = 0
 
+    /// A command the phone has not confirmed yet, resent until its context
+    /// shows the status asked for. A phone whose app is closed is launched
+    /// by the first message but only listens a moment later, and that first
+    /// message is lost; the second or third lands.
+    private var pending: (command: String, expects: Set<String>, tries: Int)?
+    private var retry: Timer?
+    private static let retryEvery: TimeInterval = 2
+    private static let retries = 8
+
     /// The one session the app has; the app and its delegate share it.
     static let shared = RideSession()
 
@@ -81,22 +90,22 @@ final class RideSession: NSObject, ObservableObject {
     /// Starts a ride: the phone records it, the watch measures it.
     func start() {
         note("Start tapped")
-        send(["type": "command", "command": "start"])
+        command("start", expecting: ["active", "paused"])
         startWorkout()
     }
 
     /// Suspends the ride on the phone. The watch keeps measuring, because a
     /// rider waiting at a light still has a heart rate.
-    func pause() { send(["type": "command", "command": "pause"]) }
+    func pause() { command("pause", expecting: ["paused"]) }
 
     /// Continues the ride on the phone.
-    func resume() { send(["type": "command", "command": "resume"]) }
+    func resume() { command("resume", expecting: ["active"]) }
 
     /// Ends the ride. The phone cannot save it without the rider — it is named
     /// on a sheet there — so it stops recording and waits.
     func stop() {
         note("Finish tapped")
-        send(["type": "command", "command": "stop"])
+        command("stop", expecting: ["idle"])
         endWorkout("finish tapped")
     }
 
@@ -203,6 +212,39 @@ final class RideSession: NSObject, ObservableObject {
 
     // MARK: - talking to the phone
 
+    /// Sends a command and keeps sending it until the phone's context shows
+    /// one of the statuses it should lead to, or the tries run out.
+    private func command(_ command: String, expecting: Set<String>) {
+        pending = (command, expecting, 0)
+        resend()
+    }
+
+    private func resend() {
+        retry?.invalidate()
+        retry = nil
+        guard var pending else { return }
+        guard pending.tries < Self.retries else {
+            note("Command \(pending.command) never confirmed")
+            self.pending = nil
+            return
+        }
+        pending.tries += 1
+        self.pending = pending
+        send(["type": "command", "command": pending.command])
+        retry = Timer.scheduledTimer(withTimeInterval: Self.retryEvery, repeats: false) { [weak self] _ in
+            self?.resend()
+        }
+    }
+
+    /// The phone's status has come in: a command it confirms is done with.
+    private func confirm(_ status: String) {
+        guard let pending, pending.expects.contains(status) else { return }
+        if pending.tries > 1 { note("Command \(pending.command) confirmed on try \(pending.tries)") }
+        self.pending = nil
+        retry?.invalidate()
+        retry = nil
+    }
+
     private func send(_ message: [String: Any]) {
         guard WCSession.isSupported() else { return }
         WCSession.default.sendMessage(message, replyHandler: nil) { _ in }
@@ -218,6 +260,7 @@ final class RideSession: NSObject, ObservableObject {
     private func apply(_ context: [String: Any]) {
         status = context["status"] as? String ?? "idle"
         note("Context: status \(status), session \(session == nil ? "none" : "up")")
+        confirm(status)
         // The phone may have ended the ride while this app was not reachable
         // for its stop message; the context says so, and the session goes.
         if status == "idle" {

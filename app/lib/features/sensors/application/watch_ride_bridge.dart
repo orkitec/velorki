@@ -48,6 +48,18 @@ DateTime Function() watchClock(Ref ref) => DateTime.now;
 /// Kept alive and read once in `bootstrap()`, exactly like the sensor sources
 /// controller: a provider nobody reads is one that never exists, and then it
 /// observes nothing.
+/// Counts the rides the watch has started, for whoever wants to react —
+/// the app brings the Record tab up, so the phone taken out of the pocket
+/// shows the ride rather than the planner it was left on.
+@Riverpod(keepAlive: true)
+class WatchRideStarts extends _$WatchRideStarts {
+  @override
+  int build() => 0;
+
+  /// One more ride started from the wrist.
+  void bump() => state++;
+}
+
 @Riverpod(keepAlive: true)
 class WatchRideBridge extends _$WatchRideBridge {
   WatchGateway? _gateway;
@@ -295,6 +307,10 @@ class WatchRideBridge extends _$WatchRideBridge {
               .read(navigationLocalizationsProvider)
               .recordingNotificationTitle,
         );
+        // Counted whether or not the recorder agreed: a recorder that
+        // refused has its reason on the Record tab, which is where the
+        // phone goes.
+        ref.read(watchRideStartsProvider.notifier).bump();
       case watchCommandPause:
         if (!recording.isRecording || recording.isPaused) return;
         await controller.pause();
