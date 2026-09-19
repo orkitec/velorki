@@ -8,11 +8,13 @@ import {
   ACCENTS,
   DEFAULT_SHOT_LOCALE,
   MODES,
+  SCREENS,
   type Screen,
   type ScreenshotLocales,
   type VariantKey,
   variantKey,
 } from './screenshots';
+import type { LookAvailability } from './appearance';
 
 /**
  * Which variants of `screen` are on disk for a page in `locale`, and which
@@ -41,4 +43,21 @@ export function availableVariants(screen: Screen, locale: string): ScreenshotLoc
     }
   }
   return available;
+}
+
+/**
+ * Every look a page in `locale` can show: the key of each variant that has at
+ * least one screen on disk, in that language or in English. The appearance
+ * switcher needs it before anything is clicked — a chip is off only where the
+ * pipeline has taken nothing — so the landing page reads it here, on the
+ * server, and hands it to `AppearanceProvider`. Capture a look with
+ * `app/tool/screenshots.sh` and its chip lights up at the next build; no list
+ * of "light is Volt only" is kept anywhere.
+ */
+export function availableLooks(locale: string): LookAvailability {
+  const looks = new Set<string>();
+  for (const screen of SCREENS) {
+    for (const key of Object.keys(availableVariants(screen, locale))) looks.add(key);
+  }
+  return looks;
 }

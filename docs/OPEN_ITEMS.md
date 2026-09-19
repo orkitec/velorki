@@ -37,7 +37,7 @@ exercised there. The items here are the parts not yet covered by that.
       `stub` explicitly until then).
 - [ ] **LLM**: `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`,
       `LLM_DAILY_BUDGET_USD` in the relay.
-- [ ] **velorki.com**: the `support@velorki.com` and `security@orkitec.com`
+- [ ] **velorki.com**: the `ride@velorki.com`
       mailboxes. (Nameservers, DNS and TLS are step 5 of
       [DEPLOY_WEB.md](DEPLOY_WEB.md).)
 - [ ] **Website legal pages**: fill the imprint placeholders in

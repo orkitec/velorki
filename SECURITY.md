@@ -1,6 +1,6 @@
 # Security
 
-Please report vulnerabilities privately to security@orkitec.com or through
+Please report vulnerabilities privately to ride@velorki.com or through
 GitHub's private vulnerability reporting on this repository. Do not open a
 public issue for security problems.
 

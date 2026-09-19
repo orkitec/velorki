@@ -18,9 +18,11 @@ public/screenshots/<lang>/<mode>-<accent>/<screen>.png
   `library`, `offline`, `settings`
 
 So `public/screenshots/en/dark-volt/planner.png` is the planner in the app's
-default look. One run of the pipeline takes one language
-(`tool/screenshots.sh --lang de`), so the sets need not be in step; the site
-falls back per file. The manifest that lists the grid is `src/site/screenshots.ts`;
+default look. The pipeline takes the whole matrix — both modes in all five
+accents, ten looks of nine screens — per language: `light-volt` and `dark-volt`
+first, then the four other dark looks, then the four other light ones. One run
+takes one language (`tool/screenshots.sh --lang de`), so the sets need not be
+in step; the site falls back per file. The manifest that lists the grid is `src/site/screenshots.ts`;
 `src/site/screenshot-files.ts` is what checks, at build time, which of those
 files exist and in which language. `manifest.json` beside these directories is
 the pipeline's own record of a run, and lists the languages it found.
@@ -58,7 +60,9 @@ and `library`; `/plus` shows `settings`, `/download` shows `ride`, and
 screenshot and falls back to `en/` for any file the pipeline has not taken in
 it yet, so `/de` shows the German app and `/` the English one. The appearance
 switcher on the landing page swaps mode and accent for every frame on the page
-at once; when a variant is missing the site falls back to the same mode in
-volt, then to `dark-volt`, and only then to the placeholder.
+at once; its accent chips are lit by what is on disk here, so a look nobody has
+captured is the one that is off. When a variant is missing the site falls back
+to the same mode in volt, then to `dark-volt`, and only then to the
+placeholder.
 
 iPhone captures later replace the same file names.

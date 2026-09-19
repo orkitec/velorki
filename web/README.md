@@ -275,9 +275,12 @@ look from the palette the page is painted in (`data-theme` on `<html>`, else
 same `useSyncExternalStore` the theme switch uses, plus a `MutationObserver`, so
 flipping the header switch swaps every phone frame. Picking a side in the
 appearance switcher above the feature tour overrules it for that page view and
-is not remembered. Light is captured in Volt only, so the other accent chips are
-disabled while the look is light and the accent comes back when it is dark
-again. The server has no theme knowledge and renders the app's own default look
+is not remembered. Which accent chips work is a question about the files: the
+landing page reads the looks that exist under `public/screenshots` for its
+locale (`src/site/screenshot-files.ts`, English fallback included) and hands
+that set to the provider, so a chip is disabled only where the pipeline has
+captured nothing, and the chosen accent comes back as soon as a mode has it.
+The server has no theme knowledge and renders the app's own default look
 (`dark-volt`); the client corrects it during hydration, which costs one frame.
 
 Pages are prerendered per locale. English is unprefixed (`localePrefix:

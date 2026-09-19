@@ -8,7 +8,7 @@
 // screenshot every <PhoneFrame> renders.
 import { createContext, useContext, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
-import { accentExists, resolveLook, type Look } from '@/site/appearance';
+import { NO_LOOKS, accentExists, resolveLook, type Look, type LookAvailability } from '@/site/appearance';
 import { ACCENTS, DEFAULT_ACCENT, DEFAULT_MODE, MODES, type Accent, type Mode } from '@/site/screenshots';
 import { paintedTheme } from '@/site/theme';
 
@@ -64,6 +64,8 @@ function useSiteMode(): Mode {
 interface AppearanceChoice {
   picked: Mode | null;
   accent: Accent;
+  /** The looks the pipeline has on disk for this page, from the server. */
+  available: LookAvailability;
   pick: (mode: Mode) => void;
   choose: (accent: Accent) => void;
 }
@@ -73,8 +75,10 @@ const AppearanceContext = createContext<AppearanceChoice | null>(null);
 export interface Appearance {
   /** The variant the frames render: the resolved mode and an accent that exists in it. */
   look: Look;
-  /** The accent that was chosen, kept while light has no shot for it. */
+  /** The accent that was chosen, kept while this mode has no shot for it. */
   accent: Accent;
+  /** Which looks were captured, so the switcher knows which chips to offer. */
+  available: LookAvailability;
   setMode: (mode: Mode) => void;
   setAccent: (accent: Accent) => void;
 }
@@ -84,31 +88,41 @@ const IGNORE = () => undefined;
 /**
  * Off the landing page there is no switcher and no provider — `/plus` and
  * `/download` show a single frame — and the look is then the site's palette
- * with the default accent.
+ * with the default accent, which needs no availability to resolve.
  */
 export function useAppearance(): Appearance {
   const choice = useContext(AppearanceContext);
   const site = useSiteMode();
   const picked = choice?.picked ?? null;
   const accent = choice?.accent ?? DEFAULT_ACCENT;
+  const available = choice?.available ?? NO_LOOKS;
   const setMode = choice?.pick ?? IGNORE;
   const setAccent = choice?.choose ?? IGNORE;
   return useMemo(
-    () => ({ look: resolveLook({ site, picked, accent }), accent, setMode, setAccent }),
-    [site, picked, accent, setMode, setAccent],
+    () => ({ look: resolveLook({ site, picked, accent, available }), accent, available, setMode, setAccent }),
+    [site, picked, accent, available, setMode, setAccent],
   );
 }
 
 /**
  * Wraps the feature tour. The server renders `children` — only the provider
- * and the switcher are client components, so the sections stay server markup.
+ * and the switcher are client components, so the sections stay server markup —
+ * and hands in `available`, the set of looks it found under
+ * `public/screenshots` for this page's locale (`site/screenshot-files.ts`).
+ * That set is the only thing that decides which chips work.
  */
-export function AppearanceProvider({ children }: { children: ReactNode }) {
+export function AppearanceProvider({
+  children,
+  available,
+}: {
+  children: ReactNode;
+  available: LookAvailability;
+}) {
   const [picked, setPicked] = useState<Mode | null>(null);
   const [accent, setAccent] = useState<Accent>(DEFAULT_ACCENT);
   const choice = useMemo<AppearanceChoice>(
-    () => ({ picked, accent, pick: setPicked, choose: setAccent }),
-    [picked, accent],
+    () => ({ picked, accent, available, pick: setPicked, choose: setAccent }),
+    [picked, accent, available],
   );
   return (
     <AppearanceContext.Provider value={choice}>
@@ -138,7 +152,7 @@ const ACCENT_SWATCH: Record<Accent, { dark: string; light: string }> = {
 /** The light/dark and accent controls above the feature tour. */
 export function AppearanceSwitcher() {
   const t = useTranslations('appearance');
-  const { look, setMode, setAccent } = useAppearance();
+  const { look, available, setMode, setAccent } = useAppearance();
   return (
     <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
       <fieldset className="flex items-center gap-3">
@@ -170,11 +184,11 @@ export function AppearanceSwitcher() {
             page sideways. */}
         <div className="flex flex-wrap gap-2">
           {ACCENTS.map((value) => {
-            // Light is captured in Volt only. `aria-disabled` rather than the
-            // `disabled` attribute: a disabled control receives no pointer
-            // events, so the browser would never show the `title` that says
-            // why the chip is off.
-            const exists = accentExists(look.mode, value);
+            // Off only where the pipeline has taken nothing in this mode.
+            // `aria-disabled` rather than the `disabled` attribute: a disabled
+            // control receives no pointer events, so the browser would never
+            // show the `title` that says why the chip is off.
+            const exists = accentExists(available, look.mode, value);
             return (
               <button
                 key={value}
@@ -184,7 +198,7 @@ export function AppearanceSwitcher() {
                 onClick={() => {
                   if (exists) setAccent(value);
                 }}
-                title={exists ? t(value) : t('lightVoltOnly')}
+                title={exists ? t(value) : t('noShots')}
                 className={`flex h-9 items-center gap-2 rounded-full border px-3 text-sm font-bold transition-colors ${
                   look.accent === value ? 'border-accent text-fg' : 'border-line text-muted hover:text-fg'
                 } ${exists ? '' : 'cursor-not-allowed opacity-45 hover:text-muted'}`}

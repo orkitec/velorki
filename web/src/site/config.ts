@@ -14,7 +14,7 @@ export const ORG_URL = 'https://orkitec.com';
 
 export const GITHUB_URL = 'https://github.com/orkitec/velorki';
 export const RELEASES_URL = `${GITHUB_URL}/releases`;
-export const SECURITY_EMAIL = 'security@orkitec.com';
+export const SECURITY_EMAIL = 'ride@velorki.com';
 
 export const OSM_COPYRIGHT_URL = 'https://www.openstreetmap.org/copyright';
 

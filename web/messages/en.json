@@ -36,7 +36,7 @@
     "glacier": "Glacier",
     "berry": "Berry",
     "forest": "Forest",
-    "lightVoltOnly": "Light screenshots are available in Volt",
+    "noShots": "No screenshots for this combination yet",
     "hint": "The app ships light and dark with five accents. Switching here swaps every screenshot on this page."
   },
   "screenshots": {

@@ -181,7 +181,7 @@ receive it in a portable form. Most of that you can exercise yourself, because
 the data is on your phone and can be exported as GPX or FIT files at any time.
 
 For anything held on our side (share links, log entries, the RevenueCat
-record) write to **hello@orkitec.com**. We will need enough information to
+record) write to **ride@velorki.com**. We will need enough information to
 identify the data, which for share links means the link itself, since we have
 no account to look you up by. You also have the right to complain to your data
 protection authority.
@@ -202,6 +202,6 @@ Old versions remain in the repository's git history.
 
 ## Contact
 
-Orkitec, hello@orkitec.com. For security reports see
+Orkitec, ride@velorki.com. For security reports see
 [SECURITY.md](https://github.com/orkitec/velorki/blob/main/SECURITY.md) in the
 source repository.

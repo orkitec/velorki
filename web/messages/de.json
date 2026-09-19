@@ -36,7 +36,7 @@
     "glacier": "Gletscher",
     "berry": "Beere",
     "forest": "Wald",
-    "lightVoltOnly": "Helle Screenshots gibt es in Volt",
+    "noShots": "Für diese Kombination gibt es noch keine Screenshots",
     "hint": "Die App kommt hell und dunkel mit fünf Akzentfarben. Schaltest du hier um, wechselt jeder Screenshot auf dieser Seite mit."
   },
   "screenshots": {

@@ -193,7 +193,7 @@ zurückzuziehen, behandle einen ausgegebenen Link also für dieses Jahr als
 öffentlich; schreib uns, wenn einer früher verschwinden muss.
 
 Zeigt ein Teilen-Link auf Inhalte, die deine Rechte verletzen oder deine
-personenbezogenen Daten offenlegen, schreib an **hello@orkitec.com** mit dem
+personenbezogenen Daten offenlegen, schreib an **ride@velorki.com** mit dem
 Link selbst und der Beschreibung des Problems. Wir haben kein Konto, über das
 sich der Inhalt nachschlagen ließe, der Link ist also das, was wir brauchen.
 Wir entfernen Inhalte, die eindeutig rechtswidrig oder rechtsverletzend sind,
@@ -340,7 +340,7 @@ Rest wirksam.
 
 ## 16. Kontakt
 
-Orkitec, hello@orkitec.com. Postanschrift und die übrigen Anbieterangaben
+Orkitec, ride@velorki.com. Postanschrift und die übrigen Anbieterangaben
 stehen auf der Seite [Impressum](./imprint). Für Sicherheitsmeldungen siehe
 [SECURITY.md](https://github.com/orkitec/velorki/blob/main/SECURITY.md) im
 Quellcode-Repository.

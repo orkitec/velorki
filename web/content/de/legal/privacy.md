@@ -199,7 +199,7 @@ weil die Daten auf deinem Handy liegen und sich jederzeit als GPX- oder
 FIT-Datei exportieren lassen.
 
 Für alles, was auf unserer Seite liegt (Teilen-Links, Protokolleinträge, der
-Datensatz bei RevenueCat), schreib an **hello@orkitec.com**. Wir brauchen genug
+Datensatz bei RevenueCat), schreib an **ride@velorki.com**. Wir brauchen genug
 Angaben, um die Daten zu finden, was bei Teilen-Links den Link selbst bedeutet,
 da wir kein Konto haben, über das wir dich nachschlagen könnten. Du hast
 außerdem das Recht, dich bei deiner Datenschutzaufsichtsbehörde zu beschweren.
@@ -221,6 +221,6 @@ Fassungen bleiben in der Git-Historie des Repositorys.
 
 ## Kontakt
 
-Orkitec, hello@orkitec.com. Für Sicherheitsmeldungen siehe
+Orkitec, ride@velorki.com. Für Sicherheitsmeldungen siehe
 [SECURITY.md](https://github.com/orkitec/velorki/blob/main/SECURITY.md) im
 Quellcode-Repository.

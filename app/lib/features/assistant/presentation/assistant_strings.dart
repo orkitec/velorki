@@ -7,7 +7,7 @@ import '../domain/assistant_state.dart';
 /// The store questionnaires ask for such a channel for anything that shows
 /// model output; a mail link is the smallest thing that is actually read.
 const String aiReportMailto =
-    'mailto:support@velorki.com?subject=Velorki%20AI%20output%20report';
+    'mailto:ride@velorki.com?subject=Velorki%20AI%20output%20report';
 
 /// What to show the rider for [problem].
 String assistantProblemText(AppLocalizations l10n, AssistantProblem problem) =>

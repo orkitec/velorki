@@ -13,6 +13,7 @@ import { routing } from '@/i18n/routing';
 import { GITHUB_URL } from '@/site/config';
 import { faqJsonLd } from '@/site/jsonld';
 import { localePath } from '@/site/paths';
+import { availableLooks } from '@/site/screenshot-files';
 import type { Screen } from '@/site/screenshots';
 import { pageMetadata } from '@/site/seo';
 
@@ -72,9 +73,12 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
   const { locale } = await params;
   setRequestLocale(locale);
   const faq = await getTranslations({ locale, namespace: 'home.faq' });
+  // Read once here, on the server: the looks the pipeline has captured for
+  // this locale decide which chips the switcher offers.
+  const available = availableLooks(locale);
 
   return (
-    <AppearanceProvider>
+    <AppearanceProvider available={available}>
       <Hero locale={locale} />
       <FreeBand />
       <Features locale={locale} />

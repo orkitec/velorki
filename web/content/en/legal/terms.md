@@ -171,7 +171,7 @@ so treat a link you hand out as public for that year; write to us if one has to
 come down sooner.
 
 If a share link points at content that infringes your rights or exposes your
-personal data, write to **hello@orkitec.com** with the link itself and what the
+personal data, write to **ride@velorki.com** with the link itself and what the
 problem is. We have no account to look the content up by, so the link is what we
 need. We remove content that is clearly unlawful or infringing, usually within
 a few working days.
@@ -309,7 +309,7 @@ If a provision of these terms is or becomes invalid, the rest stays in force.
 
 ## 16. Contact
 
-Orkitec, hello@orkitec.com. Postal address and the rest of the provider details
+Orkitec, ride@velorki.com. Postal address and the rest of the provider details
 are on the [imprint](./imprint) page. For security reports see
 [SECURITY.md](https://github.com/orkitec/velorki/blob/main/SECURITY.md) in the
 source repository.
