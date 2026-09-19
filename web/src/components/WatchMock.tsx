@@ -58,7 +58,7 @@ export async function WatchMock() {
             <p className="watch-elapsed">01:12</p>
             <p className="watch-buttons">
               <span className="watch-button">Pause</span>
-              <span className="watch-button">Finish</span>
+              <span className="watch-button watch-button-primary">Finish</span>
             </p>
           </div>
         )}

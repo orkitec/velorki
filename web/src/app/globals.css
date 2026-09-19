@@ -545,6 +545,7 @@ h4 {
   font-size: 1.85rem;
   line-height: 1;
   color: var(--accent);
+  color: var(--accent);
 }
 .watch-unit {
   color: #aab2bc;
@@ -564,13 +565,20 @@ h4 {
   gap: 0.3rem;
   margin-top: auto;
 }
+/* The watch app tints its controls with the theme's accent: Pause a
+   translucent accent pill, Finish a solid one with the on-accent text. */
 .watch-button {
   flex: 1;
   border-radius: 999px;
-  background: rgb(255 255 255 / 0.14);
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--accent);
   padding: 0.3rem 0.1rem;
   text-align: center;
   font-weight: 700;
+}
+.watch-button-primary {
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 /* ------------------------------------------------------------------- prose
