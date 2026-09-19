@@ -1164,6 +1164,10 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                   child: PlannerMapHost(
                     onMapReady: _onMapReady,
                     embedded: true,
+                    // While a ride records, this screen draws the puck:
+                    // snapped to the route, turned by the compass. The
+                    // map's own fixes would write over both.
+                    ownsPosition: state.isRecording,
                   ),
                 ),
               ),

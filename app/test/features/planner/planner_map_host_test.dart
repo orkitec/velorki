@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/theme.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
+import 'package:velorki/features/map/presentation/puck_ownership.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
 import 'package:velorki/features/map/testing/testing.dart';
 import 'package:velorki/features/planner/presentation/planner_map_host.dart';
@@ -197,6 +198,38 @@ void main() {
       expect(located, 1);
       chrome.onCompass!();
       expect(compassed, 1);
+    });
+
+    testWidgets('tells the map when the screen draws the puck itself', (
+      tester,
+    ) async {
+      bool? owned;
+      Future<void> pump({required bool ownsPosition}) async {
+        await tester.pumpWidget(
+          await _wrap(
+            PlannerMapHost(
+              onMapReady: (_) {},
+              embedded: true,
+              ownsPosition: ownsPosition,
+            ),
+            overrides: [
+              mapViewBuilderProvider.overrideWithValue(
+                (_) => Builder(
+                  builder: (context) {
+                    owned = PuckOwnership.ownedBy(context);
+                    return const SizedBox.expand();
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      await pump(ownsPosition: false);
+      expect(owned, isFalse);
+      await pump(ownsPosition: true);
+      expect(owned, isTrue);
     });
   });
 

@@ -17,6 +17,7 @@ import '../data/position_provider.dart';
 import '../domain/map_controller.dart';
 import 'map_attribution.dart';
 import 'map_chrome.dart';
+import 'puck_ownership.dart';
 import 'map_controls.dart';
 
 /// Sets up the native map before the first map is built.
@@ -150,6 +151,9 @@ class _MapViewState extends ConsumerState<MapView> {
   void _pushPosition(MapPosition? fix) {
     final adapter = _adapter;
     if (adapter == null || !mounted) return;
+    // A screen that draws the puck itself is not written over: see
+    // PuckOwnership.
+    if (PuckOwnership.ownedBy(context)) return;
     unawaited(
       adapter.setPosition(
         fix?.position,

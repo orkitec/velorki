@@ -7,6 +7,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../map/data/map_preferences.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/map_chrome.dart';
+import '../../map/presentation/puck_ownership.dart';
 
 part 'planner_map_host.g.dart';
 
@@ -41,6 +42,7 @@ class PlannerMapHost extends ConsumerStatefulWidget {
     required this.onMapReady,
     super.key,
     this.embedded = false,
+    this.ownsPosition = false,
   });
 
   /// Called once the map can be driven.
@@ -51,6 +53,10 @@ class PlannerMapHost extends ConsumerStatefulWidget {
   /// (the floating navigation bar), which would otherwise push its
   /// attribution chip into the middle of the map.
   final bool embedded;
+
+  /// Whether the screen draws the position puck itself and the map's own
+  /// fixes must stay off it; see [PuckOwnership].
+  final bool ownsPosition;
 
   @override
   ConsumerState<PlannerMapHost> createState() => _PlannerMapHostState();
@@ -75,7 +81,10 @@ class _PlannerMapHostState extends ConsumerState<PlannerMapHost> {
     ref.listen<bool>(cyclosmOverlayProvider, (_, next) {
       unawaited(_map?.setCyclosmOverlay(next));
     });
-    final map = ref.watch(mapViewBuilderProvider)(_handleMapReady);
+    final map = PuckOwnership(
+      owned: widget.ownsPosition,
+      child: ref.watch(mapViewBuilderProvider)(_handleMapReady),
+    );
     if (!widget.embedded) return map;
     // An embedded map keeps the chrome its owner declared, minus the
     // routing-tile download that only the planner needs.
