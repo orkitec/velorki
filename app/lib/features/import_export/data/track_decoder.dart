@@ -21,6 +21,13 @@ enum ImportFailure {
   /// The bytes could not be read at all (permission, deleted, unreadable
   /// content URI).
   unreadable,
+
+  /// A link to a route on another service could not be fetched.
+  linkUnreachable,
+
+  /// A link to a route on another service that only its owner may fetch,
+  /// and no account for that service is connected.
+  accountNeeded,
 }
 
 /// A file that could not be turned into an [ImportedTrack].

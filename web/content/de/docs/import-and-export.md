@@ -16,6 +16,10 @@ Es gibt drei Wege, und alle drei enden auf demselben Importbildschirm.
 
 **Die Dateiauswahl.** Tippe im Tab **Bibliothek** oben rechts auf **Datei importieren** und such die Datei selbst heraus.
 
+**Ein Ride-with-GPS-Link.** Teile den Link einer Route aus der Ride-with-GPS-App oder dem Browser und wähle Velorki, und die Route landet auf dem Importbildschirm. Eine öffentliche Route braucht sonst nichts; eine private wird über dein verbundenes Ride-with-GPS-Konto geholt, und ohne Konto sagt der Bildschirm "Diese Ride-with-GPS-Route ist privat. Verbinde Ride with GPS in den Einstellungen, um sie zu öffnen."
+
+Eine Datei, die sich nicht importieren lässt, öffnet denselben Bildschirm mit dem Grund: keine GPX- oder FIT-Datei, nicht lesbar, leer, oder ein Link, der sich nicht laden ließ.
+
 Velorki erkennt am Anfang der Datei, was sie ist, und vertraut weder ihrem Namen noch ihrem Typ, eine `.gpx`, die in Wahrheit eine FIT-Datei ist, wird also trotzdem importiert.
 
 ## Der Importbildschirm

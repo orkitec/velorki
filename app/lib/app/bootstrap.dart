@@ -12,6 +12,7 @@ import '../core/files/track_exporter_impl.dart';
 import '../features/import_export/application/incoming_import_listener.dart';
 import '../features/integrations/common/data/external_route_cache.dart';
 import '../features/integrations/common/data/oauth_flow.dart';
+import '../features/integrations/rwgps/application/rwgps_link_listener.dart';
 import '../features/map/presentation/map_view.dart';
 import '../features/planner/presentation/planner_map_host.dart';
 import '../features/recording/data/recording_recovery.dart';
@@ -104,6 +105,9 @@ Future<void> bootstrap() async {
   // The other half of the deep-link stream: velorki://share/<id> fetches the
   // shared GPX and sends it into the same import preview.
   listenForShareLinks(container);
+  // ...and a Ride with GPS route link shared into the app fetches that
+  // route's GPX the same way.
+  listenForRwgpsLinks(container);
 
   runApp(
     UncontrolledProviderScope(container: container, child: const VelorkiApp()),

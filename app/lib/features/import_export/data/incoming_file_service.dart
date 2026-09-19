@@ -244,6 +244,16 @@ class IncomingFileService {
     sourceHint: sourceHint,
   );
 
+  /// Reports a refusal that happened before there were bytes to decode: a
+  /// link that could not be fetched, a route only its owner may open.
+  void reject(ImportException rejection) {
+    if (_rejections.isClosed) return;
+    _log.info(
+      '${rejection.fileName} was not imported: ${rejection.failure.name}',
+    );
+    _rejections.add(rejection);
+  }
+
   /// Decodes [bytes] and emits the result on [imports].
   ///
   /// The file picker uses this: it already has the bytes, so it needs neither

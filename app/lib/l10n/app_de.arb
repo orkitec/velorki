@@ -187,6 +187,8 @@
   "importFailedMalformed": "Die Datei konnte nicht gelesen werden.",
   "importFailedEmpty": "Die Datei enthält keine Trackpunkte.",
   "importFailedUnreadable": "Die Datei konnte nicht geöffnet werden.",
+  "importFailedLink": "Der Link konnte nicht geöffnet werden.",
+  "importFailedRwgpsPrivate": "Diese Ride-with-GPS-Route ist privat. Verbinde Ride with GPS in den Einstellungen, um sie zu öffnen.",
   "importSaveFailed": "Der Import konnte nicht gespeichert werden.",
   "exportGpxRoute": "GPX-Route",
   "exportGpxTrack": "GPX-Track",

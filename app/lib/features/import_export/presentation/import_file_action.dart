@@ -106,4 +106,6 @@ String importFailureMessage(AppLocalizations l10n, ImportFailure failure) =>
       ImportFailure.malformed => l10n.importFailedMalformed,
       ImportFailure.empty => l10n.importFailedEmpty,
       ImportFailure.unreadable => l10n.importFailedUnreadable,
+      ImportFailure.linkUnreachable => l10n.importFailedLink,
+      ImportFailure.accountNeeded => l10n.importFailedRwgpsPrivate,
     };

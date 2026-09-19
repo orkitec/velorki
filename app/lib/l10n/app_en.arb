@@ -940,6 +940,14 @@
   "@importFailedUnreadable": {
     "description": "Error shown when the file itself could not be read from disk"
   },
+  "importFailedLink": "That link could not be opened.",
+  "@importFailedLink": {
+    "description": "Error shown when a route link from another service (Ride with GPS) could not be fetched"
+  },
+  "importFailedRwgpsPrivate": "This Ride with GPS route is private. Connect Ride with GPS in Settings to open it.",
+  "@importFailedRwgpsPrivate": {
+    "description": "Error shown when a Ride with GPS route link needs the owner's account and none is connected"
+  },
   "importSaveFailed": "The import could not be saved.",
   "@importSaveFailed": {
     "description": "Error shown when writing the imported route or ride to the database failed"
