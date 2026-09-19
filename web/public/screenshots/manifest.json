@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-18T04:20:12Z",
+  "generatedAt": "2026-09-19T06:39:14Z",
   "device": {
     "name": "Android emulator, Pixel-class phone",
     "platform": "android",
@@ -387,6 +387,250 @@
       ]
     },
     {
+      "language": "en",
+      "mode": "light",
+      "accent": "ember",
+      "screenshots": [
+        {
+          "screen": "planner",
+          "title": "Planning the Funchal coast and Monte loop",
+          "file": "en/light-ember/planner.png",
+          "bytes": 911301
+        },
+        {
+          "screen": "loop",
+          "title": "Smart Loop, a ride of about the length you asked for",
+          "file": "en/light-ember/loop.png",
+          "bytes": 590920
+        },
+        {
+          "screen": "search",
+          "title": "Searching the offline gazetteer",
+          "file": "en/light-ember/search.png",
+          "bytes": 359710
+        },
+        {
+          "screen": "navigation",
+          "title": "Turn-by-turn guidance while recording",
+          "file": "en/light-ember/navigation.png",
+          "bytes": 997445
+        },
+        {
+          "screen": "recording",
+          "title": "A ride being recorded",
+          "file": "en/light-ember/recording.png",
+          "bytes": 1147652
+        },
+        {
+          "screen": "ride",
+          "title": "A finished ride, with its charts and splits",
+          "file": "en/light-ember/ride.png",
+          "bytes": 183312
+        },
+        {
+          "screen": "library",
+          "title": "Saved routes and rides",
+          "file": "en/light-ember/library.png",
+          "bytes": 160138
+        },
+        {
+          "screen": "offline",
+          "title": "Offline map and routing data",
+          "file": "en/light-ember/offline.png",
+          "bytes": 227361
+        },
+        {
+          "screen": "settings",
+          "title": "Settings, with the appearance block",
+          "file": "en/light-ember/settings.png",
+          "bytes": 239955
+        }
+      ]
+    },
+    {
+      "language": "en",
+      "mode": "light",
+      "accent": "glacier",
+      "screenshots": [
+        {
+          "screen": "planner",
+          "title": "Planning the Funchal coast and Monte loop",
+          "file": "en/light-glacier/planner.png",
+          "bytes": 907601
+        },
+        {
+          "screen": "loop",
+          "title": "Smart Loop, a ride of about the length you asked for",
+          "file": "en/light-glacier/loop.png",
+          "bytes": 588772
+        },
+        {
+          "screen": "search",
+          "title": "Searching the offline gazetteer",
+          "file": "en/light-glacier/search.png",
+          "bytes": 359311
+        },
+        {
+          "screen": "navigation",
+          "title": "Turn-by-turn guidance while recording",
+          "file": "en/light-glacier/navigation.png",
+          "bytes": 1004452
+        },
+        {
+          "screen": "recording",
+          "title": "A ride being recorded",
+          "file": "en/light-glacier/recording.png",
+          "bytes": 1103642
+        },
+        {
+          "screen": "ride",
+          "title": "A finished ride, with its charts and splits",
+          "file": "en/light-glacier/ride.png",
+          "bytes": 182892
+        },
+        {
+          "screen": "library",
+          "title": "Saved routes and rides",
+          "file": "en/light-glacier/library.png",
+          "bytes": 160081
+        },
+        {
+          "screen": "offline",
+          "title": "Offline map and routing data",
+          "file": "en/light-glacier/offline.png",
+          "bytes": 227280
+        },
+        {
+          "screen": "settings",
+          "title": "Settings, with the appearance block",
+          "file": "en/light-glacier/settings.png",
+          "bytes": 239710
+        }
+      ]
+    },
+    {
+      "language": "en",
+      "mode": "light",
+      "accent": "berry",
+      "screenshots": [
+        {
+          "screen": "planner",
+          "title": "Planning the Funchal coast and Monte loop",
+          "file": "en/light-berry/planner.png",
+          "bytes": 908288
+        },
+        {
+          "screen": "loop",
+          "title": "Smart Loop, a ride of about the length you asked for",
+          "file": "en/light-berry/loop.png",
+          "bytes": 591026
+        },
+        {
+          "screen": "search",
+          "title": "Searching the offline gazetteer",
+          "file": "en/light-berry/search.png",
+          "bytes": 358516
+        },
+        {
+          "screen": "navigation",
+          "title": "Turn-by-turn guidance while recording",
+          "file": "en/light-berry/navigation.png",
+          "bytes": 1022609
+        },
+        {
+          "screen": "recording",
+          "title": "A ride being recorded",
+          "file": "en/light-berry/recording.png",
+          "bytes": 1051484
+        },
+        {
+          "screen": "ride",
+          "title": "A finished ride, with its charts and splits",
+          "file": "en/light-berry/ride.png",
+          "bytes": 183353
+        },
+        {
+          "screen": "library",
+          "title": "Saved routes and rides",
+          "file": "en/light-berry/library.png",
+          "bytes": 160161
+        },
+        {
+          "screen": "offline",
+          "title": "Offline map and routing data",
+          "file": "en/light-berry/offline.png",
+          "bytes": 227229
+        },
+        {
+          "screen": "settings",
+          "title": "Settings, with the appearance block",
+          "file": "en/light-berry/settings.png",
+          "bytes": 239831
+        }
+      ]
+    },
+    {
+      "language": "en",
+      "mode": "light",
+      "accent": "forest",
+      "screenshots": [
+        {
+          "screen": "planner",
+          "title": "Planning the Funchal coast and Monte loop",
+          "file": "en/light-forest/planner.png",
+          "bytes": 907724
+        },
+        {
+          "screen": "loop",
+          "title": "Smart Loop, a ride of about the length you asked for",
+          "file": "en/light-forest/loop.png",
+          "bytes": 585855
+        },
+        {
+          "screen": "search",
+          "title": "Searching the offline gazetteer",
+          "file": "en/light-forest/search.png",
+          "bytes": 360487
+        },
+        {
+          "screen": "navigation",
+          "title": "Turn-by-turn guidance while recording",
+          "file": "en/light-forest/navigation.png",
+          "bytes": 1002905
+        },
+        {
+          "screen": "recording",
+          "title": "A ride being recorded",
+          "file": "en/light-forest/recording.png",
+          "bytes": 1010670
+        },
+        {
+          "screen": "ride",
+          "title": "A finished ride, with its charts and splits",
+          "file": "en/light-forest/ride.png",
+          "bytes": 183396
+        },
+        {
+          "screen": "library",
+          "title": "Saved routes and rides",
+          "file": "en/light-forest/library.png",
+          "bytes": 160229
+        },
+        {
+          "screen": "offline",
+          "title": "Offline map and routing data",
+          "file": "en/light-forest/offline.png",
+          "bytes": 227393
+        },
+        {
+          "screen": "settings",
+          "title": "Settings, with the appearance block",
+          "file": "en/light-forest/settings.png",
+          "bytes": 241454
+        }
+      ]
+    },
+    {
       "language": "de",
       "mode": "light",
       "accent": "volt",
@@ -749,6 +993,250 @@
           "title": "Settings, with the appearance block",
           "file": "de/dark-forest/settings.png",
           "bytes": 234080
+        }
+      ]
+    },
+    {
+      "language": "de",
+      "mode": "light",
+      "accent": "ember",
+      "screenshots": [
+        {
+          "screen": "planner",
+          "title": "Planning the Funchal coast and Monte loop",
+          "file": "de/light-ember/planner.png",
+          "bytes": 914508
+        },
+        {
+          "screen": "loop",
+          "title": "Smart Loop, a ride of about the length you asked for",
+          "file": "de/light-ember/loop.png",
+          "bytes": 589715
+        },
+        {
+          "screen": "search",
+          "title": "Searching the offline gazetteer",
+          "file": "de/light-ember/search.png",
+          "bytes": 365526
+        },
+        {
+          "screen": "navigation",
+          "title": "Turn-by-turn guidance while recording",
+          "file": "de/light-ember/navigation.png",
+          "bytes": 1098210
+        },
+        {
+          "screen": "recording",
+          "title": "A ride being recorded",
+          "file": "de/light-ember/recording.png",
+          "bytes": 1056063
+        },
+        {
+          "screen": "ride",
+          "title": "A finished ride, with its charts and splits",
+          "file": "de/light-ember/ride.png",
+          "bytes": 184390
+        },
+        {
+          "screen": "library",
+          "title": "Saved routes and rides",
+          "file": "de/light-ember/library.png",
+          "bytes": 163485
+        },
+        {
+          "screen": "offline",
+          "title": "Offline map and routing data",
+          "file": "de/light-ember/offline.png",
+          "bytes": 251519
+        },
+        {
+          "screen": "settings",
+          "title": "Settings, with the appearance block",
+          "file": "de/light-ember/settings.png",
+          "bytes": 249163
+        }
+      ]
+    },
+    {
+      "language": "de",
+      "mode": "light",
+      "accent": "glacier",
+      "screenshots": [
+        {
+          "screen": "planner",
+          "title": "Planning the Funchal coast and Monte loop",
+          "file": "de/light-glacier/planner.png",
+          "bytes": 913277
+        },
+        {
+          "screen": "loop",
+          "title": "Smart Loop, a ride of about the length you asked for",
+          "file": "de/light-glacier/loop.png",
+          "bytes": 592190
+        },
+        {
+          "screen": "search",
+          "title": "Searching the offline gazetteer",
+          "file": "de/light-glacier/search.png",
+          "bytes": 364177
+        },
+        {
+          "screen": "navigation",
+          "title": "Turn-by-turn guidance while recording",
+          "file": "de/light-glacier/navigation.png",
+          "bytes": 991988
+        },
+        {
+          "screen": "recording",
+          "title": "A ride being recorded",
+          "file": "de/light-glacier/recording.png",
+          "bytes": 1053631
+        },
+        {
+          "screen": "ride",
+          "title": "A finished ride, with its charts and splits",
+          "file": "de/light-glacier/ride.png",
+          "bytes": 183856
+        },
+        {
+          "screen": "library",
+          "title": "Saved routes and rides",
+          "file": "de/light-glacier/library.png",
+          "bytes": 163376
+        },
+        {
+          "screen": "offline",
+          "title": "Offline map and routing data",
+          "file": "de/light-glacier/offline.png",
+          "bytes": 251149
+        },
+        {
+          "screen": "settings",
+          "title": "Settings, with the appearance block",
+          "file": "de/light-glacier/settings.png",
+          "bytes": 249435
+        }
+      ]
+    },
+    {
+      "language": "de",
+      "mode": "light",
+      "accent": "berry",
+      "screenshots": [
+        {
+          "screen": "planner",
+          "title": "Planning the Funchal coast and Monte loop",
+          "file": "de/light-berry/planner.png",
+          "bytes": 911777
+        },
+        {
+          "screen": "loop",
+          "title": "Smart Loop, a ride of about the length you asked for",
+          "file": "de/light-berry/loop.png",
+          "bytes": 591611
+        },
+        {
+          "screen": "search",
+          "title": "Searching the offline gazetteer",
+          "file": "de/light-berry/search.png",
+          "bytes": 364274
+        },
+        {
+          "screen": "navigation",
+          "title": "Turn-by-turn guidance while recording",
+          "file": "de/light-berry/navigation.png",
+          "bytes": 1095003
+        },
+        {
+          "screen": "recording",
+          "title": "A ride being recorded",
+          "file": "de/light-berry/recording.png",
+          "bytes": 1015884
+        },
+        {
+          "screen": "ride",
+          "title": "A finished ride, with its charts and splits",
+          "file": "de/light-berry/ride.png",
+          "bytes": 184250
+        },
+        {
+          "screen": "library",
+          "title": "Saved routes and rides",
+          "file": "de/light-berry/library.png",
+          "bytes": 163476
+        },
+        {
+          "screen": "offline",
+          "title": "Offline map and routing data",
+          "file": "de/light-berry/offline.png",
+          "bytes": 251542
+        },
+        {
+          "screen": "settings",
+          "title": "Settings, with the appearance block",
+          "file": "de/light-berry/settings.png",
+          "bytes": 249284
+        }
+      ]
+    },
+    {
+      "language": "de",
+      "mode": "light",
+      "accent": "forest",
+      "screenshots": [
+        {
+          "screen": "planner",
+          "title": "Planning the Funchal coast and Monte loop",
+          "file": "de/light-forest/planner.png",
+          "bytes": 908727
+        },
+        {
+          "screen": "loop",
+          "title": "Smart Loop, a ride of about the length you asked for",
+          "file": "de/light-forest/loop.png",
+          "bytes": 585738
+        },
+        {
+          "screen": "search",
+          "title": "Searching the offline gazetteer",
+          "file": "de/light-forest/search.png",
+          "bytes": 365952
+        },
+        {
+          "screen": "navigation",
+          "title": "Turn-by-turn guidance while recording",
+          "file": "de/light-forest/navigation.png",
+          "bytes": 1037090
+        },
+        {
+          "screen": "recording",
+          "title": "A ride being recorded",
+          "file": "de/light-forest/recording.png",
+          "bytes": 1011149
+        },
+        {
+          "screen": "ride",
+          "title": "A finished ride, with its charts and splits",
+          "file": "de/light-forest/ride.png",
+          "bytes": 184321
+        },
+        {
+          "screen": "library",
+          "title": "Saved routes and rides",
+          "file": "de/light-forest/library.png",
+          "bytes": 163365
+        },
+        {
+          "screen": "offline",
+          "title": "Offline map and routing data",
+          "file": "de/light-forest/offline.png",
+          "bytes": 251612
+        },
+        {
+          "screen": "settings",
+          "title": "Settings, with the appearance block",
+          "file": "de/light-forest/settings.png",
+          "bytes": 250276
         }
       ]
     }

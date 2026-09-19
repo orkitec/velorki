@@ -11,8 +11,8 @@
 # Output: web/public/screenshots/<lang>/<mode>-<accent>/<screen>.png plus
 # web/public/screenshots/manifest.json. Screens are planner, loop, search,
 # navigation, recording, ride, library, offline and settings; the appearance
-# matrix is light-volt, dark-volt, dark-ember, dark-glacier, dark-berry and
-# dark-forest.
+# matrix is both modes in all five accents — light-volt and dark-volt first,
+# then the other four dark looks, then the other four light ones.
 # One run takes one language; the manifest lists every language found on disk,
 # so a German run leaves the English set alone.
 #
@@ -92,7 +92,8 @@ WORK="$(mktemp -d)"
 export PATH="$HOME/Android/Sdk/platform-tools:$PATH"
 
 ALL_SCREENS=(planner loop search navigation recording ride library offline settings)
-ALL_LOOKS=(light-volt dark-volt dark-ember dark-glacier dark-berry dark-forest)
+ALL_LOOKS=(light-volt dark-volt dark-ember dark-glacier dark-berry dark-forest
+  light-ember light-glacier light-berry light-forest)
 DO_BUILD=1
 DO_SEED=1
 LANG_TAG=en

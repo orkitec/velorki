@@ -38,7 +38,7 @@ exercised there. The items here are the parts not yet covered by that.
 - [ ] **LLM**: `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`,
       `LLM_DAILY_BUDGET_USD` in the relay.
 - [ ] **velorki.com**: the `ride@velorki.com`
-      mailboxes. (Nameservers, DNS and TLS are step 5 of
+      mailbox (support and security reports). (Nameservers, DNS and TLS are step 5 of
       [DEPLOY_WEB.md](DEPLOY_WEB.md).)
 - [ ] **Website legal pages**: fill the imprint placeholders in
       `web/content/en/legal/imprint.md`, set the effective dates in

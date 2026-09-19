@@ -54,9 +54,16 @@ const nextConfig: NextConfig = {
   // in every diff.
   agentRules: false,
   cacheComponents: true,
-  cacheHandlers: { default: require.resolve('@orkify/next/use-cache') },
-  cacheHandler: require.resolve('@orkify/next/isr-cache'),
-  cacheMaxMemorySize: 0,
+  // Orkify's shared cache is for the cluster in production. In development it
+  // would serve pages prerendered by an older build from ~/.orkify/cache, whose
+  // scripts no longer exist, and the page never hydrates.
+  ...(process.env.NODE_ENV === 'production'
+    ? {
+        cacheHandlers: { default: require.resolve('@orkify/next/use-cache') },
+        cacheHandler: require.resolve('@orkify/next/isr-cache'),
+        cacheMaxMemorySize: 0,
+      }
+    : {}),
   deploymentId: process.env.NEXT_DEPLOYMENT_ID || undefined,
   experimental: { serverSourceMaps: true },
   // Files read at runtime with readFileSync must be traced into the standalone
