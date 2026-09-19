@@ -53,6 +53,17 @@ class RoutingTile {
   /// Whether a newer build is on the mirror.
   bool get isStale => state == RoutingTileState.stale;
 
+  /// Whether the mirror's [entry] is a newer build than this copy.
+  ///
+  /// The mirror's build date is the only field that can say so: a rebuilt tile
+  /// keeps its name, and its size may well come out the same. A tile the
+  /// manifest does not list any more, or lists without a date, is left alone —
+  /// there is nothing newer to fetch.
+  bool isOutdatedBy(SegmentEntry? entry) {
+    final mirror = entry?.updatedAt;
+    return mirror != null && mirror.isAfter(updatedAt);
+  }
+
   /// Whether a download is running for this tile.
   bool get isDownloading => state == RoutingTileState.downloading;
 

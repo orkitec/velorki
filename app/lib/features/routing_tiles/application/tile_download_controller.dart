@@ -73,6 +73,10 @@ class TileDownloadQueueState {
 /// downloads on a phone connection only make both slower and the progress bar
 /// meaningless. A failure is recorded and the queue moves on to the next tile;
 /// cancelling drops the whole queue and leaves the `.part` files for a resume.
+///
+/// A tile that is already on the device is replaced rather than downloaded
+/// from nothing: it keeps routing for the whole download, and its row only
+/// changes once the new file is in place.
 @Riverpod(keepAlive: true)
 class TileDownloadQueue extends _$TileDownloadQueue {
   final List<SegmentEntry> _queue = <SegmentEntry>[];
@@ -151,7 +155,14 @@ class TileDownloadQueue extends _$TileDownloadQueue {
               if (!_disposed) state = state.copyWith(progress: p);
             });
 
-        await repository.markDownloading(entry);
+        // A tile that is already on the device is being replaced — an update,
+        // or a retry of its gazetteer. Its row then stays as it is, ready or
+        // stale, so the old file keeps routing until the new one has been
+        // verified and renamed into place; only a tile that is not there yet
+        // becomes a `downloading` row.
+        if (!repository.readyTiles().contains(entry.tile)) {
+          await repository.markDownloading(entry);
+        }
         try {
           final file = await downloader.download(entry, cancelToken: token);
           await _fetchGazetteer(downloader, entry, token);

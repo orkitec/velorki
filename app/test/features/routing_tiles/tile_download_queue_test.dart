@@ -247,6 +247,85 @@ void main() {
     expect(_gazFile(storage, _first).existsSync(), isFalse);
   });
 
+  test(
+    'a stale tile is replaced and keeps routing while it downloads',
+    () async {
+      final container = await containerFor(FakeSegmentsAdapter.serving(_body));
+      final repository = await container.read(
+        routingTilesRepositoryProvider.future,
+      );
+      final file = File('${storage.segments.path}/${_first.fileName}')
+        ..writeAsStringSync('old-rd5');
+      await repository.markReady(
+        SegmentEntry(
+          tile: _first,
+          bytes: 7,
+          updatedAt: DateTime.utc(2026, 8, 1),
+          formatVersion: '11.2',
+        ),
+        bytes: 7,
+      );
+      await repository.applyManifest(
+        SegmentsManifest(tiles: <SegmentEntry>[_entry(_first)]),
+      );
+      expect(repository.cached.single.isStale, isTrue);
+
+      final routableThroughout = <bool>[];
+      container.listen(tileDownloadQueueProvider, (_, next) {
+        if (next.current == _first) {
+          routableThroughout.add(repository.readyTiles().contains(_first));
+        }
+      });
+
+      await container.read(tileDownloadQueueProvider.notifier).enqueue(
+        <SegmentEntry>[_entry(_first)],
+      );
+
+      expect(
+        routableThroughout,
+        isNotEmpty,
+        reason: 'the update really was queued and run',
+      );
+      expect(
+        routableThroughout.every((routable) => routable),
+        isTrue,
+        reason: 'the old tile routes until the new one is in place',
+      );
+      expect(file.readAsBytesSync(), _body, reason: 'the new build is on disk');
+      final replaced = repository.cached.single;
+      expect(replaced.isStale, isFalse);
+      expect(replaced.updatedAt, DateTime.utc(2026, 9, 1));
+      expect(replaced.bytes, _body.length);
+      expect(repository.readyTiles(), <TileName>{_first});
+    },
+  );
+
+  test('a tile that is not on the device yet is marked downloading', () async {
+    final container = await containerFor(FakeSegmentsAdapter.serving(_body));
+    final repository = await container.read(
+      routingTilesRepositoryProvider.future,
+    );
+    final downloading = <bool>[];
+    container.listen(tileDownloadQueueProvider, (_, next) {
+      if (next.current == _first) {
+        downloading.add(
+          repository.cached.any((t) => t.tile == _first && t.isDownloading),
+        );
+      }
+    });
+
+    await container.read(tileDownloadQueueProvider.notifier).enqueue(
+      <SegmentEntry>[_entry(_first)],
+    );
+
+    expect(
+      downloading.any((d) => d),
+      isTrue,
+      reason: 'a half-downloaded tile must never look routable',
+    );
+    expect(repository.readyTiles(), <TileName>{_first});
+  });
+
   test('downloading a tile again retries its gazetteer', () async {
     var serveGazetteer = false;
     final adapter = FakeSegmentsAdapter((options) {

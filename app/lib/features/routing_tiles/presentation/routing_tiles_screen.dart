@@ -164,18 +164,32 @@ class TileDownloadPlan {
 
 /// Works out what downloading [wanted] means. Tiles already on the device are
 /// dropped silently.
+///
+/// With [refreshStale] the rider asked for an update rather than for the tiles
+/// they are missing, so a tile the mirror has rebuilt since it was downloaded
+/// counts as something to fetch; everything else on the device is still
+/// dropped. Without it — the visible area, a route's missing tiles — a tile
+/// that is on the device is enough, however old it is.
 Future<TileDownloadPlan> planTileDownload(
   WidgetRef ref,
-  List<TileName> wanted,
-) async {
+  List<TileName> wanted, {
+  bool refreshStale = false,
+}) async {
   final manifest = await ref.read(segmentsManifestSourceProvider.future);
   final repository = await ref.read(routingTilesRepositoryProvider.future);
   final supported = await ref.read(supportedRd5FormatProvider.future);
-  final present = repository.readyTiles();
+  final present = <TileName, RoutingTile>{
+    for (final tile in repository.cached)
+      if (tile.isUsable) tile.tile: tile,
+  };
   final entries = <SegmentEntry>[];
   final tooNew = <SegmentEntry>[];
   for (final tile in wanted) {
-    if (present.contains(tile)) continue;
+    final onDevice = present[tile];
+    if (onDevice != null &&
+        !(refreshStale && onDevice.isOutdatedBy(manifest[tile]))) {
+      continue;
+    }
     final entry = manifest[tile] ?? SegmentEntry(tile: tile, bytes: 0);
     final version = entry.formatVersion ?? manifest.formatVersion;
     final readable = supported?.canReadVersion(version) ?? true;
@@ -196,13 +210,14 @@ Future<TileDownloadPlan> planTileDownload(
 Future<void> confirmTileDownload(
   BuildContext context,
   WidgetRef ref,
-  List<TileName> wanted,
-) async {
+  List<TileName> wanted, {
+  bool refreshStale = false,
+}) async {
   final l10n = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.maybeOf(context);
   final TileDownloadPlan plan;
   try {
-    plan = await planTileDownload(ref, wanted);
+    plan = await planTileDownload(ref, wanted, refreshStale: refreshStale);
   } on Object catch (e) {
     messenger?.showSnackBar(
       SnackBar(content: Text(l10n.routingTilesManifestFailed(_message(e)))),
@@ -222,8 +237,20 @@ Future<void> confirmTileDownload(
     if (entries.isEmpty || !context.mounted) return;
   }
   if (entries.isEmpty) {
+    if (refreshStale) {
+      // Nothing newer on the mirror after all: whatever marked the tile stale
+      // no longer holds, so the mark goes with the same comparison that set
+      // it, and the rider is told rather than left with a button that does
+      // nothing.
+      final repository = await ref.read(routingTilesRepositoryProvider.future);
+      await repository.applyManifest(plan.manifest);
+    }
     messenger?.showSnackBar(
-      SnackBar(content: Text(l10n.routingTilesAllInView)),
+      SnackBar(
+        content: Text(
+          refreshStale ? l10n.routingTilesUpToDate : l10n.routingTilesAllInView,
+        ),
+      ),
     );
     return;
   }
@@ -494,33 +521,49 @@ class _TileRow extends ConsumerWidget {
     // is the app's, not the tile's.
     final manifest = ref.watch(segmentsManifestSourceProvider).value;
     final supported = ref.watch(supportedRd5FormatProvider).value;
+    // An update keeps the row ready or stale while it runs, so that the tile
+    // stays routable until the new file is in place; the queue is what says
+    // this tile is busy.
+    final queue = ref.watch(tileDownloadQueueProvider);
+    final busy =
+        tile.isDownloading ||
+        queue.current == tile.tile ||
+        queue.queued.contains(tile.tile);
     final needsApp =
         tile.isStale &&
         supported != null &&
         !supported.canReadVersion(
           manifest?[tile.tile]?.formatVersion ?? manifest?.formatVersion,
         );
-    final label = switch (tile.state) {
-      RoutingTileState.ready => l10n.routingTilesStateReady,
-      RoutingTileState.stale =>
-        needsApp ? l10n.routingTilesStateNeedsApp : l10n.routingTilesStateStale,
-      RoutingTileState.downloading => l10n.routingTilesStateDownloading,
-      RoutingTileState.absent => l10n.routingTilesStateAbsent,
-    };
+    final label = busy
+        ? l10n.routingTilesStateDownloading
+        : switch (tile.state) {
+            RoutingTileState.ready => l10n.routingTilesStateReady,
+            RoutingTileState.stale =>
+              needsApp
+                  ? l10n.routingTilesStateNeedsApp
+                  : l10n.routingTilesStateStale,
+            RoutingTileState.downloading => l10n.routingTilesStateDownloading,
+            RoutingTileState.absent => l10n.routingTilesStateAbsent,
+          };
     // The state is read from the colour first and the word second.
-    final stateColor = switch (tile.state) {
-      RoutingTileState.ready => colors.success,
-      RoutingTileState.stale => colors.warning,
-      RoutingTileState.downloading => colors.accent,
-      RoutingTileState.absent => scheme.onSurfaceVariant,
-    };
-    final stateIcon = switch (tile.state) {
-      RoutingTileState.ready => Icons.download_done_rounded,
-      RoutingTileState.stale =>
-        needsApp ? Icons.system_update_alt_rounded : Icons.update_rounded,
-      RoutingTileState.downloading => Icons.downloading_rounded,
-      RoutingTileState.absent => Icons.grid_on_outlined,
-    };
+    final stateColor = busy
+        ? colors.accent
+        : switch (tile.state) {
+            RoutingTileState.ready => colors.success,
+            RoutingTileState.stale => colors.warning,
+            RoutingTileState.downloading => colors.accent,
+            RoutingTileState.absent => scheme.onSurfaceVariant,
+          };
+    final stateIcon = busy
+        ? Icons.downloading_rounded
+        : switch (tile.state) {
+            RoutingTileState.ready => Icons.download_done_rounded,
+            RoutingTileState.stale =>
+              needsApp ? Icons.system_update_alt_rounded : Icons.update_rounded,
+            RoutingTileState.downloading => Icons.downloading_rounded,
+            RoutingTileState.absent => Icons.grid_on_outlined,
+          };
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
       leading: _TileIcon(icon: stateIcon, color: stateColor),
@@ -558,7 +601,7 @@ class _TileRow extends ConsumerWidget {
         ],
       ),
       isThreeLine: true,
-      trailing: tile.isDownloading
+      trailing: busy
           ? const SizedBox(
               width: 20,
               height: 20,
@@ -570,7 +613,9 @@ class _TileRow extends ConsumerWidget {
                 if (tile.isStale && !needsApp)
                   TextButton(
                     onPressed: () => unawaited(
-                      confirmTileDownload(context, ref, <TileName>[tile.tile]),
+                      confirmTileDownload(context, ref, <TileName>[
+                        tile.tile,
+                      ], refreshStale: true),
                     ),
                     child: Text(l10n.routingTilesUpdate),
                   ),

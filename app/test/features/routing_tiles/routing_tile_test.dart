@@ -102,6 +102,55 @@ void main() {
     });
   });
 
+  group('whether the mirror has a newer build', () {
+    SegmentEntry entry({DateTime? updatedAt}) => SegmentEntry(
+      tile: const TileName(10, 45),
+      bytes: 1,
+      updatedAt: updatedAt,
+    );
+
+    test('a mirror build made after the download is newer', () {
+      expect(
+        _tile().isOutdatedBy(entry(updatedAt: DateTime.utc(2026, 9, 20))),
+        isTrue,
+      );
+    });
+
+    test('the same build, or an older one, is not', () {
+      expect(
+        _tile().isOutdatedBy(entry(updatedAt: DateTime.utc(2026, 9, 12, 1, 3))),
+        isFalse,
+        reason: 'the very build that is on the device',
+      );
+      expect(
+        _tile().isOutdatedBy(entry(updatedAt: DateTime.utc(2026, 9, 1))),
+        isFalse,
+      );
+    });
+
+    test('a second is enough to make it newer', () {
+      expect(
+        _tile().isOutdatedBy(entry(updatedAt: DateTime.utc(2026, 9, 12, 1, 4))),
+        isTrue,
+      );
+    });
+
+    test('an entry without a date, or none at all, says nothing', () {
+      expect(_tile().isOutdatedBy(entry()), isFalse);
+      expect(_tile().isOutdatedBy(null), isFalse);
+    });
+
+    test('the state the tile is in does not enter into it', () {
+      final newer = entry(updatedAt: DateTime.utc(2026, 9, 20));
+
+      expect(_tile(state: RoutingTileState.stale).isOutdatedBy(newer), isTrue);
+      expect(
+        _tile(state: RoutingTileState.downloading).isOutdatedBy(newer),
+        isTrue,
+      );
+    });
+  });
+
   group('the area a tile covers', () {
     test('the box runs five degrees north and east of the name', () {
       final bounds = _tile(name: 'E10_N45').tile.bounds;

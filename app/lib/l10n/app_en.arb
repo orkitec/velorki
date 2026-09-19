@@ -2601,6 +2601,10 @@
   "@routingTilesAllInView": {
     "description": "Shown when the visible area needs nothing downloaded"
   },
+  "routingTilesUpToDate": "This tile is already the newest build on the mirror.",
+  "@routingTilesUpToDate": {
+    "description": "Shown when an update finds nothing newer on the mirror"
+  },
   "routingTilesRouteTitle": "Needed for this route",
   "@routingTilesRouteTitle": {
     "description": "Header above the tiles the planner asked to download"

@@ -82,6 +82,24 @@ class TilesHarness {
   /// Where [tile] ends up on disk.
   File tileFile(TileName tile) =>
       File('${storage.segments.path}/${tile.fileName}');
+
+  /// Puts [tile] on the device as an earlier build than the manifest's.
+  ///
+  /// The manifest is dated 12 September, so a tile written with [updatedAt]
+  /// before that is what the weekly check would have marked `stale`.
+  Future<void> seedTile(
+    TileName tile, {
+    String body = 'an-older-build',
+    DateTime? updatedAt,
+  }) async {
+    tileFile(tile).writeAsStringSync(body);
+    await db.routingTilesDao.markReady(
+      tile.name,
+      bytes: body.length,
+      updatedAt: updatedAt ?? DateTime.utc(2026, 9, 1),
+      formatVersion: '11.2',
+    );
+  }
 }
 
 Future<TilesHarness> pumpTiles(
@@ -89,9 +107,11 @@ Future<TilesHarness> pumpTiles(
   FakeMapController? map,
   List<TileName> preselected = const <TileName>[],
   List<Override> extraOverrides = const <Override>[],
+  Future<void> Function(TilesHarness harness)? seed,
 }) async {
   final harness = TilesHarness();
   addTearDown(harness.db.close);
+  await seed?.call(harness);
   await tester.binding.setSurfaceSize(const Size(1080, 2000));
   addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -238,6 +258,106 @@ void main() {
 
     expect(harness.tileFile(_tile).existsSync(), isFalse);
     expect(find.text(l10n.routingTilesTotal(0, '')), findsOneWidget);
+    await unmountTiles(tester);
+  });
+
+  testWidgets('the update of a stale tile downloads the newer build', (
+    tester,
+  ) async {
+    final harness = await pumpTiles(
+      tester,
+      seed: (harness) => harness.seedTile(_tile),
+    );
+
+    // The manifest is newer than the copy on the device, so the row says so.
+    expect(find.textContaining(l10n.routingTilesStateStale), findsOneWidget);
+    expect(find.text(l10n.routingTilesUpdate), findsOneWidget);
+
+    await tester.tap(find.text(l10n.routingTilesUpdate));
+    await tester.pumpAndSettle();
+
+    // The update offers the download rather than saying the tile is there.
+    expect(find.textContaining(l10n.routingTilesUpToDate), findsNothing);
+    expect(find.textContaining(l10n.routingTilesAllInView), findsNothing);
+    expect(find.textContaining('E10_N45 ·'), findsOneWidget);
+    await tester.tap(
+      find.textContaining(
+        l10n.routingTilesDownloadCount(1, '').split('(').first.trim(),
+      ),
+    );
+    await tester.pump();
+    await runDownloads(tester);
+
+    expect(harness.tileFile(_tile).readAsBytesSync(), _body);
+    expect(
+      harness.adapter.requests.map((r) => r.uri.path),
+      contains(endsWith('E10_N45.rd5')),
+    );
+    expect(find.textContaining(l10n.routingTilesStateReady), findsOneWidget);
+    expect(find.textContaining(l10n.routingTilesStateStale), findsNothing);
+    expect(find.text(l10n.routingTilesUpdate), findsNothing);
+    await unmountTiles(tester);
+  });
+
+  testWidgets('a tile as new as the mirror offers no update at all', (
+    tester,
+  ) async {
+    final map = FakeMapController()
+      ..visibleBounds = const BoundingBox(
+        south: 46.0,
+        west: 10.5,
+        north: 47.0,
+        east: 11.5,
+      );
+    final harness = await pumpTiles(
+      tester,
+      map: map,
+      seed: (harness) =>
+          harness.seedTile(_tile, updatedAt: DateTime.utc(2026, 9, 12, 1, 3)),
+    );
+
+    expect(find.textContaining(l10n.routingTilesStateReady), findsOneWidget);
+    expect(find.text(l10n.routingTilesUpdate), findsNothing);
+
+    // And the visible area is still satisfied by what is on the device.
+    await tester.tap(find.text(l10n.routingTilesVisibleArea));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining(l10n.routingTilesAllInView), findsOneWidget);
+    expect(
+      harness.adapter.requests.where((r) => r.uri.path.endsWith('.rd5')),
+      isEmpty,
+    );
+    await unmountTiles(tester);
+  });
+
+  testWidgets('the visible area leaves a stale tile alone', (tester) async {
+    final map = FakeMapController()
+      ..visibleBounds = const BoundingBox(
+        south: 46.0,
+        west: 10.5,
+        north: 47.0,
+        east: 11.5,
+      );
+    final harness = await pumpTiles(
+      tester,
+      map: map,
+      seed: (harness) => harness.seedTile(_tile),
+    );
+
+    await tester.tap(find.text(l10n.routingTilesVisibleArea));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining(l10n.routingTilesAllInView),
+      findsOneWidget,
+      reason: 'the area download is for tiles that are missing',
+    );
+    expect(
+      harness.adapter.requests.where((r) => r.uri.path.endsWith('.rd5')),
+      isEmpty,
+    );
+    expect(find.text(l10n.routingTilesUpdate), findsOneWidget);
     await unmountTiles(tester);
   });
 

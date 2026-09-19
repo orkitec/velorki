@@ -198,9 +198,7 @@ class RoutingTilesRepository {
     final stale = <TileName>[];
     for (final tile in await tiles()) {
       if (!tile.isUsable) continue;
-      final entry = manifest[tile.tile];
-      final updatedAt = entry?.updatedAt;
-      final outdated = updatedAt != null && updatedAt.isAfter(tile.updatedAt);
+      final outdated = tile.isOutdatedBy(manifest[tile.tile]);
       if (outdated) stale.add(tile.tile);
       final wanted = outdated ? RoutingTileState.stale : RoutingTileState.ready;
       if (tile.state != wanted) await _dao.setState(tile.name, wanted);
