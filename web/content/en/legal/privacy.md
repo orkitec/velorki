@@ -31,6 +31,14 @@ offline map regions, downloaded routing tiles and the place-search indexes that
 come with them are stored in the app's own storage on your phone. They are not
 uploaded anywhere unless you ask for it.
 
+Heart rate, cadence and power from an Apple Watch, a Bluetooth sensor or your
+health app are stored with the ride, on the phone, like the track itself. With
+the Health switch on in Settings, the app reads heart rate from Apple Health or
+Health Connect and writes your finished rides there as cycling workouts; that
+exchange happens on your phone and none of it reaches us. Sensor values travel
+with a ride only where the ride does: in a GPX or FIT file you export, or in an
+upload to Strava or RideWithGPS that you start.
+
 If you connect Strava or RideWithGPS, the access tokens for those accounts are
 stored in the phone's secure storage (Keychain on iOS, Keystore on Android) and
 stay there.

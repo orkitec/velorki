@@ -134,10 +134,10 @@
       "record": {
         "eyebrow": "Recording",
         "title": "It keeps recording when the phone does not",
-        "body": "Recording runs in the background with a foreground notification on Android and a live activity on iOS, and survives the app being killed. Battery saver dims the screen and coarsens the GPS. Afterwards, ride pages with elevation, speed, splits and a speed-coloured track.",
+        "body": "Recording runs in the background with a foreground notification on Android and a live activity on iOS, and survives the app being killed. Battery saver dims the screen and coarsens the GPS. Heart rate, cadence and power come along from an Apple Watch, a Bluetooth sensor or your health app, if you switch them on. Afterwards, ride pages with elevation, speed, heart rate, splits and a speed-coloured track.",
         "bullets": {
           "one": "Background recording that survives the app being killed",
-          "two": "Auto-pause, battery saver, distance, time, speed and ascent",
+          "two": "Heart rate, cadence and power from a watch or a Bluetooth sensor, all optional",
           "three": "Ride pages with splits and a speed-coloured track"
         }
       },

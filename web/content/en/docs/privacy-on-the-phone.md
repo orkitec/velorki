@@ -40,7 +40,7 @@ It goes online when you tap **Search online for "…"**, or when you have no ind
 
 ### While you record
 
-Nothing at all leaves the phone. Recording, the statistics, the charts and the splits are all computed on the device.
+Nothing at all leaves the phone. Recording, the statistics, the charts and the splits are all computed on the device. The same goes for heart rate, cadence and power from a watch, a Bluetooth sensor or your health app: they are stored with the ride and, if you have switched Health on, exchanged with Apple Health or Health Connect on the phone itself.
 
 ### When you ask the assistant
 

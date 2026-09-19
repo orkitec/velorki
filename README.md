@@ -29,6 +29,11 @@ A Flutter app for iOS and Android. What it does:
   Android and a live activity on iOS; survives the app being killed; battery
   saver dims the screen and coarsens the GPS; ride pages with elevation,
   speed, splits and a speed-coloured track.
+- **Sensors, all optional.** Heart rate, cadence and power on every fix, from
+  an Apple Watch (a companion app streams the pulse and shows the ride and
+  the next turn on the wrist), from Bluetooth straps, speed and cadence
+  sensors and power meters, or from Apple Health and Health Connect. Nothing
+  asks for a permission until you switch a source on in Settings.
 - **Files and services.** GPX and FIT import and export through the share
   sheet and open-with; Strava upload and route import; RideWithGPS routes and
   trips both ways; links to share a route.

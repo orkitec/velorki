@@ -134,10 +134,10 @@
       "record": {
         "eyebrow": "Aufnahme",
         "title": "Sie zeichnet weiter auf, auch wenn das Handy es nicht tut",
-        "body": "Die Aufnahme läuft im Hintergrund, mit einer Benachrichtigung im Vordergrund auf Android und einer Live-Aktivität auf iOS, und übersteht es, wenn die App beendet wird. Der Akkusparmodus dimmt den Bildschirm und macht das GPS gröber. Danach gibt es Fahrtseiten mit Höhe, Geschwindigkeit, Splits und einem nach Geschwindigkeit eingefärbten Track.",
+        "body": "Die Aufnahme läuft im Hintergrund, mit einer Benachrichtigung im Vordergrund auf Android und einer Live-Aktivität auf iOS, und übersteht es, wenn die App beendet wird. Der Akkusparmodus dimmt den Bildschirm und macht das GPS gröber. Puls, Trittfrequenz und Leistung kommen von der Apple Watch, einem Bluetooth-Sensor oder deiner Health-App dazu, wenn du sie einschaltest. Danach gibt es Fahrtseiten mit Höhe, Geschwindigkeit, Puls, Splits und einem nach Geschwindigkeit eingefärbten Track.",
         "bullets": {
           "one": "Aufnahme im Hintergrund, die das Beenden der App übersteht",
-          "two": "Auto-Pause, Akkusparmodus, Distanz, Zeit, Geschwindigkeit und Anstieg",
+          "two": "Puls, Trittfrequenz und Leistung von Uhr oder Bluetooth-Sensor, alles optional",
           "three": "Fahrtseiten mit Splits und nach Geschwindigkeit eingefärbtem Track"
         }
       },

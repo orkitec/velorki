@@ -37,6 +37,15 @@ heruntergeladene Offline-Kartenregionen, heruntergeladene Routing-Kacheln und
 die Ortssuch-Indizes, die mit ihnen kommen, liegen im eigenen Speicher der App
 auf deinem Handy. Sie gehen nirgendwohin hoch, außer du forderst es an.
 
+Puls, Trittfrequenz und Leistung von einer Apple Watch, einem Bluetooth-Sensor
+oder deiner Health-App werden mit der Fahrt gespeichert, auf dem Handy, wie der
+Track selbst. Ist der Health-Schalter in den Einstellungen an, liest die App
+den Puls aus Apple Health oder Health Connect und schreibt deine beendeten
+Fahrten dort als Radfahr-Trainings hinein; dieser Austausch findet auf deinem
+Handy statt, und nichts davon erreicht uns. Sensorwerte verlassen das Handy nur
+dort, wo die Fahrt es tut: in einer GPX- oder FIT-Datei, die du exportierst,
+oder in einem Upload zu Strava oder RideWithGPS, den du anstößt.
+
 Verbindest du Strava oder RideWithGPS, liegen die Zugriffstoken für diese
 Konten im sicheren Speicher des Handys (Keychain unter iOS, Keystore unter
 Android) und bleiben dort.

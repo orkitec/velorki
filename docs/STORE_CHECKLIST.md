@@ -34,6 +34,24 @@ background-location app.
       `lib/features/recording/data/recording_positions.dart`
       (`pauseLocationUpdatesAutomatically: false`,
       `showBackgroundLocationIndicator: true`).
+- [x] **(iOS)** `NSHealthShareUsageDescription` and `NSHealthUpdateUsageDescription`
+      say heart rate is read for rides and rides are saved as workouts, and the
+      HealthKit entitlement is on Runner and on the watch app. Nothing asks
+      until the Health switch in Settings → Sensors is turned on, which is what
+      Apple's HealthKit review guideline wants. — `ios/Runner/Info.plist`,
+      `ios/Runner/Runner.entitlements`, `ios/VelorkiWatch/`.
+- [x] **(iOS)** `NSBluetoothAlwaysUsageDescription` says the app connects to
+      heart-rate straps, speed, cadence and power sensors; the prompt comes on
+      the first scan from the Bluetooth sensors screen. — `ios/Runner/Info.plist`.
+- [ ] **(iOS)** App Store privacy label: "Health & Fitness" (heart rate) as
+      data collected for app functionality, not linked, not for tracking.
+- [ ] **(Play)** Health Connect: the permissions declaration form in the Play
+      Console (**Policy → App content → Health apps**) with the privacy policy
+      link, and `READ_HEART_RATE`, `WRITE_EXERCISE`, `WRITE_DISTANCE` explained
+      as ride recording. The manifest declares them; the sheet is only raised
+      by the Settings switch. — `android/app/src/main/AndroidManifest.xml`.
+- [x] **(Play)** `BLUETOOTH_SCAN` carries `neverForLocation`, so the scan does
+      not count as a location permission. — `AndroidManifest.xml`.
 - [x] **(iOS)** `PrivacyInfo.xcprivacy` is present and lists the required-reason
       APIs actually used. — `ios/Runner/PrivacyInfo.xcprivacy`: UserDefaults
       `CA92.1` and file timestamp `C617.1`. **It still has to be added to the

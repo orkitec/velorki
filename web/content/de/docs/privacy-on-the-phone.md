@@ -40,7 +40,7 @@ Sie geht online, wenn du auf **Online nach „…“ suchen** tippst, oder wenn 
 
 ### Während du aufzeichnest
 
-Gar nichts verlässt das Handy. Aufnahme, Statistik, Diagramme und Splits werden alle auf dem Gerät berechnet.
+Gar nichts verlässt das Handy. Aufnahme, Statistik, Diagramme und Splits werden alle auf dem Gerät berechnet. Dasselbe gilt für Puls, Trittfrequenz und Leistung von einer Uhr, einem Bluetooth-Sensor oder deiner Health-App: Sie werden mit der Fahrt gespeichert und, wenn du Health eingeschaltet hast, auf dem Handy selbst mit Apple Health oder Health Connect ausgetauscht.
 
 ### Wenn du den Assistenten fragst
 
