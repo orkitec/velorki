@@ -30,6 +30,7 @@ import 'package:velorki/features/recording/data/recording_recovery.dart';
 import 'package:velorki/features/recording/data/recording_service.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
 import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
+import 'package:velorki/features/recording/presentation/rides_list.dart';
 import 'package:velorki/features/recording/presentation/save_ride_sheet.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -258,6 +259,16 @@ void main() {
     // place, so every ride this suite records in one run is called the same
     // thing, and dragUntilVisible insists on exactly one match.
     final row = find.byKey(ValueKey('ride-${ride.id}'));
+    // Every scripted ride carries the same fixture date, so in a long run the
+    // new one can sit below the fold of the lazily built list: scroll to it.
+    await waitForWidget(tester, find.byType(RideTile));
+    await tester.scrollUntilVisible(
+      row,
+      200,
+      scrollable: find.byType(Scrollable).last,
+      maxScrolls: 60,
+    );
+    await tester.pumpAndSettle();
     await waitForWidget(tester, row);
     expect(
       find.descendant(of: row, matching: find.text(ride.name)),
