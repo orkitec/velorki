@@ -11,10 +11,15 @@
 		1D7016A7C9112AB6D84A5BFB /* RideLiveActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E18F67C6E76AA51104CFCEA6 /* RideLiveActivityView.swift */; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
+		4470AD1FD9A9FBBE82AC324A /* VelorkiWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B676A062B060E1DF5125F936 /* VelorkiWatchApp.swift */; };
+		5A3E0001B7C24D9E0A11F001 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A3E0005B7C24D9E0A11F005 /* ShareViewController.swift */; };
+		5A3E0002B7C24D9E0A11F002 /* VelorkiShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 5A3E0004B7C24D9E0A11F004 /* VelorkiShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		5A3E0003B7C24D9E0A11F003 /* receive-sharing-intent in Frameworks */ = {isa = PBXBuildFile; productRef = 5A3E0014B7C24D9E0A11F014 /* receive-sharing-intent */; };
 		67A0293EF244B6FD4F3AFE3B /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7690812C490F3FC713151189 /* Pods_RunnerTests.framework */; };
 		6C79CE0B49702B86D722C712 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 78AD3C57BE16920DCFC34E9B /* Pods_Runner.framework */; };
 		6D58232E0667D7EACD00BB03 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8BBF19C39B42455ECAE6EA33 /* SwiftUI.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
+		75CB2D243C6E1A328F7CE659 /* RideSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BC8D33095E2E4406B766B87 /* RideSession.swift */; };
 		7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */; };
 		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
 		7B3683D6A38308C94F0E46F2 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 52053D484120430C5712742E /* Foundation.framework */; };
@@ -22,12 +27,12 @@
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
+		B4053774F148833D513D5F72 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 809EDC46B4B0FC950784F9AE /* Foundation.framework */; };
 		BCDE3491E9C4D842DC7EC5E9 /* VelorkiLiveActivityBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B629F2DAABCA04D6A962751C /* VelorkiLiveActivityBundle.swift */; };
 		C570474A61AEC1DD8C042B8D /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A331DBBD0100421F00FE2985 /* WidgetKit.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
+		C724D5FBE4A2007DBA057B65 /* RideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57F1EF71EFB7D85B75937799 /* RideView.swift */; };
+		DA8812D188CD0C1197901020 /* VelorkiWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 19D37D38A8C063E04B9F5F73 /* VelorkiWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F285F8F1FEBAE9645ED6E95F /* RideAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 012EB496B3FC5CC0261224A9 /* RideAttributes.swift */; };
-		5A3E0001B7C24D9E0A11F001 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A3E0005B7C24D9E0A11F005 /* ShareViewController.swift */; };
-		5A3E0002B7C24D9E0A11F002 /* VelorkiShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 5A3E0004B7C24D9E0A11F004 /* VelorkiShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		5A3E0003B7C24D9E0A11F003 /* receive-sharing-intent in Frameworks */ = {isa = PBXBuildFile; productRef = 5A3E0014B7C24D9E0A11F014 /* receive-sharing-intent */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -38,13 +43,6 @@
 			remoteGlobalIDString = 97C146ED1CF9000F007C117D;
 			remoteInfo = Runner;
 		};
-		ABE66A3AB3D4AA126E41D285 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = C5A8279BB645FD5422802C06;
-			remoteInfo = VelorkiLiveActivity;
-		};
 		5A3E000DB7C24D9E0A11F00D /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
@@ -52,9 +50,34 @@
 			remoteGlobalIDString = 5A3E000CB7C24D9E0A11F00C;
 			remoteInfo = VelorkiShare;
 		};
+		ABE66A3AB3D4AA126E41D285 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C5A8279BB645FD5422802C06;
+			remoteInfo = VelorkiLiveActivity;
+		};
+		E00587ACFD802DFCCA432A2B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5FF8F3A4E3153DBDF370A510;
+			remoteInfo = VelorkiWatch;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		012E5F127E83A0DC186290ED /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				DA8812D188CD0C1197901020 /* VelorkiWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		42F09F3A308AC0E4088B8656 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -82,13 +105,23 @@
 /* Begin PBXFileReference section */
 		012EB496B3FC5CC0261224A9 /* RideAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RideAttributes.swift; sourceTree = "<group>"; };
 		044B67A64FE33E00E9FE13A2 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
+		123065A742A25EF3E2DF1408 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
+		19D37D38A8C063E04B9F5F73 /* VelorkiWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VelorkiWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1BC8D33095E2E4406B766B87 /* RideSession.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RideSession.swift; sourceTree = "<group>"; };
+		1E70F6FD33FD2138431E1C2F /* README.md */ = {isa = PBXFileReference; includeInIndex = 1; path = README.md; sourceTree = "<group>"; };
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		331C8081294A63A400263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		370A9BB6458CEA7718FE69B8 /* VelorkiLiveActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = VelorkiLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
+		3CE47D5A28E0AE831E2A5975 /* VelorkiWatch.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = VelorkiWatch.entitlements; sourceTree = "<group>"; };
 		52053D484120430C5712742E /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		57F1EF71EFB7D85B75937799 /* RideView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RideView.swift; sourceTree = "<group>"; };
+		5A3E0004B7C24D9E0A11F004 /* VelorkiShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = VelorkiShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		5A3E0005B7C24D9E0A11F005 /* ShareViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		5A3E0006B7C24D9E0A11F006 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		5A3E0007B7C24D9E0A11F007 /* VelorkiShare.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = VelorkiShare.entitlements; sourceTree = "<group>"; };
 		5CCE35C0272A17FD95679B77 /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -98,6 +131,7 @@
 		78E0A7A72DC9AD7400C4905E /* FlutterGeneratedPluginSwiftPackage */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = FlutterGeneratedPluginSwiftPackage; path = Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
 		7D5863D29531E6F61C1C0612 /* Pods-RunnerTests.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.profile.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.profile.xcconfig"; sourceTree = "<group>"; };
+		809EDC46B4B0FC950784F9AE /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/WatchOS.platform/Developer/SDKs/WatchOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		8BBF19C39B42455ECAE6EA33 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/SwiftUI.framework; sourceTree = DEVELOPER_DIR; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
 		9740EEB31CF90195004384FC /* Generated.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
@@ -110,15 +144,12 @@
 		A331DBBD0100421F00FE2985 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/WidgetKit.framework; sourceTree = DEVELOPER_DIR; };
 		AB33B7967224B81FCF9C693E /* Runner.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
 		B629F2DAABCA04D6A962751C /* VelorkiLiveActivityBundle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VelorkiLiveActivityBundle.swift; sourceTree = "<group>"; };
+		B676A062B060E1DF5125F936 /* VelorkiWatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VelorkiWatchApp.swift; sourceTree = "<group>"; };
 		CBA68647639C7B1B99489168 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D4CC3B8E12851FED0EB42435 /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
 		D6FFCF7B84C88D37FB8E1BFD /* Pods-RunnerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release.xcconfig"; sourceTree = "<group>"; };
 		E18F67C6E76AA51104CFCEA6 /* RideLiveActivityView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RideLiveActivityView.swift; sourceTree = "<group>"; };
 		FD28D9A3FC0CE9524E4C4F93 /* VelorkiLiveActivity.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = VelorkiLiveActivity.entitlements; sourceTree = "<group>"; };
-		5A3E0004B7C24D9E0A11F004 /* VelorkiShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = VelorkiShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		5A3E0005B7C24D9E0A11F005 /* ShareViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
-		5A3E0006B7C24D9E0A11F006 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		5A3E0007B7C24D9E0A11F007 /* VelorkiShare.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = VelorkiShare.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -140,20 +171,28 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5A3E000AB7C24D9E0A11F00A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5A3E0003B7C24D9E0A11F003 /* receive-sharing-intent in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7E1E50EE2E3F73AEE1D9798C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B4053774F148833D513D5F72 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		97C146EB1CF9000F007C117D /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */,
 				6C79CE0B49702B86D722C712 /* Pods_Runner.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		5A3E000AB7C24D9E0A11F00A /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				5A3E0003B7C24D9E0A11F003 /* receive-sharing-intent in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -181,6 +220,25 @@
 			path = Pods;
 			sourceTree = "<group>";
 		};
+		5A3E0008B7C24D9E0A11F008 /* VelorkiShare */ = {
+			isa = PBXGroup;
+			children = (
+				5A3E0005B7C24D9E0A11F005 /* ShareViewController.swift */,
+				5A3E0006B7C24D9E0A11F006 /* Info.plist */,
+				5A3E0007B7C24D9E0A11F007 /* VelorkiShare.entitlements */,
+			);
+			name = VelorkiShare;
+			path = VelorkiShare;
+			sourceTree = "<group>";
+		};
+		6924B6DBA3AAC3E6B2484CA7 /* watchOS */ = {
+			isa = PBXGroup;
+			children = (
+				809EDC46B4B0FC950784F9AE /* Foundation.framework */,
+			);
+			name = watchOS;
+			sourceTree = "<group>";
+		};
 		9740EEB11CF90186004384FC /* Flutter */ = {
 			isa = PBXGroup;
 			children = (
@@ -204,6 +262,7 @@
 				99BD584F1D3AF87D309FD38C /* Frameworks */,
 				E36A0B5C7FCECE9E1F1487D0 /* VelorkiLiveActivity */,
 				5A3E0008B7C24D9E0A11F008 /* VelorkiShare */,
+				D5DD145E7DC11220236ADAFF /* VelorkiWatch */,
 			);
 			sourceTree = "<group>";
 		};
@@ -214,6 +273,7 @@
 				331C8081294A63A400263BE5 /* RunnerTests.xctest */,
 				370A9BB6458CEA7718FE69B8 /* VelorkiLiveActivity.appex */,
 				5A3E0004B7C24D9E0A11F004 /* VelorkiShare.appex */,
+				19D37D38A8C063E04B9F5F73 /* VelorkiWatch.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -241,6 +301,7 @@
 				78AD3C57BE16920DCFC34E9B /* Pods_Runner.framework */,
 				7690812C490F3FC713151189 /* Pods_RunnerTests.framework */,
 				C4C084145A739715169DD3F8 /* iOS */,
+				6924B6DBA3AAC3E6B2484CA7 /* watchOS */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -255,6 +316,20 @@
 			name = iOS;
 			sourceTree = "<group>";
 		};
+		D5DD145E7DC11220236ADAFF /* VelorkiWatch */ = {
+			isa = PBXGroup;
+			children = (
+				B676A062B060E1DF5125F936 /* VelorkiWatchApp.swift */,
+				1BC8D33095E2E4406B766B87 /* RideSession.swift */,
+				57F1EF71EFB7D85B75937799 /* RideView.swift */,
+				123065A742A25EF3E2DF1408 /* Info.plist */,
+				3CE47D5A28E0AE831E2A5975 /* VelorkiWatch.entitlements */,
+				1E70F6FD33FD2138431E1C2F /* README.md */,
+			);
+			name = VelorkiWatch;
+			path = VelorkiWatch;
+			sourceTree = "<group>";
+		};
 		E36A0B5C7FCECE9E1F1487D0 /* VelorkiLiveActivity */ = {
 			isa = PBXGroup;
 			children = (
@@ -266,17 +341,6 @@
 			);
 			name = VelorkiLiveActivity;
 			path = VelorkiLiveActivity;
-			sourceTree = "<group>";
-		};
-		5A3E0008B7C24D9E0A11F008 /* VelorkiShare */ = {
-			isa = PBXGroup;
-			children = (
-				5A3E0005B7C24D9E0A11F005 /* ShareViewController.swift */,
-				5A3E0006B7C24D9E0A11F006 /* Info.plist */,
-				5A3E0007B7C24D9E0A11F007 /* VelorkiShare.entitlements */,
-			);
-			name = VelorkiShare;
-			path = VelorkiShare;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -301,6 +365,43 @@
 			productReference = 331C8081294A63A400263BE5 /* RunnerTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		5A3E000CB7C24D9E0A11F00C /* VelorkiShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5A3E0012B7C24D9E0A11F012 /* Build configuration list for PBXNativeTarget "VelorkiShare" */;
+			buildPhases = (
+				5A3E0009B7C24D9E0A11F009 /* Sources */,
+				5A3E000AB7C24D9E0A11F00A /* Frameworks */,
+				5A3E000BB7C24D9E0A11F00B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = VelorkiShare;
+			packageProductDependencies = (
+				5A3E0014B7C24D9E0A11F014 /* receive-sharing-intent */,
+			);
+			productName = VelorkiShare;
+			productReference = 5A3E0004B7C24D9E0A11F004 /* VelorkiShare.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		5FF8F3A4E3153DBDF370A510 /* VelorkiWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E131D96565995F0E1738D87B /* Build configuration list for PBXNativeTarget "VelorkiWatch" */;
+			buildPhases = (
+				FC75F01EF39C115C9DCD952A /* Sources */,
+				7E1E50EE2E3F73AEE1D9798C /* Frameworks */,
+				BB6301BE617DC1D51AC70A3A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = VelorkiWatch;
+			productName = VelorkiWatch;
+			productReference = 19D37D38A8C063E04B9F5F73 /* VelorkiWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
 		97C146ED1CF9000F007C117D /* Runner */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 97C147051CF9000F007C117D /* Build configuration list for PBXNativeTarget "Runner" */;
@@ -312,6 +413,7 @@
 				97C146EC1CF9000F007C117D /* Resources */,
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				42F09F3A308AC0E4088B8656 /* Embed Foundation Extensions */,
+				012E5F127E83A0DC186290ED /* Embed Watch Content */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 			);
 			buildRules = (
@@ -319,6 +421,7 @@
 			dependencies = (
 				17C0DB95E73668170511CF72 /* PBXTargetDependency */,
 				5A3E000EB7C24D9E0A11F00E /* PBXTargetDependency */,
+				6374AC89545C6DE3B3B97420 /* PBXTargetDependency */,
 			);
 			name = Runner;
 			packageProductDependencies = (
@@ -343,26 +446,6 @@
 			name = VelorkiLiveActivity;
 			productName = VelorkiLiveActivity;
 			productReference = 370A9BB6458CEA7718FE69B8 /* VelorkiLiveActivity.appex */;
-			productType = "com.apple.product-type.app-extension";
-		};
-		5A3E000CB7C24D9E0A11F00C /* VelorkiShare */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 5A3E0012B7C24D9E0A11F012 /* Build configuration list for PBXNativeTarget "VelorkiShare" */;
-			buildPhases = (
-				5A3E0009B7C24D9E0A11F009 /* Sources */,
-				5A3E000AB7C24D9E0A11F00A /* Frameworks */,
-				5A3E000BB7C24D9E0A11F00B /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = VelorkiShare;
-			packageProductDependencies = (
-				5A3E0014B7C24D9E0A11F014 /* receive-sharing-intent */,
-			);
-			productName = VelorkiShare;
-			productReference = 5A3E0004B7C24D9E0A11F004 /* VelorkiShare.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
@@ -396,7 +479,7 @@
 			mainGroup = 97C146E51CF9000F007C117D;
 			packageReferences = (
 				781AD8BC2B33823900A9FFBB /* XCLocalSwiftPackageReference "FlutterGeneratedPluginSwiftPackage" */,
-				5A3E0013B7C24D9E0A11F013 /* XCLocalSwiftPackageReference "receive_sharing_intent" */,
+				5A3E0013B7C24D9E0A11F013 /* XCLocalSwiftPackageReference "receive_sharing_intent-1.9.0" */,
 			);
 			productRefGroup = 97C146EF1CF9000F007C117D /* Products */;
 			projectDirPath = "";
@@ -406,12 +489,20 @@
 				331C8080294A63A400263BE5 /* RunnerTests */,
 				C5A8279BB645FD5422802C06 /* VelorkiLiveActivity */,
 				5A3E000CB7C24D9E0A11F00C /* VelorkiShare */,
+				5FF8F3A4E3153DBDF370A510 /* VelorkiWatch */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		331C807F294A63A400263BE5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5A3E000BB7C24D9E0A11F00B /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -436,7 +527,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		5A3E000BB7C24D9E0A11F00B /* Resources */ = {
+		BB6301BE617DC1D51AC70A3A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -542,6 +633,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5A3E0009B7C24D9E0A11F009 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5A3E0001B7C24D9E0A11F001 /* ShareViewController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		97C146EA1CF9000F007C117D /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -552,11 +651,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		5A3E0009B7C24D9E0A11F009 /* Sources */ = {
+		FC75F01EF39C115C9DCD952A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5A3E0001B7C24D9E0A11F001 /* ShareViewController.swift in Sources */,
+				4470AD1FD9A9FBBE82AC324A /* VelorkiWatchApp.swift in Sources */,
+				75CB2D243C6E1A328F7CE659 /* RideSession.swift in Sources */,
+				C724D5FBE4A2007DBA057B65 /* RideView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -580,6 +681,12 @@
 			target = 5A3E000CB7C24D9E0A11F00C /* VelorkiShare */;
 			targetProxy = 5A3E000DB7C24D9E0A11F00D /* PBXContainerItemProxy */;
 		};
+		6374AC89545C6DE3B3B97420 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = VelorkiWatch;
+			target = 5FF8F3A4E3153DBDF370A510 /* VelorkiWatch */;
+			targetProxy = E00587ACFD802DFCCA432A2B /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
@@ -602,6 +709,35 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		0F8C560FF8E3C571E8B25E07 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9740EEB31CF90195004384FC /* Generated.xcconfig */;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = VelorkiWatch/VelorkiWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = 8Z44M8DMKK;
+				ENABLE_BITCODE = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = VelorkiWatch/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.orkitec.velorki.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchsimulator watchos";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
 		249021D3217E4FDB00AE95B9 /* Profile */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -663,8 +799,8 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				DEVELOPMENT_TEAM = 8Z44M8DMKK;
 				CUSTOM_GROUP_ID = group.com.orkitec.velorki;
+				DEVELOPMENT_TEAM = 8Z44M8DMKK;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -732,6 +868,36 @@
 			};
 			name = Profile;
 		};
+		465587EC93DAEC46705445B6 /* Profile */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9740EEB31CF90195004384FC /* Generated.xcconfig */;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = VelorkiWatch/VelorkiWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = 8Z44M8DMKK;
+				ENABLE_BITCODE = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = VelorkiWatch/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.orkitec.velorki.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchsimulator watchos";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Profile;
+		};
 		54414845EB2C94D7A2FD1A56 /* Release */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 9740EEB31CF90195004384FC /* Generated.xcconfig */;
@@ -761,6 +927,95 @@
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
+		};
+		5A3E000FB7C24D9E0A11F00F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9740EEB31CF90195004384FC /* Generated.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = VelorkiShare/VelorkiShare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				CUSTOM_GROUP_ID = group.com.orkitec.velorki;
+				DEVELOPMENT_TEAM = 8Z44M8DMKK;
+				ENABLE_BITCODE = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = VelorkiShare/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.orkitec.velorki.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		5A3E0010B7C24D9E0A11F010 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9740EEB31CF90195004384FC /* Generated.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = VelorkiShare/VelorkiShare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				CUSTOM_GROUP_ID = group.com.orkitec.velorki;
+				DEVELOPMENT_TEAM = 8Z44M8DMKK;
+				ENABLE_BITCODE = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = VelorkiShare/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.orkitec.velorki.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		5A3E0011B7C24D9E0A11F011 /* Profile */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9740EEB31CF90195004384FC /* Generated.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = VelorkiShare/VelorkiShare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				CUSTOM_GROUP_ID = group.com.orkitec.velorki;
+				DEVELOPMENT_TEAM = 8Z44M8DMKK;
+				ENABLE_BITCODE = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = VelorkiShare/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.orkitec.velorki.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Profile;
 		};
 		8582E093BB2CDBBA402AC844 /* Profile */ = {
 			isa = XCBuildConfiguration;
@@ -913,8 +1168,8 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				DEVELOPMENT_TEAM = 8Z44M8DMKK;
 				CUSTOM_GROUP_ID = group.com.orkitec.velorki;
+				DEVELOPMENT_TEAM = 8Z44M8DMKK;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -938,8 +1193,8 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				DEVELOPMENT_TEAM = 8Z44M8DMKK;
 				CUSTOM_GROUP_ID = group.com.orkitec.velorki;
+				DEVELOPMENT_TEAM = 8Z44M8DMKK;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -951,6 +1206,36 @@
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Release;
+		};
+		E02DD8543666436DB843AA29 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9740EEB31CF90195004384FC /* Generated.xcconfig */;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = VelorkiWatch/VelorkiWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = 8Z44M8DMKK;
+				ENABLE_BITCODE = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = VelorkiWatch/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.orkitec.velorki.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchsimulator watchos";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
 			};
 			name = Release;
 		};
@@ -983,95 +1268,6 @@
 			};
 			name = Debug;
 		};
-		5A3E000FB7C24D9E0A11F00F /* Debug */ = {
-			isa = XCBuildConfiguration;
-			baseConfigurationReference = 9740EEB31CF90195004384FC /* Generated.xcconfig */;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = VelorkiShare/VelorkiShare.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				CUSTOM_GROUP_ID = group.com.orkitec.velorki;
-				DEVELOPMENT_TEAM = 8Z44M8DMKK;
-				ENABLE_BITCODE = NO;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = VelorkiShare/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
-				PRODUCT_BUNDLE_IDENTIFIER = com.orkitec.velorki.share;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		5A3E0010B7C24D9E0A11F010 /* Release */ = {
-			isa = XCBuildConfiguration;
-			baseConfigurationReference = 9740EEB31CF90195004384FC /* Generated.xcconfig */;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = VelorkiShare/VelorkiShare.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				CUSTOM_GROUP_ID = group.com.orkitec.velorki;
-				DEVELOPMENT_TEAM = 8Z44M8DMKK;
-				ENABLE_BITCODE = NO;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = VelorkiShare/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
-				PRODUCT_BUNDLE_IDENTIFIER = com.orkitec.velorki.share;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				VALIDATE_PRODUCT = YES;
-			};
-			name = Release;
-		};
-		5A3E0011B7C24D9E0A11F011 /* Profile */ = {
-			isa = XCBuildConfiguration;
-			baseConfigurationReference = 9740EEB31CF90195004384FC /* Generated.xcconfig */;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = VelorkiShare/VelorkiShare.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				CUSTOM_GROUP_ID = group.com.orkitec.velorki;
-				DEVELOPMENT_TEAM = 8Z44M8DMKK;
-				ENABLE_BITCODE = NO;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = VelorkiShare/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
-				PRODUCT_BUNDLE_IDENTIFIER = com.orkitec.velorki.share;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				VALIDATE_PRODUCT = YES;
-			};
-			name = Profile;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1081,6 +1277,16 @@
 				331C8088294A63A400263BE5 /* Debug */,
 				331C8089294A63A400263BE5 /* Release */,
 				331C808A294A63A400263BE5 /* Profile */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5A3E0012B7C24D9E0A11F012 /* Build configuration list for PBXNativeTarget "VelorkiShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5A3E000FB7C24D9E0A11F00F /* Debug */,
+				5A3E0010B7C24D9E0A11F010 /* Release */,
+				5A3E0011B7C24D9E0A11F011 /* Profile */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -1115,12 +1321,12 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		5A3E0012B7C24D9E0A11F012 /* Build configuration list for PBXNativeTarget "VelorkiShare" */ = {
+		E131D96565995F0E1738D87B /* Build configuration list for PBXNativeTarget "VelorkiWatch" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				5A3E000FB7C24D9E0A11F00F /* Debug */,
-				5A3E0010B7C24D9E0A11F010 /* Release */,
-				5A3E0011B7C24D9E0A11F011 /* Profile */,
+				E02DD8543666436DB843AA29 /* Release */,
+				0F8C560FF8E3C571E8B25E07 /* Debug */,
+				465587EC93DAEC46705445B6 /* Profile */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -1128,24 +1334,24 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
+		5A3E0013B7C24D9E0A11F013 /* XCLocalSwiftPackageReference "receive_sharing_intent-1.9.0" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "Flutter/ephemeral/Packages/.packages/receive_sharing_intent-1.9.0";
+		};
 		781AD8BC2B33823900A9FFBB /* XCLocalSwiftPackageReference "FlutterGeneratedPluginSwiftPackage" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage;
 		};
-		5A3E0013B7C24D9E0A11F013 /* XCLocalSwiftPackageReference "receive_sharing_intent" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = "Flutter/ephemeral/Packages/.packages/receive_sharing_intent-1.9.0";
-		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = FlutterGeneratedPluginSwiftPackage;
-		};
 		5A3E0014B7C24D9E0A11F014 /* receive-sharing-intent */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = "receive-sharing-intent";
+		};
+		78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FlutterGeneratedPluginSwiftPackage;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

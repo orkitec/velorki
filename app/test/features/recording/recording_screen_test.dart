@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
+import 'package:velorki/features/recording/application/ride_finish_request.dart';
 import 'package:velorki/features/recording/data/recording_journal.dart';
 import 'package:velorki/features/recording/data/recording_recovery.dart';
 import 'package:velorki/features/recording/data/recording_service.dart';
@@ -520,6 +521,34 @@ void main() {
 
     expect(find.byType(RideDetailScreen), findsOneWidget);
     expect(find.text('Ride 12 Sept 2026'), findsWidgets);
+    await unmountApp(tester);
+  });
+
+  testWidgets('a finish asked for from the watch opens the save sheet', (
+    tester,
+  ) async {
+    final harness = RecordingHarness()
+      ..service.finishedRide = _ride()
+      ..service.haltedRecording = _recording();
+    await writeJournal(tester, harness);
+    await pumpRecordingScreen(
+      tester,
+      const RecordingScreen(),
+      harness: harness,
+    );
+    await tester.pump();
+    await emitSnapshot(tester, harness, _snapshot());
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(RecordingScreen)),
+    );
+
+    // What the watch's Finish leaves behind: the recorder already put down,
+    // and the ride waiting to be named the next time the phone is looked at.
+    container.read(rideFinishRequestProvider.notifier).raise();
+    await settleSheet(tester);
+
+    expect(find.byType(SaveRideSheet), findsOneWidget);
+    expect(container.read(rideFinishRequestProvider), isFalse);
     await unmountApp(tester);
   });
 

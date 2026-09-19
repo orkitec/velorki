@@ -6,13 +6,16 @@ import 'package:velorki/app/app_config.dart';
 import 'package:velorki/features/sensors/data/health_gateway.dart';
 import 'package:velorki/features/sensors/data/sensor_settings.dart';
 import 'package:velorki/features/sensors/presentation/sensors_section.dart';
+import 'package:velorki/features/sensors/data/watch_gateway.dart';
 import 'package:velorki/features/sensors/testing/fake_health_gateway.dart';
+import 'package:velorki/features/sensors/testing/fake_watch_gateway.dart';
 
 import '../../support/app.dart';
 
 Future<ProviderContainer> _pump(
   WidgetTester tester, {
   HealthGateway? gateway,
+  WatchGateway? watch,
   Map<String, Object> initial = const <String, Object>{},
 }) async {
   SharedPreferences.setMockInitialValues(initial);
@@ -21,6 +24,7 @@ Future<ProviderContainer> _pump(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
       healthGatewayProvider.overrideWithValue(gateway),
+      watchGatewayProvider.overrideWithValue(watch),
     ],
   );
   addTearDown(container.dispose);
@@ -126,5 +130,39 @@ void main() {
     await _pump(tester);
 
     expect(find.byType(SwitchListTile), findsNothing);
+  });
+
+  testWidgets('no watch paired, no watch switch', (tester) async {
+    await _pump(tester, gateway: FakeHealthGateway());
+
+    expect(find.text(l10n.settingsSensorsAppleWatch), findsNothing);
+  });
+
+  testWidgets('a paired watch is offered, and switching it on asks the '
+      'rider for nothing', (tester) async {
+    final watch = FakeWatchGateway();
+    addTearDown(watch.dispose);
+    final container = await _pump(
+      tester,
+      gateway: FakeHealthGateway(),
+      watch: watch,
+    );
+    expect(find.text(l10n.settingsSensorsWatchHint), findsOneWidget);
+    expect(_tile(tester, l10n.settingsSensorsAppleWatch).value, isFalse);
+
+    await tester.tap(find.text(l10n.settingsSensorsAppleWatch));
+    await tester.pumpAndSettle();
+
+    expect(container.read(sensorSettingsProvider).watch, isTrue);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getBool('sensors.watch'), isTrue);
+  });
+
+  testWidgets('a watch that is not paired is not offered', (tester) async {
+    final watch = FakeWatchGateway(paired: false);
+    addTearDown(watch.dispose);
+    await _pump(tester, gateway: FakeHealthGateway(), watch: watch);
+
+    expect(find.text(l10n.settingsSensorsAppleWatch), findsNothing);
   });
 }

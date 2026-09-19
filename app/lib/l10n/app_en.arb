@@ -3823,5 +3823,13 @@
   "settingsSensorsHealthDenied": "Velorki was not given access to your health data.",
   "@settingsSensorsHealthDenied": {
     "description": "Snack bar shown when the operating system refused access to the health store"
+  },
+  "settingsSensorsAppleWatch": "Apple Watch",
+  "@settingsSensorsAppleWatch": {
+    "description": "Switch that lets the paired Apple Watch measure and steer the ride"
+  },
+  "settingsSensorsWatchHint": "Heart rate from the watch, ride controls on the wrist",
+  "@settingsSensorsWatchHint": {
+    "description": "Second line of the switch that connects Velorki to the Apple Watch app"
   }
 }

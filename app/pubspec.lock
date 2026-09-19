@@ -1673,6 +1673,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.7.0"
+  watch_connectivity:
+    dependency: "direct main"
+    description:
+      name: watch_connectivity
+      sha256: "322c18b2c7c01d2bf79e31d8c5ab611db96762f1ffaac98b9d678f693c33a46e"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.10"
+  watch_connectivity_platform_interface:
+    dependency: transitive
+    description:
+      name: watch_connectivity_platform_interface
+      sha256: "68abe6b30b592537cb58a71e3643489e823daa4ef81677b15e47e905a1d06f00"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.4.0"
   watcher:
     dependency: transitive
     description:

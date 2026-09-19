@@ -7,13 +7,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../data/health_gateway.dart';
 import '../data/sensor_settings.dart';
+import '../data/watch_gateway.dart';
 
-/// Settings → Sensors: the one switch that connects Velorki to the phone's
-/// health store, and whether finished rides go back into it.
+/// Settings → Sensors: the switch that connects Velorki to the phone's health
+/// store, whether finished rides go back into it, and the one that lets the
+/// rider's watch into the ride.
 ///
-/// Nothing in this feature runs until the first switch is on. Turning it on is
-/// the only thing in the app that can raise the health permission prompt, and
-/// a rider who never comes here is never asked.
+/// Nothing in this feature runs until a switch is on. Turning Health on is the
+/// only thing in the app that can raise the health permission prompt, and a
+/// rider who never comes here is never asked. The watch switch raises no
+/// prompt at all: the watch app asks the OS on the *watch* for its heart rate,
+/// the first time the rider opens it.
 class SensorsSection extends ConsumerWidget {
   /// Creates the section.
   const SensorsSection({super.key});
@@ -58,6 +62,15 @@ class SensorsSection extends ConsumerWidget {
               ? (value) => unawaited(controller.setHealthWrite(value))
               : null,
         ),
+        // Only on a phone that has a watch paired to it: everywhere else the
+        // switch could do nothing at all, so it is not offered.
+        if (ref.watch(watchPairedProvider).value ?? false)
+          SwitchListTile(
+            value: settings.watch,
+            title: Text(l10n.settingsSensorsAppleWatch),
+            subtitle: Text(l10n.settingsSensorsWatchHint),
+            onChanged: (value) => unawaited(controller.setWatch(value)),
+          ),
       ],
     );
   }

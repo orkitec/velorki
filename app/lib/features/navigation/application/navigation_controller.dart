@@ -170,6 +170,22 @@ class VoiceMutedForRide extends _$VoiceMutedForRide {
   void reset() => state = false;
 }
 
+/// When the rider was last told something they should also *feel*: the cue
+/// for the corner they are at, or the news that they have left the route.
+///
+/// Only a device on the rider's body can act on it, which today means the
+/// watch: it plays one haptic whenever this changes. Set whatever the voice
+/// setting says, because a buzz on the wrist is not a voice in the ear, and
+/// `null` until the first cue of the session.
+@Riverpod(keepAlive: true)
+class NavigationCue extends _$NavigationCue {
+  @override
+  DateTime? build() => null;
+
+  /// A cue fired at [at].
+  void fire(DateTime at) => state = at;
+}
+
 /// The route navigation is actually running on: the detour while one is up,
 /// the plan the rider chose otherwise.
 @Riverpod(keepAlive: true)
@@ -396,6 +412,9 @@ class NavigationController extends _$NavigationController {
       leadSeconds: settings.leadSeconds,
     );
     if (cues.isNotEmpty && settings.voice) _speak(cues);
+    // The corner itself is the one cue worth a buzz; the ones announced
+    // hundreds of metres out are not.
+    if (cues.any((cue) => cue.kind == CueKind.now)) _pulse(now);
 
     return _decorate(progress);
   }
@@ -463,6 +482,7 @@ class NavigationController extends _$NavigationController {
       _cancelRouting();
       _setDetour(null);
     }
+    if (decision.speakGuidance && decision.guidance != null) _pulse(now);
     if (decision.speakGuidance &&
         ref.read(navigationSettingsProvider).voice &&
         decision.guidance != null) {
@@ -757,6 +777,14 @@ class NavigationController extends _$NavigationController {
     if (_building) return;
     if (ref.read(detourRouteProvider) == route) return;
     ref.read(detourRouteProvider.notifier).replace(route);
+  }
+
+  /// Marks a cue the rider should feel, for whatever is on their wrist.
+  void _pulse(DateTime at) {
+    // A provider may not change another one while it is being created, and a
+    // controller that has just been built has cued nothing yet.
+    if (_building) return;
+    ref.read(navigationCueProvider.notifier).fire(at);
   }
 
   /// Lifts the ride-only mute. Silent when nothing is muted, which is the

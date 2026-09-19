@@ -32,6 +32,7 @@ import '../../sensors/application/ride_health_sync.dart';
 import '../../settings/data/units.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../application/recording_controller.dart';
+import '../application/ride_finish_request.dart';
 import '../data/battery_saver.dart';
 import '../data/follow_mode.dart';
 import '../data/recording_gateways.dart';
@@ -153,6 +154,11 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   ScreenDimmer? _dimmer;
 
   bool _recoveryHandled = false;
+
+  /// Whether a finish asked for from elsewhere — the watch on the rider's
+  /// wrist — is already on its way to the save sheet.
+  bool _finishRequested = false;
+
   int _drawnTrackPoints = -1;
   String? _drawnRouteId;
   RouteLineStyle? _drawnRouteStyle;
@@ -686,6 +692,29 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     });
   }
 
+  // --------------------------------------------------- finish from afar
+
+  /// Opens the save sheet for a ride the rider stopped somewhere else.
+  ///
+  /// The watch cannot finish a ride on its own — it is named on the sheet,
+  /// and the sheet also offers to carry on — so it stops the recorder and
+  /// asks for this. The rider finds the sheet waiting the next time they look
+  /// at the phone.
+  void _handleFinishRequest(bool requested) {
+    if (!requested) {
+      _finishRequested = false;
+      return;
+    }
+    if (_finishRequested) return;
+    _finishRequested = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(rideFinishRequestProvider.notifier).clear();
+      if (!ref.read(recordingControllerProvider).isRecording) return;
+      unawaited(_stop());
+    });
+  }
+
   Future<void> _reattach(RecordingState state) async {
     final running = await ref
         .read(recordingControllerProvider.notifier)
@@ -1026,6 +1055,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     final state = ref.watch(recordingControllerProvider);
     final recovery = ref.watch(recordingRecoveryProvider).value;
     if (recovery != null) _handleRecovery(recovery);
+    _handleFinishRequest(ref.watch(rideFinishRequestProvider));
 
     final followed = state.followedRouteId;
     final route = followed == null

@@ -44,6 +44,7 @@ import 'live_navigate_test.dart' as live_navigate;
 import 'live_recover_test.dart' as live_recover;
 import 'live_ride_test.dart' as live_ride;
 import 'live_voice_test.dart' as live_voice;
+import 'live_watch_test.dart' as live_watch;
 import 'navigate_route_test.dart' as navigate_route;
 import 'offline_search_test.dart' as offline_search;
 import 'on_device_route_test.dart' as on_device_route;
@@ -62,6 +63,7 @@ void main() {
   group('live_recover_test.dart', live_recover.main);
   group('live_ride_test.dart', live_ride.main);
   group('live_voice_test.dart', live_voice.main);
+  group('live_watch_test.dart', live_watch.main);
   group('navigate_route_test.dart', navigate_route.main);
   group('offline_search_test.dart', offline_search.main);
   group('on_device_route_test.dart', on_device_route.main);
