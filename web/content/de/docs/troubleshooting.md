@@ -88,25 +88,25 @@ Antworte unter Android auf **Im Hintergrund weiter aufzeichnen** mit **Erlauben*
 
 ## Ein Bluetooth-Sensor wird nicht gefunden
 
-1. **Weck den Sensor auf.** Ein Gurt sendet nur mit Hautkontakt, ein Trittfrequenzsensor nur bei drehender Kurbel. Genau das sagt der Bildschirm: "Nothing yet. Wake the sensor up: put the strap on, or turn the cranks."
-2. **Schalte Bluetooth ein.** "Switch Bluetooth on to find your sensors." meint das Funkmodul des Handys, nicht den Sensor.
-3. **Erteile die Berechtigung.** "Velorki was not allowed to use Bluetooth." heißt, sie wurde abgelehnt. iOS fragt beim ersten Tippen auf **Scan**, und nur dann.
+1. **Weck den Sensor auf.** Ein Gurt sendet nur mit Hautkontakt, ein Trittfrequenzsensor nur bei drehender Kurbel. Genau das sagt der Bildschirm: "Noch nichts. Weck den Sensor auf: Gurt anlegen oder Kurbel drehen."
+2. **Schalte Bluetooth ein.** "Schalte Bluetooth ein, um deine Sensoren zu finden." meint das Funkmodul des Handys, nicht den Sensor.
+3. **Erteile die Berechtigung.** "Velorki durfte Bluetooth nicht benutzen." heißt, sie wurde abgelehnt. iOS fragt beim ersten Tippen auf **Scannen**, und nur dann.
 4. **Gib den Sensor frei.** Diese Sensoren bedienen jeweils ein Gerät, ein Radcomputer oder eine andere App, die deinen hält, macht ihn für Velorki unsichtbar.
 5. **Scanne noch einmal.** Ein Scan läuft etwa fünfzehn Sekunden und listet nur Geräte, die die Standardprofile für Puls, Geschwindigkeit und Trittfrequenz oder Leistung sprechen.
 
-Ein gekoppelter Sensor, der **Not connected** zeigt, ist außer Reichweite, schläft oder ist leer. Velorki versucht es weiter, solange eine Aufnahme läuft oder der Bildschirm **Bluetooth sensors** offen ist. Siehe [Sensoren und deine Uhr](./sensors-and-watch).
+Ein gekoppelter Sensor, der **Nicht verbunden** zeigt, ist außer Reichweite, schläft oder ist leer. Velorki versucht es weiter, solange eine Aufnahme läuft oder der Bildschirm **Bluetooth-Sensoren** offen ist. Siehe [Sensoren und deine Uhr](./sensors-and-watch).
 
 ## Die Uhr verbindet sich nicht
 
-- **Es gibt keinen Schalter Apple Watch.** Er erscheint unter **Einstellungen → Sensors** nur auf einem iPhone, mit dem eine Uhr gekoppelt ist.
+- **Es gibt keinen Schalter Apple Watch.** Er erscheint unter **Einstellungen → Sensoren** nur auf einem iPhone, mit dem eine Uhr gekoppelt ist.
 - **Die App ist nicht auf der Uhr.** Sie steckt in der iPhone-App; kam sie nicht von selbst an, installiere Velorki aus der App **Watch** auf dem iPhone.
 - **Die Fahrt läuft, aber die Uhr misst nichts.** Das Handy kann nur eine laufende Uhren-App ansprechen. Öffne Velorki auf der Uhr und tippe auf **Start ride**, das startet beide Enden.
 - **Die Uhr zeigt keinen Puls.** Sie fragt beim ersten Training um Erlaubnis, deinen Puls zu lesen. Wurde das abgelehnt, erteile die Erlaubnis in den Datenschutzeinstellungen der Uhr.
 
 ## Kein Puls aus Health
 
-- **Der Schalter ist aus.** **Apple Health**, unter Android **Health Connect**, muss unter **Einstellungen → Sensors** an sein. Solange er aus ist, wird nichts gelesen.
-- **Der Zugriff wurde abgelehnt.** "Velorki was not given access to your health data." lässt den Schalter aus. Schalte ihn erneut ein und erlaube den Puls, oder erteile die Erlaubnis in der Health-App selbst.
+- **Der Schalter ist aus.** **Apple Health**, unter Android **Health Connect**, muss unter **Einstellungen → Sensoren** an sein. Solange er aus ist, wird nichts gelesen.
+- **Der Zugriff wurde abgelehnt.** "Velorki hat keinen Zugriff auf deine Gesundheitsdaten bekommen." lässt den Schalter aus. Schalte ihn erneut ein und erlaube den Puls, oder erteile die Erlaubnis in der Health-App selbst.
 - **Es hat nie jemand einen Puls geschrieben.** Velorki liest nur, was schon im Speicher liegt. Ohne Uhr und ohne App, die einen Puls hineinschreibt, gibt es nichts zu lesen.
 - **Er kommt spät.** Der Speicher wird alle fünf Sekunden gefragt, mit Energiesparen alle dreißig, und beim Speichern der Fahrt werden die Lücken noch einmal gefüllt. Ein direkt meldender Gurt oder eine Uhr ist immer schneller.
 

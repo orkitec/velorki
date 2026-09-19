@@ -25,9 +25,9 @@ Velorki pausiert nach etwa zehn Sekunden ohne Bewegung von selbst; die Plakette 
 
 ## Puls, Trittfrequenz und Leistung
 
-Ist ein Sensor eingeschaltet, kommt in der Übersicht eine dritte Zeile mit Zahlen dazu, solange er meldet: **Heart rate**, **Cadence** und **Power**. Sie können von einem Bluetooth-Sensor, von einer Apple Watch oder von der Health-App des Handys kommen, werden während der Fahrt in den Track geschrieben, und auf dem iPhone steht der Puls auch auf der Sperrbildschirm-Karte. Solange ein Radsensor meldet, ist seine Geschwindigkeit das, was **Tempo** zeigt.
+Ist ein Sensor eingeschaltet, kommt in der Übersicht eine dritte Zeile mit Zahlen dazu, solange er meldet: **Herzfrequenz**, **Trittfrequenz** und **Leistung**. Sie können von einem Bluetooth-Sensor, von einer Apple Watch oder von der Health-App des Handys kommen, werden während der Fahrt in den Track geschrieben, und auf dem iPhone steht der Puls auch auf der Sperrbildschirm-Karte. Solange ein Radsensor meldet, ist seine Geschwindigkeit das, was **Tempo** zeigt.
 
-Ohne Sensor erscheint nichts davon, und eingeschaltet wird nichts, bevor du es unter **Einstellungen → Sensors** tust. Siehe [Sensoren und deine Uhr](./sensors-and-watch).
+Ohne Sensor erscheint nichts davon, und eingeschaltet wird nichts, bevor du es unter **Einstellungen → Sensoren** tust. Siehe [Sensoren und deine Uhr](./sensors-and-watch).
 
 ## Was beim ersten Mal gefragt wird
 

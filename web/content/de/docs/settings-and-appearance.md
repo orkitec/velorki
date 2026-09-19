@@ -38,15 +38,15 @@ Die drei Schalter hier sind dieselben wie in der Übersicht des Tabs Aufnahme.
 
 **Energiesparen**: "Dunkle Karte, keine Animationen, nach 30 s eine schlichte Seite mit den Zahlen; der Bildschirm zieht den Akku leer". Das ganze Verhalten steht unter [Fahrt aufzeichnen](./recording-a-ride).
 
-## Sensors
+## Sensoren
 
-**Apple Health**, unter Android **Health Connect**: "Heart rate from your watch or any app that writes it; rides are saved as workouts". Das Einschalten ist es, was das Handy um Zugriff auf deine Gesundheitsdaten bittet; lehnst du ab, bleibt der Schalter aus.
+**Apple Health**, unter Android **Health Connect**: "Herzfrequenz von deiner Uhr oder jeder App, die sie schreibt; Fahrten werden als Trainings gespeichert". Das Einschalten ist es, was das Handy um Zugriff auf deine Gesundheitsdaten bittet; lehnst du ab, bleibt der Schalter aus.
 
-**Save rides to Health**: schreibt jede beendete Fahrt als Radfahr-Training in den Speicher. Der Schalter lässt sich einzeln ausschalten und tut nichts, solange der darüber aus ist.
+**Fahrten in Health speichern**: schreibt jede beendete Fahrt als Radfahr-Training in den Speicher. Der Schalter lässt sich einzeln ausschalten und tut nichts, solange der darüber aus ist.
 
-**Apple Watch**: "Heart rate from the watch, ride controls on the wrist". Die Zeile gibt es nur auf einem iPhone, mit dem eine Uhr gekoppelt ist.
+**Apple Watch**: "Herzfrequenz von der Uhr, die Fahrt steuerst du am Handgelenk". Die Zeile gibt es nur auf einem iPhone, mit dem eine Uhr gekoppelt ist.
 
-**Bluetooth sensors**: "Heart-rate straps, speed and cadence sensors, power meters", oder wie viele Sensoren gekoppelt sind. Dahinter liegt der Bildschirm, auf dem **Scan** sie sucht. Alles davon steht ausführlich unter [Sensoren und deine Uhr](./sensors-and-watch).
+**Bluetooth-Sensoren**: "Brustgurte, Geschwindigkeits- und Trittfrequenzsensoren, Leistungsmesser", oder wie viele Sensoren gekoppelt sind. Dahinter liegt der Bildschirm, auf dem **Scannen** sie sucht. Alles davon steht ausführlich unter [Sensoren und deine Uhr](./sensors-and-watch).
 
 ## Abo
 
