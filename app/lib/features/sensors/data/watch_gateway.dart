@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:watch_connectivity/watch_connectivity.dart';
@@ -40,6 +41,11 @@ abstract interface class WatchGateway {
   /// Replaces the dictionary the watch app wakes up to. Only the latest one
   /// survives.
   Future<void> updateApplicationContext(Map<String, Object?> context);
+
+  /// Launches the watch app into a cycling workout through HealthKit, for a
+  /// watch whose app is not running and so cannot be sent a message. True
+  /// when watchOS took the request.
+  Future<bool> launchWorkout();
 }
 
 /// Whether [platform] has a watch Velorki can talk to.
@@ -59,6 +65,20 @@ class PluginWatchGateway implements WatchGateway {
     : _watch = watch ?? WatchConnectivity();
 
   final WatchConnectivity _watch;
+
+  /// Mirrored in `ios/Runner/AppDelegate.swift`.
+  static const MethodChannel _channel = MethodChannel('velorki/watch');
+
+  @override
+  Future<bool> launchWorkout() async {
+    try {
+      return await _channel.invokeMethod<bool>('launchWorkout') ?? false;
+    } on PlatformException {
+      return false;
+    } on MissingPluginException {
+      return false;
+    }
+  }
 
   @override
   Future<bool> isSupported() =>

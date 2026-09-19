@@ -44,6 +44,9 @@ final class RideSession: NSObject, ObservableObject {
     /// needs, and the builder reports more often than that.
     private var lastSent = Date.distantPast
 
+    /// The one session the app has; the app and its delegate share it.
+    static let shared = RideSession()
+
     override init() {
         super.init()
         guard WCSession.isSupported() else { return }
@@ -87,6 +90,10 @@ final class RideSession: NSObject, ObservableObject {
     /// This is the only prompt the rider ever sees on the watch, and it comes
     /// after they switched the watch on in the phone's settings and opened
     /// this app, which is what makes it opt-in.
+    /// Starts measuring for a ride the phone started: the phone launched this
+    /// app through HealthKit with a workout configuration.
+    func startMeasuring() { startWorkout() }
+
     private func startWorkout() {
         guard session == nil, HKHealthStore.isHealthDataAvailable() else { return }
         let heartRate = HKQuantityType(.heartRate)
@@ -159,6 +166,9 @@ final class RideSession: NSObject, ObservableObject {
 
     private func apply(_ context: [String: Any]) {
         status = context["status"] as? String ?? "idle"
+        // The phone may have ended the ride while this app was not reachable
+        // for its stop message; the context says so, and the session goes.
+        if status == "idle", session != nil { endWorkout() }
         distance = context["distance"] as? String ?? ""
         elapsed = context["elapsed"] as? String ?? ""
         speed = context["speed"] as? String ?? ""

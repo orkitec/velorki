@@ -143,12 +143,16 @@ class WatchRideBridge extends _$WatchRideBridge {
     if (riding == _riding) return;
     _riding = riding;
     if (riding) {
-      // A watch whose app is not running cannot be asked anything: the
-      // message would be dropped. The rider starts it from the wrist
-      // instead, which starts the session there.
-      if (_measuring || !await gateway.isReachable()) return;
-      _measuring = true;
-      await _sendWorkout(gateway, start: true);
+      if (_measuring) return;
+      // A watch whose app is not running cannot be sent a message; HealthKit
+      // can launch the app into a workout instead, and the session starts
+      // there. Either way the stop at the end of the ride is owed.
+      if (await gateway.isReachable()) {
+        _measuring = true;
+        await _sendWorkout(gateway, start: true);
+      } else if (await gateway.launchWorkout()) {
+        _measuring = true;
+      }
       return;
     }
     if (!_measuring) return;

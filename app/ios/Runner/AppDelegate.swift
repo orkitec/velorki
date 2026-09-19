@@ -1,5 +1,6 @@
 import AVFoundation
 import Flutter
+import HealthKit
 import UIKit
 
 @main
@@ -7,6 +8,10 @@ import UIKit
   /// Mirrored in `lib/features/import_export/data/incoming_file_service.dart`.
   private static let filesChannelName = "velorki/files"
   private static let openedFileMethod = "opened"
+
+  /// Mirrored in `lib/features/sensors/data/watch_gateway.dart`.
+  private static let watchChannelName = "velorki/watch"
+  private static let launchWorkoutMethod = "launchWorkout"
 
   /// Mirrored in `lib/core/files/backup_exclusion.dart`.
   private static let backupChannelName = "app.velorki/backup"
@@ -20,6 +25,7 @@ import UIKit
   private var filesChannel: FlutterMethodChannel?
   private var backupChannel: FlutterMethodChannel?
   private var audioChannel: FlutterMethodChannel?
+  private var watchChannel: FlutterMethodChannel?
 
   /// The silence played just before a spoken turn cue.
   private let leadIn = LeadInPlayer()
@@ -60,7 +66,46 @@ import UIKit
     }
     audioChannel = audio
 
+    let watch = FlutterMethodChannel(
+      name: AppDelegate.watchChannelName,
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
+    )
+    watch.setMethodCallHandler { call, result in
+      AppDelegate.handleWatchCall(call, result: result)
+    }
+    watchChannel = watch
+
     flushPendingPaths()
+  }
+
+  /// Launches the watch app into a cycling workout, the way HealthKit offers
+  /// it: a watch app that is not running cannot be sent a message, so this is
+  /// how a ride started on the phone starts the measuring on the wrist. The
+  /// watch app picks the configuration up in its `WKApplicationDelegate`.
+  ///
+  /// Answers true when watchOS took the request; false when there is no
+  /// paired watch, the app is not installed there, or HealthKit is unavailable.
+  private static func handleWatchCall(
+    _ call: FlutterMethodCall,
+    result: @escaping FlutterResult
+  ) {
+    guard call.method == launchWorkoutMethod else {
+      result(FlutterMethodNotImplemented)
+      return
+    }
+    guard HKHealthStore.isHealthDataAvailable() else {
+      result(false)
+      return
+    }
+    let configuration = HKWorkoutConfiguration()
+    configuration.activityType = .cycling
+    configuration.locationType = .outdoor
+    HKHealthStore().startWatchApp(with: configuration) { launched, error in
+      if let error = error {
+        NSLog("velorki: could not launch the watch app: \(error)")
+      }
+      DispatchQueue.main.async { result(launched) }
+    }
   }
 
   /// Marks a directory `NSURLIsExcludedFromBackupKey`, which Apple's data

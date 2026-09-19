@@ -288,10 +288,34 @@ void main() {
       expect(harness.workouts, <Object?>[watchWorkoutStart, watchWorkoutStop]);
     });
 
-    test('is not asked for while the watch app is not running', () async {
+    test('is launched through HealthKit while the watch app is not running, '
+        'and still ended with the ride', () async {
       final harness = await _Harness.create(reachable: false);
 
       await harness.record(_snapshot());
+
+      expect(harness.workouts, isEmpty, reason: 'no message to a closed app');
+      expect(harness.watch.launches, 1);
+
+      await harness.finish();
+      expect(harness.workouts, <Object?>[watchWorkoutStop]);
+    });
+
+    test('is launched once for one ride', () async {
+      final harness = await _Harness.create(reachable: false);
+
+      await harness.record(_snapshot());
+      await harness.record(_snapshot());
+
+      expect(harness.watch.launches, 1);
+    });
+
+    test('a launch watchOS refuses leaves nothing owed at the end', () async {
+      final harness = await _Harness.create(reachable: false);
+      harness.watch.launchSucceeds = false;
+
+      await harness.record(_snapshot());
+      await harness.finish();
 
       expect(harness.workouts, isEmpty);
     });

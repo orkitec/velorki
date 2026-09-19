@@ -32,6 +32,16 @@ class FakeWatchGateway implements WatchGateway {
   /// Every application context the phone pushed, in order.
   final List<Map<String, Object?>> contexts = <Map<String, Object?>>[];
 
+  /// How often [launchWorkout] was asked, and what it answers.
+  int launches = 0;
+  bool launchSucceeds = true;
+
+  @override
+  Future<bool> launchWorkout() async {
+    launches++;
+    return launchSucceeds;
+  }
+
   final StreamController<Map<String, Object?>> _messages =
       StreamController<Map<String, Object?>>.broadcast();
 

@@ -110,3 +110,13 @@ through three turns buzzes once rather than three times.
 
 The icon is `Assets.xcassets/AppIcon.appiconset/icon.png`, the app's own 1024 px
 icon; watchOS masks it to a circle.
+
+## How a ride started on the phone reaches the watch
+
+A watch app that is not running cannot be sent a message, so the phone calls
+HealthKit's `startWatchApp(with:)` (the `velorki/watch` channel in
+`ios/Runner/AppDelegate.swift`) with a cycling configuration; watchOS launches
+this app and hands the configuration to `WatchDelegate.handle(_:)`, which starts
+the session. When the app is already up, the `workout` message is used instead.
+The phone's application context saying `status: idle` also ends the session, so
+a ride ended while the watch was out of reach still stops the measuring.
