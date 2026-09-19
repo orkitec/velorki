@@ -242,6 +242,20 @@ void main() {
       expect(harness.service.calls, <String>['start(null)']);
     });
 
+    test('a start from the wrist is announced on the phone, so a tap brings '
+        'the app up', () async {
+      final harness = await _Harness.create();
+
+      await harness.tap(watchCommandStart);
+
+      expect(harness.watch.notifications, <(String, String)>[
+        (
+          'Ride started from your watch',
+          'Open Velorki once so the phone records your track.',
+        ),
+      ]);
+    });
+
     test('a start from the wrist is counted, so the app can show the ride, '
         'and a repeat of it is not', () async {
       final harness = await _Harness.create();

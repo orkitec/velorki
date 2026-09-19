@@ -72,6 +72,14 @@ on every change and at most every 5 s while a ride runs:
  "cue": <ms since epoch, 0 for none>, "accent": "#C8F542"}
 ```
 
+A phone whose app is closed is launched in the background only; nothing can
+bring it to the front, and iOS gives a background-launched app no location
+until it has been in front once. So a `start` from the wrist also posts a
+notification on the phone (`notifyRideStarted` on the `velorki/watch`
+channel; Settings asks for the notification permission when the watch is
+switched on), and a tap on it opens the app, which then goes to the Record
+tab. Android needs none of this: the foreground service's notification is up.
+
 A command is resent every 2 s, up to 8 times, until the phone's context
 shows the status it should lead to (`start` → `active` or `paused`): a phone
 whose app is closed is launched by the first message but only listens a
@@ -130,10 +138,12 @@ the session. When the app is already up, the `workout` message is used instead.
 The phone's application context saying `status: idle` also ends the session, so
 a ride ended while the watch was out of reach still stops the measuring.
 
-The session pauses and resumes with the ride: the phone's context `status`
-(`active` / `paused`) drives `HKWorkoutSession.pause()` / `resume()`, whether
-the rider pressed pause or the phone auto-paused at a standstill. While paused
-no samples are collected, so the phone's reading goes stale and the hub drops
-it; the watch keeps the last figure on screen, dimmed. Note `Int64` for the
+The measuring pauses with the ride: a context `status` of `paused` (the
+rider's pause or the phone's auto-pause at a standstill) *ends* the session,
+because a paused `HKWorkoutSession` keeps the sensor sampling, and `active`
+starts it again. The phone's reading goes stale meanwhile and the hub drops
+it; the watch keeps the last figure on screen, dimmed. A command the phone
+never confirms (an app the rider force-quit, which iOS does not relaunch for
+a watch message; a phone out of range) is said on the wrist. Note `Int64` for the
 timestamp in the heart-rate message: Series 4 to 8 and the SE are arm64_32,
 where `Int` is 32 bits and milliseconds since 1970 overflow it.

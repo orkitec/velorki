@@ -1016,6 +1016,14 @@
   "@recordingKeepScreenOn": {
     "description": "Switch that stops the display from sleeping while recording"
   },
+  "watchRideStartedTitle": "Ride started from your watch",
+  "@watchRideStartedTitle": {
+    "description": "Title of the phone notification posted when the watch starts a ride while the phone app is in the background"
+  },
+  "watchRideStartedBody": "Open Velorki once so the phone records your track.",
+  "@watchRideStartedBody": {
+    "description": "Body of that notification: iOS gives a background-launched app no GPS until it has been opened"
+  },
   "recordingNotificationTitle": "Recording a ride",
   "@recordingNotificationTitle": {
     "description": "First line of the Android notification of the recording service"

@@ -9,13 +9,16 @@ import 'package:velorki/features/sensors/presentation/sensors_section.dart';
 import 'package:velorki/features/sensors/data/watch_gateway.dart';
 import 'package:velorki/features/sensors/testing/fake_health_gateway.dart';
 import 'package:velorki/features/sensors/testing/fake_watch_gateway.dart';
+import 'package:velorki/features/recording/data/recording_gateways.dart';
 
 import '../../support/app.dart';
+import '../recording/support/fakes.dart';
 
 Future<ProviderContainer> _pump(
   WidgetTester tester, {
   HealthGateway? gateway,
   WatchGateway? watch,
+  NotificationPermissionGateway? notifications,
   Map<String, Object> initial = const <String, Object>{},
 }) async {
   SharedPreferences.setMockInitialValues(initial);
@@ -25,6 +28,9 @@ Future<ProviderContainer> _pump(
       sharedPreferencesProvider.overrideWithValue(prefs),
       healthGatewayProvider.overrideWithValue(gateway),
       watchGatewayProvider.overrideWithValue(watch),
+      notificationPermissionProvider.overrideWithValue(
+        notifications ?? FakeNotificationPermission(),
+      ),
     ],
   );
   addTearDown(container.dispose);
@@ -138,14 +144,16 @@ void main() {
     expect(find.text(l10n.settingsSensorsAppleWatch), findsNothing);
   });
 
-  testWidgets('a paired watch is offered, and switching it on asks the '
-      'rider for nothing', (tester) async {
+  testWidgets('a paired watch is offered, and switching it on asks only to '
+      'post notifications', (tester) async {
     final watch = FakeWatchGateway();
     addTearDown(watch.dispose);
+    final notifications = FakeNotificationPermission(granted: false);
     final container = await _pump(
       tester,
       gateway: FakeHealthGateway(),
       watch: watch,
+      notifications: notifications,
     );
     expect(find.text(l10n.settingsSensorsWatchHint), findsOneWidget);
     expect(_tile(tester, l10n.settingsSensorsAppleWatch).value, isFalse);
@@ -156,6 +164,9 @@ void main() {
     expect(container.read(sensorSettingsProvider).watch, isTrue);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getBool('sensors.watch'), isTrue);
+    // The one thing asked for: a refusal leaves the switch on regardless.
+    expect(notifications.requests, 1);
+    expect(watch.sent, isEmpty);
   });
 
   testWidgets('a watch that is not paired is not offered', (tester) async {

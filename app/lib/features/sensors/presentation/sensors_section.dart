@@ -10,6 +10,7 @@ import '../data/health_gateway.dart';
 import '../data/paired_sensors.dart';
 import '../data/sensor_settings.dart';
 import '../data/watch_gateway.dart';
+import '../../recording/data/recording_gateways.dart';
 import 'ble_sensors_screen.dart';
 
 /// Settings → Sensors: the switch that connects Velorki to the phone's health
@@ -73,13 +74,34 @@ class SensorsSection extends ConsumerWidget {
             value: settings.watch,
             title: Text(l10n.settingsSensorsAppleWatch),
             subtitle: Text(l10n.settingsSensorsWatchHint),
-            onChanged: (value) => unawaited(controller.setWatch(value)),
+            onChanged: (value) => unawaited(
+              _setWatch(
+                value,
+                controller: controller,
+                notifications: ref.read(notificationPermissionProvider),
+              ),
+            ),
           ),
         // Only where there is a radio to use. The row itself connects to
         // nothing; the screen behind it is where a rider goes looking.
         if (ref.watch(bleGatewayProvider) != null) const _BluetoothEntry(),
       ],
     );
+  }
+
+  /// Turning the watch on also asks to post notifications, once: a ride
+  /// started from the wrist with the phone app closed is announced on the
+  /// phone so a tap brings the app up. A refusal only costs that
+  /// announcement; the switch goes on either way.
+  Future<void> _setWatch(
+    bool value, {
+    required SensorSettingsController controller,
+    required NotificationPermissionGateway notifications,
+  }) async {
+    await controller.setWatch(value);
+    if (value && !await notifications.isGranted()) {
+      await notifications.request();
+    }
   }
 
   /// Turning the switch on asks the OS first: the setting only follows once

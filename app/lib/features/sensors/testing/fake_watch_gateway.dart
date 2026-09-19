@@ -32,6 +32,18 @@ class FakeWatchGateway implements WatchGateway {
   /// Every application context the phone pushed, in order.
   final List<Map<String, Object?>> contexts = <Map<String, Object?>>[];
 
+  /// The notifications asked for, as `(title, body)`.
+  final List<(String, String)> notifications = <(String, String)>[];
+
+  @override
+  Future<bool> notifyRideStarted({
+    required String title,
+    required String body,
+  }) async {
+    notifications.add((title, body));
+    return true;
+  }
+
   /// How often [launchWorkout] was asked, and what it answers.
   int launches = 0;
   bool launchSucceeds = true;

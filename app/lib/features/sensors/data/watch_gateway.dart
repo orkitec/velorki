@@ -46,6 +46,12 @@ abstract interface class WatchGateway {
   /// watch whose app is not running and so cannot be sent a message. True
   /// when watchOS took the request.
   Future<bool> launchWorkout();
+
+  /// Posts a notification on the phone saying the watch has started a ride,
+  /// for a phone whose app is in the background: iOS launches it there for
+  /// the watch's message, and only the rider can bring it to the front.
+  /// Does nothing while the app is on screen. True when one was posted.
+  Future<bool> notifyRideStarted({required String title, required String body});
 }
 
 /// Whether [platform] has a watch Velorki can talk to.
@@ -76,6 +82,25 @@ class PluginWatchGateway implements WatchGateway {
     } on PlatformException {
       return false;
     } on MissingPluginException {
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> notifyRideStarted({
+    required String title,
+    required String body,
+  }) async {
+    try {
+      return await _channel.invokeMethod<bool>('notifyRideStarted', {
+            'title': title,
+            'body': body,
+          }) ??
+          false;
+    } on PlatformException {
+      return false;
+    } on MissingPluginException {
+      // Android: the foreground service's own notification is already up.
       return false;
     }
   }

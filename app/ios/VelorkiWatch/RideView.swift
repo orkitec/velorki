@@ -31,7 +31,7 @@ struct RideView: View {
                 if ride.measuring {
                     Button("Stop heart rate", action: ride.stopHeartRate)
                         .buttonStyle(.bordered)
-                } else if ride.riding {
+                } else if ride.riding && !ride.paused {
                     Button("Start heart rate", action: ride.startHeartRate)
                         .buttonStyle(.bordered)
                 }

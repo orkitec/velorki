@@ -302,15 +302,24 @@ class WatchRideBridge extends _$WatchRideBridge {
         // they are system sheets on the phone, which is in a pocket. A
         // recorder that refuses simply never reports a ride, and the watch
         // goes on showing "idle".
+        final l10n = ref.read(navigationLocalizationsProvider);
         await controller.start(
-          notificationTitle: ref
-              .read(navigationLocalizationsProvider)
-              .recordingNotificationTitle,
+          notificationTitle: l10n.recordingNotificationTitle,
         );
         // Counted whether or not the recorder agreed: a recorder that
         // refused has its reason on the Record tab, which is where the
         // phone goes.
         ref.read(watchRideStartsProvider.notifier).bump();
+        // A phone in a pocket is told, so a tap brings the app up: a ride
+        // started from the wrist with the app closed gets no GPS on iOS
+        // until the app has been in front once.
+        final gateway = _gateway;
+        if (gateway != null) {
+          await gateway.notifyRideStarted(
+            title: l10n.watchRideStartedTitle,
+            body: l10n.watchRideStartedBody,
+          );
+        }
       case watchCommandPause:
         if (!recording.isRecording || recording.isPaused) return;
         await controller.pause();

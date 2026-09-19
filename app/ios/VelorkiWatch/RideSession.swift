@@ -32,9 +32,10 @@ final class RideSession: NSObject, ObservableObject {
     @Published var heartRate: Int?
     @Published var measuring = false
 
-    /// The session is paused with the ride: the sensor rests, the last
-    /// reading stays on screen dimmed.
-    @Published var paused = false
+    /// The ride is paused, and so is the measuring: the session is ended so
+    /// the sensor really rests (a paused HKWorkoutSession keeps sampling),
+    /// and the last reading stays on screen dimmed until the ride goes on.
+    var paused: Bool { status == "paused" }
 
     /// Why there is no heart rate, when the watch knows: Health access
     /// refused, or a session watchOS would not run. Shown under the heart.
@@ -196,14 +197,13 @@ final class RideSession: NSObject, ObservableObject {
     /// The phone writes the ride to Health itself, with the distance and the
     /// track it recorded; a second workout from here would be the same ride
     /// twice in the rider's day.
-    private func endWorkout(_ reason: String) {
+    private func endWorkout(_ reason: String, keepReading: Bool = false) {
         note("End asked for: \(reason); session \(session == nil ? "none" : "state \(session!.state.rawValue)")")
         guard let session, let builder else { return }
         self.session = nil
         self.builder = nil
         measuring = false
-        paused = false
-        heartRate = nil
+        if !keepReading { heartRate = nil }
         session.end()
         builder.endCollection(withEnd: Date()) { _, _ in
             builder.discardWorkout()
@@ -226,6 +226,10 @@ final class RideSession: NSObject, ObservableObject {
         guard pending.tries < Self.retries else {
             note("Command \(pending.command) never confirmed")
             self.pending = nil
+            // iOS does not launch an app the rider force-quit for a watch
+            // message, and a phone out of range hears nothing: only the
+            // rider can help, so the wrist says so.
+            problem = "The phone did not answer. Open Velorki on the phone and try again."
             return
         }
         pending.tries += 1
@@ -241,6 +245,7 @@ final class RideSession: NSObject, ObservableObject {
         guard let pending, pending.expects.contains(status) else { return }
         if pending.tries > 1 { note("Command \(pending.command) confirmed on try \(pending.tries)") }
         self.pending = nil
+        problem = nil
         retry?.invalidate()
         retry = nil
     }
@@ -267,20 +272,17 @@ final class RideSession: NSObject, ObservableObject {
             stoppedByRider = false
             if session != nil { endWorkout("phone reports the ride over") }
         }
-        // ...and a ride that is running while this app is not measuring —
-        // opened late, or reopened after watchOS closed it — starts measuring
-        // by itself, unless the rider stopped it.
-        if riding, session == nil, !stoppedByRider { startWorkout() }
-        // The session pauses and resumes with the ride, whether the rider
-        // pressed pause or the phone auto-paused at a standstill: a resting
-        // rider's heart rate is not part of the ride, and the sensor rests.
-        if let session {
-            if status == "paused", session.state == .running {
-                session.pause()
-            } else if status == "active", session.state == .paused {
-                session.resume()
-            }
+        // A paused ride — by hand or the phone's auto-pause at a standstill —
+        // ends the session, so the sensor rests and a wait at a light is
+        // not part of the ride's heart rate; the last reading stays on
+        // screen. A ride going on again, or one that is running while this
+        // app is not measuring (opened late, or reopened after watchOS
+        // closed it), starts measuring by itself, unless the rider stopped
+        // it.
+        if status == "paused", session != nil {
+            endWorkout("ride paused", keepReading: true)
         }
+        if status == "active", session == nil, !stoppedByRider { startWorkout() }
         distance = context["distance"] as? String ?? ""
         elapsed = context["elapsed"] as? String ?? ""
         speed = context["speed"] as? String ?? ""
@@ -343,11 +345,12 @@ extension RideSession: HKWorkoutSessionDelegate {
         date: Date
     ) {
         note("Workout session state \(fromState.rawValue) -> \(toState.rawValue)")
+        guard toState == .ended || toState == .stopped else { return }
         DispatchQueue.main.async {
-            self.paused = toState == .paused
-            guard toState == .ended || toState == .stopped else { return }
             self.measuring = false
-            self.heartRate = nil
+            // A session that ended on its own — not for a pause — takes
+            // its reading with it.
+            if !self.paused { self.heartRate = nil }
         }
     }
 

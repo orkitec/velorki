@@ -2,6 +2,7 @@ import AVFoundation
 import Flutter
 import HealthKit
 import UIKit
+import UserNotifications
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
@@ -12,6 +13,8 @@ import UIKit
   /// Mirrored in `lib/features/sensors/data/watch_gateway.dart`.
   private static let watchChannelName = "velorki/watch"
   private static let launchWorkoutMethod = "launchWorkout"
+  private static let notifyRideStartedMethod = "notifyRideStarted"
+  private static let rideStartedNotificationId = "velorki-watch-ride"
   /// One store for the app: a temporary would be gone before watchOS answers.
   private static let healthStore = HKHealthStore()
 
@@ -91,6 +94,10 @@ import UIKit
     _ call: FlutterMethodCall,
     result: @escaping FlutterResult
   ) {
+    if call.method == notifyRideStartedMethod {
+      notifyRideStarted(call.arguments as? [String: Any], result: result)
+      return
+    }
     guard call.method == launchWorkoutMethod else {
       result(FlutterMethodNotImplemented)
       return
@@ -110,6 +117,58 @@ import UIKit
       }
       DispatchQueue.main.async { result(launched) }
     }
+  }
+
+  /// Tells a phone in a pocket that the watch has started a ride, so a tap
+  /// brings the app up: a watch message launches the app in the background
+  /// only, and iOS gives a background-launched app no location until it has
+  /// been in front. Nothing is posted while the app is on screen, and
+  /// nothing without the notification permission, which Settings asks for
+  /// when the watch is switched on.
+  private static func notifyRideStarted(
+    _ arguments: [String: Any]?,
+    result: @escaping FlutterResult
+  ) {
+    guard UIApplication.shared.applicationState != .active,
+      let title = arguments?["title"] as? String,
+      let body = arguments?["body"] as? String
+    else {
+      result(false)
+      return
+    }
+    let center = UNUserNotificationCenter.current()
+    center.getNotificationSettings { settings in
+      switch settings.authorizationStatus {
+      case .authorized, .provisional, .ephemeral:
+        break
+      default:
+        DispatchQueue.main.async { result(false) }
+        return
+      }
+      let content = UNMutableNotificationContent()
+      content.title = title
+      content.body = body
+      content.sound = .default
+      let request = UNNotificationRequest(
+        identifier: rideStartedNotificationId,
+        content: content,
+        trigger: nil
+      )
+      center.add(request) { error in
+        if let error = error {
+          NSLog("velorki: could not post the ride notification: \(error)")
+        }
+        DispatchQueue.main.async { result(error == nil) }
+      }
+    }
+  }
+
+  /// The ride notification has done its job once the app is in front.
+  override func applicationDidBecomeActive(_ application: UIApplication) {
+    super.applicationDidBecomeActive(application)
+    UNUserNotificationCenter.current().removeDeliveredNotifications(
+      withIdentifiers: [AppDelegate.rideStartedNotificationId]
+    )
   }
 
   /// Marks a directory `NSURLIsExcludedFromBackupKey`, which Apple's data
