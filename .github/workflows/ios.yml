@@ -19,6 +19,14 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      # The image's default Xcode 16.4 cannot compile device_info_plus (an
+      # iOS 17 NSProcessInfo selector); the app is built with Xcode 26 on the
+      # Mac, so pick the newest 26 on the runner.
+      - name: Select Xcode 26
+        run: |
+          xcode="$(ls -d /Applications/Xcode_26.*.app | sort -V | tail -1)"
+          sudo xcode-select -s "$xcode"
+          xcodebuild -version
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           channel: stable
