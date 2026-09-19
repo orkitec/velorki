@@ -160,6 +160,9 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// wrist — is already on its way to the save sheet.
   bool _finishRequested = false;
 
+  /// Whether the save sheet is up (or on its way), from any stop.
+  bool _stopping = false;
+
   int _drawnTrackPoints = -1;
   String? _drawnRouteId;
   RouteLineStyle? _drawnRouteStyle;
@@ -903,6 +906,18 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// the row; until then the journal and the state file are all there is,
   /// which is exactly what the launch check knows how to recover.
   Future<void> _stop() async {
+    // One sheet at a time: a second Finish from the watch while the first
+    // sheet is up would stack another one on top of it.
+    if (_stopping) return;
+    _stopping = true;
+    try {
+      await _stopOnce();
+    } finally {
+      _stopping = false;
+    }
+  }
+
+  Future<void> _stopOnce() async {
     final controller = ref.read(recordingControllerProvider.notifier);
     final state = ref.read(recordingControllerProvider);
     final snapshot = state.snapshot;
@@ -1536,67 +1551,80 @@ class _LivePanel extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 16),
-        StatRow(
-          children: [
-            StatTile(
-              label: l10n.statDistance,
-              value: formatDistance(l10n, units, snapshot.distanceM),
-              emphasize: !state.isPaused,
-            ),
-            StatTile(
-              label: l10n.statSpeed,
-              value: formatSpeed(l10n, units, _speedMps(ref, snapshot)),
-            ),
-            StatTile(
-              label: l10n.statAvgSpeed,
-              value: formatSpeed(l10n, units, snapshot.avgSpeedMps),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        StatRow(
-          children: [
-            StatTile(
-              label: l10n.statAscent,
-              value: formatHeight(l10n, units, snapshot.ascentM),
-              size: StatSize.medium,
-            ),
-            StatTile(
-              label: l10n.statDescent,
-              value: formatHeight(l10n, units, snapshot.descentM),
-              size: StatSize.medium,
-            ),
-            StatTile(
-              label: l10n.statMovingTime,
-              value: formatClock(snapshot.moving),
-              size: StatSize.medium,
-            ),
-          ],
-        ),
-        // Only when something is paired: three empty tiles would be three
-        // lines of nothing on a sheet that has to be read at a glance.
-        if (snapshot.hasSensors) ...[
-          const SizedBox(height: 16),
-          StatRow(
+        // Paused, the figures fade: the pill alone was easy to miss on a
+        // sheet that otherwise looks exactly like a running ride.
+        _PausedFade(
+          paused: state.isPaused,
+          child: Column(
             children: [
-              StatTile(
-                label: l10n.statHeartRate,
-                value: formatHeartRate(l10n, snapshot.heartRateBpm),
-                size: StatSize.medium,
+              StatRow(
+                children: [
+                  StatTile(
+                    label: l10n.statDistance,
+                    value: formatDistance(l10n, units, snapshot.distanceM),
+                    emphasize: !state.isPaused,
+                  ),
+                  StatTile(
+                    label: l10n.statSpeed,
+                    value: formatSpeed(l10n, units, _speedMps(ref, snapshot)),
+                  ),
+                  StatTile(
+                    label: l10n.statAvgSpeed,
+                    value: formatSpeed(l10n, units, snapshot.avgSpeedMps),
+                  ),
+                ],
               ),
-              StatTile(
-                label: l10n.statCadence,
-                value: formatCadence(l10n, snapshot.cadenceRpm),
-                size: StatSize.medium,
+              const SizedBox(height: 16),
+              StatRow(
+                children: [
+                  StatTile(
+                    label: l10n.statAscent,
+                    value: formatHeight(l10n, units, snapshot.ascentM),
+                    size: StatSize.medium,
+                  ),
+                  StatTile(
+                    label: l10n.statDescent,
+                    value: formatHeight(l10n, units, snapshot.descentM),
+                    size: StatSize.medium,
+                  ),
+                  StatTile(
+                    label: l10n.statMovingTime,
+                    value: formatClock(snapshot.moving),
+                    size: StatSize.medium,
+                  ),
+                ],
               ),
-              StatTile(
-                label: l10n.statPower,
-                value: formatPower(l10n, snapshot.powerW),
-                size: StatSize.medium,
-              ),
+              // Only the figures a sensor is reporting: a rider with a
+              // watch and nothing else gets one tile, not one and two
+              // dashes, and a rider with no sensor gets no row at all.
+              if (snapshot.hasSensors) ...[
+                const SizedBox(height: 16),
+                StatRow(
+                  children: [
+                    if (snapshot.heartRateBpm != null)
+                      StatTile(
+                        label: l10n.statHeartRate,
+                        value: formatHeartRate(l10n, snapshot.heartRateBpm),
+                        size: StatSize.medium,
+                      ),
+                    if (snapshot.cadenceRpm != null)
+                      StatTile(
+                        label: l10n.statCadence,
+                        value: formatCadence(l10n, snapshot.cadenceRpm),
+                        size: StatSize.medium,
+                      ),
+                    if (snapshot.powerW != null)
+                      StatTile(
+                        label: l10n.statPower,
+                        value: formatPower(l10n, snapshot.powerW),
+                        size: StatSize.medium,
+                      ),
+                  ],
+                ),
+              ],
             ],
           ),
-        ],
+        ),
         const SizedBox(height: 16),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
@@ -1661,7 +1689,27 @@ class _RoundAction extends StatelessWidget {
   }
 }
 
-/// `● RECORDING` with a red dot, or a quiet `PAUSED`.
+/// Fades the ride's figures while it is paused.
+///
+/// Animated, so a pause does not snap; short enough that a widget test's
+/// `pumpAndSettle` is over before it notices.
+class _PausedFade extends StatelessWidget {
+  const _PausedFade({required this.paused, required this.child});
+
+  final bool paused;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedOpacity(
+      opacity: paused ? 0.45 : 1,
+      duration: const Duration(milliseconds: 250),
+      child: child,
+    );
+  }
+}
+
+/// `● RECORDING` with a red dot, or `❙❙ PAUSED` in the tertiary colour.
 ///
 /// Deliberately not animated: a repeating animation never lets a widget test
 /// settle, and a steady dot is calmer on the handlebar anyway.
@@ -1675,10 +1723,13 @@ class _StatusPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final dotColor = paused ? scheme.onSurfaceVariant : scheme.error;
+    final dotColor = paused ? scheme.onTertiaryContainer : scheme.error;
+    final textColor = paused ? scheme.onTertiaryContainer : scheme.onSurface;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHigh,
+        // Paused stands out in the tertiary colour; recording is the quiet
+        // one, because that is the state the sheet is in for hours.
+        color: paused ? scheme.tertiaryContainer : scheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Padding(
@@ -1686,26 +1737,27 @@ class _StatusPill extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 10,
-              height: 10,
-              decoration: BoxDecoration(
-                color: dotColor,
-                shape: BoxShape.circle,
-                boxShadow: paused
-                    ? null
-                    : [
-                        BoxShadow(
-                          color: dotColor.withValues(alpha: 0.6),
-                          blurRadius: 8,
-                        ),
-                      ],
+            if (paused)
+              Icon(Icons.pause_rounded, size: 14, color: dotColor)
+            else
+              Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: dotColor,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: dotColor.withValues(alpha: 0.6),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
               ),
-            ),
             const SizedBox(width: 8),
             Text(
               label.toUpperCase(),
-              style: theme.textTheme.overline.copyWith(color: scheme.onSurface),
+              style: theme.textTheme.overline.copyWith(color: textColor),
             ),
           ],
         ),

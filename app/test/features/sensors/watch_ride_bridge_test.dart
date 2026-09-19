@@ -14,7 +14,9 @@ import 'package:velorki/features/sensors/application/sensor_hub.dart';
 import 'package:velorki/features/sensors/application/watch_ride_bridge.dart';
 import 'package:velorki/features/sensors/data/sensor_settings.dart';
 import 'package:velorki/features/sensors/data/watch_gateway.dart';
+import 'package:velorki/app/theme.dart';
 import 'package:velorki/features/sensors/data/watch_protocol.dart';
+import 'package:velorki/features/settings/data/appearance_controller.dart';
 import 'package:velorki/features/sensors/data/watch_sensor_source.dart';
 import 'package:velorki/features/sensors/testing/fake_watch_gateway.dart';
 import 'package:velorki/features/settings/data/units.dart';
@@ -351,7 +353,18 @@ void main() {
         watchTurnDistanceKey: '150 m',
         watchOffRouteKey: false,
         watchCueKey: 0,
+        watchAccentKey: '#C8F542',
       });
+    });
+
+    test('carries the accent the rider picked, so the wrist matches', () async {
+      final harness = await _Harness.create();
+      await harness.record(_snapshot());
+      await harness.container
+          .read(appearanceSettingProvider.notifier)
+          .setAccent(AccentPreset.ember);
+      await harness.settle();
+      expect(harness.lastContext?[watchAccentKey], '#FF7A45');
     });
 
     test('goes out the moment the ride is paused', () async {

@@ -10,6 +10,10 @@ import SwiftUI
 struct RideView: View {
     @ObservedObject var ride: RideSession
 
+    /// The phone's accent, or the app's default lime while the phone has
+    /// not said yet. Buttons and the heart take it, so the wrist matches.
+    private var accent: Color { Color(hex: ride.accent) ?? Color(hex: "#C8F542")! }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
@@ -23,6 +27,9 @@ struct RideView: View {
                 if ride.measuring {
                     Button("Stop heart rate", action: ride.stopHeartRate)
                         .buttonStyle(.bordered)
+                } else if ride.riding {
+                    Button("Start heart rate", action: ride.startHeartRate)
+                        .buttonStyle(.bordered)
                 }
                 Text("Low Power Mode in the watch's settings makes a long ride last.")
                     .font(.footnote)
@@ -31,13 +38,19 @@ struct RideView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .navigationTitle("Velorki")
+        .tint(accent)
     }
 
     private var heart: some View {
         HStack(spacing: 6) {
-            Image(systemName: "heart.fill").foregroundStyle(.red)
+            // Beats while measuring; still when paused or idle.
+            Image(systemName: "heart.fill")
+                .foregroundStyle(ride.measuring && !ride.paused ? accent : Color.secondary)
+                .symbolEffect(.pulse, options: .repeating, isActive: ride.measuring && !ride.paused)
             if let bpm = ride.heartRate {
-                Text("\(bpm)").font(.system(size: 40, weight: .semibold))
+                Text("\(bpm)")
+                    .font(.system(size: 40, weight: .semibold))
+                    .foregroundStyle(ride.paused ? .secondary : .primary)
                 Text("bpm").font(.caption).foregroundStyle(.secondary)
             } else {
                 Text(ride.measuring ? "…" : "--")
@@ -97,5 +110,19 @@ struct RideView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }
+    }
+}
+
+extension Color {
+    /// `#RRGGBB` as sent by the phone; nil for anything else.
+    init?(hex: String) {
+        guard hex.count == 7, hex.hasPrefix("#"),
+              let rgb = UInt32(hex.dropFirst(), radix: 16)
+        else { return nil }
+        self.init(
+            red: Double((rgb >> 16) & 0xFF) / 255,
+            green: Double((rgb >> 8) & 0xFF) / 255,
+            blue: Double(rgb & 0xFF) / 255
+        )
     }
 }

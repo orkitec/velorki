@@ -69,8 +69,11 @@ on every change and at most every 5 s while a ride runs:
  "distance": "3.2 km", "elapsed": "00:42", "speed": "18.0 km/h",
  "turnIcon": "arrow.turn.up.left", "turnLabel": "Turn left",
  "turnDistance": "150 m", "offRoute": false,
- "cue": <ms since epoch, 0 for none>}
+ "cue": <ms since epoch, 0 for none>, "accent": "#C8F542"}
 ```
+
+`accent` is the app's accent colour (its dark-theme shade); the watch tints
+its heart and buttons with it.
 
 Every string is formatted and translated by the phone, which knows the rider's
 units and language; this app knows neither, and its own handful of words are
@@ -120,3 +123,11 @@ this app and hands the configuration to `WatchDelegate.handle(_:)`, which starts
 the session. When the app is already up, the `workout` message is used instead.
 The phone's application context saying `status: idle` also ends the session, so
 a ride ended while the watch was out of reach still stops the measuring.
+
+The session pauses and resumes with the ride: the phone's context `status`
+(`active` / `paused`) drives `HKWorkoutSession.pause()` / `resume()`, whether
+the rider pressed pause or the phone auto-paused at a standstill. While paused
+no samples are collected, so the phone's reading goes stale and the hub drops
+it; the watch keeps the last figure on screen, dimmed. Note `Int64` for the
+timestamp in the heart-rate message: Series 4 to 8 and the SE are arm64_32,
+where `Int` is 32 bits and milliseconds since 1970 overflow it.

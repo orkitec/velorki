@@ -23,7 +23,6 @@ import 'package:velorki/features/navigation/presentation/navigation_toggles.dart
 import 'package:velorki/features/navigation/presentation/turn_banner.dart';
 import 'package:velorki/features/recording/data/recording_settings.dart';
 import 'package:velorki/features/recording/domain/gps_precision.dart';
-import 'package:velorki/features/recording/presentation/recording_format.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
 import 'package:velorki/features/recording/presentation/rides_list.dart';
@@ -418,15 +417,18 @@ void main() {
     await unmountApp(tester);
   });
 
-  testWidgets('a value that has gone stale reads as a dash', (tester) async {
+  testWidgets('the sensor row shows only the figures that are reported', (
+    tester,
+  ) async {
     final h = await pumpRecordingScreen(tester, const RecordingScreen());
     await tester.pump();
 
+    // A watch and nothing else: one tile, no dashes for the rest.
     await emitSnapshot(tester, h, _snapshot(heartRateBpm: 142));
 
-    expect(find.text(l10n.unitBpm('142')), findsOneWidget);
-    // Cadence and power have no sensor at all; both tiles say so.
-    expect(find.text(absentSensorValue), findsNWidgets(2));
+    expect(find.text(l10n.statHeartRate.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.statCadence.toUpperCase()), findsNothing);
+    expect(find.text(l10n.statPower.toUpperCase()), findsNothing);
 
     await unmountApp(tester);
   });
@@ -547,6 +549,12 @@ void main() {
     container.read(rideFinishRequestProvider.notifier).raise();
     await settleSheet(tester);
 
+    expect(find.byType(SaveRideSheet), findsOneWidget);
+    expect(container.read(rideFinishRequestProvider), isFalse);
+
+    // Finish tapped again on the watch while the sheet is up: still one.
+    container.read(rideFinishRequestProvider.notifier).raise();
+    await settleSheet(tester);
     expect(find.byType(SaveRideSheet), findsOneWidget);
     expect(container.read(rideFinishRequestProvider), isFalse);
     await unmountApp(tester);

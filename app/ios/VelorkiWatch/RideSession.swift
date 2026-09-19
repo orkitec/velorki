@@ -25,10 +25,16 @@ final class RideSession: NSObject, ObservableObject {
     @Published var turnLabel = ""
     @Published var turnDistance = ""
     @Published var offRoute = false
+    /// The phone's accent colour, `#RRGGBB`; empty until the phone has said.
+    @Published var accent = ""
 
     // What the watch measures.
     @Published var heartRate: Int?
     @Published var measuring = false
+
+    /// The session is paused with the ride: the sensor rests, the last
+    /// reading stays on screen dimmed.
+    @Published var paused = false
 
     /// Why there is no heart rate, when the watch knows: Health access
     /// refused, or a session watchOS would not run. Shown under the heart.
@@ -36,6 +42,11 @@ final class RideSession: NSObject, ObservableObject {
 
     /// Whether the phone is running a ride, paused or not.
     var riding: Bool { status == "active" || status == "paused" }
+
+    /// Set by the "Stop heart rate" button, cleared when the ride ends: a
+    /// ride the phone reports as running starts the measuring again on its
+    /// own unless the rider stopped it on purpose.
+    private var stoppedByRider = false
 
     private let store = HKHealthStore()
     private var session: HKWorkoutSession?
@@ -47,6 +58,9 @@ final class RideSession: NSObject, ObservableObject {
     /// When the last reading went to the phone: one a second is what the phone
     /// needs, and the builder reports more often than that.
     private var lastSent = Date.distantPast
+
+    /// Heart rate samples seen in this session, for the log.
+    private var samples = 0
 
     /// The one session the app has; the app and its delegate share it.
     static let shared = RideSession()
@@ -66,6 +80,7 @@ final class RideSession: NSObject, ObservableObject {
 
     /// Starts a ride: the phone records it, the watch measures it.
     func start() {
+        note("Start tapped")
         send(["type": "command", "command": "start"])
         startWorkout()
     }
@@ -80,15 +95,24 @@ final class RideSession: NSObject, ObservableObject {
     /// Ends the ride. The phone cannot save it without the rider — it is named
     /// on a sheet there — so it stops recording and waits.
     func stop() {
+        note("Finish tapped")
         send(["type": "command", "command": "stop"])
-        endWorkout()
+        endWorkout("finish tapped")
     }
 
     /// Stops measuring without ending the ride: the one thing on this watch
     /// that saves its battery.
     func stopHeartRate() {
-        endWorkout()
+        stoppedByRider = true
+        endWorkout("stop heart rate tapped")
         send(["type": "heartRateStopped"])
+    }
+
+    /// Starts measuring again mid-ride, after "Stop heart rate" or after the
+    /// app was closed and reopened.
+    func startHeartRate() {
+        stoppedByRider = false
+        startWorkout()
     }
 
     // MARK: - the workout
@@ -105,6 +129,7 @@ final class RideSession: NSObject, ObservableObject {
     private func startWorkout() {
         guard session == nil, HKHealthStore.isHealthDataAvailable() else { return }
         let heartRate = HKQuantityType(.heartRate)
+        note("Workout share status \(store.authorizationStatus(for: .workoutType()).rawValue) (0 undetermined, 1 denied, 2 allowed)")
         store.requestAuthorization(
             toShare: [HKQuantityType.workoutType()],
             read: [heartRate]
@@ -148,10 +173,10 @@ final class RideSession: NSObject, ObservableObject {
 
         let start = Date()
         session.startActivity(with: start)
-        builder.beginCollection(withStart: start) { [weak self] _, error in
-            guard let error else { return }
-            self?.note("Collection did not begin: \(error.localizedDescription)")
+        builder.beginCollection(withStart: start) { [weak self] began, error in
+            self?.note("Collection began: \(began) \(error?.localizedDescription ?? "")")
         }
+        samples = 0
         measuring = true
         problem = nil
         note("Workout session started")
@@ -162,11 +187,13 @@ final class RideSession: NSObject, ObservableObject {
     /// The phone writes the ride to Health itself, with the distance and the
     /// track it recorded; a second workout from here would be the same ride
     /// twice in the rider's day.
-    private func endWorkout() {
+    private func endWorkout(_ reason: String) {
+        note("End asked for: \(reason); session \(session == nil ? "none" : "state \(session!.state.rawValue)")")
         guard let session, let builder else { return }
         self.session = nil
         self.builder = nil
         measuring = false
+        paused = false
         heartRate = nil
         session.end()
         builder.endCollection(withEnd: Date()) { _, _ in
@@ -190,9 +217,27 @@ final class RideSession: NSObject, ObservableObject {
 
     private func apply(_ context: [String: Any]) {
         status = context["status"] as? String ?? "idle"
+        note("Context: status \(status), session \(session == nil ? "none" : "up")")
         // The phone may have ended the ride while this app was not reachable
         // for its stop message; the context says so, and the session goes.
-        if status == "idle", session != nil { endWorkout() }
+        if status == "idle" {
+            stoppedByRider = false
+            if session != nil { endWorkout("phone reports the ride over") }
+        }
+        // ...and a ride that is running while this app is not measuring —
+        // opened late, or reopened after watchOS closed it — starts measuring
+        // by itself, unless the rider stopped it.
+        if riding, session == nil, !stoppedByRider { startWorkout() }
+        // The session pauses and resumes with the ride, whether the rider
+        // pressed pause or the phone auto-paused at a standstill: a resting
+        // rider's heart rate is not part of the ride, and the sensor rests.
+        if let session {
+            if status == "paused", session.state == .running {
+                session.pause()
+            } else if status == "active", session.state == .paused {
+                session.resume()
+            }
+        }
         distance = context["distance"] as? String ?? ""
         elapsed = context["elapsed"] as? String ?? ""
         speed = context["speed"] as? String ?? ""
@@ -200,6 +245,7 @@ final class RideSession: NSObject, ObservableObject {
         turnLabel = context["turnLabel"] as? String ?? ""
         turnDistance = context["turnDistance"] as? String ?? ""
         offRoute = context["offRoute"] as? Bool ?? false
+        accent = context["accent"] as? String ?? ""
         // The phone sends milliseconds as an integer; it arrives as an
         // NSNumber either way, and nothing here does arithmetic on it.
         feel((context["cue"] as? NSNumber)?.doubleValue ?? 0)
@@ -234,10 +280,11 @@ extension RideSession: WCSessionDelegate {
             let action = message["action"] as? String
         else { return }
         DispatchQueue.main.async {
+            self.note("Phone asks workout \(action)")
             if action == "start" {
                 self.startWorkout()
             } else {
-                self.endWorkout()
+                self.endWorkout("phone asked")
             }
         }
     }
@@ -253,8 +300,9 @@ extension RideSession: HKWorkoutSessionDelegate {
         date: Date
     ) {
         note("Workout session state \(fromState.rawValue) -> \(toState.rawValue)")
-        guard toState == .ended || toState == .stopped else { return }
         DispatchQueue.main.async {
+            self.paused = toState == .paused
+            guard toState == .ended || toState == .stopped else { return }
             self.measuring = false
             self.heartRate = nil
         }
@@ -263,7 +311,7 @@ extension RideSession: HKWorkoutSessionDelegate {
     func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
         note("Workout session failed: \(error.localizedDescription)")
         DispatchQueue.main.async {
-            self.endWorkout()
+            self.endWorkout("session failed")
             self.problem = "The workout stopped: \(error.localizedDescription)"
         }
     }
@@ -277,13 +325,21 @@ extension RideSession: HKLiveWorkoutBuilderDelegate {
         didCollectDataOf collectedTypes: Set<HKSampleType>
     ) {
         let type = HKQuantityType(.heartRate)
+        guard collectedTypes.contains(type) else {
+            note("Collected \(collectedTypes.map(\.identifier).joined(separator: ","))")
+            return
+        }
         guard
-            collectedTypes.contains(type),
             let statistics = workoutBuilder.statistics(for: type),
             let quantity = statistics.mostRecentQuantity()
-        else { return }
+        else {
+            note("Heart rate collected but no statistics yet")
+            return
+        }
         let unit = HKUnit.count().unitDivided(by: .minute())
         let bpm = Int(quantity.doubleValue(for: unit).rounded())
+        samples += 1
+        if samples <= 10 || samples % 30 == 0 { note("Heart rate sample \(samples): \(bpm)") }
         guard bpm > 0 else { return }
 
         DispatchQueue.main.async {
@@ -291,10 +347,13 @@ extension RideSession: HKLiveWorkoutBuilderDelegate {
             let now = Date()
             guard now.timeIntervalSince(self.lastSent) >= 1 else { return }
             self.lastSent = now
+            // Int64, not Int: on the arm64_32 watches (Series 4 to 8, SE) an
+            // Int is 32 bits, and milliseconds since 1970 overflow it — a
+            // trap on the first sample, and the app was gone.
             self.send([
                 "type": "heartRate",
                 "bpm": bpm,
-                "at": Int(now.timeIntervalSince1970 * 1000),
+                "at": Int64(now.timeIntervalSince1970 * 1000),
             ])
         }
     }

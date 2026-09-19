@@ -112,6 +112,11 @@ const String watchOffRouteKey = 'offRoute';
 /// asleep through three turns wakes up to one buzz rather than three.
 const String watchCueKey = 'cue';
 
+/// The app's accent colour as `#RRGGBB`, the dark-theme shade: the watch
+/// screen is always dark. The watch tints its heart and buttons with it, so
+/// the wrist matches the phone.
+const String watchAccentKey = 'accent';
+
 /// How often the context goes out while a ride runs.
 ///
 /// Every fix would be a wake-up a second for a screen the rider looks at

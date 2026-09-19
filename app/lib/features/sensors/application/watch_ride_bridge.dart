@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show Color;
 
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
@@ -8,6 +9,7 @@ import '../../navigation/application/navigation_controller.dart';
 import '../../recording/application/recording_controller.dart';
 import '../../recording/application/ride_finish_request.dart';
 import '../../recording/application/ride_notification_updater.dart';
+import '../../settings/data/appearance_controller.dart';
 import '../../settings/data/units.dart';
 import '../data/sensor_settings.dart';
 import '../data/watch_gateway.dart';
@@ -76,6 +78,7 @@ class WatchRideBridge extends _$WatchRideBridge {
     ref.listen(navigationControllerProvider, (previous, next) => _schedule());
     ref.listen(navigationCueProvider, (previous, next) => _schedule());
     ref.listen(unitSystemProvider, (previous, next) => _schedule());
+    ref.listen(appearanceSettingProvider, (previous, next) => _schedule());
     ref.onDispose(_shutdown);
     _schedule();
   }
@@ -171,12 +174,14 @@ class WatchRideBridge extends _$WatchRideBridge {
     final data = _contextData();
     final previous = _context;
     if (mapEquals(data, previous)) return;
-    // The status and a cue are what the rider is waiting for; the figures can
-    // wait for the next window.
+    // The status and a cue are what the rider is waiting for, and a new
+    // accent is what they are looking at; the figures can wait for the next
+    // window.
     final urgent =
         previous == null ||
         data[watchStatusKey] != previous[watchStatusKey] ||
-        data[watchCueKey] != previous[watchCueKey];
+        data[watchCueKey] != previous[watchCueKey] ||
+        data[watchAccentKey] != previous[watchAccentKey];
     final now = ref.read(watchClockProvider)();
     final sentAt = _contextAt;
     if (!urgent &&
@@ -193,6 +198,7 @@ class WatchRideBridge extends _$WatchRideBridge {
   Map<String, Object?> _contextData() {
     final cue = ref.read(navigationCueProvider);
     final cueAt = cue?.millisecondsSinceEpoch ?? 0;
+    final accent = _hex(ref.read(appearanceSettingProvider).accent.dark);
     final recording = ref.read(recordingControllerProvider);
     final snapshot = recording.snapshot;
     if (!recording.isRecording || snapshot == null) {
@@ -206,6 +212,7 @@ class WatchRideBridge extends _$WatchRideBridge {
         watchTurnDistanceKey: '',
         watchOffRouteKey: false,
         watchCueKey: cueAt,
+        watchAccentKey: accent,
       };
     }
     final progress = ref.read(navigationControllerProvider);
@@ -232,7 +239,14 @@ class WatchRideBridge extends _$WatchRideBridge {
       watchOffRouteKey:
           (progress?.offRoute ?? false) || progress?.guidance != null,
       watchCueKey: cueAt,
+      watchAccentKey: accent,
     };
+  }
+
+  /// `#RRGGBB`, the alpha dropped: the watch fills it in as opaque.
+  static String _hex(Color color) {
+    final rgb = color.toARGB32() & 0xFFFFFF;
+    return '#${rgb.toRadixString(16).padLeft(6, '0').toUpperCase()}';
   }
 
   /// The container is going: the source is closed and the wrist is left
