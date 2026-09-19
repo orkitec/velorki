@@ -500,6 +500,7 @@
   "routingTilesNeedsMap": "Öffne diesen Bildschirm von der Karte aus, um das sichtbare Gebiet herunterzuladen.",
   "routingTilesNoneInView": "Keine Routing-Kachel deckt das sichtbare Gebiet ab.",
   "routingTilesAllInView": "Alle Kacheln für das sichtbare Gebiet sind schon auf diesem Gerät.",
+  "routingTilesUpToDate": "Diese Kachel ist bereits die neueste Version vom Spiegel.",
   "routingTilesRouteTitle": "Für diese Route nötig",
   "routingTilesTotal": "{count, plural, =0{Noch nichts heruntergeladen} =1{1 Kachel, {size}} other{{count} Kacheln, {size}}}",
   "routingTilesDownloadCount": "{count, plural, =1{1 Kachel herunterladen ({size})} other{{count} Kacheln herunterladen ({size})}}",
