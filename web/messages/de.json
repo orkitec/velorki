@@ -77,7 +77,7 @@
     },
     "free": {
       "title": "Alles auf dem Handy ist kostenlos",
-      "body": "Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufnahme, Fahrtstatistik, GPX- und FIT-Dateien, für alle, für immer. Die Routing-Daten und den Suchindex spiegeln wir kostenlos für dich.",
+      "body": "Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufnahme, Sensoren und Apple Watch, Fahrtstatistik, GPX- und FIT-Dateien, für alle, für immer. Die Routing-Daten und den Suchindex spiegeln wir kostenlos für dich.",
       "items": {
         "routing": "Routing auf dem Handy",
         "loops": "Runden",
@@ -85,12 +85,13 @@
         "maps": "Offline-Karten",
         "navigation": "Abbiegehinweise",
         "recording": "Aufnahme",
+        "sensors": "Sensoren und Uhr",
         "files": "GPX und FIT"
       }
     },
     "features": {
       "title": "Was sie kann",
-      "lead": "Sechs Dinge, die du auf jeder Fahrt brauchst. Jeder Screenshot hier unten zeigt die echte App.",
+      "lead": "Sieben Dinge, die du auf jeder Fahrt brauchst. Jeder Screenshot hier unten zeigt die echte App.",
       "plan": {
         "eyebrow": "Planen",
         "title": "Eine Route für das Rad, auf dem du sitzt",
@@ -141,6 +142,26 @@
           "three": "Fahrtseiten mit Splits und nach Geschwindigkeit eingefärbtem Track"
         }
       },
+      "sensors": {
+        "eyebrow": "Sensoren",
+        "title": "Sensoren und deine Uhr",
+        "body": "Puls, Trittfrequenz und Leistung kommen von einem Bluetooth-Sensor, von einem Brustgurt, einem Geschwindigkeits- und Trittfrequenzsensor oder einem Leistungsmesser: einmal gekoppelt, danach bei jeder Fahrt dabei, auf dem Aufnahme-Bildschirm während der Fahrt und danach bei der gespeicherten Fahrt. Die Velorki-App auf deiner Apple Watch zeigt die Fahrt am Handgelenk und schickt deinen Puls ans Handy; starten, pausieren und beenden geht von der Uhr aus. Auch Apple Health und Health Connect können den Puls liefern, und das alles ist kostenlos, alles optional, und nichts passiert, bevor du eine Quelle einschaltest.",
+        "bullets": {
+          "one": "Brustgurte, Geschwindigkeits- und Trittfrequenzsensoren und Leistungsmesser über Bluetooth",
+          "two": "Die Velorki-App auf deiner Apple Watch: die Fahrt am Handgelenk, ihr Puls ans Handy",
+          "three": "Apple Health und Health Connect als Quellen, kostenlos und aus, bis du eine einschaltest"
+        },
+        "link": "Zur Anleitung",
+        "panel": {
+          "heart": "Herzfrequenz",
+          "cadence": "Trittfrequenz",
+          "power": "Leistung",
+          "bpm": "bpm",
+          "rpm": "U/min",
+          "watts": "W",
+          "watchNote": "Die Uhr-App spricht in jeder Sprache Englisch."
+        }
+      },
       "files": {
         "eyebrow": "Dateien und Dienste",
         "title": "Deine Fahrten sind Dateien, die dir gehören",
@@ -169,6 +190,7 @@
         "offlineSearch": "Offline-Suche nach Orten und POIs",
         "navigation": "Abbiegehinweise mit Sprachausgabe",
         "recording": "Fahrtenaufzeichnung, Statistik und Splits",
+        "sensors": "Puls, Trittfrequenz und Leistung von Sensoren, Uhr und Health-App",
         "library": "Bibliothek mit Routen und Fahrten",
         "files": "GPX- und FIT-Import und -Export",
         "assistant": "Der Assistent: ein Satz wird zur Route",

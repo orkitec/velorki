@@ -470,6 +470,109 @@ h4 {
   color: #aab2bc;
 }
 
+/* --------------------------------------------------------------- watch mock
+   The Apple Watch beside the sensor tiles on the landing page: a CSS case
+   with a crown on its right edge and a black screen, around either a capture
+   from the watch simulator or the drawn ride screen in `WatchMock.tsx`. The
+   figures are an illustration; the copy beside it carries the facts. */
+.watch {
+  position: relative;
+  width: 100%;
+  max-width: 11rem;
+  flex: none;
+  padding: 0.5rem;
+  border-radius: 2.6rem;
+  background: linear-gradient(160deg, #3a4048, #14171a 45%, #23282f);
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.1),
+    0 22px 45px -22px rgb(0 0 0 / 0.65),
+    0 0 45px -18px var(--accent-glow);
+}
+/* The digital crown. */
+.watch::after {
+  content: '';
+  position: absolute;
+  top: 30%;
+  right: -0.18rem;
+  width: 0.26rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #3a4048, #8b929b);
+}
+.watch-screen {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 396 / 484;
+  border-radius: 2.1rem;
+  background: #000000;
+}
+.watch-screen img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+}
+.watch-app {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  padding: 0.7rem 0.75rem;
+  color: #f1f3f5;
+  font-size: 0.6875rem;
+  line-height: 1.25;
+}
+.watch-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: #aab2bc;
+}
+.watch-heart {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  margin-top: 0.15rem;
+}
+.watch-glyph {
+  color: var(--accent);
+  font-size: 1rem;
+  line-height: 1;
+}
+.watch-bpm {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.85rem;
+  line-height: 1;
+  color: var(--accent);
+}
+.watch-unit {
+  color: #aab2bc;
+}
+.watch-distance {
+  margin-top: 0.35rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.watch-elapsed {
+  color: #aab2bc;
+  font-variant-numeric: tabular-nums;
+}
+.watch-buttons {
+  display: flex;
+  gap: 0.3rem;
+  margin-top: auto;
+}
+.watch-button {
+  flex: 1;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.14);
+  padding: 0.3rem 0.1rem;
+  text-align: center;
+  font-weight: 700;
+}
+
 /* ------------------------------------------------------------------- prose
    The typographic style for rendered Markdown. @tailwindcss/typography is not
    a dependency of this app and is not worth adding for four page kinds. */

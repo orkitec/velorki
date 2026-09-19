@@ -25,6 +25,23 @@ falls back per file. The manifest that lists the grid is `src/site/screenshots.t
 files exist and in which language. `manifest.json` beside these directories is
 the pipeline's own record of a run, and lists the languages it found.
 
+## The watch slot
+
+```
+public/screenshots/<lang>/watch/ride.png
+```
+
+One file per language, outside the mode/accent grid: the Apple Watch app's ride
+screen, as `src/components/WatchMock.tsx` shows it on the landing page. The
+pipeline runs on Android emulators and cannot take it; it comes from the watch
+simulator on a Mac (Xcode → Devices and Simulators, see
+`app/ios/VelorkiWatch/README.md`), portrait, the simulator's own size — the CSS
+case is cut to **396 × 484** and covers anything else from the top. Drop the
+file in and the drawn screen is replaced; leave it out and the drawing stays.
+A page in a locale falls back to `en/watch/ride.png`, as the phone frames do.
+The watch app's own words are English in every language, so one capture per
+language is only worth taking for the figures the phone sends it.
+
 ## Format
 
 PNG, portrait, **1080 × 2400** (the aspect the CSS phone frame is cut to —

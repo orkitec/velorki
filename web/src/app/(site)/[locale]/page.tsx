@@ -8,6 +8,7 @@ import { CheckIcon, DashIcon } from '@/components/Icons';
 import { JsonLd } from '@/components/JsonLd';
 import { PhoneFrame } from '@/components/PhoneFrame';
 import { StoreBadges } from '@/components/StoreBadges';
+import { WatchMock } from '@/components/WatchMock';
 import { routing } from '@/i18n/routing';
 import { GITHUB_URL } from '@/site/config';
 import { faqJsonLd } from '@/site/jsonld';
@@ -15,22 +16,27 @@ import { localePath } from '@/site/paths';
 import type { Screen } from '@/site/screenshots';
 import { pageMetadata } from '@/site/seo';
 
-/** The six feature sections, each with the screen that shows it. */
 /** The screenshot in the hero; it is preloaded there and shown again below. */
 const HERO_SCREEN: Screen = 'planner';
 
-const FEATURES: ReadonlyArray<{ id: string; screen: Screen }> = [
+/**
+ * The seven feature sections, each with the screen that shows it. `sensors`
+ * has none: no capture carries sensor data, so that section draws its figures
+ * instead (see `SensorShowcase`).
+ */
+const FEATURES: ReadonlyArray<{ id: string; screen: Screen | null }> = [
   { id: 'plan', screen: 'planner' },
   { id: 'loops', screen: 'loop' },
   { id: 'offline', screen: 'search' },
   { id: 'navigate', screen: 'navigation' },
   { id: 'record', screen: 'recording' },
+  { id: 'sensors', screen: null },
   { id: 'files', screen: 'library' },
 ];
 
 const BULLETS = ['one', 'two', 'three'] as const;
 
-const FREE_ITEMS = ['routing', 'loops', 'search', 'maps', 'navigation', 'recording', 'files'] as const;
+const FREE_ITEMS = ['routing', 'loops', 'search', 'maps', 'navigation', 'recording', 'sensors', 'files'] as const;
 
 /** Free vs Plus, from docs/ARCHITECTURE.md: free is everything on the phone. */
 const COMPARISON: ReadonlyArray<{ id: string; free: boolean }> = [
@@ -41,6 +47,7 @@ const COMPARISON: ReadonlyArray<{ id: string; free: boolean }> = [
   { id: 'offlineSearch', free: true },
   { id: 'navigation', free: true },
   { id: 'recording', free: true },
+  { id: 'sensors', free: true },
   { id: 'library', free: true },
   { id: 'files', free: true },
   { id: 'assistant', free: false },
@@ -70,7 +77,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
     <AppearanceProvider>
       <Hero locale={locale} />
       <FreeBand />
-      <Features />
+      <Features locale={locale} />
       <Comparison locale={locale} />
       <OpenSource locale={locale} />
       <Faq locale={locale} />
@@ -136,7 +143,7 @@ function FreeBand() {
   );
 }
 
-function Features() {
+function Features({ locale }: { locale: string }) {
   const t = useTranslations('home.features');
   return (
     <section id="features" aria-labelledby="features-title" className="scroll-mt-24 py-20">
@@ -170,14 +177,58 @@ function Features() {
                   </li>
                 ))}
               </ul>
+              {/* The sensor section is the one with a guide behind it. */}
+              {feature.id === 'sensors' && (
+                <p className="mt-6">
+                  <Link href={localePath(locale, '/docs/sensors-and-watch')} className="link-accent font-bold">
+                    {t('sensors.link')}
+                  </Link>
+                </p>
+              )}
             </div>
             <div className="flex justify-center">
-              <PhoneFrame screen={feature.screen} eager={feature.screen === HERO_SCREEN} />
+              {feature.screen ? (
+                <PhoneFrame screen={feature.screen} eager={feature.screen === HERO_SCREEN} />
+              ) : (
+                <SensorShowcase />
+              )}
             </div>
           </article>
         ))}
       </div>
     </section>
+  );
+}
+
+/**
+ * What the sensor section shows instead of a screenshot: the three figures as
+ * the app's record sheet has them, and the watch app beside them. Both are
+ * drawings — there is no capture with a heart rate in it — so both are
+ * `aria-hidden` and the copy beside them carries the facts. The accent comes
+ * from the appearance switcher above, like every frame on the page.
+ */
+function SensorShowcase() {
+  const t = useTranslations('home.features.sensors.panel');
+  const tiles = [
+    { label: t('heart'), value: '142', unit: t('bpm') },
+    { label: t('cadence'), value: '88', unit: t('rpm') },
+    { label: t('power'), value: '210', unit: t('watts') },
+  ];
+  return (
+    <div className="flex w-full flex-col items-center gap-8 lg:flex-row lg:items-center lg:justify-center">
+      <ul aria-hidden="true" className="grid w-full max-w-xs gap-3">
+        {tiles.map((tile) => (
+          <li key={tile.label} className="panel flex items-baseline justify-between gap-4 px-5 py-4">
+            <span className="overline">{tile.label}</span>
+            <span className="flex items-baseline gap-1.5">
+              <span className="stat text-4xl text-accent">{tile.value}</span>
+              <span className="text-sm font-bold text-muted">{tile.unit}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <WatchMock />
+    </div>
   );
 }
 
