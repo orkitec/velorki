@@ -39,6 +39,7 @@ import 'package:integration_test/integration_test.dart';
 import 'appearance_test.dart' as appearance;
 import 'close_loop_test.dart' as close_loop;
 import 'import_gpx_test.dart' as import_gpx;
+import 'live_ble_test.dart' as live_ble;
 import 'live_health_test.dart' as live_health;
 import 'live_navigate_test.dart' as live_navigate;
 import 'live_recover_test.dart' as live_recover;
@@ -58,6 +59,7 @@ void main() {
   group('appearance_test.dart', appearance.main);
   group('close_loop_test.dart', close_loop.main);
   group('import_gpx_test.dart', import_gpx.main);
+  group('live_ble_test.dart', live_ble.main);
   group('live_health_test.dart', live_health.main);
   group('live_navigate_test.dart', live_navigate.main);
   group('live_recover_test.dart', live_recover.main);

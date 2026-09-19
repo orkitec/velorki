@@ -29,6 +29,7 @@ import '../../planner/presentation/planner_map_host.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../search/data/gazetteer_store.dart';
 import '../../sensors/application/ride_health_sync.dart';
+import '../../sensors/application/sensor_hub.dart';
 import '../../settings/data/units.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../application/recording_controller.dart';
@@ -1317,7 +1318,7 @@ class _GlancePanel extends ConsumerWidget {
                   children: [
                     StatTile(
                       label: l10n.statSpeed,
-                      value: formatSpeed(l10n, units, snapshot.speedMps),
+                      value: formatSpeed(l10n, units, _speedMps(ref, snapshot)),
                     ),
                     StatTile(
                       label: l10n.statElapsed,
@@ -1335,6 +1336,18 @@ class _GlancePanel extends ConsumerWidget {
 }
 
 /// The drag handle at the top of the sheet.
+/// What the speed tile shows: the wheel sensor's speed while one is reporting,
+/// and the GPS speed otherwise.
+///
+/// A wheel sensor measures the road rather than the sky. It is right at
+/// walking pace, where a fix is mostly noise and the derived speed wanders,
+/// and it goes on reading indoors on a trainer, where there is no sky at all.
+/// Only the tile changes: the ride's distance, its average and everything
+/// saved with it still come from the fixes.
+double _speedMps(WidgetRef ref, RecordingSnapshot snapshot) =>
+    ref.watch(sensorHubProvider).readingsAt(DateTime.now()).speedMps ??
+    snapshot.speedMps;
+
 class _SheetHandle extends StatelessWidget {
   const _SheetHandle();
 
@@ -1532,7 +1545,7 @@ class _LivePanel extends ConsumerWidget {
             ),
             StatTile(
               label: l10n.statSpeed,
-              value: formatSpeed(l10n, units, snapshot.speedMps),
+              value: formatSpeed(l10n, units, _speedMps(ref, snapshot)),
             ),
             StatTile(
               label: l10n.statAvgSpeed,

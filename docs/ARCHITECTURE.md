@@ -253,7 +253,17 @@ workout session for the heart rate and shows what the phone reports, and
 hub, the lock screen's own formatted figures go out as the application context
 at most every 5 s, and the buttons on the wrist call the recorder. The watch
 never records: finishing from it stops the recorder and leaves the save sheet
-for the next time the phone is looked at.
+for the next time the phone is looked at. The third source is Bluetooth Low
+Energy, `BleGateway` over `universal_ble`, with the three cycling GATT
+profiles parsed in pure Dart (`ble_profiles.dart`): heart rate, speed and
+cadence — revolutions and event times differenced into a speed with the wheel
+circumference setting behind them — and power, whose crank counters make a
+cadence sensor unnecessary. It scans only when the rider taps Scan on
+Settings → Sensors → Bluetooth sensors, which is also the only thing that can
+raise the Bluetooth permission, and `BleSources` connects the paired devices
+only while a ride records or that screen is open, reconnecting on a 1/2/5/10 s
+backoff. A fresh wheel speed replaces the GPS speed on the record sheet, and
+nothing else.
 
 
 **Lock screen.** While a ride records, `RideNotificationUpdater` (kept alive

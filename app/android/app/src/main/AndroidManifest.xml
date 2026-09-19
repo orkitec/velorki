@@ -22,6 +22,26 @@
     <uses-permission android:name="android.permission.health.READ_HEART_RATE"/>
     <uses-permission android:name="android.permission.health.WRITE_EXERCISE"/>
     <uses-permission android:name="android.permission.health.WRITE_DISTANCE"/>
+    <!-- Bluetooth sensors: heart-rate straps, speed and cadence sensors and
+         power meters, only ever used after the rider pairs one on
+         Settings → Sensors → Bluetooth sensors. The scan is declared
+         neverForLocation because Velorki reads the three cycling profiles and
+         never the position of a beacon; the runtime prompt is raised by the
+         Scan button on that screen and nowhere else. BLUETOOTH and
+         BLUETOOTH_ADMIN are the pre-Android 12 spelling of the same thing and
+         are capped there. No ACCESS_FINE_LOCATION is added for the legacy
+         scan: the recorder already declares it above, uncapped. -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+    <!-- Not required: a phone without Bluetooth Low Energy installs and runs,
+         it simply finds no sensors. -->
+    <uses-feature android:name="android.hardware.bluetooth_le"
+        android:required="false" />
     <!-- Rides, routes and the OAuth tokens in the keystore stay on the device:
          android:allowBackup="false" keeps them out of Google's cloud backup
          (and out of any backup at all on Android 11 and below, which is why no

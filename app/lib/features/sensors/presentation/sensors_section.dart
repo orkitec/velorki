@@ -5,9 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
+import '../data/ble_gateway.dart';
 import '../data/health_gateway.dart';
+import '../data/paired_sensors.dart';
 import '../data/sensor_settings.dart';
 import '../data/watch_gateway.dart';
+import 'ble_sensors_screen.dart';
 
 /// Settings → Sensors: the switch that connects Velorki to the phone's health
 /// store, whether finished rides go back into it, and the one that lets the
@@ -17,7 +20,8 @@ import '../data/watch_gateway.dart';
 /// only thing in the app that can raise the health permission prompt, and a
 /// rider who never comes here is never asked. The watch switch raises no
 /// prompt at all: the watch app asks the OS on the *watch* for its heart rate,
-/// the first time the rider opens it.
+/// the first time the rider opens it. The Bluetooth row raises none either —
+/// it only opens the screen where the Scan button does.
 class SensorsSection extends ConsumerWidget {
   /// Creates the section.
   const SensorsSection({super.key});
@@ -71,6 +75,9 @@ class SensorsSection extends ConsumerWidget {
             subtitle: Text(l10n.settingsSensorsWatchHint),
             onChanged: (value) => unawaited(controller.setWatch(value)),
           ),
+        // Only where there is a radio to use. The row itself connects to
+        // nothing; the screen behind it is where a rider goes looking.
+        if (ref.watch(bleGatewayProvider) != null) const _BluetoothEntry(),
       ],
     );
   }
@@ -97,5 +104,29 @@ class SensorsSection extends ConsumerWidget {
       return;
     }
     await controller.setHealth(true);
+  }
+}
+
+/// The row into the Bluetooth sensors screen, saying how many devices are
+/// paired.
+class _BluetoothEntry extends ConsumerWidget {
+  const _BluetoothEntry();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final paired = ref.watch(pairedSensorsProvider);
+    return ListTile(
+      title: Text(l10n.settingsSensorsBluetooth),
+      subtitle: Text(
+        paired.isEmpty
+            ? l10n.settingsSensorsBluetoothHint
+            : l10n.settingsSensorsBluetoothPaired(paired.length),
+      ),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute<void>(builder: (_) => const BleSensorsScreen())),
+    );
   }
 }

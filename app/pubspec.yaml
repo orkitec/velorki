@@ -37,6 +37,7 @@ dependencies:
   share_plus: ^13.3.0
   shared_preferences: ^2.5.5
   sqlite3: ^3.5.2
+  universal_ble: ^2.3.0
   url_launcher: ^6.3.2
   uuid: ^4.6.0
   # Workspace members, resolved from packages/ (no version constraint).

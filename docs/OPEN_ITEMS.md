@@ -93,6 +93,12 @@ exercised there. The items here are the parts not yet covered by that.
       `Localizable.strings` for German); no complications. A ride on the
       Series 6 with the phone locked is the real check: pulse arriving, wrist
       taps on time, watch battery after a ride.
+- [ ] **Bluetooth on the Android phone**: scan, pair and ride with a strap or a
+      cadence sensor on the Pixel; the manifest's `neverForLocation` scan flag
+      and the capped legacy permissions were written without an Android SDK
+      on the Mac. A combined speed-and-cadence sensor is stored with both
+      kinds, so the wheel field shows for a crank-only one; reading the CSC
+      Feature characteristic (0x2A5C) at pairing would settle it.
 - [ ] `watch_connectivity` pulls `play-services-wearable` into the APK for an
       iOS-only feature; replace it with a small iOS-only channel if an F-Droid
       listing is wanted.

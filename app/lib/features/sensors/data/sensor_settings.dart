@@ -1,14 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/app_config.dart';
+import '../domain/ble_profiles.dart';
 
 const String _prefsHealth = 'sensors.health';
 const String _prefsHealthWrite = 'sensors.health.write';
 const String _prefsWatch = 'sensors.watch';
 
 /// Whether Velorki talks to the platform's health store at all, whether
-/// finished rides are saved there as workouts, and whether the rider's watch
-/// is part of the ride.
+/// finished rides are saved there as workouts, whether the rider's watch is
+/// part of the ride, and what a wheel sensor is measuring.
 class SensorSettings {
   /// Creates the settings. Health and the watch are off until the rider
   /// switches them on; once Health is on, rides are saved unless they say
@@ -17,6 +18,7 @@ class SensorSettings {
     this.health = false,
     this.healthWrite = true,
     this.watch = false,
+    this.wheelCircumferenceMm = defaultWheelCircumferenceMm,
   });
 
   /// Nothing is switched on: no permission has been asked for, nothing reads
@@ -33,13 +35,27 @@ class SensorSettings {
   /// Whether the paired Apple Watch measures and steers the ride.
   final bool watch;
 
+  /// How far the bike rolls in one wheel turn, in millimetres. A wheel sensor
+  /// counts revolutions and nothing else, so this is the whole difference
+  /// between its count and a speed.
+  final int wheelCircumferenceMm;
+
+  /// [wheelCircumferenceMm] in metres, which is the unit a speed is derived
+  /// in.
+  double get wheelCircumferenceM => wheelCircumferenceMm / 1000;
+
   /// A copy with the named fields replaced.
-  SensorSettings copyWith({bool? health, bool? healthWrite, bool? watch}) =>
-      SensorSettings(
-        health: health ?? this.health,
-        healthWrite: healthWrite ?? this.healthWrite,
-        watch: watch ?? this.watch,
-      );
+  SensorSettings copyWith({
+    bool? health,
+    bool? healthWrite,
+    bool? watch,
+    int? wheelCircumferenceMm,
+  }) => SensorSettings(
+    health: health ?? this.health,
+    healthWrite: healthWrite ?? this.healthWrite,
+    watch: watch ?? this.watch,
+    wheelCircumferenceMm: wheelCircumferenceMm ?? this.wheelCircumferenceMm,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -47,15 +63,17 @@ class SensorSettings {
       other is SensorSettings &&
           other.health == health &&
           other.healthWrite == healthWrite &&
-          other.watch == watch;
+          other.watch == watch &&
+          other.wheelCircumferenceMm == wheelCircumferenceMm;
 
   @override
-  int get hashCode => Object.hash(health, healthWrite, watch);
+  int get hashCode =>
+      Object.hash(health, healthWrite, watch, wheelCircumferenceMm);
 
   @override
   String toString() =>
       'SensorSettings(health: $health, healthWrite: $healthWrite, '
-      'watch: $watch)';
+      'watch: $watch, wheel: $wheelCircumferenceMm mm)';
 }
 
 /// The sensor settings, kept in shared_preferences.
@@ -72,6 +90,9 @@ class SensorSettingsController extends Notifier<SensorSettings> {
       health: prefs.getBool(_prefsHealth) ?? false,
       healthWrite: prefs.getBool(_prefsHealthWrite) ?? true,
       watch: prefs.getBool(_prefsWatch) ?? false,
+      wheelCircumferenceMm:
+          prefs.getInt(prefsWheelCircumferenceMm) ??
+          defaultWheelCircumferenceMm,
     );
   }
 
@@ -99,6 +120,21 @@ class SensorSettingsController extends Notifier<SensorSettings> {
   Future<void> setWatch(bool value) async {
     await _write(_prefsWatch, value, defaultValue: false);
     state = state.copyWith(watch: value);
+  }
+
+  /// Sets the wheel a speed sensor is on, in millimetres.
+  ///
+  /// Clamped to something a bicycle could actually have, because the number is
+  /// typed by hand and a stray digit would turn a ride into a flight.
+  Future<void> setWheelCircumferenceMm(int value) async {
+    final wheel = value.clamp(minWheelCircumferenceMm, maxWheelCircumferenceMm);
+    final prefs = ref.read(sharedPreferencesProvider);
+    if (wheel == defaultWheelCircumferenceMm) {
+      await prefs.remove(prefsWheelCircumferenceMm);
+    } else {
+      await prefs.setInt(prefsWheelCircumferenceMm, wheel);
+    }
+    state = state.copyWith(wheelCircumferenceMm: wheel);
   }
 
   Future<void> _write(

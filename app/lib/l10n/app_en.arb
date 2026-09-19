@@ -3831,5 +3831,99 @@
   "settingsSensorsWatchHint": "Heart rate from the watch, ride controls on the wrist",
   "@settingsSensorsWatchHint": {
     "description": "Second line of the switch that connects Velorki to the Apple Watch app"
+  },
+  "settingsSensorsBluetooth": "Bluetooth sensors",
+  "@settingsSensorsBluetooth": {
+    "description": "Settings row that opens the screen for pairing Bluetooth sensors"
+  },
+  "settingsSensorsBluetoothHint": "Heart-rate straps, speed and cadence sensors, power meters",
+  "@settingsSensorsBluetoothHint": {
+    "description": "Second line of the Bluetooth sensors row while nothing is paired"
+  },
+  "settingsSensorsBluetoothPaired": "{count, plural, =1{1 sensor paired} other{{count} sensors paired}}",
+  "@settingsSensorsBluetoothPaired": {
+    "description": "Second line of the Bluetooth sensors row, counting the paired devices",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bleScan": "Scan",
+  "@bleScan": {
+    "description": "Button that starts a 15 second search for nearby Bluetooth sensors"
+  },
+  "bleScanning": "Scanning\u2026",
+  "@bleScanning": {
+    "description": "Label of the Scan button while a search is running"
+  },
+  "bleFound": "Found",
+  "@bleFound": {
+    "description": "Caption above the list of sensors a scan has found"
+  },
+  "blePaired": "Paired",
+  "@blePaired": {
+    "description": "Caption above the list of sensors the rider has paired"
+  },
+  "bleNothingFound": "Nothing yet. Wake the sensor up: put the strap on, or turn the cranks.",
+  "@bleNothingFound": {
+    "description": "Shown under the Scan button while a search has found no sensors"
+  },
+  "bleNothingPaired": "No sensors paired. Scan to find the ones you are wearing or riding.",
+  "@bleNothingPaired": {
+    "description": "Shown in place of the paired list while the rider has paired nothing"
+  },
+  "bleSignal": "{rssi} dBm",
+  "@bleSignal": {
+    "description": "Signal strength of a found sensor, a negative number of decibel-milliwatts",
+    "placeholders": {
+      "rssi": {
+        "type": "int"
+      }
+    }
+  },
+  "bleUnnamedSensor": "Unnamed sensor",
+  "@bleUnnamedSensor": {
+    "description": "Stands in for the name of a sensor that advertises none"
+  },
+  "bleForget": "Forget",
+  "@bleForget": {
+    "description": "Menu item that removes a paired sensor from Velorki"
+  },
+  "bleConnected": "Connected",
+  "@bleConnected": {
+    "description": "State of a paired sensor that is connected and reporting"
+  },
+  "bleConnecting": "Connecting\u2026",
+  "@bleConnecting": {
+    "description": "State of a paired sensor Velorki is connecting to or coming back for"
+  },
+  "bleNotConnected": "Not connected",
+  "@bleNotConnected": {
+    "description": "State of a paired sensor nothing is connected to, because no ride is recording"
+  },
+  "blePermissionDenied": "Velorki was not allowed to use Bluetooth.",
+  "@blePermissionDenied": {
+    "description": "Snack bar shown when the operating system refused the Bluetooth permission"
+  },
+  "bleAdapterOff": "Switch Bluetooth on to find your sensors.",
+  "@bleAdapterOff": {
+    "description": "Snack bar shown when the phone's Bluetooth radio is switched off"
+  },
+  "bleIosNote": "iOS asks for Bluetooth the first time you scan.",
+  "@bleIosNote": {
+    "description": "One-line note under the Scan button on iOS, before any permission sheet is raised"
+  },
+  "bleWheelCircumference": "Wheel circumference",
+  "@bleWheelCircumference": {
+    "description": "Field for the wheel size a speed sensor's revolutions are turned into a speed with"
+  },
+  "bleWheelCircumferenceHint": "Millimetres per wheel turn. 2105 is a 700x25c tyre.",
+  "@bleWheelCircumferenceHint": {
+    "description": "Helper line under the wheel circumference field"
+  },
+  "bleWheelCircumferenceUnit": "mm",
+  "@bleWheelCircumferenceUnit": {
+    "description": "Unit suffix of the wheel circumference field, millimetres"
   }
 }

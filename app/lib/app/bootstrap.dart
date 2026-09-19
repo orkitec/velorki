@@ -16,6 +16,7 @@ import '../features/map/presentation/map_view.dart';
 import '../features/planner/presentation/planner_map_host.dart';
 import '../features/recording/data/recording_recovery.dart';
 import '../features/routing_tiles/application/routing_tiles_startup.dart';
+import '../features/sensors/application/ble_sources_controller.dart';
 import '../features/sensors/application/sensor_sources_controller.dart';
 import '../features/sensors/application/watch_ride_bridge.dart';
 import '../features/sharing/application/share_link_listener.dart';
@@ -82,6 +83,11 @@ Future<void> bootstrap() async {
   // The other half of the same rule for the watch: with the Apple Watch
   // switch off this registers nothing, sends nothing and wakes no watch.
   container.read(watchRideBridgeProvider);
+
+  // And for the Bluetooth sensors: with nothing paired this never reaches the
+  // radio, and even with something paired it only connects while a ride
+  // records or the rider has the sensors screen open.
+  container.read(bleSourcesProvider);
 
   // Attached before the first frame so a file the app was launched with is
   // not missed.

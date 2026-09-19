@@ -90,6 +90,8 @@
 	<string>Velorki reads your heart rate from Apple Health so it can be shown and saved with your rides.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Velorki saves your finished rides to Apple Health as cycling workouts.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Velorki connects to your heart-rate strap, speed, cadence and power sensors over Bluetooth.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
