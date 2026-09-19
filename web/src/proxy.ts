@@ -84,6 +84,9 @@ const DOCS_MISSING_SEGMENT = '_missing';
  * hangs off `globalThis`; the set is a dozen short strings.
  */
 function docSlugSet(): ReadonlySet<string> {
+  // In development the content directory changes under a running server, so
+  // the set is read fresh; the cache is for production, where it never changes.
+  if (process.env.NODE_ENV === 'development') return new Set(docSlugs());
   const store = globalThis as typeof globalThis & { __velorkiDocSlugs?: ReadonlySet<string> };
   store.__velorkiDocSlugs ??= new Set(docSlugs());
   return store.__velorkiDocSlugs;
