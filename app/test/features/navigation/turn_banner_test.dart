@@ -120,7 +120,7 @@ void main() {
     expect(find.text('250 m'), findsOneWidget);
     expect(find.text(l10n.navTurnLeft), findsOneWidget);
     expect(find.byIcon(Icons.turn_left), findsOneWidget);
-    expect(find.textContaining('then'), findsNothing);
+    expect(find.textContaining(l10n.navThenLabel), findsNothing);
   });
 
   testWidgets('a turn close behind the next one is a "then" and an arrow', (
@@ -138,7 +138,7 @@ void main() {
     expect(find.text('120 m'), findsOneWidget);
     expect(find.text(l10n.navTurnLeft), findsOneWidget);
     // The preview is a word and an arrow on the same row, not a sentence.
-    expect(find.text('then'), findsOneWidget);
+    expect(find.text(l10n.navThenLabel), findsOneWidget);
     expect(find.byIcon(Icons.fork_right), findsOneWidget);
     expect(tester.getSize(find.byType(GlassPanel)).height, turnBannerHeight);
   });
@@ -155,7 +155,7 @@ void main() {
       ),
     );
 
-    expect(find.text('then'), findsNothing);
+    expect(find.text(l10n.navThenLabel), findsNothing);
     expect(find.byIcon(Icons.fork_right), findsNothing);
   });
 
@@ -171,7 +171,7 @@ void main() {
       ),
     );
 
-    expect(find.text('then'), findsNothing);
+    expect(find.text(l10n.navThenLabel), findsNothing);
     expect(find.byIcon(Icons.fork_right), findsNothing);
   });
 
