@@ -131,7 +131,10 @@ void main() {
       onTimeout: () => '${_progress(tester)}',
     );
 
-    // Something gets said, and the ride covers ground meanwhile.
+    // Something gets said, and the ride covers ground. The two are waited
+    // for separately: the simulated rider is already rolling along the route
+    // when the ride starts, so the first cue can be out before the recorder
+    // has a second fix, with the distance still at zero.
     final recording = container.listen(recordingControllerProvider, (_, _) {});
     addTearDown(recording.close);
     await waitUntil(
@@ -141,7 +144,13 @@ void main() {
       timeout: const Duration(seconds: 120),
       onTimeout: () => '${_progress(tester)} / ${recording.read().snapshot}',
     );
-    expect(recording.read().snapshot?.distanceM ?? 0, greaterThan(30));
+    await waitUntil(
+      tester,
+      () => (recording.read().snapshot?.distanceM ?? 0) > 30,
+      describe: 'the ride to cover 30 m from the simulator GPS',
+      timeout: const Duration(seconds: 90),
+      onTimeout: () => '${recording.read().snapshot}',
+    );
     debugPrint('VELORKI_NAV spoken: ${speaker.spoken}');
 
     // The card is up, with the ride.
