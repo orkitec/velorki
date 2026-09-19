@@ -14,6 +14,9 @@ struct RideView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
                 heart
+                if let problem = ride.problem {
+                    Text(problem).font(.footnote).foregroundStyle(.orange)
+                }
                 if ride.riding { figures }
                 if !ride.turnLabel.isEmpty { turn }
                 controls

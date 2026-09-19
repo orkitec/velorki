@@ -30,7 +30,7 @@
 	<string>Velorki reads your heart rate from the watch while you ride, so it can show it and save it with the ride.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Velorki runs a workout session on the watch while you ride, which is what keeps the heart rate sensor measuring.</string>
-	<key>UIBackgroundModes</key>
+	<key>WKBackgroundModes</key>
 	<array>
 		<string>workout-processing</string>
 	</array>

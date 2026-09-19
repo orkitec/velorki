@@ -30,6 +30,10 @@ final class RideSession: NSObject, ObservableObject {
     @Published var heartRate: Int?
     @Published var measuring = false
 
+    /// Why there is no heart rate, when the watch knows: Health access
+    /// refused, or a session watchOS would not run. Shown under the heart.
+    @Published var problem: String?
+
     /// Whether the phone is running a ride, paused or not.
     var riding: Bool { status == "active" || status == "paused" }
 
@@ -46,6 +50,10 @@ final class RideSession: NSObject, ObservableObject {
 
     /// The one session the app has; the app and its delegate share it.
     static let shared = RideSession()
+
+    /// `NSLog` rather than `Logger`: it lands on stderr, which is what
+    /// `xcrun devicectl device process launch --console` shows from the Mac.
+    private func note(_ line: String) { NSLog("velorki watch: %@", line) }
 
     override init() {
         super.init()
@@ -100,9 +108,18 @@ final class RideSession: NSObject, ObservableObject {
         store.requestAuthorization(
             toShare: [HKQuantityType.workoutType()],
             read: [heartRate]
-        ) { [weak self] granted, _ in
-            guard granted else { return }
-            DispatchQueue.main.async { self?.beginSession() }
+        ) { [weak self] granted, error in
+            guard let self else { return }
+            if let error {
+                self.note("Health authorization failed: \(error.localizedDescription)")
+            }
+            DispatchQueue.main.async {
+                guard granted else {
+                    self.problem = "Health access is needed: allow it on the watch or in the phone's Health app."
+                    return
+                }
+                self.beginSession()
+            }
         }
     }
 
@@ -111,12 +128,14 @@ final class RideSession: NSObject, ObservableObject {
         let configuration = HKWorkoutConfiguration()
         configuration.activityType = .cycling
         configuration.locationType = .outdoor
-        guard
-            let session = try? HKWorkoutSession(
-                healthStore: store,
-                configuration: configuration
-            )
-        else { return }
+        let session: HKWorkoutSession
+        do {
+            session = try HKWorkoutSession(healthStore: store, configuration: configuration)
+        } catch {
+            note("Workout session could not be made: \(error.localizedDescription)")
+            problem = "The watch would not start a workout: \(error.localizedDescription)"
+            return
+        }
         let builder = session.associatedWorkoutBuilder()
         builder.dataSource = HKLiveWorkoutDataSource(
             healthStore: store,
@@ -129,8 +148,13 @@ final class RideSession: NSObject, ObservableObject {
 
         let start = Date()
         session.startActivity(with: start)
-        builder.beginCollection(withStart: start) { _, _ in }
+        builder.beginCollection(withStart: start) { [weak self] _, error in
+            guard let error else { return }
+            self?.note("Collection did not begin: \(error.localizedDescription)")
+        }
         measuring = true
+        problem = nil
+        note("Workout session started")
     }
 
     /// Ends the session and throws the workout away.
@@ -228,6 +252,7 @@ extension RideSession: HKWorkoutSessionDelegate {
         from fromState: HKWorkoutSessionState,
         date: Date
     ) {
+        note("Workout session state \(fromState.rawValue) -> \(toState.rawValue)")
         guard toState == .ended || toState == .stopped else { return }
         DispatchQueue.main.async {
             self.measuring = false
@@ -236,7 +261,11 @@ extension RideSession: HKWorkoutSessionDelegate {
     }
 
     func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
-        DispatchQueue.main.async { self.endWorkout() }
+        note("Workout session failed: \(error.localizedDescription)")
+        DispatchQueue.main.async {
+            self.endWorkout()
+            self.problem = "The workout stopped: \(error.localizedDescription)"
+        }
     }
 }
 

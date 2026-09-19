@@ -25,6 +25,7 @@ struct VelorkiWatchApp: App {
 /// here, and the session starts without anyone touching the watch.
 final class WatchDelegate: NSObject, WKApplicationDelegate {
     func handle(_ workoutConfiguration: HKWorkoutConfiguration) {
+        NSLog("velorki watch: launched by the phone for a workout")
         RideSession.shared.startMeasuring()
     }
 }

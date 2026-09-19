@@ -12,6 +12,8 @@ import UIKit
   /// Mirrored in `lib/features/sensors/data/watch_gateway.dart`.
   private static let watchChannelName = "velorki/watch"
   private static let launchWorkoutMethod = "launchWorkout"
+  /// One store for the app: a temporary would be gone before watchOS answers.
+  private static let healthStore = HKHealthStore()
 
   /// Mirrored in `lib/core/files/backup_exclusion.dart`.
   private static let backupChannelName = "app.velorki/backup"
@@ -100,9 +102,11 @@ import UIKit
     let configuration = HKWorkoutConfiguration()
     configuration.activityType = .cycling
     configuration.locationType = .outdoor
-    HKHealthStore().startWatchApp(with: configuration) { launched, error in
+    healthStore.startWatchApp(with: configuration) { launched, error in
       if let error = error {
         NSLog("velorki: could not launch the watch app: \(error)")
+      } else {
+        NSLog("velorki: watch app launched for a workout: \(launched)")
       }
       DispatchQueue.main.async { result(launched) }
     }
