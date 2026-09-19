@@ -97,6 +97,29 @@ void main() {
     });
   });
 
+  group('ridewithgps.gpx', () {
+    late GpxDocument doc;
+
+    setUp(() => doc = GpxCodec.decode(fixture('ridewithgps.gpx')));
+
+    test('reports the creator URL and the metadata name and link', () {
+      expect(doc.creator, 'http://ridewithgps.com/');
+      expect(doc.name, 'Isar nach Norden');
+    });
+
+    test('reads a route export: cue-sheet route points with Garmin '
+        'extensions, a water waypoint, no track', () {
+      expect(doc.tracks, isEmpty);
+      final route = doc.routes.single;
+      expect(route.name, 'Isar nach Norden');
+      expect(route.points, hasLength(3));
+      expect(route.points[1].pos.lat, closeTo(48.13744, 1e-9));
+      expect(route.points[1].ele, closeTo(520.1, 1e-6));
+      expect(doc.waypoints.single.name, 'Trinkwasser');
+      expect(doc.waypoints.single.symbol, 'Water Source');
+    });
+  });
+
   group('strava.gpx', () {
     late GpxDocument doc;
     late GpxTrack track;

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:velorki/features/import_export/data/incoming_file_service.dart';
+import 'package:velorki/features/import_export/data/track_decoder.dart';
 import 'package:velorki/features/import_export/domain/imported_track.dart';
 
 import 'support/fixtures.dart';
@@ -98,6 +99,9 @@ void main() {
     route = fixtureBytes('route.gpx');
   });
 
+  final rejections = <ImportException>[];
+  setUp(rejections.clear);
+
   /// Starts a service over [sources] and collects what it emits.
   Future<(IncomingFileService, List<ImportCandidate>, List<Uri>)> start(
     _FakeSources sources,
@@ -106,6 +110,7 @@ void main() {
     final imports = <ImportCandidate>[];
     final deepLinks = <Uri>[];
     service.imports.listen(imports.add);
+    service.rejections.listen(rejections.add);
     service.deepLinks.listen(deepLinks.add);
     addTearDown(() async {
       await service.dispose();
@@ -188,6 +193,9 @@ void main() {
     await pumpEventQueue();
 
     expect(imports, isEmpty);
+    expect(rejections, hasLength(1));
+    expect(rejections.single.failure, ImportFailure.unknownFormat);
+    expect(rejections.single.fileName, 'photo.jpg');
   });
 
   test('an unreadable file is dropped, not thrown', () async {

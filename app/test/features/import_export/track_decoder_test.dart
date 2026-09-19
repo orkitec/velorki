@@ -11,6 +11,22 @@ import 'package:velorki_geo/velorki_geo.dart';
 import 'support/fixtures.dart';
 
 void main() {
+  group('a Ride with GPS route export', () {
+    test('imports as a route from its cue-sheet points, named and with its '
+        'waypoint', () {
+      final track = decodeTrack(
+        fixtureBytes('ridewithgps.gpx'),
+        fileName: 'Isar nach Norden.gpx',
+      );
+      expect(track.format, ImportFormat.gpx);
+      expect(track.points, hasLength(3));
+      expect(track.name, 'Isar nach Norden');
+      expect(track.creator, 'http://ridewithgps.com/');
+      expect(track.waypoints, hasLength(1));
+      expect(track.suggestedKind, ImportKind.route);
+    });
+  });
+
   group('sniffing decides the decoder, not the name', () {
     test('a GPX named .fit still decodes as GPX', () {
       final track = decodeTrack(fixtureBytes('komoot.gpx'), fileName: 'a.fit');

@@ -159,6 +159,8 @@ class IncomingFileService {
   final IncomingSources _sources;
   final StreamController<ImportCandidate> _imports =
       StreamController<ImportCandidate>.broadcast();
+  final StreamController<ImportException> _rejections =
+      StreamController<ImportException>.broadcast();
   final StreamController<Uri> _deepLinks = StreamController<Uri>.broadcast();
   final List<StreamSubscription<Object?>> _subscriptions =
       <StreamSubscription<Object?>>[];
@@ -166,6 +168,11 @@ class IncomingFileService {
 
   /// Every file that arrived and decoded, in arrival order.
   Stream<ImportCandidate> get imports => _imports.stream;
+
+  /// Every file that arrived and was refused, with why: not a track, broken,
+  /// empty, or unreadable. The app says so, because a rider who just tapped
+  /// "Open in Velorki" and sees nothing happen is left guessing.
+  Stream<ImportException> get rejections => _rejections.stream;
 
   /// Incoming links that are not files, for features that own them.
   Stream<Uri> get deepLinks => _deepLinks.stream;
@@ -254,6 +261,7 @@ class IncomingFileService {
     }
     _subscriptions.clear();
     await _imports.close();
+    await _rejections.close();
     await _deepLinks.close();
   }
 
@@ -286,6 +294,9 @@ class IncomingFileService {
     if (_imports.isClosed) return;
     if (bytes == null || bytes.isEmpty) {
       _log.warning('$fileName could not be read');
+      _rejections.add(
+        ImportException(ImportFailure.unreadable, fileName: fileName),
+      );
       return;
     }
     try {
@@ -294,8 +305,9 @@ class IncomingFileService {
       );
     } on ImportException catch (e) {
       // Not a track file, or a broken one. The user may well have shared
-      // something else into the app by accident; say so in the log and move on.
+      // something else into the app by accident; the import screen says so.
       _log.info('$fileName was not imported: ${e.failure.name}', e.cause);
+      _rejections.add(e);
     }
   }
 
@@ -328,6 +340,11 @@ IncomingFileService incomingFileService(Ref ref) {
 @Riverpod(keepAlive: true)
 Stream<ImportCandidate> incomingImports(Ref ref) =>
     ref.watch(incomingFileServiceProvider).imports;
+
+/// Files that arrived and were refused, for the screen that says so.
+@Riverpod(keepAlive: true)
+Stream<ImportException> incomingImportRejections(Ref ref) =>
+    ref.watch(incomingFileServiceProvider).rejections;
 
 /// Incoming links that are not files; OAuth callbacks and share links will be
 /// read off this in later milestones.

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../features/import_export/data/track_decoder.dart';
 import '../features/import_export/domain/imported_track.dart';
 import '../features/import_export/presentation/import_preview_screen.dart';
 import '../features/library/presentation/library_screen.dart';
@@ -57,8 +58,18 @@ GoRouter createRouter({String initialLocation = plannerRoute}) {
       ),
       GoRoute(
         path: importRoute,
-        builder: (context, state) =>
-            ImportPreviewScreen(candidate: state.extra as ImportCandidate?),
+        // A decoded file, a refused one with its reason, or nothing at all
+        // (a stale deep link).
+        builder: (context, state) => switch (state.extra) {
+          final ImportCandidate candidate => ImportPreviewScreen(
+            candidate: candidate,
+          ),
+          final ImportException rejection => ImportPreviewScreen(
+            candidate: null,
+            rejection: rejection,
+          ),
+          _ => const ImportPreviewScreen(candidate: null),
+        },
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => HomeShell(shell: shell),

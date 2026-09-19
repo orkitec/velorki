@@ -7,6 +7,7 @@ import 'package:logging/logging.dart';
 
 import '../../../app/router.dart';
 import '../data/incoming_file_service.dart';
+import '../data/track_decoder.dart';
 import '../domain/imported_track.dart';
 
 final Logger _log = Logger('IncomingImportListener');
@@ -32,6 +33,21 @@ void listenForIncomingImports(ProviderContainer container) {
     },
     fireImmediately: true,
     onError: (error, _) => _log.warning('incoming import failed', error),
+  );
+
+  // A file that could not be imported opens the same screen with the reason:
+  // "nothing happened" is the one answer a rider must never get.
+  container.listen<AsyncValue<ImportException>>(
+    incomingImportRejectionsProvider,
+    (previous, next) {
+      final rejection = next.value;
+      if (rejection == null || rejection == previous?.value) return;
+      _log.info('refusing ${rejection.fileName}: ${rejection.failure.name}');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        router.go(importRoute, extra: rejection);
+      });
+    },
+    onError: (error, _) => _log.warning('incoming rejection failed', error),
   );
 
   unawaited(container.read(incomingFileServiceProvider).start());

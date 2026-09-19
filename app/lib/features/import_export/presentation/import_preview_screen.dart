@@ -21,6 +21,8 @@ import '../../recording/presentation/ride_detail_screen.dart'
 import '../../shared/presentation/placeholder_body.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../data/import_repository.dart';
+import 'import_file_action.dart';
+import '../data/track_decoder.dart';
 import '../domain/imported_track.dart';
 
 /// Previews an incoming GPX or FIT file and saves it as a route or a ride.
@@ -30,12 +32,21 @@ import '../domain/imported_track.dart';
 /// Nothing is written until Save is pressed, so a file opened by accident
 /// costs one Back.
 class ImportPreviewScreen extends ConsumerStatefulWidget {
-  /// Creates the preview for [candidate], or an empty state when it is `null`.
-  const ImportPreviewScreen({required this.candidate, super.key});
+  /// Creates the preview for [candidate], or an empty state when it is `null`:
+  /// the reason in [rejection] when a file arrived and was refused, "nothing
+  /// to import" without one.
+  const ImportPreviewScreen({
+    required this.candidate,
+    this.rejection,
+    super.key,
+  });
 
   /// The file to preview. `null` when `/import` was opened without one, which
-  /// is what a stale deep link does.
+  /// is what a stale deep link does, or when the file was refused.
   final ImportCandidate? candidate;
+
+  /// Why the file that arrived could not be imported, when that is the case.
+  final ImportException? rejection;
 
   @override
   ConsumerState<ImportPreviewScreen> createState() =>
@@ -127,10 +138,19 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
         leading: BackButton(onPressed: () => context.go(libraryRoute)),
       ),
       body: candidate == null
-          ? PlaceholderBody(
-              icon: Icons.help_outline,
-              message: l10n.importNothing,
-            )
+          ? switch (widget.rejection) {
+              final rejection? => PlaceholderBody(
+                icon: Icons.error_outline,
+                message: [
+                  importFailureMessage(l10n, rejection.failure),
+                  ?rejection.fileName,
+                ].join('\n'),
+              ),
+              null => PlaceholderBody(
+                icon: Icons.help_outline,
+                message: l10n.importNothing,
+              ),
+            }
           : _body(context, l10n, candidate),
     );
   }

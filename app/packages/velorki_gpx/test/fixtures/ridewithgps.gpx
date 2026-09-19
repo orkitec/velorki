@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www.garmin.com/xmlschemas/GpxExtensionsv3.xsd http://www.garmin.com/xmlschemas/TrackPointExtension/v1 http://www.garmin.com/xmlschemas/TrackPointExtensionv1.xsd" creator="http://ridewithgps.com/" version="1.1">
+  <metadata>
+    <name>Isar nach Norden</name>
+    <link href="https://ridewithgps.com/routes/49812345">
+      <text>Isar nach Norden</text>
+    </link>
+    <time>2026-09-18T20:11:32Z</time>
+  </metadata>
+  <wpt lat="48.14023" lon="11.58712">
+    <name>Trinkwasser</name>
+    <sym>Water Source</sym>
+    <type>water</type>
+  </wpt>
+  <rte>
+    <name>Isar nach Norden</name>
+    <rtept lat="48.13512" lon="11.58230">
+      <ele>519.4</ele>
+      <name>Start of route</name>
+      <cmt>Start of route</cmt>
+      <desc>Start of route</desc>
+      <sym>Flag, Green</sym>
+      <type>Start</type>
+    </rtept>
+    <rtept lat="48.13744" lon="11.58398">
+      <ele>520.1</ele>
+      <name>Turn left onto Widenmayerstraße</name>
+      <cmt>Turn left onto Widenmayerstraße</cmt>
+      <desc>Turn left onto Widenmayerstraße</desc>
+      <sym>Left</sym>
+      <type>Left</type>
+      <extensions>
+        <gpxx:RoutePointExtension>
+          <gpxx:Subclass>000000000000FFFFFFFFFFFFFFFFFFFFFFFF</gpxx:Subclass>
+        </gpxx:RoutePointExtension>
+      </extensions>
+    </rtept>
+    <rtept lat="48.14023" lon="11.58712">
+      <ele>521.7</ele>
+      <name>End of route</name>
+      <cmt>End of route</cmt>
+      <desc>End of route</desc>
+      <sym>Flag, Red</sym>
+      <type>End</type>
+    </rtept>
+  </rte>
+</gpx>
