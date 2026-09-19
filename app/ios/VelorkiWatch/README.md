@@ -107,3 +107,6 @@ through three turns buzzes once rather than three times.
 - **Complications** and any Always-On display treatment.
 - **Translation.** The figures arrive translated; the buttons and the two
   footnotes here are English.
+
+The icon is `Assets.xcassets/AppIcon.appiconset/icon.png`, the app's own 1024 px
+icon; watchOS masks it to a circle.
