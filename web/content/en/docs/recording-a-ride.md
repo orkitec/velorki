@@ -23,6 +23,12 @@ If you finish having recorded nothing, Velorki says "Nothing was recorded." and 
 
 Velorki pauses itself after about ten seconds without movement; the pill then reads **AUTO-PAUSED**. Unlike a manual pause it keeps listening, and the first proper movement resumes it. A manual pause stops listening until you press **Resume**.
 
+## Heart rate, cadence and power
+
+Once a sensor is switched on, a third row of figures joins the sheet while it is reporting: **Heart rate**, **Cadence** and **Power**. They can come from a Bluetooth sensor, from an Apple Watch or from the phone's health app, they are written onto the track as you ride, and on an iPhone the pulse shows on the lock screen card as well. While a wheel sensor is reporting, its speed is what **Speed** shows.
+
+Without a sensor none of it appears, and nothing is switched on until you do it in **Settings → Sensors**. See [sensors and your watch](./sensors-and-watch).
+
 ## What it asks for the first time
 
 The first ride triggers up to three prompts, described in full in [getting started](./getting-started):
@@ -81,6 +87,7 @@ Under **Recent rides** on the Record tab are your last five, newest first, each 
 ## Related
 
 - [Turn-by-turn navigation](./navigation)
+- [Sensors and your watch](./sensors-and-watch)
 - [Library](./library)
 - [Import and export](./import-and-export)
 - [Strava and Ride with GPS](./strava-and-ridewithgps)

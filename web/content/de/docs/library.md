@@ -55,9 +55,14 @@ Eine geöffnete Fahrt zeigt von oben nach unten:
 - sieben Zahlen: **Distanz**, **Fahrzeit**, **Zeit**, **Ø**, **Max**, **Anstieg**, **Abstieg**. **Fahrzeit** lässt die Zeit im Stand weg; **Zeit** ist die ganze Fahrt von Anfang bis Ende.
 - das Diagramm **Höhenprofil**, Höhe über Distanz, nur gezeichnet, wenn der Track Höhen mitbrachte,
 - das Diagramm **Tempo**, dessen Achse immer bei null beginnt,
+- das Diagramm **Heart rate**, wenn die Fahrt einen Puls mitbrachte,
 - die Tabelle **Splits**.
 
 Berühre eines der beiden Diagramme und zieh darüber für eine Anzeige in der Form `12,3 km · 340 m`.
+
+### Zahlen von einem Sensor
+
+Eine Fahrt, die mit Pulsgurt, Apple Watch oder Leistungsmesser aufgezeichnet wurde, trägt mehr als die sieben: **Avg HR**, **Max HR**, **Avg cadence** und **Avg power** kommen zu den Zahlen dazu, jede nur, wenn die Fahrt sie hat, und unter dem Tempo-Diagramm wird das Diagramm **Heart rate** gezeichnet. Eine ohne Sensor aufgezeichnete Fahrt zeigt nichts davon, und eine aus einer GPX- oder FIT-Datei importierte zeigt, was diese Datei mitbrachte. Siehe [Sensoren und deine Uhr](./sensors-and-watch).
 
 ### Splits
 
@@ -81,6 +86,7 @@ Beides steht unter [Import und Export](./import-and-export) und [Strava und Ride
 ## Weiterlesen
 
 - [Fahrt aufzeichnen](./recording-a-ride)
+- [Sensoren und deine Uhr](./sensors-and-watch)
 - [Import und Export](./import-and-export)
 - [Teilen](./sharing)
 - [Strava und Ride with GPS](./strava-and-ridewithgps)

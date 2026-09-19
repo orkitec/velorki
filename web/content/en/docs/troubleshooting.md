@@ -1,7 +1,7 @@
 ---
 title: Troubleshooting
 description: "Fixes for the common problems: no position, no route, the missing tiles banner, a silent voice on iOS, stuck downloads and links that will not open."
-order: 16
+order: 17
 ---
 
 The things that go wrong most often, and what to do about each. If your problem is not here, the last section says how to report it.
@@ -86,6 +86,30 @@ If a file imports as the wrong kind, switch **SAVE AS** between **Route** and **
 
 On Android, answer **Allow** to **Keep recording in the background** and grant the notification permission; both are what stop the system killing the recording while the phone sleeps. On either platform, the track is written continuously, so if the app was killed you get **Unfinished ride** on the next launch, with **Resume**, **Finish** and **Discard**. See [recording a ride](./recording-a-ride).
 
+## A Bluetooth sensor is not found
+
+1. **Wake the sensor up.** A strap transmits only with skin contact, a cadence sensor only with the crank turning. The screen says as much: "Nothing yet. Wake the sensor up: put the strap on, or turn the cranks."
+2. **Switch Bluetooth on.** "Switch Bluetooth on to find your sensors." is about the phone's radio, not about the sensor.
+3. **Grant the permission.** "Velorki was not allowed to use Bluetooth." means it was refused. iOS asks the first time you tap **Scan**, and only then.
+4. **Free the sensor.** These sensors serve one device at a time, so a head unit or another app holding yours keeps Velorki from seeing it.
+5. **Scan again.** A scan runs about fifteen seconds and lists only devices speaking the standard heart rate, speed and cadence, or power profiles.
+
+A paired sensor that says **Not connected** is out of range, asleep or flat. Velorki keeps trying while a ride records or the **Bluetooth sensors** screen is open. See [sensors and your watch](./sensors-and-watch).
+
+## The watch does not connect
+
+- **There is no Apple Watch switch.** It appears in **Settings → Sensors** only on an iPhone that has a watch paired to it.
+- **The watch app is not on the watch.** It ships inside the iPhone app; if it did not arrive by itself, install Velorki from the **Watch** app on the iPhone.
+- **The ride is running but the watch measures nothing.** The phone can only ask a watch app that is running. Open Velorki on the watch and tap **Start ride**, which starts both ends.
+- **The watch shows no pulse.** The watch asks for permission to read your heart rate the first time a workout starts there. If that was refused, grant it in the watch's own privacy settings.
+
+## No heart rate from Health
+
+- **The switch is off.** **Apple Health**, or **Health Connect** on Android, has to be on in **Settings → Sensors**. Nothing is read while it is off.
+- **Access was refused.** "Velorki was not given access to your health data." leaves the switch off. Turn it on again and allow the heart rate, or grant it in the health app itself.
+- **Nothing has written a heart rate.** Velorki only reads what is already in the store, so with no watch and no app putting a pulse there, there is nothing to read.
+- **It arrives late.** The store is asked every five seconds, or every thirty with battery saver on, and the gaps are filled once more when the ride is saved. A strap or a watch reporting directly is always quicker.
+
 ## A Plus feature is missing
 
 - **"Not available in this build"** on a connection row, or on the subscription page, means this copy of Velorki was compiled without the keys for that service or store. That is what a self-built copy looks like.
@@ -111,5 +135,6 @@ Velorki has no crash reporting and sends us nothing by itself, so a report from 
 - [Offline maps and routing](./offline-maps-and-routing)
 - [Turn-by-turn navigation](./navigation)
 - [Recording a ride](./recording-a-ride)
+- [Sensors and your watch](./sensors-and-watch)
 - [Import and export](./import-and-export)
 - [Getting started](./getting-started)

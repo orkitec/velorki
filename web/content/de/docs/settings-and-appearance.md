@@ -1,6 +1,6 @@
 ---
 title: Einstellungen und Darstellung
-description: Jede Einstellung in Velorki, von Design, Akzent und Einheiten über Navigation, Aufnahme, Suche und Offline-Daten bis zu Verbindungen und Server-URLs.
+description: Jede Einstellung in Velorki, von Design, Akzent und Einheiten über Navigation, Aufnahme, Sensoren und Suche bis zu Offline-Daten, Verbindungen und Server-URLs.
 order: 14
 ---
 
@@ -37,6 +37,16 @@ Die drei Schalter hier sind dieselben wie in der Übersicht des Tabs Aufnahme.
 **GPS-Genauigkeit**: **Energiesparen**, **Normal** oder **Genau**, mit dem Hinweis "Genau für Trails, Normal reicht für Straßen". Es entscheidet, wie hart der eine GPS-Client während einer Fahrt gefordert wird.
 
 **Energiesparen**: "Dunkle Karte, keine Animationen, nach 30 s eine schlichte Seite mit den Zahlen; der Bildschirm zieht den Akku leer". Das ganze Verhalten steht unter [Fahrt aufzeichnen](./recording-a-ride).
+
+## Sensors
+
+**Apple Health**, unter Android **Health Connect**: "Heart rate from your watch or any app that writes it; rides are saved as workouts". Das Einschalten ist es, was das Handy um Zugriff auf deine Gesundheitsdaten bittet; lehnst du ab, bleibt der Schalter aus.
+
+**Save rides to Health**: schreibt jede beendete Fahrt als Radfahr-Training in den Speicher. Der Schalter lässt sich einzeln ausschalten und tut nichts, solange der darüber aus ist.
+
+**Apple Watch**: "Heart rate from the watch, ride controls on the wrist". Die Zeile gibt es nur auf einem iPhone, mit dem eine Uhr gekoppelt ist.
+
+**Bluetooth sensors**: "Heart-rate straps, speed and cadence sensors, power meters", oder wie viele Sensoren gekoppelt sind. Dahinter liegt der Bildschirm, auf dem **Scan** sie sucht. Alles davon steht ausführlich unter [Sensoren und deine Uhr](./sensors-and-watch).
 
 ## Abo
 
@@ -79,5 +89,6 @@ Je eine Zeile für **Strava** und für **Ride with GPS**, die entweder **Nicht v
 - [Erste Schritte](./getting-started)
 - [Navigation mit Abbiegehinweisen](./navigation)
 - [Fahrt aufzeichnen](./recording-a-ride)
+- [Sensoren und deine Uhr](./sensors-and-watch)
 - [Offline-Karten und Routing](./offline-maps-and-routing)
 - [Datenschutz auf dem Handy](./privacy-on-the-phone)

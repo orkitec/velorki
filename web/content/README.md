@@ -33,7 +33,7 @@ Every file starts with a YAML block.
 |---|---|---|---|
 | `title` | all | yes | the page's h1 and its entry in the sidebar |
 | `description` | all | yes | one sentence, 160 characters or fewer, used as the meta description and the search snippet |
-| `order` | `docs/` | yes | integer, the position in the sidebar; the guide runs 1 to 16 |
+| `order` | `docs/` | yes | integer, the position in the sidebar; the guide runs 1 to 17 |
 | `draft` | any | no | `true` keeps the page out of production builds and out of the sitemap |
 
 ```markdown

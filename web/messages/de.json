@@ -199,7 +199,7 @@
         },
         "price": {
           "q": "Was kostet Velorki?",
-          "a": "Alles, was auf dem Handy läuft, ist kostenlos: Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufnahme, Fahrtstatistik sowie GPX- und FIT-Dateien. Velorki Plus ist ein Abo für die serverseitigen Funktionen; den aktuellen Preis zeigt dir der Store in der App, in deiner Währung."
+          "a": "Alles, was auf dem Handy läuft, ist kostenlos: Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufnahme, Puls, Trittfrequenz und Leistung von deinen Sensoren, Fahrtstatistik sowie GPX- und FIT-Dateien. Velorki Plus ist ein Abo für die serverseitigen Funktionen; den aktuellen Preis zeigt dir der Store in der App, in deiner Währung."
         },
         "plus": {
           "q": "Was ist Velorki Plus?",

@@ -55,9 +55,14 @@ Opening a ride shows, from the top:
 - seven figures: **Distance**, **Moving**, **Time**, **Avg**, **Max**, **Ascent**, **Descent**. **Moving** leaves out the time you stood still; **Time** is the whole ride from start to finish.
 - the **Elevation** chart, height against distance, drawn only when the track carried heights,
 - the **Speed** chart, whose axis always starts at zero,
+- the **Heart rate** chart, when the ride carried one,
 - the **Splits** table.
 
 Touch either chart and drag along it for a read-out of the form `12.3 km · 340 m`.
+
+### Figures from a sensor
+
+A ride recorded with a heart-rate strap, an Apple Watch or a power meter carries more than the seven: **Avg HR**, **Max HR**, **Avg cadence** and **Avg power** join the figures, each one only if the ride has it, and the **Heart rate** chart is drawn under the speed chart. A ride recorded without a sensor shows none of it, and a ride imported from a GPX or FIT file shows whatever that file carried. See [sensors and your watch](./sensors-and-watch).
 
 ### Splits
 
@@ -81,6 +86,7 @@ Both are covered in [import and export](./import-and-export) and [Strava and Rid
 ## Related
 
 - [Recording a ride](./recording-a-ride)
+- [Sensors and your watch](./sensors-and-watch)
 - [Import and export](./import-and-export)
 - [Sharing](./sharing)
 - [Strava and Ride with GPS](./strava-and-ridewithgps)

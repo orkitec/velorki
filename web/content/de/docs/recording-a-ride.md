@@ -23,6 +23,12 @@ Beendest du, ohne dass etwas aufgezeichnet wurde, sagt Velorki "Es wurde nichts 
 
 Velorki pausiert nach etwa zehn Sekunden ohne Bewegung von selbst; die Plakette liest sich dann **Auto-Pause**. Anders als bei einer Pause von Hand hört es weiter zu, und die erste richtige Bewegung setzt fort. Eine Pause von Hand hört auf zuzuhören, bis du auf **Fortsetzen** drückst.
 
+## Puls, Trittfrequenz und Leistung
+
+Ist ein Sensor eingeschaltet, kommt in der Übersicht eine dritte Zeile mit Zahlen dazu, solange er meldet: **Heart rate**, **Cadence** und **Power**. Sie können von einem Bluetooth-Sensor, von einer Apple Watch oder von der Health-App des Handys kommen, werden während der Fahrt in den Track geschrieben, und auf dem iPhone steht der Puls auch auf der Sperrbildschirm-Karte. Solange ein Radsensor meldet, ist seine Geschwindigkeit das, was **Tempo** zeigt.
+
+Ohne Sensor erscheint nichts davon, und eingeschaltet wird nichts, bevor du es unter **Einstellungen → Sensors** tust. Siehe [Sensoren und deine Uhr](./sensors-and-watch).
+
 ## Was beim ersten Mal gefragt wird
 
 Die erste Fahrt löst bis zu drei Abfragen aus, ausführlich beschrieben unter [Erste Schritte](./getting-started):
@@ -81,6 +87,7 @@ Unter **Letzte Fahrten** im Tab Aufnahme stehen deine letzten fünf, die neueste
 ## Weiterlesen
 
 - [Navigation mit Abbiegehinweisen](./navigation)
+- [Sensoren und deine Uhr](./sensors-and-watch)
 - [Bibliothek](./library)
 - [Import und Export](./import-and-export)
 - [Strava und Ride with GPS](./strava-and-ridewithgps)

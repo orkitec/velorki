@@ -199,7 +199,7 @@
         },
         "price": {
           "q": "What does Velorki cost?",
-          "a": "Everything that runs on the phone is free: planning, loops, offline maps and routing, search, navigation, recording, ride stats and GPX and FIT files. Velorki Plus is a subscription for the server-side features; the current price is shown in the app, in your currency, by the store."
+          "a": "Everything that runs on the phone is free: planning, loops, offline maps and routing, search, navigation, recording, heart rate, cadence and power from your sensors, ride stats and GPX and FIT files. Velorki Plus is a subscription for the server-side features; the current price is shown in the app, in your currency, by the store."
         },
         "plus": {
           "q": "What is Velorki Plus?",

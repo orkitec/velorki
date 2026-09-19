@@ -1,6 +1,6 @@
 ---
 title: Settings and appearance
-description: Every setting in Velorki, from theme, accent and units to navigation, recording, search, offline data, connections and the server URLs.
+description: Every setting in Velorki, from theme, accent and units to navigation, recording, sensors, search, offline data, connections and the server URLs.
 order: 14
 ---
 
@@ -37,6 +37,16 @@ The three switches here are the same ones as on the Record tab's sheet.
 **GPS precision**: **Battery saver**, **Normal** or **Precise**, with the hint "Precise is for trails; Normal is enough for roads". It decides how hard the one GPS client is driven while a ride runs.
 
 **Battery saver**: "Dark map, no animations, a plain page with the numbers after 30 s; the screen is what drains the battery". The full behaviour is in [recording a ride](./recording-a-ride).
+
+## Sensors
+
+**Apple Health**, or **Health Connect** on Android: "Heart rate from your watch or any app that writes it; rides are saved as workouts". Turning it on is what asks the phone for access to your health data, and refusing leaves it off.
+
+**Save rides to Health**: writes each finished ride into the store as a cycling workout. It can be switched off on its own and does nothing while the switch above it is off.
+
+**Apple Watch**: "Heart rate from the watch, ride controls on the wrist". The row is there only on an iPhone that has a watch paired to it.
+
+**Bluetooth sensors**: "Heart-rate straps, speed and cadence sensors, power meters", or how many sensors are paired. It opens the screen where **Scan** looks for them. All of it is walked through in [sensors and your watch](./sensors-and-watch).
 
 ## Subscription
 
@@ -79,5 +89,6 @@ One row for **Strava** and one for **Ride with GPS**, each showing **Not connect
 - [Getting started](./getting-started)
 - [Turn-by-turn navigation](./navigation)
 - [Recording a ride](./recording-a-ride)
+- [Sensors and your watch](./sensors-and-watch)
 - [Offline maps and routing](./offline-maps-and-routing)
 - [Privacy on the phone](./privacy-on-the-phone)
