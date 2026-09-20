@@ -12,6 +12,7 @@ import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki/features/navigation/domain/off_route_guidance.dart';
 import 'package:velorki/features/navigation/presentation/turn_banner.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
+import 'package:velorki/features/planner/domain/route_poi.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -121,6 +122,48 @@ void main() {
     expect(find.text(l10n.navTurnLeft), findsOneWidget);
     expect(find.byIcon(Icons.turn_left), findsOneWidget);
     expect(find.textContaining(l10n.navThenLabel), findsNothing);
+  });
+
+  testWidgets('a point of interest nearer than the next turn takes the '
+      'banner, a hazard in the warning colour', (tester) async {
+    await _pumpBanner(
+      tester,
+      const NavigationProgress(
+        next: _left,
+        distanceToNextM: 400,
+        poi: RoutePoi(
+          pos: LatLng(48, 11),
+          name: 'START DISMOUNT ZONE',
+          kind: PoiKind.danger,
+        ),
+        distanceToPoiM: 80,
+      ),
+    );
+
+    expect(find.text('80 m'), findsOneWidget);
+    expect(
+      find.text(l10n.navCautionLabel('START DISMOUNT ZONE')),
+      findsOneWidget,
+    );
+    expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+    expect(find.text(l10n.navTurnLeft), findsNothing);
+  });
+
+  testWidgets('a point of interest behind the next turn waits its turn', (
+    tester,
+  ) async {
+    await _pumpBanner(
+      tester,
+      const NavigationProgress(
+        next: _left,
+        distanceToNextM: 120,
+        poi: RoutePoi(pos: LatLng(48, 11), name: 'Water Fountain'),
+        distanceToPoiM: 250,
+      ),
+    );
+
+    expect(find.text(l10n.navTurnLeft), findsOneWidget);
+    expect(find.text('Water Fountain'), findsNothing);
   });
 
   testWidgets('a turn close behind the next one is a "then" and an arrow', (

@@ -41,6 +41,10 @@ abstract class MapController {
   /// through [onWaypointDragged] with the marker's index.
   Future<void> setWaypoints(List<MapWaypoint> waypoints);
 
+  /// Points of interest beside the route, each a small marker with its name;
+  /// an empty list takes them away. Not draggable, not tappable.
+  Future<void> setPois(List<MapPoi> pois);
+
   /// A recorded or recording track, drawn distinct from planned routes.
   Future<void> setTrackLine(List<LatLng> points);
 
@@ -121,6 +125,33 @@ class TrackSegment {
 enum RouteLineStyle { main, alternative, preview }
 
 enum MapWaypointKind { start, via, end }
+
+/// What a point of interest is about, which picks its colour.
+enum MapPoiKind { danger, water, food, generic }
+
+/// A point of interest marker: a named place beside the route.
+class MapPoi {
+  const MapPoi({
+    required this.position,
+    required this.name,
+    required this.kind,
+  });
+
+  final LatLng position;
+  final String name;
+  final MapPoiKind kind;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MapPoi &&
+          other.position == position &&
+          other.name == name &&
+          other.kind == kind;
+
+  @override
+  int get hashCode => Object.hash(position, name, kind);
+}
 
 @immutable
 class MapWaypoint {

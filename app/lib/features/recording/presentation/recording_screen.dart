@@ -27,7 +27,9 @@ import '../../navigation/presentation/turn_phrases.dart';
 import '../../planner/application/planner_controller.dart';
 import '../../planner/data/route_repository.dart';
 import '../../planner/domain/saved_route.dart';
+import '../../planner/domain/route_poi.dart';
 import '../../planner/presentation/planner_map_host.dart';
+import '../../planner/presentation/poi_markers.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../search/data/gazetteer_store.dart';
 import '../../sensors/application/ride_health_sync.dart';
@@ -173,6 +175,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   String? _drawnRouteId;
   RouteLineStyle? _drawnRouteStyle;
   String? _drawnBranchId;
+  String? _drawnPoisId;
 
   /// Whether the camera stays on the rider. On from the moment a ride starts,
   /// off as soon as the rider drags the map, back on with the locate button.
@@ -672,6 +675,13 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       } else {
         unawaited(map.setRouteLine(followedRouteLineId, line, style: style));
       }
+    }
+    // The followed route's points of interest ride along with it: only a
+    // saved route has any, a plan never does.
+    final poisKey = route?.pois.isEmpty ?? true ? null : route!.id;
+    if (poisKey != _drawnPoisId) {
+      _drawnPoisId = poisKey;
+      unawaited(map.setPois(poiMarkers(route?.pois ?? const <RoutePoi>[])));
     }
     final branchKey = branch.isEmpty ? null : detour!.key;
     if (branchKey != _drawnBranchId) {

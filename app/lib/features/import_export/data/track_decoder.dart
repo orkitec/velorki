@@ -5,6 +5,7 @@ import 'package:velorki_fit/velorki_fit.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki_gpx/velorki_gpx.dart';
 
+import '../../planner/domain/route_poi.dart';
 import '../domain/imported_track.dart';
 
 /// Why a file could not be imported.
@@ -117,7 +118,23 @@ ImportedTrack _decodeGpx(Uint8List bytes, String? fileName) {
     description:
         document.description ?? track?.description ?? route?.description,
     creator: document.creator,
-    waypoints: [for (final w in document.waypoints) w.pos],
+    pois: [
+      for (final w in document.waypoints)
+        RoutePoi(
+          pos: w.pos,
+          name: w.name?.trim().isNotEmpty ?? false
+              ? w.name!.trim()
+              : (w.symbol ?? w.type ?? ''),
+          description: w.description?.trim().isNotEmpty ?? false
+              ? w.description!.trim()
+              : null,
+          kind: PoiKind.fromGpx(
+            type: w.type,
+            symbol: w.symbol,
+            comment: w.comment,
+          ),
+        ),
+    ],
   );
 }
 

@@ -56,6 +56,7 @@ class GpxWaypoint {
     this.symbol,
     this.type,
     this.time,
+    this.comment,
   });
 
   /// Where the waypoint is.
@@ -78,6 +79,10 @@ class GpxWaypoint {
 
   /// `<time>`: when the waypoint was recorded, in UTC after decoding.
   final DateTime? time;
+
+  /// `<cmt>`: a short comment; Ride with GPS puts its category here
+  /// (`caution`, `water`).
+  final String? comment;
 
   /// Latitude shortcut.
   double get lat => pos.lat;

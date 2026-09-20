@@ -123,11 +123,38 @@ void main() {
           MapLayerIds.waypointsHitLayer,
           MapLayerIds.waypointsCircleLayer,
           MapLayerIds.waypointsLabelLayer,
+          MapLayerIds.poisSource,
+          MapLayerIds.poisCircleLayer,
+          MapLayerIds.poisLabelLayer,
           MapLayerIds.searchPinSource,
           MapLayerIds.searchPinLayer,
           MapLayerIds.searchPinLabelLayer,
         ],
       );
+    });
+
+    test('points of interest are written with their name and kind, and '
+        'replayed after a style reload', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+
+      await adapter.setPois(const <MapPoi>[
+        MapPoi(
+          position: LatLng(48, 11),
+          name: 'Water Fountain',
+          kind: MapPoiKind.water,
+        ),
+      ]);
+      final features = _featuresOf(ops, MapLayerIds.poisSource);
+      expect(features, hasLength(1));
+      expect(features.single['properties'], {
+        'name': 'Water Fountain',
+        'kind': 'water',
+      });
+
+      await adapter.attachToStyle();
+      expect(_featuresOf(ops, MapLayerIds.poisSource), hasLength(1));
     });
 
     test('starts every source off as an empty feature collection', () async {
@@ -139,6 +166,7 @@ void main() {
         MapLayerIds.trackSource,
         MapLayerIds.positionSource,
         MapLayerIds.waypointsSource,
+        MapLayerIds.poisSource,
         MapLayerIds.searchPinSource,
       ]) {
         expect(

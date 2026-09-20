@@ -9,6 +9,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/application/planner_controller.dart';
+import '../../planner/domain/route_poi.dart';
 import '../../planner/domain/elevation_profile.dart';
 import '../../planner/data/route_repository.dart';
 import '../../planner/data/routing_backend_provider.dart';
@@ -54,6 +55,7 @@ class GuidedRoute {
     this.branch = const <LatLng>[],
     this.rejoinAlongM = 0,
     this.replacesPlan = false,
+    this.pois = const <RoutePoi>[],
   });
 
   /// Identity of the route: the saved route's id, or, for a plan that was
@@ -94,6 +96,9 @@ class GuidedRoute {
   /// Whether this route replaces the plan rather than rejoining it: the whole
   /// ride re-planned to its destination from where the rider stood.
   final bool replacesPlan;
+
+  /// The points of interest the route came with; a plan has none.
+  final List<RoutePoi> pois;
 }
 
 /// The route the record screen draws and the navigator follows: the saved
@@ -137,6 +142,7 @@ GuidedRoute? guidedRoute(Ref ref) {
       turns: route.turns,
       waypoints: route.waypoints.map((w) => w.pos).toList(growable: false),
       options: route.options,
+      pois: route.pois,
     );
   }
   final result = ref.watch(plannerControllerProvider.select((s) => s.result));
@@ -279,6 +285,13 @@ class NavigationController extends _$NavigationController {
   /// every fix is projected onto the plan.
   List<double> _planCumulative = const <double>[];
 
+  /// The plan's points of interest, each with how far along the plan it
+  /// sits, in order; and which of them have been announced this ride.
+  List<_PoiAlong> _planPois = const <_PoiAlong>[];
+  final Set<int> _poisAnnounced = <int>{};
+  RoutePoi? _poi;
+  double _poiDistanceM = 0;
+
   /// The ride the current guidance belongs to, for the same reason.
   String? _rideId;
 
@@ -396,6 +409,10 @@ class NavigationController extends _$NavigationController {
       _machineKey = plan.key;
       _machine = OffRouteMachine(line: plan.line);
       _planCumulative = cumulativeDistances(plan.line);
+      _planPois = _placePois(plan);
+      _poisAnnounced.clear();
+      _poi = null;
+      _poiDistanceM = 0;
     }
 
     _ensureNavigator(detour ?? plan, plan);
@@ -432,6 +449,7 @@ class NavigationController extends _$NavigationController {
       speedMps: snapshot.speedMps,
       leadSeconds: settings.leadSeconds,
     );
+    cues.addAll(_poiCues(progress, snapshot.speedMps, settings.leadSeconds));
     if (cues.isNotEmpty && settings.voice) _speak(cues);
     // The corner itself is the one cue worth a buzz; the ones announced
     // hundreds of metres out are not.
@@ -529,7 +547,67 @@ class NavigationController extends _$NavigationController {
         rerouting: _rerouting,
         offRouteState: _offRouteState,
         guidance: _guidance,
+        poi: _poi,
+        distanceToPoiM: _poiDistanceM,
       );
+
+  /// The plan's points of interest that sit on or beside it, with how far
+  /// along the plan each one is. One too far off the line is not on this
+  /// ride, whatever the file said.
+  List<_PoiAlong> _placePois(GuidedRoute plan) {
+    if (plan.pois.isEmpty || plan.line.length < 2) return const <_PoiAlong>[];
+    final placed = <_PoiAlong>[];
+    for (final poi in plan.pois) {
+      final on = projectOnLine(plan.line, poi.pos, cumulative: _planCumulative);
+      if (on.distanceM > poiBesideRouteM) continue;
+      placed.add(_PoiAlong(poi, on.alongM));
+    }
+    placed.sort((a, b) => a.alongM.compareTo(b.alongM));
+    return placed;
+  }
+
+  /// Keeps the next point of interest ahead of the rider in view, and says
+  /// it once when it comes within the same lead a turn gets. Only while the
+  /// rider is on the plan: off it, the way back is what matters.
+  List<TurnCue> _poiCues(
+    NavigationProgress progress,
+    double speedMps,
+    int leadSeconds,
+  ) {
+    _poi = null;
+    _poiDistanceM = 0;
+    if (_planPois.isEmpty || progress.offRoute || progress.arrived) {
+      return const <TurnCue>[];
+    }
+    // The first point still ahead: a rider level with one has passed it.
+    final along = _planAlongM;
+    _PoiAlong? next;
+    for (final candidate in _planPois) {
+      if (candidate.alongM - along >= -poiPassedM) {
+        next = candidate;
+        break;
+      }
+    }
+    if (next == null) return const <TurnCue>[];
+    final distance = math.max(0.0, next.alongM - along);
+    _poi = next.poi;
+    _poiDistanceM = distance;
+    final leadM = math.max(
+      poiLeadFloorM,
+      math.max(2.8, speedMps) * leadSeconds,
+    );
+    final index = _planPois.indexOf(next);
+    if (distance <= leadM && _poisAnnounced.add(index)) {
+      return <TurnCue>[
+        TurnCue(
+          kind: CueKind.poi,
+          poi: next.poi,
+          distanceM: roundedAheadMeters(distance),
+        ),
+      ];
+    }
+    return const <TurnCue>[];
+  }
 
   /// Works out a way back onto the plan now, because the rider asked for one
   /// by tapping the banner.
@@ -905,4 +983,21 @@ class _Rejoin {
 
   /// Where it meets the plan again.
   final RejoinTarget target;
+}
+
+/// How far off the plan a point of interest may sit and still be announced.
+const double poiBesideRouteM = 60;
+
+/// How far past a point of interest the rider may be before it counts as
+/// passed: a fix or two of GPS wander.
+const double poiPassedM = 25;
+
+/// The least warning a point of interest gets, however slow the rider.
+const double poiLeadFloorM = 100;
+
+class _PoiAlong {
+  const _PoiAlong(this.poi, this.alongM);
+
+  final RoutePoi poi;
+  final double alongM;
 }

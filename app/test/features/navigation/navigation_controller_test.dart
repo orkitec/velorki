@@ -25,6 +25,7 @@ import 'package:velorki/features/recording/application/recording_controller.dart
 import 'package:velorki/features/recording/data/recording_service.dart';
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
+import 'package:velorki/features/planner/domain/route_poi.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -60,6 +61,7 @@ const List<double> _waypointsAlongM = <double>[0, 500, 800, 1000];
 SavedRoute _savedRoute({
   List<TurnHint> turns = _turns,
   List<double> waypointsAlongM = _waypointsAlongM,
+  List<RoutePoi> pois = const <RoutePoi>[],
 }) => SavedRoute(
   id: 'route-1',
   name: 'Along the river',
@@ -77,6 +79,7 @@ SavedRoute _savedRoute({
   ],
   options: const RoutingOptions(),
   turns: turns,
+  pois: pois,
 );
 
 /// Five kilometres north, a point every 50 m: far enough that the end of the
@@ -330,6 +333,42 @@ void main() {
     expect(h.progress!.distanceToNextM, closeTo(20, 2));
     expect(h.progress!.offRoute, isFalse);
   });
+
+  test(
+    'a point of interest on the route is shown ahead and said once',
+    () async {
+      final h = await _NavHarness.create(
+        saved: _savedRoute(
+          pois: <RoutePoi>[
+            RoutePoi(
+              pos: _at(300, asideM: 10),
+              name: 'START DISMOUNT ZONE',
+              kind: PoiKind.danger,
+            ),
+            // Two hundred metres beside the road is not on this ride.
+            RoutePoi(pos: _at(700, asideM: 200), name: 'Elsewhere'),
+          ],
+        ),
+      );
+      await h.follow('route-1');
+
+      await h.ride(0);
+      expect(h.progress?.poi?.name, 'START DISMOUNT ZONE');
+      expect(h.progress?.distanceToPoiM, closeTo(300, 5));
+
+      // At 6 m/s the lead is 100 m (the floor); 250 m out is too early.
+      await h.ride(150);
+      expect(h.speaker.spoken, isEmpty);
+      await h.ride(210);
+      expect(h.speaker.spoken, ['In 90 metres, caution: START DISMOUNT ZONE']);
+      await h.ride(250);
+      expect(h.speaker.spoken, hasLength(1), reason: 'said once');
+
+      // Past it, the next one would be up; there is none on the road.
+      await h.ride(350);
+      expect(h.progress?.poi, isNull);
+    },
+  );
 
   test('every cue is spoken once, in English', () async {
     final h = await _NavHarness.create(saved: _savedRoute());

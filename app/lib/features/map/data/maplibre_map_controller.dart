@@ -35,6 +35,9 @@ abstract final class MapLayerIds {
   static const String waypointsHitLayer = 'velorki-waypoints-hit';
   static const String waypointsCircleLayer = 'velorki-waypoints-circle';
   static const String waypointsLabelLayer = 'velorki-waypoints-label';
+  static const String poisSource = 'velorki-pois';
+  static const String poisCircleLayer = 'velorki-pois-circle';
+  static const String poisLabelLayer = 'velorki-pois-label';
 
   static String routeSource(String id) => 'velorki-route-${_slug(id)}';
   static String routeLayer(String id) => 'velorki-route-${_slug(id)}-line';
@@ -72,7 +75,17 @@ class MapPalette {
     required this.waypointLabelHalo,
     required this.positionDot,
     required this.positionAccuracy,
+    this.poiDanger = '#EF6C00',
+    this.poiWater = '#1E88E5',
+    this.poiFood = '#8E24AA',
+    this.poiGeneric = '#78909C',
   });
+
+  /// The points of interest by kind: a hazard, water, food, anything else.
+  final String poiDanger;
+  final String poiWater;
+  final String poiFood;
+  final String poiGeneric;
 
   /// The fixed palette of the first release.
   const MapPalette.classic()
@@ -91,7 +104,11 @@ class MapPalette {
       waypointLabel = '#FFFFFF',
       waypointLabelHalo = '#00000055',
       positionDot = '#1E88E5',
-      positionAccuracy = '#1E88E5';
+      positionAccuracy = '#1E88E5',
+      poiDanger = '#EF6C00',
+      poiWater = '#1E88E5',
+      poiFood = '#8E24AA',
+      poiGeneric = '#78909C';
 
   /// The palette of [theme]'s [VelorkiColors].
   factory MapPalette.fromTheme(ThemeData theme) {
@@ -117,6 +134,10 @@ class MapPalette {
       waypointLabelHalo: '#FFFFFF66',
       positionDot: VelorkiColors.hex(colors.position),
       positionAccuracy: VelorkiColors.hex(colors.position),
+      poiDanger: VelorkiColors.hex(colors.warning),
+      poiWater: VelorkiColors.hex(colors.position),
+      poiFood: VelorkiColors.hex(theme.colorScheme.tertiary),
+      poiGeneric: VelorkiColors.hex(colors.routeAlternative),
     );
   }
 
@@ -496,6 +517,7 @@ class MaplibreMapControllerAdapter implements MapController {
   // draws a preview as a preview; `_routeLines` only knows what exists.
   final Map<String, RouteLineStyle> _routeStyles = <String, RouteLineStyle>{};
   List<MapWaypoint> _waypoints = const <MapWaypoint>[];
+  List<MapPoi> _pois = const <MapPoi>[];
   LatLng? _searchPin;
   String? _searchPinLabel;
   List<LatLng> _track = const <LatLng>[];
@@ -683,6 +705,41 @@ class MaplibreMapControllerAdapter implements MapController {
       enableInteraction: false,
     );
 
+    // The route's points of interest: small discs in the colour of their
+    // kind, the name above each. Under the waypoints, so a start marker on a
+    // water fountain still reads as the start.
+    await _ops.addGeoJsonSource(
+      MapLayerIds.poisSource,
+      emptyFeatureCollection(),
+    );
+    await _ops.addLayer(
+      MapLayerIds.poisSource,
+      MapLayerIds.poisCircleLayer,
+      ml.CircleLayerProperties(
+        circleRadius: 6.0,
+        circleColor: _poiColorExpression(),
+        circleStrokeWidth: 2.0,
+        circleStrokeColor: palette.waypointStroke,
+      ),
+      enableInteraction: false,
+    );
+    await _ops.addLayer(
+      MapLayerIds.poisSource,
+      MapLayerIds.poisLabelLayer,
+      ml.SymbolLayerProperties(
+        textField: <Object>['get', 'name'],
+        textFont: waypointLabelFont,
+        textSize: 11.0,
+        textColor: _poiColorExpression(),
+        textHaloColor: palette.waypointStroke,
+        textHaloWidth: 1.2,
+        textAnchor: 'bottom',
+        textOffset: <Object>[0, -0.9],
+        textOptional: true,
+      ),
+      enableInteraction: false,
+    );
+
     // The searched place: a pin in the preview colour with the place name,
     // shown until the rider makes it a start, a destination, or drops it.
     await _ops.addGeoJsonSource(
@@ -727,6 +784,7 @@ class MaplibreMapControllerAdapter implements MapController {
   /// load dropped every source.
   Future<void> _replay() async {
     if (_waypoints.isNotEmpty) await setWaypoints(_waypoints);
+    if (_pois.isNotEmpty) await setPois(_pois);
     if (_searchPin != null) {
       await setSearchPin(_searchPin, label: _searchPinLabel);
     }
@@ -1119,6 +1177,20 @@ class MaplibreMapControllerAdapter implements MapController {
       ),
     );
     await _ops.setLayerProperties(
+      MapLayerIds.poisCircleLayer,
+      ml.CircleLayerProperties(
+        circleColor: _poiColorExpression(),
+        circleStrokeColor: palette.waypointStroke,
+      ),
+    );
+    await _ops.setLayerProperties(
+      MapLayerIds.poisLabelLayer,
+      ml.SymbolLayerProperties(
+        textColor: _poiColorExpression(),
+        textHaloColor: palette.waypointStroke,
+      ),
+    );
+    await _ops.setLayerProperties(
       MapLayerIds.waypointsLabelLayer,
       ml.SymbolLayerProperties(
         textColor: palette.waypointLabel,
@@ -1151,6 +1223,18 @@ class MaplibreMapControllerAdapter implements MapController {
     }
   }
 
+  List<Object> _poiColorExpression() => <Object>[
+    'match',
+    <Object>['get', 'kind'],
+    'danger',
+    palette.poiDanger,
+    'water',
+    palette.poiWater,
+    'food',
+    palette.poiFood,
+    palette.poiGeneric,
+  ];
+
   List<Object> _waypointColorExpression() => <Object>[
     'match',
     <Object>['get', 'kind'],
@@ -1177,6 +1261,17 @@ class MaplibreMapControllerAdapter implements MapController {
       MapLayerIds.waypointsSource,
       waypointsFeatureCollection(waypoints),
     );
+  }
+
+  @override
+  Future<void> setPois(List<MapPoi> pois) async {
+    _pois = List<MapPoi>.unmodifiable(pois);
+    if (!_attached) return;
+    if (await _hasSource(MapLayerIds.poisSource) == false) {
+      await attachToStyle();
+      return;
+    }
+    await _writeBaseSource(MapLayerIds.poisSource, poisFeatureCollection(pois));
   }
 
   /// Whether [attachToStyle] is running because a write found the style

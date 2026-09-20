@@ -11,6 +11,7 @@ import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/presentation/route_format.dart';
 import '../data/share_service.dart';
+import '../../planner/domain/route_poi.dart';
 
 /// The "Share link" button on the route and ride detail screens.
 ///
@@ -28,6 +29,7 @@ class ShareLinkButton extends ConsumerStatefulWidget {
     super.key,
     this.ascentM,
     this.duration,
+    this.pois = const <RoutePoi>[],
   });
 
   /// The title shown on the share page.
@@ -47,6 +49,9 @@ class ShareLinkButton extends ConsumerStatefulWidget {
 
   /// How long the ride took, for a ride.
   final Duration? duration;
+
+  /// The route's points of interest, for a route; they go into the share.
+  final List<RoutePoi> pois;
 
   @override
   ConsumerState<ShareLinkButton> createState() => _ShareLinkButtonState();
@@ -71,6 +76,7 @@ class _ShareLinkButtonState extends ConsumerState<ShareLinkButton> {
         distanceM: widget.distanceM,
         ascentM: widget.ascentM,
         duration: widget.duration,
+        pois: widget.pois,
       );
     } on ShareException catch (e) {
       messenger.showSnackBar(

@@ -15,6 +15,7 @@ import '../../planner/domain/elevation_profile.dart';
 import '../../planner/domain/route_profile.dart';
 import '../../planner/presentation/elevation_profile_chart.dart';
 import '../../planner/presentation/planner_map_host.dart';
+import '../../planner/presentation/poi_markers.dart';
 import '../../planner/presentation/route_stats_row.dart';
 import '../../recording/presentation/ride_detail_screen.dart'
     show rideDetailLocation;
@@ -83,6 +84,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
     if (positions.isEmpty) return;
     _drawn = true;
     await map.setRouteLine(mainRouteLineId, positions);
+    await map.setPois(poiMarkers(track.pois));
     await map.fitBounds(BoundingBox.fromPoints(positions));
   }
 

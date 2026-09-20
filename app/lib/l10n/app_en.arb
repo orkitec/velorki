@@ -2869,6 +2869,11 @@
   "@navExitRight": {
     "description": "Turn-by-turn instruction: leave the road on the right. Spoken inside a longer sentence too, as in: In 200 metres, turn left - where the app lower-cases the first letter: do not start it with a word that is capitalised wherever it stands, such as a German noun."
   },
+  "navCautionLabel": "Caution: {name}",
+  "@navCautionLabel": {
+    "description": "Banner text and spoken phrase for a hazard point of interest on the route",
+    "placeholders": {"name": {"type": "String", "example": "Start dismount zone"}}
+  },
   "navContinue": "Continue",
   "@navContinue": {
     "description": "Turn-by-turn instruction: carry on, nothing to do here. Spoken inside a longer sentence too, as in: In 200 metres, turn left - where the app lower-cases the first letter: do not start it with a word that is capitalised wherever it stands, such as a German noun."

@@ -2,6 +2,7 @@ import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import 'off_route_guidance.dart';
+import '../../planner/domain/route_poi.dart';
 
 /// Where the rider stands on a route: the turn that is coming, the one after
 /// it, how much route is left and whether the rider is still on it.
@@ -25,6 +26,8 @@ class NavigationProgress {
     this.distanceFromRouteM = 0,
     this.offRouteState = OffRouteState.onRoute,
     this.guidance,
+    this.poi,
+    this.distanceToPoiM = 0,
   });
 
   /// The turn that has not been passed yet, or `null` when none is left.
@@ -88,6 +91,13 @@ class NavigationProgress {
   /// [OffRouteState.guiding], `null` otherwise.
   final OffRouteGuidance? guidance;
 
+  /// The next point of interest ahead on the plan, or `null` when none is
+  /// left or the rider is off the plan. From the controller.
+  final RoutePoi? poi;
+
+  /// Distance along the plan from the rider to [poi], in metres.
+  final double distanceToPoiM;
+
   /// The same progress with the controller's own fields filled in.
   ///
   /// The navigator knows nothing about re-routing or about the plan a rider
@@ -96,6 +106,8 @@ class NavigationProgress {
     required bool rerouting,
     required OffRouteState offRouteState,
     OffRouteGuidance? guidance,
+    RoutePoi? poi,
+    double distanceToPoiM = 0,
   }) => NavigationProgress(
     next: next,
     distanceToNextM: distanceToNextM,
@@ -110,6 +122,8 @@ class NavigationProgress {
     distanceFromRouteM: distanceFromRouteM,
     offRouteState: offRouteState,
     guidance: guidance,
+    poi: poi,
+    distanceToPoiM: distanceToPoiM,
   );
 
   @override
@@ -128,7 +142,9 @@ class NavigationProgress {
           other.routeBearingDeg == routeBearingDeg &&
           other.distanceFromRouteM == distanceFromRouteM &&
           other.offRouteState == offRouteState &&
-          other.guidance == guidance;
+          other.guidance == guidance &&
+          other.poi == poi &&
+          other.distanceToPoiM == distanceToPoiM;
 
   @override
   int get hashCode => Object.hash(

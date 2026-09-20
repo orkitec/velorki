@@ -1,5 +1,7 @@
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../planner/domain/route_poi.dart';
+
 /// The file format an import came from.
 enum ImportFormat {
   /// A GPX 1.1 document.
@@ -35,7 +37,7 @@ class ImportedTrack {
     this.name,
     this.description,
     this.creator,
-    this.waypoints = const <LatLng>[],
+    this.pois = const <RoutePoi>[],
   });
 
   /// Which decoder produced this track.
@@ -55,9 +57,9 @@ class ImportedTrack {
   /// records this.
   final String? creator;
 
-  /// Positions of the file's own waypoints, when it had any. Used as the
-  /// saved route's waypoints where they exist.
-  final List<LatLng> waypoints;
+  /// The file's own waypoints — named points of interest beside the track,
+  /// a water fountain, a dismount zone — kept with the route it becomes.
+  final List<RoutePoi> pois;
 
   /// How many points the track has.
   int get pointCount => points.length;

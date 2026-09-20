@@ -122,6 +122,28 @@ Map<String, dynamic> waypointsFeatureCollection(List<MapWaypoint> waypoints) {
   return <String, dynamic>{'type': 'FeatureCollection', 'features': features};
 }
 
+/// The points of interest as a FeatureCollection: one point each, with the
+/// name for the label and the kind for the colour.
+Map<String, dynamic> poisFeatureCollection(List<MapPoi> pois) =>
+    <String, dynamic>{
+      'type': 'FeatureCollection',
+      'features': <Map<String, dynamic>>[
+        for (var i = 0; i < pois.length; i++)
+          <String, dynamic>{
+            'type': 'Feature',
+            'id': 'poi-$i',
+            'properties': <String, dynamic>{
+              'name': pois[i].name,
+              'kind': pois[i].kind.name,
+            },
+            'geometry': <String, dynamic>{
+              'type': 'Point',
+              'coordinates': lngLat(pois[i].position),
+            },
+          },
+      ],
+    };
+
 /// Below this ground speed a GNSS course is noise, not a direction.
 ///
 /// Geolocator reports course over ground, not where the phone is pointing:

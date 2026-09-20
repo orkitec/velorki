@@ -430,6 +430,9 @@ class RecordingMapController implements MapController {
   }
 
   @override
+  Future<void> setPois(List<MapPoi> pois) => inner.setPois(pois);
+
+  @override
   LatLng? get center => inner.center;
 
   @override

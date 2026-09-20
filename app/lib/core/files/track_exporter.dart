@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../features/planner/domain/route_poi.dart';
+
 /// What is being exported; decides GPX `<rte>` vs `<trk>` and FIT course vs
 /// activity.
 enum TrackKind { route, ride }
@@ -17,6 +19,7 @@ abstract class TrackExporter {
     required TrackKind kind,
     required TrackFormat format,
     DateTime? startTime,
+    List<RoutePoi> pois = const <RoutePoi>[],
   });
 }
 

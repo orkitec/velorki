@@ -12,6 +12,7 @@ import '../../../core/db/database.dart';
 import '../../../core/geo/ride_stats.dart';
 import '../domain/route_profile.dart';
 import '../domain/routing_options.dart';
+import '../domain/route_poi.dart';
 import '../domain/saved_route.dart';
 import '../domain/waypoint.dart';
 
@@ -99,6 +100,7 @@ class RouteRepository {
     String? id,
     String? description,
     List<Waypoint>? waypoints,
+    List<RoutePoi> pois = const <RoutePoi>[],
     RoutingOptions options = const RoutingOptions(),
   }) async {
     if (points.isEmpty) {
@@ -126,6 +128,7 @@ class RouteRepository {
       geometryBlob: PackedTrack.encode(points),
       waypoints: waypoints ?? ends,
       options: options,
+      pois: pois,
     );
     await _dao.upsertRoute(toCompanion(saved));
     return saved;
@@ -215,6 +218,7 @@ class RouteRepository {
     surfaceStats: decodeSurfaceStats(row.surfaceStatsJson),
     turns: decodeTurns(row.turnsJson),
     aiDescriptionGenerated: row.aiDescriptionGenerated,
+    pois: decodePois(row.poisJson),
   );
 
   /// Maps the domain model into a row for `INSERT OR REPLACE`.
@@ -243,6 +247,7 @@ class RouteRepository {
     ),
     turnsJson: Value(encodeTurns(route.turns)),
     aiDescriptionGenerated: Value(route.aiDescriptionGenerated),
+    poisJson: Value(encodePois(route.pois)),
   );
 
   BoundingBox _boundsOf(List<Waypoint> waypoints) => waypoints.isEmpty
@@ -284,6 +289,22 @@ Map<String, dynamic> encodeSurfaceStats(SurfaceStats stats) =>
       'coveredLengthM': stats.coveredLengthM,
       'totalLengthM': stats.totalLengthM,
     };
+
+/// The `pois_json` column: null rather than `[]` for a route without any.
+String? encodePois(List<RoutePoi> pois) =>
+    pois.isEmpty ? null : jsonEncode(pois.map((p) => p.toMap()).toList());
+
+/// Parses the `pois_json` column; anything unreadable yields an empty list
+/// rather than breaking the library.
+List<RoutePoi> decodePois(String? json) {
+  if (json == null || json.isEmpty) return const <RoutePoi>[];
+  final decoded = _tryDecode(json);
+  if (decoded is! List) return const <RoutePoi>[];
+  return <RoutePoi>[
+    for (final entry in decoded)
+      if (entry is Map<String, dynamic>) RoutePoi.fromMap(entry),
+  ];
+}
 
 /// The `turns_json` column: null rather than `[]` for a route without turn
 /// instructions, so the column stays empty for everything that never went

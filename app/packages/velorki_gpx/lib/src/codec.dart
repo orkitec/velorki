@@ -191,6 +191,7 @@ abstract final class GpxCodec {
     symbol: _nonEmpty(wpt.sym),
     type: _nonEmpty(wpt.type),
     time: wpt.time?.toUtc(),
+    comment: _nonEmpty(wpt.cmt),
   );
 
   static TrackPoint _toTrackPoint(gpxlib.Wpt wpt) {
@@ -397,6 +398,7 @@ abstract final class GpxCodec {
     desc: waypoint.description,
     sym: waypoint.symbol,
     type: waypoint.type,
+    cmt: waypoint.comment,
   );
 
   /// Serialises [gpx] and cleans up what `package:gpx`'s writer leaves behind.

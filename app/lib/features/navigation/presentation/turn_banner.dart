@@ -10,6 +10,7 @@ import '../data/navigation_settings.dart';
 import '../domain/navigation_progress.dart';
 import '../domain/off_route_guidance.dart';
 import 'turn_phrases.dart';
+import '../../planner/domain/route_poi.dart';
 
 /// How much room the banner takes at the top of the record screen, so the map
 /// controls can be pushed below it.
@@ -36,6 +37,9 @@ const double _minInstructionScale = 0.78;
 /// banner to preview it. Further than this the rider will be told in time by
 /// the banner itself once the first turn is done.
 const double thenPreviewM = 250;
+
+/// How close a point of interest has to be before it takes the banner.
+const double poiBannerM = 300;
 
 class TurnBanner extends ConsumerWidget {
   /// Creates the banner.
@@ -64,6 +68,12 @@ class TurnBanner extends ConsumerWidget {
     final guidance = progress.guidance;
     final guiding =
         progress.offRouteState == OffRouteState.guiding && guidance != null;
+    final poi =
+        progress.poi != null &&
+            progress.distanceToPoiM <= poiBannerM &&
+            (next == null || progress.distanceToPoiM < progress.distanceToNextM)
+        ? progress.poi
+        : null;
 
     if (guiding) {
       // The plan is still the route; this only says where to pick it up.
@@ -101,6 +111,19 @@ class TurnBanner extends ConsumerWidget {
       icon = Icons.flag;
       tint = colors.success;
       row = [_state(theme, l10n.navArrived, tint)];
+    } else if (poi != null) {
+      // A point of interest closer than the next turn takes the banner: a
+      // dismount zone in 80 m matters more than a left turn in 400.
+      icon = poiIcon(poi.kind);
+      tint = poi.kind == PoiKind.danger ? colors.warning : colors.accent;
+      row = [
+        _distance(
+          theme,
+          distanceLabel(progress.distanceToPoiM, l10n, units),
+          tint,
+        ),
+        _instruction(theme, poiLabel(poi, l10n)),
+      ];
     } else if (next == null) {
       icon = Icons.straight;
       tint = colors.accent;

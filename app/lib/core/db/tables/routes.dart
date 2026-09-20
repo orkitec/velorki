@@ -29,6 +29,10 @@ class Routes extends Table {
   /// The turn instructions as a JSON list of `TurnHint.toMap()`; null when the
   /// route has none.
   TextColumn get turnsJson => text().nullable()();
+
+  /// The route's points of interest as a JSON list; null for a route without
+  /// any and for rows saved before the app stored them.
+  TextColumn get poisJson => text().nullable()();
   TextColumn get externalIdsJson => text().nullable()();
 
   /// Drives Strava's 7-day cache rule for imported routes.

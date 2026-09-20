@@ -7,6 +7,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 import '../../../core/db/database.dart' show RouteSource;
 import 'route_profile.dart';
 import 'routing_options.dart';
+import 'route_poi.dart';
 import 'waypoint.dart';
 
 part 'saved_route.freezed.dart';
@@ -43,6 +44,10 @@ abstract class SavedRoute with _$SavedRoute {
     /// Whether [description] was written by the model rather than by the
     /// rider. Shown next to the text and re-set when it is written again.
     @Default(false) bool aiDescriptionGenerated,
+
+    /// The points of interest the route came with: an imported file's
+    /// waypoints. Empty for a route planned here.
+    @Default(<RoutePoi>[]) List<RoutePoi> pois,
   }) = _SavedRoute;
 
   const SavedRoute._();

@@ -551,6 +551,7 @@
   "navRoundaboutExit": "Im Kreisverkehr die {exit}. Ausfahrt nehmen",
   "navExitLeft": "Links auf die Ausfahrt",
   "navExitRight": "Rechts auf die Ausfahrt",
+  "navCautionLabel": "Achtung: {name}",
   "navContinue": "Geradeaus weiter",
   "navArrive": "Am Ziel ankommen",
   "navCueAhead": "In {distance} Metern {instruction}",

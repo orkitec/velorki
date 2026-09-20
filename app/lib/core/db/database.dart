@@ -36,7 +36,7 @@ class VelorkiDatabase extends _$VelorkiDatabase {
   factory VelorkiDatabase.open() => VelorkiDatabase(_openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -57,6 +57,9 @@ class VelorkiDatabase extends _$VelorkiDatabase {
         await m.addColumn(rides, rides.avgCadenceRpm);
         await m.addColumn(rides, rides.avgPowerW);
       }
+      // 5 added the points of interest a route was imported with; older
+      // routes keep null and come back with an empty list.
+      if (from < 5) await m.addColumn(routes, routes.poisJson);
     },
     beforeOpen: (_) async {
       // SQLite needs this per connection for the rides → routes foreign key.

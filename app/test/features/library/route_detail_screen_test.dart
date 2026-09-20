@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/router.dart';
+import 'package:velorki/core/db/tables/routes.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/domain/routing_options.dart';
 import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
+import 'package:velorki/features/planner/domain/route_poi.dart';
+import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
@@ -35,6 +38,43 @@ Future<SavedRoute> _seed(PlannerHarness h) =>
     );
 
 void main() {
+  testWidgets('an imported route shows its points of interest on the map', (
+    tester,
+  ) async {
+    final h = PlannerHarness();
+    final saved =
+        await RouteRepository(
+          h.db.routesDao,
+          clock: () => DateTime.utc(2026, 9, 12, 10),
+        ).saveImportedRoute(
+          name: 'Ride Queens',
+          points: syntheticRoute().geometry,
+          source: RouteSource.importedGpx,
+          pois: const <RoutePoi>[
+            RoutePoi(
+              pos: LatLng(48.01, 11.01),
+              name: 'Dismount',
+              kind: PoiKind.danger,
+            ),
+            RoutePoi(
+              pos: LatLng(48.02, 11.02),
+              name: 'Water',
+              kind: PoiKind.water,
+            ),
+          ],
+        );
+    await pumpApp(
+      tester,
+      initialLocation: routeDetailLocation(saved.id),
+      harness: h,
+    );
+    await tester.pumpAndSettle();
+
+    expect(h.map.pois.map((p) => p.name), ['Dismount', 'Water']);
+    expect(h.map.pois.first.kind, MapPoiKind.danger);
+    await unmountApp(tester);
+  });
+
   testWidgets('a deleted route says so instead of crashing', (tester) async {
     await pumpApp(tester, initialLocation: routeDetailLocation('gone'));
     await tester.pumpAndSettle();

@@ -5,6 +5,7 @@ import '../../../core/units/units.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../application/turn_announcer.dart';
 import '../domain/off_route_guidance.dart';
+import '../../planner/domain/route_poi.dart';
 
 /// The instruction that sends a rider who has left the route back onto it,
 /// e.g. "Back to the route, on your left".
@@ -53,6 +54,17 @@ String cuePhrase(
           units,
         ),
       );
+    case CueKind.poi:
+      final poi = cue.poi;
+      if (poi == null) return '';
+      // "In 100 metres, caution: start dismount zone": the same sentence
+      // a turn gets, with the name where the instruction would be.
+      return _aheadPhrase(
+        cue.distanceM,
+        _midSentence(poiLabel(poi, l10n)),
+        l10n,
+        units,
+      );
     case CueKind.rerouted:
       return l10n.navRerouted;
     case CueKind.arrived:
@@ -75,6 +87,21 @@ String cuePhrase(
       return l10n.navCueThen(phrase, _midSentence(turnLabel(then, l10n)));
   }
 }
+
+/// What the banner and the voice call a point of interest: its name, with
+/// "Caution:" in front of a hazard.
+String poiLabel(RoutePoi poi, AppLocalizations l10n) => switch (poi.kind) {
+  PoiKind.danger => l10n.navCautionLabel(poi.name),
+  _ => poi.name,
+};
+
+/// The icon of a point of interest, by what it is about.
+IconData poiIcon(PoiKind kind) => switch (kind) {
+  PoiKind.danger => Icons.warning_amber_rounded,
+  PoiKind.water => Icons.water_drop_outlined,
+  PoiKind.food => Icons.restaurant_outlined,
+  PoiKind.generic => Icons.place_outlined,
+};
 
 /// The spoken warning before a turn.
 ///

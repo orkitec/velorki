@@ -163,6 +163,12 @@ class FakeMapController implements MapController {
   /// Every [setWaypoints] call, in order.
   final List<List<MapWaypoint>> waypointCalls = <List<MapWaypoint>>[];
 
+  /// The points of interest of the last [setPois] call.
+  List<MapPoi> pois = const <MapPoi>[];
+
+  /// Every [setPois] call, in order.
+  final List<List<MapPoi>> poiCalls = <List<MapPoi>>[];
+
   /// The points of the last [setTrackLine] call.
   List<LatLng> trackLine = const <LatLng>[];
 
@@ -224,6 +230,8 @@ class FakeMapController implements MapController {
     clearRouteLinesCount = 0;
     waypoints = const <MapWaypoint>[];
     waypointCalls.clear();
+    pois = const <MapPoi>[];
+    poiCalls.clear();
     trackLine = const <LatLng>[];
     trackLineCalls.clear();
     position = null;
@@ -313,6 +321,13 @@ class FakeMapController implements MapController {
     final copy = List<MapWaypoint>.unmodifiable(waypoints);
     this.waypoints = copy;
     waypointCalls.add(copy);
+  }
+
+  @override
+  Future<void> setPois(List<MapPoi> pois) async {
+    final copy = List<MapPoi>.unmodifiable(pois);
+    this.pois = copy;
+    poiCalls.add(copy);
   }
 
   @override

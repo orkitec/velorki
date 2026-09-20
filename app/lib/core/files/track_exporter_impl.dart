@@ -9,6 +9,7 @@ import 'package:velorki_fit/velorki_fit.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki_gpx/velorki_gpx.dart';
 
+import '../../features/planner/domain/route_poi.dart';
 import 'track_exporter.dart';
 
 /// MIME type of a GPX file, as registered on both platforms.
@@ -89,6 +90,7 @@ class ShareTrackExporter implements TrackExporter {
     required TrackKind kind,
     required TrackFormat format,
     DateTime? startTime,
+    List<RoutePoi> pois = const <RoutePoi>[],
   }) async {
     final file = await write(
       name: name,
@@ -96,6 +98,7 @@ class ShareTrackExporter implements TrackExporter {
       kind: kind,
       format: format,
       startTime: startTime,
+      pois: pois,
     );
     await _shareFiles(file, mimeType: mimeTypeFor(format));
   }
@@ -113,6 +116,7 @@ class ShareTrackExporter implements TrackExporter {
     required TrackKind kind,
     required TrackFormat format,
     DateTime? startTime,
+    List<RoutePoi> pois = const <RoutePoi>[],
   }) async {
     if (points.isEmpty) {
       throw ArgumentError.value(points, 'points', 'nothing to export');
@@ -130,7 +134,7 @@ class ShareTrackExporter implements TrackExporter {
     switch (format) {
       case TrackFormat.gpx:
         await file.writeAsString(
-          _encodeGpx(name: name, points: points, kind: kind),
+          _encodeGpx(name: name, points: points, kind: kind, pois: pois),
           flush: true,
         );
       case TrackFormat.fit:
@@ -151,12 +155,15 @@ class ShareTrackExporter implements TrackExporter {
     required String name,
     required List<TrackPoint> points,
     required TrackKind kind,
+    List<RoutePoi> pois = const <RoutePoi>[],
   }) => switch (kind) {
-    // A planned route is a <rte>: turn points, no time base.
+    // A planned route is a <rte>: turn points, no time base, and its points
+    // of interest as <wpt>, so a route goes out the way it came in.
     TrackKind.route => GpxCodec.encodeRoute(
       points: points,
       name: name,
       creator: creator,
+      waypoints: gpxWaypoints(pois),
     ),
     // A ride is a <trk> and keeps the timestamps it was recorded with.
     TrackKind.ride => GpxCodec.encodeTrack(

@@ -11,6 +11,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki_gpx/velorki_gpx.dart';
 
 import '../../integrations/common/data/relay_client_provider.dart';
+import '../../planner/domain/route_poi.dart';
 
 final Logger _log = Logger('ShareService');
 
@@ -52,13 +53,18 @@ class ShareService {
     required double distanceM,
     double? ascentM,
     Duration? duration,
+    List<RoutePoi> pois = const <RoutePoi>[],
   }) async {
     if (points.isEmpty) {
       throw const ShareException('There is nothing to share.');
     }
     final gpx = kind == ShareKind.ride
         ? GpxCodec.encodeTrack(points: points, name: name)
-        : GpxCodec.encodeRoute(points: points, name: name);
+        : GpxCodec.encodeRoute(
+            points: points,
+            name: name,
+            waypoints: gpxWaypoints(pois),
+          );
     try {
       return await _relay.createShare(
         name: name,

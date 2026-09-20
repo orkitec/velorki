@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
+import 'package:velorki/features/planner/domain/route_poi.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/domain/routing_options.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
@@ -178,6 +179,40 @@ void main() {
 
     expect(saved.turns, turns);
     expect((await repository.routeById(saved.id))!.turns, turns);
+  });
+
+  test('the points of interest survive a save and a load', () async {
+    const pois = <RoutePoi>[
+      RoutePoi(
+        pos: LatLng(48.001, 11.001),
+        name: 'START DISMOUNT ZONE',
+        description: 'All riders must dismount',
+        kind: PoiKind.danger,
+      ),
+      RoutePoi(
+        pos: LatLng(48.02, 11.02),
+        name: 'Water Fountain',
+        kind: PoiKind.water,
+      ),
+    ];
+
+    final saved = await repository.saveImportedRoute(
+      name: 'Ride Queens',
+      points: syntheticRoute().geometry,
+      source: RouteSource.importedGpx,
+      pois: pois,
+    );
+
+    expect(saved.pois, pois);
+    expect((await repository.routeById(saved.id))!.pois, pois);
+    // A planned route has none, and its column stays empty.
+    final planned = await repository.savePlannedRoute(
+      name: 'Plain',
+      route: syntheticRoute(),
+      waypoints: _waypoints,
+      options: const RoutingOptions(),
+    );
+    expect((await repository.routeById(planned.id))!.pois, isEmpty);
   });
 
   test('a route without turn instructions leaves the column null', () async {

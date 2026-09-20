@@ -31,6 +31,9 @@ class TestMapController implements MapController {
   /// The last waypoints pushed.
   List<MapWaypoint> waypoints = const <MapWaypoint>[];
 
+  /// The last points of interest pushed.
+  List<MapPoi> pois = const <MapPoi>[];
+
   /// The route lines currently on the map, by id.
   final Map<String, List<LatLng>> lines = <String, List<LatLng>>{};
 
@@ -116,6 +119,12 @@ class TestMapController implements MapController {
     lines.clear();
     styles.clear();
     calls.add(const MapCall('clearRouteLines'));
+  }
+
+  @override
+  Future<void> setPois(List<MapPoi> pois) async {
+    this.pois = pois;
+    calls.add(MapCall('setPois', [pois]));
   }
 
   @override

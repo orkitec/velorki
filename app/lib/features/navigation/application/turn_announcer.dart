@@ -4,6 +4,7 @@ import 'package:velorki_brouter/velorki_brouter.dart';
 
 import '../domain/navigation_progress.dart';
 import '../domain/off_route_guidance.dart';
+import '../../planner/domain/route_poi.dart';
 
 /// How many seconds before a turn it is announced unless the rider says
 /// otherwise. Ten seconds at 20 km/h is 55 m: time to hear it, look up and
@@ -54,6 +55,10 @@ enum CueKind {
 
   /// The end of the route is reached.
   arrived,
+
+  /// A point of interest on the route is [TurnCue.distanceM] metres ahead.
+  /// Given by the controller, not by [TurnAnnouncer].
+  poi,
 }
 
 /// One thing to say (or show) once.
@@ -65,6 +70,7 @@ class TurnCue {
     this.distanceM = 0,
     this.then,
     this.direction,
+    this.poi,
   });
 
   /// What kind of cue this is.
@@ -83,6 +89,9 @@ class TurnCue {
   /// elsewhere, and when the rider's heading is unknown.
   final RelativeDirection? direction;
 
+  /// The point of interest, for [CueKind.poi]; `null` elsewhere.
+  final RoutePoi? poi;
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -91,10 +100,11 @@ class TurnCue {
           other.turn == turn &&
           other.distanceM == distanceM &&
           other.then == then &&
-          other.direction == direction;
+          other.direction == direction &&
+          other.poi == poi;
 
   @override
-  int get hashCode => Object.hash(kind, turn, distanceM, then, direction);
+  int get hashCode => Object.hash(kind, turn, distanceM, then, direction, poi);
 
   @override
   String toString() =>

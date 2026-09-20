@@ -6,6 +6,8 @@ import 'package:velorki/features/navigation/domain/off_route_guidance.dart';
 import 'package:velorki/features/navigation/presentation/turn_phrases.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
+import 'package:velorki/features/planner/domain/route_poi.dart';
+import 'package:velorki_geo/velorki_geo.dart';
 
 const TurnHint _left = TurnHint(pointIndex: 4, kind: TurnKind.left);
 const TurnHint _keepRight = TurnHint(pointIndex: 9, kind: TurnKind.keepRight);
@@ -58,6 +60,30 @@ void main() {
     const cue = TurnCue(kind: CueKind.ahead, turn: _left, distanceM: 200);
 
     expect(cuePhrase(cue, l10n), 'In 200 metres, turn left');
+  });
+
+  test('a point of interest is announced like a turn, a hazard with a '
+      'caution', () {
+    const zone = RoutePoi(
+      pos: LatLng(48, 11),
+      name: 'START DISMOUNT ZONE',
+      kind: PoiKind.danger,
+    );
+    const tap = RoutePoi(pos: LatLng(48, 11), name: 'Water Fountain');
+    expect(
+      cuePhrase(
+        const TurnCue(kind: CueKind.poi, poi: zone, distanceM: 100),
+        l10n,
+      ),
+      'In 100 metres, caution: START DISMOUNT ZONE',
+    );
+    expect(
+      cuePhrase(
+        const TurnCue(kind: CueKind.poi, poi: tap, distanceM: 200),
+        l10n,
+      ),
+      'In 200 metres, water Fountain',
+    );
   });
 
   test('a now cue says it straight out', () {

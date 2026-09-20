@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/import_export/data/track_decoder.dart';
 import 'package:velorki/features/import_export/domain/imported_track.dart';
+import 'package:velorki/features/planner/domain/route_poi.dart';
 import 'package:velorki_fit/velorki_fit.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -22,7 +23,9 @@ void main() {
       expect(track.points, hasLength(3));
       expect(track.name, 'Isar nach Norden');
       expect(track.creator, 'http://ridewithgps.com/');
-      expect(track.waypoints, hasLength(1));
+      expect(track.pois, hasLength(1));
+      expect(track.pois.single.name, 'Trinkwasser');
+      expect(track.pois.single.kind, PoiKind.water);
       expect(track.suggestedKind, ImportKind.route);
     });
   });
@@ -125,7 +128,7 @@ void main() {
       expect(track.name, 'Starnberger See loop');
       expect(track.pointCount, 4);
       expect(track.hasTimestamps, isFalse);
-      expect(track.waypoints, [const LatLng(47.998, 11.34)]);
+      expect(track.pois.single.pos, const LatLng(47.998, 11.34));
     });
   });
 

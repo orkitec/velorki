@@ -18,6 +18,7 @@ import '../../planner/data/route_repository.dart';
 import '../../planner/domain/elevation_profile.dart';
 import '../../planner/domain/saved_route.dart';
 import '../../planner/presentation/elevation_profile_chart.dart';
+import '../../planner/presentation/poi_markers.dart';
 import '../../planner/presentation/planner_map_host.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../planner/presentation/route_stats_row.dart';
@@ -57,6 +58,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
     final positions = route.geometry.map((p) => p.pos).toList(growable: false);
     if (positions.isEmpty) return;
     await map.setRouteLine(mainRouteLineId, positions);
+    await map.setPois(poiMarkers(route.pois));
     await map.fitBounds(BoundingBox.fromPoints(positions));
   }
 
@@ -71,6 +73,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
             points: route.geometry,
             kind: TrackKind.route,
             format: format,
+            pois: route.pois,
           );
     } on Object {
       messenger.showSnackBar(SnackBar(content: Text(l10n.exportFailed)));
@@ -198,6 +201,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
                           kind: ShareKind.route,
                           distanceM: saved.distanceM,
                           ascentM: saved.ascentM,
+                          pois: saved.pois,
                         ),
                         DescribeRouteButton(route: saved),
                       ],

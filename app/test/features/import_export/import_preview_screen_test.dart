@@ -50,6 +50,8 @@ void main() {
 
     // The preview is drawn through the map contract, bounds included.
     expect(h.map.lines[mainRouteLineId], hasLength(4));
+    // The file's one waypoint is on the map as a point of interest.
+    expect(h.map.pois, hasLength(1));
     expect(h.map.fittedBounds, isNotNull);
     expect(h.map.fittedBounds!.south, closeTo(47.998, 1e-9));
 

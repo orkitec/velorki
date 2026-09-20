@@ -12,6 +12,7 @@ import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/features/recording/domain/recording_state.dart';
 import 'package:velorki/features/recording/domain/ride.dart';
 import 'package:velorki_geo/velorki_geo.dart';
+import 'package:velorki/features/planner/domain/route_poi.dart';
 
 /// A [RecordingService] that records what the screen asked of it.
 class FakeRecordingService implements RecordingService {
@@ -168,6 +169,7 @@ class FakeTrackExporter implements TrackExporter {
     required TrackKind kind,
     required TrackFormat format,
     DateTime? startTime,
+    List<RoutePoi> pois = const <RoutePoi>[],
   }) async {
     final failure = error;
     if (failure != null) throw failure;

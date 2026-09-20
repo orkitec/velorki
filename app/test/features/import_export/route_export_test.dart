@@ -7,6 +7,7 @@ import 'package:velorki/features/planner/domain/routing_options.dart';
 import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki_geo/velorki_geo.dart';
+import 'package:velorki/features/planner/domain/route_poi.dart';
 
 import '../../support/app.dart';
 import '../planner/support/fakes.dart';
@@ -38,6 +39,7 @@ class _RecordingExporter implements TrackExporter {
     required TrackKind kind,
     required TrackFormat format,
     DateTime? startTime,
+    List<RoutePoi> pois = const <RoutePoi>[],
   }) async {
     final error = failure;
     if (error != null) throw error;
