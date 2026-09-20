@@ -48,23 +48,40 @@ jobs:
           dart run build_runner build
           flutter gen-l10n
 
+      # The mirror is sharded across several releases; the pointer lists
+      # every shard's base URL, and the tile is in one of them.
       - name: Resolve the current mirror snapshot
         id: snapshot
         run: |
           set -euo pipefail
-          tag=$(curl --retry 3 --retry-all-errors --fail --location --silent --show-error \
-            --user-agent "velorki-ci (+https://github.com/orkitec/velorki)" \
-            "$MIRROR_LATEST" | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag"])')
+          pointer=$(curl --retry 3 --retry-all-errors --fail --location --silent --show-error \
+            --user-agent "velorki-ci (+https://github.com/orkitec/velorki)" "$MIRROR_LATEST")
+          tag=$(printf '%s' "$pointer" | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag"])')
+          bases=$(printf '%s' "$pointer" | python3 -c '
+          import json, sys
+          d = json.load(sys.stdin)
+          urls = [s["baseUrl"] for s in d.get("shards", []) if s.get("baseUrl")]
+          if d.get("baseUrl") and d["baseUrl"] not in urls:
+              urls.insert(0, d["baseUrl"])
+          print(" ".join(urls))')
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "bases=$bases" >> "$GITHUB_OUTPUT"
           echo "Gazetteer snapshot: $tag" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Download the New York gazetteer
         run: |
           set -euo pipefail
-          curl --retry 3 --retry-all-errors --fail --location --silent --show-error \
-            --user-agent "velorki-ci (+https://github.com/orkitec/velorki)" \
-            --output "$RUNNER_TEMP/$PERF_TILE.gaz" \
-            "https://github.com/orkitec/velorki-data/releases/download/${{ steps.snapshot.outputs.tag }}/$PERF_TILE.gaz"
+          found=""
+          for base in ${{ steps.snapshot.outputs.bases }}; do
+            if curl --retry 3 --retry-all-errors --fail --location --silent --show-error \
+              --user-agent "velorki-ci (+https://github.com/orkitec/velorki)" \
+              --output "$RUNNER_TEMP/$PERF_TILE.gaz" "${base}$PERF_TILE.gaz"; then
+              found="$base"
+              break
+            fi
+          done
+          test -n "$found" || { echo "$PERF_TILE.gaz is in no shard of the mirror"; exit 1; }
+          echo "Shard: $found" >> "$GITHUB_STEP_SUMMARY"
           ls -l "$RUNNER_TEMP/$PERF_TILE.gaz"
 
       - name: Measure
