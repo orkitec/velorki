@@ -176,105 +176,109 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
                   page: _page,
                   onPage: (page) => setState(() => _page = page),
                   children: [
-                    ListView(
+                    // Built whole rather than lazily: the actions are below
+                    // the fold on a small phone, and they have to exist to
+                    // be found.
+                    SingleChildScrollView(
                       padding: EdgeInsets.fromLTRB(20, 20, 20, bottom),
-                      children: [
-                        Text(
-                          l10n.libraryRouteSubtitle(
-                            formatDate(l10n, saved.createdAt),
-                            profileLabel(l10n, saved.profile),
-                            formatHeight(l10n, units, saved.ascentM),
-                          ),
-                          style: theme.textTheme.bodySmall,
-                        ),
-                        if (saved.description != null &&
-                            saved.description!.isNotEmpty) ...[
-                          const SizedBox(height: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
                           Text(
-                            saved.description!,
-                            style: theme.textTheme.bodyMedium,
+                            l10n.libraryRouteSubtitle(
+                              formatDate(l10n, saved.createdAt),
+                              profileLabel(l10n, saved.profile),
+                              formatHeight(l10n, units, saved.ascentM),
+                            ),
+                            style: theme.textTheme.bodySmall,
+                          ),
+                          if (saved.description != null &&
+                              saved.description!.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              saved.description!,
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                          ],
+                          const SizedBox(height: 20),
+                          RouteStatsRow(
+                            distanceM: saved.distanceM,
+                            ascentM: saved.ascentM,
+                            descentM: saved.descentM,
+                            duration: saved.estimatedTime,
+                          ),
+                          const SizedBox(height: 24),
+                          ElevationProfileChart(
+                            samples: elevationProfile(geometry),
+                          ),
+                          const SizedBox(height: 24),
+                          SurfaceStatsBar(stats: saved.surfaceStats),
+                          const SizedBox(height: 24),
+                          // The one thing a saved route is usually opened for gets
+                          // the full-width pill; the rest wraps underneath.
+                          FilledButton.icon(
+                            onPressed: () => _openInPlanner(saved),
+                            icon: const Icon(Icons.route_outlined),
+                            label: Text(l10n.routeDetailOpenInPlanner),
+                          ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              // A route exports as a GPX <rte> or as a FIT course;
+                              // the activity forms belong to a ride.
+                              MenuAnchor(
+                                builder: (context, controller, _) =>
+                                    OutlinedButton.icon(
+                                      onPressed: () => controller.isOpen
+                                          ? controller.close()
+                                          : controller.open(),
+                                      icon: const Icon(Icons.ios_share),
+                                      label: Text(l10n.routeDetailExport),
+                                    ),
+                                menuChildren: [
+                                  MenuItemButton(
+                                    onPressed: () => unawaited(
+                                      _export(saved, TrackFormat.gpx),
+                                    ),
+                                    child: Text(l10n.exportGpxRoute),
+                                  ),
+                                  MenuItemButton(
+                                    onPressed: () => unawaited(
+                                      _export(saved, TrackFormat.fit),
+                                    ),
+                                    child: Text(l10n.exportFitCourse),
+                                  ),
+                                ],
+                              ),
+                              RouteSendMenu(
+                                route: saved,
+                                onExportGpx: () =>
+                                    _export(saved, TrackFormat.gpx),
+                              ),
+                              ShareLinkButton(
+                                name: saved.name,
+                                points: geometry,
+                                kind: ShareKind.route,
+                                distanceM: saved.distanceM,
+                                ascentM: saved.ascentM,
+                                pois: saved.pois,
+                              ),
+                              DescribeRouteButton(route: saved),
+                            ],
                           ),
                         ],
-                        const SizedBox(height: 20),
-                        RouteStatsRow(
-                          distanceM: saved.distanceM,
-                          ascentM: saved.ascentM,
-                          descentM: saved.descentM,
-                          duration: saved.estimatedTime,
-                        ),
-                        const SizedBox(height: 24),
-                        ElevationProfileChart(
-                          samples: elevationProfile(geometry),
-                        ),
-                        const SizedBox(height: 24),
-                        SurfaceStatsBar(stats: saved.surfaceStats),
-                        const SizedBox(height: 24),
-                        // The one thing a saved route is usually opened for gets
-                        // the full-width pill; the rest wraps underneath.
-                        FilledButton.icon(
-                          onPressed: () => _openInPlanner(saved),
-                          icon: const Icon(Icons.route_outlined),
-                          label: Text(l10n.routeDetailOpenInPlanner),
-                        ),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            // A route exports as a GPX <rte> or as a FIT course;
-                            // the activity forms belong to a ride.
-                            MenuAnchor(
-                              builder: (context, controller, _) =>
-                                  OutlinedButton.icon(
-                                    onPressed: () => controller.isOpen
-                                        ? controller.close()
-                                        : controller.open(),
-                                    icon: const Icon(Icons.ios_share),
-                                    label: Text(l10n.routeDetailExport),
-                                  ),
-                              menuChildren: [
-                                MenuItemButton(
-                                  onPressed: () => unawaited(
-                                    _export(saved, TrackFormat.gpx),
-                                  ),
-                                  child: Text(l10n.exportGpxRoute),
-                                ),
-                                MenuItemButton(
-                                  onPressed: () => unawaited(
-                                    _export(saved, TrackFormat.fit),
-                                  ),
-                                  child: Text(l10n.exportFitCourse),
-                                ),
-                              ],
-                            ),
-                            RouteSendMenu(
-                              route: saved,
-                              onExportGpx: () =>
-                                  _export(saved, TrackFormat.gpx),
-                            ),
-                            ShareLinkButton(
-                              name: saved.name,
-                              points: geometry,
-                              kind: ShareKind.route,
-                              distanceM: saved.distanceM,
-                              ascentM: saved.ascentM,
-                              pois: saved.pois,
-                            ),
-                            DescribeRouteButton(route: saved),
-                          ],
-                        ),
-                      ],
+                      ),
                     ),
                     if (cues.length > 1)
-                      ListView(
+                      SingleChildScrollView(
                         padding: EdgeInsets.fromLTRB(20, 20, 20, bottom),
-                        children: [
-                          CueSheetList(
-                            cues: cues,
-                            selected: _selectedCue,
-                            onSelect: _selectCue,
-                          ),
-                        ],
+                        child: CueSheetList(
+                          cues: cues,
+                          selected: _selectedCue,
+                          onSelect: _selectCue,
+                        ),
                       ),
                   ],
                 ),

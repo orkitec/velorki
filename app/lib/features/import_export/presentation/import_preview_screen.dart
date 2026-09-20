@@ -225,80 +225,83 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
             page: _page,
             onPage: (page) => setState(() => _page = page),
             children: [
-              ListView(
-                // The floating navigation bar sits over the list, so the
+              // Built whole rather than lazily: the Save button is below
+              // the fold on a small phone, and it has to exist to be found.
+              SingleChildScrollView(
+                // The floating navigation bar sits over the page, so the
                 // Save button needs room to clear it.
                 padding: EdgeInsets.fromLTRB(20, 20, 20, bottom),
-                children: [
-                  TextField(
-                    controller: _name,
-                    decoration: InputDecoration(
-                      labelText: l10n.importNameLabel,
-                    ),
-                    textInputAction: TextInputAction.done,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    l10n.importSummary(
-                      formatLabel(l10n, track.format),
-                      track.pointCount,
-                    ),
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _timeLine(l10n, stats),
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 20),
-                  RouteStatsRow(
-                    distanceM: stats.distanceM,
-                    ascentM: stats.ascentM,
-                    descentM: stats.descentM,
-                    duration: duration,
-                  ),
-                  const SizedBox(height: 24),
-                  ElevationProfileChart(
-                    samples: elevationProfile(track.points),
-                  ),
-                  const SizedBox(height: 24),
-                  SectionCaption(l10n.importSaveAs),
-                  const SizedBox(height: 12),
-                  SegmentedButton<ImportKind>(
-                    segments: [
-                      ButtonSegment(
-                        value: ImportKind.route,
-                        icon: const Icon(Icons.route_outlined),
-                        label: Text(l10n.importKindRoute),
-                      ),
-                      ButtonSegment(
-                        value: ImportKind.ride,
-                        icon: const Icon(Icons.directions_bike_outlined),
-                        label: Text(l10n.importKindRide),
-                      ),
-                    ],
-                    selected: <ImportKind>{_kind},
-                    onSelectionChanged: (selection) =>
-                        setState(() => _kind = selection.first),
-                  ),
-                  const SizedBox(height: 24),
-                  FilledButton.icon(
-                    onPressed: _saving ? null : () => unawaited(_save()),
-                    icon: const Icon(Icons.save_outlined),
-                    label: Text(l10n.commonSave),
-                  ),
-                ],
-              ),
-              if (_cues.length > 1)
-                ListView(
-                  padding: EdgeInsets.fromLTRB(20, 20, 20, bottom),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    CueSheetList(
-                      cues: _cues,
-                      selected: _selectedCue,
-                      onSelect: _selectCue,
+                    TextField(
+                      controller: _name,
+                      decoration: InputDecoration(
+                        labelText: l10n.importNameLabel,
+                      ),
+                      textInputAction: TextInputAction.done,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      l10n.importSummary(
+                        formatLabel(l10n, track.format),
+                        track.pointCount,
+                      ),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _timeLine(l10n, stats),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 20),
+                    RouteStatsRow(
+                      distanceM: stats.distanceM,
+                      ascentM: stats.ascentM,
+                      descentM: stats.descentM,
+                      duration: duration,
+                    ),
+                    const SizedBox(height: 24),
+                    ElevationProfileChart(
+                      samples: elevationProfile(track.points),
+                    ),
+                    const SizedBox(height: 24),
+                    SectionCaption(l10n.importSaveAs),
+                    const SizedBox(height: 12),
+                    SegmentedButton<ImportKind>(
+                      segments: [
+                        ButtonSegment(
+                          value: ImportKind.route,
+                          icon: const Icon(Icons.route_outlined),
+                          label: Text(l10n.importKindRoute),
+                        ),
+                        ButtonSegment(
+                          value: ImportKind.ride,
+                          icon: const Icon(Icons.directions_bike_outlined),
+                          label: Text(l10n.importKindRide),
+                        ),
+                      ],
+                      selected: <ImportKind>{_kind},
+                      onSelectionChanged: (selection) =>
+                          setState(() => _kind = selection.first),
+                    ),
+                    const SizedBox(height: 24),
+                    FilledButton.icon(
+                      onPressed: _saving ? null : () => unawaited(_save()),
+                      icon: const Icon(Icons.save_outlined),
+                      label: Text(l10n.commonSave),
                     ),
                   ],
+                ),
+              ),
+              if (_cues.length > 1)
+                SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(20, 20, 20, bottom),
+                  child: CueSheetList(
+                    cues: _cues,
+                    selected: _selectedCue,
+                    onSelect: _selectCue,
+                  ),
                 ),
             ],
           ),
