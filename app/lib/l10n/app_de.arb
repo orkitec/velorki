@@ -219,6 +219,8 @@
   "recordingCuesMore": "{count, plural, =1{1 weitere} other{{count} weitere}}",
   "recordingProfileLeft": "{distance} übrig, {ascent} Anstieg",
   "recordingKeepScreenOn": "Bildschirm anlassen",
+  "watchRideStartedTitle": "Fahrt von deiner Uhr gestartet",
+  "watchRideStartedBody": "Öffne Velorki einmal, damit das Handy deinen Track aufzeichnet.",
   "recordingNotificationTitle": "Fahrt wird aufgezeichnet",
   "recordingNoRides": "Noch keine Fahrten.",
   "recordingLocationDenied": "Velorki braucht Standortzugriff, um eine Fahrt aufzuzeichnen.",
