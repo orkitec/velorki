@@ -116,7 +116,16 @@ class GpxWaypoint {
 /// [TrackPoint.time] is usually `null`.
 class GpxRoute {
   /// Creates a route.
-  const GpxRoute({this.name, this.description, this.points = const []});
+  const GpxRoute({
+    this.name,
+    this.description,
+    this.points = const [],
+    this.cues = const [],
+  });
+
+  /// The route points that carry a cue — a name, a symbol or a type — in
+  /// point order: a Ride with GPS or Garmin cue sheet.
+  final List<GpxRouteCue> cues;
 
   /// `<name>` of the route.
   final String? name;
@@ -129,6 +138,33 @@ class GpxRoute {
 
   @override
   String toString() => 'GpxRoute($name, ${points.length} points)';
+}
+
+/// What a `<rtept>` says beyond where it is: the cue sheet entry.
+class GpxRouteCue {
+  /// Creates a cue at [pointIndex] of the route's points.
+  const GpxRouteCue({
+    required this.pointIndex,
+    this.name,
+    this.description,
+    this.symbol,
+    this.type,
+  });
+
+  /// Index into [GpxRoute.points].
+  final int pointIndex;
+
+  /// `<name>`: the instruction as written, e.g. `Turn left onto Main St`.
+  final String? name;
+
+  /// `<desc>`: a longer note.
+  final String? description;
+
+  /// `<sym>`: `Left`, `Right`, `Straight`, `Danger`, ...
+  final String? symbol;
+
+  /// `<type>`: the same idea, as Ride with GPS writes it.
+  final String? type;
 }
 
 /// A `<trk>`: a recorded path, split into one or more `<trkseg>`.

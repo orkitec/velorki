@@ -101,6 +101,7 @@ class RouteRepository {
     String? description,
     List<Waypoint>? waypoints,
     List<RoutePoi> pois = const <RoutePoi>[],
+    List<TurnHint> turns = const <TurnHint>[],
     RoutingOptions options = const RoutingOptions(),
   }) async {
     if (points.isEmpty) {
@@ -129,6 +130,7 @@ class RouteRepository {
       waypoints: waypoints ?? ends,
       options: options,
       pois: pois,
+      turns: turns,
     );
     await _dao.upsertRoute(toCompanion(saved));
     return saved;

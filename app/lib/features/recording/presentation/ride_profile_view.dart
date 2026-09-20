@@ -21,9 +21,14 @@ class RideProfileView extends ConsumerWidget {
   const RideProfileView({
     required this.samples,
     required this.alongM,
+    this.etaAt,
     this.height = 150,
     super.key,
   });
+
+  /// When the rider will reach the end at their average so far, or `null`
+  /// while there is no average yet.
+  final DateTime? etaAt;
 
   /// The followed route's profile, already downsampled; fewer than two
   /// samples means there is no route to draw.
@@ -46,6 +51,45 @@ class RideProfileView extends ConsumerWidget {
         ascent += sample.elevationM - previous.elevationM;
       }
       previous = sample;
+    }
+    return ascent;
+  }
+
+  /// The grade of the road at [alongM], in percent, over the stretch around
+  /// the rider; `null` with too little route to measure.
+  double? get gradePercent {
+    if (samples.length < 2) return null;
+    ElevationSample? before;
+    ElevationSample? after;
+    for (final s in samples) {
+      if (s.distanceM <= alongM - climbWindowM / 2) before = s;
+      if (after == null && s.distanceM >= alongM + climbWindowM / 2) after = s;
+    }
+    before ??= samples.first;
+    after ??= samples.last;
+    final run = after.distanceM - before.distanceM;
+    if (run < 20) return null;
+    return (after.elevationM - before.elevationM) / run * 100;
+  }
+
+  /// The climbing left to the top of the climb the rider is on: up to where
+  /// the road next drops by more than [climbEndDropM]. Zero on the flat.
+  double get toTopM {
+    var ascent = 0.0;
+    ElevationSample? previous;
+    var high = double.negativeInfinity;
+    for (final s in samples) {
+      if (s.distanceM < alongM) continue;
+      if (previous != null) {
+        if (s.elevationM > previous.elevationM) {
+          ascent += s.elevationM - previous.elevationM;
+        }
+        if (s.elevationM > high) high = s.elevationM;
+        if (high - s.elevationM > climbEndDropM) break;
+      } else {
+        high = s.elevationM;
+      }
+      previous = s;
     }
     return ascent;
   }
@@ -98,9 +142,49 @@ class RideProfileView extends ConsumerWidget {
             ),
           ],
         ),
+        _secondLine(context, l10n, system),
         const SizedBox(height: 10),
         SizedBox(height: height, child: _chart(context, system)),
       ],
+    );
+  }
+
+  /// The climb the rider is on and the arrival time, when there is either.
+  Widget _secondLine(
+    BuildContext context,
+    AppLocalizations l10n,
+    units.UnitSystem system,
+  ) {
+    final theme = Theme.of(context);
+    final parts = <String>[];
+    final grade = gradePercent;
+    if (grade != null && grade >= climbGradeMinPercent) {
+      parts.add(
+        l10n.recordingProfileClimb(
+          grade.round().toString(),
+          formatHeight(l10n, system, toTopM),
+        ),
+      );
+    }
+    final eta = etaAt;
+    if (eta != null) {
+      final time = MaterialLocalizations.of(context).formatTimeOfDay(
+        TimeOfDay.fromDateTime(eta),
+        alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
+      );
+      parts.add(l10n.recordingEta(time));
+    }
+    if (parts.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Text(
+        parts.join('  ·  '),
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
     );
   }
 
@@ -228,3 +312,13 @@ class RideProfileView extends ConsumerWidget {
     return x <= spots.first.x ? spots.first : spots.last;
   }
 }
+
+/// The stretch the grade is measured over, centred on the rider.
+const double climbWindowM = 100;
+
+/// Below this grade the road is not a climb worth a figure.
+const double climbGradeMinPercent = 3;
+
+/// How far the road has to drop from its high point for the climb to count
+/// as over: a dip in a long climb is not the top.
+const double climbEndDropM = 10;

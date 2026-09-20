@@ -117,6 +117,7 @@ class TurnHint {
     this.exitNumber = 0,
     this.distanceToNextM = 0,
     this.angleDeg = 0,
+    this.note,
   });
 
   /// Index into the route geometry of the point the turn happens at.
@@ -134,6 +135,11 @@ class TurnHint {
 
   /// Turn angle in degrees, negative to the left, as BRouter measured it.
   final double angleDeg;
+
+  /// What the route's author wrote for this turn — "Turn left onto Main
+  /// Street", "gravel section starts" — when the route came from a file
+  /// with a cue sheet. `null` for a turn the router worked out.
+  final String? note;
 
   /// Reads one row of a GeoJSON `voicehints` array:
   /// `[pointIndex, command, exitNumber, distanceToNext, angle, ...]`.
@@ -161,6 +167,7 @@ class TurnHint {
     if (exitNumber != 0) 'x': exitNumber,
     if (distanceToNextM != 0) 'd': distanceToNextM,
     if (angleDeg != 0) 'a': angleDeg,
+    if (note != null) 'n': note,
   };
 
   /// Reads a map written by [toMap]; `null` when it is not one.
@@ -176,6 +183,7 @@ class TurnHint {
       exitNumber: _int(map['x']) ?? 0,
       distanceToNextM: _double(map['d']) ?? 0,
       angleDeg: _double(map['a']) ?? 0,
+      note: map['n'] is String ? map['n'] as String : null,
     );
   }
 
@@ -210,11 +218,18 @@ class TurnHint {
           other.kind == kind &&
           other.exitNumber == exitNumber &&
           other.distanceToNextM == distanceToNextM &&
-          other.angleDeg == angleDeg;
+          other.angleDeg == angleDeg &&
+          other.note == note;
 
   @override
-  int get hashCode =>
-      Object.hash(pointIndex, kind, exitNumber, distanceToNextM, angleDeg);
+  int get hashCode => Object.hash(
+    pointIndex,
+    kind,
+    exitNumber,
+    distanceToNextM,
+    angleDeg,
+    note,
+  );
 
   @override
   String toString() =>

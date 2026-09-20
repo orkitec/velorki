@@ -1024,6 +1024,32 @@
   "@recordingProfileNoRoute": {
     "description": "Shown on the record sheet's elevation page when the ride follows no route"
   },
+  "recordingProfileClimb": "{grade} % climb, {ascent} to the top",
+  "@recordingProfileClimb": {
+    "description": "Second line of the record sheet's elevation page while the rider is on a climb",
+    "placeholders": {
+      "grade": {"type": "String", "example": "6"},
+      "ascent": {"type": "String", "example": "120 m"}
+    }
+  },
+  "recordingEta": "ETA {time}",
+  "@recordingEta": {
+    "description": "Estimated time of arrival at the end of the route, on the elevation page",
+    "placeholders": {"time": {"type": "String", "example": "14:32"}}
+  },
+  "recordingCuesTitle": "Upcoming turns",
+  "@recordingCuesTitle": {
+    "description": "Caption of the cue sheet page of the record sheet"
+  },
+  "recordingCuesNoRoute": "Follow a route to see its turns here.",
+  "@recordingCuesNoRoute": {
+    "description": "Shown on the cue sheet page when the ride follows no route"
+  },
+  "recordingCuesMore": "{count, plural, =1{1 more} other{{count} more}}",
+  "@recordingCuesMore": {
+    "description": "Under the cue sheet page when more turns follow than fit",
+    "placeholders": {"count": {"type": "int"}}
+  },
   "recordingProfileLeft": "{distance} left, {ascent} to climb",
   "@recordingProfileLeft": {
     "description": "Header of the record sheet's elevation page: what remains of the followed route",

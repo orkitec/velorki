@@ -54,6 +54,7 @@ class ImportRepository {
       source: source ?? sourceForFormat(track.format),
       description: track.description,
       pois: track.pois,
+      turns: track.turns,
     );
     if (externalIds != null && externalIds.isNotEmpty) {
       await _routes.markExternal(

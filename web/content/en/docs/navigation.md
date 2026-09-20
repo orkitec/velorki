@@ -26,6 +26,10 @@ The instructions are: **Turn left**, **Turn right**, **Bear left**, **Bear right
 
 When a second turn follows close behind the first, a small grey arrow for it sits at the end of the pill.
 
+A route imported with a cue sheet shows the author's own words for a turn instead, "Turn left onto Main Street", and the voice says them too.
+
+A point of interest on the route, a water fountain or a dismount zone from an imported file, takes the banner when it is nearer than the next turn and within 300 m: its icon, the distance and its name, a hazard as "Caution: …" in the warning colour. The voice announces it once, with the same lead a turn gets, "In 100 metres, caution: start dismount zone". See [sensors and your watch](./sensors-and-watch) for what reaches the watch, and [import and export](./import-and-export) for where the points come from.
+
 At the end of the route the banner turns green and says **You have arrived**.
 
 ## The voice

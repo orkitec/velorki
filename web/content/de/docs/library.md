@@ -31,7 +31,7 @@ Beide Dialoge zum Umbenennen sind gleich: ein Feld, **Name**, dann **Abbrechen**
 
 Eine geöffnete Route zeigt von oben nach unten:
 
-- eine Karte der Route,
+- eine Karte der Route, mit ihren Punkten von Interesse als kleinen benannten Markern, wenn sie mit welchen importiert wurde,
 - Datum, Radprofil und Anstieg,
 - die Beschreibung, falls die Route eine hat,
 - **Distanz**, **Anstieg**, **Abstieg** und **Dauer**,

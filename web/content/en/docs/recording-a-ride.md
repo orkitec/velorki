@@ -29,9 +29,13 @@ Once a sensor is switched on, a third row of figures joins the sheet with what h
 
 Without a sensor none of it appears, and nothing is switched on until you do it in **Settings → Sensors**. See [sensors and your watch](./sensors-and-watch).
 
-## The elevation profile
+## The elevation profile and the cue sheet
 
-The sheet under the map has two pages, a swipe apart, with two dots under the figures saying which is up. Swipe the figures to the left for the followed route as height over distance: the part already ridden filled in the accent colour, the road ahead in grey, a line where you are, and above it what is left, "12.4 km left, 320 m to climb". Swipe back for the figures; a new ride starts on them. Without a route to follow the page says so: "Follow a route to see its elevation profile here."
+The sheet under the map has three pages, a swipe apart, with three dots under the figures saying which is up. A new ride starts on the figures.
+
+**The elevation profile**, one swipe to the left: the followed route as height over distance, the part already ridden filled in the accent colour, the road ahead in grey, a line where you are, and above it what is left, "12.4 km left, 320 m to climb". On a climb of 3 % or more a second line says the grade and what is left to its top, "6 % climb, 120 m to the top", and once the ride has an average speed the same line says when you will arrive, "ETA 14:32". Without a route to follow the page says so: "Follow a route to see its elevation profile here."
+
+**The cue sheet**, one more swipe: **Upcoming turns**, the next eight turns of the route in order with the distance to each, the points of interest on the route between them, and **Arrive** at the end, with "3 more" underneath when more follow. The first line is what the turn banner shows. A route imported with a cue sheet shows the author's own words for each turn, "Turn left onto Main Street", instead of the plain instruction.
 
 ## What it asks for the first time
 

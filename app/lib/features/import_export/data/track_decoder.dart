@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_fit/velorki_fit.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki_gpx/velorki_gpx.dart';
@@ -110,6 +111,10 @@ ImportedTrack _decodeGpx(Uint8List bytes, String? fileName) {
   if (points.isEmpty) {
     throw ImportException(ImportFailure.empty, fileName: fileName);
   }
+  // A route's cue sheet only means something on the route's own points.
+  final turns = track == null && route != null
+      ? cueSheetTurns(route.cues)
+      : const <TurnHint>[];
 
   return ImportedTrack(
     format: ImportFormat.gpx,
@@ -118,6 +123,7 @@ ImportedTrack _decodeGpx(Uint8List bytes, String? fileName) {
     description:
         document.description ?? track?.description ?? route?.description,
     creator: document.creator,
+    turns: turns,
     pois: [
       for (final w in document.waypoints)
         RoutePoi(
@@ -153,4 +159,65 @@ ImportedTrack _decodeFit(Uint8List bytes, String? fileName) {
     throw ImportException(ImportFailure.empty, fileName: fileName);
   }
   return ImportedTrack(format: ImportFormat.fit, points: points);
+}
+
+/// The turn instructions a GPX route's cue sheet spells out.
+///
+/// Ride with GPS and Garmin write the manoeuvre into `<sym>` and `<type>`
+/// (`Left`, `Slight Right`, `Straight`, `Danger`, ...) and the instruction as
+/// the author wrote it into `<name>`. A cue whose words name no manoeuvre
+/// still becomes a turn, carrying on straight with its note, so nothing the
+/// author wrote is lost; a cue with neither words nor a name is not a turn.
+List<TurnHint> cueSheetTurns(List<GpxRouteCue> cues) {
+  final turns = <TurnHint>[];
+  for (final cue in cues) {
+    final words = <String?>[
+      cue.type,
+      cue.symbol,
+    ].nonNulls.map((s) => s.toLowerCase()).join(' ');
+    final kind = _cueKind(words);
+    final note = cue.name ?? cue.description;
+    if (kind == null && note == null) continue;
+    if (kind == TurnKind.straight && note == null) continue;
+    turns.add(
+      TurnHint(
+        pointIndex: cue.pointIndex,
+        kind: kind ?? TurnKind.straight,
+        note: note,
+      ),
+    );
+  }
+  return turns;
+}
+
+TurnKind? _cueKind(String words) {
+  if (words.isEmpty) return null;
+  final sharp = words.contains('sharp');
+  final slight = words.contains('slight') || words.contains('bear');
+  if (words.contains('uturn') || words.contains('u-turn')) {
+    return TurnKind.uTurn;
+  }
+  if (words.contains('left')) {
+    return sharp
+        ? TurnKind.sharpLeft
+        : slight
+        ? TurnKind.slightLeft
+        : TurnKind.left;
+  }
+  if (words.contains('right')) {
+    return sharp
+        ? TurnKind.sharpRight
+        : slight
+        ? TurnKind.slightRight
+        : TurnKind.right;
+  }
+  if (words.contains('straight') || words.contains('continue')) {
+    return TurnKind.straight;
+  }
+  if (words.contains('end') ||
+      words.contains('finish') ||
+      words.contains('arrive')) {
+    return TurnKind.end;
+  }
+  return null;
 }

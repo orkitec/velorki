@@ -29,9 +29,13 @@ Ist ein Sensor eingeschaltet, kommt in der Übersicht eine dritte Zeile mit dem 
 
 Ohne Sensor erscheint nichts davon, und eingeschaltet wird nichts, bevor du es unter **Einstellungen → Sensoren** tust. Siehe [Sensoren und deine Uhr](./sensors-and-watch).
 
-## Das Höhenprofil
+## Das Höhenprofil und die Abbiegeliste
 
-Die Übersicht unter der Karte hat zwei Seiten, einen Wisch auseinander, mit zwei Punkten unter den Zahlen, die sagen, welche gerade oben ist. Wische die Zahlen nach links für die gefolgte Route als Höhe über Distanz: der schon gefahrene Teil in der Akzentfarbe gefüllt, die Straße voraus in Grau, eine Linie, wo du bist, und darüber, was noch kommt, "12,4 km übrig, 320 m Anstieg". Wische zurück für die Zahlen; eine neue Fahrt beginnt auf ihnen. Ohne Route sagt die Seite es: "Folge einer Route, um hier ihr Höhenprofil zu sehen."
+Die Übersicht unter der Karte hat drei Seiten, einen Wisch auseinander, mit drei Punkten unter den Zahlen, die sagen, welche gerade oben ist. Eine neue Fahrt beginnt auf den Zahlen.
+
+**Das Höhenprofil**, einen Wisch nach links: die gefolgte Route als Höhe über Distanz, der schon gefahrene Teil in der Akzentfarbe gefüllt, die Straße voraus in Grau, eine Linie, wo du bist, und darüber, was noch kommt, "12,4 km übrig, 320 m Anstieg". An einer Steigung ab 3 % sagt eine zweite Zeile die Steigung und was bis oben bleibt, "6 % Steigung, 120 m bis oben", und sobald die Fahrt einen Schnitt hat, sagt dieselbe Zeile, wann du ankommst, "Ankunft 14:32". Ohne Route sagt die Seite es: "Folge einer Route, um hier ihr Höhenprofil zu sehen."
+
+**Die Abbiegeliste**, noch einen Wisch weiter: **Nächste Abbiegungen**, die nächsten acht Abbiegungen der Route der Reihe nach mit der Entfernung zu jeder, dazwischen die Punkte von Interesse auf der Route, und **Am Ziel ankommen** am Ende, mit "3 weitere" darunter, wenn mehr folgen. Die erste Zeile ist, was das Abbiegeband zeigt. Eine Route, die mit einer Abbiegeliste importiert wurde, zeigt für jede Abbiegung die Worte des Autors, "Turn left onto Main Street", statt des einfachen Hinweises.
 
 ## Was beim ersten Mal gefragt wird
 

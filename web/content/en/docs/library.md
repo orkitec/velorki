@@ -31,7 +31,7 @@ Both rename dialogs are the same: one field, **Name**, then **Cancel** or **Save
 
 Opening a route shows, from the top:
 
-- a map of the route,
+- a map of the route, with its points of interest as small named markers when it was imported with any,
 - the date, the bike profile and the ascent,
 - the description, if the route has one,
 - **Distance**, **Ascent**, **Descent** and **Est. time**,

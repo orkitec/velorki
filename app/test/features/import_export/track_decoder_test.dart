@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/import_export/data/track_decoder.dart';
 import 'package:velorki/features/import_export/domain/imported_track.dart';
 import 'package:velorki/features/planner/domain/route_poi.dart';
+import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_fit/velorki_fit.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -27,6 +28,29 @@ void main() {
       expect(track.pois.single.name, 'Trinkwasser');
       expect(track.pois.single.kind, PoiKind.water);
       expect(track.suggestedKind, ImportKind.route);
+    });
+
+    test(
+      'its cue sheet becomes turn instructions with the author\'s words',
+      () {
+        final track = decodeTrack(
+          fixtureBytes('ridewithgps.gpx'),
+          fileName: 'Isar nach Norden.gpx',
+        );
+        expect(track.turns.map((t) => t.kind), <TurnKind>[
+          TurnKind.straight,
+          TurnKind.left,
+          TurnKind.end,
+        ]);
+        expect(track.turns.map((t) => t.pointIndex), <int>[0, 1, 2]);
+        expect(track.turns[1].note, 'Turn left onto Widenmayerstraße');
+        expect(track.turns[0].note, 'Start of route');
+      },
+    );
+
+    test('a GPX track has no cue sheet, so it gets no turns', () {
+      final track = decodeTrack(fixtureBytes('komoot.gpx'), fileName: 'k.gpx');
+      expect(track.turns, isEmpty);
     });
   });
 

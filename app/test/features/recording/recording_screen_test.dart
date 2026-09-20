@@ -24,6 +24,7 @@ import 'package:velorki/features/navigation/presentation/turn_banner.dart';
 import 'package:velorki/features/recording/data/recording_settings.dart';
 import 'package:velorki/features/recording/domain/gps_precision.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
+import 'package:velorki/features/recording/presentation/ride_cue_sheet.dart';
 import 'package:velorki/features/recording/presentation/ride_profile_view.dart';
 import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
 import 'package:velorki/features/recording/presentation/rides_list.dart';
@@ -492,6 +493,63 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(RideProfileView), findsNothing);
     expect(find.text(l10n.statDistance.toUpperCase()), findsOneWidget);
+    await unmountApp(tester);
+  });
+
+  testWidgets('a second swipe brings the cue sheet: the turns ahead with '
+      'their distance', (tester) async {
+    final route = GuidedRoute(
+      key: 'saved:r',
+      line: const <LatLng>[
+        LatLng(48.1, 11.2),
+        LatLng(48.101, 11.2),
+        LatLng(48.102, 11.2),
+      ],
+      turns: const <TurnHint>[
+        TurnHint(pointIndex: 1, kind: TurnKind.left, note: 'Left at the mill'),
+      ],
+    );
+    final h = await pumpRecordingScreen(
+      tester,
+      const RecordingScreen(),
+      extraOverrides: [
+        activeGuidedRouteProvider.overrideWithValue(route),
+        navigationControllerProvider.overrideWithValue(
+          const NavigationProgress(alongM: 0, remainingM: 222),
+        ),
+      ],
+    );
+    await tester.pump();
+    await emitSnapshot(tester, h, _snapshot());
+
+    await tester.fling(
+      find.text(l10n.statDistance.toUpperCase()),
+      const Offset(-300, 0),
+      1200,
+    );
+    await tester.pumpAndSettle();
+    // The profile page has no elevations to draw for this route; its text
+    // is what there is to swipe on.
+    await tester.fling(
+      find.text(l10n.recordingProfileNoRoute),
+      const Offset(-300, 0),
+      1200,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.recordingCuesTitle.toUpperCase()), findsOneWidget);
+    expect(find.text('Left at the mill'), findsOneWidget);
+    expect(find.text(l10n.navArrive), findsOneWidget);
+    // 111 m to the mill; the end shows the same 220 m the ascent tile
+    // happens to read, so the cue sheet's own rows are what is counted.
+    expect(find.text('110 m'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(RideCueSheet),
+        matching: find.text('220 m'),
+      ),
+      findsOneWidget,
+    );
     await unmountApp(tester);
   });
 

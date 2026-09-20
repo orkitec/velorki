@@ -26,12 +26,14 @@ Velorki works out what the file is by reading its first bytes, not by trusting i
 
 Titled **Import**, it shows:
 
-- a map preview of the track,
+- a map preview of the track, with the file's waypoints as small markers with their name: the points of interest a route came with, a dismount zone, a water fountain, a rough patch, in the colour of their kind,
 - a **Name** field, pre-filled from the file name,
 - the format and size, "GPX · 4,812 points",
 - the time span, "16 Sept 2026, 09:12 – 16 Sept 2026, 13:40", or "The file carries no timestamps.",
 - the distance, ascent, descent and duration, and the elevation profile,
 - **SAVE AS**, a switch between **Route** and **Ride**.
+
+A GPX route with a cue sheet, the route export of Ride with GPS or a Garmin course, brings its turns along: each cue becomes a turn instruction with the author's words, shown in the turn banner, on the cue sheet page and said by the voice. A GPX track carries no cue sheet; Velorki's own turn banner still works on it from the route's shape.
 
 Velorki guesses **Route** or **Ride** from whether the points carry times: a recording does, a planned route does not. FIT courses carry a synthetic time base and are therefore guessed as a ride, so switch them over by hand. Nothing is written until you tap **Save**.
 

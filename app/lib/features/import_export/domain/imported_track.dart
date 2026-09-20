@@ -1,3 +1,4 @@
+import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../planner/domain/route_poi.dart';
@@ -38,6 +39,7 @@ class ImportedTrack {
     this.description,
     this.creator,
     this.pois = const <RoutePoi>[],
+    this.turns = const <TurnHint>[],
   });
 
   /// Which decoder produced this track.
@@ -60,6 +62,10 @@ class ImportedTrack {
   /// The file's own waypoints — named points of interest beside the track,
   /// a water fountain, a dismount zone — kept with the route it becomes.
   final List<RoutePoi> pois;
+
+  /// The file's cue sheet as turn instructions, anchored to [points], when
+  /// the file was a GPX route with cues; empty otherwise.
+  final List<TurnHint> turns;
 
   /// How many points the track has.
   int get pointCount => points.length;

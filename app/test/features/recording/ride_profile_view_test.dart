@@ -71,6 +71,31 @@ void main() {
     }
   });
 
+  testWidgets('on a climb it says the grade and what is left to the top, '
+      'and when the rider arrives', (tester) async {
+    await pump(
+      tester,
+      RideProfileView(
+        samples: _route(),
+        alongM: 3000,
+        etaAt: DateTime(2026, 9, 20, 14, 32),
+      ),
+    );
+
+    // 6 % up to the pass at 6 km: 180 m of the 360 m climb still to go.
+    expect(find.textContaining('6 % climb'), findsOneWidget);
+    expect(find.textContaining('591 ft to the top'), findsOneWidget);
+    expect(find.textContaining('ETA'), findsOneWidget);
+  });
+
+  testWidgets('on the flat and without an average there is no second line', (
+    tester,
+  ) async {
+    await pump(tester, RideProfileView(samples: _route(), alongM: 11000));
+    expect(find.textContaining('% climb'), findsNothing);
+    expect(find.textContaining('ETA'), findsNothing);
+  });
+
   testWidgets('without a route it says so', (tester) async {
     await pump(
       tester,

@@ -167,7 +167,11 @@ void main() {
         distanceToNextM: 40,
         angleDeg: -95,
       ),
-      TurnHint(pointIndex: 4, kind: TurnKind.end),
+      TurnHint(
+        pointIndex: 4,
+        kind: TurnKind.end,
+        note: 'Finish line at the café',
+      ),
     ];
 
     final saved = await repository.savePlannedRoute(

@@ -14,11 +14,13 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../map/data/compass_heading.dart';
 import '../../sensors/application/sensors_seen.dart';
 import 'ride_profile_view.dart';
+import 'ride_cue_sheet.dart';
 import '../../map/data/heading_smoother.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/location_rationale_dialog.dart';
 import '../../map/presentation/map_chrome.dart';
 import '../../navigation/application/navigation_controller.dart';
+import '../../navigation/application/route_cues.dart';
 import '../../navigation/application/off_route_thresholds.dart';
 import '../../navigation/domain/navigation_progress.dart';
 import '../../navigation/presentation/navigation_toggles.dart';
@@ -1500,6 +1502,15 @@ class _IdlePanel extends ConsumerWidget {
   }
 }
 
+/// When the rider reaches the end at the ride's average speed so far, or
+/// `null` without a route ahead or an average worth the name.
+DateTime? _eta(double? remainingM, double avgSpeedMps) {
+  if (remainingM == null || remainingM <= 0 || avgSpeedMps < 0.5) return null;
+  return DateTime.now().add(
+    Duration(seconds: (remainingM / avgSpeedMps).round()),
+  );
+}
+
 /// One sensor's tile: the current value, or the last one dimmed and marked
 /// with a broken link while the sensor is silent mid-ride. `null` for a sensor
 /// that has not reported this ride.
@@ -1712,6 +1723,17 @@ class _LivePanel extends ConsumerWidget {
                 // the route's geometry, once per route, and a rider who
                 // never swipes never pays for them.
                 samples: ref.watch(guidedRouteProfileProvider),
+                alongM: ref.watch(navigationControllerProvider)?.alongM ?? 0,
+                etaAt: _eta(
+                  ref.watch(navigationControllerProvider)?.remainingM,
+                  snapshot.avgSpeedMps,
+                ),
+              )
+            else
+              const SizedBox.shrink(),
+            if (page == 2)
+              RideCueSheet(
+                cues: ref.watch(guidedRouteCuesProvider),
                 alongM: ref.watch(navigationControllerProvider)?.alongM ?? 0,
               )
             else

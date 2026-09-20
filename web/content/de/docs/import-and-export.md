@@ -26,12 +26,14 @@ Velorki erkennt am Anfang der Datei, was sie ist, und vertraut weder ihrem Namen
 
 Er heißt **Import** und zeigt:
 
-- eine Kartenvorschau des Tracks,
+- eine Kartenvorschau des Tracks, mit den Wegpunkten der Datei als kleinen Markern mit ihrem Namen: die Punkte von Interesse, die eine Route mitbringt, eine Absteigezone, ein Trinkbrunnen, ein rauer Abschnitt, in der Farbe ihrer Art,
 - ein Feld **Name**, vorbelegt aus dem Dateinamen,
 - Format und Größe, "GPX · 4.812 Punkte",
 - den Zeitraum, "16. Sept. 2026, 09:12 – 16. Sept. 2026, 13:40", oder "Die Datei enthält keine Zeitstempel.",
 - Distanz, Anstieg, Abstieg und Dauer sowie das Höhenprofil,
 - **Speichern als**, einen Umschalter zwischen **Route** und **Fahrt**.
+
+Eine GPX-Route mit Abbiegeliste, der Routen-Export von Ride with GPS oder eine Garmin-Strecke, bringt ihre Abbiegungen mit: Jeder Eintrag wird ein Abbiegehinweis mit den Worten des Autors, gezeigt im Abbiegeband, auf der Abbiegeliste der Aufnahme und gesagt von der Stimme. Ein GPX-Track hat keine Abbiegeliste; Velorkis eigenes Abbiegeband funktioniert darauf trotzdem, aus der Form der Route.
 
 Velorki rät **Route** oder **Fahrt** danach, ob die Punkte Zeiten tragen: eine Aufnahme tut das, eine geplante Route nicht. FIT-Strecken tragen eine künstliche Zeitbasis und werden darum als Fahrt geraten, stell sie also von Hand um. Nichts wird geschrieben, bevor du auf **Speichern** tippst.
 

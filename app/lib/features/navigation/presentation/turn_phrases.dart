@@ -12,8 +12,19 @@ import '../../planner/domain/route_poi.dart';
 String backToRouteLabel(RelativeDirection? direction, AppLocalizations l10n) =>
     l10n.navBackToRoute(direction?.name ?? 'unknown');
 
-/// The short banner text for [hint], e.g. "Turn left" or "Keep right".
-String turnLabel(TurnHint hint, AppLocalizations l10n) => switch (hint.kind) {
+/// The short banner text for [hint], e.g. "Turn left" or "Keep right" — or
+/// what the route's author wrote for it, when the file had a cue sheet.
+String turnLabel(TurnHint hint, AppLocalizations l10n) {
+  final note = hint.note;
+  if (note != null && note.isNotEmpty) return note;
+  return turnKindLabel(hint, l10n);
+}
+
+/// The banner text for the manoeuvre alone, whatever the author wrote.
+String turnKindLabel(
+  TurnHint hint,
+  AppLocalizations l10n,
+) => switch (hint.kind) {
   TurnKind.left => l10n.navTurnLeft,
   TurnKind.right => l10n.navTurnRight,
   TurnKind.slightLeft => l10n.navTurnSlightLeft,

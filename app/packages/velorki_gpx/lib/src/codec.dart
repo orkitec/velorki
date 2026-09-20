@@ -181,6 +181,19 @@ abstract final class GpxCodec {
     name: _nonEmpty(rte.name),
     description: _nonEmpty(rte.desc),
     points: [for (final pt in rte.rtepts) _toTrackPoint(pt)],
+    cues: [
+      for (var i = 0; i < rte.rtepts.length; i++)
+        if (_nonEmpty(rte.rtepts[i].name) != null ||
+            _nonEmpty(rte.rtepts[i].sym) != null ||
+            _nonEmpty(rte.rtepts[i].type) != null)
+          GpxRouteCue(
+            pointIndex: i,
+            name: _nonEmpty(rte.rtepts[i].name),
+            description: _nonEmpty(rte.rtepts[i].desc),
+            symbol: _nonEmpty(rte.rtepts[i].sym),
+            type: _nonEmpty(rte.rtepts[i].type),
+          ),
+    ],
   );
 
   static GpxWaypoint _toWaypoint(gpxlib.Wpt wpt) => GpxWaypoint(

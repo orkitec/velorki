@@ -86,6 +86,20 @@ void main() {
     );
   });
 
+  test('what the author wrote for a turn is its label and its cue', () {
+    const hint = TurnHint(
+      pointIndex: 3,
+      kind: TurnKind.left,
+      note: 'Turn left onto Main Street',
+    );
+    expect(turnLabel(hint, l10n), 'Turn left onto Main Street');
+    expect(turnKindLabel(hint, l10n), l10n.navTurnLeft);
+    expect(
+      cuePhrase(const TurnCue(kind: CueKind.now, turn: hint), l10n),
+      'Now turn left onto Main Street',
+    );
+  });
+
   test('a now cue says it straight out', () {
     const cue = TurnCue(kind: CueKind.now, turn: _left, distanceM: 30);
 
