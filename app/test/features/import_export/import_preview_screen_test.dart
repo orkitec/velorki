@@ -10,6 +10,7 @@ import 'package:velorki/features/import_export/domain/imported_track.dart';
 import 'package:velorki/features/import_export/presentation/import_file_action.dart';
 import 'package:velorki/features/import_export/presentation/import_preview_screen.dart';
 import 'package:velorki/features/planner/application/planner_map_binding.dart';
+import 'package:velorki/features/map/domain/map_controller.dart';
 
 import '../../support/app.dart';
 import '../../support/format.dart';
@@ -36,8 +37,15 @@ void main() {
     expect(find.text(l10n.cueSheetTitle.toUpperCase()), findsOneWidget);
     expect(find.text('Turn left onto Widenmayerstraße'), findsOneWidget);
     expect(find.text('Trinkwasser'), findsOneWidget);
-    expect(h.map.turnMarkers, hasLength(3));
+    // The file's own "Start of route" cue is the start line, once.
+    expect(find.text(l10n.cueSheetStart), findsOneWidget);
+    expect(find.text('Start of route'), findsNothing);
+    expect(h.map.turnMarkers, hasLength(2));
     expect(h.map.pois, hasLength(1));
+    expect(h.map.waypoints.map((w) => w.kind), [
+      MapWaypointKind.start,
+      MapWaypointKind.end,
+    ]);
 
     await tester.tap(find.text('Turn left onto Widenmayerstraße'));
     await tester.pumpAndSettle();

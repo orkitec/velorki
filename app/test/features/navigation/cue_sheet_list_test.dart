@@ -26,7 +26,7 @@ void main() {
           ),
       ],
     );
-    expect(cues, hasLength(16), reason: '15 turns and the finish');
+    expect(cues, hasLength(17), reason: 'the start, 15 turns and the finish');
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final prefs = await SharedPreferences.getInstance();
     final selected = <int>[];
@@ -48,14 +48,17 @@ void main() {
     );
     await tester.pump();
 
+    expect(find.text(l10n.cueSheetStart), findsOneWidget);
     expect(find.text(l10n.navTurnLeft), findsNWidgets(4));
-    expect(find.text(l10n.cueSheetShowAll(16)), findsOneWidget);
-    await tester.tap(find.text(l10n.cueSheetShowAll(16)));
+    expect(find.text(l10n.cueSheetShowAll(17)), findsOneWidget);
+    await tester.tap(find.text(l10n.cueSheetShowAll(17)));
     await tester.pump();
     expect(find.text(l10n.cueSheetShowFewer), findsOneWidget);
     expect(find.text(l10n.navTurnLeft), findsNWidgets(8));
 
+    // The finish is below the fold of the test surface once all show.
+    await tester.ensureVisible(find.text(l10n.navArrive));
     await tester.tap(find.text(l10n.navArrive));
-    expect(selected, <int>[15]);
+    expect(selected, <int>[16]);
   });
 }

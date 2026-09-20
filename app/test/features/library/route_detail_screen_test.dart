@@ -85,6 +85,8 @@ void main() {
     // The cue sheet under the figures: the turn with the author's words,
     // the points with theirs; a tap opens the note and moves the map.
     expect(find.text(l10n.cueSheetTitle.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.cueSheetStart), findsOneWidget);
+    expect(h.map.waypoints, hasLength(2), reason: 'start and finish drawn');
     expect(find.text('Right at the barn'), findsOneWidget);
     expect(find.text('All riders must dismount'), findsNothing);
     await tester.tap(find.text('Dismount'));

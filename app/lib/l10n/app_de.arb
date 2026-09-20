@@ -210,6 +210,7 @@
   "recordingProfileNoRoute": "Folge einer Route, um hier ihr Höhenprofil zu sehen.",
   "recordingProfileClimb": "{grade} % Steigung, {ascent} bis oben",
   "recordingEta": "Ankunft {time}",
+  "cueSheetStart": "Start",
   "cueSheetTitle": "Abbiegeliste",
   "cueSheetShowAll": "Alle {count} zeigen",
   "cueSheetShowFewer": "Weniger zeigen",

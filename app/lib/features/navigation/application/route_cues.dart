@@ -43,6 +43,9 @@ class RouteCue {
 
   /// Whether this is the end of the route.
   bool get isFinish => turn?.kind == TurnKind.end;
+
+  /// Whether this is the start of the route: no turn, no point, 0 m.
+  bool get isStart => turn == null && poi == null;
 }
 
 /// The guided route's cue sheet, in route order: every turn worth a line,
@@ -68,7 +71,9 @@ List<RouteCue> routeCuesFor(
 }) {
   if (line.length < 2) return const <RouteCue>[];
   final cumulative = cumulativeDistances(line);
-  final cues = <RouteCue>[];
+  // The start is a line of its own: a sheet that opens with the first turn
+  // leaves the rider wondering where the route begins.
+  final cues = <RouteCue>[RouteCue(alongM: 0, pos: line.first)];
   for (var i = 0; i < turns.length; i++) {
     final turn = turns[i];
     // Carrying on straight is not a line on a cue sheet, unless the author
@@ -80,6 +85,8 @@ List<RouteCue> routeCuesFor(
         (turn.note == null || turn.note!.isEmpty);
     if (silent) continue;
     if (turn.pointIndex < 0 || turn.pointIndex >= cumulative.length) continue;
+    // A file's own "Start of route" cue is the start line, not a second one.
+    if (turn.pointIndex == 0 && turn.kind == TurnKind.straight) continue;
     cues.add(
       RouteCue(
         alongM: cumulative[turn.pointIndex],

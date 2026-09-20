@@ -112,7 +112,10 @@ class _CueRow extends StatelessWidget {
     final IconData icon;
     final String label;
     Color tint = first ? colors.accent : scheme.onSurfaceVariant;
-    if (poi != null) {
+    if (cue.isStart) {
+      icon = Icons.play_arrow_rounded;
+      label = l10n.cueSheetStart;
+    } else if (poi != null) {
       icon = poiIcon(poi.kind);
       label = poiLabel(poi, l10n);
       if (poi.kind == PoiKind.danger) tint = colors.warning;

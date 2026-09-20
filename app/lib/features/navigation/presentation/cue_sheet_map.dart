@@ -15,6 +15,14 @@ void showCuesOnMap(
   required void Function(int cueIndex) onCueTapped,
 }) {
   map.setPois(poiMarkers(pois));
+  // The ends of the route, as the planner draws them: a route without a
+  // visible start reads as a loop with no way in.
+  final start = cues.firstWhere((c) => c.isStart, orElse: () => cues.first);
+  final finish = cues.lastWhere((c) => c.isFinish, orElse: () => cues.last);
+  map.setWaypoints(<MapWaypoint>[
+    MapWaypoint(position: start.pos, kind: MapWaypointKind.start),
+    MapWaypoint(position: finish.pos, kind: MapWaypointKind.end),
+  ]);
   map.setTurnMarkers(<MapTurnMarker>[
     for (final cue in cues)
       if (cue.turnIndex != null) MapTurnMarker(position: cue.pos),

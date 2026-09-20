@@ -135,7 +135,11 @@ class _CueLine extends StatelessWidget {
     final String label;
     String? detail;
     var tint = scheme.onSurfaceVariant;
-    if (poi != null) {
+    if (cue.isStart) {
+      icon = Icons.play_arrow_rounded;
+      label = l10n.cueSheetStart;
+      tint = colors.waypointStart;
+    } else if (poi != null) {
       icon = poiIcon(poi.kind);
       label = poi.name;
       detail = poi.description;

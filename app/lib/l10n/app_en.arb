@@ -1037,6 +1037,10 @@
     "description": "Estimated time of arrival at the end of the route, on the elevation page",
     "placeholders": {"time": {"type": "String", "example": "14:32"}}
   },
+  "cueSheetStart": "Start",
+  "@cueSheetStart": {
+    "description": "First line of a cue sheet: the start of the route"
+  },
   "cueSheetTitle": "Cue sheet",
   "@cueSheetTitle": {
     "description": "Caption of the list of a route's turns and points of interest on the import preview and the route page"
