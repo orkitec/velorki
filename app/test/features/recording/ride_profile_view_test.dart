@@ -45,23 +45,13 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('says what is left and gives the map back', (tester) async {
-    var shown = 0;
-    await pump(
-      tester,
-      RideProfileView(
-        samples: _route(),
-        alongM: 4000,
-        onShowMap: () => shown++,
-      ),
-    );
+  testWidgets('says what is left', (tester) async {
+    await pump(tester, RideProfileView(samples: _route(), alongM: 4000));
 
     // 8 km to go; the climb left is the 2 km to the pass (120 m) plus the
     // final bump (40 m). The test locale counts in miles and feet.
     expect(find.text('5.0 mi left, 525 ft to climb'), findsOneWidget);
     expect(find.text('ELEVATION'), findsOneWidget);
-    await tester.tap(find.text('Map'));
-    expect(shown, 1);
 
     // VELORKI_SHOT_DIR=<dir> flutter test ... writes the render there, so the
     // chart can be looked at without a device.
@@ -84,11 +74,7 @@ void main() {
   testWidgets('without a route it says so', (tester) async {
     await pump(
       tester,
-      RideProfileView(
-        samples: const <ElevationSample>[],
-        alongM: 0,
-        onShowMap: () {},
-      ),
+      const RideProfileView(samples: <ElevationSample>[], alongM: 0),
     );
     expect(
       find.text('Follow a route to see its elevation profile here.'),

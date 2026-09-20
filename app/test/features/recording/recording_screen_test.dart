@@ -461,7 +461,7 @@ void main() {
     await unmountApp(tester);
   });
 
-  testWidgets('the elevation profile swaps places with the map on request', (
+  testWidgets('a swipe on the figures brings the elevation page, and back', (
     tester,
   ) async {
     final h = await pumpRecordingScreen(tester, const RecordingScreen());
@@ -469,26 +469,29 @@ void main() {
     await emitSnapshot(tester, h, _snapshot());
     expect(find.byType(RideProfileView), findsNothing);
 
-    // What the profile button in the map's control column calls.
-    final chrome = tester.widget<MapChromeInsets>(
-      find.byType(MapChromeInsets).first,
+    await tester.fling(
+      find.text(l10n.statDistance.toUpperCase()),
+      const Offset(-300, 0),
+      1200,
     );
-    chrome.onProfile!();
-    await tester.pump();
+    await tester.pumpAndSettle();
 
-    // No route is followed, so the view says what it would show.
+    // No route is followed, so the page says what it would show; the
+    // figures are gone, and a fresh snapshot keeps the page.
     expect(find.byType(RideProfileView), findsOneWidget);
     expect(find.text(l10n.recordingProfileNoRoute), findsOneWidget);
-    expect(
-      tester
-          .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
-          .profileShown,
-      isTrue,
-    );
+    expect(find.text(l10n.statDistance.toUpperCase()), findsNothing);
+    await emitSnapshot(tester, h, _snapshot(distanceM: 13000));
+    expect(find.byType(RideProfileView), findsOneWidget);
 
-    await tester.tap(find.text(l10n.recordingShowMap));
-    await tester.pump();
+    await tester.fling(
+      find.text(l10n.recordingProfileNoRoute),
+      const Offset(300, 0),
+      1200,
+    );
+    await tester.pumpAndSettle();
     expect(find.byType(RideProfileView), findsNothing);
+    expect(find.text(l10n.statDistance.toUpperCase()), findsOneWidget);
     await unmountApp(tester);
   });
 

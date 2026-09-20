@@ -17,7 +17,6 @@ import 'package:velorki/features/navigation/application/navigation_controller.da
 import 'package:velorki/features/navigation/data/navigation_settings.dart';
 import 'package:velorki/features/navigation/data/turn_speaker.dart';
 import 'package:velorki/features/navigation/domain/navigation_progress.dart';
-import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/navigation/presentation/turn_banner.dart';
 import 'package:velorki/features/navigation/testing/fake_turn_speaker.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
@@ -155,17 +154,15 @@ void main() {
     );
     debugPrint('VELORKI_NAV spoken: ${speaker.spoken}');
 
-    // The road ahead as a profile: the followed route with the rider on it,
-    // and the map back on request.
-    final chrome = tester.widget<MapChromeInsets>(
-      find.byType(MapChromeInsets).first,
-    );
-    chrome.onProfile!();
+    // The road ahead as a profile, a swipe away on the sheet: the followed
+    // route with the rider on it, and the figures back with the swipe back.
+    await tester.fling(find.text('DISTANCE'), const Offset(-300, 0), 1200);
     await pumpFor(tester, const Duration(seconds: 1));
     expect(find.byType(RideProfileView), findsOneWidget);
     expect(find.text('Elevation'.toUpperCase()), findsOneWidget);
     await screenshot(tester, 'ride-profile');
-    await tapAndPump(tester, find.text('Map'));
+    await tester.fling(find.text('ELEVATION'), const Offset(300, 0), 1200);
+    await pumpFor(tester, const Duration(seconds: 1));
     expect(find.byType(RideProfileView), findsNothing);
 
     // The card is up, with the ride.

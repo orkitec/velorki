@@ -10,20 +10,18 @@ import '../../planner/presentation/route_format.dart';
 import '../../settings/data/units.dart';
 import '../../shared/presentation/stat_tile.dart';
 
-/// The followed route as a profile instead of a map, while a ride records.
+/// The followed route as a profile: the second page of the record sheet.
 ///
 /// What ClimbPro and its kin draw: the road ahead as height over distance,
 /// the part already ridden filled in the accent, the rider as a line across
-/// it, and above it what is left — the distance and the climbing. It swaps
-/// places with the map at the rider's request and gives the map back with the
-/// button at its foot.
+/// it, and above it what is left — the distance and the climbing. A swipe on
+/// the figures brings it up; the same swipe back brings the figures back.
 class RideProfileView extends ConsumerWidget {
-  /// Creates the view.
+  /// Creates the page.
   const RideProfileView({
     required this.samples,
     required this.alongM,
-    required this.onShowMap,
-    this.topInset = 0,
+    this.height = 150,
     super.key,
   });
 
@@ -34,11 +32,8 @@ class RideProfileView extends ConsumerWidget {
   /// How far along the route the rider is, in metres.
   final double alongM;
 
-  /// Brings the map back.
-  final VoidCallback onShowMap;
-
-  /// Room to leave at the top, for a turn banner over this view.
-  final double topInset;
+  /// Height of the chart area.
+  final double height;
 
   /// The climbing left from [alongM] to the end: the positive steps between
   /// the samples ahead.
@@ -61,67 +56,51 @@ class RideProfileView extends ConsumerWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final system = ref.watch(unitSystemProvider);
-    return ColoredBox(
-      color: scheme.surface,
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(20, 12 + topInset, 20, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (samples.length < 2)
-                Text(
-                  l10n.recordingProfileNoRoute,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                )
-              else ...[
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(child: SectionCaption(l10n.elevationTitle)),
-                    Flexible(
-                      child: Text(
-                        l10n.recordingProfileLeft(
-                          formatDistance(
-                            l10n,
-                            system,
-                            (samples.last.distanceM - alongM).clamp(
-                              0,
-                              double.infinity,
-                            ),
-                          ),
-                          formatHeight(l10n, system, ascentLeftM),
-                        ),
-                        style: theme.textTheme.statMedium.copyWith(
-                          color: theme.velorki.accent,
-                        ),
-                        textAlign: TextAlign.end,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                SizedBox(height: 200, child: _chart(context, system)),
-              ],
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: FilledButton.tonalIcon(
-                  onPressed: onShowMap,
-                  icon: const Icon(Icons.map_outlined),
-                  label: Text(l10n.recordingShowMap),
-                ),
-              ),
-            ],
+    if (samples.length < 2) {
+      return SizedBox(
+        height: height,
+        child: Center(
+          child: Text(
+            l10n.recordingProfileNoRoute,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+            textAlign: TextAlign.center,
           ),
         ),
-      ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(child: SectionCaption(l10n.elevationTitle)),
+            Flexible(
+              child: Text(
+                l10n.recordingProfileLeft(
+                  formatDistance(
+                    l10n,
+                    system,
+                    (samples.last.distanceM - alongM).clamp(0, double.infinity),
+                  ),
+                  formatHeight(l10n, system, ascentLeftM),
+                ),
+                style: theme.textTheme.statMedium.copyWith(
+                  color: theme.velorki.accent,
+                ),
+                textAlign: TextAlign.end,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(height: height, child: _chart(context, system)),
+      ],
     );
   }
 

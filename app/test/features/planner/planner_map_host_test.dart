@@ -163,7 +163,6 @@ void main() {
       MapChromeInsets? seen;
       var located = 0;
       var compassed = 0;
-      var profiled = 0;
       await tester.pumpWidget(
         await _wrap(
           MapChromeInsets(
@@ -173,8 +172,6 @@ void main() {
             bearingDeg: 90,
             onLocate: () => located++,
             onCompass: () => compassed++,
-            onProfile: () => profiled++,
-            profileShown: true,
             child: PlannerMapHost(onMapReady: (_) {}, embedded: true),
           ),
           overrides: [
@@ -201,9 +198,6 @@ void main() {
       expect(located, 1);
       chrome.onCompass!();
       expect(compassed, 1);
-      chrome.onProfile!();
-      expect(profiled, 1);
-      expect(chrome.profileShown, isTrue);
     });
 
     testWidgets('tells the map when the screen draws the puck itself', (

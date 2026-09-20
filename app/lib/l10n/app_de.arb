@@ -207,8 +207,6 @@
   "recordingFollowRoute": "Einer Route folgen",
   "recordingFollowPlan": "Die Route im Tab Planen",
   "recordingFollowNone": "Keine Route",
-  "recordingProfileView": "Höhenprofil",
-  "recordingShowMap": "Karte",
   "recordingProfileNoRoute": "Folge einer Route, um hier ihr Höhenprofil zu sehen.",
   "recordingProfileLeft": "{distance} übrig, {ascent} Anstieg",
   "recordingKeepScreenOn": "Bildschirm anlassen",

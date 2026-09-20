@@ -1020,21 +1020,13 @@
   "@recordingFollowNone": {
     "description": "Entry of the route picker that follows no route"
   },
-  "recordingProfileView": "Elevation profile",
-  "@recordingProfileView": {
-    "description": "Tooltip of the map button that swaps the map for the followed route's elevation profile while recording"
-  },
-  "recordingShowMap": "Map",
-  "@recordingShowMap": {
-    "description": "Button on the elevation profile view that brings the map back"
-  },
   "recordingProfileNoRoute": "Follow a route to see its elevation profile here.",
   "@recordingProfileNoRoute": {
-    "description": "Shown in the elevation profile view when the ride follows no route"
+    "description": "Shown on the record sheet's elevation page when the ride follows no route"
   },
   "recordingProfileLeft": "{distance} left, {ascent} to climb",
   "@recordingProfileLeft": {
-    "description": "Header of the elevation profile view: what remains of the followed route",
+    "description": "Header of the record sheet's elevation page: what remains of the followed route",
     "placeholders": {
       "distance": {"type": "String", "example": "12.4 km"},
       "ascent": {"type": "String", "example": "320 m"}

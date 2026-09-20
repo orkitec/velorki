@@ -31,7 +31,7 @@ Ohne Sensor erscheint nichts davon, und eingeschaltet wird nichts, bevor du es u
 
 ## Das Höhenprofil
 
-Solange eine Fahrt aufgezeichnet wird, hat die Knopfleiste der Karte einen Knopf mehr, **Höhenprofil**. Er tauscht die Karte gegen die gefolgte Route als Höhe über Distanz: der schon gefahrene Teil in der Akzentfarbe gefüllt, die Straße voraus in Grau, eine Linie, wo du bist, und darüber, was noch kommt, "12,4 km übrig, 320 m Anstieg". Das Abbiege-Banner bleibt oben. **Karte** holt die Karte zurück, und mit dem Ende der Fahrt kommt sie von selbst wieder. Ohne Route sagt die Ansicht es: "Folge einer Route, um hier ihr Höhenprofil zu sehen."
+Die Übersicht unter der Karte hat zwei Seiten, einen Wisch auseinander, mit zwei Punkten unter den Zahlen, die sagen, welche gerade oben ist. Wische die Zahlen nach links für die gefolgte Route als Höhe über Distanz: der schon gefahrene Teil in der Akzentfarbe gefüllt, die Straße voraus in Grau, eine Linie, wo du bist, und darüber, was noch kommt, "12,4 km übrig, 320 m Anstieg". Wische zurück für die Zahlen; eine neue Fahrt beginnt auf ihnen. Ohne Route sagt die Seite es: "Folge einer Route, um hier ihr Höhenprofil zu sehen."
 
 ## Was beim ersten Mal gefragt wird
 

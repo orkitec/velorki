@@ -165,9 +165,9 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// Whether the save sheet is up (or on its way), from any stop.
   bool _stopping = false;
 
-  /// Whether the elevation profile is up instead of the map. Off again when
-  /// the ride ends.
-  bool _profileShown = false;
+  /// Which page of the live sheet is showing: the figures, or the followed
+  /// route's elevation profile. Back to the figures when the ride ends.
+  int _sheetPage = 0;
 
   int _drawnTrackPoints = -1;
   String? _drawnRouteId;
@@ -480,9 +480,9 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   ///
   /// A tap while the map has been let go picks the following up again too:
   /// asking for a style only to watch the map stay put would be a riddle.
-  void _handleProfile() {
-    if (!mounted) return;
-    setState(() => _profileShown = !_profileShown);
+  void _setSheetPage(int page) {
+    if (!mounted || page == _sheetPage) return;
+    setState(() => _sheetPage = page);
   }
 
   void _handleCompass() {
@@ -541,7 +541,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       _wasRecording = state.isRecording;
       _following = state.isRecording;
       _followTarget = null;
-      if (ended) _profileShown = false;
+      if (ended) _sheetPage = 0;
     }
     final map = _map;
     if (map == null) return;
@@ -1168,11 +1168,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                   bearingDeg: _bearing,
                   onLocate: _handleLocate,
                   // Only a running ride has a camera to hold, so only a
-                  // running ride shows the compass, and only it has a road
-                  // ahead to draw as a profile.
+                  // running ride shows the compass.
                   onCompass: state.isRecording ? _handleCompass : null,
-                  onProfile: state.isRecording ? _handleProfile : null,
-                  profileShown: _profileShown,
                   // The turn banner sits over the top of the map, so the
                   // control column starts below it while one is showing.
                   controlsTop: guiding ? turnBannerHeight + 24 : null,
@@ -1187,20 +1184,6 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                 ),
               ),
             ),
-            // The profile sits over the map, under the turn banner and the
-            // sheet: the map keeps its state and comes back with one tap.
-            if (_profileShown && state.isRecording && !glance)
-              Positioned.fill(
-                child: RideProfileView(
-                  // Watched only while the profile is up: the samples are
-                  // computed from the route's geometry once per route, and
-                  // a rider who never opens the view never pays for it.
-                  samples: ref.watch(guidedRouteProfileProvider),
-                  alongM: navigation?.alongM ?? 0,
-                  topInset: guiding ? turnBannerHeight + 12 : 0,
-                  onShowMap: _handleProfile,
-                ),
-              ),
             if (guiding && !glance)
               Positioned(
                 top: 0,
@@ -1258,6 +1241,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                             state: state,
                             scrollController: scrollController,
                             bottomInset: bottomInset,
+                            page: _sheetPage,
+                            onPage: _setSheetPage,
                             keepScreenOn: _keepScreenOn,
                             onKeepScreenOn: (v) =>
                                 unawaited(_setKeepScreenOn(v)),
@@ -1534,6 +1519,8 @@ class _LivePanel extends ConsumerWidget {
     required this.state,
     required this.scrollController,
     required this.bottomInset,
+    required this.page,
+    required this.onPage,
     required this.keepScreenOn,
     required this.onKeepScreenOn,
     required this.onPause,
@@ -1544,6 +1531,10 @@ class _LivePanel extends ConsumerWidget {
   final RecordingUiState state;
   final ScrollController scrollController;
   final double bottomInset;
+
+  /// The page showing: 0 the figures, 1 the elevation profile.
+  final int page;
+  final ValueChanged<int> onPage;
   final bool keepScreenOn;
   final ValueChanged<bool> onKeepScreenOn;
   final VoidCallback onPause;
@@ -1639,61 +1630,83 @@ class _LivePanel extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 16),
-        // Paused, the figures fade: the pill alone was easy to miss on a
-        // sheet that otherwise looks exactly like a running ride.
-        _PausedFade(
-          paused: state.isPaused,
-          child: Column(
-            children: [
-              StatRow(
+        // Two pages under the header, a swipe apart: the figures, and the
+        // followed route as a profile with the rider on it. The dots say
+        // which is up. Paused, the figures fade: the pill alone was easy to
+        // miss on a sheet that otherwise looks exactly like a running ride.
+        _SwipePages(
+          page: page,
+          onPage: onPage,
+          children: [
+            _PausedFade(
+              paused: state.isPaused,
+              child: Column(
                 children: [
-                  StatTile(
-                    label: l10n.statDistance,
-                    value: formatDistance(l10n, units, snapshot.distanceM),
-                    emphasize: !state.isPaused,
+                  StatRow(
+                    children: [
+                      StatTile(
+                        label: l10n.statDistance,
+                        value: formatDistance(l10n, units, snapshot.distanceM),
+                        emphasize: !state.isPaused,
+                      ),
+                      StatTile(
+                        label: l10n.statSpeed,
+                        value: formatSpeed(
+                          l10n,
+                          units,
+                          _speedMps(ref, snapshot),
+                        ),
+                      ),
+                      StatTile(
+                        label: l10n.statAvgSpeed,
+                        value: formatSpeed(l10n, units, snapshot.avgSpeedMps),
+                      ),
+                    ],
                   ),
-                  StatTile(
-                    label: l10n.statSpeed,
-                    value: formatSpeed(l10n, units, _speedMps(ref, snapshot)),
+                  const SizedBox(height: 16),
+                  StatRow(
+                    children: [
+                      StatTile(
+                        label: l10n.statAscent,
+                        value: formatHeight(l10n, units, snapshot.ascentM),
+                        size: StatSize.medium,
+                      ),
+                      StatTile(
+                        label: l10n.statDescent,
+                        value: formatHeight(l10n, units, snapshot.descentM),
+                        size: StatSize.medium,
+                      ),
+                      StatTile(
+                        label: l10n.statMovingTime,
+                        value: formatClock(snapshot.moving),
+                        size: StatSize.medium,
+                      ),
+                    ],
                   ),
-                  StatTile(
-                    label: l10n.statAvgSpeed,
-                    value: formatSpeed(l10n, units, snapshot.avgSpeedMps),
-                  ),
+                  // Only the figures a sensor has reported this ride: a rider
+                  // with a watch and nothing else gets one tile, not one and two
+                  // dashes, and a rider with no sensor gets no row at all. A
+                  // sensor that fell silent keeps its tile, dimmed and marked,
+                  // with the last value; paused, the sensor rests on purpose
+                  // and nothing is marked.
+                  if (sensorTiles.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    StatRow(children: sensorTiles),
+                  ],
                 ],
               ),
-              const SizedBox(height: 16),
-              StatRow(
-                children: [
-                  StatTile(
-                    label: l10n.statAscent,
-                    value: formatHeight(l10n, units, snapshot.ascentM),
-                    size: StatSize.medium,
-                  ),
-                  StatTile(
-                    label: l10n.statDescent,
-                    value: formatHeight(l10n, units, snapshot.descentM),
-                    size: StatSize.medium,
-                  ),
-                  StatTile(
-                    label: l10n.statMovingTime,
-                    value: formatClock(snapshot.moving),
-                    size: StatSize.medium,
-                  ),
-                ],
-              ),
-              // Only the figures a sensor has reported this ride: a rider
-              // with a watch and nothing else gets one tile, not one and two
-              // dashes, and a rider with no sensor gets no row at all. A
-              // sensor that fell silent keeps its tile, dimmed and marked,
-              // with the last value; paused, the sensor rests on purpose
-              // and nothing is marked.
-              if (sensorTiles.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                StatRow(children: sensorTiles),
-              ],
-            ],
-          ),
+            ),
+            if (page == 1)
+              RideProfileView(
+                // Watched only while the page is up: the samples come from
+                // the route's geometry, once per route, and a rider who
+                // never swipes never pays for them.
+                samples: ref.watch(guidedRouteProfileProvider),
+                alongM: ref.watch(navigationControllerProvider)?.alongM ?? 0,
+              )
+            else
+              const SizedBox.shrink(),
+          ],
         ),
         const SizedBox(height: 16),
         SwitchListTile(
@@ -1754,6 +1767,76 @@ class _RoundAction extends StatelessWidget {
             child: Icon(icon, size: 28, color: foreground),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Pages a swipe apart, with dots underneath saying which is up.
+///
+/// Not a PageView: that needs a height, and the figures' height depends on
+/// how many sensors report. A horizontal drag is all a swipe needs, and it
+/// does not fight the sheet's vertical scroll.
+class _SwipePages extends StatelessWidget {
+  const _SwipePages({
+    required this.page,
+    required this.onPage,
+    required this.children,
+  });
+
+  final int page;
+  final ValueChanged<int> onPage;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onHorizontalDragEnd: (details) {
+        final velocity = details.primaryVelocity ?? 0;
+        if (velocity < -200 && page < children.length - 1) onPage(page + 1);
+        if (velocity > 200 && page > 0) onPage(page - 1);
+      },
+      child: Column(
+        children: [
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            switchInCurve: Curves.easeOut,
+            switchOutCurve: Curves.easeIn,
+            transitionBuilder: (child, animation) =>
+                FadeTransition(opacity: animation, child: child),
+            layoutBuilder: (current, previous) => Stack(
+              alignment: Alignment.topCenter,
+              children: [...previous, ?current],
+            ),
+            child: KeyedSubtree(
+              key: ValueKey<int>(page),
+              child: children[page],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var i = 0; i < children.length; i++)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Container(
+                    width: i == page ? 8 : 6,
+                    height: i == page ? 8 : 6,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: i == page
+                          ? theme.velorki.accent
+                          : scheme.onSurfaceVariant.withValues(alpha: 0.4),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
