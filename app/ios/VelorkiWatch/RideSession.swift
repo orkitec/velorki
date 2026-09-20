@@ -27,14 +27,19 @@ final class RideSession: NSObject, ObservableObject {
     @Published var offRoute = false
     /// The phone's accent colour, `#RRGGBB`; empty until the phone has said.
     @Published var accent = ""
+    /// The phone's "Rest the sensor while paused" switch: a paused ride ends
+    /// the session instead of pausing it, and the phone wakes this app again
+    /// when the ride goes on.
+    @Published var rest = false
 
     // What the watch measures.
     @Published var heartRate: Int?
     @Published var measuring = false
 
     /// The ride is paused. The session pauses with it rather than ending, so
-    /// watchOS keeps this app awake for the resume; the last reading stays on
-    /// screen dimmed until the ride goes on.
+    /// watchOS keeps this app awake for the resume, unless the rider chose to
+    /// rest the sensor; either way the last reading stays on screen dimmed
+    /// until the ride goes on.
     var paused: Bool { status == "paused" }
 
     /// The session's own state, for the log.
@@ -283,14 +288,20 @@ final class RideSession: NSObject, ObservableObject {
             stoppedByRider = false
             if session != nil { endWorkout("phone reports the ride over") }
         }
+        rest = context["rest"] as? Bool ?? false
         // A paused ride — by hand or the phone's auto-pause at a standstill —
         // pauses the session rather than ending it: a watch app without a
         // running session is suspended by watchOS within a minute, and a
         // suspended app hears nothing until it is opened again. That is how
         // a whole ride's heart rate was lost at the first red light. The
         // sensor keeps sampling while paused; the phone records none of it.
+        // With the rest switch on the rider takes the other side of that
+        // trade: the session ends, the sensor rests, and the phone wakes this
+        // app when the ride goes on, as it launched it at the start.
         if let session {
-            if status == "paused", session.state == .running {
+            if status == "paused", rest {
+                endWorkout("paused, resting the sensor", keepReading: true)
+            } else if status == "paused", session.state == .running {
                 session.pause()
             } else if status == "active", session.state == .paused {
                 session.resume()

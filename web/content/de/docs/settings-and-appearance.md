@@ -44,7 +44,7 @@ Die drei Schalter hier sind dieselben wie in der Übersicht des Tabs Aufnahme.
 
 **Fahrten in Health speichern**: schreibt jede beendete Fahrt als Radfahr-Training in den Speicher. Der Schalter lässt sich einzeln ausschalten und tut nichts, solange der darüber aus ist.
 
-**Apple Watch**: "Herzfrequenz von der Uhr, die Fahrt steuerst du am Handgelenk". Die Zeile gibt es nur auf einem iPhone, mit dem eine Uhr gekoppelt ist. Einschalten fragt einmal, ob Velorki Mitteilungen zeigen darf, für den Hinweis "Ride started from your watch".
+**Apple Watch**: "Herzfrequenz von der Uhr, die Fahrt steuerst du am Handgelenk". Die Zeile gibt es nur auf einem iPhone, mit dem eine Uhr gekoppelt ist. Einschalten fragt einmal, ob Velorki Mitteilungen zeigen darf, für den Hinweis "Ride started from your watch". Darunter **Sensor in Pausen ruhen lassen**: "Für Fahrten mit vielen Stopps: Die Uhr misst in jeder Pause nicht und das Handy weckt sie, wenn du weiterfährst". Ausgeschaltet misst die Uhr durch eine Pause hindurch weiter, und genau das hält sie wach für das Weiterfahren.
 
 **Bluetooth-Sensoren**: "Brustgurte, Geschwindigkeits- und Trittfrequenzsensoren, Leistungsmesser", oder wie viele Sensoren gekoppelt sind. Dahinter liegt der Bildschirm, auf dem **Scannen** sie sucht. Alles davon steht ausführlich unter [Sensoren und deine Uhr](./sensors-and-watch).
 

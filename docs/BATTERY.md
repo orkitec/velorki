@@ -78,11 +78,15 @@ bursts.
 **On the wrist**, the `HKWorkoutSession` runs for the whole ride and is
 paused, not ended, with the ride: a watch app without a running session is
 suspended by watchOS within a minute and then hears no context update, which
-lost a ride's heart rate at its first auto-pause. **Stop heart rate** ends
-the session while the ride goes on, and the phone launches the watch app
-again (`HKHealthStore.startWatchApp`) after 45 s without a reading mid-ride.
-watchOS Low Power Mode lowers the sampling rate of a third-party session by
-itself.
+lost a ride's heart rate at its first auto-pause. A paused session keeps the
+sensor at its cadence, so **Rest the sensor while paused** (off by default)
+offers the other side of the trade for rides with many stops: the session
+ends at every pause and the phone wakes the watch app when the ride goes on
+(the `workout` message, or `HKHealthStore.startWatchApp` while the app is
+suspended). **Stop heart rate** ends the session while the ride goes on. The
+phone launches the watch app again after 45 s without a reading mid-ride
+either way. watchOS Low Power Mode lowers the sampling rate of a third-party
+session by itself.
 
 ## What is not implemented
 

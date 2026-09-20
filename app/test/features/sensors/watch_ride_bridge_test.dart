@@ -88,10 +88,12 @@ class _Harness {
   static Future<_Harness> create({
     bool enabled = true,
     bool reachable = true,
+    bool rest = false,
     NavigationProgress? progress,
   }) async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       if (enabled) 'sensors.watch': true,
+      if (rest) 'sensors.watch.rest': true,
     });
     final prefs = await SharedPreferences.getInstance();
     final service = FakeRecordingService();
@@ -378,6 +380,64 @@ void main() {
       },
     );
 
+    test(
+      'is left alone across a pause while the sensor is not resting',
+      () async {
+        final harness = await _Harness.create();
+        await harness.record(_snapshot());
+
+        await harness.record(_snapshot(status: RecordingStatus.paused));
+        await harness.record(_snapshot());
+
+        expect(harness.workouts, <Object?>[watchWorkoutStart]);
+        expect(harness.watch.launches, 0);
+        expect(harness.lastContext![watchRestKey], isFalse);
+      },
+    );
+
+    test('with the rest switch on, is asked for again the moment the ride '
+        'goes on after a pause', () async {
+      final harness = await _Harness.create(rest: true);
+      await harness.record(_snapshot());
+      expect(harness.workouts, <Object?>[watchWorkoutStart]);
+      expect(harness.lastContext![watchRestKey], isTrue);
+
+      // The pause itself is the watch's business: the context says so, and
+      // the watch ends its own session.
+      await harness.record(_snapshot(status: RecordingStatus.paused));
+      expect(harness.workouts, <Object?>[watchWorkoutStart]);
+
+      await harness.record(_snapshot());
+      expect(harness.workouts, <Object?>[watchWorkoutStart, watchWorkoutStart]);
+
+      // Nothing more while the ride simply goes on.
+      await harness.record(_snapshot(distanceM: 4000));
+      expect(harness.workouts, <Object?>[watchWorkoutStart, watchWorkoutStart]);
+    });
+
+    test('with the rest switch on, a suspended watch app is launched again '
+        'through HealthKit when the ride goes on', () async {
+      final harness = await _Harness.create(rest: true, reachable: false);
+      await harness.record(_snapshot());
+      expect(harness.watch.launches, 1);
+
+      await harness.record(_snapshot(status: RecordingStatus.paused));
+      expect(harness.watch.launches, 1);
+
+      // Straight away, not after the watchdog's three quarters of a minute.
+      await harness.record(_snapshot());
+      expect(harness.watch.launches, 2);
+      expect(harness.workouts, isEmpty);
+
+      // And the watchdog still counts from this wake-up.
+      harness.clock.advance(const Duration(seconds: 50));
+      await harness.record(_snapshot());
+      expect(harness.watch.launches, 2);
+      harness.clock.advance(const Duration(seconds: 80));
+      await harness.record(_snapshot());
+      expect(harness.watch.launches, 3);
+    });
+
     test('is launched once for one ride', () async {
       final harness = await _Harness.create(reachable: false);
 
@@ -429,6 +489,7 @@ void main() {
         watchOffRouteKey: false,
         watchCueKey: 0,
         watchAccentKey: '#C8F542',
+        watchRestKey: false,
       });
     });
 

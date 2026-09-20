@@ -768,6 +768,8 @@
   "settingsSensorsHealthDenied": "Velorki hat keinen Zugriff auf deine Gesundheitsdaten bekommen.",
   "settingsSensorsAppleWatch": "Apple Watch",
   "settingsSensorsWatchHint": "Herzfrequenz von der Uhr, die Fahrt steuerst du am Handgelenk",
+  "settingsSensorsWatchRest": "Sensor in Pausen ruhen lassen",
+  "settingsSensorsWatchRestHint": "Für Fahrten mit vielen Stopps: Die Uhr misst in jeder Pause nicht und das Handy weckt sie, wenn du weiterfährst",
   "settingsSensorsBluetooth": "Bluetooth-Sensoren",
   "settingsSensorsBluetoothHint": "Brustgurte, Geschwindigkeits- und Trittfrequenzsensoren, Leistungsmesser",
   "settingsSensorsBluetoothPaired": "{count, plural, =1{1 Sensor gekoppelt} other{{count} Sensoren gekoppelt}}",

@@ -6,6 +6,7 @@ import '../domain/ble_profiles.dart';
 const String _prefsHealth = 'sensors.health';
 const String _prefsHealthWrite = 'sensors.health.write';
 const String _prefsWatch = 'sensors.watch';
+const String _prefsWatchRest = 'sensors.watch.rest';
 
 /// Whether Velorki talks to the platform's health store at all, whether
 /// finished rides are saved there as workouts, whether the rider's watch is
@@ -18,6 +19,7 @@ class SensorSettings {
     this.health = false,
     this.healthWrite = true,
     this.watch = false,
+    this.watchRest = false,
     this.wheelCircumferenceMm = defaultWheelCircumferenceMm,
   });
 
@@ -35,6 +37,12 @@ class SensorSettings {
   /// Whether the paired Apple Watch measures and steers the ride.
   final bool watch;
 
+  /// Whether the watch ends its workout at every pause and is woken again
+  /// when the ride goes on, so the sensor rests at every stop. Off, the
+  /// workout pauses with the ride and the sensor keeps its cadence. Only
+  /// has an effect while [watch] is on.
+  final bool watchRest;
+
   /// How far the bike rolls in one wheel turn, in millimetres. A wheel sensor
   /// counts revolutions and nothing else, so this is the whole difference
   /// between its count and a speed.
@@ -49,11 +57,13 @@ class SensorSettings {
     bool? health,
     bool? healthWrite,
     bool? watch,
+    bool? watchRest,
     int? wheelCircumferenceMm,
   }) => SensorSettings(
     health: health ?? this.health,
     healthWrite: healthWrite ?? this.healthWrite,
     watch: watch ?? this.watch,
+    watchRest: watchRest ?? this.watchRest,
     wheelCircumferenceMm: wheelCircumferenceMm ?? this.wheelCircumferenceMm,
   );
 
@@ -64,16 +74,18 @@ class SensorSettings {
           other.health == health &&
           other.healthWrite == healthWrite &&
           other.watch == watch &&
+          other.watchRest == watchRest &&
           other.wheelCircumferenceMm == wheelCircumferenceMm;
 
   @override
   int get hashCode =>
-      Object.hash(health, healthWrite, watch, wheelCircumferenceMm);
+      Object.hash(health, healthWrite, watch, watchRest, wheelCircumferenceMm);
 
   @override
   String toString() =>
       'SensorSettings(health: $health, healthWrite: $healthWrite, '
-      'watch: $watch, wheel: $wheelCircumferenceMm mm)';
+      'watch: $watch, watchRest: $watchRest, '
+      'wheel: $wheelCircumferenceMm mm)';
 }
 
 /// The sensor settings, kept in shared_preferences.
@@ -90,6 +102,7 @@ class SensorSettingsController extends Notifier<SensorSettings> {
       health: prefs.getBool(_prefsHealth) ?? false,
       healthWrite: prefs.getBool(_prefsHealthWrite) ?? true,
       watch: prefs.getBool(_prefsWatch) ?? false,
+      watchRest: prefs.getBool(_prefsWatchRest) ?? false,
       wheelCircumferenceMm:
           prefs.getInt(prefsWheelCircumferenceMm) ??
           defaultWheelCircumferenceMm,
@@ -120,6 +133,12 @@ class SensorSettingsController extends Notifier<SensorSettings> {
   Future<void> setWatch(bool value) async {
     await _write(_prefsWatch, value, defaultValue: false);
     state = state.copyWith(watch: value);
+  }
+
+  /// Switches resting the watch's sensor at every pause on or off.
+  Future<void> setWatchRest(bool value) async {
+    await _write(_prefsWatchRest, value, defaultValue: false);
+    state = state.copyWith(watchRest: value);
   }
 
   /// Sets the wheel a speed sensor is on, in millimetres.

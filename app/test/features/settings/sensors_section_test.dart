@@ -169,6 +169,36 @@ void main() {
     expect(watch.sent, isEmpty);
   });
 
+  testWidgets('resting the sensor at pauses is offered under the watch, and '
+      'only while the watch is on', (tester) async {
+    final watch = FakeWatchGateway();
+    addTearDown(watch.dispose);
+    final container = await _pump(
+      tester,
+      gateway: FakeHealthGateway(),
+      watch: watch,
+    );
+    expect(find.text(l10n.settingsSensorsWatchRestHint), findsOneWidget);
+    expect(_tile(tester, l10n.settingsSensorsWatchRest).onChanged, isNull);
+
+    await tester.tap(find.text(l10n.settingsSensorsAppleWatch));
+    await tester.pumpAndSettle();
+    expect(_tile(tester, l10n.settingsSensorsWatchRest).onChanged, isNotNull);
+    expect(_tile(tester, l10n.settingsSensorsWatchRest).value, isFalse);
+
+    await tester.tap(find.text(l10n.settingsSensorsWatchRest));
+    await tester.pumpAndSettle();
+
+    expect(container.read(sensorSettingsProvider).watchRest, isTrue);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getBool('sensors.watch.rest'), isTrue);
+
+    // Off again removes the key rather than storing the default.
+    await tester.tap(find.text(l10n.settingsSensorsWatchRest));
+    await tester.pumpAndSettle();
+    expect(prefs.getBool('sensors.watch.rest'), isNull);
+  });
+
   testWidgets('a watch that is not paired is not offered', (tester) async {
     final watch = FakeWatchGateway(paired: false);
     addTearDown(watch.dispose);

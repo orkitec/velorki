@@ -85,8 +85,10 @@ class WatchRideBridge extends _$WatchRideBridge {
   DateTime? _lastReadingAt;
   DateTime? _lastLaunchAt;
 
-  /// Whether a ride was running on the previous pass.
+  /// Whether a ride was running on the previous pass, and whether it was
+  /// paused.
   bool _riding = false;
+  bool _paused = false;
 
   @override
   void build() {
@@ -121,6 +123,7 @@ class WatchRideBridge extends _$WatchRideBridge {
     }
     _attach(gateway);
     await _followRide(gateway);
+    await _followPause(gateway);
     await _watchdog(gateway);
     await _pushContext(gateway);
   }
@@ -142,6 +145,31 @@ class WatchRideBridge extends _$WatchRideBridge {
     }
     _lastLaunchAt = now;
     _log.info('the watch fell silent; launching its app again');
+    if (await gateway.isReachable()) {
+      await _sendWorkout(gateway, start: true);
+    } else {
+      await gateway.launchWorkout();
+    }
+  }
+
+  /// Wakes the watch when a ride goes on after a pause during which the
+  /// watch rested its sensor.
+  ///
+  /// With the rest switch on, the watch ends its workout at every pause and
+  /// watchOS suspends its app soon after; no message reaches it, so the ride
+  /// going on is announced the way its start was: a message while the app
+  /// is reachable, HealthKit's launch otherwise. [_watchdog] catches a wake
+  /// that failed.
+  Future<void> _followPause(WatchGateway gateway) async {
+    final paused = ref.read(recordingControllerProvider).isPaused;
+    if (paused == _paused) return;
+    _paused = paused;
+    if (paused || !_measuring || !ref.read(sensorSettingsProvider).watchRest) {
+      return;
+    }
+    _lastReadingAt = null;
+    _lastLaunchAt = ref.read(watchClockProvider)();
+    _log.info('the ride goes on; waking the watch');
     if (await gateway.isReachable()) {
       await _sendWorkout(gateway, start: true);
     } else {
@@ -180,6 +208,7 @@ class WatchRideBridge extends _$WatchRideBridge {
     _context = null;
     _contextAt = null;
     _riding = false;
+    _paused = false;
   }
 
   /// Asks the watch to measure while a ride runs, and to stop when it ends.
@@ -225,7 +254,8 @@ class WatchRideBridge extends _$WatchRideBridge {
         previous == null ||
         data[watchStatusKey] != previous[watchStatusKey] ||
         data[watchCueKey] != previous[watchCueKey] ||
-        data[watchAccentKey] != previous[watchAccentKey];
+        data[watchAccentKey] != previous[watchAccentKey] ||
+        data[watchRestKey] != previous[watchRestKey];
     final now = ref.read(watchClockProvider)();
     final sentAt = _contextAt;
     if (!urgent &&
@@ -243,6 +273,7 @@ class WatchRideBridge extends _$WatchRideBridge {
     final cue = ref.read(navigationCueProvider);
     final cueAt = cue?.millisecondsSinceEpoch ?? 0;
     final accent = _hex(ref.read(appearanceSettingProvider).accent.dark);
+    final rest = ref.read(sensorSettingsProvider).watchRest;
     final recording = ref.read(recordingControllerProvider);
     final snapshot = recording.snapshot;
     if (!recording.isRecording || snapshot == null) {
@@ -257,6 +288,7 @@ class WatchRideBridge extends _$WatchRideBridge {
         watchOffRouteKey: false,
         watchCueKey: cueAt,
         watchAccentKey: accent,
+        watchRestKey: rest,
       };
     }
     final progress = ref.read(navigationControllerProvider);
@@ -284,6 +316,7 @@ class WatchRideBridge extends _$WatchRideBridge {
           (progress?.offRoute ?? false) || progress?.guidance != null,
       watchCueKey: cueAt,
       watchAccentKey: accent,
+      watchRestKey: rest,
     };
   }
 

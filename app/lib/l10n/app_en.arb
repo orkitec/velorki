@@ -3917,6 +3917,14 @@
   "@settingsSensorsWatchHint": {
     "description": "Second line of the switch that connects Velorki to the Apple Watch app"
   },
+  "settingsSensorsWatchRest": "Rest the sensor while paused",
+  "@settingsSensorsWatchRest": {
+    "description": "Switch under the Apple Watch switch: the watch ends its workout at every pause and is woken again when the ride goes on"
+  },
+  "settingsSensorsWatchRestHint": "For rides with many stops: the watch stops measuring at every pause and the phone wakes it when you ride on",
+  "@settingsSensorsWatchRestHint": {
+    "description": "Second line of the switch that rests the watch's heart-rate sensor while the ride is paused"
+  },
   "settingsSensorsBluetooth": "Bluetooth sensors",
   "@settingsSensorsBluetooth": {
     "description": "Settings row that opens the screen for pairing Bluetooth sensors"

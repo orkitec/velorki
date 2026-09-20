@@ -69,7 +69,7 @@ class SensorsSection extends ConsumerWidget {
         ),
         // Only on a phone that has a watch paired to it: everywhere else the
         // switch could do nothing at all, so it is not offered.
-        if (ref.watch(watchPairedProvider).value ?? false)
+        if (ref.watch(watchPairedProvider).value ?? false) ...[
           SwitchListTile(
             value: settings.watch,
             title: Text(l10n.settingsSensorsAppleWatch),
@@ -82,6 +82,17 @@ class SensorsSection extends ConsumerWidget {
               ),
             ),
           ),
+          // The trade for rides with many stops: the sensor rests at every
+          // pause, and the watch app is woken again when the ride goes on.
+          SwitchListTile(
+            value: settings.watchRest,
+            title: Text(l10n.settingsSensorsWatchRest),
+            subtitle: Text(l10n.settingsSensorsWatchRestHint),
+            onChanged: settings.watch
+                ? (value) => unawaited(controller.setWatchRest(value))
+                : null,
+          ),
+        ],
         // Only where there is a radio to use. The row itself connects to
         // nothing; the screen behind it is where a rider goes looking.
         if (ref.watch(bleGatewayProvider) != null) const _BluetoothEntry(),

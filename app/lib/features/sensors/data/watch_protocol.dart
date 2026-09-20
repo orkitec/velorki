@@ -117,6 +117,14 @@ const String watchCueKey = 'cue';
 /// the wrist matches the phone.
 const String watchAccentKey = 'accent';
 
+/// Whether the watch should end its workout while the ride is paused and
+/// wait to be launched again, rather than pause the workout: the "Rest the
+/// sensor while paused" switch. Off, a paused workout keeps the sensor at its
+/// cadence but keeps the watch app awake for the resume; on, the sensor
+/// rests and the phone wakes the app ([watchWorkoutStart] or HealthKit's
+/// launch) the moment the ride goes on.
+const String watchRestKey = 'rest';
+
 /// How often the context goes out while a ride runs.
 ///
 /// Every fix would be a wake-up a second for a screen the rider looks at

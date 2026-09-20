@@ -69,7 +69,7 @@ on every change and at most every 5 s while a ride runs:
  "distance": "3.2 km", "elapsed": "00:42", "speed": "18.0 km/h",
  "turnIcon": "arrow.turn.up.left", "turnLabel": "Turn left",
  "turnDistance": "150 m", "offRoute": false,
- "cue": <ms since epoch, 0 for none>, "accent": "#C8F542"}
+ "cue": <ms since epoch, 0 for none>, "accent": "#C8F542", "rest": false}
 ```
 
 A phone whose app is closed is launched in the background only; nothing can
@@ -87,7 +87,8 @@ moment later, and that first message is lost. The phone ignores a command
 its recorder is already in the state of, so a repeat is harmless.
 
 `accent` is the app's accent colour (its dark-theme shade); the watch tints
-its heart and buttons with it.
+its heart and buttons with it. `rest` is the phone's "Rest the sensor while
+paused" switch, see below.
 
 Every string is formatted and translated by the phone, which knows the rider's
 units and language; this app knows neither, and its own handful of words are
@@ -139,10 +140,17 @@ The phone's application context saying `status: idle` also ends the session, so
 a ride ended while the watch was out of reach still stops the measuring.
 
 The measuring pauses with the ride: a context `status` of `paused` (the
-rider's pause or the phone's auto-pause at a standstill) *ends* the session,
-because a paused `HKWorkoutSession` keeps the sensor sampling, and `active`
-starts it again. The phone's reading goes stale meanwhile and the hub drops
-it; the watch keeps the last figure on screen, dimmed. A command the phone
+rider's pause or the phone's auto-pause at a standstill) pauses the
+`HKWorkoutSession` and `active` resumes it. It is never ended for a pause,
+because a watch app without a running session is suspended by watchOS within
+a minute and then hears no context update — which once lost a whole ride's
+heart rate at its first auto-pause. The phone's reading goes stale meanwhile
+and the hub drops it; the watch keeps the last figure on screen, dimmed.
+With `rest: true` (the phone's "Rest the sensor while paused" switch) the
+session *is* ended at a pause so the sensor rests, and the phone wakes this
+app when the ride goes on: the `workout` message while the app is reachable,
+`startWatchApp` otherwise, and again after 45 s without a reading. A silent
+watch mid-ride is relaunched the same way with the switch off. A command the phone
 never confirms (an app the rider force-quit, which iOS does not relaunch for
 a watch message; a phone out of range) is said on the wrist. Note `Int64` for the
 timestamp in the heart-rate message: Series 4 to 8 and the SE are arm64_32,
