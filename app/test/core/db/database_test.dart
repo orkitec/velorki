@@ -121,8 +121,8 @@ void main() {
   setUp(() => db = VelorkiDatabase.memory());
   tearDown(() => db.close());
 
-  test('schema version is 4', () {
-    expect(db.schemaVersion, 4);
+  test('schema version is 5', () {
+    expect(db.schemaVersion, 5);
   });
 
   test('a schema 1 database is upgraded and keeps its routes', () async {
@@ -159,6 +159,7 @@ void main() {
     expect(row.distanceM, 1000);
     expect(row.createdAt, DateTime.utc(2026, 9, 12, 10));
     expect(row.turnsJson, isNull, reason: 'the new column starts empty');
+    expect(row.poisJson, isNull, reason: 'and so does the later one');
   });
 
   test(
