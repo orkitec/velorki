@@ -9,6 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/theme.dart';
 import 'package:velorki/features/planner/domain/elevation_profile.dart';
+import 'package:velorki/features/planner/presentation/route_format.dart';
+import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/features/recording/presentation/ride_profile_view.dart';
 
 import '../../support/app.dart';
@@ -49,9 +51,20 @@ void main() {
     await pump(tester, RideProfileView(samples: _route(), alongM: 4000));
 
     // 8 km to go; the climb left is the 2 km to the pass (120 m) plus the
-    // final bump (40 m). The test locale counts in miles and feet.
-    expect(find.text('5.0 mi left, 525 ft to climb'), findsOneWidget);
-    expect(find.text('ELEVATION'), findsOneWidget);
+    // final bump (40 m), said in whatever the test locale counts in.
+    final units = ProviderScope.containerOf(
+      tester.element(find.byType(RideProfileView)),
+    ).read(unitSystemProvider);
+    expect(
+      find.text(
+        l10n.recordingProfileLeft(
+          formatDistance(l10n, units, 8000),
+          formatHeight(l10n, units, 160),
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text(l10n.elevationTitle.toUpperCase()), findsOneWidget);
 
     // VELORKI_SHOT_DIR=<dir> flutter test ... writes the render there, so the
     // chart can be looked at without a device.
@@ -83,17 +96,27 @@ void main() {
     );
 
     // 6 % up to the pass at 6 km: 180 m of the 360 m climb still to go.
-    expect(find.textContaining('6 % climb'), findsOneWidget);
-    expect(find.textContaining('591 ft to the top'), findsOneWidget);
-    expect(find.textContaining('ETA'), findsOneWidget);
+    final units = ProviderScope.containerOf(
+      tester.element(find.byType(RideProfileView)),
+    ).read(unitSystemProvider);
+    expect(
+      find.textContaining(
+        l10n.recordingProfileClimb('6', formatHeight(l10n, units, 180)),
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining(l10n.recordingEta('')), findsOneWidget);
   });
 
   testWidgets('on the flat and without an average there is no second line', (
     tester,
   ) async {
     await pump(tester, RideProfileView(samples: _route(), alongM: 11000));
-    expect(find.textContaining('% climb'), findsNothing);
-    expect(find.textContaining('ETA'), findsNothing);
+    expect(
+      find.textContaining(l10n.recordingProfileClimb('', '')),
+      findsNothing,
+    );
+    expect(find.textContaining(l10n.recordingEta('')), findsNothing);
   });
 
   testWidgets('without a route it says so', (tester) async {
@@ -101,9 +124,6 @@ void main() {
       tester,
       const RideProfileView(samples: <ElevationSample>[], alongM: 0),
     );
-    expect(
-      find.text('Follow a route to see its elevation profile here.'),
-      findsOneWidget,
-    );
+    expect(find.text(l10n.recordingProfileNoRoute), findsOneWidget);
   });
 }
