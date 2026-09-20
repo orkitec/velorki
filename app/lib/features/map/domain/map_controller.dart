@@ -42,8 +42,14 @@ abstract class MapController {
   Future<void> setWaypoints(List<MapWaypoint> waypoints);
 
   /// Points of interest beside the route, each a small marker with its name;
-  /// an empty list takes them away. Not draggable, not tappable.
+  /// an empty list takes them away. A tap on one reports through
+  /// [onPoiTapped] with its index.
   Future<void> setPois(List<MapPoi> pois);
+
+  /// Small markers on the turns of a route, for a screen that reads the
+  /// route rather than rides it; an empty list takes them away. A tap on one
+  /// reports through [onTurnTapped] with its index.
+  Future<void> setTurnMarkers(List<MapTurnMarker> turns);
 
   /// A recorded or recording track, drawn distinct from planned routes.
   Future<void> setTrackLine(List<LatLng> points);
@@ -91,6 +97,12 @@ abstract class MapController {
   /// A tap on a waypoint marker, with the marker's index; the owning screen
   /// offers what can be done with the point (remove it, for one).
   set onWaypointTapped(void Function(int index)? handler);
+
+  /// A tap on a point of interest, with its index in the last [setPois].
+  set onPoiTapped(void Function(int index)? handler);
+
+  /// A tap on a turn marker, with its index in the last [setTurnMarkers].
+  set onTurnTapped(void Function(int index)? handler);
   set onCameraIdle(VoidCallback? handler);
 
   /// Visible area, for offline downloads and search bias.
@@ -128,6 +140,21 @@ enum MapWaypointKind { start, via, end }
 
 /// What a point of interest is about, which picks its colour.
 enum MapPoiKind { danger, water, food, generic }
+
+/// A turn marker: where a route turns, for reading the route on a map.
+class MapTurnMarker {
+  const MapTurnMarker({required this.position});
+
+  final LatLng position;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MapTurnMarker && other.position == position;
+
+  @override
+  int get hashCode => position.hashCode;
+}
 
 /// A point of interest marker: a named place beside the route.
 class MapPoi {

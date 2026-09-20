@@ -1037,6 +1037,19 @@
     "description": "Estimated time of arrival at the end of the route, on the elevation page",
     "placeholders": {"time": {"type": "String", "example": "14:32"}}
   },
+  "cueSheetTitle": "Cue sheet",
+  "@cueSheetTitle": {
+    "description": "Caption of the list of a route's turns and points of interest on the import preview and the route page"
+  },
+  "cueSheetShowAll": "Show all {count}",
+  "@cueSheetShowAll": {
+    "description": "Button under a collapsed cue sheet",
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "cueSheetShowFewer": "Show fewer",
+  "@cueSheetShowFewer": {
+    "description": "Button under an expanded cue sheet"
+  },
   "recordingCuesTitle": "Upcoming turns",
   "@recordingCuesTitle": {
     "description": "Caption of the cue sheet page of the record sheet"

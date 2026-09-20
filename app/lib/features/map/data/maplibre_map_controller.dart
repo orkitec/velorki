@@ -38,6 +38,8 @@ abstract final class MapLayerIds {
   static const String poisSource = 'velorki-pois';
   static const String poisCircleLayer = 'velorki-pois-circle';
   static const String poisLabelLayer = 'velorki-pois-label';
+  static const String turnsSource = 'velorki-turns';
+  static const String turnsLayer = 'velorki-turns-dot';
 
   static String routeSource(String id) => 'velorki-route-${_slug(id)}';
   static String routeLayer(String id) => 'velorki-route-${_slug(id)}-line';
@@ -518,6 +520,13 @@ class MaplibreMapControllerAdapter implements MapController {
   final Map<String, RouteLineStyle> _routeStyles = <String, RouteLineStyle>{};
   List<MapWaypoint> _waypoints = const <MapWaypoint>[];
   List<MapPoi> _pois = const <MapPoi>[];
+  List<MapTurnMarker> _turns = const <MapTurnMarker>[];
+
+  @override
+  void Function(int index)? onPoiTapped;
+
+  @override
+  void Function(int index)? onTurnTapped;
   LatLng? _searchPin;
   String? _searchPinLabel;
   List<LatLng> _track = const <LatLng>[];
@@ -712,6 +721,22 @@ class MaplibreMapControllerAdapter implements MapController {
       MapLayerIds.poisSource,
       emptyFeatureCollection(),
     );
+    // Turn markers, for a screen that reads the route: small dots in the
+    // route's own colour, under the points of interest.
+    await _ops.addGeoJsonSource(
+      MapLayerIds.turnsSource,
+      emptyFeatureCollection(),
+    );
+    await _ops.addLayer(
+      MapLayerIds.turnsSource,
+      MapLayerIds.turnsLayer,
+      ml.CircleLayerProperties(
+        circleRadius: 5.0,
+        circleColor: palette.routeMain,
+        circleStrokeWidth: 2.0,
+        circleStrokeColor: palette.waypointStroke,
+      ),
+    );
     await _ops.addLayer(
       MapLayerIds.poisSource,
       MapLayerIds.poisCircleLayer,
@@ -721,7 +746,6 @@ class MaplibreMapControllerAdapter implements MapController {
         circleStrokeWidth: 2.0,
         circleStrokeColor: palette.waypointStroke,
       ),
-      enableInteraction: false,
     );
     await _ops.addLayer(
       MapLayerIds.poisSource,
@@ -785,6 +809,7 @@ class MaplibreMapControllerAdapter implements MapController {
   Future<void> _replay() async {
     if (_waypoints.isNotEmpty) await setWaypoints(_waypoints);
     if (_pois.isNotEmpty) await setPois(_pois);
+    if (_turns.isNotEmpty) await setTurnMarkers(_turns);
     if (_searchPin != null) {
       await setSearchPin(_searchPin, label: _searchPinLabel);
     }
@@ -1184,6 +1209,13 @@ class MaplibreMapControllerAdapter implements MapController {
       ),
     );
     await _ops.setLayerProperties(
+      MapLayerIds.turnsLayer,
+      ml.CircleLayerProperties(
+        circleColor: palette.routeMain,
+        circleStrokeColor: palette.waypointStroke,
+      ),
+    );
+    await _ops.setLayerProperties(
       MapLayerIds.poisLabelLayer,
       ml.SymbolLayerProperties(
         textColor: _poiColorExpression(),
@@ -1260,6 +1292,20 @@ class MaplibreMapControllerAdapter implements MapController {
     await _writeBaseSource(
       MapLayerIds.waypointsSource,
       waypointsFeatureCollection(waypoints),
+    );
+  }
+
+  @override
+  Future<void> setTurnMarkers(List<MapTurnMarker> turns) async {
+    _turns = List<MapTurnMarker>.unmodifiable(turns);
+    if (!_attached) return;
+    if (await _hasSource(MapLayerIds.turnsSource) == false) {
+      await attachToStyle();
+      return;
+    }
+    await _writeBaseSource(
+      MapLayerIds.turnsSource,
+      turnsFeatureCollection(turns),
     );
   }
 
@@ -1629,9 +1675,18 @@ class MaplibreMapControllerAdapter implements MapController {
     String layerId,
     ml.Annotation? annotation,
   ) {
-    final index = waypointIndexFromFeatureId(id);
-    if (index == null) return;
-    _reportWaypointTap(index);
+    final waypoint = waypointIndexFromFeatureId(id);
+    if (waypoint != null) {
+      _reportWaypointTap(waypoint);
+      return;
+    }
+    final poi = poiIndexFromFeatureId(id);
+    if (poi != null) {
+      onPoiTapped?.call(poi);
+      return;
+    }
+    final turn = turnIndexFromFeatureId(id);
+    if (turn != null) onTurnTapped?.call(turn);
   }
 
   Future<void> _refreshVisibleBounds() async {

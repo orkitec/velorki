@@ -36,6 +36,7 @@ Eine geöffnete Route zeigt von oben nach unten:
 - die Beschreibung, falls die Route eine hat,
 - **Distanz**, **Anstieg**, **Abstieg** und **Dauer**,
 - das Höhenprofil,
+- die Abbiegeliste, bei einer Route, die mit Abbiegungen oder Punkten von Interesse importiert wurde: jede Abbiegung und jeder Punkt mit der Entfernung vom Start, ein Tipp auf eine Zeile bringt die Karte dorthin und ein Tipp auf einen Marker wählt die Zeile aus, wie auf dem Importbildschirm,
 - die Belagsverteilung.
 
 Dann die Aktionen:

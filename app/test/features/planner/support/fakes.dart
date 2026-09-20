@@ -34,6 +34,15 @@ class TestMapController implements MapController {
   /// The last points of interest pushed.
   List<MapPoi> pois = const <MapPoi>[];
 
+  /// The last turn markers pushed.
+  List<MapTurnMarker> turnMarkers = const <MapTurnMarker>[];
+
+  @override
+  void Function(int index)? onPoiTapped;
+
+  @override
+  void Function(int index)? onTurnTapped;
+
   /// The route lines currently on the map, by id.
   final Map<String, List<LatLng>> lines = <String, List<LatLng>>{};
 
@@ -125,6 +134,12 @@ class TestMapController implements MapController {
   Future<void> setPois(List<MapPoi> pois) async {
     this.pois = pois;
     calls.add(MapCall('setPois', [pois]));
+  }
+
+  @override
+  Future<void> setTurnMarkers(List<MapTurnMarker> turns) async {
+    turnMarkers = turns;
+    calls.add(MapCall('setTurnMarkers', [turns]));
   }
 
   @override

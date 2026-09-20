@@ -124,6 +124,8 @@ void main() {
           MapLayerIds.waypointsCircleLayer,
           MapLayerIds.waypointsLabelLayer,
           MapLayerIds.poisSource,
+          MapLayerIds.turnsSource,
+          MapLayerIds.turnsLayer,
           MapLayerIds.poisCircleLayer,
           MapLayerIds.poisLabelLayer,
           MapLayerIds.searchPinSource,
@@ -132,6 +134,44 @@ void main() {
         ],
       );
     });
+
+    test(
+      'a tap on a point of interest or a turn marker reports its index',
+      () async {
+        final ops = RecordingStyleOps();
+        final adapter = _adapter(ops);
+        await adapter.attachToStyle();
+        await adapter.setTurnMarkers(const <MapTurnMarker>[
+          MapTurnMarker(position: LatLng(48, 11)),
+          MapTurnMarker(position: LatLng(48.1, 11)),
+        ]);
+        expect(_featuresOf(ops, MapLayerIds.turnsSource), hasLength(2));
+        final pois = <int>[];
+        final turns = <int>[];
+        adapter.onPoiTapped = pois.add;
+        adapter.onTurnTapped = turns.add;
+
+        for (final callback in List.of(ops.onFeatureTapped)) {
+          callback(
+            const Point<double>(0, 0),
+            ml.LatLng(48, 11),
+            poiFeatureId(2),
+            MapLayerIds.poisCircleLayer,
+            null,
+          );
+          callback(
+            const Point<double>(0, 0),
+            ml.LatLng(48.1, 11),
+            turnFeatureId(1),
+            MapLayerIds.turnsLayer,
+            null,
+          );
+        }
+
+        expect(pois, <int>[2]);
+        expect(turns, <int>[1]);
+      },
+    );
 
     test('points of interest are written with their name and kind, and '
         'replayed after a style reload', () async {
@@ -167,6 +207,7 @@ void main() {
         MapLayerIds.positionSource,
         MapLayerIds.waypointsSource,
         MapLayerIds.poisSource,
+        MapLayerIds.turnsSource,
         MapLayerIds.searchPinSource,
       ]) {
         expect(
@@ -218,17 +259,24 @@ void main() {
       expect(properties['icon-rotate'], <Object>['get', 'heading']);
     });
 
-    test('only the waypoint hit discs take part in dragging', () async {
+    test('the waypoint hit discs, the turn markers and the points of '
+        'interest are the layers that answer a touch', () async {
       final ops = RecordingStyleOps();
 
       await _adapter(ops).attachToStyle();
 
+      // Only the hit discs are draggable (their features say so); the other
+      // two report taps.
       final interactive = ops
           .callsNamed('addLayer')
           .where((c) => c.enableInteraction!)
           .map((c) => c.layerId)
           .toList();
-      expect(interactive, <String>[MapLayerIds.waypointsHitLayer]);
+      expect(interactive, <String>[
+        MapLayerIds.waypointsHitLayer,
+        MapLayerIds.turnsLayer,
+        MapLayerIds.poisCircleLayer,
+      ]);
     });
 
     test('names the glyph font the tile server actually serves', () async {

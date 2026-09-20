@@ -433,6 +433,18 @@ class RecordingMapController implements MapController {
   Future<void> setPois(List<MapPoi> pois) => inner.setPois(pois);
 
   @override
+  Future<void> setTurnMarkers(List<MapTurnMarker> turns) =>
+      inner.setTurnMarkers(turns);
+
+  @override
+  set onPoiTapped(void Function(int index)? handler) =>
+      inner.onPoiTapped = handler;
+
+  @override
+  set onTurnTapped(void Function(int index)? handler) =>
+      inner.onTurnTapped = handler;
+
+  @override
   LatLng? get center => inner.center;
 
   @override

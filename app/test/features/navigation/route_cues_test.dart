@@ -36,7 +36,10 @@ void main() {
 
     expect(cues.map((c) => c.alongM.round()), <int>[200, 400, 600, 1000]);
     expect(cues[0].turn?.note, 'Gravel starts');
+    expect(cues[0].turnIndex, 1);
+    expect(cues[0].pos, _at(200));
     expect(cues[1].poi?.name, 'Tap');
+    expect(cues[1].poiIndex, 0);
     expect(cues[2].turn?.kind, TurnKind.left);
     expect(cues[3].isFinish, isTrue);
   });

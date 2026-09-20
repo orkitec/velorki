@@ -169,6 +169,9 @@ class FakeMapController implements MapController {
   /// Every [setPois] call, in order.
   final List<List<MapPoi>> poiCalls = <List<MapPoi>>[];
 
+  /// The turn markers of the last [setTurnMarkers] call.
+  List<MapTurnMarker> turnMarkers = const <MapTurnMarker>[];
+
   /// The points of the last [setTrackLine] call.
   List<LatLng> trackLine = const <LatLng>[];
 
@@ -218,6 +221,12 @@ class FakeMapController implements MapController {
   void Function(int index)? onWaypointTapped;
 
   @override
+  void Function(int index)? onPoiTapped;
+
+  @override
+  void Function(int index)? onTurnTapped;
+
+  @override
   VoidCallback? onCameraIdle;
 
   /// Forgets every recorded call; the handlers and the camera stay.
@@ -232,6 +241,7 @@ class FakeMapController implements MapController {
     waypointCalls.clear();
     pois = const <MapPoi>[];
     poiCalls.clear();
+    turnMarkers = const <MapTurnMarker>[];
     trackLine = const <LatLng>[];
     trackLineCalls.clear();
     position = null;
@@ -254,6 +264,12 @@ class FakeMapController implements MapController {
 
   /// Pretends the user tapped waypoint [index].
   void emitWaypointTapped(int index) => onWaypointTapped?.call(index);
+
+  /// Simulates a tap on the point of interest at [index].
+  void emitPoiTapped(int index) => onPoiTapped?.call(index);
+
+  /// Simulates a tap on the turn marker at [index].
+  void emitTurnTapped(int index) => onTurnTapped?.call(index);
 
   /// Pretends the camera came to rest.
   void emitCameraIdle() => onCameraIdle?.call();
@@ -328,6 +344,11 @@ class FakeMapController implements MapController {
     final copy = List<MapPoi>.unmodifiable(pois);
     this.pois = copy;
     poiCalls.add(copy);
+  }
+
+  @override
+  Future<void> setTurnMarkers(List<MapTurnMarker> turns) async {
+    turnMarkers = List<MapTurnMarker>.unmodifiable(turns);
   }
 
   @override

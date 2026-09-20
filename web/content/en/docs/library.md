@@ -36,6 +36,7 @@ Opening a route shows, from the top:
 - the description, if the route has one,
 - **Distance**, **Ascent**, **Descent** and **Est. time**,
 - the elevation profile,
+- the cue sheet, for a route imported with turns or points of interest: every turn and point with its distance from the start, a tap on a line taking the map there and a tap on a marker selecting the line, as on the import screen,
 - the surface breakdown.
 
 Then the actions:

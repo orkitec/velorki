@@ -10,12 +10,15 @@ import '../../../app/router.dart';
 import '../../../core/geo/ride_stats.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/domain/map_controller.dart';
+import '../../navigation/application/route_cues.dart';
+import '../../navigation/presentation/cue_sheet_list.dart';
+import '../../navigation/presentation/cue_sheet_map.dart';
+import '../../navigation/presentation/turn_phrases.dart';
 import '../../planner/application/planner_map_binding.dart';
 import '../../planner/domain/elevation_profile.dart';
 import '../../planner/domain/route_profile.dart';
 import '../../planner/presentation/elevation_profile_chart.dart';
 import '../../planner/presentation/planner_map_host.dart';
-import '../../planner/presentation/poi_markers.dart';
 import '../../planner/presentation/route_stats_row.dart';
 import '../../recording/presentation/ride_detail_screen.dart'
     show rideDetailLocation;
@@ -84,8 +87,39 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
     if (positions.isEmpty) return;
     _drawn = true;
     await map.setRouteLine(mainRouteLineId, positions);
-    await map.setPois(poiMarkers(track.pois));
+    showCuesOnMap(
+      map,
+      _cues,
+      pois: track.pois,
+      onCueTapped: (index) => _selectCue(index),
+    );
     await map.fitBounds(BoundingBox.fromPoints(positions));
+  }
+
+  /// The cue sheet of the file, worked out once.
+  late final List<RouteCue> _cues = () {
+    final track = widget.candidate?.track;
+    if (track == null) return const <RouteCue>[];
+    return routeCuesFor(
+      track.points.map((p) => p.pos).toList(growable: false),
+      turns: track.turns,
+      pois: track.pois,
+    );
+  }();
+
+  int? _selectedCue;
+
+  /// Selects a cue, from the list or from the map, and takes the map there.
+  void _selectCue(int index) {
+    if (!mounted || index < 0 || index >= _cues.length) return;
+    setState(() => _selectedCue = index);
+    final map = _map;
+    if (map == null) return;
+    final cue = _cues[index];
+    final l10n = AppLocalizations.of(context);
+    final label =
+        cue.poi?.name ?? (cue.turn == null ? '' : turnLabel(cue.turn!, l10n));
+    unawaited(goToCue(map, cue, label));
   }
 
   Future<void> _save() async {
@@ -211,6 +245,14 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
               ),
               const SizedBox(height: 24),
               ElevationProfileChart(samples: elevationProfile(track.points)),
+              if (_cues.length > 1) ...[
+                const SizedBox(height: 24),
+                CueSheetList(
+                  cues: _cues,
+                  selected: _selectedCue,
+                  onSelect: _selectCue,
+                ),
+              ],
               const SizedBox(height: 24),
               SectionCaption(l10n.importSaveAs),
               const SizedBox(height: 12),

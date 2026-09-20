@@ -22,6 +22,43 @@ int? waypointIndexFromFeatureId(String? featureId) {
   return int.tryParse(featureId.substring(prefix.length));
 }
 
+/// Feature id of the point of interest at [index], and its inverse.
+String poiFeatureId(int index) => 'velorki-poi-$index';
+
+/// Inverse of [poiFeatureId]; `null` for anything else.
+int? poiIndexFromFeatureId(String? featureId) =>
+    _indexAfter('velorki-poi-', featureId);
+
+/// Feature id of the turn marker at [index], and its inverse.
+String turnFeatureId(int index) => 'velorki-turn-$index';
+
+/// Inverse of [turnFeatureId]; `null` for anything else.
+int? turnIndexFromFeatureId(String? featureId) =>
+    _indexAfter('velorki-turn-', featureId);
+
+int? _indexAfter(String prefix, String? featureId) {
+  if (featureId == null || !featureId.startsWith(prefix)) return null;
+  return int.tryParse(featureId.substring(prefix.length));
+}
+
+/// The turn markers as a FeatureCollection: one point each.
+Map<String, dynamic> turnsFeatureCollection(List<MapTurnMarker> turns) =>
+    <String, dynamic>{
+      'type': 'FeatureCollection',
+      'features': <Map<String, dynamic>>[
+        for (var i = 0; i < turns.length; i++)
+          <String, dynamic>{
+            'type': 'Feature',
+            'id': turnFeatureId(i),
+            'properties': <String, dynamic>{'index': i},
+            'geometry': <String, dynamic>{
+              'type': 'Point',
+              'coordinates': lngLat(turns[i].position),
+            },
+          },
+      ],
+    };
+
 /// A GeoJSON `FeatureCollection` with no features, used to blank a source.
 Map<String, dynamic> emptyFeatureCollection() => <String, dynamic>{
   'type': 'FeatureCollection',
@@ -131,7 +168,7 @@ Map<String, dynamic> poisFeatureCollection(List<MapPoi> pois) =>
         for (var i = 0; i < pois.length; i++)
           <String, dynamic>{
             'type': 'Feature',
-            'id': 'poi-$i',
+            'id': poiFeatureId(i),
             'properties': <String, dynamic>{
               'name': pois[i].name,
               'kind': pois[i].kind.name,

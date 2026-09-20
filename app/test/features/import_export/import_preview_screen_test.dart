@@ -24,6 +24,42 @@ ImportCandidate _candidate(String fixture, {String? sourceHint}) =>
     );
 
 void main() {
+  testWidgets('a route with a cue sheet lists it; a line takes the map '
+      'there, a marker tap selects the line', (tester) async {
+    final candidate = _candidate('ridewithgps.gpx');
+    final h = await pumpScreen(
+      tester,
+      ImportPreviewScreen(candidate: candidate),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.cueSheetTitle.toUpperCase()), findsOneWidget);
+    expect(find.text('Turn left onto Widenmayerstraße'), findsOneWidget);
+    expect(find.text('Trinkwasser'), findsOneWidget);
+    expect(h.map.turnMarkers, hasLength(3));
+    expect(h.map.pois, hasLength(1));
+
+    await tester.tap(find.text('Turn left onto Widenmayerstraße'));
+    await tester.pumpAndSettle();
+    final moves = h.map.calls.where((c) => c.method == 'moveTo').toList();
+    expect(moves, hasLength(1));
+    expect(moves.single.arguments[1], 16, reason: 'zoomed to the corner');
+    // Selected, the line opens with the plain manoeuvre under the words.
+    expect(find.text(l10n.navTurnLeft), findsOneWidget);
+
+    // The other way round: a tap on the water fountain's marker.
+    h.map.onPoiTapped!(0);
+    await tester.pumpAndSettle();
+    expect(h.map.calls.where((c) => c.method == 'moveTo'), hasLength(2));
+    expect(
+      find.text(l10n.navTurnLeft),
+      findsNothing,
+      reason: 'selection moved',
+    );
+
+    await unmountApp(tester);
+  });
+
   testWidgets('a route file is previewed and drawn on the map', (tester) async {
     final candidate = _candidate('route.gpx');
     final h = await pumpScreen(

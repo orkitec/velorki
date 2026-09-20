@@ -11,6 +11,7 @@ import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki/features/planner/domain/route_poi.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
+import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
@@ -54,12 +55,20 @@ void main() {
             RoutePoi(
               pos: LatLng(48.01, 11.01),
               name: 'Dismount',
+              description: 'All riders must dismount',
               kind: PoiKind.danger,
             ),
             RoutePoi(
               pos: LatLng(48.02, 11.02),
               name: 'Water',
               kind: PoiKind.water,
+            ),
+          ],
+          turns: const <TurnHint>[
+            TurnHint(
+              pointIndex: 1,
+              kind: TurnKind.right,
+              note: 'Right at the barn',
             ),
           ],
         );
@@ -72,6 +81,16 @@ void main() {
 
     expect(h.map.pois.map((p) => p.name), ['Dismount', 'Water']);
     expect(h.map.pois.first.kind, MapPoiKind.danger);
+
+    // The cue sheet under the figures: the turn with the author's words,
+    // the points with theirs; a tap opens the note and moves the map.
+    expect(find.text(l10n.cueSheetTitle.toUpperCase()), findsOneWidget);
+    expect(find.text('Right at the barn'), findsOneWidget);
+    expect(find.text('All riders must dismount'), findsNothing);
+    await tester.tap(find.text('Dismount'));
+    await tester.pumpAndSettle();
+    expect(find.text('All riders must dismount'), findsOneWidget);
+    expect(h.map.calls.where((c) => c.method == 'moveTo'), hasLength(1));
     await unmountApp(tester);
   });
 
