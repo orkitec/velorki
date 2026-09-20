@@ -333,6 +333,51 @@ void main() {
       expect(harness.workouts, <Object?>[watchWorkoutStop]);
     });
 
+    test(
+      'is launched again when the watch falls silent mid-ride, not '
+      'while the ride is paused, and not more than every two minutes',
+      () async {
+        final harness = await _Harness.create(reachable: false);
+        await harness.record(_snapshot());
+        expect(harness.watch.launches, 1);
+
+        // Readings arrive; the clock moves; nothing to do.
+        harness.clock.advance(const Duration(seconds: 30));
+        await harness.fromWatch(<String, Object?>{
+          watchTypeKey: watchHeartRateType,
+          watchBpmKey: 140,
+          watchAtKey: harness.clock.now.millisecondsSinceEpoch,
+        });
+        await harness.record(_snapshot());
+        expect(harness.watch.launches, 1);
+
+        // Fifty seconds without a reading, but the ride's own launch was
+        // less than two minutes ago: not yet.
+        harness.clock.advance(const Duration(seconds: 50));
+        await harness.record(_snapshot());
+        expect(harness.watch.launches, 1);
+
+        // Two minutes and more since the launch, still silent: again.
+        harness.clock.advance(const Duration(seconds: 60));
+        await harness.record(_snapshot());
+        expect(harness.watch.launches, 2);
+
+        // A minute later, still silent: the last launch was too recent.
+        harness.clock.advance(const Duration(seconds: 60));
+        await harness.record(_snapshot());
+        expect(harness.watch.launches, 2);
+
+        // Paused, the silence is expected, however long.
+        harness.clock.advance(const Duration(minutes: 3));
+        await harness.record(_snapshot(status: RecordingStatus.paused));
+        expect(harness.watch.launches, 2);
+
+        // Riding again, still nothing from the wrist: once more.
+        await harness.record(_snapshot());
+        expect(harness.watch.launches, 3);
+      },
+    );
+
     test('is launched once for one ride', () async {
       final harness = await _Harness.create(reachable: false);
 

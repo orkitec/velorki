@@ -128,32 +128,52 @@ class RideHeartRateChart extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final system = ref.watch(unitSystemProvider);
-    // Only the samples that have a reading; a gap in the middle simply closes.
-    final withHeartRate = <ChartSample>[
+    // Only the samples that have a reading. Where the reading was lost for
+    // a stretch of road the line breaks rather than bridging the gap: a
+    // straight line across ten kilometres would be a heart rate nobody had.
+    final measured = <ChartSample>[
       for (final sample in samples)
         if (sample.heartRateBpm != null) sample,
     ];
-    if (withHeartRate.length < 2) return const SizedBox.shrink();
+    if (measured.length < 2) return const SizedBox.shrink();
 
-    final spots = <FlSpot>[
-      for (final sample in withHeartRate)
+    final withHeartRate = <ChartSample>[];
+    final spots = <FlSpot>[];
+    for (final sample in measured) {
+      final previous = withHeartRate.lastOrNull;
+      if (previous != null &&
+          sample.distanceM - previous.distanceM > heartRateGapM) {
+        withHeartRate.add(previous);
+        spots.add(FlSpot.nullSpot);
+      }
+      withHeartRate.add(sample);
+      spots.add(
         FlSpot(
           units.distanceToDisplay(system, sample.distanceM),
           sample.heartRateBpm!.toDouble(),
         ),
-    ];
+      );
+    }
     var lowest = spots.first.y;
     var highest = spots.first.y;
     for (final spot in spots) {
+      if (spot.isNull()) continue;
       if (spot.y < lowest) lowest = spot.y;
       if (spot.y > highest) highest = spot.y;
     }
+    // How much of the ride had a reading at all; said in the caption when
+    // it was not most of it, so an average over a few minutes is not read
+    // as the ride's.
+    final coverage = measured.length / samples.length;
+    final title = coverage < heartRateCoverageWorthSaying
+        ? l10n.rideHeartRateCoverage((coverage * 100).round())
+        : l10n.rideHeartRate;
     // Five to twenty beats of air around the line: a resting heart rate is
     // nowhere near zero, so an axis that starts there would draw a flat line.
     final padding = ((highest - lowest) * 0.1).clamp(5.0, 20.0);
 
     return MetricChart(
-      title: l10n.rideHeartRate,
+      title: title,
       spots: spots,
       height: rideChartHeight,
       minY: lowest - padding,
@@ -165,6 +185,13 @@ class RideHeartRateChart extends ConsumerWidget {
     );
   }
 }
+
+/// A stretch of road this long without a reading breaks the heart-rate line.
+const double heartRateGapM = 300;
+
+/// Below this share of the ride with a reading, the chart's caption says
+/// how much of the ride it is.
+const double heartRateCoverageWorthSaying = 0.9;
 
 /// What the colours of the track under it mean: slow at one end of the ramp,
 /// fast at the other. No numbers — the classes are the ride's own quantiles,

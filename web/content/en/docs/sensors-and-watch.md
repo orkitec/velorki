@@ -94,7 +94,7 @@ When a ride starts on the phone, the watch app opens by itself and starts measur
 
 ### Battery on the wrist
 
-Measuring a heart rate for hours is what costs the watch its day. A paused ride, whether you paused it or the phone auto-paused at a standstill, rests the sensor and measures again a few seconds after the ride goes on, so a wait at a light costs nothing and is not part of the ride's heart rate. **Stop heart rate** ends the measuring without touching the ride. The footnote on the screen says the rest, "Low Power Mode in the watch's settings makes a long ride last." Switching **Apple Watch** off in Settings also ends a session that is still running.
+Measuring a heart rate for hours is what costs the watch its day. The measuring runs for the whole ride, pauses included: a watch app that stops measuring is put to sleep by watchOS within a minute and hears nothing more from the phone, so keeping it awake is what keeps the pulse coming. The phone records no pulse while the ride is paused. If the watch does fall silent for three quarters of a minute mid-ride, the phone launches its app again by itself. **Stop heart rate** ends the measuring without touching the ride. The footnote on the screen says the rest, "Low Power Mode in the watch's settings makes a long ride last." Switching **Apple Watch** off in Settings also ends a session that is still running.
 
 ## Apple Health and Health Connect
 

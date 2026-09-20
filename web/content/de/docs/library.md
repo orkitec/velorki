@@ -56,7 +56,7 @@ Eine geöffnete Fahrt zeigt von oben nach unten:
 - sieben Zahlen: **Distanz**, **Fahrzeit**, **Zeit**, **Ø**, **Max**, **Anstieg**, **Abstieg**. **Fahrzeit** lässt die Zeit im Stand weg; **Zeit** ist die ganze Fahrt von Anfang bis Ende.
 - das Diagramm **Höhenprofil**, Höhe über Distanz, nur gezeichnet, wenn der Track Höhen mitbrachte,
 - das Diagramm **Tempo**, dessen Achse immer bei null beginnt,
-- das Diagramm **Herzfrequenz**, wenn die Fahrt einen Puls mitbrachte,
+- das Diagramm **Herzfrequenz**, wenn die Fahrt einen Puls mitbrachte; wo der Wert eine Strecke lang fehlte, bricht die Linie ab, und hatte weniger als der Großteil der Fahrt einen Wert, sagt die Überschrift, wie viel, "Herzfrequenz · 24 % der Fahrt", damit ein Schnitt über diese Minuten nicht als der der Fahrt gelesen wird,
 - die Tabelle **Splits**.
 
 Berühre eines der beiden Diagramme und zieh darüber für eine Anzeige in der Form `12,3 km · 340 m`.

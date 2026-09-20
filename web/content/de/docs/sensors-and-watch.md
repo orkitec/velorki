@@ -94,7 +94,7 @@ Startet eine Fahrt am Handy, öffnet sich die Uhren-App von selbst und beginnt z
 
 ### Akku am Handgelenk
 
-Stundenlang einen Puls zu messen ist es, was die Uhr ihren Tag kostet. Eine pausierte Fahrt, ob von dir pausiert oder vom Handy im Stand automatisch, lässt den Sensor ruhen und misst ein paar Sekunden nach dem Weiterfahren wieder; eine Ampel kostet also nichts und gehört nicht zum Puls der Fahrt. **Stop heart rate** beendet das Messen, ohne die Fahrt anzurühren. Den Rest sagt die Fußnote auf dem Bildschirm, "Low Power Mode in the watch's settings makes a long ride last." Schaltest du **Apple Watch** in den Einstellungen aus, endet eine noch laufende Sitzung ebenfalls.
+Stundenlang einen Puls zu messen ist es, was die Uhr ihren Tag kostet. Gemessen wird die ganze Fahrt über, Pausen eingeschlossen: Eine Uhren-App, die nicht mehr misst, legt watchOS innerhalb einer Minute schlafen, und dann hört sie nichts mehr vom Handy; wach zu bleiben ist es, was den Puls weiter kommen lässt. Solange die Fahrt pausiert ist, zeichnet das Handy keinen Puls auf. Verstummt die Uhr mitten in der Fahrt doch einmal für eine Dreiviertelminute, startet das Handy ihre App von selbst neu. **Stop heart rate** beendet das Messen, ohne die Fahrt anzurühren. Den Rest sagt die Fußnote auf dem Bildschirm, "Low Power Mode in the watch's settings makes a long ride last." Schaltest du **Apple Watch** in den Einstellungen aus, endet eine noch laufende Sitzung ebenfalls.
 
 ## Apple Health und Health Connect
 

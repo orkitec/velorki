@@ -80,6 +80,11 @@ class WatchRideBridge extends _$WatchRideBridge {
   /// once and never asked to stop something it never started.
   bool _measuring = false;
 
+  /// When the watch last reported a heart rate, and when the phone last
+  /// launched the watch app to get one: the watchdog behind [_watchdog].
+  DateTime? _lastReadingAt;
+  DateTime? _lastLaunchAt;
+
   /// Whether a ride was running on the previous pass.
   bool _riding = false;
 
@@ -116,7 +121,32 @@ class WatchRideBridge extends _$WatchRideBridge {
     }
     _attach(gateway);
     await _followRide(gateway);
+    await _watchdog(gateway);
     await _pushContext(gateway);
+  }
+
+  /// Launches the watch app again when its readings stop mid-ride.
+  ///
+  /// A watch app that watchOS suspended, or that the rider closed, hears no
+  /// message; HealthKit's launch reaches it anyway. Only while the ride is
+  /// running, not paused, and not more than once every [watchRelaunchGap].
+  Future<void> _watchdog(WatchGateway gateway) async {
+    final recording = ref.read(recordingControllerProvider);
+    if (!recording.isRecording || recording.isPaused || !_measuring) return;
+    final now = ref.read(watchClockProvider)();
+    final since = _lastReadingAt ?? _lastLaunchAt;
+    if (since == null || now.difference(since) < watchSilence) return;
+    final launched = _lastLaunchAt;
+    if (launched != null && now.difference(launched) < watchRelaunchGap) {
+      return;
+    }
+    _lastLaunchAt = now;
+    _log.info('the watch fell silent; launching its app again');
+    if (await gateway.isReachable()) {
+      await _sendWorkout(gateway, start: true);
+    } else {
+      await gateway.launchWorkout();
+    }
   }
 
   /// Registers the watch with the hub and starts listening to the wrist.
@@ -162,6 +192,8 @@ class WatchRideBridge extends _$WatchRideBridge {
       // A watch whose app is not running cannot be sent a message; HealthKit
       // can launch the app into a workout instead, and the session starts
       // there. Either way the stop at the end of the ride is owed.
+      _lastReadingAt = null;
+      _lastLaunchAt = ref.read(watchClockProvider)();
       if (await gateway.isReachable()) {
         _measuring = true;
         await _sendWorkout(gateway, start: true);
@@ -275,6 +307,8 @@ class WatchRideBridge extends _$WatchRideBridge {
 
   void _onMessage(Map<String, Object?> message) {
     switch (message[watchTypeKey]) {
+      case watchHeartRateType:
+        _lastReadingAt = ref.read(watchClockProvider)();
       case watchCommandType:
         _schedule(() => _command(message[watchCommandKey]));
       case watchHeartRateStoppedType:
@@ -337,3 +371,10 @@ class WatchRideBridge extends _$WatchRideBridge {
     }
   }
 }
+
+/// How long the watch may go without a reading mid-ride before the phone
+/// launches its app again.
+const Duration watchSilence = Duration(seconds: 45);
+
+/// The least time between two such launches.
+const Duration watchRelaunchGap = Duration(minutes: 2);

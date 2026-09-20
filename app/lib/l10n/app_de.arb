@@ -265,6 +265,7 @@
   "statMaxHeartRate": "Max Puls",
   "statAvgCadence": "Ø Kadenz",
   "statAvgPower": "Ø Leistung",
+  "rideHeartRateCoverage": "Herzfrequenz · {percent} % der Fahrt",
   "rideHeartRate": "Herzfrequenz",
   "statMovingTime": "Fahrzeit",
   "statElapsed": "Zeit",

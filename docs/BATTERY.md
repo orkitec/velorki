@@ -75,10 +75,14 @@ next to "Keep screen on". While it is on and a ride is running
 Doze prevents delayed fixes, which would otherwise cost more in catch-up
 bursts.
 
-**On the wrist**, a paused ride (by hand or auto-pause) ends the
-`HKWorkoutSession`, so the optical sensor stops; **Stop heart rate** does the
-same while the ride goes on. watchOS Low Power Mode lowers the sampling rate
-of a third-party session by itself.
+**On the wrist**, the `HKWorkoutSession` runs for the whole ride and is
+paused, not ended, with the ride: a watch app without a running session is
+suspended by watchOS within a minute and then hears no context update, which
+lost a ride's heart rate at its first auto-pause. **Stop heart rate** ends
+the session while the ride goes on, and the phone launches the watch app
+again (`HKHealthStore.startWatchApp`) after 45 s without a reading mid-ride.
+watchOS Low Power Mode lowers the sampling rate of a third-party session by
+itself.
 
 ## What is not implemented
 

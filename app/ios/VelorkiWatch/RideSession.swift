@@ -37,6 +37,9 @@ final class RideSession: NSObject, ObservableObject {
     /// and the last reading stays on screen dimmed until the ride goes on.
     var paused: Bool { status == "paused" }
 
+    /// The session's own state, for the log.
+    var sessionState: Int { session?.state.rawValue ?? 0 }
+
     /// Why there is no heart rate, when the watch knows: Health access
     /// refused, or a session watchOS would not run. Shown under the heart.
     @Published var problem: String?
@@ -134,7 +137,15 @@ final class RideSession: NSObject, ObservableObject {
     /// this app, which is what makes it opt-in.
     /// Starts measuring for a ride the phone started: the phone launched this
     /// app through HealthKit with a workout configuration.
-    func startMeasuring() { startWorkout() }
+    func startMeasuring() {
+        // Relaunched by the phone mid-ride with the session still there and
+        // paused: carry on rather than start a second one.
+        if let session, session.state == .paused {
+            session.resume()
+            return
+        }
+        startWorkout()
+    }
 
     private func startWorkout() {
         guard session == nil, HKHealthStore.isHealthDataAvailable() else { return }
@@ -273,15 +284,21 @@ final class RideSession: NSObject, ObservableObject {
             if session != nil { endWorkout("phone reports the ride over") }
         }
         // A paused ride — by hand or the phone's auto-pause at a standstill —
-        // ends the session, so the sensor rests and a wait at a light is
-        // not part of the ride's heart rate; the last reading stays on
-        // screen. A ride going on again, or one that is running while this
-        // app is not measuring (opened late, or reopened after watchOS
-        // closed it), starts measuring by itself, unless the rider stopped
-        // it.
-        if status == "paused", session != nil {
-            endWorkout("ride paused", keepReading: true)
+        // pauses the session rather than ending it: a watch app without a
+        // running session is suspended by watchOS within a minute, and a
+        // suspended app hears nothing until it is opened again. That is how
+        // a whole ride's heart rate was lost at the first red light. The
+        // sensor keeps sampling while paused; the phone records none of it.
+        if let session {
+            if status == "paused", session.state == .running {
+                session.pause()
+            } else if status == "active", session.state == .paused {
+                session.resume()
+            }
         }
+        // A ride that is running while this app is not measuring — opened
+        // late, or relaunched by the phone — starts measuring by itself,
+        // unless the rider stopped it.
         if status == "active", session == nil, !stoppedByRider { startWorkout() }
         distance = context["distance"] as? String ?? ""
         elapsed = context["elapsed"] as? String ?? ""

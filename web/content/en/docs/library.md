@@ -56,7 +56,7 @@ Opening a ride shows, from the top:
 - seven figures: **Distance**, **Moving**, **Time**, **Avg**, **Max**, **Ascent**, **Descent**. **Moving** leaves out the time you stood still; **Time** is the whole ride from start to finish.
 - the **Elevation** chart, height against distance, drawn only when the track carried heights,
 - the **Speed** chart, whose axis always starts at zero,
-- the **Heart rate** chart, when the ride carried one,
+- the **Heart rate** chart, when the ride carried one; where the reading was lost for a stretch the line breaks, and when less than most of the ride had a reading the caption says how much, "Heart rate · 24 % of the ride", so an average over those minutes is not read as the ride's,
 - the **Splits** table.
 
 Touch either chart and drag along it for a read-out of the form `12.3 km · 340 m`.

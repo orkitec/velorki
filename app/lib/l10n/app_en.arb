@@ -1335,6 +1335,11 @@
   "@statAvgPower": {
     "description": "Label of the average pedalling power of a ride"
   },
+  "rideHeartRateCoverage": "Heart rate · {percent} % of the ride",
+  "@rideHeartRateCoverage": {
+    "description": "Caption of the ride page's heart-rate chart when the sensor reported for only part of the ride",
+    "placeholders": {"percent": {"type": "int"}}
+  },
   "rideHeartRate": "Heart rate",
   "@rideHeartRate": {
     "description": "Caption above the heart rate chart of a recorded ride"
