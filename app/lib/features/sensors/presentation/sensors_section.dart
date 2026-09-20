@@ -63,6 +63,7 @@ class SensorsSection extends ConsumerWidget {
         SwitchListTile(
           value: settings.healthWrite,
           title: Text(l10n.settingsSensorsHealthWrite),
+          subtitle: Text(l10n.settingsSensorsHealthWriteHint),
           onChanged: settings.health
               ? (value) => unawaited(controller.setHealthWrite(value))
               : null,

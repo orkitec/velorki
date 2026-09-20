@@ -3897,13 +3897,17 @@
   "@settingsSensorsHealthConnect": {
     "description": "Switch that lets Velorki read from and write to Health Connect on Android"
   },
-  "settingsSensorsHealthHint": "Heart rate from your watch or any app that writes it; rides are saved as workouts",
+  "settingsSensorsHealthHint": "Reads the heart rate other apps put into Health, such as the watch's own Workout app. Checked every few seconds, so it lags; a strap or the Velorki watch app takes over when it reports",
   "@settingsSensorsHealthHint": {
     "description": "Second line of the switch that connects Velorki to the phone's health store"
   },
   "settingsSensorsHealthWrite": "Save rides to Health",
   "@settingsSensorsHealthWrite": {
     "description": "Switch that saves each finished ride to the health store as a cycling workout"
+  },
+  "settingsSensorsHealthWriteHint": "Each finished ride goes into Health as one cycling workout with its start, end and distance",
+  "@settingsSensorsHealthWriteHint": {
+    "description": "Second line of the switch that writes finished rides into the health store"
   },
   "settingsSensorsHealthDenied": "Velorki was not given access to your health data.",
   "@settingsSensorsHealthDenied": {
@@ -3913,7 +3917,7 @@
   "@settingsSensorsAppleWatch": {
     "description": "Switch that lets the paired Apple Watch measure and steer the ride"
   },
-  "settingsSensorsWatchHint": "Heart rate from the watch, ride controls on the wrist",
+  "settingsSensorsWatchHint": "Velorki's own watch app: measures your pulse live for the whole ride, shows the ride and has Start, Pause and Finish on the wrist. Costs watch battery",
   "@settingsSensorsWatchHint": {
     "description": "Second line of the switch that connects Velorki to the Apple Watch app"
   },
@@ -3921,7 +3925,7 @@
   "@settingsSensorsWatchRest": {
     "description": "Switch under the Apple Watch switch: the watch ends its workout at every pause and is woken again when the ride goes on"
   },
-  "settingsSensorsWatchRestHint": "For rides with many stops: the watch stops measuring at every pause and the phone wakes it when you ride on",
+  "settingsSensorsWatchRestHint": "The watch stops measuring at every pause and the phone wakes it when you ride on. Saves watch battery on rides with many stops; the first pulse after each stop takes a moment, and if the wake-up fails the pulse is missing until the phone tries again after 45 seconds",
   "@settingsSensorsWatchRestHint": {
     "description": "Second line of the switch that rests the watch's heart-rate sensor while the ride is paused"
   },

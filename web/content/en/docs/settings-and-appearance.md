@@ -40,11 +40,11 @@ The three switches here are the same ones as on the Record tab's sheet.
 
 ## Sensors
 
-**Apple Health**, or **Health Connect** on Android: "Heart rate from your watch or any app that writes it; rides are saved as workouts". Turning it on is what asks the phone for access to your health data, and refusing leaves it off.
+**Apple Health**, or **Health Connect** on Android: "Reads the heart rate other apps put into Health, such as the watch's own Workout app. Checked every few seconds, so it lags; a strap or the Velorki watch app takes over when it reports". Turning it on is what asks the phone for access to your health data, and refusing leaves it off.
 
-**Save rides to Health**: writes each finished ride into the store as a cycling workout. It can be switched off on its own and does nothing while the switch above it is off.
+**Save rides to Health**: "Each finished ride goes into Health as one cycling workout with its start, end and distance". It can be switched off on its own and does nothing while the switch above it is off.
 
-**Apple Watch**: "Heart rate from the watch, ride controls on the wrist". The row is there only on an iPhone that has a watch paired to it. Turning it on asks once to post notifications, for the "Ride started from your watch" notice. Below it, **Rest the sensor while paused**: "For rides with many stops: the watch stops measuring at every pause and the phone wakes it when you ride on". Off, the watch keeps measuring through a pause, which is what keeps it listening for the resume.
+**Apple Watch**: "Velorki's own watch app: measures your pulse live for the whole ride, shows the ride and has Start, Pause and Finish on the wrist. Costs watch battery". The row is there only on an iPhone that has a watch paired to it. Turning it on asks once to post notifications, for the "Ride started from your watch" notice. Below it, **Rest the sensor while paused**: "The watch stops measuring at every pause and the phone wakes it when you ride on. Saves watch battery on rides with many stops; the first pulse after each stop takes a moment, and if the wake-up fails the pulse is missing until the phone tries again after 45 seconds". Off, the watch keeps measuring through a pause, which is what keeps it listening for the resume, and the pulse carries on the moment you ride on.
 
 **Bluetooth sensors**: "Heart-rate straps, speed and cadence sensors, power meters", or how many sensors are paired. It opens the screen where **Scan** looks for them. All of it is walked through in [sensors and your watch](./sensors-and-watch).
 

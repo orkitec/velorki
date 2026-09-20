@@ -40,11 +40,11 @@ Die drei Schalter hier sind dieselben wie in der Übersicht des Tabs Aufnahme.
 
 ## Sensoren
 
-**Apple Health**, unter Android **Health Connect**: "Herzfrequenz von deiner Uhr oder jeder App, die sie schreibt; Fahrten werden als Trainings gespeichert". Das Einschalten ist es, was das Handy um Zugriff auf deine Gesundheitsdaten bittet; lehnst du ab, bleibt der Schalter aus.
+**Apple Health**, unter Android **Health Connect**: "Liest den Puls, den andere Apps in Health ablegen, etwa das Training der Uhr. Wird alle paar Sekunden abgefragt, hinkt also nach; ein Gurt oder die Velorki-Uhren-App übernimmt, sobald sie melden". Das Einschalten ist es, was das Handy um Zugriff auf deine Gesundheitsdaten bittet; lehnst du ab, bleibt der Schalter aus.
 
-**Fahrten in Health speichern**: schreibt jede beendete Fahrt als Radfahr-Training in den Speicher. Der Schalter lässt sich einzeln ausschalten und tut nichts, solange der darüber aus ist.
+**Fahrten in Health speichern**: "Jede beendete Fahrt landet in Health als ein Radfahr-Training mit Start, Ende und Distanz". Der Schalter lässt sich einzeln ausschalten und tut nichts, solange der darüber aus ist.
 
-**Apple Watch**: "Herzfrequenz von der Uhr, die Fahrt steuerst du am Handgelenk". Die Zeile gibt es nur auf einem iPhone, mit dem eine Uhr gekoppelt ist. Einschalten fragt einmal, ob Velorki Mitteilungen zeigen darf, für den Hinweis "Ride started from your watch". Darunter **Sensor in Pausen ruhen lassen**: "Für Fahrten mit vielen Stopps: Die Uhr misst in jeder Pause nicht und das Handy weckt sie, wenn du weiterfährst". Ausgeschaltet misst die Uhr durch eine Pause hindurch weiter, und genau das hält sie wach für das Weiterfahren.
+**Apple Watch**: "Velorkis eigene Uhren-App: misst deinen Puls die ganze Fahrt live, zeigt die Fahrt und hat Start, Pause und Ende am Handgelenk. Kostet Akku der Uhr". Die Zeile gibt es nur auf einem iPhone, mit dem eine Uhr gekoppelt ist. Einschalten fragt einmal, ob Velorki Mitteilungen zeigen darf, für den Hinweis "Ride started from your watch". Darunter **Sensor in Pausen ruhen lassen**: "Die Uhr hört in jeder Pause auf zu messen, und das Handy weckt sie, wenn du weiterfährst. Spart Akku der Uhr bei Fahrten mit vielen Stopps; der erste Puls nach jedem Stopp braucht einen Moment, und schlägt das Wecken fehl, fehlt der Puls, bis das Handy es nach 45 Sekunden erneut versucht". Ausgeschaltet misst die Uhr durch eine Pause hindurch weiter, genau das hält sie wach für das Weiterfahren, und der Puls läuft sofort weiter, wenn du weiterfährst.
 
 **Bluetooth-Sensoren**: "Brustgurte, Geschwindigkeits- und Trittfrequenzsensoren, Leistungsmesser", oder wie viele Sensoren gekoppelt sind. Dahinter liegt der Bildschirm, auf dem **Scannen** sie sucht. Alles davon steht ausführlich unter [Sensoren und deine Uhr](./sensors-and-watch).
 

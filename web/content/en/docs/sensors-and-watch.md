@@ -22,9 +22,9 @@ When two of them report the same thing at the same time, the watch wins over a B
 
 Everything is in **Settings → Sensors**, just under **Recording**:
 
-- **Apple Health** on an iPhone, **Health Connect** on Android, with the line "Heart rate from your watch or any app that writes it; rides are saved as workouts". Turning this on is the only thing in Velorki that can raise the health permission prompt. Refuse it and Velorki says "Velorki was not given access to your health data." and leaves the switch off.
-- **Save rides to Health** under it, which you can switch off on its own. It does nothing while the switch above it is off.
-- **Apple Watch**, with the line "Heart rate from the watch, ride controls on the wrist". The row is there only on an iPhone that has a watch paired to it.
+- **Apple Health** on an iPhone, **Health Connect** on Android, with the line "Reads the heart rate other apps put into Health, such as the watch's own Workout app. Checked every few seconds, so it lags; a strap or the Velorki watch app takes over when it reports". Turning this on is the only thing in Velorki that can raise the health permission prompt. Refuse it and Velorki says "Velorki was not given access to your health data." and leaves the switch off.
+- **Save rides to Health** under it, "Each finished ride goes into Health as one cycling workout with its start, end and distance", which you can switch off on its own. It does nothing while the switch above it is off.
+- **Apple Watch**, with the line "Velorki's own watch app: measures your pulse live for the whole ride, shows the ride and has Start, Pause and Finish on the wrist. Costs watch battery". The row is there only on an iPhone that has a watch paired to it. **Rest the sensor while paused** under it is explained in [battery on the wrist](#battery-on-the-wrist).
 - **Bluetooth sensors**, with the line "Heart-rate straps, speed and cadence sensors, power meters", or "1 sensor paired" once you have one. It opens a screen of its own.
 
 ## Bluetooth sensors
@@ -94,7 +94,7 @@ When a ride starts on the phone, the watch app opens by itself and starts measur
 
 ### Battery on the wrist
 
-Measuring a heart rate for hours is what costs the watch its day. The measuring runs for the whole ride, pauses included: a watch app that stops measuring is put to sleep by watchOS within a minute and hears nothing more from the phone, so keeping it awake is what keeps the pulse coming. The phone records no pulse while the ride is paused. For rides with many stops, **Rest the sensor while paused** under the Apple Watch switch in Settings makes the watch stop measuring at every pause; the phone wakes it again the moment you ride on, and the first pulse after a stop takes a few seconds to arrive. If the watch does fall silent for three quarters of a minute mid-ride, the phone launches its app again by itself. **Stop heart rate** ends the measuring without touching the ride. The footnote on the screen says the rest, "Low Power Mode in the watch's settings makes a long ride last." Switching **Apple Watch** off in Settings also ends a session that is still running.
+Measuring a heart rate for hours is what costs the watch its day. The measuring runs for the whole ride, pauses included: a watch app that stops measuring is put to sleep by watchOS within a minute and hears nothing more from the phone, so keeping it awake is what keeps the pulse coming. The phone records no pulse while the ride is paused. For rides with many stops, **Rest the sensor while paused** under the Apple Watch switch in Settings makes the watch stop measuring at every pause. The trade: the sensor rests at every stop, but the phone has to wake the watch again when you ride on, the first pulse after each stop takes a moment, and if the wake-up fails the pulse is missing until the phone tries again. Leave it off for an unbroken pulse. If the watch does fall silent for three quarters of a minute mid-ride, the phone launches its app again by itself. **Stop heart rate** ends the measuring without touching the ride. The footnote on the screen says the rest, "Low Power Mode in the watch's settings makes a long ride last." Switching **Apple Watch** off in Settings also ends a session that is still running.
 
 ## Apple Health and Health Connect
 
