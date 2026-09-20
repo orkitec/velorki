@@ -15,6 +15,8 @@
 		<dict>
 			<key>CFBundleTypeName</key>
 			<string>GPX file</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
 			<key>LSHandlerRank</key>
 			<string>Alternate</string>
 			<key>LSItemContentTypes</key>
@@ -25,6 +27,8 @@
 		<dict>
 			<key>CFBundleTypeName</key>
 			<string>FIT file</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
 			<key>LSHandlerRank</key>
 			<string>Alternate</string>
 			<key>LSItemContentTypes</key>

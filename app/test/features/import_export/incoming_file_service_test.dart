@@ -120,6 +120,20 @@ void main() {
     return (service, imports, deepLinks);
   }
 
+  test('a file handed over as a file URL is read as a path', () async {
+    final sources = _FakeSources(files: {'/tmp/Feier abend.gpx': komoot});
+    final (service, imports, _) = await start(sources);
+
+    await service.handlePath(
+      'file:///tmp/Feier%20abend.gpx',
+      sourceHint: 'share',
+    );
+    await pumpEventQueue();
+
+    expect(imports.single.fileName, 'Feier abend.gpx');
+    expect(sources.readPaths, <String>['/tmp/Feier abend.gpx']);
+  });
+
   test('a file shared at launch is decoded and emitted', () async {
     final sources = _FakeSources(
       initialMedia: [_shared('/tmp/Feierabend.gpx')],
@@ -486,6 +500,41 @@ void main() {
           ),
           (_) {},
         );
+
+    test('files opened before the app listened are collected on listen, '
+        'then pushes arrive as they come', () async {
+      final calls = <MethodCall>[];
+      answerWith((call) async {
+        calls.add(call);
+        return call.method == takePendingMethod
+            ? <Object?>['/tmp/incoming/Cold.gpx']
+            : null;
+      });
+      final sources = PlatformIncomingSources(channel: channel);
+      final paths = <String>[];
+      final subscription = sources.openedFilePaths().listen(paths.add);
+      addTearDown(subscription.cancel);
+      await pumpEventQueue();
+      expect(calls.map((c) => c.method), contains(takePendingMethod));
+      expect(paths, <String>['/tmp/incoming/Cold.gpx']);
+
+      await pushOpened('/tmp/incoming/Warm.gpx');
+      await pumpEventQueue();
+      expect(paths, <String>[
+        '/tmp/incoming/Cold.gpx',
+        '/tmp/incoming/Warm.gpx',
+      ]);
+    });
+
+    test('a platform without pending files to collect is left alone', () async {
+      answerWith((call) async => throw MissingPluginException());
+      final sources = PlatformIncomingSources(channel: channel);
+      final paths = <String>[];
+      final subscription = sources.openedFilePaths().listen(paths.add);
+      addTearDown(subscription.cancel);
+      await pumpEventQueue();
+      expect(paths, isEmpty);
+    });
 
     test('a content URI is read through the platform resolver', () async {
       final calls = <MethodCall>[];

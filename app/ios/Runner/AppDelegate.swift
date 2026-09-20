@@ -20,6 +20,16 @@ import UserNotifications
 
   /// Mirrored in `lib/core/files/backup_exclusion.dart`.
   private static let backupChannelName = "app.velorki/backup"
+
+  /// Dart's way of collecting the files that arrived before it listened:
+  /// mirrored in `lib/features/import_export/data/incoming_file_service.dart`.
+  private static let takePendingMethod = "takePending"
+
+  /// Whether Dart has asked for the pending paths, which is the moment it is
+  /// listening for `opened` too. Before that every path waits here: a call
+  /// pushed at the engine's start reaches no handler and is simply lost,
+  /// which is what a cold start through "Open in Velorki" looked like.
+  private var dartListening = false
   private static let excludeFromBackupMethod = "excludeFromBackup"
 
   /// Mirrored in `lib/features/navigation/data/navigation_audio.dart`.
@@ -52,6 +62,16 @@ import UserNotifications
       binaryMessenger: engineBridge.applicationRegistrar.messenger()
     )
     filesChannel = channel
+    channel.setMethodCallHandler { [weak self] call, result in
+      guard let self, call.method == AppDelegate.takePendingMethod else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      self.dartListening = true
+      let paths = self.pendingPaths
+      self.pendingPaths.removeAll()
+      result(paths)
+    }
 
     let backup = FlutterMethodChannel(
       name: AppDelegate.backupChannelName,
@@ -79,8 +99,6 @@ import UserNotifications
       AppDelegate.handleWatchCall(call, result: result)
     }
     watchChannel = watch
-
-    flushPendingPaths()
   }
 
   /// Launches the watch app into a cycling workout, the way HealthKit offers
@@ -251,22 +269,22 @@ import UserNotifications
     }
   }
 
-  /// "Open in Velorki" from Files, Mail, Safari or another app.
+  /// "Open in Velorki" from Files, Mail, Safari or another app: the app's
+  /// own row in the share sheet, as opposed to the Share Extension
+  /// (`VelorkiShare`), which goes through receive_sharing_intent.
   ///
   /// iOS hands over a security-scoped URL that is only readable inside a
   /// matching start/stop pair and only until this method returns, so the file
   /// is copied into the app's own tmp directory first and Dart is told about
-  /// the copy. Velorki has no Share Extension yet — see
-  /// `lib/features/import_export/README.md` — so this is the whole iOS intake.
-  override func application(
-    _ app: UIApplication,
-    open url: URL,
-    options: [UIApplication.OpenURLOptionsKey: Any] = [:]
-  ) -> Bool {
-    guard url.isFileURL else {
-      // Custom schemes (velorki://) belong to app_links and the OAuth plugin.
-      return super.application(app, open: url, options: options)
-    }
+  /// the copy.
+  /// The app runs under UIScene, so the URL arrives at `SceneDelegate` —
+  /// `scene(_:openURLContexts:)` while the app runs, the connection options
+  /// on a cold start — and never at `application(_:open:options:)`, which is
+  /// why the scene delegate hands file URLs here. Custom schemes stay with
+  /// the plugins. Returns whether the file was taken.
+  @discardableResult
+  func openFile(_ url: URL) -> Bool {
+    guard url.isFileURL else { return false }
 
     let scoped = url.startAccessingSecurityScopedResource()
     defer {
@@ -303,22 +321,13 @@ import UserNotifications
   }
 
   private func send(path: String) {
-    guard let channel = filesChannel else {
-      // The engine is not up yet (cold start through "open with"); hold on to
-      // the path and deliver it as soon as the channel exists.
+    guard let channel = filesChannel, dartListening else {
+      // A cold start through "Open in Velorki": the engine, or Dart's
+      // listener, is not up yet. The path waits until Dart collects it.
       pendingPaths.append(path)
       return
     }
     channel.invokeMethod(AppDelegate.openedFileMethod, arguments: path)
-  }
-
-  private func flushPendingPaths() {
-    guard let channel = filesChannel, !pendingPaths.isEmpty else { return }
-    let paths = pendingPaths
-    pendingPaths.removeAll()
-    for path in paths {
-      channel.invokeMethod(AppDelegate.openedFileMethod, arguments: path)
-    }
   }
 }
 

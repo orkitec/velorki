@@ -24,6 +24,12 @@ const String openedFileMethod = 'opened';
 /// `ContentResolver`. Its argument is the URI string, its result the bytes.
 const String openInputStreamMethod = 'openInputStream';
 
+/// Method the app invokes on iOS once it listens, to collect the paths that
+/// arrived before then: a file the app was launched with through "Open in
+/// Velorki" is opened before Dart has a handler for [openedFileMethod], and a
+/// push at that moment reaches nothing. Its result is a list of paths.
+const String takePendingMethod = 'takePending';
+
 final Logger _log = Logger('IncomingFileService');
 
 /// The platform plumbing [IncomingFileService] sits on.
@@ -99,6 +105,23 @@ class PlatformIncomingSources implements IncomingSources {
       if (path is String && path.isNotEmpty) controller.add(path);
       return null;
     });
+    // Listening now: whatever arrived before is collected, in order.
+    unawaited(
+      _channel
+          .invokeMethod<List<Object?>>(takePendingMethod)
+          .then((paths) {
+            for (final path in paths ?? const <Object?>[]) {
+              if (path is String && path.isNotEmpty) controller.add(path);
+            }
+          })
+          .catchError((Object error) {
+            // Android delivers files through the share intent instead and
+            // has no such method; nothing waits there.
+            if (error is! MissingPluginException) {
+              _log.warning('pending files could not be collected', error);
+            }
+          }),
+    );
     return controller.stream;
   }
 
@@ -238,11 +261,18 @@ class IncomingFileService {
   }
 
   /// Reads the file at [path], decodes it and emits it on [imports].
-  Future<void> handlePath(String path, {String? sourceHint}) async => _emit(
-    await _sources.readFile(path),
-    fileName: _fileNameOfPath(path),
-    sourceHint: sourceHint,
-  );
+  Future<void> handlePath(String path, {String? sourceHint}) async {
+    // The iOS share extension hands over a `file://` URL string, the way the
+    // plugin's own code does; a path is what the file system wants.
+    final resolved = path.startsWith('file:')
+        ? (Uri.tryParse(path)?.toFilePath() ?? path)
+        : path;
+    await _emit(
+      await _sources.readFile(resolved),
+      fileName: _fileNameOfPath(resolved),
+      sourceHint: sourceHint,
+    );
+  }
 
   /// Reports a refusal that happened before there were bytes to decode: a
   /// link that could not be fetched, a route only its owner may open.
