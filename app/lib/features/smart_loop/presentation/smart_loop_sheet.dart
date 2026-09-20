@@ -10,7 +10,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/device_position_request.dart';
 import '../../planner/application/planner_controller.dart';
-import '../../planner/domain/route_profile.dart';
+import '../../planner/presentation/profile_chip_row.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../settings/data/units.dart';
 import '../../shared/presentation/stat_tile.dart';
@@ -259,7 +259,7 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
     const SizedBox(height: 16),
     SectionCaption(l10n.loopProfile),
     const SizedBox(height: 8),
-    _ProfileChips(
+    ProfileChipRow(
       selected: ref.watch(plannerControllerProvider).options.profile,
       onSelected: ref.read(plannerControllerProvider.notifier).setProfile,
     ),
@@ -401,40 +401,6 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
   TextStyle? _quiet(ThemeData theme) => theme.textTheme.bodyMedium?.copyWith(
     color: theme.colorScheme.onSurfaceVariant,
   );
-}
-
-/// The planner's profiles as a scrolling row of chips.
-///
-/// The planner draws the same choice over the map, where the chips have to be
-/// opaque glass; here the sheet is a surface already, so the chip theme is
-/// left alone.
-class _ProfileChips extends StatelessWidget {
-  const _ProfileChips({required this.selected, required this.onSelected});
-
-  final RouteProfile selected;
-  final ValueChanged<RouteProfile> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return SizedBox(
-      height: 44,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: [
-          for (final profile in RouteProfile.values)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: ChoiceChip(
-                label: Text(profileLabel(l10n, profile)),
-                selected: profile == selected,
-                onSelected: (_) => onSelected(profile),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 }
 
 class _Problem extends StatelessWidget {

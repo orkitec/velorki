@@ -26,10 +26,10 @@ import '../data/route_repository.dart';
 import '../data/routing_backend_provider.dart';
 import '../domain/elevation_profile.dart';
 import '../domain/planner_state.dart';
-import '../domain/route_profile.dart';
 import '../domain/routing_options.dart';
 import 'elevation_profile_chart.dart';
 import 'planner_map_host.dart';
+import 'profile_chip_row.dart';
 import 'route_format.dart';
 import 'save_route_dialog.dart';
 import 'surface_stats_bar.dart';
@@ -477,7 +477,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                       onDownloadArea: _openOfflineData,
                     ),
                     const SizedBox(height: 10),
-                    _ProfileChooser(
+                    ProfileChipRow(
+                      glass: true,
+
                       selected: state.options.profile,
                       onSelected: ref
                           .read(plannerControllerProvider.notifier)
@@ -634,81 +636,6 @@ class _NoRoutingServerBanner extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _ProfileChooser extends StatelessWidget {
-  const _ProfileChooser({required this.selected, required this.onSelected});
-
-  final RouteProfile selected;
-  final ValueChanged<RouteProfile> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    // The five chips share the width of the search field above them, one
-    // fifth each, so the row reads as one control that lines up with the
-    // rest of the chrome instead of a strip that stops short or scrolls.
-    // Tight chip padding keeps the longest label inside its fifth on a
-    // 360 dp phone.
-    final profiles = RouteProfile.values;
-    return SizedBox(
-      height: 44,
-      child: Row(
-        children: [
-          for (final (index, profile) in profiles.indexed)
-            Expanded(
-              child: Padding(
-                // Gaps between the chips only, so the first and the last
-                // sit flush with the search field's edges.
-                padding: EdgeInsets.only(
-                  right: index == profiles.length - 1 ? 0 : 6,
-                ),
-                child: ChoiceChip(
-                  label: SizedBox(
-                    width: double.infinity,
-                    // A label that is longer in another language shrinks into
-                    // its fifth rather than ending in an ellipsis: German
-                    // "Trekking" and "Rennrad" do not fit at 360 dp.
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        profileLabel(l10n, profile),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                      ),
-                    ),
-                  ),
-                  selected: profile == selected,
-                  onSelected: (_) => onSelected(profile),
-                  showCheckmark: false,
-                  visualDensity: VisualDensity.compact,
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  labelPadding: EdgeInsets.zero,
-                  // Over the map the chips are chrome, so they are opaque
-                  // glass whatever the chip theme says.
-                  backgroundColor: theme.velorki.glass,
-                  selectedColor: scheme.primary,
-                  side: BorderSide(
-                    color: profile == selected
-                        ? scheme.primary
-                        : theme.velorki.glassBorder,
-                  ),
-                  labelStyle: theme.textTheme.labelLarge?.copyWith(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: profile == selected
-                        ? scheme.onPrimary
-                        : scheme.onSurface,
-                  ),
-                ),
-              ),
-            ),
-        ],
       ),
     );
   }
