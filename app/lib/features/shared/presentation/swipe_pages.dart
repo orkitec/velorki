@@ -48,6 +48,30 @@ class SwipePages extends StatelessWidget {
       ),
       child: KeyedSubtree(key: ValueKey<int>(page), child: children[page]),
     );
+    // The dots: under the pages on a sheet, above them on a screen whose
+    // pages fill it, where the bottom edge is under the navigation bar and
+    // the home indicator and nobody would see them.
+    final dots = children.length > 1
+        ? Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var i = 0; i < children.length; i++)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Container(
+                    width: i == page ? 8 : 6,
+                    height: i == page ? 8 : 6,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: i == page
+                          ? theme.velorki.accent
+                          : scheme.onSurfaceVariant.withValues(alpha: 0.4),
+                    ),
+                  ),
+                ),
+            ],
+          )
+        : null;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onHorizontalDragEnd: (details) {
@@ -57,30 +81,13 @@ class SwipePages extends StatelessWidget {
       },
       child: Column(
         children: [
-          if (fill) Expanded(child: switcher) else switcher,
-          if (children.length > 1) ...[
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                for (var i = 0; i < children.length; i++)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Container(
-                      width: i == page ? 8 : 6,
-                      height: i == page ? 8 : 6,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: i == page
-                            ? theme.velorki.accent
-                            : scheme.onSurfaceVariant.withValues(alpha: 0.4),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            if (fill) const SizedBox(height: 8),
+          if (fill && dots != null) ...[
+            const SizedBox(height: 10),
+            dots,
+            const SizedBox(height: 2),
           ],
+          if (fill) Expanded(child: switcher) else switcher,
+          if (!fill && dots != null) ...[const SizedBox(height: 12), dots],
         ],
       ),
     );

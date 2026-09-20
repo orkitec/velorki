@@ -98,7 +98,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
     if (!mounted || index < 0 || index >= _cues.length) return;
     setState(() {
       _selectedCue = index;
-      _page = 1;
+      _page = 2;
     });
     final map = _map;
     if (map == null) return;
@@ -208,10 +208,6 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
                             duration: saved.estimatedTime,
                           ),
                           const SizedBox(height: 24),
-                          ElevationProfileChart(
-                            samples: elevationProfile(geometry),
-                          ),
-                          const SizedBox(height: 24),
                           SurfaceStatsBar(stats: saved.surfaceStats),
                           const SizedBox(height: 24),
                           // The one thing a saved route is usually opened for gets
@@ -269,6 +265,15 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
                             ],
                           ),
                         ],
+                      ),
+                    ),
+                    // The profile on a page of its own, as on the record
+                    // sheet.
+                    SingleChildScrollView(
+                      padding: EdgeInsets.fromLTRB(20, 20, 20, bottom),
+                      child: ElevationProfileChart(
+                        samples: elevationProfile(geometry),
+                        height: 220,
                       ),
                     ),
                     if (cues.length > 1)

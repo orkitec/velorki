@@ -92,6 +92,13 @@ void main() {
       1200,
     );
     await tester.pumpAndSettle();
+    expect(find.text(l10n.elevationTitle.toUpperCase()), findsOneWidget);
+    await tester.fling(
+      find.text(l10n.elevationTitle.toUpperCase()),
+      const Offset(-300, 0),
+      1200,
+    );
+    await tester.pumpAndSettle();
     expect(find.text(l10n.cueSheetTitle.toUpperCase()), findsOneWidget);
     expect(find.text(l10n.cueSheetStart), findsOneWidget);
     expect(h.map.waypoints, hasLength(2), reason: 'start and finish drawn');

@@ -34,10 +34,18 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // The cue sheet is the second page under the map, a swipe away.
+    // The cue sheet is the third page under the map: the file, its
+    // profile, then the sheet.
     expect(find.text(l10n.cueSheetTitle.toUpperCase()), findsNothing);
     await tester.fling(
       find.text(l10n.importSummary('GPX', 3)),
+      const Offset(-300, 0),
+      1200,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.elevationTitle.toUpperCase()), findsOneWidget);
+    await tester.fling(
+      find.text(l10n.elevationTitle.toUpperCase()),
       const Offset(-300, 0),
       1200,
     );
@@ -68,7 +76,7 @@ void main() {
     expect(find.text(l10n.navTurnLeft), findsOneWidget);
 
     // The other way round: a tap on the water fountain's marker, from the
-    // file page, brings the cue sheet back up with the line selected.
+    // profile page, brings the cue sheet back up with the line selected.
     await tester.fling(
       find.text(l10n.cueSheetTitle.toUpperCase()),
       const Offset(300, 0),

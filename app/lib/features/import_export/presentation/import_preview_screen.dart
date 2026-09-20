@@ -119,7 +119,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
     if (!mounted || index < 0 || index >= _cues.length) return;
     setState(() {
       _selectedCue = index;
-      _page = 1;
+      _page = 2;
     });
     final map = _map;
     if (map == null) return;
@@ -262,10 +262,6 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
                       duration: duration,
                     ),
                     const SizedBox(height: 24),
-                    ElevationProfileChart(
-                      samples: elevationProfile(track.points),
-                    ),
-                    const SizedBox(height: 24),
                     SectionCaption(l10n.importSaveAs),
                     const SizedBox(height: 12),
                     SegmentedButton<ImportKind>(
@@ -292,6 +288,14 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
                       label: Text(l10n.commonSave),
                     ),
                   ],
+                ),
+              ),
+              // The profile on a page of its own, as on the record sheet.
+              SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(20, 20, 20, bottom),
+                child: ElevationProfileChart(
+                  samples: elevationProfile(track.points),
+                  height: 220,
                 ),
               ),
               if (_cues.length > 1)
