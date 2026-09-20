@@ -32,9 +32,9 @@ final class RideSession: NSObject, ObservableObject {
     @Published var heartRate: Int?
     @Published var measuring = false
 
-    /// The ride is paused, and so is the measuring: the session is ended so
-    /// the sensor really rests (a paused HKWorkoutSession keeps sampling),
-    /// and the last reading stays on screen dimmed until the ride goes on.
+    /// The ride is paused. The session pauses with it rather than ending, so
+    /// watchOS keeps this app awake for the resume; the last reading stays on
+    /// screen dimmed until the ride goes on.
     var paused: Bool { status == "paused" }
 
     /// The session's own state, for the log.
