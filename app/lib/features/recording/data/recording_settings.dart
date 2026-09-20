@@ -2,9 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/app_config.dart';
 import '../domain/gps_precision.dart';
+import '../domain/split_length.dart';
 
 const String _prefsPrecision = 'recording.precision';
 const String _prefsSaver = 'recording.saver';
+const String _prefsSplitLength = 'recording.splitLength';
 
 /// What the rider chose under Settings → Recording.
 class RecordingSettings {
@@ -13,6 +15,7 @@ class RecordingSettings {
   const RecordingSettings({
     this.precision = GpsPrecision.normal,
     this.saver = false,
+    this.splitLength = SplitLength.auto,
   });
 
   /// How precisely the ride is recorded.
@@ -23,30 +26,39 @@ class RecordingSettings {
   /// says.
   final bool saver;
 
+  /// How long a split on the ride page is.
+  final SplitLength splitLength;
+
   /// The profile a ride actually runs at: the saver overrules the choice
   /// above it, which is the whole point of one switch.
   GpsPrecision get effectivePrecision => saver ? GpsPrecision.saver : precision;
 
   /// A copy with the named fields replaced.
-  RecordingSettings copyWith({GpsPrecision? precision, bool? saver}) =>
-      RecordingSettings(
-        precision: precision ?? this.precision,
-        saver: saver ?? this.saver,
-      );
+  RecordingSettings copyWith({
+    GpsPrecision? precision,
+    bool? saver,
+    SplitLength? splitLength,
+  }) => RecordingSettings(
+    precision: precision ?? this.precision,
+    saver: saver ?? this.saver,
+    splitLength: splitLength ?? this.splitLength,
+  );
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is RecordingSettings &&
           other.precision == precision &&
-          other.saver == saver;
+          other.saver == saver &&
+          other.splitLength == splitLength;
 
   @override
-  int get hashCode => Object.hash(precision, saver);
+  int get hashCode => Object.hash(precision, saver, splitLength);
 
   @override
   String toString() =>
-      'RecordingSettings(precision: ${precision.name}, saver: $saver)';
+      'RecordingSettings(precision: ${precision.name}, saver: $saver, '
+      'splitLength: ${splitLength.name})';
 }
 
 /// The recording settings, kept in shared_preferences.
@@ -60,6 +72,7 @@ class RecordingSettingsController extends Notifier<RecordingSettings> {
     return RecordingSettings(
       precision: GpsPrecision.fromName(prefs.getString(_prefsPrecision)),
       saver: prefs.getBool(_prefsSaver) ?? false,
+      splitLength: SplitLength.fromName(prefs.getString(_prefsSplitLength)),
     );
   }
 
@@ -72,6 +85,17 @@ class RecordingSettingsController extends Notifier<RecordingSettings> {
       await prefs.setString(_prefsPrecision, precision.name);
     }
     state = state.copyWith(precision: precision);
+  }
+
+  /// Picks how long a split on the ride page is.
+  Future<void> setSplitLength(SplitLength length) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    if (length == SplitLength.auto) {
+      await prefs.remove(_prefsSplitLength);
+    } else {
+      await prefs.setString(_prefsSplitLength, length.name);
+    }
+    state = state.copyWith(splitLength: length);
   }
 
   /// Switches battery saver on or off.

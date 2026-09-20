@@ -6,9 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../recording/data/recording_settings.dart';
 import '../../recording/domain/gps_precision.dart';
+import '../../recording/domain/split_length.dart';
+import '../../recording/presentation/recording_format.dart';
+import '../data/units.dart';
 
-/// Settings → Recording: how hard the GPS is driven, and the one switch that
-/// trades everything else for battery.
+/// Settings → Recording: how hard the GPS is driven, how long a split on the
+/// ride page is, and the one switch that trades everything else for battery.
 class RecordingSection extends ConsumerWidget {
   /// Creates the section.
   const RecordingSection({super.key});
@@ -19,6 +22,10 @@ class RecordingSection extends ConsumerWidget {
     final theme = Theme.of(context);
     final settings = ref.watch(recordingSettingsProvider);
     final controller = ref.read(recordingSettingsProvider.notifier);
+    final system = ref.watch(unitSystemProvider);
+    final unit = splitUnitMetres(system);
+    String length(double units) =>
+        formatSplitLength(l10n, system, units * unit);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -48,6 +55,45 @@ class RecordingSection extends ConsumerWidget {
               const SizedBox(height: 8),
               Text(
                 l10n.settingsGpsPrecisionHint,
+                style: theme.textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(l10n.settingsSplitLength, style: theme.textTheme.titleSmall),
+              const SizedBox(height: 10),
+              SegmentedButton<SplitLength>(
+                showSelectedIcon: false,
+                segments: [
+                  for (final choice in SplitLength.values)
+                    ButtonSegment(
+                      value: choice,
+                      label: Text(
+                        choice == SplitLength.auto
+                            ? l10n.splitLengthAuto
+                            : length(choice.units.toDouble()),
+                      ),
+                    ),
+                ],
+                selected: {settings.splitLength},
+                onSelectionChanged: (selection) =>
+                    unawaited(controller.setSplitLength(selection.single)),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l10n.settingsSplitLengthHint(
+                  length(1),
+                  length(autoFiveFromUnits),
+                  length(5),
+                  length(autoTenFromUnits),
+                  length(10),
+                ),
                 style: theme.textTheme.bodySmall,
               ),
             ],

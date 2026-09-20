@@ -324,7 +324,10 @@ void main() {
     expect(find.byType(RideSplitsTable), findsOneWidget);
     expect(find.text(l10n.elevationTitle.toUpperCase()), findsOneWidget);
     expect(find.text(l10n.statSpeed.toUpperCase()), findsOneWidget);
-    expect(find.text(l10n.rideSplits.toUpperCase()), findsOneWidget);
+    expect(
+      find.text(l10n.rideSplitsEvery(testSplitLength(1000)).toUpperCase()),
+      findsOneWidget,
+    );
     // The legend under the map.
     expect(find.byType(RideSpeedLegend), findsOneWidget);
     expect(find.text(l10n.rideSpeedSlow.toUpperCase()), findsOneWidget);
@@ -376,7 +379,10 @@ void main() {
     expect(find.text(l10n.elevationTitle.toUpperCase()), findsNothing);
     // The speed chart and the splits are still there.
     expect(find.text(l10n.statSpeed.toUpperCase()), findsOneWidget);
-    expect(find.text(l10n.rideSplits.toUpperCase()), findsOneWidget);
+    expect(
+      find.text(l10n.rideSplitsEvery(testSplitLength(1000)).toUpperCase()),
+      findsOneWidget,
+    );
 
     await unmountApp(tester);
   });

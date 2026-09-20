@@ -67,7 +67,7 @@ A ride recorded with a heart-rate strap, an Apple Watch or a power meter carries
 
 ### Splits
 
-One row per kilometre, or per mile if you are on imperial units, with four columns: **Split**, **Moving**, **Avg** and **Ascent**. The last row is the remainder, so it may be shorter than the rest. Behind each row a bar shows that split's average speed against your fastest split, which makes the hard sections obvious at a glance.
+One row per split, with four columns: **Split**, **Moving**, **Avg** and **Ascent**. The caption says how long a split is, "Splits, every 5 km". By default the length follows the ride: one kilometre up to 30 km, five up to 150 km, ten beyond, in miles on imperial units, so the table stays short on a long ride; **Split length** under Settings → Recording fixes it at 1, 5 or 10 instead. The last row is the remainder, so it may be shorter than the rest. Behind each row a bar shows that split's average speed against your fastest split, which makes the hard sections obvious at a glance.
 
 ### Ride actions
 

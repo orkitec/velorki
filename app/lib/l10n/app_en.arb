@@ -1386,9 +1386,15 @@
   "@rideSpeed": {
     "description": "Caption above the speed chart of a recorded ride"
   },
-  "rideSplits": "Splits",
-  "@rideSplits": {
-    "description": "Caption above the table of kilometre or mile splits"
+  "rideSplitsEvery": "Splits, every {length}",
+  "@rideSplitsEvery": {
+    "description": "Caption above the splits table naming the length of one split, e.g. 'Splits, every 5 km'",
+    "placeholders": {
+      "length": {
+        "type": "String",
+        "example": "5 km"
+      }
+    }
   },
   "rideSplitColumn": "Split",
   "@rideSplitColumn": {
@@ -3711,6 +3717,40 @@
   "settingsRecording": "Recording",
   "@settingsRecording": {
     "description": "Settings section header for how rides are recorded"
+  },
+  "settingsSplitLength": "Split length",
+  "@settingsSplitLength": {
+    "description": "Label above the choice of how long one split on the ride page is"
+  },
+  "splitLengthAuto": "Automatic",
+  "@splitLengthAuto": {
+    "description": "Segment for the split length chosen from the ride's distance"
+  },
+  "settingsSplitLengthHint": "Automatic keeps the table short: {one} splits up to {oneUntil}, {five} up to {fiveUntil}, {ten} beyond",
+  "@settingsSplitLengthHint": {
+    "description": "Hint under the split length choice explaining the automatic rule; all placeholders are formatted distances",
+    "placeholders": {
+      "one": {
+        "type": "String",
+        "example": "1 km"
+      },
+      "oneUntil": {
+        "type": "String",
+        "example": "30 km"
+      },
+      "five": {
+        "type": "String",
+        "example": "5 km"
+      },
+      "fiveUntil": {
+        "type": "String",
+        "example": "150 km"
+      },
+      "ten": {
+        "type": "String",
+        "example": "10 km"
+      }
+    }
   },
   "settingsGpsPrecision": "GPS precision",
   "@settingsGpsPrecision": {

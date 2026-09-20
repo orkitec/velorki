@@ -21,6 +21,7 @@ import '../../shared/presentation/placeholder_body.dart';
 import '../../sharing/presentation/share_link_button.dart';
 import '../application/recording_controller.dart';
 import '../application/ride_analysis_provider.dart';
+import '../data/recording_settings.dart';
 import '../data/recording_service.dart';
 import '../data/ride_repository.dart';
 import '../domain/ride.dart';
@@ -210,12 +211,14 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
     final l10n = AppLocalizations.of(context);
     final units = ref.watch(unitSystemProvider);
     final ride = ref.watch(rideProvider(widget.rideId));
-    // Computed once per ride and unit system, never on a rebuild.
+    // Computed once per ride, split length and unit system, never on a
+    // rebuild.
     final analysis = ref
         .watch(
           rideAnalysisProvider((
             rideId: widget.rideId,
-            splitLengthM: splitLengthFor(units),
+            splitLength: ref.watch(recordingSettingsProvider).splitLength,
+            system: units,
           )),
         )
         .value;
@@ -383,7 +386,10 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                       ],
                       if (analysis.splits.isNotEmpty) ...[
                         const SizedBox(height: 28),
-                        RideSplitsTable(splits: analysis.splits),
+                        RideSplitsTable(
+                          splits: analysis.splits,
+                          splitLengthM: analysis.splitLengthM,
+                        ),
                       ],
                     ],
                     const SizedBox(height: 24),

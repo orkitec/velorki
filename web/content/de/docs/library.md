@@ -67,7 +67,7 @@ Eine Fahrt, die mit Pulsgurt, Apple Watch oder Leistungsmesser aufgezeichnet wur
 
 ### Splits
 
-Eine Zeile je Kilometer, oder je Meile bei imperialen Einheiten, mit vier Spalten: **Split**, **Fahrzeit**, **Ø** und **Anstieg**. Die letzte Zeile ist der Rest und kann darum kürzer sein als die übrigen. Hinter jeder Zeile zeigt ein Balken das Durchschnittstempo dieses Splits im Verhältnis zu deinem schnellsten, was die harten Abschnitte auf einen Blick sichtbar macht.
+Eine Zeile je Split, mit vier Spalten: **Split**, **Fahrzeit**, **Ø** und **Anstieg**. Die Überschrift sagt, wie lang ein Split ist, "Splits, alle 5 km". Standardmäßig folgt die Länge der Fahrt: ein Kilometer bis 30 km, fünf bis 150 km, darüber zehn, bei imperialen Einheiten in Meilen, damit die Tabelle auf einer langen Fahrt kurz bleibt; **Split-Länge** unter Einstellungen → Aufnahme legt sie stattdessen auf 1, 5 oder 10 fest. Die letzte Zeile ist der Rest und kann darum kürzer sein als die übrigen. Hinter jeder Zeile zeigt ein Balken das Durchschnittstempo dieses Splits im Verhältnis zu deinem schnellsten, was die harten Abschnitte auf einen Blick sichtbar macht.
 
 ### Aktionen einer Fahrt
 

@@ -4,16 +4,19 @@ import '../../../core/geo/ride_analysis.dart';
 import '../../../core/units/units.dart';
 import '../data/ride_repository.dart';
 import '../domain/ride.dart';
+import '../domain/split_length.dart';
 
-/// What the analysis is asked for: which ride, and how long a split is.
+/// What the analysis is asked for: which ride, how long a split is and in
+/// which units.
 ///
-/// The split length is part of the key because a rider who switches to miles
-/// wants mile splits, and the two sets can sit side by side in the cache.
-typedef RideAnalysisRequest = ({String rideId, double splitLengthM});
-
-/// A kilometre or a mile, whichever [system] counts in.
-double splitLengthFor(UnitSystem system) =>
-    system == UnitSystem.imperial ? metersPerMile : metersPerKilometer;
+/// The choice and the units are part of the key because a rider who switches
+/// to miles wants mile splits, and the two sets can sit side by side in the
+/// cache.
+typedef RideAnalysisRequest = ({
+  String rideId,
+  SplitLength splitLength,
+  UnitSystem system,
+});
 
 /// The splits, chart samples and speed bands of one ride.
 ///
@@ -25,7 +28,11 @@ final rideAnalysisProvider = FutureProvider.autoDispose
       if (ride == null) return RideAnalysis.empty;
       return analyseRide(
         ride.points,
-        splitLengthM: request.splitLengthM,
+        splitLengthM: splitLengthMetres(
+          request.splitLength,
+          request.system,
+          ride.stats.distanceM,
+        ),
         breaks: statsBreaksOf(ride.pauses),
       );
     });

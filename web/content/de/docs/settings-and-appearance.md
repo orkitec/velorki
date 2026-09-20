@@ -36,6 +36,8 @@ Die drei Schalter hier sind dieselben wie in der Übersicht des Tabs Aufnahme.
 
 **GPS-Genauigkeit**: **Energiesparen**, **Normal** oder **Genau**, mit dem Hinweis "Genau für Trails, Normal reicht für Straßen". Es entscheidet, wie hart der eine GPS-Client während einer Fahrt gefordert wird.
 
+**Split-Länge**: **Automatisch**, **1 km**, **5 km** oder **10 km**, bei imperialen Einheiten in Meilen, mit dem Hinweis "Automatisch hält die Tabelle kurz: Splits von 1 km bis 30 km, 5 km bis 150 km, darüber 10 km". Es bestimmt die Zeilen der Split-Tabelle einer gespeicherten Fahrt.
+
 **Energiesparen**: "Dunkle Karte, keine Animationen, nach 30 s eine schlichte Seite mit den Zahlen; der Bildschirm zieht den Akku leer". Das ganze Verhalten steht unter [Fahrt aufzeichnen](./recording-a-ride).
 
 ## Sensoren

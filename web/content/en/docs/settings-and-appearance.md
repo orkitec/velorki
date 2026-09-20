@@ -36,6 +36,8 @@ The three switches here are the same ones as on the Record tab's sheet.
 
 **GPS precision**: **Battery saver**, **Normal** or **Precise**, with the hint "Precise is for trails; Normal is enough for roads". It decides how hard the one GPS client is driven while a ride runs.
 
+**Split length**: **Automatic**, **1 km**, **5 km** or **10 km**, in miles on imperial units, with the hint "Automatic keeps the table short: 1 km splits up to 30 km, 5 km up to 150 km, 10 km beyond". It sets the rows of the splits table on a saved ride.
+
 **Battery saver**: "Dark map, no animations, a plain page with the numbers after 30 s; the screen is what drains the battery". The full behaviour is in [recording a ride](./recording-a-ride).
 
 ## Sensors

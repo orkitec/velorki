@@ -19,10 +19,17 @@ import 'recording_format.dart';
 /// figure.
 class RideSplitsTable extends ConsumerWidget {
   /// Creates the table.
-  const RideSplitsTable({required this.splits, super.key});
+  const RideSplitsTable({
+    required this.splits,
+    required this.splitLengthM,
+    super.key,
+  });
 
   /// The splits, in riding order.
   final List<Split> splits;
+
+  /// How long a whole split is, for the caption.
+  final double splitLengthM;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -39,7 +46,9 @@ class RideSplitsTable extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SectionCaption(l10n.rideSplits),
+        SectionCaption(
+          l10n.rideSplitsEvery(formatSplitLength(l10n, system, splitLengthM)),
+        ),
         const SizedBox(height: 10),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),

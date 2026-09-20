@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/features/recording/data/recording_settings.dart';
 import 'package:velorki/features/recording/domain/gps_precision.dart';
+import 'package:velorki/features/recording/domain/split_length.dart';
 
 Future<ProviderContainer> _containerWith(Map<String, Object> stored) async {
   SharedPreferences.setMockInitialValues(stored);
@@ -48,7 +49,7 @@ void main() {
       expect(one, isNot(const RecordingSettings()));
       expect(
         one.toString(),
-        'RecordingSettings(precision: saver, saver: false)',
+        'RecordingSettings(precision: saver, saver: false, splitLength: auto)',
       );
     });
   });
@@ -112,6 +113,26 @@ void main() {
         );
       },
     );
+
+    test('the split length is stored only when it is not automatic', () async {
+      final container = await _containerWith(<String, Object>{});
+      final controller = container.read(recordingSettingsProvider.notifier);
+      expect(
+        container.read(recordingSettingsProvider).splitLength,
+        SplitLength.auto,
+      );
+
+      await controller.setSplitLength(SplitLength.five);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('recording.splitLength'), 'five');
+      expect(
+        container.read(recordingSettingsProvider).splitLength,
+        SplitLength.five,
+      );
+
+      await controller.setSplitLength(SplitLength.auto);
+      expect(prefs.getString('recording.splitLength'), isNull);
+    });
 
     test('the saver switch is stored only while it is on', () async {
       final container = await _containerWith(<String, Object>{});
