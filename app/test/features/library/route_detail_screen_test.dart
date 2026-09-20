@@ -82,8 +82,16 @@ void main() {
     expect(h.map.pois.map((p) => p.name), ['Dismount', 'Water']);
     expect(h.map.pois.first.kind, MapPoiKind.danger);
 
-    // The cue sheet under the figures: the turn with the author's words,
-    // the points with theirs; a tap opens the note and moves the map.
+    // The cue sheet is the second page under the map: the turn with the
+    // author's words, the points with theirs; a tap opens the note and
+    // moves the map.
+    expect(find.text(l10n.cueSheetTitle.toUpperCase()), findsNothing);
+    await tester.fling(
+      find.text(l10n.statDistance.toUpperCase()),
+      const Offset(-300, 0),
+      1200,
+    );
+    await tester.pumpAndSettle();
     expect(find.text(l10n.cueSheetTitle.toUpperCase()), findsOneWidget);
     expect(find.text(l10n.cueSheetStart), findsOneWidget);
     expect(h.map.waypoints, hasLength(2), reason: 'start and finish drawn');

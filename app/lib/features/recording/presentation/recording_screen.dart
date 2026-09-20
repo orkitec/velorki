@@ -38,6 +38,7 @@ import '../../sensors/application/ride_health_sync.dart';
 import '../../sensors/application/sensor_hub.dart';
 import '../../settings/data/units.dart';
 import '../../shared/presentation/stat_tile.dart';
+import '../../shared/presentation/swipe_pages.dart';
 import '../application/recording_controller.dart';
 import '../application/ride_finish_request.dart';
 import '../data/battery_saver.dart';
@@ -1655,7 +1656,7 @@ class _LivePanel extends ConsumerWidget {
         // followed route as a profile with the rider on it. The dots say
         // which is up. Paused, the figures fade: the pill alone was easy to
         // miss on a sheet that otherwise looks exactly like a running ride.
-        _SwipePages(
+        SwipePages(
           page: page,
           onPage: onPage,
           children: [
@@ -1799,76 +1800,6 @@ class _RoundAction extends StatelessWidget {
             child: Icon(icon, size: 28, color: foreground),
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// Pages a swipe apart, with dots underneath saying which is up.
-///
-/// Not a PageView: that needs a height, and the figures' height depends on
-/// how many sensors report. A horizontal drag is all a swipe needs, and it
-/// does not fight the sheet's vertical scroll.
-class _SwipePages extends StatelessWidget {
-  const _SwipePages({
-    required this.page,
-    required this.onPage,
-    required this.children,
-  });
-
-  final int page;
-  final ValueChanged<int> onPage;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onHorizontalDragEnd: (details) {
-        final velocity = details.primaryVelocity ?? 0;
-        if (velocity < -200 && page < children.length - 1) onPage(page + 1);
-        if (velocity > 200 && page > 0) onPage(page - 1);
-      },
-      child: Column(
-        children: [
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 220),
-            switchInCurve: Curves.easeOut,
-            switchOutCurve: Curves.easeIn,
-            transitionBuilder: (child, animation) =>
-                FadeTransition(opacity: animation, child: child),
-            layoutBuilder: (current, previous) => Stack(
-              alignment: Alignment.topCenter,
-              children: [...previous, ?current],
-            ),
-            child: KeyedSubtree(
-              key: ValueKey<int>(page),
-              child: children[page],
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              for (var i = 0; i < children.length; i++)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Container(
-                    width: i == page ? 8 : 6,
-                    height: i == page ? 8 : 6,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: i == page
-                          ? theme.velorki.accent
-                          : scheme.onSurfaceVariant.withValues(alpha: 0.4),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ],
       ),
     );
   }

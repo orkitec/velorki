@@ -28,6 +28,7 @@ import '../../planner/presentation/route_stats_row.dart';
 import '../../planner/presentation/surface_stats_bar.dart';
 import '../../settings/data/units.dart';
 import '../../shared/presentation/placeholder_body.dart';
+import '../../shared/presentation/swipe_pages.dart';
 import '../../sharing/presentation/share_link_button.dart';
 
 /// One saved route: map preview, statistics, elevation profile.
@@ -77,6 +78,9 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
   String? _cuesRouteId;
   int? _selectedCue;
 
+  /// Which page is under the map: the route, or its cue sheet.
+  int _page = 0;
+
   List<RouteCue> _cuesFor(SavedRoute route) {
     if (_cuesRouteId != route.id) {
       _cues = routeCuesFor(
@@ -92,7 +96,10 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
   /// Selects a cue, from the list or from the map, and takes the map there.
   void _selectCue(int index) {
     if (!mounted || index < 0 || index >= _cues.length) return;
-    setState(() => _selectedCue = index);
+    setState(() {
+      _selectedCue = index;
+      _page = 1;
+    });
     final map = _map;
     if (map == null) return;
     final cue = _cues[index];
@@ -152,108 +159,123 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen> {
           unawaited(_showOnMap(saved));
           final theme = Theme.of(context);
           final geometry = saved.geometry;
-          return ListView(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.paddingOf(context).bottom + 24,
-            ),
+          final bottom = MediaQuery.paddingOf(context).bottom + 24;
+          final cues = _cuesFor(saved);
+          // The map stays put while the pages under it scroll: a tap on a
+          // cue moves a map the rider can see.
+          return Column(
             children: [
               // Full-bleed hero: the route is the headline of this screen.
               SizedBox(
                 height: 260,
                 child: PlannerMapHost(onMapReady: _onMapReady, embedded: true),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+              Expanded(
+                child: SwipePages(
+                  fill: true,
+                  page: _page,
+                  onPage: (page) => setState(() => _page = page),
                   children: [
-                    Text(
-                      l10n.libraryRouteSubtitle(
-                        formatDate(l10n, saved.createdAt),
-                        profileLabel(l10n, saved.profile),
-                        formatHeight(l10n, units, saved.ascentM),
-                      ),
-                      style: theme.textTheme.bodySmall,
-                    ),
-                    if (saved.description != null &&
-                        saved.description!.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        saved.description!,
-                        style: theme.textTheme.bodyMedium,
-                      ),
-                    ],
-                    const SizedBox(height: 20),
-                    RouteStatsRow(
-                      distanceM: saved.distanceM,
-                      ascentM: saved.ascentM,
-                      descentM: saved.descentM,
-                      duration: saved.estimatedTime,
-                    ),
-                    const SizedBox(height: 24),
-                    ElevationProfileChart(samples: elevationProfile(geometry)),
-                    if (_cuesFor(saved).length > 1) ...[
-                      const SizedBox(height: 24),
-                      CueSheetList(
-                        cues: _cuesFor(saved),
-                        selected: _selectedCue,
-                        onSelect: _selectCue,
-                      ),
-                    ],
-                    const SizedBox(height: 24),
-                    SurfaceStatsBar(stats: saved.surfaceStats),
-                    const SizedBox(height: 24),
-                    // The one thing a saved route is usually opened for gets
-                    // the full-width pill; the rest wraps underneath.
-                    FilledButton.icon(
-                      onPressed: () => _openInPlanner(saved),
-                      icon: const Icon(Icons.route_outlined),
-                      label: Text(l10n.routeDetailOpenInPlanner),
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                    ListView(
+                      padding: EdgeInsets.fromLTRB(20, 20, 20, bottom),
                       children: [
-                        // A route exports as a GPX <rte> or as a FIT course;
-                        // the activity forms belong to a ride.
-                        MenuAnchor(
-                          builder: (context, controller, _) =>
-                              OutlinedButton.icon(
-                                onPressed: () => controller.isOpen
-                                    ? controller.close()
-                                    : controller.open(),
-                                icon: const Icon(Icons.ios_share),
-                                label: Text(l10n.routeDetailExport),
-                              ),
-                          menuChildren: [
-                            MenuItemButton(
-                              onPressed: () =>
-                                  unawaited(_export(saved, TrackFormat.gpx)),
-                              child: Text(l10n.exportGpxRoute),
-                            ),
-                            MenuItemButton(
-                              onPressed: () =>
-                                  unawaited(_export(saved, TrackFormat.fit)),
-                              child: Text(l10n.exportFitCourse),
-                            ),
-                          ],
+                        Text(
+                          l10n.libraryRouteSubtitle(
+                            formatDate(l10n, saved.createdAt),
+                            profileLabel(l10n, saved.profile),
+                            formatHeight(l10n, units, saved.ascentM),
+                          ),
+                          style: theme.textTheme.bodySmall,
                         ),
-                        RouteSendMenu(
-                          route: saved,
-                          onExportGpx: () => _export(saved, TrackFormat.gpx),
-                        ),
-                        ShareLinkButton(
-                          name: saved.name,
-                          points: geometry,
-                          kind: ShareKind.route,
+                        if (saved.description != null &&
+                            saved.description!.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            saved.description!,
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        ],
+                        const SizedBox(height: 20),
+                        RouteStatsRow(
                           distanceM: saved.distanceM,
                           ascentM: saved.ascentM,
-                          pois: saved.pois,
+                          descentM: saved.descentM,
+                          duration: saved.estimatedTime,
                         ),
-                        DescribeRouteButton(route: saved),
+                        const SizedBox(height: 24),
+                        ElevationProfileChart(
+                          samples: elevationProfile(geometry),
+                        ),
+                        const SizedBox(height: 24),
+                        SurfaceStatsBar(stats: saved.surfaceStats),
+                        const SizedBox(height: 24),
+                        // The one thing a saved route is usually opened for gets
+                        // the full-width pill; the rest wraps underneath.
+                        FilledButton.icon(
+                          onPressed: () => _openInPlanner(saved),
+                          icon: const Icon(Icons.route_outlined),
+                          label: Text(l10n.routeDetailOpenInPlanner),
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            // A route exports as a GPX <rte> or as a FIT course;
+                            // the activity forms belong to a ride.
+                            MenuAnchor(
+                              builder: (context, controller, _) =>
+                                  OutlinedButton.icon(
+                                    onPressed: () => controller.isOpen
+                                        ? controller.close()
+                                        : controller.open(),
+                                    icon: const Icon(Icons.ios_share),
+                                    label: Text(l10n.routeDetailExport),
+                                  ),
+                              menuChildren: [
+                                MenuItemButton(
+                                  onPressed: () => unawaited(
+                                    _export(saved, TrackFormat.gpx),
+                                  ),
+                                  child: Text(l10n.exportGpxRoute),
+                                ),
+                                MenuItemButton(
+                                  onPressed: () => unawaited(
+                                    _export(saved, TrackFormat.fit),
+                                  ),
+                                  child: Text(l10n.exportFitCourse),
+                                ),
+                              ],
+                            ),
+                            RouteSendMenu(
+                              route: saved,
+                              onExportGpx: () =>
+                                  _export(saved, TrackFormat.gpx),
+                            ),
+                            ShareLinkButton(
+                              name: saved.name,
+                              points: geometry,
+                              kind: ShareKind.route,
+                              distanceM: saved.distanceM,
+                              ascentM: saved.ascentM,
+                              pois: saved.pois,
+                            ),
+                            DescribeRouteButton(route: saved),
+                          ],
+                        ),
                       ],
                     ),
+                    if (cues.length > 1)
+                      ListView(
+                        padding: EdgeInsets.fromLTRB(20, 20, 20, bottom),
+                        children: [
+                          CueSheetList(
+                            cues: cues,
+                            selected: _selectedCue,
+                            onSelect: _selectCue,
+                          ),
+                        ],
+                      ),
                   ],
                 ),
               ),

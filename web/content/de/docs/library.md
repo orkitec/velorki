@@ -36,8 +36,9 @@ Eine geöffnete Route zeigt von oben nach unten:
 - die Beschreibung, falls die Route eine hat,
 - **Distanz**, **Anstieg**, **Abstieg** und **Dauer**,
 - das Höhenprofil,
-- die Abbiegeliste, bei einer Route, die mit Abbiegungen oder Punkten von Interesse importiert wurde: jede Abbiegung und jeder Punkt mit der Entfernung vom Start, ein Tipp auf eine Zeile bringt die Karte dorthin und ein Tipp auf einen Marker wählt die Zeile aus, wie auf dem Importbildschirm,
 - die Belagsverteilung.
+
+Die Karte bleibt oben stehen, während der Rest darunter scrollt. Eine Route, die mit Abbiegungen oder Punkten von Interesse importiert wurde, hat eine zweite Seite einen Wisch nach links, die Abbiegeliste: jede Abbiegung und jeder Punkt mit der Entfernung vom Start, ein Tipp auf eine Zeile schwenkt die Karte in deinem Zoom dorthin und ein Tipp auf einen Marker bringt die Liste mit der ausgewählten Zeile hoch, wie auf dem Importbildschirm.
 
 Dann die Aktionen:
 

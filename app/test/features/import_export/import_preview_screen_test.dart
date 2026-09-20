@@ -34,6 +34,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    // The cue sheet is the second page under the map, a swipe away.
+    expect(find.text(l10n.cueSheetTitle.toUpperCase()), findsNothing);
+    await tester.fling(
+      find.text(l10n.importSummary('GPX', 3)),
+      const Offset(-300, 0),
+      1200,
+    );
+    await tester.pumpAndSettle();
     expect(find.text(l10n.cueSheetTitle.toUpperCase()), findsOneWidget);
     expect(find.text('Turn left onto Widenmayerstraße'), findsOneWidget);
     expect(find.text('Trinkwasser'), findsOneWidget);
@@ -51,13 +59,26 @@ void main() {
     await tester.pumpAndSettle();
     final moves = h.map.calls.where((c) => c.method == 'moveTo').toList();
     expect(moves, hasLength(1));
-    expect(moves.single.arguments[1], 16, reason: 'zoomed to the corner');
+    expect(
+      moves.single.arguments[1],
+      isNull,
+      reason: 'the zoom is the rider\'s',
+    );
     // Selected, the line opens with the plain manoeuvre under the words.
     expect(find.text(l10n.navTurnLeft), findsOneWidget);
 
-    // The other way round: a tap on the water fountain's marker.
+    // The other way round: a tap on the water fountain's marker, from the
+    // file page, brings the cue sheet back up with the line selected.
+    await tester.fling(
+      find.text(l10n.cueSheetTitle.toUpperCase()),
+      const Offset(300, 0),
+      1200,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.cueSheetTitle.toUpperCase()), findsNothing);
     h.map.onPoiTapped!(0);
     await tester.pumpAndSettle();
+    expect(find.text(l10n.cueSheetTitle.toUpperCase()), findsOneWidget);
     expect(h.map.calls.where((c) => c.method == 'moveTo'), hasLength(2));
     expect(
       find.text(l10n.navTurnLeft),

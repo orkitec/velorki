@@ -31,8 +31,9 @@ Er heißt **Import** und zeigt:
 - Format und Größe, "GPX · 4.812 Punkte",
 - den Zeitraum, "16. Sept. 2026, 09:12 – 16. Sept. 2026, 13:40", oder "Die Datei enthält keine Zeitstempel.",
 - Distanz, Anstieg, Abstieg und Dauer sowie das Höhenprofil,
-- **Abbiegeliste**, wenn die Datei eine hat: jede Abbiegung und jeder Punkt von Interesse mit der Entfernung vom Start, auf acht Zeilen gefaltet mit **Alle zeigen**. Tippe auf eine Zeile, und die Karte springt dorthin, mit dem Namen angeheftet; tippe auf einen Marker auf der Karte, und seine Zeile wird ausgewählt und ins Bild gescrollt. Eine ausgewählte Zeile öffnet sich mit dem, was es zu wissen gibt, dem Hinweis einer Gefahrenstelle oder dem einfachen Manöver unter den Worten des Autors,
 - **Speichern als**, einen Umschalter zwischen **Route** und **Fahrt**.
+
+Die Karte bleibt oben stehen, während der Rest darunter scrollt. Hat die Datei Abbiegungen oder Punkte von Interesse, liegt eine zweite Seite einen Wisch nach links, mit zwei Punkten unten, die sagen, welche gerade oben ist: die **Abbiegeliste**, jede Abbiegung und jeder Punkt von Interesse mit der Entfernung vom Start, auf acht Zeilen gefaltet mit **Alle zeigen**. Tippe auf eine Zeile, und die Karte schwenkt dorthin, in dem Zoom, den du gerade hast, mit dem Namen angeheftet; tippe auf einen Marker auf der Karte, und die Abbiegeliste kommt mit der ausgewählten Zeile hoch, ins Bild gescrollt. Eine ausgewählte Zeile öffnet sich mit dem, was es zu wissen gibt, dem Hinweis einer Gefahrenstelle oder dem einfachen Manöver unter den Worten des Autors.
 
 Eine GPX-Route mit Abbiegeliste, der Routen-Export von Ride with GPS oder eine Garmin-Strecke, bringt ihre Abbiegungen mit: Jeder Eintrag wird ein Abbiegehinweis mit den Worten des Autors, gezeigt im Abbiegeband, auf der Abbiegeliste der Aufnahme und gesagt von der Stimme. Ein GPX-Track hat keine Abbiegeliste; Velorkis eigenes Abbiegeband funktioniert darauf trotzdem, aus der Form der Route.
 

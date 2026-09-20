@@ -3,9 +3,6 @@ import '../../planner/presentation/poi_markers.dart';
 import '../../planner/domain/route_poi.dart';
 import '../application/route_cues.dart';
 
-/// Zoom the map goes to for a cue: a corner and the streets around it.
-const double cueZoom = 16;
-
 /// Draws the markers a cue sheet refers to and reports taps on them as
 /// cue indices, so a screen with a [CueSheetList] wires the map once.
 void showCuesOnMap(
@@ -42,8 +39,9 @@ void showCuesOnMap(
   };
 }
 
-/// Takes the map to [cue] and pins it with its name.
+/// Takes the map to [cue] and pins it with its name, at whatever zoom the
+/// rider has: reading a route is done at the zoom they chose.
 Future<void> goToCue(MapController map, RouteCue cue, String label) async {
   await map.setSearchPin(cue.pos, label: label);
-  await map.moveTo(cue.pos, zoom: cueZoom);
+  await map.moveTo(cue.pos);
 }

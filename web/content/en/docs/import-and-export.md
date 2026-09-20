@@ -31,8 +31,9 @@ Titled **Import**, it shows:
 - the format and size, "GPX · 4,812 points",
 - the time span, "16 Sept 2026, 09:12 – 16 Sept 2026, 13:40", or "The file carries no timestamps.",
 - the distance, ascent, descent and duration, and the elevation profile,
-- **CUE SHEET**, when the file has one: every turn and point of interest with its distance from the start, folded to eight lines with **Show all**. Tap a line and the map jumps there, pinned with its name; tap a marker on the map and its line is selected and scrolled into view. A selected line opens with what there is to know, a hazard's note or the plain manoeuvre under the author's words,
 - **SAVE AS**, a switch between **Route** and **Ride**.
+
+The map stays at the top while the rest scrolls under it. When the file has turns or points of interest, a second page sits one swipe to the left, with two dots at the bottom saying which is up: the **CUE SHEET**, every turn and point of interest with its distance from the start, folded to eight lines with **Show all**. Tap a line and the map pans there at the zoom you have, pinned with its name; tap a marker on the map and the cue sheet comes up with its line selected and scrolled into view. A selected line opens with what there is to know, a hazard's note or the plain manoeuvre under the author's words.
 
 A GPX route with a cue sheet, the route export of Ride with GPS or a Garmin course, brings its turns along: each cue becomes a turn instruction with the author's words, shown in the turn banner, on the cue sheet page and said by the voice. A GPX track carries no cue sheet; Velorki's own turn banner still works on it from the route's shape.
 

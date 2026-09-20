@@ -36,8 +36,9 @@ Opening a route shows, from the top:
 - the description, if the route has one,
 - **Distance**, **Ascent**, **Descent** and **Est. time**,
 - the elevation profile,
-- the cue sheet, for a route imported with turns or points of interest: every turn and point with its distance from the start, a tap on a line taking the map there and a tap on a marker selecting the line, as on the import screen,
 - the surface breakdown.
+
+The map stays at the top while the rest scrolls under it. A route imported with turns or points of interest has a second page one swipe to the left, the cue sheet: every turn and point with its distance from the start, a tap on a line panning the map there at your zoom and a tap on a marker bringing the sheet up with the line selected, as on the import screen.
 
 Then the actions:
 
