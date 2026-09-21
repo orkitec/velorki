@@ -857,5 +857,9 @@
   "rideClimbGradeColumn": "Steigung",
   "rideClimbAt": "bei {distance}",
   "rideClimbVam": "{value} m/h",
-  "unitPercent": "{value} %"
+  "unitPercent": "{value} %",
+  "chartResetZoom": "Ganze Fahrt",
+  "rideHighlightSplit": "Split {index}",
+  "rideHighlightClimb": "Anstieg {index}",
+  "rideHighlightChip": "{name} · {range}"
 }

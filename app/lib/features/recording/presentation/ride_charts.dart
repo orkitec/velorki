@@ -27,6 +27,8 @@ class RideElevationChart extends ConsumerWidget {
     super.key,
     this.highlight,
     this.marks = const <({double alongM, String label})>[],
+    this.window,
+    this.onWindow,
   });
 
   /// The analysed samples of the ride.
@@ -38,6 +40,14 @@ class RideElevationChart extends ConsumerWidget {
   /// Named places along the ride, in metres from the start: the points of
   /// interest of the route the ride followed, where it passed them.
   final List<({double alongM, String label})> marks;
+
+  /// The stretch of the ride the chart is zoomed to, or `null` for all of
+  /// it; see [MetricChart.window].
+  final RideWindow? window;
+
+  /// Called with the stretch a pinch, a drag or a double tap asks for; see
+  /// [MetricChart.onWindow].
+  final ValueChanged<RideWindow?>? onWindow;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -57,26 +67,15 @@ class RideElevationChart extends ConsumerWidget {
           units.elevationToDisplay(system, sample.elevationM!),
         ),
     ];
-    var minY = spots.first.y;
-    var maxY = spots.first.y;
-    for (final spot in spots) {
-      if (spot.y < minY) minY = spot.y;
-      if (spot.y > maxY) maxY = spot.y;
-    }
-    // Five to a hundred metres of air around the line, as the planner's
-    // profile has.
-    final padding = ((maxY - minY) * 0.1).clamp(
-      units.elevationToDisplay(system, 5),
-      units.elevationToDisplay(system, 100),
-    );
-
     return MetricChart(
       title: l10n.rideElevation,
       spots: spots,
       height: rideChartHeight,
-      minY: minY - padding,
-      maxY: maxY + padding,
+      yAxis: (lowest, highest) => elevationAxis(system, lowest, highest),
       highlight: chartHighlight(system, highlight),
+      zoomable: true,
+      window: chartWindow(system, window),
+      onWindow: rideWindowCallback(system, onWindow),
       marks: <ChartMark>[
         for (final mark in marks)
           (x: units.distanceToDisplay(system, mark.alongM), label: mark.label),
@@ -92,13 +91,27 @@ class RideElevationChart extends ConsumerWidget {
 /// How fast a recorded ride was ridden, over its distance.
 class RideSpeedChart extends ConsumerWidget {
   /// Creates the chart.
-  const RideSpeedChart({required this.samples, super.key, this.highlight});
+  const RideSpeedChart({
+    required this.samples,
+    super.key,
+    this.highlight,
+    this.window,
+    this.onWindow,
+  });
 
   /// The analysed samples of the ride.
   final List<ChartSample> samples;
 
   /// The stretch of the ride shaded behind the line, or `null`.
   final RideRange? highlight;
+
+  /// The stretch of the ride the chart is zoomed to, or `null` for all of
+  /// it; see [MetricChart.window].
+  final RideWindow? window;
+
+  /// Called with the stretch a pinch, a drag or a double tap asks for; see
+  /// [MetricChart.onWindow].
+  final ValueChanged<RideWindow?>? onWindow;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -113,20 +126,17 @@ class RideSpeedChart extends ConsumerWidget {
           units.formatSpeed(system, sample.speedMps).value,
         ),
     ];
-    var fastest = spots.first.y;
-    for (final spot in spots) {
-      if (spot.y > fastest) fastest = spot.y;
-    }
-
     return MetricChart(
       title: l10n.rideSpeed,
       spots: spots,
       height: rideChartHeight,
-      // A speed axis starts at a standstill: a chart that begins at 18 km/h
-      // turns an even ride into a mountain range.
-      minY: 0,
-      maxY: fastest * 1.1,
+      // A speed axis starts at a standstill, zoomed or not: a chart that
+      // begins at 18 km/h turns an even ride into a mountain range.
+      yAxis: (_, fastest) => (min: 0, max: fastest * 1.1),
       highlight: chartHighlight(system, highlight),
+      zoomable: true,
+      window: chartWindow(system, window),
+      onWindow: rideWindowCallback(system, onWindow),
       readoutAt: (index) => l10n.rideChartPoint(
         formatDistance(l10n, system, samples[index].distanceM),
         formatSpeed(l10n, system, samples[index].speedMps),
@@ -141,13 +151,27 @@ class RideSpeedChart extends ConsumerWidget {
 /// or it was paired halfway through and never reported twice.
 class RideHeartRateChart extends ConsumerWidget {
   /// Creates the chart.
-  const RideHeartRateChart({required this.samples, super.key, this.highlight});
+  const RideHeartRateChart({
+    required this.samples,
+    super.key,
+    this.highlight,
+    this.window,
+    this.onWindow,
+  });
 
   /// The analysed samples of the ride.
   final List<ChartSample> samples;
 
   /// The stretch of the ride shaded behind the line, or `null`.
   final RideRange? highlight;
+
+  /// The stretch of the ride the chart is zoomed to, or `null` for all of
+  /// it; see [MetricChart.window].
+  final RideWindow? window;
+
+  /// Called with the stretch a pinch, a drag or a double tap asks for; see
+  /// [MetricChart.onWindow].
+  final ValueChanged<RideWindow?>? onWindow;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -179,13 +203,6 @@ class RideHeartRateChart extends ConsumerWidget {
         ),
       );
     }
-    var lowest = spots.first.y;
-    var highest = spots.first.y;
-    for (final spot in spots) {
-      if (spot.isNull()) continue;
-      if (spot.y < lowest) lowest = spot.y;
-      if (spot.y > highest) highest = spot.y;
-    }
     // How much of the ride had a reading at all; said in the caption when
     // it was not most of it, so an average over a few minutes is not read
     // as the ride's.
@@ -193,17 +210,21 @@ class RideHeartRateChart extends ConsumerWidget {
     final title = coverage < heartRateCoverageWorthSaying
         ? l10n.rideHeartRateCoverage((coverage * 100).round())
         : l10n.rideHeartRate;
-    // Five to twenty beats of air around the line: a resting heart rate is
-    // nowhere near zero, so an axis that starts there would draw a flat line.
-    final padding = ((highest - lowest) * 0.1).clamp(5.0, 20.0);
-
     return MetricChart(
       title: title,
       spots: spots,
       height: rideChartHeight,
-      minY: lowest - padding,
-      maxY: highest + padding,
+      // Five to twenty beats of air around the line: a resting heart rate
+      // is nowhere near zero, so an axis that starts there would draw a
+      // flat line.
+      yAxis: (lowest, highest) {
+        final padding = ((highest - lowest) * 0.1).clamp(5.0, 20.0);
+        return (min: lowest - padding, max: highest + padding);
+      },
       highlight: chartHighlight(system, highlight),
+      zoomable: true,
+      window: chartWindow(system, window),
+      onWindow: rideWindowCallback(system, onWindow),
       readoutAt: (index) => l10n.rideChartPoint(
         formatDistance(l10n, system, withHeartRate[index].distanceM),
         formatHeartRate(l10n, withHeartRate[index].heartRateBpm),
@@ -222,6 +243,37 @@ class RideHeartRateChart extends ConsumerWidget {
     : (
         start: units.distanceToDisplay(system, range.startM),
         end: units.distanceToDisplay(system, range.endM),
+      );
+
+/// A stretch of a ride the charts are zoomed to, in metres from the start;
+/// one for all of them, so a pinch on one zooms the others to the same road.
+typedef RideWindow = ({double start, double end});
+
+/// [window] on the charts' x axis, converted as the samples are; `null` for
+/// the whole ride.
+ChartWindow? chartWindow(UnitSystem system, RideWindow? window) =>
+    window == null
+    ? null
+    : (
+        start: units.distanceToDisplay(system, window.start),
+        end: units.distanceToDisplay(system, window.end),
+      );
+
+/// [onWindow] as a [MetricChart] calls it: with the window in the axis'
+/// unit, handed on in metres. `null` when there is nobody to hand it to, so
+/// the chart keeps its own window.
+ValueChanged<ChartWindow?>? rideWindowCallback(
+  UnitSystem system,
+  ValueChanged<RideWindow?>? onWindow,
+) => onWindow == null
+    ? null
+    : (window) => onWindow(
+        window == null
+            ? null
+            : (
+                start: units.displayToMeters(system, window.start),
+                end: units.displayToMeters(system, window.end),
+              ),
       );
 
 /// A stretch of road this long without a reading breaks the heart-rate line.

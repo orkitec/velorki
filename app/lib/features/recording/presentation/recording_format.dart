@@ -55,6 +55,29 @@ String formatSplitLength(
       : l10n.unitMi(number);
 }
 
+/// Where a stretch of a ride runs, from [startM] to [endM], with the unit
+/// once: `2–3 km`, or `0.5–2.5 km` for a climb. The numbers are rounded as
+/// [formatSplitLength] rounds them, so a kilometre split reads `2–3 km`
+/// rather than `2.0–3.0 km`.
+String formatDistanceSpan(
+  AppLocalizations l10n,
+  units.UnitSystem system,
+  double startM,
+  double endM,
+) {
+  String number(double meters) {
+    final value = units.distanceToDisplay(system, meters);
+    final rounded = (value * 10).round() / 10;
+    final decimals = rounded == rounded.roundToDouble() ? 0 : 1;
+    return formatNumber(l10n, rounded, decimals: decimals);
+  }
+
+  final span = '${number(startM)}–${number(endM)}';
+  return system == units.UnitSystem.metric
+      ? l10n.unitKm(span)
+      : l10n.unitMi(span);
+}
+
 /// A split's moving time, rounded to the second it is shown in.
 ///
 /// The figure is cut at the split boundary, so it lands a few microseconds

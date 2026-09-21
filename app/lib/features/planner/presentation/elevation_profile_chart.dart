@@ -52,25 +52,11 @@ class ElevationProfileChart extends ConsumerWidget {
           ),
         )
         .toList(growable: false);
-    var minY = spots.first.y;
-    var maxY = spots.first.y;
-    for (final s in spots) {
-      if (s.y < minY) minY = s.y;
-      if (s.y > maxY) maxY = s.y;
-    }
-    // The breathing room around the line is five to a hundred metres, said in
-    // whatever the axis counts in.
-    final padding = ((maxY - minY) * 0.1).clamp(
-      units.elevationToDisplay(system, 5),
-      units.elevationToDisplay(system, 100),
-    );
-
     return MetricChart(
       title: l10n.elevationTitle,
       spots: spots,
       height: height,
-      minY: minY - padding,
-      maxY: maxY + padding,
+      yAxis: (lowest, highest) => elevationAxis(system, lowest, highest),
       readoutAt: (index) => l10n.elevationPoint(
         formatDistance(l10n, system, samples[index].distanceM),
         formatHeight(l10n, system, samples[index].elevationM),

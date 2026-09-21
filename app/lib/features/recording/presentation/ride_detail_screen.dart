@@ -78,6 +78,10 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
   // The split or climb the rider tapped, shaded on the charts and drawn
   // over the track; one for both tables.
   RideRange? _range;
+  // The stretch the charts are zoomed to, in metres; one for all of them,
+  // so a pinch on the speed chart zooms the elevation chart to the same
+  // road. `null` for the whole ride.
+  RideWindow? _window;
   // The range the map has on it, so a rebuild does not redraw the same line.
   RideRange? _shownRange;
   // The route the map has on it, by id; empty for none, which is also what
@@ -168,6 +172,11 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
   void _select(RideRange? range) {
     if (range == _range) return;
     setState(() => _range = range);
+  }
+
+  void _setWindow(RideWindow? window) {
+    if (window == _window) return;
+    setState(() => _window = window);
   }
 
   /// Draws [_range] over the track as a route line in the accent, or takes
@@ -382,8 +391,11 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
         )
         .value;
     // A new analysis (another unit, another split length) has other rows:
-    // the pick does not carry over.
-    if (!identical(analysis, _analysis)) _range = null;
+    // neither the pick nor the zoom carries over.
+    if (!identical(analysis, _analysis)) {
+      _range = null;
+      _window = null;
+    }
     _analysis = analysis;
     final effort = analysis?.effort;
     final calories = profile.calories && effort != null
@@ -483,6 +495,18 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                                 .read(showRideRouteProvider.notifier)
                                 .set(!showRoute),
                           ),
+                        ),
+                      ),
+                    // What the thick line over the track is, for a rider
+                    // who tapped a row and scrolled back up; under the
+                    // route chip when there is one.
+                    if (_range != null)
+                      Positioned(
+                        top: route != null ? 64 : 12,
+                        left: 12,
+                        child: RideHighlightChip(
+                          range: _range!,
+                          onClear: () => _select(null),
                         ),
                       ),
                   ],
@@ -630,6 +654,8 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                             for (final mark in marks)
                               (alongM: mark.alongM, label: mark.poi.name),
                           ],
+                          window: _window,
+                          onWindow: _setWindow,
                         ),
                       ],
                       if (analysis.hasSpeed) ...[
@@ -637,6 +663,8 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                         RideSpeedChart(
                           samples: analysis.samples,
                           highlight: _range,
+                          window: _window,
+                          onWindow: _setWindow,
                         ),
                       ],
                       if (analysis.hasHeartRate) ...[
@@ -644,6 +672,8 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                         RideHeartRateChart(
                           samples: analysis.samples,
                           highlight: _range,
+                          window: _window,
+                          onWindow: _setWindow,
                         ),
                       ],
                       if (maxHeartRateBpm != null &&
@@ -781,6 +811,82 @@ class RideRouteToggle extends StatelessWidget {
                     style: theme.textTheme.labelLarge?.copyWith(
                       color: foreground,
                     ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The chip over a ride's map that says what the thick line over the track
+/// is: the split or the climb the rider picked, "Split 3 · 2–3 km", with a
+/// dot in the line's colour before it and a cross after it. A tap anywhere
+/// on it clears the pick, on the charts, in the tables and on the map.
+class RideHighlightChip extends ConsumerWidget {
+  /// Creates the chip for [range].
+  const RideHighlightChip({
+    required this.range,
+    required this.onClear,
+    super.key,
+  });
+
+  /// The stretch drawn on the map.
+  final RideRange range;
+
+  /// Called on a tap.
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final system = ref.watch(unitSystemProvider);
+    final name = switch (range.source) {
+      RideRangeSource.split => l10n.rideHighlightSplit(range.index + 1),
+      RideRangeSource.climb => l10n.rideHighlightClimb(range.index + 1),
+    };
+    final label = l10n.rideHighlightChip(
+      name,
+      formatDistanceSpan(l10n, system, range.startM, range.endM),
+    );
+    return GlassPanel(
+      radius: 22,
+      child: InkWell(
+        onTap: onClear,
+        child: Semantics(
+          button: true,
+          label: label,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 10, 0),
+            child: SizedBox(
+              height: 44,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // The colour the line has on the map.
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: theme.velorki.routeMain,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const SizedBox.square(dimension: 10),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    label,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.close,
+                    size: 18,
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ],
               ),

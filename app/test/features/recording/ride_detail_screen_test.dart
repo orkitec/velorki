@@ -15,11 +15,13 @@ import 'package:velorki/core/geo/ride_analysis.dart';
 import 'package:velorki/features/recording/presentation/ride_charts.dart';
 import 'package:velorki/features/recording/presentation/ride_climbs.dart';
 import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
+import 'package:velorki/features/recording/presentation/recording_format.dart';
 import 'package:velorki/features/recording/presentation/ride_heart_rate_zones.dart';
 import 'package:velorki/features/recording/presentation/ride_power_zones.dart';
 import 'package:velorki/features/recording/presentation/ride_splits.dart';
 import 'package:velorki/features/planner/presentation/surface_stats_bar.dart';
 import 'package:velorki/features/shared/presentation/metric_chart.dart';
+import 'package:fl_chart/fl_chart.dart' show LineChart;
 import 'package:velorki_brouter/velorki_brouter.dart' show SurfaceStats;
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -195,6 +197,46 @@ RideRange? _chartHighlight(WidgetTester tester) {
       .highlight;
   expect(speed, elevation, reason: 'one highlight on every chart');
   return elevation;
+}
+
+/// The x axis the chart inside [chart] draws.
+({double min, double max}) _axisOf(WidgetTester tester, Finder chart) {
+  final data = tester
+      .widget<LineChart>(
+        find.descendant(of: chart, matching: find.byType(LineChart)),
+      )
+      .data;
+  return (min: data.minX, max: data.maxX);
+}
+
+/// Whether [axis] runs the whole three kilometres, which the track ends a
+/// hair short of.
+Matcher _wholeRide() => predicate<({double min, double max})>(
+  (axis) => axis.min == 0 && (axis.max - 3).abs() < 1e-6,
+  'the whole ride, 0 to 3 km',
+);
+
+/// Zooms in on the chart inside [chart] with two fingers moving apart
+/// from its middle.
+Future<void> _pinchOut(WidgetTester tester, Finder chart) async {
+  await tester.ensureVisible(chart);
+  await tester.pumpAndSettle();
+  final centre = tester
+      .getRect(find.descendant(of: chart, matching: find.byType(LineChart)))
+      .center;
+  final a = await tester.createGesture();
+  final b = await tester.createGesture();
+  await a.down(centre - const Offset(50, 0));
+  await b.down(centre + const Offset(50, 0));
+  await tester.pump();
+  for (var i = 0; i < 10; i++) {
+    await a.moveBy(const Offset(-10, 0));
+    await b.moveBy(const Offset(10, 0));
+    await tester.pump();
+  }
+  await a.up();
+  await b.up();
+  await tester.pumpAndSettle();
 }
 
 /// Opens the ride's overflow menu and picks "Continue this ride".
@@ -707,6 +749,103 @@ void main() {
     final line = harness.map.lines[rideHighlightLineId];
     expect(line, isNotNull);
     expect(line!.first.lat, closeTo(48 + climb.startM / 111195, 1e-4));
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('a tapped split is named in a chip over the map, which clears '
+      'it', (tester) async {
+    final harness = RecordingHarness();
+    await _open(tester, harness, _threeKilometres());
+    expect(find.byType(RideHighlightChip), findsNothing);
+
+    await _tapRow(tester, find.text(testSplitLength(1000)).at(1));
+
+    // The second kilometre: "Split 2 · 1–2 km".
+    final label = l10n.rideHighlightChip(
+      l10n.rideHighlightSplit(2),
+      formatDistanceSpan(l10n, UnitSystem.metric, 1000, 2000),
+    );
+    expect(find.byType(RideHighlightChip), findsOneWidget);
+    expect(find.text(label), findsOneWidget);
+    expect(label, contains('1–2'));
+    expect(harness.map.lines[rideHighlightLineId], isNotNull);
+
+    await tester.ensureVisible(find.byType(RideHighlightChip));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(RideHighlightChip));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RideHighlightChip), findsNothing);
+    expect(_chartHighlight(tester), isNull);
+    expect(
+      tester.widget<RideSplitsTable>(find.byType(RideSplitsTable)).selected,
+      isNull,
+    );
+    expect(harness.map.lines, isNot(contains(rideHighlightLineId)));
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('a tapped climb is named "Climb 1" with its stretch', (
+    tester,
+  ) async {
+    final harness = RecordingHarness();
+    final points = _withClimb();
+    await _open(tester, harness, points);
+    final climb = analyseRide(points).climbs.single;
+
+    await _tapRow(
+      tester,
+      find.text(l10n.rideClimbAt(testDistance(climb.startM))),
+    );
+
+    expect(
+      find.text(
+        l10n.rideHighlightChip(
+          l10n.rideHighlightClimb(1),
+          formatDistanceSpan(
+            l10n,
+            UnitSystem.metric,
+            climb.startM,
+            climb.startM + climb.lengthM,
+          ),
+        ),
+      ),
+      findsOneWidget,
+    );
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('a pinch on the speed chart zooms the elevation chart to the '
+      'same stretch, and one "Whole ride" resets both', (tester) async {
+    final harness = RecordingHarness();
+    await _open(tester, harness, _threeKilometres());
+    final elevation = find.byType(RideElevationChart);
+    final speed = find.byType(RideSpeedChart);
+    expect(_axisOf(tester, elevation), _wholeRide());
+    expect(_axisOf(tester, speed), _wholeRide());
+
+    await _pinchOut(tester, speed);
+
+    // The page holds one window in metres and both charts show it.
+    final window = tester.widget<RideSpeedChart>(speed).window;
+    expect(window, isNotNull);
+    expect(window!.end - window.start, inInclusiveRange(900, 1500));
+    expect(tester.widget<RideElevationChart>(elevation).window, window);
+    final zoomed = _axisOf(tester, speed);
+    expect(zoomed.max - zoomed.min, lessThan(2));
+    expect(_axisOf(tester, elevation), zoomed);
+    expect(find.text(l10n.chartResetZoom), findsNWidgets(2));
+
+    await tester.tap(find.text(l10n.chartResetZoom).first);
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<RideSpeedChart>(speed).window, isNull);
+    expect(_axisOf(tester, elevation), _wholeRide());
+    expect(_axisOf(tester, speed), _wholeRide());
+    expect(find.text(l10n.chartResetZoom), findsNothing);
 
     await unmountApp(tester);
   });

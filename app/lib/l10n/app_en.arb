@@ -4392,5 +4392,43 @@
         "example": "5.2"
       }
     }
+  },
+  "chartResetZoom": "Whole ride",
+  "@chartResetZoom": {
+    "description": "Small button at the top right of a zoomed ride chart that zooms back out to the whole ride"
+  },
+  "rideHighlightSplit": "Split {index}",
+  "@rideHighlightSplit": {
+    "description": "Name of the split a rider picked, in the chip over the ride map that says what the thick line is; the index counts from 1",
+    "placeholders": {
+      "index": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "rideHighlightClimb": "Climb {index}",
+  "@rideHighlightClimb": {
+    "description": "Name of the climb a rider picked, in the chip over the ride map that says what the thick line is; the index counts from 1",
+    "placeholders": {
+      "index": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "rideHighlightChip": "{name} · {range}",
+  "@rideHighlightChip": {
+    "description": "The chip over the ride map naming the highlighted stretch: the split or climb, and where along the ride it runs, e.g. 'Split 3 · 2–3 km'",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Split 3"
+      },
+      "range": {
+        "type": "String",
+        "example": "2–3 km"
+      }
+    }
   }
 }

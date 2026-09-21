@@ -59,7 +59,7 @@ Opening a ride shows, from the top:
 - the **Heart rate** chart, when the ride carried one; where the reading was lost for a stretch the line breaks, and when less than most of the ride had a reading the caption says how much, "Heart rate · 24 % of the ride", so an average over those minutes is not read as the ride's,
 - the **Splits** table.
 
-Touch either chart and drag along it for a read-out of the form `12.3 km · 340 m`.
+Touch a chart and drag along it for a read-out of the form `12.3 km · 340 m`. Pinch a chart to zoom in on a stretch, drag to pan while zoomed, and double-tap it or tap **Whole ride** to see the whole ride again; the three charts zoom together.
 
 ### Route and points of interest
 
@@ -83,11 +83,11 @@ All four are off until you switch them on under Settings → Rider, and all four
 
 ### Splits
 
-One row per split, with four columns: **Split**, **Moving**, **Avg** and **Ascent**. The caption says how long a split is, "Splits, every 5 km". By default the length follows the ride: one kilometre up to 30 km, five up to 150 km, ten beyond, in miles on imperial units, so the table stays short on a long ride; **Split length** under Settings → Recording fixes it at 1, 5 or 10 instead. The last row is the remainder, so it may be shorter than the rest. Behind each row a bar shows that split's average speed against your fastest split, which makes the hard sections obvious at a glance. Tap a row to see that split shaded on the charts and drawn over the track on the map; tap it again to clear it.
+One row per split, with four columns: **Split**, **Moving**, **Avg** and **Ascent**. The caption says how long a split is, "Splits, every 5 km". By default the length follows the ride: one kilometre up to 30 km, five up to 150 km, ten beyond, in miles on imperial units, so the table stays short on a long ride; **Split length** under Settings → Recording fixes it at 1, 5 or 10 instead. The last row is the remainder, so it may be shorter than the rest. Behind each row a bar shows that split's average speed against your fastest split, which makes the hard sections obvious at a glance. Tap a row to see that split shaded on the charts and drawn over the track on the map, where a chip names it, "Split 3 · 2–3 km"; tap the row again or the chip to clear it.
 
 ### Climbs
 
-Under the splits, on a ride that had any, a **Climbs** table: one row per climb with **Start** (where along the ride it began, "at 12.3 km"), **Length**, **Ascent** and **Grade**, and a quieter line under it with the moving time, the VAM and, when the ride carried them, the average heart rate and power over the climb. VAM is metres of height gained per hour of moving time, the customary measure of how fast a climb was ridden: 1,000 m/h is a hundred metres every six minutes. Behind each row a bar shows that climb's ascent against the biggest one. Tap a row to see that climb shaded on the charts and drawn over the track on the map; tap it again to clear it. One stretch is highlighted at a time, whether it is a split or a climb.
+Under the splits, on a ride that had any, a **Climbs** table: one row per climb with **Start** (where along the ride it began, "at 12.3 km"), **Length**, **Ascent** and **Grade**, and a quieter line under it with the moving time, the VAM and, when the ride carried them, the average heart rate and power over the climb. VAM is metres of height gained per hour of moving time, the customary measure of how fast a climb was ridden: 1,000 m/h is a hundred metres every six minutes. Behind each row a bar shows that climb's ascent against the biggest one. Tap a row to see that climb shaded on the charts and drawn over the track on the map, where a chip names it, "Climb 1 · 0.5–2.5 km"; tap the row again or the chip to clear it. One stretch is highlighted at a time, whether it is a split or a climb.
 
 A climb is found the way the record sheet's profile finds the one you are on: it starts where the next 100 m of road rise by at least 3 %, and it ends at its high point once the road has dropped 10 m below it, so a dip in a long climb does not cut it in two. Rises shorter than 300 m, gaining less than 20 m or averaging under 3 % from foot to top are not listed. Heights are smoothed over 50 m first, as for the power estimate, and pauses count towards neither the time nor the height.
 
