@@ -61,6 +61,10 @@ Eine geöffnete Fahrt zeigt von oben nach unten:
 
 Berühre eines der beiden Diagramme und zieh darüber für eine Anzeige in der Form `12,3 km · 340 m`.
 
+### Route und Punkte von Interesse
+
+Eine Fahrt, die einer Route gefolgt ist, zeigt diese Route unter dem Track, in der leiseren Farbe einer Planer-Alternative, und die Punkte von Interesse der Route als Marker auf der Karte und als Markierungen im Diagramm **Höhenprofil** an der Stelle, an der du sie passiert hast — nur für Punkte, denen die Fahrt bis auf 60 m nahe kam. Ein Tipp auf einen Marker pinnt ihn mit seinem Namen an; die Anzeige nennt eine Markierung, auf der der Finger liegt. Der Umschalter **Route** oben links auf der Karte blendet all das aus, und die Wahl wird gemerkt.
+
 ### Zahlen von einem Sensor
 
 Eine Fahrt, die mit Pulsgurt, Apple Watch oder Leistungsmesser aufgezeichnet wurde, trägt mehr als die sieben: **Ø Puls**, **Max Puls**, **Ø Kadenz**, **Max Kadenz**, **Ø Leistung**, **Max Leistung** und **Norm. Leistung** kommen zu den Zahlen dazu, jede nur, wenn die Fahrt sie hat, und unter dem Tempo-Diagramm wird das Diagramm **Herzfrequenz** gezeichnet. **Norm. Leistung** sind die Werte des Leistungsmessers so gewichtet, wie die Beine sie spüren: die Leistung auf einem Sekundenraster, davon der gleitende 30-s-Mittelwert, jeder Mittelwert hoch vier, daraus der Durchschnitt und davon die vierte Wurzel. Eine gleichmäßige Fahrt kommt bei ihrem Durchschnitt heraus; eine Fahrt aus Antritten und Pausen darüber. Sie braucht mindestens eine halbe Minute Werte am Stück, und eine Lücke von mehr als fünf Sekunden im Messgerät beginnt ein neues Stück. Mit eingeschalteten **Leistungszonen** und einer Schwelle steht **Intensität** daneben: normalisierte Leistung geteilt durch deine Schwellenleistung, 0,80 ist also eine Fahrt bei vier Fünfteln dessen, was du eine Stunde halten kannst. Eine ohne Sensor aufgezeichnete Fahrt zeigt nichts davon, und eine aus einer GPX- oder FIT-Datei importierte zeigt, was diese Datei mitbrachte. Siehe [Sensoren und deine Uhr](./sensors-and-watch).

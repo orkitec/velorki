@@ -22,13 +22,22 @@ const double rideChartHeight = 160;
 /// a phone whose GPS never reported one — rather than an empty frame.
 class RideElevationChart extends ConsumerWidget {
   /// Creates the chart.
-  const RideElevationChart({required this.samples, super.key, this.highlight});
+  const RideElevationChart({
+    required this.samples,
+    super.key,
+    this.highlight,
+    this.marks = const <({double alongM, String label})>[],
+  });
 
   /// The analysed samples of the ride.
   final List<ChartSample> samples;
 
   /// The stretch of the ride shaded behind the line, or `null`.
   final RideRange? highlight;
+
+  /// Named places along the ride, in metres from the start: the points of
+  /// interest of the route the ride followed, where it passed them.
+  final List<({double alongM, String label})> marks;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -68,6 +77,10 @@ class RideElevationChart extends ConsumerWidget {
       minY: minY - padding,
       maxY: maxY + padding,
       highlight: chartHighlight(system, highlight),
+      marks: <ChartMark>[
+        for (final mark in marks)
+          (x: units.distanceToDisplay(system, mark.alongM), label: mark.label),
+      ],
       readoutAt: (index) => l10n.rideChartPoint(
         formatDistance(l10n, system, withElevation[index].distanceM),
         formatHeight(l10n, system, withElevation[index].elevationM!),

@@ -23,6 +23,7 @@ class MetricChart extends StatefulWidget {
     this.maxY,
     this.leftReservedSize = 40,
     this.highlight,
+    this.marks = const <ChartMark>[],
   });
 
   /// The caption above the chart; upper-cased by [SectionCaption].
@@ -53,9 +54,21 @@ class MetricChart extends StatefulWidget {
   /// shades nothing.
   final ({double start, double end})? highlight;
 
+  /// Named places along the x axis, each drawn as a thin dashed line with
+  /// its name at the top: the points of interest a ride passed. Marks
+  /// outside the line are not drawn; none of them widens the axis.
+  final List<ChartMark> marks;
+
   @override
   State<MetricChart> createState() => _MetricChartState();
 }
+
+/// One mark on a [MetricChart]: where on the x axis, and what to call it.
+typedef ChartMark = ({double x, String label});
+
+/// How close to a mark, as a share of the axis width, the touched sample
+/// has to be for the mark's name to join the read-out.
+const double chartMarkReadoutShare = 0.01;
 
 class _MetricChartState extends State<MetricChart> {
   int? _touched;
@@ -87,6 +100,15 @@ class _MetricChartState extends State<MetricChart> {
     final band = widget.highlight;
     final bandStart = band?.start.clamp(spots.first.x, spots.last.x);
     final bandEnd = band?.end.clamp(spots.first.x, spots.last.x);
+    final minX = spots.first.x;
+    final maxX = spots.last.x;
+    final marks = <ChartMark>[
+      for (final mark in widget.marks)
+        if (mark.x >= minX && mark.x <= maxX) mark,
+    ];
+    final markLabelStyle = theme.textTheme.labelSmall?.copyWith(
+      color: colors.accent,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,7 +120,7 @@ class _MetricChartState extends State<MetricChart> {
             if (touched != null && touched < spots.length)
               Flexible(
                 child: Text(
-                  widget.readoutAt(touched),
+                  _readout(touched, marks, maxX - minX),
                   style: theme.textTheme.statMedium.copyWith(
                     color: colors.accent,
                   ),
@@ -116,10 +138,32 @@ class _MetricChartState extends State<MetricChart> {
             LineChartData(
               minY: widget.minY ?? lowest - padding,
               maxY: widget.maxY ?? highest + padding,
-              minX: spots.first.x,
-              maxX: spots.last.x,
+              minX: minX,
+              maxX: maxX,
               gridData: const FlGridData(show: false),
               borderData: FlBorderData(show: false),
+              extraLinesData: ExtraLinesData(
+                verticalLines: [
+                  for (final mark in marks)
+                    VerticalLine(
+                      x: mark.x,
+                      color: colors.accent.withValues(alpha: 0.6),
+                      strokeWidth: 1,
+                      dashArray: const <int>[4, 3],
+                      label: VerticalLineLabel(
+                        show: true,
+                        // The name hangs off the line towards the middle of
+                        // the chart, so it never runs off the edge.
+                        alignment: mark.x - minX > (maxX - minX) * 0.7
+                            ? Alignment.topLeft
+                            : Alignment.topRight,
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        style: markLabelStyle,
+                        labelResolver: (_) => mark.label,
+                      ),
+                    ),
+                ],
+              ),
               rangeAnnotations: RangeAnnotations(
                 verticalRangeAnnotations: [
                   if (bandStart != null &&
@@ -172,6 +216,19 @@ class _MetricChartState extends State<MetricChart> {
         ),
       ],
     );
+  }
+
+  /// The read-out for the sample [index], with the name of a mark the finger
+  /// is on — within [chartMarkReadoutShare] of the axis [width] — after it.
+  String _readout(int index, List<ChartMark> marks, double width) {
+    final text = widget.readoutAt(index);
+    final x = widget.spots[index].x;
+    for (final mark in marks) {
+      if ((mark.x - x).abs() <= width * chartMarkReadoutShare) {
+        return '$text · ${mark.label}';
+      }
+    }
+    return text;
   }
 
   /// One axis number, in the quiet label style the rest of the app uses.

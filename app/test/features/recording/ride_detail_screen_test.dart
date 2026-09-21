@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:velorki/core/db/database.dart' show RouteSource;
 import 'package:velorki/core/files/track_exporter.dart';
+import 'package:velorki/features/map/domain/map_controller.dart';
+import 'package:velorki/features/planner/data/route_repository.dart';
+import 'package:velorki/features/planner/domain/route_poi.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
 import 'package:velorki/features/recording/domain/ride_range.dart';
 import 'package:velorki/features/recording/domain/ride_upload.dart';
@@ -14,6 +19,7 @@ import 'package:velorki/features/recording/presentation/ride_heart_rate_zones.da
 import 'package:velorki/features/recording/presentation/ride_power_zones.dart';
 import 'package:velorki/features/recording/presentation/ride_splits.dart';
 import 'package:velorki/features/planner/presentation/surface_stats_bar.dart';
+import 'package:velorki/features/shared/presentation/metric_chart.dart';
 import 'package:velorki_brouter/velorki_brouter.dart' show SurfaceStats;
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -79,6 +85,7 @@ Future<void> _open(
   List<TrackPoint> points, {
   List<Override> extraOverrides = const <Override>[],
   Map<String, Object> preferences = const <String, Object>{},
+  String? routeId,
 }) async {
   await RideRepository(harness.planner.db.ridesDao).finalizeRide(
     rideId: 'ride-1',
@@ -86,6 +93,7 @@ Future<void> _open(
     points: points,
     startedAt: points.first.time!,
     endedAt: points.last.time!,
+    routeId: routeId,
   );
   await pumpRecordingScreen(
     tester,
@@ -96,6 +104,54 @@ Future<void> _open(
   );
   await tester.pumpAndSettle();
 }
+
+/// The three kilometres of [_threeKilometres] saved as the route the ride
+/// followed, with a fountain 25 m beside the first kilometre mark and a café
+/// 500 m off the second, which the ride never went to.
+Future<void> _saveRoute(RecordingHarness harness) async {
+  final points = _threeKilometres();
+  await RouteRepository(harness.planner.db.routesDao).saveImportedRoute(
+    id: 'route-1',
+    name: 'Planned loop',
+    points: points,
+    source: RouteSource.importedGpx,
+    pois: <RoutePoi>[
+      RoutePoi(
+        pos: destinationPoint(points[360].pos, 90, 500),
+        name: 'Café',
+        kind: PoiKind.food,
+      ),
+      RoutePoi(
+        pos: destinationPoint(points[180].pos, 90, 25),
+        name: 'Fountain',
+        kind: PoiKind.water,
+      ),
+    ],
+  );
+}
+
+/// Opens a ride that followed the route [_saveRoute] stores.
+Future<void> _openWithRoute(
+  WidgetTester tester,
+  RecordingHarness harness, {
+  Map<String, Object> preferences = const <String, Object>{},
+}) async {
+  await _saveRoute(harness);
+  await _open(
+    tester,
+    harness,
+    _threeKilometres(),
+    routeId: 'route-1',
+    preferences: preferences,
+  );
+}
+
+/// The marks on the elevation chart, by name.
+List<String> _chartMarks(WidgetTester tester) => tester
+    .widget<RideElevationChart>(find.byType(RideElevationChart))
+    .marks
+    .map((m) => m.label)
+    .toList();
 
 Future<void> _seed(RecordingHarness harness) =>
     RideRepository(harness.planner.db.ridesDao).finalizeRide(
@@ -986,6 +1042,130 @@ void main() {
     expect(find.text(l10n.rideSurfaceUnavailable), findsOneWidget);
     expect(find.byType(SurfaceStatsBar), findsNothing);
     expect(harness.planner.backend.callCount, 0);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('a ride that followed a route shows the route under the '
+      'track, its points on the map and the one it passed on the chart', (
+    tester,
+  ) async {
+    final harness = RecordingHarness();
+    await _openWithRoute(tester, harness);
+
+    // The route went on in the subdued style, and the track is still there.
+    expect(harness.map.lines[rideRouteLineId], hasLength(541));
+    expect(harness.map.styles[rideRouteLineId], RouteLineStyle.alternative);
+    expect(harness.map.trackSegments, isNotEmpty);
+    // Both points are on the map, the café included: the ride skipped it,
+    // and the map may as well say so.
+    expect(harness.map.pois.map((p) => p.name), <String>['Café', 'Fountain']);
+    expect(harness.map.pois.last.kind, MapPoiKind.water);
+    // Only the fountain is on the chart, at the kilometre mark.
+    expect(_chartMarks(tester), <String>['Fountain']);
+    final chart = tester.widget<MetricChart>(
+      find.descendant(
+        of: find.byType(RideElevationChart),
+        matching: find.byType(MetricChart),
+      ),
+    );
+    expect(chart.marks.single.x, closeTo(1, 0.01));
+    // The chip is there, and reads as on.
+    expect(find.text(l10n.rideShowRoute), findsOneWidget);
+    expect(
+      tester.widget<RideRouteToggle>(find.byType(RideRouteToggle)).selected,
+      isTrue,
+    );
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('a tap on a point pins it with its name and takes the map '
+      'there', (tester) async {
+    final harness = RecordingHarness();
+    await _openWithRoute(tester, harness);
+
+    harness.map.onPoiTapped!(1);
+    await tester.pumpAndSettle();
+
+    expect(harness.map.searchPin, harness.map.pois[1].position);
+    expect(harness.map.movedTo, harness.map.pois[1].position);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('switching the route off takes it off the map and the chart '
+      'and is remembered; on again forgets the choice', (tester) async {
+    final harness = RecordingHarness();
+    await _openWithRoute(tester, harness);
+    final prefs = await SharedPreferences.getInstance();
+
+    await tester.tap(find.text(l10n.rideShowRoute));
+    await tester.pumpAndSettle();
+
+    expect(harness.map.lines, isNot(contains(rideRouteLineId)));
+    expect(harness.map.pois, isEmpty);
+    expect(_chartMarks(tester), isEmpty);
+    expect(prefs.getBool('rides.showRoute'), isFalse);
+    expect(
+      tester.widget<RideRouteToggle>(find.byType(RideRouteToggle)).selected,
+      isFalse,
+    );
+    // The track and the highlight line are none of the chip's business.
+    expect(harness.map.trackSegments, isNotEmpty);
+
+    await tester.tap(find.text(l10n.rideShowRoute));
+    await tester.pumpAndSettle();
+
+    expect(harness.map.lines[rideRouteLineId], isNotNull);
+    expect(harness.map.pois, hasLength(2));
+    expect(_chartMarks(tester), <String>['Fountain']);
+    expect(prefs.containsKey('rides.showRoute'), isFalse);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('a remembered off keeps the route off the map from the start', (
+    tester,
+  ) async {
+    final harness = RecordingHarness();
+    await _openWithRoute(
+      tester,
+      harness,
+      preferences: <String, Object>{'rides.showRoute': false},
+    );
+
+    expect(find.text(l10n.rideShowRoute), findsOneWidget);
+    expect(harness.map.lines, isNot(contains(rideRouteLineId)));
+    expect(harness.map.pois, isEmpty);
+    expect(_chartMarks(tester), isEmpty);
+    expect(harness.map.trackSegments, isNotEmpty);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('a ride without a route has no chip and no route line', (
+    tester,
+  ) async {
+    final harness = RecordingHarness();
+    await _open(tester, harness, _threeKilometres());
+
+    expect(find.text(l10n.rideShowRoute), findsNothing);
+    expect(harness.map.lines, isNot(contains(rideRouteLineId)));
+    expect(harness.map.pois, isEmpty);
+    expect(_chartMarks(tester), isEmpty);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('a ride whose route was deleted shows no chip either', (
+    tester,
+  ) async {
+    final harness = RecordingHarness();
+    await _open(tester, harness, _threeKilometres(), routeId: 'gone');
+
+    expect(find.text(l10n.rideShowRoute), findsNothing);
+    expect(harness.map.lines, isNot(contains(rideRouteLineId)));
 
     await unmountApp(tester);
   });

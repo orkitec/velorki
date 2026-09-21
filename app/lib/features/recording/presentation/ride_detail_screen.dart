@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:velorki_api/velorki_api.dart' show ShareKind;
 
 import '../../../app/router.dart';
+import '../../../app/theme.dart';
 import '../../../core/files/track_exporter.dart';
 import '../../../core/geo/ride_analysis.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -13,7 +14,10 @@ import '../../integrations/common/domain/connected_account.dart';
 import '../../integrations/presentation/integration_labels.dart';
 import '../../integrations/presentation/ride_upload_menu.dart';
 import '../../map/domain/map_controller.dart';
+import '../../planner/domain/route_poi.dart';
+import '../../planner/domain/saved_route.dart';
 import '../../planner/presentation/planner_map_host.dart';
+import '../../planner/presentation/poi_markers.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../planner/presentation/surface_stats_bar.dart';
 import '../../settings/data/units.dart';
@@ -22,12 +26,15 @@ import '../../shared/presentation/placeholder_body.dart';
 import '../../sharing/presentation/share_link_button.dart';
 import '../application/recording_controller.dart';
 import '../application/ride_analysis_provider.dart';
+import '../application/ride_route_provider.dart';
 import '../application/ride_surface.dart';
 import '../data/recording_settings.dart';
 import '../data/recording_service.dart';
 import '../data/ride_repository.dart';
+import '../data/ride_view_settings.dart';
 import '../data/rider_profile_settings.dart';
 import '../domain/calories.dart';
+import '../domain/poi_marks.dart';
 import '../domain/power_defaults.dart';
 import '../domain/ride.dart';
 import '../domain/ride_range.dart';
@@ -44,6 +51,10 @@ String rideDetailLocation(String id) => '$recordingRoute/ride/$id';
 
 /// The id of the route line the picked split or climb is drawn as on the map.
 const String rideHighlightLineId = 'ride-highlight';
+
+/// The id of the route line the route the ride followed is drawn as, under
+/// the track.
+const String rideRouteLineId = 'ride-route';
 
 /// One recorded ride: the track on the map, the numbers, and the way out to a
 /// GPX or FIT file.
@@ -69,17 +80,89 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
   RideRange? _range;
   // The range the map has on it, so a rebuild does not redraw the same line.
   RideRange? _shownRange;
+  // The route the map has on it, by id; empty for none, which is also what
+  // a fresh map has.
+  String _shownRouteKey = '';
+  // The chart marks as last worked out, and what they were worked out
+  // from: a scroll rebuilds the page, and the marks walk the whole track.
+  List<PoiMark> _marks = const <PoiMark>[];
+  SavedRoute? _marksRoute;
+  RideAnalysis? _marksAnalysis;
 
   // Called from the map widget's build, so it must not call setState.
   void _onMapReady(MapController controller) {
     _map = controller;
     _shownKey = null;
     _shownRange = null;
+    _shownRouteKey = '';
     final ride = ref.read(rideProvider(widget.rideId)).value;
     if (ride != null) {
       unawaited(_showOnMap(ride, _analysis));
       unawaited(_showRangeOnMap(ride, _analysis));
     }
+    unawaited(
+      _showRouteOnMap(
+        ref.read(rideRouteProvider(widget.rideId)).value,
+        ref.read(showRideRouteProvider),
+      ),
+    );
+  }
+
+  /// Draws the route the ride followed under the track, with its points of
+  /// interest, or takes both off again when [show] is off or there is no
+  /// route (any more).
+  Future<void> _showRouteOnMap(SavedRoute? route, bool show) async {
+    final map = _map;
+    if (map == null) return;
+    final shown = show ? route : null;
+    final key = shown == null ? '' : '${shown.id}:${shown.updatedAt}';
+    if (key == _shownRouteKey) return;
+    _shownRouteKey = key;
+    if (shown == null) {
+      map.onPoiTapped = null;
+      await map.removeRouteLine(rideRouteLineId);
+      await map.setPois(const <MapPoi>[]);
+      await map.setSearchPin(null);
+      return;
+    }
+    final pois = shown.pois;
+    map.onPoiTapped = (index) {
+      if (index < pois.length) unawaited(_showPoi(map, pois[index]));
+    };
+    final positions = shown.geometry.map((p) => p.pos).toList(growable: false);
+    if (positions.length >= 2) {
+      // The subdued style, and under the track: the ride is the subject.
+      await map.setRouteLine(
+        rideRouteLineId,
+        positions,
+        style: RouteLineStyle.alternative,
+      );
+    }
+    await map.setPois(poiMarkers(pois));
+  }
+
+  /// Pins [poi] with its name and takes the map there, as the route page
+  /// does for a tapped marker.
+  Future<void> _showPoi(MapController map, RoutePoi poi) async {
+    await map.setSearchPin(poi.pos, label: poi.name);
+    await map.moveTo(poi.pos);
+  }
+
+  /// Where along the ride the route's points of interest were passed, for
+  /// the elevation chart; worked out once per route and analysis.
+  List<PoiMark> _marksFor(
+    Ride ride,
+    SavedRoute? route,
+    RideAnalysis? analysis,
+  ) {
+    if (route == null || analysis == null) return const <PoiMark>[];
+    if (!identical(route, _marksRoute) ||
+        !identical(analysis, _marksAnalysis)) {
+      _marksRoute = route;
+      _marksAnalysis = analysis;
+      _marks = poiMarks(route.pois, ride.points, analysis.distanceAt);
+    }
+    return _marks;
   }
 
   void _select(RideRange? range) {
@@ -263,6 +346,8 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
     final l10n = AppLocalizations.of(context);
     final units = ref.watch(unitSystemProvider);
     final ride = ref.watch(rideProvider(widget.rideId));
+    final route = ref.watch(rideRouteProvider(widget.rideId)).value;
+    final showRoute = ref.watch(showRideRouteProvider);
     final profile = ref.watch(riderProfileProvider);
     final year = DateTime.now().year;
     // The zones need the maximum; asked for only when they are switched on,
@@ -367,6 +452,10 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
           }
           unawaited(_showOnMap(saved, analysis));
           unawaited(_showRangeOnMap(saved, analysis));
+          unawaited(_showRouteOnMap(route, showRoute));
+          final marks = showRoute
+              ? _marksFor(saved, route, analysis)
+              : const <PoiMark>[];
           final theme = Theme.of(context);
           final stats = saved.stats;
           return ListView(
@@ -377,7 +466,27 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
               // Full-bleed hero: the track is the headline of this screen.
               SizedBox(
                 height: 260,
-                child: PlannerMapHost(onMapReady: _onMapReady, embedded: true),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    PlannerMapHost(onMapReady: _onMapReady, embedded: true),
+                    // Opposite the map's own control column; only a ride
+                    // that followed a route has anything to switch.
+                    if (route != null)
+                      Positioned(
+                        top: 12,
+                        left: 12,
+                        child: RideRouteToggle(
+                          selected: showRoute,
+                          onPressed: () => unawaited(
+                            ref
+                                .read(showRideRouteProvider.notifier)
+                                .set(!showRoute),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
@@ -517,6 +626,10 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                         RideElevationChart(
                           samples: analysis.samples,
                           highlight: _range,
+                          marks: <({double alongM, String label})>[
+                            for (final mark in marks)
+                              (alongM: mark.alongM, label: mark.poi.name),
+                          ],
                         ),
                       ],
                       if (analysis.hasSpeed) ...[
@@ -622,6 +735,62 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
 }
 
 enum _RideAction { continueRide, rename, delete, exportGpx, exportFit }
+
+/// The switch over a ride's map that shows or hides the route the ride
+/// followed: a glass chip like the map's own controls, drawn in the accent
+/// while the route is on.
+class RideRouteToggle extends StatelessWidget {
+  /// Creates the toggle.
+  const RideRouteToggle({
+    required this.selected,
+    required this.onPressed,
+    super.key,
+  });
+
+  /// Whether the route is shown.
+  final bool selected;
+
+  /// Called on a tap.
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final foreground = selected
+        ? theme.velorki.accent
+        : theme.colorScheme.onSurface;
+    return GlassPanel(
+      radius: 22,
+      child: InkWell(
+        onTap: onPressed,
+        child: Semantics(
+          button: true,
+          toggled: selected,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 14, 0),
+            child: SizedBox(
+              height: 44,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.route, size: 20, color: foreground),
+                  const SizedBox(width: 6),
+                  Text(
+                    l10n.rideShowRoute,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: foreground,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 /// What the ride was ridden on, matched from the offline routing tiles: the
 /// planner's surface bar once there is an answer, and until then the caption

@@ -1428,6 +1428,10 @@
   "@rideSpeedFast": {
     "description": "Right end of the legend under a track coloured by speed"
   },
+  "rideShowRoute": "Route",
+  "@rideShowRoute": {
+    "description": "Toggle over the map of a ride page that shows or hides the route the ride followed, with its points of interest"
+  },
   "rideChartPoint": "{distance} · {value}",
   "@rideChartPoint": {
     "description": "Read-out of the point the rider touched in a ride chart: how far along, and the height or speed there",

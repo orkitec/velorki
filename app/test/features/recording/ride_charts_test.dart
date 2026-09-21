@@ -1,3 +1,4 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -95,5 +96,82 @@ void main() {
     // The axis still runs the whole ride.
     expect(chart.spots.first.x, 0);
     expect(chart.spots.last.x, 13);
+  });
+
+  testWidgets('the elevation chart carries the marks in the axis unit and '
+      'drops one beyond the line', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final prefs = await SharedPreferences.getInstance();
+    final samples = <ChartSample>[
+      for (var m = 0; m <= 2000; m += 100)
+        ChartSample(distanceM: m.toDouble(), speedMps: 6, elevationM: 400),
+    ];
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          metricUnits,
+        ],
+        child: testApp(
+          home: Scaffold(
+            body: RideElevationChart(
+              samples: samples,
+              marks: const <({double alongM, String label})>[
+                (alongM: 500, label: 'Fountain'),
+                (alongM: 5000, label: 'Beyond the ride'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final chart = tester.widget<MetricChart>(find.byType(MetricChart));
+    expect(chart.marks, <ChartMark>[
+      (x: 0.5, label: 'Fountain'),
+      (x: 5, label: 'Beyond the ride'),
+    ]);
+    // Only the one on the line is drawn, and the axis still ends at the
+    // ride's end.
+    final data = tester.widget<LineChart>(find.byType(LineChart)).data;
+    expect(data.extraLinesData.verticalLines.map((l) => l.x), <double>[0.5]);
+    expect(data.maxX, 2);
+  });
+
+  testWidgets('the read-out names the mark under the finger', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1000, 600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      testApp(
+        home: Scaffold(
+          body: MetricChart(
+            title: 'Test',
+            spots: <FlSpot>[
+              for (var x = 0; x <= 10; x++) FlSpot(x.toDouble(), 100),
+            ],
+            readoutAt: (index) => 'sample $index',
+            marks: const <ChartMark>[(x: 5, label: 'Café')],
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // The plot runs from the reserved axis width to the right edge; the
+    // middle of it is the sixth sample, right on the mark.
+    final rect = tester.getRect(find.byType(LineChart));
+    final chart = tester.widget<MetricChart>(find.byType(MetricChart));
+    final left = rect.left + chart.leftReservedSize;
+    await tester.tapAt(Offset((left + rect.right) / 2, rect.center.dy));
+    await tester.pump();
+    expect(find.text('sample 5 · Café'), findsOneWidget);
+
+    // A sample well away from the mark reads plainly.
+    await tester.tapAt(
+      Offset(left + (rect.right - left) * 0.2, rect.center.dy),
+    );
+    await tester.pump();
+    expect(find.text('sample 2'), findsOneWidget);
   });
 }

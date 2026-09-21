@@ -282,6 +282,7 @@
   "rideSplitColumn": "Split",
   "rideSpeedSlow": "langsam",
   "rideSpeedFast": "schnell",
+  "rideShowRoute": "Route",
   "rideChartPoint": "{distance} · {value}",
   "rideContinue": "Fahrt fortsetzen",
   "rideContinueBody": "Die Aufnahme läuft auf dieser Fahrt weiter: Track, Distanz, Zeit und Anstieg setzen dort an, wo sie aufgehört haben, und die Zeit bis jetzt zählt als Pause.",

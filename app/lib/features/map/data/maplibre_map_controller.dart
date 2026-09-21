@@ -1037,10 +1037,12 @@ class MaplibreMapControllerAdapter implements MapController {
     RouteLineStyle style,
   ) async {
     await _ops.addGeoJsonSource(sourceId, data);
-    // Under the puck and the markers; an alternative also under the chosen
-    // route, whatever order they arrive in.
+    // Under the puck and the markers; an alternative also under the track
+    // and, since every chosen route sits above the track, under the chosen
+    // route, whatever order they arrive in. A ride page draws the route it
+    // followed that way, so the ridden track stays the subject.
     final below = style == RouteLineStyle.alternative
-        ? _alternativeBelow()
+        ? MapLayerIds.trackLayer
         : MapLayerIds.positionAccuracyLayer;
     // A dark casing under the line keeps any accent readable on any map
     // style: lime on a green park, orange on a yellow road.
@@ -1117,17 +1119,6 @@ class MaplibreMapControllerAdapter implements MapController {
     final colours = palette.routeAlternatives;
     if (match == null || colours.isEmpty) return palette.routeAlternative;
     return colours[int.parse(match.group(1)!) % colours.length];
-  }
-
-  /// The layer an alternative goes under: the lowest main route's casing,
-  /// so the chosen route always draws on top of its alternatives.
-  String _alternativeBelow() {
-    for (final entry in _routeLines.entries) {
-      if (entry.value == RouteLineStyle.main) {
-        return MapLayerIds.routeCasingLayer(entry.key);
-      }
-    }
-    return MapLayerIds.positionAccuracyLayer;
   }
 
   /// The casing drawn under a route line: wider, dark, translucent.

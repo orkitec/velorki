@@ -61,6 +61,10 @@ Opening a ride shows, from the top:
 
 Touch either chart and drag along it for a read-out of the form `12.3 km · 340 m`.
 
+### Route and points of interest
+
+A ride that followed a route shows that route under the track, in the quieter colour of a planner alternative, and the route's points of interest as markers on the map and as marks on the **Elevation** chart at the point where you passed them — only for points the ride came within 60 m of. A tap on a marker pins it with its name; the read-out names a mark the finger rests on. The **Route** toggle at the top left of the map hides all of it, and the choice is remembered.
+
 ### Figures from a sensor
 
 A ride recorded with a heart-rate strap, an Apple Watch or a power meter carries more than the seven: **Avg HR**, **Max HR**, **Avg cadence**, **Max cadence**, **Avg power**, **Max power** and **Norm. power** join the figures, each one only if the ride has it, and the **Heart rate** chart is drawn under the speed chart. **Norm. power** is the meter's readings weighted the way the legs feel them: the power on a one second grid, its 30 s rolling mean, each mean raised to the fourth power, those averaged and the fourth root taken. A steady ride comes out at its average; a ride of surges and rests comes out higher. It needs at least half a minute of readings in one piece, and a gap of more than five seconds in the meter starts a new piece. With **Power zones** on and a threshold set, **Intensity** stands beside it: normalised power divided by your threshold power, so 0.80 is a ride at four fifths of what you can hold for an hour. A ride recorded without a sensor shows none of it, and a ride imported from a GPX or FIT file shows whatever that file carried. See [sensors and your watch](./sensors-and-watch).

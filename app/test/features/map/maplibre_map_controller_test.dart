@@ -777,14 +777,18 @@ void main() {
         containsAll(<String>['velorki-route-main', 'velorki-route-alt_1']),
       );
       // Alternative 1 wears the second alternative colour, and sits under
-      // the chosen route's casing.
+      // the track, which every chosen route is above.
       expect(
         ops.addLayerOf('velorki-route-alt_1-line')!.properties!['line-color'],
         const MapPalette.classic().routeAlternatives[1],
       );
       expect(
         ops.addLayerOf('velorki-route-alt_1-line')!.belowLayerId,
-        MapLayerIds.routeCasingLayer('main'),
+        MapLayerIds.trackLayer,
+      );
+      expect(
+        ops.addLayerOf('velorki-route-main-line')!.belowLayerId,
+        MapLayerIds.positionAccuracyLayer,
       );
     });
   });
