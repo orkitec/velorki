@@ -21,11 +21,15 @@ const Key riderBirthYearFieldKey = Key('rider.birthYear');
 /// The maximum heart rate field, for a test to find it by.
 const Key riderMaxHeartRateFieldKey = Key('rider.maxHeartRate');
 
-/// Settings → Rider: the two estimates a ride page can show, and what the
-/// rider has to say about themselves for either to be made.
+/// The bike weight field, for a test to find it by.
+const Key riderBikeWeightFieldKey = Key('rider.bikeWeight');
+
+/// Settings → Rider: the three estimates a ride page can show, and what the
+/// rider has to say about themselves for any of them to be made.
 ///
 /// The fields only appear once a switch is on: nobody is asked their weight
-/// for a figure they never turned on.
+/// for a figure they never turned on, and nobody is asked about their bike
+/// unless the power estimate is on.
 class RiderSection extends ConsumerWidget {
   /// Creates the section.
   const RiderSection({super.key});
@@ -37,7 +41,7 @@ class RiderSection extends ConsumerWidget {
     final profile = ref.watch(riderProfileProvider);
     final controller = ref.read(riderProfileProvider.notifier);
     final system = ref.watch(unitSystemProvider);
-    final asked = profile.calories || profile.zones;
+    final asked = profile.calories || profile.zones || profile.estimatePower;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -53,6 +57,12 @@ class RiderSection extends ConsumerWidget {
           subtitle: Text(l10n.settingsRiderZonesHint),
           onChanged: (value) => unawaited(controller.setZones(value)),
         ),
+        SwitchListTile(
+          value: profile.estimatePower,
+          title: Text(l10n.settingsRiderEstimatePower),
+          subtitle: Text(l10n.settingsRiderEstimatePowerHint),
+          onChanged: (value) => unawaited(controller.setEstimatePower(value)),
+        ),
         if (asked) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -64,8 +74,12 @@ class RiderSection extends ConsumerWidget {
                     // A new field when the units change, so the number in it
                     // is the one the suffix says.
                     key: ValueKey<UnitSystem>(system),
+                    fieldKey: riderWeightFieldKey,
+                    label: l10n.settingsRiderWeight,
                     system: system,
                     weightKg: profile.weightKg,
+                    minKg: minRiderWeightKg,
+                    maxKg: maxRiderWeightKg,
                     onChanged: controller.setWeightKg,
                   ),
                 ),
@@ -122,6 +136,44 @@ class RiderSection extends ConsumerWidget {
             ),
           ),
         ],
+        if (profile.estimatePower) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: _WeightField(
+              key: ValueKey<String>('bike-${system.name}'),
+              fieldKey: riderBikeWeightFieldKey,
+              label: l10n.settingsRiderBikeWeight,
+              system: system,
+              weightKg: profile.bikeWeightKg,
+              minKg: minBikeWeightKg,
+              maxKg: maxBikeWeightKg,
+              onChanged: controller.setBikeWeightKg,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(l10n.settingsRiderBike, style: theme.textTheme.titleSmall),
+                const SizedBox(height: 10),
+                SegmentedButton<RiderBike>(
+                  showSelectedIcon: false,
+                  segments: [
+                    for (final bike in RiderBike.values)
+                      ButtonSegment(
+                        value: bike,
+                        label: Text(riderBikeLabel(l10n, bike)),
+                      ),
+                  ],
+                  selected: {profile.bike},
+                  onSelectionChanged: (selection) =>
+                      unawaited(controller.setBike(selection.single)),
+                ),
+              ],
+            ),
+          ),
+        ],
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           child: Text(
@@ -141,18 +193,35 @@ String riderSexLabel(AppLocalizations l10n, RiderSex sex) => switch (sex) {
   RiderSex.male => l10n.riderSexMale,
 };
 
-/// The rider's weight, typed in the rider's own units and stored in
-/// kilograms.
+/// The localised name of a [RiderBike] choice.
+String riderBikeLabel(AppLocalizations l10n, RiderBike bike) => switch (bike) {
+  RiderBike.road => l10n.riderBikeRoad,
+  RiderBike.touring => l10n.riderBikeTouring,
+  RiderBike.mountain => l10n.riderBikeMountain,
+};
+
+/// A weight, the rider's or the bike's, typed in the rider's own units and
+/// stored in kilograms.
 class _WeightField extends StatefulWidget {
   const _WeightField({
+    required this.fieldKey,
+    required this.label,
     required this.system,
     required this.weightKg,
+    required this.minKg,
+    required this.maxKg,
     required this.onChanged,
     super.key,
   });
 
+  /// The key of the text field itself, for a test to find it by.
+  final Key fieldKey;
+
+  final String label;
   final UnitSystem system;
   final double? weightKg;
+  final double minKg;
+  final double maxKg;
   final Future<void> Function(double?) onChanged;
 
   @override
@@ -186,7 +255,7 @@ class _WeightFieldState extends State<_WeightField> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return TextFormField(
-      key: riderWeightFieldKey,
+      key: widget.fieldKey,
       controller: _controller,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       inputFormatters: <TextInputFormatter>[
@@ -194,14 +263,15 @@ class _WeightFieldState extends State<_WeightField> {
         LengthLimitingTextInputFormatter(5),
       ],
       decoration: InputDecoration(
-        labelText: l10n.settingsRiderWeight,
+        labelText: widget.label,
         suffixText: widget.system == UnitSystem.metric
             ? l10n.settingsRiderWeightKg
             : l10n.settingsRiderWeightLb,
         border: const OutlineInputBorder(),
       ),
-      // Saved as it is typed, once the number could be a rider: a half-typed
-      // "7" is not a rider of seven kilograms. Empty clears the weight.
+      // Saved as it is typed, once the number could be a rider or a bike: a
+      // half-typed "7" is not a rider of seven kilograms. Empty clears the
+      // weight.
       onChanged: (value) {
         if (value.trim().isEmpty) {
           unawaited(widget.onChanged(null));
@@ -210,7 +280,7 @@ class _WeightFieldState extends State<_WeightField> {
         final typed = double.tryParse(value.replaceAll(',', '.'));
         if (typed == null) return;
         final kg = typed * _kgPerUnit;
-        if (kg < minRiderWeightKg || kg > maxRiderWeightKg) return;
+        if (kg < widget.minKg || kg > widget.maxKg) return;
         unawaited(widget.onChanged(kg));
       },
     );

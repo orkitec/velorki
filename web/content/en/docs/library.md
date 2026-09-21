@@ -65,11 +65,13 @@ Touch either chart and drag along it for a read-out of the form `12.3 km · 340 
 
 A ride recorded with a heart-rate strap, an Apple Watch or a power meter carries more than the seven: **Avg HR**, **Max HR**, **Avg cadence**, **Max cadence**, **Avg power** and **Max power** join the figures, each one only if the ride has it, and the **Heart rate** chart is drawn under the speed chart. A ride recorded without a sensor shows none of it, and a ride imported from a GPX or FIT file shows whatever that file carried. See [sensors and your watch](./sensors-and-watch).
 
-### Calories and heart-rate zones
+### Calories, heart-rate zones and estimated power
 
-Both are off until you switch them on under Settings → Rider, and both are computed on the phone from the ride's own points, so older rides get them too.
+All three are off until you switch them on under Settings → Rider, and all three are computed on the phone from the ride's own points, so older rides get them too.
 
-**Calories** is an estimate, and the small line under the figure says what it rests on. With a power meter over the ride it is the work done, "from power": a kilojoule of pedalling is very nearly a kilocalorie burned. Else, with a heart rate over the ride and your weight, year of birth and sex, it is "from heart rate". Else it is "estimated from speed", from your weight and how fast you rode. It needs your weight in every case.
+**Calories** is an estimate, and the small line under the figure says what it rests on. With a power meter over the ride it is the work done, "from power": a kilojoule of pedalling is very nearly a kilocalorie burned. Else, with a heart rate over the ride and your weight, year of birth and sex, it is "from heart rate". Else, with **Estimate power** on, it is "from estimated power", the estimated work in kilojoules again. Else it is "estimated from speed", from your weight and how fast you rode. It needs your weight in every case.
+
+**Est. power** appears only with the switch on and only on rides without a power meter; a ride with a meter shows the meter and nothing else. It is the average of what the Martin power model says you must have put into the pedals to move yourself and your bike at the speed you rode up the slope you rode: from your speed, the grade and the total weight of rider and bike, assuming no wind, no drafting, a rider on the hoods, a fixed rolling resistance per bike type, a 2.5 % drivetrain loss and thinner air with altitude. Heights are smoothed over 20 m because GPS heights jump; coasting and braking count as zero. Expect it to be reasonable on long climbs, where weight dominates; too high in a fast group and wrong in wind, which it cannot see. It is a number to compare your own rides with, not a power meter.
 
 **Heart-rate zones** is a bar under the heart-rate chart, cut into five zones of your maximum heart rate, with a row per zone: its range, the time in it and the share of the ride's heart-rate time. Zone 1 is everything below 60 %, zone 5 everything from 90 %. The caption names the maximum used: the one you entered, or 220 minus your age.
 

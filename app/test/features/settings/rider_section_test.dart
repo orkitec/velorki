@@ -49,21 +49,28 @@ Finder get _caloriesSwitch =>
 Finder get _zonesSwitch =>
     find.widgetWithText(SwitchListTile, l10n.settingsRiderZones);
 
+Finder get _powerSwitch =>
+    find.widgetWithText(SwitchListTile, l10n.settingsRiderEstimatePower);
+
 void main() {
-  testWidgets('both switches are off by default and no fields are asked', (
+  testWidgets('all switches are off by default and no fields are asked', (
     tester,
   ) async {
     await _pump(tester);
 
     expect(tester.widget<SwitchListTile>(_caloriesSwitch).value, isFalse);
     expect(tester.widget<SwitchListTile>(_zonesSwitch).value, isFalse);
+    expect(tester.widget<SwitchListTile>(_powerSwitch).value, isFalse);
     expect(find.text(l10n.settingsRiderCaloriesHint), findsOneWidget);
     expect(find.text(l10n.settingsRiderZonesHint), findsOneWidget);
+    expect(find.text(l10n.settingsRiderEstimatePowerHint), findsOneWidget);
     expect(find.text(l10n.settingsRiderPrivacy), findsOneWidget);
     expect(find.byKey(riderWeightFieldKey), findsNothing);
     expect(find.byKey(riderBirthYearFieldKey), findsNothing);
     expect(find.byKey(riderMaxHeartRateFieldKey), findsNothing);
+    expect(find.byKey(riderBikeWeightFieldKey), findsNothing);
     expect(find.byType(SegmentedButton<RiderSex>), findsNothing);
+    expect(find.byType(SegmentedButton<RiderBike>), findsNothing);
   });
 
   testWidgets('switching calories on shows the fields and is remembered', (
@@ -91,6 +98,63 @@ void main() {
 
     expect(tester.widget<SwitchListTile>(_zonesSwitch).value, isTrue);
     expect(find.byKey(riderMaxHeartRateFieldKey), findsOneWidget);
+    // But nothing about the bike: that is the power estimate's business.
+    expect(find.byKey(riderBikeWeightFieldKey), findsNothing);
+    expect(find.byType(SegmentedButton<RiderBike>), findsNothing);
+  });
+
+  testWidgets('switching the power estimate on shows the rider fields and '
+      'the bike fields, with a 9 kg road bike to start', (tester) async {
+    final container = await _pump(tester);
+
+    await tester.tap(_powerSwitch);
+    await tester.pumpAndSettle();
+    expectNoClippedText(tester);
+
+    expect(container.read(riderProfileProvider).estimatePower, isTrue);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getBool('rider.estimatePower'), isTrue);
+    expect(find.byKey(riderWeightFieldKey), findsOneWidget);
+    expect(find.byKey(riderBikeWeightFieldKey), findsOneWidget);
+    expect(
+      tester
+          .widget<TextFormField>(find.byKey(riderBikeWeightFieldKey))
+          .controller!
+          .text,
+      '9',
+    );
+    expect(find.text(l10n.settingsRiderBike), findsOneWidget);
+    expect(
+      tester
+          .widget<SegmentedButton<RiderBike>>(
+            find.byType(SegmentedButton<RiderBike>),
+          )
+          .selected,
+      {RiderBike.road},
+    );
+  });
+
+  testWidgets('picking a bike and typing its weight are stored', (
+    tester,
+  ) async {
+    final container = await _pump(
+      tester,
+      initial: const <String, Object>{'rider.estimatePower': true},
+    );
+
+    // The bike sits under three switches and four fields, below the fold.
+    await tester.ensureVisible(find.text(l10n.riderBikeMountain));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.riderBikeMountain));
+    await tester.enterText(find.byKey(riderBikeWeightFieldKey), '10');
+    await tester.pumpAndSettle();
+
+    final profile = container.read(riderProfileProvider);
+    expect(profile.bike, RiderBike.mountain);
+    expect(profile.bikeWeightKg, 10.0);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('rider.bike'), 'mountain');
+    expect(prefs.getDouble('rider.bikeWeightKg'), 10.0);
   });
 
   testWidgets('typing a weight stores it in kilograms', (tester) async {

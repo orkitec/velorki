@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:velorki/core/geo/power_model.dart';
 import 'package:velorki/core/geo/ride_analysis.dart';
 import 'package:velorki/core/geo/ride_stats.dart';
 import 'package:velorki/core/units/units.dart';
@@ -503,6 +504,94 @@ void main() {
     test('an empty analysis has zero effort', () {
       expect(analyseRide(const <TrackPoint>[]).effort, RideEffort.zero);
       expect(RideAnalysis.empty.effort, RideEffort.zero);
+    });
+  });
+
+  group('estimated power', () {
+    // A 75 kg rider on a 9 kg road bike.
+    const model = PowerModel(massKg: 84, cdA: 0.32, crr: 0.005);
+    const thirtyKmh = 30 / 3.6;
+
+    test('a flat steady 30 km/h is about 151 W', () {
+      final points = _ride(
+        seconds: 120,
+        speedMps: thirtyKmh,
+        elevationAt: (_) => 0,
+      );
+
+      final effort = analyseRide(points, powerModel: model).effort;
+
+      expect(_seconds(effort.estimatedPowerTime), closeTo(120, 1e-6));
+      expect(effort.estimatedAvgPowerW, closeTo(151, 2));
+      expect(effort.estimatedEnergyKj, closeTo(151 * 120 / 1000, 0.3));
+    });
+
+    test('without a model nothing is estimated', () {
+      final effort = analyseRide(
+        _ride(seconds: 120, speedMps: thirtyKmh, elevationAt: (_) => 0),
+      ).effort;
+
+      expect(effort.estimatedAvgPowerW, isNull);
+      expect(effort.estimatedEnergyKj, 0);
+      expect(effort.estimatedPowerTime, Duration.zero);
+    });
+
+    test('a track without heights is priced as flat at sea level', () {
+      final effort = analyseRide(
+        _ride(seconds: 120, speedMps: thirtyKmh),
+        powerModel: model,
+      ).effort;
+
+      expect(effort.estimatedAvgPowerW, closeTo(151, 2));
+    });
+
+    test('a climb costs more than the flat, a descent nothing', () {
+      // 8 % at 10 km/h: 2.778 m/s, 0.222 m a second. Ten minutes of it, so
+      // the one-sided smoothing window at either end hardly shows.
+      const tenKmh = 10 / 3.6;
+      final climb = analyseRide(
+        _ride(
+          seconds: 600,
+          speedMps: tenKmh,
+          elevationAt: (second) => second * tenKmh * 0.08,
+        ),
+        powerModel: model,
+      ).effort;
+      final descent = analyseRide(
+        _ride(
+          seconds: 120,
+          speedMps: thirtyKmh,
+          elevationAt: (second) => 1000 - second * thirtyKmh * 0.08,
+        ),
+        powerModel: model,
+      ).effort;
+
+      expect(climb.estimatedAvgPowerW, closeTo(203, 4));
+      expect(descent.estimatedAvgPowerW, 0);
+    });
+
+    test('a pause counts nowhere', () {
+      // A minute of riding, a two minute stop, a minute more.
+      final first = _ride(
+        seconds: 60,
+        speedMps: thirtyKmh,
+        elevationAt: (_) => 0,
+      );
+      final second = _ride(
+        seconds: 60,
+        speedMps: thirtyKmh,
+        elevationAt: (_) => 0,
+        from: first.last.pos,
+        startedAt: first.last.time!.add(const Duration(minutes: 2)),
+      );
+
+      final effort = analyseRide(<TrackPoint>[
+        ...first,
+        ...second,
+      ], powerModel: model).effort;
+
+      expect(_seconds(effort.estimatedPowerTime), closeTo(120, 1e-6));
+      expect(effort.estimatedAvgPowerW, closeTo(151, 2));
     });
   });
 }

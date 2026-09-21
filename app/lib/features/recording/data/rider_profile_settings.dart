@@ -9,6 +9,9 @@ const String _prefsWeightKg = 'rider.weightKg';
 const String _prefsBirthYear = 'rider.birthYear';
 const String _prefsSex = 'rider.sex';
 const String _prefsMaxHeartRate = 'rider.maxHeartRateBpm';
+const String _prefsEstimatePower = 'rider.estimatePower';
+const String _prefsBikeWeightKg = 'rider.bikeWeightKg';
+const String _prefsBike = 'rider.bike';
 
 /// The lightest rider the weight field accepts, in kilograms.
 const double minRiderWeightKg = 20;
@@ -24,6 +27,12 @@ const int minRiderMaxHeartRateBpm = 100;
 
 /// The highest maximum heart rate the field accepts.
 const int maxRiderMaxHeartRateBpm = 230;
+
+/// The lightest bike the weight field accepts, in kilograms.
+const double minBikeWeightKg = 3;
+
+/// The heaviest bike the weight field accepts, in kilograms.
+const double maxBikeWeightKg = 40;
 
 /// The rider profile, kept in shared_preferences.
 ///
@@ -41,6 +50,9 @@ class RiderProfileController extends Notifier<RiderProfile> {
       birthYear: prefs.getInt(_prefsBirthYear),
       sex: RiderSex.fromName(prefs.getString(_prefsSex)),
       maxHeartRateBpm: prefs.getInt(_prefsMaxHeartRate),
+      estimatePower: prefs.getBool(_prefsEstimatePower) ?? false,
+      bikeWeightKg: prefs.getDouble(_prefsBikeWeightKg) ?? defaultBikeWeightKg,
+      bike: RiderBike.fromName(prefs.getString(_prefsBike)),
     );
   }
 
@@ -110,6 +122,41 @@ class RiderProfileController extends Notifier<RiderProfile> {
     );
     await prefs.setInt(_prefsMaxHeartRate, clamped);
     state = state.copyWith(maxHeartRateBpm: clamped);
+  }
+
+  /// Switches the power estimate on or off.
+  Future<void> setEstimatePower(bool value) async {
+    await _setFlag(_prefsEstimatePower, value);
+    state = state.copyWith(estimatePower: value);
+  }
+
+  /// Stores the bike's weight, clamped to what a bike can weigh; `null` goes
+  /// back to the default.
+  Future<void> setBikeWeightKg(double? value) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    if (value == null || !value.isFinite) {
+      await prefs.remove(_prefsBikeWeightKg);
+      state = state.copyWith(bikeWeightKg: defaultBikeWeightKg);
+      return;
+    }
+    final clamped = value.clamp(minBikeWeightKg, maxBikeWeightKg);
+    if (clamped == defaultBikeWeightKg) {
+      await prefs.remove(_prefsBikeWeightKg);
+    } else {
+      await prefs.setDouble(_prefsBikeWeightKg, clamped);
+    }
+    state = state.copyWith(bikeWeightKg: clamped);
+  }
+
+  /// Stores the kind of bike.
+  Future<void> setBike(RiderBike value) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    if (value == RiderBike.road) {
+      await prefs.remove(_prefsBike);
+    } else {
+      await prefs.setString(_prefsBike, value.name);
+    }
+    state = state.copyWith(bike: value);
   }
 
   Future<void> _setFlag(String key, bool value) async {

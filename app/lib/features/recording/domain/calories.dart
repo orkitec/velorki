@@ -9,6 +9,10 @@ enum CalorieSource {
   /// The heart rate over the ride, through Keytel et al. (2005).
   heartRate,
 
+  /// The work the power model estimated from speed, slope and mass, when
+  /// the rider switched that estimate on.
+  estimatedPower,
+
   /// The riding speed alone, through the ACSM cycling table.
   speed,
 }
@@ -48,8 +52,10 @@ const double calorieCoverage = 0.9;
 /// kilocalorie burned at the body's roughly 24 % efficiency, which is what
 /// Strava and Garmin do too. Else a heart rate over most of the ride, with the
 /// rider's weight, age and sex, goes through the Keytel formula, integrated
-/// over time. Else the speed alone, through the ACSM table of metabolic
-/// equivalents times the rider's weight.
+/// over time. Else, with the power estimate switched on and priced over most
+/// of the ride, the estimated work, kilojoules as kilocalories again. Else the
+/// speed alone, through the ACSM table of metabolic equivalents times the
+/// rider's weight.
 CalorieEstimate? estimateCalories(
   RiderProfile profile,
   RideEffort effort, {
@@ -79,6 +85,15 @@ CalorieEstimate? estimateCalories(
         beatMinutes: effort.heartRateBeatSeconds / 60,
       ).round(),
       source: CalorieSource.heartRate,
+    );
+  }
+
+  if (profile.estimatePower &&
+      effort.estimatedPowerTime.inMicroseconds >=
+          calorieCoverage * movingMicros) {
+    return CalorieEstimate(
+      kcal: effort.estimatedEnergyKj.round(),
+      source: CalorieSource.estimatedPower,
     );
   }
 

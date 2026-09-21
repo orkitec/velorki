@@ -78,6 +78,20 @@ Future<void> _seed(RecordingHarness harness) =>
       endedAt: DateTime.utc(2026, 9, 12, 10, 0, 59),
     );
 
+/// Every power figure on the page, in watts, whatever the locale writes
+/// around the number.
+List<int> _wattsShown(WidgetTester tester) {
+  final pattern = RegExp(
+    '^${RegExp.escape(l10n.unitWatts('#')).replaceFirst('#', r'(\d+)')}\$',
+  );
+  return <int>[
+    for (final widget in tester.widgetList<Text>(find.byType(Text)))
+      if (widget.data != null)
+        if (pattern.firstMatch(widget.data!) case final match?)
+          int.parse(match.group(1)!),
+  ];
+}
+
 /// Opens the ride's overflow menu and picks "Continue this ride".
 Future<void> _tapContinue(WidgetTester tester) async {
   await tester.tap(find.byIcon(Icons.more_vert));
@@ -460,6 +474,71 @@ void main() {
     // 200 W for 540 s is 108 kJ, and a kilojoule of work is a kilocalorie.
     expect(find.text(l10n.unitKcal('108')), findsOneWidget);
     expect(find.text(l10n.calorieSourcePower), findsOneWidget);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('with the power estimate switched on, a ride without a meter '
+      'shows an estimated power and its calories rest on it', (tester) async {
+    final harness = RecordingHarness();
+    await _open(
+      tester,
+      harness,
+      _threeKilometres(),
+      preferences: const <String, Object>{
+        'rider.estimatePower': true,
+        'rider.calories': true,
+        'rider.weightKg': 75.0,
+      },
+    );
+
+    expect(find.text(l10n.statEstimatedPower.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.statEstimatedDetail), findsOneWidget);
+    // 20 km/h up a steady 1.8 % on 84 kg: somewhere over a hundred watts,
+    // and the only watts on the page.
+    final watts = _wattsShown(tester);
+    expect(watts, hasLength(1));
+    expect(watts.single, inInclusiveRange(100, 200));
+    expect(find.text(l10n.calorieSourceEstimatedPower), findsOneWidget);
+    expect(find.text(l10n.calorieSourceSpeed), findsNothing);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('with the power estimate off there is no estimated power', (
+    tester,
+  ) async {
+    final harness = RecordingHarness();
+    await _open(
+      tester,
+      harness,
+      _threeKilometres(),
+      preferences: const <String, Object>{'rider.weightKg': 75.0},
+    );
+
+    expect(find.text(l10n.statEstimatedPower.toUpperCase()), findsNothing);
+    expect(_wattsShown(tester), isEmpty);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('a ride with a power meter never shows the estimate beside it', (
+    tester,
+  ) async {
+    final harness = RecordingHarness();
+    await _open(
+      tester,
+      harness,
+      _threeKilometres(withSensors: true),
+      preferences: const <String, Object>{
+        'rider.estimatePower': true,
+        'rider.weightKg': 75.0,
+      },
+    );
+
+    expect(find.text(l10n.statAvgPower.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.statEstimatedPower.toUpperCase()), findsNothing);
+    expect(find.text(l10n.statEstimatedDetail), findsNothing);
 
     await unmountApp(tester);
   });

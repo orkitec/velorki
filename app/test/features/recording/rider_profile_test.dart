@@ -25,6 +25,15 @@ void main() {
     });
   });
 
+  group('RiderBike', () {
+    test('reads back the name it was stored under, unknown is road', () {
+      expect(RiderBike.fromName('touring'), RiderBike.touring);
+      expect(RiderBike.fromName('mountain'), RiderBike.mountain);
+      expect(RiderBike.fromName('unicycle'), RiderBike.road);
+      expect(RiderBike.fromName(null), RiderBike.road);
+    });
+  });
+
   group('RiderProfile', () {
     test('the age and the maximum heart rate follow the year of birth', () {
       const profile = RiderProfile(birthYear: 1986);
@@ -50,6 +59,24 @@ void main() {
       expect(profile, const RiderProfile(weightKg: 75, birthYear: 1986));
       expect(profile.hashCode, profile.copyWith().hashCode);
     });
+
+    test('the bike defaults to a 9 kg road bike and copies over', () {
+      const profile = RiderProfile();
+
+      expect(profile.estimatePower, isFalse);
+      expect(profile.bikeWeightKg, 9);
+      expect(profile.bike, RiderBike.road);
+      final copy = profile.copyWith(
+        estimatePower: true,
+        bikeWeightKg: 12,
+        bike: RiderBike.mountain,
+      );
+      expect(copy.estimatePower, isTrue);
+      expect(copy.bikeWeightKg, 12);
+      expect(copy.bike, RiderBike.mountain);
+      expect(copy, isNot(profile));
+      expect(copy.toString(), contains('bike: mountain'));
+    });
   });
 
   group('riderProfileProvider', () {
@@ -70,6 +97,9 @@ void main() {
         'rider.birthYear': 1986,
         'rider.sex': 'male',
         'rider.maxHeartRateBpm': 185,
+        'rider.estimatePower': true,
+        'rider.bikeWeightKg': 11.5,
+        'rider.bike': 'touring',
       });
 
       expect(
@@ -81,6 +111,9 @@ void main() {
           birthYear: 1986,
           sex: RiderSex.male,
           maxHeartRateBpm: 185,
+          estimatePower: true,
+          bikeWeightKg: 11.5,
+          bike: RiderBike.touring,
         ),
       );
     });
@@ -95,7 +128,15 @@ void main() {
       await controller.setMaxHeartRate(50);
       await controller.setSex(RiderSex.female);
       await controller.setCalories(true);
+      await controller.setEstimatePower(true);
+      await controller.setBikeWeightKg(100);
+      await controller.setBike(RiderBike.mountain);
       expect(container.read(riderProfileProvider).weightKg, 250);
+      expect(container.read(riderProfileProvider).bikeWeightKg, 40);
+      expect(container.read(riderProfileProvider).bike, RiderBike.mountain);
+      expect(prefs.getBool('rider.estimatePower'), isTrue);
+      expect(prefs.getDouble('rider.bikeWeightKg'), 40);
+      expect(prefs.getString('rider.bike'), 'mountain');
       expect(container.read(riderProfileProvider).birthYear, 1900);
       expect(container.read(riderProfileProvider).maxHeartRateBpm, 100);
       expect(prefs.getDouble('rider.weightKg'), 250);
@@ -107,8 +148,22 @@ void main() {
       await controller.setMaxHeartRate(null);
       await controller.setSex(RiderSex.unspecified);
       await controller.setCalories(false);
+      await controller.setEstimatePower(false);
+      await controller.setBikeWeightKg(null);
+      await controller.setBike(RiderBike.road);
       expect(container.read(riderProfileProvider), const RiderProfile());
       expect(prefs.getKeys(), isEmpty);
+    });
+
+    test('the default bike weight is not stored', () async {
+      final container = await _containerWith(<String, Object>{});
+      final controller = container.read(riderProfileProvider.notifier);
+      final prefs = await SharedPreferences.getInstance();
+
+      await controller.setBikeWeightKg(9);
+
+      expect(container.read(riderProfileProvider).bikeWeightKg, 9);
+      expect(prefs.containsKey('rider.bikeWeightKg'), isFalse);
     });
   });
 }

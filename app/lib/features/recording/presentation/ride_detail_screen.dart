@@ -26,6 +26,7 @@ import '../data/recording_service.dart';
 import '../data/ride_repository.dart';
 import '../data/rider_profile_settings.dart';
 import '../domain/calories.dart';
+import '../domain/power_defaults.dart';
 import '../domain/ride.dart';
 import 'recording_format.dart';
 import 'rename_ride_dialog.dart';
@@ -221,6 +222,16 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
     final maxHeartRateBpm = profile.zones
         ? profile.effectiveMaxHeartRate(year)
         : null;
+    // The power estimate needs the rider's weight; without the switch or the
+    // weight there is no model, and the key stays put for everyone else.
+    final weightKg = profile.weightKg;
+    final powerModel = profile.estimatePower && weightKg != null
+        ? powerModelForBike(
+            profile.bike,
+            riderKg: weightKg,
+            bikeKg: profile.bikeWeightKg,
+          )
+        : null;
     // Computed once per ride, split length and unit system, never on a
     // rebuild.
     final analysis = ref
@@ -230,6 +241,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
             splitLength: ref.watch(recordingSettingsProvider).splitLength,
             system: units,
             maxHeartRateBpm: maxHeartRateBpm,
+            powerModel: powerModel,
           )),
         )
         .value;
@@ -396,6 +408,20 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                             label: l10n.statMaxPower,
                             value: formatPower(l10n, effort!.maxPowerW),
                           ),
+                        // The estimate never stands beside a reading: a ride
+                        // with a meter shows the meter and nothing else.
+                        if (profile.estimatePower &&
+                            stats.avgPowerW == null &&
+                            effort?.estimatedAvgPowerW != null)
+                          RideStatItem(
+                            icon: Icons.electric_bolt,
+                            label: l10n.statEstimatedPower,
+                            value: formatPower(
+                              l10n,
+                              effort!.estimatedAvgPowerW,
+                            ),
+                            detail: l10n.statEstimatedDetail,
+                          ),
                         // An estimate, and the tile says what it rests on.
                         if (calories != null)
                           RideStatItem(
@@ -480,6 +506,7 @@ String calorieSourceLabel(AppLocalizations l10n, CalorieSource source) =>
     switch (source) {
       CalorieSource.power => l10n.calorieSourcePower,
       CalorieSource.heartRate => l10n.calorieSourceHeartRate,
+      CalorieSource.estimatedPower => l10n.calorieSourceEstimatedPower,
       CalorieSource.speed => l10n.calorieSourceSpeed,
     };
 

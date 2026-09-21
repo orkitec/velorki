@@ -4202,5 +4202,45 @@
   "settingsRiderPrivacy": "Stays on this phone",
   "@settingsRiderPrivacy": {
     "description": "One line under the rider settings saying the data is never sent anywhere"
+  },
+  "statEstimatedPower": "Est. power",
+  "@statEstimatedPower": {
+    "description": "Label of the estimated average power tile on the ride page, shown only on rides without a power meter"
+  },
+  "statEstimatedDetail": "estimated, no meter",
+  "@statEstimatedDetail": {
+    "description": "Under the estimated power figure: it was computed from speed, slope and weight, not measured"
+  },
+  "calorieSourceEstimatedPower": "from estimated power",
+  "@calorieSourceEstimatedPower": {
+    "description": "Under the calorie figure: it was computed from the estimated power"
+  },
+  "settingsRiderEstimatePower": "Estimate power",
+  "@settingsRiderEstimatePower": {
+    "description": "Switch that shows an estimated power on rides without a power meter"
+  },
+  "settingsRiderEstimatePowerHint": "From your speed, the slope and your weight, the way Strava estimates it. Fair on long climbs, poor in wind or in a group, and never live: only on saved rides without a power meter",
+  "@settingsRiderEstimatePowerHint": {
+    "description": "Explanation under the estimate power switch"
+  },
+  "settingsRiderBikeWeight": "Bike weight",
+  "@settingsRiderBikeWeight": {
+    "description": "Label of the bike weight field, for the power estimate"
+  },
+  "settingsRiderBike": "Bike",
+  "@settingsRiderBike": {
+    "description": "Label above the choice of bike type, for the power estimate"
+  },
+  "riderBikeRoad": "Road",
+  "@riderBikeRoad": {
+    "description": "Segment for a road bike"
+  },
+  "riderBikeTouring": "Touring, gravel",
+  "@riderBikeTouring": {
+    "description": "Segment for a touring or gravel bike"
+  },
+  "riderBikeMountain": "Mountain",
+  "@riderBikeMountain": {
+    "description": "Segment for a mountain bike"
   }
 }

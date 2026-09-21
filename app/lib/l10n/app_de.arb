@@ -821,5 +821,15 @@
   "settingsRiderMaxHeartRate": "Maximalpuls",
   "settingsRiderMaxHeartRateHint": "Bleibt es leer, gilt 220 minus dein Alter",
   "settingsRiderMaxHeartRateUnit": "bpm",
-  "settingsRiderPrivacy": "Bleibt auf diesem Handy"
+  "settingsRiderPrivacy": "Bleibt auf diesem Handy",
+  "statEstimatedPower": "Gesch. Leistung",
+  "statEstimatedDetail": "geschätzt, kein Messgerät",
+  "calorieSourceEstimatedPower": "aus geschätzter Leistung",
+  "settingsRiderEstimatePower": "Leistung schätzen",
+  "settingsRiderEstimatePowerHint": "Aus deinem Tempo, der Steigung und deinem Gewicht, so wie Strava es schätzt. Brauchbar auf langen Anstiegen, schlecht bei Wind oder in der Gruppe, und nie live: nur auf gespeicherten Fahrten ohne Leistungsmesser",
+  "settingsRiderBikeWeight": "Gewicht des Rads",
+  "settingsRiderBike": "Rad",
+  "riderBikeRoad": "Rennrad",
+  "riderBikeTouring": "Trekking, Gravel",
+  "riderBikeMountain": "MTB"
 }

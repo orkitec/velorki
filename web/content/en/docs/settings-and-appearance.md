@@ -42,13 +42,15 @@ The three switches here are the same ones as on the Record tab's sheet.
 
 ## Rider
 
-Two switches, both off by default, and the fields they need.
+Three switches, all off by default, and the fields they need.
 
 **Estimate calories** puts a **Calories** figure on every ride page: from your power meter when you have one, else from your heart rate, else from your speed. It needs your weight; the heart-rate estimate also needs your year of birth and sex.
 
 **Heart-rate zones** puts the time in five zones of your maximum heart rate under a ride's heart-rate chart. It needs your maximum heart rate, or your year of birth to estimate it as 220 minus your age.
 
-With either switch on, the fields appear: **Weight** (kg, or lb on imperial units), **Year of birth**, **Sex** (**Not set**, **Female**, **Male**) and **Max heart rate** (bpm, "Left empty, 220 minus your age is used"). Everything here stays on the phone; see [privacy on the phone](./privacy-on-the-phone). The figures themselves are described under [library](./library).
+**Estimate power** puts an **Est. power** figure on rides recorded without a power meter: from your speed, the slope and your weight, the way Strava estimates it. Fair on long climbs, poor in wind or in a group, and never live: only on saved rides.
+
+With any switch on, the fields appear: **Weight** (kg, or lb on imperial units), **Year of birth**, **Sex** (**Not set**, **Female**, **Male**) and **Max heart rate** (bpm, "Left empty, 220 minus your age is used"). With **Estimate power** on, two more follow: **Bike weight** (kg or lb, 9 kg until you change it) and **Bike** (**Road**, **Touring, gravel**, **Mountain**), which sets the drag and rolling resistance the estimate assumes. Everything here stays on the phone; see [privacy on the phone](./privacy-on-the-phone). The figures themselves are described under [library](./library).
 
 ## Sensors
 

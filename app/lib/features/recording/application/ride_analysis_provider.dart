@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/geo/power_model.dart';
 import '../../../core/geo/ride_analysis.dart';
 import '../../../core/units/units.dart';
 import '../data/ride_repository.dart';
@@ -13,12 +14,14 @@ import '../domain/split_length.dart';
 /// to miles wants mile splits, and the two sets can sit side by side in the
 /// cache. The maximum heart rate cuts the zones; `null` when the rider has
 /// not switched them on, so the key does not change with a profile nobody
-/// reads.
+/// reads. The power model, likewise, is `null` unless the power estimate is
+/// on and the rider's weight is known.
 typedef RideAnalysisRequest = ({
   String rideId,
   SplitLength splitLength,
   UnitSystem system,
   int? maxHeartRateBpm,
+  PowerModel? powerModel,
 });
 
 /// The splits, chart samples and speed bands of one ride.
@@ -38,5 +41,6 @@ final rideAnalysisProvider = FutureProvider.autoDispose
         ),
         breaks: statsBreaksOf(ride.pauses),
         maxHeartRateBpm: request.maxHeartRateBpm,
+        powerModel: request.powerModel,
       );
     });

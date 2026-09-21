@@ -12,6 +12,8 @@ RideEffort _effort({
   Duration heartRateTime = Duration.zero,
   int meanHeartRate = 0,
   Duration movingTime = _hour,
+  Duration estimatedPowerTime = Duration.zero,
+  double estimatedEnergyKj = 0,
 }) => RideEffort(
   movingTime: movingTime,
   maxCadenceRpm: null,
@@ -22,6 +24,8 @@ RideEffort _effort({
   heartRateBeatSeconds: meanHeartRate * heartRateTime.inSeconds.toDouble(),
   metHours: 8.0 * movingTime.inSeconds / 3600,
   heartRateZones: RideEffort.zero.heartRateZones,
+  estimatedEnergyKj: estimatedEnergyKj,
+  estimatedPowerTime: estimatedPowerTime,
 );
 
 const RiderProfile _rider = RiderProfile(
@@ -130,6 +134,53 @@ void main() {
 
     expect(noSex!.source, CalorieSource.speed);
     expect(noAge!.source, CalorieSource.speed);
+  });
+
+  test('the estimated power, switched on, comes before the speed', () {
+    final estimate = estimateCalories(
+      _rider.copyWith(estimatePower: true),
+      _effort(estimatedPowerTime: _hour, estimatedEnergyKj: 540.4),
+      year: 2026,
+    );
+
+    expect(
+      estimate,
+      const CalorieEstimate(kcal: 540, source: CalorieSource.estimatedPower),
+    );
+  });
+
+  test('but after a heart rate over the ride', () {
+    final estimate = estimateCalories(
+      _rider.copyWith(estimatePower: true),
+      _effort(
+        estimatedPowerTime: _hour,
+        estimatedEnergyKj: 540,
+        heartRateTime: _hour,
+        meanHeartRate: 150,
+      ),
+      year: 2026,
+    );
+
+    expect(estimate!.source, CalorieSource.heartRate);
+  });
+
+  test('and not at all with the switch off or over only part of the ride', () {
+    final off = estimateCalories(
+      _rider,
+      _effort(estimatedPowerTime: _hour, estimatedEnergyKj: 540),
+      year: 2026,
+    );
+    final partial = estimateCalories(
+      _rider.copyWith(estimatePower: true),
+      _effort(
+        estimatedPowerTime: const Duration(minutes: 30),
+        estimatedEnergyKj: 270,
+      ),
+      year: 2026,
+    );
+
+    expect(off!.source, CalorieSource.speed);
+    expect(partial!.source, CalorieSource.speed);
   });
 
   test('the speed alone is MET-hours times the weight', () {

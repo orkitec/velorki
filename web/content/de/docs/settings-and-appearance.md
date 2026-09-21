@@ -42,13 +42,15 @@ Die drei Schalter hier sind dieselben wie in der Übersicht des Tabs Aufnahme.
 
 ## Fahrer
 
-Zwei Schalter, beide standardmäßig aus, und die Felder, die sie brauchen.
+Drei Schalter, alle standardmäßig aus, und die Felder, die sie brauchen.
 
 **Kalorien schätzen** setzt eine Zahl **Kalorien** auf jede Fahrtenseite: aus deinem Leistungsmesser, wenn du einen hast, sonst aus deinem Puls, sonst aus deinem Tempo. Es braucht dein Gewicht; die Schätzung aus dem Puls braucht außerdem dein Geburtsjahr und dein Geschlecht.
 
 **Pulszonen** setzt die Zeit in fünf Zonen deines Maximalpulses unter das Herzfrequenz-Diagramm einer Fahrt. Es braucht deinen Maximalpuls oder dein Geburtsjahr, um ihn als 220 minus dein Alter zu schätzen.
 
-Ist einer der Schalter an, erscheinen die Felder: **Gewicht** (kg, bei imperialen Einheiten lb), **Geburtsjahr**, **Geschlecht** (**Keine Angabe**, **Weiblich**, **Männlich**) und **Maximalpuls** (bpm, "Bleibt es leer, gilt 220 minus dein Alter"). Alles hier bleibt auf dem Handy; siehe [Datenschutz auf dem Handy](./privacy-on-the-phone). Die Zahlen selbst sind unter [Bibliothek](./library) beschrieben.
+**Leistung schätzen** setzt eine Zahl **Gesch. Leistung** auf Fahrten, die ohne Leistungsmesser aufgezeichnet wurden: aus deinem Tempo, der Steigung und deinem Gewicht, so wie Strava es schätzt. Brauchbar auf langen Anstiegen, schlecht bei Wind oder in der Gruppe, und nie live: nur auf gespeicherten Fahrten.
+
+Ist einer der Schalter an, erscheinen die Felder: **Gewicht** (kg, bei imperialen Einheiten lb), **Geburtsjahr**, **Geschlecht** (**Keine Angabe**, **Weiblich**, **Männlich**) und **Maximalpuls** (bpm, "Bleibt es leer, gilt 220 minus dein Alter"). Ist **Leistung schätzen** an, folgen zwei weitere: **Gewicht des Rads** (kg oder lb, 9 kg, bis du es änderst) und **Rad** (**Rennrad**, **Trekking, Gravel**, **MTB**), das den Luft- und Rollwiderstand festlegt, den die Schätzung annimmt. Alles hier bleibt auf dem Handy; siehe [Datenschutz auf dem Handy](./privacy-on-the-phone). Die Zahlen selbst sind unter [Bibliothek](./library) beschrieben.
 
 ## Sensoren
 
