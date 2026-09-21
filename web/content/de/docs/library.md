@@ -63,7 +63,15 @@ Berühre eines der beiden Diagramme und zieh darüber für eine Anzeige in der F
 
 ### Zahlen von einem Sensor
 
-Eine Fahrt, die mit Pulsgurt, Apple Watch oder Leistungsmesser aufgezeichnet wurde, trägt mehr als die sieben: **Ø Puls**, **Max Puls**, **Ø Kadenz** und **Ø Leistung** kommen zu den Zahlen dazu, jede nur, wenn die Fahrt sie hat, und unter dem Tempo-Diagramm wird das Diagramm **Herzfrequenz** gezeichnet. Eine ohne Sensor aufgezeichnete Fahrt zeigt nichts davon, und eine aus einer GPX- oder FIT-Datei importierte zeigt, was diese Datei mitbrachte. Siehe [Sensoren und deine Uhr](./sensors-and-watch).
+Eine Fahrt, die mit Pulsgurt, Apple Watch oder Leistungsmesser aufgezeichnet wurde, trägt mehr als die sieben: **Ø Puls**, **Max Puls**, **Ø Kadenz**, **Max Kadenz**, **Ø Leistung** und **Max Leistung** kommen zu den Zahlen dazu, jede nur, wenn die Fahrt sie hat, und unter dem Tempo-Diagramm wird das Diagramm **Herzfrequenz** gezeichnet. Eine ohne Sensor aufgezeichnete Fahrt zeigt nichts davon, und eine aus einer GPX- oder FIT-Datei importierte zeigt, was diese Datei mitbrachte. Siehe [Sensoren und deine Uhr](./sensors-and-watch).
+
+### Kalorien und Pulszonen
+
+Beides ist aus, bis du es unter Einstellungen → Fahrer einschaltest, und beides wird auf dem Handy aus den Punkten der Fahrt berechnet, also auch für ältere Fahrten.
+
+**Kalorien** ist eine Schätzung, und die kleine Zeile unter der Zahl sagt, worauf sie beruht. Mit einem Leistungsmesser über die Fahrt ist es die geleistete Arbeit, "aus Leistung": ein Kilojoule Treten ist ziemlich genau eine verbrannte Kilokalorie. Sonst, mit einem Puls über die Fahrt und deinem Gewicht, Geburtsjahr und Geschlecht, ist es "aus Puls". Sonst ist es "aus Tempo geschätzt", aus deinem Gewicht und deinem Tempo. Dein Gewicht braucht es in jedem Fall.
+
+**Pulszonen** ist ein Balken unter dem Herzfrequenz-Diagramm, in fünf Zonen deines Maximalpulses geteilt, mit einer Zeile je Zone: ihr Bereich, die Zeit darin und der Anteil an der Pulszeit der Fahrt. Zone 1 ist alles unter 60 %, Zone 5 alles ab 90 %. Die Überschrift nennt den verwendeten Maximalpuls: den eingetragenen oder 220 minus dein Alter.
 
 ### Splits
 

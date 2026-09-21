@@ -40,6 +40,16 @@ The three switches here are the same ones as on the Record tab's sheet.
 
 **Battery saver**: "Dark map, no animations, a plain page with the numbers after 30 s; the screen is what drains the battery". The full behaviour is in [recording a ride](./recording-a-ride).
 
+## Rider
+
+Two switches, both off by default, and the fields they need.
+
+**Estimate calories** puts a **Calories** figure on every ride page: from your power meter when you have one, else from your heart rate, else from your speed. It needs your weight; the heart-rate estimate also needs your year of birth and sex.
+
+**Heart-rate zones** puts the time in five zones of your maximum heart rate under a ride's heart-rate chart. It needs your maximum heart rate, or your year of birth to estimate it as 220 minus your age.
+
+With either switch on, the fields appear: **Weight** (kg, or lb on imperial units), **Year of birth**, **Sex** (**Not set**, **Female**, **Male**) and **Max heart rate** (bpm, "Left empty, 220 minus your age is used"). Everything here stays on the phone; see [privacy on the phone](./privacy-on-the-phone). The figures themselves are described under [library](./library).
+
 ## Sensors
 
 **Apple Health**, or **Health Connect** on Android: "Reads the heart rate other apps put into Health, such as the watch's own Workout app. Checked every few seconds, so it lags; a strap or the Velorki watch app takes over when it reports". Turning it on is what asks the phone for access to your health data, and refusing leaves it off.

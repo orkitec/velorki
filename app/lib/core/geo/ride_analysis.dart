@@ -146,6 +146,122 @@ class SpeedBands {
   String toString() => 'SpeedBands(${segments.length} segments)';
 }
 
+/// How hard the ride was, summed over the moving legs: what a calorie
+/// estimate and a zone chart are built from.
+///
+/// All of it is integrated over time, leg by leg, so a ride with a fix every
+/// second and one with a fix every minute come out the same. The heart-rate
+/// figures are kept as a time and a beat-seconds sum rather than a mean, which
+/// is what lets a formula linear in the heart rate integrate exactly.
+class RideEffort {
+  /// Creates the effort.
+  const RideEffort({
+    required this.movingTime,
+    required this.maxCadenceRpm,
+    required this.maxPowerW,
+    required this.energyKj,
+    required this.powerTime,
+    required this.heartRateTime,
+    required this.heartRateBeatSeconds,
+    required this.metHours,
+    required this.heartRateZones,
+  });
+
+  /// A ride with nothing in it.
+  static const RideEffort zero = RideEffort(
+    movingTime: Duration.zero,
+    maxCadenceRpm: null,
+    maxPowerW: null,
+    energyKj: 0,
+    powerTime: Duration.zero,
+    heartRateTime: Duration.zero,
+    heartRateBeatSeconds: 0,
+    metHours: 0,
+    heartRateZones: <Duration>[
+      Duration.zero,
+      Duration.zero,
+      Duration.zero,
+      Duration.zero,
+      Duration.zero,
+    ],
+  );
+
+  /// How many zones [heartRateZones] has.
+  static const int zoneCount = 5;
+
+  /// Time spent moving, the denominator of every coverage ratio.
+  final Duration movingTime;
+
+  /// The highest cadence a sensor reported while moving; `null` without one.
+  final int? maxCadenceRpm;
+
+  /// The highest power a meter reported while moving; `null` without one.
+  final int? maxPowerW;
+
+  /// Work done in kilojoules: the mean power of every leg whose both ends
+  /// carried a reading, times its duration.
+  final double energyKj;
+
+  /// How long the power meter reported for, the sum of those legs.
+  final Duration powerTime;
+
+  /// How long a heart rate was known for: the legs whose start carried one.
+  final Duration heartRateTime;
+
+  /// Heart rate times seconds over those legs, so that
+  /// `heartRateBeatSeconds / heartRateTime` is the mean heart rate.
+  final double heartRateBeatSeconds;
+
+  /// The ACSM metabolic equivalent of every leg's speed, times its hours.
+  final double metHours;
+
+  /// Time in each of the [zoneCount] heart-rate zones, all zero unless the
+  /// analysis was given a maximum heart rate to cut them at.
+  final List<Duration> heartRateZones;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RideEffort &&
+          other.movingTime == movingTime &&
+          other.maxCadenceRpm == maxCadenceRpm &&
+          other.maxPowerW == maxPowerW &&
+          other.energyKj == energyKj &&
+          other.powerTime == powerTime &&
+          other.heartRateTime == heartRateTime &&
+          other.heartRateBeatSeconds == heartRateBeatSeconds &&
+          other.metHours == metHours &&
+          _sameZones(other.heartRateZones, heartRateZones);
+
+  static bool _sameZones(List<Duration> a, List<Duration> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    movingTime,
+    maxCadenceRpm,
+    maxPowerW,
+    energyKj,
+    powerTime,
+    heartRateTime,
+    heartRateBeatSeconds,
+    metHours,
+    Object.hashAll(heartRateZones),
+  );
+
+  @override
+  String toString() =>
+      'RideEffort(moving $movingTime, max ${maxCadenceRpm ?? '-'} rpm, '
+      'max ${maxPowerW ?? '-'} W, ${energyKj.toStringAsFixed(0)} kJ over '
+      '$powerTime, HR over $heartRateTime, '
+      '${metHours.toStringAsFixed(2)} MET·h, zones $heartRateZones)';
+}
+
 /// Everything the ride page shows beyond the plain figures: the splits, the
 /// chart samples and the colouring of the track.
 class RideAnalysis {
@@ -155,6 +271,7 @@ class RideAnalysis {
     required this.samples,
     required this.speedBands,
     required this.splitLengthM,
+    this.effort = RideEffort.zero,
   });
 
   /// A ride with nothing in it.
@@ -176,6 +293,10 @@ class RideAnalysis {
 
   /// How long a split is in metres: a kilometre or a mile.
   final double splitLengthM;
+
+  /// How hard the ride was: the sums a calorie estimate and the heart-rate
+  /// zones are built from.
+  final RideEffort effort;
 
   /// Whether there is an elevation chart to draw.
   bool get hasElevation =>
@@ -204,6 +325,9 @@ class RideAnalysis {
 /// so the splits add up to the figures above them. Fixes are accepted and
 /// rejected exactly as [RideStatsAccumulator] does it, which is what keeps the
 /// two from disagreeing.
+///
+/// [maxHeartRateBpm] is the rider's maximum, which cuts the heart-rate zones;
+/// without it the zones stay empty.
 RideAnalysis analyseRide(
   List<TrackPoint> points, {
   double splitLengthM = metersPerKilometer,
@@ -211,6 +335,7 @@ RideAnalysis analyseRide(
   Duration pauseGap = statsPauseGap,
   int maxSamples = rideChartMaxSamples,
   double hysteresisM = elevationHysteresisM,
+  int? maxHeartRateBpm,
 }) {
   if (points.length < 2 || splitLengthM <= 0) {
     return RideAnalysis(
@@ -226,6 +351,7 @@ RideAnalysis analyseRide(
     samples: _samples(walk, maxSamples: maxSamples),
     speedBands: _speedBands(walk),
     splitLengthM: splitLengthM,
+    effort: _effort(walk, maxHeartRateBpm: maxHeartRateBpm),
   );
 }
 
@@ -638,6 +764,97 @@ double? _lerpOrNull(double? a, double? b, double f) {
   if (a == null) return b;
   if (b == null) return a;
   return a + (b - a) * f;
+}
+
+// ----------------------------------------------------------------- effort
+
+/// The ACSM compendium's metabolic equivalents for cycling, by speed in km/h:
+/// under 16 is leisure, 16–19 light, 19–22.5 moderate, 22.5–25.7 vigorous,
+/// 25.7–30.6 racing, and above that very fast racing.
+double _metOf(double speedMps) {
+  final kmh = speedMps * 3.6;
+  if (kmh < 16) return 4.0;
+  if (kmh < 19) return 6.8;
+  if (kmh < 22.5) return 8.0;
+  if (kmh < 25.7) return 10.0;
+  if (kmh <= 30.6) return 12.0;
+  return 15.8;
+}
+
+/// The zone of a heart rate as a share of [max]: below 60 % is zone 1, then
+/// one zone per ten points up to 90 % and above, zone 5. Integer arithmetic,
+/// so a reading exactly on a boundary lands where the boundary says.
+int _zoneOf(int bpm, int max) {
+  final tenths = bpm * 10;
+  if (tenths < 6 * max) return 0;
+  if (tenths < 7 * max) return 1;
+  if (tenths < 8 * max) return 2;
+  if (tenths < 9 * max) return 3;
+  return 4;
+}
+
+RideEffort _effort(_Walk walk, {required int? maxHeartRateBpm}) {
+  var movingMicros = 0;
+  int? maxCadence;
+  int? maxPower;
+  var energyKj = 0.0;
+  var powerMicros = 0;
+  var heartRateMicros = 0;
+  var beatSeconds = 0.0;
+  var metHours = 0.0;
+  final zoneMicros = List<int>.filled(RideEffort.zoneCount, 0);
+
+  for (final leg in walk.legs) {
+    if (leg.isBreak || !leg.moving) continue;
+    final from = walk.points[leg.fromIndex];
+    final to = walk.points[leg.toIndex];
+    final micros = leg.duration.inMicroseconds;
+    final seconds = micros / Duration.microsecondsPerSecond;
+    movingMicros += micros;
+
+    for (final point in <TrackPoint>[from, to]) {
+      final cadence = point.cadenceRpm;
+      if (cadence != null && (maxCadence == null || cadence > maxCadence)) {
+        maxCadence = cadence;
+      }
+      final power = point.powerW;
+      if (power != null && (maxPower == null || power > maxPower)) {
+        maxPower = power;
+      }
+    }
+
+    final powerFrom = from.powerW;
+    final powerTo = to.powerW;
+    if (powerFrom != null && powerTo != null) {
+      energyKj += (powerFrom + powerTo) / 2 * seconds / 1000;
+      powerMicros += micros;
+    }
+
+    final bpm = from.heartRateBpm;
+    if (bpm != null) {
+      heartRateMicros += micros;
+      beatSeconds += bpm * seconds;
+      if (maxHeartRateBpm != null && maxHeartRateBpm > 0) {
+        zoneMicros[_zoneOf(bpm, maxHeartRateBpm)] += micros;
+      }
+    }
+
+    metHours += _metOf(leg.speedMps) * seconds / Duration.secondsPerHour;
+  }
+
+  return RideEffort(
+    movingTime: Duration(microseconds: movingMicros),
+    maxCadenceRpm: maxCadence,
+    maxPowerW: maxPower,
+    energyKj: energyKj,
+    powerTime: Duration(microseconds: powerMicros),
+    heartRateTime: Duration(microseconds: heartRateMicros),
+    heartRateBeatSeconds: beatSeconds,
+    metHours: metHours,
+    heartRateZones: List<Duration>.unmodifiable(<Duration>[
+      for (final micros in zoneMicros) Duration(microseconds: micros),
+    ]),
+  );
 }
 
 // ------------------------------------------------------------ speed bands

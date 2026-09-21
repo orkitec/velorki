@@ -370,4 +370,139 @@ void main() {
       expect(analysis.hasHeartRate, isTrue);
     });
   });
+
+  group('effort', () {
+    const zero = Duration.zero;
+
+    test('a steady ride with a power meter is watts times seconds', () {
+      final points = <TrackPoint>[
+        for (final point in _ride(seconds: 60)) point.copyWith(powerW: 200),
+      ];
+
+      final effort = analyseRide(points).effort;
+
+      expect(_seconds(effort.movingTime), closeTo(60, 1e-6));
+      expect(_seconds(effort.powerTime), closeTo(60, 1e-6));
+      expect(effort.energyKj, closeTo(200 * 60 / 1000, 1e-9));
+      // 20 km/h is 8 MET, for a minute.
+      expect(effort.metHours, closeTo(8 / 60, 1e-9));
+    });
+
+    test('the highest cadence and power are picked out', () {
+      final points = <TrackPoint>[
+        for (final (i, point) in _ride(seconds: 30).indexed)
+          point.copyWith(cadenceRpm: 80 + (i == 12 ? 25 : 0), powerW: 150 + i),
+      ];
+
+      final effort = analyseRide(points).effort;
+
+      expect(effort.maxCadenceRpm, 105);
+      expect(effort.maxPowerW, 180);
+    });
+
+    test(
+      'a ride without sensors has no maxima, no power and no heart rate',
+      () {
+        final effort = analyseRide(_ride(seconds: 60)).effort;
+
+        expect(effort.maxCadenceRpm, isNull);
+        expect(effort.maxPowerW, isNull);
+        expect(effort.energyKj, 0);
+        expect(effort.powerTime, zero);
+        expect(effort.heartRateTime, zero);
+        expect(effort.heartRateBeatSeconds, 0);
+        expect(effort.heartRateZones, everyElement(zero));
+      },
+    );
+
+    test(
+      'the heart rate is summed as beat-seconds over the time it was known',
+      () {
+        final points = <TrackPoint>[
+          for (final (i, point) in _ride(seconds: 60).indexed)
+            // Only the first half of the ride had a strap.
+            point.copyWith(heartRateBpm: i < 30 ? 140 : null),
+        ];
+
+        final effort = analyseRide(points).effort;
+
+        expect(_seconds(effort.heartRateTime), closeTo(30, 1e-6));
+        expect(effort.heartRateBeatSeconds, closeTo(140 * 30, 1e-6));
+        expect(_seconds(effort.movingTime), closeTo(60, 1e-6));
+      },
+    );
+
+    test('the zones are cut at 60, 70, 80 and 90 % of the maximum', () {
+      // Ten seconds at each of five readings, the first four exactly on a
+      // boundary: 119 is just under 60 % of 200, 120 exactly 60 %.
+      const readings = <int>[119, 120, 140, 160, 180];
+      final points = <TrackPoint>[
+        for (final (i, point) in _ride(seconds: 50).indexed)
+          point.copyWith(heartRateBpm: readings[(i ~/ 10).clamp(0, 4)]),
+      ];
+
+      final effort = analyseRide(points, maxHeartRateBpm: 200).effort;
+
+      expect(effort.heartRateZones, hasLength(5));
+      for (final zone in effort.heartRateZones) {
+        expect(_seconds(zone), closeTo(10, 1e-6));
+      }
+    });
+
+    test('everything under 60 % is zone 1', () {
+      final points = <TrackPoint>[
+        for (final point in _ride(seconds: 20))
+          point.copyWith(heartRateBpm: 70),
+      ];
+
+      final effort = analyseRide(points, maxHeartRateBpm: 200).effort;
+
+      expect(_seconds(effort.heartRateZones.first), closeTo(20, 1e-6));
+      expect(effort.heartRateZones.skip(1), everyElement(zero));
+    });
+
+    test(
+      'without a maximum the zones stay empty though the rate is summed',
+      () {
+        final points = <TrackPoint>[
+          for (final point in _ride(seconds: 20))
+            point.copyWith(heartRateBpm: 150),
+        ];
+
+        final effort = analyseRide(points).effort;
+
+        expect(_seconds(effort.heartRateTime), closeTo(20, 1e-6));
+        expect(effort.heartRateZones, everyElement(zero));
+      },
+    );
+
+    test('a pause counts nowhere', () {
+      // Thirty seconds of riding, a two minute stop, thirty more.
+      final first = _ride(seconds: 30);
+      final second = _ride(
+        seconds: 30,
+        from: first.last.pos,
+        startedAt: first.last.time!.add(const Duration(minutes: 2)),
+      );
+      final points = <TrackPoint>[
+        for (final point in <TrackPoint>[...first, ...second])
+          point.copyWith(heartRateBpm: 150, powerW: 100),
+      ];
+
+      final effort = analyseRide(points, maxHeartRateBpm: 200).effort;
+
+      expect(_seconds(effort.movingTime), closeTo(60, 1e-6));
+      expect(_seconds(effort.powerTime), closeTo(60, 1e-6));
+      expect(effort.energyKj, closeTo(100 * 60 / 1000, 1e-9));
+      expect(_seconds(effort.heartRateTime), closeTo(60, 1e-6));
+      // 150 of 200 is 75 %: zone 3, and only the ridden minute of it.
+      expect(_seconds(effort.heartRateZones[2]), closeTo(60, 1e-6));
+      expect(effort.metHours, closeTo(8 / 60, 1e-9));
+    });
+
+    test('an empty analysis has zero effort', () {
+      expect(analyseRide(const <TrackPoint>[]).effort, RideEffort.zero);
+      expect(RideAnalysis.empty.effort, RideEffort.zero);
+    });
+  });
 }

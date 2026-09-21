@@ -24,10 +24,13 @@ import '../application/ride_analysis_provider.dart';
 import '../data/recording_settings.dart';
 import '../data/recording_service.dart';
 import '../data/ride_repository.dart';
+import '../data/rider_profile_settings.dart';
+import '../domain/calories.dart';
 import '../domain/ride.dart';
 import 'recording_format.dart';
 import 'rename_ride_dialog.dart';
 import 'ride_charts.dart';
+import 'ride_heart_rate_zones.dart';
 import 'ride_splits.dart';
 
 /// The location of the detail screen for the ride [id].
@@ -211,6 +214,13 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
     final l10n = AppLocalizations.of(context);
     final units = ref.watch(unitSystemProvider);
     final ride = ref.watch(rideProvider(widget.rideId));
+    final profile = ref.watch(riderProfileProvider);
+    final year = DateTime.now().year;
+    // The zones need the maximum; asked for only when they are switched on,
+    // so the cache key stays put for everyone else.
+    final maxHeartRateBpm = profile.zones
+        ? profile.effectiveMaxHeartRate(year)
+        : null;
     // Computed once per ride, split length and unit system, never on a
     // rebuild.
     final analysis = ref
@@ -219,10 +229,15 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
             rideId: widget.rideId,
             splitLength: ref.watch(recordingSettingsProvider).splitLength,
             system: units,
+            maxHeartRateBpm: maxHeartRateBpm,
           )),
         )
         .value;
     _analysis = analysis;
+    final effort = analysis?.effort;
+    final calories = profile.calories && effort != null
+        ? estimateCalories(profile, effort, year: year)
+        : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -363,11 +378,31 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                             label: l10n.statAvgCadence,
                             value: formatCadence(l10n, stats.avgCadenceRpm),
                           ),
+                        if (effort?.maxCadenceRpm != null)
+                          RideStatItem(
+                            icon: Icons.rotate_right,
+                            label: l10n.statMaxCadence,
+                            value: formatCadence(l10n, effort!.maxCadenceRpm),
+                          ),
                         if (stats.avgPowerW != null)
                           RideStatItem(
                             icon: Icons.electric_bolt,
                             label: l10n.statAvgPower,
                             value: formatPower(l10n, stats.avgPowerW),
+                          ),
+                        if (effort?.maxPowerW != null)
+                          RideStatItem(
+                            icon: Icons.electric_bolt,
+                            label: l10n.statMaxPower,
+                            value: formatPower(l10n, effort!.maxPowerW),
+                          ),
+                        // An estimate, and the tile says what it rests on.
+                        if (calories != null)
+                          RideStatItem(
+                            icon: Icons.local_fire_department,
+                            label: l10n.statCalories,
+                            value: l10n.unitKcal('${calories.kcal}'),
+                            detail: calorieSourceLabel(l10n, calories.source),
                           ),
                       ],
                     ),
@@ -383,6 +418,14 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                       if (analysis.hasHeartRate) ...[
                         const SizedBox(height: 28),
                         RideHeartRateChart(samples: analysis.samples),
+                      ],
+                      if (maxHeartRateBpm != null &&
+                          analysis.effort.heartRateTime > Duration.zero) ...[
+                        const SizedBox(height: 28),
+                        RideHeartRateZones(
+                          effort: analysis.effort,
+                          maxHeartRateBpm: maxHeartRateBpm,
+                        ),
                       ],
                       if (analysis.splits.isNotEmpty) ...[
                         const SizedBox(height: 28),
@@ -432,6 +475,14 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
 
 enum _RideAction { continueRide, rename, delete, exportGpx, exportFit }
 
+/// What the calorie figure rests on, for the line under it.
+String calorieSourceLabel(AppLocalizations l10n, CalorieSource source) =>
+    switch (source) {
+      CalorieSource.power => l10n.calorieSourcePower,
+      CalorieSource.heartRate => l10n.calorieSourceHeartRate,
+      CalorieSource.speed => l10n.calorieSourceSpeed,
+    };
+
 /// One figure of [RideStatsGrid].
 class RideStatItem {
   /// Creates the item.
@@ -439,6 +490,7 @@ class RideStatItem {
     required this.icon,
     required this.label,
     required this.value,
+    this.detail,
   });
 
   /// The icon left of the label.
@@ -449,6 +501,9 @@ class RideStatItem {
 
   /// The figure, already formatted.
   final String value;
+
+  /// A small line under the figure: where an estimate came from.
+  final String? detail;
 }
 
 /// A wrapping grid of labelled figures, for the ride detail and the live
@@ -479,6 +534,7 @@ class RideStatsGrid extends StatelessWidget {
                   icon: item.icon,
                   label: item.label,
                   value: item.value,
+                  detail: item.detail,
                   size: StatSize.medium,
                 ),
               ),

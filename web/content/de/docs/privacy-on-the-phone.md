@@ -11,7 +11,7 @@ Velorki hat kein Konto, es gibt also nichts, wo man sich anmeldet, und nichts ü
 Alles, was du machst, und alles, was du herunterlädst:
 
 - geplante Routen, aufgezeichnete Fahrten und ihre GPS-Tracks,
-- deine Einstellungen, auch die gewählten Einheiten und die gewählte Stimme,
+- deine Einstellungen, auch die gewählten Einheiten und die gewählte Stimme sowie Gewicht, Geburtsjahr, Geschlecht und Maximalpuls, die du unter Einstellungen → Fahrer eintragen kannst; sie sind Einstellungen auf dem Handy und werden nirgendwohin gesendet,
 - heruntergeladene Offline-Kartengebiete,
 - heruntergeladene Routing-Kacheln und die Ortssuch-Indizes, die mitkommen,
 - die Zugriffstoken für Strava und Ride with GPS, falls du sie verbindest, die in den sicheren Speicher des Handys wandern.

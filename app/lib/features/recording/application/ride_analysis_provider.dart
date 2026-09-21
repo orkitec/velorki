@@ -11,11 +11,14 @@ import '../domain/split_length.dart';
 ///
 /// The choice and the units are part of the key because a rider who switches
 /// to miles wants mile splits, and the two sets can sit side by side in the
-/// cache.
+/// cache. The maximum heart rate cuts the zones; `null` when the rider has
+/// not switched them on, so the key does not change with a profile nobody
+/// reads.
 typedef RideAnalysisRequest = ({
   String rideId,
   SplitLength splitLength,
   UnitSystem system,
+  int? maxHeartRateBpm,
 });
 
 /// The splits, chart samples and speed bands of one ride.
@@ -34,5 +37,6 @@ final rideAnalysisProvider = FutureProvider.autoDispose
           ride.stats.distanceM,
         ),
         breaks: statsBreaksOf(ride.pauses),
+        maxHeartRateBpm: request.maxHeartRateBpm,
       );
     });

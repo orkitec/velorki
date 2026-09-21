@@ -6,6 +6,7 @@ import 'package:velorki/features/recording/data/ride_repository.dart';
 import 'package:velorki/features/recording/domain/ride_upload.dart';
 import 'package:velorki/features/recording/presentation/ride_charts.dart';
 import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
+import 'package:velorki/features/recording/presentation/ride_heart_rate_zones.dart';
 import 'package:velorki/features/recording/presentation/ride_splits.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -49,6 +50,7 @@ Future<void> _open(
   RecordingHarness harness,
   List<TrackPoint> points, {
   List<Override> extraOverrides = const <Override>[],
+  Map<String, Object> preferences = const <String, Object>{},
 }) async {
   await RideRepository(harness.planner.db.ridesDao).finalizeRide(
     rideId: 'ride-1',
@@ -62,6 +64,7 @@ Future<void> _open(
     const RideDetailScreen(rideId: 'ride-1'),
     harness: harness,
     extraOverrides: extraOverrides,
+    preferences: preferences,
   );
   await tester.pumpAndSettle();
 }
@@ -348,11 +351,131 @@ void main() {
     expect(find.text(l10n.statMaxHeartRate.toUpperCase()), findsOneWidget);
     expect(find.text(l10n.statAvgCadence.toUpperCase()), findsOneWidget);
     expect(find.text(l10n.statAvgPower.toUpperCase()), findsOneWidget);
-    expect(find.text(l10n.unitRpm('85')), findsOneWidget);
-    expect(find.text(l10n.unitWatts('200')), findsOneWidget);
+    // Steady 85 rpm and 200 W: the average and the maximum are the same
+    // figure, in two tiles each.
+    expect(find.text(l10n.statMaxCadence.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.statMaxPower.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.unitRpm('85')), findsNWidgets(2));
+    expect(find.text(l10n.unitWatts('200')), findsNWidgets(2));
     // 120 bpm rising to 147: a mean of 133 and a maximum of 147.
     expect(find.text(l10n.unitBpm('133')), findsOneWidget);
     expect(find.text(l10n.unitBpm('147')), findsOneWidget);
+    // Neither estimate was switched on.
+    expect(find.text(l10n.statCalories.toUpperCase()), findsNothing);
+    expect(find.byType(RideHeartRateZones), findsNothing);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('with the zones switched on and a maximum known, the ride shows '
+      'its time in zones', (tester) async {
+    final harness = RecordingHarness();
+    await _open(
+      tester,
+      harness,
+      _threeKilometres(withSensors: true),
+      preferences: const <String, Object>{
+        'rider.zones': true,
+        'rider.maxHeartRateBpm': 180,
+      },
+    );
+
+    expect(find.byType(RideHeartRateZones), findsOneWidget);
+    expect(
+      find.text(l10n.rideHeartRateZones(180).toUpperCase()),
+      findsOneWidget,
+    );
+    // All five rows, whether or not the ride reached the zone.
+    for (var zone = 1; zone <= 5; zone++) {
+      expect(
+        find.text(
+          l10n.rideHeartRateZoneLabel(
+            zone,
+            heartRateZoneBoundsPercent[zone - 1],
+            heartRateZoneBoundsPercent[zone],
+          ),
+        ),
+        findsOneWidget,
+      );
+    }
+    // 120–147 of 180 is 67–82 %: zones 2 to 4 hold the nine minutes, the
+    // others read nothing.
+    expect(find.text(l10n.rideHeartRateZoneShare(0)), findsNWidgets(2));
+    expect(find.text('00:00'), findsNWidgets(2));
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('the zones are not shown while the switch is off', (
+    tester,
+  ) async {
+    final harness = RecordingHarness();
+    await _open(
+      tester,
+      harness,
+      _threeKilometres(withSensors: true),
+      preferences: const <String, Object>{'rider.maxHeartRateBpm': 180},
+    );
+
+    expect(find.byType(RideHeartRateZones), findsNothing);
+    expect(find.text(l10n.rideHeartRateZones(180).toUpperCase()), findsNothing);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('with a weight and the estimate switched on, a ride without '
+      'sensors gets calories from its speed', (tester) async {
+    final harness = RecordingHarness();
+    await _open(
+      tester,
+      harness,
+      _threeKilometres(),
+      preferences: const <String, Object>{
+        'rider.calories': true,
+        'rider.weightKg': 75.0,
+      },
+    );
+
+    expect(find.text(l10n.statCalories.toUpperCase()), findsOneWidget);
+    // Nine minutes at 20 km/h is 8 MET: 8 × 0.15 h × 75 kg = 90 kcal.
+    expect(find.text(l10n.unitKcal('90')), findsOneWidget);
+    expect(find.text(l10n.calorieSourceSpeed), findsOneWidget);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('a power meter over the whole ride gives the calories from its '
+      'work', (tester) async {
+    final harness = RecordingHarness();
+    await _open(
+      tester,
+      harness,
+      _threeKilometres(withSensors: true),
+      preferences: const <String, Object>{
+        'rider.calories': true,
+        'rider.weightKg': 75.0,
+      },
+    );
+
+    // 200 W for 540 s is 108 kJ, and a kilojoule of work is a kilocalorie.
+    expect(find.text(l10n.unitKcal('108')), findsOneWidget);
+    expect(find.text(l10n.calorieSourcePower), findsOneWidget);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('without a weight the switch alone shows no calories', (
+    tester,
+  ) async {
+    final harness = RecordingHarness();
+    await _open(
+      tester,
+      harness,
+      _threeKilometres(),
+      preferences: const <String, Object>{'rider.calories': true},
+    );
+
+    expect(find.text(l10n.statCalories.toUpperCase()), findsNothing);
 
     await unmountApp(tester);
   });

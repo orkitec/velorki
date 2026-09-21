@@ -20,6 +20,7 @@ import 'appearance_section.dart';
 import 'language_section.dart';
 import 'navigation_section.dart';
 import 'recording_section.dart';
+import 'rider_section.dart';
 import 'units_section.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -45,6 +46,9 @@ class SettingsScreen extends ConsumerWidget {
           const Divider(height: 32),
           const _SectionHeader.recording(),
           const RecordingSection(),
+          const Divider(height: 32),
+          const _SectionHeader.rider(),
+          const RiderSection(),
           // Hidden where there is no health store to talk to, rather than
           // shown as a switch that cannot do anything.
           if (ref.watch(healthGatewayProvider) != null) ...const [
@@ -80,6 +84,7 @@ class _SectionHeader extends StatelessWidget {
   const _SectionHeader.appearance() : _section = _Section.appearance;
   const _SectionHeader.navigation() : _section = _Section.navigation;
   const _SectionHeader.recording() : _section = _Section.recording;
+  const _SectionHeader.rider() : _section = _Section.rider;
   const _SectionHeader.sensors() : _section = _Section.sensors;
   const _SectionHeader.subscription() : _section = _Section.subscription;
   const _SectionHeader.connections() : _section = _Section.connections;
@@ -98,6 +103,7 @@ class _SectionHeader extends StatelessWidget {
         _Section.appearance => l10n.settingsAppearance,
         _Section.navigation => l10n.settingsNavigation,
         _Section.recording => l10n.settingsRecording,
+        _Section.rider => l10n.settingsRider,
         _Section.sensors => l10n.settingsSensors,
         _Section.subscription => l10n.settingsSubscription,
         _Section.connections => l10n.settingsConnections,
@@ -113,6 +119,7 @@ enum _Section {
   appearance,
   navigation,
   recording,
+  rider,
   sensors,
   subscription,
   connections,

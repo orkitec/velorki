@@ -4062,5 +4062,145 @@
   "bleWheelCircumferenceUnit": "mm",
   "@bleWheelCircumferenceUnit": {
     "description": "Unit suffix of the wheel circumference field, millimetres"
+  },
+  "unitKcal": "{value} kcal",
+  "@unitKcal": {
+    "description": "Kilocalories, the calorie estimate of a ride",
+    "placeholders": {
+      "value": {
+        "type": "String",
+        "example": "640"
+      }
+    }
+  },
+  "statMaxCadence": "Max cadence",
+  "@statMaxCadence": {
+    "description": "Label of the highest pedalling cadence of a ride"
+  },
+  "statMaxPower": "Max power",
+  "@statMaxPower": {
+    "description": "Label of the highest pedalling power of a ride"
+  },
+  "statCalories": "Calories",
+  "@statCalories": {
+    "description": "Label of the calorie estimate on the ride page"
+  },
+  "calorieSourcePower": "from power",
+  "@calorieSourcePower": {
+    "description": "Under the calorie figure: it was computed from the power meter"
+  },
+  "calorieSourceHeartRate": "from heart rate",
+  "@calorieSourceHeartRate": {
+    "description": "Under the calorie figure: it was computed from the heart rate"
+  },
+  "calorieSourceSpeed": "estimated from speed",
+  "@calorieSourceSpeed": {
+    "description": "Under the calorie figure: it was estimated from the riding speed alone"
+  },
+  "rideHeartRateZones": "Heart-rate zones · max {max}",
+  "@rideHeartRateZones": {
+    "description": "Caption above the heart-rate zones bar on the ride page; {max} is the rider's maximum heart rate in bpm",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "example": "185"
+      }
+    }
+  },
+  "rideHeartRateZoneLabel": "Z{zone} · {low}–{high} %",
+  "@rideHeartRateZoneLabel": {
+    "description": "One heart-rate zone row: its number and the share of the maximum heart rate it covers",
+    "placeholders": {
+      "zone": {
+        "type": "int",
+        "example": "3"
+      },
+      "low": {
+        "type": "int",
+        "example": "70"
+      },
+      "high": {
+        "type": "int",
+        "example": "80"
+      }
+    }
+  },
+  "rideHeartRateZoneShare": "{percent} %",
+  "@rideHeartRateZoneShare": {
+    "description": "Share of the heart-rate time spent in one zone",
+    "placeholders": {
+      "percent": {
+        "type": "int",
+        "example": "42"
+      }
+    }
+  },
+  "settingsRider": "Rider",
+  "@settingsRider": {
+    "description": "Settings section header for what the rider tells the app about themselves"
+  },
+  "settingsRiderCalories": "Estimate calories",
+  "@settingsRiderCalories": {
+    "description": "Switch that shows a calorie estimate on each ride"
+  },
+  "settingsRiderCaloriesHint": "From your power meter when you have one, else from your heart rate, else from your speed. Needs your weight; heart rate also needs your year of birth and sex",
+  "@settingsRiderCaloriesHint": {
+    "description": "Explanation under the calorie switch"
+  },
+  "settingsRiderZones": "Heart-rate zones",
+  "@settingsRiderZones": {
+    "description": "Switch that shows the time in heart-rate zones on each ride"
+  },
+  "settingsRiderZonesHint": "Time in five zones of your max heart rate on each ride. Needs your max heart rate, or your year of birth to estimate it",
+  "@settingsRiderZonesHint": {
+    "description": "Explanation under the heart-rate zones switch"
+  },
+  "settingsRiderWeight": "Weight",
+  "@settingsRiderWeight": {
+    "description": "Label of the rider's weight field"
+  },
+  "settingsRiderWeightKg": "kg",
+  "@settingsRiderWeightKg": {
+    "description": "Unit suffix of the weight field on metric units"
+  },
+  "settingsRiderWeightLb": "lb",
+  "@settingsRiderWeightLb": {
+    "description": "Unit suffix of the weight field on imperial units"
+  },
+  "settingsRiderBirthYear": "Year of birth",
+  "@settingsRiderBirthYear": {
+    "description": "Label of the rider's year of birth field"
+  },
+  "settingsRiderSex": "Sex",
+  "@settingsRiderSex": {
+    "description": "Label above the rider's sex choice"
+  },
+  "riderSexUnspecified": "Not set",
+  "@riderSexUnspecified": {
+    "description": "Segment for a rider who does not give their sex"
+  },
+  "riderSexFemale": "Female",
+  "@riderSexFemale": {
+    "description": "Segment for a female rider"
+  },
+  "riderSexMale": "Male",
+  "@riderSexMale": {
+    "description": "Segment for a male rider"
+  },
+  "settingsRiderMaxHeartRate": "Max heart rate",
+  "@settingsRiderMaxHeartRate": {
+    "description": "Label of the rider's maximum heart rate field"
+  },
+  "settingsRiderMaxHeartRateHint": "Left empty, 220 minus your age is used",
+  "@settingsRiderMaxHeartRateHint": {
+    "description": "Helper text under the maximum heart rate field"
+  },
+  "settingsRiderMaxHeartRateUnit": "bpm",
+  "@settingsRiderMaxHeartRateUnit": {
+    "description": "Unit suffix of the maximum heart rate field, beats per minute"
+  },
+  "settingsRiderPrivacy": "Stays on this phone",
+  "@settingsRiderPrivacy": {
+    "description": "One line under the rider settings saying the data is never sent anywhere"
   }
 }

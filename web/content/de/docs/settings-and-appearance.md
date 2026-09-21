@@ -40,6 +40,16 @@ Die drei Schalter hier sind dieselben wie in der Übersicht des Tabs Aufnahme.
 
 **Energiesparen**: "Dunkle Karte, keine Animationen, nach 30 s eine schlichte Seite mit den Zahlen; der Bildschirm zieht den Akku leer". Das ganze Verhalten steht unter [Fahrt aufzeichnen](./recording-a-ride).
 
+## Fahrer
+
+Zwei Schalter, beide standardmäßig aus, und die Felder, die sie brauchen.
+
+**Kalorien schätzen** setzt eine Zahl **Kalorien** auf jede Fahrtenseite: aus deinem Leistungsmesser, wenn du einen hast, sonst aus deinem Puls, sonst aus deinem Tempo. Es braucht dein Gewicht; die Schätzung aus dem Puls braucht außerdem dein Geburtsjahr und dein Geschlecht.
+
+**Pulszonen** setzt die Zeit in fünf Zonen deines Maximalpulses unter das Herzfrequenz-Diagramm einer Fahrt. Es braucht deinen Maximalpuls oder dein Geburtsjahr, um ihn als 220 minus dein Alter zu schätzen.
+
+Ist einer der Schalter an, erscheinen die Felder: **Gewicht** (kg, bei imperialen Einheiten lb), **Geburtsjahr**, **Geschlecht** (**Keine Angabe**, **Weiblich**, **Männlich**) und **Maximalpuls** (bpm, "Bleibt es leer, gilt 220 minus dein Alter"). Alles hier bleibt auf dem Handy; siehe [Datenschutz auf dem Handy](./privacy-on-the-phone). Die Zahlen selbst sind unter [Bibliothek](./library) beschrieben.
+
 ## Sensoren
 
 **Apple Health**, unter Android **Health Connect**: "Liest den Puls, den andere Apps in Health ablegen, etwa das Training der Uhr. Wird alle paar Sekunden abgefragt, hinkt also nach; ein Gurt oder die Velorki-Uhren-App übernimmt, sobald sie melden". Das Einschalten ist es, was das Handy um Zugriff auf deine Gesundheitsdaten bittet; lehnst du ab, bleibt der Schalter aus.
