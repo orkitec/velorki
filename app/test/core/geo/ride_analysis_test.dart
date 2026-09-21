@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/core/geo/power_model.dart';
 import 'package:velorki/core/geo/ride_analysis.dart';
@@ -629,6 +631,39 @@ void main() {
       expect(effort.estimatedEnergyKj, closeTo(151 * 120 / 1000, 0.3));
     });
 
+    test('heights that wander a few metres cost little on the flat, where '
+        'clamping every second would charge every step up', () {
+      // A phone's height in a city street: a slow wander of a few metres
+      // around a flat road, the kind that books some 60 m of "ascent" on
+      // twenty minutes with none.
+      final random = math.Random(7);
+      var error = 0.0;
+      final wander = <double>[
+        for (var i = 0; i <= 1200; i++)
+          error = 0.98 * error + (random.nextDouble() * 4 - 2) * 0.5,
+      ];
+      final speed = 16 / 3.6;
+      final flat = analyseRide(
+        _ride(seconds: 1200, speedMps: speed, elevationAt: (_) => 30),
+        powerModel: model,
+      ).effort;
+      final noisy = analyseRide(
+        _ride(
+          seconds: 1200,
+          speedMps: speed,
+          elevationAt: (s) => 30 + wander[s],
+        ),
+        powerModel: model,
+      ).effort;
+
+      expect(flat.estimatedAvgPowerW, closeTo(36, 3));
+      // A third over the flat figure at most, not several times it.
+      expect(
+        noisy.estimatedAvgPowerW,
+        closeTo(flat.estimatedAvgPowerW!, flat.estimatedAvgPowerW! * 0.35),
+      );
+    });
+
     test('without a model nothing is estimated', () {
       final effort = analyseRide(
         _ride(seconds: 120, speedMps: thirtyKmh, elevationAt: (_) => 0),
@@ -669,7 +704,8 @@ void main() {
         powerModel: model,
       ).effort;
 
-      expect(climb.estimatedAvgPowerW, closeTo(203, 4));
+      // The 50 m of smoothing rounds the foot and the top off a little.
+      expect(climb.estimatedAvgPowerW, closeTo(203, 8));
       expect(descent.estimatedAvgPowerW, 0);
     });
 

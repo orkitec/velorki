@@ -63,6 +63,28 @@ double pedalPowerW(
   required double aMps2,
   required double elevationM,
 }) {
+  final power = pedalPowerRawW(
+    model,
+    vMps: vMps,
+    grade: grade,
+    aMps2: aMps2,
+    elevationM: elevationM,
+  );
+  return power < 0 ? 0 : power;
+}
+
+/// [pedalPowerW] before the clamp: negative on a descent or under braking,
+/// where the road or the brakes do the work. The analysis sums these over
+/// half a minute and clamps the sum, so a GPS height that jumps up and back
+/// down within a few fixes costs nothing, where clamping every second would
+/// charge the jump up and forgive the jump down.
+double pedalPowerRawW(
+  PowerModel model, {
+  required double vMps,
+  required double grade,
+  required double aMps2,
+  required double elevationM,
+}) {
   final theta = math.atan(grade);
   final weight = model.massKg * gravityMps2;
   final force =
@@ -70,6 +92,5 @@ double pedalPowerW(
       model.massKg * aMps2 +
       model.crr * weight * math.cos(theta) +
       0.5 * airDensityAt(elevationM) * model.cdA * vMps * vMps;
-  final power = force * vMps / drivetrainEfficiency;
-  return power < 0 ? 0 : power;
+  return force * vMps / drivetrainEfficiency;
 }

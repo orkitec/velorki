@@ -1710,8 +1710,10 @@ class _LivePanel extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  if (remainingM != null) ...[
+                  if (remainingM != null && remainingM > 0) ...[
                     const SizedBox(height: 16),
+                    // Three columns like the rows above, the third left
+                    // empty, so the figures line up with the ones over them.
                     StatRow(
                       children: [
                         StatTile(
@@ -1728,6 +1730,7 @@ class _LivePanel extends ConsumerWidget {
                                 ).formatTimeOfDay(TimeOfDay.fromDateTime(eta)),
                           size: StatSize.medium,
                         ),
+                        const SizedBox.shrink(),
                       ],
                     ),
                   ],

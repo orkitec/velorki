@@ -28,7 +28,12 @@ const List<double> speedClassQuantiles = <double>[0.2, 0.4, 0.6, 0.8];
 /// How far along the track, before and after a fix, the heights are averaged
 /// over for the power estimate's grade: raw GPS heights swing metres between
 /// fixes, and a grade taken from two raw fixes five metres apart is noise.
-const double powerGradeSmoothingM = 20;
+const double powerGradeSmoothingM = 50;
+
+/// How long a stretch the power estimate settles at once: the work over
+/// this much priced time is summed and only then clamped at zero, so a GPS
+/// height that wobbles up and down within the stretch costs nothing.
+const int powerWindowS = 30;
 
 /// The steepest grade the power estimate believes, rise over run either way;
 /// anything beyond it is a height that jumped.
@@ -906,6 +911,17 @@ RideEffort _effort(
   final powerZoneMicros = List<int>.filled(powerZoneCount, 0);
   var estimatedKj = 0.0;
   var estimatedMicros = 0;
+  // The stretch being summed, see [powerWindowS].
+  var windowKj = 0.0;
+  var windowMicros = 0;
+  void settleWindow() {
+    if (windowMicros == 0) return;
+    if (windowKj > 0) estimatedKj += windowKj;
+    estimatedMicros += windowMicros;
+    windowKj = 0;
+    windowMicros = 0;
+  }
+
   // The meter's readings in time order for the normalised power, each fix
   // once: consecutive legs share the fix between them.
   final powerSamples = <PowerSample>[];
@@ -922,16 +938,9 @@ RideEffort _effort(
     powerSamples.add((atSeconds: second, watts: watts));
   }
 
-  // The speed of the leg before, for the acceleration; `null` at the start,
-  // after a break and after a leg that was not moving: a rider standing at a
-  // light whose fixes jitter a few metres would otherwise be charged a
-  // kilowatt of "acceleration" for a second, and the model cannot tell that
-  // from setting off. Setting off is priced from the second moving leg on.
-  double? previousSpeed;
-
   for (final leg in walk.legs) {
     if (leg.isBreak) {
-      previousSpeed = null;
+      settleWindow();
       continue;
     }
     final micros = leg.duration.inMicroseconds;
@@ -939,10 +948,6 @@ RideEffort _effort(
     // Metres over seconds, not the receiver's own figure: the model prices
     // the ground that was covered.
     final measuredSpeed = seconds <= 0 ? 0.0 : leg.meters / seconds;
-    final acceleration = previousSpeed == null || seconds <= 0
-        ? 0.0
-        : (measuredSpeed - previousSpeed) / seconds;
-    previousSpeed = leg.moving ? measuredSpeed : null;
     if (!leg.moving) continue;
     final from = walk.points[leg.fromIndex];
     final to = walk.points[leg.toIndex];
@@ -962,15 +967,21 @@ RideEffort _effort(
       final elevationM = startM != null && endM != null
           ? (startM + endM) / 2
           : startM ?? endM ?? 0.0;
-      final watts = pedalPowerW(
+      // No acceleration term: a phone's speed jitters from fix to fix, and
+      // the work of setting off is given back under braking within the same
+      // stretch, so over a ride it is noise with nothing to show for it.
+      final watts = pedalPowerRawW(
         powerModel,
         vMps: measuredSpeed,
         grade: grade,
-        aMps2: acceleration,
+        aMps2: 0,
         elevationM: elevationM,
       );
-      estimatedKj += watts * seconds / 1000;
-      estimatedMicros += micros;
+      windowKj += watts * seconds / 1000;
+      windowMicros += micros;
+      if (windowMicros >= powerWindowS * Duration.microsecondsPerSecond) {
+        settleWindow();
+      }
     }
 
     for (final point in <TrackPoint>[from, to]) {
@@ -1008,6 +1019,7 @@ RideEffort _effort(
     metHours += _metOf(leg.speedMps) * seconds / Duration.secondsPerHour;
   }
 
+  settleWindow();
   return RideEffort(
     movingTime: Duration(microseconds: movingMicros),
     maxCadenceRpm: maxCadence,
