@@ -127,8 +127,13 @@ String get _defaultName => defaultRideName(
 /// gazetteer — and [WidgetTester.pumpAndSettle] drives only the frame
 /// scheduler, so each link needs its own turn of the real event loop.
 Future<void> settleSheet(WidgetTester tester) async {
-  for (var i = 0; i < 6; i++) {
+  // The sheet opens after real work — pausing the recorder, reading the
+  // journal — that takes longer on a loaded CI runner than on a laptop, so
+  // the wait is for the sheet itself rather than a fixed number of rounds,
+  // and a sheet that is not coming (a test about staying put) costs a second.
+  for (var i = 0; i < 50; i++) {
     await settleAsync(tester);
+    if (i >= 5 && find.byType(SaveRideSheet).evaluate().isNotEmpty) break;
   }
   await tester.pumpAndSettle();
 }
