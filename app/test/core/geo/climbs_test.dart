@@ -98,7 +98,9 @@ void main() {
     expect(climb.lengthM, closeTo(2000, 120));
     expect(climb.ascentM, closeTo(100, 2));
     expect(climb.avgGradePercent, closeTo(5, 0.35));
-    expect(climb.maxGradePercent, closeTo(5, 0.2));
+    // A 100 m window is a run of fixes, one fix short of 100 m at worst,
+    // and which fix that is differs in the last bit between machines.
+    expect(climb.maxGradePercent, closeTo(5, 0.35));
     // Two kilometres at 20 km/h is six minutes.
     expect(_seconds(climb.movingTime), closeTo(360, 12));
     expect(
