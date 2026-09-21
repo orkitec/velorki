@@ -16,7 +16,7 @@ Zwei getrennte Downloads machen Velorki ohne Verbindung nutzbar: die **Karte**, 
 | Größe | einige zehn Megabyte für eine Stadt | oft 125 bis 250 MB pro Kachel |
 | Ohne sie | graue Flächen dort, wo die Karte nicht zwischengespeichert ist | kein Routing und keine Offline-Suche in diesem Gebiet |
 
-Die Routing-Daten tragen auch den Ortsindex, ein heruntergeladenes Gebiet sucht also ebenfalls offline. Deshalb steht auf dem Bildschirm mit den Routing-Kacheln "Eine heruntergeladene Region bringt auch die Ortssuche ohne Empfang."
+Die Routing-Daten tragen auch den Ortsindex, ein heruntergeladenes Gebiet sucht also ebenfalls offline. Deshalb steht auf dem Bildschirm mit den Routing-Kacheln "Eine heruntergeladene Region bringt auch die Ortssuche ohne Empfang." Dieselbe heruntergeladene Region gibt einer aufgezeichneten Fahrt auch ihren Belag, siehe [die Bibliothek](./library).
 
 ## Ein Gebiet herunterladen
 

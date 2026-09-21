@@ -1404,6 +1404,18 @@
       }
     }
   },
+  "rideSurfaceComputing": "Matching the track to the map…",
+  "@rideSurfaceComputing": {
+    "description": "Under the Surface caption of a ride page while the track is being routed through the offline tiles"
+  },
+  "rideSurfaceNoTiles": "Download the routing region for this area to see the surface",
+  "@rideSurfaceNoTiles": {
+    "description": "Under the Surface caption of a ride page when the routing tiles for the ride's area are not on the phone"
+  },
+  "rideSurfaceUnavailable": "The track could not be matched to the map",
+  "@rideSurfaceUnavailable": {
+    "description": "Under the Surface caption of a ride page when the router found no way along the recorded track"
+  },
   "rideSplitColumn": "Split",
   "@rideSplitColumn": {
     "description": "Column heading of the splits table, over the length of each split"

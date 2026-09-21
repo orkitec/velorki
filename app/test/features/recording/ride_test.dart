@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/core/geo/ride_stats.dart';
 import 'package:velorki/features/recording/domain/ride.dart';
 import 'package:velorki/features/recording/domain/ride_upload.dart';
+import 'package:velorki_brouter/velorki_brouter.dart' show SurfaceStats;
 import 'package:velorki_geo/velorki_geo.dart';
 
 final DateTime _start = DateTime.utc(2026, 9, 12, 10);
@@ -161,6 +162,43 @@ void main() {
 
       expect(decoded, hasLength(1));
       expect(decoded.single.startedAt, _start);
+    });
+  });
+
+  group('encodeRideSurface / decodeRideSurface', () {
+    const stats = SurfaceStats(
+      pavedShare: 0.5,
+      unpavedShare: 0.3,
+      unknownShare: 0.2,
+      cyclewayShare: 0.1,
+      busyShare: 0,
+      coveredLengthM: 990,
+      totalLengthM: 1000,
+    );
+
+    test('statistics survive the column', () {
+      final cache = RideSurfaceCache(stats: stats);
+      expect(decodeRideSurface(encodeRideSurface(cache)), cache);
+    });
+
+    test('the marker is a flag, and comes back as the marker', () {
+      expect(
+        encodeRideSurface(RideSurfaceCache.unmatched),
+        '{"unavailable":true}',
+      );
+      expect(
+        decodeRideSurface('{"unavailable":true}'),
+        RideSurfaceCache.unmatched,
+      );
+      expect(decodeRideSurface('{"unavailable":true}')!.stats, isNull);
+    });
+
+    test('an empty or unreadable column means not matched yet', () {
+      expect(decodeRideSurface(null), isNull);
+      expect(decodeRideSurface(''), isNull);
+      expect(decodeRideSurface('['), isNull);
+      expect(decodeRideSurface('[1]'), isNull);
+      expect(decodeRideSurface('{}'), isNull);
     });
   });
 

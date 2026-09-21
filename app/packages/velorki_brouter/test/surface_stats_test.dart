@@ -160,4 +160,29 @@ void main() {
     expect(s.offRoadShare, 0);
     expect(SurfaceStats.empty.offRoadShare, 0);
   });
+
+  test('toJson and fromJson round-trip every share', () {
+    const stats = SurfaceStats(
+      pavedShare: 0.5,
+      unpavedShare: 0.25,
+      unknownShare: 0.25,
+      cyclewayShare: 0.1,
+      busyShare: 0.05,
+      coveredLengthM: 990,
+      totalLengthM: 1000,
+      offRoadShare: 0.02,
+    );
+    expect(SurfaceStats.fromJson(stats.toJson()), stats);
+  });
+
+  test('fromJson reads a row written without the off-road share', () {
+    final stats = SurfaceStats.fromJson(<String, dynamic>{
+      'paved': 1,
+      'totalLengthM': 100,
+    });
+    expect(stats.pavedShare, 1);
+    expect(stats.totalLengthM, 100);
+    expect(stats.offRoadShare, 0);
+    expect(stats.unpavedShare, 0);
+  });
 }

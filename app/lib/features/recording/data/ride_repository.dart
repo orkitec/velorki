@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqlite3/common.dart' show SqliteException;
+import 'package:velorki_brouter/velorki_brouter.dart' show SurfaceStats;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../core/db/daos/rides_dao.dart';
@@ -119,6 +120,21 @@ class RideRepository {
     );
   }
 
+  /// Keeps the surface breakdown matched for [rideId], so the page never
+  /// routes the track twice. An unknown id changes nothing.
+  Future<void> setSurface(String rideId, SurfaceStats stats) =>
+      _dao.setRideSurface(
+        rideId,
+        encodeRideSurface(RideSurfaceCache(stats: stats)),
+      );
+
+  /// Remembers that the track of [rideId] could not be matched, so it is not
+  /// tried again on every open. A new tile clears the marker.
+  Future<void> markSurfaceUnavailable(String rideId) => _dao.setRideSurface(
+    rideId,
+    encodeRideSurface(RideSurfaceCache.unmatched),
+  );
+
   /// Maps a database row into the domain model.
   Ride toDomain(RideRow row) => Ride(
     id: row.id,
@@ -145,6 +161,7 @@ class RideRepository {
     pauses: decodeRidePauses(row.pausesJson),
     uploads: decodeRideUploads(row.uploadsJson),
     notes: row.notes,
+    surface: decodeRideSurface(row.surfaceStatsJson),
   );
 
   /// Maps the domain model into a row for `INSERT OR REPLACE`.
@@ -171,6 +188,9 @@ class RideRepository {
       ride.uploads.isEmpty ? null : encodeRideUploads(ride.uploads),
     ),
     notes: Value(ride.notes),
+    surfaceStatsJson: Value(
+      ride.surface == null ? null : encodeRideSurface(ride.surface!),
+    ),
   );
 
   /// Writes the row, dropping the route link when the followed route was

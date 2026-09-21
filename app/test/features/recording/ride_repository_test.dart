@@ -10,6 +10,7 @@ import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/features/recording/domain/recording_state.dart';
 import 'package:velorki/features/recording/domain/ride.dart';
 import 'package:velorki/features/recording/domain/ride_upload.dart';
+import 'package:velorki_brouter/velorki_brouter.dart' show SurfaceStats;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import 'support/fakes.dart';
@@ -183,6 +184,45 @@ void main() {
         expect((await repository.rideById('ride-1'))!.routeId, isNull);
       },
     );
+
+    test('the matched surface goes into the row and comes back', () async {
+      await repository.finalizeRide(
+        rideId: 'ride-1',
+        name: 'Morning loop',
+        points: _track(5),
+        startedAt: DateTime.utc(2026, 9, 12, 10),
+        endedAt: DateTime.utc(2026, 9, 12, 10, 0, 4),
+      );
+      expect((await repository.rideById('ride-1'))!.surface, isNull);
+
+      const stats = SurfaceStats(
+        pavedShare: 0.7,
+        unpavedShare: 0.2,
+        unknownShare: 0.1,
+        cyclewayShare: 0.3,
+        busyShare: 0.05,
+        coveredLengthM: 2950,
+        totalLengthM: 3000,
+      );
+      await repository.setSurface('ride-1', stats);
+      final matched = (await repository.rideById('ride-1'))!;
+      expect(matched.surfaceStats, stats);
+      expect(matched.surface!.unavailable, isFalse);
+
+      // Saving the ride as it is, as an undo does, keeps the surface.
+      await repository.save(matched);
+      expect((await repository.rideById('ride-1'))!.surfaceStats, stats);
+
+      await repository.markSurfaceUnavailable('ride-1');
+      final marked = (await repository.rideById('ride-1'))!;
+      expect(marked.surfaceStats, isNull);
+      expect(marked.surface, RideSurfaceCache.unmatched);
+      await repository.save(marked);
+      expect(
+        (await repository.rideById('ride-1'))!.surface,
+        RideSurfaceCache.unmatched,
+      );
+    });
 
     test('renames, deletes and restores', () async {
       final ride = await repository.finalizeRide(

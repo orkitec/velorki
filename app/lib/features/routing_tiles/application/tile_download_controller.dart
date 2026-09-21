@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:velorki_brouter/velorki_brouter.dart' hide CancelToken;
 
+import '../../../core/db/database.dart';
 import '../data/routing_tiles_repository.dart';
 import '../data/tile_downloader.dart';
 
@@ -167,6 +168,9 @@ class TileDownloadQueue extends _$TileDownloadQueue {
           final file = await downloader.download(entry, cancelToken: token);
           await _fetchGazetteer(downloader, entry, token);
           await repository.markReady(entry, bytes: await file.length());
+          // A ride whose track the old tiles could not follow gets another
+          // go with the new ones, next time its page opens.
+          await ref.read(ridesDaoProvider).clearUnmatchedSurfaces();
           if (_disposed) return;
           state = state.copyWith(
             finished: <TileName>[...state.finished, entry.tile],

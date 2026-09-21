@@ -38,6 +38,19 @@ class RidesDao extends DatabaseAccessor<VelorkiDatabase> with _$RidesDaoMixin {
         RidesCompanion(uploadsJson: Value(uploadsJson)),
       );
 
+  /// Replaces the `surface_stats_json` column of [id]; `null` clears it.
+  Future<int> setRideSurface(String id, String? surfaceStatsJson) =>
+      (update(rides)..where((t) => t.id.equals(id))).write(
+        RidesCompanion(surfaceStatsJson: Value(surfaceStatsJson)),
+      );
+
+  /// Clears the `surface_stats_json` of every ride whose matching failed, so
+  /// it is tried again: a new or rebuilt tile may cover what the old ones
+  /// did not.
+  Future<int> clearUnmatchedSurfaces() =>
+      (update(rides)..where((t) => t.surfaceStatsJson.like('%"unavailable"%')))
+          .write(const RidesCompanion(surfaceStatsJson: Value(null)));
+
   Future<int> deleteRide(String id) =>
       (delete(rides)..where((t) => t.id.equals(id))).go();
 

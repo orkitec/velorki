@@ -12,6 +12,8 @@ import 'package:velorki/features/recording/presentation/ride_detail_screen.dart'
 import 'package:velorki/features/recording/presentation/ride_heart_rate_zones.dart';
 import 'package:velorki/features/recording/presentation/ride_power_zones.dart';
 import 'package:velorki/features/recording/presentation/ride_splits.dart';
+import 'package:velorki/features/planner/presentation/surface_stats_bar.dart';
+import 'package:velorki_brouter/velorki_brouter.dart' show SurfaceStats;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
@@ -830,6 +832,63 @@ void main() {
     expect(find.textContaining(' ft'), findsWidgets);
     expect(find.textContaining(' km'), findsNothing);
     expect(find.textContaining(' km/h'), findsNothing);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('a ride with a matched surface shows the planner bar', (
+    tester,
+  ) async {
+    final harness = RecordingHarness();
+    await _seed(harness);
+    await RideRepository(harness.planner.db.ridesDao).setSurface(
+      'ride-1',
+      const SurfaceStats(
+        pavedShare: 0.75,
+        unpavedShare: 0.25,
+        unknownShare: 0,
+        cyclewayShare: 0.5,
+        busyShare: 0,
+        coveredLengthM: 1300,
+        totalLengthM: 1300,
+      ),
+    );
+    await pumpRecordingScreen(
+      tester,
+      const RideDetailScreen(rideId: 'ride-1'),
+      harness: harness,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SurfaceStatsBar), findsOneWidget);
+    expect(find.text(l10n.surfaceTitle.toUpperCase()), findsOneWidget);
+    expect(find.textContaining(l10n.surfacePaved), findsOneWidget);
+    expect(find.text(l10n.rideSurfaceUnavailable), findsNothing);
+    expect(find.text(l10n.rideSurfaceComputing), findsNothing);
+    // The row answered: nothing was routed.
+    expect(harness.planner.backend.callCount, 0);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('a ride the map could not follow says so under the caption', (
+    tester,
+  ) async {
+    final harness = RecordingHarness();
+    await _seed(harness);
+    await RideRepository(harness.planner.db.ridesDao)
+        .markSurfaceUnavailable('ride-1');
+    await pumpRecordingScreen(
+      tester,
+      const RideDetailScreen(rideId: 'ride-1'),
+      harness: harness,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.surfaceTitle.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.rideSurfaceUnavailable), findsOneWidget);
+    expect(find.byType(SurfaceStatsBar), findsNothing);
+    expect(harness.planner.backend.callCount, 0);
 
     await unmountApp(tester);
   });

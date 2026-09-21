@@ -280,17 +280,9 @@ RoutingOptions decodeOptions(String json) {
   return RoutingOptions.fromMap(decoded);
 }
 
-/// The `surface_stats_json` column.
-Map<String, dynamic> encodeSurfaceStats(SurfaceStats stats) =>
-    <String, dynamic>{
-      'paved': stats.pavedShare,
-      'unpaved': stats.unpavedShare,
-      'unknown': stats.unknownShare,
-      'cycleway': stats.cyclewayShare,
-      'busy': stats.busyShare,
-      'coveredLengthM': stats.coveredLengthM,
-      'totalLengthM': stats.totalLengthM,
-    };
+/// The `surface_stats_json` column, as [SurfaceStats.toJson] writes it. The
+/// rides table stores its matched surface in the same shape.
+Map<String, dynamic> encodeSurfaceStats(SurfaceStats stats) => stats.toJson();
 
 /// The `pois_json` column: null rather than `[]` for a route without any.
 String? encodePois(List<RoutePoi> pois) =>
@@ -334,16 +326,7 @@ SurfaceStats? decodeSurfaceStats(String? json) {
   if (json == null || json.isEmpty) return null;
   final decoded = _tryDecode(json);
   if (decoded is! Map<String, dynamic>) return null;
-  double at(String key) => (decoded[key] as num? ?? 0).toDouble();
-  return SurfaceStats(
-    pavedShare: at('paved'),
-    unpavedShare: at('unpaved'),
-    unknownShare: at('unknown'),
-    cyclewayShare: at('cycleway'),
-    busyShare: at('busy'),
-    coveredLengthM: at('coveredLengthM'),
-    totalLengthM: at('totalLengthM'),
-  );
+  return SurfaceStats.fromJson(decoded);
 }
 
 Object? _tryDecode(String json) {

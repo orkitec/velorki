@@ -33,6 +33,11 @@ class Rides extends Table {
   TextColumn get uploadsJson => text().nullable()();
   TextColumn get notes => text().nullable()();
 
+  /// The surface breakdown matched from the routing tiles, as
+  /// `SurfaceStats.toJson`, or `{"unavailable": true}` once matching failed
+  /// for good; null until it was tried.
+  TextColumn get surfaceStatsJson => text().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

@@ -135,11 +135,11 @@
       "record": {
         "eyebrow": "Recording",
         "title": "It keeps recording when the phone does not",
-        "body": "Recording runs in the background with a foreground notification on Android and a live activity on iOS, and survives the app being killed. Battery saver dims the screen and coarsens the GPS. Heart rate, cadence and power come along from an Apple Watch, a Bluetooth sensor or your health app, if you switch them on. Afterwards, ride pages with elevation, speed, heart rate, splits sized to the ride and a speed-coloured track, and on request calories, heart-rate zones and an estimated power for rides without a meter.",
+        "body": "Recording runs in the background with a foreground notification on Android and a live activity on iOS, and survives the app being killed. Battery saver dims the screen and coarsens the GPS. Heart rate, cadence and power come along from an Apple Watch, a Bluetooth sensor or your health app, if you switch them on. Afterwards, ride pages with elevation, speed, heart rate, splits sized to the ride, the climbs you rode, the surface under your wheels from the offline map, and a speed-coloured track; on request calories, heart-rate and power zones, normalised power and an estimated power for rides without a meter.",
         "bullets": {
           "one": "Background recording that survives the app being killed",
           "two": "Heart rate, cadence and power from a watch or a Bluetooth sensor, all optional",
-          "three": "Ride pages with splits, a speed-coloured track, and calories, zones and estimated power if you want them"
+          "three": "Ride pages with splits, climbs, surface and a speed-coloured track; calories, zones and estimated power if you want them"
         }
       },
       "sensors": {
@@ -189,7 +189,7 @@
         "offlineMaps": "Offline map and routing regions",
         "offlineSearch": "Offline place and POI search",
         "navigation": "Turn-by-turn with spoken cues",
-        "recording": "Ride recording, stats, splits, calories and heart-rate zones",
+        "recording": "Ride recording, stats, splits, climbs, surface, calories and zones",
         "sensors": "Heart rate, cadence and power from sensors, watch and health app",
         "library": "Library of routes and rides",
         "files": "GPX and FIT import and export",

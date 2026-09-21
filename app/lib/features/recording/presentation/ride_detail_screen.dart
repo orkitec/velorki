@@ -15,12 +15,14 @@ import '../../integrations/presentation/ride_upload_menu.dart';
 import '../../map/domain/map_controller.dart';
 import '../../planner/presentation/planner_map_host.dart';
 import '../../planner/presentation/route_format.dart';
+import '../../planner/presentation/surface_stats_bar.dart';
 import '../../settings/data/units.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/placeholder_body.dart';
 import '../../sharing/presentation/share_link_button.dart';
 import '../application/recording_controller.dart';
 import '../application/ride_analysis_provider.dart';
+import '../application/ride_surface.dart';
 import '../data/recording_settings.dart';
 import '../data/recording_service.dart';
 import '../data/ride_repository.dart';
@@ -502,6 +504,8 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                         RideClimbsTable(climbs: analysis.climbs),
                       ],
                     ],
+                    const SizedBox(height: 28),
+                    RideSurfaceSection(rideId: saved.id),
                     const SizedBox(height: 24),
                     Wrap(
                       spacing: 8,
@@ -541,6 +545,62 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
 }
 
 enum _RideAction { continueRide, rename, delete, exportGpx, exportFit }
+
+/// What the ride was ridden on, matched from the offline routing tiles: the
+/// planner's surface bar once there is an answer, and until then the caption
+/// with a thin progress line, so the rest of the page never waits for it.
+class RideSurfaceSection extends ConsumerWidget {
+  /// Creates the section for the ride [rideId].
+  const RideSurfaceSection({required this.rideId, super.key});
+
+  /// Id of the ride in the `rides` table.
+  final String rideId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final quiet = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    final surface = ref.watch(rideSurfaceProvider(rideId));
+
+    Widget note(String text) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionCaption(l10n.surfaceTitle),
+        const SizedBox(height: 10),
+        Text(text, style: quiet),
+      ],
+    );
+
+    return surface.when(
+      // A write-back re-runs the provider; the answer it then reads off the
+      // row is the one already on screen, so no flicker in between.
+      skipLoadingOnReload: true,
+      loading: () => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionCaption(l10n.surfaceTitle),
+          const SizedBox(height: 10),
+          const LinearProgressIndicator(minHeight: 2),
+          const SizedBox(height: 8),
+          Text(l10n.rideSurfaceComputing, style: quiet),
+        ],
+      ),
+      error: (_, _) => note(l10n.rideSurfaceUnavailable),
+      data: (result) => switch (result.state) {
+        RideSurfaceState.matched => SurfaceStatsBar(stats: result.stats),
+        RideSurfaceState.noTiles => note(l10n.rideSurfaceNoTiles),
+        RideSurfaceState.unmatched => note(l10n.rideSurfaceUnavailable),
+        // A build without on-device routing has nothing to match against, and
+        // a line saying the track "could not be matched" would blame the
+        // track; the section simply is not there.
+        RideSurfaceState.noRouting => const SizedBox.shrink(),
+      },
+    );
+  }
+}
 
 /// What the calorie figure rests on, for the line under it.
 String calorieSourceLabel(AppLocalizations l10n, CalorieSource source) =>

@@ -121,8 +121,8 @@ void main() {
   setUp(() => db = VelorkiDatabase.memory());
   tearDown(() => db.close());
 
-  test('schema version is 5', () {
-    expect(db.schemaVersion, 5);
+  test('schema version is 6', () {
+    expect(db.schemaVersion, 6);
   });
 
   test('a schema 1 database is upgraded and keeps its routes', () async {
@@ -229,6 +229,55 @@ void main() {
     expect(row.maxHeartRateBpm, isNull);
     expect(row.avgCadenceRpm, isNull);
     expect(row.avgPowerW, isNull);
+  });
+
+  test('a schema 5 database gains the surface of its rides', () async {
+    await db.close();
+
+    final v5 = VelorkiDatabase(
+      NativeDatabase.memory(
+        setup: (raw) {
+          raw
+            ..execute(_routesV1Ddl)
+            ..execute('ALTER TABLE routes ADD COLUMN turns_json TEXT NULL')
+            ..execute('ALTER TABLE routes ADD COLUMN pois_json TEXT NULL')
+            ..execute(_offlineRegionsV1Ddl)
+            ..execute(
+              'ALTER TABLE offline_regions ADD COLUMN downloaded_at TEXT NULL',
+            )
+            ..execute(_ridesV3Ddl)
+            ..execute(
+              'ALTER TABLE rides ADD COLUMN avg_heart_rate_bpm INT NULL',
+            )
+            ..execute(
+              'ALTER TABLE rides ADD COLUMN max_heart_rate_bpm INT NULL',
+            )
+            ..execute('ALTER TABLE rides ADD COLUMN avg_cadence_rpm INT NULL')
+            ..execute('ALTER TABLE rides ADD COLUMN avg_power_w INT NULL')
+            ..execute(
+              "INSERT INTO rides VALUES ('old', 'Before the upgrade', "
+              "'2026-09-12T08:00:00.000Z', '2026-09-12T10:00:00.000Z', "
+              "38000.0, 6400, 7200, 280.0, 275.0, 5.9, 13.2, NULL, x'0909', "
+              "'[]', NULL, NULL, 150, 180, 85, 210)",
+            )
+            ..userVersion = 5;
+        },
+      ),
+    );
+    addTearDown(v5.close);
+
+    final row = await v5.ridesDao.rideById('old');
+
+    expect(row, isNotNull);
+    expect(row!.name, 'Before the upgrade');
+    expect(row.avgHeartRateBpm, 150);
+    expect(row.surfaceStatsJson, isNull, reason: 'the new column starts empty');
+
+    await v5.ridesDao.setRideSurface('old', '{"unavailable":true}');
+    expect(
+      (await v5.ridesDao.rideById('old'))!.surfaceStatsJson,
+      '{"unavailable":true}',
+    );
   });
 
   group('routes', () {

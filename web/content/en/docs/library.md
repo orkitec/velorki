@@ -87,6 +87,10 @@ Under the splits, on a ride that had any, a **Climbs** table: one row per climb 
 
 A climb is found the way the record sheet's profile finds the one you are on: it starts where the next 100 m of road rise by at least 3 %, and it ends at its high point once the road has dropped 10 m below it, so a dip in a long climb does not cut it in two. Rises shorter than 300 m, gaining less than 20 m or averaging under 3 % from foot to top are not listed. Heights are smoothed over 20 m first, as for the power estimate, and pauses count towards neither the time nor the height.
 
+### Surface
+
+Under the climbs, a **Surface** bar like the one on a route page: how much of the ride was paved, unpaved or unknown, with the cycleway and busy-road shares beside it. The ride was never planned, so the app finds out afterwards: it lays the recorded track over the offline routing tiles on the phone and reads the surface off the roads it lands on. No track leaves the phone for this. It needs the routing region for the area to be downloaded; until it is, the section says so. A track the map cannot follow, through a park, over a ferry or along a cut through, shows "The track could not be matched to the map" instead, and the result, either way, is kept with the ride, so it is worked out once. A new routing tile gives an unmatched ride another go.
+
 ### Ride actions
 
 - The cloud button at the top right uploads the ride to a connected service.

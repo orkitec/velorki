@@ -135,11 +135,11 @@
       "record": {
         "eyebrow": "Aufnahme",
         "title": "Sie zeichnet weiter auf, auch wenn das Handy es nicht tut",
-        "body": "Die Aufnahme läuft im Hintergrund, mit einer Benachrichtigung im Vordergrund auf Android und einer Live-Aktivität auf iOS, und übersteht es, wenn die App beendet wird. Der Akkusparmodus dimmt den Bildschirm und macht das GPS gröber. Puls, Trittfrequenz und Leistung kommen von der Apple Watch, einem Bluetooth-Sensor oder deiner Health-App dazu, wenn du sie einschaltest. Danach gibt es Fahrtseiten mit Höhe, Geschwindigkeit, Puls, zur Fahrt passenden Splits und einem nach Geschwindigkeit eingefärbten Track, und auf Wunsch Kalorien, Pulszonen und eine geschätzte Leistung für Fahrten ohne Messgerät.",
+        "body": "Die Aufnahme läuft im Hintergrund, mit einer Benachrichtigung im Vordergrund auf Android und einer Live-Aktivität auf iOS, und übersteht es, wenn die App beendet wird. Der Akkusparmodus dimmt den Bildschirm und macht das GPS gröber. Puls, Trittfrequenz und Leistung kommen von der Apple Watch, einem Bluetooth-Sensor oder deiner Health-App dazu, wenn du sie einschaltest. Danach gibt es Fahrtseiten mit Höhe, Geschwindigkeit, Puls, zur Fahrt passenden Splits, den gefahrenen Anstiegen, dem Belag unter deinen Reifen aus der Offline-Karte und einem nach Geschwindigkeit eingefärbten Track; auf Wunsch Kalorien, Puls- und Leistungszonen, normalisierte Leistung und eine geschätzte Leistung für Fahrten ohne Messgerät.",
         "bullets": {
           "one": "Aufnahme im Hintergrund, die das Beenden der App übersteht",
           "two": "Puls, Trittfrequenz und Leistung von Uhr oder Bluetooth-Sensor, alles optional",
-          "three": "Fahrtseiten mit Splits, eingefärbtem Track und, wenn du willst, Kalorien, Pulszonen und geschätzter Leistung"
+          "three": "Fahrtseiten mit Splits, Anstiegen, Belag und eingefärbtem Track; Kalorien, Zonen und geschätzte Leistung, wenn du willst"
         }
       },
       "sensors": {
@@ -189,7 +189,7 @@
         "offlineMaps": "Offline-Karten- und Routing-Regionen",
         "offlineSearch": "Offline-Suche nach Orten und POIs",
         "navigation": "Abbiegehinweise mit Sprachausgabe",
-        "recording": "Fahrtenaufzeichnung, Statistik, Splits, Kalorien und Pulszonen",
+        "recording": "Fahrtenaufzeichnung, Statistik, Splits, Anstiege, Belag, Kalorien und Zonen",
         "sensors": "Puls, Trittfrequenz und Leistung von Sensoren, Uhr und Health-App",
         "library": "Bibliothek mit Routen und Fahrten",
         "files": "GPX- und FIT-Import und -Export",

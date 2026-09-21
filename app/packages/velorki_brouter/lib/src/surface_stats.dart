@@ -191,6 +191,34 @@ class SurfaceStats {
     );
   }
 
+  /// This as JSON, for a database column. [fromJson] reads it back.
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'paved': pavedShare,
+    'unpaved': unpavedShare,
+    'unknown': unknownShare,
+    'cycleway': cyclewayShare,
+    'busy': busyShare,
+    'coveredLengthM': coveredLengthM,
+    'totalLengthM': totalLengthM,
+    'offRoad': offRoadShare,
+  };
+
+  /// Reads [toJson] back. A missing key reads as zero, so a row written
+  /// before a share existed still comes back.
+  factory SurfaceStats.fromJson(Map<String, dynamic> json) {
+    double at(String key) => (json[key] as num? ?? 0).toDouble();
+    return SurfaceStats(
+      pavedShare: at('paved'),
+      unpavedShare: at('unpaved'),
+      unknownShare: at('unknown'),
+      cyclewayShare: at('cycleway'),
+      busyShare: at('busy'),
+      coveredLengthM: at('coveredLengthM'),
+      totalLengthM: at('totalLengthM'),
+      offRoadShare: at('offRoad'),
+    );
+  }
+
   static bool _hasCycleInfrastructure(Map<String, String> tags) {
     for (final e in tags.entries) {
       if (e.key == 'cycleway' || e.key.startsWith('cycleway:')) {

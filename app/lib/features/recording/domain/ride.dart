@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:velorki_brouter/velorki_brouter.dart' show SurfaceStats;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../core/geo/ride_stats.dart';
@@ -101,6 +102,64 @@ List<RidePause> decodeRidePauses(String? json) {
   ];
 }
 
+/// What the `surface_stats_json` column of a ride holds.
+///
+/// Null until the ride was ever matched against the routing tiles; [stats]
+/// once it was; [unavailable] once matching failed for a reason a retry
+/// would not change, so the page does not route the track again on every
+/// open. A ride whose area had no tiles is not recorded at all: it is tried
+/// again once they are there.
+class RideSurfaceCache {
+  /// Creates the cache entry.
+  const RideSurfaceCache({this.stats, this.unavailable = false});
+
+  /// The marker for a track the map could not follow.
+  static const RideSurfaceCache unmatched = RideSurfaceCache(unavailable: true);
+
+  /// The matched surface breakdown, when there is one.
+  final SurfaceStats? stats;
+
+  /// Whether matching failed for good.
+  final bool unavailable;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RideSurfaceCache &&
+          other.stats == stats &&
+          other.unavailable == unavailable;
+
+  @override
+  int get hashCode => Object.hash(stats, unavailable);
+
+  @override
+  String toString() => unavailable ? 'RideSurfaceCache.unmatched' : '$stats';
+}
+
+/// The `surface_stats_json` column: the statistics as `SurfaceStats.toJson`,
+/// or `{"unavailable": true}` for a track that could not be matched.
+String encodeRideSurface(RideSurfaceCache cache) => jsonEncode(
+  cache.unavailable
+      ? const <String, Object?>{'unavailable': true}
+      : cache.stats?.toJson() ?? const <String, Object?>{},
+);
+
+/// Parses the `surface_stats_json` column; null or anything unreadable
+/// means "not matched yet", which is safe: the page then matches again.
+RideSurfaceCache? decodeRideSurface(String? json) {
+  if (json == null || json.isEmpty) return null;
+  Object? decoded;
+  try {
+    decoded = jsonDecode(json);
+  } on FormatException {
+    return null;
+  }
+  if (decoded is! Map<String, dynamic>) return null;
+  if (decoded['unavailable'] == true) return RideSurfaceCache.unmatched;
+  final stats = SurfaceStats.fromJson(decoded);
+  return stats.totalLengthM > 0 ? RideSurfaceCache(stats: stats) : null;
+}
+
 /// A finished ride, as the app works with it.
 ///
 /// The geometry stays packed until something actually needs the points, which
@@ -118,6 +177,7 @@ class Ride {
     this.pauses = const <RidePause>[],
     this.uploads = const <String, RideUpload>{},
     this.notes,
+    this.surface,
   });
 
   /// Row id, a uuid.
@@ -150,6 +210,13 @@ class Ride {
   /// Free text the rider added.
   final String? notes;
 
+  /// What the routing tiles said about the surface, once the ride was matched
+  /// against them; null until then.
+  final RideSurfaceCache? surface;
+
+  /// The matched surface breakdown, when there is one.
+  SurfaceStats? get surfaceStats => surface?.stats;
+
   List<TrackPoint>? _points;
 
   /// The track points, decoded once and kept.
@@ -174,6 +241,7 @@ class Ride {
     String? name,
     String? notes,
     Map<String, RideUpload>? uploads,
+    RideSurfaceCache? surface,
   }) => Ride(
     id: id,
     name: name ?? this.name,
@@ -185,6 +253,7 @@ class Ride {
     pauses: pauses,
     uploads: uploads ?? this.uploads,
     notes: notes ?? this.notes,
+    surface: surface ?? this.surface,
   );
 
   List<TrackPoint> _decode() {

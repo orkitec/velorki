@@ -87,6 +87,10 @@ Unter den Splits, auf einer Fahrt, die welche hatte, die Tabelle **Anstiege**: e
 
 Ein Anstieg wird so gefunden, wie das Profil im Aufnahme-Blatt den findet, auf dem du gerade bist: Er beginnt, wo die nächsten 100 m Straße um mindestens 3 % steigen, und endet an seinem höchsten Punkt, sobald die Straße 10 m darunter gefallen ist, damit eine Senke in einem langen Anstieg ihn nicht in zwei teilt. Steigungen kürzer als 300 m, mit weniger als 20 m Höhengewinn oder im Mittel unter 3 % von Fuß bis Kuppe werden nicht aufgeführt. Die Höhen werden vorher über 20 m geglättet, wie für die Leistungsschätzung, und Pausen zählen weder zur Zeit noch zur Höhe.
 
+### Belag
+
+Unter den Anstiegen ein Balken **Belag** wie auf einer Routenseite: wie viel der Fahrt asphaltiert, unbefestigt oder unbekannt war, daneben die Anteile Radweg und viel befahrene Straßen. Die Fahrt wurde nie geplant, also findet die App es hinterher heraus: Sie legt den aufgezeichneten Track auf die Offline-Routing-Kacheln auf dem Handy und liest den Belag von den Straßen ab, auf denen er landet. Kein Track verlässt dafür das Handy. Dazu muss die Routing-Region der Gegend heruntergeladen sein; bis dahin sagt der Abschnitt das. Ein Track, dem die Karte nicht folgen kann, durch einen Park, über eine Fähre oder eine Abkürzung, zeigt stattdessen "Der Track ließ sich nicht auf die Karte legen", und das Ergebnis bleibt so oder so bei der Fahrt, wird also nur einmal ermittelt. Eine neue Routing-Kachel gibt einer nicht zugeordneten Fahrt einen neuen Versuch.
+
 ### Aktionen einer Fahrt
 
 - Die Wolken-Schaltfläche oben rechts lädt die Fahrt zu einem verbundenen Dienst hoch.
