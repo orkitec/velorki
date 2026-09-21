@@ -354,6 +354,7 @@ class RideAnalysis {
     required this.splitLengthM,
     this.effort = RideEffort.zero,
     this.climbs = const <RideClimb>[],
+    this.distanceAt = const <double>[],
   });
 
   /// A ride with nothing in it.
@@ -382,6 +383,11 @@ class RideAnalysis {
 
   /// The climbs, in riding order; empty on a ride without one worth listing.
   final List<RideClimb> climbs;
+
+  /// How far along the ride every fix of the track is, in metres, measured
+  /// as the splits, the climbs and the samples are — a rejected fix stands
+  /// where the one before it did. Empty for a ride with nothing in it.
+  final List<double> distanceAt;
 
   /// Whether there is an elevation chart to draw.
   bool get hasElevation =>
@@ -451,6 +457,7 @@ RideAnalysis analyseRide(
       powerModel: powerModel,
     ),
     climbs: detectClimbs(_climbLegs(walk, smoothedElevation)),
+    distanceAt: List<double>.unmodifiable(walk.distanceAt),
   );
 }
 

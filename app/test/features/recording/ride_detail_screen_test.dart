@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/core/files/track_exporter.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
+import 'package:velorki/features/recording/domain/ride_range.dart';
 import 'package:velorki/features/recording/domain/ride_upload.dart';
 import 'package:velorki/core/geo/power_metrics.dart';
 import 'package:velorki/core/geo/ride_analysis.dart';
@@ -117,6 +118,27 @@ List<int> _wattsShown(WidgetTester tester) {
         if (pattern.firstMatch(widget.data!) case final match?)
           int.parse(match.group(1)!),
   ];
+}
+
+/// Scrolls [finder] into view and taps it.
+Future<void> _tapRow(WidgetTester tester, Finder finder) async {
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
+  await tester.tap(finder);
+  await tester.pumpAndSettle();
+}
+
+/// The range the elevation chart and the speed chart shade, which must be
+/// the same one.
+RideRange? _chartHighlight(WidgetTester tester) {
+  final elevation = tester
+      .widget<RideElevationChart>(find.byType(RideElevationChart))
+      .highlight;
+  final speed = tester
+      .widget<RideSpeedChart>(find.byType(RideSpeedChart))
+      .highlight;
+  expect(speed, elevation, reason: 'one highlight on every chart');
+  return elevation;
 }
 
 /// Opens the ride's overflow menu and picks "Continue this ride".
@@ -554,6 +576,81 @@ void main() {
       tester.getTopLeft(find.byType(RideClimbsTable)).dy,
       greaterThan(tester.getTopLeft(find.byType(RideSplitsTable)).dy),
     );
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('tapping a split shades it on the charts and draws it on the '
+      'map; tapping it again clears both', (tester) async {
+    final harness = RecordingHarness();
+    await _open(tester, harness, _threeKilometres());
+    expect(_chartHighlight(tester), isNull);
+    expect(harness.map.lines, isNot(contains(rideHighlightLineId)));
+
+    // The second kilometre.
+    await _tapRow(tester, find.text(testSplitLength(1000)).at(1));
+
+    final range = _chartHighlight(tester);
+    expect(range, isNotNull);
+    expect(range!.source, RideRangeSource.split);
+    expect(range.index, 1);
+    expect(range.startM, closeTo(1000, 1e-6));
+    expect(range.endM, closeTo(2000, 1e-6));
+    final splits = tester.widget<RideSplitsTable>(find.byType(RideSplitsTable));
+    expect(splits.selected, 1);
+    // The stretch went on the map as a line of its own, from the first
+    // kilometre mark to the second, above the track, which stayed put.
+    final line = harness.map.lines[rideHighlightLineId];
+    expect(line, isNotNull);
+    expect(line!.first.lat, closeTo(48 + 1000 / 111195, 1e-4));
+    expect(line.last.lat, closeTo(48 + 2000 / 111195, 1e-4));
+    expect(harness.map.trackSegments, isNotEmpty);
+
+    await _tapRow(tester, find.text(testSplitLength(1000)).at(1));
+
+    expect(_chartHighlight(tester), isNull);
+    expect(
+      tester.widget<RideSplitsTable>(find.byType(RideSplitsTable)).selected,
+      isNull,
+    );
+    expect(harness.map.lines, isNot(contains(rideHighlightLineId)));
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('tapping a climb moves the highlight from the split to the '
+      'climb', (tester) async {
+    final harness = RecordingHarness();
+    final points = _withClimb();
+    await _open(tester, harness, points);
+    final climb = analyseRide(points).climbs.single;
+
+    await _tapRow(tester, find.text(testSplitLength(1000)).first);
+    expect(_chartHighlight(tester)?.source, RideRangeSource.split);
+
+    await _tapRow(
+      tester,
+      find.text(l10n.rideClimbAt(testDistance(climb.startM))),
+    );
+
+    final range = _chartHighlight(tester);
+    expect(range, isNotNull);
+    expect(range!.source, RideRangeSource.climb);
+    expect(range.index, 0);
+    expect(range.startM, closeTo(climb.startM, 1e-6));
+    expect(range.endM, closeTo(climb.startM + climb.lengthM, 1e-6));
+    // One highlight: the split let go of its row.
+    expect(
+      tester.widget<RideSplitsTable>(find.byType(RideSplitsTable)).selected,
+      isNull,
+    );
+    expect(
+      tester.widget<RideClimbsTable>(find.byType(RideClimbsTable)).selected,
+      0,
+    );
+    final line = harness.map.lines[rideHighlightLineId];
+    expect(line, isNotNull);
+    expect(line!.first.lat, closeTo(48 + climb.startM / 111195, 1e-4));
 
     await unmountApp(tester);
   });

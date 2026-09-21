@@ -17,12 +17,28 @@ import 'ride_splits.dart';
 /// Behind every row is a bar as high as that climb's ascent relative to the
 /// biggest one, so the big climb of the day stands out without reading a
 /// figure.
+///
+/// A tap on a row selects it, and the page shades that climb on the charts;
+/// a tap on the selected row lets it go again.
 class RideClimbsTable extends ConsumerWidget {
   /// Creates the table.
-  const RideClimbsTable({required this.climbs, super.key});
+  const RideClimbsTable({
+    required this.climbs,
+    super.key,
+    this.selected,
+    this.onSelect,
+  });
 
   /// The climbs, in riding order.
   final List<RideClimb> climbs;
+
+  /// The row drawn as selected, by its position in [climbs]; `null` for
+  /// none.
+  final int? selected;
+
+  /// Called with the row a tap selects, or `null` when the tap was on the
+  /// selected row and let it go.
+  final ValueChanged<int?>? onSelect;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -54,9 +70,13 @@ class RideClimbsTable extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 4),
-        for (final climb in climbs)
+        for (final (i, climb) in climbs.indexed)
           RideRowBar(
             fraction: highest <= 0 ? 0 : climb.ascentM / highest,
+            selected: i == selected,
+            onTap: onSelect == null
+                ? null
+                : () => onSelect!(i == selected ? null : i),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -65,7 +85,11 @@ class RideClimbsTable extends ConsumerWidget {
                     l10n.rideClimbAt(
                       formatDistance(l10n, system, climb.startM),
                     ),
-                    style: theme.textTheme.statMedium,
+                    style: i == selected
+                        ? theme.textTheme.statMedium.copyWith(
+                            fontWeight: FontWeight.bold,
+                          )
+                        : theme.textTheme.statMedium,
                   ),
                   length: Text(
                     formatDistance(l10n, system, climb.lengthM),

@@ -17,12 +17,17 @@ import 'recording_format.dart';
 /// Behind every row is a bar as wide as that split was fast relative to the
 /// fastest one, so the shape of the ride is readable without reading a single
 /// figure.
+///
+/// A tap on a row selects it, and the page shades that split on the charts;
+/// a tap on the selected row lets it go again.
 class RideSplitsTable extends ConsumerWidget {
   /// Creates the table.
   const RideSplitsTable({
     required this.splits,
     required this.splitLengthM,
     super.key,
+    this.selected,
+    this.onSelect,
   });
 
   /// The splits, in riding order.
@@ -30,6 +35,14 @@ class RideSplitsTable extends ConsumerWidget {
 
   /// How long a whole split is, for the caption.
   final double splitLengthM;
+
+  /// The row drawn as selected, by its position in [splits]; `null` for
+  /// none.
+  final int? selected;
+
+  /// Called with the row a tap selects, or `null` when the tap was on the
+  /// selected row and let it go.
+  final ValueChanged<int?>? onSelect;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -60,14 +73,22 @@ class RideSplitsTable extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 4),
-        for (final split in splits)
+        for (final (i, split) in splits.indexed)
           RideRowBar(
             // A split nobody moved in has no bar at all rather than a full one.
             fraction: fastest <= 0 ? 0 : split.avgSpeedMps / fastest,
+            selected: i == selected,
+            onTap: onSelect == null
+                ? null
+                : () => onSelect!(i == selected ? null : i),
             child: _SplitRow(
               split: Text(
                 formatSplitLength(l10n, system, split.distanceM),
-                style: theme.textTheme.statMedium,
+                style: i == selected
+                    ? theme.textTheme.statMedium.copyWith(
+                        fontWeight: FontWeight.bold,
+                      )
+                    : theme.textTheme.statMedium,
               ),
               time: Text(
                 formatClock(roundedSplitTime(split.movingTime)),
@@ -127,9 +148,18 @@ class _SplitRow extends StatelessWidget {
 /// One row of a ride table with a bar behind it, as wide as the row's figure
 /// against the biggest in the table: the speed of a split, the ascent of a
 /// climb.
+///
+/// With [onTap] the whole row is the tap target; a [selected] row draws its
+/// bar stronger and puts the accent round it.
 class RideRowBar extends StatelessWidget {
   /// Creates the row.
-  const RideRowBar({required this.fraction, required this.child, super.key});
+  const RideRowBar({
+    required this.fraction,
+    required this.child,
+    super.key,
+    this.selected = false,
+    this.onTap,
+  });
 
   /// How this row measures against the biggest one, 0 to 1.
   final double fraction;
@@ -137,32 +167,51 @@ class RideRowBar extends StatelessWidget {
   /// The row itself.
   final Widget child;
 
+  /// Whether this is the row the rider picked.
+  final bool selected;
+
+  /// What a tap on the row does; `null` leaves it a plain row.
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).velorki;
+    final radius = BorderRadius.circular(6);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: FractionallySizedBox(
-                widthFactor: fraction.clamp(0.02, 1.0),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: colors.accent.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(6),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: radius,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: FractionallySizedBox(
+                  widthFactor: fraction.clamp(0.02, 1.0),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: colors.accent.withValues(
+                        alpha: selected ? 0.32 : 0.16,
+                      ),
+                      borderRadius: radius,
+                      border: selected
+                          ? Border.all(
+                              color: colors.accent.withValues(alpha: 0.7),
+                              width: 1.5,
+                            )
+                          : null,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-            child: child,
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+              child: child,
+            ),
+          ],
+        ),
       ),
     );
   }

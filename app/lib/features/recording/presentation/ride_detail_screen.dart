@@ -30,6 +30,7 @@ import '../data/rider_profile_settings.dart';
 import '../domain/calories.dart';
 import '../domain/power_defaults.dart';
 import '../domain/ride.dart';
+import '../domain/ride_range.dart';
 import 'recording_format.dart';
 import 'rename_ride_dialog.dart';
 import 'ride_charts.dart';
@@ -40,6 +41,9 @@ import 'ride_splits.dart';
 
 /// The location of the detail screen for the ride [id].
 String rideDetailLocation(String id) => '$recordingRoute/ride/$id';
+
+/// The id of the route line the picked split or climb is drawn as on the map.
+const String rideHighlightLineId = 'ride-highlight';
 
 /// One recorded ride: the track on the map, the numbers, and the way out to a
 /// GPX or FIT file.
@@ -60,13 +64,53 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
   // The analysis as the last build saw it, so the map can be drawn from
   // `onMapReady` too, which arrives out of turn.
   RideAnalysis? _analysis;
+  // The split or climb the rider tapped, shaded on the charts and drawn
+  // over the track; one for both tables.
+  RideRange? _range;
+  // The range the map has on it, so a rebuild does not redraw the same line.
+  RideRange? _shownRange;
 
   // Called from the map widget's build, so it must not call setState.
   void _onMapReady(MapController controller) {
     _map = controller;
     _shownKey = null;
+    _shownRange = null;
     final ride = ref.read(rideProvider(widget.rideId)).value;
-    if (ride != null) unawaited(_showOnMap(ride, _analysis));
+    if (ride != null) {
+      unawaited(_showOnMap(ride, _analysis));
+      unawaited(_showRangeOnMap(ride, _analysis));
+    }
+  }
+
+  void _select(RideRange? range) {
+    if (range == _range) return;
+    setState(() => _range = range);
+  }
+
+  /// Draws [_range] over the track as a route line in the accent, or takes
+  /// it off again; the line is separate from the track, so the track is
+  /// never redrawn for it.
+  Future<void> _showRangeOnMap(Ride ride, RideAnalysis? analysis) async {
+    final map = _map;
+    if (map == null) return;
+    final range = _range;
+    if (range == _shownRange) return;
+    _shownRange = range;
+    if (range == null) {
+      await map.removeRouteLine(rideHighlightLineId);
+      return;
+    }
+    final points = trackSlice(
+      ride.positions,
+      analysis?.distanceAt ?? const <double>[],
+      startM: range.startM,
+      endM: range.endM,
+    );
+    if (points.length < 2) {
+      await map.removeRouteLine(rideHighlightLineId);
+      return;
+    }
+    await map.setRouteLine(rideHighlightLineId, points);
   }
 
   /// Draws the ride and fits the camera to it.
@@ -252,6 +296,9 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
           )),
         )
         .value;
+    // A new analysis (another unit, another split length) has other rows:
+    // the pick does not carry over.
+    if (!identical(analysis, _analysis)) _range = null;
     _analysis = analysis;
     final effort = analysis?.effort;
     final calories = profile.calories && effort != null
@@ -319,6 +366,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
             );
           }
           unawaited(_showOnMap(saved, analysis));
+          unawaited(_showRangeOnMap(saved, analysis));
           final theme = Theme.of(context);
           final stats = saved.stats;
           return ListView(
@@ -466,15 +514,24 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                     if (analysis != null) ...[
                       if (analysis.hasElevation) ...[
                         const SizedBox(height: 28),
-                        RideElevationChart(samples: analysis.samples),
+                        RideElevationChart(
+                          samples: analysis.samples,
+                          highlight: _range,
+                        ),
                       ],
                       if (analysis.hasSpeed) ...[
                         const SizedBox(height: 28),
-                        RideSpeedChart(samples: analysis.samples),
+                        RideSpeedChart(
+                          samples: analysis.samples,
+                          highlight: _range,
+                        ),
                       ],
                       if (analysis.hasHeartRate) ...[
                         const SizedBox(height: 28),
-                        RideHeartRateChart(samples: analysis.samples),
+                        RideHeartRateChart(
+                          samples: analysis.samples,
+                          highlight: _range,
+                        ),
                       ],
                       if (maxHeartRateBpm != null &&
                           analysis.effort.heartRateTime > Duration.zero) ...[
@@ -497,11 +554,31 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                         RideSplitsTable(
                           splits: analysis.splits,
                           splitLengthM: analysis.splitLengthM,
+                          selected: _range?.selectedIn(RideRangeSource.split),
+                          onSelect: (index) => _select(
+                            index == null
+                                ? null
+                                : RideRange.ofSplit(
+                                    analysis.splits[index],
+                                    splitLengthM: analysis.splitLengthM,
+                                  ),
+                          ),
                         ),
                       ],
                       if (analysis.climbs.isNotEmpty) ...[
                         const SizedBox(height: 28),
-                        RideClimbsTable(climbs: analysis.climbs),
+                        RideClimbsTable(
+                          climbs: analysis.climbs,
+                          selected: _range?.selectedIn(RideRangeSource.climb),
+                          onSelect: (index) => _select(
+                            index == null
+                                ? null
+                                : RideRange.ofClimb(
+                                    analysis.climbs[index],
+                                    index: index,
+                                  ),
+                          ),
+                        ),
                       ],
                     ],
                     const SizedBox(height: 28),

@@ -22,6 +22,7 @@ class MetricChart extends StatefulWidget {
     this.minY,
     this.maxY,
     this.leftReservedSize = 40,
+    this.highlight,
   });
 
   /// The caption above the chart; upper-cased by [SectionCaption].
@@ -46,6 +47,11 @@ class MetricChart extends StatefulWidget {
 
   /// How much room the y axis labels get.
   final double leftReservedSize;
+
+  /// A stretch of the x axis to shade behind the line, in the axis' unit:
+  /// the split or the climb the rider picked. Clipped to the line; `null`
+  /// shades nothing.
+  final ({double start, double end})? highlight;
 
   @override
   State<MetricChart> createState() => _MetricChartState();
@@ -76,6 +82,11 @@ class _MetricChartState extends State<MetricChart> {
     // A flat line still needs an axis to sit in the middle of.
     final padding = ((highest - lowest) * 0.1).clamp(0.5, double.infinity);
     final touched = _touched;
+    // The band never widens the axis: it is cut to the line, and a stretch
+    // that lies wholly outside it is not drawn at all.
+    final band = widget.highlight;
+    final bandStart = band?.start.clamp(spots.first.x, spots.last.x);
+    final bandEnd = band?.end.clamp(spots.first.x, spots.last.x);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,6 +120,18 @@ class _MetricChartState extends State<MetricChart> {
               maxX: spots.last.x,
               gridData: const FlGridData(show: false),
               borderData: FlBorderData(show: false),
+              rangeAnnotations: RangeAnnotations(
+                verticalRangeAnnotations: [
+                  if (bandStart != null &&
+                      bandEnd != null &&
+                      bandEnd > bandStart)
+                    VerticalRangeAnnotation(
+                      x1: bandStart,
+                      x2: bandEnd,
+                      color: colors.accent.withValues(alpha: 0.18),
+                    ),
+                ],
+              ),
               titlesData: FlTitlesData(
                 topTitles: const AxisTitles(),
                 rightTitles: const AxisTitles(),

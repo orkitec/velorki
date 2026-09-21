@@ -10,6 +10,7 @@ import '../../planner/presentation/route_format.dart';
 import '../../settings/data/units.dart';
 import '../../shared/presentation/metric_chart.dart';
 import '../../shared/presentation/stat_tile.dart';
+import '../domain/ride_range.dart';
 import 'recording_format.dart';
 
 /// How tall the two ride charts are.
@@ -21,10 +22,13 @@ const double rideChartHeight = 160;
 /// a phone whose GPS never reported one — rather than an empty frame.
 class RideElevationChart extends ConsumerWidget {
   /// Creates the chart.
-  const RideElevationChart({required this.samples, super.key});
+  const RideElevationChart({required this.samples, super.key, this.highlight});
 
   /// The analysed samples of the ride.
   final List<ChartSample> samples;
+
+  /// The stretch of the ride shaded behind the line, or `null`.
+  final RideRange? highlight;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -63,6 +67,7 @@ class RideElevationChart extends ConsumerWidget {
       height: rideChartHeight,
       minY: minY - padding,
       maxY: maxY + padding,
+      highlight: chartHighlight(system, highlight),
       readoutAt: (index) => l10n.rideChartPoint(
         formatDistance(l10n, system, withElevation[index].distanceM),
         formatHeight(l10n, system, withElevation[index].elevationM!),
@@ -74,10 +79,13 @@ class RideElevationChart extends ConsumerWidget {
 /// How fast a recorded ride was ridden, over its distance.
 class RideSpeedChart extends ConsumerWidget {
   /// Creates the chart.
-  const RideSpeedChart({required this.samples, super.key});
+  const RideSpeedChart({required this.samples, super.key, this.highlight});
 
   /// The analysed samples of the ride.
   final List<ChartSample> samples;
+
+  /// The stretch of the ride shaded behind the line, or `null`.
+  final RideRange? highlight;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -105,6 +113,7 @@ class RideSpeedChart extends ConsumerWidget {
       // turns an even ride into a mountain range.
       minY: 0,
       maxY: fastest * 1.1,
+      highlight: chartHighlight(system, highlight),
       readoutAt: (index) => l10n.rideChartPoint(
         formatDistance(l10n, system, samples[index].distanceM),
         formatSpeed(l10n, system, samples[index].speedMps),
@@ -119,10 +128,13 @@ class RideSpeedChart extends ConsumerWidget {
 /// or it was paired halfway through and never reported twice.
 class RideHeartRateChart extends ConsumerWidget {
   /// Creates the chart.
-  const RideHeartRateChart({required this.samples, super.key});
+  const RideHeartRateChart({required this.samples, super.key, this.highlight});
 
   /// The analysed samples of the ride.
   final List<ChartSample> samples;
+
+  /// The stretch of the ride shaded behind the line, or `null`.
+  final RideRange? highlight;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -178,6 +190,7 @@ class RideHeartRateChart extends ConsumerWidget {
       height: rideChartHeight,
       minY: lowest - padding,
       maxY: highest + padding,
+      highlight: chartHighlight(system, highlight),
       readoutAt: (index) => l10n.rideChartPoint(
         formatDistance(l10n, system, withHeartRate[index].distanceM),
         formatHeartRate(l10n, withHeartRate[index].heartRateBpm),
@@ -185,6 +198,18 @@ class RideHeartRateChart extends ConsumerWidget {
     );
   }
 }
+
+/// [range] on the charts' x axis, which runs in the rider's distance unit,
+/// converted exactly as the samples are; `null` for no range.
+({double start, double end})? chartHighlight(
+  UnitSystem system,
+  RideRange? range,
+) => range == null
+    ? null
+    : (
+        start: units.distanceToDisplay(system, range.startM),
+        end: units.distanceToDisplay(system, range.endM),
+      );
 
 /// A stretch of road this long without a reading breaks the heart-rate line.
 const double heartRateGapM = 300;
