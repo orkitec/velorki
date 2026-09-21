@@ -63,11 +63,11 @@ Berühre eines der beiden Diagramme und zieh darüber für eine Anzeige in der F
 
 ### Zahlen von einem Sensor
 
-Eine Fahrt, die mit Pulsgurt, Apple Watch oder Leistungsmesser aufgezeichnet wurde, trägt mehr als die sieben: **Ø Puls**, **Max Puls**, **Ø Kadenz**, **Max Kadenz**, **Ø Leistung** und **Max Leistung** kommen zu den Zahlen dazu, jede nur, wenn die Fahrt sie hat, und unter dem Tempo-Diagramm wird das Diagramm **Herzfrequenz** gezeichnet. Eine ohne Sensor aufgezeichnete Fahrt zeigt nichts davon, und eine aus einer GPX- oder FIT-Datei importierte zeigt, was diese Datei mitbrachte. Siehe [Sensoren und deine Uhr](./sensors-and-watch).
+Eine Fahrt, die mit Pulsgurt, Apple Watch oder Leistungsmesser aufgezeichnet wurde, trägt mehr als die sieben: **Ø Puls**, **Max Puls**, **Ø Kadenz**, **Max Kadenz**, **Ø Leistung**, **Max Leistung** und **Norm. Leistung** kommen zu den Zahlen dazu, jede nur, wenn die Fahrt sie hat, und unter dem Tempo-Diagramm wird das Diagramm **Herzfrequenz** gezeichnet. **Norm. Leistung** sind die Werte des Leistungsmessers so gewichtet, wie die Beine sie spüren: die Leistung auf einem Sekundenraster, davon der gleitende 30-s-Mittelwert, jeder Mittelwert hoch vier, daraus der Durchschnitt und davon die vierte Wurzel. Eine gleichmäßige Fahrt kommt bei ihrem Durchschnitt heraus; eine Fahrt aus Antritten und Pausen darüber. Sie braucht mindestens eine halbe Minute Werte am Stück, und eine Lücke von mehr als fünf Sekunden im Messgerät beginnt ein neues Stück. Mit eingeschalteten **Leistungszonen** und einer Schwelle steht **Intensität** daneben: normalisierte Leistung geteilt durch deine Schwellenleistung, 0,80 ist also eine Fahrt bei vier Fünfteln dessen, was du eine Stunde halten kannst. Eine ohne Sensor aufgezeichnete Fahrt zeigt nichts davon, und eine aus einer GPX- oder FIT-Datei importierte zeigt, was diese Datei mitbrachte. Siehe [Sensoren und deine Uhr](./sensors-and-watch).
 
-### Kalorien, Pulszonen und geschätzte Leistung
+### Kalorien, Pulszonen, Leistungszonen und geschätzte Leistung
 
-Alle drei sind aus, bis du sie unter Einstellungen → Fahrer einschaltest, und alle drei werden auf dem Handy aus den Punkten der Fahrt berechnet, also auch für ältere Fahrten.
+Alle vier sind aus, bis du sie unter Einstellungen → Fahrer einschaltest, und alle vier werden auf dem Handy aus den Punkten der Fahrt berechnet, also auch für ältere Fahrten.
 
 **Kalorien** ist eine Schätzung, und die kleine Zeile unter der Zahl sagt, worauf sie beruht. Mit einem Leistungsmesser über die Fahrt ist es die geleistete Arbeit, "aus Leistung": ein Kilojoule Treten ist ziemlich genau eine verbrannte Kilokalorie. Sonst, mit einem Puls über die Fahrt und deinem Gewicht, Geburtsjahr und Geschlecht, ist es "aus Puls". Sonst, wenn **Leistung schätzen** an ist, ist es "aus geschätzter Leistung", wieder die geschätzte Arbeit in Kilojoule. Sonst ist es "aus Tempo geschätzt", aus deinem Gewicht und deinem Tempo. Dein Gewicht braucht es in jedem Fall.
 
@@ -75,9 +75,17 @@ Alle drei sind aus, bis du sie unter Einstellungen → Fahrer einschaltest, und 
 
 **Pulszonen** ist ein Balken unter dem Herzfrequenz-Diagramm, in fünf Zonen deines Maximalpulses geteilt, mit einer Zeile je Zone: ihr Bereich, die Zeit darin und der Anteil an der Pulszeit der Fahrt. Zone 1 ist alles unter 60 %, Zone 5 alles ab 90 %. Die Überschrift nennt den verwendeten Maximalpuls: den eingetragenen oder 220 minus dein Alter.
 
+**Leistungszonen** ist derselbe Balken für Fahrten mit Leistungsmesser, in sieben Zonen deiner Schwellenleistung geteilt: unter 55 %, 55–75, 75–90, 90–105, 105–120, 120–150 und ab 150 %. Jede Sekunde der Fahrt geht in die Zone des Messwerts in diesem Moment; Standzeit zählt nirgends. Die Überschrift nennt die Schwelle, "Leistungszonen · Schwelle 250 W". Es braucht den Schalter und deine Schwellenleistung unter Einstellungen → Fahrer, und es setzt die Zahl **Intensität** zu den Kacheln.
+
 ### Splits
 
 Eine Zeile je Split, mit vier Spalten: **Split**, **Fahrzeit**, **Ø** und **Anstieg**. Die Überschrift sagt, wie lang ein Split ist, "Splits, alle 5 km". Standardmäßig folgt die Länge der Fahrt: ein Kilometer bis 30 km, fünf bis 150 km, darüber zehn, bei imperialen Einheiten in Meilen, damit die Tabelle auf einer langen Fahrt kurz bleibt; **Split-Länge** unter Einstellungen → Aufnahme legt sie stattdessen auf 1, 5 oder 10 fest. Die letzte Zeile ist der Rest und kann darum kürzer sein als die übrigen. Hinter jeder Zeile zeigt ein Balken das Durchschnittstempo dieses Splits im Verhältnis zu deinem schnellsten, was die harten Abschnitte auf einen Blick sichtbar macht.
+
+### Anstiege
+
+Unter den Splits, auf einer Fahrt, die welche hatte, die Tabelle **Anstiege**: eine Zeile je Anstieg mit **Start** (wo in der Fahrt er beginnt, "bei 12,3 km"), **Länge**, **Anstieg** und **Steigung**, und darunter eine leisere Zeile mit der Fahrzeit, der VAM und, wenn die Fahrt sie mitbrachte, dem mittleren Puls und der mittleren Leistung über den Anstieg. VAM sind gewonnene Höhenmeter je Stunde Fahrzeit, das übliche Maß dafür, wie schnell ein Anstieg gefahren wurde: 1.000 m/h sind hundert Meter alle sechs Minuten. Hinter jeder Zeile zeigt ein Balken die Höhenmeter dieses Anstiegs im Verhältnis zum größten.
+
+Ein Anstieg wird so gefunden, wie das Profil im Aufnahme-Blatt den findet, auf dem du gerade bist: Er beginnt, wo die nächsten 100 m Straße um mindestens 3 % steigen, und endet an seinem höchsten Punkt, sobald die Straße 10 m darunter gefallen ist, damit eine Senke in einem langen Anstieg ihn nicht in zwei teilt. Steigungen kürzer als 300 m, mit weniger als 20 m Höhengewinn oder im Mittel unter 3 % von Fuß bis Kuppe werden nicht aufgeführt. Die Höhen werden vorher über 20 m geglättet, wie für die Leistungsschätzung, und Pausen zählen weder zur Zeit noch zur Höhe.
 
 ### Aktionen einer Fahrt
 

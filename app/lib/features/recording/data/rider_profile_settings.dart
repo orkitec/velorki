@@ -12,6 +12,8 @@ const String _prefsMaxHeartRate = 'rider.maxHeartRateBpm';
 const String _prefsEstimatePower = 'rider.estimatePower';
 const String _prefsBikeWeightKg = 'rider.bikeWeightKg';
 const String _prefsBike = 'rider.bike';
+const String _prefsPowerZones = 'rider.powerZones';
+const String _prefsThresholdPower = 'rider.thresholdPowerW';
 
 /// The lightest rider the weight field accepts, in kilograms.
 const double minRiderWeightKg = 20;
@@ -34,6 +36,12 @@ const double minBikeWeightKg = 3;
 /// The heaviest bike the weight field accepts, in kilograms.
 const double maxBikeWeightKg = 40;
 
+/// The lowest threshold power the field accepts, in watts.
+const int minRiderThresholdPowerW = 50;
+
+/// The highest threshold power the field accepts, in watts.
+const int maxRiderThresholdPowerW = 600;
+
 /// The rider profile, kept in shared_preferences.
 ///
 /// A key is removed rather than written when it goes back to its default or
@@ -53,6 +61,8 @@ class RiderProfileController extends Notifier<RiderProfile> {
       estimatePower: prefs.getBool(_prefsEstimatePower) ?? false,
       bikeWeightKg: prefs.getDouble(_prefsBikeWeightKg) ?? defaultBikeWeightKg,
       bike: RiderBike.fromName(prefs.getString(_prefsBike)),
+      powerZones: prefs.getBool(_prefsPowerZones) ?? false,
+      thresholdPowerW: prefs.getInt(_prefsThresholdPower),
     );
   }
 
@@ -157,6 +167,29 @@ class RiderProfileController extends Notifier<RiderProfile> {
       await prefs.setString(_prefsBike, value.name);
     }
     state = state.copyWith(bike: value);
+  }
+
+  /// Switches the power zones and the intensity on or off.
+  Future<void> setPowerZones(bool value) async {
+    await _setFlag(_prefsPowerZones, value);
+    state = state.copyWith(powerZones: value);
+  }
+
+  /// Stores the rider's threshold power, clamped to 50–600 W; `null` clears
+  /// it.
+  Future<void> setThresholdPower(int? value) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    if (value == null) {
+      await prefs.remove(_prefsThresholdPower);
+      state = state.copyWith(clearThresholdPower: true);
+      return;
+    }
+    final clamped = value.clamp(
+      minRiderThresholdPowerW,
+      maxRiderThresholdPowerW,
+    );
+    await prefs.setInt(_prefsThresholdPower, clamped);
+    state = state.copyWith(thresholdPowerW: clamped);
   }
 
   Future<void> _setFlag(String key, bool value) async {

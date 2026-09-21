@@ -527,6 +527,11 @@ void main() {
     await tester.pump();
     await emitSnapshot(tester, h, _snapshot());
 
+    // On a route, the figures page also says what is left and when it ends.
+    expect(find.text(l10n.statRemaining.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.statArrival.toUpperCase()), findsOneWidget);
+    expect(find.text(testDistance(222)), findsOneWidget);
+
     await tester.fling(
       find.text(l10n.statDistance.toUpperCase()),
       const Offset(-300, 0),

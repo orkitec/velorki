@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme.dart';
+import '../../../core/geo/climbs.dart';
 import '../../../core/units/units.dart' as units;
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/domain/elevation_profile.dart';
@@ -12,7 +13,7 @@ import '../../shared/presentation/stat_tile.dart';
 
 /// The followed route as a profile: the second page of the record sheet.
 ///
-/// What ClimbPro and its kin draw: the road ahead as height over distance,
+/// The road ahead as height over distance,
 /// the part already ridden filled in the accent, the rider as a line across
 /// it, and above it what is left — the distance and the climbing. A swipe on
 /// the figures brings it up; the same swipe back brings the figures back.
@@ -312,13 +313,3 @@ class RideProfileView extends ConsumerWidget {
     return x <= spots.first.x ? spots.first : spots.last;
   }
 }
-
-/// The stretch the grade is measured over, centred on the rider.
-const double climbWindowM = 100;
-
-/// Below this grade the road is not a climb worth a figure.
-const double climbGradeMinPercent = 3;
-
-/// How far the road has to drop from its high point for the climb to count
-/// as over: a dip in a long climb is not the top.
-const double climbEndDropM = 10;

@@ -31,7 +31,9 @@ import '../domain/ride.dart';
 import 'recording_format.dart';
 import 'rename_ride_dialog.dart';
 import 'ride_charts.dart';
+import 'ride_climbs.dart';
 import 'ride_heart_rate_zones.dart';
+import 'ride_power_zones.dart';
 import 'ride_splits.dart';
 
 /// The location of the detail screen for the ride [id].
@@ -222,6 +224,8 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
     final maxHeartRateBpm = profile.zones
         ? profile.effectiveMaxHeartRate(year)
         : null;
+    // The power zones need the threshold, the same way.
+    final thresholdPowerW = profile.powerZones ? profile.thresholdPowerW : null;
     // The power estimate needs the rider's weight; without the switch or the
     // weight there is no model, and the key stays put for everyone else.
     final weightKg = profile.weightKg;
@@ -241,6 +245,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
             splitLength: ref.watch(recordingSettingsProvider).splitLength,
             system: units,
             maxHeartRateBpm: maxHeartRateBpm,
+            thresholdPowerW: thresholdPowerW,
             powerModel: powerModel,
           )),
         )
@@ -249,6 +254,12 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
     final effort = analysis?.effort;
     final calories = profile.calories && effort != null
         ? estimateCalories(profile, effort, year: year)
+        : null;
+    // Normalised over threshold: only with a meter, and only with a
+    // threshold to hold it against.
+    final normalizedPowerW = effort?.normalizedPowerW;
+    final intensity = normalizedPowerW != null && thresholdPowerW != null
+        ? normalizedPowerW / thresholdPowerW
         : null;
 
     return Scaffold(
@@ -408,6 +419,24 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                             label: l10n.statMaxPower,
                             value: formatPower(l10n, effort!.maxPowerW),
                           ),
+                        // From the meter's readings alone: a ride without
+                        // one has no normalised power, estimate or not.
+                        if (normalizedPowerW != null)
+                          RideStatItem(
+                            icon: Icons.electric_bolt,
+                            label: l10n.statNormalizedPower,
+                            value: formatPower(l10n, normalizedPowerW),
+                            detail: l10n.statNormalizedPowerDetail,
+                          ),
+                        if (intensity != null && thresholdPowerW != null)
+                          RideStatItem(
+                            icon: Icons.speed,
+                            label: l10n.statIntensity,
+                            value: formatIntensity(l10n, intensity),
+                            detail: l10n.statIntensityDetail(
+                              formatPower(l10n, thresholdPowerW),
+                            ),
+                          ),
                         // The estimate never stands beside a reading: a ride
                         // with a meter shows the meter and nothing else.
                         if (profile.estimatePower &&
@@ -453,12 +482,24 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                           maxHeartRateBpm: maxHeartRateBpm,
                         ),
                       ],
+                      if (thresholdPowerW != null &&
+                          analysis.effort.powerTime > Duration.zero) ...[
+                        const SizedBox(height: 28),
+                        RidePowerZones(
+                          effort: analysis.effort,
+                          thresholdPowerW: thresholdPowerW,
+                        ),
+                      ],
                       if (analysis.splits.isNotEmpty) ...[
                         const SizedBox(height: 28),
                         RideSplitsTable(
                           splits: analysis.splits,
                           splitLengthM: analysis.splitLengthM,
                         ),
+                      ],
+                      if (analysis.climbs.isNotEmpty) ...[
+                        const SizedBox(height: 28),
+                        RideClimbsTable(climbs: analysis.climbs),
                       ],
                     ],
                     const SizedBox(height: 24),

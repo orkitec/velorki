@@ -1344,6 +1344,14 @@
   "@rideHeartRate": {
     "description": "Caption above the heart rate chart of a recorded ride"
   },
+  "statRemaining": "Left",
+  "@statRemaining": {
+    "description": "Label of the record sheet tile with the distance still to ride on the followed route"
+  },
+  "statArrival": "Arrival",
+  "@statArrival": {
+    "description": "Label of the record sheet tile with the expected time of arrival at the end of the followed route"
+  },
   "statMovingTime": "Moving",
   "@statMovingTime": {
     "description": "Label of the time spent riding, as opposed to standing"
@@ -4219,7 +4227,7 @@
   "@settingsRiderEstimatePower": {
     "description": "Switch that shows an estimated power on rides without a power meter"
   },
-  "settingsRiderEstimatePowerHint": "From your speed, the slope and your weight, the way Strava estimates it. Fair on long climbs, poor in wind or in a group, and never live: only on saved rides without a power meter",
+  "settingsRiderEstimatePowerHint": "From your speed, the slope and your weight. Fair on long climbs, poor in wind or in a group, and never live: only on saved rides without a power meter",
   "@settingsRiderEstimatePowerHint": {
     "description": "Explanation under the estimate power switch"
   },
@@ -4242,5 +4250,113 @@
   "riderBikeMountain": "Mountain",
   "@riderBikeMountain": {
     "description": "Segment for a mountain bike"
+  },
+  "statNormalizedPower": "Norm. power",
+  "@statNormalizedPower": {
+    "description": "Label of the normalised power tile on the ride page: the meter's readings weighted so that surges count what they cost"
+  },
+  "statNormalizedPowerDetail": "30 s weighted",
+  "@statNormalizedPowerDetail": {
+    "description": "Under the normalised power figure: it is a thirty second rolling mean raised to the fourth power, averaged and rooted"
+  },
+  "statIntensity": "Intensity",
+  "@statIntensity": {
+    "description": "Label of the intensity tile on the ride page: normalised power over threshold power, a ratio like 0.80"
+  },
+  "statIntensityDetail": "of threshold {watts}",
+  "@statIntensityDetail": {
+    "description": "Under the intensity figure: which threshold power the ratio is of",
+    "placeholders": {
+      "watts": {
+        "type": "String",
+        "example": "250 W"
+      }
+    }
+  },
+  "ridePowerZones": "Power zones · threshold {watts}",
+  "@ridePowerZones": {
+    "description": "Caption above the power zones bar on the ride page; {watts} is the rider's threshold power with its unit",
+    "placeholders": {
+      "watts": {
+        "type": "String",
+        "example": "250 W"
+      }
+    }
+  },
+  "ridePowerZoneTopLabel": "Z{zone} · {low} % +",
+  "@ridePowerZoneTopLabel": {
+    "description": "The top power zone row: its number and the share of the threshold it starts at, with no upper bound",
+    "placeholders": {
+      "zone": {
+        "type": "int",
+        "example": "7"
+      },
+      "low": {
+        "type": "int",
+        "example": "150"
+      }
+    }
+  },
+  "settingsRiderPowerZones": "Power zones",
+  "@settingsRiderPowerZones": {
+    "description": "Switch that shows the time in power zones and the intensity on rides with a power meter"
+  },
+  "settingsRiderPowerZonesHint": "Time in seven zones of your threshold power and the ride's intensity, on rides with a power meter. Needs your threshold power, the most you can hold for about an hour",
+  "@settingsRiderPowerZonesHint": {
+    "description": "Explanation under the power zones switch"
+  },
+  "settingsRiderThresholdPower": "Threshold power",
+  "@settingsRiderThresholdPower": {
+    "description": "Label of the rider's threshold power field"
+  },
+  "settingsRiderThresholdPowerUnit": "W",
+  "@settingsRiderThresholdPowerUnit": {
+    "description": "Unit suffix of the threshold power field, watts"
+  },
+  "rideClimbs": "Climbs",
+  "@rideClimbs": {
+    "description": "Caption above the climbs table on the ride page"
+  },
+  "rideClimbStartColumn": "Start",
+  "@rideClimbStartColumn": {
+    "description": "Column header of the climbs table: where along the ride the climb begins"
+  },
+  "rideClimbLengthColumn": "Length",
+  "@rideClimbLengthColumn": {
+    "description": "Column header of the climbs table: how much road the climb is"
+  },
+  "rideClimbGradeColumn": "Grade",
+  "@rideClimbGradeColumn": {
+    "description": "Column header of the climbs table: the average grade in percent"
+  },
+  "rideClimbAt": "at {distance}",
+  "@rideClimbAt": {
+    "description": "Where a climb starts, as a distance from the start of the ride",
+    "placeholders": {
+      "distance": {
+        "type": "String",
+        "example": "12.3 km"
+      }
+    }
+  },
+  "rideClimbVam": "{value} m/h",
+  "@rideClimbVam": {
+    "description": "How fast a climb was ridden, in metres of height gained per hour of moving time",
+    "placeholders": {
+      "value": {
+        "type": "String",
+        "example": "850"
+      }
+    }
+  },
+  "unitPercent": "{value} %",
+  "@unitPercent": {
+    "description": "A grade in percent",
+    "placeholders": {
+      "value": {
+        "type": "String",
+        "example": "5.2"
+      }
+    }
   }
 }

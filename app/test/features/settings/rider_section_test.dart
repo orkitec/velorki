@@ -52,6 +52,9 @@ Finder get _zonesSwitch =>
 Finder get _powerSwitch =>
     find.widgetWithText(SwitchListTile, l10n.settingsRiderEstimatePower);
 
+Finder get _powerZonesSwitch =>
+    find.widgetWithText(SwitchListTile, l10n.settingsRiderPowerZones);
+
 void main() {
   testWidgets('all switches are off by default and no fields are asked', (
     tester,
@@ -61,16 +64,94 @@ void main() {
     expect(tester.widget<SwitchListTile>(_caloriesSwitch).value, isFalse);
     expect(tester.widget<SwitchListTile>(_zonesSwitch).value, isFalse);
     expect(tester.widget<SwitchListTile>(_powerSwitch).value, isFalse);
+    expect(tester.widget<SwitchListTile>(_powerZonesSwitch).value, isFalse);
     expect(find.text(l10n.settingsRiderCaloriesHint), findsOneWidget);
     expect(find.text(l10n.settingsRiderZonesHint), findsOneWidget);
     expect(find.text(l10n.settingsRiderEstimatePowerHint), findsOneWidget);
+    expect(find.text(l10n.settingsRiderPowerZonesHint), findsOneWidget);
     expect(find.text(l10n.settingsRiderPrivacy), findsOneWidget);
+    expect(find.byKey(riderWeightFieldKey), findsNothing);
+    expect(find.byKey(riderBirthYearFieldKey), findsNothing);
+    expect(find.byKey(riderMaxHeartRateFieldKey), findsNothing);
+    expect(find.byKey(riderBikeWeightFieldKey), findsNothing);
+    expect(find.byKey(riderThresholdPowerFieldKey), findsNothing);
+    expect(find.byType(SegmentedButton<RiderSex>), findsNothing);
+    expect(find.byType(SegmentedButton<RiderBike>), findsNothing);
+  });
+
+  testWidgets('the power zones switch asks for the threshold power alone', (
+    tester,
+  ) async {
+    final container = await _pump(tester);
+
+    await tester.tap(_powerZonesSwitch);
+    await tester.pumpAndSettle();
+    expectNoClippedText(tester);
+
+    expect(container.read(riderProfileProvider).powerZones, isTrue);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getBool('rider.powerZones'), isTrue);
+    expect(find.byKey(riderThresholdPowerFieldKey), findsOneWidget);
+    expect(find.text(l10n.settingsRiderThresholdPowerUnit), findsOneWidget);
+    // Neither the rider's own figures nor the bike: the zones need none of
+    // them.
     expect(find.byKey(riderWeightFieldKey), findsNothing);
     expect(find.byKey(riderBirthYearFieldKey), findsNothing);
     expect(find.byKey(riderMaxHeartRateFieldKey), findsNothing);
     expect(find.byKey(riderBikeWeightFieldKey), findsNothing);
     expect(find.byType(SegmentedButton<RiderSex>), findsNothing);
     expect(find.byType(SegmentedButton<RiderBike>), findsNothing);
+  });
+
+  testWidgets('typing a threshold power stores it, in range only', (
+    tester,
+  ) async {
+    final container = await _pump(
+      tester,
+      initial: const <String, Object>{'rider.powerZones': true},
+    );
+
+    await tester.enterText(find.byKey(riderThresholdPowerFieldKey), '25');
+    await tester.pumpAndSettle();
+    expect(container.read(riderProfileProvider).thresholdPowerW, isNull);
+
+    await tester.enterText(find.byKey(riderThresholdPowerFieldKey), '250');
+    await tester.pumpAndSettle();
+    expect(container.read(riderProfileProvider).thresholdPowerW, 250);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getInt('rider.thresholdPowerW'), 250);
+
+    await tester.enterText(find.byKey(riderThresholdPowerFieldKey), '');
+    await tester.pumpAndSettle();
+    expect(container.read(riderProfileProvider).thresholdPowerW, isNull);
+    expect(prefs.containsKey('rider.thresholdPowerW'), isFalse);
+  });
+
+  testWidgets('the stored threshold is the one shown, after the bike', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      initial: const <String, Object>{
+        'rider.estimatePower': true,
+        'rider.powerZones': true,
+        'rider.thresholdPowerW': 265,
+      },
+    );
+
+    expect(
+      tester
+          .widget<TextFormField>(find.byKey(riderThresholdPowerFieldKey))
+          .controller!
+          .text,
+      '265',
+    );
+    expect(
+      tester.getTopLeft(find.byKey(riderThresholdPowerFieldKey)).dy,
+      greaterThan(
+        tester.getBottomLeft(find.byType(SegmentedButton<RiderBike>)).dy,
+      ),
+    );
   });
 
   testWidgets('switching calories on shows the fields and is remembered', (
@@ -226,6 +307,9 @@ void main() {
 
     await tester.enterText(find.byKey(riderBirthYearFieldKey), '1986');
     await tester.enterText(find.byKey(riderMaxHeartRateFieldKey), '185');
+    // The sex sits under four switches and two fields, below the fold.
+    await tester.ensureVisible(find.text(l10n.riderSexFemale));
+    await tester.pumpAndSettle();
     await tester.tap(find.text(l10n.riderSexFemale));
     await tester.pumpAndSettle();
 

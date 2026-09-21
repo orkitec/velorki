@@ -48,9 +48,11 @@ Three switches, all off by default, and the fields they need.
 
 **Heart-rate zones** puts the time in five zones of your maximum heart rate under a ride's heart-rate chart. It needs your maximum heart rate, or your year of birth to estimate it as 220 minus your age.
 
-**Estimate power** puts an **Est. power** figure on rides recorded without a power meter: from your speed, the slope and your weight, the way Strava estimates it. Fair on long climbs, poor in wind or in a group, and never live: only on saved rides.
+**Estimate power** puts an **Est. power** figure on rides recorded without a power meter: from your speed, the slope and your weight. Fair on long climbs, poor in wind or in a group, and never live: only on saved rides.
 
-With any switch on, the fields appear: **Weight** (kg, or lb on imperial units), **Year of birth**, **Sex** (**Not set**, **Female**, **Male**) and **Max heart rate** (bpm, "Left empty, 220 minus your age is used"). With **Estimate power** on, two more follow: **Bike weight** (kg or lb, 9 kg until you change it) and **Bike** (**Road**, **Touring, gravel**, **Mountain**), which sets the drag and rolling resistance the estimate assumes. Everything here stays on the phone; see [privacy on the phone](./privacy-on-the-phone). The figures themselves are described under [library](./library).
+**Power zones** puts the time in seven zones of your threshold power and the ride's **Intensity** on rides with a power meter. It needs your threshold power, the most you can hold for about an hour.
+
+With any switch on, the fields appear: **Weight** (kg, or lb on imperial units), **Year of birth**, **Sex** (**Not set**, **Female**, **Male**) and **Max heart rate** (bpm, "Left empty, 220 minus your age is used"). With **Estimate power** on, two more follow: **Bike weight** (kg or lb, 9 kg until you change it) and **Bike** (**Road**, **Touring, gravel**, **Mountain**), which sets the drag and rolling resistance the estimate assumes. **Power zones** alone asks for none of those; with it on, a **Threshold power** field (W, 50 to 600) follows the bike fields. Everything here stays on the phone; see [privacy on the phone](./privacy-on-the-phone). The figures themselves are described under [library](./library).
 
 ## Sensors
 

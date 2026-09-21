@@ -1574,6 +1574,11 @@ class _LivePanel extends ConsumerWidget {
         ? seen
         : const SensorsSeenState();
     final avgHeartRate = snapshot.avgHeartRateBpm;
+    // What is left of a followed route and when it ends at today's average:
+    // the two figures a rider on a route glances at most, on the page they
+    // are already looking at rather than a swipe away.
+    final remainingM = ref.watch(navigationControllerProvider)?.remainingM;
+    final eta = _eta(remainingM, snapshot.avgSpeedMps);
     final sensorTiles = <Widget>[
       ?_sensorTile(
         l10n.statHeartRate,
@@ -1705,6 +1710,27 @@ class _LivePanel extends ConsumerWidget {
                       ),
                     ],
                   ),
+                  if (remainingM != null) ...[
+                    const SizedBox(height: 16),
+                    StatRow(
+                      children: [
+                        StatTile(
+                          label: l10n.statRemaining,
+                          value: formatDistance(l10n, units, remainingM),
+                          size: StatSize.medium,
+                        ),
+                        StatTile(
+                          label: l10n.statArrival,
+                          value: eta == null
+                              ? '--'
+                              : MaterialLocalizations.of(
+                                  context,
+                                ).formatTimeOfDay(TimeOfDay.fromDateTime(eta)),
+                          size: StatSize.medium,
+                        ),
+                      ],
+                    ),
+                  ],
                   // Only the figures a sensor has reported this ride: a rider
                   // with a watch and nothing else gets one tile, not one and two
                   // dashes, and a rider with no sensor gets no row at all. A

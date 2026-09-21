@@ -24,12 +24,17 @@ const Key riderMaxHeartRateFieldKey = Key('rider.maxHeartRate');
 /// The bike weight field, for a test to find it by.
 const Key riderBikeWeightFieldKey = Key('rider.bikeWeight');
 
-/// Settings → Rider: the three estimates a ride page can show, and what the
-/// rider has to say about themselves for any of them to be made.
+/// The threshold power field, for a test to find it by.
+const Key riderThresholdPowerFieldKey = Key('rider.thresholdPower');
+
+/// Settings → Rider: the figures a ride page can show beyond what was
+/// measured, and what the rider has to say about themselves for any of them
+/// to be made.
 ///
 /// The fields only appear once a switch is on: nobody is asked their weight
-/// for a figure they never turned on, and nobody is asked about their bike
-/// unless the power estimate is on.
+/// for a figure they never turned on, nobody is asked about their bike unless
+/// the power estimate is on, and the power zones ask for the threshold power
+/// alone.
 class RiderSection extends ConsumerWidget {
   /// Creates the section.
   const RiderSection({super.key});
@@ -62,6 +67,12 @@ class RiderSection extends ConsumerWidget {
           title: Text(l10n.settingsRiderEstimatePower),
           subtitle: Text(l10n.settingsRiderEstimatePowerHint),
           onChanged: (value) => unawaited(controller.setEstimatePower(value)),
+        ),
+        SwitchListTile(
+          value: profile.powerZones,
+          title: Text(l10n.settingsRiderPowerZones),
+          subtitle: Text(l10n.settingsRiderPowerZonesHint),
+          onChanged: (value) => unawaited(controller.setPowerZones(value)),
         ),
         if (asked) ...[
           Padding(
@@ -174,6 +185,20 @@ class RiderSection extends ConsumerWidget {
             ),
           ),
         ],
+        if (profile.powerZones)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: _IntField(
+              fieldKey: riderThresholdPowerFieldKey,
+              label: l10n.settingsRiderThresholdPower,
+              suffix: l10n.settingsRiderThresholdPowerUnit,
+              value: profile.thresholdPowerW,
+              min: minRiderThresholdPowerW,
+              max: maxRiderThresholdPowerW,
+              digits: 3,
+              onChanged: controller.setThresholdPower,
+            ),
+          ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           child: Text(

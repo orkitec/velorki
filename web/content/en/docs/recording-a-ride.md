@@ -13,7 +13,7 @@ Recording is free and works with no connection at all.
 1. Open the **Record** tab. The sheet says **Ready to ride** and "The track is written to the phone while you ride, even with the screen off."
 2. Optionally pick a route under **Follow a route**, which turns on the guidance described in [turn-by-turn navigation](./navigation).
 3. Tap **Start ride**.
-4. While riding the sheet shows a status pill, the elapsed clock, and the figures: **Distance**, **Speed**, **Avg**, then **Ascent**, **Descent**, **Moving**.
+4. While riding the sheet shows a status pill, the elapsed clock, and the figures: **Distance**, **Speed**, **Avg**, then **Ascent**, **Descent**, **Moving**. While you follow a route a row **Left** and **Arrival** joins them: the distance still to ride and when you will arrive at your average speed so far, two dashes until the ride has an average.
 5. **Pause** stops the track where you are; **Resume** carries on. The break shows as a gap in the track. While paused the figures fade and the pill turns to **PAUSED**, so the state is plain at a glance.
 6. **Finish** saves the ride under a default name like **Ride 17 Sept 2026** and opens its page.
 

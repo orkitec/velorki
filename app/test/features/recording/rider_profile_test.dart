@@ -77,6 +77,20 @@ void main() {
       expect(copy, isNot(profile));
       expect(copy.toString(), contains('bike: mountain'));
     });
+
+    test('the power zones are off and without a threshold to start', () {
+      const profile = RiderProfile();
+
+      expect(profile.powerZones, isFalse);
+      expect(profile.thresholdPowerW, isNull);
+      final copy = profile.copyWith(powerZones: true, thresholdPowerW: 250);
+      expect(copy.powerZones, isTrue);
+      expect(copy.thresholdPowerW, 250);
+      expect(copy.copyWith(clearThresholdPower: true).thresholdPowerW, isNull);
+      expect(copy.copyWith().thresholdPowerW, 250);
+      expect(copy, isNot(profile));
+      expect(copy.toString(), contains('thresholdPowerW: 250'));
+    });
   });
 
   group('riderProfileProvider', () {
@@ -100,6 +114,8 @@ void main() {
         'rider.estimatePower': true,
         'rider.bikeWeightKg': 11.5,
         'rider.bike': 'touring',
+        'rider.powerZones': true,
+        'rider.thresholdPowerW': 250,
       });
 
       expect(
@@ -114,6 +130,8 @@ void main() {
           estimatePower: true,
           bikeWeightKg: 11.5,
           bike: RiderBike.touring,
+          powerZones: true,
+          thresholdPowerW: 250,
         ),
       );
     });
@@ -131,9 +149,17 @@ void main() {
       await controller.setEstimatePower(true);
       await controller.setBikeWeightKg(100);
       await controller.setBike(RiderBike.mountain);
+      await controller.setPowerZones(true);
+      await controller.setThresholdPower(1000);
       expect(container.read(riderProfileProvider).weightKg, 250);
       expect(container.read(riderProfileProvider).bikeWeightKg, 40);
       expect(container.read(riderProfileProvider).bike, RiderBike.mountain);
+      expect(container.read(riderProfileProvider).powerZones, isTrue);
+      expect(container.read(riderProfileProvider).thresholdPowerW, 600);
+      expect(prefs.getBool('rider.powerZones'), isTrue);
+      expect(prefs.getInt('rider.thresholdPowerW'), 600);
+      await controller.setThresholdPower(10);
+      expect(container.read(riderProfileProvider).thresholdPowerW, 50);
       expect(prefs.getBool('rider.estimatePower'), isTrue);
       expect(prefs.getDouble('rider.bikeWeightKg'), 40);
       expect(prefs.getString('rider.bike'), 'mountain');
@@ -151,6 +177,8 @@ void main() {
       await controller.setEstimatePower(false);
       await controller.setBikeWeightKg(null);
       await controller.setBike(RiderBike.road);
+      await controller.setPowerZones(false);
+      await controller.setThresholdPower(null);
       expect(container.read(riderProfileProvider), const RiderProfile());
       expect(prefs.getKeys(), isEmpty);
     });

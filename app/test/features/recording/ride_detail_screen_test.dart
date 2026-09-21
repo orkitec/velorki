@@ -4,9 +4,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/core/files/track_exporter.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
 import 'package:velorki/features/recording/domain/ride_upload.dart';
+import 'package:velorki/core/geo/power_metrics.dart';
+import 'package:velorki/core/geo/ride_analysis.dart';
 import 'package:velorki/features/recording/presentation/ride_charts.dart';
+import 'package:velorki/features/recording/presentation/ride_climbs.dart';
 import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
 import 'package:velorki/features/recording/presentation/ride_heart_rate_zones.dart';
+import 'package:velorki/features/recording/presentation/ride_power_zones.dart';
 import 'package:velorki/features/recording/presentation/ride_splits.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -40,6 +44,27 @@ List<TrackPoint> _threeKilometres({
         heartRateBpm: withSensors ? 120 + i ~/ 20 : null,
         cadenceRpm: withSensors ? 85 : null,
         powerW: withSensors ? 200 : null,
+      ),
+  ];
+}
+
+/// 20 km/h for three kilometres, one fix a second: half a kilometre of flat,
+/// two kilometres up a steady 5 %, half a kilometre of flat. One climb of a
+/// hundred metres.
+List<TrackPoint> _withClimb() {
+  const speedMps = 1000 / 180;
+  var position = const LatLng(48, 11);
+  var height = 400.0;
+  return <TrackPoint>[
+    for (var i = 0; i <= 540; i++)
+      TrackPoint(
+        i == 0 ? position : position = destinationPoint(position, 0, speedMps),
+        ele: i == 0
+            ? height
+            : height += i * speedMps > 500 && i * speedMps <= 2500
+                  ? speedMps * 0.05
+                  : 0,
+        time: DateTime.utc(2026, 9, 12, 10).add(Duration(seconds: i)),
       ),
   ];
 }
@@ -119,9 +144,12 @@ void main() {
 
     expect(find.text('Morning loop'), findsOneWidget);
     expect(find.text(l10n.statDistance.toUpperCase()), findsOneWidget);
-    // Once in the tiles, once as a column of the splits table.
+    // Once in the tiles, once as a column of the splits table; the ascent
+    // once more as a column of the climbs table, since the seeded track
+    // climbs sixty metres in its first seven hundred.
     expect(find.text(l10n.statMovingTime.toUpperCase()), findsNWidgets(2));
-    expect(find.text(l10n.statAscent.toUpperCase()), findsNWidgets(2));
+    expect(find.text(l10n.statAscent.toUpperCase()), findsNWidgets(3));
+    expect(find.byType(RideClimbsTable), findsOneWidget);
     expect(find.text('00:59'), findsWidgets);
     expect(find.text(l10n.rideDetailExportGpx), findsWidgets);
     expect(find.text(l10n.rideDetailExportFit), findsWidgets);
@@ -365,18 +393,175 @@ void main() {
     expect(find.text(l10n.statMaxHeartRate.toUpperCase()), findsOneWidget);
     expect(find.text(l10n.statAvgCadence.toUpperCase()), findsOneWidget);
     expect(find.text(l10n.statAvgPower.toUpperCase()), findsOneWidget);
-    // Steady 85 rpm and 200 W: the average and the maximum are the same
-    // figure, in two tiles each.
+    // Steady 85 rpm and 200 W: the average, the maximum and the normalised
+    // power are the same figure, in two tiles and three.
     expect(find.text(l10n.statMaxCadence.toUpperCase()), findsOneWidget);
     expect(find.text(l10n.statMaxPower.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.statNormalizedPower.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.statNormalizedPowerDetail), findsOneWidget);
     expect(find.text(l10n.unitRpm('85')), findsNWidgets(2));
-    expect(find.text(l10n.unitWatts('200')), findsNWidgets(2));
+    expect(find.text(l10n.unitWatts('200')), findsNWidgets(3));
     // 120 bpm rising to 147: a mean of 133 and a maximum of 147.
     expect(find.text(l10n.unitBpm('133')), findsOneWidget);
     expect(find.text(l10n.unitBpm('147')), findsOneWidget);
-    // Neither estimate was switched on.
+    // None of the switches was on.
     expect(find.text(l10n.statCalories.toUpperCase()), findsNothing);
     expect(find.byType(RideHeartRateZones), findsNothing);
+    expect(find.text(l10n.statIntensity.toUpperCase()), findsNothing);
+    expect(find.byType(RidePowerZones), findsNothing);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('with the power zones switched on and a threshold set, the ride '
+      'shows its intensity and its time in power zones', (tester) async {
+    final harness = RecordingHarness();
+    await _open(
+      tester,
+      harness,
+      _threeKilometres(withSensors: true),
+      preferences: const <String, Object>{
+        'rider.powerZones': true,
+        'rider.thresholdPowerW': 250,
+      },
+    );
+
+    // 200 W normalised over a 250 W threshold.
+    expect(find.text(l10n.statIntensity.toUpperCase()), findsOneWidget);
+    expect(find.text(testIntensity(0.8)), findsOneWidget);
+    expect(
+      find.text(l10n.statIntensityDetail(l10n.unitWatts('250'))),
+      findsOneWidget,
+    );
+    expect(find.byType(RidePowerZones), findsOneWidget);
+    expect(
+      find.text(l10n.ridePowerZones(l10n.unitWatts('250')).toUpperCase()),
+      findsOneWidget,
+    );
+    // All seven rows, the top one open-ended.
+    for (var zone = 1; zone < 7; zone++) {
+      expect(
+        find.text(
+          l10n.rideHeartRateZoneLabel(
+            zone,
+            powerZoneBoundsPercent[zone - 1],
+            powerZoneBoundsPercent[zone],
+          ),
+        ),
+        findsOneWidget,
+      );
+    }
+    expect(
+      find.text(l10n.ridePowerZoneTopLabel(7, powerZoneBoundsPercent[6])),
+      findsOneWidget,
+    );
+    // 200 of 250 is 80 %: the nine minutes are all zone 3, the other six
+    // rows read nothing.
+    expect(find.text(l10n.rideHeartRateZoneShare(100)), findsOneWidget);
+    expect(find.text(l10n.rideHeartRateZoneShare(0)), findsNWidgets(6));
+    expect(find.text('00:00'), findsNWidgets(6));
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('the switch alone, without a threshold, shows neither', (
+    tester,
+  ) async {
+    final harness = RecordingHarness();
+    await _open(
+      tester,
+      harness,
+      _threeKilometres(withSensors: true),
+      preferences: const <String, Object>{'rider.powerZones': true},
+    );
+
+    expect(find.text(l10n.statNormalizedPower.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.statIntensity.toUpperCase()), findsNothing);
+    expect(find.byType(RidePowerZones), findsNothing);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('with the power zones off, a threshold alone shows neither', (
+    tester,
+  ) async {
+    final harness = RecordingHarness();
+    await _open(
+      tester,
+      harness,
+      _threeKilometres(withSensors: true),
+      preferences: const <String, Object>{'rider.thresholdPowerW': 250},
+    );
+
+    expect(find.text(l10n.statIntensity.toUpperCase()), findsNothing);
+    expect(find.byType(RidePowerZones), findsNothing);
+    expect(
+      find.text(l10n.ridePowerZones(l10n.unitWatts('250')).toUpperCase()),
+      findsNothing,
+    );
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('a ride without a meter has no normalised power, switch or not', (
+    tester,
+  ) async {
+    final harness = RecordingHarness();
+    await _open(
+      tester,
+      harness,
+      _threeKilometres(),
+      preferences: const <String, Object>{
+        'rider.powerZones': true,
+        'rider.thresholdPowerW': 250,
+        'rider.estimatePower': true,
+        'rider.weightKg': 75.0,
+      },
+    );
+
+    expect(find.text(l10n.statEstimatedPower.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.statNormalizedPower.toUpperCase()), findsNothing);
+    expect(find.text(l10n.statIntensity.toUpperCase()), findsNothing);
+    expect(find.byType(RidePowerZones), findsNothing);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('a ride with a climb lists it under the splits', (tester) async {
+    final harness = RecordingHarness();
+    final points = _withClimb();
+    await _open(tester, harness, points);
+
+    final climb = analyseRide(points).climbs.single;
+    expect(find.byType(RideClimbsTable), findsOneWidget);
+    expect(find.text(l10n.rideClimbs.toUpperCase()), findsOneWidget);
+    expect(
+      find.text(l10n.rideClimbAt(testDistance(climb.startM))),
+      findsOneWidget,
+    );
+    expect(find.text(testDistance(climb.lengthM)), findsOneWidget);
+    expect(find.text(testGrade(climb.avgGradePercent)), findsOneWidget);
+    expect(
+      find.textContaining(
+        l10n.rideClimbVam(testNumber(climb.vamMPerHour, decimals: 0)),
+      ),
+      findsOneWidget,
+    );
+    // The table sits below the splits.
+    expect(
+      tester.getTopLeft(find.byType(RideClimbsTable)).dy,
+      greaterThan(tester.getTopLeft(find.byType(RideSplitsTable)).dy),
+    );
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('a ride up a gentle 1.8 % lists no climbs', (tester) async {
+    final harness = RecordingHarness();
+    await _open(tester, harness, _threeKilometres());
+
+    expect(find.byType(RideClimbsTable), findsNothing);
+    expect(find.text(l10n.rideClimbs.toUpperCase()), findsNothing);
 
     await unmountApp(tester);
   });

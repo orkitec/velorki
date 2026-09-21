@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../units/units.dart';
+import 'climbs.dart';
+import 'power_metrics.dart';
 import 'power_model.dart';
 import 'ride_stats.dart';
 
@@ -169,12 +171,14 @@ class RideEffort {
     required this.movingTime,
     required this.maxCadenceRpm,
     required this.maxPowerW,
+    required this.normalizedPowerW,
     required this.energyKj,
     required this.powerTime,
     required this.heartRateTime,
     required this.heartRateBeatSeconds,
     required this.metHours,
     required this.heartRateZones,
+    required this.powerZones,
     required this.estimatedEnergyKj,
     required this.estimatedPowerTime,
   });
@@ -184,12 +188,22 @@ class RideEffort {
     movingTime: Duration.zero,
     maxCadenceRpm: null,
     maxPowerW: null,
+    normalizedPowerW: null,
     energyKj: 0,
     powerTime: Duration.zero,
     heartRateTime: Duration.zero,
     heartRateBeatSeconds: 0,
     metHours: 0,
     heartRateZones: <Duration>[
+      Duration.zero,
+      Duration.zero,
+      Duration.zero,
+      Duration.zero,
+      Duration.zero,
+    ],
+    powerZones: <Duration>[
+      Duration.zero,
+      Duration.zero,
       Duration.zero,
       Duration.zero,
       Duration.zero,
@@ -212,6 +226,11 @@ class RideEffort {
   /// The highest power a meter reported while moving; `null` without one.
   final int? maxPowerW;
 
+  /// The meter's readings as [normalizedPower] weighs them, over the moving
+  /// legs; `null` without a meter or with under half a minute of it. From
+  /// readings only, never from the estimate.
+  final int? normalizedPowerW;
+
   /// Work done in kilojoules: the mean power of every leg whose both ends
   /// carried a reading, times its duration.
   final double energyKj;
@@ -232,6 +251,10 @@ class RideEffort {
   /// Time in each of the [zoneCount] heart-rate zones, all zero unless the
   /// analysis was given a maximum heart rate to cut them at.
   final List<Duration> heartRateZones;
+
+  /// Time in each of the [powerZoneCount] power zones, all zero unless the
+  /// analysis was given a threshold power to cut them at.
+  final List<Duration> powerZones;
 
   /// Work done in kilojoules as the power model prices it, from speed, slope
   /// and mass alone; zero unless the analysis was given a [PowerModel].
@@ -257,6 +280,7 @@ class RideEffort {
           other.movingTime == movingTime &&
           other.maxCadenceRpm == maxCadenceRpm &&
           other.maxPowerW == maxPowerW &&
+          other.normalizedPowerW == normalizedPowerW &&
           other.energyKj == energyKj &&
           other.powerTime == powerTime &&
           other.heartRateTime == heartRateTime &&
@@ -264,7 +288,8 @@ class RideEffort {
           other.metHours == metHours &&
           other.estimatedEnergyKj == estimatedEnergyKj &&
           other.estimatedPowerTime == estimatedPowerTime &&
-          _sameZones(other.heartRateZones, heartRateZones);
+          _sameZones(other.heartRateZones, heartRateZones) &&
+          _sameZones(other.powerZones, powerZones);
 
   static bool _sameZones(List<Duration> a, List<Duration> b) {
     if (a.length != b.length) return false;
@@ -279,12 +304,14 @@ class RideEffort {
     movingTime,
     maxCadenceRpm,
     maxPowerW,
+    normalizedPowerW,
     energyKj,
     powerTime,
     heartRateTime,
     heartRateBeatSeconds,
     metHours,
     Object.hashAll(heartRateZones),
+    Object.hashAll(powerZones),
     estimatedEnergyKj,
     estimatedPowerTime,
   );
@@ -292,9 +319,11 @@ class RideEffort {
   @override
   String toString() =>
       'RideEffort(moving $movingTime, max ${maxCadenceRpm ?? '-'} rpm, '
-      'max ${maxPowerW ?? '-'} W, ${energyKj.toStringAsFixed(0)} kJ over '
+      'max ${maxPowerW ?? '-'} W, norm. ${normalizedPowerW ?? '-'} W, '
+      '${energyKj.toStringAsFixed(0)} kJ over '
       '$powerTime, HR over $heartRateTime, '
       '${metHours.toStringAsFixed(2)} MET·h, zones $heartRateZones, '
+      'power zones $powerZones, '
       'est. ${estimatedEnergyKj.toStringAsFixed(0)} kJ over '
       '$estimatedPowerTime)';
 }
@@ -309,6 +338,7 @@ class RideAnalysis {
     required this.speedBands,
     required this.splitLengthM,
     this.effort = RideEffort.zero,
+    this.climbs = const <RideClimb>[],
   });
 
   /// A ride with nothing in it.
@@ -335,6 +365,9 @@ class RideAnalysis {
   /// zones are built from.
   final RideEffort effort;
 
+  /// The climbs, in riding order; empty on a ride without one worth listing.
+  final List<RideClimb> climbs;
+
   /// Whether there is an elevation chart to draw.
   bool get hasElevation =>
       _spansDistance && samples.where((s) => s.elevationM != null).length >= 2;
@@ -352,7 +385,7 @@ class RideAnalysis {
   @override
   String toString() =>
       'RideAnalysis(${splits.length} splits, ${samples.length} samples, '
-      '$speedBands)';
+      '$speedBands, ${climbs.length} climbs)';
 }
 
 /// Measures [points] for the ride page.
@@ -364,8 +397,10 @@ class RideAnalysis {
 /// two from disagreeing.
 ///
 /// [maxHeartRateBpm] is the rider's maximum, which cuts the heart-rate zones;
-/// without it the zones stay empty. [powerModel] is the rider and bike the
-/// power estimate is made for; without it nothing is estimated.
+/// without it the zones stay empty. [thresholdPowerW] is the rider's
+/// threshold power, which cuts the power zones the same way. [powerModel] is
+/// the rider and bike the power estimate is made for; without it nothing is
+/// estimated.
 RideAnalysis analyseRide(
   List<TrackPoint> points, {
   double splitLengthM = metersPerKilometer,
@@ -374,6 +409,7 @@ RideAnalysis analyseRide(
   int maxSamples = rideChartMaxSamples,
   double hysteresisM = elevationHysteresisM,
   int? maxHeartRateBpm,
+  int? thresholdPowerW,
   PowerModel? powerModel,
 }) {
   if (points.length < 2 || splitLengthM <= 0) {
@@ -385,6 +421,8 @@ RideAnalysis analyseRide(
     );
   }
   final walk = _walk(points, breaks: breaks, pauseGap: pauseGap);
+  // One smoothing serves the power estimate's grades and the climbs.
+  final smoothedElevation = _smoothedElevations(walk);
   return RideAnalysis(
     splits: _splits(walk, splitLengthM: splitLengthM, hysteresisM: hysteresisM),
     samples: _samples(walk, maxSamples: maxSamples),
@@ -392,9 +430,12 @@ RideAnalysis analyseRide(
     splitLengthM: splitLengthM,
     effort: _effort(
       walk,
+      smoothedElevation: smoothedElevation,
       maxHeartRateBpm: maxHeartRateBpm,
+      thresholdPowerW: thresholdPowerW,
       powerModel: powerModel,
     ),
+    climbs: detectClimbs(_climbLegs(walk, smoothedElevation)),
   );
 }
 
@@ -838,7 +879,9 @@ int _zoneOf(int bpm, int max) {
 
 RideEffort _effort(
   _Walk walk, {
+  required List<double?> smoothedElevation,
   required int? maxHeartRateBpm,
+  required int? thresholdPowerW,
   required PowerModel? powerModel,
 }) {
   var movingMicros = 0;
@@ -850,11 +893,25 @@ RideEffort _effort(
   var beatSeconds = 0.0;
   var metHours = 0.0;
   final zoneMicros = List<int>.filled(RideEffort.zoneCount, 0);
+  final powerZoneMicros = List<int>.filled(powerZoneCount, 0);
   var estimatedKj = 0.0;
   var estimatedMicros = 0;
-  final smoothedElevation = powerModel == null
-      ? null
-      : _smoothedElevations(walk);
+  // The meter's readings in time order for the normalised power, each fix
+  // once: consecutive legs share the fix between them.
+  final powerSamples = <PowerSample>[];
+  DateTime? powerOrigin;
+  int? lastPowerSecond;
+  void samplePower(TrackPoint point) {
+    final watts = point.powerW;
+    final time = point.time;
+    if (watts == null || time == null) return;
+    powerOrigin ??= time;
+    final second = time.difference(powerOrigin!).inSeconds;
+    if (second == lastPowerSecond) return;
+    lastPowerSecond = second;
+    powerSamples.add((atSeconds: second, watts: watts));
+  }
+
   // The speed of the leg before, for the acceleration; `null` at the start,
   // after a break and after a leg that was not moving: a rider standing at a
   // light whose fixes jitter a few metres would otherwise be charged a
@@ -882,7 +939,6 @@ RideEffort _effort(
     movingMicros += micros;
 
     if (powerModel != null &&
-        smoothedElevation != null &&
         seconds >= 1 &&
         measuredSpeed <= maxPlausibleSpeedMps) {
       final startM = smoothedElevation[leg.fromIndex];
@@ -924,6 +980,11 @@ RideEffort _effort(
       energyKj += (powerFrom + powerTo) / 2 * seconds / 1000;
       powerMicros += micros;
     }
+    if (powerFrom != null && thresholdPowerW != null && thresholdPowerW > 0) {
+      powerZoneMicros[powerZoneOf(powerFrom, thresholdPowerW)] += micros;
+    }
+    samplePower(from);
+    samplePower(to);
 
     final bpm = from.heartRateBpm;
     if (bpm != null) {
@@ -941,6 +1002,7 @@ RideEffort _effort(
     movingTime: Duration(microseconds: movingMicros),
     maxCadenceRpm: maxCadence,
     maxPowerW: maxPower,
+    normalizedPowerW: normalizedPower(powerSamples),
     energyKj: energyKj,
     powerTime: Duration(microseconds: powerMicros),
     heartRateTime: Duration(microseconds: heartRateMicros),
@@ -948,6 +1010,9 @@ RideEffort _effort(
     metHours: metHours,
     heartRateZones: List<Duration>.unmodifiable(<Duration>[
       for (final micros in zoneMicros) Duration(microseconds: micros),
+    ]),
+    powerZones: List<Duration>.unmodifiable(<Duration>[
+      for (final micros in powerZoneMicros) Duration(microseconds: micros),
     ]),
     estimatedEnergyKj: estimatedKj,
     estimatedPowerTime: Duration(microseconds: estimatedMicros),
@@ -995,6 +1060,26 @@ List<double?> _smoothedElevations(_Walk walk) {
   }
   return out;
 }
+
+// ----------------------------------------------------------------- climbs
+
+/// The accepted steps as [detectClimbs] reads them, at the smoothed heights
+/// the power estimate uses too, so a GPS wobble is a grade for neither.
+List<ClimbLeg> _climbLegs(_Walk walk, List<double?> smoothedElevation) =>
+    <ClimbLeg>[
+      for (final leg in walk.legs)
+        ClimbLeg(
+          fromM: walk.distanceAt[leg.fromIndex],
+          toM: walk.distanceAt[leg.toIndex],
+          fromEle: smoothedElevation[leg.fromIndex],
+          toEle: smoothedElevation[leg.toIndex],
+          duration: leg.duration,
+          moving: leg.moving,
+          isBreak: leg.isBreak,
+          heartRateBpm: walk.points[leg.fromIndex].heartRateBpm,
+          powerW: walk.points[leg.fromIndex].powerW,
+        ),
+    ];
 
 // ------------------------------------------------------------ speed bands
 

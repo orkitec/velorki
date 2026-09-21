@@ -36,8 +36,8 @@ enum RiderBike {
   );
 }
 
-/// The bike weight assumed until the rider enters one: Strava's default for
-/// a road bike, in kilograms.
+/// The bike weight assumed until the rider enters one: a road bike with
+/// pedals and bottles, in kilograms.
 const double defaultBikeWeightKg = 9;
 
 /// What the rider chose under Settings → Rider.
@@ -45,18 +45,20 @@ const double defaultBikeWeightKg = 9;
 /// Every figure here stays on the phone: it is read when a ride page is built
 /// and written nowhere else.
 class RiderProfile {
-  /// Creates the profile. All three estimates are off for a rider who never
-  /// opened the section, and nothing about them is known.
+  /// Creates the profile. Every figure is off for a rider who never opened
+  /// the section, and nothing about them is known.
   const RiderProfile({
     this.calories = false,
     this.zones = false,
     this.estimatePower = false,
+    this.powerZones = false,
     this.weightKg,
     this.birthYear,
     this.sex = RiderSex.unspecified,
     this.maxHeartRateBpm,
     this.bikeWeightKg = defaultBikeWeightKg,
     this.bike = RiderBike.road,
+    this.thresholdPowerW,
   });
 
   /// Whether the ride page shows a calorie estimate.
@@ -67,6 +69,10 @@ class RiderProfile {
 
   /// Whether a ride without a power meter gets an estimated power.
   final bool estimatePower;
+
+  /// Whether a ride with a power meter shows its time in power zones and its
+  /// intensity.
+  final bool powerZones;
 
   /// The rider's weight in kilograms, if given.
   final double? weightKg;
@@ -86,6 +92,10 @@ class RiderProfile {
 
   /// The kind of bike, for the power estimate.
   final RiderBike bike;
+
+  /// The rider's threshold power in watts, the most they can hold for about
+  /// an hour, if given; the power zones are cut at shares of it.
+  final int? thresholdPowerW;
 
   /// How old the rider is in [year], or `null` without a year of birth.
   int? ageIn(int year) => birthYear == null ? null : year - birthYear!;
@@ -115,10 +125,14 @@ class RiderProfile {
     bool? estimatePower,
     double? bikeWeightKg,
     RiderBike? bike,
+    bool? powerZones,
+    int? thresholdPowerW,
+    bool clearThresholdPower = false,
   }) => RiderProfile(
     calories: calories ?? this.calories,
     zones: zones ?? this.zones,
     estimatePower: estimatePower ?? this.estimatePower,
+    powerZones: powerZones ?? this.powerZones,
     weightKg: clearWeight ? null : weightKg ?? this.weightKg,
     birthYear: clearBirthYear ? null : birthYear ?? this.birthYear,
     sex: sex ?? this.sex,
@@ -127,6 +141,9 @@ class RiderProfile {
         : maxHeartRateBpm ?? this.maxHeartRateBpm,
     bikeWeightKg: bikeWeightKg ?? this.bikeWeightKg,
     bike: bike ?? this.bike,
+    thresholdPowerW: clearThresholdPower
+        ? null
+        : thresholdPowerW ?? this.thresholdPowerW,
   );
 
   @override
@@ -141,7 +158,9 @@ class RiderProfile {
           other.maxHeartRateBpm == maxHeartRateBpm &&
           other.estimatePower == estimatePower &&
           other.bikeWeightKg == bikeWeightKg &&
-          other.bike == bike;
+          other.bike == bike &&
+          other.powerZones == powerZones &&
+          other.thresholdPowerW == thresholdPowerW;
 
   @override
   int get hashCode => Object.hash(
@@ -154,13 +173,15 @@ class RiderProfile {
     estimatePower,
     bikeWeightKg,
     bike,
+    powerZones,
+    thresholdPowerW,
   );
 
   @override
   String toString() =>
       'RiderProfile(calories: $calories, zones: $zones, '
-      'estimatePower: $estimatePower, weightKg: $weightKg, '
-      'birthYear: $birthYear, sex: ${sex.name}, '
+      'estimatePower: $estimatePower, powerZones: $powerZones, '
+      'weightKg: $weightKg, birthYear: $birthYear, sex: ${sex.name}, '
       'maxHeartRateBpm: $maxHeartRateBpm, bikeWeightKg: $bikeWeightKg, '
-      'bike: ${bike.name})';
+      'bike: ${bike.name}, thresholdPowerW: $thresholdPowerW)';
 }

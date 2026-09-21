@@ -49,3 +49,9 @@ String testSplitLength(
   double meters, {
   units.UnitSystem system = units.UnitSystem.metric,
 }) => rec.formatSplitLength(l10n, system, meters);
+
+/// A ride's intensity, as the tile writes the ratio.
+String testIntensity(double ratio) => rec.formatIntensity(l10n, ratio);
+
+/// A grade, as the climbs table writes it.
+String testGrade(double percent) => rec.formatGrade(l10n, percent);

@@ -61,7 +61,7 @@ class RideSplitsTable extends ConsumerWidget {
         ),
         const SizedBox(height: 4),
         for (final split in splits)
-          _SplitBar(
+          RideRowBar(
             // A split nobody moved in has no bar at all rather than a full one.
             fraction: fastest <= 0 ? 0 : split.avgSpeedMps / fastest,
             child: _SplitRow(
@@ -124,13 +124,17 @@ class _SplitRow extends StatelessWidget {
   );
 }
 
-/// One row with its speed bar behind it.
-class _SplitBar extends StatelessWidget {
-  const _SplitBar({required this.fraction, required this.child});
+/// One row of a ride table with a bar behind it, as wide as the row's figure
+/// against the biggest in the table: the speed of a split, the ascent of a
+/// climb.
+class RideRowBar extends StatelessWidget {
+  /// Creates the row.
+  const RideRowBar({required this.fraction, required this.child, super.key});
 
-  /// How fast this split was against the fastest one, 0 to 1.
+  /// How this row measures against the biggest one, 0 to 1.
   final double fraction;
 
+  /// The row itself.
   final Widget child;
 
   @override

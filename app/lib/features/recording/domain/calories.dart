@@ -49,8 +49,7 @@ const double calorieCoverage = 0.9;
 ///
 /// The best source available wins: a power meter that reported for most of
 /// the ride gives the work done, and a kilojoule of work is very nearly a
-/// kilocalorie burned at the body's roughly 24 % efficiency, which is what
-/// Strava and Garmin do too. Else a heart rate over most of the ride, with the
+/// kilocalorie burned at the body's roughly 24 % efficiency. Else a heart rate over most of the ride, with the
 /// rider's weight, age and sex, goes through the Keytel formula, integrated
 /// over time. Else, with the power estimate switched on and priced over most
 /// of the ride, the estimated work, kilojoules as kilocalories again. Else the

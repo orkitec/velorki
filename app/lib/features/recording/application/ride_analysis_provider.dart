@@ -14,13 +14,15 @@ import '../domain/split_length.dart';
 /// to miles wants mile splits, and the two sets can sit side by side in the
 /// cache. The maximum heart rate cuts the zones; `null` when the rider has
 /// not switched them on, so the key does not change with a profile nobody
-/// reads. The power model, likewise, is `null` unless the power estimate is
-/// on and the rider's weight is known.
+/// reads. The threshold power cuts the power zones the same way, and the
+/// power model, likewise, is `null` unless the power estimate is on and the
+/// rider's weight is known.
 typedef RideAnalysisRequest = ({
   String rideId,
   SplitLength splitLength,
   UnitSystem system,
   int? maxHeartRateBpm,
+  int? thresholdPowerW,
   PowerModel? powerModel,
 });
 
@@ -41,6 +43,7 @@ final rideAnalysisProvider = FutureProvider.autoDispose
         ),
         breaks: statsBreaksOf(ride.pauses),
         maxHeartRateBpm: request.maxHeartRateBpm,
+        thresholdPowerW: request.thresholdPowerW,
         powerModel: request.powerModel,
       );
     });

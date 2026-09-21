@@ -63,11 +63,11 @@ Touch either chart and drag along it for a read-out of the form `12.3 km · 340 
 
 ### Figures from a sensor
 
-A ride recorded with a heart-rate strap, an Apple Watch or a power meter carries more than the seven: **Avg HR**, **Max HR**, **Avg cadence**, **Max cadence**, **Avg power** and **Max power** join the figures, each one only if the ride has it, and the **Heart rate** chart is drawn under the speed chart. A ride recorded without a sensor shows none of it, and a ride imported from a GPX or FIT file shows whatever that file carried. See [sensors and your watch](./sensors-and-watch).
+A ride recorded with a heart-rate strap, an Apple Watch or a power meter carries more than the seven: **Avg HR**, **Max HR**, **Avg cadence**, **Max cadence**, **Avg power**, **Max power** and **Norm. power** join the figures, each one only if the ride has it, and the **Heart rate** chart is drawn under the speed chart. **Norm. power** is the meter's readings weighted the way the legs feel them: the power on a one second grid, its 30 s rolling mean, each mean raised to the fourth power, those averaged and the fourth root taken. A steady ride comes out at its average; a ride of surges and rests comes out higher. It needs at least half a minute of readings in one piece, and a gap of more than five seconds in the meter starts a new piece. With **Power zones** on and a threshold set, **Intensity** stands beside it: normalised power divided by your threshold power, so 0.80 is a ride at four fifths of what you can hold for an hour. A ride recorded without a sensor shows none of it, and a ride imported from a GPX or FIT file shows whatever that file carried. See [sensors and your watch](./sensors-and-watch).
 
-### Calories, heart-rate zones and estimated power
+### Calories, heart-rate zones, power zones and estimated power
 
-All three are off until you switch them on under Settings → Rider, and all three are computed on the phone from the ride's own points, so older rides get them too.
+All four are off until you switch them on under Settings → Rider, and all four are computed on the phone from the ride's own points, so older rides get them too.
 
 **Calories** is an estimate, and the small line under the figure says what it rests on. With a power meter over the ride it is the work done, "from power": a kilojoule of pedalling is very nearly a kilocalorie burned. Else, with a heart rate over the ride and your weight, year of birth and sex, it is "from heart rate". Else, with **Estimate power** on, it is "from estimated power", the estimated work in kilojoules again. Else it is "estimated from speed", from your weight and how fast you rode. It needs your weight in every case.
 
@@ -75,9 +75,17 @@ All three are off until you switch them on under Settings → Rider, and all thr
 
 **Heart-rate zones** is a bar under the heart-rate chart, cut into five zones of your maximum heart rate, with a row per zone: its range, the time in it and the share of the ride's heart-rate time. Zone 1 is everything below 60 %, zone 5 everything from 90 %. The caption names the maximum used: the one you entered, or 220 minus your age.
 
+**Power zones** is the same bar for rides with a power meter, cut into seven zones of your threshold power: below 55 %, 55–75, 75–90, 90–105, 105–120, 120–150 and from 150 %. Each second of the ride goes to the zone of the meter's reading at that moment; time stood still counts nowhere. The caption names the threshold, "Power zones · threshold 250 W". It needs the switch and your threshold power under Settings → Rider, and it puts the **Intensity** figure among the tiles.
+
 ### Splits
 
 One row per split, with four columns: **Split**, **Moving**, **Avg** and **Ascent**. The caption says how long a split is, "Splits, every 5 km". By default the length follows the ride: one kilometre up to 30 km, five up to 150 km, ten beyond, in miles on imperial units, so the table stays short on a long ride; **Split length** under Settings → Recording fixes it at 1, 5 or 10 instead. The last row is the remainder, so it may be shorter than the rest. Behind each row a bar shows that split's average speed against your fastest split, which makes the hard sections obvious at a glance.
+
+### Climbs
+
+Under the splits, on a ride that had any, a **Climbs** table: one row per climb with **Start** (where along the ride it began, "at 12.3 km"), **Length**, **Ascent** and **Grade**, and a quieter line under it with the moving time, the VAM and, when the ride carried them, the average heart rate and power over the climb. VAM is metres of height gained per hour of moving time, the customary measure of how fast a climb was ridden: 1,000 m/h is a hundred metres every six minutes. Behind each row a bar shows that climb's ascent against the biggest one.
+
+A climb is found the way the record sheet's profile finds the one you are on: it starts where the next 100 m of road rise by at least 3 %, and it ends at its high point once the road has dropped 10 m below it, so a dip in a long climb does not cut it in two. Rises shorter than 300 m, gaining less than 20 m or averaging under 3 % from foot to top are not listed. Heights are smoothed over 20 m first, as for the power estimate, and pauses count towards neither the time nor the height.
 
 ### Ride actions
 

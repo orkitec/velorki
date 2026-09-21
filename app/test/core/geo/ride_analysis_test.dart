@@ -507,6 +507,89 @@ void main() {
     });
   });
 
+  group('power zones', () {
+    const zero = Duration.zero;
+
+    test('the zones are cut at 55, 75, 90, 105, 120 and 150 % of the '
+        'threshold', () {
+      // Ten seconds at each of seven readings, each one exactly on its
+      // boundary of a 200 W threshold, the first just under the lowest.
+      const readings = <int>[109, 110, 150, 180, 210, 240, 300];
+      final points = <TrackPoint>[
+        for (final (i, point) in _ride(seconds: 70).indexed)
+          point.copyWith(powerW: readings[(i ~/ 10).clamp(0, 6)]),
+      ];
+
+      final effort = analyseRide(points, thresholdPowerW: 200).effort;
+
+      expect(effort.powerZones, hasLength(7));
+      for (final zone in effort.powerZones) {
+        expect(_seconds(zone), closeTo(10, 1e-6));
+      }
+    });
+
+    test('without a threshold the seven zones stay empty though the power '
+        'is summed', () {
+      final points = <TrackPoint>[
+        for (final point in _ride(seconds: 60)) point.copyWith(powerW: 200),
+      ];
+
+      final effort = analyseRide(points).effort;
+
+      expect(effort.powerZones, hasLength(7));
+      expect(effort.powerZones, everyElement(zero));
+      expect(_seconds(effort.powerTime), closeTo(60, 1e-6));
+    });
+
+    test('a pause counts nowhere', () {
+      final first = _ride(seconds: 30);
+      final second = _ride(
+        seconds: 30,
+        from: first.last.pos,
+        startedAt: first.last.time!.add(const Duration(minutes: 2)),
+      );
+      final points = <TrackPoint>[
+        for (final point in <TrackPoint>[...first, ...second])
+          point.copyWith(powerW: 160),
+      ];
+
+      final effort = analyseRide(points, thresholdPowerW: 200).effort;
+
+      // 160 of 200 is 80 %: zone 3, and only the ridden minute of it.
+      expect(_seconds(effort.powerZones[2]), closeTo(60, 1e-6));
+      expect(effort.powerZones[0], zero);
+      expect(effort.powerZones[1], zero);
+      expect(effort.powerZones.skip(3), everyElement(zero));
+    });
+
+    test('a steady 200 W normalises to 200 W, a ride without a meter to '
+        'nothing', () {
+      final points = <TrackPoint>[
+        for (final point in _ride(seconds: 60)) point.copyWith(powerW: 200),
+      ];
+
+      expect(analyseRide(points).effort.normalizedPowerW, 200);
+      expect(analyseRide(_ride(seconds: 60)).effort.normalizedPowerW, isNull);
+    });
+
+    test('the normalised power is not carried across a pause', () {
+      // Twenty seconds of power, a two minute stop, twenty more: no half
+      // minute of it in one piece.
+      final first = _ride(seconds: 20);
+      final second = _ride(
+        seconds: 20,
+        from: first.last.pos,
+        startedAt: first.last.time!.add(const Duration(minutes: 2)),
+      );
+      final points = <TrackPoint>[
+        for (final point in <TrackPoint>[...first, ...second])
+          point.copyWith(powerW: 200),
+      ];
+
+      expect(analyseRide(points).effort.normalizedPowerW, isNull);
+    });
+  });
+
   group('estimated power', () {
     // A 75 kg rider on a 9 kg road bike.
     const model = PowerModel(massKg: 84, cdA: 0.32, crr: 0.005);

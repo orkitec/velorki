@@ -48,9 +48,11 @@ Drei Schalter, alle standardmäßig aus, und die Felder, die sie brauchen.
 
 **Pulszonen** setzt die Zeit in fünf Zonen deines Maximalpulses unter das Herzfrequenz-Diagramm einer Fahrt. Es braucht deinen Maximalpuls oder dein Geburtsjahr, um ihn als 220 minus dein Alter zu schätzen.
 
-**Leistung schätzen** setzt eine Zahl **Gesch. Leistung** auf Fahrten, die ohne Leistungsmesser aufgezeichnet wurden: aus deinem Tempo, der Steigung und deinem Gewicht, so wie Strava es schätzt. Brauchbar auf langen Anstiegen, schlecht bei Wind oder in der Gruppe, und nie live: nur auf gespeicherten Fahrten.
+**Leistung schätzen** setzt eine Zahl **Gesch. Leistung** auf Fahrten, die ohne Leistungsmesser aufgezeichnet wurden: aus deinem Tempo, der Steigung und deinem Gewicht. Brauchbar auf langen Anstiegen, schlecht bei Wind oder in der Gruppe, und nie live: nur auf gespeicherten Fahrten.
 
-Ist einer der Schalter an, erscheinen die Felder: **Gewicht** (kg, bei imperialen Einheiten lb), **Geburtsjahr**, **Geschlecht** (**Keine Angabe**, **Weiblich**, **Männlich**) und **Maximalpuls** (bpm, "Bleibt es leer, gilt 220 minus dein Alter"). Ist **Leistung schätzen** an, folgen zwei weitere: **Gewicht des Rads** (kg oder lb, 9 kg, bis du es änderst) und **Rad** (**Rennrad**, **Trekking, Gravel**, **MTB**), das den Luft- und Rollwiderstand festlegt, den die Schätzung annimmt. Alles hier bleibt auf dem Handy; siehe [Datenschutz auf dem Handy](./privacy-on-the-phone). Die Zahlen selbst sind unter [Bibliothek](./library) beschrieben.
+**Leistungszonen** setzt die Zeit in sieben Zonen deiner Schwellenleistung und die **Intensität** der Fahrt auf Fahrten mit Leistungsmesser. Es braucht deine Schwellenleistung, das Meiste, was du etwa eine Stunde halten kannst.
+
+Ist einer der Schalter an, erscheinen die Felder: **Gewicht** (kg, bei imperialen Einheiten lb), **Geburtsjahr**, **Geschlecht** (**Keine Angabe**, **Weiblich**, **Männlich**) und **Maximalpuls** (bpm, "Bleibt es leer, gilt 220 minus dein Alter"). Ist **Leistung schätzen** an, folgen zwei weitere: **Gewicht des Rads** (kg oder lb, 9 kg, bis du es änderst) und **Rad** (**Rennrad**, **Trekking, Gravel**, **MTB**), das den Luft- und Rollwiderstand festlegt, den die Schätzung annimmt. **Leistungszonen** allein fragt nach nichts davon; ist es an, folgt nach den Rad-Feldern ein Feld **Schwellenleistung** (W, 50 bis 600). Alles hier bleibt auf dem Handy; siehe [Datenschutz auf dem Handy](./privacy-on-the-phone). Die Zahlen selbst sind unter [Bibliothek](./library) beschrieben.
 
 ## Sensoren
 

@@ -11,7 +11,7 @@ Velorki has no account, so there is nothing to log in to and nothing about you o
 Everything you make and everything you download:
 
 - planned routes, recorded rides and their GPS tracks,
-- your settings, including which units and which voice you chose, and the weight, year of birth, sex, maximum heart rate, bike weight and bike type you may enter under Settings → Rider, which are settings on the phone and are never sent anywhere,
+- your settings, including which units and which voice you chose, and the weight, year of birth, sex, maximum heart rate, bike weight, bike type and threshold power you may enter under Settings → Rider, which are settings on the phone and are never sent anywhere,
 - downloaded offline map areas,
 - downloaded routing tiles and the place-search indexes that come with them,
 - the access tokens for Strava and Ride with GPS if you connect them, which go into the phone's secure storage.

@@ -20,6 +20,15 @@ String formatCadence(AppLocalizations l10n, int? rpm) =>
 String formatPower(AppLocalizations l10n, int? watts) =>
     watts == null ? absentSensorValue : l10n.unitWatts('$watts');
 
+/// A ride's intensity, normalised power over threshold power, as a ratio
+/// with two decimals: `0.80`.
+String formatIntensity(AppLocalizations l10n, double ratio) =>
+    formatNumber(l10n, ratio, decimals: 2);
+
+/// A grade in percent with one decimal: `5.2 %`.
+String formatGrade(AppLocalizations l10n, double percent) =>
+    l10n.unitPercent(formatNumber(l10n, percent));
+
 /// A speed, in the rider's own units with one decimal.
 String formatSpeed(
   AppLocalizations l10n,
