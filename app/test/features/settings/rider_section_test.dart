@@ -92,6 +92,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getBool('rider.powerZones'), isTrue);
     expect(find.byKey(riderThresholdPowerFieldKey), findsOneWidget);
+    expect(find.text(l10n.settingsRiderThresholdPowerHint), findsOneWidget);
     expect(find.text(l10n.settingsRiderThresholdPowerUnit), findsOneWidget);
     // Neither the rider's own figures nor the bike: the zones need none of
     // them.
@@ -167,6 +168,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getBool('rider.calories'), isTrue);
     expect(find.byKey(riderWeightFieldKey), findsOneWidget);
+    expect(find.text(l10n.settingsRiderWeightHint), findsOneWidget);
     expect(find.byKey(riderBirthYearFieldKey), findsOneWidget);
     expect(find.byKey(riderMaxHeartRateFieldKey), findsOneWidget);
     expect(find.text(l10n.settingsRiderMaxHeartRateHint), findsOneWidget);

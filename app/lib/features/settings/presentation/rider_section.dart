@@ -92,6 +92,7 @@ class RiderSection extends ConsumerWidget {
                     minKg: minRiderWeightKg,
                     maxKg: maxRiderWeightKg,
                     onChanged: controller.setWeightKg,
+                    helper: l10n.settingsRiderWeightHint,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -197,6 +198,7 @@ class RiderSection extends ConsumerWidget {
               max: maxRiderThresholdPowerW,
               digits: 3,
               onChanged: controller.setThresholdPower,
+              helper: l10n.settingsRiderThresholdPowerHint,
             ),
           ),
         Padding(
@@ -236,6 +238,7 @@ class _WeightField extends StatefulWidget {
     required this.minKg,
     required this.maxKg,
     required this.onChanged,
+    this.helper,
     super.key,
   });
 
@@ -248,6 +251,9 @@ class _WeightField extends StatefulWidget {
   final double minKg;
   final double maxKg;
   final Future<void> Function(double?) onChanged;
+
+  /// A line under the field, or nothing.
+  final String? helper;
 
   @override
   State<_WeightField> createState() => _WeightFieldState();
@@ -292,6 +298,8 @@ class _WeightFieldState extends State<_WeightField> {
         suffixText: widget.system == UnitSystem.metric
             ? l10n.settingsRiderWeightKg
             : l10n.settingsRiderWeightLb,
+        helperText: widget.helper,
+        helperMaxLines: 4,
         border: const OutlineInputBorder(),
       ),
       // Saved as it is typed, once the number could be a rider or a bike: a
@@ -365,7 +373,7 @@ class _IntFieldState extends State<_IntField> {
     decoration: InputDecoration(
       labelText: widget.label,
       helperText: widget.helper,
-      helperMaxLines: 2,
+      helperMaxLines: 4,
       suffixText: widget.suffix,
       border: const OutlineInputBorder(),
     ),

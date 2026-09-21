@@ -4179,6 +4179,10 @@
   "@settingsRiderWeight": {
     "description": "Label of the rider's weight field"
   },
+  "settingsRiderWeightHint": "Kilograms or pounds follow Settings → Units, which starts from your country",
+  "@settingsRiderWeightHint": {
+    "description": "Helper under the weight fields saying where the unit comes from"
+  },
   "settingsRiderWeightKg": "kg",
   "@settingsRiderWeightKg": {
     "description": "Unit suffix of the weight field on metric units"
@@ -4322,6 +4326,10 @@
     "description": "Label of the rider's threshold power field"
   },
   "settingsRiderThresholdPowerUnit": "W",
+  "settingsRiderThresholdPowerHint": "The highest power you can hold for about an hour. From a 20-minute all-out effort, take 95 % of its average. Sets the zones and the intensity",
+  "@settingsRiderThresholdPowerHint": {
+    "description": "Helper under the threshold power field explaining what the figure is and how to find it"
+  },
   "@settingsRiderThresholdPowerUnit": {
     "description": "Unit suffix of the threshold power field, watts"
   },
