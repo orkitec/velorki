@@ -125,27 +125,27 @@
       "navigate": {
         "eyebrow": "Navigation",
         "title": "Spoken turns, on the phone",
-        "body": "A turn banner and spoken cues while you ride a route, re-routing on the phone when you leave it, compass or north-up follow modes. The cues are generated from the same routing data that planned the ride, so they work where there is no network.",
+        "body": "A turn banner and spoken cues while you ride a route, re-routing on the phone when you leave it, compass or north-up follow modes. The cues are generated from the same routing data that planned the ride, so they work where there is no network. A GPX route brings its own cue sheet and points of interest along, and the record sheet adds an elevation profile with the climb ahead, the arrival time and the cue list as swipeable pages.",
         "bullets": {
           "one": "Turn banner and voice cues, offline",
           "two": "Re-routes on the device when you leave the line",
-          "three": "Compass or north-up follow modes"
+          "three": "Cue sheet, points of interest, climb and arrival time on the record sheet"
         }
       },
       "record": {
         "eyebrow": "Recording",
         "title": "It keeps recording when the phone does not",
-        "body": "Recording runs in the background with a foreground notification on Android and a live activity on iOS, and survives the app being killed. Battery saver dims the screen and coarsens the GPS. Heart rate, cadence and power come along from an Apple Watch, a Bluetooth sensor or your health app, if you switch them on. Afterwards, ride pages with elevation, speed, heart rate, splits and a speed-coloured track.",
+        "body": "Recording runs in the background with a foreground notification on Android and a live activity on iOS, and survives the app being killed. Battery saver dims the screen and coarsens the GPS. Heart rate, cadence and power come along from an Apple Watch, a Bluetooth sensor or your health app, if you switch them on. Afterwards, ride pages with elevation, speed, heart rate, splits sized to the ride and a speed-coloured track, and on request calories, heart-rate zones and an estimated power for rides without a meter.",
         "bullets": {
           "one": "Background recording that survives the app being killed",
           "two": "Heart rate, cadence and power from a watch or a Bluetooth sensor, all optional",
-          "three": "Ride pages with splits and a speed-coloured track"
+          "three": "Ride pages with splits, a speed-coloured track, and calories, zones and estimated power if you want them"
         }
       },
       "sensors": {
         "eyebrow": "Sensors",
         "title": "Sensors and your watch",
-        "body": "Heart rate, cadence and power come from a Bluetooth sensor — a strap, a speed and cadence sensor or a power meter — paired once and then part of every ride: on the record screen while you ride, and kept with the ride afterwards. The Velorki app on your Apple Watch shows the ride on your wrist and sends your heart rate to the phone; start, pause and finish from the watch. Apple Health and Health Connect can supply a heart rate too, and all of it is free, all of it optional, and nothing happens until you switch a source on.",
+        "body": "Heart rate, cadence and power come from a Bluetooth sensor — a strap, a speed and cadence sensor or a power meter — paired once and then part of every ride: on the record screen while you ride, and kept with the ride afterwards. The Velorki app on your Apple Watch shows the ride on your wrist and sends your heart rate to the phone; start, pause and finish from the watch, and it keeps measuring through your stops, or rests at every stop if you prefer. Apple Health and Health Connect can supply a heart rate too, and all of it is free, all of it optional, and nothing happens until you switch a source on.",
         "bullets": {
           "one": "Heart-rate straps, speed and cadence sensors and power meters over Bluetooth",
           "two": "The Velorki app on your Apple Watch: the ride on your wrist, its heart rate to the phone",
@@ -165,9 +165,9 @@
       "files": {
         "eyebrow": "Files and services",
         "title": "Your rides are files you own",
-        "body": "GPX and FIT import and export through the share sheet and open-with, so routes and rides move to Komoot, Garmin Connect, Strava or anything else that reads those formats. Strava and Ride with GPS connections and share links are the Plus part.",
+        "body": "GPX and FIT import and export through the share sheet and open-with, so routes and rides move to Komoot, Garmin Connect, Strava or anything else that reads those formats. A GPX route keeps its cue sheet and points of interest, and a Ride with GPS link opens in Velorki. Strava and Ride with GPS connections and share links are the Plus part.",
         "bullets": {
-          "one": "GPX and FIT in and out, from Files, Mail or a browser",
+          "one": "GPX and FIT in and out, from Files, Mail or a browser, with cue sheets and points of interest",
           "two": "A library of saved routes and recorded rides",
           "three": "Strava, Ride with GPS and share links with Plus"
         }
@@ -189,7 +189,7 @@
         "offlineMaps": "Offline map and routing regions",
         "offlineSearch": "Offline place and POI search",
         "navigation": "Turn-by-turn with spoken cues",
-        "recording": "Ride recording, stats and splits",
+        "recording": "Ride recording, stats, splits, calories and heart-rate zones",
         "sensors": "Heart rate, cadence and power from sensors, watch and health app",
         "library": "Library of routes and rides",
         "files": "GPX and FIT import and export",
