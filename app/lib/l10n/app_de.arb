@@ -846,6 +846,7 @@
   "settingsRiderThresholdPower": "Schwellenleistung",
   "settingsRiderThresholdPowerUnit": "W",
   "settingsRiderThresholdPowerHint": "Die höchste Leistung, die du etwa eine Stunde halten kannst. Aus einem 20-Minuten-Test nimm 95 % des Schnitts. Bestimmt die Zonen und die Intensität",
+  "settingsRiderThresholdSuggest": "{watts} aus deinen besten 20 Minuten übernehmen",
   "rideClimbs": "Anstiege",
   "rideSurfaceComputing": "Der Track wird auf die Karte gelegt …",
   "rideSurfaceNoTiles": "Lade die Routing-Region dieser Gegend herunter, um den Belag zu sehen",

@@ -5,8 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
+import '../../recording/application/threshold_power_suggestion.dart';
 import '../../recording/data/rider_profile_settings.dart';
 import '../../recording/domain/rider_profile.dart';
+import '../../recording/presentation/recording_format.dart';
 import '../data/units.dart';
 
 /// Kilograms in a pound, for the weight field on imperial units.
@@ -26,6 +28,10 @@ const Key riderBikeWeightFieldKey = Key('rider.bikeWeight');
 
 /// The threshold power field, for a test to find it by.
 const Key riderThresholdPowerFieldKey = Key('rider.thresholdPower');
+
+/// The button that takes the threshold power from the rider's best twenty
+/// minutes, for a test to find it by.
+const Key riderThresholdSuggestKey = Key('rider.thresholdPower.suggest');
 
 /// Settings → Rider: the figures a ride page can show beyond what was
 /// measured, and what the rider has to say about themselves for any of them
@@ -186,7 +192,7 @@ class RiderSection extends ConsumerWidget {
             ),
           ),
         ],
-        if (profile.powerZones)
+        if (profile.powerZones) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: _IntField(
@@ -201,6 +207,8 @@ class RiderSection extends ConsumerWidget {
               helper: l10n.settingsRiderThresholdPowerHint,
             ),
           ),
+          _ThresholdSuggestion(stored: profile.thresholdPowerW),
+        ],
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           child: Text(
@@ -209,6 +217,44 @@ class RiderSection extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// One tap to take the threshold power from the rider's own rides: the best
+/// twenty minutes over every saved ride with a meter, at 95 %. Nothing while
+/// the rides are still being read, without a ride to take it from, or when
+/// the stored threshold already is the suggestion.
+class _ThresholdSuggestion extends ConsumerWidget {
+  const _ThresholdSuggestion({required this.stored});
+
+  /// The threshold power the rider has now, or `null`.
+  final int? stored;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final suggested = ref.watch(thresholdPowerSuggestionProvider).value;
+    if (suggested == null || suggested == stored) {
+      return const SizedBox.shrink();
+    }
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+      child: Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: TextButton.icon(
+          key: riderThresholdSuggestKey,
+          icon: const Icon(Icons.auto_awesome),
+          label: Text(
+            l10n.settingsRiderThresholdSuggest(formatPower(l10n, suggested)),
+          ),
+          onPressed: () => unawaited(
+            ref
+                .read(riderProfileProvider.notifier)
+                .setThresholdPower(suggested),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -354,6 +400,18 @@ class _IntFieldState extends State<_IntField> {
   late final TextEditingController _controller = TextEditingController(
     text: widget.value?.toString() ?? '',
   );
+
+  @override
+  void didUpdateWidget(covariant _IntField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A value stored from elsewhere, such as the threshold suggestion, shows
+    // up in the field; one that came from the field itself leaves the text
+    // and the cursor alone.
+    if (widget.value != oldWidget.value &&
+        int.tryParse(_controller.text) != widget.value) {
+      _controller.text = widget.value?.toString() ?? '';
+    }
+  }
 
   @override
   void dispose() {

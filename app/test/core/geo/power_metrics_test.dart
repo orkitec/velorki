@@ -86,6 +86,58 @@ void main() {
     });
   });
 
+  group('bestAveragePower', () {
+    test('a steady 250 W is 250 W', () {
+      expect(bestAveragePower(_everySecond(1200, (_) => 250)), 250);
+      expect(bestAveragePower(_everySecond(1500, (_) => 250)), 250);
+    });
+
+    test('a twenty minute burst inside a longer ride is picked out whole', () {
+      // Ten minutes at 250 W, twenty at 300 W, ten more at 250 W.
+      final samples = _everySecond(
+        2400,
+        (i) => i >= 600 && i < 1800 ? 300 : 250,
+      );
+
+      expect(bestAveragePower(samples), 300);
+    });
+
+    test('nineteen minutes of power is nothing', () {
+      expect(bestAveragePower(_everySecond(1140, (_) => 250)), isNull);
+      expect(bestAveragePower(const <PowerSample>[]), isNull);
+    });
+
+    test('a gap longer than five seconds breaks the window', () {
+      // Two runs of fifteen minutes with a minute of nothing between them:
+      // half an hour of power, none of it twenty minutes in one piece.
+      final samples = <PowerSample>[
+        ..._everySecond(900, (_) => 250),
+        for (var i = 0; i < 900; i++) (atSeconds: 960 + i, watts: 250),
+      ];
+
+      expect(bestAveragePower(samples), isNull);
+    });
+
+    test('a reading is held across a short silence of the meter', () {
+      // Readings every 5 s hold to the next; the last covers its own second,
+      // so twenty minutes needs one at 1200 s.
+      final sparse = <PowerSample>[
+        for (var t = 0; t <= 1200; t += 5) (atSeconds: t, watts: 250),
+      ];
+
+      expect(bestAveragePower(sparse), 250);
+      expect(bestAveragePower(sparse.sublist(0, sparse.length - 1)), isNull);
+    });
+
+    test('the window can be any length', () {
+      // A minute at 300 W in ten minutes of 200 W.
+      final samples = _everySecond(600, (i) => i >= 300 && i < 360 ? 300 : 200);
+
+      expect(bestAveragePower(samples, windowSeconds: 60), 300);
+      expect(bestAveragePower(samples, windowSeconds: 120), 250);
+    });
+  });
+
   group('powerZoneOf', () {
     test('the seven zones are cut at 55, 75, 90, 105, 120 and 150 %', () {
       const threshold = 200;

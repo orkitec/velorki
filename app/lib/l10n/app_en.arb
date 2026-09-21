@@ -4333,6 +4333,16 @@
   "@settingsRiderThresholdPowerUnit": {
     "description": "Unit suffix of the threshold power field, watts"
   },
+  "settingsRiderThresholdSuggest": "Use {watts} from your best 20 minutes",
+  "@settingsRiderThresholdSuggest": {
+    "description": "Button under the threshold power field that stores the value computed from the rider's own rides: 95 % of the best 20-minute average power over every saved ride with a power meter",
+    "placeholders": {
+      "watts": {
+        "type": "String",
+        "example": "235 W"
+      }
+    }
+  },
   "rideClimbs": "Climbs",
   "@rideClimbs": {
     "description": "Caption above the climbs table on the ride page"

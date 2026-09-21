@@ -172,6 +172,7 @@ class RideEffort {
     required this.maxCadenceRpm,
     required this.maxPowerW,
     required this.normalizedPowerW,
+    required this.bestTwentyMinutePowerW,
     required this.energyKj,
     required this.powerTime,
     required this.heartRateTime,
@@ -189,6 +190,7 @@ class RideEffort {
     maxCadenceRpm: null,
     maxPowerW: null,
     normalizedPowerW: null,
+    bestTwentyMinutePowerW: null,
     energyKj: 0,
     powerTime: Duration.zero,
     heartRateTime: Duration.zero,
@@ -230,6 +232,11 @@ class RideEffort {
   /// legs; `null` without a meter or with under half a minute of it. From
   /// readings only, never from the estimate.
   final int? normalizedPowerW;
+
+  /// The meter's best twenty minutes, as [bestAveragePower] finds them over
+  /// the same readings; `null` without a meter or with under twenty minutes
+  /// of it in one piece. From readings only, never from the estimate.
+  final int? bestTwentyMinutePowerW;
 
   /// Work done in kilojoules: the mean power of every leg whose both ends
   /// carried a reading, times its duration.
@@ -281,6 +288,7 @@ class RideEffort {
           other.maxCadenceRpm == maxCadenceRpm &&
           other.maxPowerW == maxPowerW &&
           other.normalizedPowerW == normalizedPowerW &&
+          other.bestTwentyMinutePowerW == bestTwentyMinutePowerW &&
           other.energyKj == energyKj &&
           other.powerTime == powerTime &&
           other.heartRateTime == heartRateTime &&
@@ -305,6 +313,7 @@ class RideEffort {
     maxCadenceRpm,
     maxPowerW,
     normalizedPowerW,
+    bestTwentyMinutePowerW,
     energyKj,
     powerTime,
     heartRateTime,
@@ -320,6 +329,7 @@ class RideEffort {
   String toString() =>
       'RideEffort(moving $movingTime, max ${maxCadenceRpm ?? '-'} rpm, '
       'max ${maxPowerW ?? '-'} W, norm. ${normalizedPowerW ?? '-'} W, '
+      'best 20 min ${bestTwentyMinutePowerW ?? '-'} W, '
       '${energyKj.toStringAsFixed(0)} kJ over '
       '$powerTime, HR over $heartRateTime, '
       '${metHours.toStringAsFixed(2)} MET·h, zones $heartRateZones, '
@@ -1003,6 +1013,7 @@ RideEffort _effort(
     maxCadenceRpm: maxCadence,
     maxPowerW: maxPower,
     normalizedPowerW: normalizedPower(powerSamples),
+    bestTwentyMinutePowerW: bestAveragePower(powerSamples),
     energyKj: energyKj,
     powerTime: Duration(microseconds: powerMicros),
     heartRateTime: Duration(microseconds: heartRateMicros),

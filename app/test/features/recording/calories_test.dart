@@ -19,6 +19,7 @@ RideEffort _effort({
   maxCadenceRpm: null,
   maxPowerW: null,
   normalizedPowerW: null,
+  bestTwentyMinutePowerW: null,
   energyKj: energyKj,
   powerTime: powerTime,
   heartRateTime: heartRateTime,

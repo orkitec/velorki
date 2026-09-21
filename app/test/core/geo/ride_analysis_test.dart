@@ -588,6 +588,26 @@ void main() {
 
       expect(analyseRide(points).effort.normalizedPowerW, isNull);
     });
+
+    test('the best twenty minutes are the meter\'s best twenty minutes, and '
+        'nothing on a shorter ride', () {
+      // Twenty-five minutes: 200 W with a twenty minute stretch at 260 W.
+      final long = _ride(seconds: 1500);
+      final points = <TrackPoint>[
+        for (var i = 0; i < long.length; i++)
+          long[i].copyWith(powerW: i >= 180 && i < 1380 ? 260 : 200),
+      ];
+
+      expect(analyseRide(points).effort.bestTwentyMinutePowerW, 260);
+      final short = <TrackPoint>[
+        for (final point in _ride(seconds: 1140)) point.copyWith(powerW: 260),
+      ];
+      expect(analyseRide(short).effort.bestTwentyMinutePowerW, isNull);
+      expect(
+        analyseRide(_ride(seconds: 1500)).effort.bestTwentyMinutePowerW,
+        isNull,
+      );
+    });
   });
 
   group('estimated power', () {

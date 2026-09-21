@@ -21,6 +21,42 @@ const int powerZoneCount = 7;
 /// everything from 150 %.
 const List<int> powerZoneBoundsPercent = <int>[0, 55, 75, 90, 105, 120, 150];
 
+/// How long the window of [bestAveragePower] runs over unless told
+/// otherwise: the twenty minutes a threshold test is ridden for.
+const int bestPowerWindowS = 1200;
+
+/// Walks [samples] as one reading a second, calling [push] once per second
+/// with the reading that covers it and [reset] where the series breaks.
+///
+/// Each reading is held until the next one; a gap longer than
+/// [normalizedPowerGapS] is not bridged and starts a new series, so nothing
+/// built over [push] ever straddles one. [samples] must be in time order.
+void _walkSeconds(
+  List<PowerSample> samples, {
+  required void Function(int watts) push,
+  required void Function() reset,
+}) {
+  for (var i = 0; i < samples.length; i++) {
+    final sample = samples[i];
+    // The reading covers every second up to the next one, or just its own
+    // second when the next is too far off to be the same effort.
+    var held = 1;
+    if (i + 1 < samples.length) {
+      final gap = samples[i + 1].atSeconds - sample.atSeconds;
+      if (gap <= 0) continue;
+      if (gap <= normalizedPowerGapS) held = gap;
+    }
+    for (var k = 0; k < held; k++) {
+      push(sample.watts);
+    }
+    if (held == 1 &&
+        i + 1 < samples.length &&
+        samples[i + 1].atSeconds - sample.atSeconds > normalizedPowerGapS) {
+      reset();
+    }
+  }
+}
+
 /// The normalised power of [samples] in watts: the power resampled onto a
 /// one second grid, the [normalizedPowerWindowS] rolling mean of that, each
 /// mean raised to the fourth power, those averaged, and the fourth root of
@@ -41,50 +77,79 @@ int? normalizedPower(List<PowerSample> samples) {
   var head = 0;
   var total = 0;
 
-  void reset() {
-    filled = 0;
-    head = 0;
-    total = 0;
-  }
-
-  void push(int watts) {
-    if (filled == normalizedPowerWindowS) {
-      total -= ring[head];
-    } else {
-      filled++;
-    }
-    ring[head] = watts;
-    total += watts;
-    head = (head + 1) % normalizedPowerWindowS;
-    if (filled == normalizedPowerWindowS) {
-      final mean = total / normalizedPowerWindowS;
-      sum += mean * mean * mean * mean;
-      windows++;
-    }
-  }
-
-  for (var i = 0; i < samples.length; i++) {
-    final sample = samples[i];
-    // The reading covers every second up to the next one, or just its own
-    // second when the next is too far off to be the same effort.
-    var held = 1;
-    if (i + 1 < samples.length) {
-      final gap = samples[i + 1].atSeconds - sample.atSeconds;
-      if (gap <= 0) continue;
-      if (gap <= normalizedPowerGapS) held = gap;
-    }
-    for (var k = 0; k < held; k++) {
-      push(sample.watts);
-    }
-    if (held == 1 &&
-        i + 1 < samples.length &&
-        samples[i + 1].atSeconds - sample.atSeconds > normalizedPowerGapS) {
-      reset();
-    }
-  }
+  _walkSeconds(
+    samples,
+    push: (watts) {
+      if (filled == normalizedPowerWindowS) {
+        total -= ring[head];
+      } else {
+        filled++;
+      }
+      ring[head] = watts;
+      total += watts;
+      head = (head + 1) % normalizedPowerWindowS;
+      if (filled == normalizedPowerWindowS) {
+        final mean = total / normalizedPowerWindowS;
+        sum += mean * mean * mean * mean;
+        windows++;
+      }
+    },
+    reset: () {
+      filled = 0;
+      head = 0;
+      total = 0;
+    },
+  );
 
   if (windows == 0) return null;
   return math.pow(sum / windows, 0.25).round();
+}
+
+/// The highest mean power of [samples] over any full window of
+/// [windowSeconds], on the same one second grid as [normalizedPower] and
+/// with the same rule for a silence of the meter: a gap longer than
+/// [normalizedPowerGapS] breaks the series and no window straddles it.
+/// `null` when no series is [windowSeconds] long. [samples] must be in time
+/// order.
+///
+/// With the default window this is the best twenty minutes of the ride,
+/// which is what a threshold power is taken from.
+int? bestAveragePower(
+  List<PowerSample> samples, {
+  int windowSeconds = bestPowerWindowS,
+}) {
+  if (windowSeconds <= 0) return null;
+  final ring = List<int>.filled(windowSeconds, 0);
+  var filled = 0;
+  var head = 0;
+  var total = 0;
+  int? best;
+
+  _walkSeconds(
+    samples,
+    push: (watts) {
+      if (filled == windowSeconds) {
+        total -= ring[head];
+      } else {
+        filled++;
+      }
+      ring[head] = watts;
+      total += watts;
+      head = (head + 1) % windowSeconds;
+      if (filled == windowSeconds && (best == null || total > best!)) {
+        best = total;
+      }
+    },
+    reset: () {
+      filled = 0;
+      head = 0;
+      total = 0;
+    },
+  );
+
+  final top = best;
+  if (top == null) return null;
+  return (top / windowSeconds).round();
 }
 
 /// The zone of [watts] as a share of the [thresholdW]: the last of

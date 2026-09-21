@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
+import 'package:velorki/features/recording/application/threshold_power_suggestion.dart';
 import 'package:velorki/features/recording/data/rider_profile_settings.dart';
 import 'package:velorki/features/recording/domain/rider_profile.dart';
 import 'package:velorki/features/settings/data/units.dart';
@@ -14,6 +15,7 @@ Future<ProviderContainer> _pump(
   WidgetTester tester, {
   Map<String, Object> initial = const <String, Object>{},
   String? country,
+  int? suggestedThreshold,
 }) async {
   SharedPreferences.setMockInitialValues(initial);
   final prefs = await SharedPreferences.getInstance();
@@ -24,6 +26,10 @@ Future<ProviderContainer> _pump(
       // than to the machine's locale, unless the test puts the rider in a
       // country.
       localeCountryProvider.overrideWithValue(country),
+      // No ride database here: the suggestion is whatever the test says.
+      thresholdPowerSuggestionProvider.overrideWith(
+        (ref) async => suggestedThreshold,
+      ),
     ],
   );
   addTearDown(container.dispose);
@@ -126,6 +132,66 @@ void main() {
     await tester.pumpAndSettle();
     expect(container.read(riderProfileProvider).thresholdPowerW, isNull);
     expect(prefs.containsKey('rider.thresholdPowerW'), isFalse);
+  });
+
+  testWidgets('the best twenty minutes of the rides are offered as the '
+      'threshold, and one tap stores them', (tester) async {
+    final container = await _pump(
+      tester,
+      initial: const <String, Object>{'rider.powerZones': true},
+      suggestedThreshold: 235,
+    );
+
+    expect(find.byKey(riderThresholdSuggestKey), findsOneWidget);
+    expect(
+      find.text(l10n.settingsRiderThresholdSuggest(l10n.unitWatts('235'))),
+      findsOneWidget,
+    );
+    // The helper stays: the suggestion is added under it, not in its place.
+    expect(find.text(l10n.settingsRiderThresholdPowerHint), findsOneWidget);
+
+    await tester.tap(find.byKey(riderThresholdSuggestKey));
+    await tester.pumpAndSettle();
+
+    expect(container.read(riderProfileProvider).thresholdPowerW, 235);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getInt('rider.thresholdPowerW'), 235);
+    expect(
+      tester
+          .widget<TextFormField>(find.byKey(riderThresholdPowerFieldKey))
+          .controller!
+          .text,
+      '235',
+    );
+    // Taken, the offer is gone.
+    expect(find.byKey(riderThresholdSuggestKey), findsNothing);
+  });
+
+  testWidgets('a threshold that already is the suggestion is not offered', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      initial: const <String, Object>{
+        'rider.powerZones': true,
+        'rider.thresholdPowerW': 235,
+      },
+      suggestedThreshold: 235,
+    );
+
+    expect(find.byKey(riderThresholdSuggestKey), findsNothing);
+  });
+
+  testWidgets('without a ride to take it from nothing is offered', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      initial: const <String, Object>{'rider.powerZones': true},
+    );
+
+    expect(find.byKey(riderThresholdSuggestKey), findsNothing);
+    expect(find.byKey(riderThresholdPowerFieldKey), findsOneWidget);
   });
 
   testWidgets('the stored threshold is the one shown, after the bike', (
