@@ -422,7 +422,13 @@ void main() {
     await tester.tap(find.byType(TextField).first);
     await tester.pumpAndSettle();
     expect(sheet, findsOneWidget);
-    expect(tester.getTopLeft(headline).dy, greaterThan(screenHeight * 0.9));
+    // The sheet is at its handle: the headline sits below the sheet's top
+    // edge, under the handle strip.
+    final parkedTop =
+        screenHeight *
+        (1 - tester.widget<DraggableScrollableSheet>(sheet).minChildSize);
+    expect(tester.getTopLeft(headline).dy, greaterThan(parkedTop + 20));
+    expect(tester.getTopLeft(headline).dy, greaterThan(restingTop + 200));
     expect(
       tester.getSize(find.byType(PlannerMapHost)).height,
       closeTo(screenHeight, 0.5),
@@ -436,7 +442,10 @@ void main() {
       tester.getSize(find.byType(PlannerMapHost)).height,
       closeTo(screenHeight, 0.5),
     );
-    expect(tester.getTopLeft(headline).dy, greaterThan(screenHeight * 0.9));
+    // The sheet is at its handle: the headline sits below the sheet's top
+    // edge, under the handle strip.
+    expect(tester.getTopLeft(headline).dy, greaterThan(parkedTop + 20));
+    expect(tester.getTopLeft(headline).dy, greaterThan(restingTop + 200));
 
     // Once the keyboard is gone the sheet is back where it was.
     tester.view.viewInsets = FakeViewPadding.zero;
@@ -446,7 +455,10 @@ void main() {
     // The field kept its focus; the keyboard coming back parks it again.
     tester.view.viewInsets = const FakeViewPadding(bottom: 600);
     await tester.pumpAndSettle();
-    expect(tester.getTopLeft(headline).dy, greaterThan(screenHeight * 0.9));
+    // The sheet is at its handle: the headline sits below the sheet's top
+    // edge, under the handle strip.
+    expect(tester.getTopLeft(headline).dy, greaterThan(parkedTop + 20));
+    expect(tester.getTopLeft(headline).dy, greaterThan(restingTop + 200));
   });
 
   testWidgets('a searched place is appended once a plan exists', (

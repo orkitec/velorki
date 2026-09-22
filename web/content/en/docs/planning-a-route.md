@@ -75,7 +75,7 @@ Often fewer than four come back; whatever the router found is what you get. If n
 
 The sheet header shows four figures: **Distance**, **Ascent**, **Descent** and **Est. time**. The estimated time comes from the typical speed of the chosen bike profile, not from a server, and it makes no allowance for your café stops.
 
-Drag the sheet up for the rest.
+Drag the sheet up for the rest, or down to its handle, which rests above the navigation bar, to free the map.
 
 ### Elevation
 

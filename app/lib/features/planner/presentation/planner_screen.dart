@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 
+import '../../../app/router.dart';
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../assistant/domain/intent_resolver.dart';
@@ -419,11 +420,13 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     final theme = Theme.of(context);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     final screenHeight = MediaQuery.sizeOf(context).height;
-    // Collapsed, only the drag handle peeks out above the floating
-    // navigation bar: the map is free, and one pull brings the plan back.
+    // Collapsed, only the drag handle rests above the floating navigation
+    // bar: the map is free, and one pull brings the plan back.
     final collapsedSheetSize = screenHeight <= 0
         ? 0.1
-        : ((bottomInset + 30) / screenHeight).clamp(0.06, 0.25);
+        : ((bottomInset + sheetHandleDp + floatingNavBarClearance) /
+                  screenHeight)
+              .clamp(0.06, 0.25);
     _collapsedSheetSize = collapsedSheetSize;
     // One more row when the variant chips are shown between the figures and
     // the toolbar.

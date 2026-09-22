@@ -162,6 +162,13 @@ void main() {
     expect(find.text(l10n.recordingIdleTitle), findsOneWidget);
     expect(find.text(l10n.recordingStart), findsOneWidget);
     expect(find.text(l10n.recordingFollowRoute), findsOneWidget);
+    // A long library scrolls inside the menu rather than off the screen.
+    expect(
+      tester
+          .widget<DropdownButton<String?>>(find.byType(DropdownButton<String?>))
+          .menuMaxHeight,
+      followRouteMenuMaxHeight,
+    );
 
     await unmountApp(tester);
   });

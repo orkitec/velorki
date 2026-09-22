@@ -200,6 +200,16 @@ class HomeShell extends ConsumerWidget {
   }
 }
 
+/// How far a sheet's collapsed top must sit above the screen's bottom inset
+/// to clear the floating navigation bar: the bar's 12 dp gap and 72 dp
+/// height. A sheet pulled down to its handle rests on this, so the handle
+/// strip sits on the bar instead of behind it, and the sheet's first line
+/// starts under the bar's glass.
+const double floatingNavBarClearance = 12 + 72;
+
+/// The height of a sheet's handle strip: the drag handle with its margins.
+const double sheetHandleDp = 28;
+
 /// A [NavigationBar] in a floating glass pill, blurred over the map.
 ///
 /// The Material bar underneath keeps the semantics, the ripples and the

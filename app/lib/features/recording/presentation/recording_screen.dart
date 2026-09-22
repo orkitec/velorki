@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../../app/router.dart';
 import '../../../app/app_config.dart';
 import '../../../core/geo/ride_stats.dart';
 import '../../../core/permissions/location_permission.dart';
@@ -1147,9 +1148,15 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     double fraction(double dp) => screenHeight <= 0
         ? 0.3
         : ((bottomInset + dp) / screenHeight).clamp(0.06, 0.9);
-    // Collapsed: the handle above the navigation bar. Live: the status row
-    // and the three key figures. Idle: the start button and the chooser.
-    final collapsed = fraction(30);
+    // Collapsed: the handle alone, and above the navigation bar while the
+    // bar is there (it goes while a ride is recorded on this tab). Live: the
+    // status row and the three key figures. Idle: the start button and the
+    // chooser.
+    final collapsed = fraction(
+      state.isRecording
+          ? sheetHandleDp
+          : sheetHandleDp + floatingNavBarClearance,
+    );
     final initial = state.isRecording ? fraction(292) : fraction(420);
     final sheetKey = state.isRecording ? 'live' : 'idle';
 
@@ -1458,6 +1465,8 @@ class _IdlePanel extends ConsumerWidget {
         const SizedBox(height: 20),
         DropdownButtonFormField<String?>(
           initialValue: state.followedRouteId,
+          // A library of routes is longer than a screen; the menu scrolls.
+          menuMaxHeight: followRouteMenuMaxHeight,
           decoration: InputDecoration(
             labelText: l10n.recordingFollowRoute,
             prefixIcon: const Icon(Icons.route_outlined),
@@ -1502,6 +1511,9 @@ class _IdlePanel extends ConsumerWidget {
     );
   }
 }
+
+/// How tall the route chooser's menu may grow before it scrolls.
+const double followRouteMenuMaxHeight = 320;
 
 /// When the rider reaches the end at the ride's average speed so far, or
 /// `null` without a route ahead or an average worth the name.
