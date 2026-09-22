@@ -8,8 +8,11 @@ import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/router.dart';
 import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
+import 'package:velorki/features/map/presentation/shared_map_host.dart';
 import 'package:velorki/features/planner/data/routing_backend_provider.dart';
 import 'package:velorki/features/planner/presentation/planner_map_host.dart';
+import 'package:velorki/features/planner/presentation/planner_screen.dart';
+import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/search/data/photon_client.dart';
 import 'package:velorki/features/settings/data/units.dart';
 
@@ -53,6 +56,17 @@ class _TestMapViewState extends State<TestMapView> {
 /// A [MapViewBuilder] that always produces [controller].
 MapViewBuilder testMapViewBuilder(TestMapController controller) =>
     (onReady) => TestMapView(controller: controller, onReady: onReady);
+
+/// The shell's shared map as [controller], usable from the first frame, for
+/// a Plan or Record screen pumped without the shell around it.
+class _SharedMapReady extends SharedMapController {
+  _SharedMapReady(this.controller);
+
+  final TestMapController controller;
+
+  @override
+  MapController? build() => controller;
+}
 
 /// Everything a planner or library widget test needs.
 class PlannerHarness {
@@ -102,10 +116,22 @@ class PlannerHarness {
           ? PhotonClient('https://photon.test', dio: fakeDio(photonAdapter))
           : null,
     ),
+    // Every map the harness sees is [map]: the shell's shared one under the
+    // Plan and Record tabs, and the one a detail or preview screen builds.
     mapViewBuilderProvider.overrideWithValue(testMapViewBuilder(map)),
+    sharedMapControllerProvider.overrideWith(() => _SharedMapReady(map)),
     velorkiDatabaseProvider.overrideWithValue(db),
   ];
 }
+
+/// What the shell puts around the Plan and Record tabs, which have no
+/// scaffold of their own: the one that shows their snack bars and keeps
+/// them their full height under the keyboard. Every other screen brings
+/// its own.
+Widget hostScreen(Widget child) =>
+    child is PlannerScreen || child is RecordingScreen
+    ? Scaffold(resizeToAvoidBottomInset: false, body: child)
+    : child;
 
 /// Pumps [child] inside a localised [MaterialApp] with the harness' overrides.
 Future<PlannerHarness> pumpScreen(
@@ -126,7 +152,7 @@ Future<PlannerHarness> pumpScreen(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [...h.overrides(prefs), ...extraOverrides],
-      child: testApp(home: child),
+      child: testApp(home: hostScreen(child)),
     ),
   );
   await tester.pump();

@@ -8,7 +8,6 @@ import '../../map/data/map_preferences.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/map_chrome.dart';
 import '../../map/presentation/puck_ownership.dart';
-import '../../shared/application/active_tab.dart';
 
 part 'planner_map_host.g.dart';
 
@@ -18,7 +17,8 @@ typedef MapViewBuilder = Widget Function(
   void Function(MapController controller) onReady,
 );
 
-/// The map widget the planner and the route detail screen embed.
+/// The map widget every map in the app is built through: the shell's map
+/// under the Plan and Record tabs, and the detail and preview screens' own.
 ///
 /// The default is an empty placeholder so that screens compose and widget
 /// tests run without maplibre. `bootstrap()` overrides it with the real
@@ -28,15 +28,17 @@ typedef MapViewBuilder = Widget Function(
 MapViewBuilder mapViewBuilder(Ref ref) =>
     (onReady) => const ColoredBox(color: Color(0xFFE8E6E1));
 
-/// Places the map and forwards its controller, so no screen imports maplibre.
+/// Places a map of its own on a screen and forwards its controller, so no
+/// screen imports maplibre: the route and ride detail pages, the import
+/// preview. The Plan and Record tabs draw on the shell's shared map instead.
 ///
 /// It is also where the app-wide map settings reach a map: the CyclOSM
 /// overlay is one setting for the whole app ([cyclosmOverlayProvider]), and
-/// several maps are alive at once — the tabs of the shell keep their screens
-/// in an `IndexedStack`. Every host applies the setting to its own map when
-/// the map becomes usable (which is again after a style reload, when every
-/// layer we added is gone) and whenever the setting changes, so a toggle on
-/// one tab is on the map of every other tab as well.
+/// several maps can be alive at once — the shell's under a detail page's.
+/// Every host applies the setting to its own map when the map becomes
+/// usable (which is again after a style reload, when every layer we added
+/// is gone) and whenever the setting changes, so a toggle on one map is on
+/// every other as well.
 class PlannerMapHost extends ConsumerStatefulWidget {
   /// Creates the host.
   const PlannerMapHost({
@@ -44,8 +46,6 @@ class PlannerMapHost extends ConsumerStatefulWidget {
     super.key,
     this.embedded = false,
     this.ownsPosition = false,
-    this.sharesCamera = false,
-    this.sharedTab,
   });
 
   /// Called once the map can be driven.
@@ -61,18 +61,6 @@ class PlannerMapHost extends ConsumerStatefulWidget {
   /// fixes must stay off it; see [PuckOwnership].
   final bool ownsPosition;
 
-  /// Whether this map keeps in step with [lastMapCameraProvider], the camera
-  /// the map on screen last came to rest at. The Plan and Record tabs share
-  /// it, so switching between them does not jump; a map that fits itself to
-  /// a route does not.
-  final bool sharesCamera;
-
-  /// The route of the tab this map belongs to, for the shell's one control
-  /// column over the Plan and Record tabs: the map registers itself as the
-  /// column's map while its tab is on screen, and under a shell draws no
-  /// column of its own. `null` for every other map.
-  final String? sharedTab;
-
   @override
   ConsumerState<PlannerMapHost> createState() => _PlannerMapHostState();
 }
@@ -85,82 +73,28 @@ class _PlannerMapHostState extends ConsumerState<PlannerMapHost> {
   void _handleMapReady(MapController controller) {
     _map = controller;
     unawaited(controller.setCyclosmOverlay(ref.read(cyclosmOverlayProvider)));
-    if (widget.sharesCamera) _syncCamera(ref.read(lastMapCameraProvider));
-    // After the frame: a map handed over from a build may not write a
-    // provider from it.
-    final tab = widget.sharedTab;
-    if (tab != null && ref.read(activeTabProvider) == tab) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _registerActive();
-      });
-    }
     widget.onMapReady(controller);
-  }
-
-  /// Makes this map the one the shell's column drives.
-  void _registerActive() =>
-      ref.read(activeMapControllerProvider.notifier).set(_map);
-
-  /// Jumps the map to [camera] unless it is already there, or the screen is
-  /// holding the camera on the rider, whose position rules over any other
-  /// map's view. Every shared map that is alive moves, on screen or not, so
-  /// a tab is already in step when the rider comes back to it.
-  void _syncCamera(MapCamera camera) {
-    final map = _map;
-    if (map == null) return;
-    final chrome = context.getInheritedWidgetOfExactType<MapChromeInsets>();
-    if (chrome?.following ?? false) return;
-    if (!camera.differsFrom(
-      center: map.center,
-      zoom: map.zoom,
-      bearing: map.bearing,
-    )) {
-      return;
-    }
-    unawaited(
-      map.moveTo(
-        camera.center,
-        zoom: camera.zoom,
-        bearing: camera.bearing,
-        animate: false,
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     // Not only the map of the screen the rider is looking at: every map that
-    // is alive follows the setting, so switching tabs never shows a map that
-    // disagrees with the overlay button.
+    // is alive follows the setting, so no map ever disagrees with the
+    // overlay button.
     ref.listen<bool>(cyclosmOverlayProvider, (_, next) {
       unawaited(_map?.setCyclosmOverlay(next));
     });
-    if (widget.sharesCamera) {
-      ref.listen<MapCamera>(lastMapCameraProvider, (_, next) {
-        _syncCamera(next);
-      });
-    }
-    final tab = widget.sharedTab;
-    if (tab != null) {
-      ref.listen<String>(activeTabProvider, (_, next) {
-        if (next == tab && _map != null) _registerActive();
-      });
-    }
     final map = PuckOwnership(
       owned: widget.ownsPosition,
       child: ref.watch(mapViewBuilderProvider)(_handleMapReady),
     );
-    final hoisted = tab != null && HoistedMapControls.of(context);
-    if (!widget.embedded && !hoisted) return map;
+    if (!widget.embedded) return map;
     // An embedded map keeps the chrome its owner declared, minus the
-    // routing-tile download that only the planner needs; a tab map under
-    // the shell also leaves its column to the shell.
+    // routing-tile download that only the planner needs.
     final inherited = MapChromeInsets.maybeOf(context);
     return MapChromeInsets(
       controlsTop: inherited?.controlsTop,
-      hoistedControls: hoisted,
-      showRoutingTiles:
-          !widget.embedded && (inherited?.showRoutingTiles ?? true),
+      showRoutingTiles: false,
       following: inherited?.following ?? false,
       headingUp: inherited?.headingUp ?? false,
       bearingDeg: inherited?.bearingDeg ?? 0,

@@ -44,8 +44,8 @@ class MapChromeInsets extends InheritedWidget {
   /// keeps the map's own default.
   final double? controlsTop;
 
-  /// Whether the shell draws the control column over this map, so the map
-  /// draws none of its own.
+  /// Whether the shell draws the control column over this map (the one
+  /// under the Plan and Record tabs), so the map draws none of its own.
   final bool hoistedControls;
 
   /// Whether the owning screen currently keeps the camera on the rider. The
@@ -88,19 +88,4 @@ class MapChromeInsets extends InheritedWidget {
       oldWidget.onCompass != onCompass ||
       oldWidget.routeShown != routeShown ||
       oldWidget.onToggleRoute != onToggleRoute;
-}
-
-/// Marks the part of the tree under a shell that draws one control column
-/// over its tab maps, so those maps draw none of their own. A map pumped
-/// on its own (a screen in a widget test) keeps its column.
-class HoistedMapControls extends InheritedWidget {
-  /// Creates the marker.
-  const HoistedMapControls({required super.child, super.key});
-
-  /// Whether a shell column is above [context].
-  static bool of(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<HoistedMapControls>() != null;
-
-  @override
-  bool updateShouldNotify(HoistedMapControls oldWidget) => false;
 }

@@ -20,6 +20,7 @@ import '../../map/data/heading_smoother.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/location_rationale_dialog.dart';
 import '../../map/presentation/map_chrome.dart';
+import '../../map/presentation/shared_map_host.dart';
 import '../../navigation/application/navigation_controller.dart';
 import '../../navigation/application/route_cues.dart';
 import '../../navigation/application/off_route_thresholds.dart';
@@ -31,7 +32,6 @@ import '../../planner/application/planner_controller.dart';
 import '../../planner/data/route_repository.dart';
 import '../../planner/domain/saved_route.dart';
 import '../../planner/domain/route_poi.dart';
-import '../../planner/presentation/planner_map_host.dart';
 import '../../planner/presentation/poi_markers.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../search/data/gazetteer_store.dart';
@@ -137,9 +137,18 @@ class RecordingScreen extends ConsumerStatefulWidget {
   ConsumerState<RecordingScreen> createState() => _RecordingScreenState();
 }
 
-class _RecordingScreenState extends ConsumerState<RecordingScreen>
-    with SingleTickerProviderStateMixin {
+class _RecordingScreenState extends ConsumerState<RecordingScreen> {
+  /// The shared map, while it can be driven.
   MapController? _map;
+
+  /// Whether this tab's layers and camera idle handler are on the shared
+  /// map right now: while it is the tab on screen and the map is usable.
+  bool _drawing = false;
+
+  /// Whether the map still has to be turned back north for a ride that
+  /// ended while this tab was away.
+  bool _northDue = false;
+
   bool _keepScreenOn = false;
 
   /// Whether the map and the sheet have given way to the glance view: the
@@ -159,15 +168,11 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen>
   /// Whether a battery-saver ride is running, as the last build saw it.
   bool _saverRide = false;
 
-  /// Whether this is the tab on screen, as the last build saw it.
+  /// Whether this is the tab on screen.
   bool _active = false;
 
   /// The hint under the idle headline, rolled anew whenever the tab comes up.
   int _hintIndex = math.Random().nextInt(idleHintCount);
-
-  /// The list inside the sheet: it fades in as the tab comes and out as
-  /// the tab goes, under the Plan sheet cross-fading the other way.
-  late final SheetFade _content;
 
   /// Where the sheet starts when this screen is built in the middle of a
   /// change to its tab: where the other tab's sheet is, so the two match
@@ -177,15 +182,15 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen>
   @override
   void initState() {
     super.initState();
+    _active = ref.read(activeTabProvider) == recordingRoute;
+    _map = ref.read(sharedMapControllerProvider);
+    _updateMapUse();
     // Built in the middle of a change to this tab (its first visit, from
-    // another tab): the listener in build sees no change, so the list and
-    // the sheet are started from here.
+    // another tab): the listener in build sees no change, so the sheet is
+    // started from here.
     final tabs = ref.read(activeTabProvider.notifier);
-    final arriving =
-        ref.read(activeTabProvider) == recordingRoute && tabs.previous != null;
-    _content = SheetFade(vsync: this, visible: !arriving);
+    final arriving = _active && tabs.previous != null;
     if (!arriving) return;
-    _content.show();
     _arrivingExtent = ref.read(tabHandoverProvider).sheetExtent;
     // The sheet, once it exists: after the first frame.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -351,9 +356,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen>
     if (_keepScreenOn) unawaited(_wake?.disable());
     if (_dimmed) unawaited(_dimmer?.reset());
     _glanceTimer?.cancel();
-    _map?.onCameraIdle = null;
+    if (_drawing) _map?.onCameraIdle = null;
     _idleSheet.dispose();
-    _content.dispose();
     if (_docked) {
       // Deferred: the tree is locked while a widget goes, and the shell
       // would rebuild for this.
@@ -407,25 +411,64 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen>
     _restartGlanceTimer(saver);
   }
 
-  // Called from the map widget's build, so it must not call setState right
-  // away; the next frame re-runs build, which pushes the route, the track
-  // and the position to the fresh map.
-  void _onMapReady(MapController controller) {
-    // The builder may hand over the same controller on every build; only a
-    // new map needs the redraw, or the rebuild would call this again forever.
-    if (identical(_map, controller)) return;
-    _map?.onCameraIdle = null;
-    _map = controller;
-    controller.onCameraIdle = _handleCameraIdle;
+  /// The shared map came, went, or was replaced after a style reload, when
+  /// every layer on it is gone. A map that can be drawn on is drawn on by
+  /// the next build.
+  void _onMapChanged(MapController? map) {
+    if (identical(map, _map)) return;
+    if (_drawing) {
+      _map?.onCameraIdle = null;
+      _drawing = false;
+    }
+    _map = map;
+    _updateMapUse();
+    if (_drawing && mounted) setState(() {});
+  }
+
+  /// Puts this tab's layers and camera idle handler on the shared map while
+  /// it is the tab on screen, and takes them off when it is not: the Plan
+  /// tab draws its own on the same map, and only one tab's belong there at
+  /// a time. The puck is the exception, see [_syncMap].
+  void _updateMapUse() {
+    final map = _map;
+    final wanted = _active && map != null;
+    if (wanted == _drawing) return;
+    _drawing = wanted;
+    if (!wanted) {
+      if (map == null) return;
+      map.onCameraIdle = null;
+      _clearLayers(map);
+      return;
+    }
+    map.onCameraIdle = _handleCameraIdle;
+    // Nothing of this tab is on the map yet: the build that follows draws
+    // it all, and a ride being followed takes the camera back to the rider
+    // once, wherever the other tab left it.
     _drawnTrackPoints = -1;
     _drawnRouteId = null;
     _drawnRouteStyle = null;
     _drawnBranchId = null;
+    _drawnPoisId = null;
     _autoMoving = false;
     _followTarget = null;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) setState(() {});
-    });
+  }
+
+  /// Takes off the map what this tab drew on it, so the other tab finds it
+  /// bare.
+  void _clearLayers(MapController map) {
+    if (_drawnTrackPoints > 0) unawaited(map.setTrackLine(const <LatLng>[]));
+    if (_drawnRouteId != null) {
+      unawaited(map.removeRouteLine(followedRouteLineId));
+    }
+    if (_drawnBranchId != null) {
+      unawaited(map.removeRouteLine(detourRouteLineId));
+    }
+    if (_drawnPoisId != null) unawaited(map.setPois(const <MapPoi>[]));
+    _drawnTrackPoints = -1;
+    _drawnRouteId = null;
+    _drawnRouteStyle = null;
+    _drawnBranchId = null;
+    _drawnPoisId = null;
   }
 
   // --------------------------------------------------------- follow mode
@@ -650,6 +693,11 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen>
   /// Pushes the recording to the map: the track line, the puck, and the route
   /// being followed. Called from build, so it only touches the map when
   /// something actually changed.
+  ///
+  /// The lines and the camera are this tab's only while it is on screen
+  /// ([_drawing]). The puck is the recorder's for as long as a ride records,
+  /// whichever tab is on screen: the map's own fix stays off it then, and a
+  /// puck that froze while the rider looked at the plan would be a lie.
   void _syncMap(
     RecordingUiState state,
     SavedRoute? route,
@@ -674,9 +722,14 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen>
     final map = _map;
     if (map == null) return;
     // A finished ride leaves the map wherever the last heading pointed, which
-    // is no way to hand it back to the rider.
-    if (ended) _resetBearing(map);
-    if (state.track.length != _drawnTrackPoints) {
+    // is no way to hand it back to the rider. A ride that ended while the
+    // tab was away is put right when the tab is back on the map.
+    if (ended && !_drawing) _northDue = true;
+    if (_drawing && (ended || _northDue)) {
+      _northDue = false;
+      _resetBearing(map);
+    }
+    if (_drawing && state.track.length != _drawnTrackPoints) {
       _drawnTrackPoints = state.track.length;
       unawaited(map.setTrackLine(state.track));
     }
@@ -716,7 +769,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen>
       // A heading the compass turned up between two fixes has to reach the
       // map by itself; at a standstill there is no next fix to carry it.
       final compassPush = fromCompass && !freshFix && _compassPushDue(compass);
-      if (freshFix || !fromCompass || compassPush) {
+      final owner = state.isRecording || _drawing;
+      if (owner && (freshFix || !fromCompass || compassPush)) {
         if (fromCompass) _pushedCompass = compass;
         // Only a redraw the compass asked for on its own is worth throttling;
         // the ones a fix brings along are paid for already.
@@ -756,7 +810,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen>
       // runs and nobody has taken the map away from us, the camera goes
       // wherever the fix goes — and, in heading-up, wherever the heading now
       // points, even if the rider has not moved an inch.
-      if (state.isRecording &&
+      if (_drawing &&
+          state.isRecording &&
           _following &&
           (puck != _followTarget || _bearingStale(mode, speed))) {
         _followTo(
@@ -769,6 +824,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen>
         );
       }
     }
+    if (!_drawing) return;
     // A rejoin is a branch: the plan stays on the map, muted, and the way
     // back onto it is drawn beside it, because a rider has to see both to
     // know what they are being asked to do. A whole new route to the
@@ -1215,6 +1271,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(sharedMapControllerProvider, (_, next) => _onMapChanged(next));
     final state = ref.watch(recordingControllerProvider);
     final recovery = ref.watch(recordingRecoveryProvider).value;
     if (recovery != null) _handleRecovery(recovery);
@@ -1283,20 +1340,21 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen>
     final sheetKey = state.isRecording ? 'live' : 'idle';
 
     // The tab on screen: the banner over the map slides in when it is this
-    // one, and the map's control column and the sheet pick up where the
-    // last tab left them.
+    // one, the ride goes on the map, and the map's control column and the
+    // sheet pick up where the last tab left them.
     final active = ref.watch(activeTabProvider) == recordingRoute;
     _active = active;
     ref.listen(activeTabProvider, (previous, next) {
       if (next == recordingRoute && previous != recordingRoute) {
+        _active = true;
+        _updateMapUse();
         // A fresh hint each time the tab comes up, never the one just shown.
         _hintIndex = _nextHint(_hintIndex);
         _takeOverControls();
         _takeOverSheet();
-        _content.show();
       } else if (previous == recordingRoute && next != recordingRoute) {
-        // Under the Plan sheet fading in on top.
-        _content.hide();
+        _active = false;
+        _updateMapUse();
         // The next tab tells the column its own wants; this one tells it
         // again, from scratch, when it comes back.
         _chromeData = null;
@@ -1327,9 +1385,9 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen>
     final controlsTop = ref.read(mapControlsTopProvider);
     if (active && (controlsTop.target - _ownControlsTop).abs() >= 0.5) {
       // A change of this tab's own chrome, on screen: the column glides,
-      // after the frame, since the other tab's map listens to it too and
-      // may not be told during a build. The first tab of the launch takes
-      // its place without a glide.
+      // after the frame, since the shell listens to it and may not be told
+      // during a build. The first tab of the launch takes its place without
+      // a glide.
       final own = _ownControlsTop;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_active) return;
@@ -1354,134 +1412,105 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen>
 
     return Listener(
       // Any touch anywhere postpones the glance view, and a touch on the
-      // glance view itself brings the map back.
+      // glance view itself brings the map back. Translucent: a touch that
+      // lands on nothing of this screen still counts, and still falls
+      // through to the shell's map underneath.
+      behavior: HitTestBehavior.translucent,
       onPointerDown: (_) => _handlePointerDown(),
-      child: Scaffold(
-        backgroundColor: glance ? Colors.black : null,
-        body: Stack(
-          children: [
-            // The map keeps its state while the glance view is up, but nothing
-            // asks it to paint. Whether MapLibre's platform view really stops
-            // rendering natively behind an Offstage is not known — this is as
-            // far as Flutter's side reaches.
-            Positioned.fill(
-              child: Visibility(
-                visible: !glance,
-                maintainState: true,
-                // The locate and compass buttons live inside the map; this is
-                // how they reach the follow mode, and how they learn to show
-                // it.
-                child: AnimatedBuilder(
-                  animation: controlsTop.animation,
-                  builder: (context, _) => MapChromeInsets(
-                    following: state.isRecording && _following,
-                    headingUp:
-                        state.isRecording &&
-                        _following &&
-                        followMode == FollowMode.headingUp,
-                    bearingDeg: _bearing,
-                    onLocate: _handleLocate,
-                    // Only a running ride has a camera to hold, so only a
-                    // running ride shows the compass.
-                    onCompass: state.isRecording ? _handleCompass : null,
-                    controlsTop: controlsTop.animation.value,
-                    child: PlannerMapHost(
-                      onMapReady: _onMapReady,
-                      embedded: true,
-                      // While a ride records, this screen draws the puck:
-                      // snapped to the route, turned by the compass. The
-                      // map's own fixes would write over both.
-                      ownsPosition: state.isRecording,
-                      sharesCamera: true,
-                      sharedTab: recordingRoute,
+      // Not a Scaffold: a Scaffold's material absorbs every touch, and a
+      // tap that lands on nothing of this screen has to fall through to
+      // the shell's map. A transparent material is what the buttons need
+      // and lets the touch pass; the glance view paints its own black.
+      child: Material(
+        type: MaterialType.transparency,
+        child: SizedBox.expand(
+          child: Stack(
+            children: [
+              if (guiding && !glance)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: TabChromeSlide(
+                    active: active,
+                    child: SafeArea(
+                      bottom: false,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: TurnBanner(progress: navigation),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
-            if (guiding && !glance)
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: TabChromeSlide(
-                  active: active,
-                  child: SafeArea(
-                    bottom: false,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: TurnBanner(progress: navigation),
-                    ),
+              if (glance)
+                Positioned.fill(
+                  child: _GlancePanel(
+                    snapshot: snapshot,
+                    navigation: guiding ? navigation : null,
                   ),
-                ),
-              ),
-            if (glance)
-              Positioned.fill(
-                child: _GlancePanel(
-                  snapshot: snapshot,
-                  navigation: guiding ? navigation : null,
-                ),
-              )
-            else
-              DraggableScrollableSheet(
-                // A fresh sheet per state, so the initial size applies again
-                // when a ride starts or ends.
-                key: ValueKey(sheetKey),
-                controller: state.isRecording ? null : _idleSheet,
-                initialChildSize: state.isRecording
-                    ? initial
-                    : _arrivingExtent ?? initial,
-                minChildSize: collapsed,
-                maxChildSize: 0.85,
-                snap: true,
-                snapSizes: _snapSizesFor(initial),
-                builder: (context, scrollController) => DockingSheet(
-                  // Where the sheet really starts: for a screen built in
-                  // the middle of a change, where the other tab's sheet is.
-                  initialExtent: state.isRecording
+                )
+              else
+                DraggableScrollableSheet(
+                  // A fresh sheet per state, so the initial size applies again
+                  // when a ride starts or ends.
+                  key: ValueKey(sheetKey),
+                  controller: state.isRecording ? null : _idleSheet,
+                  initialChildSize: state.isRecording
                       ? initial
                       : _arrivingExtent ?? initial,
-                  collapsedExtent: collapsed,
-                  dockedRange: dockedRange,
-                  docks: docks,
-                  dockedBottomInset: bottomInset,
-                  onDocked: _reportDocked,
-                  onExtent: _onSheetExtent,
-                  contentOpacity: _content.animation,
-                  handle: const SheetHandle(),
-                  child: state.isRecording
-                      ? _LivePanel(
-                          state: state,
-                          scrollController: scrollController,
-                          bottomInset: bottomInset,
-                          page: _sheetPage,
-                          onPage: _setSheetPage,
-                          keepScreenOn: _keepScreenOn,
-                          onKeepScreenOn: (v) => unawaited(_setKeepScreenOn(v)),
-                          onPause: () => unawaited(
-                            ref
-                                .read(recordingControllerProvider.notifier)
-                                .pause(),
+                  minChildSize: collapsed,
+                  maxChildSize: 0.85,
+                  snap: true,
+                  snapSizes: _snapSizesFor(initial),
+                  builder: (context, scrollController) => DockingSheet(
+                    // Where the sheet really starts: for a screen built in
+                    // the middle of a change, where the other tab's sheet is.
+                    initialExtent: state.isRecording
+                        ? initial
+                        : _arrivingExtent ?? initial,
+                    collapsedExtent: collapsed,
+                    dockedRange: dockedRange,
+                    docks: docks,
+                    dockedBottomInset: bottomInset,
+                    onDocked: _reportDocked,
+                    onExtent: _onSheetExtent,
+                    handle: const SheetHandle(),
+                    child: state.isRecording
+                        ? _LivePanel(
+                            state: state,
+                            scrollController: scrollController,
+                            bottomInset: bottomInset,
+                            page: _sheetPage,
+                            onPage: _setSheetPage,
+                            keepScreenOn: _keepScreenOn,
+                            onKeepScreenOn: (v) =>
+                                unawaited(_setKeepScreenOn(v)),
+                            onPause: () => unawaited(
+                              ref
+                                  .read(recordingControllerProvider.notifier)
+                                  .pause(),
+                            ),
+                            onResume: () => unawaited(
+                              ref
+                                  .read(recordingControllerProvider.notifier)
+                                  .resume(),
+                            ),
+                            onStop: () => unawaited(_stop()),
+                          )
+                        : _IdlePanel(
+                            state: state,
+                            hintIndex: _hintIndex,
+                            scrollController: scrollController,
+                            bottomInset: bottomInset,
+                            keepScreenOn: _keepScreenOn,
+                            onKeepScreenOn: (v) =>
+                                unawaited(_setKeepScreenOn(v)),
+                            onStart: () => unawaited(_start()),
                           ),
-                          onResume: () => unawaited(
-                            ref
-                                .read(recordingControllerProvider.notifier)
-                                .resume(),
-                          ),
-                          onStop: () => unawaited(_stop()),
-                        )
-                      : _IdlePanel(
-                          state: state,
-                          hintIndex: _hintIndex,
-                          scrollController: scrollController,
-                          bottomInset: bottomInset,
-                          keepScreenOn: _keepScreenOn,
-                          onKeepScreenOn: (v) => unawaited(_setKeepScreenOn(v)),
-                          onStart: () => unawaited(_start()),
-                        ),
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -1,4 +1,10 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+import '../../recording/application/recording_controller.dart';
+
+part 'puck_ownership.g.dart';
 
 /// Says whether the screen above the map draws the position puck itself.
 ///
@@ -25,3 +31,11 @@ class PuckOwnership extends InheritedWidget {
   @override
   bool updateShouldNotify(PuckOwnership oldWidget) => owned != oldWidget.owned;
 }
+
+/// Whether the recorder owns the puck on the map the Plan and Record tabs
+/// share: it does for as long as a ride records, whichever of the two tabs
+/// is on screen, since the puck it draws is snapped to the route and turned
+/// by the compass, and the map's own fix would write over both.
+@Riverpod(keepAlive: true)
+bool recorderOwnsPuck(Ref ref) =>
+    ref.watch(recordingControllerProvider.select((s) => s.isRecording));

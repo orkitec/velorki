@@ -14,6 +14,7 @@ import '../../integrations/common/data/relay_client_provider.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/device_position_request.dart';
 import '../../map/presentation/map_chrome.dart';
+import '../../map/presentation/shared_map_host.dart';
 import '../../offline/presentation/offline_screen.dart';
 import '../../routing_tiles/presentation/missing_tiles_banner.dart';
 import '../../routing_tiles/presentation/routing_source_chip.dart';
@@ -34,14 +35,14 @@ import '../domain/elevation_profile.dart';
 import '../domain/planner_state.dart';
 import '../domain/routing_options.dart';
 import 'elevation_profile_chart.dart';
-import 'planner_map_host.dart';
 import 'profile_chip_row.dart';
 import 'route_format.dart';
 import 'save_route_dialog.dart';
 import 'surface_stats_bar.dart';
 
-/// The Plan tab: a full-screen map with the search and profile controls on
-/// top and the route details in a draggable sheet at the bottom.
+/// The Plan tab: the search and profile controls at the top and the route
+/// details in a draggable sheet at the bottom, over the map the shell
+/// paints under the Plan and Record tabs.
 class PlannerScreen extends ConsumerStatefulWidget {
   /// Creates the planner.
   const PlannerScreen({super.key});
@@ -51,9 +52,17 @@ class PlannerScreen extends ConsumerStatefulWidget {
 }
 
 class _PlannerScreenState extends ConsumerState<PlannerScreen>
-    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+    with WidgetsBindingObserver {
+  /// The shared map, while it can be driven.
   MapController? _map;
+
+  /// The binding of the plan to [_map]; kept while the tab is away, so the
+  /// plan's history is not lost between a leave and a return.
   PlannerMapBinding? _binding;
+
+  /// Whether this tab's layers and handlers are on the shared map right now.
+  bool _drawing = false;
+
   SearchResult? _placeToStartFrom;
 
   /// The chrome over the map (search field, place actions, profile chips),
@@ -90,13 +99,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     return _snapSizes;
   }
 
-  /// Whether this is the tab on screen, as the last build saw it.
+  /// Whether this is the tab on screen.
   bool _active = true;
-
-  /// The whole sheet, frame and list: it fades out as the tab goes and in
-  /// as the tab comes, over the Record sheet showing through this tab's
-  /// screen while its map is offstage for the hold.
-  late final SheetFade _sheetFade;
 
   /// What the shell's control column was last told about this tab.
   MapChromeData? _chromeData;
@@ -166,14 +170,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     // The keyboard's going is what brings the sheet back; the window does
     // not rebuild this screen by itself, so metrics changes are listened for.
     WidgetsBinding.instance.addObserver(this);
-    // Built in the middle of a change to this tab (its first visit, from
-    // another tab): the listener below sees no change, so the list starts
-    // away and fades in from here.
-    final tabs = ref.read(activeTabProvider.notifier);
-    final arriving =
-        ref.read(activeTabProvider) == plannerRoute && tabs.previous != null;
-    _sheetFade = SheetFade(vsync: this, visible: !arriving);
-    if (arriving) _sheetFade.show();
+    _active = ref.read(activeTabProvider) == plannerRoute;
+    _map = ref.read(sharedMapControllerProvider);
+    _updateMapUse();
   }
 
   bool _searchFocused = false;
@@ -241,7 +240,6 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     WidgetsBinding.instance.removeObserver(this);
     _binding?.detach();
     _sheet.dispose();
-    _sheetFade.dispose();
     if (_docked) {
       // Deferred: the tree is locked while a widget goes, and the shell
       // would rebuild for this.
@@ -329,20 +327,51 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     }
   }
 
-  // Called from the map widget's build, so it must not call setState.
-  void _onMapReady(MapController controller) {
-    _map = controller;
+  /// The shared map came, went, or was replaced after a style reload: the
+  /// binding to the old one is worthless, and a new map is bare.
+  void _onMapChanged(MapController? map) {
+    if (identical(map, _map)) return;
     _binding?.detach();
-    final binding = PlannerMapBinding(
-      map: controller,
-      planner: ref.read(plannerControllerProvider.notifier),
-    );
-    binding.onWaypointTap = (index) {
-      unawaited(_showWaypointActions(index));
-    };
+    _binding = null;
+    _drawing = false;
+    _map = map;
+    _updateMapUse();
+  }
+
+  /// Puts this tab's layers and handlers on the shared map while it is the
+  /// tab on screen, and takes them off when it is not: the Record tab draws
+  /// its own on the same map, and only one tab's belong there at a time.
+  void _updateMapUse() {
+    final map = _map;
+    final wanted = _active && map != null;
+    if (wanted == _drawing) return;
+    _drawing = wanted;
+    if (!wanted) {
+      final binding = _binding;
+      if (binding == null) return;
+      binding.detach();
+      unawaited(binding.clear());
+      unawaited(binding.map.setSearchPin(null));
+      return;
+    }
+    var binding = _binding;
+    if (binding == null) {
+      binding = PlannerMapBinding(
+        map: map,
+        planner: ref.read(plannerControllerProvider.notifier),
+      );
+      binding.onWaypointTap = (index) {
+        unawaited(_showWaypointActions(index));
+      };
+      _binding = binding;
+    }
     binding.attach();
-    _binding = binding;
     unawaited(binding.sync(ref.read(plannerControllerProvider)));
+    // A searched place the rider has not decided about is still theirs.
+    final place = _placeToStartFrom;
+    if (place != null) {
+      unawaited(map.setSearchPin(place.position, label: place.name));
+    }
   }
 
   void _onPlaceSelected(SearchResult result) {
@@ -495,8 +524,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     final state = ref.watch(plannerControllerProvider);
     final hasBackend = ref.watch(routingBackendProvider) != null;
 
+    ref.listen(sharedMapControllerProvider, (_, next) => _onMapChanged(next));
     ref.listen(plannerControllerProvider, (previous, next) {
-      unawaited(_binding?.sync(next));
+      // Only while this tab's layers are on the map; a plan that changes
+      // while the tab is away is drawn whole when it comes back.
+      if (_drawing) unawaited(_binding?.sync(next));
       final error = next.error;
       if (error == null || error == previous?.error || !mounted) return;
       if (error == noRoutingBackendError) return;
@@ -529,17 +561,19 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     final hasVariants = state.alternatives.length > 1;
 
     // The tab on screen: the chrome over the map slides in when it is this
-    // one, and the map's control column and the sheet pick up where the
-    // last tab left them.
+    // one, the plan goes on the map, and the map's control column and the
+    // sheet pick up where the last tab left them.
     final active = ref.watch(activeTabProvider) == plannerRoute;
     _active = active;
     ref.listen(activeTabProvider, (previous, next) {
       if (next == plannerRoute && previous != plannerRoute) {
+        _active = true;
+        _updateMapUse();
         _takeOverControls();
         _takeOverSheet();
-        _sheetFade.show();
       } else if (previous == plannerRoute && next != plannerRoute) {
-        _sheetFade.hide();
+        _active = false;
+        _updateMapUse();
         // The next tab tells the column its own wants; this one tells it
         // again, from scratch, when it comes back.
         _chromeData = null;
@@ -549,17 +583,13 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       }
     });
     if (active) _shareChrome(const MapChromeData());
-    // While this tab is held painted on top for a change to or from Record,
-    // its map is offstage: the Record map underneath shows the same view,
-    // and the Record sheet shows through for the sheets to cross-fade.
-    final held = ref.watch(tabHoldProvider) == chromeTab;
     _ownControlsTop = _chromeHeight + 12;
     final controlsTop = ref.read(mapControlsTopProvider);
     if (active && (controlsTop.target - _ownControlsTop).abs() >= 0.5) {
       // A change of this tab's own chrome, on screen: the column glides,
-      // after the frame, since the other tab's map listens to it too and
-      // may not be told during a build. The first tab of the launch takes
-      // its place without a glide.
+      // after the frame, since the shell listens to it and may not be told
+      // during a build. The first tab of the launch takes its place without
+      // a glide.
       final own = _ownControlsTop;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_active) return;
@@ -575,32 +605,16 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       if (mounted) _measureChrome();
     });
 
-    return Scaffold(
-      // The map fills the screen and stays put; the keyboard overlays its
-      // lower edge and the search results float above from the field. A
-      // resizing scaffold would shrink the platform view to a strip.
-      resizeToAvoidBottomInset: false,
-      body: SizedBox.expand(
+    // Not a Scaffold: a Scaffold's material absorbs every touch, and a tap
+    // that lands on nothing of this screen has to fall through to the
+    // shell's map. A transparent material is what the buttons need and
+    // lets the touch pass; the shell's scaffold shows the snack bars and
+    // keeps the screen its full height under the keyboard.
+    return Material(
+      type: MaterialType.transparency,
+      child: SizedBox.expand(
         child: Stack(
           children: [
-            Positioned.fill(
-              // Search field, place actions, chips and their gaps: the control
-              // column starts underneath them.
-              child: AnimatedBuilder(
-                animation: controlsTop.animation,
-                builder: (context, _) => MapChromeInsets(
-                  controlsTop: controlsTop.animation.value,
-                  child: Offstage(
-                    offstage: held,
-                    child: PlannerMapHost(
-                      onMapReady: _onMapReady,
-                      sharesCamera: true,
-                      sharedTab: plannerRoute,
-                    ),
-                  ),
-                ),
-              ),
-            ),
             TabChromeSlide(
               active: active,
               child: SafeArea(
@@ -685,45 +699,40 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
               // a pull down from the top settled on the higher one and a pull
               // up from the handle on the lower one, a chip row apart.
               snapSizes: _snapSizesFor(restingSheetSize),
-              // The whole sheet fades over the Record sheet showing through
-              // this screen while its map is offstage for the hold.
-              builder: (context, scrollController) => FadeTransition(
-                opacity: _sheetFade.animation,
-                child: DockingSheet(
-                  initialExtent: restingSheetSize,
-                  collapsedExtent: collapsedSheetSize,
-                  dockedRange: dockedRange,
-                  docks: true,
-                  dockedBottomInset: bottomInset,
-                  onDocked: _reportDocked,
-                  onExtent: _onSheetExtent,
-                  handle: const SheetHandle(),
-                  child: ListView(
-                    controller: scrollController,
-                    padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 24),
-                    children: [
-                      // Room for the handle the shell draws over the list.
-                      const SizedBox(height: sheetHandleDp),
-                      _SheetHeader(state: state),
-                      const SizedBox(height: 14),
-                      // The variants right under the figures, where the sheet
-                      // grows to show them; then the actions, so Loop and Save
-                      // are visible at the sheet's resting height.
-                      if (hasVariants) ...[
-                        _AlternativeChips(state: state),
-                        const SizedBox(height: 12),
-                      ],
-                      _PlannerActions(
-                        state: state,
-                        onAlternatives: _loadAlternatives,
-                        onSmartLoop: _smartLoop,
-                        onAsk: _ask,
-                        onSave: _save,
-                      ),
-                      const SizedBox(height: 16),
-                      _SheetBody(state: state),
+              builder: (context, scrollController) => DockingSheet(
+                initialExtent: restingSheetSize,
+                collapsedExtent: collapsedSheetSize,
+                dockedRange: dockedRange,
+                docks: true,
+                dockedBottomInset: bottomInset,
+                onDocked: _reportDocked,
+                onExtent: _onSheetExtent,
+                handle: const SheetHandle(),
+                child: ListView(
+                  controller: scrollController,
+                  padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 24),
+                  children: [
+                    // Room for the handle the shell draws over the list.
+                    const SizedBox(height: sheetHandleDp),
+                    _SheetHeader(state: state),
+                    const SizedBox(height: 14),
+                    // The variants right under the figures, where the sheet
+                    // grows to show them; then the actions, so Loop and Save
+                    // are visible at the sheet's resting height.
+                    if (hasVariants) ...[
+                      _AlternativeChips(state: state),
+                      const SizedBox(height: 12),
                     ],
-                  ),
+                    _PlannerActions(
+                      state: state,
+                      onAlternatives: _loadAlternatives,
+                      onSmartLoop: _smartLoop,
+                      onAsk: _ask,
+                      onSave: _save,
+                    ),
+                    const SizedBox(height: 16),
+                    _SheetBody(state: state),
+                  ],
                 ),
               ),
             ),

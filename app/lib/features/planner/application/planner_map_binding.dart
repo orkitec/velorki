@@ -62,6 +62,19 @@ class PlannerMapBinding {
     map.onWaypointTapped = null;
   }
 
+  /// Takes everything this binding drew off the map — the markers and every
+  /// line — for a tab that leaves the shared map to the other. The next
+  /// [sync] draws it all again; what it remembers of the plan's history
+  /// stays, so a route that arrived whole while the tab was away still gets
+  /// its fit when the tab comes back.
+  Future<void> clear() async {
+    await map.setWaypoints(const <MapWaypoint>[]);
+    for (final id in _lineIds) {
+      await map.removeRouteLine(id);
+    }
+    _lineIds.clear();
+  }
+
   /// Pushes [state] to the map: markers, the main line and the alternatives.
   ///
   /// The camera is only moved when a whole route appears at once — which is

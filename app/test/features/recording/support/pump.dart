@@ -26,7 +26,7 @@ import '../../planner/support/pump.dart';
 import 'fakes.dart';
 
 export '../../planner/support/pump.dart'
-    show PlannerHarness, imperialUnits, unmountApp;
+    show PlannerHarness, hostScreen, imperialUnits, unmountApp;
 
 /// Everything a recording widget test needs on top of [PlannerHarness]: a
 /// recorder that records calls instead of driving the GPS, and permissions
@@ -184,7 +184,7 @@ Future<RecordingHarness> pumpRecordingScreen(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [...h.overrides(await _prefs(preferences)), ...extraOverrides],
-      child: testApp(home: child),
+      child: testApp(home: hostScreen(child)),
     ),
   );
   await tester.pump();

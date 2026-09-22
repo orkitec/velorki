@@ -16,9 +16,10 @@ import 'package:velorki/features/recording/domain/ride.dart';
 import 'package:velorki/features/recording/domain/ride_naming.dart';
 import 'package:velorki/core/geo/ride_stats.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
-import 'package:velorki/features/map/data/map_preferences.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
+import 'package:velorki/features/map/presentation/puck_ownership.dart';
+import 'package:velorki/features/shared/application/active_tab.dart';
 import 'package:velorki/features/navigation/application/navigation_controller.dart';
 import 'package:velorki/features/navigation/domain/navigation_progress.dart';
 import 'package:velorki/features/navigation/data/navigation_settings.dart';
@@ -156,6 +157,19 @@ Future<void> writeJournal(
       RecordingStore(harness.directory)
           .writeJournal('ride-1', points ?? _journalPoints()),
 );
+
+/// What the screen last told the shell's control column, which is what the
+/// column's buttons call and show.
+MapChromeData chromeOf(WidgetTester tester) =>
+    ProviderScope.containerOf(tester.element(find.byType(RecordingScreen)))
+        .read(activeMapChromeProvider)!;
+
+/// Where the shell's control column is on its glide right now.
+double controlsTopOf(WidgetTester tester) =>
+    ProviderScope.containerOf(tester.element(find.byType(RecordingScreen)))
+        .read(mapControlsTopProvider)
+        .animation
+        .value;
 
 void main() {
   testWidgets('the idle tab offers a start button and the route chooser', (
@@ -449,7 +463,8 @@ void main() {
     await unmountApp(tester);
   });
 
-  testWidgets('the map takes the stored camera, but not while following', (
+  testWidgets('a ride recording while Plan is up keeps the puck on the shared '
+      'map but leaves the camera alone, then re-centres once on return', (
     tester,
   ) async {
     final h = await pumpRecordingScreen(tester, const RecordingScreen());
@@ -457,41 +472,55 @@ void main() {
     final container = ProviderScope.containerOf(
       tester.element(find.byType(RecordingScreen)),
     );
-    h.map
-      ..center = defaultMapCamera.center
-      ..zoom = defaultMapCamera.zoom;
-    List<MapCall> moves() =>
-        h.map.calls.where((c) => c.method == 'moveTo').toList();
-    final before = moves().length;
+    List<MapCall> calls(String method) =>
+        h.map.calls.where((c) => c.method == method).toList();
 
-    // Idle: the camera another map came to rest at is taken, once, in a jump.
-    const camera = MapCamera(center: LatLng(52.52, 13.405), zoom: 11);
-    await container.read(lastMapCameraProvider.notifier).save(camera);
-    await tester.pump();
-    expect(moves(), hasLength(before + 1));
-    expect(moves().last.arguments[0], camera.center);
-    expect(moves().last.arguments[4], isFalse);
-    await tester.pump();
-    expect(moves(), hasLength(before + 1));
-
-    // A ride starts and the map follows the rider: another map's camera is
-    // no longer any of this map's business.
     await emitSnapshot(
       tester,
       h,
       _snapshot(newPoints: const [LatLng(48.0, 11.0), LatLng(48.1, 11.2)]),
     );
-    await tester.pumpAndSettle();
-    final following = moves().length;
-    await container
-        .read(lastMapCameraProvider.notifier)
-        .save(const MapCamera(center: LatLng(40.7, -74.0), zoom: 12));
+    expect(calls('moveTo'), hasLength(1));
+    expect(calls('setTrackLine'), isNotEmpty);
+    expect(container.read(recorderOwnsPuckProvider), isTrue);
+    h.map.onCameraIdle?.call();
     await tester.pump();
-    expect(moves(), hasLength(following));
-    expect(
-      moves().any((m) => m.arguments[0] == const LatLng(40.7, -74.0)),
-      isFalse,
+
+    // Plan comes up: the track goes, the camera idle handler with it.
+    container.read(activeTabProvider.notifier).show(plannerRoute);
+    await tester.pump();
+    expect(calls('setTrackLine').last.arguments.single, isEmpty);
+    expect(h.map.onCameraIdle, isNull);
+    final movesBefore = calls('moveTo').length;
+    final tracksBefore = calls('setTrackLine').length;
+    final pucksBefore = calls('setPosition').length;
+
+    // A fix while the rider looks at the plan moves the puck, and nothing
+    // else: the map's own fix is muted while the recorder owns the puck,
+    // and a puck that froze would be a lie.
+    await emitSnapshot(
+      tester,
+      h,
+      _snapshot(
+        newPoints: const [LatLng(48.2, 11.3)],
+        lastPosition: const LatLng(48.2, 11.3),
+      ),
     );
+    expect(calls('setPosition'), hasLength(pucksBefore + 1));
+    expect(calls('setPosition').last.arguments.first, const LatLng(48.2, 11.3));
+    expect(calls('moveTo'), hasLength(movesBefore));
+    expect(calls('setTrackLine'), hasLength(tracksBefore));
+
+    // Back on Record: the track is drawn whole and the camera comes back
+    // to the rider once, without waiting for the next fix.
+    container.read(activeTabProvider.notifier).show(recordingRoute);
+    await tester.pump();
+    expect(calls('setTrackLine').last.arguments.single, hasLength(3));
+    expect(calls('moveTo'), hasLength(movesBefore + 1));
+    expect(calls('moveTo').last.arguments.first, const LatLng(48.2, 11.3));
+    expect(h.map.onCameraIdle, isNotNull);
+    await tester.pump();
+    expect(calls('moveTo'), hasLength(movesBefore + 1));
 
     await unmountApp(tester);
   });
@@ -1398,19 +1427,12 @@ void main() {
       await settleCamera(tester, h);
 
       // What MapControls calls after it moved the camera to the fix.
-      final chrome = tester.widget<MapChromeInsets>(
-        find.byType(MapChromeInsets).first,
-      );
+      final chrome = chromeOf(tester);
       expect(chrome.following, isFalse);
       chrome.onLocate!();
       await tester.pump();
 
-      expect(
-        tester
-            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
-            .following,
-        isTrue,
-      );
+      expect(chromeOf(tester).following, isTrue);
       // Back on the rider right away, without waiting for the next fix.
       expect(moves(h), hasLength(2));
       expect(moves(h).last.arguments.first, const LatLng(48.1, 11.2));
@@ -1448,12 +1470,7 @@ void main() {
       );
 
       expect(moves(h).last.arguments[2], 90);
-      expect(
-        tester
-            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
-            .headingUp,
-        isTrue,
-      );
+      expect(chromeOf(tester).headingUp, isTrue);
       await unmountApp(tester);
     });
 
@@ -1556,12 +1573,7 @@ void main() {
       await emitSnapshot(tester, h, _snapshot(headingDeg: 90));
 
       expect(moves(h).single.arguments[2], 0);
-      expect(
-        tester
-            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
-            .headingUp,
-        isFalse,
-      );
+      expect(chromeOf(tester).headingUp, isFalse);
       await unmountApp(tester);
     });
 
@@ -1574,9 +1586,7 @@ void main() {
       await settleCamera(tester, h);
 
       Future<void> tapCompass() async {
-        tester
-            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
-            .onCompass!();
+        chromeOf(tester).onCompass!();
         await tester.pump();
         await settleAsync(tester);
       }
@@ -1585,12 +1595,7 @@ void main() {
 
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getString('recording.follow'), 'headingUp');
-      expect(
-        tester
-            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
-            .headingUp,
-        isTrue,
-      );
+      expect(chromeOf(tester).headingUp, isTrue);
 
       // And back again, which straightens the map and forgets the choice
       // rather than storing the default.
@@ -1598,12 +1603,7 @@ void main() {
 
       expect(prefs.getString('recording.follow'), isNull);
       expect(moves(h).last.arguments[2], 0);
-      expect(
-        tester
-            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
-            .headingUp,
-        isFalse,
-      );
+      expect(chromeOf(tester).headingUp, isFalse);
       await unmountApp(tester);
     });
 
@@ -1613,18 +1613,14 @@ void main() {
       await emitSnapshot(tester, h, _snapshot(headingDeg: 90));
       await settleCamera(tester, h);
 
-      tester
-          .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
-          .onLocate!();
+      chromeOf(tester).onLocate!();
       await tester.pump();
       await settleAsync(tester);
 
       // The follow style is the compass button's business, not this one's.
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getString('recording.follow'), isNull);
-      final chrome = tester.widget<MapChromeInsets>(
-        find.byType(MapChromeInsets).first,
-      );
+      final chrome = chromeOf(tester);
       expect(chrome.headingUp, isFalse);
       expect(chrome.following, isTrue);
       await unmountApp(tester);
@@ -1633,22 +1629,12 @@ void main() {
     testWidgets('the needle follows the camera', (tester) async {
       final h = await pumpRecordingScreen(tester, const RecordingScreen());
       await tester.pump();
-      expect(
-        tester
-            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
-            .bearingDeg,
-        0,
-      );
+      expect(chromeOf(tester).bearingDeg, 0);
 
       h.map.bearing = 40;
       await settleCamera(tester, h);
 
-      expect(
-        tester
-            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
-            .bearingDeg,
-        40,
-      );
+      expect(chromeOf(tester).bearingDeg, 40);
       await unmountApp(tester);
     });
 
@@ -1662,12 +1648,7 @@ void main() {
       h.map.bearing = 40;
       await settleCamera(tester, h);
 
-      expect(
-        tester
-            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
-            .following,
-        isFalse,
-      );
+      expect(chromeOf(tester).following, isFalse);
       await unmountApp(tester);
     });
 
@@ -1687,12 +1668,7 @@ void main() {
       await emitSnapshot(tester, h, _snapshot(status: RecordingStatus.idle));
 
       expect(moves(h).last.arguments[2], 0);
-      expect(
-        tester
-            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
-            .following,
-        isFalse,
-      );
+      expect(chromeOf(tester).following, isFalse);
       await unmountApp(tester);
     });
 
@@ -1700,12 +1676,7 @@ void main() {
       await pumpRecordingScreen(tester, const RecordingScreen());
       await tester.pump();
 
-      expect(
-        tester
-            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
-            .following,
-        isFalse,
-      );
+      expect(chromeOf(tester).following, isFalse);
       await unmountApp(tester);
     });
   });
@@ -1952,12 +1923,7 @@ void main() {
       expect(find.text(l10n.navTurnLeft), findsOneWidget);
       // The column glides down under the banner.
       await tester.pump(const Duration(milliseconds: 300));
-      expect(
-        tester
-            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
-            .controlsTop,
-        turnBannerHeight + 24,
-      );
+      expect(controlsTopOf(tester), turnBannerHeight + 24);
 
       await unmountApp(tester);
     });
@@ -1969,12 +1935,7 @@ void main() {
       await emitSnapshot(tester, h, _snapshot());
 
       expect(find.byType(TurnBanner), findsNothing);
-      expect(
-        tester
-            .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
-            .controlsTop,
-        defaultMapControlsTop,
-      );
+      expect(controlsTopOf(tester), defaultMapControlsTop);
 
       await unmountApp(tester);
     });
@@ -2113,8 +2074,9 @@ void main() {
       expect(find.text(l10n.statSpeed.toUpperCase()), findsOneWidget);
       // Nothing that could stop the ride by accident.
       expect(find.byTooltip(l10n.recordingFinish), findsNothing);
-      // The map is still there, only not drawn.
-      expect(find.byType(MapChromeInsets, skipOffstage: false), findsWidgets);
+      // The shell's column is told to stay away; the map is the shell's and
+      // stays under the black.
+      expect(chromeOf(tester).visible, isFalse);
 
       await unmountApp(tester);
     });

@@ -88,11 +88,11 @@ class ValueGlide {
 /// Chrome at the top of a tab's map that slides in from above the screen
 /// when the tab comes on screen, and slides out when it goes.
 ///
-/// The shell keeps a departing tab painted for the length of the slide, on
-/// top of the arriving tab's identical map, so the slide out is seen; once
-/// the tab is offstage its ticker is muted and whatever is left of the
-/// slide waits. The [child] should include the safe-area padding, so that a
-/// full slide moves it clear of the status bar too.
+/// The shell keeps a departing tab painted for the length of the slide,
+/// fading, over the map the tabs share, so the slide out is seen; once the
+/// tab is offstage its ticker is muted and whatever is left of the slide
+/// waits. The [child] should include the safe-area padding, so that a full
+/// slide moves it clear of the status bar too.
 class TabChromeSlide extends StatefulWidget {
   /// Creates the slide.
   const TabChromeSlide({required this.active, required this.child, super.key});
@@ -144,35 +144,4 @@ class _TabChromeSlideState extends State<TabChromeSlide>
   @override
   Widget build(BuildContext context) =>
       SlideTransition(position: _position, child: widget.child);
-}
-
-/// The opacity of a tab's sheet, or of the list inside it, around a change
-/// between the Plan and Record tabs: one sheet's fades out while the
-/// other's fades in, over the length of the hold, at the same time.
-///
-/// The shell keeps Plan painted on top for the hold with its map offstage,
-/// so the two sheets are both in view: Plan's whole sheet fades over
-/// Record's, whose list fades under it.
-class SheetFade {
-  /// Creates the fade, [visible] or not.
-  SheetFade({required TickerProvider vsync, required bool visible})
-    : _controller = AnimationController(
-        vsync: vsync,
-        duration: tabChromeSlideDuration,
-        value: visible ? 1 : 0,
-      );
-
-  final AnimationController _controller;
-
-  /// The opacity as it moves.
-  Animation<double> get animation => _controller;
-
-  /// Fades in, from wherever it is.
-  void show() => _controller.forward();
-
-  /// Fades out, from wherever it is.
-  void hide() => _controller.reverse();
-
-  /// Releases the ticker.
-  void dispose() => _controller.dispose();
 }

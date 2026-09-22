@@ -8,11 +8,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/router.dart';
 import 'package:velorki/app/tab_fade.dart';
+import 'package:velorki/app/theme.dart';
 import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/map/data/map_preferences.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
+import 'package:velorki/features/map/presentation/shared_map_host.dart';
 import 'package:velorki/features/map/testing/testing.dart';
+import 'package:velorki/features/planner/application/planner_map_binding.dart';
 import 'package:velorki/features/planner/presentation/planner_map_host.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
@@ -20,16 +23,24 @@ import 'package:velorki/features/search/presentation/search_field.dart';
 import 'package:velorki/features/shared/application/active_tab.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 import 'package:velorki/features/shared/presentation/tab_chrome_slide.dart';
+import 'package:velorki_geo/velorki_geo.dart';
 
+import '../features/planner/support/pump.dart' as planner;
 import '../support/app.dart';
 
 /// Stands in for the maplibre view: it hands out its own controller once,
-/// on the default view, the way the real map opens on the stored camera.
+/// on the default view, the way the real map opens on the stored camera,
+/// and counts the taps that reach it through the tabs above.
 class _FakeMapView extends StatefulWidget {
-  const _FakeMapView({required this.onReady, required this.onCreated});
+  const _FakeMapView({
+    required this.onReady,
+    required this.onCreated,
+    this.onTapped,
+  });
 
   final void Function(MapController controller) onReady;
   final void Function(FakeMapController controller) onCreated;
+  final VoidCallback? onTapped;
 
   @override
   State<_FakeMapView> createState() => _FakeMapViewState();
@@ -49,17 +60,32 @@ class _FakeMapViewState extends State<_FakeMapView> {
   }
 
   @override
-  Widget build(BuildContext context) =>
-      const ColoredBox(color: Color(0xFFDDDDDD));
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: widget.onTapped,
+    child: const ColoredBox(color: Color(0xFFDDDDDD)),
+  );
 }
 
-/// A builder that makes one fresh map per host and collects them in [maps].
-MapViewBuilder _collectingBuilder(List<FakeMapController> maps) =>
-    (onReady) => _FakeMapView(onReady: onReady, onCreated: maps.add);
+/// A builder that makes one fresh map per host and collects them in [maps];
+/// [builds] counts how often it was asked for a map widget at all, and
+/// [taps] every tap that reached a map.
+MapViewBuilder _collectingBuilder(
+  List<FakeMapController> maps, {
+  List<int>? builds,
+  List<int>? taps,
+}) => (onReady) {
+  builds?.add(builds.length);
+  return _FakeMapView(
+    onReady: onReady,
+    onCreated: maps.add,
+    onTapped: taps == null ? null : () => taps.add(taps.length),
+  );
+};
 
 Future<void> _pumpShell(
   WidgetTester tester, {
   List<Override> overrides = const <Override>[],
+  TargetPlatform? platform,
 }) async {
   // The settings tab is long — subscription, connections, AI, advanced,
   // about — so the shell is pumped on a tall surface rather than scrolled to
@@ -78,7 +104,12 @@ Future<void> _pumpShell(
         velorkiDatabaseProvider.overrideWithValue(db),
         ...overrides,
       ],
-      child: testRouterApp(routerConfig: createRouter()),
+      child: testRouterApp(
+        routerConfig: createRouter(),
+        theme: platform == null
+            ? null
+            : buildLightTheme().copyWith(platform: platform),
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -370,8 +401,10 @@ void main() {
       .position
       .value;
 
-  testWidgets('leaving Plan for Record, Plan stays painted on top while its '
-      'chrome slides up and out, with no fade', (tester) async {
+  testWidgets('leaving Plan for Record, the two cross-fade over the map for '
+      'the length of the chrome slide, Plan\'s chrome sliding up and out', (
+    tester,
+  ) async {
     await _pumpShell(tester);
     expect(plannerChrome(tester), Offset.zero);
 
@@ -379,19 +412,24 @@ void main() {
       find.widgetWithText(NavigationDestination, l10n.tabRecord),
     );
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 125));
-    // Half way: both painted at full opacity, Plan last, so on top, and its
-    // chrome on its way up.
+    await tester.pump(const Duration(milliseconds: 100));
+    // Half way: both painted, Plan going on top and part way through its
+    // fade, Record whole underneath, and Plan's chrome on its way up.
     var painted = paintedBranches(tester);
     expect(painted.map((b) => b.tab), [1, 0]);
-    expect(painted.every((b) => b.opacity.value == 1), isTrue);
     expect(painted.last.leaving, isTrue);
     expect(painted.first.shown, isTrue);
+    expect(painted.last.opacity.value, inExclusiveRange(0, 1));
+    expect(painted.first.opacity.value, 1);
     final midway = plannerChrome(tester).dy;
     expect(midway, lessThan(0));
     expect(midway, greaterThan(-1));
 
-    await tester.pump(const Duration(milliseconds: 135));
+    // The fade takes the chrome's 200 ms, not the 150 of a plain change.
+    await tester.pump(const Duration(milliseconds: 60));
+    expect(paintedBranches(tester).map((b) => b.tab), [1, 0]);
+    await tester.pump(const Duration(milliseconds: 40));
+    await tester.pump(const Duration(milliseconds: 16));
     painted = paintedBranches(tester);
     expect(painted.map((b) => b.tab), [1]);
     await tester.pumpAndSettle();
@@ -401,92 +439,187 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1));
   });
 
-  /// The opacity of the list inside the sheet of [screen], painted or not.
-  double listOpacityOf(WidgetTester tester, Type screen) => tester
-      .widget<Opacity>(
-        find
-            .descendant(
-              of: find.descendant(
-                of: find.byType(screen, skipOffstage: false),
-                matching: find.byType(DockingSheetShell, skipOffstage: false),
-              ),
-              matching: find.byType(Opacity, skipOffstage: false),
-            )
-            .first,
-      )
-      .opacity;
-
-  /// The opacity of the whole Plan sheet, frame and list, painted or not:
-  /// the fade wrapped directly around the sheet, not the branch's.
-  double plannerSheetOpacity(WidgetTester tester) => tester
-      .widgetList<FadeTransition>(
-        find.byType(FadeTransition, skipOffstage: false),
-      )
-      .firstWhere((fade) => fade.child is DockingSheet)
-      .opacity
-      .value;
-
-  /// Whether the Plan map is rendered offstage, as it is for a hold: the
-  /// Offstage wrapped directly around the map host, not the branch's.
-  bool plannerMapOffstage(WidgetTester tester) => tester
-      .widgetList<Offstage>(find.byType(Offstage, skipOffstage: false))
-      .firstWhere((offstage) => offstage.child is PlannerMapHost)
-      .offstage;
-
-  testWidgets('between Plan and Record the sheets cross-fade at once, over '
-      'the Record map, with the Plan map offstage for the hold', (
+  testWidgets('between Plan and Record the leaving tab fades out on top of '
+      'the arriving one, which is whole underneath from the first frame', (
     tester,
   ) async {
-    // The sheets size themselves from MediaQuery: with the view agreeing
-    // with the surface the resting sheet is clear of the docking range,
-    // so the docking fade leaves the lists alone here.
     tester.view.physicalSize = const Size(3000, 6000);
     addTearDown(tester.view.resetPhysicalSize);
     await _pumpShell(tester);
-    expect(plannerSheetOpacity(tester), 1);
-    expect(plannerMapOffstage(tester), isFalse);
 
-    // Leaving: Plan on top with its map away, its sheet fading out while
-    // the Record list fades in underneath, both half way at half the hold.
-    await tester.tap(
-      find.widgetWithText(NavigationDestination, l10n.tabRecord),
-    );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(paintedBranches(tester).map((b) => b.tab), [1, 0]);
-    expect(plannerMapOffstage(tester), isTrue);
-    expect(plannerSheetOpacity(tester), closeTo(0.5, 0.12));
-    expect(listOpacityOf(tester, RecordingScreen), closeTo(0.5, 0.12));
+    Future<void> change(String tab, int from, int to) async {
+      await tester.tap(find.widgetWithText(NavigationDestination, tab));
+      await tester.pump();
+      var seenPartWay = false;
+      for (final step in <int>[0, 40, 40, 40, 40, 39]) {
+        await tester.pump(Duration(milliseconds: step));
+        final painted = paintedBranches(tester);
+        // The going tab is painted last, on top of the coming one.
+        expect(painted.map((b) => b.tab), [to, from]);
+        final going = painted.last;
+        final coming = painted.first;
+        expect(going.leaving, isTrue);
+        expect(coming.shown, isTrue);
+        // Only the going tab fades; the coming one is whole underneath, so
+        // the two sheets never let the map through between them.
+        expect(coming.opacity.value, 1);
+        expect(going.opacity.value, inInclusiveRange(0, 1));
+        if (going.opacity.value < 0.9 && going.opacity.value > 0.1) {
+          seenPartWay = true;
+        }
+        // Both sheets are on the map through the fade.
+        expect(
+          find.descendant(
+            of: find.byType(PlannerScreen, skipOffstage: false),
+            matching: find.byType(DockingSheetShell, skipOffstage: false),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: find.byType(RecordingScreen, skipOffstage: false),
+            matching: find.byType(DockingSheetShell, skipOffstage: false),
+          ),
+          findsOneWidget,
+        );
+      }
+      expect(
+        seenPartWay,
+        isTrue,
+        reason: 'a frame with the going tab part way',
+      );
+      await tester.pump(const Duration(milliseconds: 16));
+      expect(paintedBranches(tester).map((b) => b.tab), [to]);
+      expect(paintedBranches(tester).single.opacity.value, 1);
+    }
 
-    await tester.pump(const Duration(milliseconds: 120));
-    expect(paintedBranches(tester).map((b) => b.tab), [1]);
-    expect(listOpacityOf(tester, RecordingScreen), 1);
-    await tester.pumpAndSettle();
-    expect(plannerSheetOpacity(tester), 0);
-    expect(plannerMapOffstage(tester), isFalse);
-
-    // Arriving: Plan on top from the first frame, map away and sheet
-    // clear, so the Record sheet shows through; the two fade across each
-    // other, and the map is back once the hold ends.
-    await tester.tap(find.widgetWithText(NavigationDestination, l10n.tabPlan));
-    await tester.pump();
-    expect(paintedBranches(tester).map((b) => b.tab), [1, 0]);
-    expect(plannerMapOffstage(tester), isTrue);
-    expect(plannerSheetOpacity(tester), 0);
-    expect(listOpacityOf(tester, RecordingScreen), 1);
-    // Plan's tickers were off while it was away; their clock starts with
-    // its first painted frame.
-    await tester.pump(const Duration(milliseconds: 16));
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(plannerSheetOpacity(tester), closeTo(0.5, 0.12));
-    expect(listOpacityOf(tester, RecordingScreen), closeTo(0.5, 0.12));
-    await tester.pump(const Duration(milliseconds: 104));
-    expect(plannerMapOffstage(tester), isFalse);
-    expect(plannerSheetOpacity(tester), 1);
-    expect(paintedBranches(tester).map((b) => b.tab), [0]);
+    await change(l10n.tabRecord, 0, 1);
+    await change(l10n.tabPlan, 1, 0);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
+  });
+
+  testWidgets('the shell builds one map, under the tabs, and keeps it '
+      'through Plan, Record and back', (tester) async {
+    final maps = <FakeMapController>[];
+    final builds = <int>[];
+    await _pumpShell(
+      tester,
+      overrides: [
+        mapViewBuilderProvider.overrideWithValue(
+          _collectingBuilder(maps, builds: builds),
+        ),
+      ],
+    );
+    expect(find.byType(SharedMapHost), findsOneWidget);
+    // Under the branches, not inside either tab.
+    expect(
+      find.descendant(
+        of: find.byType(PlannerScreen),
+        matching: find.byType(SharedMapHost),
+      ),
+      findsNothing,
+    );
+    expect(maps, hasLength(1));
+    expect(builds, hasLength(1));
+    final element = tester.element(find.byType(SharedMapHost));
+    final container = ProviderScope.containerOf(element);
+    expect(container.read(sharedMapControllerProvider), same(maps.single));
+
+    await _tapTab(tester, l10n.tabRecord);
+    await _tapTab(tester, l10n.tabPlan);
+    await _tapTab(tester, l10n.tabLibrary);
+    await _tapTab(tester, l10n.tabPlan);
+    expect(maps, hasLength(1));
+    expect(builds, hasLength(1));
+    expect(tester.element(find.byType(SharedMapHost)), same(element));
+    expect(container.read(sharedMapControllerProvider), same(maps.single));
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+  });
+
+  // Each platform's page transition wraps the tab differently; a touch has
+  // to fall through both.
+  for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+    testWidgets('a tap on the map, beside a tab\'s chrome and above its '
+        'sheet, falls through the tab to the shell\'s map on $platform', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(3000, 6000);
+      addTearDown(tester.view.resetPhysicalSize);
+      final maps = <FakeMapController>[];
+      final taps = <int>[];
+      await _pumpShell(
+        tester,
+        platform: platform,
+        overrides: [
+          mapViewBuilderProvider.overrideWithValue(
+            _collectingBuilder(maps, taps: taps),
+          ),
+        ],
+      );
+      // Well below the search field and the chips, left of the control
+      // column, above the sheet.
+      final sheetTop = tester.getTopLeft(find.byType(DockingSheetShell)).dy;
+      final chromeBottom = tester.getBottomLeft(find.byType(SearchField)).dy;
+      final spot = Offset(60, (chromeBottom + sheetTop) / 2);
+      await tester.tapAt(spot);
+      await tester.pump();
+      expect(taps, hasLength(1));
+
+      await _tapTab(tester, l10n.tabRecord);
+      await tester.tapAt(spot);
+      await tester.pump();
+      expect(taps, hasLength(2));
+
+      // The sheet keeps its own taps.
+      await tester.tapAt(tester.getCenter(find.byType(SheetHandle)));
+      await tester.pump();
+      expect(taps, hasLength(2));
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 1));
+    });
+  }
+
+  testWidgets('each tab draws its own layers on the shared map while it is '
+      'on screen and takes them off when it leaves', (tester) async {
+    final h = await planner.pumpApp(tester, initialLocation: plannerRoute);
+    await tester.pumpAndSettle();
+    final map = h.map;
+
+    // A plan on the Plan tab: two markers and the main line.
+    map.onTap!(const LatLng(48.0, 11.0));
+    await tester.pump();
+    map.onTap!(const LatLng(48.1, 11.1));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+    expect(map.waypoints, hasLength(2));
+    expect(map.lines[mainRouteLineId], isNotNull);
+    final route = map.lines[mainRouteLineId]!;
+    expect(map.lines[followedRouteLineId], isNull);
+
+    // Record comes up: the plan's markers and line go, and Record draws
+    // the same route as the one to ride, in its own line.
+    await _tapTab(tester, l10n.tabRecord);
+    expect(map.waypoints, isEmpty);
+    expect(map.lines[mainRouteLineId], isNull);
+    expect(map.lines[followedRouteLineId], route);
+    expect(map.onWaypointDragged, isNull);
+    expect(map.onWaypointTapped, isNull);
+    expect(map.onTap, isNull);
+
+    // Back on Plan: Record's line goes, the plan is back, and taps plan.
+    await _tapTab(tester, l10n.tabPlan);
+    expect(map.lines[followedRouteLineId], isNull);
+    expect(map.waypoints, hasLength(2));
+    expect(map.lines[mainRouteLineId], route);
+    expect(map.onTap, isNotNull);
+    expect(map.onWaypointDragged, isNotNull);
+
+    await planner.unmountApp(tester);
   });
 
   /// The extent of the sheet of [screen], painted or not.
@@ -568,6 +701,11 @@ void main() {
     expect(rising, greaterThan(docked + 0.005));
     expect(rising, lessThan(restingExtentOf(tester, RecordingScreen) - 0.005));
     expect(barDocked(), isFalse);
+    // The Plan sheet, fading out underneath, stays docked where it was
+    // rather than jumping anywhere first.
+    expect(sheetExtentOf(tester, PlannerScreen), closeTo(docked, 0.001));
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(sheetExtentOf(tester, PlannerScreen), closeTo(docked, 0.001));
 
     await tester.pump(const Duration(milliseconds: 400));
     expect(
@@ -597,8 +735,8 @@ void main() {
 
     await tester.tap(find.widgetWithText(NavigationDestination, l10n.tabPlan));
     await tester.pump();
-    // First frame: Plan on top, its sheet where Record's docked one is,
-    // the bar square.
+    // First frame: Plan's sheet is where Record's docked one is, the bar
+    // square.
     expect(sheetExtentOf(tester, PlannerScreen), closeTo(docked, 0.001));
     expect(barDocked(), isTrue);
 
@@ -610,6 +748,8 @@ void main() {
     expect(rising, greaterThan(docked + 0.005));
     expect(rising, lessThan(restingExtentOf(tester, PlannerScreen) - 0.005));
     expect(barDocked(), isFalse);
+    // Record's sheet, fading out underneath, stays docked.
+    expect(sheetExtentOf(tester, RecordingScreen), closeTo(docked, 0.001));
 
     await tester.pump(const Duration(milliseconds: 350));
     expect(
@@ -684,7 +824,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1));
   });
 
-  testWidgets('the zoom buttons drive the map of the tab on screen', (
+  testWidgets('the zoom buttons drive the one shared map from either tab', (
     tester,
   ) async {
     final maps = <FakeMapController>[];
@@ -695,49 +835,46 @@ void main() {
       ],
     );
     expect(maps, hasLength(1));
-    final plan = maps[0];
+    final map = maps.single;
 
     await tester.tap(find.byTooltip(l10n.mapZoomIn));
     await tester.pump();
-    expect(plan.cameraMoves.last.zoom, defaultMapCamera.zoom + 1);
+    expect(map.cameraMoves.last.zoom, defaultMapCamera.zoom + 1);
 
     await _tapTab(tester, l10n.tabRecord);
-    expect(maps, hasLength(2));
-    final record = maps[1];
-    final before = plan.cameraMoves.length;
+    expect(maps, hasLength(1));
     await tester.tap(find.byTooltip(l10n.mapZoomOut));
     await tester.pump();
-    expect(record.cameraMoves.last.zoom, defaultMapCamera.zoom - 1);
-    expect(plan.cameraMoves, hasLength(before));
+    expect(map.cameraMoves.last.zoom, defaultMapCamera.zoom);
 
     await _tapTab(tester, l10n.tabPlan);
     await tester.tap(find.byTooltip(l10n.mapZoomIn));
     await tester.pump();
-    expect(plan.cameraMoves, hasLength(before + 1));
+    expect(map.cameraMoves.last.zoom, defaultMapCamera.zoom + 1);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
   });
 
-  testWidgets('arriving at Plan from Record, Plan is painted on top from the '
-      'first frame and its chrome slides down in', (tester) async {
+  testWidgets('arriving at Plan from Record, Plan fades in from the first '
+      'frame and its chrome slides down in', (tester) async {
     await _pumpShell(tester);
     await _tapTab(tester, l10n.tabRecord);
     expect(plannerChrome(tester), const Offset(0, -1));
 
     await tester.tap(find.widgetWithText(NavigationDestination, l10n.tabPlan));
     await tester.pump();
-    var painted = paintedBranches(tester);
-    expect(painted.map((b) => b.tab), [1, 0]);
-    expect(painted.last.shown, isTrue);
-    expect(painted.every((b) => b.opacity.value == 1), isTrue);
+    final painted = paintedBranches(tester);
+    expect(painted.map((b) => b.tab), [0, 1]);
+    expect(painted.first.shown, isTrue);
+    expect(painted.last.leaving, isTrue);
     expect(plannerChrome(tester), const Offset(0, -1));
 
     await tester.pump(const Duration(milliseconds: 125));
     final midway = plannerChrome(tester).dy;
     expect(midway, lessThan(0));
     expect(midway, greaterThan(-1));
-    expect(paintedBranches(tester).map((b) => b.tab), [1, 0]);
+    expect(paintedBranches(tester).map((b) => b.tab), [0, 1]);
 
     await tester.pump(const Duration(milliseconds: 135));
     expect(plannerChrome(tester), Offset.zero);
@@ -755,9 +892,9 @@ void main() {
         )
         .toList();
     List<int> painted() => [
-      for (var i = 0; i < branches().length; i++)
-        if (!branches()[i].offstage) i,
-    ];
+      for (final b in branches())
+        if (!b.offstage) b.tab,
+    ]..sort();
     expect(painted(), [0]);
 
     await tester.tap(
@@ -765,74 +902,61 @@ void main() {
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 75));
-    // Half way: both tabs are painted, one going, one coming.
+    // Half way: both tabs are painted, the going one last, on top, part
+    // way through its fade; the coming one whole underneath.
     expect(painted(), [0, 2]);
-    expect(branches()[0].leaving, isTrue);
-    expect(branches()[2].shown, isTrue);
-    expect(branches()[0].opacity.value, inExclusiveRange(0, 1));
-    expect(branches()[2].opacity.value, inExclusiveRange(0, 1));
+    expect(branches().map((b) => b.tab), [1, 2, 3, 0]);
+    expect(branches().last.leaving, isTrue);
+    expect(branches().last.opacity.value, inExclusiveRange(0, 1));
+    final coming = branches().singleWhere((b) => b.tab == 2);
+    expect(coming.shown, isTrue);
+    expect(coming.opacity.value, 1);
 
     // The fade is over one tick after its 150 ms.
     await tester.pump(const Duration(milliseconds: 75));
     await tester.pump(const Duration(milliseconds: 16));
     expect(painted(), [2]);
-    expect(branches()[2].opacity.value, 1);
+    expect(branches().singleWhere((b) => b.tab == 2).opacity.value, 1);
     expect(find.textContaining(l10n.libraryEmpty), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
   });
 
-  /// The control column's top on the map of [screen], painted or not.
-  double controlsTopOf(WidgetTester tester, Type screen) => tester
-      .widget<MapChromeInsets>(
-        find
-            .descendant(
-              of: find.byType(screen, skipOffstage: false),
-              matching: find.byType(MapChromeInsets, skipOffstage: false),
-            )
-            .first,
-      )
-      .controlsTop!;
+  /// Where the shell's one control column sits below the top of the screen
+  /// (no safe area in a test), which is the glide's value.
+  double columnTop(WidgetTester tester) =>
+      tester.getTopLeft(find.byType(MapControls)).dy;
 
   testWidgets('leaving Plan for Record, the one column glides up to Record\'s '
-      'place on both maps and is there when Plan is dropped', (tester) async {
+      'place and is there when Plan is dropped', (tester) async {
     await _pumpShell(tester);
-    final planTop = controlsTopOf(tester, PlannerScreen);
+    final planTop = columnTop(tester);
     expect(planTop, greaterThan(defaultMapControlsTop));
 
     await tester.tap(
       find.widgetWithText(NavigationDestination, l10n.tabRecord),
     );
     await tester.pump();
-    // Every frame of the hold: the two maps agree on the column, which is
-    // on its way from Plan's place to Record's.
+    // Every frame of the fade the column is on its way from Plan's place
+    // to Record's, never back.
     var last = planTop;
     for (final step in <int>[0, 60, 65, 65]) {
       await tester.pump(Duration(milliseconds: step));
-      final onPlan = controlsTopOf(tester, PlannerScreen);
-      final onRecord = controlsTopOf(tester, RecordingScreen);
-      expect(onRecord, onPlan);
-      expect(onPlan, lessThanOrEqualTo(last));
-      expect(onPlan, greaterThanOrEqualTo(defaultMapControlsTop));
-      last = onPlan;
+      final top = columnTop(tester);
+      expect(top, lessThanOrEqualTo(last));
+      expect(top, greaterThanOrEqualTo(defaultMapControlsTop));
+      last = top;
     }
-    // Half way through the hold Plan is still the map on top, its column
-    // between the two places.
+    // Most of the way through the fade both tabs are still painted and the
+    // column is between the two places.
     expect(paintedBranches(tester).map((b) => b.tab), [1, 0]);
     expect(last, lessThan(planTop));
     expect(last, greaterThan(defaultMapControlsTop));
 
     await tester.pump(const Duration(milliseconds: 70));
     expect(paintedBranches(tester).map((b) => b.tab), [1]);
-    expect(
-      controlsTopOf(tester, RecordingScreen),
-      closeTo(defaultMapControlsTop, 0.5),
-    );
-    expect(
-      controlsTopOf(tester, PlannerScreen),
-      closeTo(defaultMapControlsTop, 0.5),
-    );
+    expect(columnTop(tester), closeTo(defaultMapControlsTop, 0.5));
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
@@ -841,28 +965,21 @@ void main() {
   testWidgets('arriving at Plan from Record, the column glides down to '
       'Plan\'s resting place and stays there', (tester) async {
     await _pumpShell(tester);
-    final planTop = controlsTopOf(tester, PlannerScreen);
+    final planTop = columnTop(tester);
     await _tapTab(tester, l10n.tabRecord);
-    expect(
-      controlsTopOf(tester, RecordingScreen),
-      closeTo(defaultMapControlsTop, 0.5),
-    );
+    expect(columnTop(tester), closeTo(defaultMapControlsTop, 0.5));
 
     await tester.tap(find.widgetWithText(NavigationDestination, l10n.tabPlan));
     await tester.pump();
-    expect(paintedBranches(tester).map((b) => b.tab), [1, 0]);
-    expect(
-      controlsTopOf(tester, PlannerScreen),
-      closeTo(defaultMapControlsTop, 0.5),
-    );
+    expect(paintedBranches(tester).map((b) => b.tab), [0, 1]);
+    expect(columnTop(tester), closeTo(defaultMapControlsTop, 0.5));
     await tester.pump(const Duration(milliseconds: 125));
-    final midway = controlsTopOf(tester, PlannerScreen);
+    final midway = columnTop(tester);
     expect(midway, greaterThan(defaultMapControlsTop));
     expect(midway, lessThan(planTop));
-    expect(controlsTopOf(tester, RecordingScreen), midway);
 
     await tester.pump(const Duration(milliseconds: 135));
-    expect(controlsTopOf(tester, PlannerScreen), closeTo(planTop, 0.01));
+    expect(columnTop(tester), closeTo(planTop, 0.01));
     // Where the chrome rests: the search field and the chips, measured, plus
     // the gap; and nothing moves it afterwards.
     final chrome = tester.getRect(
@@ -873,7 +990,7 @@ void main() {
     expect(planTop, closeTo(chrome.height + 12, 0.5));
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 50));
-      expect(controlsTopOf(tester, PlannerScreen), closeTo(planTop, 0.01));
+      expect(columnTop(tester), closeTo(planTop, 0.01));
     }
 
     await tester.pumpWidget(const SizedBox.shrink());

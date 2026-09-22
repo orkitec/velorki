@@ -12,6 +12,7 @@ import '../features/import_export/presentation/import_preview_screen.dart';
 import '../features/library/presentation/library_screen.dart';
 import '../features/map/presentation/map_chrome.dart';
 import '../features/map/presentation/map_controls.dart';
+import '../features/map/presentation/shared_map_host.dart';
 import '../features/library/presentation/route_detail_screen.dart';
 import '../features/navigation/application/navigation_controller.dart';
 import '../features/planner/presentation/planner_screen.dart';
@@ -24,6 +25,7 @@ import '../features/shared/application/active_tab.dart';
 import '../features/shared/application/nav_bar_docking.dart';
 import '../features/subscription/presentation/paywall_screen.dart';
 import '../l10n/generated/app_localizations.dart';
+import 'map_tab_page.dart';
 import 'tab_fade.dart';
 import 'theme.dart';
 
@@ -53,12 +55,9 @@ const List<String> tabRoutes = [
   settingsRoute,
 ];
 
-/// The two tabs over one map, Plan and Record, by index in the bar.
+/// The two tabs over the shell's one map, Plan and Record, by index in the
+/// bar.
 const Set<int> mapTabs = {0, 1};
-
-/// The tab among [mapTabs] whose chrome slides and which is held painted on
-/// top for a change between the two: Plan.
-const int chromeTab = 0;
 
 /// The location of the detail screen for the saved route [id].
 String routeDetailLocation(String id) => '$libraryRoute/route/$id';
@@ -97,11 +96,10 @@ GoRouter createRouter({String initialLocation = plannerRoute}) {
         // Every tab stays alive; a change of tab is a short cross-fade.
         navigatorContainerBuilder: (context, shell, children) => TabFadeStack(
           index: shell.currentIndex,
-          // Plan and Record share one map and animate their own chrome
-          // across; a fade between the two would only flash the map. Plan's
-          // search field and chips slide over the map either way.
-          instantBetween: mapTabs,
-          chromeTab: chromeTab,
+          // Plan and Record are chrome over the shell's map: their sheets
+          // cross-fade over it while Plan's search field and chips slide
+          // and the control column glides across.
+          chromeTabs: mapTabs,
           children: children,
         ),
         branches: [
@@ -109,7 +107,14 @@ GoRouter createRouter({String initialLocation = plannerRoute}) {
             routes: [
               GoRoute(
                 path: plannerRoute,
-                builder: (context, state) => const PlannerScreen(),
+                // The two map tabs are pages without a barrier, so the
+                // map under the branch stack gets the touches they do not.
+                pageBuilder: (context, state) => MapTabPage<void>(
+                  key: state.pageKey,
+                  name: state.name ?? state.path,
+                  restorationId: state.pageKey.value,
+                  child: const PlannerScreen(),
+                ),
               ),
             ],
           ),
@@ -117,7 +122,12 @@ GoRouter createRouter({String initialLocation = plannerRoute}) {
             routes: [
               GoRoute(
                 path: recordingRoute,
-                builder: (context, state) => const RecordingScreen(),
+                pageBuilder: (context, state) => MapTabPage<void>(
+                  key: state.pageKey,
+                  name: state.name ?? state.path,
+                  restorationId: state.pageKey.value,
+                  child: const RecordingScreen(),
+                ),
                 routes: [
                   GoRoute(
                     path: 'ride/:id',
@@ -204,11 +214,10 @@ class HomeShell extends ConsumerWidget {
         if (context.mounted) ref.read(activeTabProvider.notifier).show(route);
       });
     }
-    // One control column over the Plan and Record tabs rather than one per
-    // map: it glides between the tabs' chrome and grows or shrinks for the
-    // buttons one tab has and the other has not, instead of being swapped
-    // with the tab. Only while the tab shows its map screen, not a page
-    // pushed over it.
+    // One control column over the Plan and Record tabs: it glides between
+    // the tabs' chrome and grows or shrinks for the buttons one tab has and
+    // the other has not, instead of being swapped with the tab. Only while
+    // the tab shows its map screen, not a page pushed over it.
     final atTabRoot = GoRouter.of(context).state.matchedLocation == route;
     final chrome = ref.watch(activeMapChromeProvider);
     final showColumn =
@@ -225,7 +234,12 @@ class HomeShell extends ConsumerWidget {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          HoistedMapControls(child: shell),
+          // The one map under the Plan and Record tabs, which draw on it
+          // and are transparent over it. Never hidden and never moved in
+          // the stack: the platform view would start over and show black.
+          // The library and settings tabs are opaque pages over it.
+          const SharedMapHost(key: ValueKey<String>('shared-map')),
+          shell,
           if (showColumn)
             Positioned.fill(
               child: SafeArea(
@@ -250,7 +264,7 @@ class HomeShell extends ConsumerWidget {
                       routeShown: chrome?.routeShown ?? false,
                       onToggleRoute: chrome?.onToggleRoute,
                       child: MapControls(
-                        controller: ref.watch(activeMapControllerProvider),
+                        controller: ref.watch(sharedMapControllerProvider),
                       ),
                     ),
                   ),
@@ -266,13 +280,7 @@ class HomeShell extends ConsumerWidget {
               selectedIndex: shell.currentIndex,
               onDestinationSelected: (index) {
                 // Told first, so the screens arrange themselves before the
-                // branch shows: which tab comes, and, between the two map
-                // tabs, that Plan is held on top for the change.
-                final between =
-                    mapTabs.contains(index) &&
-                    mapTabs.contains(shell.currentIndex) &&
-                    index != shell.currentIndex;
-                if (between) ref.read(tabHoldProvider.notifier).set(chromeTab);
+                // branch shows.
                 ref.read(activeTabProvider.notifier).show(tabRoutes[index]);
                 shell.goBranch(
                   index,

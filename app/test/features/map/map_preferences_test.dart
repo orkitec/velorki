@@ -60,63 +60,6 @@ void main() {
       expect(north.hashCode, isNot(east.hashCode));
     });
 
-    test('differsFrom ignores what is only the platform reporting back', () {
-      const camera = MapCamera(
-        center: LatLng(48.0, 11.0),
-        zoom: 12.5,
-        bearing: 90,
-      );
-      // Nothing known yet: nothing to say.
-      expect(
-        camera.differsFrom(center: null, zoom: null, bearing: null),
-        isFalse,
-      );
-      // Within a metre, a hundredth of a zoom level and half a degree: here.
-      expect(
-        camera.differsFrom(
-          center: const LatLng(48.000001, 11.000001),
-          zoom: 12.505,
-          bearing: 90.3,
-        ),
-        isFalse,
-      );
-      // Ten metres, a tenth of a zoom level, a degree: somewhere else.
-      expect(
-        camera.differsFrom(
-          center: const LatLng(48.0001, 11.0),
-          zoom: 12.5,
-          bearing: 90,
-        ),
-        isTrue,
-      );
-      expect(
-        camera.differsFrom(
-          center: const LatLng(48.0, 11.0),
-          zoom: 12.6,
-          bearing: 90,
-        ),
-        isTrue,
-      );
-      expect(
-        camera.differsFrom(
-          center: const LatLng(48.0, 11.0),
-          zoom: 12.5,
-          bearing: 91,
-        ),
-        isTrue,
-      );
-      // Bearings wrap: 359.8 is a fifth of a degree from north.
-      const north = MapCamera(center: LatLng(48.0, 11.0), zoom: 12.5);
-      expect(
-        north.differsFrom(
-          center: const LatLng(48.0, 11.0),
-          zoom: 12.5,
-          bearing: 359.8,
-        ),
-        isFalse,
-      );
-    });
-
     test('the default view is central Europe at a country zoom', () {
       expect(defaultMapCamera.center, const LatLng(50.0, 10.0));
       expect(defaultMapCamera.zoom, 4.5);

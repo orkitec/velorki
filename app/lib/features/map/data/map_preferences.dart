@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -18,23 +16,6 @@ class MapCamera {
 
   /// Degrees clockwise from north at the top of the map.
   final double bearing;
-
-  /// Whether a map at [center], [zoom] and [bearing] is visibly somewhere
-  /// else than this camera: a metre, a hundredth of a zoom level or half a
-  /// degree apart. Anything closer is the platform reporting back what it was
-  /// sent, and moving there again would only start the same round trip. A
-  /// map that does not yet know where it is cannot be said to be elsewhere.
-  bool differsFrom({
-    required LatLng? center,
-    required double? zoom,
-    required double? bearing,
-  }) {
-    if (center == null || zoom == null) return false;
-    if (haversineMeters(center, this.center) > 1) return true;
-    if ((zoom - this.zoom).abs() > 0.01) return true;
-    final turn = ((bearing ?? 0) - this.bearing).abs() % 360;
-    return math.min(turn, 360 - turn) > 0.5;
-  }
 
   @override
   bool operator ==(Object other) =>
@@ -62,10 +43,9 @@ const String _prefsCameraLon = 'map.camera.lon';
 const String _prefsCameraZoom = 'map.camera.zoom';
 const String _prefsCyclosm = 'map.cyclosm_overlay';
 
-/// The camera the map was left at: the one every map starts from, and the
-/// one the tab maps keep in step with, so switching between Plan and Record
-/// shows the same view. Centre and zoom survive a restart; the bearing is
-/// for this launch only, so the app never opens on a turned map.
+/// The camera the map was left at: the one every map starts from. Centre
+/// and zoom survive a restart; the bearing is for this launch only, so the
+/// app never opens on a turned map.
 @Riverpod(keepAlive: true)
 class LastMapCamera extends _$LastMapCamera {
   @override
@@ -80,7 +60,6 @@ class LastMapCamera extends _$LastMapCamera {
 
   /// Remembers [camera]; called when the map camera comes to rest.
   Future<void> save(MapCamera camera) async {
-    // The state first, so the other maps move before the disk is written.
     state = camera;
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setDouble(_prefsCameraLat, camera.center.lat);

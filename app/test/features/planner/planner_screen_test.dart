@@ -6,10 +6,8 @@ import 'package:velorki/app/router.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
 
+import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/presentation/elevation_profile_chart.dart';
-import 'package:velorki/features/map/data/map_preferences.dart';
-import 'package:velorki/features/map/presentation/map_chrome.dart';
-import 'package:velorki/features/planner/presentation/planner_map_host.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/presentation/route_format.dart';
@@ -420,9 +418,12 @@ void main() {
     await pumpScreen(tester, const PlannerScreen());
     // The measured chrome replaces the estimate with a short glide.
     await tester.pumpAndSettle();
-    MapChromeInsets chrome() =>
-        tester.widget<MapChromeInsets>(find.byType(MapChromeInsets).first);
-    final before = chrome().controlsTop!;
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PlannerScreen)),
+    );
+    double controlsTop() =>
+        container.read(mapControlsTopProvider).animation.value;
+    final before = controlsTop();
 
     await tester.enterText(find.byType(TextField).first, 'munich');
     await tester.pump(const Duration(milliseconds: 300));
@@ -432,11 +433,11 @@ void main() {
 
     // The two action buttons add a row above the chips; the column must
     // not sit on the chips because of it.
-    expect(chrome().controlsTop!, greaterThan(before + 30));
+    expect(controlsTop(), greaterThan(before + 30));
 
     await tester.tap(find.byTooltip(l10n.searchClear));
     await tester.pumpAndSettle();
-    expect(chrome().controlsTop!, closeTo(before, 0.5));
+    expect(controlsTop(), closeTo(before, 0.5));
   });
 
   testWidgets(
@@ -519,28 +520,41 @@ void main() {
     expect(shell().extent, closeTo(resting, 0.001));
   });
 
-  testWidgets('the map jumps to the camera the store holds, once', (
-    tester,
-  ) async {
+  testWidgets('a plan that changes while the tab is away is drawn whole, '
+      'and fitted, when the tab comes back', (tester) async {
     final h = await pumpScreen(tester, const PlannerScreen());
     await tester.pump();
     final container = ProviderScope.containerOf(
       tester.element(find.byType(PlannerScreen)),
     );
-    // On the default view, as the real map would be.
-    h.map
-      ..center = defaultMapCamera.center
-      ..zoom = defaultMapCamera.zoom;
-    final before = h.map.calls.where((c) => c.method == 'moveTo').length;
+    expect(h.map.onTap, isNotNull);
 
-    const camera = MapCamera(center: LatLng(52.52, 13.405), zoom: 11);
-    await container.read(lastMapCameraProvider.notifier).save(camera);
+    // Record comes up: nothing of the plan stays on the shared map, and
+    // taps there are not the planner's any more.
+    container.read(activeTabProvider.notifier).show(recordingRoute);
     await tester.pump();
-    final moves = h.map.calls.where((c) => c.method == 'moveTo').toList();
-    expect(moves, hasLength(before + 1));
-    expect(moves.last.arguments[0], camera.center);
-    expect(moves.last.arguments[1], camera.zoom);
-    expect(moves.last.arguments[4], isFalse, reason: 'no animation');
+    expect(h.map.onTap, isNull);
+    expect(h.map.waypoints, isEmpty);
+
+    // A route loaded from the library while the tab is away is not drawn
+    // yet: the map is the other tab's.
+    final before = h.map.calls.length;
+    container.read(plannerControllerProvider.notifier).addWaypoint(_a);
+    container.read(plannerControllerProvider.notifier).addWaypoint(_b);
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+    expect(h.map.calls.length, before);
+    expect(h.map.lines, isEmpty);
+
+    // Back on Plan: markers, line, and the camera fitted to a route that
+    // arrived whole.
+    container.read(activeTabProvider.notifier).show(plannerRoute);
+    await tester.pump();
+    await tester.pumpAndSettle();
+    expect(h.map.waypoints, hasLength(2));
+    expect(h.map.lines, isNotEmpty);
+    expect(h.map.fittedBounds, isNotNull);
+    expect(h.map.onTap, isNotNull);
   });
 
   testWidgets('the sheet parks under the keyboard while searching', (
@@ -555,8 +569,7 @@ void main() {
     expect(restingTop, lessThan(screenHeight * 0.7));
 
     // Focusing the field drops the sheet to its handle before the keyboard
-    // shows: the headline is off the bottom edge. The map keeps its full
-    // size underneath.
+    // shows: the headline is off the bottom edge.
     await tester.tap(find.byType(TextField).first);
     await tester.pumpAndSettle();
     expect(sheet, findsOneWidget);
@@ -567,17 +580,14 @@ void main() {
         (1 - tester.widget<DraggableScrollableSheet>(sheet).minChildSize);
     expect(tester.getTopLeft(headline).dy, greaterThan(parkedTop + 20));
     expect(tester.getTopLeft(headline).dy, greaterThan(restingTop + 200));
-    expect(
-      tester.getSize(find.byType(PlannerMapHost)).height,
-      closeTo(screenHeight, 0.5),
-    );
 
-    // The keyboard comes and goes; the map never shrinks.
+    // The keyboard comes and goes; the screen never shrinks, so the map
+    // under it keeps its full height.
     tester.view.viewInsets = const FakeViewPadding(bottom: 600);
     addTearDown(tester.view.resetViewInsets);
     await tester.pumpAndSettle();
     expect(
-      tester.getSize(find.byType(PlannerMapHost)).height,
+      tester.getSize(find.byType(PlannerScreen)).height,
       closeTo(screenHeight, 0.5),
     );
     // The sheet is at its handle: the headline sits below the sheet's top

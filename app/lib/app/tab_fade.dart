@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../features/shared/application/active_tab.dart';
 import '../features/shared/presentation/tab_chrome_slide.dart';
 
 /// How long a tab takes to fade in over the one before it.
@@ -13,28 +11,28 @@ const Duration tabFadeDuration = Duration(milliseconds: 150);
 /// after, the tabs not on screen are offstage with their tickers off, as
 /// go_router's own indexed stack keeps them.
 ///
-/// Between the tabs in [instantBetween] there is no fade: they share their
-/// picture (one map, kept in step) and animate their own chrome across.
-/// Both are painted, fully, for [tabChromeSlideDuration], with [chromeTab]
-/// on top whether it is going or coming, so its chrome is seen sliding out
-/// over the other tab's identical map, or sliding in over it.
-class TabFadeStack extends ConsumerStatefulWidget {
+/// The fade is the leaving tab's alone: it is painted on top, fully there
+/// at first, and fades out over the arriving tab, which is painted whole
+/// underneath from the first frame. To the eye that is a cross-fade, and
+/// unlike two half-transparent tabs it never lets the map show through
+/// where both have a sheet in the same place.
+///
+/// The tabs in [chromeTabs] hold no map of their own: they are chrome over
+/// the one map the shell paints under the whole stack. A change between two
+/// of them takes [tabChromeSlideDuration], in step with the chrome sliding
+/// and the control column gliding across.
+class TabFadeStack extends StatefulWidget {
   /// Creates the container.
   const TabFadeStack({
     required this.index,
     required this.children,
-    this.instantBetween = const <int>{},
-    this.chromeTab,
+    this.chromeTabs = const <int>{},
     super.key,
   });
 
-  /// Tab indices that swap without a fade when the change is between two
-  /// of them: tabs that share their picture and animate the rest across.
-  final Set<int> instantBetween;
-
-  /// The tab among [instantBetween] whose chrome slides; painted on top of
-  /// the other for the length of the slide.
-  final int? chromeTab;
+  /// Tab indices whose screens are chrome over the shell's shared map; a
+  /// change between two of them takes the chrome's own time.
+  final Set<int> chromeTabs;
 
   /// The tab on screen.
   final int index;
@@ -43,61 +41,30 @@ class TabFadeStack extends ConsumerStatefulWidget {
   final List<Widget> children;
 
   @override
-  ConsumerState<TabFadeStack> createState() => _TabFadeStackState();
+  State<TabFadeStack> createState() => _TabFadeStackState();
 }
 
-class _TabFadeStackState extends ConsumerState<TabFadeStack>
-    with TickerProviderStateMixin {
+class _TabFadeStackState extends State<TabFadeStack>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _fade = AnimationController(
     vsync: this,
     duration: tabFadeDuration,
     value: 1,
   );
-  late final Animation<double> _in = CurvedAnimation(
-    parent: _fade,
-    curve: Curves.easeOut,
-  );
-  late final Animation<double> _out = ReverseAnimation(_in);
-
-  /// The time both tabs of an instant swap stay painted.
-  late final AnimationController _hold = AnimationController(
-    vsync: this,
-    duration: tabChromeSlideDuration,
-    value: 1,
+  late final Animation<double> _out = ReverseAnimation(
+    CurvedAnimation(parent: _fade, curve: Curves.easeOut),
   );
 
-  /// The tab going away, while one is: fading, or held painted under (or
-  /// over) the arriving one for the swap.
+  /// The tab fading out, while one is.
   int? _leaving;
-
-  /// Whether the change under way is an instant swap rather than a fade.
-  bool _swap = false;
 
   @override
   void initState() {
     super.initState();
     _fade.addStatusListener((status) {
-      if (status == AnimationStatus.completed && _leaving != null && !_swap) {
+      if (status == AnimationStatus.completed && _leaving != null) {
         setState(() => _leaving = null);
       }
-    });
-    _hold.addStatusListener((status) {
-      if (status == AnimationStatus.completed && _swap) {
-        setState(() {
-          _leaving = null;
-          _swap = false;
-        });
-        ref.read(tabHoldProvider.notifier).set(null);
-      }
-    });
-  }
-
-  /// Tells the screens which tab is held on top, after the frame: a build
-  /// may not write a provider. The bar's tap has usually said so already,
-  /// before the frame; this covers the other ways a tab changes.
-  void _announceHold(int? tab) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) ref.read(tabHoldProvider.notifier).set(tab);
     });
   }
 
@@ -106,41 +73,30 @@ class _TabFadeStackState extends ConsumerState<TabFadeStack>
     super.didUpdateWidget(oldWidget);
     if (widget.index == oldWidget.index) return;
     _leaving = oldWidget.index;
-    if (widget.instantBetween.contains(widget.index) &&
-        widget.instantBetween.contains(oldWidget.index)) {
-      _swap = true;
-      _fade.value = 1;
-      _hold.forward(from: 0);
-      _announceHold(widget.chromeTab);
-      return;
-    }
-    _swap = false;
-    _hold.value = 1;
-    _fade.forward(from: 0);
-    _announceHold(null);
+    final overMap =
+        widget.chromeTabs.contains(widget.index) &&
+        widget.chromeTabs.contains(oldWidget.index);
+    _fade
+      ..duration = overMap ? tabChromeSlideDuration : tabFadeDuration
+      ..forward(from: 0);
   }
 
   @override
   void dispose() {
     _fade.dispose();
-    _hold.dispose();
     super.dispose();
   }
 
-  Animation<double> _opacityOf(int i) {
-    if (_swap) return kAlwaysCompleteAnimation;
-    if (i == widget.index) return _in;
-    if (i == _leaving) return _out;
-    return kAlwaysCompleteAnimation;
-  }
+  Animation<double> _opacityOf(int i) =>
+      i == _leaving ? _out : kAlwaysCompleteAnimation;
 
   @override
   Widget build(BuildContext context) {
-    // Natural order, except that during a swap the chrome tab is painted
-    // last, on top. The branches are keyed, so moving one keeps its state.
+    // Natural order, except that the tab fading out is painted last, on
+    // top. The branches are keyed, so moving one keeps its state.
     final order = [for (var i = 0; i < widget.children.length; i++) i];
-    final chrome = widget.chromeTab;
-    if (_swap && chrome != null && order.remove(chrome)) order.add(chrome);
+    final leaving = _leaving;
+    if (leaving != null && order.remove(leaving)) order.add(leaving);
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -178,11 +134,10 @@ class TabFadeBranch extends StatelessWidget {
   /// Whether this is the tab on screen.
   final bool shown;
 
-  /// Whether this is the tab going away: fading out, or held painted while
-  /// the chrome slides across.
+  /// Whether this is the tab fading out.
   final bool leaving;
 
-  /// The tab's opacity: rising, falling, or one.
+  /// The tab's opacity: falling while it leaves, one otherwise.
   final Animation<double> opacity;
 
   /// The tab.
