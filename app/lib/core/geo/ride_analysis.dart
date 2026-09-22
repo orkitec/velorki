@@ -35,6 +35,15 @@ const double powerGradeSmoothingM = 50;
 /// height that wobbles up and down within the stretch costs nothing.
 const int powerWindowS = 30;
 
+/// Half the span the speed is averaged over before the work of speeding up
+/// is priced: a phone's speed jitters from fix to fix, and over five seconds
+/// either side the jitter cancels while setting off from a light does not.
+const Duration powerSpeedSmoothing = Duration(seconds: 5);
+
+/// A gain in smoothed speed over one leg beyond this is a GPS jump, not a
+/// sprint, and is not priced.
+const double powerMaxSpeedGainMps = 2.0;
+
 /// The steepest grade the power estimate believes, rise over run either way;
 /// anything beyond it is a height that jumped.
 const double powerGradeLimit = 0.25;
@@ -945,9 +954,20 @@ RideEffort _effort(
     powerSamples.add((atSeconds: second, watts: watts));
   }
 
-  for (final leg in walk.legs) {
+  // The work of speeding up, which in a town is most of the work: the gain
+  // in kinetic energy from one leg to the next, from speeds smoothed over
+  // [powerSpeedSmoothing] either side, the gains only. Braking gives the
+  // energy to the brakes, not back to the rider, so a loss counts nothing.
+  final smoothedSpeed = powerModel == null
+      ? null
+      : _smoothedLegSpeeds(walk, powerSpeedSmoothing);
+  double? previousSmoothedSpeed;
+
+  for (var i = 0; i < walk.legs.length; i++) {
+    final leg = walk.legs[i];
     if (leg.isBreak) {
       settleWindow();
+      previousSmoothedSpeed = null;
       continue;
     }
     final micros = leg.duration.inMicroseconds;
@@ -955,7 +975,10 @@ RideEffort _effort(
     // Metres over seconds, not the receiver's own figure: the model prices
     // the ground that was covered.
     final measuredSpeed = seconds <= 0 ? 0.0 : leg.meters / seconds;
-    if (!leg.moving) continue;
+    if (!leg.moving) {
+      previousSmoothedSpeed = null;
+      continue;
+    }
     final from = walk.points[leg.fromIndex];
     final to = walk.points[leg.toIndex];
     movingMicros += micros;
@@ -974,9 +997,8 @@ RideEffort _effort(
       final elevationM = startM != null && endM != null
           ? (startM + endM) / 2
           : startM ?? endM ?? 0.0;
-      // No acceleration term: a phone's speed jitters from fix to fix, and
-      // the work of setting off is given back under braking within the same
-      // stretch, so over a ride it is noise with nothing to show for it.
+      // No per-second acceleration term: the speeding up is priced from
+      // the smoothed speeds below, where the fix-to-fix jitter has cancelled.
       final watts = pedalPowerRawW(
         powerModel,
         vMps: measuredSpeed,
@@ -985,6 +1007,12 @@ RideEffort _effort(
         elevationM: elevationM,
       );
       windowKj += watts * seconds / 1000;
+      final v = smoothedSpeed![i];
+      final u = previousSmoothedSpeed;
+      if (u != null && v > u && v - u <= powerMaxSpeedGainMps) {
+        windowKj += 0.5 * powerModel.massKg * (v * v - u * u) / 1000;
+      }
+      previousSmoothedSpeed = v;
       windowMicros += micros;
       if (windowMicros >= powerWindowS * Duration.microsecondsPerSecond) {
         settleWindow();
@@ -1087,6 +1115,56 @@ List<double?> _smoothedElevations(_Walk walk) {
       lo++;
     }
     out[accepted[k]] = count == 0 ? null : sum / count;
+  }
+  return out;
+}
+
+/// Each leg's speed averaged with the legs within [halfSpan] of it in time,
+/// moving legs only, never across a break; `0` for a leg that is not moving.
+List<double> _smoothedLegSpeeds(_Walk walk, Duration halfSpan) {
+  final legs = walk.legs;
+  final out = List<double>.filled(legs.length, 0);
+  // Run boundaries: a break or a standstill ends a run.
+  var start = 0;
+  while (start < legs.length) {
+    if (legs[start].isBreak || !legs[start].moving) {
+      start++;
+      continue;
+    }
+    var end = start;
+    while (end + 1 < legs.length &&
+        !legs[end + 1].isBreak &&
+        legs[end + 1].moving) {
+      end++;
+    }
+    // Two pointers over the run, by the legs' end times.
+    final speed = <double>[
+      for (var i = start; i <= end; i++)
+        legs[i].duration.inMicroseconds <= 0
+            ? 0
+            : legs[i].meters /
+                  (legs[i].duration.inMicroseconds /
+                      Duration.microsecondsPerSecond),
+    ];
+    final at = <DateTime>[
+      for (var i = start; i <= end; i++) walk.points[legs[i].toIndex].time!,
+    ];
+    var lo = 0;
+    var hi = -1;
+    var sum = 0.0;
+    for (var k = 0; k < speed.length; k++) {
+      while (hi + 1 < speed.length &&
+          at[hi + 1].difference(at[k]) <= halfSpan) {
+        hi++;
+        sum += speed[hi];
+      }
+      while (lo < k && at[k].difference(at[lo]) > halfSpan) {
+        sum -= speed[lo];
+        lo++;
+      }
+      out[start + k] = sum / (hi - lo + 1);
+    }
+    start = end + 1;
   }
   return out;
 }

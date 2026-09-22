@@ -20,7 +20,17 @@ class MapChromeInsets extends InheritedWidget {
     this.bearingDeg = 0,
     this.onLocate,
     this.onCompass,
+    this.routeShown = false,
+    this.onToggleRoute,
   });
+
+  /// Whether the followed route is drawn, for the route button's accent.
+  final bool routeShown;
+
+  /// Called by the route button at the top of the control column; `null`
+  /// leaves the button out, which is every map but a ride's that followed
+  /// a route.
+  final VoidCallback? onToggleRoute;
 
   /// Whether the control column offers the routing-tile download. Only a
   /// map the rider plans on needs it; an embedded map does not.
@@ -71,5 +81,7 @@ class MapChromeInsets extends InheritedWidget {
       oldWidget.headingUp != headingUp ||
       oldWidget.bearingDeg != bearingDeg ||
       oldWidget.onLocate != onLocate ||
-      oldWidget.onCompass != onCompass;
+      oldWidget.onCompass != onCompass ||
+      oldWidget.routeShown != routeShown ||
+      oldWidget.onToggleRoute != onToggleRoute;
 }

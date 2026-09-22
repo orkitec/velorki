@@ -276,6 +276,33 @@ void main() {
       expect(find.byIcon(Icons.navigation), findsNothing);
     });
 
+    testWidgets('offers the route button only when the screen has one, '
+        'first in the column, accent while the route is shown', (tester) async {
+      final controller = FakeMapController();
+      await tester.pumpWidget(await _wrap(MapControls(controller: controller)));
+      await tester.pump();
+      expect(find.byIcon(Icons.route), findsNothing);
+
+      var toggled = 0;
+      await tester.pumpWidget(
+        await _wrap(
+          MapChromeInsets(
+            routeShown: true,
+            onToggleRoute: () => toggled++,
+            child: MapControls(controller: controller),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byIcon(Icons.route), findsOneWidget);
+      final route = tester.getTopLeft(find.byIcon(Icons.route));
+      final locate = tester.getTopLeft(find.byIcon(Icons.my_location));
+      expect(route.dy, lessThan(locate.dy));
+      await tester.tap(find.byIcon(Icons.route));
+      expect(toggled, 1);
+    });
+
     testWidgets('a compass tap reaches the screen', (tester) async {
       final controller = FakeMapController();
       var compassed = 0;

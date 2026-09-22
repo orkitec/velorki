@@ -114,7 +114,9 @@ class StatTile extends StatelessWidget {
             style: theme.textTheme.bodySmall?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
-            maxLines: 1,
+            // Two lines rather than dots: a detail that cannot be read is
+            // no detail.
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
         ],

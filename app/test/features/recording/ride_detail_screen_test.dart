@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/core/db/database.dart' show RouteSource;
 import 'package:velorki/core/files/track_exporter.dart';
@@ -249,6 +250,16 @@ Future<void> _tapContinue(WidgetTester tester) async {
   // only a real turn of the event loop finishes.
   await settleAsync(tester);
   await tester.pumpAndSettle();
+}
+
+/// The chrome the ride page hands its map, when it offers the route button.
+MapChromeInsets? _routeButton(WidgetTester tester) {
+  for (final chrome in tester.widgetList<MapChromeInsets>(
+    find.byType(MapChromeInsets),
+  )) {
+    if (chrome.onToggleRoute != null) return chrome;
+  }
+  return null;
 }
 
 void main() {
@@ -1210,11 +1221,8 @@ void main() {
     );
     expect(chart.marks.single.x, closeTo(1, 0.01));
     // The chip is there, and reads as on.
-    expect(find.text(l10n.rideShowRoute), findsOneWidget);
-    expect(
-      tester.widget<RideRouteToggle>(find.byType(RideRouteToggle)).selected,
-      isTrue,
-    );
+    expect(_routeButton(tester), isNotNull);
+    expect(_routeButton(tester)!.routeShown, isTrue);
 
     await unmountApp(tester);
   });
@@ -1239,21 +1247,18 @@ void main() {
     await _openWithRoute(tester, harness);
     final prefs = await SharedPreferences.getInstance();
 
-    await tester.tap(find.text(l10n.rideShowRoute));
+    _routeButton(tester)!.onToggleRoute!();
     await tester.pumpAndSettle();
 
     expect(harness.map.lines, isNot(contains(rideRouteLineId)));
     expect(harness.map.pois, isEmpty);
     expect(_chartMarks(tester), isEmpty);
     expect(prefs.getBool('rides.showRoute'), isFalse);
-    expect(
-      tester.widget<RideRouteToggle>(find.byType(RideRouteToggle)).selected,
-      isFalse,
-    );
+    expect(_routeButton(tester)!.routeShown, isFalse);
     // The track and the highlight line are none of the chip's business.
     expect(harness.map.trackSegments, isNotEmpty);
 
-    await tester.tap(find.text(l10n.rideShowRoute));
+    _routeButton(tester)!.onToggleRoute!();
     await tester.pumpAndSettle();
 
     expect(harness.map.lines[rideRouteLineId], isNotNull);
@@ -1274,7 +1279,7 @@ void main() {
       preferences: <String, Object>{'rides.showRoute': false},
     );
 
-    expect(find.text(l10n.rideShowRoute), findsOneWidget);
+    expect(_routeButton(tester), isNotNull);
     expect(harness.map.lines, isNot(contains(rideRouteLineId)));
     expect(harness.map.pois, isEmpty);
     expect(_chartMarks(tester), isEmpty);
@@ -1289,7 +1294,7 @@ void main() {
     final harness = RecordingHarness();
     await _open(tester, harness, _threeKilometres());
 
-    expect(find.text(l10n.rideShowRoute), findsNothing);
+    expect(_routeButton(tester), isNull);
     expect(harness.map.lines, isNot(contains(rideRouteLineId)));
     expect(harness.map.pois, isEmpty);
     expect(_chartMarks(tester), isEmpty);
@@ -1303,7 +1308,7 @@ void main() {
     final harness = RecordingHarness();
     await _open(tester, harness, _threeKilometres(), routeId: 'gone');
 
-    expect(find.text(l10n.rideShowRoute), findsNothing);
+    expect(_routeButton(tester), isNull);
     expect(harness.map.lines, isNot(contains(rideRouteLineId)));
 
     await unmountApp(tester);

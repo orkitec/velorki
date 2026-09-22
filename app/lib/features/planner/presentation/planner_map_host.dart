@@ -98,6 +98,8 @@ class _PlannerMapHostState extends ConsumerState<PlannerMapHost> {
       bearingDeg: inherited?.bearingDeg ?? 0,
       onLocate: inherited?.onLocate,
       onCompass: inherited?.onCompass,
+      routeShown: inherited?.routeShown ?? false,
+      onToggleRoute: inherited?.onToggleRoute,
       child: MediaQuery.removePadding(
         context: context,
         removeBottom: true,

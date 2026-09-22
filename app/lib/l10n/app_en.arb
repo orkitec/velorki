@@ -4117,7 +4117,7 @@
   "@calorieSourceHeartRate": {
     "description": "Under the calorie figure: it was computed from the heart rate"
   },
-  "calorieSourceSpeed": "estimated from speed",
+  "calorieSourceSpeed": "from speed",
   "@calorieSourceSpeed": {
     "description": "Under the calorie figure: it was estimated from the riding speed alone"
   },
@@ -4235,11 +4235,11 @@
   "@statEstimatedPower": {
     "description": "Label of the estimated average power tile on the ride page, shown only on rides without a power meter"
   },
-  "statEstimatedDetail": "estimated, no meter",
+  "statEstimatedDetail": "estimated",
   "@statEstimatedDetail": {
     "description": "Under the estimated power figure: it was computed from speed, slope and weight, not measured"
   },
-  "calorieSourceEstimatedPower": "from estimated power",
+  "calorieSourceEstimatedPower": "from est. power",
   "@calorieSourceEstimatedPower": {
     "description": "Under the calorie figure: it was computed from the estimated power"
   },
@@ -4283,7 +4283,7 @@
   "@statIntensity": {
     "description": "Label of the intensity tile on the ride page: normalised power over threshold power, a ratio like 0.80"
   },
-  "statIntensityDetail": "of threshold {watts}",
+  "statIntensityDetail": "of {watts}",
   "@statIntensityDetail": {
     "description": "Under the intensity figure: which threshold power the ratio is of",
     "placeholders": {

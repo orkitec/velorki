@@ -44,6 +44,16 @@ class MapControls extends ConsumerWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
+          // A ride that followed a route: the route and its points of
+          // interest, on or off. First in the column so a chip over the map
+          // is not needed for it.
+          if (chrome?.onToggleRoute != null)
+            _ControlButton(
+              icon: Icons.route,
+              tooltip: l10n.rideShowRoute,
+              selected: chrome!.routeShown,
+              onPressed: enabled ? chrome.onToggleRoute : null,
+            ),
           _ControlButton(
             icon: Icons.my_location,
             tooltip: l10n.mapLocateMe,

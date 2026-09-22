@@ -14,6 +14,7 @@ import '../../integrations/common/domain/connected_account.dart';
 import '../../integrations/presentation/integration_labels.dart';
 import '../../integrations/presentation/ride_upload_menu.dart';
 import '../../map/domain/map_controller.dart';
+import '../../map/presentation/map_chrome.dart';
 import '../../planner/domain/route_poi.dart';
 import '../../planner/domain/saved_route.dart';
 import '../../planner/presentation/planner_map_host.dart';
@@ -481,28 +482,29 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    PlannerMapHost(onMapReady: _onMapReady, embedded: true),
-                    // Opposite the map's own control column; only a ride
-                    // that followed a route has anything to switch.
-                    if (route != null)
-                      Positioned(
-                        top: 12,
-                        left: 12,
-                        child: RideRouteToggle(
-                          selected: showRoute,
-                          onPressed: () => unawaited(
-                            ref
-                                .read(showRideRouteProvider.notifier)
-                                .set(!showRoute),
-                          ),
-                        ),
+                    // The route button sits in the map's own control
+                    // column, and only a ride that followed a route has
+                    // anything to switch.
+                    MapChromeInsets(
+                      routeShown: showRoute,
+                      onToggleRoute: route == null
+                          ? null
+                          : () => unawaited(
+                              ref
+                                  .read(showRideRouteProvider.notifier)
+                                  .set(!showRoute),
+                            ),
+                      child: PlannerMapHost(
+                        onMapReady: _onMapReady,
+                        embedded: true,
                       ),
+                    ),
                     // What the thick line over the track is, for a rider
-                    // who tapped a row and scrolled back up; under the
-                    // route chip when there is one.
+                    // who tapped a row and scrolled back up; opposite the
+                    // map's control column.
                     if (_range != null)
                       Positioned(
-                        top: route != null ? 64 : 12,
+                        top: 12,
                         left: 12,
                         child: RideHighlightChip(
                           range: _range!,
@@ -765,62 +767,6 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
 }
 
 enum _RideAction { continueRide, rename, delete, exportGpx, exportFit }
-
-/// The switch over a ride's map that shows or hides the route the ride
-/// followed: a glass chip like the map's own controls, drawn in the accent
-/// while the route is on.
-class RideRouteToggle extends StatelessWidget {
-  /// Creates the toggle.
-  const RideRouteToggle({
-    required this.selected,
-    required this.onPressed,
-    super.key,
-  });
-
-  /// Whether the route is shown.
-  final bool selected;
-
-  /// Called on a tap.
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final foreground = selected
-        ? theme.velorki.accent
-        : theme.colorScheme.onSurface;
-    return GlassPanel(
-      radius: 22,
-      child: InkWell(
-        onTap: onPressed,
-        child: Semantics(
-          button: true,
-          toggled: selected,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 14, 0),
-            child: SizedBox(
-              height: 44,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.route, size: 20, color: foreground),
-                  const SizedBox(width: 6),
-                  Text(
-                    l10n.rideShowRoute,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: foreground,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 /// The chip over a ride's map that says what the thick line over the track
 /// is: the split or the climb the rider picked, "Split 3 · 2–3 km", with a
