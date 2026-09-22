@@ -67,16 +67,18 @@ void main() {
 
     await tapAndPump(tester, find.widgetWithText(FilledButton, 'Save'));
 
-    // Saving lands on the route's detail screen, and the row is in the
-    // library behind it.
+    // Saving lands on the route's card on the Library tab, its name in the
+    // card's header with the back arrow; the row is in the list behind it.
     await waitUntil(
       tester,
       () => routes.read().value?.any((route) => route.name == name) ?? false,
       describe: 'the imported route in the library',
       onTimeout: () => '${routes.read()}',
     );
-    await waitForWidget(tester, find.widgetWithText(AppBar, name));
+    await waitForWidget(tester, find.byType(BackButton));
+    await waitForWidget(tester, find.text(name));
 
+    // The Library tab again pops the card back to the list.
     await tapAndPump(tester, find.text('Library'));
     // The Library remembers its last segment across launches, and another
     // test may have left it on the rides; this one wants the routes.

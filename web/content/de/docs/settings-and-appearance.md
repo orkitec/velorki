@@ -44,7 +44,7 @@ Die drei Schalter hier sind dieselben wie in der Übersicht des Tabs Aufnahme.
 
 Drei Schalter, alle standardmäßig aus, und die Felder, die sie brauchen.
 
-**Kalorien schätzen** setzt eine Zahl **Kalorien** auf jede Fahrtenseite: aus deinem Leistungsmesser, wenn du einen hast, sonst aus deinem Puls, sonst aus deinem Tempo. Es braucht dein Gewicht; die Schätzung aus dem Puls braucht außerdem dein Geburtsjahr und dein Geschlecht.
+**Kalorien schätzen** setzt eine Zahl **Kalorien** auf das Blatt jeder Fahrt: aus deinem Leistungsmesser, wenn du einen hast, sonst aus deinem Puls, sonst aus deinem Tempo. Es braucht dein Gewicht; die Schätzung aus dem Puls braucht außerdem dein Geburtsjahr und dein Geschlecht.
 
 **Pulszonen** setzt die Zeit in fünf Zonen deines Maximalpulses unter das Herzfrequenz-Diagramm einer Fahrt. Es braucht deinen Maximalpuls oder dein Geburtsjahr, um ihn als 220 minus dein Alter zu schätzen.
 

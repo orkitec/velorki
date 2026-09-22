@@ -39,7 +39,7 @@ A GPX route with a cue sheet, the route export of Ride with GPS or a Garmin cour
 
 Velorki guesses **Route** or **Ride** from whether the points carry times: a recording does, a planned route does not. FIT courses carry a synthetic time base and are therefore guessed as a ride, so switch them over by hand. Nothing is written until you tap **Save**.
 
-Afterwards you get "Alpine loop added to the library" or "Alpine loop added to your rides", and you land on the new item's page.
+Afterwards you get "Alpine loop added to the library" or "Alpine loop added to your rides", and you land on the new item's card on the Library tab.
 
 If the file will not open, Velorki says which problem it was: "That is not a GPX or FIT file.", "That file could not be read.", "That file has no track points." or "That file could not be opened."
 
@@ -52,7 +52,7 @@ If the file will not open, Velorki says which problem it was: "That is not a GPX
 | **GPX route** | a planned route for another planner, a phone app or a bike computer |
 | **FIT course** | a Garmin, Wahoo or similar head unit that expects a course |
 
-**From a ride** (Library → Rides → open it, or the ride page after finishing):
+**From a ride** (Library → Rides → open it, or the ride's card after finishing):
 
 | Format | Use it for |
 |---|---|

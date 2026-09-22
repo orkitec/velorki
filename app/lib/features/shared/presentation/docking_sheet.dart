@@ -37,6 +37,20 @@ const double sheetDockedOverlapDp = 1;
 double sheetRestingExtent(double screenHeight) =>
     screenHeight <= 0 ? 0.48 : (0.42 + 56 / screenHeight).clamp(0.42, 0.6);
 
+/// The padding a camera fit uses on a screen with a card at its resting
+/// height over the map: the route lands in the map above the card, clear of
+/// the status bar and the control column at the right.
+EdgeInsets cardFitPadding(BuildContext context) {
+  final height = MediaQuery.sizeOf(context).height;
+  final top = MediaQuery.paddingOf(context).top;
+  return EdgeInsets.fromLTRB(
+    40,
+    top + 40,
+    104,
+    sheetRestingExtent(height) * height + 24,
+  );
+}
+
 /// The drag handle with its margins, [sheetHandleDp] tall.
 ///
 /// Drawn by [DockingSheetShell] over the sheet's list, so it stays put and

@@ -1,8 +1,10 @@
 import 'dart:async';
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart' show Brightness, Color, ThemeData;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/painting.dart' show EdgeInsets;
 import 'package:flutter/services.dart'
     show MissingPluginException, PlatformException;
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
@@ -934,14 +936,17 @@ class MaplibreMapControllerAdapter implements MapController {
   }
 
   @override
-  Future<void> fitBounds(BoundingBox bounds, {double paddingPx = 48}) async {
+  Future<void> fitBounds(
+    BoundingBox bounds, {
+    EdgeInsets padding = const EdgeInsets.all(48),
+  }) async {
     await _ops.animateCamera(
       ml.CameraUpdate.newLatLngBounds(
         _toMlBounds(bounds),
-        left: paddingPx,
-        top: paddingPx,
-        right: paddingPx,
-        bottom: paddingPx,
+        left: padding.left,
+        top: padding.top,
+        right: padding.right,
+        bottom: padding.bottom,
       ),
     );
   }

@@ -1,21 +1,21 @@
 ---
 title: Bibliothek
-description: Wo deine gespeicherten Routen und aufgezeichneten Fahrten liegen, was eine Fahrtenseite zeigt und wie du beides umbenennst oder löschst.
+description: Wo deine gespeicherten Routen und aufgezeichneten Fahrten liegen, was das Blatt einer Route oder Fahrt zeigt und wie du beides umbenennst oder löschst.
 order: 8
 ---
 
-Der Tab Bibliothek enthält alles, was du behalten hast: die geplanten Routen und die aufgezeichneten Fahrten. Geh hierher, um eine Route wieder zu öffnen, die Diagramme und Splits einer Fahrt zu lesen und Dateien hinein- und hinauszubekommen.
+Der Tab Bibliothek enthält alles, was du behalten hast: die geplanten Routen und die aufgezeichneten Fahrten. Er ist ein Blatt über der Karte, wie die Tabs Planen und Aufnahme: Zieh es hoch für mehr Platz, zieh es ganz herunter, und es faltet sich in die Navigationsleiste und gibt die Karte frei. Geh hierher, um eine Route wieder zu öffnen, die Diagramme und Splits einer Fahrt zu lesen und Dateien hinein- und hinauszubekommen.
 
 Alles in der Bibliothek liegt auf dem Handy. Es gibt kein Konto, und nichts wird irgendwohin abgeglichen.
 
 ## Routen und Fahrten
 
-Ein Umschalter unter dem Titel wählt die Liste: **Routen** oder **Fahrten**. Velorki merkt sich, was du zuletzt angesehen hast.
+Ein Umschalter unter dem Titel des Blatts wählt die Liste: **Routen** oder **Fahrten**. Velorki merkt sich, was du zuletzt angesehen hast.
 
 - Eine Zeile mit einer **Route** zeigt ihren Namen und darunter Datum, Distanz und Anstieg.
 - Eine Zeile mit einer **Fahrt** zeigt ihren Namen und darunter Datum, Distanz und Fahrzeit. Über der Liste steht eine Anzahl, "12 Fahrten".
 
-Tippe auf eine Zeile, um sie zu öffnen.
+Tippe auf eine Zeile, um sie im Blatt zu öffnen; die Route oder die Fahrt liegt dann auf der Karte darüber. Der Pfeil oben links im Blatt, oder Zurück im System, bringt die Liste wieder.
 
 Leere Listen erklären sich selbst: "Noch keine gespeicherten Routen." mit "Im Tab Planen eine Route planen und speichern." und "Noch keine Fahrten."
 
@@ -23,23 +23,23 @@ Leere Listen erklären sich selbst: "Noch keine gespeicherten Routen." mit "Im T
 
 **Routen**: Das Menü rechts in der Zeile hat **Umbenennen** und **Löschen**. Ein Wisch nach links löscht die Zeile ebenfalls. In beiden Fällen trägt die Meldung danach ein **Rückgängig**.
 
-**Fahrten**: Wisch die Zeile nach links, um sie zu löschen, wieder mit **Rückgängig**. Umbenennen und Löschen mit Rückfrage liegen auf der Seite der Fahrt selbst, unter dem Menü oben rechts.
+**Fahrten**: Wisch die Zeile nach links, um sie zu löschen, wieder mit **Rückgängig**. Umbenennen und Löschen mit Rückfrage liegen im Blatt der Fahrt, unter dem Menü rechts in seiner Kopfzeile.
 
 Beide Dialoge zum Umbenennen sind gleich: ein Feld, **Name**, dann **Abbrechen** oder **Speichern**.
 
-## Eine Routenseite
+## Das Blatt einer Route
 
-Eine geöffnete Route zeigt von oben nach unten:
+Eine geöffnete Route wird auf die Karte gezeichnet, eingepasst in den Teil des Bildschirms über dem Blatt, mit ihren Punkten von Interesse als kleinen benannten Markern, wenn sie mit welchen importiert wurde. Das Blatt zeigt von oben nach unten:
 
-- eine Karte der Route, mit ihren Punkten von Interesse als kleinen benannten Markern, wenn sie mit welchen importiert wurde,
 - Datum, Radprofil und Anstieg,
 - die Beschreibung, falls die Route eine hat,
 - **Distanz**, **Anstieg**, **Abstieg** und **Dauer**,
-- die Belagsverteilung.
+- die Belagsverteilung,
+- die Aktionen unten,
+- das Höhenprofil,
+- bei einer Route, die mit Abbiegungen oder Punkten von Interesse importiert wurde, die Abbiegeliste: jede Abbiegung und jeder Punkt mit der Entfernung vom Start, ein Tipp auf eine Zeile schwenkt die Karte in deinem Zoom dorthin und ein Tipp auf einen Marker scrollt das Blatt zu dieser Zeile.
 
-Die Karte bleibt oben stehen, während die Seiten darunter scrollen, mit Punkten unter der Karte, die sagen, welche Seite gerade oben ist. Einen Wisch nach links liegt das Höhenprofil. Eine Route, die mit Abbiegungen oder Punkten von Interesse importiert wurde, hat noch eine Seite, die Abbiegeliste: jede Abbiegung und jeder Punkt mit der Entfernung vom Start, ein Tipp auf eine Zeile schwenkt die Karte in deinem Zoom dorthin und ein Tipp auf einen Marker bringt die Liste mit der ausgewählten Zeile hoch, wie auf dem Importbildschirm.
-
-Dann die Aktionen:
+Die Aktionen:
 
 - **Im Planer öffnen** lädt sie in den Tab Planen, wo du sie bearbeiten und erneut speichern kannst.
 - **Export** bietet **GPX-Route** und **FIT-Strecke**, siehe [Import und Export](./import-and-export).
@@ -47,11 +47,10 @@ Dann die Aktionen:
 - **Link teilen** macht einen Link daraus, siehe [Teilen](./sharing).
 - **Diese Route beschreiben** lässt den Assistenten einen Absatz darüber schreiben, siehe [Assistent](./assistant).
 
-## Eine Fahrtenseite
+## Das Blatt einer Fahrt
 
-Eine geöffnete Fahrt zeigt von oben nach unten:
+Eine geöffnete Fahrt zeichnet **den nach Tempo eingefärbten Track** auf die Karte, von langsam bis schnell, eingepasst über dem Blatt, mit einer Legende **langsam**/**schnell** oben im Blatt. Die Bänder sind die Quantile dieser Fahrt selbst, die Farben vergleichen die Fahrt also mit sich und nicht mit einer festen Skala. Eine Fahrt ohne Zeitstempel wird als einfache Linie gezeichnet. Das Blatt zeigt von oben nach unten:
 
-- **den nach Tempo eingefärbten Track**, von langsam bis schnell, mit einer Legende **langsam**/**schnell** unter der Karte. Die Bänder sind die Quantile dieser Fahrt selbst, die Farben vergleichen die Fahrt also mit sich und nicht mit einer festen Skala. Eine Fahrt ohne Zeitstempel wird als einfache Linie gezeichnet.
 - das Datum,
 - sieben Zahlen: **Distanz**, **Fahrzeit**, **Zeit**, **Ø**, **Max**, **Anstieg**, **Abstieg**. **Fahrzeit** lässt die Zeit im Stand weg; **Zeit** ist die ganze Fahrt von Anfang bis Ende.
 - das Diagramm **Höhenprofil**, Höhe über Distanz, nur gezeichnet, wenn der Track Höhen mitbrachte,
@@ -93,17 +92,17 @@ Ein Anstieg wird so gefunden, wie das Profil im Aufnahme-Blatt den findet, auf d
 
 ### Belag
 
-Unter den Anstiegen ein Balken **Belag** wie auf einer Routenseite: wie viel der Fahrt asphaltiert, unbefestigt oder unbekannt war, daneben die Anteile Radweg und viel befahrene Straßen. Die Fahrt wurde nie geplant, also findet die App es hinterher heraus: Sie legt den aufgezeichneten Track auf die Offline-Routing-Kacheln auf dem Handy und liest den Belag von den Straßen ab, auf denen er landet. Kein Track verlässt dafür das Handy. Dazu muss die Routing-Region der Gegend heruntergeladen sein; bis dahin sagt der Abschnitt das. Ein Track, dem die Karte nicht folgen kann, durch einen Park, über eine Fähre oder eine Abkürzung, zeigt stattdessen "Der Track ließ sich nicht auf die Karte legen", und das Ergebnis bleibt so oder so bei der Fahrt, wird also nur einmal ermittelt. Eine neue Routing-Kachel gibt einer nicht zugeordneten Fahrt einen neuen Versuch.
+Unter den Anstiegen ein Balken **Belag** wie im Blatt einer Route: wie viel der Fahrt asphaltiert, unbefestigt oder unbekannt war, daneben die Anteile Radweg und viel befahrene Straßen. Die Fahrt wurde nie geplant, also findet die App es hinterher heraus: Sie legt den aufgezeichneten Track auf die Offline-Routing-Kacheln auf dem Handy und liest den Belag von den Straßen ab, auf denen er landet. Kein Track verlässt dafür das Handy. Dazu muss die Routing-Region der Gegend heruntergeladen sein; bis dahin sagt der Abschnitt das. Ein Track, dem die Karte nicht folgen kann, durch einen Park, über eine Fähre oder eine Abkürzung, zeigt stattdessen "Der Track ließ sich nicht auf die Karte legen", und das Ergebnis bleibt so oder so bei der Fahrt, wird also nur einmal ermittelt. Eine neue Routing-Kachel gibt einer nicht zugeordneten Fahrt einen neuen Versuch.
 
 ### Aktionen einer Fahrt
 
-- Die Wolken-Schaltfläche oben rechts lädt die Fahrt zu einem verbundenen Dienst hoch.
+- Die Wolken-Schaltfläche rechts in der Kopfzeile des Blatts lädt die Fahrt zu einem verbundenen Dienst hoch.
 - Das Menü daneben: **GPX-Track exportieren**, **FIT-Aktivität exportieren**, **Fahrt fortsetzen**, **Umbenennen**, **Löschen**.
 - Ganz unten: dieselben zwei Exporte und **Link teilen**.
 
 ## Dateien und Routen hereinbekommen
 
-Die beiden Schaltflächen oben rechts im Tab Bibliothek:
+Die beiden Schaltflächen rechts in der Kopfzeile des Blatts:
 
 - **Datei importieren** öffnet die Dateiauswahl des Handys für eine GPX- oder FIT-Datei.
 - Die Wolken-Schaltfläche bietet **Aus Strava importieren** und **Aus Ride with GPS importieren**, sofern diese Dienste eingerichtet sind.

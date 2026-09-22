@@ -9,6 +9,9 @@ import 'package:velorki/features/import_export/data/track_decoder.dart';
 import 'package:velorki/features/import_export/domain/imported_track.dart';
 import 'package:velorki/features/import_export/presentation/import_file_action.dart';
 import 'package:velorki/features/import_export/presentation/import_preview_screen.dart';
+import 'package:velorki/features/library/presentation/library_screen.dart';
+import 'package:velorki/features/library/presentation/route_detail_screen.dart';
+import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
 import 'package:velorki/features/planner/application/planner_map_binding.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
 
@@ -178,8 +181,9 @@ void main() {
     expect(rows.single.name, 'Starnberger See loop');
     expect(rows.single.source, RouteSource.importedGpx);
 
-    // It landed on the route's detail screen.
-    expect(find.widgetWithText(AppBar, 'Starnberger See loop'), findsOneWidget);
+    // It landed on the route's card on the Library tab.
+    expect(find.byType(RouteDetailScreen), findsOneWidget);
+    expect(find.text('Starnberger See loop'), findsOneWidget);
     expect(
       find.text(l10n.importSavedRoute('Starnberger See loop')),
       findsOneWidget,
@@ -208,7 +212,8 @@ void main() {
     expect(rides, hasLength(1));
     expect(rides.single.name, 'Starnberger See loop');
     // It landed on the ride's detail screen, under the Record tab.
-    expect(find.widgetWithText(AppBar, 'Starnberger See loop'), findsOneWidget);
+    expect(find.byType(RideDetailScreen), findsOneWidget);
+    expect(find.text('Starnberger See loop'), findsOneWidget);
     await unmountApp(tester);
   });
 
@@ -283,7 +288,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(l10n.importFailedUnknown), findsOneWidget);
-    expect(find.widgetWithText(AppBar, l10n.tabLibrary), findsOneWidget);
+    expect(find.byType(LibraryScreen), findsOneWidget);
+    expect(find.byType(BackButton), findsNothing);
     await unmountApp(tester);
   });
 
@@ -299,7 +305,8 @@ void main() {
     await tester.tap(find.byTooltip(l10n.libraryImportFile));
     await tester.pumpAndSettle();
 
-    expect(find.widgetWithText(AppBar, l10n.tabLibrary), findsOneWidget);
+    expect(find.byType(LibraryScreen), findsOneWidget);
+    expect(find.byType(BackButton), findsNothing);
     await unmountApp(tester);
   });
 }

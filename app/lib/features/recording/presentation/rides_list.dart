@@ -4,15 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/router.dart';
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../settings/data/units.dart';
 import '../data/ride_repository.dart';
 import '../domain/ride.dart';
-import 'ride_detail_screen.dart';
 
-/// The recorded rides, newest first: the library's rides section.
+/// The recorded rides, newest first: the library's rides section, as a
+/// sliver of the library card's scroll view.
 class RidesList extends ConsumerWidget {
   /// Creates the list.
   const RidesList({super.key});
@@ -23,34 +24,38 @@ class RidesList extends ConsumerWidget {
     final theme = Theme.of(context);
     final rides = ref.watch(ridesProvider);
     return rides.when(
-      loading: () => const Padding(
-        padding: EdgeInsets.all(24),
-        child: Center(child: CircularProgressIndicator()),
+      loading: () => const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Center(child: CircularProgressIndicator()),
+        ),
       ),
-      error: (error, _) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 16),
-        child: Text(error.toString(), style: theme.textTheme.bodyMedium),
+      error: (error, _) => SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 16),
+          child: Text(error.toString(), style: theme.textTheme.bodyMedium),
+        ),
       ),
       data: (items) {
         if (items.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Text(
-              l10n.recordingNoRides,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+          return SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Text(
+                l10n.recordingNoRides,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
           );
         }
-        return ListView.builder(
-          // The floating navigation bar overlays the content.
-          padding: EdgeInsets.only(
-            top: 6,
-            bottom: MediaQuery.paddingOf(context).bottom + 24,
+        return SliverPadding(
+          padding: const EdgeInsets.only(top: 6),
+          sliver: SliverList.builder(
+            itemCount: items.length,
+            itemBuilder: (context, i) => RideTile(ride: items[i]),
           ),
-          itemCount: items.length,
-          itemBuilder: (context, i) => RideTile(ride: items[i]),
         );
       },
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/painting.dart' show EdgeInsets;
 import 'package:velorki_geo/velorki_geo.dart';
 
 /// The planner, recorder and library talk to the map only through this
@@ -20,7 +21,14 @@ abstract class MapController {
     bool animate = true,
     Duration? duration,
   });
-  Future<void> fitBounds(BoundingBox bounds, {double paddingPx = 48});
+
+  /// Moves the camera so that [bounds] fills the view inside [padding], in
+  /// pixels per side: a screen with a card over the lower half asks for a
+  /// bottom inset the height of the card, so the route lands above it.
+  Future<void> fitBounds(
+    BoundingBox bounds, {
+    EdgeInsets padding = const EdgeInsets.all(48),
+  });
   LatLng? get center;
   double? get zoom;
 

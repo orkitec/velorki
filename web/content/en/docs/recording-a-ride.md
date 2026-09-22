@@ -77,7 +77,7 @@ Velorki writes the track to a journal file as it goes, so a crash, a force-quit 
 - If the recording service is still alive when you come back, the app quietly reattaches and carries on.
 - If it is not, opening the Record tab shows **Unfinished ride**: "A ride from 16 Sept 2026 was never finished. 42.1 km and 2 h 10 min are saved. Continue it or finish it now?" with three answers:
   - **Resume** picks the ride up where it stopped,
-  - **Finish** saves what there is and opens the ride page,
+  - **Finish** saves what there is and opens the ride's card on the Library tab,
   - **Discard** throws it away.
 
 The dialog cannot be dismissed without answering, so a recovered ride is never silently lost.

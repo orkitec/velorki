@@ -1,21 +1,21 @@
 ---
 title: Library
-description: Where your saved routes and recorded rides live, what a ride page shows, and how to rename or delete either of them.
+description: Where your saved routes and recorded rides live, what a route or ride card shows, and how to rename or delete either of them.
 order: 8
 ---
 
-The Library tab holds everything you kept: the routes you planned and the rides you recorded. Go here to open a route again, to read a ride's charts and splits, and to get files in and out.
+The Library tab holds everything you kept: the routes you planned and the rides you recorded. It is a card over the map, like the Plan and Record tabs: pull it up for more room, pull it all the way down and it folds into the navigation bar, leaving the map. Go here to open a route again, to read a ride's charts and splits, and to get files in and out.
 
 Everything in the library is on the phone. There is no account and nothing is synchronised anywhere.
 
 ## Routes and Rides
 
-A switch under the title picks the list: **Routes** or **Rides**. Velorki remembers which you were last looking at.
+A switch under the card's title picks the list: **Routes** or **Rides**. Velorki remembers which you were last looking at.
 
 - A **route** row shows its name and, underneath, the date, the distance and the ascent.
 - A **ride** row shows its name and, underneath, the date, the distance and the moving time. Above the list is a count, "12 rides".
 
-Tap a row to open it.
+Tap a row to open it in the card, with the route or the ride drawn on the map above. The arrow at the top left of the card, or the system back, brings the list back.
 
 Empty lists explain themselves: "No saved routes yet. Plan a route in the Plan tab and save it." and "No rides yet."
 
@@ -23,23 +23,23 @@ Empty lists explain themselves: "No saved routes yet. Plan a route in the Plan t
 
 **Routes**: the menu at the right of the row has **Rename** and **Delete**. Swiping a row to the left deletes it too. Either way the message that follows carries an **Undo**.
 
-**Rides**: swipe the row to the left to delete it, again with **Undo**. Renaming and deleting a ride with a confirmation are on the ride's own page, under the menu at the top right.
+**Rides**: swipe the row to the left to delete it, again with **Undo**. Renaming and deleting a ride with a confirmation are on the ride's card, under the menu at the right of its header.
 
 Both rename dialogs are the same: one field, **Name**, then **Cancel** or **Save**.
 
-## A route page
+## A route card
 
-Opening a route shows, from the top:
+Opening a route draws it on the map, fitted to the part of the screen above the card, with its points of interest as small named markers when it was imported with any. The card shows, from the top:
 
-- a map of the route, with its points of interest as small named markers when it was imported with any,
 - the date, the bike profile and the ascent,
 - the description, if the route has one,
 - **Distance**, **Ascent**, **Descent** and **Est. time**,
-- the surface breakdown.
+- the surface breakdown,
+- the actions below,
+- the elevation profile,
+- for a route imported with turns or points of interest, the cue sheet: every turn and point with its distance from the start, a tap on a line panning the map there at your zoom and a tap on a marker scrolling the card to that line.
 
-The map stays at the top while the pages under it scroll, with dots under the map saying which page is up. One swipe to the left is the elevation profile. A route imported with turns or points of interest has one more page, the cue sheet: every turn and point with its distance from the start, a tap on a line panning the map there at your zoom and a tap on a marker bringing the sheet up with the line selected, as on the import screen.
-
-Then the actions:
+The actions:
 
 - **Open in planner** loads it into the Plan tab, where you can edit it and save it again.
 - **Export** offers **GPX route** and **FIT course**, see [import and export](./import-and-export).
@@ -47,11 +47,10 @@ Then the actions:
 - **Share link** turns it into a link, see [sharing](./sharing).
 - **Describe this route** asks the assistant to write a paragraph about it, see [assistant](./assistant).
 
-## A ride page
+## A ride card
 
-Opening a ride shows, from the top:
+Opening a ride draws **the track coloured by speed** on the map, from slow to fast, fitted above the card, with a **slow**/**fast** legend at the top of the card. The bands are that ride's own quantiles, so the colours compare the ride with itself rather than with a fixed scale. A ride with no timestamps is drawn as a plain line. The card shows, from the top:
 
-- **the track coloured by speed**, from slow to fast, with a **slow**/**fast** legend under the map. The bands are that ride's own quantiles, so the colours compare the ride with itself rather than with a fixed scale. A ride with no timestamps is drawn as a plain line.
 - the date,
 - seven figures: **Distance**, **Moving**, **Time**, **Avg**, **Max**, **Ascent**, **Descent**. **Moving** leaves out the time you stood still; **Time** is the whole ride from start to finish.
 - the **Elevation** chart, height against distance, drawn only when the track carried heights,
@@ -93,17 +92,17 @@ A climb is found the way the record sheet's profile finds the one you are on: it
 
 ### Surface
 
-Under the climbs, a **Surface** bar like the one on a route page: how much of the ride was paved, unpaved or unknown, with the cycleway and busy-road shares beside it. The ride was never planned, so the app finds out afterwards: it lays the recorded track over the offline routing tiles on the phone and reads the surface off the roads it lands on. No track leaves the phone for this. It needs the routing region for the area to be downloaded; until it is, the section says so. A track the map cannot follow, through a park, over a ferry or along a cut through, shows "The track could not be matched to the map" instead, and the result, either way, is kept with the ride, so it is worked out once. A new routing tile gives an unmatched ride another go.
+Under the climbs, a **Surface** bar like the one on a route card: how much of the ride was paved, unpaved or unknown, with the cycleway and busy-road shares beside it. The ride was never planned, so the app finds out afterwards: it lays the recorded track over the offline routing tiles on the phone and reads the surface off the roads it lands on. No track leaves the phone for this. It needs the routing region for the area to be downloaded; until it is, the section says so. A track the map cannot follow, through a park, over a ferry or along a cut through, shows "The track could not be matched to the map" instead, and the result, either way, is kept with the ride, so it is worked out once. A new routing tile gives an unmatched ride another go.
 
 ### Ride actions
 
-- The cloud button at the top right uploads the ride to a connected service.
+- The cloud button at the right of the card's header uploads the ride to a connected service.
 - The menu beside it: **Export GPX track**, **Export FIT activity**, **Continue this ride**, **Rename**, **Delete**.
 - At the bottom: the same two exports and **Share link**.
 
 ## Getting files and routes in
 
-The two buttons at the top right of the Library tab:
+The two buttons at the right of the card's header:
 
 - **Import file** opens the phone's file picker for a GPX or FIT file.
 - The cloud button offers **Import from Strava** and **Import from Ride with GPS**, when those services are configured.

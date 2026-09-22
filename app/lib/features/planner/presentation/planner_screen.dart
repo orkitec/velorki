@@ -63,6 +63,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   /// Whether this tab's layers and handlers are on the shared map right now.
   bool _drawing = false;
 
+  /// Whether a draw is on its way, from the microtask it waits for.
+  bool _drawPending = false;
+
   SearchResult? _placeToStartFrom;
 
   /// The chrome over the map (search field, place actions, profile chips),
@@ -339,14 +342,18 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   }
 
   /// Puts this tab's layers and handlers on the shared map while it is the
-  /// tab on screen, and takes them off when it is not: the Record tab draws
-  /// its own on the same map, and only one tab's belong there at a time.
+  /// tab on screen, and takes them off when it is not: the other tabs draw
+  /// their own on the same map, and only one tab's belong there at a time.
+  ///
+  /// The clear is immediate and the draw waits a microtask, so the tab that
+  /// leaves has cleared before the tab that arrives draws, whichever of the
+  /// two hears of the change first.
   void _updateMapUse() {
     final map = _map;
     final wanted = _active && map != null;
-    if (wanted == _drawing) return;
-    _drawing = wanted;
     if (!wanted) {
+      if (!_drawing) return;
+      _drawing = false;
       final binding = _binding;
       if (binding == null) return;
       binding.detach();
@@ -354,8 +361,18 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       unawaited(binding.map.setSearchPin(null));
       return;
     }
+    if (_drawing || _drawPending) return;
+    _drawPending = true;
+    scheduleMicrotask(_drawOnMap);
+  }
+
+  void _drawOnMap() {
+    _drawPending = false;
+    final map = _map;
+    if (!mounted || !_active || map == null || _drawing) return;
+    _drawing = true;
     var binding = _binding;
-    if (binding == null) {
+    if (binding == null || !identical(binding.map, map)) {
       binding = PlannerMapBinding(
         map: map,
         planner: ref.read(plannerControllerProvider.notifier),

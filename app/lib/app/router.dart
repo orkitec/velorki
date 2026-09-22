@@ -13,13 +13,11 @@ import '../features/library/presentation/library_screen.dart';
 import '../features/map/presentation/map_chrome.dart';
 import '../features/map/presentation/map_controls.dart';
 import '../features/map/presentation/shared_map_host.dart';
-import '../features/library/presentation/route_detail_screen.dart';
 import '../features/navigation/application/navigation_controller.dart';
 import '../features/planner/presentation/planner_screen.dart';
 import '../features/recording/application/recording_controller.dart';
 import '../features/recording/application/ride_notification_updater.dart';
 import '../features/recording/presentation/recording_screen.dart';
-import '../features/recording/presentation/ride_detail_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/shared/application/active_tab.dart';
 import '../features/shared/application/nav_bar_docking.dart';
@@ -44,8 +42,11 @@ const String importRoute = '/import';
 /// whichever tab the rider is on, and it comes back with a Back button.
 const String paywallRoute = '/plus';
 
-/// Route detail, relative to [libraryRoute].
-const String routeDetailPath = 'route/:id';
+/// The saved route [id] as a card on the Library tab.
+const String routeDetailPath = '$libraryRoute/route/:id';
+
+/// The recorded ride [id] as a card on the Library tab.
+const String rideDetailPath = '$libraryRoute/ride/:id';
 
 /// The four tabs' root routes, in the bar's order.
 const List<String> tabRoutes = [
@@ -55,12 +56,28 @@ const List<String> tabRoutes = [
   settingsRoute,
 ];
 
-/// The two tabs over the shell's one map, Plan and Record, by index in the
-/// bar.
-const Set<int> mapTabs = {0, 1};
+/// The tabs over the shell's one map, Plan, Record and Library, by index in
+/// the bar.
+const Set<int> mapTabs = {0, 1, 2};
 
-/// The location of the detail screen for the saved route [id].
+/// The location of the card for the saved route [id].
 String routeDetailLocation(String id) => '$libraryRoute/route/$id';
+
+/// The location of the card for the recorded ride [id].
+String rideDetailLocation(String id) => '$libraryRoute/ride/$id';
+
+/// The one page of the Library branch, whatever the location: the card
+/// keeps its element, and so its sheet, across the list and the details.
+const ValueKey<String> _libraryCardKey = ValueKey<String>('library-card');
+
+/// The Library branch's page for [child]: the same key at every location,
+/// so the navigator updates the card in place rather than swapping it.
+MapTabPage<void> _libraryPage(GoRouterState state, Widget child) =>
+    MapTabPage<void>(
+      key: _libraryCardKey,
+      name: state.name ?? state.path,
+      child: child,
+    );
 
 @Riverpod(keepAlive: true)
 GoRouter router(Ref ref) => createRouter();
@@ -128,30 +145,32 @@ GoRouter createRouter({String initialLocation = plannerRoute}) {
                   restorationId: state.pageKey.value,
                   child: const RecordingScreen(),
                 ),
-                routes: [
-                  GoRoute(
-                    path: 'ride/:id',
-                    builder: (context, state) => RideDetailScreen(
-                      rideId: state.pathParameters['id'] ?? '',
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
           StatefulShellBranch(
+            // Three locations, one card: the list, a route, a ride. They
+            // are siblings rather than a stack, so only one card is ever
+            // over the map, and the card's own back arrow goes to the list.
             routes: [
               GoRoute(
                 path: libraryRoute,
-                builder: (context, state) => const LibraryScreen(),
-                routes: [
-                  GoRoute(
-                    path: routeDetailPath,
-                    builder: (context, state) => RouteDetailScreen(
-                      routeId: state.pathParameters['id'] ?? '',
-                    ),
-                  ),
-                ],
+                pageBuilder: (context, state) =>
+                    _libraryPage(state, const LibraryScreen()),
+              ),
+              GoRoute(
+                path: routeDetailPath,
+                pageBuilder: (context, state) => _libraryPage(
+                  state,
+                  LibraryScreen(routeId: state.pathParameters['id'] ?? ''),
+                ),
+              ),
+              GoRoute(
+                path: rideDetailPath,
+                pageBuilder: (context, state) => _libraryPage(
+                  state,
+                  LibraryScreen(rideId: state.pathParameters['id'] ?? ''),
+                ),
               ),
             ],
           ),
@@ -214,14 +233,20 @@ class HomeShell extends ConsumerWidget {
         if (context.mounted) ref.read(activeTabProvider.notifier).show(route);
       });
     }
-    // One control column over the Plan and Record tabs: it glides between
-    // the tabs' chrome and grows or shrinks for the buttons one tab has and
+    // One control column over the tabs on the map: it glides between the
+    // tabs' chrome and grows or shrinks for the buttons one tab has and
     // the other has not, instead of being swapped with the tab. Only while
-    // the tab shows its map screen, not a page pushed over it.
-    final atTabRoot = GoRouter.of(context).state.matchedLocation == route;
+    // the tab shows its map screen, not a page pushed over it; the
+    // Library's card is its screen at every one of its locations.
+    final matched = GoRouter.of(context).state.matchedLocation;
+    final atTabRoot =
+        matched == route ||
+        (route == libraryRoute && matched.startsWith('$libraryRoute/'));
     final chrome = ref.watch(activeMapChromeProvider);
     final showColumn =
-        shell.currentIndex <= 1 && atTabRoot && (chrome?.visible ?? true);
+        mapTabs.contains(shell.currentIndex) &&
+        atTabRoot &&
+        (chrome?.visible ?? true);
     final columnGlide = ref.watch(mapControlsTopProvider);
     return Scaffold(
       // The bar floats over the content; screens read the bottom padding
@@ -234,12 +259,11 @@ class HomeShell extends ConsumerWidget {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // The one map under the Plan and Record tabs, which draw on it
-          // and are transparent over it. Never hidden and never moved in
-          // the stack: the platform view would start over and show black.
-          // The library and settings tabs are opaque pages over it.
+          // The one map under the Plan, Record and Library tabs, which draw
+          // on it and are transparent over it. Never hidden and never moved
+          // in the stack: the platform view would start over and show black.
+          // The settings tab is an opaque page over it.
           const SharedMapHost(key: ValueKey<String>('shared-map')),
-          shell,
           if (showColumn)
             Positioned.fill(
               child: SafeArea(
@@ -271,6 +295,10 @@ class HomeShell extends ConsumerWidget {
                 ),
               ),
             ),
+          // Over the column: a sheet or card pulled up covers it, and a
+          // touch beside a tab's chrome falls through to it and to the map,
+          // since the map tabs' routes put no barrier under their content.
+          shell,
         ],
       ),
       bottomNavigationBar: hideBar

@@ -18,7 +18,7 @@ Kostenlos, für alle, auf Dauer:
 - Ortssuche, offline und online,
 - Navigation mit Abbiegeband und Sprachansagen,
 - Fahrten aufzeichnen, auch mit ausgeschaltetem Bildschirm und im Hintergrund,
-- Fahrtenseiten mit Diagrammen, Splits und dem nach Tempo eingefärbten Track,
+- Blätter der Fahrten mit Diagrammen, Splits und dem nach Tempo eingefärbten Track,
 - GPX- und FIT-Import und -Export, in jede Richtung,
 - den Teilen-Link von jemand anderem öffnen.
 

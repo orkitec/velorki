@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/painting.dart' show EdgeInsets;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../domain/map_controller.dart';
@@ -46,22 +47,22 @@ class RecordedCameraMove {
 /// One recorded [MapController.fitBounds] call.
 @immutable
 class RecordedFitBounds {
-  const RecordedFitBounds({required this.bounds, required this.paddingPx});
+  const RecordedFitBounds({required this.bounds, required this.padding});
 
   final BoundingBox bounds;
-  final double paddingPx;
+  final EdgeInsets padding;
 
   @override
   bool operator ==(Object other) =>
       other is RecordedFitBounds &&
       other.bounds == bounds &&
-      other.paddingPx == paddingPx;
+      other.padding == padding;
 
   @override
-  int get hashCode => Object.hash(bounds, paddingPx);
+  int get hashCode => Object.hash(bounds, padding);
 
   @override
-  String toString() => 'RecordedFitBounds($bounds, padding: $paddingPx)';
+  String toString() => 'RecordedFitBounds($bounds, padding: $padding)';
 }
 
 /// A route line as the fake last saw it.
@@ -299,8 +300,11 @@ class FakeMapController implements MapController {
   }
 
   @override
-  Future<void> fitBounds(BoundingBox bounds, {double paddingPx = 48}) async {
-    boundsFits.add(RecordedFitBounds(bounds: bounds, paddingPx: paddingPx));
+  Future<void> fitBounds(
+    BoundingBox bounds, {
+    EdgeInsets padding = const EdgeInsets.all(48),
+  }) async {
+    boundsFits.add(RecordedFitBounds(bounds: bounds, padding: padding));
     center = bounds.center;
     visibleBounds = bounds;
   }

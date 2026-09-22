@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:velorki/features/map/presentation/map_chrome.dart';
+import 'package:velorki/app/router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/core/db/database.dart' show RouteSource;
 import 'package:velorki/core/files/track_exporter.dart';
@@ -20,6 +21,7 @@ import 'package:velorki/features/recording/presentation/recording_format.dart';
 import 'package:velorki/features/recording/presentation/ride_heart_rate_zones.dart';
 import 'package:velorki/features/recording/presentation/ride_power_zones.dart';
 import 'package:velorki/features/recording/presentation/ride_splits.dart';
+import 'package:velorki/features/shared/application/active_tab.dart';
 import 'package:velorki/features/planner/presentation/surface_stats_bar.dart';
 import 'package:velorki/features/shared/presentation/metric_chart.dart';
 import 'package:fl_chart/fl_chart.dart' show LineChart;
@@ -81,7 +83,10 @@ List<TrackPoint> _withClimb() {
   ];
 }
 
-/// Saves a ride of [points] and opens its detail screen.
+/// Saves a ride of [points] and opens its detail: the content on its own,
+/// or with [inShell] the whole app on the ride's card, for what the card
+/// around the content does (the chip over the map, the column's route
+/// button).
 Future<void> _open(
   WidgetTester tester,
   RecordingHarness harness,
@@ -89,6 +94,7 @@ Future<void> _open(
   List<Override> extraOverrides = const <Override>[],
   Map<String, Object> preferences = const <String, Object>{},
   String? routeId,
+  bool inShell = false,
 }) async {
   await RideRepository(harness.planner.db.ridesDao).finalizeRide(
     rideId: 'ride-1',
@@ -98,13 +104,23 @@ Future<void> _open(
     endedAt: points.last.time!,
     routeId: routeId,
   );
-  await pumpRecordingScreen(
-    tester,
-    const RideDetailScreen(rideId: 'ride-1'),
-    harness: harness,
-    extraOverrides: extraOverrides,
-    preferences: preferences,
-  );
+  if (inShell) {
+    await pumpRecordingApp(
+      tester,
+      initialLocation: rideDetailLocation('ride-1'),
+      harness: harness,
+      preferences: preferences,
+      extraOverrides: extraOverrides,
+    );
+  } else {
+    await pumpRecordingScreen(
+      tester,
+      const RideDetailScreen(rideId: 'ride-1'),
+      harness: harness,
+      extraOverrides: extraOverrides,
+      preferences: preferences,
+    );
+  }
   await tester.pumpAndSettle();
 }
 
@@ -133,7 +149,8 @@ Future<void> _saveRoute(RecordingHarness harness) async {
   );
 }
 
-/// Opens a ride that followed the route [_saveRoute] stores.
+/// Opens a ride that followed the route [_saveRoute] stores, on its card in
+/// the app: the route button belongs to the card.
 Future<void> _openWithRoute(
   WidgetTester tester,
   RecordingHarness harness, {
@@ -146,6 +163,7 @@ Future<void> _openWithRoute(
     _threeKilometres(),
     routeId: 'route-1',
     preferences: preferences,
+    inShell: true,
   );
 }
 
@@ -252,14 +270,13 @@ Future<void> _tapContinue(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// The chrome the ride page hands its map, when it offers the route button.
-MapChromeInsets? _routeButton(WidgetTester tester) {
-  for (final chrome in tester.widgetList<MapChromeInsets>(
-    find.byType(MapChromeInsets),
-  )) {
-    if (chrome.onToggleRoute != null) return chrome;
-  }
-  return null;
+/// What the ride's card tells the shell's control column, when it offers
+/// the route button.
+MapChromeData? _routeButton(WidgetTester tester) {
+  final chrome = ProviderScope.containerOf(
+    tester.element(find.byType(RideDetailScreen)),
+  ).read(activeMapChromeProvider);
+  return chrome?.onToggleRoute == null ? null : chrome;
 }
 
 void main() {
@@ -767,7 +784,7 @@ void main() {
   testWidgets('a tapped split is named in a chip over the map, which clears '
       'it', (tester) async {
     final harness = RecordingHarness();
-    await _open(tester, harness, _threeKilometres());
+    await _open(tester, harness, _threeKilometres(), inShell: true);
     expect(find.byType(RideHighlightChip), findsNothing);
 
     await _tapRow(tester, find.text(testSplitLength(1000)).at(1));
@@ -803,7 +820,7 @@ void main() {
   ) async {
     final harness = RecordingHarness();
     final points = _withClimb();
-    await _open(tester, harness, points);
+    await _open(tester, harness, points, inShell: true);
     final climb = analyseRide(points).climbs.single;
 
     await _tapRow(
@@ -1292,7 +1309,7 @@ void main() {
     tester,
   ) async {
     final harness = RecordingHarness();
-    await _open(tester, harness, _threeKilometres());
+    await _open(tester, harness, _threeKilometres(), inShell: true);
 
     expect(_routeButton(tester), isNull);
     expect(harness.map.lines, isNot(contains(rideRouteLineId)));
@@ -1306,7 +1323,13 @@ void main() {
     tester,
   ) async {
     final harness = RecordingHarness();
-    await _open(tester, harness, _threeKilometres(), routeId: 'gone');
+    await _open(
+      tester,
+      harness,
+      _threeKilometres(),
+      routeId: 'gone',
+      inShell: true,
+    );
 
     expect(_routeButton(tester), isNull);
     expect(harness.map.lines, isNot(contains(rideRouteLineId)));

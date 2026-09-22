@@ -30,6 +30,7 @@ import 'package:velorki/features/recording/domain/gps_precision.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/recording/presentation/ride_cue_sheet.dart';
 import 'package:velorki/features/recording/presentation/ride_profile_view.dart';
+import 'package:velorki/features/library/presentation/library_screen.dart';
 import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
 import 'package:velorki/features/recording/presentation/rides_list.dart';
 import 'package:velorki/features/recording/presentation/save_ride_sheet.dart';
@@ -803,7 +804,9 @@ void main() {
     await unmountApp(tester);
   });
 
-  testWidgets('saving a ride opens its detail screen', (tester) async {
+  testWidgets('saving a ride opens its card on the Library tab', (
+    tester,
+  ) async {
     final harness = RecordingHarness()
       ..service.finishedRide = _ride()
       ..service.haltedRecording = _recording();
@@ -819,7 +822,14 @@ void main() {
     await settleSheet(tester);
 
     expect(find.byType(RideDetailScreen), findsOneWidget);
+    expect(find.byType(LibraryScreen), findsOneWidget);
     expect(find.text('Ride 12 Sept 2026'), findsWidgets);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(LibraryScreen)),
+    );
+    expect(container.read(activeTabProvider), libraryRoute);
+    // The ride went on the shared map, above the card.
+    expect(harness.map.trackSegments, isNotEmpty);
     await unmountApp(tester);
   });
 

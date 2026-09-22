@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/painting.dart' show EdgeInsets;
 import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -100,10 +101,17 @@ class TestMapController implements MapController {
     calls.add(MapCall('moveTo', [center, zoom, bearing, duration, animate]));
   }
 
+  /// The padding the last [fitBounds] was asked for.
+  EdgeInsets? fittedPadding;
+
   @override
-  Future<void> fitBounds(BoundingBox bounds, {double paddingPx = 48}) async {
+  Future<void> fitBounds(
+    BoundingBox bounds, {
+    EdgeInsets padding = const EdgeInsets.all(48),
+  }) async {
     fittedBounds = bounds;
-    calls.add(MapCall('fitBounds', [bounds]));
+    fittedPadding = padding;
+    calls.add(MapCall('fitBounds', [bounds, padding]));
   }
 
   @override

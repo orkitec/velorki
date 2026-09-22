@@ -39,7 +39,7 @@ Eine GPX-Route mit Abbiegeliste, der Routen-Export von Ride with GPS oder eine G
 
 Velorki rät **Route** oder **Fahrt** danach, ob die Punkte Zeiten tragen: eine Aufnahme tut das, eine geplante Route nicht. FIT-Strecken tragen eine künstliche Zeitbasis und werden darum als Fahrt geraten, stell sie also von Hand um. Nichts wird geschrieben, bevor du auf **Speichern** tippst.
 
-Danach bekommst du "Alpenrunde zur Bibliothek hinzugefügt" oder "Alpenrunde zu deinen Fahrten hinzugefügt" und landest auf der Seite des neuen Eintrags.
+Danach bekommst du "Alpenrunde zur Bibliothek hinzugefügt" oder "Alpenrunde zu deinen Fahrten hinzugefügt" und landest auf dem Blatt des neuen Eintrags im Tab Bibliothek.
 
 Lässt sich die Datei nicht öffnen, sagt Velorki, woran es lag: "Das ist keine GPX- oder FIT-Datei.", "Die Datei konnte nicht gelesen werden.", "Die Datei enthält keine Trackpunkte." oder "Die Datei konnte nicht geöffnet werden."
 
@@ -52,7 +52,7 @@ Lässt sich die Datei nicht öffnen, sagt Velorki, woran es lag: "Das ist keine 
 | **GPX-Route** | eine geplante Route für einen anderen Planer, eine Handy-App oder einen Radcomputer |
 | **FIT-Strecke** | ein Garmin, Wahoo oder ähnliches Gerät, das eine Strecke erwartet |
 
-**Aus einer Fahrt** (Bibliothek → Fahrten → öffnen, oder die Fahrtenseite nach dem Beenden):
+**Aus einer Fahrt** (Bibliothek → Fahrten → öffnen, oder das Blatt der Fahrt nach dem Beenden):
 
 | Format | Wofür |
 |---|---|

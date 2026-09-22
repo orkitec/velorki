@@ -1,3 +1,4 @@
+import 'package:flutter/painting.dart' show EdgeInsets;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/map/testing/testing.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -35,10 +36,10 @@ void main() {
   test('records fitBounds and adopts the bounds as visible', () async {
     const bounds = BoundingBox(south: 47, west: 8, north: 48, east: 9);
 
-    await controller.fitBounds(bounds, paddingPx: 24);
+    await controller.fitBounds(bounds, padding: const EdgeInsets.all(24));
 
     expect(controller.boundsFits, [
-      const RecordedFitBounds(bounds: bounds, paddingPx: 24),
+      const RecordedFitBounds(bounds: bounds, padding: EdgeInsets.all(24)),
     ]);
     expect(controller.visibleBounds, bounds);
     expect(controller.center, bounds.center);

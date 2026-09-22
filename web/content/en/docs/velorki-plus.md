@@ -18,7 +18,7 @@ Free, for everyone, for good:
 - place search, offline and online,
 - turn-by-turn navigation with the turn banner and the spoken cues,
 - recording rides, including with the screen off and in the background,
-- ride pages with the charts, the splits and the speed-coloured track,
+- ride cards with the charts, the splits and the speed-coloured track,
 - GPX and FIT import and export, in every direction,
 - opening someone else's share link.
 

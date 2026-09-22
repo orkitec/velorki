@@ -103,7 +103,9 @@ void main() {
 
     await tester.tap(find.text('Isar loop'));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(AppBar, 'Isar loop'), findsOneWidget);
+    // The card's title now, with the list gone.
+    expect(find.text('Isar loop'), findsOneWidget);
+    expect(find.byType(BackButton), findsOneWidget);
     await unmountApp(tester);
   });
 

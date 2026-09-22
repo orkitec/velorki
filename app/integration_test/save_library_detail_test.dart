@@ -1,5 +1,5 @@
 // Plan, save, and find the route again: the dialog, the library list, the
-// detail screen's stats and "Open in planner".
+// route card's stats and "Open in planner".
 //
 //   flutter test integration_test/save_library_detail_test.dart \
 //     -d emulator-5554 --dart-define=VELORKI_BROUTER_URL= \
@@ -116,7 +116,8 @@ void main() {
     await waitForWidget(tester, row);
     await tapAndPump(tester, row);
 
-    // ------------------------------------------------------- the detail page
+    // -------------------------------------------------------- the route card
+    await waitForWidget(tester, find.byType(BackButton));
     await waitForWidget(tester, find.byType(RouteStatsRow));
     final stats = tester.widget<RouteStatsRow>(find.byType(RouteStatsRow));
     expect(stats.distanceM, closeTo(lengthM, 1));

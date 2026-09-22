@@ -56,7 +56,6 @@ import '../domain/recording_snapshot.dart';
 import '../domain/recording_state.dart';
 import '../domain/ride_naming.dart';
 import 'recording_format.dart';
-import 'ride_detail_screen.dart';
 import 'save_ride_sheet.dart';
 
 /// Id of the followed route's line on the map.

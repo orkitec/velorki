@@ -114,7 +114,7 @@ In der Aufnahmeübersicht erscheint eine dritte Zeile mit dem, was in der Fahrt 
 
 ### Auf einer gespeicherten Fahrt
 
-Die Seite einer Fahrt in der [Bibliothek](./library) wächst um das, was diese Fahrt wirklich trägt:
+Das Blatt einer Fahrt in der [Bibliothek](./library) wächst um das, was diese Fahrt wirklich trägt:
 
 - **Ø Puls**, **Max Puls**, **Ø Kadenz** und **Ø Leistung** bei den Zahlen, jede nur, wenn die Fahrt sie hat,
 - ein Diagramm **Herzfrequenz** unter dem Diagramm **Tempo**, an dem du entlangziehen kannst, um an jeder Stelle abzulesen.

@@ -20,8 +20,6 @@ import '../../planner/domain/route_profile.dart';
 import '../../planner/presentation/elevation_profile_chart.dart';
 import '../../planner/presentation/planner_map_host.dart';
 import '../../planner/presentation/route_stats_row.dart';
-import '../../recording/presentation/ride_detail_screen.dart'
-    show rideDetailLocation;
 import '../../shared/presentation/placeholder_body.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/swipe_pages.dart';
@@ -161,7 +159,6 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
           messenger.showSnackBar(
             SnackBar(content: Text(l10n.importSavedRide(saved.name))),
           );
-          // Rides live under the Record tab, next to the recorded ones.
           router.go(rideDetailLocation(saved.id));
       }
     } on Object {

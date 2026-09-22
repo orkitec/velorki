@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:velorki/features/planner/application/planner_map_binding.dart';
+import 'package:velorki/features/library/presentation/route_detail_screen.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/domain/routing_options.dart';
 import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki_geo/velorki_geo.dart';
+
+import 'package:velorki/features/library/presentation/library_screen.dart';
+import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 
 import '../../support/app.dart';
 import '../../support/format.dart';
@@ -127,7 +130,8 @@ void main() {
     await unmountApp(tester);
   });
 
-  testWidgets('tapping a route opens its detail screen', (tester) async {
+  testWidgets('tapping a route opens it in the card, under a header with a '
+      'back arrow', (tester) async {
     final h = PlannerHarness();
     final saved = await _seed(h, profile: RouteProfile.gravel);
     await pumpApp(tester, harness: h);
@@ -136,7 +140,10 @@ void main() {
     await tester.tap(find.text('Isar loop'));
     await tester.pumpAndSettle();
 
-    expect(find.widgetWithText(AppBar, 'Isar loop'), findsOneWidget);
+    // The list is gone; the name is the card's title now.
+    expect(find.text('Isar loop'), findsOneWidget);
+    expect(find.byType(BackButton), findsOneWidget);
+    expect(find.text(l10n.libraryRoutes), findsNothing);
     expect(find.text(testDistance(10000)), findsOneWidget);
     expect(find.text(testHeight(120)), findsOneWidget);
     expect(find.text(testHeight(80)), findsOneWidget);
@@ -147,9 +154,16 @@ void main() {
     );
     expect(find.textContaining(l10n.profileGravel), findsWidgets);
 
-    // The preview is drawn through the map contract, bounds included.
-    expect(h.map.lines[mainRouteLineId], hasLength(saved.geometry.length));
+    // The route is drawn on the shared map, and the camera fitted to it
+    // above the card: the bottom inset is the card at rest.
+    expect(h.map.lines[libraryRouteLineId], hasLength(saved.geometry.length));
     expect(h.map.fittedBounds, isNotNull);
+    final height = MediaQuery.sizeOf(tester.element(find.byType(LibraryScreen)))
+        .height;
+    expect(
+      h.map.fittedPadding!.bottom,
+      greaterThan(sheetRestingExtent(height) * height),
+    );
 
     expect(find.text(l10n.routeDetailOpenInPlanner), findsOneWidget);
     // The export menu itself is covered by
@@ -158,6 +172,16 @@ void main() {
       find.widgetWithText(OutlinedButton, l10n.routeDetailExport),
       findsOneWidget,
     );
+
+    // The arrow brings the list back, and the route comes off the map.
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.libraryRoutes), findsOneWidget);
+    expect(find.byType(BackButton), findsNothing);
+    expect(h.map.lines, isNot(contains(libraryRouteLineId)));
+    expect(h.map.waypoints, isEmpty);
+    expect(h.map.pois, isEmpty);
+    expect(h.map.turnMarkers, isEmpty);
     await unmountApp(tester);
   });
 }

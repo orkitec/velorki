@@ -9,6 +9,8 @@ import 'package:velorki/app/router.dart';
 import 'package:velorki/core/files/track_exporter.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/map/data/compass_heading.dart';
+import 'package:velorki/features/library/presentation/library_screen.dart';
+import 'package:velorki/features/library/presentation/route_detail_screen.dart';
 import 'package:velorki/features/map/testing/fake_compass_source.dart';
 import 'package:velorki/features/recording/data/recording_gateways.dart';
 import 'package:velorki/features/recording/data/recording_journal.dart';
@@ -16,6 +18,7 @@ import 'package:velorki/features/recording/data/recording_recovery.dart';
 import 'package:velorki/features/recording/data/notification_updater.dart';
 import 'package:velorki/features/recording/data/recording_service.dart';
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
+import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
 import 'package:velorki/features/recording/testing/fake_notification_updater.dart';
 import 'package:velorki/features/search/data/gazetteer_store.dart';
 import 'package:velorki/features/shared/application/active_tab.dart';
@@ -95,12 +98,14 @@ class RecordingHarness {
   /// The map the screens draw on.
   TestMapController get map => planner.map;
 
-  /// The overrides to hand to a [ProviderScope].
-  List<Override> overrides(SharedPreferences prefs) => <Override>[
+  /// The overrides to hand to a [ProviderScope]; [tab] is the tab a screen
+  /// pumped on its own counts as being on, which in the app the shell says.
+  List<Override> overrides(
+    SharedPreferences prefs, {
+    String tab = recordingRoute,
+  }) => <Override>[
     ...planner.overrides(prefs),
-    // A record screen pumped on its own is the tab on screen; in the app the
-    // shell says so.
-    activeTabProvider.overrideWith(_RecordTabShowing.new),
+    activeTabProvider.overrideWith(() => _TabShowing(tab)),
     recordingServiceProvider.overrideWithValue(service),
     notificationUpdaterProvider.overrideWithValue(notificationUpdater),
     recordingStoreProvider.overrideWithValue(
@@ -131,11 +136,24 @@ class RecordingHarness {
   }
 }
 
-/// The Record tab as the one on screen, for a screen pumped without the shell.
-class _RecordTabShowing extends ActiveTab {
+/// The tab on screen, for a screen pumped without the shell.
+class _TabShowing extends ActiveTab {
+  _TabShowing(this.tab);
+
+  final String tab;
+
   @override
-  String build() => recordingRoute;
+  String build() => tab;
 }
+
+/// The tab [child] belongs to: the Library for its card and the card's
+/// contents, the Record tab for everything else here.
+String _tabOf(Widget child) =>
+    child is LibraryScreen ||
+        child is RouteDetailScreen ||
+        child is RideDetailScreen
+    ? libraryRoute
+    : recordingRoute;
 
 /// Lets real file system work finish, which [WidgetTester.pumpAndSettle] does
 /// not: it only drives the frame scheduler, not the event loop.
@@ -183,7 +201,10 @@ Future<RecordingHarness> pumpRecordingScreen(
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [...h.overrides(await _prefs(preferences)), ...extraOverrides],
+      overrides: [
+        ...h.overrides(await _prefs(preferences), tab: _tabOf(child)),
+        ...extraOverrides,
+      ],
       child: testApp(home: hostScreen(child)),
     ),
   );
@@ -199,6 +220,7 @@ Future<RecordingHarness> pumpRecordingApp(
   String initialLocation = recordingRoute,
   RecordingHarness? harness,
   Map<String, Object> preferences = const <String, Object>{},
+  List<Override> extraOverrides = const <Override>[],
   Size surfaceSize = const Size(1000, 2000),
 }) async {
   final h = harness ?? RecordingHarness();
@@ -210,7 +232,7 @@ Future<RecordingHarness> pumpRecordingApp(
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: h.overrides(await _prefs(preferences)),
+      overrides: [...h.overrides(await _prefs(preferences)), ...extraOverrides],
       child: testRouterApp(
         routerConfig: createRouter(initialLocation: initialLocation),
       ),

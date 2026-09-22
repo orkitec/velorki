@@ -13,6 +13,7 @@ import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/map/data/map_preferences.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
+import 'package:velorki/features/library/presentation/library_screen.dart';
 import 'package:velorki/features/map/presentation/shared_map_host.dart';
 import 'package:velorki/features/map/testing/testing.dart';
 import 'package:velorki/features/planner/application/planner_map_binding.dart';
@@ -500,6 +501,46 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1));
   });
 
+  testWidgets('between Plan and the Library the leaving tab fades out on top '
+      'over the map, for the length of the chrome slide', (tester) async {
+    tester.view.physicalSize = const Size(3000, 6000);
+    addTearDown(tester.view.resetPhysicalSize);
+    await _pumpShell(tester);
+
+    Future<void> change(String tab, int from, int to) async {
+      await tester.tap(find.widgetWithText(NavigationDestination, tab));
+      await tester.pump();
+      for (final step in <int>[0, 100, 60]) {
+        await tester.pump(Duration(milliseconds: step));
+        final painted = paintedBranches(tester);
+        expect(painted.map((b) => b.tab), [to, from]);
+        expect(painted.last.leaving, isTrue);
+        expect(painted.last.opacity.value, inInclusiveRange(0, 1));
+        expect(painted.first.shown, isTrue);
+        expect(painted.first.opacity.value, 1);
+      }
+      // Half way through the 200 ms both are still there; a 150 ms fade
+      // would be over by now.
+      expect(
+        paintedBranches(tester).last.opacity.value,
+        inExclusiveRange(0, 1),
+      );
+      await tester.pump(const Duration(milliseconds: 40));
+      await tester.pump(const Duration(milliseconds: 16));
+      expect(paintedBranches(tester).map((b) => b.tab), [to]);
+      // The card is on the map like the sheets: same resting height.
+      expect(find.byType(DockingSheetShell), findsOneWidget);
+    }
+
+    await change(l10n.tabLibrary, 0, 2);
+    expect(find.byType(LibraryScreen), findsOneWidget);
+    expect(find.byType(MapControls), findsOneWidget);
+    await change(l10n.tabPlan, 2, 0);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+  });
+
   testWidgets('the shell builds one map, under the tabs, and keeps it '
       'through Plan, Record and back', (tester) async {
     final maps = <FakeMapController>[];
@@ -583,6 +624,52 @@ void main() {
       await tester.pump(const Duration(milliseconds: 1));
     });
   }
+
+  testWidgets('on a small screen the control column reaches down over the '
+      'Plan sheet, and the sheet wins: a tap where the two share pixels is '
+      'the sheet\'s, not the column\'s', (tester) async {
+    await _pumpShell(tester);
+    // An iPhone SE: 375 by 667 logical pixels.
+    tester.view.physicalSize = const Size(375, 667);
+    addTearDown(tester.view.resetPhysicalSize);
+    await tester.binding.setSurfaceSize(const Size(375, 667));
+    await tester.pumpAndSettle();
+
+    final sheet = tester.getRect(find.byType(DockingSheetShell));
+    final column = tester.getRect(find.byType(MapControls));
+    // The case this guards: the column's foot is under the resting sheet.
+    // Where exactly the sheet's buttons fall depends on the language's line
+    // breaks, so the point tested is the middle of the overlap itself.
+    final shared = column.intersect(sheet);
+    expect(shared.isEmpty, isFalse, reason: 'column $column sheet $sheet');
+
+    final hits = HitTestResult();
+    tester.binding.hitTestInView(hits, shared.center, tester.view.viewId);
+    final targets = hits.path.map((e) => e.target).toSet();
+    expect(
+      targets,
+      contains(tester.renderObject(find.byType(DockingSheetShell))),
+    );
+    expect(
+      targets,
+      isNot(contains(tester.renderObject(find.byType(MapControls)))),
+    );
+
+    // Above the sheet the column still takes its taps: the top of its
+    // first button.
+    final sheetTop = tester.getTopLeft(find.byType(DockingSheetShell)).dy;
+    final aboveSheet = Offset(column.center.dx, column.top + 12);
+    expect(aboveSheet.dy, lessThan(sheetTop));
+    final columnHits = HitTestResult();
+    tester.binding.hitTestInView(columnHits, aboveSheet, tester.view.viewId);
+    expect(
+      columnHits.path.map((e) => e.target),
+      contains(tester.renderObject(find.byType(MapControls))),
+    );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+  });
 
   testWidgets('each tab draws its own layers on the shared map while it is '
       'on screen and takes them off when it leaves', (tester) async {
@@ -761,8 +848,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1));
   });
 
-  testWidgets('one control column over Plan and Record, drawn by the shell, '
-      'none over the library', (tester) async {
+  testWidgets('one control column over Plan, Record and the Library, drawn '
+      'by the shell, none over the settings', (tester) async {
     await _pumpShell(tester);
     expect(find.byType(MapControls), findsOneWidget);
     expect(
@@ -786,6 +873,10 @@ void main() {
     expect(find.byTooltip(l10n.offlineEntryTitle), findsNothing);
 
     await _tapTab(tester, l10n.tabLibrary);
+    expect(find.byType(MapControls), findsOneWidget);
+    expect(find.byTooltip(l10n.offlineEntryTitle), findsNothing);
+
+    await _tapTab(tester, l10n.tabSettings);
     expect(find.byType(MapControls), findsNothing);
 
     await tester.pumpWidget(const SizedBox.shrink());
@@ -898,26 +989,26 @@ void main() {
     expect(painted(), [0]);
 
     await tester.tap(
-      find.widgetWithText(NavigationDestination, l10n.tabLibrary),
+      find.widgetWithText(NavigationDestination, l10n.tabSettings),
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 75));
     // Half way: both tabs are painted, the going one last, on top, part
     // way through its fade; the coming one whole underneath.
-    expect(painted(), [0, 2]);
+    expect(painted(), [0, 3]);
     expect(branches().map((b) => b.tab), [1, 2, 3, 0]);
     expect(branches().last.leaving, isTrue);
     expect(branches().last.opacity.value, inExclusiveRange(0, 1));
-    final coming = branches().singleWhere((b) => b.tab == 2);
+    final coming = branches().singleWhere((b) => b.tab == 3);
     expect(coming.shown, isTrue);
     expect(coming.opacity.value, 1);
 
     // The fade is over one tick after its 150 ms.
     await tester.pump(const Duration(milliseconds: 75));
     await tester.pump(const Duration(milliseconds: 16));
-    expect(painted(), [2]);
-    expect(branches().singleWhere((b) => b.tab == 2).opacity.value, 1);
-    expect(find.textContaining(l10n.libraryEmpty), findsOneWidget);
+    expect(painted(), [3]);
+    expect(branches().singleWhere((b) => b.tab == 3).opacity.value, 1);
+    expect(find.text(l10n.tabSettings), findsWidgets);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));

@@ -114,7 +114,7 @@ A third row of figures appears on the Record sheet with whatever has been report
 
 ### On a saved ride
 
-A ride's page in the [library](./library) grows what that ride actually carries:
+A ride's card in the [library](./library) grows what that ride actually carries:
 
 - **Avg HR**, **Max HR**, **Avg cadence** and **Avg power** among the figures, each one only if the ride has it,
 - a **Heart rate** chart under the speed chart, which you can drag along for a read-out at any distance.

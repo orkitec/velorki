@@ -1938,7 +1938,7 @@ void main() {
 
       await adapter.fitBounds(
         const BoundingBox(south: 46.0, west: 7.0, north: 48.0, east: 9.0),
-        paddingPx: 24,
+        padding: const EdgeInsets.all(24),
       );
 
       expect(ops.names, <String>['animateCamera']);

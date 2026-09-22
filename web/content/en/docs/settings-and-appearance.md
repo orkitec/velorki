@@ -44,7 +44,7 @@ The three switches here are the same ones as on the Record tab's sheet.
 
 Three switches, all off by default, and the fields they need.
 
-**Estimate calories** puts a **Calories** figure on every ride page: from your power meter when you have one, else from your heart rate, else from your speed. It needs your weight; the heart-rate estimate also needs your year of birth and sex.
+**Estimate calories** puts a **Calories** figure on every ride card: from your power meter when you have one, else from your heart rate, else from your speed. It needs your weight; the heart-rate estimate also needs your year of birth and sex.
 
 **Heart-rate zones** puts the time in five zones of your maximum heart rate under a ride's heart-rate chart. It needs your maximum heart rate, or your year of birth to estimate it as 220 minus your age.
 

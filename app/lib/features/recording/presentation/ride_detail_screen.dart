@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:velorki_api/velorki_api.dart' show ShareKind;
+import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/router.dart';
 import '../../../app/theme.dart';
@@ -14,19 +15,21 @@ import '../../integrations/common/domain/connected_account.dart';
 import '../../integrations/presentation/integration_labels.dart';
 import '../../integrations/presentation/ride_upload_menu.dart';
 import '../../map/domain/map_controller.dart';
-import '../../map/presentation/map_chrome.dart';
+import '../../map/presentation/shared_map_layers.dart';
 import '../../planner/domain/route_poi.dart';
 import '../../planner/domain/saved_route.dart';
-import '../../planner/presentation/planner_map_host.dart';
 import '../../planner/presentation/poi_markers.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../planner/presentation/surface_stats_bar.dart';
 import '../../settings/data/units.dart';
+import '../../shared/presentation/docking_sheet.dart';
+import '../../shared/presentation/sheet_header.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/placeholder_body.dart';
 import '../../sharing/presentation/share_link_button.dart';
 import '../application/recording_controller.dart';
 import '../application/ride_analysis_provider.dart';
+import '../application/ride_highlight.dart';
 import '../application/ride_route_provider.dart';
 import '../application/ride_surface.dart';
 import '../data/recording_settings.dart';
@@ -47,9 +50,6 @@ import 'ride_heart_rate_zones.dart';
 import 'ride_power_zones.dart';
 import 'ride_splits.dart';
 
-/// The location of the detail screen for the ride [id].
-String rideDetailLocation(String id) => '$recordingRoute/ride/$id';
-
 /// The id of the route line the picked split or climb is drawn as on the map.
 const String rideHighlightLineId = 'ride-highlight';
 
@@ -57,28 +57,30 @@ const String rideHighlightLineId = 'ride-highlight';
 /// the track.
 const String rideRouteLineId = 'ride-route';
 
-/// One recorded ride: the track on the map, the numbers, and the way out to a
-/// GPX or FIT file.
+/// One recorded ride as the Library card's content: the track on the shared
+/// map, and under the header the numbers, the charts, the splits and the
+/// climbs, and the way out to a GPX or FIT file.
 class RideDetailScreen extends ConsumerStatefulWidget {
-  /// Creates the detail screen for the ride with [rideId].
-  const RideDetailScreen({required this.rideId, super.key});
+  /// Creates the detail for the ride with [rideId].
+  const RideDetailScreen({required this.rideId, super.key, this.controller});
 
   /// Id of the ride in the `rides` table.
   final String rideId;
+
+  /// The sheet's controller, so the content drags the card; `null` when the
+  /// content is shown on its own.
+  final ScrollController? controller;
 
   @override
   ConsumerState<RideDetailScreen> createState() => _RideDetailScreenState();
 }
 
-class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
-  MapController? _map;
+class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
+    with SharedMapLayers<RideDetailScreen> {
   String? _shownKey;
-  // The analysis as the last build saw it, so the map can be drawn from
-  // `onMapReady` too, which arrives out of turn.
+  // The analysis as the last build saw it, so the map can be drawn when it
+  // comes, which is out of turn.
   RideAnalysis? _analysis;
-  // The split or climb the rider tapped, shaded on the charts and drawn
-  // over the track; one for both tables.
-  RideRange? _range;
   // The stretch the charts are zoomed to, in metres; one for all of them,
   // so a pinch on the speed chart zooms the elevation chart to the same
   // road. `null` for the whole ride.
@@ -94,16 +96,54 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
   SavedRoute? _marksRoute;
   RideAnalysis? _marksAnalysis;
 
-  // Called from the map widget's build, so it must not call setState.
-  void _onMapReady(MapController controller) {
-    _map = controller;
+  /// How the camera fit keeps the track clear of the card: read off the
+  /// screen once the dependencies are there.
+  EdgeInsets _fitPadding = const EdgeInsets.all(48);
+  bool _started = false;
+
+  /// The split or climb picked, kept outside this state for the chip the
+  /// card draws over the map; captured here for the clear on dispose.
+  late final RideHighlight _highlight;
+
+  @override
+  String get layersTab => libraryRoute;
+
+  @override
+  void initState() {
+    super.initState();
+    _highlight = ref.read(rideHighlightProvider.notifier);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _fitPadding = cardFitPadding(context);
+    if (_started) return;
+    _started = true;
+    initLayers();
+  }
+
+  @override
+  void dispose() {
+    disposeLayers();
+    // Deferred: the tree is locked while a widget goes, and the card would
+    // rebuild for the chip.
+    final highlight = _highlight;
+    scheduleMicrotask(() => highlight.set(null));
+    super.dispose();
+  }
+
+  @override
+  void drawLayers(MapController map) {
     _shownKey = null;
     _shownRange = null;
     _shownRouteKey = '';
     final ride = ref.read(rideProvider(widget.rideId)).value;
     if (ride != null) {
       unawaited(_showOnMap(ride, _analysis));
-      unawaited(_showRangeOnMap(ride, _analysis));
+      unawaited(
+        _showRangeOnMap(ride, _analysis, ref.read(rideHighlightProvider)),
+      );
     }
     unawaited(
       _showRouteOnMap(
@@ -113,11 +153,24 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
     );
   }
 
+  @override
+  void clearLayers(MapController map) {
+    _shownKey = null;
+    _shownRange = null;
+    _shownRouteKey = '';
+    map.onPoiTapped = null;
+    unawaited(map.setTrackLine(const <LatLng>[]));
+    unawaited(map.removeRouteLine(rideRouteLineId));
+    unawaited(map.removeRouteLine(rideHighlightLineId));
+    unawaited(map.setPois(const <MapPoi>[]));
+    unawaited(map.setSearchPin(null));
+  }
+
   /// Draws the route the ride followed under the track, with its points of
   /// interest, or takes both off again when [show] is off or there is no
   /// route (any more).
   Future<void> _showRouteOnMap(SavedRoute? route, bool show) async {
-    final map = _map;
+    final map = layersMap;
     if (map == null) return;
     final shown = show ? route : null;
     final key = shown == null ? '' : '${shown.id}:${shown.updatedAt}';
@@ -170,23 +223,23 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
     return _marks;
   }
 
-  void _select(RideRange? range) {
-    if (range == _range) return;
-    setState(() => _range = range);
-  }
+  void _select(RideRange? range) => _highlight.set(range);
 
   void _setWindow(RideWindow? window) {
     if (window == _window) return;
     setState(() => _window = window);
   }
 
-  /// Draws [_range] over the track as a route line in the accent, or takes
+  /// Draws [range] over the track as a route line in the accent, or takes
   /// it off again; the line is separate from the track, so the track is
   /// never redrawn for it.
-  Future<void> _showRangeOnMap(Ride ride, RideAnalysis? analysis) async {
-    final map = _map;
+  Future<void> _showRangeOnMap(
+    Ride ride,
+    RideAnalysis? analysis,
+    RideRange? range,
+  ) async {
+    final map = layersMap;
     if (map == null) return;
-    final range = _range;
     if (range == _shownRange) return;
     _shownRange = range;
     if (range == null) {
@@ -212,7 +265,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
   /// until then, and for a ride whose fixes carry no times, it is the plain
   /// line the recorder draws.
   Future<void> _showOnMap(Ride ride, RideAnalysis? analysis) async {
-    final map = _map;
+    final map = layersMap;
     if (map == null) return;
     final bands = analysis?.speedBands.segments ?? const <SpeedBandSegment>[];
     final key = '${ride.id}:${bands.length}';
@@ -228,7 +281,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
       ]);
     }
     final bounds = ride.bounds;
-    if (bounds != null) await map.fitBounds(bounds);
+    if (bounds != null) await map.fitBounds(bounds, padding: _fitPadding);
   }
 
   Future<void> _rename(Ride ride) async {
@@ -243,7 +296,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
     final router = GoRouter.of(context);
     final repository = ref.read(rideRepositoryProvider);
     await repository.delete(ride.id);
-    router.go(recordingRoute);
+    router.go(libraryRoute);
     messenger.showSnackBar(
       SnackBar(
         content: Text(l10n.rideDeleted(ride.name)),
@@ -353,9 +406,11 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    listenLayers();
     final l10n = AppLocalizations.of(context);
     final units = ref.watch(unitSystemProvider);
     final ride = ref.watch(rideProvider(widget.rideId));
+    final range = ref.watch(rideHighlightProvider);
     final route = ref.watch(rideRouteProvider(widget.rideId)).value;
     final showRoute = ref.watch(showRideRouteProvider);
     final profile = ref.watch(riderProfileProvider);
@@ -392,10 +447,15 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
         )
         .value;
     // A new analysis (another unit, another split length) has other rows:
-    // neither the pick nor the zoom carries over.
+    // neither the pick nor the zoom carries over. The pick goes after the
+    // frame, since a build may not write a provider.
     if (!identical(analysis, _analysis)) {
-      _range = null;
       _window = null;
+      if (range != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _highlight.set(null);
+        });
+      }
     }
     _analysis = analysis;
     final effort = analysis?.effort;
@@ -409,113 +469,95 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
         ? normalizedPowerW / thresholdPowerW
         : null;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(ride.value?.name ?? l10n.tabRecord),
-        leading: BackButton(onPressed: () => context.go(recordingRoute)),
-        actions: [
-          if (ride.value != null) RideUploadMenu(ride: ride.value!),
-          if (ride.value != null)
-            PopupMenuButton<_RideAction>(
-              onSelected: (action) => unawaited(switch (action) {
-                _RideAction.continueRide => _continue(ride.value!),
-                _RideAction.rename => _rename(ride.value!),
-                _RideAction.delete => _delete(ride.value!),
-                _RideAction.exportGpx => _export(ride.value!, TrackFormat.gpx),
-                _RideAction.exportFit => _export(ride.value!, TrackFormat.fit),
-              }),
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: _RideAction.exportGpx,
-                  child: Text(l10n.rideDetailExportGpx),
-                ),
-                PopupMenuItem(
-                  value: _RideAction.exportFit,
-                  child: Text(l10n.rideDetailExportFit),
-                ),
-                const PopupMenuDivider(),
-                PopupMenuItem(
-                  value: _RideAction.continueRide,
-                  child: Text(l10n.rideContinue),
-                ),
-                PopupMenuItem(
-                  value: _RideAction.rename,
-                  child: Text(l10n.commonRename),
-                ),
-                PopupMenuItem(
-                  value: _RideAction.delete,
-                  child: Text(l10n.commonDelete),
-                ),
-              ],
-            ),
-        ],
-      ),
-      body: ride.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => PlaceholderBody(
-          icon: Icons.error_outline,
-          message: error.toString(),
-        ),
-        data: (saved) {
-          if (saved == null) {
-            return PlaceholderBody(
-              icon: Icons.help_outline,
-              message: l10n.rideDetailNotFound,
-            );
-          }
-          unawaited(_showOnMap(saved, analysis));
-          unawaited(_showRangeOnMap(saved, analysis));
-          unawaited(_showRouteOnMap(route, showRoute));
-          final marks = showRoute
-              ? _marksFor(saved, route, analysis)
-              : const <PoiMark>[];
-          final theme = Theme.of(context);
-          final stats = saved.stats;
-          return ListView(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.paddingOf(context).bottom + 24,
-            ),
-            children: [
-              // Full-bleed hero: the track is the headline of this screen.
-              SizedBox(
-                height: 260,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // The route button sits in the map's own control
-                    // column, and only a ride that followed a route has
-                    // anything to switch.
-                    MapChromeInsets(
-                      routeShown: showRoute,
-                      onToggleRoute: route == null
-                          ? null
-                          : () => unawaited(
-                              ref
-                                  .read(showRideRouteProvider.notifier)
-                                  .set(!showRoute),
-                            ),
-                      child: PlannerMapHost(
-                        onMapReady: _onMapReady,
-                        embedded: true,
-                      ),
-                    ),
-                    // What the thick line over the track is, for a rider
-                    // who tapped a row and scrolled back up; opposite the
-                    // map's control column.
-                    if (_range != null)
-                      Positioned(
-                        top: 12,
-                        left: 12,
-                        child: RideHighlightChip(
-                          range: _range!,
-                          onClear: () => _select(null),
-                        ),
-                      ),
-                  ],
-                ),
+    return CustomScrollView(
+      controller: widget.controller,
+      slivers: [
+        SliverSheetHeader(
+          leading: BackButton(onPressed: () => context.go(libraryRoute)),
+          title: ride.value?.name ?? l10n.tabLibrary,
+          actions: [
+            if (ride.value != null) RideUploadMenu(ride: ride.value!),
+            if (ride.value != null)
+              PopupMenuButton<_RideAction>(
+                onSelected: (action) => unawaited(switch (action) {
+                  _RideAction.continueRide => _continue(ride.value!),
+                  _RideAction.rename => _rename(ride.value!),
+                  _RideAction.delete => _delete(ride.value!),
+                  _RideAction.exportGpx => _export(
+                    ride.value!,
+                    TrackFormat.gpx,
+                  ),
+                  _RideAction.exportFit => _export(
+                    ride.value!,
+                    TrackFormat.fit,
+                  ),
+                }),
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: _RideAction.exportGpx,
+                    child: Text(l10n.rideDetailExportGpx),
+                  ),
+                  PopupMenuItem(
+                    value: _RideAction.exportFit,
+                    child: Text(l10n.rideDetailExportFit),
+                  ),
+                  const PopupMenuDivider(),
+                  PopupMenuItem(
+                    value: _RideAction.continueRide,
+                    child: Text(l10n.rideContinue),
+                  ),
+                  PopupMenuItem(
+                    value: _RideAction.rename,
+                    child: Text(l10n.commonRename),
+                  ),
+                  PopupMenuItem(
+                    value: _RideAction.delete,
+                    child: Text(l10n.commonDelete),
+                  ),
+                ],
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+          ],
+        ),
+        ride.when(
+          loading: () => const SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (error, _) => SliverFillRemaining(
+            hasScrollBody: false,
+            child: PlaceholderBody(
+              icon: Icons.error_outline,
+              message: error.toString(),
+            ),
+          ),
+          data: (saved) {
+            if (saved == null) {
+              return SliverFillRemaining(
+                hasScrollBody: false,
+                child: PlaceholderBody(
+                  icon: Icons.help_outline,
+                  message: l10n.rideDetailNotFound,
+                ),
+              );
+            }
+            unawaited(_showOnMap(saved, analysis));
+            unawaited(_showRangeOnMap(saved, analysis, range));
+            unawaited(_showRouteOnMap(route, showRoute));
+            final marks = showRoute
+                ? _marksFor(saved, route, analysis)
+                : const <PoiMark>[];
+            final theme = Theme.of(context);
+            final stats = saved.stats;
+            // Built whole rather than lazily: the actions are below the
+            // fold, and they have to exist to be found.
+            return SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  16,
+                  20,
+                  MediaQuery.paddingOf(context).bottom + 24,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -651,7 +693,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                         const SizedBox(height: 28),
                         RideElevationChart(
                           samples: analysis.samples,
-                          highlight: _range,
+                          highlight: range,
                           marks: <({double alongM, String label})>[
                             for (final mark in marks)
                               (alongM: mark.alongM, label: mark.poi.name),
@@ -664,7 +706,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                         const SizedBox(height: 28),
                         RideSpeedChart(
                           samples: analysis.samples,
-                          highlight: _range,
+                          highlight: range,
                           window: _window,
                           onWindow: _setWindow,
                         ),
@@ -673,7 +715,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                         const SizedBox(height: 28),
                         RideHeartRateChart(
                           samples: analysis.samples,
-                          highlight: _range,
+                          highlight: range,
                           window: _window,
                           onWindow: _setWindow,
                         ),
@@ -699,7 +741,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                         RideSplitsTable(
                           splits: analysis.splits,
                           splitLengthM: analysis.splitLengthM,
-                          selected: _range?.selectedIn(RideRangeSource.split),
+                          selected: range?.selectedIn(RideRangeSource.split),
                           onSelect: (index) => _select(
                             index == null
                                 ? null
@@ -714,7 +756,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                         const SizedBox(height: 28),
                         RideClimbsTable(
                           climbs: analysis.climbs,
-                          selected: _range?.selectedIn(RideRangeSource.climb),
+                          selected: range?.selectedIn(RideRangeSource.climb),
                           onSelect: (index) => _select(
                             index == null
                                 ? null
@@ -758,10 +800,10 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                   ],
                 ),
               ),
-            ],
-          );
-        },
-      ),
+            );
+          },
+        ),
+      ],
     );
   }
 }

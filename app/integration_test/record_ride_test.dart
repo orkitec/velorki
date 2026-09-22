@@ -1,5 +1,5 @@
 // A whole ride on the device: start, record a track, pause, resume, finish,
-// and find the ride again on its detail screen and in the list.
+// and find the ride again on its card and in the list.
 //
 //   flutter test integration_test/record_ride_test.dart -d emulator-5554 \
 //     --dart-define=VELORKI_BROUTER_URL= \
@@ -238,8 +238,10 @@ void main() {
     expect(ride.stats.pointCount, greaterThan(1));
     expect(ride.pauses, isNotEmpty, reason: 'the pause has to be recorded');
 
-    // Finishing goes straight to the ride's detail screen.
-    await waitForWidget(tester, find.widgetWithText(AppBar, ride.name));
+    // Finishing goes straight to the ride's card on the Library tab: its
+    // name in the card's header, the figures under it.
+    await waitForWidget(tester, find.byType(BackButton));
+    await waitForWidget(tester, find.text(ride.name));
     await waitForWidget(tester, find.byType(RideStatsGrid));
     final distance = tester.widget<StatTile>(
       find.ancestor(of: find.text('DISTANCE'), matching: find.byType(StatTile)),
@@ -250,7 +252,7 @@ void main() {
     await screenshot(tester, 'ride-detail');
 
     // ----------------------------------------------------------- in the list
-    // The Library is the rides list; the record tab has none.
+    // The Library tab again pops the card back to the list.
     await tapAndPump(tester, find.text('Library'));
     // The Library opens on its routes; the rides are the second segment.
     await tapAndPump(tester, find.text('Rides'));

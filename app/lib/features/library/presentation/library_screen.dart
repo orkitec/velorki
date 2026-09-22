@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,37 +10,343 @@ import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../import_export/presentation/import_file_action.dart';
 import '../../integrations/presentation/import_from_service_menu.dart';
+import '../../map/presentation/map_chrome.dart';
 import '../../planner/data/route_repository.dart';
 import '../../planner/domain/saved_route.dart';
 import '../../planner/presentation/route_format.dart';
+import '../../recording/application/ride_highlight.dart';
+import '../../recording/application/ride_route_provider.dart';
 import '../../recording/data/ride_repository.dart';
+import '../../recording/data/ride_view_settings.dart';
+import '../../recording/presentation/ride_detail_screen.dart';
 import '../../recording/presentation/rides_list.dart';
 import '../../settings/data/units.dart';
+import '../../shared/application/active_tab.dart';
+import '../../shared/application/nav_bar_docking.dart';
+import '../../shared/presentation/docking_sheet.dart';
 import '../../shared/presentation/placeholder_body.dart';
+import '../../shared/presentation/sheet_header.dart';
 import '../../shared/presentation/stat_tile.dart';
+import '../../shared/presentation/tab_chrome_slide.dart';
 import '../data/library_section.dart';
 import 'rename_route_dialog.dart';
+import 'route_detail_screen.dart';
 
-/// The Library tab: the saved routes and the recorded rides, newest first.
+/// The Library tab: a card over the map the tabs share, holding the saved
+/// routes and the recorded rides, or the one route or ride the rider opened.
+///
+/// One card for the three locations of the branch. The list is its root;
+/// a route or a ride swaps the card's content for the detail under a header
+/// with a back arrow, and the detail draws itself on the shared map. The
+/// card, its sheet and where the rider left it stay through the swap.
+class LibraryScreen extends ConsumerStatefulWidget {
+  /// Creates the library, showing the list, or the route or ride given.
+  const LibraryScreen({super.key, this.routeId, this.rideId});
+
+  /// The saved route the card shows, or `null`.
+  final String? routeId;
+
+  /// The recorded ride the card shows, or `null`.
+  final String? rideId;
+
+  @override
+  ConsumerState<LibraryScreen> createState() => _LibraryScreenState();
+}
+
+class _LibraryScreenState extends ConsumerState<LibraryScreen> {
+  final DraggableScrollableController _sheet = DraggableScrollableController();
+
+  /// The sheet's resting size, as computed by the last build.
+  double _restingSheetSize = 0.48;
+
+  /// The sheet's snap points, kept as one instance for as long as the
+  /// resting size holds: the sheet snaps anew on every new list it sees.
+  List<double> _snapSizes = const [];
+
+  List<double> _snapSizesFor(double resting) {
+    if (_snapSizes.length != 1 || _snapSizes.first != resting) {
+      _snapSizes = <double>[resting];
+    }
+    return _snapSizes;
+  }
+
+  /// Whether this is the tab on screen.
+  bool _active = false;
+
+  /// Where the sheet starts when this card is built in the middle of a
+  /// change to its tab: where the other tab's sheet is, so the two match
+  /// from the first frame; `null` once the sheet has taken over.
+  double? _arrivingExtent;
+
+  /// What the shell's control column was last told about this tab.
+  MapChromeData? _chromeData;
+
+  /// Tells the shell's column what this tab wants of it, after the frame.
+  void _shareChrome(MapChromeData data) {
+    if (data == _chromeData) return;
+    _chromeData = data;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _active && _chromeData == data) {
+        ref.read(activeMapChromeProvider.notifier).set(data);
+      }
+    });
+  }
+
+  /// The sheet's extent, while this is the tab on screen, for the tab that
+  /// comes next.
+  void _onSheetExtent(double extent) {
+    if (_active) ref.read(tabHandoverProvider.notifier).setSheetExtent(extent);
+  }
+
+  /// This tab is coming on screen: the column glides from wherever it is
+  /// to its place, which on this tab is the top, there being no chrome.
+  void _takeOverControls() =>
+      ref.read(mapControlsTopProvider).glide(to: defaultMapControlsTop);
+
+  /// This tab has just come on screen: the sheet starts where the last
+  /// tab's was and settles where this one's is; a sheet below its resting
+  /// height (docked in the bar, say) rises to it, undocking the bar as it
+  /// goes. A sheet already at rest, or pulled higher by the rider, stays.
+  void _takeOverSheet() {
+    if (!_sheet.isAttached) return;
+    final current = _sheet.size;
+    final from = ref.read(tabHandoverProvider).sheetExtent ?? current;
+    if ((from - current).abs() >= 0.005) _sheet.jumpTo(from);
+    final target = math.max(current, _restingSheetSize);
+    if ((target - from).abs() < 0.005) return;
+    unawaited(
+      _sheet.animateTo(
+        target,
+        duration: tabSheetSettleDuration,
+        curve: tabChromeSlideCurve,
+      ),
+    );
+  }
+
+  /// Whether the sheet was last reported to the bar as docked in it.
+  bool _docked = false;
+  late final NavBarDocking _docking = ref.read(navBarDockingProvider.notifier);
+
+  void _reportDocked(bool docked) {
+    if (docked == _docked) return;
+    _docked = docked;
+    _docking.setDocked(libraryRoute, docked);
+  }
+
+  /// The route button of the column, on a ride that followed a route.
+  void _toggleRoute() {
+    final shown = ref.read(showRideRouteProvider);
+    unawaited(ref.read(showRideRouteProvider.notifier).set(!shown));
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _active = ref.read(activeTabProvider) == libraryRoute;
+    // Built in the middle of a change to this tab (its first visit, from
+    // another tab): the listener in build sees no change, so the sheet is
+    // started from here.
+    final tabs = ref.read(activeTabProvider.notifier);
+    if (!_active || tabs.previous == null) return;
+    _arrivingExtent = ref.read(tabHandoverProvider).sheetExtent;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _takeOverSheet();
+      setState(() => _arrivingExtent = null);
+    });
+  }
+
+  @override
+  void dispose() {
+    _sheet.dispose();
+    if (_docked) {
+      // Deferred: the tree is locked while a widget goes, and the shell
+      // would rebuild for this.
+      final docking = _docking;
+      scheduleMicrotask(() => docking.setDocked(libraryRoute, false));
+    }
+    super.dispose();
+  }
+
+  /// Whether the card shows a route or a ride rather than the list.
+  bool get _detail => widget.routeId != null || widget.rideId != null;
+
+  @override
+  Widget build(BuildContext context) {
+    final rideId = widget.rideId;
+    // The tab on screen: the detail goes on the map, and the map's control
+    // column and the sheet pick up where the last tab left them.
+    final active = ref.watch(activeTabProvider) == libraryRoute;
+    _active = active;
+    ref.listen(activeTabProvider, (previous, next) {
+      if (next == libraryRoute && previous != libraryRoute) {
+        _active = true;
+        _takeOverControls();
+        _takeOverSheet();
+      } else if (previous == libraryRoute && next != libraryRoute) {
+        _active = false;
+        // The next tab tells the column its own wants; this one tells it
+        // again, from scratch, when it comes back.
+        _chromeData = null;
+        // The bar is square only while a docked strip is on top: the next
+        // tab's sheet says so for itself from here on.
+        _reportDocked(false);
+      }
+    });
+    // The column on this tab: locate and zoom, and on a ride that followed
+    // a route the button that shows or hides that route.
+    final followed = rideId == null
+        ? null
+        : ref.watch(rideRouteProvider(rideId)).value;
+    final routeShown = ref.watch(showRideRouteProvider);
+    if (active) {
+      _shareChrome(
+        MapChromeData(
+          showRoutingTiles: false,
+          routeShown: followed != null && routeShown,
+          onToggleRoute: followed == null ? null : _toggleRoute,
+        ),
+      );
+    }
+    final controlsTop = ref.read(mapControlsTopProvider);
+    if (active && (controlsTop.target - defaultMapControlsTop).abs() >= 0.5) {
+      // After the frame, since the shell listens to it and may not be told
+      // during a build. The first tab of the launch takes its place without
+      // a glide.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_active) return;
+        if (controlsTop.everMoved) {
+          controlsTop.glide(to: defaultMapControlsTop);
+        } else {
+          controlsTop.jump(defaultMapControlsTop);
+        }
+      });
+    }
+
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final topInset = MediaQuery.paddingOf(context).top;
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    // Collapsed, only the handle strip is left above the floating navigation
+    // bar, which the bottom padding already covers under `extendBody`: the
+    // sheet is docked in the bar and the map is free.
+    final collapsedSheetSize = screenHeight <= 0
+        ? 0.1
+        : ((bottomInset + sheetHandleDp) / screenHeight).clamp(0.01, 0.25);
+    final dockedRange = screenHeight <= 0
+        ? 0.15
+        : sheetDockingRangeDp / screenHeight;
+    // One resting height, shared with the Plan and Record tabs.
+    final restingSheetSize = sheetRestingExtent(screenHeight);
+    _restingSheetSize = restingSheetSize;
+    // Pulled up, the card may reach nearly the top: the charts, the splits
+    // and the cue sheet want the room. The status bar and a little air
+    // stay clear.
+    final maxSheetSize = screenHeight <= 0
+        ? 0.9
+        : ((screenHeight - topInset - 24) / screenHeight).clamp(0.6, 0.95);
+    final initialSheetSize = _arrivingExtent ?? restingSheetSize;
+
+    // The split or climb picked on a ride card is named over the map, out
+    // of the column's way, and clears with a tap.
+    final highlight = rideId == null ? null : ref.watch(rideHighlightProvider);
+
+    // The system back on a detail returns to the list, as the arrow does.
+    return PopScope<void>(
+      canPop: !_detail,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go(libraryRoute);
+      },
+      // Not a Scaffold: a Scaffold's material absorbs every touch, and a tap
+      // that lands on nothing of this card has to fall through to the
+      // shell's map. A transparent material is what the buttons need.
+      child: Material(
+        type: MaterialType.transparency,
+        child: SizedBox.expand(
+          child: Stack(
+            children: [
+              if (highlight != null)
+                Positioned(
+                  top: topInset + defaultMapControlsTop,
+                  left: 12,
+                  child: RideHighlightChip(
+                    range: highlight,
+                    onClear: () =>
+                        ref.read(rideHighlightProvider.notifier).set(null),
+                  ),
+                ),
+              DraggableScrollableSheet(
+                controller: _sheet,
+                initialChildSize: initialSheetSize,
+                minChildSize: collapsedSheetSize,
+                maxChildSize: maxSheetSize,
+                snap: true,
+                snapSizes: _snapSizesFor(restingSheetSize),
+                builder: (context, scrollController) => DockingSheet(
+                  initialExtent: initialSheetSize,
+                  collapsedExtent: collapsedSheetSize,
+                  dockedRange: dockedRange,
+                  docks: true,
+                  dockedBottomInset: bottomInset,
+                  onDocked: _reportDocked,
+                  onExtent: _onSheetExtent,
+                  handle: const SheetHandle(),
+                  // A fresh scroll view per content, so a detail opened from
+                  // a scrolled list starts at its top, and only one is ever
+                  // attached to the sheet's controller.
+                  child: KeyedSubtree(
+                    key: ValueKey<String>(
+                      rideId != null
+                          ? 'ride:$rideId'
+                          : widget.routeId != null
+                          ? 'route:${widget.routeId}'
+                          : 'list',
+                    ),
+                    child: rideId != null
+                        ? RideDetailScreen(
+                            rideId: rideId,
+                            controller: scrollController,
+                          )
+                        : widget.routeId != null
+                        ? RouteDetailScreen(
+                            routeId: widget.routeId!,
+                            controller: scrollController,
+                          )
+                        : _LibraryList(controller: scrollController),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The card's root: the saved routes or the recorded rides, newest first,
+/// under the title and the import actions.
 ///
 /// Which of the two shows is the rider's choice and survives a restart; see
 /// [librarySectionProvider].
-class LibraryScreen extends ConsumerWidget {
-  /// Creates the library.
-  const LibraryScreen({super.key});
+class _LibraryList extends ConsumerWidget {
+  const _LibraryList({required this.controller});
+
+  /// The sheet's controller, so the list drags the card.
+  final ScrollController controller;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final section = ref.watch(librarySectionProvider);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.tabLibrary),
-        actions: const [ImportFromServiceButton(), ImportFileButton()],
-      ),
-      body: Column(
-        children: [
-          Padding(
+    return CustomScrollView(
+      controller: controller,
+      slivers: [
+        SliverSheetHeader(
+          title: l10n.tabLibrary,
+          actions: const [ImportFromServiceButton(), ImportFileButton()],
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
             child: SizedBox(
               width: double.infinity,
@@ -66,19 +373,22 @@ class LibraryScreen extends ConsumerWidget {
               ),
             ),
           ),
-          Expanded(
-            child: switch (section) {
-              LibrarySection.routes => const _RoutesSection(),
-              LibrarySection.rides => const _RidesSection(),
-            },
-          ),
-        ],
-      ),
+        ),
+        switch (section) {
+          LibrarySection.routes => const _RoutesSection(),
+          LibrarySection.rides => const _RidesSection(),
+        },
+        // The floating navigation bar sits over the list, so the last row
+        // needs room to clear it.
+        SliverToBoxAdapter(
+          child: SizedBox(height: MediaQuery.paddingOf(context).bottom + 24),
+        ),
+      ],
     );
   }
 }
 
-/// Every saved route, newest first.
+/// Every saved route, newest first, as a sliver.
 class _RoutesSection extends ConsumerWidget {
   const _RoutesSection();
 
@@ -87,32 +397,40 @@ class _RoutesSection extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final routes = ref.watch(savedRoutesProvider);
     return routes.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) =>
-          PlaceholderBody(icon: Icons.error_outline, message: error.toString()),
+      loading: () => const SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, _) => SliverFillRemaining(
+        hasScrollBody: false,
+        child: PlaceholderBody(
+          icon: Icons.error_outline,
+          message: error.toString(),
+        ),
+      ),
       data: (items) => items.isEmpty
-          ? PlaceholderBody(
-              icon: Icons.folder_outlined,
-              message: '${l10n.libraryEmpty}\n${l10n.libraryEmptyDetail}',
-            )
-          // The floating navigation bar sits over the list, so the last
-          // route needs room to clear it.
-          : ListView.builder(
-              padding: EdgeInsets.only(
-                top: 6,
-                bottom: MediaQuery.paddingOf(context).bottom + 24,
+          ? SliverFillRemaining(
+              hasScrollBody: false,
+              child: PlaceholderBody(
+                icon: Icons.folder_outlined,
+                message: '${l10n.libraryEmpty}\n${l10n.libraryEmptyDetail}',
               ),
-              itemCount: items.length,
-              itemBuilder: (context, i) => _RouteTile(route: items[i]),
+            )
+          : SliverPadding(
+              padding: const EdgeInsets.only(top: 6),
+              sliver: SliverList.builder(
+                itemCount: items.length,
+                itemBuilder: (context, i) => _RouteTile(route: items[i]),
+              ),
             ),
     );
   }
 }
 
-/// Every recorded ride, newest first.
+/// Every recorded ride, newest first, as a sliver.
 ///
 /// The list itself is [RidesList], which owns the rows, the swipe-to-delete
-/// and the tap into the ride detail; only the count above it is the
+/// and the tap into the ride card; only the count above it is the
 /// library's own.
 class _RidesSection extends ConsumerWidget {
   const _RidesSection();
@@ -121,15 +439,16 @@ class _RidesSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final count = ref.watch(ridesProvider).value?.length ?? 0;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+    return SliverMainAxisGroup(
+      slivers: [
         if (count > 0)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
-            child: SectionCaption(l10n.libraryRidesCount(count)),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+              child: SectionCaption(l10n.libraryRidesCount(count)),
+            ),
           ),
-        const Expanded(child: RidesList()),
+        const RidesList(),
       ],
     );
   }

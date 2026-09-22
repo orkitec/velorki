@@ -11,8 +11,11 @@ import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki/features/map/presentation/shared_map_host.dart';
 import 'package:velorki/features/planner/data/routing_backend_provider.dart';
 import 'package:velorki/features/planner/presentation/planner_map_host.dart';
+import 'package:velorki/features/library/presentation/library_screen.dart';
+import 'package:velorki/features/library/presentation/route_detail_screen.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
+import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
 import 'package:velorki/features/search/data/photon_client.dart';
 import 'package:velorki/features/settings/data/units.dart';
 
@@ -124,12 +127,16 @@ class PlannerHarness {
   ];
 }
 
-/// What the shell puts around the Plan and Record tabs, which have no
-/// scaffold of their own: the one that shows their snack bars and keeps
-/// them their full height under the keyboard. Every other screen brings
-/// its own.
+/// What the shell puts around the tabs over the map and the cards' content,
+/// which have no scaffold of their own: the one that shows their snack bars
+/// and keeps them their full height under the keyboard. Every other screen
+/// brings its own.
 Widget hostScreen(Widget child) =>
-    child is PlannerScreen || child is RecordingScreen
+    child is PlannerScreen ||
+        child is RecordingScreen ||
+        child is LibraryScreen ||
+        child is RouteDetailScreen ||
+        child is RideDetailScreen
     ? Scaffold(resizeToAvoidBottomInset: false, body: child)
     : child;
 

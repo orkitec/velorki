@@ -14,6 +14,7 @@ import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/painting.dart' show EdgeInsets;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart' as geo;
 import 'package:velorki/core/permissions/location_permission.dart';
@@ -489,8 +490,10 @@ class RecordingMapController implements MapController {
   );
 
   @override
-  Future<void> fitBounds(BoundingBox bounds, {double paddingPx = 48}) =>
-      inner.fitBounds(bounds, paddingPx: paddingPx);
+  Future<void> fitBounds(
+    BoundingBox bounds, {
+    EdgeInsets padding = const EdgeInsets.all(48),
+  }) => inner.fitBounds(bounds, padding: padding);
 
   @override
   Future<void> setTrackLine(List<LatLng> points) => inner.setTrackLine(points);
