@@ -1,5 +1,9 @@
 import 'package:flutter/widgets.dart';
 
+/// Where the map's control column starts when the owning screen puts no
+/// chrome above it, in dp below the safe-area top.
+const double defaultMapControlsTop = 12;
+
 /// Tells the map how much of its top edge the owning screen covers with its
 /// own chrome (search field, profile chips, a title), so the control column
 /// starts below it instead of underneath it.
@@ -13,7 +17,6 @@ class MapChromeInsets extends InheritedWidget {
     required super.child,
     super.key,
     this.controlsTop,
-    this.attributionBottom,
     this.showRoutingTiles = true,
     this.following = false,
     this.headingUp = false,
@@ -39,10 +42,6 @@ class MapChromeInsets extends InheritedWidget {
   /// Distance from the safe-area top to the control column, in dp; `null`
   /// keeps the map's own default.
   final double? controlsTop;
-
-  /// Distance from the map's bottom edge to the attribution chip, in dp,
-  /// for a panel that overlaps the map; `null` keeps the default.
-  final double? attributionBottom;
 
   /// Whether the owning screen currently keeps the camera on the rider. The
   /// locate button is drawn in the accent colour while it does.
@@ -75,7 +74,6 @@ class MapChromeInsets extends InheritedWidget {
   @override
   bool updateShouldNotify(MapChromeInsets oldWidget) =>
       oldWidget.controlsTop != controlsTop ||
-      oldWidget.attributionBottom != attributionBottom ||
       oldWidget.showRoutingTiles != showRoutingTiles ||
       oldWidget.following != following ||
       oldWidget.headingUp != headingUp ||

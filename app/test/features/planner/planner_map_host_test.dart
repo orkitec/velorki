@@ -5,11 +5,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/theme.dart';
+import 'package:velorki/features/map/data/map_preferences.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/map/presentation/puck_ownership.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
 import 'package:velorki/features/map/testing/testing.dart';
 import 'package:velorki/features/planner/presentation/planner_map_host.dart';
+import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
 
@@ -44,8 +46,26 @@ class _FakeMapViewState extends State<_FakeMapView> {
 }
 
 /// A builder that makes one fresh map per host and collects them in [maps].
-MapViewBuilder _collectingBuilder(List<FakeMapController> maps) =>
-    (onReady) => _FakeMapView(onReady: onReady, onCreated: maps.add);
+///
+/// With [onDefaultView], every map knows where it is from the start, on the
+/// default view, as the real map does (it opens on the camera the store
+/// holds); without, a map has no camera until something moves it.
+MapViewBuilder _collectingBuilder(
+  List<FakeMapController> maps, {
+  bool onDefaultView = false,
+}) =>
+    (onReady) => _FakeMapView(
+      onReady: onReady,
+      onCreated: (map) {
+        if (onDefaultView) {
+          map
+            ..center = defaultMapCamera.center
+            ..zoom = defaultMapCamera.zoom
+            ..bearing = 0;
+        }
+        maps.add(map);
+      },
+    );
 
 /// The two tab screens of the shell: both stay alive, only one is shown.
 class _Tabs extends StatefulWidget {
@@ -128,8 +148,9 @@ class _LateSecondMapState extends State<_LateSecondMap> {
 Future<Widget> _wrap(
   Widget child, {
   List<Override> overrides = const [],
+  Map<String, Object> stored = const <String, Object>{},
 }) async {
-  SharedPreferences.setMockInitialValues(<String, Object>{});
+  SharedPreferences.setMockInitialValues(stored);
   final prefs = await SharedPreferences.getInstance();
   return ProviderScope(
     overrides: [
@@ -230,6 +251,127 @@ void main() {
       expect(owned, isFalse);
       await pump(ownsPosition: true);
       expect(owned, isTrue);
+    });
+  });
+
+  group('the tab maps share one camera', () {
+    const stored = MapCamera(
+      center: LatLng(48.1374, 11.5755),
+      zoom: 13.25,
+      bearing: 30,
+    );
+    const moved = MapCamera(center: LatLng(52.52, 13.405), zoom: 11);
+
+    testWidgets('a map that comes up jumps to the camera the store holds', (
+      tester,
+    ) async {
+      final maps = <FakeMapController>[];
+      await tester.pumpWidget(
+        await _wrap(
+          PlannerMapHost(onMapReady: (_) {}, sharesCamera: true),
+          overrides: [
+            mapViewBuilderProvider.overrideWithValue(
+              _collectingBuilder(maps, onDefaultView: true),
+            ),
+          ],
+          stored: <String, Object>{
+            'map.camera.lat': 48.1374,
+            'map.camera.lon': 11.5755,
+            'map.camera.zoom': 13.25,
+          },
+        ),
+      );
+      await tester.pump();
+
+      expect(maps.single.cameraMoves, [
+        const RecordedCameraMove(
+          center: LatLng(48.1374, 11.5755),
+          zoom: 13.25,
+          bearing: 0,
+          animate: false,
+        ),
+      ]);
+      // Once: it is there now.
+      await tester.pump();
+      expect(maps.single.cameraMoves, hasLength(1));
+    });
+
+    testWidgets('the camera one map came to rest at moves the other, '
+        'without animation, unless that one follows the rider', (tester) async {
+      final maps = <FakeMapController>[];
+      await tester.pumpWidget(
+        await _wrap(
+          // One over the other, like the tabs of the shell.
+          Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              PlannerMapHost(onMapReady: (_) {}, sharesCamera: true),
+              MapChromeInsets(
+                following: true,
+                child: PlannerMapHost(
+                  onMapReady: (_) {},
+                  embedded: true,
+                  sharesCamera: true,
+                ),
+              ),
+              // A map that fits itself to a route keeps out of it.
+              PlannerMapHost(onMapReady: (_) {}),
+            ],
+          ),
+          overrides: [
+            mapViewBuilderProvider.overrideWithValue(_collectingBuilder(maps)),
+          ],
+        ),
+      );
+      await tester.pump();
+      expect(maps, hasLength(3));
+      final (plan, record, detail) = (maps[0], maps[1], maps[2]);
+      // Every map starts on the default view, as the real one does.
+      for (final map in maps) {
+        map
+          ..center = defaultMapCamera.center
+          ..zoom = defaultMapCamera.zoom
+          ..bearing = 0
+          ..cameraMoves.clear();
+      }
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(PlannerMapHost).first),
+      );
+
+      // The record map's camera comes to rest somewhere: the plan map goes
+      // there too, in one jump.
+      await container.read(lastMapCameraProvider.notifier).save(stored);
+      await tester.pump();
+      expect(plan.cameraMoves, [
+        const RecordedCameraMove(
+          center: LatLng(48.1374, 11.5755),
+          zoom: 13.25,
+          bearing: 30,
+          animate: false,
+        ),
+      ]);
+      expect(record.cameraMoves, isEmpty, reason: 'following the rider');
+      expect(detail.cameraMoves, isEmpty, reason: 'not a shared map');
+
+      // The plan map reporting the same camera back moves nobody.
+      await container
+          .read(lastMapCameraProvider.notifier)
+          .save(
+            const MapCamera(
+              center: LatLng(48.137401, 11.575501),
+              zoom: 13.2501,
+              bearing: 30.1,
+            ),
+          );
+      await tester.pump();
+      expect(plan.cameraMoves, hasLength(1));
+
+      await container.read(lastMapCameraProvider.notifier).save(moved);
+      await tester.pump();
+      expect(plan.cameraMoves, hasLength(2));
+      expect(plan.cameraMoves.last.center, moved.center);
+      expect(plan.cameraMoves.last.animate, isFalse);
+      expect(record.cameraMoves, isEmpty);
     });
   });
 

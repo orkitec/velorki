@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:velorki/app/router.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
 
 import 'package:velorki/features/planner/presentation/elevation_profile_chart.dart';
+import 'package:velorki/features/map/data/map_preferences.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/planner/presentation/planner_map_host.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
@@ -12,6 +15,9 @@ import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/presentation/route_format.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
 import 'package:velorki/features/planner/presentation/surface_stats_bar.dart';
+import 'package:velorki/features/shared/application/active_tab.dart';
+import 'package:velorki/features/shared/application/nav_bar_docking.dart';
+import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -65,8 +71,11 @@ void main() {
     final rect = tester.getRect(save);
     expect(rect.bottom, lessThanOrEqualTo(2400));
     expect(rect.top, greaterThanOrEqualTo(0));
-    // Inside the sheet, which starts at 66 % of the height, and hittable.
-    expect(rect.top, greaterThan(2400 * 0.6));
+    // Inside the sheet at its resting height, and hittable.
+    final sheet = tester.widget<DraggableScrollableSheet>(
+      find.byType(DraggableScrollableSheet),
+    );
+    expect(rect.top, greaterThan(2400 * (1 - sheet.initialChildSize)));
     expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
     await tester.tap(save);
     await tester.pumpAndSettle();
@@ -279,17 +288,40 @@ void main() {
     expect(find.text(l10n.plannerRemovePoint), findsNothing);
   });
 
-  testWidgets('the sheet has one resting height without variants', (
+  testWidgets('the sheet has one resting height, with or without variants', (
     tester,
   ) async {
-    await pumpScreen(tester, const PlannerScreen());
-    final sheet = tester.widget<DraggableScrollableSheet>(
+    final h = await pumpScreen(tester, const PlannerScreen());
+    DraggableScrollableSheet sheet() => tester.widget<DraggableScrollableSheet>(
       find.byType(DraggableScrollableSheet),
     );
+    final screenHeight = MediaQuery.sizeOf(
+      tester.element(find.byType(PlannerScreen)),
+    ).height;
+    // The height the Record tab rests at too, so a tab change never moves
+    // the sheet.
+    final resting = sheetRestingExtent(screenHeight);
+    expect(sheet().initialChildSize, resting);
     // Two resting heights a chip row apart made a pull down from the top
     // and a pull up from the handle settle at different places.
-    expect(sheet.snapSizes, hasLength(1));
-    expect(sheet.snapSizes!.single, sheet.initialChildSize);
+    expect(sheet().snapSizes, [resting]);
+
+    // A route and then its variants: the sheet neither grows nor snaps
+    // somewhere else, the chips have their row already.
+    h.backend.byAlternative[1] = syntheticRoute(lengthM: 11000);
+    await _plotRoute(tester, h);
+    expect(sheet().initialChildSize, resting);
+    expect(sheet().snapSizes, [resting]);
+    await tester.tap(
+      find.widgetWithText(LabeledIconButton, l10n.plannerVariants),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.widgetWithText(ChoiceChip, l10n.plannerMainRoute),
+      findsOneWidget,
+    );
+    expect(sheet().initialChildSize, resting);
+    expect(sheet().snapSizes, [resting]);
   });
 
   testWidgets('a point can be visited earlier or later from its sheet', (
@@ -386,6 +418,8 @@ void main() {
     tester,
   ) async {
     await pumpScreen(tester, const PlannerScreen());
+    // The measured chrome replaces the estimate with a short glide.
+    await tester.pumpAndSettle();
     MapChromeInsets chrome() =>
         tester.widget<MapChromeInsets>(find.byType(MapChromeInsets).first);
     final before = chrome().controlsTop!;
@@ -403,6 +437,110 @@ void main() {
     await tester.tap(find.byTooltip(l10n.searchClear));
     await tester.pumpAndSettle();
     expect(chrome().controlsTop!, closeTo(before, 0.5));
+  });
+
+  testWidgets(
+    'pulled all the way down, the sheet docks in the navigation bar',
+    (tester) async {
+      await pumpScreen(tester, const PlannerScreen());
+      DockingSheetShell shell() =>
+          tester.widget<DockingSheetShell>(find.byType(DockingSheetShell));
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(PlannerScreen)),
+      );
+      expect(shell().docks, isTrue);
+      expect(shell().docked, 0);
+      expect(container.read(navBarDockingProvider), isEmpty);
+
+      // A drag on the handle is a drag on the sheet: all the way down it
+      // folds into the bar, and the bar is told.
+      await tester.dragFrom(
+        tester.getCenter(find.byType(SheetHandle)),
+        const Offset(0, 1500),
+      );
+      await tester.pumpAndSettle();
+      expect(shell().docked, 1);
+      expect(container.read(navBarDockingProvider), {plannerRoute});
+      expect(find.byType(SheetHandle), findsOneWidget);
+      expectNoClippedText(tester);
+
+      // Dragging the handle up brings the sheet back, and the bar its corners.
+      await tester.dragFrom(
+        tester.getCenter(find.byType(SheetHandle)),
+        const Offset(0, -600),
+      );
+      await tester.pumpAndSettle();
+      expect(shell().docked, 0);
+      expect(container.read(navBarDockingProvider), isEmpty);
+      expect(find.text(l10n.plannerEmptyState), findsOneWidget);
+    },
+  );
+
+  testWidgets('a docked sheet rises to rest when its tab comes back', (
+    tester,
+  ) async {
+    await pumpScreen(tester, const PlannerScreen());
+    DockingSheetShell shell() =>
+        tester.widget<DockingSheetShell>(find.byType(DockingSheetShell));
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PlannerScreen)),
+    );
+    final resting = tester
+        .widget<DraggableScrollableSheet>(find.byType(DraggableScrollableSheet))
+        .initialChildSize;
+    await tester.dragFrom(
+      tester.getCenter(find.byType(SheetHandle)),
+      const Offset(0, 1500),
+    );
+    await tester.pumpAndSettle();
+    expect(shell().docked, 1);
+    expect(container.read(navBarDockingProvider), {plannerRoute});
+
+    // Away to Record and back: the sheet comes up from the bar to rest.
+    container.read(activeTabProvider.notifier).show(recordingRoute);
+    await tester.pump();
+    container.read(activeTabProvider.notifier).show(plannerRoute);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(shell().docked, lessThan(1));
+    await tester.pumpAndSettle();
+    expect(shell().extent, closeTo(resting, 0.001));
+    expect(shell().docked, 0);
+    expect(container.read(navBarDockingProvider), isEmpty);
+
+    // At rest already: nothing moves.
+    container.read(activeTabProvider.notifier).show(recordingRoute);
+    await tester.pump();
+    container.read(activeTabProvider.notifier).show(plannerRoute);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(shell().extent, closeTo(resting, 0.001));
+    await tester.pumpAndSettle();
+    expect(shell().extent, closeTo(resting, 0.001));
+  });
+
+  testWidgets('the map jumps to the camera the store holds, once', (
+    tester,
+  ) async {
+    final h = await pumpScreen(tester, const PlannerScreen());
+    await tester.pump();
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PlannerScreen)),
+    );
+    // On the default view, as the real map would be.
+    h.map
+      ..center = defaultMapCamera.center
+      ..zoom = defaultMapCamera.zoom;
+    final before = h.map.calls.where((c) => c.method == 'moveTo').length;
+
+    const camera = MapCamera(center: LatLng(52.52, 13.405), zoom: 11);
+    await container.read(lastMapCameraProvider.notifier).save(camera);
+    await tester.pump();
+    final moves = h.map.calls.where((c) => c.method == 'moveTo').toList();
+    expect(moves, hasLength(before + 1));
+    expect(moves.last.arguments[0], camera.center);
+    expect(moves.last.arguments[1], camera.zoom);
+    expect(moves.last.arguments[4], isFalse, reason: 'no animation');
   });
 
   testWidgets('the sheet parks under the keyboard while searching', (

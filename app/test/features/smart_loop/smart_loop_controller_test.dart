@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:velorki/app/app_config.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/data/routing_backend_provider.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
@@ -15,15 +17,26 @@ import 'support/fake_loop_backend.dart';
 const LatLng _start = LatLng(48.137213, 11.575612);
 const LoopRequest _request = LoopRequest(start: _start, targetM: 40000);
 
+/// The preferences the planner reads its profile from, empty.
+late SharedPreferences _prefs;
+
 ProviderContainer _container(RoutingBackend? backend) {
   final container = ProviderContainer(
-    overrides: [routingBackendProvider.overrideWithValue(backend)],
+    overrides: [
+      routingBackendProvider.overrideWithValue(backend),
+      sharedPreferencesProvider.overrideWithValue(_prefs),
+    ],
   );
   addTearDown(container.dispose);
   return container;
 }
 
 void main() {
+  setUpAll(() async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    _prefs = await SharedPreferences.getInstance();
+  });
+
   group('search', () {
     test('fires the round trip engine off in every direction', () async {
       final backend = FakeLoopBackend();

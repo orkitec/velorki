@@ -18,6 +18,7 @@ import 'package:velorki/features/recording/data/recording_service.dart';
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/features/recording/testing/fake_notification_updater.dart';
 import 'package:velorki/features/search/data/gazetteer_store.dart';
+import 'package:velorki/features/shared/application/active_tab.dart';
 
 import '../../../support/app.dart';
 import '../../planner/support/fakes.dart' show TestMapController;
@@ -97,6 +98,9 @@ class RecordingHarness {
   /// The overrides to hand to a [ProviderScope].
   List<Override> overrides(SharedPreferences prefs) => <Override>[
     ...planner.overrides(prefs),
+    // A record screen pumped on its own is the tab on screen; in the app the
+    // shell says so.
+    activeTabProvider.overrideWith(_RecordTabShowing.new),
     recordingServiceProvider.overrideWithValue(service),
     notificationUpdaterProvider.overrideWithValue(notificationUpdater),
     recordingStoreProvider.overrideWithValue(
@@ -125,6 +129,12 @@ class RecordingHarness {
       gazetteerDirectory.deleteSync(recursive: true);
     }
   }
+}
+
+/// The Record tab as the one on screen, for a screen pumped without the shell.
+class _RecordTabShowing extends ActiveTab {
+  @override
+  String build() => recordingRoute;
 }
 
 /// Lets real file system work finish, which [WidgetTester.pumpAndSettle] does

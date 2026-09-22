@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:velorki/app/app_config.dart';
 import 'package:velorki/core/db/database.dart' show RouteSource;
 import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
@@ -23,10 +25,15 @@ void main() {
   late TestMapController map;
   late PlannerMapBinding binding;
 
-  setUp(() {
+  setUp(() async {
     backend = FakeRoutingBackend();
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final prefs = await SharedPreferences.getInstance();
     container = ProviderContainer(
-      overrides: [routingBackendProvider.overrideWithValue(backend)],
+      overrides: [
+        routingBackendProvider.overrideWithValue(backend),
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
     );
     addTearDown(container.dispose);
     map = TestMapController();
@@ -36,7 +43,7 @@ void main() {
     )..attach();
     // The screen syncs the current state as soon as the map is ready, which
     // makes it the baseline; only changes from there move the camera.
-    binding.sync(container.read(plannerControllerProvider));
+    await binding.sync(container.read(plannerControllerProvider));
     container.listen<PlannerState>(
       plannerControllerProvider,
       (_, next) => binding.sync(next),

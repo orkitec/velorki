@@ -43,6 +43,7 @@ class PlannerMapHost extends ConsumerStatefulWidget {
     super.key,
     this.embedded = false,
     this.ownsPosition = false,
+    this.sharesCamera = false,
   });
 
   /// Called once the map can be driven.
@@ -58,6 +59,12 @@ class PlannerMapHost extends ConsumerStatefulWidget {
   /// fixes must stay off it; see [PuckOwnership].
   final bool ownsPosition;
 
+  /// Whether this map keeps in step with [lastMapCameraProvider], the camera
+  /// the map on screen last came to rest at. The Plan and Record tabs share
+  /// it, so switching between them does not jump; a map that fits itself to
+  /// a route does not.
+  final bool sharesCamera;
+
   @override
   ConsumerState<PlannerMapHost> createState() => _PlannerMapHostState();
 }
@@ -70,7 +77,34 @@ class _PlannerMapHostState extends ConsumerState<PlannerMapHost> {
   void _handleMapReady(MapController controller) {
     _map = controller;
     unawaited(controller.setCyclosmOverlay(ref.read(cyclosmOverlayProvider)));
+    if (widget.sharesCamera) _syncCamera(ref.read(lastMapCameraProvider));
     widget.onMapReady(controller);
+  }
+
+  /// Jumps the map to [camera] unless it is already there, or the screen is
+  /// holding the camera on the rider, whose position rules over any other
+  /// map's view. Every shared map that is alive moves, on screen or not, so
+  /// a tab is already in step when the rider comes back to it.
+  void _syncCamera(MapCamera camera) {
+    final map = _map;
+    if (map == null) return;
+    final chrome = context.getInheritedWidgetOfExactType<MapChromeInsets>();
+    if (chrome?.following ?? false) return;
+    if (!camera.differsFrom(
+      center: map.center,
+      zoom: map.zoom,
+      bearing: map.bearing,
+    )) {
+      return;
+    }
+    unawaited(
+      map.moveTo(
+        camera.center,
+        zoom: camera.zoom,
+        bearing: camera.bearing,
+        animate: false,
+      ),
+    );
   }
 
   @override
@@ -81,6 +115,11 @@ class _PlannerMapHostState extends ConsumerState<PlannerMapHost> {
     ref.listen<bool>(cyclosmOverlayProvider, (_, next) {
       unawaited(_map?.setCyclosmOverlay(next));
     });
+    if (widget.sharesCamera) {
+      ref.listen<MapCamera>(lastMapCameraProvider, (_, next) {
+        _syncCamera(next);
+      });
+    }
     final map = PuckOwnership(
       owned: widget.ownsPosition,
       child: ref.watch(mapViewBuilderProvider)(_handleMapReady),
@@ -91,7 +130,6 @@ class _PlannerMapHostState extends ConsumerState<PlannerMapHost> {
     final inherited = MapChromeInsets.maybeOf(context);
     return MapChromeInsets(
       controlsTop: inherited?.controlsTop,
-      attributionBottom: inherited?.attributionBottom,
       showRoutingTiles: false,
       following: inherited?.following ?? false,
       headingUp: inherited?.headingUp ?? false,

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,7 +20,11 @@ import '../../routing_tiles/presentation/routing_source_chip.dart';
 import '../../search/domain/search_result.dart';
 import '../../search/presentation/search_field.dart';
 import '../../settings/data/units.dart';
+import '../../shared/application/active_tab.dart';
+import '../../shared/application/nav_bar_docking.dart';
+import '../../shared/presentation/docking_sheet.dart';
 import '../../shared/presentation/stat_tile.dart';
+import '../../shared/presentation/tab_chrome_slide.dart';
 import '../../smart_loop/presentation/smart_loop_sheet.dart';
 import '../application/planner_controller.dart';
 import '../application/planner_map_binding.dart';
@@ -67,8 +72,60 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   // Where the sheet was before the search field took it out of the way, or
   // null while it is where the rider left it.
   double? _sheetSizeBeforeSearch;
-  // The sheet's collapsed size, as computed by the last build.
+  // The sheet's collapsed and resting sizes, as computed by the last build.
   double _collapsedSheetSize = 0.1;
+  double _restingSheetSize = 0.48;
+
+  /// Whether this is the tab on screen, as the last build saw it.
+  bool _active = true;
+
+  /// The sheet's extent, while this is the tab on screen, for the tab that
+  /// comes next.
+  void _onSheetExtent(double extent) {
+    if (_active) ref.read(tabHandoverProvider.notifier).setSheetExtent(extent);
+  }
+
+  /// Where the map's control column rests under this tab's chrome. The
+  /// column itself is one shared, animated value ([mapControlsTopProvider]):
+  /// this tab sends it there when it comes on screen and when its chrome
+  /// changes while it is.
+  double _ownControlsTop = defaultMapControlsTop;
+
+  /// This tab is coming on screen: the column glides from wherever it is
+  /// to its place under this tab's chrome.
+  void _takeOverControls() =>
+      ref.read(mapControlsTopProvider).glide(to: _ownControlsTop);
+
+  /// This tab has just come on screen: the sheet starts where the last
+  /// tab's was and settles where this one's is, so the two tabs read as
+  /// one screen re-arranging; and a sheet below its resting height (docked
+  /// in the bar, say) rises to it, undocking the bar as it goes. A sheet
+  /// already at rest, or pulled higher by the rider, stays.
+  void _takeOverSheet() {
+    if (!_sheet.isAttached) return;
+    final current = _sheet.size;
+    final from = ref.read(tabHandoverProvider).sheetExtent ?? current;
+    if ((from - current).abs() >= 0.005) _sheet.jumpTo(from);
+    final target = math.max(current, _restingSheetSize);
+    if ((target - from).abs() < 0.005) return;
+    unawaited(
+      _sheet.animateTo(
+        target,
+        duration: tabSheetSettleDuration,
+        curve: tabChromeSlideCurve,
+      ),
+    );
+  }
+
+  /// Whether the sheet was last reported to the bar as docked in it.
+  bool _docked = false;
+  late final NavBarDocking _docking = ref.read(navBarDockingProvider.notifier);
+
+  void _reportDocked(bool docked) {
+    if (docked == _docked) return;
+    _docked = docked;
+    _docking.setDocked(plannerRoute, docked);
+  }
 
   @override
   void initState() {
@@ -143,6 +200,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     WidgetsBinding.instance.removeObserver(this);
     _binding?.detach();
     _sheet.dispose();
+    if (_docked) {
+      // Deferred: the tree is locked while a widget goes, and the shell
+      // would rebuild for this.
+      final docking = _docking;
+      scheduleMicrotask(() => docking.setDocked(plannerRoute, false));
+    }
     super.dispose();
   }
 
@@ -222,19 +285,6 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       case _PointAction.remove:
         planner.removeWaypoint(index);
     }
-  }
-
-  /// Grows the sheet by one row when the variant chips appear, so they are in
-  /// view and tappable without a pull.
-  void _showVariantsRow(double size) {
-    if (!_sheet.isAttached || _sheet.size >= size - 0.001) return;
-    unawaited(
-      _sheet.animateTo(
-        size,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      ),
-    );
   }
 
   // Called from the map widget's build, so it must not call setState.
@@ -417,30 +467,53 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       ref.read(plannerControllerProvider.notifier).clearError();
     });
 
-    final theme = Theme.of(context);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     final screenHeight = MediaQuery.sizeOf(context).height;
-    // Collapsed, only the drag handle rests above the floating navigation
-    // bar: the map is free, and one pull brings the plan back.
+    // Collapsed, only the handle strip is left above the floating navigation
+    // bar, which the bottom padding already covers under `extendBody`: the
+    // sheet is docked in the bar, the map is free, and one pull brings the
+    // plan back.
     final collapsedSheetSize = screenHeight <= 0
         ? 0.1
-        : ((bottomInset + sheetHandleDp + floatingNavBarClearance) /
-                  screenHeight)
-              .clamp(0.06, 0.25);
+        : ((bottomInset + sheetHandleDp) / screenHeight).clamp(0.01, 0.25);
     _collapsedSheetSize = collapsedSheetSize;
-    // One more row when the variant chips are shown between the figures and
-    // the toolbar.
-    const restingSheetSize = 0.42;
-    final variantsSheetSize = screenHeight <= 0
-        ? 0.48
-        : (restingSheetSize + 56 / screenHeight).clamp(0.42, 0.6);
+    final dockedRange = screenHeight <= 0
+        ? 0.15
+        : sheetDockingRangeDp / screenHeight;
+    // One resting height whatever the sheet holds, shared with the Record
+    // tab: room for the variant chips is always there.
+    final restingSheetSize = sheetRestingExtent(screenHeight);
+    _restingSheetSize = restingSheetSize;
     final hasVariants = state.alternatives.length > 1;
-    ref.listen(
-      plannerControllerProvider.select((s) => s.alternatives.length > 1),
-      (previous, next) {
-        if (next && !(previous ?? false)) _showVariantsRow(variantsSheetSize);
-      },
-    );
+
+    // The tab on screen: the chrome over the map slides in when it is this
+    // one, and the map's control column and the sheet pick up where the
+    // last tab left them.
+    final active = ref.watch(activeTabProvider) == plannerRoute;
+    _active = active;
+    ref.listen(activeTabProvider, (previous, next) {
+      if (next == plannerRoute && previous != plannerRoute) {
+        _takeOverControls();
+        _takeOverSheet();
+      }
+    });
+    _ownControlsTop = _chromeHeight + 12;
+    final controlsTop = ref.read(mapControlsTopProvider);
+    if (active && (controlsTop.target - _ownControlsTop).abs() >= 0.5) {
+      // A change of this tab's own chrome, on screen: the column glides,
+      // after the frame, since the other tab's map listens to it too and
+      // may not be told during a build. The first tab of the launch takes
+      // its place without a glide.
+      final own = _ownControlsTop;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_active) return;
+        if (controlsTop.everMoved) {
+          controlsTop.glide(to: own);
+        } else {
+          controlsTop.jump(own);
+        }
+      });
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _measureChrome();
@@ -457,76 +530,86 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
             Positioned.fill(
               // Search field, place actions, chips and their gaps: the control
               // column starts underneath them.
-              child: MapChromeInsets(
-                controlsTop: _chromeHeight + 12,
-                child: PlannerMapHost(onMapReady: _onMapReady),
+              child: AnimatedBuilder(
+                animation: controlsTop.animation,
+                builder: (context, _) => MapChromeInsets(
+                  controlsTop: controlsTop.animation.value,
+                  child: PlannerMapHost(
+                    onMapReady: _onMapReady,
+                    sharesCamera: true,
+                  ),
+                ),
               ),
             ),
-            SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                child: Column(
-                  key: _chromeKey,
-                  // Only as tall as its rows, so its height is the chrome's.
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SearchField(
-                      onSelected: _onPlaceSelected,
-                      onFocusChanged: _onSearchFocus,
-                      onCleared: _clearSearchedPlace,
-                      bias: () => _map?.center,
-                      onDownloadArea: _openOfflineData,
-                    ),
-                    const SizedBox(height: 10),
-                    ProfileChipRow(
-                      glass: true,
+            TabChromeSlide(
+              active: active,
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                  child: Column(
+                    key: _chromeKey,
+                    // Only as tall as its rows, so its height is the chrome's.
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SearchField(
+                        onSelected: _onPlaceSelected,
+                        onFocusChanged: _onSearchFocus,
+                        onCleared: _clearSearchedPlace,
+                        bias: () => _map?.center,
+                        onDownloadArea: _openOfflineData,
+                      ),
+                      const SizedBox(height: 10),
+                      ProfileChipRow(
+                        glass: true,
 
-                      selected: state.options.profile,
-                      onSelected: ref
-                          .read(plannerControllerProvider.notifier)
-                          .setProfile,
-                    ),
-                    if (_placeToStartFrom != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 10),
-                        // One row, the two actions sharing the width. The X
-                        // in the search field is what forgets the place.
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: FilledButton.icon(
-                                onPressed: () => unawaited(_rideFromPosition()),
-                                icon: const Icon(Icons.near_me_rounded),
-                                label: Text(
-                                  l10n.plannerRideFromPosition,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                        selected: state.options.profile,
+                        onSelected: ref
+                            .read(plannerControllerProvider.notifier)
+                            .setProfile,
+                      ),
+                      if (_placeToStartFrom != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          // One row, the two actions sharing the width. The X
+                          // in the search field is what forgets the place.
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: FilledButton.icon(
+                                  onPressed: () =>
+                                      unawaited(_rideFromPosition()),
+                                  icon: const Icon(Icons.near_me_rounded),
+                                  label: Text(
+                                    l10n.plannerRideFromPosition,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: FilledButton.tonalIcon(
-                                onPressed: _setSearchedPlaceAsStart,
-                                icon: const Icon(Icons.play_arrow_rounded),
-                                label: Text(
-                                  l10n.plannerSetAsStart,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: FilledButton.tonalIcon(
+                                  onPressed: _setSearchedPlaceAsStart,
+                                  icon: const Icon(Icons.play_arrow_rounded),
+                                  label: Text(
+                                    l10n.plannerSetAsStart,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    if (!hasBackend)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 8),
-                        child: _NoRoutingServerBanner(),
-                      ),
-                  ],
+                      if (!hasBackend)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 8),
+                          child: _NoRoutingServerBanner(),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -534,73 +617,48 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
               controller: _sheet,
               // Enough for the headline, the toolbar and Save above the
               // floating navigation bar on a 20:9 phone.
-              initialChildSize: hasVariants
-                  ? variantsSheetSize
-                  : restingSheetSize,
+              initialChildSize: restingSheetSize,
               minChildSize: collapsedSheetSize,
               maxChildSize: 0.9,
               snap: true,
-              // One resting height, not both: with the two in the list a pull
-              // down from the top settled on the higher one and a pull up from
-              // the handle on the lower one, a chip row apart.
-              snapSizes: <double>[
-                hasVariants ? variantsSheetSize : restingSheetSize,
-              ],
-              builder: (context, scrollController) => DecoratedBox(
-                decoration: const BoxDecoration(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0x40000000),
-                      blurRadius: 24,
-                      offset: Offset(0, -4),
-                    ),
-                  ],
-                ),
-                child: Material(
-                  color: theme.colorScheme.surface,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(28),
-                    ),
-                    side: BorderSide(color: theme.velorki.glassBorder),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: ListView(
-                    controller: scrollController,
-                    padding: EdgeInsets.fromLTRB(20, 10, 20, bottomInset + 24),
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 40,
-                          height: 4,
-                          margin: const EdgeInsets.only(bottom: 14),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.outline,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ),
-                      _SheetHeader(state: state),
-                      const SizedBox(height: 14),
-                      // The variants right under the figures, where the sheet
-                      // grows to show them; then the actions, so Loop and Save
-                      // are visible at the sheet's resting height.
-                      if (hasVariants) ...[
-                        _AlternativeChips(state: state),
-                        const SizedBox(height: 12),
-                      ],
-                      _PlannerActions(
-                        state: state,
-                        onAlternatives: _loadAlternatives,
-                        onSmartLoop: _smartLoop,
-                        onAsk: _ask,
-                        onSave: _save,
-                      ),
-                      const SizedBox(height: 16),
-                      _SheetBody(state: state),
+              // One resting height, not one per state: with two in the list
+              // a pull down from the top settled on the higher one and a pull
+              // up from the handle on the lower one, a chip row apart.
+              snapSizes: <double>[restingSheetSize],
+              builder: (context, scrollController) => DockingSheet(
+                initialExtent: restingSheetSize,
+                collapsedExtent: collapsedSheetSize,
+                dockedRange: dockedRange,
+                docks: true,
+                dockedBottomInset: bottomInset,
+                onDocked: _reportDocked,
+                onExtent: _onSheetExtent,
+                handle: const SheetHandle(),
+                child: ListView(
+                  controller: scrollController,
+                  padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 24),
+                  children: [
+                    // Room for the handle the shell draws over the list.
+                    const SizedBox(height: sheetHandleDp),
+                    _SheetHeader(state: state),
+                    const SizedBox(height: 14),
+                    // The variants right under the figures, where the sheet
+                    // grows to show them; then the actions, so Loop and Save
+                    // are visible at the sheet's resting height.
+                    if (hasVariants) ...[
+                      _AlternativeChips(state: state),
+                      const SizedBox(height: 12),
                     ],
-                  ),
+                    _PlannerActions(
+                      state: state,
+                      onAlternatives: _loadAlternatives,
+                      onSmartLoop: _smartLoop,
+                      onAsk: _ask,
+                      onSave: _save,
+                    ),
+                    const SizedBox(height: 16),
+                    _SheetBody(state: state),
+                  ],
                 ),
               ),
             ),

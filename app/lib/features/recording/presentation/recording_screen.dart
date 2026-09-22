@@ -38,6 +38,10 @@ import '../../search/data/gazetteer_store.dart';
 import '../../sensors/application/ride_health_sync.dart';
 import '../../sensors/application/sensor_hub.dart';
 import '../../settings/data/units.dart';
+import '../../shared/application/active_tab.dart';
+import '../../shared/application/nav_bar_docking.dart';
+import '../../shared/presentation/docking_sheet.dart';
+import '../../shared/presentation/tab_chrome_slide.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/swipe_pages.dart';
 import '../application/recording_controller.dart';
@@ -154,6 +158,67 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// Whether a battery-saver ride is running, as the last build saw it.
   bool _saverRide = false;
 
+  /// Whether this is the tab on screen, as the last build saw it.
+  bool _active = false;
+
+  /// Where the map's control column rests under this tab's chrome. The
+  /// column itself is one shared, animated value ([mapControlsTopProvider]):
+  /// this tab sends it there when it comes on screen and when its chrome
+  /// changes while it is.
+  double _ownControlsTop = defaultMapControlsTop;
+
+  /// This tab is coming on screen: the column glides from wherever it is
+  /// to its place under this tab's chrome.
+  void _takeOverControls() =>
+      ref.read(mapControlsTopProvider).glide(to: _ownControlsTop);
+
+  /// The idle sheet's controller, for the take-over when the tab comes on
+  /// screen. The live sheet is another widget and gets none: a controller
+  /// serves one sheet at a time, and the two are swapped in one frame.
+  final DraggableScrollableController _idleSheet =
+      DraggableScrollableController();
+
+  /// The sheet's extent, while this is the tab on screen, for the tab that
+  /// comes next.
+  void _onSheetExtent(double extent) {
+    if (_active) ref.read(tabHandoverProvider.notifier).setSheetExtent(extent);
+  }
+
+  /// The idle sheet's resting size, as computed by the last build.
+  double _restingSheetSize = 0.48;
+
+  /// This tab has just come on screen: the idle sheet starts where the last
+  /// tab's was and settles where this one's is, so the two tabs read as one
+  /// screen re-arranging; and a sheet below its resting height (docked in
+  /// the bar, say) rises to it, undocking the bar as it goes. A sheet
+  /// already at rest, or pulled higher by the rider, stays; a live sheet is
+  /// left alone.
+  void _takeOverSheet() {
+    if (!_idleSheet.isAttached) return;
+    final current = _idleSheet.size;
+    final from = ref.read(tabHandoverProvider).sheetExtent ?? current;
+    if ((from - current).abs() >= 0.005) _idleSheet.jumpTo(from);
+    final target = math.max(current, _restingSheetSize);
+    if ((target - from).abs() < 0.005) return;
+    unawaited(
+      _idleSheet.animateTo(
+        target,
+        duration: tabSheetSettleDuration,
+        curve: tabChromeSlideCurve,
+      ),
+    );
+  }
+
+  /// Whether the sheet was last reported to the bar as docked in it.
+  bool _docked = false;
+  late final NavBarDocking _docking = ref.read(navBarDockingProvider.notifier);
+
+  void _reportDocked(bool docked) {
+    if (docked == _docked) return;
+    _docked = docked;
+    _docking.setDocked(recordingRoute, docked);
+  }
+
   /// Whether the display is being held at [saverBrightness] by us.
   bool _dimmed = false;
 
@@ -239,6 +304,13 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     if (_dimmed) unawaited(_dimmer?.reset());
     _glanceTimer?.cancel();
     _map?.onCameraIdle = null;
+    _idleSheet.dispose();
+    if (_docked) {
+      // Deferred: the tree is locked while a widget goes, and the shell
+      // would rebuild for this.
+      final docking = _docking;
+      scheduleMicrotask(() => docking.setDocked(recordingRoute, false));
+    }
     super.dispose();
   }
 
@@ -1142,23 +1214,66 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     // none yet and the normal screen stays.
     final glance = saver && _glance && snapshot != null;
 
-    final theme = Theme.of(context);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     final screenHeight = MediaQuery.sizeOf(context).height;
     double fraction(double dp) => screenHeight <= 0
         ? 0.3
-        : ((bottomInset + dp) / screenHeight).clamp(0.06, 0.9);
-    // Collapsed: the handle alone, and above the navigation bar while the
-    // bar is there (it goes while a ride is recorded on this tab). Live: the
-    // status row and the three key figures. Idle: the start button and the
-    // chooser.
-    final collapsed = fraction(
-      state.isRecording
-          ? sheetHandleDp
-          : sheetHandleDp + floatingNavBarClearance,
-    );
-    final initial = state.isRecording ? fraction(292) : fraction(420);
+        : ((bottomInset + dp) / screenHeight).clamp(0.01, 0.9);
+    // Collapsed: the handle alone. Before a ride that is above the
+    // navigation bar, which the bottom padding covers under `extendBody`,
+    // and the sheet docks in the bar; the bar goes while a ride is recorded
+    // on this tab, and the handle then rests at the bottom. Live: the status
+    // row and the three key figures. Idle: the start button and the chooser.
+    final collapsed = fraction(sheetHandleDp);
+    // Idle, the sheet rests where the Plan sheet rests, so the tabs agree;
+    // the start button and the chooser scroll where they need more.
+    final initial = state.isRecording
+        ? fraction(292)
+        : sheetRestingExtent(screenHeight);
+    _restingSheetSize = sheetRestingExtent(screenHeight);
     final sheetKey = state.isRecording ? 'live' : 'idle';
+
+    // The tab on screen: the banner over the map slides in when it is this
+    // one, and the map's control column and the sheet pick up where the
+    // last tab left them.
+    final active = ref.watch(activeTabProvider) == recordingRoute;
+    _active = active;
+    ref.listen(activeTabProvider, (previous, next) {
+      if (next == recordingRoute && previous != recordingRoute) {
+        _takeOverControls();
+        _takeOverSheet();
+      }
+    });
+    // The turn banner sits over the top of the map, so the control column
+    // starts below it while one is showing.
+    _ownControlsTop = guiding ? turnBannerHeight + 24 : defaultMapControlsTop;
+    final controlsTop = ref.read(mapControlsTopProvider);
+    if (active && (controlsTop.target - _ownControlsTop).abs() >= 0.5) {
+      // A change of this tab's own chrome, on screen: the column glides,
+      // after the frame, since the other tab's map listens to it too and
+      // may not be told during a build. The first tab of the launch takes
+      // its place without a glide.
+      final own = _ownControlsTop;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_active) return;
+        if (controlsTop.everMoved) {
+          controlsTop.glide(to: own);
+        } else {
+          controlsTop.jump(own);
+        }
+      });
+    }
+    final docks = !state.isRecording;
+    final dockedRange = screenHeight <= 0
+        ? 0.15
+        : sheetDockingRangeDp / screenHeight;
+    if (!docks && _docked) {
+      // The ride started under a docked sheet (from the watch, say): the
+      // bar is away now, and it comes back round when the ride ends.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _reportDocked(false);
+      });
+    }
 
     return Listener(
       // Any touch anywhere postpones the glance view, and a touch on the
@@ -1179,27 +1294,29 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                 // The locate and compass buttons live inside the map; this is
                 // how they reach the follow mode, and how they learn to show
                 // it.
-                child: MapChromeInsets(
-                  following: state.isRecording && _following,
-                  headingUp:
-                      state.isRecording &&
-                      _following &&
-                      followMode == FollowMode.headingUp,
-                  bearingDeg: _bearing,
-                  onLocate: _handleLocate,
-                  // Only a running ride has a camera to hold, so only a
-                  // running ride shows the compass.
-                  onCompass: state.isRecording ? _handleCompass : null,
-                  // The turn banner sits over the top of the map, so the
-                  // control column starts below it while one is showing.
-                  controlsTop: guiding ? turnBannerHeight + 24 : null,
-                  child: PlannerMapHost(
-                    onMapReady: _onMapReady,
-                    embedded: true,
-                    // While a ride records, this screen draws the puck:
-                    // snapped to the route, turned by the compass. The
-                    // map's own fixes would write over both.
-                    ownsPosition: state.isRecording,
+                child: AnimatedBuilder(
+                  animation: controlsTop.animation,
+                  builder: (context, _) => MapChromeInsets(
+                    following: state.isRecording && _following,
+                    headingUp:
+                        state.isRecording &&
+                        _following &&
+                        followMode == FollowMode.headingUp,
+                    bearingDeg: _bearing,
+                    onLocate: _handleLocate,
+                    // Only a running ride has a camera to hold, so only a
+                    // running ride shows the compass.
+                    onCompass: state.isRecording ? _handleCompass : null,
+                    controlsTop: controlsTop.animation.value,
+                    child: PlannerMapHost(
+                      onMapReady: _onMapReady,
+                      embedded: true,
+                      // While a ride records, this screen draws the puck:
+                      // snapped to the route, turned by the compass. The
+                      // map's own fixes would write over both.
+                      ownsPosition: state.isRecording,
+                      sharesCamera: true,
+                    ),
                   ),
                 ),
               ),
@@ -1209,11 +1326,14 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                 top: 0,
                 left: 0,
                 right: 0,
-                child: SafeArea(
-                  bottom: false,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: TurnBanner(progress: navigation),
+                child: TabChromeSlide(
+                  active: active,
+                  child: SafeArea(
+                    bottom: false,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: TurnBanner(progress: navigation),
+                    ),
                   ),
                 ),
               ),
@@ -1229,65 +1349,50 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                 // A fresh sheet per state, so the initial size applies again
                 // when a ride starts or ends.
                 key: ValueKey(sheetKey),
+                controller: state.isRecording ? null : _idleSheet,
                 initialChildSize: initial,
                 minChildSize: collapsed,
                 maxChildSize: 0.85,
                 snap: true,
                 snapSizes: _snapSizesFor(initial),
-                builder: (context, scrollController) => DecoratedBox(
-                  decoration: const BoxDecoration(
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(28),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color(0x40000000),
-                        blurRadius: 24,
-                        offset: Offset(0, -4),
-                      ),
-                    ],
-                  ),
-                  child: Material(
-                    color: theme.colorScheme.surface,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(28),
-                      ),
-                      side: BorderSide(color: theme.velorki.glassBorder),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: state.isRecording
-                        ? _LivePanel(
-                            state: state,
-                            scrollController: scrollController,
-                            bottomInset: bottomInset,
-                            page: _sheetPage,
-                            onPage: _setSheetPage,
-                            keepScreenOn: _keepScreenOn,
-                            onKeepScreenOn: (v) =>
-                                unawaited(_setKeepScreenOn(v)),
-                            onPause: () => unawaited(
-                              ref
-                                  .read(recordingControllerProvider.notifier)
-                                  .pause(),
-                            ),
-                            onResume: () => unawaited(
-                              ref
-                                  .read(recordingControllerProvider.notifier)
-                                  .resume(),
-                            ),
-                            onStop: () => unawaited(_stop()),
-                          )
-                        : _IdlePanel(
-                            state: state,
-                            scrollController: scrollController,
-                            bottomInset: bottomInset,
-                            keepScreenOn: _keepScreenOn,
-                            onKeepScreenOn: (v) =>
-                                unawaited(_setKeepScreenOn(v)),
-                            onStart: () => unawaited(_start()),
+                builder: (context, scrollController) => DockingSheet(
+                  initialExtent: initial,
+                  collapsedExtent: collapsed,
+                  dockedRange: dockedRange,
+                  docks: docks,
+                  dockedBottomInset: bottomInset,
+                  onDocked: _reportDocked,
+                  onExtent: _onSheetExtent,
+                  handle: const SheetHandle(),
+                  child: state.isRecording
+                      ? _LivePanel(
+                          state: state,
+                          scrollController: scrollController,
+                          bottomInset: bottomInset,
+                          page: _sheetPage,
+                          onPage: _setSheetPage,
+                          keepScreenOn: _keepScreenOn,
+                          onKeepScreenOn: (v) => unawaited(_setKeepScreenOn(v)),
+                          onPause: () => unawaited(
+                            ref
+                                .read(recordingControllerProvider.notifier)
+                                .pause(),
                           ),
-                  ),
+                          onResume: () => unawaited(
+                            ref
+                                .read(recordingControllerProvider.notifier)
+                                .resume(),
+                          ),
+                          onStop: () => unawaited(_stop()),
+                        )
+                      : _IdlePanel(
+                          state: state,
+                          scrollController: scrollController,
+                          bottomInset: bottomInset,
+                          keepScreenOn: _keepScreenOn,
+                          onKeepScreenOn: (v) => unawaited(_setKeepScreenOn(v)),
+                          onStart: () => unawaited(_start()),
+                        ),
                 ),
               ),
           ],
@@ -1401,23 +1506,6 @@ double _speedMps(WidgetRef ref, RecordingSnapshot snapshot) =>
     ref.watch(sensorHubProvider).readingsAt(DateTime.now()).speedMps ??
     snapshot.speedMps;
 
-class _SheetHandle extends StatelessWidget {
-  const _SheetHandle();
-
-  @override
-  Widget build(BuildContext context) => Center(
-    child: Container(
-      width: 40,
-      height: 4,
-      margin: const EdgeInsets.only(top: 10, bottom: 14),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.outline,
-        borderRadius: BorderRadius.circular(2),
-      ),
-    ),
-  );
-}
-
 enum _RecoveryDecision { resume, finish, discard }
 
 class _IdlePanel extends ConsumerWidget {
@@ -1449,20 +1537,20 @@ class _IdlePanel extends ConsumerWidget {
       controller: scrollController,
       padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 24),
       children: [
-        const _SheetHandle(),
+        // Room for the handle the shell draws over the list.
+        const SizedBox(height: sheetHandleDp),
         Text(l10n.recordingIdleTitle, style: theme.textTheme.headlineMedium),
         const SizedBox(height: 6),
-        Text(l10n.recordingIdleHint, style: theme.textTheme.bodySmall),
-        const SizedBox(height: 20),
-        SizedBox(
-          height: 60,
-          child: FilledButton.icon(
-            onPressed: state.busy ? null : onStart,
-            icon: const Icon(Icons.fiber_manual_record_rounded),
-            label: Text(l10n.recordingStart),
-          ),
+        Text(
+          key: recordingIdleHintKey,
+          // One of six, a different one each hour: something true about the
+          // recorder rather than the same sentence every day.
+          idleHints(l10n)[_hourOfEpoch() % idleHints(l10n).length],
+          style: theme.textTheme.bodySmall,
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
+        // The chooser first, the button under it: at the sheet's resting
+        // height the button then sits about where the Plan tab's toolbar is.
         DropdownButtonFormField<String?>(
           initialValue: state.followedRouteId,
           // A library of routes is longer than a screen; the menu scrolls.
@@ -1486,7 +1574,16 @@ class _IdlePanel extends ConsumerWidget {
           onChanged: (value) =>
               ref.read(recordingControllerProvider.notifier).selectRoute(value),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 60,
+          child: FilledButton.icon(
+            onPressed: state.busy ? null : onStart,
+            icon: const Icon(Icons.fiber_manual_record_rounded),
+            label: Text(l10n.recordingStart),
+          ),
+        ),
+        const SizedBox(height: 8),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           value: keepScreenOn,
@@ -1511,6 +1608,23 @@ class _IdlePanel extends ConsumerWidget {
     );
   }
 }
+
+/// The line under "Ready to ride", for the tests.
+const Key recordingIdleHintKey = ValueKey<String>('recording-idle-hint');
+
+/// The one-line hints under the idle headline, all true of the recorder and
+/// each short enough for one line on a narrow phone.
+List<String> idleHints(AppLocalizations l10n) => <String>[
+  l10n.recordingIdleHint,
+  l10n.recordingIdleHint2,
+  l10n.recordingIdleHint3,
+  l10n.recordingIdleHint4,
+  l10n.recordingIdleHint5,
+  l10n.recordingIdleHint6,
+];
+
+int _hourOfEpoch() =>
+    DateTime.now().millisecondsSinceEpoch ~/ Duration.millisecondsPerHour;
 
 /// How tall the route chooser's menu may grow before it scrolls.
 const double followRouteMenuMaxHeight = 320;
@@ -1628,7 +1742,8 @@ class _LivePanel extends ConsumerWidget {
       controller: scrollController,
       padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 24),
       children: [
-        const _SheetHandle(),
+        // Room for the handle the shell draws over the list.
+        const SizedBox(height: sheetHandleDp),
         // Everything in view at once: state and elapsed time with the two
         // buttons, then two rows of three figures. Nothing hides below.
         Row(

@@ -48,7 +48,7 @@ Die Reihe von Chips unter dem Suchfeld ist das Radprofil, und sie entscheidet, w
 | **MTB** | Trails und Singletrails |
 | **Direkt** | der kürzeste Weg, mit möglichst wenig Rücksicht auf Komfort |
 
-Ein Profilwechsel berechnet die ganze Planung neu und verwirft geladene Varianten.
+Ein Profilwechsel berechnet die ganze Planung neu und verwirft geladene Varianten. Das zuletzt gewählte Profil behält Velorki für den nächsten Start.
 
 ## Die Leiste
 
@@ -75,7 +75,7 @@ Oft kommen weniger als vier zurück; du bekommst, was der Router gefunden hat. F
 
 Der Kopf der Übersicht zeigt vier Zahlen: **Distanz**, **Anstieg**, **Abstieg** und **Dauer**. Die geschätzte Dauer kommt aus dem typischen Tempo des gewählten Radprofils, nicht von einem Server, und sie rechnet keine Café-Pausen ein.
 
-Zieh die Übersicht nach oben für den Rest, oder nach unten bis zu ihrem Griff, der über der Navigationsleiste liegt, um die Karte freizugeben.
+Zieh die Übersicht nach oben für den Rest. Ganz nach unten gezogen faltet sie sich in die Navigationsleiste und lässt nur ihren Griff über den Tabs, damit die Karte frei ist; zieh den Griff nach oben, um sie zurückzuholen.
 
 ### Höhenprofil
 

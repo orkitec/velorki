@@ -42,10 +42,78 @@ void main() {
       );
     });
 
-    test('toString names the centre and the zoom', () {
+    test('toString names the centre, the zoom and the bearing', () {
       expect(
         const MapCamera(center: LatLng(48.0, 11.0), zoom: 12.5).toString(),
-        'MapCamera(LatLng(48.0, 11.0), zoom: 12.5)',
+        'MapCamera(LatLng(48.0, 11.0), zoom: 12.5, bearing: 0.0)',
+      );
+    });
+
+    test('a turned map is another camera', () {
+      const north = MapCamera(center: LatLng(48.0, 11.0), zoom: 12.5);
+      const east = MapCamera(
+        center: LatLng(48.0, 11.0),
+        zoom: 12.5,
+        bearing: 90,
+      );
+      expect(north, isNot(east));
+      expect(north.hashCode, isNot(east.hashCode));
+    });
+
+    test('differsFrom ignores what is only the platform reporting back', () {
+      const camera = MapCamera(
+        center: LatLng(48.0, 11.0),
+        zoom: 12.5,
+        bearing: 90,
+      );
+      // Nothing known yet: nothing to say.
+      expect(
+        camera.differsFrom(center: null, zoom: null, bearing: null),
+        isFalse,
+      );
+      // Within a metre, a hundredth of a zoom level and half a degree: here.
+      expect(
+        camera.differsFrom(
+          center: const LatLng(48.000001, 11.000001),
+          zoom: 12.505,
+          bearing: 90.3,
+        ),
+        isFalse,
+      );
+      // Ten metres, a tenth of a zoom level, a degree: somewhere else.
+      expect(
+        camera.differsFrom(
+          center: const LatLng(48.0001, 11.0),
+          zoom: 12.5,
+          bearing: 90,
+        ),
+        isTrue,
+      );
+      expect(
+        camera.differsFrom(
+          center: const LatLng(48.0, 11.0),
+          zoom: 12.6,
+          bearing: 90,
+        ),
+        isTrue,
+      );
+      expect(
+        camera.differsFrom(
+          center: const LatLng(48.0, 11.0),
+          zoom: 12.5,
+          bearing: 91,
+        ),
+        isTrue,
+      );
+      // Bearings wrap: 359.8 is a fifth of a degree from north.
+      const north = MapCamera(center: LatLng(48.0, 11.0), zoom: 12.5);
+      expect(
+        north.differsFrom(
+          center: const LatLng(48.0, 11.0),
+          zoom: 12.5,
+          bearing: 359.8,
+        ),
+        isFalse,
       );
     });
 
@@ -96,17 +164,33 @@ void main() {
       expect(withoutLat.read(lastMapCameraProvider), defaultMapCamera);
     });
 
-    test('saving a camera stores all three values', () async {
-      final (container, prefs) = await _container();
+    test(
+      'saving a camera stores the centre and the zoom, not the bearing',
+      () async {
+        final (container, prefs) = await _container();
 
-      await container
-          .read(lastMapCameraProvider.notifier)
-          .save(const MapCamera(center: LatLng(48.1374, 11.5755), zoom: 13.25));
+        const camera = MapCamera(
+          center: LatLng(48.1374, 11.5755),
+          zoom: 13.25,
+          bearing: 45,
+        );
+        await container.read(lastMapCameraProvider.notifier).save(camera);
 
-      expect(prefs.getDouble(_latKey), 48.1374);
-      expect(prefs.getDouble(_lonKey), 11.5755);
-      expect(prefs.getDouble(_zoomKey), 13.25);
-    });
+        expect(prefs.getDouble(_latKey), 48.1374);
+        expect(prefs.getDouble(_lonKey), 11.5755);
+        expect(prefs.getDouble(_zoomKey), 13.25);
+        // In memory the bearing is kept, for the other maps of this launch;
+        // the next launch opens north up.
+        expect(container.read(lastMapCameraProvider), camera);
+        expect(prefs.getKeys(), isNot(contains(contains('bearing'))));
+        final (relaunched, _) = await _container(<String, Object>{
+          _latKey: 48.1374,
+          _lonKey: 11.5755,
+          _zoomKey: 13.25,
+        });
+        expect(relaunched.read(lastMapCameraProvider).bearing, 0);
+      },
+    );
 
     test('saving a camera tells the listeners at once', () async {
       final (container, _) = await _container();

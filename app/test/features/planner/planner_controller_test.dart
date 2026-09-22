@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:velorki/app/app_config.dart';
 import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/domain/saved_route.dart';
@@ -16,15 +18,78 @@ const LatLng _a = LatLng(48.0, 11.0);
 const LatLng _b = LatLng(48.2, 11.2);
 const LatLng _c = LatLng(48.4, 11.4);
 
+/// The preferences the planner remembers its profile in, empty for every
+/// test.
+late SharedPreferences _prefs;
+
 ProviderContainer _container(FakeRoutingBackend? backend) {
   final container = ProviderContainer(
-    overrides: [routingBackendProvider.overrideWithValue(backend)],
+    overrides: [
+      routingBackendProvider.overrideWithValue(backend),
+      sharedPreferencesProvider.overrideWithValue(_prefs),
+    ],
   );
   addTearDown(container.dispose);
   return container;
 }
 
 void main() {
+  setUpAll(() async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    _prefs = await SharedPreferences.getInstance();
+  });
+  setUp(() => _prefs.clear());
+
+  group('the profile is remembered', () {
+    Future<ProviderContainer> containerWith(Map<String, Object> stored) async {
+      SharedPreferences.setMockInitialValues(stored);
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          routingBackendProvider.overrideWithValue(FakeRoutingBackend()),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      addTearDown(container.dispose);
+      return container;
+    }
+
+    test('a stored profile is the one the planner starts with', () async {
+      final container = await containerWith(<String, Object>{
+        'planner.profile': 'gravel',
+      });
+      expect(
+        container.read(plannerControllerProvider).options.profile,
+        RouteProfile.gravel,
+      );
+    });
+
+    test('a name no profile has falls back to the default', () async {
+      final container = await containerWith(<String, Object>{
+        'planner.profile': 'unicycle',
+      });
+      expect(
+        container.read(plannerControllerProvider).options.profile,
+        RouteProfile.trekking,
+      );
+    });
+
+    testWidgets('picking a profile stores it; the default clears it', (
+      tester,
+    ) async {
+      final container = _container(FakeRoutingBackend());
+      final planner = container.read(plannerControllerProvider.notifier);
+
+      planner.setProfile(RouteProfile.mtb);
+      await tester.pump();
+      expect(_prefs.getString('planner.profile'), 'mtb');
+
+      planner.setProfile(RouteProfile.trekking);
+      await tester.pump();
+      expect(_prefs.getString('planner.profile'), isNull);
+    });
+  });
+
   group('waypoint editing', () {
     test('a tap appends and the kinds follow the order', () {
       final container = _container(FakeRoutingBackend());

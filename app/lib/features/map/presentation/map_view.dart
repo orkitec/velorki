@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' show Point;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -89,8 +90,11 @@ class MapView extends ConsumerStatefulWidget {
     this.rememberCamera = true,
     this.showAttribution = true,
     this.showControls = true,
-    this.controlsPadding = const EdgeInsets.only(top: 12, right: 12),
-    this.attributionPadding = const EdgeInsets.only(left: 8, bottom: 8),
+    this.controlsPadding = const EdgeInsets.only(
+      top: defaultMapControlsTop,
+      right: 12,
+    ),
+    this.attributionPadding = const EdgeInsets.only(bottom: 6),
     super.key,
   });
 
@@ -115,7 +119,9 @@ class MapView extends ConsumerStatefulWidget {
   /// Inset of the control column from the top right corner.
   final EdgeInsets controlsPadding;
 
-  /// Inset of the attribution chip from the bottom left corner.
+  /// Inset of the attribution chip from the bottom edge of the view, on top
+  /// of the system's own inset there (the home indicator). It sits centred,
+  /// under the floating navigation bar, at the same spot on every tab.
   final EdgeInsets attributionPadding;
 
   @override
@@ -235,6 +241,7 @@ class _MapViewState extends ConsumerState<MapView> {
                 position.target.longitude,
               ),
               zoom: position.zoom,
+              bearing: position.bearing,
             ),
           ),
     );
@@ -281,20 +288,29 @@ class _MapViewState extends ConsumerState<MapView> {
     final camera = widget.rememberCamera
         ? ref.read(lastMapCameraProvider)
         : defaultMapCamera;
+    final chrome = MapChromeInsets.maybeOf(context);
+    final chromeTop = chrome?.controlsTop;
+    // The bottom of the view, whatever an owner removed from the padding:
+    // the chip and the (i) button sit in the band under the bar.
+    final attributionBottom =
+        MediaQuery.viewPaddingOf(context).bottom +
+        widget.attributionPadding.bottom;
 
     final map = ml.MapLibreMap(
       styleString: styleUrl,
       initialCameraPosition: ml.CameraPosition(
         target: ml.LatLng(camera.center.lat, camera.center.lon),
         zoom: camera.zoom,
+        bearing: camera.bearing,
       ),
       // The adapter reads `cameraPosition` for `center`/`zoom`.
       trackCameraPosition: true,
       compassEnabled: false,
       logoEnabled: false,
       // maplibre_gl 0.27 cannot hide the native attribution (i) button, so it
-      // is parked bottom right, opposite our own MapAttributionChip.
+      // is parked bottom right, in the same band as our own chip.
       attributionButtonPosition: ml.AttributionButtonPosition.bottomRight,
+      attributionButtonMargins: Point<num>(8, attributionBottom),
       rotateGesturesEnabled: true,
       tiltGesturesEnabled: false,
       // The map claims every touch that lands on it. Inside a scroll view
@@ -320,15 +336,9 @@ class _MapViewState extends ConsumerState<MapView> {
     );
 
     if (!widget.showAttribution && !widget.showControls) return map;
-    final chrome = MapChromeInsets.maybeOf(context);
-    final chromeTop = chrome?.controlsTop;
-    final chromeBottom = chrome?.attributionBottom;
     final controlsPadding = chromeTop == null
         ? widget.controlsPadding
         : widget.controlsPadding.copyWith(top: chromeTop);
-    final attributionPadding = chromeBottom == null
-        ? widget.attributionPadding
-        : widget.attributionPadding.copyWith(bottom: chromeBottom);
 
     return Stack(
       fit: StackFit.expand,
@@ -337,6 +347,8 @@ class _MapViewState extends ConsumerState<MapView> {
         if (widget.showControls)
           Positioned.fill(
             child: SafeArea(
+              // The owner animates `controlsTop` itself when its chrome
+              // changes with the tab; a plain padding follows it.
               child: Padding(
                 padding: controlsPadding,
                 child: Align(
@@ -347,16 +359,11 @@ class _MapViewState extends ConsumerState<MapView> {
             ),
           ),
         if (widget.showAttribution)
-          Positioned.fill(
-            child: SafeArea(
-              child: Padding(
-                padding: attributionPadding,
-                child: const Align(
-                  alignment: Alignment.bottomLeft,
-                  child: MapAttributionChip(),
-                ),
-              ),
-            ),
+          Positioned(
+            left: widget.attributionPadding.left,
+            right: widget.attributionPadding.right,
+            bottom: attributionBottom,
+            child: const Center(child: MapAttributionChip()),
           ),
       ],
     );

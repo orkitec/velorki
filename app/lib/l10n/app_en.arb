@@ -976,9 +976,29 @@
   "@recordingIdleTitle": {
     "description": "Headline of the record tab while nothing is being recorded"
   },
-  "recordingIdleHint": "The track is written to the phone while you ride, even with the screen off.",
+  "recordingIdleHint": "Runs in the background with the screen off.",
   "@recordingIdleHint": {
-    "description": "Explanation below the start button"
+    "description": "First of the one-line hints under the idle headline, shown in rotation with recordingIdleHint2 to 6; each must fit one line on a 390 dp phone"
+  },
+  "recordingIdleHint2": "Every ride stays on your phone.",
+  "@recordingIdleHint2": {
+    "description": "Second of the one-line hints under the idle headline, shown in rotation"
+  },
+  "recordingIdleHint3": "Auto-pause takes care of the red lights.",
+  "@recordingIdleHint3": {
+    "description": "Third hint: the recorder pauses by itself at a standstill"
+  },
+  "recordingIdleHint4": "Follow a route and the turns are spoken.",
+  "@recordingIdleHint4": {
+    "description": "Fourth hint: voice guidance when a route is followed"
+  },
+  "recordingIdleHint5": "Splits, climbs and surface, after the ride.",
+  "@recordingIdleHint5": {
+    "description": "Fifth hint: what the ride page shows afterwards"
+  },
+  "recordingIdleHint6": "Heart rate comes along when a sensor is on.",
+  "@recordingIdleHint6": {
+    "description": "Sixth hint: sensors join the ride once switched on"
   },
   "recordingStart": "Start ride",
   "@recordingStart": {

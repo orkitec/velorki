@@ -5,6 +5,7 @@ import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki_loops/velorki_loops.dart';
 
+import '../../../app/app_config.dart';
 import '../../routing_tiles/application/tile_update_check.dart';
 import '../data/routing_backend_provider.dart';
 import '../domain/planner_state.dart';
@@ -21,6 +22,10 @@ const Duration plannerDebounce = Duration(milliseconds: 300);
 
 /// The message [PlannerState.error] carries when no routing server is set.
 const String noRoutingBackendError = 'no routing server configured';
+
+/// Where the profile the rider picked last is kept, by [RouteProfile.name],
+/// so it is the one on the chips at the next start. Absent for the default.
+const String _prefsProfile = 'planner.profile';
 
 /// The Plan tab's state machine.
 ///
@@ -50,7 +55,14 @@ class PlannerController extends _$PlannerController {
         _scheduleRoute();
       }
     });
-    return const PlannerState();
+    // The profile picked last time; a name no profile has any more is the
+    // default.
+    final stored = ref
+        .watch(sharedPreferencesProvider)
+        .getString(_prefsProfile);
+    final profile =
+        RouteProfile.values.asNameMap()[stored] ?? RouteProfile.trekking;
+    return PlannerState(options: RoutingOptions(profile: profile));
   }
 
   /// Appends a waypoint at the end of the route (the map's tap gesture).
@@ -221,14 +233,26 @@ class PlannerController extends _$PlannerController {
     _setWaypoints(previous.waypoints);
   }
 
-  /// Switches the routing profile and re-routes.
+  /// Switches the routing profile, re-routes and keeps the pick for the next
+  /// start.
   void setProfile(RouteProfile profile) {
     if (state.options.profile == profile) return;
     state = state.copyWith(
       options: state.options.copyWith(profile: profile, alternativeIdx: 0),
       alternatives: const <RouteResult>[],
     );
+    unawaited(_rememberProfile(profile));
     _scheduleRoute();
+  }
+
+  /// The default is remembered by remembering nothing.
+  Future<void> _rememberProfile(RouteProfile profile) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    if (profile == RouteProfile.trekking) {
+      await prefs.remove(_prefsProfile);
+    } else {
+      await prefs.setString(_prefsProfile, profile.name);
+    }
   }
 
   /// Shows alternative [idx] (`0`..`3`), using an already fetched one when

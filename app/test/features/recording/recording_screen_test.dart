@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:velorki/app/router.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/recording/application/ride_finish_request.dart';
@@ -14,6 +16,7 @@ import 'package:velorki/features/recording/domain/ride.dart';
 import 'package:velorki/features/recording/domain/ride_naming.dart';
 import 'package:velorki/core/geo/ride_stats.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
+import 'package:velorki/features/map/data/map_preferences.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/navigation/application/navigation_controller.dart';
@@ -29,6 +32,8 @@ import 'package:velorki/features/recording/presentation/ride_profile_view.dart';
 import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
 import 'package:velorki/features/recording/presentation/rides_list.dart';
 import 'package:velorki/features/recording/presentation/save_ride_sheet.dart';
+import 'package:velorki/features/shared/application/nav_bar_docking.dart';
+import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -377,6 +382,116 @@ void main() {
       findsOneWidget,
     );
     expect(find.byType(NavigationBar), findsNothing);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('before a ride the sheet docks in the navigation bar; during '
+      'one it only drops to its handle', (tester) async {
+    final h = await pumpRecordingScreen(tester, const RecordingScreen());
+    await tester.pump();
+    DockingSheetShell shell() =>
+        tester.widget<DockingSheetShell>(find.byType(DockingSheetShell));
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(RecordingScreen)),
+    );
+    expect(shell().docks, isTrue);
+    expect(shell().docked, 0);
+
+    await tester.dragFrom(
+      tester.getCenter(find.byType(SheetHandle)),
+      const Offset(0, 1500),
+    );
+    await tester.pumpAndSettle();
+    expect(shell().docked, 1);
+    expect(container.read(navBarDockingProvider), {recordingRoute});
+    expectNoClippedText(tester);
+
+    // A ride starting under the docked sheet (from the watch, say): the bar
+    // goes, the live sheet has nothing to dock into, and the bar is told so
+    // it comes back round.
+    await emitSnapshot(
+      tester,
+      h,
+      _snapshot(newPoints: const [LatLng(48.0, 11.0), LatLng(48.1, 11.2)]),
+    );
+    await tester.pumpAndSettle();
+    expect(shell().docks, isFalse);
+    expect(shell().docked, 0);
+    expect(container.read(navBarDockingProvider), isEmpty);
+
+    await tester.dragFrom(
+      tester.getCenter(find.byType(SheetHandle)),
+      const Offset(0, 1500),
+    );
+    await tester.pumpAndSettle();
+    expect(shell().docked, 0);
+    expect(container.read(navBarDockingProvider), isEmpty);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('the idle sheet rests where the Plan sheet rests', (
+    tester,
+  ) async {
+    await pumpRecordingScreen(tester, const RecordingScreen());
+    await tester.pump();
+    final screenHeight = MediaQuery.sizeOf(
+      tester.element(find.byType(RecordingScreen)),
+    ).height;
+    final sheet = tester.widget<DraggableScrollableSheet>(
+      find.byType(DraggableScrollableSheet),
+    );
+    expect(sheet.initialChildSize, sheetRestingExtent(screenHeight));
+    expect(sheet.snapSizes, [sheetRestingExtent(screenHeight)]);
+    // The start button is still in view at that height.
+    expect(find.text(l10n.recordingStart), findsOneWidget);
+    await unmountApp(tester);
+  });
+
+  testWidgets('the map takes the stored camera, but not while following', (
+    tester,
+  ) async {
+    final h = await pumpRecordingScreen(tester, const RecordingScreen());
+    await tester.pump();
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(RecordingScreen)),
+    );
+    h.map
+      ..center = defaultMapCamera.center
+      ..zoom = defaultMapCamera.zoom;
+    List<MapCall> moves() =>
+        h.map.calls.where((c) => c.method == 'moveTo').toList();
+    final before = moves().length;
+
+    // Idle: the camera another map came to rest at is taken, once, in a jump.
+    const camera = MapCamera(center: LatLng(52.52, 13.405), zoom: 11);
+    await container.read(lastMapCameraProvider.notifier).save(camera);
+    await tester.pump();
+    expect(moves(), hasLength(before + 1));
+    expect(moves().last.arguments[0], camera.center);
+    expect(moves().last.arguments[4], isFalse);
+    await tester.pump();
+    expect(moves(), hasLength(before + 1));
+
+    // A ride starts and the map follows the rider: another map's camera is
+    // no longer any of this map's business.
+    await emitSnapshot(
+      tester,
+      h,
+      _snapshot(newPoints: const [LatLng(48.0, 11.0), LatLng(48.1, 11.2)]),
+    );
+    await tester.pumpAndSettle();
+    final following = moves().length;
+    await container
+        .read(lastMapCameraProvider.notifier)
+        .save(const MapCamera(center: LatLng(40.7, -74.0), zoom: 12));
+    await tester.pump();
+    expect(moves(), hasLength(following));
+    expect(
+      moves().any((m) => m.arguments[0] == const LatLng(40.7, -74.0)),
+      isFalse,
+    );
 
     await unmountApp(tester);
   });
@@ -1835,6 +1950,8 @@ void main() {
       expect(find.byType(TurnBanner), findsOneWidget);
       expect(find.text(testHeight(200)), findsOneWidget);
       expect(find.text(l10n.navTurnLeft), findsOneWidget);
+      // The column glides down under the banner.
+      await tester.pump(const Duration(milliseconds: 300));
       expect(
         tester
             .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
@@ -1856,7 +1973,7 @@ void main() {
         tester
             .widget<MapChromeInsets>(find.byType(MapChromeInsets).first)
             .controlsTop,
-        isNull,
+        defaultMapControlsTop,
       );
 
       await unmountApp(tester);
@@ -2114,6 +2231,67 @@ void main() {
     );
     expect(find.textContaining('km'), findsNothing);
 
+    await unmountApp(tester);
+  });
+
+  // Last on purpose: it swaps the test font for the real one, which every
+  // test after it in this file would then lay out with.
+  testWidgets('at rest on a 390 dp phone the idle sheet shows the chooser, '
+      'the button and the switch without a scroll', (tester) async {
+    // The stand-in font of a widget test gives every glyph a full em, so no
+    // sentence would fit one line at 390 dp. Measure with the font the app
+    // ships, at the weight of the small body text.
+    final manrope = FontLoader('Manrope')
+      ..addFont(rootBundle.load('assets/fonts/Manrope-Medium.ttf'));
+    await manrope.load();
+    // The view agrees with the surface, so the sheet's fractions are real.
+    tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+    addTearDown(tester.view.resetPhysicalSize);
+    await pumpRecordingScreen(
+      tester,
+      const RecordingScreen(),
+      surfaceSize: const Size(390, 844),
+    );
+    await tester.pumpAndSettle();
+    expectNoClippedText(tester);
+
+    // The line under the headline is one line, whichever hint is up.
+    final shown = tester.widget<Text>(find.byKey(recordingIdleHintKey)).data;
+    expect(idleHints(l10n), contains(shown));
+    expect(
+      tester.getSize(find.byKey(recordingIdleHintKey)).height,
+      lessThan(20),
+    );
+
+    // And every hint in the rotation fits that line at this width.
+    final style = tester.widget<Text>(find.byKey(recordingIdleHintKey)).style;
+    for (final hint in idleHints(l10n)) {
+      final painter = TextPainter(
+        text: TextSpan(text: hint, style: style),
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: 390 - 40);
+      expect(painter.computeLineMetrics(), hasLength(1), reason: hint);
+    }
+
+    final sheet = tester.widget<DraggableScrollableSheet>(
+      find.byType(DraggableScrollableSheet),
+    );
+    final sheetTop = 844 * (1 - sheet.initialChildSize);
+    final chooser = tester.getRect(
+      find.byType(DropdownButtonFormField<String?>),
+    );
+    final start = tester.getRect(
+      find.widgetWithText(FilledButton, l10n.recordingStart),
+    );
+    final keep = tester.getRect(
+      find.widgetWithText(SwitchListTile, l10n.recordingKeepScreenOn),
+    );
+    // The chooser first, the button under it, the switch under that, all
+    // inside the sheet at its resting height.
+    expect(chooser.top, greaterThanOrEqualTo(sheetTop));
+    expect(start.top, greaterThanOrEqualTo(chooser.bottom));
+    expect(keep.top, greaterThanOrEqualTo(start.bottom));
+    expect(keep.bottom, lessThanOrEqualTo(844));
     await unmountApp(tester);
   });
 }

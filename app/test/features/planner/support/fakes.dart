@@ -95,6 +95,7 @@ class TestMapController implements MapController {
   }) async {
     movedTo = center;
     this.center = center;
+    if (zoom != null) this.zoom = zoom;
     if (bearing != null) this.bearing = bearing;
     calls.add(MapCall('moveTo', [center, zoom, bearing, duration, animate]));
   }

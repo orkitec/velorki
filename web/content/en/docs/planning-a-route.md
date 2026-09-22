@@ -48,7 +48,7 @@ The row of chips under the search field is the bike profile, and it decides whic
 | **MTB** | trails and singletrack |
 | **Direct** | the shortest way, with the least regard for comfort |
 
-Changing the profile re-routes the whole plan and clears any variants you had loaded.
+Changing the profile re-routes the whole plan and clears any variants you had loaded. Velorki keeps the profile you chose last for the next start.
 
 ## The toolbar
 
@@ -75,7 +75,7 @@ Often fewer than four come back; whatever the router found is what you get. If n
 
 The sheet header shows four figures: **Distance**, **Ascent**, **Descent** and **Est. time**. The estimated time comes from the typical speed of the chosen bike profile, not from a server, and it makes no allowance for your café stops.
 
-Drag the sheet up for the rest, or down to its handle, which rests above the navigation bar, to free the map.
+Drag the sheet up for the rest. Pulled all the way down, it folds into the navigation bar and leaves only its handle above the tabs, so the map is free; drag the handle up to bring it back.
 
 ### Elevation
 
