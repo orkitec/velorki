@@ -137,7 +137,8 @@ class RecordingScreen extends ConsumerStatefulWidget {
   ConsumerState<RecordingScreen> createState() => _RecordingScreenState();
 }
 
-class _RecordingScreenState extends ConsumerState<RecordingScreen> {
+class _RecordingScreenState extends ConsumerState<RecordingScreen>
+    with SingleTickerProviderStateMixin {
   MapController? _map;
   bool _keepScreenOn = false;
 
@@ -160,6 +161,53 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
 
   /// Whether this is the tab on screen, as the last build saw it.
   bool _active = false;
+
+  /// The hint under the idle headline, rolled anew whenever the tab comes up.
+  int _hintIndex = math.Random().nextInt(idleHintCount);
+
+  /// The list inside the sheet: it fades in as the tab comes and out as
+  /// the tab goes, under the Plan sheet cross-fading the other way.
+  late final SheetFade _content;
+
+  /// Where the sheet starts when this screen is built in the middle of a
+  /// change to its tab: where the other tab's sheet is, so the two match
+  /// from the first frame; `null` once the sheet has taken over.
+  double? _arrivingExtent;
+
+  @override
+  void initState() {
+    super.initState();
+    // Built in the middle of a change to this tab (its first visit, from
+    // another tab): the listener in build sees no change, so the list and
+    // the sheet are started from here.
+    final tabs = ref.read(activeTabProvider.notifier);
+    final arriving =
+        ref.read(activeTabProvider) == recordingRoute && tabs.previous != null;
+    _content = SheetFade(vsync: this, visible: !arriving);
+    if (!arriving) return;
+    _content.show();
+    _arrivingExtent = ref.read(tabHandoverProvider).sheetExtent;
+    // The sheet, once it exists: after the first frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _takeOverSheet();
+      setState(() => _arrivingExtent = null);
+    });
+  }
+
+  /// What the shell's control column was last told about this tab.
+  MapChromeData? _chromeData;
+
+  /// Tells the shell's column what this tab wants of it, after the frame.
+  void _shareChrome(MapChromeData data) {
+    if (data == _chromeData) return;
+    _chromeData = data;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _active && _chromeData == data) {
+        ref.read(activeMapChromeProvider.notifier).set(data);
+      }
+    });
+  }
 
   /// Where the map's control column rests under this tab's chrome. The
   /// column itself is one shared, animated value ([mapControlsTopProvider]):
@@ -305,6 +353,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     _glanceTimer?.cancel();
     _map?.onCameraIdle = null;
     _idleSheet.dispose();
+    _content.dispose();
     if (_docked) {
       // Deferred: the tree is locked while a widget goes, and the shell
       // would rebuild for this.
@@ -1240,10 +1289,38 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     _active = active;
     ref.listen(activeTabProvider, (previous, next) {
       if (next == recordingRoute && previous != recordingRoute) {
+        // A fresh hint each time the tab comes up, never the one just shown.
+        _hintIndex = _nextHint(_hintIndex);
         _takeOverControls();
         _takeOverSheet();
+        _content.show();
+      } else if (previous == recordingRoute && next != recordingRoute) {
+        // Under the Plan sheet fading in on top.
+        _content.hide();
+        // The next tab tells the column its own wants; this one tells it
+        // again, from scratch, when it comes back.
+        _chromeData = null;
+        // The bar is square only while a docked strip is on top: the next
+        // tab's sheet says so for itself from here on.
+        _reportDocked(false);
       }
     });
+    if (active) {
+      _shareChrome(
+        MapChromeData(
+          visible: !glance,
+          showRoutingTiles: false,
+          following: state.isRecording && _following,
+          headingUp:
+              state.isRecording &&
+              _following &&
+              followMode == FollowMode.headingUp,
+          bearingDeg: _bearing,
+          onLocate: _handleLocate,
+          onCompass: state.isRecording ? _handleCompass : null,
+        ),
+      );
+    }
     // The turn banner sits over the top of the map, so the control column
     // starts below it while one is showing.
     _ownControlsTop = guiding ? turnBannerHeight + 24 : defaultMapControlsTop;
@@ -1316,6 +1393,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                       // map's own fixes would write over both.
                       ownsPosition: state.isRecording,
                       sharesCamera: true,
+                      sharedTab: recordingRoute,
                     ),
                   ),
                 ),
@@ -1350,19 +1428,26 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                 // when a ride starts or ends.
                 key: ValueKey(sheetKey),
                 controller: state.isRecording ? null : _idleSheet,
-                initialChildSize: initial,
+                initialChildSize: state.isRecording
+                    ? initial
+                    : _arrivingExtent ?? initial,
                 minChildSize: collapsed,
                 maxChildSize: 0.85,
                 snap: true,
                 snapSizes: _snapSizesFor(initial),
                 builder: (context, scrollController) => DockingSheet(
-                  initialExtent: initial,
+                  // Where the sheet really starts: for a screen built in
+                  // the middle of a change, where the other tab's sheet is.
+                  initialExtent: state.isRecording
+                      ? initial
+                      : _arrivingExtent ?? initial,
                   collapsedExtent: collapsed,
                   dockedRange: dockedRange,
                   docks: docks,
                   dockedBottomInset: bottomInset,
                   onDocked: _reportDocked,
                   onExtent: _onSheetExtent,
+                  contentOpacity: _content.animation,
                   handle: const SheetHandle(),
                   child: state.isRecording
                       ? _LivePanel(
@@ -1387,6 +1472,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                         )
                       : _IdlePanel(
                           state: state,
+                          hintIndex: _hintIndex,
                           scrollController: scrollController,
                           bottomInset: bottomInset,
                           keepScreenOn: _keepScreenOn,
@@ -1511,6 +1597,7 @@ enum _RecoveryDecision { resume, finish, discard }
 class _IdlePanel extends ConsumerWidget {
   const _IdlePanel({
     required this.state,
+    required this.hintIndex,
     required this.scrollController,
     required this.bottomInset,
     required this.keepScreenOn,
@@ -1519,6 +1606,9 @@ class _IdlePanel extends ConsumerWidget {
   });
 
   final RecordingUiState state;
+
+  /// Which of [idleHints] to show.
+  final int hintIndex;
   final ScrollController scrollController;
   final double bottomInset;
   final bool keepScreenOn;
@@ -1543,9 +1633,9 @@ class _IdlePanel extends ConsumerWidget {
         const SizedBox(height: 6),
         Text(
           key: recordingIdleHintKey,
-          // One of six, a different one each hour: something true about the
-          // recorder rather than the same sentence every day.
-          idleHints(l10n)[_hourOfEpoch() % idleHints(l10n).length],
+          // One of six, a new one each time the tab comes up: something
+          // true about the recorder rather than the same sentence every day.
+          idleHints(l10n)[hintIndex % idleHints(l10n).length],
           style: theme.textTheme.bodySmall,
         ),
         const SizedBox(height: 16),
@@ -1623,8 +1713,14 @@ List<String> idleHints(AppLocalizations l10n) => <String>[
   l10n.recordingIdleHint6,
 ];
 
-int _hourOfEpoch() =>
-    DateTime.now().millisecondsSinceEpoch ~/ Duration.millisecondsPerHour;
+/// A random hint index other than [current]; [idleHintCount] of them.
+int _nextHint(int current) {
+  final next = math.Random().nextInt(idleHintCount - 1);
+  return next >= current ? next + 1 : next;
+}
+
+/// How many one-line hints [idleHints] has.
+const int idleHintCount = 6;
 
 /// How tall the route chooser's menu may grow before it scrolls.
 const double followRouteMenuMaxHeight = 320;

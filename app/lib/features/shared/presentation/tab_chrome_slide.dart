@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// How long the chrome of a tab takes to slide in.
-const Duration tabChromeSlideDuration = Duration(milliseconds: 250);
+const Duration tabChromeSlideDuration = Duration(milliseconds: 200);
 
 /// How long a sheet takes to settle when its tab comes on screen: from where
 /// the last tab's sheet was, or up from docked to its resting height.
@@ -144,4 +144,35 @@ class _TabChromeSlideState extends State<TabChromeSlide>
   @override
   Widget build(BuildContext context) =>
       SlideTransition(position: _position, child: widget.child);
+}
+
+/// The opacity of a tab's sheet, or of the list inside it, around a change
+/// between the Plan and Record tabs: one sheet's fades out while the
+/// other's fades in, over the length of the hold, at the same time.
+///
+/// The shell keeps Plan painted on top for the hold with its map offstage,
+/// so the two sheets are both in view: Plan's whole sheet fades over
+/// Record's, whose list fades under it.
+class SheetFade {
+  /// Creates the fade, [visible] or not.
+  SheetFade({required TickerProvider vsync, required bool visible})
+    : _controller = AnimationController(
+        vsync: vsync,
+        duration: tabChromeSlideDuration,
+        value: visible ? 1 : 0,
+      );
+
+  final AnimationController _controller;
+
+  /// The opacity as it moves.
+  Animation<double> get animation => _controller;
+
+  /// Fades in, from wherever it is.
+  void show() => _controller.forward();
+
+  /// Fades out, from wherever it is.
+  void hide() => _controller.reverse();
+
+  /// Releases the ticker.
+  void dispose() => _controller.dispose();
 }

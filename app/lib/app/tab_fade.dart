@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../features/shared/application/active_tab.dart';
 import '../features/shared/presentation/tab_chrome_slide.dart';
 
 /// How long a tab takes to fade in over the one before it.
@@ -16,7 +18,7 @@ const Duration tabFadeDuration = Duration(milliseconds: 150);
 /// Both are painted, fully, for [tabChromeSlideDuration], with [chromeTab]
 /// on top whether it is going or coming, so its chrome is seen sliding out
 /// over the other tab's identical map, or sliding in over it.
-class TabFadeStack extends StatefulWidget {
+class TabFadeStack extends ConsumerStatefulWidget {
   /// Creates the container.
   const TabFadeStack({
     required this.index,
@@ -41,10 +43,10 @@ class TabFadeStack extends StatefulWidget {
   final List<Widget> children;
 
   @override
-  State<TabFadeStack> createState() => _TabFadeStackState();
+  ConsumerState<TabFadeStack> createState() => _TabFadeStackState();
 }
 
-class _TabFadeStackState extends State<TabFadeStack>
+class _TabFadeStackState extends ConsumerState<TabFadeStack>
     with TickerProviderStateMixin {
   late final AnimationController _fade = AnimationController(
     vsync: this,
@@ -85,7 +87,17 @@ class _TabFadeStackState extends State<TabFadeStack>
           _leaving = null;
           _swap = false;
         });
+        ref.read(tabHoldProvider.notifier).set(null);
       }
+    });
+  }
+
+  /// Tells the screens which tab is held on top, after the frame: a build
+  /// may not write a provider. The bar's tap has usually said so already,
+  /// before the frame; this covers the other ways a tab changes.
+  void _announceHold(int? tab) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(tabHoldProvider.notifier).set(tab);
     });
   }
 
@@ -99,11 +111,13 @@ class _TabFadeStackState extends State<TabFadeStack>
       _swap = true;
       _fade.value = 1;
       _hold.forward(from: 0);
+      _announceHold(widget.chromeTab);
       return;
     }
     _swap = false;
     _hold.value = 1;
     _fade.forward(from: 0);
+    _announceHold(null);
   }
 
   @override

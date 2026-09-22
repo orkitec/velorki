@@ -2258,6 +2258,7 @@ void main() {
     // The line under the headline is one line, whichever hint is up.
     final shown = tester.widget<Text>(find.byKey(recordingIdleHintKey)).data;
     expect(idleHints(l10n), contains(shown));
+    expect(idleHints(l10n), hasLength(idleHintCount));
     expect(
       tester.getSize(find.byKey(recordingIdleHintKey)).height,
       lessThan(20),

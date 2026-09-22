@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,7 +9,11 @@ import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/router.dart';
 import 'package:velorki/app/tab_fade.dart';
 import 'package:velorki/core/db/database.dart';
+import 'package:velorki/features/map/data/map_preferences.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
+import 'package:velorki/features/map/presentation/map_controls.dart';
+import 'package:velorki/features/map/testing/testing.dart';
+import 'package:velorki/features/planner/presentation/planner_map_host.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
@@ -18,7 +23,44 @@ import 'package:velorki/features/shared/presentation/tab_chrome_slide.dart';
 
 import '../support/app.dart';
 
-Future<void> _pumpShell(WidgetTester tester) async {
+/// Stands in for the maplibre view: it hands out its own controller once,
+/// on the default view, the way the real map opens on the stored camera.
+class _FakeMapView extends StatefulWidget {
+  const _FakeMapView({required this.onReady, required this.onCreated});
+
+  final void Function(MapController controller) onReady;
+  final void Function(FakeMapController controller) onCreated;
+
+  @override
+  State<_FakeMapView> createState() => _FakeMapViewState();
+}
+
+class _FakeMapViewState extends State<_FakeMapView> {
+  final FakeMapController controller = FakeMapController()
+    ..center = defaultMapCamera.center
+    ..zoom = defaultMapCamera.zoom
+    ..bearing = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.onCreated(controller);
+    widget.onReady(controller);
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      const ColoredBox(color: Color(0xFFDDDDDD));
+}
+
+/// A builder that makes one fresh map per host and collects them in [maps].
+MapViewBuilder _collectingBuilder(List<FakeMapController> maps) =>
+    (onReady) => _FakeMapView(onReady: onReady, onCreated: maps.add);
+
+Future<void> _pumpShell(
+  WidgetTester tester, {
+  List<Override> overrides = const <Override>[],
+}) async {
   // The settings tab is long — subscription, connections, AI, advanced,
   // about — so the shell is pumped on a tall surface rather than scrolled to
   // every assertion.
@@ -34,6 +76,7 @@ Future<void> _pumpShell(WidgetTester tester) async {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         velorkiDatabaseProvider.overrideWithValue(db),
+        ...overrides,
       ],
       child: testRouterApp(routerConfig: createRouter()),
     ),
@@ -353,6 +396,324 @@ void main() {
     expect(painted.map((b) => b.tab), [1]);
     await tester.pumpAndSettle();
     expect(plannerChrome(tester), const Offset(0, -1));
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+  });
+
+  /// The opacity of the list inside the sheet of [screen], painted or not.
+  double listOpacityOf(WidgetTester tester, Type screen) => tester
+      .widget<Opacity>(
+        find
+            .descendant(
+              of: find.descendant(
+                of: find.byType(screen, skipOffstage: false),
+                matching: find.byType(DockingSheetShell, skipOffstage: false),
+              ),
+              matching: find.byType(Opacity, skipOffstage: false),
+            )
+            .first,
+      )
+      .opacity;
+
+  /// The opacity of the whole Plan sheet, frame and list, painted or not:
+  /// the fade wrapped directly around the sheet, not the branch's.
+  double plannerSheetOpacity(WidgetTester tester) => tester
+      .widgetList<FadeTransition>(
+        find.byType(FadeTransition, skipOffstage: false),
+      )
+      .firstWhere((fade) => fade.child is DockingSheet)
+      .opacity
+      .value;
+
+  /// Whether the Plan map is rendered offstage, as it is for a hold: the
+  /// Offstage wrapped directly around the map host, not the branch's.
+  bool plannerMapOffstage(WidgetTester tester) => tester
+      .widgetList<Offstage>(find.byType(Offstage, skipOffstage: false))
+      .firstWhere((offstage) => offstage.child is PlannerMapHost)
+      .offstage;
+
+  testWidgets('between Plan and Record the sheets cross-fade at once, over '
+      'the Record map, with the Plan map offstage for the hold', (
+    tester,
+  ) async {
+    // The sheets size themselves from MediaQuery: with the view agreeing
+    // with the surface the resting sheet is clear of the docking range,
+    // so the docking fade leaves the lists alone here.
+    tester.view.physicalSize = const Size(3000, 6000);
+    addTearDown(tester.view.resetPhysicalSize);
+    await _pumpShell(tester);
+    expect(plannerSheetOpacity(tester), 1);
+    expect(plannerMapOffstage(tester), isFalse);
+
+    // Leaving: Plan on top with its map away, its sheet fading out while
+    // the Record list fades in underneath, both half way at half the hold.
+    await tester.tap(
+      find.widgetWithText(NavigationDestination, l10n.tabRecord),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(paintedBranches(tester).map((b) => b.tab), [1, 0]);
+    expect(plannerMapOffstage(tester), isTrue);
+    expect(plannerSheetOpacity(tester), closeTo(0.5, 0.12));
+    expect(listOpacityOf(tester, RecordingScreen), closeTo(0.5, 0.12));
+
+    await tester.pump(const Duration(milliseconds: 120));
+    expect(paintedBranches(tester).map((b) => b.tab), [1]);
+    expect(listOpacityOf(tester, RecordingScreen), 1);
+    await tester.pumpAndSettle();
+    expect(plannerSheetOpacity(tester), 0);
+    expect(plannerMapOffstage(tester), isFalse);
+
+    // Arriving: Plan on top from the first frame, map away and sheet
+    // clear, so the Record sheet shows through; the two fade across each
+    // other, and the map is back once the hold ends.
+    await tester.tap(find.widgetWithText(NavigationDestination, l10n.tabPlan));
+    await tester.pump();
+    expect(paintedBranches(tester).map((b) => b.tab), [1, 0]);
+    expect(plannerMapOffstage(tester), isTrue);
+    expect(plannerSheetOpacity(tester), 0);
+    expect(listOpacityOf(tester, RecordingScreen), 1);
+    // Plan's tickers were off while it was away; their clock starts with
+    // its first painted frame.
+    await tester.pump(const Duration(milliseconds: 16));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(plannerSheetOpacity(tester), closeTo(0.5, 0.12));
+    expect(listOpacityOf(tester, RecordingScreen), closeTo(0.5, 0.12));
+    await tester.pump(const Duration(milliseconds: 104));
+    expect(plannerMapOffstage(tester), isFalse);
+    expect(plannerSheetOpacity(tester), 1);
+    expect(paintedBranches(tester).map((b) => b.tab), [0]);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+  });
+
+  /// The extent of the sheet of [screen], painted or not.
+  double sheetExtentOf(WidgetTester tester, Type screen) => tester
+      .widget<DockingSheetShell>(
+        find
+            .descendant(
+              of: find.byType(screen, skipOffstage: false),
+              matching: find.byType(DockingSheetShell, skipOffstage: false),
+            )
+            .first,
+      )
+      .extent;
+
+  /// The smallest extent of the sheet of [screen]: docked.
+  double dockedExtentOf(WidgetTester tester, Type screen) => tester
+      .widget<DraggableScrollableSheet>(
+        find
+            .descendant(
+              of: find.byType(screen, skipOffstage: false),
+              matching: find.byType(
+                DraggableScrollableSheet,
+                skipOffstage: false,
+              ),
+            )
+            .first,
+      )
+      .minChildSize;
+
+  /// The resting extent of the sheet of [screen].
+  double restingExtentOf(WidgetTester tester, Type screen) => tester
+      .widget<DraggableScrollableSheet>(
+        find
+            .descendant(
+              of: find.byType(screen, skipOffstage: false),
+              matching: find.byType(
+                DraggableScrollableSheet,
+                skipOffstage: false,
+              ),
+            )
+            .first,
+      )
+      .initialChildSize;
+
+  /// Pulls the sheet of the tab on screen all the way down.
+  Future<void> dockSheet(WidgetTester tester) async {
+    await tester.dragFrom(
+      tester.getCenter(find.byType(SheetHandle)),
+      const Offset(0, 1500),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('Plan docked, tapping Record: the Record sheet is docked from '
+      'the first frame and rises at once, the bar round with it', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(3000, 6000);
+    addTearDown(tester.view.resetPhysicalSize);
+    await _pumpShell(tester);
+    bool barDocked() => tester
+        .widget<FloatingNavigationBar>(find.byType(FloatingNavigationBar))
+        .docked;
+    await dockSheet(tester);
+    expect(barDocked(), isTrue);
+    final docked = dockedExtentOf(tester, PlannerScreen);
+
+    await tester.tap(
+      find.widgetWithText(NavigationDestination, l10n.tabRecord),
+    );
+    await tester.pump();
+    // First frame: the Record sheet, new, is where Plan's docked one is.
+    expect(sheetExtentOf(tester, RecordingScreen), closeTo(docked, 0.001));
+    // Its rise starts after that frame; the clock runs from the first
+    // painted tick.
+    await tester.pump(const Duration(milliseconds: 16));
+    await tester.pump(const Duration(milliseconds: 100));
+    final rising = sheetExtentOf(tester, RecordingScreen);
+    expect(rising, greaterThan(docked + 0.005));
+    expect(rising, lessThan(restingExtentOf(tester, RecordingScreen) - 0.005));
+    expect(barDocked(), isFalse);
+
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(
+      sheetExtentOf(tester, RecordingScreen),
+      closeTo(restingExtentOf(tester, RecordingScreen), 0.001),
+    );
+    expect(barDocked(), isFalse);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+  });
+
+  testWidgets('Record docked, tapping Plan: the Plan sheet starts where '
+      'Record\'s docked one is and rises at once, undocking the bar', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(3000, 6000);
+    addTearDown(tester.view.resetPhysicalSize);
+    await _pumpShell(tester);
+    bool barDocked() => tester
+        .widget<FloatingNavigationBar>(find.byType(FloatingNavigationBar))
+        .docked;
+    await _tapTab(tester, l10n.tabRecord);
+    await dockSheet(tester);
+    expect(barDocked(), isTrue);
+    final docked = dockedExtentOf(tester, RecordingScreen);
+
+    await tester.tap(find.widgetWithText(NavigationDestination, l10n.tabPlan));
+    await tester.pump();
+    // First frame: Plan on top, its sheet where Record's docked one is,
+    // the bar square.
+    expect(sheetExtentOf(tester, PlannerScreen), closeTo(docked, 0.001));
+    expect(barDocked(), isTrue);
+
+    // Plan's tickers were off while it was away; the rise's clock runs
+    // from its first painted tick.
+    await tester.pump(const Duration(milliseconds: 16));
+    await tester.pump(const Duration(milliseconds: 134));
+    final rising = sheetExtentOf(tester, PlannerScreen);
+    expect(rising, greaterThan(docked + 0.005));
+    expect(rising, lessThan(restingExtentOf(tester, PlannerScreen) - 0.005));
+    expect(barDocked(), isFalse);
+
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(
+      sheetExtentOf(tester, PlannerScreen),
+      closeTo(restingExtentOf(tester, PlannerScreen), 0.001),
+    );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+  });
+
+  testWidgets('one control column over Plan and Record, drawn by the shell, '
+      'none over the library', (tester) async {
+    await _pumpShell(tester);
+    expect(find.byType(MapControls), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(PlannerScreen),
+        matching: find.byType(MapControls),
+      ),
+      findsNothing,
+    );
+    expect(find.byTooltip(l10n.offlineEntryTitle), findsOneWidget);
+
+    await _tapTab(tester, l10n.tabRecord);
+    expect(find.byType(MapControls), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(RecordingScreen),
+        matching: find.byType(MapControls),
+      ),
+      findsNothing,
+    );
+    expect(find.byTooltip(l10n.offlineEntryTitle), findsNothing);
+
+    await _tapTab(tester, l10n.tabLibrary);
+    expect(find.byType(MapControls), findsNothing);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+  });
+
+  testWidgets('the column shrinks and grows for the download button as the '
+      'tab changes, rather than jumping', (tester) async {
+    await _pumpShell(tester);
+    final onPlan = tester.getSize(find.byType(MapControls)).height;
+
+    await tester.tap(
+      find.widgetWithText(NavigationDestination, l10n.tabRecord),
+    );
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    final midway = tester.getSize(find.byType(MapControls)).height;
+    await tester.pumpAndSettle();
+    final onRecord = tester.getSize(find.byType(MapControls)).height;
+    expect(onRecord, lessThan(onPlan - 30));
+    expect(midway, lessThan(onPlan));
+    expect(midway, greaterThan(onRecord));
+
+    await tester.tap(find.widgetWithText(NavigationDestination, l10n.tabPlan));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    final back = tester.getSize(find.byType(MapControls)).height;
+    expect(back, greaterThan(onRecord));
+    expect(back, lessThan(onPlan));
+    await tester.pumpAndSettle();
+    expect(tester.getSize(find.byType(MapControls)).height, onPlan);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 1));
+  });
+
+  testWidgets('the zoom buttons drive the map of the tab on screen', (
+    tester,
+  ) async {
+    final maps = <FakeMapController>[];
+    await _pumpShell(
+      tester,
+      overrides: [
+        mapViewBuilderProvider.overrideWithValue(_collectingBuilder(maps)),
+      ],
+    );
+    expect(maps, hasLength(1));
+    final plan = maps[0];
+
+    await tester.tap(find.byTooltip(l10n.mapZoomIn));
+    await tester.pump();
+    expect(plan.cameraMoves.last.zoom, defaultMapCamera.zoom + 1);
+
+    await _tapTab(tester, l10n.tabRecord);
+    expect(maps, hasLength(2));
+    final record = maps[1];
+    final before = plan.cameraMoves.length;
+    await tester.tap(find.byTooltip(l10n.mapZoomOut));
+    await tester.pump();
+    expect(record.cameraMoves.last.zoom, defaultMapCamera.zoom - 1);
+    expect(plan.cameraMoves, hasLength(before));
+
+    await _tapTab(tester, l10n.tabPlan);
+    await tester.tap(find.byTooltip(l10n.mapZoomIn));
+    await tester.pump();
+    expect(plan.cameraMoves, hasLength(before + 1));
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));

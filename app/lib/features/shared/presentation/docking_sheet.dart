@@ -81,8 +81,13 @@ class DockingSheet extends StatefulWidget {
     required this.child,
     this.onDocked,
     this.onExtent,
+    this.contentOpacity = kAlwaysCompleteAnimation,
     super.key,
   });
+
+  /// The opacity of [child] on top of the docking fade: the list dissolves
+  /// around a tab change while the frame stays.
+  final Animation<double> contentOpacity;
 
   /// The sheet's `initialChildSize`, the extent until the first notification.
   final double initialExtent;
@@ -164,6 +169,7 @@ class _DockingSheetState extends State<DockingSheet> {
           docks: widget.docks,
           dockedBottomInset: widget.dockedBottomInset,
           handle: widget.handle,
+          contentOpacity: widget.contentOpacity,
           child: widget.child,
         ),
       );
@@ -190,8 +196,12 @@ class DockingSheetShell extends StatelessWidget {
     required this.dockedBottomInset,
     required this.handle,
     required this.child,
+    this.contentOpacity = kAlwaysCompleteAnimation,
     super.key,
   });
+
+  /// The opacity of [child] on top of the docking fade.
+  final Animation<double> contentOpacity;
 
   /// The sheet's current size, as a fraction of the parent's height.
   final double extent;
@@ -297,7 +307,16 @@ class DockingSheetShell extends StatelessWidget {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        Opacity(opacity: 1 - t, child: child),
+                        // The docking fade and the tab change's content fade,
+                        // composed; the list itself is the same widget every
+                        // frame, so only its opacity changes.
+                        AnimatedBuilder(
+                          animation: contentOpacity,
+                          builder: (context, _) => Opacity(
+                            opacity: (1 - t) * contentOpacity.value,
+                            child: child,
+                          ),
+                        ),
                         Positioned(
                           top: 0,
                           left: 0,

@@ -3,6 +3,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../app/router.dart';
+import '../../map/domain/map_controller.dart';
 import '../../map/presentation/map_chrome.dart';
 import '../presentation/tab_chrome_slide.dart';
 
@@ -21,9 +22,16 @@ class ActiveTab extends _$ActiveTab {
   @override
   String build() => plannerRoute;
 
+  /// The tab that was on screen before the current one, or `null` before
+  /// any change: a screen built for the first time in the middle of a change
+  /// (its tab's first visit) learns from this what it is arriving from.
+  String? get previous => _previous;
+  String? _previous;
+
   /// Records that the tab at [route] is the one on screen.
   void show(String route) {
     if (!ref.mounted || state == route) return;
+    _previous = state;
     state = route;
   }
 }
@@ -82,5 +90,108 @@ class TabHandover extends _$TabHandover {
   void setSheetExtent(double value) {
     if (!ref.mounted || state.sheetExtent == value) return;
     state = TabChrome(sheetExtent: value);
+  }
+}
+
+/// The map of the tab on screen, for the one control column the shell
+/// draws over the Plan and Record tabs. Each tab's map host registers its
+/// controller when its tab comes on screen and when the map becomes usable.
+@Riverpod(keepAlive: true)
+class ActiveMapController extends _$ActiveMapController {
+  @override
+  MapController? build() => null;
+
+  /// Records the map of the tab on screen.
+  void set(MapController? controller) {
+    if (!ref.mounted || identical(state, controller)) return;
+    state = controller;
+  }
+}
+
+/// What the tab on screen wants of the shell's control column: the same
+/// facts a [MapChromeInsets] carries to an in-map column, plus whether the
+/// column is wanted at all (a battery-saver ride's glance view has no map).
+@immutable
+class MapChromeData {
+  const MapChromeData({
+    this.visible = true,
+    this.showRoutingTiles = true,
+    this.following = false,
+    this.headingUp = false,
+    this.bearingDeg = 0,
+    this.onLocate,
+    this.onCompass,
+    this.routeShown = false,
+    this.onToggleRoute,
+  });
+
+  final bool visible;
+  final bool showRoutingTiles;
+  final bool following;
+  final bool headingUp;
+  final double bearingDeg;
+  final VoidCallback? onLocate;
+  final VoidCallback? onCompass;
+  final bool routeShown;
+  final VoidCallback? onToggleRoute;
+
+  @override
+  bool operator ==(Object other) =>
+      other is MapChromeData &&
+      other.visible == visible &&
+      other.showRoutingTiles == showRoutingTiles &&
+      other.following == following &&
+      other.headingUp == headingUp &&
+      other.bearingDeg == bearingDeg &&
+      other.onLocate == onLocate &&
+      other.onCompass == onCompass &&
+      other.routeShown == routeShown &&
+      other.onToggleRoute == onToggleRoute;
+
+  @override
+  int get hashCode => Object.hash(
+    visible,
+    showRoutingTiles,
+    following,
+    headingUp,
+    bearingDeg,
+    onLocate,
+    onCompass,
+    routeShown,
+    onToggleRoute,
+  );
+}
+
+/// The [MapChromeData] of the tab on screen, written by that tab after each
+/// build that changes it.
+@Riverpod(keepAlive: true)
+class ActiveMapChrome extends _$ActiveMapChrome {
+  @override
+  MapChromeData? build() => null;
+
+  /// Records what the tab on screen wants of the column.
+  void set(MapChromeData? data) {
+    if (!ref.mounted || state == data) return;
+    state = data;
+  }
+}
+
+/// The tab the shell keeps painted on top while a change between the Plan
+/// and Record tabs runs (the one whose chrome slides), or `null`: that tab
+/// renders its map offstage for the length of the hold, so the other tab's
+/// map and sheet show through it and the two sheets can cross-fade.
+///
+/// Written at the bar's tap, before the frame that starts the hold, and
+/// cleared by the shell's fade stack when the hold ends; never from a
+/// build.
+@Riverpod(keepAlive: true)
+class TabHold extends _$TabHold {
+  @override
+  int? build() => null;
+
+  /// Records the tab held on top, or that none is.
+  void set(int? index) {
+    if (!ref.mounted || state == index) return;
+    state = index;
   }
 }

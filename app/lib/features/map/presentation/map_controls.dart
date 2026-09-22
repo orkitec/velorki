@@ -19,6 +19,9 @@ import 'map_chrome.dart';
 /// The zoom the locate button jumps to when the map is further out.
 const double locateZoom = 15;
 
+/// How long the column takes to grow or shrink as a button comes or goes.
+const Duration mapControlsResizeDuration = Duration(milliseconds: 200);
+
 /// Floating buttons over the map: locate me, the CyclOSM overlay toggle and
 /// zoom in/out.
 ///
@@ -63,13 +66,18 @@ class MapControls extends ConsumerWidget {
             onPressed: enabled ? () => unawaited(_locate(context, ref)) : null,
           ),
           // Only a screen that has a follow style to switch offers a compass;
-          // on every other map the needle would have nothing to say.
-          if (onCompass != null)
-            _CompassButton(
-              headingUp: headingUp,
-              bearingDeg: chrome?.bearingDeg ?? 0,
-              onPressed: enabled ? onCompass : null,
-            ),
+          // on every other map the needle would have nothing to say. The
+          // column grows and shrinks for it rather than jumping: one column
+          // serves the Plan and Record tabs.
+          _Resizing(
+            child: onCompass == null
+                ? const SizedBox.shrink()
+                : _CompassButton(
+                    headingUp: headingUp,
+                    bearingDeg: chrome?.bearingDeg ?? 0,
+                    onPressed: enabled ? onCompass : null,
+                  ),
+          ),
           _ControlButton(
             icon: Icons.directions_bike,
             tooltip: l10n.mapToggleCyclosm,
@@ -79,12 +87,15 @@ class MapControls extends ConsumerWidget {
           // The one place the rider can download the map and the routing
           // tiles for exactly the area they are looking at; the screen needs
           // a live map for that. Embedded maps (record, details) leave it out.
-          if (chrome?.showRoutingTiles ?? true)
-            _ControlButton(
-              icon: Icons.download_for_offline_outlined,
-              tooltip: l10n.offlineEntryTitle,
-              onPressed: enabled ? () => _openOffline(context) : null,
-            ),
+          _Resizing(
+            child: (chrome?.showRoutingTiles ?? true)
+                ? _ControlButton(
+                    icon: Icons.download_for_offline_outlined,
+                    tooltip: l10n.offlineEntryTitle,
+                    onPressed: enabled ? () => _openOffline(context) : null,
+                  )
+                : const SizedBox.shrink(),
+          ),
           const _ControlDivider(),
           _ControlButton(
             icon: Icons.add,
@@ -353,6 +364,21 @@ class _ControlButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A slot in the column whose height animates as its button comes and goes.
+class _Resizing extends StatelessWidget {
+  const _Resizing({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => AnimatedSize(
+    duration: mapControlsResizeDuration,
+    curve: Curves.easeOutCubic,
+    alignment: Alignment.topCenter,
+    child: child,
+  );
 }
 
 /// The hairline between the map layers and the zoom pair.

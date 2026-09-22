@@ -10,6 +10,8 @@ import '../features/import_export/data/track_decoder.dart';
 import '../features/import_export/domain/imported_track.dart';
 import '../features/import_export/presentation/import_preview_screen.dart';
 import '../features/library/presentation/library_screen.dart';
+import '../features/map/presentation/map_chrome.dart';
+import '../features/map/presentation/map_controls.dart';
 import '../features/library/presentation/route_detail_screen.dart';
 import '../features/navigation/application/navigation_controller.dart';
 import '../features/planner/presentation/planner_screen.dart';
@@ -51,6 +53,13 @@ const List<String> tabRoutes = [
   settingsRoute,
 ];
 
+/// The two tabs over one map, Plan and Record, by index in the bar.
+const Set<int> mapTabs = {0, 1};
+
+/// The tab among [mapTabs] whose chrome slides and which is held painted on
+/// top for a change between the two: Plan.
+const int chromeTab = 0;
+
 /// The location of the detail screen for the saved route [id].
 String routeDetailLocation(String id) => '$libraryRoute/route/$id';
 
@@ -91,8 +100,8 @@ GoRouter createRouter({String initialLocation = plannerRoute}) {
           // Plan and Record share one map and animate their own chrome
           // across; a fade between the two would only flash the map. Plan's
           // search field and chips slide over the map either way.
-          instantBetween: const {0, 1},
-          chromeTab: 0,
+          instantBetween: mapTabs,
+          chromeTab: chromeTab,
           children: children,
         ),
         branches: [
@@ -195,6 +204,16 @@ class HomeShell extends ConsumerWidget {
         if (context.mounted) ref.read(activeTabProvider.notifier).show(route);
       });
     }
+    // One control column over the Plan and Record tabs rather than one per
+    // map: it glides between the tabs' chrome and grows or shrinks for the
+    // buttons one tab has and the other has not, instead of being swapped
+    // with the tab. Only while the tab shows its map screen, not a page
+    // pushed over it.
+    final atTabRoot = GoRouter.of(context).state.matchedLocation == route;
+    final chrome = ref.watch(activeMapChromeProvider);
+    final showColumn =
+        shell.currentIndex <= 1 && atTabRoot && (chrome?.visible ?? true);
+    final columnGlide = ref.watch(mapControlsTopProvider);
     return Scaffold(
       // The bar floats over the content; screens read the bottom padding
       // from MediaQuery to keep their last rows above it.
@@ -203,7 +222,43 @@ class HomeShell extends ConsumerWidget {
       // screens keep their full height under the keyboard, the settings
       // screen resizes as usual.
       resizeToAvoidBottomInset: false,
-      body: shell,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          HoistedMapControls(child: shell),
+          if (showColumn)
+            Positioned.fill(
+              child: SafeArea(
+                child: AnimatedBuilder(
+                  animation: columnGlide.animation,
+                  builder: (context, child) => Padding(
+                    padding: EdgeInsets.only(
+                      top: columnGlide.animation.value,
+                      right: 12,
+                    ),
+                    child: child,
+                  ),
+                  child: Align(
+                    alignment: Alignment.topRight,
+                    child: MapChromeInsets(
+                      showRoutingTiles: chrome?.showRoutingTiles ?? true,
+                      following: chrome?.following ?? false,
+                      headingUp: chrome?.headingUp ?? false,
+                      bearingDeg: chrome?.bearingDeg ?? 0,
+                      onLocate: chrome?.onLocate,
+                      onCompass: chrome?.onCompass,
+                      routeShown: chrome?.routeShown ?? false,
+                      onToggleRoute: chrome?.onToggleRoute,
+                      child: MapControls(
+                        controller: ref.watch(activeMapControllerProvider),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
       bottomNavigationBar: hideBar
           ? null
           : FloatingNavigationBar(
@@ -211,7 +266,13 @@ class HomeShell extends ConsumerWidget {
               selectedIndex: shell.currentIndex,
               onDestinationSelected: (index) {
                 // Told first, so the screens arrange themselves before the
-                // branch shows.
+                // branch shows: which tab comes, and, between the two map
+                // tabs, that Plan is held on top for the change.
+                final between =
+                    mapTabs.contains(index) &&
+                    mapTabs.contains(shell.currentIndex) &&
+                    index != shell.currentIndex;
+                if (between) ref.read(tabHoldProvider.notifier).set(chromeTab);
                 ref.read(activeTabProvider.notifier).show(tabRoutes[index]);
                 shell.goBranch(
                   index,

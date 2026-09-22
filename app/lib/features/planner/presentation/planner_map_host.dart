@@ -8,6 +8,7 @@ import '../../map/data/map_preferences.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/map_chrome.dart';
 import '../../map/presentation/puck_ownership.dart';
+import '../../shared/application/active_tab.dart';
 
 part 'planner_map_host.g.dart';
 
@@ -44,6 +45,7 @@ class PlannerMapHost extends ConsumerStatefulWidget {
     this.embedded = false,
     this.ownsPosition = false,
     this.sharesCamera = false,
+    this.sharedTab,
   });
 
   /// Called once the map can be driven.
@@ -65,6 +67,12 @@ class PlannerMapHost extends ConsumerStatefulWidget {
   /// a route does not.
   final bool sharesCamera;
 
+  /// The route of the tab this map belongs to, for the shell's one control
+  /// column over the Plan and Record tabs: the map registers itself as the
+  /// column's map while its tab is on screen, and under a shell draws no
+  /// column of its own. `null` for every other map.
+  final String? sharedTab;
+
   @override
   ConsumerState<PlannerMapHost> createState() => _PlannerMapHostState();
 }
@@ -78,8 +86,20 @@ class _PlannerMapHostState extends ConsumerState<PlannerMapHost> {
     _map = controller;
     unawaited(controller.setCyclosmOverlay(ref.read(cyclosmOverlayProvider)));
     if (widget.sharesCamera) _syncCamera(ref.read(lastMapCameraProvider));
+    // After the frame: a map handed over from a build may not write a
+    // provider from it.
+    final tab = widget.sharedTab;
+    if (tab != null && ref.read(activeTabProvider) == tab) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _registerActive();
+      });
+    }
     widget.onMapReady(controller);
   }
+
+  /// Makes this map the one the shell's column drives.
+  void _registerActive() =>
+      ref.read(activeMapControllerProvider.notifier).set(_map);
 
   /// Jumps the map to [camera] unless it is already there, or the screen is
   /// holding the camera on the rider, whose position rules over any other
@@ -120,17 +140,27 @@ class _PlannerMapHostState extends ConsumerState<PlannerMapHost> {
         _syncCamera(next);
       });
     }
+    final tab = widget.sharedTab;
+    if (tab != null) {
+      ref.listen<String>(activeTabProvider, (_, next) {
+        if (next == tab && _map != null) _registerActive();
+      });
+    }
     final map = PuckOwnership(
       owned: widget.ownsPosition,
       child: ref.watch(mapViewBuilderProvider)(_handleMapReady),
     );
-    if (!widget.embedded) return map;
+    final hoisted = tab != null && HoistedMapControls.of(context);
+    if (!widget.embedded && !hoisted) return map;
     // An embedded map keeps the chrome its owner declared, minus the
-    // routing-tile download that only the planner needs.
+    // routing-tile download that only the planner needs; a tab map under
+    // the shell also leaves its column to the shell.
     final inherited = MapChromeInsets.maybeOf(context);
     return MapChromeInsets(
       controlsTop: inherited?.controlsTop,
-      showRoutingTiles: false,
+      hoistedControls: hoisted,
+      showRoutingTiles:
+          !widget.embedded && (inherited?.showRoutingTiles ?? true),
       following: inherited?.following ?? false,
       headingUp: inherited?.headingUp ?? false,
       bearingDeg: inherited?.bearingDeg ?? 0,

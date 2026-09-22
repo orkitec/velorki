@@ -51,7 +51,7 @@ class PlannerScreen extends ConsumerStatefulWidget {
 }
 
 class _PlannerScreenState extends ConsumerState<PlannerScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   MapController? _map;
   PlannerMapBinding? _binding;
   SearchResult? _placeToStartFrom;
@@ -76,8 +76,41 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   double _collapsedSheetSize = 0.1;
   double _restingSheetSize = 0.48;
 
+  /// The sheet's snap points, kept as one instance for as long as the
+  /// resting size holds. DraggableScrollableSheet compares the list by
+  /// identity and snaps to the nearest point after every rebuild it sees a
+  /// new one, which cancels a drag or a rise in flight; this screen rebuilds
+  /// on every tab change and chrome measurement.
+  List<double> _snapSizes = const [];
+
+  List<double> _snapSizesFor(double resting) {
+    if (_snapSizes.length != 1 || _snapSizes.first != resting) {
+      _snapSizes = <double>[resting];
+    }
+    return _snapSizes;
+  }
+
   /// Whether this is the tab on screen, as the last build saw it.
   bool _active = true;
+
+  /// The whole sheet, frame and list: it fades out as the tab goes and in
+  /// as the tab comes, over the Record sheet showing through this tab's
+  /// screen while its map is offstage for the hold.
+  late final SheetFade _sheetFade;
+
+  /// What the shell's control column was last told about this tab.
+  MapChromeData? _chromeData;
+
+  /// Tells the shell's column what this tab wants of it, after the frame.
+  void _shareChrome(MapChromeData data) {
+    if (data == _chromeData) return;
+    _chromeData = data;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _active && _chromeData == data) {
+        ref.read(activeMapChromeProvider.notifier).set(data);
+      }
+    });
+  }
 
   /// The sheet's extent, while this is the tab on screen, for the tab that
   /// comes next.
@@ -133,6 +166,14 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     // The keyboard's going is what brings the sheet back; the window does
     // not rebuild this screen by itself, so metrics changes are listened for.
     WidgetsBinding.instance.addObserver(this);
+    // Built in the middle of a change to this tab (its first visit, from
+    // another tab): the listener below sees no change, so the list starts
+    // away and fades in from here.
+    final tabs = ref.read(activeTabProvider.notifier);
+    final arriving =
+        ref.read(activeTabProvider) == plannerRoute && tabs.previous != null;
+    _sheetFade = SheetFade(vsync: this, visible: !arriving);
+    if (arriving) _sheetFade.show();
   }
 
   bool _searchFocused = false;
@@ -200,6 +241,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     WidgetsBinding.instance.removeObserver(this);
     _binding?.detach();
     _sheet.dispose();
+    _sheetFade.dispose();
     if (_docked) {
       // Deferred: the tree is locked while a widget goes, and the shell
       // would rebuild for this.
@@ -495,8 +537,22 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       if (next == plannerRoute && previous != plannerRoute) {
         _takeOverControls();
         _takeOverSheet();
+        _sheetFade.show();
+      } else if (previous == plannerRoute && next != plannerRoute) {
+        _sheetFade.hide();
+        // The next tab tells the column its own wants; this one tells it
+        // again, from scratch, when it comes back.
+        _chromeData = null;
+        // The bar is square only while a docked strip is on top: the next
+        // tab's sheet says so for itself from here on.
+        _reportDocked(false);
       }
     });
+    if (active) _shareChrome(const MapChromeData());
+    // While this tab is held painted on top for a change to or from Record,
+    // its map is offstage: the Record map underneath shows the same view,
+    // and the Record sheet shows through for the sheets to cross-fade.
+    final held = ref.watch(tabHoldProvider) == chromeTab;
     _ownControlsTop = _chromeHeight + 12;
     final controlsTop = ref.read(mapControlsTopProvider);
     if (active && (controlsTop.target - _ownControlsTop).abs() >= 0.5) {
@@ -534,9 +590,13 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                 animation: controlsTop.animation,
                 builder: (context, _) => MapChromeInsets(
                   controlsTop: controlsTop.animation.value,
-                  child: PlannerMapHost(
-                    onMapReady: _onMapReady,
-                    sharesCamera: true,
+                  child: Offstage(
+                    offstage: held,
+                    child: PlannerMapHost(
+                      onMapReady: _onMapReady,
+                      sharesCamera: true,
+                      sharedTab: plannerRoute,
+                    ),
                   ),
                 ),
               ),
@@ -624,41 +684,46 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
               // One resting height, not one per state: with two in the list
               // a pull down from the top settled on the higher one and a pull
               // up from the handle on the lower one, a chip row apart.
-              snapSizes: <double>[restingSheetSize],
-              builder: (context, scrollController) => DockingSheet(
-                initialExtent: restingSheetSize,
-                collapsedExtent: collapsedSheetSize,
-                dockedRange: dockedRange,
-                docks: true,
-                dockedBottomInset: bottomInset,
-                onDocked: _reportDocked,
-                onExtent: _onSheetExtent,
-                handle: const SheetHandle(),
-                child: ListView(
-                  controller: scrollController,
-                  padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 24),
-                  children: [
-                    // Room for the handle the shell draws over the list.
-                    const SizedBox(height: sheetHandleDp),
-                    _SheetHeader(state: state),
-                    const SizedBox(height: 14),
-                    // The variants right under the figures, where the sheet
-                    // grows to show them; then the actions, so Loop and Save
-                    // are visible at the sheet's resting height.
-                    if (hasVariants) ...[
-                      _AlternativeChips(state: state),
-                      const SizedBox(height: 12),
+              snapSizes: _snapSizesFor(restingSheetSize),
+              // The whole sheet fades over the Record sheet showing through
+              // this screen while its map is offstage for the hold.
+              builder: (context, scrollController) => FadeTransition(
+                opacity: _sheetFade.animation,
+                child: DockingSheet(
+                  initialExtent: restingSheetSize,
+                  collapsedExtent: collapsedSheetSize,
+                  dockedRange: dockedRange,
+                  docks: true,
+                  dockedBottomInset: bottomInset,
+                  onDocked: _reportDocked,
+                  onExtent: _onSheetExtent,
+                  handle: const SheetHandle(),
+                  child: ListView(
+                    controller: scrollController,
+                    padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 24),
+                    children: [
+                      // Room for the handle the shell draws over the list.
+                      const SizedBox(height: sheetHandleDp),
+                      _SheetHeader(state: state),
+                      const SizedBox(height: 14),
+                      // The variants right under the figures, where the sheet
+                      // grows to show them; then the actions, so Loop and Save
+                      // are visible at the sheet's resting height.
+                      if (hasVariants) ...[
+                        _AlternativeChips(state: state),
+                        const SizedBox(height: 12),
+                      ],
+                      _PlannerActions(
+                        state: state,
+                        onAlternatives: _loadAlternatives,
+                        onSmartLoop: _smartLoop,
+                        onAsk: _ask,
+                        onSave: _save,
+                      ),
+                      const SizedBox(height: 16),
+                      _SheetBody(state: state),
                     ],
-                    _PlannerActions(
-                      state: state,
-                      onAlternatives: _loadAlternatives,
-                      onSmartLoop: _smartLoop,
-                      onAsk: _ask,
-                      onSave: _save,
-                    ),
-                    const SizedBox(height: 16),
-                    _SheetBody(state: state),
-                  ],
+                  ),
                 ),
               ),
             ),

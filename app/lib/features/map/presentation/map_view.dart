@@ -335,7 +335,11 @@ class _MapViewState extends ConsumerState<MapView> {
       onCameraIdle: _onCameraIdle,
     );
 
-    if (!widget.showAttribution && !widget.showControls) return map;
+    // The shell's one column over the tab maps takes the place of the
+    // map's own.
+    final showControls =
+        widget.showControls && !(chrome?.hoistedControls ?? false);
+    if (!widget.showAttribution && !showControls) return map;
     final controlsPadding = chromeTop == null
         ? widget.controlsPadding
         : widget.controlsPadding.copyWith(top: chromeTop);
@@ -344,7 +348,7 @@ class _MapViewState extends ConsumerState<MapView> {
       fit: StackFit.expand,
       children: <Widget>[
         map,
-        if (widget.showControls)
+        if (showControls)
           Positioned.fill(
             child: SafeArea(
               // The owner animates `controlsTop` itself when its chrome
