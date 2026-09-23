@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +11,7 @@ import '../../../app/router.dart';
 import '../../../app/theme.dart';
 import '../../../core/files/track_exporter.dart';
 import '../../../core/geo/ride_analysis.dart';
+import '../../../core/geo/ride_stats.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../integrations/common/domain/connected_account.dart';
 import '../../integrations/presentation/integration_labels.dart';
@@ -392,6 +394,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
             kind: TrackKind.ride,
             format: format,
             startTime: ride.startedAt,
+            temperaturesC: ride.temperaturesC,
           );
     } on Object catch (error) {
       messenger.showSnackBar(
@@ -684,6 +687,47 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
                           ),
                       ],
                     ),
+                    // What the device itself summed up, beside the app's
+                    // figures, only where the two disagree: the same number
+                    // twice would say nothing.
+                    if (saved.deviceTotals case final totals?
+                        when deviceTotalsDiffer(totals, stats)) ...[
+                      const SizedBox(height: 28),
+                      SectionCaption(l10n.rideDeviceTotals),
+                      const SizedBox(height: 12),
+                      RideStatsGrid(
+                        items: <RideStatItem>[
+                          if (totals.distanceM != null)
+                            RideStatItem(
+                              icon: Icons.straighten,
+                              label: l10n.statDistance,
+                              value: formatDistance(
+                                l10n,
+                                units,
+                                totals.distanceM!,
+                              ),
+                            ),
+                          if (totals.movingTime != null)
+                            RideStatItem(
+                              icon: Icons.schedule,
+                              label: l10n.statMovingTime,
+                              value: formatClock(totals.movingTime!),
+                            ),
+                          if (totals.ascentM != null)
+                            RideStatItem(
+                              icon: Icons.trending_up,
+                              label: l10n.statAscent,
+                              value: formatHeight(l10n, units, totals.ascentM!),
+                            ),
+                          if (totals.calories != null)
+                            RideStatItem(
+                              icon: Icons.local_fire_department,
+                              label: l10n.statCalories,
+                              value: l10n.unitKcal('${totals.calories}'),
+                            ),
+                        ],
+                      ),
+                    ],
                     if (analysis != null) ...[
                       if (analysis.hasElevation) ...[
                         const SizedBox(height: 28),
@@ -716,6 +760,15 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
                           onWindow: _setWindow,
                         ),
                       ],
+                      if (analysis.hasTemperature) ...[
+                        const SizedBox(height: 28),
+                        RideTemperatureChart(
+                          samples: analysis.samples,
+                          highlight: range,
+                          window: _window,
+                          onWindow: _setWindow,
+                        ),
+                      ],
                       if (maxHeartRateBpm != null &&
                           analysis.effort.heartRateTime > Duration.zero) ...[
                         const SizedBox(height: 28),
@@ -737,6 +790,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
                         RideSplitsTable(
                           splits: analysis.splits,
                           splitLengthM: analysis.splitLengthM,
+                          laps: analysis.lapSplits,
                           selected: range?.selectedIn(RideRangeSource.split),
                           onSelect: (index) => _select(
                             index == null
@@ -1007,4 +1061,23 @@ class RideStatsGrid extends StatelessWidget {
       },
     );
   }
+}
+
+/// Whether the device's totals say something the app's own figures do
+/// not: a distance more than a percent (and a hundred metres) apart, a
+/// moving time more than half a minute apart, an ascent more than five
+/// percent (and ten metres) apart, or calories, which the app only
+/// estimates.
+bool deviceTotalsDiffer(DeviceTotals totals, RideStats stats) {
+  bool apart(double? device, double own, double share, double least) =>
+      device != null && (device - own).abs() > math.max(own * share, least);
+  return apart(totals.distanceM, stats.distanceM, 0.01, 100) ||
+      apart(
+        totals.movingTime?.inSeconds.toDouble(),
+        stats.movingTime.inSeconds.toDouble(),
+        0,
+        30,
+      ) ||
+      apart(totals.ascentM, stats.ascentM, 0.05, 10) ||
+      totals.calories != null;
 }

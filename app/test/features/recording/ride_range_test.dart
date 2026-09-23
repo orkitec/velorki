@@ -6,7 +6,8 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 void main() {
   group('RideRange', () {
-    test('a split runs from its index times the split length', () {
+    test('a split runs from where it started, its index times the split '
+        'length for a fixed split', () {
       const split = Split(
         index: 2,
         distanceM: 1609.344,
@@ -14,6 +15,7 @@ void main() {
         ascentM: 10,
         descentM: 0,
         partial: false,
+        startM: 3218.688,
       );
       final range = RideRange.ofSplit(split, splitLengthM: 1609.344);
       expect(range.startM, closeTo(3218.688, 1e-9));
@@ -30,10 +32,27 @@ void main() {
         ascentM: 0,
         descentM: 0,
         partial: true,
+        startM: 3000,
       );
       final range = RideRange.ofSplit(split, splitLengthM: 1000);
       expect(range.startM, 3000);
       expect(range.endM, 3420);
+    });
+
+    test('a lap starts where the device ended the one before, whatever '
+        'the split length', () {
+      const lap = Split(
+        index: 1,
+        distanceM: 900,
+        movingTime: Duration(minutes: 3),
+        ascentM: 0,
+        descentM: 0,
+        partial: false,
+        startM: 1200,
+      );
+      final range = RideRange.ofSplit(lap, splitLengthM: 1000);
+      expect(range.startM, 1200);
+      expect(range.endM, 2100);
     });
 
     test('a climb runs from its foot to its top', () {

@@ -23,8 +23,8 @@ class RideRange {
   /// which for the partial one at the end is short of a whole split.
   RideRange.ofSplit(Split split, {required double splitLengthM})
     : this(
-        startM: split.index * splitLengthM,
-        endM: split.index * splitLengthM + split.distanceM,
+        startM: split.startM,
+        endM: split.startM + split.distanceM,
         source: RideRangeSource.split,
         index: split.index,
       );

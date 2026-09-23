@@ -178,7 +178,23 @@ class Ride {
     this.uploads = const <String, RideUpload>{},
     this.notes,
     this.surface,
+    this.laps = const <RideLap>[],
+    this.deviceTotals,
+    this.temperaturesC = const <double?>[],
   });
+
+  /// The laps the recording device cut, for a ride that came from a file
+  /// with them; empty for a ride recorded here. They stand in for the
+  /// fixed-length splits on the ride's page.
+  final List<RideLap> laps;
+
+  /// The totals the recording device wrote, for a ride from a file; shown
+  /// beside the app's own figures where the two differ.
+  final DeviceTotals? deviceTotals;
+
+  /// The temperature per point, `null` where the point had none; empty for
+  /// a ride without a temperature at all.
+  final List<double?> temperaturesC;
 
   /// Row id, a uuid.
   final String id;
@@ -254,6 +270,9 @@ class Ride {
     uploads: uploads ?? this.uploads,
     notes: notes ?? this.notes,
     surface: surface ?? this.surface,
+    laps: laps,
+    deviceTotals: deviceTotals,
+    temperaturesC: temperaturesC,
   );
 
   List<TrackPoint> _decode() {
@@ -266,4 +285,186 @@ class Ride {
 
   @override
   String toString() => 'Ride($id, $name, $stats)';
+}
+
+/// One lap as the recording device cut it.
+class RideLap {
+  /// Creates a lap.
+  const RideLap({
+    required this.startedAt,
+    required this.endedAt,
+    this.distanceM,
+    this.movingTime,
+    this.calories,
+  });
+
+  /// One entry of the `laps_json` column.
+  factory RideLap.fromJson(Map<String, Object?> json) => RideLap(
+    startedAt:
+        DateTime.tryParse(json['start'] as String? ?? '')?.toUtc() ??
+        DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+    endedAt:
+        DateTime.tryParse(json['end'] as String? ?? '')?.toUtc() ??
+        DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+    distanceM: (json['distance'] as num?)?.toDouble(),
+    movingTime: json['moving'] is num
+        ? Duration(milliseconds: ((json['moving'] as num) * 1000).round())
+        : null,
+    calories: (json['calories'] as num?)?.toInt(),
+  );
+
+  /// When the lap began.
+  final DateTime startedAt;
+
+  /// When it ended.
+  final DateTime endedAt;
+
+  /// Its distance in metres, as the device summed it.
+  final double? distanceM;
+
+  /// Its moving time, as the device timed it.
+  final Duration? movingTime;
+
+  /// Its calories, as the device estimated them.
+  final int? calories;
+
+  /// One entry of the `laps_json` column.
+  Map<String, Object?> toJson() => <String, Object?>{
+    'start': startedAt.toUtc().toIso8601String(),
+    'end': endedAt.toUtc().toIso8601String(),
+    if (distanceM != null) 'distance': distanceM,
+    if (movingTime != null) 'moving': movingTime!.inMilliseconds / 1000,
+    if (calories != null) 'calories': calories,
+  };
+}
+
+/// The totals a recording device wrote for a ride.
+class DeviceTotals {
+  /// Creates the totals.
+  const DeviceTotals({
+    this.distanceM,
+    this.movingTime,
+    this.elapsedTime,
+    this.calories,
+    this.ascentM,
+    this.descentM,
+  });
+
+  /// The `device_totals_json` column.
+  factory DeviceTotals.fromJson(Map<String, Object?> json) => DeviceTotals(
+    distanceM: (json['distance'] as num?)?.toDouble(),
+    movingTime: json['moving'] is num
+        ? Duration(milliseconds: ((json['moving'] as num) * 1000).round())
+        : null,
+    elapsedTime: json['elapsed'] is num
+        ? Duration(milliseconds: ((json['elapsed'] as num) * 1000).round())
+        : null,
+    calories: (json['calories'] as num?)?.toInt(),
+    ascentM: (json['ascent'] as num?)?.toDouble(),
+    descentM: (json['descent'] as num?)?.toDouble(),
+  );
+
+  /// Distance in metres.
+  final double? distanceM;
+
+  /// Moving time.
+  final Duration? movingTime;
+
+  /// Elapsed time.
+  final Duration? elapsedTime;
+
+  /// Calories.
+  final int? calories;
+
+  /// Ascent in metres.
+  final double? ascentM;
+
+  /// Descent in metres.
+  final double? descentM;
+
+  /// Whether any total is there at all.
+  bool get isEmpty =>
+      distanceM == null &&
+      movingTime == null &&
+      elapsedTime == null &&
+      calories == null &&
+      ascentM == null &&
+      descentM == null;
+
+  /// The `device_totals_json` column.
+  Map<String, Object?> toJson() => <String, Object?>{
+    if (distanceM != null) 'distance': distanceM,
+    if (movingTime != null) 'moving': movingTime!.inMilliseconds / 1000,
+    if (elapsedTime != null) 'elapsed': elapsedTime!.inMilliseconds / 1000,
+    if (calories != null) 'calories': calories,
+    if (ascentM != null) 'ascent': ascentM,
+    if (descentM != null) 'descent': descentM,
+  };
+}
+
+/// The `laps_json` column.
+String encodeRideLaps(List<RideLap> laps) =>
+    jsonEncode([for (final lap in laps) lap.toJson()]);
+
+/// Parses the `laps_json` column; anything unreadable is no laps.
+List<RideLap> decodeRideLaps(String? json) {
+  if (json == null || json.isEmpty) return const <RideLap>[];
+  try {
+    final decoded = jsonDecode(json);
+    if (decoded is! List) return const <RideLap>[];
+    return [
+      for (final entry in decoded)
+        if (entry is Map<String, Object?>) RideLap.fromJson(entry),
+    ];
+  } on FormatException {
+    return const <RideLap>[];
+  }
+}
+
+/// The `device_totals_json` column.
+String encodeDeviceTotals(DeviceTotals totals) => jsonEncode(totals.toJson());
+
+/// Parses the `device_totals_json` column; anything unreadable is none.
+DeviceTotals? decodeDeviceTotals(String? json) {
+  if (json == null || json.isEmpty) return null;
+  try {
+    final decoded = jsonDecode(json);
+    if (decoded is! Map<String, Object?>) return null;
+    final totals = DeviceTotals.fromJson(decoded);
+    return totals.isEmpty ? null : totals;
+  } on FormatException {
+    return null;
+  }
+}
+
+/// The sentinel in the `temperatures` column for a point without one.
+const int _noTemperature = -32768;
+
+/// The `temperatures` column: one signed 16-bit tenth of a degree per point.
+Uint8List encodeTemperatures(List<double?> temperaturesC) {
+  final data = ByteData(temperaturesC.length * 2);
+  for (var i = 0; i < temperaturesC.length; i++) {
+    final t = temperaturesC[i];
+    data.setInt16(
+      i * 2,
+      t == null || !t.isFinite
+          ? _noTemperature
+          : (t * 10).round().clamp(-32767, 32767),
+      Endian.little,
+    );
+  }
+  return data.buffer.asUint8List();
+}
+
+/// Parses the `temperatures` column; empty for none.
+List<double?> decodeTemperatures(Uint8List? bytes) {
+  if (bytes == null || bytes.length < 2) return const <double?>[];
+  final data = ByteData.sublistView(bytes);
+  return [
+    for (var i = 0; i + 1 < bytes.length; i += 2)
+      switch (data.getInt16(i, Endian.little)) {
+        _noTemperature => null,
+        final tenths => tenths / 10,
+      },
+  ];
 }

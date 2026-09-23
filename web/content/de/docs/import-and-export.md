@@ -39,6 +39,8 @@ Eine GPX-Route mit Abbiegeliste, der Routen-Export von Ride with GPS oder eine G
 
 Velorki rät **Route** oder **Fahrt** danach, ob die Punkte Zeiten tragen: eine Aufnahme tut das, eine geplante Route nicht. Eine FIT-Strecke wird als Strecke erkannt und als Route geraten, was auch immer ihre künstliche Zeitbasis sagt; ihre Streckenpunkte werden zur Abbiegeliste der Route (Abbiegungen) und zu ihren Punkten von Interesse (Wasser, Essen, Gefahren, benannte Orte). Nichts wird geschrieben, bevor du auf **Speichern** tippst.
 
+Eine FIT-Aktivität von einem Radcomputer bringt mehr mit als ihren Track: Die Runden, die das Gerät gesetzt hat, treten auf der Seite der Fahrt an die Stelle der festen Splits, die Summen, die das Gerät geschrieben hat (Distanz, Fahrzeit, Anstieg, Kalorien), stehen unter **Wie vom Gerät aufgezeichnet**, wo sie von dem abweichen, was Velorki aus den Positionen errechnet, und eine Temperatur, wenn das Gerät eine mitgeschrieben hat, bekommt ein eigenes Diagramm. Eine GPX-Fahrt bringt Herzfrequenz, Trittfrequenz, Leistung und Temperatur aus ihren Erweiterungen genauso mit. Eine GPX-Datei mit mehreren Tracks, etwa eine Mehrtagestour, listet sie mit je einem Häkchen auf und speichert je angehaktem Track eine Fahrt (oder Route).
+
 Danach bekommst du "Alpenrunde zur Bibliothek hinzugefügt" oder "Alpenrunde zu deinen Fahrten hinzugefügt" und landest auf dem Blatt des neuen Eintrags im Tab Bibliothek.
 
 Lässt sich die Datei nicht öffnen, sagt Velorki, woran es lag: "Das ist keine GPX- oder FIT-Datei.", "Die Datei konnte nicht gelesen werden.", "Die Datei enthält keine Trackpunkte." oder "Die Datei konnte nicht geöffnet werden."
@@ -56,7 +58,7 @@ Lässt sich die Datei nicht öffnen, sagt Velorki, woran es lag: "Das ist keine 
 
 | Format | Wofür |
 |---|---|
-| **GPX-Track exportieren** | der aufgezeichnete Track mit seinen Zeitstempeln |
+| **GPX-Track exportieren** | der aufgezeichnete Track mit seinen Zeitstempeln; Herzfrequenz, Trittfrequenz, Leistung und Temperatur gehen mit. |
 | **FIT-Aktivität exportieren** | eine Aktivitätsdatei für eine Trainingsplattform |
 
 So oder so schreibt Velorki die Datei und reicht sie an das Teilen-Menü des Systems weiter, du kannst sie also in deine Dateien legen, per Mail verschicken oder in eine andere App schicken.

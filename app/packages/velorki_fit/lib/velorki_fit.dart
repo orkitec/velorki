@@ -8,6 +8,7 @@ library;
 export 'src/fit_codec.dart'
     show
         FitCodec,
+        fitManufacturerName,
         degreesPerSemicircle,
         fitEpochOffsetSeconds,
         semicirclesPerDegree;

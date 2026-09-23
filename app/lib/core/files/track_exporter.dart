@@ -22,6 +22,7 @@ abstract class TrackExporter {
     DateTime? startTime,
     List<RoutePoi> pois = const <RoutePoi>[],
     List<TurnHint> turns = const <TurnHint>[],
+    List<double?> temperaturesC = const <double?>[],
   });
 }
 

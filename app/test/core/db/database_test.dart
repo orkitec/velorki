@@ -121,8 +121,8 @@ void main() {
   setUp(() => db = VelorkiDatabase.memory());
   tearDown(() => db.close());
 
-  test('schema version is 6', () {
-    expect(db.schemaVersion, 6);
+  test('schema version is 7', () {
+    expect(db.schemaVersion, 7);
   });
 
   test('a schema 1 database is upgraded and keeps its routes', () async {

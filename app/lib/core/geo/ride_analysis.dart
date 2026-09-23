@@ -63,6 +63,7 @@ class Split {
     required this.ascentM,
     required this.descentM,
     required this.partial,
+    this.startM = 0,
   });
 
   /// Position in the ride, counting from zero.
@@ -84,6 +85,11 @@ class Split {
   /// Whether this is the remainder at the end rather than a whole split.
   final bool partial;
 
+  /// Where the split begins, in metres from the start of the ride: the
+  /// split's index times the length for fixed splits, the end of the lap
+  /// before for laps.
+  final double startM;
+
   /// Distance divided by moving time; zero while nothing moved.
   double get avgSpeedMps {
     final seconds = movingTime.inMicroseconds / Duration.microsecondsPerSecond;
@@ -104,7 +110,11 @@ class ChartSample {
     required this.speedMps,
     this.elevationM,
     this.heartRateBpm,
+    this.temperatureC,
   });
+
+  /// The air temperature at this distance, when the ride carried one.
+  final double? temperatureC;
 
   /// Distance from the start in metres.
   final double distanceM;
@@ -364,7 +374,11 @@ class RideAnalysis {
     this.effort = RideEffort.zero,
     this.climbs = const <RideClimb>[],
     this.distanceAt = const <double>[],
+    this.lapSplits = false,
   });
+
+  /// Whether [splits] are the device's laps rather than fixed lengths.
+  final bool lapSplits;
 
   /// A ride with nothing in it.
   static const RideAnalysis empty = RideAnalysis(
@@ -410,6 +424,11 @@ class RideAnalysis {
       _spansDistance &&
       samples.where((s) => s.heartRateBpm != null).length >= 2;
 
+  /// Whether enough samples carry a temperature for a chart.
+  bool get hasTemperature =>
+      _spansDistance &&
+      samples.where((s) => s.temperatureC != null).length >= 2;
+
   bool get _spansDistance => samples.length >= 2 && samples.last.distanceM > 0;
 
   @override
@@ -441,6 +460,8 @@ RideAnalysis analyseRide(
   int? maxHeartRateBpm,
   int? thresholdPowerW,
   PowerModel? powerModel,
+  List<double> lapEndsM = const <double>[],
+  List<double?> temperaturesC = const <double?>[],
 }) {
   if (points.length < 2 || splitLengthM <= 0) {
     return RideAnalysis(
@@ -454,10 +475,20 @@ RideAnalysis analyseRide(
   // One smoothing serves the power estimate's grades and the climbs.
   final smoothedElevation = _smoothedElevations(walk);
   return RideAnalysis(
-    splits: _splits(walk, splitLengthM: splitLengthM, hysteresisM: hysteresisM),
-    samples: _samples(walk, maxSamples: maxSamples),
+    splits: _splits(
+      walk,
+      splitLengthM: splitLengthM,
+      hysteresisM: hysteresisM,
+      lapEndsM: lapEndsM,
+    ),
+    samples: _samples(
+      walk,
+      maxSamples: maxSamples,
+      temperaturesC: temperaturesC,
+    ),
     speedBands: _speedBands(walk),
     splitLengthM: splitLengthM,
+    lapSplits: lapEndsM.isNotEmpty,
     effort: _effort(
       walk,
       smoothedElevation: smoothedElevation,
@@ -632,10 +663,28 @@ List<Split> _splits(
   _Walk walk, {
   required double splitLengthM,
   required double hysteresisM,
+  List<double> lapEndsM = const <double>[],
 }) {
   final builders = <int, _SplitBuilder>{};
   _SplitBuilder builder(int index) =>
       builders.putIfAbsent(index, () => _SplitBuilder(index));
+  // Fixed-length splits cut every [splitLengthM]; laps cut where the device
+  // ended one, the last running to the end of the ride.
+  final laps = lapEndsM.isNotEmpty;
+  int indexAt(double m) {
+    if (!laps) return (m / splitLengthM).floor();
+    var i = 0;
+    while (i < lapEndsM.length && lapEndsM[i] <= m + 1e-9) {
+      i++;
+    }
+    return i;
+  }
+
+  double endOf(int index) => laps
+      ? (index < lapEndsM.length ? lapEndsM[index] : double.infinity)
+      : (index + 1) * splitLengthM;
+  double startOf(int index) =>
+      laps ? (index == 0 ? 0 : lapEndsM[index - 1]) : index * splitLengthM;
 
   // Distance and moving time are cut at the split boundary rather than handed
   // to whichever split a fix happens to fall in: at one fix a second a whole
@@ -647,8 +696,8 @@ List<Split> _splits(
     var start = cursor;
     var remaining = leg.meters;
     while (remaining > 1e-9) {
-      final index = (start / splitLengthM).floor();
-      final boundary = (index + 1) * splitLengthM;
+      final index = indexAt(start);
+      final boundary = endOf(index);
       final take = math.min(remaining, math.max(boundary - start, 1e-9));
       final share = take / leg.meters;
       builder(index).distanceM += take;
@@ -676,7 +725,7 @@ List<Split> _splits(
     }
     final delta = value - anchor;
     if (delta.abs() < hysteresisM) continue;
-    final index = (walk.distanceAt[leg.toIndex] / splitLengthM).floor();
+    final index = indexAt(walk.distanceAt[leg.toIndex]);
     if (delta > 0) {
       builder(index).ascentM += delta;
     } else {
@@ -690,7 +739,7 @@ List<Split> _splits(
   // A ride that ends ten metres past a boundary would otherwise get a row
   // reading "0 km" and "00:00"; those metres belong to the split before it.
   final tail = builders[last];
-  if (last > 0 && tail != null && tail.distanceM < _shortestSplitM) {
+  if (!laps && last > 0 && tail != null && tail.distanceM < _shortestSplitM) {
     final previous = builder(last - 1);
     previous.distanceM += tail.distanceM;
     previous.movingMicros += tail.movingMicros;
@@ -710,7 +759,9 @@ List<Split> _splits(
           descentM: b.descentM,
           // A metre of tolerance: the last split of a ride that ends on a
           // round kilometre is a whole one, floating point notwithstanding.
-          partial: i == last && b.distanceM < splitLengthM - 1,
+          // A lap is whatever length the device gave it.
+          partial: !laps && i == last && b.distanceM < splitLengthM - 1,
+          startM: startOf(i),
         )
       else
         Split(
@@ -720,6 +771,7 @@ List<Split> _splits(
           ascentM: 0,
           descentM: 0,
           partial: false,
+          startM: startOf(i),
         ),
   ];
 }
@@ -727,22 +779,36 @@ List<Split> _splits(
 // ---------------------------------------------------------------- samples
 
 class _RawSample {
-  _RawSample(this.distanceM, this.elevationM, this.speedMps, this.heartRateBpm);
+  _RawSample(
+    this.distanceM,
+    this.elevationM,
+    this.speedMps,
+    this.heartRateBpm, [
+    this.temperatureC,
+  ]);
 
   final double distanceM;
   double? elevationM;
   double speedMps;
   final int? heartRateBpm;
+  final double? temperatureC;
 }
 
-List<ChartSample> _samples(_Walk walk, {required int maxSamples}) {
+List<ChartSample> _samples(
+  _Walk walk, {
+  required int maxSamples,
+  List<double?> temperaturesC = const <double?>[],
+}) {
   if (walk.firstIndex < 0) return const <ChartSample>[];
+  double? temperatureAt(int index) =>
+      index < temperaturesC.length ? temperaturesC[index] : null;
   final raw = <_RawSample>[
     _RawSample(
       0,
       _finite(walk.points[walk.firstIndex].ele),
       0,
       walk.points[walk.firstIndex].heartRateBpm,
+      temperatureAt(walk.firstIndex),
     ),
     for (final leg in walk.legs)
       _RawSample(
@@ -750,6 +816,7 @@ List<ChartSample> _samples(_Walk walk, {required int maxSamples}) {
         _finite(walk.points[leg.toIndex].ele),
         leg.isBreak ? 0 : leg.speedMps,
         walk.points[leg.toIndex].heartRateBpm,
+        temperatureAt(leg.toIndex),
       ),
   ];
   if (raw.length < 2) return const <ChartSample>[];
@@ -834,6 +901,7 @@ List<ChartSample> _resample(List<_RawSample> raw, int maxSamples) {
     speedMps: s.speedMps,
     elevationM: s.elevationM,
     heartRateBpm: s.heartRateBpm,
+    temperatureC: s.temperatureC,
   );
   if (maxSamples < 2 || raw.length <= maxSamples) {
     return <ChartSample>[for (final s in raw) toSample(s)];
@@ -869,6 +937,7 @@ List<ChartSample> _resample(List<_RawSample> raw, int maxSamples) {
           b.heartRateBpm?.toDouble(),
           f,
         )?.round(),
+        temperatureC: _lerpOrNull(a.temperatureC, b.temperatureC, f),
       ),
     );
   }
@@ -1274,4 +1343,31 @@ int _classOf(double speed, List<double> thresholds) {
     if (speed < thresholds[i]) return i;
   }
   return thresholds.length;
+}
+
+/// Where each of [lapEnds] falls along [points], in metres from the start:
+/// the distance of the first point at or after the lap's end. Ends before
+/// the first point or after the last are left out, and so is the last lap's
+/// end when it is the end of the ride, since the splits run to the end
+/// anyway.
+List<double> lapEndsAlong(List<TrackPoint> points, List<DateTime> lapEnds) {
+  if (points.length < 2 || lapEnds.isEmpty) return const <double>[];
+  final distanceAt = cumulativeDistancesMeters(
+    points.map((p) => p.pos).toList(growable: false),
+  );
+  final total = distanceAt.last;
+  final out = <double>[];
+  var cursor = 0;
+  for (final end in lapEnds) {
+    while (cursor < points.length &&
+        (points[cursor].time == null || points[cursor].time!.isBefore(end))) {
+      cursor++;
+    }
+    if (cursor >= points.length) break;
+    final m = distanceAt[cursor];
+    if (m <= 0 || m >= total - 1) continue;
+    if (out.isNotEmpty && m - out.last < 1) continue;
+    out.add(m);
+  }
+  return out;
 }

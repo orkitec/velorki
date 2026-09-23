@@ -61,6 +61,11 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
     text: widget.candidate?.suggestedName ?? '',
   );
   late ImportKind _kind = widget.candidate?.suggested ?? ImportKind.route;
+
+  /// Which of a file's several tracks to keep, all of them to begin with.
+  late final Set<int> _chosen = {
+    for (var i = 0; i < (widget.candidate?.tracks.length ?? 0); i++) i,
+  };
   MapController? _map;
   bool _drawn = false;
   bool _saving = false;
@@ -141,6 +146,10 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
 
     setState(() => _saving = true);
     try {
+      if (candidate.hasSeveralTracks) {
+        await _saveSeveral(candidate, name, repository, messenger, router);
+        return;
+      }
       switch (_kind) {
         case ImportKind.route:
           final saved = await repository.saveAsRoute(
@@ -166,6 +175,42 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
       setState(() => _saving = false);
       messenger.showSnackBar(SnackBar(content: Text(l10n.importSaveFailed)));
     }
+  }
+
+  /// One route or ride per chosen track, each under the track's own name
+  /// or, for a track without one, the file's name and its number.
+  Future<void> _saveSeveral(
+    ImportCandidate candidate,
+    String name,
+    ImportRepository repository,
+    ScaffoldMessengerState messenger,
+    GoRouter router,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    final chosen = [
+      for (final (i, track) in candidate.tracks.indexed)
+        if (_chosen.contains(i)) (i, track),
+    ];
+    for (final (i, track) in chosen) {
+      final trackName = track.name?.trim().isNotEmpty ?? false
+          ? track.name!.trim()
+          : '$name ${i + 1}';
+      switch (_kind) {
+        case ImportKind.route:
+          await repository.saveAsRoute(name: trackName, track: track);
+        case ImportKind.ride:
+          await repository.saveAsRide(name: trackName, track: track);
+      }
+    }
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(switch (_kind) {
+          ImportKind.route => l10n.importSavedRoutes(chosen.length),
+          ImportKind.ride => l10n.importSavedRides(chosen.length),
+        }),
+      ),
+    );
+    router.go(libraryRoute);
   }
 
   @override
@@ -258,6 +303,40 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
                       descentM: stats.descentM,
                       duration: duration,
                     ),
+                    // A file with several tracks: each one on or off, so a
+                    // multi-day file becomes one ride a day, or only the
+                    // days that matter.
+                    if (candidate.hasSeveralTracks) ...[
+                      const SizedBox(height: 24),
+                      SectionCaption(l10n.importTracks),
+                      const SizedBox(height: 4),
+                      for (final (i, track) in candidate.tracks.indexed)
+                        CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          controlAffinity: ListTileControlAffinity.leading,
+                          value: _chosen.contains(i),
+                          onChanged: (on) => setState(() {
+                            if (on ?? false) {
+                              _chosen.add(i);
+                            } else {
+                              _chosen.remove(i);
+                            }
+                          }),
+                          title: Text(
+                            track.name?.trim().isNotEmpty ?? false
+                                ? track.name!.trim()
+                                : l10n.importTrackNumber(i + 1),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Text(
+                            l10n.importSummary(
+                              formatLabel(l10n, track.format),
+                              track.pointCount,
+                            ),
+                          ),
+                        ),
+                    ],
                     const SizedBox(height: 24),
                     SectionCaption(l10n.importSaveAs),
                     const SizedBox(height: 12),
@@ -280,7 +359,11 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
                     ),
                     const SizedBox(height: 24),
                     FilledButton.icon(
-                      onPressed: _saving ? null : () => unawaited(_save()),
+                      onPressed:
+                          _saving ||
+                              (candidate.hasSeveralTracks && _chosen.isEmpty)
+                          ? null
+                          : () => unawaited(_save()),
                       icon: const Icon(Icons.save_outlined),
                       label: Text(l10n.commonSave),
                     ),

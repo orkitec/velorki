@@ -8,6 +8,7 @@ import '../../../core/db/database.dart';
 import '../../../core/geo/ride_stats.dart';
 import '../../planner/data/route_repository.dart';
 import '../../planner/domain/saved_route.dart';
+import '../../recording/domain/ride.dart';
 import '../domain/imported_track.dart';
 
 part 'import_repository.g.dart';
@@ -104,6 +105,13 @@ class ImportRepository {
       geometry: PackedTrack.encode(track.points),
       pausesJson: '[]',
       notes: track.description,
+      lapsJson: track.laps.isEmpty ? null : encodeRideLaps(_lapsOf(track)),
+      deviceTotalsJson: track.deviceTotals == null
+          ? null
+          : encodeDeviceTotals(_totalsOf(track.deviceTotals!)),
+      temperatures: track.temperaturesC.any((t) => t != null)
+          ? encodeTemperatures(track.temperaturesC)
+          : null,
     );
     await _rides.upsertRide(
       RidesCompanion.insert(
@@ -121,10 +129,39 @@ class ImportRepository {
         geometry: row.geometry,
         pausesJson: row.pausesJson,
         notes: Value(row.notes),
+        lapsJson: Value(row.lapsJson),
+        deviceTotalsJson: Value(row.deviceTotalsJson),
+        temperatures: Value(row.temperatures),
       ),
     );
     return row;
   }
+
+  static List<RideLap> _lapsOf(ImportedTrack track) => [
+    for (final lap in track.laps)
+      RideLap(
+        startedAt: lap.startTime,
+        endedAt: lap.endTime,
+        distanceM: lap.distanceM,
+        movingTime: lap.movingS == null
+            ? null
+            : Duration(milliseconds: (lap.movingS! * 1000).round()),
+        calories: lap.calories,
+      ),
+  ];
+
+  static DeviceTotals _totalsOf(ImportedTotals totals) => DeviceTotals(
+    distanceM: totals.distanceM,
+    movingTime: totals.movingS == null
+        ? null
+        : Duration(milliseconds: (totals.movingS! * 1000).round()),
+    elapsedTime: totals.elapsedS == null
+        ? null
+        : Duration(milliseconds: (totals.elapsedS! * 1000).round()),
+    calories: totals.calories,
+    ascentM: totals.ascentM,
+    descentM: totals.descentM,
+  );
 }
 
 /// The import repository over the app database.

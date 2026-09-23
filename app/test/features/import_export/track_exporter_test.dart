@@ -176,6 +176,27 @@ void main() {
     expect(decoded.last.time, _start.add(const Duration(seconds: 30)));
   });
 
+  test('a ride\'s temperatures go out as gpxtpx:atemp and come back', () async {
+    final h = _Harness();
+    await h.exporter.share(
+      name: 'Warm',
+      points: _points(withTime: true),
+      kind: TrackKind.ride,
+      format: TrackFormat.gpx,
+      temperaturesC: const [14.5, null, 16, 17.2],
+    );
+    final xml = h.shared.single.file.readAsStringSync();
+    expect(xml, contains('<gpxtpx:atemp>14.5</gpxtpx:atemp>'));
+    expect(xml, contains('<gpxtpx:atemp>16</gpxtpx:atemp>'));
+    final track = GpxCodec.decode(xml).tracks.single;
+    expect(track.pointExtensions.map((e) => e?.temperatureC), [
+      14.5,
+      null,
+      16,
+      17.2,
+    ]);
+  });
+
   test('an earlier export is cleared before the next one is written', () async {
     final h = _Harness();
     await h.exporter.share(

@@ -919,6 +919,25 @@
       }
     }
   },
+  "importSavedRides": "{count, plural, =1{One ride added to your rides} other{{count} rides added to your rides}}",
+  "@importSavedRides": {
+    "description": "Snack bar after several tracks of one file were saved as rides",
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "importSavedRoutes": "{count, plural, =1{One route added to the library} other{{count} routes added to the library}}",
+  "@importSavedRoutes": {
+    "description": "Snack bar after several tracks of one file were saved as routes",
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "importTracks": "Tracks in this file",
+  "@importTracks": {
+    "description": "Caption over the list of a file's several tracks on the import screen"
+  },
+  "importTrackNumber": "Track {number}",
+  "@importTrackNumber": {
+    "description": "Name of an unnamed track in a file with several",
+    "placeholders": {"number": {"type": "int"}}
+  },
   "importFailedUnknown": "That is not a GPX or FIT file.",
   "@importFailedUnknown": {
     "description": "Error shown when the file sniffer recognised neither format"
@@ -1359,6 +1378,14 @@
   "@rideHeartRate": {
     "description": "Caption above the heart rate chart of a recorded ride"
   },
+  "rideTemperature": "Temperature",
+  "@rideTemperature": {
+    "description": "Title of the temperature chart on the ride page"
+  },
+  "rideDeviceTotals": "As recorded by the device",
+  "@rideDeviceTotals": {
+    "description": "Caption over the totals the recording device wrote, shown beside the app's own figures"
+  },
   "statRemaining": "Left",
   "@statRemaining": {
     "description": "Label of the record sheet tile with the distance still to ride on the followed route"
@@ -1418,6 +1445,10 @@
         "example": "5 km"
       }
     }
+  },
+  "rideSplitsLaps": "Laps, as the device cut them",
+  "@rideSplitsLaps": {
+    "description": "Caption over the splits table when the splits are the recording device's laps"
   },
   "rideSurfaceComputing": "Matching the track to the map…",
   "@rideSurfaceComputing": {
@@ -4103,6 +4134,11 @@
         "example": "640"
       }
     }
+  },
+  "unitCelsius": "{value} °C",
+  "@unitCelsius": {
+    "description": "A temperature in degrees Celsius",
+    "placeholders": {"value": {"type": "String"}}
   },
   "statMaxCadence": "Max cadence",
   "@statMaxCadence": {

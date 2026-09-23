@@ -162,6 +162,11 @@ class RideRepository {
     uploads: decodeRideUploads(row.uploadsJson),
     notes: row.notes,
     surface: decodeRideSurface(row.surfaceStatsJson),
+    laps: decodeRideLaps(row.lapsJson),
+    deviceTotals: decodeDeviceTotals(row.deviceTotalsJson),
+    temperaturesC: decodeTemperatures(
+      row.temperatures == null ? null : Uint8List.fromList(row.temperatures!),
+    ),
   );
 
   /// Maps the domain model into a row for `INSERT OR REPLACE`.
@@ -190,6 +195,15 @@ class RideRepository {
     notes: Value(ride.notes),
     surfaceStatsJson: Value(
       ride.surface == null ? null : encodeRideSurface(ride.surface!),
+    ),
+    lapsJson: Value(ride.laps.isEmpty ? null : encodeRideLaps(ride.laps)),
+    deviceTotalsJson: Value(
+      ride.deviceTotals == null ? null : encodeDeviceTotals(ride.deviceTotals!),
+    ),
+    temperatures: Value(
+      ride.temperaturesC.any((t) => t != null)
+          ? encodeTemperatures(ride.temperaturesC)
+          : null,
     ),
   );
 

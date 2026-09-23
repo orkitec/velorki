@@ -28,6 +28,7 @@ class RideSplitsTable extends ConsumerWidget {
     super.key,
     this.selected,
     this.onSelect,
+    this.laps = false,
   });
 
   /// The splits, in riding order.
@@ -35,6 +36,9 @@ class RideSplitsTable extends ConsumerWidget {
 
   /// How long a whole split is, for the caption.
   final double splitLengthM;
+
+  /// Whether the splits are the device's laps, which the caption says.
+  final bool laps;
 
   /// The row drawn as selected, by its position in [splits]; `null` for
   /// none.
@@ -60,7 +64,11 @@ class RideSplitsTable extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SectionCaption(
-          l10n.rideSplitsEvery(formatSplitLength(l10n, system, splitLengthM)),
+          laps
+              ? l10n.rideSplitsLaps
+              : l10n.rideSplitsEvery(
+                  formatSplitLength(l10n, system, splitLengthM),
+                ),
         ),
         const SizedBox(height: 10),
         Padding(

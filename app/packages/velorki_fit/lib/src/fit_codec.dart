@@ -104,6 +104,20 @@ const int _fActivityEventType = 4;
 // course
 const int _fCourseSport = 4;
 const int _fCourseName = 5;
+// device_info
+const int _fDeviceInfoIndex = 0;
+const int _fDeviceInfoProductName = 27;
+// record, the rest
+const int _fRecordTemperature = 13;
+// lap and session, the totals
+const int _fLapTotalCalories = 11;
+const int _fLapTotalAscent = 21;
+const int _fLapTotalDescent = 22;
+const int _fLapAvgTemperature = 50;
+const int _fSessionTotalCalories = 11;
+const int _fSessionTotalAscent = 22;
+const int _fSessionTotalDescent = 23;
+const int _fSessionAvgTemperature = 57;
 // course_point
 const int _fCoursePointTimestamp = 1;
 const int _fCoursePointPositionLat = 2;
@@ -393,8 +407,68 @@ class FitCodec {
   ///
   /// Throws [FitFormatException] as [decodeActivity] does.
   static FitActivity decodeActivityFile(Uint8List bytes) {
-    // Phase 2: laps, session totals and temperature reach the ride.
-    throw UnimplementedError('Phase 2: FIT laps and totals are not read yet');
+    if (!looksLikeFit(bytes)) {
+      throw const FitFormatException(
+        'Not a FIT file: missing ".FIT" signature or bad header size',
+      );
+    }
+    final points = <TrackPoint>[];
+    final temperatures = <double?>[];
+    final laps = <FitLap>[];
+    FitSession? session;
+    String? deviceName;
+    int? manufacturer;
+    final decoder = Decode();
+    decoder.onMesg = (Mesg mesg) {
+      switch (mesg.num) {
+        case MesgNum.fileId:
+          manufacturer ??= _asNum(mesg.getFieldValue(_fFileIdManufacturer))
+              ?.toInt();
+        case MesgNum.deviceInfo:
+          // The recording device is index 0; sensors come after it.
+          final index = _asNum(mesg.getFieldValue(_fDeviceInfoIndex))?.toInt();
+          if (index == 0 || index == null) {
+            deviceName ??= _asString(
+              mesg.getFieldValue(_fDeviceInfoProductName),
+            );
+          }
+        case MesgNum.record:
+          final point = _recordToTrackPoint(mesg);
+          if (point != null) {
+            points.add(point);
+            temperatures.add(
+              _asNum(mesg.getFieldValue(_fRecordTemperature))?.toDouble(),
+            );
+          }
+        case MesgNum.lap:
+          final lap = _lapOf(mesg);
+          if (lap != null) laps.add(lap);
+        case MesgNum.session:
+          session ??= _sessionOf(mesg);
+      }
+    };
+    try {
+      decoder.read(bytes);
+    } on FitException catch (e) {
+      throw FitFormatException(
+        'FIT file could not be decoded: ${e.message}',
+        e,
+      );
+    } catch (e) {
+      throw FitFormatException('FIT file could not be decoded', e);
+    }
+    return FitActivity(
+      points: points,
+      temperaturesC: temperatures.any((t) => t != null)
+          ? temperatures
+          : const <double?>[],
+      laps: laps,
+      session: session,
+      deviceName: deviceName,
+      manufacturer: manufacturer == null
+          ? null
+          : fitManufacturerName(manufacturer!),
+    );
   }
 
   /// Encodes [points] as a FIT *course* file — the thing a Garmin head unit
@@ -647,6 +721,64 @@ class FitCodec {
     );
   }
 
+  static FitLap? _lapOf(Mesg mesg) {
+    final start = _asNum(mesg.getFieldValue(_fLapStartTime));
+    final end = _asNum(mesg.getFieldValue(_fTimestamp));
+    if (start == null || end == null) return null;
+    return FitLap(
+      startTime: _fromFitTime(start.toInt()),
+      endTime: _fromFitTime(end.toInt()),
+      totalTimerS: _asNum(mesg.getFieldValue(_fLapTotalTimerTime))?.toDouble(),
+      totalElapsedS: _asNum(mesg.getFieldValue(_fLapTotalElapsedTime))
+          ?.toDouble(),
+      totalDistanceM: _asNum(mesg.getFieldValue(_fLapTotalDistance))
+          ?.toDouble(),
+      calories: _asNum(mesg.getFieldValue(_fLapTotalCalories))?.toInt(),
+      totalAscentM: _asNum(mesg.getFieldValue(_fLapTotalAscent))?.toDouble(),
+      totalDescentM: _asNum(mesg.getFieldValue(_fLapTotalDescent))?.toDouble(),
+      avgHeartRate: _asNum(mesg.getFieldValue(_fLapAvgHeartRate))?.toInt(),
+      maxHeartRate: _asNum(mesg.getFieldValue(_fLapMaxHeartRate))?.toInt(),
+      avgCadence: _asNum(mesg.getFieldValue(_fLapAvgCadence))?.toInt(),
+      avgPower: _asNum(mesg.getFieldValue(_fLapAvgPower))?.toInt(),
+      maxPower: _asNum(mesg.getFieldValue(_fLapMaxPower))?.toInt(),
+      avgTemperatureC: _asNum(mesg.getFieldValue(_fLapAvgTemperature))
+          ?.toDouble(),
+    );
+  }
+
+  static FitSession? _sessionOf(Mesg mesg) {
+    final start = _asNum(mesg.getFieldValue(_fSessionStartTime));
+    final end = _asNum(mesg.getFieldValue(_fTimestamp));
+    if (start == null || end == null) return null;
+    final sport = _asNum(mesg.getFieldValue(_fSessionSport))?.toInt();
+    return FitSession(
+      startTime: _fromFitTime(start.toInt()),
+      endTime: _fromFitTime(end.toInt()),
+      sport:
+          (sport == null ? null : FitSport.fromFitValue(sport)) ??
+          FitSport.cycling,
+      totalTimerS: _asNum(mesg.getFieldValue(_fSessionTotalTimerTime))
+          ?.toDouble(),
+      totalElapsedS: _asNum(mesg.getFieldValue(_fSessionTotalElapsedTime))
+          ?.toDouble(),
+      totalDistanceM: _asNum(mesg.getFieldValue(_fSessionTotalDistance))
+          ?.toDouble(),
+      calories: _asNum(mesg.getFieldValue(_fSessionTotalCalories))?.toInt(),
+      totalAscentM: _asNum(mesg.getFieldValue(_fSessionTotalAscent))
+          ?.toDouble(),
+      totalDescentM: _asNum(mesg.getFieldValue(_fSessionTotalDescent))
+          ?.toDouble(),
+      avgHeartRate: _asNum(mesg.getFieldValue(_fSessionAvgHeartRate))?.toInt(),
+      maxHeartRate: _asNum(mesg.getFieldValue(_fSessionMaxHeartRate))?.toInt(),
+      avgCadence: _asNum(mesg.getFieldValue(_fSessionAvgCadence))?.toInt(),
+      avgPower: _asNum(mesg.getFieldValue(_fSessionAvgPower))?.toInt(),
+      maxPower: _asNum(mesg.getFieldValue(_fSessionMaxPower))?.toInt(),
+      avgTemperatureC: _asNum(mesg.getFieldValue(_fSessionAvgTemperature))
+          ?.toDouble(),
+      numLaps: _asNum(mesg.getFieldValue(_fSessionNumLaps))?.toInt(),
+    );
+  }
+
   static FitCoursePoint? _coursePointOf(Mesg mesg) {
     final lat = _asNum(mesg.getFieldValue(_fCoursePointPositionLat));
     final lon = _asNum(mesg.getFieldValue(_fCoursePointPositionLong));
@@ -844,3 +976,19 @@ String _fitString(String value) {
   }
   return text;
 }
+
+/// The name of a FIT `manufacturer` value, for the makers a rider's file is
+/// likely to come from; the number itself for any other.
+String fitManufacturerName(int manufacturer) => switch (manufacturer) {
+  Manufacturer.garmin => 'garmin',
+  Manufacturer.wahooFitness => 'wahoo_fitness',
+  Manufacturer.zwift => 'zwift',
+  Manufacturer.development => 'development',
+  Manufacturer.bryton => 'bryton',
+  Manufacturer.sigmasport => 'sigmasport',
+  Manufacturer.hammerhead => 'hammerhead',
+  Manufacturer.coros => 'coros',
+  Manufacturer.suunto => 'suunto',
+  Manufacturer.strava => 'strava',
+  _ => '$manufacturer',
+};

@@ -106,11 +106,6 @@ abstract final class GpxCodec {
     List<GpxWaypoint> waypoints = const [],
     List<GpxExtensions?> extensions = const [],
   }) {
-    // Phase 2: a temperature per point goes out as `gpxtpx:atemp`, beside
-    // the heart rate and cadence the points already carry.
-    if (extensions.isNotEmpty) {
-      throw UnimplementedError('Phase 2: per-point extensions are not written');
-    }
     final gpx = gpxlib.Gpx()
       ..version = '1.1'
       ..creator = creator
@@ -125,7 +120,18 @@ abstract final class GpxCodec {
           ],
         ),
       ];
-    return _render(gpx, garminExtensions: _needsGarminNamespace(points));
+    // A temperature per point, `null` where there was none; the list may be
+    // shorter than the points.
+    final temperatures = <double?>[
+      for (var i = 0; i < points.length; i++)
+        i < extensions.length ? extensions[i]?.temperatureC : null,
+    ];
+    final hasTemperature = temperatures.any((t) => t != null);
+    return _render(
+      gpx,
+      garminExtensions: hasTemperature || _needsGarminNamespace(points),
+      temperatures: hasTemperature ? temperatures : const <double?>[],
+    );
   }
 
   /// Encodes [points] as a GPX 1.1 file holding a single `<rte>`, plus any
@@ -266,10 +272,13 @@ abstract final class GpxCodec {
       return null;
     }
     final container = _childByLocalName(raw, 'TrackPointExtension') ?? raw;
+    // ClueTrust's gpxdata schema (Ride with GPS, pytrainer) spells the same
+    // readings `hr`, `cadence` and `temp`, flat under `<extensions>`; a file
+    // with both schemas reads the Garmin one first, they say the same.
     final result = GpxExtensions(
-      heartRate: _intIn(container, 'hr'),
-      cadence: _intIn(container, 'cad'),
-      temperatureC: _doubleIn(container, 'atemp'),
+      heartRate: _intIn(container, 'hr') ?? _intIn(raw, 'hr'),
+      cadence: _intIn(container, 'cad') ?? _intIn(raw, 'cadence'),
+      temperatureC: _doubleIn(container, 'atemp') ?? _doubleIn(raw, 'temp'),
     );
     return result.isEmpty ? null : result;
   }
@@ -441,7 +450,11 @@ abstract final class GpxCodec {
   /// a prefix but never declares. It is only added when a point actually
   /// carries a heart rate or a cadence, so an ordinary track keeps the root
   /// element it has always had.
-  static String _render(gpxlib.Gpx gpx, {bool garminExtensions = false}) {
+  static String _render(
+    gpxlib.Gpx gpx, {
+    bool garminExtensions = false,
+    List<double?> temperatures = const <double?>[],
+  }) {
     final document = XmlDocument.parse(
       gpxlib.GpxWriter().asString(
         gpx,
@@ -485,8 +498,40 @@ abstract final class GpxCodec {
       }
     }
 
+    // `package:gpx` has no place for a temperature in its typed Garmin
+    // extension, so `atemp` goes into each point's TrackPointExtension here,
+    // made where the point had no sensors to bring one.
+    if (temperatures.isNotEmpty) {
+      final trkpts = root.findAllElements('trkpt').toList(growable: false);
+      for (var i = 0; i < trkpts.length && i < temperatures.length; i++) {
+        final temperature = temperatures[i];
+        if (temperature == null) continue;
+        final extensions = _childOrAdd(trkpts[i], 'extensions');
+        final tpx = _childOrAdd(extensions, 'gpxtpx:TrackPointExtension');
+        tpx.children.add(
+          XmlElement(XmlName.qualified('gpxtpx:atemp'), const [], [
+            XmlText(_trimmed(temperature)),
+          ]),
+        );
+      }
+    }
+
     return '${document.toXmlString(pretty: true, indent: '  ')}\n';
   }
+
+  static XmlElement _childOrAdd(XmlElement parent, String qualifiedName) {
+    for (final child in parent.childElements) {
+      if (child.name.qualified == qualifiedName) return child;
+    }
+    final element = XmlElement(XmlName.qualified(qualifiedName));
+    parent.children.add(element);
+    return element;
+  }
+
+  /// A number without a trailing `.0`, the way the files in the wild write
+  /// a whole degree.
+  static String _trimmed(double value) =>
+      value == value.roundToDouble() ? '${value.round()}' : '$value';
 
   /// Reformats an ISO-8601 timestamp to UTC whole seconds, or `null` if it
   /// cannot be parsed.

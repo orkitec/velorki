@@ -39,6 +39,8 @@ A GPX route with a cue sheet, the route export of Ride with GPS or a Garmin cour
 
 Velorki guesses **Route** or **Ride** from whether the points carry times: a recording does, a planned route does not. A FIT course is recognised as a course and guessed as a route, whatever its synthetic time base says; its course points become the route's cue sheet (turns) and its points of interest (water, food, hazards, named places). Nothing is written until you tap **Save**.
 
+A FIT activity from a head unit brings more than its track: the laps the device cut stand in for the fixed splits on the ride's page, the totals the device wrote (distance, moving time, ascent, calories) are shown under **As recorded by the device** where they differ from what Velorki works out from the fixes, and a temperature, when the device logged one, gets a chart of its own. A GPX ride brings heart rate, cadence, power and temperature from its extensions the same way. A GPX file with several tracks, a multi-day tour say, lists them with a checkbox each, and saves one ride (or route) per checked track.
+
 Afterwards you get "Alpine loop added to the library" or "Alpine loop added to your rides", and you land on the new item's card on the Library tab.
 
 If the file will not open, Velorki says which problem it was: "That is not a GPX or FIT file.", "That file could not be read.", "That file has no track points." or "That file could not be opened."
@@ -56,7 +58,7 @@ If the file will not open, Velorki says which problem it was: "That is not a GPX
 
 | Format | Use it for |
 |---|---|
-| **Export GPX track** | the recorded track with its timestamps |
+| **Export GPX track** | the recorded track with its timestamps; heart rate, cadence, power and temperature go with it. |
 | **Export FIT activity** | an activity file for a training platform |
 
 Either way Velorki writes the file and hands it to the system share sheet, so you can put it in your files, mail it, or send it into another app.

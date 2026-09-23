@@ -224,6 +224,66 @@ void main() {
       );
     });
 
+    test('the laps, the device totals and the temperatures go into the row '
+        'and come back', () async {
+      final ride = await repository.finalizeRide(
+        rideId: 'ride-1',
+        name: 'From a device',
+        points: _track(5, ele: 500),
+        startedAt: DateTime.utc(2026, 9, 12, 10),
+        endedAt: DateTime.utc(2026, 9, 12, 10, 0, 4),
+      );
+      final laps = [
+        RideLap(
+          startedAt: DateTime.utc(2026, 9, 12, 10),
+          endedAt: DateTime.utc(2026, 9, 12, 10, 0, 2),
+          distanceM: 22.2,
+          movingTime: const Duration(seconds: 2),
+          calories: 3,
+        ),
+        RideLap(
+          startedAt: DateTime.utc(2026, 9, 12, 10, 0, 2),
+          endedAt: DateTime.utc(2026, 9, 12, 10, 0, 4),
+        ),
+      ];
+      const totals = DeviceTotals(
+        distanceM: 45.5,
+        movingTime: Duration(seconds: 4),
+        elapsedTime: Duration(seconds: 5),
+        calories: 6,
+        ascentM: 1,
+        descentM: 0,
+      );
+      await repository.save(
+        Ride(
+          id: ride.id,
+          name: ride.name,
+          startedAt: ride.startedAt,
+          endedAt: ride.endedAt,
+          stats: ride.stats,
+          geometry: ride.geometry,
+          laps: laps,
+          deviceTotals: totals,
+          temperaturesC: const [14.5, null, -3.2, 20, 21.7],
+        ),
+      );
+      final read = (await repository.rideById('ride-1'))!;
+      expect(read.laps, hasLength(2));
+      expect(read.laps.first.endedAt, DateTime.utc(2026, 9, 12, 10, 0, 2));
+      expect(read.laps.first.distanceM, 22.2);
+      expect(read.laps.first.movingTime, const Duration(seconds: 2));
+      expect(read.laps.first.calories, 3);
+      expect(read.laps.last.distanceM, isNull);
+      expect(read.deviceTotals!.distanceM, 45.5);
+      expect(read.deviceTotals!.elapsedTime, const Duration(seconds: 5));
+      expect(read.deviceTotals!.calories, 6);
+      expect(read.temperaturesC, [14.5, null, -3.2, 20, 21.7]);
+      // A ride recorded here has none of it.
+      expect(ride.laps, isEmpty);
+      expect(ride.deviceTotals, isNull);
+      expect(ride.temperaturesC, isEmpty);
+    });
+
     test('renames, deletes and restores', () async {
       final ride = await repository.finalizeRide(
         rideId: 'ride-1',

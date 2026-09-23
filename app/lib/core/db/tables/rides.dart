@@ -38,6 +38,17 @@ class Rides extends Table {
   /// for good; null until it was tried.
   TextColumn get surfaceStatsJson => text().nullable()();
 
+  /// The laps the recording device cut, as JSON; null for a ride without.
+  TextColumn get lapsJson => text().nullable()();
+
+  /// The totals the recording device wrote for the ride, as JSON; null for
+  /// a ride recorded here.
+  TextColumn get deviceTotalsJson => text().nullable()();
+
+  /// One signed 16-bit tenth of a degree per point of [geometry], the
+  /// absent sentinel where a point had none; null for a ride without.
+  BlobColumn get temperatures => blob().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

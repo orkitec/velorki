@@ -197,6 +197,7 @@ class ImportCandidate {
     required this.track,
     required this.suggested,
     this.sourceHint,
+    this.tracks = const <ImportedTrack>[],
   });
 
   /// Builds a candidate from [track], taking the suggestion from the track
@@ -205,12 +206,21 @@ class ImportCandidate {
     ImportedTrack track, {
     required String fileName,
     String? sourceHint,
+    List<ImportedTrack> tracks = const <ImportedTrack>[],
   }) => ImportCandidate(
     fileName: fileName,
     track: track,
     suggested: track.suggestedKind,
     sourceHint: sourceHint,
+    tracks: tracks,
   );
+
+  /// Every track the file holds when there are several, [track] being the
+  /// first; empty for a file with one.
+  final List<ImportedTrack> tracks;
+
+  /// Whether the file holds several tracks to choose among.
+  bool get hasSeveralTracks => tracks.length > 1;
 
   /// The file's name as the sender gave it, e.g. `Isar loop.gpx`.
   final String fileName;

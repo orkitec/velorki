@@ -10,6 +10,7 @@ import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/planner/domain/route_poi.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
+import 'package:velorki/features/recording/domain/ride.dart';
 import 'package:velorki/features/recording/domain/ride_range.dart';
 import 'package:velorki/features/recording/domain/ride_upload.dart';
 import 'package:velorki/core/geo/power_metrics.dart';
@@ -280,6 +281,96 @@ MapChromeData? _routeButton(WidgetTester tester) {
 }
 
 void main() {
+  testWidgets('a ride from a device shows its totals beside the app\'s '
+      'figures, its laps as the splits and a temperature chart', (
+    tester,
+  ) async {
+    final harness = RecordingHarness();
+    final points = _threeKilometres();
+    final repository = RideRepository(harness.planner.db.ridesDao);
+    final ride = await repository.finalizeRide(
+      rideId: 'ride-1',
+      name: 'Device ride',
+      points: points,
+      startedAt: points.first.time!,
+      endedAt: points.last.time!,
+    );
+    await repository.save(
+      Ride(
+        id: ride.id,
+        name: ride.name,
+        startedAt: ride.startedAt,
+        endedAt: ride.endedAt,
+        stats: ride.stats,
+        geometry: ride.geometry,
+        laps: [
+          RideLap(
+            startedAt: points.first.time!,
+            endedAt: points[216].time!,
+            distanceM: 1200,
+          ),
+          RideLap(
+            startedAt: points[216].time!,
+            endedAt: points[378].time!,
+            distanceM: 900,
+          ),
+          RideLap(
+            startedAt: points[378].time!,
+            endedAt: points.last.time!,
+            distanceM: 900,
+          ),
+        ],
+        // A device that measured a longer ride than the fixes say.
+        deviceTotals: const DeviceTotals(
+          distanceM: 3400,
+          movingTime: Duration(minutes: 9),
+          calories: 120,
+        ),
+        temperaturesC: [for (var i = 0; i < points.length; i++) 12 + i / 60],
+      ),
+    );
+    await pumpRecordingScreen(
+      tester,
+      const RideDetailScreen(rideId: 'ride-1'),
+      harness: harness,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.rideDeviceTotals.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.unitKcal('120')), findsOneWidget);
+    expect(find.text(testDistance(3400)), findsOneWidget);
+    expect(find.text(l10n.rideSplitsLaps.toUpperCase()), findsOneWidget);
+    expect(find.text(l10n.rideSplitsEvery('1 km').toUpperCase()), findsNothing);
+    // Three laps of 1.2, 0.9 and 0.9 km rather than three kilometres.
+    expect(
+      find.text(formatSplitLength(l10n, UnitSystem.metric, 1200)),
+      findsOneWidget,
+    );
+    expect(
+      find.text(formatSplitLength(l10n, UnitSystem.metric, 900)),
+      findsNWidgets(2),
+    );
+    expect(find.byType(RideTemperatureChart), findsOneWidget);
+    expect(find.text(l10n.rideTemperature.toUpperCase()), findsOneWidget);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('a ride recorded here shows no device totals and no '
+      'temperature', (tester) async {
+    final harness = RecordingHarness();
+    await _seed(harness);
+    await pumpRecordingScreen(
+      tester,
+      const RideDetailScreen(rideId: 'ride-1'),
+      harness: harness,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.rideDeviceTotals.toUpperCase()), findsNothing);
+    expect(find.byType(RideTemperatureChart), findsNothing);
+    await unmountApp(tester);
+  });
+
   testWidgets('shows the track, the statistics and the export buttons', (
     tester,
   ) async {

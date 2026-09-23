@@ -72,8 +72,26 @@ ImportedTrack decodeTrack(Uint8List bytes, {String? fileName}) {
 ///
 /// Throws [ImportException] as [decodeTrack] does.
 List<ImportedTrack> decodeTracks(Uint8List bytes, {String? fileName}) {
-  // Phase 2: several tracks in one file import as several rides.
-  throw UnimplementedError('Phase 2: multi-track import is not written yet');
+  if (!looksLikeGpx(bytes)) return [decodeTrack(bytes, fileName: fileName)];
+  final GpxDocument document;
+  try {
+    document = GpxCodec.decode(utf8.decode(bytes, allowMalformed: true));
+  } on GpxFormatException catch (e) {
+    throw ImportException(
+      ImportFailure.malformed,
+      fileName: fileName,
+      cause: e,
+    );
+  }
+  final tracks = [
+    for (final track in document.tracks)
+      if (track.pointCount > 0) track,
+  ];
+  if (tracks.length < 2) return [decodeTrack(bytes, fileName: fileName)];
+  return [
+    for (final track in tracks)
+      _gpxTrack(document, track, null, fileName, named: true),
+  ];
 }
 
 /// Decodes [bytes] and wraps the result in a candidate for the preview screen.
@@ -81,11 +99,15 @@ ImportCandidate decodeCandidate(
   Uint8List bytes, {
   required String fileName,
   String? sourceHint,
-}) => ImportCandidate.of(
-  decodeTrack(bytes, fileName: fileName),
-  fileName: fileName,
-  sourceHint: sourceHint,
-);
+}) {
+  final tracks = decodeTracks(bytes, fileName: fileName);
+  return ImportCandidate.of(
+    tracks.first,
+    fileName: fileName,
+    sourceHint: sourceHint,
+    tracks: tracks.length > 1 ? tracks : const <ImportedTrack>[],
+  );
+}
 
 ImportedTrack _decodeGpx(Uint8List bytes, String? fileName) {
   final GpxDocument document;
@@ -118,6 +140,18 @@ ImportedTrack _decodeGpx(Uint8List bytes, String? fileName) {
     }
   }
 
+  return _gpxTrack(document, track, route, fileName);
+}
+
+/// One imported track out of a GPX file: [track] when it has one, else
+/// [route], with the file's waypoints as points of interest.
+ImportedTrack _gpxTrack(
+  GpxDocument document,
+  GpxTrack? track,
+  GpxRoute? route,
+  String? fileName, {
+  bool named = false,
+}) {
   final points = track?.points ?? route?.points ?? const <TrackPoint>[];
   if (points.isEmpty) {
     throw ImportException(ImportFailure.empty, fileName: fileName);
@@ -126,15 +160,23 @@ ImportedTrack _decodeGpx(Uint8List bytes, String? fileName) {
   final turns = track == null && route != null
       ? cueSheetTurns(route.cues)
       : const <TurnHint>[];
+  final extensions = track?.pointExtensions ?? const <GpxExtensions?>[];
+  final temperatures = <double?>[for (final e in extensions) e?.temperatureC];
 
   return ImportedTrack(
     format: ImportFormat.gpx,
     points: points,
-    name: document.name ?? track?.name ?? route?.name,
+    // One track of several is called by its own name, not the file's.
+    name: named
+        ? track?.name ?? document.name
+        : document.name ?? track?.name ?? route?.name,
     description:
         document.description ?? track?.description ?? route?.description,
     creator: document.creator,
     turns: turns,
+    temperaturesC: temperatures.any((t) => t != null)
+        ? temperatures
+        : const <double?>[],
     pois: [
       for (final w in document.waypoints)
         RoutePoi(
@@ -157,9 +199,9 @@ ImportedTrack _decodeGpx(Uint8List bytes, String? fileName) {
 
 ImportedTrack _decodeFit(Uint8List bytes, String? fileName) {
   if (FitCodec.isCourse(bytes)) return _decodeFitCourse(bytes, fileName);
-  final List<TrackPoint> points;
+  final FitActivity activity;
   try {
-    points = FitCodec.decodeActivity(bytes);
+    activity = FitCodec.decodeActivityFile(bytes);
   } on FitFormatException catch (e) {
     throw ImportException(
       ImportFailure.malformed,
@@ -167,10 +209,37 @@ ImportedTrack _decodeFit(Uint8List bytes, String? fileName) {
       cause: e,
     );
   }
+  final points = activity.points;
   if (points.isEmpty) {
     throw ImportException(ImportFailure.empty, fileName: fileName);
   }
-  return ImportedTrack(format: ImportFormat.fit, points: points);
+  final session = activity.session;
+  return ImportedTrack(
+    format: ImportFormat.fit,
+    points: points,
+    creator: activity.manufacturer,
+    temperaturesC: activity.temperaturesC,
+    laps: [
+      for (final lap in activity.laps)
+        ImportedLap(
+          startTime: lap.startTime,
+          endTime: lap.endTime,
+          distanceM: lap.totalDistanceM,
+          movingS: lap.totalTimerS,
+          calories: lap.calories,
+        ),
+    ],
+    deviceTotals: session == null
+        ? null
+        : ImportedTotals(
+            distanceM: session.totalDistanceM,
+            movingS: session.totalTimerS,
+            elapsedS: session.totalElapsedS,
+            calories: session.calories,
+            ascentM: session.totalAscentM,
+            descentM: session.totalDescentM,
+          ),
+  );
 }
 
 /// A FIT course: a route, with its course points as the cue sheet and the

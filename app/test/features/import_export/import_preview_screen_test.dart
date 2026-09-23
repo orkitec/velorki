@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -214,6 +215,45 @@ void main() {
     // It landed on the ride's detail screen, under the Record tab.
     expect(find.byType(RideDetailScreen), findsOneWidget);
     expect(find.text('Starnberger See loop'), findsOneWidget);
+    await unmountApp(tester);
+  });
+
+  testWidgets('a file with several tracks lists them to choose from, and '
+      'saves one ride per chosen track', (tester) async {
+    final bytes = File(
+      'test/fixtures/formats/gpx/viewmygpx_multi_track_trimmed.gpx',
+    ).readAsBytesSync();
+    final candidate = decodeCandidate(bytes, fileName: 'hike.gpx');
+    expect(candidate.tracks, hasLength(4));
+    final h = PlannerHarness();
+    await pumpApp(tester, harness: h);
+    await tester.pumpAndSettle();
+    GoRouter.of(tester.element(find.byType(NavigationBar)))
+        .go(importRoute, extra: candidate);
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.importTracks.toUpperCase()), findsOneWidget);
+    final boxes = find.byType(CheckboxListTile);
+    expect(boxes, findsNWidgets(4));
+    expect(
+      tester.widgetList<CheckboxListTile>(boxes).every((b) => b.value == true),
+      isTrue,
+    );
+    expect(find.textContaining('Day 2'), findsOneWidget);
+    // Leave the second day out.
+    await tester.tap(boxes.at(1));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.widgetWithText(FilledButton, l10n.commonSave),
+    );
+    await tester.tap(find.widgetWithText(FilledButton, l10n.commonSave));
+    await tester.pumpAndSettle();
+
+    final rides = await h.db.ridesDao.allRides();
+    expect(rides, hasLength(3));
+    expect(rides.map((r) => r.name).any((n) => n.startsWith('Day 2')), isFalse);
+    expect(rides.map((r) => r.name).any((n) => n.startsWith('Day 1')), isTrue);
+    expect(find.byType(LibraryScreen), findsOneWidget);
     await unmountApp(tester);
   });
 

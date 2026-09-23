@@ -134,7 +134,7 @@ void main() {
       expect(totals.ascentM, 299);
       expect(totals.movingS, closeTo(10699.36, 0.01));
       expect(track.creator, 'garmin');
-    }, skip: 'phase 2');
+    });
 
     test('temperature comes in per point when the file has it, and stays '
         'empty when it does not', () {
@@ -151,7 +151,7 @@ void main() {
         formatFixture('gpx', 'msimms_runkeeper_run.gpx'),
       );
       expect(plain.temperaturesC, isEmpty);
-    }, skip: 'phase 2');
+    });
 
     test('a GPX with several <trk> offers every track, in order, each with '
         'its own name, and the preview asks which ones to keep', () {
@@ -170,7 +170,7 @@ void main() {
       );
       // The preview lists the four with a checkbox each, all on, and
       // saves one ride per checked track: import_preview_screen_test.
-    }, skip: 'phase 2');
+    });
 
     test('the ride card shows the device\'s totals beside the app\'s figures '
         'when they differ, and a temperature chart when there is one', () {
@@ -180,7 +180,7 @@ void main() {
       // figures, the four laps as its splits, and a "Temperature" chart
       // beside the elevation one.
       expect(true, isTrue);
-    }, skip: 'phase 2');
+    });
 
     test('a GPX ride export writes power and temperature on every point that '
         'has them', () {
@@ -193,7 +193,7 @@ void main() {
       );
       expect(xml, contains('<power>180</power>'));
       expect(xml, contains('<gpxtpx:atemp>14.5</gpxtpx:atemp>'));
-    }, skip: 'phase 2');
+    });
   });
 
   group('phase 3: plan and view', () {

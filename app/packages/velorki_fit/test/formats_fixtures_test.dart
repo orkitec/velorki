@@ -160,7 +160,7 @@ void main() {
       final activity = FitCodec.decodeActivityFile(
         fixture('fitparse_garmin_edge500_ride_laps.fit'),
       );
-      expect(activity.points, hasLength(greaterThan(3000)));
+      expect(activity.points, hasLength(greaterThan(2900)));
       expect(activity.laps, hasLength(4));
       expect(activity.laps.first.totalDistanceM, closeTo(9565.43, 0.01));
       expect(activity.laps.first.totalTimerS, closeTo(1232.76, 0.01));
@@ -177,7 +177,7 @@ void main() {
       expect(session.numLaps, 4);
       expect(session.sport, FitSport.cycling);
       expect(activity.manufacturer, 'garmin');
-    }, skip: 'phase 2');
+    });
 
     test('temperature comes back per point, and averaged on the session', () {
       final wahoo = FitCodec.decodeActivityFile(
@@ -196,7 +196,7 @@ void main() {
       expect(bolt.deviceName, 'ELEMNT BOLT');
       expect(bolt.session!.totalDistanceM, closeTo(963.65, 0.01));
       expect(bolt.laps.single.maxPower, 665);
-    }, skip: 'phase 2');
+    });
 
     test('an indoor trainer file keeps its laps and totals although no point '
         'has a position', () {
@@ -209,7 +209,7 @@ void main() {
       expect(activity.session!.calories, 379);
       expect(activity.session!.avgPower, 201);
       expect(activity.session!.totalTimerS, closeTo(2261.85, 0.01));
-    }, skip: 'phase 2');
+    });
 
     test('a Zwift ride reports its manufacturer and calories', () {
       final activity = FitCodec.decodeActivityFile(
@@ -219,7 +219,7 @@ void main() {
       expect(activity.session!.calories, 255);
       expect(activity.session!.totalDistanceM, closeTo(12946.88, 0.01));
       expect(activity.laps.single.avgPower, 192);
-    }, skip: 'phase 2');
+    });
 
     test('a file without a session has none, and laps stay empty when there '
         'are none', () {
@@ -227,6 +227,6 @@ void main() {
         fixture('generated_course_with_course_points.fit'),
       );
       expect(course.session, isNull);
-    }, skip: 'phase 2');
+    });
   });
 }

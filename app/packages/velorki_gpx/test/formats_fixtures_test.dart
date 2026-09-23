@@ -88,7 +88,7 @@ void main() {
         null,
         14.7,
       ]);
-    }, skip: 'phase 2');
+    });
   });
 
   group('several tracks and the rest of GPX 1.1', () {
@@ -213,7 +213,7 @@ void main() {
       // The point's own sensors are still there beside it.
       expect(back.extensionsAt(0)!.heartRate, 112);
       expect(back.points.map((p) => p.powerW), [180, 205]);
-    }, skip: 'phase 2');
+    });
 
     test('a route goes out as a <rte> with its cues on the points and the '
         'full geometry as a <trk> beside it', () {

@@ -94,6 +94,7 @@ class ShareTrackExporter implements TrackExporter {
     DateTime? startTime,
     List<RoutePoi> pois = const <RoutePoi>[],
     List<TurnHint> turns = const <TurnHint>[],
+    List<double?> temperaturesC = const <double?>[],
   }) async {
     final file = await write(
       name: name,
@@ -103,6 +104,7 @@ class ShareTrackExporter implements TrackExporter {
       startTime: startTime,
       pois: pois,
       turns: turns,
+      temperaturesC: temperaturesC,
     );
     await _shareFiles(file, mimeType: mimeTypeFor(format));
   }
@@ -122,6 +124,7 @@ class ShareTrackExporter implements TrackExporter {
     DateTime? startTime,
     List<RoutePoi> pois = const <RoutePoi>[],
     List<TurnHint> turns = const <TurnHint>[],
+    List<double?> temperaturesC = const <double?>[],
   }) async {
     if (points.isEmpty) {
       throw ArgumentError.value(points, 'points', 'nothing to export');
@@ -139,7 +142,13 @@ class ShareTrackExporter implements TrackExporter {
     switch (format) {
       case TrackFormat.gpx:
         await file.writeAsString(
-          _encodeGpx(name: name, points: points, kind: kind, pois: pois),
+          _encodeGpx(
+            name: name,
+            points: points,
+            kind: kind,
+            pois: pois,
+            temperaturesC: temperaturesC,
+          ),
           flush: true,
         );
       case TrackFormat.fit:
@@ -163,6 +172,7 @@ class ShareTrackExporter implements TrackExporter {
     required List<TrackPoint> points,
     required TrackKind kind,
     List<RoutePoi> pois = const <RoutePoi>[],
+    List<double?> temperaturesC = const <double?>[],
   }) => switch (kind) {
     // A planned route is a <rte>: turn points, no time base, and its points
     // of interest as <wpt>, so a route goes out the way it came in.
@@ -172,11 +182,16 @@ class ShareTrackExporter implements TrackExporter {
       creator: creator,
       waypoints: gpxWaypoints(pois),
     ),
-    // A ride is a <trk> and keeps the timestamps it was recorded with.
+    // A ride is a <trk> and keeps the timestamps it was recorded with, and
+    // the temperature the file it came from carried.
     TrackKind.ride => GpxCodec.encodeTrack(
       points: points,
       name: name,
       creator: creator,
+      extensions: [
+        for (final t in temperaturesC)
+          t == null ? null : GpxExtensions(temperatureC: t),
+      ],
     ),
   };
 

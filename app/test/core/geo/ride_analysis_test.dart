@@ -733,4 +733,53 @@ void main() {
       expect(effort.estimatedAvgPowerW, closeTo(151, 2));
     });
   });
+
+  group('laps and temperature', () {
+    test('lap ends fall where the ride was at that time, the end of the '
+        'ride left out', () {
+      final points = _ride(seconds: 540);
+      final ends = lapEndsAlong(points, [
+        _t0.add(const Duration(seconds: 180)),
+        _t0.add(const Duration(seconds: 360)),
+        _t0.add(const Duration(seconds: 540)),
+      ]);
+      expect(ends, hasLength(2));
+      expect(ends[0], closeTo(1000, 0.01));
+      expect(ends[1], closeTo(2000, 0.01));
+      expect(lapEndsAlong(points, const []), isEmpty);
+    });
+
+    test('laps cut the splits where the device did, whatever their '
+        'length, and the last runs to the end', () {
+      final analysis = analyseRide(
+        _ride(seconds: 540),
+        lapEndsM: const [1200, 2100],
+      );
+      expect(analysis.lapSplits, isTrue);
+      expect(analysis.splits, hasLength(3));
+      expect(analysis.splits.map((s) => s.startM), [0, 1200, 2100]);
+      expect(analysis.splits[0].distanceM, closeTo(1200, 0.01));
+      expect(analysis.splits[1].distanceM, closeTo(900, 0.01));
+      expect(analysis.splits[2].distanceM, closeTo(900, 0.01));
+      expect(_seconds(analysis.splits[0].movingTime), closeTo(216, 0.01));
+      expect(analysis.splits.every((s) => !s.partial), isTrue);
+      // Without laps the splits are the fixed length, starting on it.
+      final fixed = analyseRide(_ride(seconds: 540));
+      expect(fixed.lapSplits, isFalse);
+      expect(fixed.splits.map((s) => s.startM), [0, 1000, 2000]);
+    });
+
+    test('a temperature per point reaches the samples', () {
+      final points = _ride(seconds: 540);
+      final analysis = analyseRide(
+        points,
+        temperaturesC: [for (var i = 0; i < points.length; i++) 15 + i / 100],
+      );
+      expect(analysis.hasTemperature, isTrue);
+      expect(analysis.samples.first.temperatureC, closeTo(15, 0.01));
+      expect(analysis.samples.last.temperatureC, closeTo(20.4, 0.05));
+      expect(analyseRide(points).hasTemperature, isFalse);
+      expect(analyseRide(points).samples.first.temperatureC, isNull);
+    });
+  });
 }

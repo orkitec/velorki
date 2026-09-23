@@ -286,6 +286,66 @@ const double heartRateCoverageWorthSaying = 0.9;
 /// What the colours of the track under it mean: slow at one end of the ramp,
 /// fast at the other. No numbers — the classes are the ride's own quantiles,
 /// so the only thing worth saying is which way round they run.
+/// The air temperature over the ride, for a ride whose file carried one.
+class RideTemperatureChart extends ConsumerWidget {
+  const RideTemperatureChart({
+    required this.samples,
+    super.key,
+    this.highlight,
+    this.window,
+    this.onWindow,
+  });
+
+  final List<ChartSample> samples;
+
+  final RideRange? highlight;
+
+  final RideWindow? window;
+
+  final ValueChanged<RideWindow?>? onWindow;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final system = ref.watch(unitSystemProvider);
+    final measured = <ChartSample>[
+      for (final sample in samples)
+        if (sample.temperatureC != null) sample,
+    ];
+    if (measured.length < 2) return const SizedBox.shrink();
+    final spots = <FlSpot>[
+      for (final sample in measured)
+        FlSpot(
+          units.distanceToDisplay(system, sample.distanceM),
+          sample.temperatureC!,
+        ),
+    ];
+    return MetricChart(
+      title: l10n.rideTemperature,
+      spots: spots,
+      height: rideChartHeight,
+      // A degree or two of air around the line: a day that stayed between
+      // 14 and 16 degrees is not a flat line at the bottom of a chart.
+      yAxis: (lowest, highest) {
+        final padding = ((highest - lowest) * 0.2).clamp(1.0, 3.0);
+        return (min: lowest - padding, max: highest + padding);
+      },
+      highlight: chartHighlight(system, highlight),
+      zoomable: true,
+      window: chartWindow(system, window),
+      onWindow: rideWindowCallback(system, onWindow),
+      readoutAt: (index) => l10n.rideChartPoint(
+        formatDistance(l10n, system, measured[index].distanceM),
+        formatTemperature(l10n, measured[index].temperatureC!),
+      ),
+    );
+  }
+}
+
+/// A temperature as the ride's page shows it: whole degrees Celsius.
+String formatTemperature(AppLocalizations l10n, double celsius) =>
+    l10n.unitCelsius('${celsius.round()}');
+
 class RideSpeedLegend extends StatelessWidget {
   /// Creates the legend.
   const RideSpeedLegend({super.key});

@@ -42,6 +42,11 @@ final rideAnalysisProvider = FutureProvider.autoDispose
           ride.stats.distanceM,
         ),
         breaks: statsBreaksOf(ride.pauses),
+        // A ride from a device with laps is cut where the device cut it.
+        lapEndsM: lapEndsAlong(ride.points, [
+          for (final lap in ride.laps) lap.endedAt,
+        ]),
+        temperaturesC: ride.temperaturesC,
         maxHeartRateBpm: request.maxHeartRateBpm,
         thresholdPowerW: request.thresholdPowerW,
         powerModel: request.powerModel,

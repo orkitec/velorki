@@ -36,7 +36,7 @@ class VelorkiDatabase extends _$VelorkiDatabase {
   factory VelorkiDatabase.open() => VelorkiDatabase(_openConnection());
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -63,6 +63,13 @@ class VelorkiDatabase extends _$VelorkiDatabase {
       // 6 added the surface breakdown matched from the routing tiles; older
       // rides keep null and are matched when their page is next opened.
       if (from < 6) await m.addColumn(rides, rides.surfaceStatsJson);
+      // 7 added what an imported activity file brought beyond the track:
+      // the device's laps, its totals and a temperature per point.
+      if (from < 7) {
+        await m.addColumn(rides, rides.lapsJson);
+        await m.addColumn(rides, rides.deviceTotalsJson);
+        await m.addColumn(rides, rides.temperatures);
+      }
     },
     beforeOpen: (_) async {
       // SQLite needs this per connection for the rides → routes foreign key.
