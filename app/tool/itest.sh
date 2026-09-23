@@ -192,9 +192,9 @@ STARTUP="${VELORKI_ITEST_STARTUP_TIMEOUT:-180}"
 # Killing only the launcher left its Dart Development Service and its adb
 # port forwards behind, and the next attempt's DDS then failed to start on
 # the ports they still held ("Failed to start Dart Development Service",
-# three times in a row on API 35 in CI). DDS is off for the same reason: the
-# integration tests never need it, it is the DevTools bridge, and it was the
-# one piece that kept failing to come up.
+# three times in a row on API 35 in CI). DDS itself stays on: the tool's
+# golden-file bridge registers a custom VM service stream at load, which only
+# DDS provides, and without it every suite load is reported as failed.
 # exec, so the backgrounded call *is* the launcher and $! names it; without
 # it the pid would be a subshell waiting on the launcher.
 if command -v setsid >/dev/null 2>&1; then
@@ -239,7 +239,6 @@ flutter_test_one() {
   fi
   own_group flutter test "$1" \
     -d "$DEVICE" \
-    --no-dds \
     --dart-define=VELORKI_BROUTER_URL="$BROUTER_URL" \
     --dart-define=VELORKI_API_URL= \
     --dart-define=VELORKI_SEGMENTS_URL="$SEGMENTS_URL" \
