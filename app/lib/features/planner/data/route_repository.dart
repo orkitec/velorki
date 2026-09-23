@@ -13,6 +13,7 @@ import '../../../core/geo/ride_stats.dart';
 import '../domain/route_profile.dart';
 import '../domain/routing_options.dart';
 import '../domain/route_poi.dart';
+import '../domain/route_waypoints.dart';
 import '../domain/saved_route.dart';
 import '../domain/waypoint.dart';
 
@@ -62,10 +63,21 @@ class RouteRepository {
   }) async {
     final now = _clock();
     final existing = id == null ? null : await _dao.routeById(id);
+    // Saving over a route keeps what the planner does not carry: its
+    // description, and its points of interest except those the plan now
+    // holds as named waypoints, which the file would otherwise get twice.
+    final kept = existing == null ? null : toDomain(existing);
+    final pois = <RoutePoi>[
+      for (final poi in kept?.pois ?? const <RoutePoi>[])
+        if (!waypoints.any(
+          (w) => w.hasDetails && haversineMeters(w.pos, poi.pos) <= poiOnTrackM,
+        ))
+          poi,
+    ];
     final saved = SavedRoute(
       id: id ?? _uuid.v4(),
       name: name,
-      description: description,
+      description: description ?? kept?.description,
       source: source,
       profile: options.profile,
       createdAt: existing?.createdAt ?? now,
@@ -79,6 +91,7 @@ class RouteRepository {
       options: options,
       surfaceStats: route.messages.isEmpty ? null : route.surfaceStats,
       turns: route.turns,
+      pois: pois,
     );
     await _dao.upsertRoute(toCompanion(saved));
     return saved;

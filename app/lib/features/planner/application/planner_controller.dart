@@ -16,7 +16,7 @@ import '../domain/route_profile.dart';
 import '../domain/routing_options.dart';
 import '../domain/saved_route.dart';
 import '../domain/segment_math.dart';
-import '../domain/shape_points.dart';
+import '../domain/route_waypoints.dart';
 import '../domain/waypoint.dart';
 
 part 'planner_controller.g.dart';
@@ -375,7 +375,8 @@ class PlannerController extends _$PlannerController {
   /// the user's next edit asks the routing server again. A route that was
   /// imported rather than planned has only its two ends as waypoints, and an
   /// edit would route between them and lose the course the file came with;
-  /// it gets points along its track to hold the shape, see [shapePoints].
+  /// it gets the file's own points on the track, with their names, and shape
+  /// points between them, see [routeWaypoints].
   void loadSavedRoute(SavedRoute saved) {
     _debounce?.cancel();
     _pending?.cancel('saved route loaded');
@@ -413,14 +414,11 @@ class PlannerController extends _$PlannerController {
         geometry.length <= 2) {
       return waypoints;
     }
-    final shape = shapePoints(
-      geometry.map((p) => p.pos).toList(growable: false),
+    return routeWaypoints(
+      track: geometry.map((p) => p.pos).toList(growable: false),
+      saved: waypoints,
+      pois: saved.pois,
     );
-    return <Waypoint>[
-      if (waypoints.isNotEmpty) waypoints.first else Waypoint(pos: shape.first),
-      for (final p in shape.sublist(1, shape.length - 1)) Waypoint(pos: p),
-      if (waypoints.length > 1) waypoints.last else Waypoint(pos: shape.last),
-    ];
   }
 
   /// Puts an already computed route on the map.

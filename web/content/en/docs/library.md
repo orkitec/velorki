@@ -41,7 +41,7 @@ Opening a route draws it on the map, fitted to the part of the screen above the 
 
 The actions:
 
-- **Open in planner** loads it into the Plan tab with every one of its points, via points and their names, types and notes included, where you can edit it and save it again. A route that was imported rather than planned has only its two ends as points; it gets up to twenty shape points along its track, so an edit routes along the imported course instead of straight from start to end.
+- **Open in planner** loads it into the Plan tab with every one of its points, via points and their names, types and notes included, where you can edit it and save it again. A route that was imported rather than planned has only its two ends as points; the file's own points that lie on the track come along as named points with their type and note, and up to twenty shape points fill the stretches between them, so an edit routes along the imported course instead of straight from start to end. Points off the track stay points of interest of the route.
 - **Export** offers **GPX route** and **FIT course**, see [import and export](./import-and-export).
 - **Send** offers **Send to Ride with GPS** and **Send to Strava**, see [Strava and Ride with GPS](./strava-and-ridewithgps).
 - **Share link** turns it into a link, see [sharing](./sharing).

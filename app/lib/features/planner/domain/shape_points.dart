@@ -14,8 +14,15 @@ const int maxShapePoints = 20;
 /// waypoints are only its ends: opened in the planner as they are, the
 /// first edit would route start to end and lose the course the file came
 /// with.
-List<LatLng> shapePoints(List<LatLng> track, {int maxVia = maxShapePoints}) {
-  if (track.length <= 2) return List<LatLng>.of(track);
+List<LatLng> shapePoints(List<LatLng> track, {int maxVia = maxShapePoints}) =>
+    <LatLng>[
+      for (final i in shapePointIndices(track, maxVia: maxVia)) track[i],
+    ];
+
+/// The indices into [track] of [shapePoints], in track order, both ends
+/// among them.
+List<int> shapePointIndices(List<LatLng> track, {int maxVia = maxShapePoints}) {
+  if (track.length <= 2) return [for (var i = 0; i < track.length; i++) i];
   final lengthM = polylineLengthMeters(track);
   final cap = math.min(maxVia, math.max(1, (lengthM / 500).round()));
   // Every point ranked by how far the track would stray without it, and
@@ -26,8 +33,7 @@ List<LatLng> shapePoints(List<LatLng> track, {int maxVia = maxShapePoints}) {
     for (final entry in rank.entries)
       if (entry.value >= minShapeDeviationM) entry.key,
   ]..sort((a, b) => rank[b]!.compareTo(rank[a]!));
-  final keep = <int>{0, track.length - 1, ...ranked.take(cap)}.toList()..sort();
-  return <LatLng>[for (final i in keep) track[i]];
+  return <int>{0, track.length - 1, ...ranked.take(cap)}.toList()..sort();
 }
 
 /// A point that keeps the track from straying less than this is noise.

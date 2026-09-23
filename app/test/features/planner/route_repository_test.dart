@@ -164,6 +164,40 @@ void main() {
     expect(await repository.routeById('nope'), isNull);
   });
 
+  test('saving over a route keeps its description and the points of '
+      'interest the plan does not hold as named waypoints', () async {
+    final route = syntheticRoute();
+    final imported = await repository.saveImportedRoute(
+      name: 'From a file',
+      points: route.geometry,
+      source: RouteSource.importedGpx,
+      pois: [
+        RoutePoi(pos: route.geometry[2].pos, name: 'Tap', kind: PoiKind.water),
+        RoutePoi(pos: const LatLng(48.5, 11.5), name: 'Castle'),
+      ],
+    );
+    await repository.setDescription(imported.id, 'Along the river');
+    final saved = await repository.savePlannedRoute(
+      name: 'From a file',
+      route: route,
+      waypoints: [
+        _waypoints[0],
+        Waypoint(
+          pos: route.geometry[2].pos,
+          name: 'Tap',
+          poiKind: PoiKind.water,
+        ),
+        _waypoints[2],
+      ],
+      options: const RoutingOptions(),
+      id: imported.id,
+    );
+    final loaded = await repository.routeById(saved.id);
+    expect(loaded!.description, 'Along the river');
+    expect(loaded.pois.map((p) => p.name), ['Castle']);
+    expect(loaded.waypoints[1].name, 'Tap');
+  });
+
   test('watchRoutes emits the library, newest first', () async {
     final stream = repository.watchRoutes();
     await repository.savePlannedRoute(

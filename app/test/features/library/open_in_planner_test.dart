@@ -121,6 +121,96 @@ void main() {
     await unmountApp(tester);
   });
 
+  testWidgets('an imported route\'s points on the track open as named '
+      'waypoints, off the track they stay points of interest, and the names '
+      'survive a save and a re-open', (tester) async {
+    final h = PlannerHarness();
+    final track = <TrackPoint>[
+      for (var i = 0; i < 200; i++)
+        TrackPoint(
+          LatLng(48 + i * 0.0005, 11 + (i.isEven ? 0 : 0.003) * (i % 3)),
+        ),
+    ];
+    final repository = RouteRepository(
+      h.db.routesDao,
+      clock: () => DateTime.utc(2026, 9, 12, 10),
+    );
+    final saved = await repository.saveImportedRoute(
+      name: 'Imported course',
+      points: track,
+      source: RouteSource.importedGpx,
+      pois: [
+        RoutePoi(
+          pos: track[40].pos,
+          name: 'Tap',
+          kind: PoiKind.water,
+          description: 'Fill up',
+        ),
+        RoutePoi(pos: track[160].pos, name: 'Bakery', kind: PoiKind.food),
+        RoutePoi(
+          pos: LatLng(track[100].pos.lat, track[100].pos.lon + 0.05),
+          name: 'Castle',
+        ),
+      ],
+    );
+    await pumpApp(
+      tester,
+      initialLocation: routeDetailLocation(saved.id),
+      harness: h,
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text(l10n.routeDetailOpenInPlanner));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.routeDetailOpenInPlanner));
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(NavigationBar)),
+    );
+    final planner = container.read(plannerControllerProvider.notifier);
+    final waypoints = container.read(plannerControllerProvider).waypoints;
+    final named = waypoints.where((w) => w.hasDetails).toList();
+    expect(named.map((w) => w.name), ['Tap', 'Bakery']);
+    expect(named.map((w) => w.poiKind), [PoiKind.water, PoiKind.food]);
+    expect(named.map((w) => w.note), ['Fill up', null]);
+    expect(waypoints.length, greaterThan(4), reason: 'shape points too');
+    expect(waypoints.length, lessThanOrEqualTo(maxShapePoints + 2));
+    // On the map the named markers wear their names.
+    expect(h.map.waypoints.map((w) => w.label).nonNulls, ['Tap', 'Bakery']);
+    expect(h.backend.callCount, 0, reason: 'nothing routed on opening');
+
+    // Saved again and reopened: the names are the plan's own now, and the
+    // castle is still the route's point of interest.
+    await tester.tap(find.widgetWithText(FilledButton, l10n.plannerSave));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.widgetWithText(FilledButton, l10n.commonSave),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final resaved = await repository.routeById(saved.id);
+    expect(resaved!.pois.map((p) => p.name), ['Castle']);
+    planner.clear();
+    await tester.pumpAndSettle();
+
+    await _tapTab(tester, l10n.tabLibrary);
+    await tester.tap(find.text('Imported course'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text(l10n.routeDetailOpenInPlanner));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.routeDetailOpenInPlanner));
+    await tester.pumpAndSettle();
+    final again = container.read(plannerControllerProvider).waypoints;
+    expect(again.map((w) => w.pos), waypoints.map((w) => w.pos));
+    final namedAgain = again.where((w) => w.hasDetails).toList();
+    expect(namedAgain.map((w) => w.name), ['Tap', 'Bakery']);
+    expect(namedAgain.map((w) => w.note), ['Fill up', null]);
+    expect(namedAgain.map((w) => w.poiKind), [PoiKind.water, PoiKind.food]);
+    await unmountApp(tester);
+  });
+
   testWidgets('an imported route opens in the planner with shape points '
       'along its track', (tester) async {
     final h = PlannerHarness();
