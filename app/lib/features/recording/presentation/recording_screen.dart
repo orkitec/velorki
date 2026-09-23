@@ -55,6 +55,7 @@ import '../data/recording_settings.dart';
 import '../domain/recording_snapshot.dart';
 import '../domain/recording_state.dart';
 import '../domain/ride_naming.dart';
+import 'follow_route_picker.dart';
 import 'recording_format.dart';
 import 'save_ride_sheet.dart';
 
@@ -1462,6 +1463,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                   snap: true,
                   snapSizes: _snapSizesFor(initial),
                   builder: (context, scrollController) => DockingSheet(
+                    controller: scrollController,
                     // Where the sheet really starts: for a screen built in
                     // the middle of a change, where the other tab's sheet is.
                     initialExtent: state.isRecording
@@ -1477,7 +1479,6 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                     child: state.isRecording
                         ? _LivePanel(
                             state: state,
-                            scrollController: scrollController,
                             bottomInset: bottomInset,
                             page: _sheetPage,
                             onPage: _setSheetPage,
@@ -1499,7 +1500,6 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                         : _IdlePanel(
                             state: state,
                             hintIndex: _hintIndex,
-                            scrollController: scrollController,
                             bottomInset: bottomInset,
                             keepScreenOn: _keepScreenOn,
                             onKeepScreenOn: (v) =>
@@ -1626,7 +1626,6 @@ class _IdlePanel extends ConsumerWidget {
   const _IdlePanel({
     required this.state,
     required this.hintIndex,
-    required this.scrollController,
     required this.bottomInset,
     required this.keepScreenOn,
     required this.onKeepScreenOn,
@@ -1637,7 +1636,6 @@ class _IdlePanel extends ConsumerWidget {
 
   /// Which of [idleHints] to show.
   final int hintIndex;
-  final ScrollController scrollController;
   final double bottomInset;
   final bool keepScreenOn;
   final ValueChanged<bool> onKeepScreenOn;
@@ -1647,16 +1645,10 @@ class _IdlePanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final routes = ref.watch(savedRoutesProvider).value ?? const [];
-    final hasPlan = ref.watch(
-      plannerControllerProvider.select((p) => p.result != null),
-    );
     return ListView(
-      controller: scrollController,
+      primary: false,
       padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 24),
       children: [
-        // Room for the handle the shell draws over the list.
-        const SizedBox(height: sheetHandleDp),
         Text(l10n.recordingIdleTitle, style: theme.textTheme.headlineMedium),
         const SizedBox(height: 6),
         Text(
@@ -1669,29 +1661,7 @@ class _IdlePanel extends ConsumerWidget {
         const SizedBox(height: 16),
         // The chooser first, the button under it: at the sheet's resting
         // height the button then sits about where the Plan tab's toolbar is.
-        DropdownButtonFormField<String?>(
-          initialValue: state.followedRouteId,
-          // A library of routes is longer than a screen; the menu scrolls.
-          menuMaxHeight: followRouteMenuMaxHeight,
-          decoration: InputDecoration(
-            labelText: l10n.recordingFollowRoute,
-            prefixIcon: const Icon(Icons.route_outlined),
-          ),
-          items: [
-            DropdownMenuItem<String?>(
-              child: Text(
-                hasPlan ? l10n.recordingFollowPlan : l10n.recordingFollowNone,
-              ),
-            ),
-            for (final route in routes)
-              DropdownMenuItem<String?>(
-                value: route.id,
-                child: Text(route.name, overflow: TextOverflow.ellipsis),
-              ),
-          ],
-          onChanged: (value) =>
-              ref.read(recordingControllerProvider.notifier).selectRoute(value),
-        ),
+        const FollowRouteField(),
         const SizedBox(height: 16),
         SizedBox(
           height: 60,
@@ -1750,9 +1720,6 @@ int _nextHint(int current) {
 /// How many one-line hints [idleHints] has.
 const int idleHintCount = 6;
 
-/// How tall the route chooser's menu may grow before it scrolls.
-const double followRouteMenuMaxHeight = 320;
-
 /// When the rider reaches the end at the ride's average speed so far, or
 /// `null` without a route ahead or an average worth the name.
 DateTime? _eta(double? remainingM, double avgSpeedMps) {
@@ -1789,7 +1756,6 @@ Widget? _sensorTile(
 class _LivePanel extends ConsumerWidget {
   const _LivePanel({
     required this.state,
-    required this.scrollController,
     required this.bottomInset,
     required this.page,
     required this.onPage,
@@ -1801,7 +1767,6 @@ class _LivePanel extends ConsumerWidget {
   });
 
   final RecordingUiState state;
-  final ScrollController scrollController;
   final double bottomInset;
 
   /// The page showing: 0 the figures, 1 the elevation profile.
@@ -1863,11 +1828,9 @@ class _LivePanel extends ConsumerWidget {
       _ => l10n.recordingStatusRecording,
     };
     return ListView(
-      controller: scrollController,
+      primary: false,
       padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 24),
       children: [
-        // Room for the handle the shell draws over the list.
-        const SizedBox(height: sheetHandleDp),
         // Everything in view at once: state and elapsed time with the two
         // buttons, then two rows of three figures. Nothing hides below.
         Row(

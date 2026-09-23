@@ -12,6 +12,7 @@ Widget _shell(double extent, {bool docks = true}) => testApp(
       width: 400,
       height: 200,
       child: DockingSheetShell(
+        controller: ScrollController(),
         extent: extent,
         collapsedExtent: 0.1,
         dockedRange: 0.1,
@@ -24,7 +25,102 @@ Widget _shell(double extent, {bool docks = true}) => testApp(
   ),
 );
 
+/// A [DraggableScrollableSheet] in a 400 x 600 box with a [DockingSheet]
+/// body whose content is a long list of numbered rows, over 80 px of bar:
+/// collapsed, the handle strip is what is left above the bar.
+class _Sheet extends StatelessWidget {
+  const _Sheet({required this.onExtent});
+
+  final ValueChanged<double> onExtent;
+
+  @override
+  Widget build(BuildContext context) => testApp(
+    home: Center(
+      child: SizedBox(
+        width: 400,
+        height: 600,
+        child: Stack(
+          children: [
+            DraggableScrollableSheet(
+              initialChildSize: 0.5,
+              minChildSize: (80 + sheetHandleDp) / 600,
+              maxChildSize: 0.9,
+              snap: true,
+              snapSizes: const [0.5],
+              builder: (context, controller) => DockingSheet(
+                controller: controller,
+                initialExtent: 0.5,
+                collapsedExtent: (80 + sheetHandleDp) / 600,
+                dockedRange: 0.2,
+                docks: true,
+                dockedBottomInset: 80,
+                onExtent: onExtent,
+                handle: const SheetHandle(),
+                child: ListView(
+                  primary: false,
+                  padding: EdgeInsets.zero,
+                  children: [
+                    const SizedBox(height: sheetHandleDp),
+                    for (var i = 0; i < 60; i++)
+                      SizedBox(height: 40, child: Text('row $i')),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
 void main() {
+  testWidgets('the content scrolls on its own at any height, and only the '
+      'handle moves the sheet', (tester) async {
+    var extent = 0.0;
+    await tester.pumpWidget(_Sheet(onExtent: (e) => extent = e));
+    await tester.pumpAndSettle();
+    expect(extent, 0.5);
+    expect(find.text('row 0'), findsOneWidget);
+    expect(find.text('row 30'), findsNothing);
+
+    // A drag on the rows scrolls them; the sheet stays where it is.
+    await tester.drag(find.text('row 3'), const Offset(0, -600));
+    await tester.pumpAndSettle();
+    expect(extent, 0.5);
+    expect(find.text('row 0'), findsNothing);
+    expect(find.text('row 20'), findsOneWidget);
+
+    // A drag on the handle moves the sheet, up to its top.
+    await tester.dragFrom(
+      tester.getCenter(find.byType(SheetHandle)),
+      const Offset(0, -400),
+    );
+    await tester.pumpAndSettle();
+    expect(extent, closeTo(0.9, 0.001));
+
+    // At the top the rows still scroll, and the sheet still stays.
+    await tester.drag(find.text('row 20'), const Offset(0, 300));
+    await tester.pumpAndSettle();
+    expect(extent, closeTo(0.9, 0.001));
+    expect(find.text('row 12'), findsOneWidget);
+
+    // From the top the handle brings the sheet down, all the way.
+    await tester.dragFrom(
+      tester.getCenter(find.byType(SheetHandle)),
+      const Offset(0, 700),
+    );
+    await tester.pumpAndSettle();
+    expect(extent, closeTo((80 + sheetHandleDp) / 600, 0.001));
+    // A pull on the docked handle brings it up again, to the resting snap.
+    await tester.dragFrom(
+      tester.getCenter(find.byType(SheetHandle)),
+      const Offset(0, -200),
+    );
+    await tester.pumpAndSettle();
+    expect(extent, closeTo(0.5, 0.001));
+  });
+
   test('the docked fraction runs over the range above the collapsed size', () {
     double at(double extent, {bool docks = true}) =>
         DockingSheetShell.dockedFraction(

@@ -4,7 +4,7 @@ description: Wo deine gespeicherten Routen und aufgezeichneten Fahrten liegen, w
 order: 8
 ---
 
-Der Tab Bibliothek enthält alles, was du behalten hast: die geplanten Routen und die aufgezeichneten Fahrten. Er ist ein Blatt über der Karte, wie die Tabs Planen und Aufnahme: Zieh es hoch für mehr Platz, zieh es ganz herunter, und es faltet sich in die Navigationsleiste und gibt die Karte frei. Geh hierher, um eine Route wieder zu öffnen, die Diagramme und Splits einer Fahrt zu lesen und Dateien hinein- und hinauszubekommen.
+Der Tab Bibliothek enthält alles, was du behalten hast: die geplanten Routen und die aufgezeichneten Fahrten. Er ist ein Blatt über der Karte, wie die Tabs Planen und Aufnahme: Sein Inhalt scrollt in jeder Höhe, und der Griff oben bewegt es. Zieh den Griff hoch für mehr Platz, zieh ihn ganz herunter, und das Blatt faltet sich in die Navigationsleiste und gibt die Karte frei. Geh hierher, um eine Route wieder zu öffnen, die Diagramme und Splits einer Fahrt zu lesen und Dateien hinein- und hinauszubekommen.
 
 Alles in der Bibliothek liegt auf dem Handy. Es gibt kein Konto, und nichts wird irgendwohin abgeglichen.
 

@@ -39,14 +39,10 @@ const String libraryRouteLineId = 'library-route';
 /// profile and, for a route that has one, the cue sheet.
 class RouteDetailScreen extends ConsumerStatefulWidget {
   /// Creates the detail for the route with [routeId].
-  const RouteDetailScreen({required this.routeId, super.key, this.controller});
+  const RouteDetailScreen({required this.routeId, super.key});
 
   /// Id of the route in the `routes` table.
   final String routeId;
-
-  /// The sheet's controller, so the content drags the card; `null` when the
-  /// content is shown on its own.
-  final ScrollController? controller;
 
   @override
   ConsumerState<RouteDetailScreen> createState() => _RouteDetailScreenState();
@@ -196,7 +192,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
     final route = ref.watch(savedRouteProvider(widget.routeId));
 
     return CustomScrollView(
-      controller: widget.controller,
+      primary: false,
       slivers: [
         SliverSheetHeader(
           leading: BackButton(onPressed: () => context.go(libraryRoute)),

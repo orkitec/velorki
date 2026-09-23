@@ -717,6 +717,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
               // up from the handle on the lower one, a chip row apart.
               snapSizes: _snapSizesFor(restingSheetSize),
               builder: (context, scrollController) => DockingSheet(
+                controller: scrollController,
                 initialExtent: restingSheetSize,
                 collapsedExtent: collapsedSheetSize,
                 dockedRange: dockedRange,
@@ -725,12 +726,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                 onDocked: _reportDocked,
                 onExtent: _onSheetExtent,
                 handle: const SheetHandle(),
+                // Its own scrolling, at any height of the sheet; the
+                // sheet moves by its handle.
                 child: ListView(
-                  controller: scrollController,
+                  primary: false,
                   padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 24),
                   children: [
-                    // Room for the handle the shell draws over the list.
-                    const SizedBox(height: sheetHandleDp),
                     _SheetHeader(state: state),
                     const SizedBox(height: 14),
                     // The variants right under the figures, where the sheet

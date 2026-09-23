@@ -75,7 +75,7 @@ Oft kommen weniger als vier zurück; du bekommst, was der Router gefunden hat. F
 
 Der Kopf der Übersicht zeigt vier Zahlen: **Distanz**, **Anstieg**, **Abstieg** und **Dauer**. Die geschätzte Dauer kommt aus dem typischen Tempo des gewählten Radprofils, nicht von einem Server, und sie rechnet keine Café-Pausen ein.
 
-Zieh die Übersicht nach oben für den Rest. Ganz nach unten gezogen faltet sie sich in die Navigationsleiste und lässt nur ihren Griff über den Tabs, damit die Karte frei ist; zieh den Griff nach oben, um sie zurückzuholen.
+Die Übersicht scrollt in jeder Höhe; zieh ihren Griff nach oben für mehr Platz. Am Griff ganz nach unten gezogen faltet sie sich in die Navigationsleiste und lässt nur den Griff über den Tabs, damit die Karte frei ist; zieh den Griff nach oben, um sie zurückzuholen.
 
 ### Höhenprofil
 

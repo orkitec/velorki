@@ -89,10 +89,18 @@ Future<_Harness> _pump(WidgetTester tester, {FakeMapController? map}) async {
 
 /// Lets the real downloads run: the tile through dio's fake adapter and the
 /// region through the fake offline API, both on real async I/O.
-Future<void> _runDownloads(WidgetTester tester) async {
-  for (var i = 0; i < 30; i++) {
+///
+/// With [until], up to six seconds of pumps that stop as soon as it holds:
+/// real I/O takes longer on a loaded machine than a fixed count allows.
+Future<void> _runDownloads(
+  WidgetTester tester, {
+  bool Function()? until,
+}) async {
+  final limit = until == null ? 30 : 300;
+  for (var i = 0; i < limit; i++) {
     await tester.runAsync(() => Future<void>.delayed(Duration.zero));
     await tester.pump(const Duration(milliseconds: 20));
+    if (until != null && until()) return;
   }
 }
 
@@ -146,7 +154,16 @@ void main() {
     expect(find.textContaining(l10n.routingTilesDataNotice), findsWidgets);
 
     await tester.tap(find.text(l10n.offlineDialogDownload));
-    await _runDownloads(tester);
+    await _runDownloads(
+      tester,
+      until: () =>
+          h.api.downloads.isNotEmpty &&
+          h.storage.segments.listSync().isNotEmpty &&
+          find
+              .textContaining(l10n.routingTilesTotal(1, '').split(',').first)
+              .evaluate()
+              .isNotEmpty,
+    );
     await tester.pumpAndSettle();
 
     expect(h.api.downloads, hasLength(1));

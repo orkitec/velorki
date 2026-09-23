@@ -4,7 +4,7 @@ description: Where your saved routes and recorded rides live, what a route or ri
 order: 8
 ---
 
-The Library tab holds everything you kept: the routes you planned and the rides you recorded. It is a card over the map, like the Plan and Record tabs: pull it up for more room, pull it all the way down and it folds into the navigation bar, leaving the map. Go here to open a route again, to read a ride's charts and splits, and to get files in and out.
+The Library tab holds everything you kept: the routes you planned and the rides you recorded. It is a card over the map, like the Plan and Record tabs: its content scrolls at any height, and the handle at its top moves it. Pull the handle up for more room, pull it all the way down and the card folds into the navigation bar, leaving the map. Go here to open a route again, to read a ride's charts and splits, and to get files in and out.
 
 Everything in the library is on the phone. There is no account and nothing is synchronised anywhere.
 

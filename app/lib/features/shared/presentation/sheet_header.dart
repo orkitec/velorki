@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'docking_sheet.dart';
-
 /// The height of a card's toolbar row, under the handle strip.
 const double sheetHeaderDp = 48;
 
@@ -54,7 +52,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
   final List<Widget> actions;
 
   @override
-  double get minExtent => sheetHandleDp + sheetHeaderDp;
+  double get minExtent => sheetHeaderDp;
 
   @override
   double get maxExtent => minExtent;
@@ -65,12 +63,7 @@ class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
     return ColoredBox(
       color: theme.colorScheme.surface,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          leading == null ? 20 : 4,
-          sheetHandleDp,
-          8,
-          0,
-        ),
+        padding: EdgeInsets.fromLTRB(leading == null ? 20 : 4, 0, 8, 0),
         child: SizedBox(
           height: sheetHeaderDp,
           child: Row(

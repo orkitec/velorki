@@ -31,7 +31,7 @@ Without a sensor none of it appears, and nothing is switched on until you do it 
 
 ## The elevation profile and the cue sheet
 
-The sheet under the map has three pages, a swipe apart, with three dots under the figures saying which is up. A new ride starts on the figures. Before a ride, pulled all the way down, the sheet folds into the navigation bar and leaves only its handle above the tabs, so the map is free; drag the handle up to bring it back. During a ride the bar is away, and the sheet drops to its handle at the bottom of the screen.
+The sheet under the map has three pages, a swipe apart, with three dots under the figures saying which is up. A new ride starts on the figures. The sheet scrolls at any height and moves by its handle. Before a ride, pulled all the way down, it folds into the navigation bar and leaves only the handle above the tabs, so the map is free; drag the handle up to bring it back. During a ride the bar is away, and the sheet drops to its handle at the bottom of the screen.
 
 **The elevation profile**, one swipe to the left: the followed route as height over distance, the part already ridden filled in the accent colour, the road ahead in grey, a line where you are, and above it what is left, "12.4 km left, 320 m to climb". On a climb of 3 % or more a second line says the grade and what is left to its top, "6 % climb, 120 m to the top", and once the ride has an average speed the same line says when you will arrive, "ETA 14:32". Without a route to follow the page says so: "Follow a route to see its elevation profile here."
 

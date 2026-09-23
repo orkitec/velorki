@@ -264,10 +264,17 @@ void main() {
     // Every scripted ride carries the same fixture date, so in a long run the
     // new one can sit below the fold of the lazily built list: scroll to it.
     await waitForWidget(tester, find.byType(RideTile));
+    // The rides list's own scrollable, not the handle strip's, which
+    // moves the card rather than the list.
     await tester.scrollUntilVisible(
       row,
       200,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: find
+          .ancestor(
+            of: find.byType(RideTile).first,
+            matching: find.byType(Scrollable),
+          )
+          .first,
       maxScrolls: 60,
     );
     await tester.pumpAndSettle();

@@ -140,10 +140,15 @@ Future<TilesHarness> pumpTiles(
 /// Writing a tile is real file I/O, and real I/O does not progress inside the
 /// fake-async zone a widget test runs in; `runAsync` hands the event loop back
 /// for a moment between the frames.
-Future<void> runDownloads(WidgetTester tester) async {
-  for (var i = 0; i < 60; i++) {
+Future<void> runDownloads(WidgetTester tester, {bool Function()? until}) async {
+  // With [until], up to six seconds of pumps that stop as soon as it holds:
+  // the fake server and the real file system take longer on a loaded
+  // machine than a fixed count of pumps allows for.
+  final limit = until == null ? 60 : 300;
+  for (var i = 0; i < limit; i++) {
     await tester.runAsync(() => Future<void>.delayed(Duration.zero));
     await tester.pump(const Duration(milliseconds: 20));
+    if (until != null && until()) return;
   }
 }
 
@@ -203,7 +208,15 @@ void main() {
       ),
     );
     await tester.pump();
-    await runDownloads(tester);
+    await runDownloads(
+      tester,
+      until: () =>
+          harness.tileFile(_tile).existsSync() &&
+          find
+              .textContaining(l10n.routingTilesStateReady)
+              .evaluate()
+              .isNotEmpty,
+    );
 
     expect(harness.tileFile(_tile).existsSync(), isTrue);
     expect(find.text('E10_N45'), findsOneWidget);
@@ -246,7 +259,12 @@ void main() {
       ),
     );
     await tester.pump();
-    await runDownloads(tester);
+    await runDownloads(
+      tester,
+      until: () =>
+          harness.tileFile(_tile).existsSync() &&
+          find.byIcon(Icons.delete_outline).evaluate().isNotEmpty,
+    );
     expect(harness.tileFile(_tile).existsSync(), isTrue);
 
     await tester.tap(find.byIcon(Icons.delete_outline));
@@ -254,7 +272,12 @@ void main() {
     expect(find.text(l10n.routingTilesDeleteTitle('E10_N45')), findsOneWidget);
     await tester.tap(find.widgetWithText(FilledButton, l10n.commonDelete));
     await tester.pump();
-    await runDownloads(tester);
+    await runDownloads(
+      tester,
+      until: () =>
+          !harness.tileFile(_tile).existsSync() &&
+          find.text(l10n.routingTilesTotal(0, '')).evaluate().isNotEmpty,
+    );
 
     expect(harness.tileFile(_tile).existsSync(), isFalse);
     expect(find.text(l10n.routingTilesTotal(0, '')), findsOneWidget);
@@ -286,7 +309,13 @@ void main() {
       ),
     );
     await tester.pump();
-    await runDownloads(tester);
+    await runDownloads(
+      tester,
+      until: () => find
+          .textContaining(l10n.routingTilesStateReady)
+          .evaluate()
+          .isNotEmpty,
+    );
 
     expect(harness.tileFile(_tile).readAsBytesSync(), _body);
     expect(

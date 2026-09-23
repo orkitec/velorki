@@ -62,14 +62,10 @@ const String rideRouteLineId = 'ride-route';
 /// climbs, and the way out to a GPX or FIT file.
 class RideDetailScreen extends ConsumerStatefulWidget {
   /// Creates the detail for the ride with [rideId].
-  const RideDetailScreen({required this.rideId, super.key, this.controller});
+  const RideDetailScreen({required this.rideId, super.key});
 
   /// Id of the ride in the `rides` table.
   final String rideId;
-
-  /// The sheet's controller, so the content drags the card; `null` when the
-  /// content is shown on its own.
-  final ScrollController? controller;
 
   @override
   ConsumerState<RideDetailScreen> createState() => _RideDetailScreenState();
@@ -470,7 +466,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
         : null;
 
     return CustomScrollView(
-      controller: widget.controller,
+      primary: false,
       slivers: [
         SliverSheetHeader(
           leading: BackButton(onPressed: () => context.go(libraryRoute)),

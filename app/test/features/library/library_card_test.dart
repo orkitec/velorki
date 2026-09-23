@@ -107,6 +107,48 @@ void main() {
     await unmountApp(tester);
   });
 
+  testWidgets('the ride card scrolls to its bottom at the resting height '
+      'without moving the sheet', (tester) async {
+    tester.view.physicalSize = const Size(3000, 6000);
+    addTearDown(tester.view.resetPhysicalSize);
+    final h = RecordingHarness();
+    await _seedRide(h);
+    await pumpRecordingApp(
+      tester,
+      initialLocation: rideDetailLocation('ride-1'),
+      harness: h,
+    );
+    await tester.pumpAndSettle();
+    DockingSheetShell shell() =>
+        tester.widget<DockingSheetShell>(find.byType(DockingSheetShell));
+    final resting = shell().extent;
+
+    // The export buttons are the last thing on the card, well below the
+    // fold; scrolling the card's content reaches them with the card at rest,
+    // and the header stays pinned above it.
+    final export = find.widgetWithText(
+      OutlinedButton,
+      l10n.rideDetailExportGpx,
+    );
+    expect(tester.getRect(export).top, greaterThan(2000));
+    await tester.scrollUntilVisible(
+      export,
+      300,
+      scrollable: find
+          .ancestor(
+            of: find.text(l10n.statDistance.toUpperCase()).first,
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+    expect(tester.getRect(export).bottom, lessThan(2000));
+    expect(shell().extent, closeTo(resting, 0.001));
+    expect(find.text('Morning loop'), findsOneWidget);
+    expect(tester.getRect(find.byType(BackButton)).top, greaterThan(0));
+    await unmountApp(tester);
+  });
+
   testWidgets('the system back on a card goes to the list', (tester) async {
     final h = RecordingHarness();
     await _seedRide(h);

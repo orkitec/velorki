@@ -31,6 +31,11 @@ import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/recording/presentation/ride_cue_sheet.dart';
 import 'package:velorki/features/recording/presentation/ride_profile_view.dart';
 import 'package:velorki/features/library/presentation/library_screen.dart';
+import 'package:velorki/features/planner/data/route_repository.dart';
+import 'package:velorki/features/recording/application/recording_controller.dart';
+import 'package:velorki/features/planner/domain/routing_options.dart';
+import 'package:velorki/features/planner/domain/waypoint.dart';
+import 'package:velorki/features/recording/presentation/follow_route_picker.dart';
 import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
 import 'package:velorki/features/recording/presentation/rides_list.dart';
 import 'package:velorki/features/recording/presentation/save_ride_sheet.dart';
@@ -42,7 +47,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 import '../../support/app.dart';
 import '../../support/format.dart';
 import '../search/support/gazetteer_fixture.dart';
-import '../planner/support/fakes.dart' show MapCall;
+import '../planner/support/fakes.dart' show MapCall, syntheticRoute;
 import 'support/pump.dart';
 
 RecordingSnapshot _snapshot({
@@ -182,13 +187,121 @@ void main() {
     expect(find.text(l10n.recordingIdleTitle), findsOneWidget);
     expect(find.text(l10n.recordingStart), findsOneWidget);
     expect(find.text(l10n.recordingFollowRoute), findsOneWidget);
-    // A long library scrolls inside the menu rather than off the screen.
+    expect(find.text(l10n.recordingFollowNone), findsOneWidget);
+    expect(find.byType(FollowRouteField), findsOneWidget);
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('the route chooser opens a picker over the bar, on the root '
+      'navigator, and a tap there sets the route', (tester) async {
+    final h = RecordingHarness();
+    final saved =
+        await RouteRepository(
+          h.planner.db.routesDao,
+          clock: () => DateTime.utc(2026, 9, 12, 10),
+        ).savePlannedRoute(
+          name: 'Isar loop',
+          route: syntheticRoute(),
+          waypoints: const [
+            Waypoint(pos: LatLng(48.0, 11.0), kind: WaypointKind.start),
+            Waypoint(pos: LatLng(48.04, 11.04), kind: WaypointKind.end),
+          ],
+          options: const RoutingOptions(),
+        );
+    await pumpRecordingApp(tester, harness: h);
+    await tester.pumpAndSettle();
+    expect(find.byType(FollowRoutePicker), findsNothing);
+
+    await tester.tap(find.byType(FollowRouteField));
+    await tester.pumpAndSettle();
+
+    // On the root navigator, so it paints over the floating bar.
+    final picker = find.byType(FollowRoutePicker);
+    expect(picker, findsOneWidget);
+    final pickerContext = tester.element(picker);
+    expect(
+      Navigator.of(pickerContext),
+      same(Navigator.of(pickerContext, rootNavigator: true)),
+    );
+    expect(
+      tester.getRect(picker).bottom,
+      greaterThan(tester.getRect(find.byType(FloatingNavigationBar)).top),
+    );
+    // Titled, "No route" first and ticked, the library's rows after it.
+    expect(
+      find.descendant(
+        of: picker,
+        matching: find.text(l10n.recordingFollowRoute),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: picker,
+        matching: find.text(l10n.recordingFollowNone),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: picker, matching: find.byType(RouteRow)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: picker, matching: find.byIcon(Icons.check_rounded)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: picker,
+        matching: find.text(
+          l10n.libraryRouteSubtitle(
+            testDate(DateTime.utc(2026, 9, 12, 10).toLocal()),
+            testDistance(10000),
+            testHeight(120),
+          ),
+        ),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.descendant(of: picker, matching: find.text('Isar loop')),
+    );
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(RecordingScreen)),
+    );
+    expect(
+      container.read(recordingControllerProvider).followedRouteId,
+      saved.id,
+    );
+    expect(find.byType(FollowRoutePicker), findsNothing);
+    // The row names the choice, with its distance.
+    expect(find.textContaining('Isar loop'), findsOneWidget);
+    expect(find.textContaining(testDistance(10000)), findsOneWidget);
+
+    // Opened again, the route is the one ticked; "No route" clears it.
+    await tester.tap(find.byType(FollowRouteField));
+    await tester.pumpAndSettle();
     expect(
       tester
-          .widget<DropdownButton<String?>>(find.byType(DropdownButton<String?>))
-          .menuMaxHeight,
-      followRouteMenuMaxHeight,
+          .widget<RouteRow>(
+            find.descendant(of: picker, matching: find.byType(RouteRow)),
+          )
+          .selected,
+      isTrue,
     );
+    await tester.tap(
+      find.descendant(
+        of: picker,
+        matching: find.text(l10n.recordingFollowNone),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(container.read(recordingControllerProvider).followedRouteId, isNull);
+    expect(find.text(l10n.recordingFollowNone), findsOneWidget);
 
     await unmountApp(tester);
   });
@@ -951,6 +1064,67 @@ void main() {
           .value,
       isFalse,
     );
+
+    await unmountApp(tester);
+  });
+
+  testWidgets('the idle sheet scrolls its content at its resting height, and '
+      'moves only by its handle', (tester) async {
+    // A phone: on the tall test surface the idle list would fit its sheet
+    // whole, with nothing to scroll.
+    tester.view.physicalSize = const Size(1125, 2001);
+    addTearDown(tester.view.resetPhysicalSize);
+    await pumpRecordingScreen(
+      tester,
+      const RecordingScreen(),
+      surfaceSize: const Size(375, 667),
+    );
+    await tester.pumpAndSettle();
+    DockingSheetShell shell() =>
+        tester.widget<DockingSheetShell>(find.byType(DockingSheetShell));
+    final resting = shell().extent;
+    final sheet = tester.widget<DraggableScrollableSheet>(
+      find.byType(DraggableScrollableSheet),
+    );
+
+    // The switches sit below the fold, not even built yet; a drag on the
+    // list scrolls the list up to them while the sheet stays at rest.
+    final toggles = find.byType(NavigationToggles);
+    final list = tester.state<ScrollableState>(
+      find
+          .ancestor(
+            of: find.text(l10n.recordingStart),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    expect(list.position.pixels, 0);
+    expect(toggles, findsNothing);
+    await tester.drag(find.text(l10n.recordingStart), const Offset(0, -300));
+    await tester.pumpAndSettle();
+    expect(list.position.pixels, greaterThan(100));
+    expect(toggles, findsOneWidget);
+    expect(shell().extent, closeTo(resting, 0.001));
+
+    // The handle takes the sheet to its top, and from there down again,
+    // all the way into the bar.
+    await tester.dragFrom(
+      tester.getCenter(find.byType(SheetHandle)),
+      const Offset(0, -500),
+    );
+    await tester.pumpAndSettle();
+    expect(shell().extent, closeTo(sheet.maxChildSize, 0.001));
+    // At the top the list still scrolls on its own.
+    await tester.drag(find.byType(NavigationToggles), const Offset(0, 150));
+    await tester.pumpAndSettle();
+    expect(shell().extent, closeTo(sheet.maxChildSize, 0.001));
+    await tester.dragFrom(
+      tester.getCenter(find.byType(SheetHandle)),
+      const Offset(0, 650),
+    );
+    await tester.pumpAndSettle();
+    expect(shell().extent, closeTo(sheet.minChildSize, 0.001));
+    expect(shell().docked, 1);
 
     await unmountApp(tester);
   });
@@ -2250,9 +2424,7 @@ void main() {
       find.byType(DraggableScrollableSheet),
     );
     final sheetTop = 844 * (1 - sheet.initialChildSize);
-    final chooser = tester.getRect(
-      find.byType(DropdownButtonFormField<String?>),
-    );
+    final chooser = tester.getRect(find.byType(FollowRouteField));
     final start = tester.getRect(
       find.widgetWithText(FilledButton, l10n.recordingStart),
     );

@@ -77,15 +77,20 @@ class SheetHandle extends StatelessWidget {
 /// The body of a [DraggableScrollableSheet] that morphs into the floating
 /// navigation bar as it is pulled down.
 ///
-/// It listens to the sheet's own notifications — they are dispatched from
-/// the scrollable inside [child], so a listener here sees every drag, snap,
-/// `animateTo` and `jumpTo` — and paints a [DockingSheetShell] for the
-/// current extent. [onDocked] is called when the sheet crosses
-/// [sheetDockedThreshold] either way, from a notification, never from a
-/// build; the screen owning the sheet resets it when the sheet goes.
+/// The sheet is moved by its handle strip alone: [controller], the sheet's
+/// own, drives a scrollable around the handle, so a drag there moves the
+/// sheet up and down, snapping and docking as the sheet does, while the
+/// content under it scrolls by itself at any height. It listens to the
+/// sheet's notifications — dispatched from that scrollable, so a listener
+/// here sees every drag, snap, `animateTo` and `jumpTo` — and paints a
+/// [DockingSheetShell] for the current extent. [onDocked] is called when
+/// the sheet crosses [sheetDockedThreshold] either way, from a notification,
+/// never from a build; the screen owning the sheet resets it when the sheet
+/// goes.
 class DockingSheet extends StatefulWidget {
   /// Creates the sheet body.
   const DockingSheet({
+    required this.controller,
     required this.initialExtent,
     required this.collapsedExtent,
     required this.dockedRange,
@@ -97,6 +102,10 @@ class DockingSheet extends StatefulWidget {
     this.onExtent,
     super.key,
   });
+
+  /// The sheet's own scroll controller, from the sheet's builder; the handle
+  /// strip is the scrollable it moves the sheet through.
+  final ScrollController controller;
 
   /// The sheet's `initialChildSize`, the extent until the first notification.
   final double initialExtent;
@@ -116,10 +125,11 @@ class DockingSheet extends StatefulWidget {
   /// shell ends where the bar begins instead of running on behind it.
   final double dockedBottomInset;
 
-  /// The handle strip, [sheetHandleDp] tall, drawn over [child].
+  /// The handle strip, [sheetHandleDp] tall, above [child].
   final Widget handle;
 
-  /// The sheet's scrollable, starting with a [sheetHandleDp] spacer.
+  /// The content, scrolling on its own below the strip; nothing of it ever
+  /// slides under the grip.
   final Widget child;
 
   /// Called when the sheet becomes docked or stops being docked.
@@ -172,6 +182,7 @@ class _DockingSheetState extends State<DockingSheet> {
       NotificationListener<DraggableScrollableNotification>(
         onNotification: _onNotification,
         child: DockingSheetShell(
+          controller: widget.controller,
           extent: _extent,
           collapsedExtent: widget.collapsedExtent,
           dockedRange: widget.dockedRange,
@@ -194,9 +205,14 @@ class _DockingSheetState extends State<DockingSheet> {
 /// screen bottom until late in that travel; only then does its lower edge
 /// lift to the bar's top, so it never floats before it docks. With [docks]
 /// false there is no morph.
+///
+/// The [handle] strip is the sheet's grip: a scrollable driven by
+/// [controller] whose only child is the strip, so a drag on it moves the
+/// sheet and nothing else, and [child] keeps its own scrolling.
 class DockingSheetShell extends StatelessWidget {
   /// Creates the shell.
   const DockingSheetShell({
+    required this.controller,
     required this.extent,
     required this.collapsedExtent,
     required this.dockedRange,
@@ -206,6 +222,9 @@ class DockingSheetShell extends StatelessWidget {
     required this.child,
     super.key,
   });
+
+  /// The sheet's own scroll controller, attached to the handle strip.
+  final ScrollController controller;
 
   /// The sheet's current size, as a fraction of the parent's height.
   final double extent;
@@ -225,7 +244,7 @@ class DockingSheetShell extends StatelessWidget {
   /// The handle strip, drawn over [child] and never faded.
   final Widget handle;
 
-  /// The sheet's scrollable.
+  /// The content, scrolling on its own.
   final Widget child;
 
   /// How far a sheet at [extent] is into the morph: 0 at rest or above the
@@ -313,14 +332,32 @@ class DockingSheetShell extends StatelessWidget {
                       children: [
                         // The docking fade; the list itself is the same
                         // widget every frame, so only its opacity changes.
-                        Opacity(opacity: 1 - t, child: child),
+                        // It starts below the strip, so a row scrolled to
+                        // the top is in full view and takes its taps.
+                        Opacity(
+                          opacity: 1 - t,
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: sheetHandleDp),
+                            child: child,
+                          ),
+                        ),
                         Positioned(
                           top: 0,
                           left: 0,
                           right: 0,
-                          // A drag on the handle is a drag on the list under
-                          // it, which is what moves the sheet.
-                          child: IgnorePointer(child: handle),
+                          height: sheetHandleDp,
+                          // The sheet's grip: the strip never scrolls
+                          // itself, so every drag on it goes to the sheet,
+                          // up or down, at any height, docked included.
+                          child: SingleChildScrollView(
+                            controller: controller,
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            child: SizedBox(
+                              width: double.infinity,
+                              height: sheetHandleDp,
+                              child: handle,
+                            ),
+                          ),
                         ),
                       ],
                     ),

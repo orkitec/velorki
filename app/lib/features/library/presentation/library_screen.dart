@@ -282,6 +282,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 snap: true,
                 snapSizes: _snapSizesFor(restingSheetSize),
                 builder: (context, scrollController) => DockingSheet(
+                  controller: scrollController,
                   initialExtent: initialSheetSize,
                   collapsedExtent: collapsedSheetSize,
                   dockedRange: dockedRange,
@@ -291,8 +292,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   onExtent: _onSheetExtent,
                   handle: const SheetHandle(),
                   // A fresh scroll view per content, so a detail opened from
-                  // a scrolled list starts at its top, and only one is ever
-                  // attached to the sheet's controller.
+                  // a scrolled list starts at its top.
                   child: KeyedSubtree(
                     key: ValueKey<String>(
                       rideId != null
@@ -302,16 +302,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                           : 'list',
                     ),
                     child: rideId != null
-                        ? RideDetailScreen(
-                            rideId: rideId,
-                            controller: scrollController,
-                          )
+                        ? RideDetailScreen(rideId: rideId)
                         : widget.routeId != null
-                        ? RouteDetailScreen(
-                            routeId: widget.routeId!,
-                            controller: scrollController,
-                          )
-                        : _LibraryList(controller: scrollController),
+                        ? RouteDetailScreen(routeId: widget.routeId!)
+                        : const _LibraryList(),
                   ),
                 ),
               ),
@@ -329,17 +323,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
 /// Which of the two shows is the rider's choice and survives a restart; see
 /// [librarySectionProvider].
 class _LibraryList extends ConsumerWidget {
-  const _LibraryList({required this.controller});
-
-  /// The sheet's controller, so the list drags the card.
-  final ScrollController controller;
+  const _LibraryList();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final section = ref.watch(librarySectionProvider);
     return CustomScrollView(
-      controller: controller,
+      primary: false,
       slivers: [
         SliverSheetHeader(
           title: l10n.tabLibrary,
@@ -476,6 +467,62 @@ class _TileIcon extends StatelessWidget {
   }
 }
 
+/// A saved route as one row: the route icon, the name and under it the
+/// date, the distance and the ascent. The Library's row, and the one the
+/// Record tab's route picker lists.
+class RouteRow extends ConsumerWidget {
+  /// Creates the row for [route].
+  const RouteRow({
+    required this.route,
+    super.key,
+    this.trailing,
+    this.onTap,
+    this.selected = false,
+  });
+
+  /// The route shown.
+  final SavedRoute route;
+
+  /// What sits at the right: the Library's menu, the picker's tick.
+  final Widget? trailing;
+
+  /// Called on a tap.
+  final VoidCallback? onTap;
+
+  /// Whether the row is the current choice, drawn in the accent.
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final units = ref.watch(unitSystemProvider);
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      leading: const _TileIcon(Icons.route_rounded),
+      selected: selected,
+      title: Text(
+        route.name,
+        style: theme.textTheme.titleMedium,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text(
+        l10n.libraryRouteSubtitle(
+          formatDate(l10n, route.createdAt),
+          formatDistance(l10n, units, route.distanceM),
+          formatHeight(l10n, units, route.ascentM),
+        ),
+        style: theme.textTheme.bodySmall,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: trailing,
+      onTap: onTap,
+    );
+  }
+}
+
 class _RouteTile extends ConsumerWidget {
   const _RouteTile({required this.route});
 
@@ -506,9 +553,7 @@ class _RouteTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final units = ref.watch(unitSystemProvider);
+    final scheme = Theme.of(context).colorScheme;
     return Dismissible(
       key: ValueKey(route.id),
       direction: DismissDirection.endToStart,
@@ -523,25 +568,8 @@ class _RouteTile extends ConsumerWidget {
         ),
       ),
       onDismissed: (_) => unawaited(_delete(context, ref)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-        leading: const _TileIcon(Icons.route_rounded),
-        title: Text(
-          route.name,
-          style: theme.textTheme.titleMedium,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Text(
-          l10n.libraryRouteSubtitle(
-            formatDate(l10n, route.createdAt),
-            formatDistance(l10n, units, route.distanceM),
-            formatHeight(l10n, units, route.ascentM),
-          ),
-          style: theme.textTheme.bodySmall,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
+      child: RouteRow(
+        route: route,
         trailing: PopupMenuButton<_RouteAction>(
           onSelected: (action) => unawaited(switch (action) {
             _RouteAction.rename => _rename(context, ref),

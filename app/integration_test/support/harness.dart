@@ -20,6 +20,7 @@ import 'package:velorki/app/app_config.dart';
 import 'package:velorki/features/map/presentation/map_view.dart';
 import 'package:velorki/features/planner/presentation/planner_map_host.dart';
 import 'package:velorki/features/settings/data/units.dart';
+import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 
 /// How long a step of the pump loop is. Short enough that a tap is picked up
 /// quickly, long enough that a few hundred of them cover a minute.
@@ -208,20 +209,19 @@ Future<void> screenshot(WidgetTester tester, String name) async {
 
 bool _surfaceConverted = false;
 
-/// Drags the planner's bottom sheet to its full height.
+/// Drags the planner's bottom sheet to its full height, by its handle.
 ///
 /// The sheet is a [DraggableScrollableSheet] that opens at 42 % of the screen,
 /// so the routing chip, the elevation profile and the surface bar start below
 /// the fold. A finder still sees them — the sheet's ListView has only a
 /// handful of explicit children — but a tap would miss, and a screenshot would
-/// not show them.
+/// not show them. Only the handle strip moves the sheet; a drag on the
+/// content scrolls the content.
 Future<void> dragSheetUp(WidgetTester tester) async {
   if (find.byType(DraggableScrollableSheet).evaluate().isEmpty) return;
-  // Dragging the sheet widget itself would start the gesture at its centre,
-  // which is over the map; the grab has to land inside the sheet's own area.
   final size = tester.view.physicalSize / tester.view.devicePixelRatio;
   await tester.dragFrom(
-    Offset(size.width / 2, size.height * 0.78),
+    tester.getCenter(find.byType(SheetHandle)),
     Offset(0, -size.height * 0.45),
   );
   await pumpFor(tester, const Duration(milliseconds: 900));
