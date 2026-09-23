@@ -99,13 +99,20 @@ class TestMapController implements MapController {
     double? bearing,
     bool animate = true,
     Duration? duration,
+    EdgeInsets padding = EdgeInsets.zero,
   }) async {
     movedTo = center;
+    movedPadding = padding;
     this.center = center;
     if (zoom != null) this.zoom = zoom;
     if (bearing != null) this.bearing = bearing;
-    calls.add(MapCall('moveTo', [center, zoom, bearing, duration, animate]));
+    calls.add(
+      MapCall('moveTo', [center, zoom, bearing, duration, animate, padding]),
+    );
   }
+
+  /// The padding the last [moveTo] was asked to centre inside.
+  EdgeInsets? movedPadding;
 
   /// The padding the last [fitBounds] was asked for.
   EdgeInsets? fittedPadding;

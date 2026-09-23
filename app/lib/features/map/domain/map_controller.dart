@@ -19,12 +19,17 @@ abstract class MapController {
   /// [duration] is how long the animation takes; `null` leaves it to the
   /// platform. A follow move asks for roughly the gap between two fixes, so
   /// the camera glides along with the rider instead of jumping and waiting.
+  ///
+  /// [padding] is what covers the map's edges, in pixels per side: with it,
+  /// [center] lands in the middle of the part left visible rather than in
+  /// the middle of the whole map, so a located rider is not under the sheet.
   Future<void> moveTo(
     LatLng center, {
     double? zoom,
     double? bearing,
     bool animate = true,
     Duration? duration,
+    EdgeInsets padding = EdgeInsets.zero,
   });
 
   /// Moves the camera so that [bounds] fills the view inside [padding], in

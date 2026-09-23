@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -14,6 +15,7 @@ import 'package:velorki/features/map/data/position_provider.dart';
 import 'package:velorki/features/map/presentation/map_attribution.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
+import 'package:velorki/features/map/presentation/visible_map_padding.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki/features/map/testing/testing.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -77,6 +79,23 @@ class _OneFixSource implements PositionSource {
   Future<geo.Position?> current({
     Duration timeLimit = const Duration(seconds: 10),
   }) async => fix;
+}
+
+/// A [PositionSource] whose fix arrives when the test says so.
+class _PendingFixSource implements PositionSource {
+  final Completer<geo.Position?> fix = Completer<geo.Position?>();
+
+  @override
+  Stream<geo.Position> positions(geo.LocationSettings settings) =>
+      const Stream<geo.Position>.empty();
+
+  @override
+  Future<geo.Position?> lastKnown() async => null;
+
+  @override
+  Future<geo.Position?> current({
+    Duration timeLimit = const Duration(seconds: 10),
+  }) => fix.future;
 }
 
 geo.Position _fixAt(double latitude, double longitude) => geo.Position(
@@ -449,6 +468,151 @@ void main() {
       expect(controller.cameraMoves.single.center, const LatLng(47.0, 8.0));
       expect(controller.cameraMoves.single.zoom, locateZoom);
       expect(located, 1);
+    });
+
+    testWidgets('moves into the visible middle the shell describes', (
+      tester,
+    ) async {
+      final controller = FakeMapController()..zoom = 10;
+      // What the shell would say with the sheet at half the screen.
+      const covered = EdgeInsets.fromLTRB(24, 154, 86, 1024);
+      await tester.pumpWidget(
+        await _wrap(
+          MapChromeInsets(
+            visiblePadding: () => covered,
+            child: MapControls(controller: controller),
+          ),
+          overrides: [
+            locationPermissionGatewayProvider.overrideWithValue(
+              _GrantedPermission(),
+            ),
+            positionSourceProvider.overrideWithValue(
+              _OneFixSource(_fixAt(47.0, 8.0)),
+            ),
+          ],
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.widgetWithIcon(IconButton, Icons.my_location));
+      await tester.pumpAndSettle();
+
+      expect(controller.cameraMoves.single.padding, covered);
+    });
+
+    testWidgets('without the shell, keeps clear of its own chrome and '
+        'column', (tester) async {
+      final controller = FakeMapController()..zoom = 10;
+      await tester.pumpWidget(
+        await _wrap(
+          MapChromeInsets(
+            controlsTop: 100,
+            child: MapControls(controller: controller),
+          ),
+          overrides: [
+            locationPermissionGatewayProvider.overrideWithValue(
+              _GrantedPermission(),
+            ),
+            positionSourceProvider.overrideWithValue(
+              _OneFixSource(_fixAt(47.0, 8.0)),
+            ),
+          ],
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.widgetWithIcon(IconButton, Icons.my_location));
+      await tester.pumpAndSettle();
+
+      final padding = controller.cameraMoves.single.padding;
+      expect(padding.top, 100 + 24);
+      expect(
+        padding.right,
+        mapControlsWidth(tester.element(find.byType(MapControls))) + 24,
+      );
+      // No sheet on a map of its own.
+      expect(padding.bottom, 24);
+    });
+
+    testWidgets('shows a progress ring in the button while the fix is on '
+        'its way, and the icon again once the camera moved', (tester) async {
+      final controller = FakeMapController()..zoom = 10;
+      final source = _PendingFixSource();
+      await tester.pumpWidget(
+        await _wrap(
+          MapControls(controller: controller),
+          overrides: [
+            locationPermissionGatewayProvider.overrideWithValue(
+              _GrantedPermission(),
+            ),
+            positionSourceProvider.overrideWithValue(source),
+          ],
+        ),
+      );
+      await tester.pump();
+      final before = tester.getSize(
+        find.ancestor(
+          of: find.byIcon(Icons.my_location),
+          matching: find.byType(IconButton),
+        ),
+      );
+
+      await tester.tap(find.widgetWithIcon(IconButton, Icons.my_location));
+      await tester.pump();
+      await tester.pump();
+
+      // The ring stands in for the icon, in a button of the same size.
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byIcon(Icons.my_location), findsNothing);
+      expect(
+        tester.getSize(
+          find.ancestor(
+            of: find.byType(CircularProgressIndicator),
+            matching: find.byType(IconButton),
+          ),
+        ),
+        before,
+      );
+      expect(controller.cameraMoves, isEmpty);
+
+      source.fix.complete(_fixAt(47.0, 8.0));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.byIcon(Icons.my_location), findsOneWidget);
+      expect(controller.cameraMoves.single.center, const LatLng(47.0, 8.0));
+    });
+
+    testWidgets('the ring goes with the message when no fix comes', (
+      tester,
+    ) async {
+      final controller = FakeMapController()..zoom = 10;
+      final source = _PendingFixSource();
+      await tester.pumpWidget(
+        await _wrap(
+          MapControls(controller: controller),
+          overrides: [
+            locationPermissionGatewayProvider.overrideWithValue(
+              _GrantedPermission(),
+            ),
+            positionSourceProvider.overrideWithValue(source),
+          ],
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.widgetWithIcon(IconButton, Icons.my_location));
+      await tester.pump();
+      await tester.pump();
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      source.fix.complete(null);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.byIcon(Icons.my_location), findsOneWidget);
+      expect(find.text(l10n.mapLocationUnavailable), findsOneWidget);
+      expect(controller.cameraMoves, isEmpty);
     });
 
     testWidgets('while the screen follows, a tap goes straight to it', (

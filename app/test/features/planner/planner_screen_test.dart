@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:velorki/features/map/presentation/visible_map_padding.dart';
 import 'package:velorki/app/router.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
@@ -18,8 +19,8 @@ import 'package:velorki/features/planner/presentation/route_format.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
 import 'package:velorki/features/planner/presentation/surface_stats_bar.dart';
 import 'package:velorki/features/shared/application/active_tab.dart';
-import 'package:velorki/features/shared/application/nav_bar_docking.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
+import 'package:velorki/features/shared/application/nav_bar_docking.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -265,6 +266,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(h.map.movedTo, const LatLng(48.1374, 11.5755));
+    // Into the middle of the map between the chrome and the sheet at rest,
+    // where the sheet goes for the place, clear of the column at the right.
+    final element = tester.element(find.byType(PlannerScreen));
+    final height = MediaQuery.sizeOf(element).height;
+    expect(
+      h.map.movedPadding!.bottom,
+      closeTo(sheetRestingExtent(height) * height + 24, 1e-6),
+    );
+    expect(h.map.movedPadding!.right, mapControlsWidth(element) + 24);
+    expect(h.map.movedPadding!.top, greaterThan(100));
     expect(find.text(l10n.plannerSetAsStart), findsOneWidget);
     // The found place is pinned until the rider decides what it is.
     expect(h.map.searchPin, const LatLng(48.1374, 11.5755));

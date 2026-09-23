@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:velorki/features/map/presentation/visible_map_padding.dart';
+import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/app/router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/core/db/database.dart' show RouteSource;
@@ -408,6 +410,14 @@ void main() {
     expect(segments.map((s) => s.t), everyElement(inInclusiveRange(0, 1)));
     expect(harness.map.fittedBounds, isNotNull);
     expect(harness.map.fittedBounds!.south, closeTo(48, 1e-9));
+    // Fitted into the map above the resting card, like a route card.
+    expect(
+      harness.map.fittedPadding,
+      visibleMapPadding(
+        tester.element(find.byType(RideDetailScreen)),
+        chromeTop: defaultMapControlsTop,
+      ),
+    );
 
     await unmountApp(tester);
   });

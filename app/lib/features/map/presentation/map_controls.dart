@@ -15,6 +15,7 @@ import '../data/position_provider.dart';
 import '../domain/map_controller.dart';
 import 'location_rationale_dialog.dart';
 import 'map_chrome.dart';
+import 'visible_map_padding.dart';
 
 /// The zoom the locate button jumps to when the map is further out.
 const double locateZoom = 15;
@@ -71,14 +72,7 @@ class MapControls extends ConsumerWidget {
               selected: chrome!.routeShown,
               onPressed: enabled ? chrome.onToggleRoute : null,
             ),
-          _ControlButton(
-            icon: Icons.my_location,
-            tooltip: l10n.mapLocateMe,
-            // Accent while the screen keeps the camera on the rider, so the
-            // button says whether the map is following or has been let go.
-            selected: chrome?.following ?? false,
-            onPressed: enabled ? () => unawaited(_locate(context, ref)) : null,
-          ),
+          _LocateButton(controller: enabled ? controller : null),
           // Only a screen that has a follow style to switch offers a compass;
           // on every other map the needle would have nothing to say. The
           // column grows and shrinks for it rather than jumping: one column
@@ -155,15 +149,83 @@ class MapControls extends ConsumerWidget {
     await map.moveTo(center, zoom: (zoom + delta).clamp(0.0, 22.0));
   }
 
-  Future<void> _locate(BuildContext context, WidgetRef ref) async {
-    final map = controller;
-    if (map == null) return;
+  static void _show(
+    ScaffoldMessengerState? messenger,
+    String message, {
+    SnackBarAction? action,
+  }) {
+    messenger?.showSnackBar(SnackBar(content: Text(message), action: action));
+  }
+}
+
+/// The locate button: a fix, then a move into the visible middle of the map.
+///
+/// While the fix is being obtained the icon gives way to a small progress
+/// ring of the same size, so the tap is seen to have landed; the ring goes
+/// when the camera moves or the request fails with its message.
+class _LocateButton extends ConsumerStatefulWidget {
+  const _LocateButton({required this.controller});
+
+  /// `null` while the map is not ready, which leaves the button inert.
+  final MapController? controller;
+
+  @override
+  ConsumerState<_LocateButton> createState() => _LocateButtonState();
+}
+
+class _LocateButtonState extends ConsumerState<_LocateButton> {
+  bool _busy = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final chrome = MapChromeInsets.maybeOf(context);
+    final compact = compactMapControls(context);
+    final ring = compact ? 16.0 : 18.0;
+    return _ControlButton(
+      icon: Icons.my_location,
+      tooltip: l10n.mapLocateMe,
+      // Accent while the screen keeps the camera on the rider, so the
+      // button says whether the map is following or has been let go.
+      selected: chrome?.following ?? false,
+      onPressed: widget.controller == null ? null : () => unawaited(_locate()),
+      child: _busy
+          ? SizedBox.square(
+              dimension: ring,
+              child: const CircularProgressIndicator(strokeWidth: 2),
+            )
+          : null,
+    );
+  }
+
+  Future<void> _locate() async {
+    final map = widget.controller;
+    if (map == null || _busy) return;
+    setState(() => _busy = true);
+    try {
+      await _run(map);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// The tap itself: permission, the fix, the move. The indicator in the
+  /// button lasts exactly as long as this does, so a slow fix is seen to be
+  /// on its way and a refusal ends it together with its message.
+  Future<void> _run(MapController map) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
     // Read before the first await: the context may be gone by the time a
     // permission answer or a fix comes back.
     final l10n = AppLocalizations.of(context);
     final chrome = MapChromeInsets.maybeOf(context);
     final onLocate = chrome?.onLocate;
+    // The map's own default, read now too: the chrome and the column alone,
+    // for a map the shell does not describe.
+    final ownPadding = visibleMapPadding(
+      context,
+      chromeTop: chrome?.controlsTop ?? defaultMapControlsTop,
+      sheetExtent: 0,
+    );
     // A screen that already keeps the camera on the rider has the position;
     // waiting up to ten seconds for a fresh fix here would only delay the
     // screen's answer to the tap, which it can give straight away.
@@ -175,7 +237,7 @@ class MapControls extends ConsumerWidget {
 
     var status = await permissions.refresh();
     if (status == LocationPermissionStatus.denied) {
-      if (!context.mounted) return;
+      if (!mounted) return;
       if (!await showLocationRationaleDialog(context)) return;
       status = await permissions.requestWhenInUse();
     }
@@ -183,10 +245,10 @@ class MapControls extends ConsumerWidget {
       case LocationPermissionStatus.granted:
         break;
       case LocationPermissionStatus.denied:
-        _show(messenger, l10n.mapLocationDenied);
+        MapControls._show(messenger, l10n.mapLocationDenied);
         return;
       case LocationPermissionStatus.deniedForever:
-        _show(
+        MapControls._show(
           messenger,
           l10n.mapLocationDeniedForever,
           action: SnackBarAction(
@@ -196,7 +258,7 @@ class MapControls extends ConsumerWidget {
         );
         return;
       case LocationPermissionStatus.serviceDisabled:
-        _show(
+        MapControls._show(
           messenger,
           l10n.mapLocationServiceDisabled,
           action: SnackBarAction(
@@ -213,24 +275,20 @@ class MapControls extends ConsumerWidget {
     final source = ref.read(positionSourceProvider);
     final fix = await source.current() ?? await source.lastKnown();
     if (fix == null) {
-      _show(messenger, l10n.mapLocationUnavailable);
+      MapControls._show(messenger, l10n.mapLocationUnavailable);
       return;
     }
+    // Into the middle of the visible map, not of the whole one: what the
+    // shell says covers the edges, read at this moment since the sheet may
+    // have moved during the fix, else the map's own default.
     await map.moveTo(
       LatLng(fix.latitude, fix.longitude),
       zoom: math.max(map.zoom ?? locateZoom, locateZoom),
+      padding: chrome?.visiblePadding?.call() ?? ownPadding,
     );
     // After the move, not before: the screen's follow mode watches camera
     // idles to spot a hand pan, and this move is ours, not the rider's.
     onLocate?.call();
-  }
-
-  static void _show(
-    ScaffoldMessengerState? messenger,
-    String message, {
-    SnackBarAction? action,
-  }) {
-    messenger?.showSnackBar(SnackBar(content: Text(message), action: action));
   }
 }
 
@@ -349,12 +407,17 @@ class _ControlButton extends StatelessWidget {
     required this.onPressed,
     this.selected = false,
     this.iconTurns = 0,
+    this.child,
   });
 
   final IconData icon;
   final String tooltip;
   final VoidCallback? onPressed;
   final bool selected;
+
+  /// Drawn in place of the icon when set, at the icon's size: the locate
+  /// button's progress ring.
+  final Widget? child;
 
   /// How far the icon is turned inside the button, in radians clockwise.
   final double iconTurns;
@@ -369,7 +432,7 @@ class _ControlButton extends StatelessWidget {
       width: size,
       height: size,
       child: IconButton(
-        icon: Transform.rotate(angle: iconTurns, child: Icon(icon)),
+        icon: child ?? Transform.rotate(angle: iconTurns, child: Icon(icon)),
         iconSize: compact ? 18 : 20,
         padding: EdgeInsets.zero,
         tooltip: tooltip,

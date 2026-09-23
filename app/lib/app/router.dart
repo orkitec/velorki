@@ -12,6 +12,7 @@ import '../features/import_export/presentation/import_preview_screen.dart';
 import '../features/library/presentation/library_screen.dart';
 import '../features/map/presentation/map_chrome.dart';
 import '../features/map/presentation/map_controls.dart';
+import '../features/map/presentation/visible_map_padding.dart';
 import '../features/map/presentation/shared_map_host.dart';
 import '../features/navigation/application/navigation_controller.dart';
 import '../features/planner/presentation/planner_screen.dart';
@@ -287,6 +288,13 @@ class HomeShell extends ConsumerWidget {
                       onCompass: chrome?.onCompass,
                       routeShown: chrome?.routeShown ?? false,
                       onToggleRoute: chrome?.onToggleRoute,
+                      // Read at the tap: the sheet moves without a rebuild
+                      // of the column.
+                      visiblePadding: () => visibleMapPadding(
+                        context,
+                        chromeTop: columnGlide.target,
+                        sheetExtent: ref.read(tabHandoverProvider).sheetExtent,
+                      ),
                       child: MapControls(
                         controller: ref.watch(sharedMapControllerProvider),
                       ),

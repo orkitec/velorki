@@ -201,6 +201,9 @@ class _MapViewState extends ConsumerState<MapView> {
       return;
     }
     _adapter = adapter;
+    // Laid out before the style arrived: hand the size over now.
+    final box = context.findRenderObject();
+    if (box is RenderBox && box.hasSize) adapter.viewSize = box.size;
     await adapter.attachToStyle();
     if (!mounted) return;
     setState(() {});
@@ -339,37 +342,50 @@ class _MapViewState extends ConsumerState<MapView> {
     // map's own.
     final showControls =
         widget.showControls && !(chrome?.hoistedControls ?? false);
-    if (!widget.showAttribution && !showControls) return map;
+    if (!widget.showAttribution && !showControls) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          _adapter?.viewSize = constraints.biggest;
+          return map;
+        },
+      );
+    }
     final controlsPadding = chromeTop == null
         ? widget.controlsPadding
         : widget.controlsPadding.copyWith(top: chromeTop);
 
-    return Stack(
-      fit: StackFit.expand,
-      children: <Widget>[
-        map,
-        if (showControls)
-          Positioned.fill(
-            child: SafeArea(
-              // The owner animates `controlsTop` itself when its chrome
-              // changes with the tab; a plain padding follows it.
-              child: Padding(
-                padding: controlsPadding,
-                child: Align(
-                  alignment: Alignment.topRight,
-                  child: MapControls(controller: _adapter),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // The adapter measures a padded move against the view's own size.
+        _adapter?.viewSize = constraints.biggest;
+        return Stack(
+          fit: StackFit.expand,
+          children: <Widget>[
+            map,
+            if (showControls)
+              Positioned.fill(
+                child: SafeArea(
+                  // The owner animates `controlsTop` itself when its chrome
+                  // changes with the tab; a plain padding follows it.
+                  child: Padding(
+                    padding: controlsPadding,
+                    child: Align(
+                      alignment: Alignment.topRight,
+                      child: MapControls(controller: _adapter),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-        if (widget.showAttribution)
-          Positioned(
-            left: widget.attributionPadding.left,
-            right: widget.attributionPadding.right,
-            bottom: attributionBottom,
-            child: const Center(child: MapAttributionChip()),
-          ),
-      ],
+            if (widget.showAttribution)
+              Positioned(
+                left: widget.attributionPadding.left,
+                right: widget.attributionPadding.right,
+                bottom: attributionBottom,
+                child: const Center(child: MapAttributionChip()),
+              ),
+          ],
+        );
+      },
     );
   }
 }

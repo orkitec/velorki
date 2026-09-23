@@ -14,6 +14,7 @@ import '../../integrations/common/data/relay_client_provider.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/device_position_request.dart';
 import '../../map/presentation/map_chrome.dart';
+import '../../map/presentation/visible_map_padding.dart';
 import '../../map/presentation/shared_map_host.dart';
 import '../../offline/presentation/offline_screen.dart';
 import '../../routing_tiles/presentation/missing_tiles_banner.dart';
@@ -124,6 +125,13 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   void _onSheetExtent(double extent) {
     if (_active) ref.read(tabHandoverProvider.notifier).setSheetExtent(extent);
   }
+
+  /// What covers this tab's map: its chrome, the column, and the sheet at
+  /// its resting height. A searched place and a route that arrives whole
+  /// both bring the sheet to rest, so they aim for the map above that
+  /// rather than above wherever the sheet was a moment before.
+  EdgeInsets _visiblePadding() =>
+      visibleMapPadding(context, chromeTop: _ownControlsTop);
 
   /// Where the map's control column rests under this tab's chrome. The
   /// column itself is one shared, animated value ([mapControlsTopProvider]):
@@ -342,6 +350,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       binding = PlannerMapBinding(
         map: map,
         planner: ref.read(plannerControllerProvider.notifier),
+        // A route that arrives whole (Open in planner) is fitted into the
+        // map between this tab's chrome and its sheet.
+        fitPadding: _visiblePadding,
       );
       binding.onWaypointTap = (index) {
         unawaited(_editWaypoint(index));
@@ -360,7 +371,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   void _onPlaceSelected(SearchResult result) {
     final planner = ref.read(plannerControllerProvider.notifier);
     if (ref.read(plannerControllerProvider).isEmpty) {
-      unawaited(_map?.moveTo(result.position, zoom: 13));
+      unawaited(
+        _map?.moveTo(result.position, zoom: 13, padding: _visiblePadding()),
+      );
       unawaited(_map?.setSearchPin(result.position, label: result.name));
       setState(() => _placeToStartFrom = result);
       return;

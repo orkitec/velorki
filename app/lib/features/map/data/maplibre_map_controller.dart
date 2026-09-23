@@ -4,7 +4,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart' show Brightness, Color, ThemeData;
 import 'package:flutter/foundation.dart';
-import 'package:flutter/painting.dart' show EdgeInsets;
+import 'package:flutter/painting.dart' show EdgeInsets, Size;
 import 'package:flutter/services.dart'
     show MissingPluginException, PlatformException;
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
@@ -12,6 +12,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/theme.dart';
 import '../domain/map_controller.dart';
+import '../domain/visible_map.dart';
 import 'cyclosm_tone.dart';
 import 'geojson.dart';
 import 'heading_cone.dart';
@@ -498,6 +499,11 @@ class MaplibreMapControllerAdapter implements MapController {
 
   final MapLibreStyleOps _ops;
   MapPalette _palette;
+
+  /// The map view's size in logical pixels, set by the view as it lays out;
+  /// what a padded [moveTo] measures its offset against. `null` until the
+  /// first layout, when a padding is simply ignored.
+  Size? viewSize;
   RasterTone _cyclosmTone;
 
   /// Screen density the heading cone bitmap is rasterised at.
@@ -915,7 +921,22 @@ class MaplibreMapControllerAdapter implements MapController {
     double? bearing,
     bool animate = true,
     Duration? duration,
+    EdgeInsets padding = EdgeInsets.zero,
   }) async {
+    // The padding becomes an offset of the target: MapLibre's camera has
+    // no padding of its own for a plain move, but the world is a known
+    // number of pixels wide at the zoom the move ends at.
+    final size = viewSize;
+    final endZoom = zoom ?? _ops.cameraPosition?.zoom;
+    if (padding != EdgeInsets.zero && size != null && endZoom != null) {
+      center = offsetCenter(
+        center,
+        size: size,
+        padding: padding,
+        zoom: endZoom,
+        bearing: bearing ?? _ops.cameraPosition?.bearing ?? 0,
+      );
+    }
     // Only a full camera position carries a bearing, and it carries the zoom
     // and the tilt with it, so those have to be filled in from the live
     // camera or the move would flatten them to the defaults.

@@ -35,6 +35,8 @@ import '../../planner/presentation/route_format.dart';
 import '../../planner/presentation/route_stats_row.dart';
 import '../../planner/presentation/surface_stats_bar.dart';
 import '../../settings/data/units.dart';
+import '../../map/presentation/map_chrome.dart';
+import '../../map/presentation/visible_map_padding.dart';
 import '../../shared/presentation/docking_sheet.dart';
 import '../../shared/presentation/button_menu.dart';
 import '../../shared/presentation/stat_tile.dart';
@@ -77,7 +79,8 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _fitPadding = cardFitPadding(context);
+    // The card rests once the detail is on screen, so the fit aims there.
+    _fitPadding = visibleMapPadding(context, chromeTop: defaultMapControlsTop);
     if (_started) return;
     _started = true;
     initLayers();

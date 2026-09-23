@@ -9,6 +9,8 @@ import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import 'package:velorki/features/library/presentation/library_screen.dart';
+import 'package:velorki/features/map/presentation/map_chrome.dart';
+import 'package:velorki/features/map/presentation/visible_map_padding.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 
 import '../../support/app.dart';
@@ -163,6 +165,15 @@ void main() {
     expect(
       h.map.fittedPadding!.bottom,
       greaterThan(sheetRestingExtent(height) * height),
+    );
+    // Exactly the visible map with the card at rest: air above the card,
+    // clear of the column at the right.
+    expect(
+      h.map.fittedPadding,
+      visibleMapPadding(
+        tester.element(find.byType(LibraryScreen)),
+        chromeTop: defaultMapControlsTop,
+      ),
     );
 
     expect(find.text(l10n.routeDetailOpenInPlanner), findsOneWidget);

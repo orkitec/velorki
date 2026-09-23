@@ -1888,6 +1888,44 @@ void main() {
   });
 
   group('the camera', () {
+    test('a padded moveTo aims the camera so the target is in the visible '
+        'middle', () async {
+      final ops = RecordingStyleOps()
+        ..cameraPosition = const ml.CameraPosition(
+          target: ml.LatLng(0, 0),
+          zoom: 0,
+        );
+      final adapter = _adapter(ops)..viewSize = const Size(512, 512);
+
+      await adapter.moveTo(
+        const LatLng(0, 0),
+        padding: const EdgeInsets.only(bottom: 256),
+      );
+
+      final update = ops.calls.single.cameraUpdate! as List<Object?>;
+      expect(update.first, 'newLatLng');
+      final target = update[1]! as List<double>;
+      // Half the view is the sheet: the camera goes a quarter world south.
+      expect(target[0], closeTo(-66.513, 0.01));
+      expect(target[1], closeTo(0, 1e-9));
+    });
+
+    test('a padded moveTo without a known view size or zoom moves as '
+        'asked', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+
+      await adapter.moveTo(
+        const LatLng(47.0, 8.0),
+        padding: const EdgeInsets.only(bottom: 256),
+      );
+
+      expect(ops.calls.single.cameraUpdate, <Object>[
+        'newLatLng',
+        <double>[47.0, 8.0],
+      ]);
+    });
+
     test('moveTo animates to a plain centre by default', () async {
       final ops = RecordingStyleOps();
       final adapter = _adapter(ops);

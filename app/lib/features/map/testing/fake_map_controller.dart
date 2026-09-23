@@ -13,10 +13,14 @@ class RecordedCameraMove {
     required this.animate,
     this.bearing,
     this.duration,
+    this.padding = EdgeInsets.zero,
   });
 
   final LatLng center;
   final double? zoom;
+
+  /// The insets the move was asked to centre inside.
+  final EdgeInsets padding;
 
   /// The bearing asked for, `null` when the move left the map turned as it
   /// was.
@@ -33,10 +37,12 @@ class RecordedCameraMove {
       other.zoom == zoom &&
       other.bearing == bearing &&
       other.animate == animate &&
-      other.duration == duration;
+      other.duration == duration &&
+      other.padding == padding;
 
   @override
-  int get hashCode => Object.hash(center, zoom, bearing, animate, duration);
+  int get hashCode =>
+      Object.hash(center, zoom, bearing, animate, duration, padding);
 
   @override
   String toString() =>
@@ -287,6 +293,7 @@ class FakeMapController implements MapController {
     double? bearing,
     bool animate = true,
     Duration? duration,
+    EdgeInsets padding = EdgeInsets.zero,
   }) async {
     cameraMoves.add(
       RecordedCameraMove(
@@ -295,6 +302,7 @@ class FakeMapController implements MapController {
         bearing: bearing,
         animate: animate,
         duration: duration,
+        padding: padding,
       ),
     );
     this.center = center;

@@ -26,7 +26,14 @@ class MapChromeInsets extends InheritedWidget {
     this.onCompass,
     this.routeShown = false,
     this.onToggleRoute,
+    this.visiblePadding,
   });
+
+  /// What covers the map's edges right now, for the locate button's move:
+  /// the tab's chrome, the sheet where it is, the column. The shell reads
+  /// the live sheet extent at the tap, so this is a callback rather than a
+  /// value. `null` means the map's own default, chrome and column only.
+  final EdgeInsets Function()? visiblePadding;
 
   /// Whether the followed route is drawn, for the route button's accent.
   final bool routeShown;
@@ -87,5 +94,6 @@ class MapChromeInsets extends InheritedWidget {
       oldWidget.onLocate != onLocate ||
       oldWidget.onCompass != onCompass ||
       oldWidget.routeShown != routeShown ||
-      oldWidget.onToggleRoute != onToggleRoute;
+      oldWidget.onToggleRoute != onToggleRoute ||
+      oldWidget.visiblePadding != visiblePadding;
 }

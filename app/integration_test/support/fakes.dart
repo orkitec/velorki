@@ -484,12 +484,14 @@ class RecordingMapController implements MapController {
     double? bearing,
     bool animate = true,
     Duration? duration,
+    EdgeInsets padding = EdgeInsets.zero,
   }) => inner.moveTo(
     center,
     zoom: zoom,
     bearing: bearing,
     animate: animate,
     duration: duration,
+    padding: padding,
   );
 
   @override

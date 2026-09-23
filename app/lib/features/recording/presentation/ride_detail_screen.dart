@@ -24,6 +24,8 @@ import '../../planner/presentation/poi_markers.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../planner/presentation/surface_stats_bar.dart';
 import '../../settings/data/units.dart';
+import '../../map/presentation/map_chrome.dart';
+import '../../map/presentation/visible_map_padding.dart';
 import '../../shared/presentation/docking_sheet.dart';
 import '../../shared/presentation/sheet_header.dart';
 import '../../shared/presentation/stat_tile.dart';
@@ -115,7 +117,8 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _fitPadding = cardFitPadding(context);
+    // The card rests once the detail is on screen, so the fit aims there.
+    _fitPadding = visibleMapPadding(context, chromeTop: defaultMapControlsTop);
     if (_started) return;
     _started = true;
     initLayers();

@@ -1,3 +1,5 @@
+import 'package:flutter/painting.dart' show EdgeInsets;
+
 import 'dart:async';
 
 import 'package:velorki_geo/velorki_geo.dart';
@@ -26,7 +28,15 @@ String alternativeLineId(int index) => 'alt-$index';
 /// [MapController], which the widget tests fake.
 class PlannerMapBinding {
   /// Binds [map] to [planner].
-  PlannerMapBinding({required this.map, required this.planner});
+  PlannerMapBinding({
+    required this.map,
+    required this.planner,
+    this.fitPadding,
+  });
+
+  /// What covers the map's edges when a whole route is fitted, read at the
+  /// fit; `null` fits with the map's default margin.
+  final EdgeInsets Function()? fitPadding;
 
   /// The map being driven.
   final MapController map;
@@ -120,7 +130,11 @@ class PlannerMapBinding {
     final appearedAtOnce = previous == 0 && state.waypoints.length > 1;
     _lastWaypointCount = state.waypoints.length;
     if (previous != null && appearedAtOnce && positions.isNotEmpty) {
-      await map.fitBounds(BoundingBox.fromPoints(positions));
+      final padding = fitPadding?.call();
+      await map.fitBounds(
+        BoundingBox.fromPoints(positions),
+        padding: padding ?? const EdgeInsets.all(48),
+      );
     }
   }
 
