@@ -155,6 +155,52 @@ Notes:
   can remove the authorisation on ridewithgps.com.
 * Page size is between 20 and 200; the app asks for 50.
 
+## Testing the connections locally
+
+The whole chain runs on one Mac and one phone on the same Wi-Fi, with no
+store and no deployed relay.
+
+1. **Register two OAuth apps** with the real services, both with the callback
+   `velorki://oauth/<service>`: Strava at
+   <https://www.strava.com/settings/api> (the "Authorization Callback Domain"
+   only needs the scheme's host, `oauth`) and Ride with GPS through their API
+   application form. Each gives a client id and a client secret.
+2. **Run the relay in stub mode.** In `web/.env.local`:
+
+   ```sh
+   REVENUECAT_MODE=stub
+   STRAVA_CLIENT_ID=…
+   STRAVA_CLIENT_SECRET=…
+   RWGPS_CLIENT_ID=…
+   RWGPS_CLIENT_SECRET=…
+   ```
+
+   then `npm run dev` from `web/`. `next dev` sets `DEV_HOSTS=1` by itself,
+   and that is needed but not enough: the relay answers a request by the
+   `Host` it arrives with, and the Mac's LAN address is neither the API host
+   nor loopback, so a plain `http://<mac-ip>:3000/oauth/…` is a 404. With
+   `DEV_HOSTS=1` the `/__api` prefix reaches the API role from any host, which
+   is why the app's relay URL below carries it (`RelayClient` accepts a path
+   prefix). `API_HOST=<mac-ip>` in `.env.local` is the alternative.
+3. **Build the phone app** against that relay, with the same client ids and
+   the Plus stub:
+
+   ```sh
+   flutter run --dart-define=VELORKI_API_URL=http://<mac-ip>:3000/__api \
+     --dart-define=VELORKI_STRAVA_CLIENT_ID=… \
+     --dart-define=VELORKI_RWGPS_CLIENT_ID=… \
+     --dart-define=VELORKI_PLUS_STUB=1
+   ```
+
+   `VELORKI_PLUS_STUB=1` makes `startSubscriptions` grant the entitlement at
+   launch instead of asking a store, so the connection tiles are live and no
+   paywall opens; the log says so in one line. It only counts when no
+   RevenueCat key is defined, and only in debug and profile builds, which
+   cannot ship through a store: a release build ignores it completely.
+   Android debug builds allow cleartext; iOS does not, so a plain `http://`
+   relay needs an ATS local-networking exception in `Info.plist` or an
+   `https://` tunnel in front of port 3000.
+
 ## What needs a real account to verify
 
 Everything below is exercised against fakes in `test/features/integrations/`

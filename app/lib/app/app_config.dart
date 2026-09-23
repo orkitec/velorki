@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,6 +27,7 @@ abstract class AppConfig with _$AppConfig {
     @Default('velorki') String oauthScheme,
     @Default('') String storeUrlAndroid,
     @Default('') String storeUrlIos,
+    @Default(false) bool plusStub,
   }) = _AppConfig;
 
   const AppConfig._();
@@ -50,6 +52,7 @@ abstract class AppConfig with _$AppConfig {
       'VELORKI_OAUTH_SCHEME',
       defaultValue: 'velorki',
     ),
+    plusStub: String.fromEnvironment('VELORKI_PLUS_STUB') == '1',
   );
 
   /// Empty relay URL hides AI, Strava, RideWithGPS and link sharing entirely.
@@ -59,7 +62,29 @@ abstract class AppConfig with _$AppConfig {
 
   bool get hasRevenueCat =>
       revenueCatKeyAndroid.isNotEmpty || revenueCatKeyIos.isNotEmpty;
+
+  /// `--dart-define=VELORKI_PLUS_STUB=1` treats Plus as bought, so a local
+  /// build can exercise the connections against a relay running in stub mode
+  /// without a store. See [plusStubActive] for when it counts.
+  bool get stubsPlus => plusStubActive(
+    stub: plusStub,
+    hasRevenueCat: hasRevenueCat,
+    release: kReleaseMode,
+  );
 }
+
+/// Whether the Plus stub define is honoured.
+///
+/// Only a debug or profile build without a RevenueCat key qualifies: a store
+/// build has the store as the only word on the entitlement, and a release
+/// build ignores the define whatever else is set, so a define left in an env
+/// file can never turn a shipped app into a free one. Kept apart from
+/// [AppConfig] because `kReleaseMode` cannot be changed under test.
+bool plusStubActive({
+  required bool stub,
+  required bool hasRevenueCat,
+  required bool release,
+}) => stub && !hasRevenueCat && !release;
 
 /// The three addresses users may point at their own servers.
 @freezed

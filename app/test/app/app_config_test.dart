@@ -36,6 +36,50 @@ void main() {
       expect(config.hasBrouter, isTrue);
       expect(config.hasRevenueCat, isTrue);
     });
+
+    test('VELORKI_PLUS_STUB=1 is read, and only that spelling', () {
+      // Whether the define is set depends on how this test is run, so the
+      // expectation is derived from the same environment.
+      const define = String.fromEnvironment('VELORKI_PLUS_STUB');
+      expect(AppConfig.fromEnvironment.plusStub, define == '1');
+      expect(const AppConfig().plusStub, isFalse);
+    });
+
+    test('the Plus stub only counts in a build without a store', () {
+      // Unit tests run in debug mode, so the getter sees a non-release build.
+      expect(const AppConfig(plusStub: true).stubsPlus, isTrue);
+      expect(
+        const AppConfig(plusStub: true, revenueCatKeyIos: 'appl_xxx').stubsPlus,
+        isFalse,
+      );
+      expect(
+        const AppConfig(
+          plusStub: true,
+          revenueCatKeyAndroid: 'goog_xxx',
+        ).stubsPlus,
+        isFalse,
+      );
+      expect(const AppConfig().stubsPlus, isFalse);
+    });
+
+    test('a release build ignores the Plus stub whatever else is set', () {
+      expect(
+        plusStubActive(stub: true, hasRevenueCat: false, release: false),
+        isTrue,
+      );
+      expect(
+        plusStubActive(stub: true, hasRevenueCat: false, release: true),
+        isFalse,
+      );
+      expect(
+        plusStubActive(stub: true, hasRevenueCat: true, release: false),
+        isFalse,
+      );
+      expect(
+        plusStubActive(stub: false, hasRevenueCat: false, release: false),
+        isFalse,
+      );
+    });
   });
 
   group('effectiveConfigProvider', () {

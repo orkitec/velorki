@@ -8,9 +8,15 @@ import 'package:velorki/features/subscription/domain/plus_subscription.dart';
 
 import 'support/fake_subscription_service.dart';
 
-ProviderContainer _container(FakeSubscriptionService service) {
+ProviderContainer _container(
+  FakeSubscriptionService service, {
+  AppConfig config = const AppConfig(),
+}) {
   final container = ProviderContainer(
-    overrides: [subscriptionServiceProvider.overrideWithValue(service)],
+    overrides: [
+      subscriptionServiceProvider.overrideWithValue(service),
+      appConfigProvider.overrideWithValue(config),
+    ],
   );
   addTearDown(container.dispose);
   return container;
@@ -90,6 +96,42 @@ void main() {
         container.read(plusFeatureProvider(PlusFeature.linkSharing)),
         isFalse,
       );
+    });
+
+    test('the Plus stub entitles a build without a store key', () async {
+      final service = FakeSubscriptionService();
+      final container = _container(
+        service,
+        config: const AppConfig(plusStub: true),
+      );
+
+      startSubscriptions(container);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(container.read(plusEntitledProvider), isTrue);
+      expect(
+        container.read(plusFeatureProvider(PlusFeature.stravaConnection)),
+        isTrue,
+      );
+      // The store is never asked, so nothing it says can take it away.
+      expect(service.configures, 0);
+      service.emit(PlusCustomerInfo.none);
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(plusEntitledProvider), isTrue);
+    });
+
+    test('a build with a store key ignores the Plus stub', () async {
+      final service = FakeSubscriptionService();
+      final container = _container(
+        service,
+        config: const AppConfig(plusStub: true, revenueCatKeyIos: 'appl_key'),
+      );
+
+      startSubscriptions(container);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(service.configures, 1);
+      expect(container.read(plusEntitledProvider), isFalse);
     });
   });
 

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
 
+import '../../../app/app_config.dart';
 import '../../../core/plus/plus_gate.dart';
 import '../data/subscription_service.dart';
 import '../domain/plus_subscription.dart';
@@ -99,7 +100,19 @@ final plusOfferingProvider = FutureProvider<PlusOffering?>(
 /// Called once from `bootstrap()` with the app's container. Configuring is
 /// awaited nowhere: the first frame must not wait for a store round trip, and
 /// every gated screen reacts to the entitlement when it arrives.
+///
+/// A build with [AppConfig.stubsPlus] never asks a store: the entitlement is
+/// granted here and nothing later takes it away, so no paywall opens.
 void startSubscriptions(ProviderContainer container) {
+  if (container.read(appConfigProvider).stubsPlus) {
+    _log.warning(
+      'VELORKI_PLUS_STUB is set, no RevenueCat key is, not a release: '
+      'Velorki Plus is treated as active in this build',
+    );
+    container.read(plusEntitledProvider.notifier).value = true;
+    return;
+  }
+
   container.listen<AsyncValue<PlusCustomerInfo>>(plusCustomerInfoProvider, (
     previous,
     next,
