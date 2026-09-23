@@ -41,7 +41,7 @@ Eine geöffnete Route wird auf die Karte gezeichnet, eingepasst in den Teil des 
 
 Die Aktionen:
 
-- **Im Planer öffnen** lädt sie in den Tab Planen, wo du sie bearbeiten und erneut speichern kannst.
+- **Im Planer öffnen** lädt sie mit all ihren Punkten in den Tab Planen, Zwischenpunkte samt Namen, Art und Notizen eingeschlossen, wo du sie bearbeiten und erneut speichern kannst. Eine importierte statt geplante Route hat nur ihre beiden Enden als Punkte; sie bekommt bis zu zwanzig Formpunkte entlang ihres Tracks, damit eine Änderung entlang der importierten Strecke routet statt geradewegs von Start zu Ziel.
 - **Export** bietet **GPX-Route** und **FIT-Strecke**, siehe [Import und Export](./import-and-export).
 - **Senden** bietet **An Ride with GPS senden** und **An Strava senden**, siehe [Strava und Ride with GPS](./strava-and-ridewithgps).
 - **Link teilen** macht einen Link daraus, siehe [Teilen](./sharing).

@@ -6,13 +6,16 @@ import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki_loops/velorki_loops.dart';
 
 import '../../../app/app_config.dart';
+import '../../../core/db/tables/routes.dart' show RouteSource;
 import '../../routing_tiles/application/tile_update_check.dart';
 import '../data/routing_backend_provider.dart';
 import '../domain/planner_state.dart';
+import '../domain/route_poi.dart';
 import '../domain/route_profile.dart';
 import '../domain/routing_options.dart';
 import '../domain/saved_route.dart';
 import '../domain/segment_math.dart';
+import '../domain/shape_points.dart';
 import '../domain/waypoint.dart';
 
 part 'planner_controller.g.dart';
@@ -110,6 +113,25 @@ class PlannerController extends _$PlannerController {
     _setWaypoints(next);
   }
 
+  /// Gives the waypoint at [index] a name, a kind and a note, undoably.
+  /// Details change nothing about the road, so nothing is routed again.
+  void setWaypointDetails(
+    int index, {
+    String? name,
+    PoiKind poiKind = PoiKind.generic,
+    String? note,
+  }) {
+    if (index < 0 || index >= state.waypoints.length) return;
+    _pushUndo();
+    final next = [...state.waypoints];
+    next[index] = next[index].copyWith(
+      name: name?.trim().isEmpty ?? true ? null : name!.trim(),
+      poiKind: poiKind,
+      note: note?.trim().isEmpty ?? true ? null : note!.trim(),
+    );
+    state = state.copyWith(waypoints: next);
+  }
+
   /// Swaps the waypoint at [index] with the one [offset] places away
   /// (-1: visit it earlier, +1: later), undoably.
   void swapWaypoint(int index, int offset) {
@@ -173,7 +195,12 @@ class PlannerController extends _$PlannerController {
     final first = state.waypoints.first;
     _setWaypoints([
       ...state.waypoints,
-      Waypoint(pos: first.pos, name: first.name),
+      Waypoint(
+        pos: first.pos,
+        name: first.name,
+        poiKind: first.poiKind,
+        note: first.note,
+      ),
     ]);
   }
 
@@ -332,13 +359,16 @@ class PlannerController extends _$PlannerController {
   /// Puts a route from the library back on the map.
   ///
   /// Nothing is routed: the stored geometry is shown as it was saved, and only
-  /// the user's next edit asks the routing server again.
+  /// the user's next edit asks the routing server again. A route that was
+  /// imported rather than planned has only its two ends as waypoints, and an
+  /// edit would route between them and lose the course the file came with;
+  /// it gets points along its track to hold the shape, see [shapePoints].
   void loadSavedRoute(SavedRoute saved) {
     _debounce?.cancel();
     _pending?.cancel('saved route loaded');
     final geometry = saved.geometry;
     state = PlannerState(
-      waypoints: normalizeWaypointKinds(saved.waypoints),
+      waypoints: normalizeWaypointKinds(_waypointsOf(saved, geometry)),
       options: saved.options,
       route: AsyncData<RouteResult?>(
         RouteResult(
@@ -356,6 +386,27 @@ class PlannerController extends _$PlannerController {
       savedRouteId: saved.id,
       savedRouteName: saved.name,
     );
+  }
+
+  static List<Waypoint> _waypointsOf(
+    SavedRoute saved,
+    List<TrackPoint> geometry,
+  ) {
+    final waypoints = saved.waypoints;
+    if (saved.source == RouteSource.planned ||
+        saved.source == RouteSource.loop ||
+        waypoints.length > 2 ||
+        geometry.length <= 2) {
+      return waypoints;
+    }
+    final shape = shapePoints(
+      geometry.map((p) => p.pos).toList(growable: false),
+    );
+    return <Waypoint>[
+      if (waypoints.isNotEmpty) waypoints.first else Waypoint(pos: shape.first),
+      for (final p in shape.sublist(1, shape.length - 1)) Waypoint(pos: p),
+      if (waypoints.length > 1) waypoints.last else Waypoint(pos: shape.last),
+    ];
   }
 
   /// Puts an already computed route on the map.

@@ -866,5 +866,13 @@
   "chartResetZoom": "Ganze Fahrt",
   "rideHighlightSplit": "Split {index}",
   "rideHighlightClimb": "Anstieg {index}",
-  "rideHighlightChip": "{name} · {range}"
+  "rideHighlightChip": "{name} · {range}",
+  "plannerPointDetails": "Details",
+  "plannerPointName": "Name",
+  "plannerPointKind": "Art",
+  "plannerPointNote": "Notiz",
+  "poiKindDanger": "Gefahr",
+  "poiKindWater": "Wasser",
+  "poiKindFood": "Essen",
+  "poiKindGeneric": "Sonstiges"
 }

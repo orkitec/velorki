@@ -4450,5 +4450,37 @@
         "example": "2–3 km"
       }
     }
+  },
+  "plannerPointDetails": "Details",
+  "@plannerPointDetails": {
+    "description": "Button on the tapped-marker sheet that opens the name, kind and note sheet"
+  },
+  "plannerPointName": "Name",
+  "@plannerPointName": {
+    "description": "Label of the waypoint name field"
+  },
+  "plannerPointKind": "Type",
+  "@plannerPointKind": {
+    "description": "Caption over the waypoint kind chooser"
+  },
+  "plannerPointNote": "Note",
+  "@plannerPointNote": {
+    "description": "Label of the waypoint note field"
+  },
+  "poiKindDanger": "Hazard",
+  "@poiKindDanger": {
+    "description": "A point of interest kind: something to watch out for"
+  },
+  "poiKindWater": "Water",
+  "@poiKindWater": {
+    "description": "A point of interest kind: a fountain or tap"
+  },
+  "poiKindFood": "Food",
+  "@poiKindFood": {
+    "description": "A point of interest kind: a caf\u00e9 or shop"
+  },
+  "poiKindGeneric": "Other",
+  "@poiKindGeneric": {
+    "description": "A point of interest kind: anything else"
   }
 }

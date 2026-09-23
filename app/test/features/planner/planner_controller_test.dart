@@ -7,6 +7,7 @@ import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/planner/data/routing_backend_provider.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
+import 'package:velorki/features/planner/domain/route_poi.dart';
 import 'package:velorki/features/planner/domain/routing_options.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
@@ -776,7 +777,139 @@ void main() {
     });
   });
 
+  group('waypoint details', () {
+    testWidgets('a name, a kind and a note are set undoably, without routing', (
+      tester,
+    ) async {
+      final backend = FakeRoutingBackend();
+      final container = _container(backend);
+      final planner = container.read(plannerControllerProvider.notifier);
+      planner.addWaypoint(_a);
+      planner.addWaypoint(_b);
+      await tester.pump(const Duration(milliseconds: 400));
+      final calls = backend.callCount;
+
+      planner.setWaypointDetails(
+        1,
+        name: '  Bakery ',
+        poiKind: PoiKind.food,
+        note: 'Croissants',
+      );
+      await tester.pump(const Duration(milliseconds: 400));
+      final point = container.read(plannerControllerProvider).waypoints[1];
+      expect(point.name, 'Bakery');
+      expect(point.poiKind, PoiKind.food);
+      expect(point.note, 'Croissants');
+      expect(point.kind, WaypointKind.end);
+      expect(backend.callCount, calls, reason: 'details change no road');
+
+      // Blank fields clear; the whole edit is one undo step.
+      planner.setWaypointDetails(1, name: '', note: '   ');
+      expect(
+        container.read(plannerControllerProvider).waypoints[1].name,
+        isNull,
+      );
+      expect(
+        container.read(plannerControllerProvider).waypoints[1].note,
+        isNull,
+      );
+      planner.undo();
+      expect(
+        container.read(plannerControllerProvider).waypoints[1].name,
+        'Bakery',
+      );
+      planner.undo();
+      expect(
+        container.read(plannerControllerProvider).waypoints[1].name,
+        isNull,
+      );
+      // An undo schedules a route; let it run out.
+      await tester.pump(const Duration(milliseconds: 400));
+    });
+  });
+
   group('saved routes', () {
+    SavedRoute saved({
+      required RouteSource source,
+      required List<Waypoint> waypoints,
+      List<TrackPoint>? geometry,
+    }) {
+      final points = geometry ?? syntheticRoute().geometry;
+      return SavedRoute(
+        id: 'r1',
+        name: 'Saved',
+        source: source,
+        profile: RouteProfile.trekking,
+        createdAt: DateTime.utc(2026, 9, 12),
+        updatedAt: DateTime.utc(2026, 9, 12),
+        distanceM: 10000,
+        ascentM: 120,
+        descentM: 80,
+        bounds: BoundingBox.fromPoints(points.map((p) => p.pos)),
+        geometryBlob: PackedTrack.encode(points),
+        waypoints: waypoints,
+        options: const RoutingOptions(),
+      );
+    }
+
+    test('a planned route comes back with every waypoint and its details', () {
+      final container = _container(FakeRoutingBackend());
+      const waypoints = [
+        Waypoint(pos: _a, kind: WaypointKind.start, name: 'Home'),
+        Waypoint(
+          pos: LatLng(48.1, 11.1),
+          name: 'Bakery',
+          poiKind: PoiKind.food,
+          note: 'Croissants',
+        ),
+        Waypoint(pos: _b, kind: WaypointKind.end),
+      ];
+      container
+          .read(plannerControllerProvider.notifier)
+          .loadSavedRoute(
+            saved(source: RouteSource.planned, waypoints: waypoints),
+          );
+      expect(container.read(plannerControllerProvider).waypoints, waypoints);
+    });
+
+    test('an imported route with only its ends gets shape points along its '
+        'track, so an edit follows the course', () {
+      final container = _container(FakeRoutingBackend());
+      final track = <TrackPoint>[
+        for (var i = 0; i < 200; i++)
+          TrackPoint(
+            LatLng(48 + i * 0.0005, 11 + (i.isEven ? 0 : 0.003) * (i % 3)),
+          ),
+      ];
+      container
+          .read(plannerControllerProvider.notifier)
+          .loadSavedRoute(
+            saved(
+              source: RouteSource.importedGpx,
+              geometry: track,
+              waypoints: [
+                Waypoint(pos: track.first.pos, kind: WaypointKind.start),
+                Waypoint(pos: track.last.pos, kind: WaypointKind.end),
+              ],
+            ),
+          );
+      final waypoints = container.read(plannerControllerProvider).waypoints;
+      expect(waypoints.length, greaterThan(2));
+      expect(waypoints.length, lessThanOrEqualTo(22));
+      expect(waypoints.first.pos, track.first.pos);
+      expect(waypoints.first.kind, WaypointKind.start);
+      expect(waypoints.last.pos, track.last.pos);
+      expect(waypoints.last.kind, WaypointKind.end);
+      for (final w in waypoints) {
+        expect(track.map((p) => p.pos), contains(w.pos));
+      }
+      // Nothing was routed: the imported geometry is what shows.
+      expect(
+        container.read(plannerControllerProvider).result!.geometry.length,
+        200,
+      );
+    });
+
     test('loading one puts its turn instructions back on the plan', () {
       const turns = <TurnHint>[
         TurnHint(pointIndex: 1, kind: TurnKind.slightLeft, angleDeg: -30),

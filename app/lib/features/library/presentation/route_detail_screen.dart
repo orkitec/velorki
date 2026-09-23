@@ -17,6 +17,7 @@ import '../../planner/application/planner_controller.dart';
 import '../../planner/data/route_repository.dart';
 import '../../planner/domain/elevation_profile.dart';
 import '../../planner/domain/saved_route.dart';
+import '../../planner/domain/waypoint.dart';
 import '../../planner/presentation/elevation_profile_chart.dart';
 import '../../navigation/application/route_cues.dart';
 import '../../navigation/presentation/cue_sheet_list.dart';
@@ -172,7 +173,9 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
             points: route.geometry,
             kind: TrackKind.route,
             format: format,
-            pois: route.pois,
+            // The route's own points, and every waypoint the rider named or
+            // wrote a note on, so the file carries what the plan knew.
+            pois: [...route.pois, ...waypointPois(route.waypoints)],
           );
     } on Object {
       messenger.showSnackBar(SnackBar(content: Text(l10n.exportFailed)));

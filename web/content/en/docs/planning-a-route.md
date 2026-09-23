@@ -28,13 +28,14 @@ To move a point you already have, **drag its marker**. On a closed loop, draggin
 
 ## Change or remove a point
 
-Tap a marker to open its menu. It is titled with the point's name, or **Point 2** if it has none, and offers:
+Tap a marker to open its menu. It is titled with the point's name, or **Point 2** if it has none, shows its note if it has one, and offers:
 
 - **Visit earlier** and **Visit later**, which swap the point with its neighbour in the order,
+- **Details**, which opens a second sheet with a **Name**, a **Type** (**Hazard**, **Water**, **Food** or **Other**) and a **Note**; **Save** keeps them,
 - **Remove point**,
 - **Cancel**.
 
-Each of those is one step on the undo stack.
+Each of those is one step on the undo stack. A named point shows its name on its marker instead of its number. The details are saved with the route and come back when it is opened in the planner again, and a GPX export writes every named point, and every point with a note, as a waypoint of its own with the type and the note, beside the route's own points of interest.
 
 ## Pick the bike
 

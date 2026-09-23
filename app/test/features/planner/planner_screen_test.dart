@@ -9,6 +9,8 @@ import 'package:velorki/features/map/data/position_provider.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/presentation/elevation_profile_chart.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
+import 'package:velorki/features/planner/presentation/waypoint_details_sheet.dart';
+import 'package:velorki/features/planner/domain/route_poi.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/presentation/route_format.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
@@ -284,6 +286,71 @@ void main() {
 
     expect(h.map.waypoints, hasLength(1));
     expect(find.text(l10n.plannerRemovePoint), findsNothing);
+  });
+
+  testWidgets('a marker\'s Details sheet gives the point a name, a kind and '
+      'a note, and the marker wears the name', (tester) async {
+    final h = await pumpScreen(tester, const PlannerScreen());
+    await _plotRoute(tester, h);
+    expect(h.map.waypoints.map((w) => w.label), [null, null]);
+
+    h.map.onWaypointTapped!(1);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.plannerPointDetails));
+    await tester.pumpAndSettle();
+
+    // The second sheet, titled with the point's number until it has a name.
+    expect(find.byType(WaypointDetailsSheet), findsOneWidget);
+    expect(find.text(l10n.plannerPointTitle(2)), findsOneWidget);
+    await tester.enterText(
+      find.widgetWithText(TextField, l10n.plannerPointName),
+      'Bakery',
+    );
+    await tester.tap(find.text(l10n.poiKindFood));
+    await tester.enterText(
+      find.widgetWithText(TextField, l10n.plannerPointNote),
+      'Croissants before the climb',
+    );
+    // The sheet's own Save, not the plan's underneath.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(WaypointDetailsSheet),
+        matching: find.widgetWithText(FilledButton, l10n.commonSave),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PlannerScreen)),
+    );
+    final point = container.read(plannerControllerProvider).waypoints[1];
+    expect(point.name, 'Bakery');
+    expect(point.poiKind, PoiKind.food);
+    expect(point.note, 'Croissants before the climb');
+    // On the map the marker says the name; the plan was not routed again.
+    expect(h.map.waypoints.map((w) => w.label), [null, 'Bakery']);
+    expect(h.backend.callCount, 1);
+
+    // Tapped again, the sheet is titled with the name and shows the note,
+    // and Details opens pre-filled.
+    h.map.onWaypointTapped!(1);
+    await tester.pumpAndSettle();
+    expect(find.text('Bakery'), findsOneWidget);
+    expect(find.text('Croissants before the climb'), findsOneWidget);
+    await tester.tap(find.text(l10n.plannerPointDetails));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<TextField>(
+            find.widgetWithText(TextField, l10n.plannerPointName),
+          )
+          .controller!
+          .text,
+      'Bakery',
+    );
+    await tester.tap(find.widgetWithText(TextButton, l10n.commonCancel));
+    await tester.pumpAndSettle();
+    expect(find.byType(WaypointDetailsSheet), findsNothing);
   });
 
   testWidgets('the sheet has one resting height, with or without variants', (

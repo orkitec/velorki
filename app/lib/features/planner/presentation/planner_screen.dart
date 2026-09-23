@@ -39,6 +39,7 @@ import 'profile_chip_row.dart';
 import 'route_format.dart';
 import 'save_route_dialog.dart';
 import 'surface_stats_bar.dart';
+import 'waypoint_details_sheet.dart';
 
 /// The Plan tab: the search and profile controls at the top and the route
 /// details in a draggable sheet at the bottom, over the map the shell
@@ -252,13 +253,14 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     super.dispose();
   }
 
-  /// What can be done with a tapped marker: today, removing it.
+  /// What can be done with a tapped marker: move it in the order, remove
+  /// it, or give it a name, a kind and a note in a sheet of its own.
   Future<void> _showWaypointActions(int index) async {
     final state = ref.read(plannerControllerProvider);
     if (index < 0 || index >= state.waypoints.length) return;
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final name = state.waypoints[index].name;
+    final point = state.waypoints[index];
     final count = state.waypoints.length;
     final action = await showModalBottomSheet<_PointAction>(
       context: context,
@@ -271,11 +273,20 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                name ?? l10n.plannerPointTitle(index + 1),
+                point.name ?? l10n.plannerPointTitle(index + 1),
                 style: theme.textTheme.headlineSmall,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
+              if (point.note case final note? when note.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  note,
+                  style: theme.textTheme.bodySmall,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
               const SizedBox(height: 16),
               // Reordering by one place at a time: swap with a neighbour.
               Row(
@@ -303,10 +314,26 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                 ],
               ),
               const SizedBox(height: 8),
-              FilledButton.tonalIcon(
-                onPressed: () => Navigator.of(context).pop(_PointAction.remove),
-                icon: const Icon(Icons.delete_outline_rounded),
-                label: Text(l10n.plannerRemovePoint),
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.tonalIcon(
+                      onPressed: () =>
+                          Navigator.of(context).pop(_PointAction.details),
+                      icon: const Icon(Icons.edit_note_rounded),
+                      label: Text(l10n.plannerPointDetails),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton.tonalIcon(
+                      onPressed: () =>
+                          Navigator.of(context).pop(_PointAction.remove),
+                      icon: const Icon(Icons.delete_outline_rounded),
+                      label: Text(l10n.plannerRemovePoint),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
               TextButton(
@@ -327,7 +354,42 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
         planner.swapWaypoint(index, 1);
       case _PointAction.remove:
         planner.removeWaypoint(index);
+      case _PointAction.details:
+        await _showWaypointDetails(index);
     }
+  }
+
+  /// A name, a kind and a note for the point at [index]: what its marker
+  /// says, and what a GPX export writes it out as.
+  Future<void> _showWaypointDetails(int index) async {
+    final state = ref.read(plannerControllerProvider);
+    if (index < 0 || index >= state.waypoints.length) return;
+    final point = state.waypoints[index];
+    final details = await showModalBottomSheet<WaypointDetails>(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (context) => WaypointDetailsSheet(
+        title:
+            point.name ??
+            AppLocalizations.of(context).plannerPointTitle(index + 1),
+        initial: WaypointDetails(
+          name: point.name,
+          poiKind: point.poiKind,
+          note: point.note,
+        ),
+      ),
+    );
+    if (!mounted || details == null) return;
+    ref
+        .read(plannerControllerProvider.notifier)
+        .setWaypointDetails(
+          index,
+          name: details.name,
+          poiKind: details.poiKind,
+          note: details.note,
+        );
   }
 
   /// The shared map came, went, or was replaced after a style reload: the
@@ -718,6 +780,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
               snapSizes: _snapSizesFor(restingSheetSize),
               builder: (context, scrollController) => DockingSheet(
                 controller: scrollController,
+                gripDp: sheetGripWithTitleDp,
                 initialExtent: restingSheetSize,
                 collapsedExtent: collapsedSheetSize,
                 dockedRange: dockedRange,
@@ -761,7 +824,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   }
 }
 
-enum _PointAction { earlier, later, remove }
+enum _PointAction { earlier, later, remove, details }
 
 class _NoRoutingServerBanner extends StatelessWidget {
   const _NoRoutingServerBanner();

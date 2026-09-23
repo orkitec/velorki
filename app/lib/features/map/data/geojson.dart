@@ -131,7 +131,10 @@ List<Object> trackSpeedColorExpression(String slow, String fast) => <Object>[
 
 /// The label drawn inside a waypoint circle: the 1-based position in the
 /// list. A place name would not fit a 20 px disc; it lives in the plan.
-String waypointLabel(MapWaypoint waypoint, int index) => '${index + 1}';
+String waypointLabel(MapWaypoint waypoint, int index) {
+  final label = waypoint.label;
+  return label == null || label.isEmpty ? '${index + 1}' : label;
+}
 
 /// One `Point` feature per waypoint, each draggable and carrying its index.
 ///

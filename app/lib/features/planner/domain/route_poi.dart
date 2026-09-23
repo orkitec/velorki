@@ -52,8 +52,9 @@ enum PoiKind {
   }
 }
 
-/// The points as GPX `<wpt>` elements, the kind written back the way Ride
-/// with GPS spells it, so the file round-trips.
+/// The points as GPX `<wpt>` elements, the kind written back as the `type`
+/// Ride with GPS spells and the `sym` Garmin does, so the file round-trips
+/// through either.
 List<GpxWaypoint> gpxWaypoints(List<RoutePoi> pois) => <GpxWaypoint>[
   for (final poi in pois)
     GpxWaypoint(
@@ -65,6 +66,12 @@ List<GpxWaypoint> gpxWaypoints(List<RoutePoi> pois) => <GpxWaypoint>[
         PoiKind.water => 'water',
         PoiKind.food => 'food',
         PoiKind.generic => 'generic',
+      },
+      symbol: switch (poi.kind) {
+        PoiKind.danger => 'Danger Area',
+        PoiKind.water => 'Drinking Water',
+        PoiKind.food => 'Restaurant',
+        PoiKind.generic => 'Flag, Blue',
       },
     ),
 ];

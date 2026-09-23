@@ -28,13 +28,14 @@ Um einen vorhandenen Punkt zu verschieben, **zieh seine Markierung**. Bei einer 
 
 ## Einen Punkt ändern oder entfernen
 
-Tippe auf eine Markierung, um ihr Menü zu öffnen. Es trägt den Namen des Punkts als Titel, oder **Punkt 2**, wenn er keinen hat, und bietet:
+Tippe auf eine Markierung, um ihr Menü zu öffnen. Es trägt den Namen des Punkts als Titel, oder **Punkt 2**, wenn er keinen hat, zeigt seine Notiz, wenn er eine hat, und bietet:
 
 - **Früher anfahren** und **Später anfahren**, was den Punkt mit seinem Nachbarn in der Reihenfolge tauscht,
+- **Details**, was ein zweites Blatt mit **Name**, **Art** (**Gefahr**, **Wasser**, **Essen** oder **Sonstiges**) und **Notiz** öffnet; **Speichern** behält sie,
 - **Punkt entfernen**,
 - **Abbrechen**.
 
-Jeder dieser Schritte lässt sich einzeln rückgängig machen.
+Jeder dieser Schritte lässt sich einzeln rückgängig machen. Ein benannter Punkt zeigt auf seiner Markierung seinen Namen statt seiner Nummer. Die Details werden mit der Route gespeichert und kommen zurück, wenn sie wieder im Planer geöffnet wird, und ein GPX-Export schreibt jeden benannten Punkt und jeden Punkt mit Notiz als eigenen Wegpunkt mit Art und Notiz hinaus, neben den Punkten von Interesse der Route.
 
 ## Das Rad wählen
 
