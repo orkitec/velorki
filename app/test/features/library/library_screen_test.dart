@@ -184,4 +184,72 @@ void main() {
     expect(h.map.turnMarkers, isEmpty);
     await unmountApp(tester);
   });
+
+  testWidgets('a route opened from a tall list rests, and the list comes '
+      'back at its own height', (tester) async {
+    final h = PlannerHarness();
+    await _seed(h, name: 'One');
+    await _seed(h, name: 'Two');
+    await _seed(h, name: 'Three');
+    await pumpApp(tester, harness: h);
+    await tester.pumpAndSettle();
+
+    double extent() => tester
+        .widget<DockingSheetShell>(
+          find
+              .descendant(
+                of: find.byType(LibraryScreen),
+                matching: find.byType(DockingSheetShell),
+              )
+              .first,
+        )
+        .extent;
+    final height = MediaQuery.sizeOf(tester.element(find.byType(LibraryScreen)))
+        .height;
+    final resting = sheetRestingExtent(height);
+    final max = tester
+        .widget<DraggableScrollableSheet>(
+          find
+              .descendant(
+                of: find.byType(LibraryScreen),
+                matching: find.byType(DraggableScrollableSheet),
+              )
+              .first,
+        )
+        .maxChildSize;
+    // Three rows: the list opened to the top.
+    expect(extent(), closeTo(max, 0.01));
+
+    // The row is tapped in the shell, as the rider does; the card swaps to
+    // the route in place and settles to the resting height over the map.
+    await tester.tap(find.text('Two'));
+    await tester.pumpAndSettle();
+    expect(find.byType(BackButton), findsOneWidget);
+    expect(extent(), closeTo(resting, 0.01));
+
+    // Back: the list is long, so it rises to the top again.
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.libraryRoutes), findsOneWidget);
+    expect(extent(), closeTo(max, 0.01));
+
+    // A list the rider pulled down to rest is remembered: after a detail it
+    // comes back there, not to the top.
+    // A timed drag, so the release carries a downward velocity and the
+    // sheet snaps to the resting height below rather than back to the top.
+    await tester.timedDragFrom(
+      tester.getCenter(find.byType(SheetHandle)),
+      Offset(0, height * 0.4),
+      const Duration(milliseconds: 300),
+    );
+    await tester.pumpAndSettle();
+    expect(extent(), closeTo(resting, 0.01));
+    await tester.tap(find.text('Three'));
+    await tester.pumpAndSettle();
+    expect(extent(), closeTo(resting, 0.01));
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(extent(), closeTo(resting, 0.01));
+    await unmountApp(tester);
+  });
 }

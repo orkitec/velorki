@@ -242,6 +242,33 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   void didUpdateWidget(LibraryScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.routeId != widget.routeId) _tellCard();
+    final wasDetail = oldWidget.routeId != null || oldWidget.rideId != null;
+    if (wasDetail != _detail) _swapContent();
+  }
+
+  /// The card has just swapped between the list and a detail, in place and
+  /// in the same sheet: nothing arrives, so the arrival logic does not run.
+  /// A detail rests, so the map shows what it draws; the list comes back at
+  /// the height it prefers. Neither move is the rider's.
+  void _swapContent() {
+    _armed = false;
+    // The rows are read in the build that follows; until then they have
+    // nothing to say, and the callback below decides instead of them.
+    _rowsApplied = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_active || !_sheet.isAttached) return;
+      if (!_detail && _rows == null) {
+        // Still loading: the rows have their say when they are known.
+        _rowsApplied = false;
+        return;
+      }
+      final target = _preferredExtent;
+      if ((target - _sheet.size).abs() < 0.005) {
+        _arm();
+        return;
+      }
+      unawaited(_settleTo(target));
+    });
   }
 
   /// Which route the card shows, for the Record tab's proposal; after the
