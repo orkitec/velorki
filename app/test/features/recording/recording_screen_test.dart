@@ -33,6 +33,7 @@ import 'package:velorki/features/recording/presentation/ride_profile_view.dart';
 import 'package:velorki/features/library/presentation/library_screen.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/recording/application/recording_controller.dart';
+import 'package:velorki/features/recording/domain/follow_choice.dart';
 import 'package:velorki/features/planner/domain/routing_options.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki/features/recording/presentation/follow_route_picker.dart';
@@ -301,6 +302,10 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(container.read(recordingControllerProvider).followedRouteId, isNull);
+    expect(
+      container.read(recordingControllerProvider).follow,
+      FollowChoice.none,
+    );
     expect(find.text(l10n.recordingFollowNone), findsOneWidget);
 
     await unmountApp(tester);

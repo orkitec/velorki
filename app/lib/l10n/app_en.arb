@@ -123,6 +123,10 @@
   "@commonSave": {
     "description": "Button that confirms a save dialog"
   },
+  "commonDone": "Done",
+  "@commonDone": {
+    "description": "Button closing a sheet and applying what was typed in it"
+  },
   "commonUndo": "Undo",
   "@commonUndo": {
     "description": "Action of a snack bar that reverts the last action"
@@ -248,15 +252,6 @@
   "plannerRouteSaved": "Route saved",
   "@plannerRouteSaved": {
     "description": "Snack bar confirming that a route was written to the library"
-  },
-  "plannerPointTitle": "Point {number}",
-  "@plannerPointTitle": {
-    "description": "Title of the sheet for a tapped waypoint without a name",
-    "placeholders": {
-      "number": {
-        "type": "int"
-      }
-    }
   },
   "plannerVisitEarlier": "Visit earlier",
   "@plannerVisitEarlier": {
@@ -4442,10 +4437,6 @@
         "example": "2–3 km"
       }
     }
-  },
-  "plannerPointDetails": "Details",
-  "@plannerPointDetails": {
-    "description": "Button on the tapped-marker sheet that opens the name, kind and note sheet"
   },
   "plannerPointName": "Name",
   "@plannerPointName": {

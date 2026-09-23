@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,7 +10,8 @@ import 'package:velorki/features/map/data/position_provider.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/presentation/elevation_profile_chart.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
-import 'package:velorki/features/planner/presentation/waypoint_details_sheet.dart';
+import 'package:velorki/features/planner/presentation/waypoint_edit_sheet.dart';
+import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki/features/planner/domain/route_poi.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/presentation/route_format.dart';
@@ -37,6 +39,10 @@ Future<void> _plotRoute(WidgetTester tester, PlannerHarness h) async {
   await tester.pump(const Duration(milliseconds: 400));
   await tester.pumpAndSettle();
 }
+
+TextField _nameField(WidgetTester tester) => tester.widget<TextField>(
+  find.widgetWithText(TextField, l10n.plannerPointName),
+);
 
 void main() {
   testWidgets('the empty state explains the first gesture', (tester) async {
@@ -279,29 +285,26 @@ void main() {
     h.map.onWaypointTapped!(1);
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n.plannerPointTitle(2)), findsOneWidget);
+    // The name field opens with the point's number, there being no name.
+    expect(find.byType(WaypointEditSheet), findsOneWidget);
+    expect(_nameField(tester).controller!.text, '2');
     await tester.tap(find.text(l10n.plannerRemovePoint));
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
 
     expect(h.map.waypoints, hasLength(1));
-    expect(find.text(l10n.plannerRemovePoint), findsNothing);
+    expect(find.byType(WaypointEditSheet), findsNothing);
   });
 
-  testWidgets('a marker\'s Details sheet gives the point a name, a kind and '
-      'a note, and the marker wears the name', (tester) async {
+  testWidgets('a marker\'s sheet gives the point a name, a kind and a note '
+      'on Done, and the marker wears the name', (tester) async {
     final h = await pumpScreen(tester, const PlannerScreen());
     await _plotRoute(tester, h);
     expect(h.map.waypoints.map((w) => w.label), [null, null]);
 
     h.map.onWaypointTapped!(1);
     await tester.pumpAndSettle();
-    await tester.tap(find.text(l10n.plannerPointDetails));
-    await tester.pumpAndSettle();
-
-    // The second sheet, titled with the point's number until it has a name.
-    expect(find.byType(WaypointDetailsSheet), findsOneWidget);
-    expect(find.text(l10n.plannerPointTitle(2)), findsOneWidget);
+    expect(find.byType(WaypointEditSheet), findsOneWidget);
     await tester.enterText(
       find.widgetWithText(TextField, l10n.plannerPointName),
       'Bakery',
@@ -311,13 +314,7 @@ void main() {
       find.widgetWithText(TextField, l10n.plannerPointNote),
       'Croissants before the climb',
     );
-    // The sheet's own Save, not the plan's underneath.
-    await tester.tap(
-      find.descendant(
-        of: find.byType(WaypointDetailsSheet),
-        matching: find.widgetWithText(FilledButton, l10n.commonSave),
-      ),
-    );
+    await tester.tap(find.widgetWithText(FilledButton, l10n.commonDone));
     await tester.pumpAndSettle();
 
     final container = ProviderScope.containerOf(
@@ -331,26 +328,86 @@ void main() {
     expect(h.map.waypoints.map((w) => w.label), [null, 'Bakery']);
     expect(h.backend.callCount, 1);
 
-    // Tapped again, the sheet is titled with the name and shows the note,
-    // and Details opens pre-filled.
+    // Tapped again, the sheet opens pre-filled; a pull down keeps it so.
     h.map.onWaypointTapped!(1);
     await tester.pumpAndSettle();
-    expect(find.text('Bakery'), findsOneWidget);
-    expect(find.text('Croissants before the climb'), findsOneWidget);
-    await tester.tap(find.text(l10n.plannerPointDetails));
-    await tester.pumpAndSettle();
+    expect(_nameField(tester).controller!.text, 'Bakery');
     expect(
       tester
           .widget<TextField>(
-            find.widgetWithText(TextField, l10n.plannerPointName),
+            find.widgetWithText(TextField, l10n.plannerPointNote),
           )
           .controller!
           .text,
+      'Croissants before the climb',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, l10n.plannerPointName),
+      'Not this',
+    );
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    expect(find.byType(WaypointEditSheet), findsNothing);
+    expect(
+      container.read(plannerControllerProvider).waypoints[1].name,
       'Bakery',
     );
-    await tester.tap(find.widgetWithText(TextButton, l10n.commonCancel));
+  });
+
+  testWidgets('a number left in the name field names nothing, and Done '
+      'without a change is no undo step', (tester) async {
+    final h = await pumpScreen(tester, const PlannerScreen());
+    await _plotRoute(tester, h);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PlannerScreen)),
+    );
+    final undos = container.read(plannerControllerProvider).undoStack.length;
+
+    h.map.onWaypointTapped!(1);
     await tester.pumpAndSettle();
-    expect(find.byType(WaypointDetailsSheet), findsNothing);
+    await tester.tap(find.widgetWithText(FilledButton, l10n.commonDone));
+    await tester.pumpAndSettle();
+    final state = container.read(plannerControllerProvider);
+    expect(state.waypoints[1].name, isNull);
+    expect(state.undoStack.length, undos);
+    expect(h.map.waypoints.map((w) => w.label), [null, null]);
+  });
+
+  testWidgets('the type tiles keep every label on one line at phone width, '
+      'in English and in German', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    for (final locale in const [Locale('en'), Locale('de')]) {
+      await tester.pumpWidget(
+        testApp(
+          locale: locale,
+          home: Scaffold(
+            body: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: PoiKindTiles(
+                selected: PoiKind.generic,
+                onSelected: (_) {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final strings = lookupAppLocalizations(locale);
+      for (final kind in PoiKind.values) {
+        final label = poiKindLabel(strings, kind);
+        final text = tester.widget<Text>(find.text(label));
+        expect(text.maxLines, 1, reason: '$locale $label');
+        final paragraph = tester.renderObject<RenderParagraph>(
+          find.text(label),
+        );
+        expect(
+          paragraph.didExceedMaxLines,
+          isFalse,
+          reason: '$locale $label overflows its tile',
+        );
+      }
+    }
   });
 
   testWidgets('the sheet has one resting height, with or without variants', (
@@ -399,21 +456,31 @@ void main() {
 
     h.map.onWaypointTapped!(1);
     await tester.pumpAndSettle();
+    OutlinedButton button(String label) => tester.widget<OutlinedButton>(
+      find.widgetWithText(OutlinedButton, label),
+    );
     // The last point cannot go later.
-    expect(
-      tester
-          .widget<OutlinedButton>(
-            find.widgetWithText(OutlinedButton, l10n.plannerVisitLater),
-          )
-          .onPressed,
-      isNull,
+    expect(button(l10n.plannerVisitLater).onPressed, isNull);
+    // A name typed before the swap travels with the point.
+    await tester.enterText(
+      find.widgetWithText(TextField, l10n.plannerPointName),
+      'Lake',
     );
     await tester.tap(find.text(l10n.plannerVisitEarlier));
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
 
+    // Swapped at once, the sheet still open and now at the first place.
     expect(h.map.waypoints[0].position, second);
     expect(h.map.waypoints[1].position, first);
+    expect(find.byType(WaypointEditSheet), findsOneWidget);
+    expect(_nameField(tester).controller!.text, 'Lake');
+    expect(button(l10n.plannerVisitEarlier).onPressed, isNull);
+    expect(button(l10n.plannerVisitLater).onPressed, isNotNull);
+
+    await tester.tap(find.widgetWithText(FilledButton, l10n.commonDone));
+    await tester.pumpAndSettle();
+    expect(h.map.waypoints.map((w) => w.label), ['Lake', null]);
   });
 
   testWidgets('a searched place is the destination from my position', (

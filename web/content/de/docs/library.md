@@ -37,7 +37,7 @@ Eine geöffnete Route wird auf die Karte gezeichnet, eingepasst in den Teil des 
 - die Aktionen unten, **Im Planer öffnen** zuerst, damit es in der Ruhehöhe des Blatts zu sehen ist,
 - die Belagsverteilung,
 - das Höhenprofil,
-- bei einer Route, die mit Abbiegungen oder Punkten von Interesse importiert wurde, die Abbiegeliste: jede Abbiegung und jeder Punkt mit der Entfernung vom Start, ein Tipp auf eine Zeile schwenkt die Karte in deinem Zoom dorthin und ein Tipp auf einen Marker scrollt das Blatt zu dieser Zeile.
+- bei einer Route, die mit Abbiegungen oder Punkten von Interesse importiert wurde oder deren Punkte du im Planer benannt oder mit einer Notiz versehen hast, die Abbiegeliste: jede Abbiegung und jeder Punkt mit der Entfernung vom Start, ein Tipp auf eine Zeile schwenkt die Karte in deinem Zoom dorthin und ein Tipp auf einen Marker scrollt das Blatt zu dieser Zeile.
 
 Die Aktionen:
 

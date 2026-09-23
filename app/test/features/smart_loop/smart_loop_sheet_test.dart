@@ -346,6 +346,62 @@ void main() {
   });
 
   group('a bare start', () {
+    testWidgets('the progress bar moves on its own until the first request '
+        'is back, then fills', (tester) async {
+      await _openSheet(
+        tester,
+        harness: PlannerHarness(
+          backend: FakeRoutingBackend(delay: const Duration(milliseconds: 200)),
+        ),
+      );
+      LinearProgressIndicator bar() => tester.widget<LinearProgressIndicator>(
+        _inSheet(find.byType(LinearProgressIndicator)),
+      );
+
+      await tester.tap(
+        _inSheet(find.widgetWithText(FilledButton, l10n.loopMakeTitle)),
+      );
+      await tester.pump();
+      await tester.pump();
+      // Nothing back yet: an animated bar rather than an empty one.
+      expect(
+        _container(tester).read(smartLoopControllerProvider).running,
+        isTrue,
+      );
+      expect(_container(tester).read(smartLoopControllerProvider).progress, 0);
+      expect(bar().value, isNull);
+      expect(bar().backgroundColor, isNotNull);
+      final track = tester.getRect(
+        _inSheet(find.byType(LinearProgressIndicator)),
+      );
+
+      await tester.pump(const Duration(milliseconds: 250));
+      final progress = _container(tester)
+          .read(smartLoopControllerProvider)
+          .progress;
+      expect(progress, greaterThan(0));
+      expect(bar().value, progress);
+      // Same place, same height: the switch moved nothing.
+      expect(
+        tester.getRect(_inSheet(find.byType(LinearProgressIndicator))),
+        track,
+      );
+
+      // The remaining batches, a quarter second apart; nothing schedules a
+      // frame between them, so pumpAndSettle alone would return early.
+      for (var i = 0; i < 40; i++) {
+        if (!_container(tester).read(smartLoopControllerProvider).running) {
+          break;
+        }
+        await tester.pump(const Duration(milliseconds: 250));
+      }
+      await tester.pumpAndSettle();
+      expect(
+        _container(tester).read(smartLoopControllerProvider).running,
+        isFalse,
+      );
+    });
+
     testWidgets('offers a distance and makes a loop', (tester) async {
       await _openSheet(tester);
 

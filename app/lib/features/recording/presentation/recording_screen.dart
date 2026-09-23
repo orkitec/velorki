@@ -28,6 +28,7 @@ import '../../navigation/domain/navigation_progress.dart';
 import '../../navigation/presentation/navigation_toggles.dart';
 import '../../navigation/presentation/turn_banner.dart';
 import '../../navigation/presentation/turn_phrases.dart';
+import '../../library/application/library_card.dart';
 import '../../planner/application/planner_controller.dart';
 import '../../planner/data/route_repository.dart';
 import '../../planner/domain/saved_route.dart';
@@ -52,6 +53,7 @@ import '../data/recording_gateways.dart';
 import '../data/recording_recovery.dart';
 import '../data/recording_service.dart';
 import '../data/recording_settings.dart';
+import '../domain/follow_choice.dart';
 import '../domain/recording_snapshot.dart';
 import '../domain/recording_state.dart';
 import '../domain/ride_naming.dart';
@@ -191,6 +193,11 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     final tabs = ref.read(activeTabProvider.notifier);
     final arriving = _active && tabs.previous != null;
     if (!arriving) return;
+    // After the frame: a provider may not be written while this one builds.
+    final from = tabs.previous;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _suggestFollow(from);
+    });
     _arrivingExtent = ref.read(tabHandoverProvider).sheetExtent;
     // The sheet, once it exists: after the first frame.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -698,6 +705,22 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// ([_drawing]). The puck is the recorder's for as long as a ride records,
   /// whichever tab is on screen: the map's own fix stays off it then, and a
   /// puck that froze while the rider looked at the plan would be a lie.
+  /// Proposes what the next ride follows from the tab the rider came from:
+  /// the route on the Library's card, or the plan on the Plan tab. The
+  /// controller takes it only while no ride runs and the rider has not
+  /// picked for themselves.
+  void _suggestFollow(String? from) {
+    FollowChoice? suggestion;
+    if (from == libraryRoute) {
+      final routeId = ref.read(libraryCardProvider);
+      if (routeId != null) suggestion = FollowSaved(routeId);
+    } else if (from == plannerRoute &&
+        ref.read(plannerControllerProvider).result != null) {
+      suggestion = FollowChoice.plan;
+    }
+    ref.read(recordingControllerProvider.notifier).suggest(suggestion);
+  }
+
   void _syncMap(
     RecordingUiState state,
     SavedRoute? route,
@@ -1277,15 +1300,19 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     if (recovery != null) _handleRecovery(recovery);
     _handleFinishRequest(ref.watch(rideFinishRequestProvider));
 
-    final followed = state.followedRouteId;
-    final route = followed == null
-        ? null
-        : ref.watch(savedRouteProvider(followed)).value;
-    final planned = ref.watch(
-      plannerControllerProvider.select(
-        (p) => p.result?.positions ?? const <LatLng>[],
-      ),
-    );
+    // What the ride follows, as the rider chose: a saved route, the plan,
+    // or nothing at all, which draws no line and guides nowhere.
+    final follow = state.follow;
+    final route = follow is FollowSaved
+        ? ref.watch(savedRouteProvider(follow.id)).value
+        : null;
+    final planned = follow is FollowPlan
+        ? ref.watch(
+            plannerControllerProvider.select(
+              (p) => p.result?.positions ?? const <LatLng>[],
+            ),
+          )
+        : const <LatLng>[];
     final followMode = ref.watch(followModeProvider);
     // A re-route, while one is being followed, is the line to draw.
     final detour = ref.watch(detourRouteProvider);
@@ -1360,6 +1387,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       if (next == recordingRoute && previous != recordingRoute) {
         _active = true;
         _updateMapUse();
+        _suggestFollow(previous);
         // A fresh hint each time the tab comes up, never the one just shown.
         _hintIndex = _nextHint(_hintIndex);
         _takeOverControls();

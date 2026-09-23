@@ -28,14 +28,16 @@ To move a point you already have, **drag its marker**. On a closed loop, draggin
 
 ## Change or remove a point
 
-Tap a marker to open its menu. It is titled with the point's name, or **Point 2** if it has none, shows its note if it has one, and offers:
+Tap a marker to open its sheet. From the top:
 
-- **Visit earlier** and **Visit later**, which swap the point with its neighbour in the order,
-- **Details**, which opens a second sheet with a **Name**, a **Type** (**Hazard**, **Water**, **Food** or **Other**) and a **Note**; **Save** keeps them,
+- **Name**, filled with the point's name or, while it has none, its number; a number left as it is names nothing,
+- **Type**: four tiles, **Hazard**, **Water**, **Food** or **Other**,
+- **Note**,
+- **Visit earlier** and **Visit later**, which swap the point with its neighbour in the order at once and leave the sheet open, so a point can be moved and named in one visit,
 - **Remove point**,
-- **Cancel**.
+- **Done**, which applies the name, the type and the note. Pull the sheet down to leave them as they were.
 
-Each of those is one step on the undo stack. A named point shows its name on its marker instead of its number. The details are saved with the route and come back when it is opened in the planner again; on a route opened from the library they go into the library at once, as long as the route has not been re-routed since, so there is no Save to press for a name or a note alone. The route card lists named points with their notes in the cue sheet, and a GPX export writes every named point, and every point with a note, as a waypoint of its own with the type and the note, beside the route's own points of interest.
+A swap, a removal and a Done that changed something are each one step on the undo stack. A named point shows its name on its marker instead of its number. The details are saved with the route and come back when it is opened in the planner again; on a route opened from the library they go into the library at once, as long as the route has not been re-routed since, so there is no Save to press for a name or a note alone. The route card lists named points with their notes in the cue sheet, and a GPX export writes every named point, and every point with a note, as a waypoint of its own with the type and the note, beside the route's own points of interest.
 
 ## Pick the bike
 
@@ -85,8 +87,6 @@ The **Elevation** chart draws height against distance. Touch it and drag along i
 ### Surface
 
 The **Surface** bar is a single stacked bar of three shares that add up to the whole route, **Paved**, **Unpaved** and **Unknown**, with a legend of percentages underneath. Two more entries in the legend, **Cycleway** and **Busy roads**, overlap the first three rather than adding to them: they tell you how much of the route is on a dedicated cycleway, and how much is on a big road.
-
-### Where it was routed
 
 ## Save it
 

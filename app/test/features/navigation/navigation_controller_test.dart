@@ -23,6 +23,7 @@ import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki/features/recording/application/recording_controller.dart';
 import 'package:velorki/features/recording/data/recording_service.dart';
+import 'package:velorki/features/recording/domain/follow_choice.dart';
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki/features/planner/domain/route_poi.dart';
@@ -249,7 +250,9 @@ class _NavHarness {
 
   /// Chooses the saved route to follow and lets the database answer.
   Future<void> follow(String? routeId) async {
-    container.read(recordingControllerProvider.notifier).selectRoute(routeId);
+    container
+        .read(recordingControllerProvider.notifier)
+        .choose(routeId == null ? FollowChoice.plan : FollowSaved(routeId));
     await _settle();
   }
 

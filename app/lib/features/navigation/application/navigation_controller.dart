@@ -15,6 +15,7 @@ import '../../planner/data/route_repository.dart';
 import '../../planner/data/routing_backend_provider.dart';
 import '../../planner/domain/routing_options.dart';
 import '../../recording/application/recording_controller.dart';
+import '../../recording/domain/follow_choice.dart';
 import '../../recording/domain/recording_snapshot.dart';
 import '../data/navigation_settings.dart';
 import '../data/turn_speaker.dart';
@@ -112,28 +113,31 @@ class GuidedRoute {
 /// [guidedRoute] follows. Empty without a route or without elevations.
 @Riverpod(keepAlive: true)
 List<ElevationSample> guidedRouteProfile(Ref ref) {
-  final followed = ref.watch(
-    recordingControllerProvider.select((s) => s.followedRouteId),
-  );
-  if (followed != null) {
-    final route = ref.watch(savedRouteProvider(followed)).value;
-    return route == null
-        ? const <ElevationSample>[]
-        : elevationProfile(route.geometry);
+  final follow = ref.watch(recordingControllerProvider.select((s) => s.follow));
+  switch (follow) {
+    case FollowNone():
+      return const <ElevationSample>[];
+    case FollowSaved(:final id):
+      final route = ref.watch(savedRouteProvider(id)).value;
+      return route == null
+          ? const <ElevationSample>[]
+          : elevationProfile(route.geometry);
+    case FollowPlan():
+      final result = ref.watch(
+        plannerControllerProvider.select((s) => s.result),
+      );
+      return result == null
+          ? const <ElevationSample>[]
+          : elevationProfile(result.geometry);
   }
-  final result = ref.watch(plannerControllerProvider.select((s) => s.result));
-  return result == null
-      ? const <ElevationSample>[]
-      : elevationProfile(result.geometry);
 }
 
 @Riverpod(keepAlive: true)
 GuidedRoute? guidedRoute(Ref ref) {
-  final followed = ref.watch(
-    recordingControllerProvider.select((s) => s.followedRouteId),
-  );
-  if (followed != null) {
-    final route = ref.watch(savedRouteProvider(followed)).value;
+  final follow = ref.watch(recordingControllerProvider.select((s) => s.follow));
+  if (follow is FollowNone) return null;
+  if (follow is FollowSaved) {
+    final route = ref.watch(savedRouteProvider(follow.id)).value;
     if (route == null) return null;
     final line = route.geometry.map((p) => p.pos).toList(growable: false);
     return GuidedRoute(

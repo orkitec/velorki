@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
 import '../../library/presentation/library_screen.dart';
@@ -10,6 +11,9 @@ import '../../planner/data/route_repository.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../settings/data/units.dart';
 import '../application/recording_controller.dart';
+import '../domain/follow_choice.dart';
+
+part 'follow_route_picker.g.dart';
 
 /// The row on the Record tab's idle sheet that says which route the next
 /// ride follows, and opens [FollowRoutePicker] on a tap.
@@ -26,20 +30,16 @@ class FollowRouteField extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final units = ref.watch(unitSystemProvider);
-    final followed = ref.watch(
-      recordingControllerProvider.select((s) => s.followedRouteId),
-    );
-    final route = followed == null
-        ? null
-        : ref.watch(savedRouteProvider(followed)).value;
-    final hasPlan = ref.watch(
-      plannerControllerProvider.select((p) => p.result != null),
-    );
-    final choice = route != null
-        ? '${route.name} · ${formatDistance(l10n, units, route.distanceM)}'
-        : hasPlan
-        ? l10n.recordingFollowPlan
-        : l10n.recordingFollowNone;
+    final follow = ref.watch(effectiveFollowProvider);
+    final route = follow is FollowSaved
+        ? ref.watch(savedRouteProvider(follow.id)).value
+        : null;
+    final choice = switch (follow) {
+      FollowSaved() when route != null =>
+        '${route.name} · ${formatDistance(l10n, units, route.distanceM)}',
+      FollowPlan() => l10n.recordingFollowPlan,
+      _ => l10n.recordingFollowNone,
+    };
     // The height of the menu field it replaced: one row, label over value.
     return Material(
       type: MaterialType.transparency,
@@ -106,9 +106,21 @@ Future<void> showFollowRoutePicker(BuildContext context) =>
       builder: (_) => const FollowRoutePicker(),
     );
 
-/// The routes the next ride can follow: none (or the route on the Plan tab,
-/// when there is one) and every saved route, the current choice marked. A
-/// tap chooses and closes.
+/// The choice as the ride will see it: the plan only counts while there is
+/// one, so a rider who has not planned anything is shown, and ticked, "No
+/// route" rather than a plan that is nothing.
+@riverpod
+FollowChoice effectiveFollow(Ref ref) {
+  final follow = ref.watch(recordingControllerProvider.select((s) => s.follow));
+  final hasPlan = ref.watch(
+    plannerControllerProvider.select((p) => p.result != null),
+  );
+  return follow is FollowPlan && !hasPlan ? FollowChoice.none : follow;
+}
+
+/// What the next ride can follow: no route, the route on the Plan tab when
+/// there is one, and every saved route, the current choice marked. A tap
+/// chooses and closes.
 class FollowRoutePicker extends ConsumerWidget {
   /// Creates the picker.
   const FollowRoutePicker({super.key});
@@ -118,16 +130,27 @@ class FollowRoutePicker extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final routes = ref.watch(savedRoutesProvider).value ?? const [];
-    final followed = ref.watch(
-      recordingControllerProvider.select((s) => s.followedRouteId),
-    );
+    final follow = ref.watch(effectiveFollowProvider);
     final hasPlan = ref.watch(
       plannerControllerProvider.select((p) => p.result != null),
     );
-    void choose(String? id) {
-      ref.read(recordingControllerProvider.notifier).selectRoute(id);
+    void choose(FollowChoice choice) {
+      ref.read(recordingControllerProvider.notifier).choose(choice);
       Navigator.of(context).pop();
     }
+
+    Widget row({
+      required IconData icon,
+      required String title,
+      required FollowChoice choice,
+    }) => ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      leading: SizedBox(width: 44, height: 44, child: Icon(icon)),
+      selected: follow == choice,
+      title: Text(title, style: theme.textTheme.titleMedium),
+      trailing: follow == choice ? const Icon(Icons.check_rounded) : null,
+      onTap: () => choose(choice),
+    );
 
     return ConstrainedBox(
       constraints: BoxConstraints(
@@ -150,38 +173,25 @@ class FollowRoutePicker extends ConsumerWidget {
               shrinkWrap: true,
               padding: const EdgeInsets.only(bottom: 8),
               children: [
-                ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 6,
-                  ),
-                  leading: SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: Icon(
-                      hasPlan ? Icons.route_outlined : Icons.block_outlined,
-                    ),
-                  ),
-                  selected: followed == null,
-                  title: Text(
-                    hasPlan
-                        ? l10n.recordingFollowPlan
-                        : l10n.recordingFollowNone,
-                    style: theme.textTheme.titleMedium,
-                  ),
-                  trailing: followed == null
-                      ? const Icon(Icons.check_rounded)
-                      : null,
-                  onTap: () => choose(null),
+                row(
+                  icon: Icons.block_outlined,
+                  title: l10n.recordingFollowNone,
+                  choice: FollowChoice.none,
                 ),
+                if (hasPlan)
+                  row(
+                    icon: Icons.route_outlined,
+                    title: l10n.recordingFollowPlan,
+                    choice: FollowChoice.plan,
+                  ),
                 for (final route in routes)
                   RouteRow(
                     route: route,
-                    selected: route.id == followed,
-                    trailing: route.id == followed
+                    selected: follow == FollowSaved(route.id),
+                    trailing: follow == FollowSaved(route.id)
                         ? const Icon(Icons.check_rounded)
                         : null,
-                    onTap: () => choose(route.id),
+                    onTap: () => choose(FollowSaved(route.id)),
                   ),
               ],
             ),

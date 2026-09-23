@@ -37,7 +37,7 @@ Opening a route draws it on the map, fitted to the part of the screen above the 
 - the actions below, **Open in planner** first so it is in view at the card's resting height,
 - the surface breakdown,
 - the elevation profile,
-- for a route imported with turns or points of interest, the cue sheet: every turn and point with its distance from the start, a tap on a line panning the map there at your zoom and a tap on a marker scrolling the card to that line.
+- for a route imported with turns or points of interest, or with points you named or wrote a note on in the planner, the cue sheet: every turn and point with its distance from the start, a tap on a line panning the map there at your zoom and a tap on a marker scrolling the card to that line.
 
 The actions:
 

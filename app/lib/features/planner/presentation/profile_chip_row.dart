@@ -16,7 +16,9 @@ import 'route_format.dart';
 ///
 /// Over the map ([glass]) the chips are chrome, so they are opaque glass
 /// whatever the chip theme says; on a sheet, which is a surface already, the
-/// chip theme is left alone.
+/// chip theme's fills are left alone. The label colour is set here in both
+/// cases, from the same scheme as the fill: a label style without one kept
+/// the text theme's own colour, white in the dark theme, on the accent.
 class ProfileChipRow extends StatelessWidget {
   /// Creates the row.
   const ProfileChipRow({
@@ -83,11 +85,9 @@ class ProfileChipRow extends StatelessWidget {
                   labelStyle: theme.textTheme.labelLarge?.copyWith(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: glass
-                        ? (profile == selected
-                              ? scheme.onPrimary
-                              : scheme.onSurface)
-                        : null,
+                    color: profile == selected
+                        ? scheme.onPrimary
+                        : scheme.onSurface,
                   ),
                 ),
               ),

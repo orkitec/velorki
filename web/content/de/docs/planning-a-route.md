@@ -28,14 +28,16 @@ Um einen vorhandenen Punkt zu verschieben, **zieh seine Markierung**. Bei einer 
 
 ## Einen Punkt ändern oder entfernen
 
-Tippe auf eine Markierung, um ihr Menü zu öffnen. Es trägt den Namen des Punkts als Titel, oder **Punkt 2**, wenn er keinen hat, zeigt seine Notiz, wenn er eine hat, und bietet:
+Tippe auf eine Markierung, um ihr Blatt zu öffnen. Von oben:
 
-- **Früher anfahren** und **Später anfahren**, was den Punkt mit seinem Nachbarn in der Reihenfolge tauscht,
-- **Details**, was ein zweites Blatt mit **Name**, **Art** (**Gefahr**, **Wasser**, **Essen** oder **Sonstiges**) und **Notiz** öffnet; **Speichern** behält sie,
+- **Name**, vorbelegt mit dem Namen des Punkts oder, solange er keinen hat, mit seiner Nummer; eine Nummer, die so stehen bleibt, benennt nichts,
+- **Art**: vier Kacheln, **Gefahr**, **Wasser**, **Essen** oder **Sonstiges**,
+- **Notiz**,
+- **Früher anfahren** und **Später anfahren**, was den Punkt sofort mit seinem Nachbarn in der Reihenfolge tauscht und das Blatt offen lässt, sodass sich ein Punkt in einem Besuch verschieben und benennen lässt,
 - **Punkt entfernen**,
-- **Abbrechen**.
+- **Fertig**, was Name, Art und Notiz übernimmt. Zieh das Blatt nach unten, um sie zu lassen, wie sie waren.
 
-Jeder dieser Schritte lässt sich einzeln rückgängig machen. Ein benannter Punkt zeigt auf seiner Markierung seinen Namen statt seiner Nummer. Die Details werden mit der Route gespeichert und kommen zurück, wenn sie wieder im Planer geöffnet wird; bei einer aus der Bibliothek geöffneten Route landen sie sofort in der Bibliothek, solange die Route seitdem nicht neu berechnet wurde, für einen Namen oder eine Notiz allein gibt es also kein Speichern zu drücken. Die Routenkarte führt benannte Punkte mit ihren Notizen in der Abbiegeliste auf, und ein GPX-Export schreibt jeden benannten Punkt und jeden Punkt mit Notiz als eigenen Wegpunkt mit Art und Notiz hinaus, neben den Punkten von Interesse der Route.
+Ein Tausch, ein Entfernen und ein Fertig, das etwas geändert hat, sind je ein Schritt zum Rückgängigmachen. Ein benannter Punkt zeigt auf seiner Markierung seinen Namen statt seiner Nummer. Die Details werden mit der Route gespeichert und kommen zurück, wenn sie wieder im Planer geöffnet wird; bei einer aus der Bibliothek geöffneten Route landen sie sofort in der Bibliothek, solange die Route seitdem nicht neu berechnet wurde, für einen Namen oder eine Notiz allein gibt es also kein Speichern zu drücken. Die Routenkarte führt benannte Punkte mit ihren Notizen in der Abbiegeliste auf, und ein GPX-Export schreibt jeden benannten Punkt und jeden Punkt mit Notiz als eigenen Wegpunkt mit Art und Notiz hinaus, neben den Punkten von Interesse der Route.
 
 ## Das Rad wählen
 
@@ -85,8 +87,6 @@ Das Diagramm **Höhenprofil** zeichnet die Höhe über der Distanz. Berühre es 
 ### Belag
 
 Der Balken **Belag** ist ein einzelner gestapelter Balken aus drei Anteilen, die zusammen die ganze Route ergeben: **Befestigt**, **Unbefestigt** und **Unbekannt**, mit einer Legende mit Prozentwerten darunter. Zwei weitere Einträge in der Legende, **Radweg** und **Stark befahren**, überlagern die ersten drei, statt sich dazuzuaddieren: Sie sagen dir, wie viel der Route auf einem eigenen Radweg liegt und wie viel auf einer großen Straße.
-
-### Wo gerechnet wurde
 
 ## Speichern
 

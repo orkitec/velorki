@@ -11,7 +11,7 @@ Die Aufnahme ist kostenlos und funktioniert ganz ohne Verbindung.
 ## Starten, pausieren, beenden
 
 1. Öffne den Tab **Aufnahme**. Dort steht **Bereit zur Fahrt** und "Der Track wird während der Fahrt auf dem Handy gespeichert, auch bei ausgeschaltetem Bildschirm."
-2. Wähle bei Bedarf unter **Einer Route folgen** eine Route, was die Führung aus [Navigation mit Abbiegehinweisen](./navigation) einschaltet.
+2. Wähle unter **Einer Route folgen**, wem die Fahrt folgt: **Keine Route**, **Die Route im Tab Planen** (angeboten, solange es eine gibt) oder einer deiner gespeicherten Routen. Eine Route schaltet die Führung aus [Navigation mit Abbiegehinweisen](./navigation) ein. Bis du wählst, schlägt der Tab die Route vor, von der du kommst: die Route, deren Karte du in der Bibliothek offen hattest, oder den Plan im Tab Planen; deine eigene Wahl gilt dann bis zum Neustart der App.
 3. Tippe auf **Fahrt starten**.
 4. Während der Fahrt zeigt die Übersicht eine Zustandsplakette, die laufende Uhr und die Zahlen: **Distanz**, **Tempo**, **Ø**, dann **Anstieg**, **Abstieg**, **Fahrzeit**. Solange du einer Route folgst, kommt eine Zeile **Übrig** und **Ankunft** dazu: die noch zu fahrende Distanz und wann du bei deinem bisherigen Schnitt ankommst, zwei Striche, bis die Fahrt einen Schnitt hat.
 5. **Pause** hält den Track an deiner Stelle an; **Fortsetzen** macht weiter. Die Unterbrechung zeigt sich als Lücke im Track. Solange pausiert ist, verblassen die Zahlen und die Plakette wechselt zu **Pausiert**, der Zustand ist also auf einen Blick klar.

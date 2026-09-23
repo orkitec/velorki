@@ -28,6 +28,7 @@ import '../../shared/presentation/placeholder_body.dart';
 import '../../shared/presentation/sheet_header.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/tab_chrome_slide.dart';
+import '../application/library_card.dart';
 import '../data/library_section.dart';
 import 'rename_route_dialog.dart';
 import 'route_detail_screen.dart';
@@ -142,6 +143,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   @override
   void initState() {
     super.initState();
+    _tellCard();
     _active = ref.read(activeTabProvider) == libraryRoute;
     // Built in the middle of a change to this tab (its first visit, from
     // another tab): the listener in build sees no change, so the sheet is
@@ -153,6 +155,21 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       if (!mounted) return;
       _takeOverSheet();
       setState(() => _arrivingExtent = null);
+    });
+  }
+
+  @override
+  void didUpdateWidget(LibraryScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.routeId != widget.routeId) _tellCard();
+  }
+
+  /// Which route the card shows, for the Record tab's proposal; after the
+  /// frame, since a build may not write a provider.
+  void _tellCard() {
+    final routeId = widget.routeId;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(libraryCardProvider.notifier).show(routeId);
     });
   }
 

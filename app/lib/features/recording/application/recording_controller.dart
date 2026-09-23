@@ -6,6 +6,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../data/recording_service.dart';
 import '../data/recording_settings.dart';
+import '../domain/follow_choice.dart';
 import '../domain/gps_precision.dart';
 import '../domain/recording_snapshot.dart';
 import '../domain/recording_state.dart';
@@ -19,7 +20,8 @@ class RecordingUiState {
     this.snapshot,
     this.track = const <LatLng>[],
     this.busy = false,
-    this.followedRouteId,
+    this.follow = FollowChoice.plan,
+    this.followChosen = false,
   });
 
   /// The latest snapshot, `null` while nothing is being recorded.
@@ -31,8 +33,17 @@ class RecordingUiState {
   /// Whether a start or stop is in flight, so the buttons can be disabled.
   final bool busy;
 
-  /// The saved route the rider chose to follow, if any.
-  final String? followedRouteId;
+  /// What the next ride follows. The plan by default: a rider who planned a
+  /// route and moves to Record wants to ride it, and without a plan the
+  /// plan is nothing.
+  final FollowChoice follow;
+
+  /// Whether [follow] was picked by the rider in the picker this session.
+  /// Until then the tab may suggest one from where the rider came.
+  final bool followChosen;
+
+  /// The saved route [follow] names, or `null` for the plan or no route.
+  String? get followedRouteId => follow.routeId;
 
   /// Whether a ride is being recorded, paused or not.
   bool get isRecording => snapshot?.status.isRecording ?? false;
@@ -45,16 +56,15 @@ class RecordingUiState {
     RecordingSnapshot? snapshot,
     List<LatLng>? track,
     bool? busy,
-    String? followedRouteId,
+    FollowChoice? follow,
+    bool? followChosen,
     bool clearSnapshot = false,
-    bool clearRoute = false,
   }) => RecordingUiState(
     snapshot: clearSnapshot ? null : snapshot ?? this.snapshot,
     track: track ?? this.track,
     busy: busy ?? this.busy,
-    followedRouteId: clearRoute
-        ? null
-        : followedRouteId ?? this.followedRouteId,
+    follow: follow ?? this.follow,
+    followChosen: followChosen ?? this.followChosen,
   );
 }
 
@@ -89,10 +99,25 @@ class RecordingController extends Notifier<RecordingUiState> {
   GpsPrecision get _precision =>
       ref.read(recordingSettingsProvider).effectivePrecision;
 
-  /// Chooses the saved route to follow, or clears the choice with `null`.
-  void selectRoute(String? routeId) => state = routeId == null
-      ? state.copyWith(clearRoute: true)
-      : state.copyWith(followedRouteId: routeId);
+  /// The rider's own pick in the picker: kept until the app restarts,
+  /// whatever tab they arrive from later.
+  void choose(FollowChoice choice) =>
+      state = state.copyWith(follow: choice, followChosen: true);
+
+  /// What the Record tab proposes on being arrived at: the route on the
+  /// library card the rider came from, or the plan they came from. Taken
+  /// only while no ride runs and the rider has not picked for themselves;
+  /// `null` proposes nothing and leaves the choice as it is.
+  void suggest(FollowChoice? choice) {
+    if (choice == null || state.isRecording || state.followChosen) return;
+    state = state.copyWith(follow: choice);
+  }
+
+  /// The choice a ride that is already under way was started with: its saved
+  /// route, or the plan when it has none, which is what a ride without a
+  /// route link followed before it was interrupted.
+  static FollowChoice _followOf(String? routeId) =>
+      routeId == null ? FollowChoice.plan : FollowSaved(routeId);
 
   /// Starts a ride.
   ///
@@ -131,8 +156,9 @@ class RecordingController extends Notifier<RecordingUiState> {
       return await _service.stop(rideName: rideName);
     } finally {
       // Whatever the recorder answered, the ride is over for the screen:
-      // a live panel that cannot be left is worse than a lost snapshot.
-      state = const RecordingUiState();
+      // a live panel that cannot be left is worse than a lost snapshot. The
+      // route choice outlives the ride.
+      state = _afterRide();
     }
   }
 
@@ -155,7 +181,7 @@ class RecordingController extends Notifier<RecordingUiState> {
       _listening = true;
       rethrow;
     }
-    if (recording == null) state = const RecordingUiState();
+    if (recording == null) state = _afterRide();
     return recording;
   }
 
@@ -180,7 +206,7 @@ class RecordingController extends Notifier<RecordingUiState> {
     _listening = true;
     state = state.copyWith(
       track: await _journalTrack(recording.rideId),
-      followedRouteId: recording.routeId,
+      follow: _followOf(recording.routeId),
     );
     return true;
   }
@@ -190,7 +216,7 @@ class RecordingController extends Notifier<RecordingUiState> {
     RecordingState recording, {
     required String notificationTitle,
   }) async {
-    state = state.copyWith(busy: true, followedRouteId: recording.routeId);
+    state = state.copyWith(busy: true, follow: _followOf(recording.routeId));
     _listening = true;
     try {
       // The recorder first: every second spent reading the journal back is a
@@ -217,8 +243,7 @@ class RecordingController extends Notifier<RecordingUiState> {
     required String notificationTitle,
   }) async {
     if (state.isRecording || state.busy) return;
-    selectRoute(ride.routeId);
-    state = state.copyWith(busy: true);
+    state = state.copyWith(busy: true, follow: _followOf(ride.routeId));
     _listening = true;
     try {
       await _service.continueRide(
@@ -244,15 +269,19 @@ class RecordingController extends Notifier<RecordingUiState> {
       recording,
       rideName: rideName,
     );
-    state = const RecordingUiState();
+    state = _afterRide();
     return ride;
   }
 
   /// Throws an interrupted recording away.
   Future<void> discardInterrupted(RecordingState recording) async {
     await _service.discardInterrupted(recording);
-    state = const RecordingUiState();
+    state = _afterRide();
   }
+
+  /// The idle state after a ride: nothing recorded, the route choice kept.
+  RecordingUiState _afterRide() =>
+      RecordingUiState(follow: state.follow, followChosen: state.followChosen);
 
   // Whether snapshots from the recorder are wanted. On by default, so a
   // recorder that outlived the UI shows up as soon as it reports; off after

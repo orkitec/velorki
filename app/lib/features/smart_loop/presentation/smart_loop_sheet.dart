@@ -214,10 +214,7 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
         )
       else ...[
         if (planner.isRouting)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: const LinearProgressIndicator(minHeight: 4),
-          )
+          _LoopProgress(value: null)
         else if (result != null)
           Text(
             l10n.loopResult(
@@ -318,10 +315,9 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
       _wayBackSwitch(l10n),
       const SizedBox(height: 12),
       if (state.running) ...[
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(value: state.progress, minHeight: 4),
-        ),
+        // Indeterminate until the first request has come back: a bar sitting
+        // empty at 0 % while the first batch routes looked frozen.
+        _LoopProgress(value: state.progress > 0 ? state.progress : null),
         const SizedBox(height: 8),
         Align(
           alignment: Alignment.centerRight,
@@ -406,6 +402,27 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
 
   TextStyle? _quiet(ThemeData theme) => theme.textTheme.bodyMedium?.copyWith(
     color: theme.colorScheme.onSurfaceVariant,
+  );
+}
+
+/// The search's progress bar: animated while [value] is `null`, filled to
+/// [value] once there is one, the same height and track either way so the
+/// switch moves nothing.
+class _LoopProgress extends StatelessWidget {
+  const _LoopProgress({required this.value});
+
+  final double? value;
+
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+    borderRadius: BorderRadius.circular(4),
+    child: LinearProgressIndicator(
+      value: value,
+      minHeight: 4,
+      // A track the bar is visibly drawn on in both themes, rather than the
+      // indicator's own faint default.
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+    ),
   );
 }
 
