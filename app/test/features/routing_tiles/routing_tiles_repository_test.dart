@@ -49,6 +49,17 @@ void main() {
   void writeTile(TileName tile, {String content = 'rd5-bytes-here'}) =>
       File('${segments.path}/${tile.fileName}').writeAsStringSync(content);
 
+  /// Up to six seconds of short waits that stop as soon as [holds] does.
+  ///
+  /// The cache behind `readyTiles()` follows the table through drift's watch
+  /// stream, and on a loaded machine that event arrives later than the write
+  /// returns; a fixed wait is either too long or, under load, too short.
+  Future<void> waitFor(bool Function() holds) async {
+    for (var i = 0; i < 300 && !holds(); i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    }
+  }
+
   test('a downloaded tile becomes a ready tile the engine may use', () async {
     final entry = _entry(_e10n45, bytes: 14);
     await repository.markDownloading(entry);
@@ -56,6 +67,7 @@ void main() {
 
     writeTile(_e10n45);
     await repository.markReady(entry, bytes: 14);
+    await waitFor(() => repository.readyTiles().contains(_e10n45));
 
     expect(repository.readyTiles(), {_e10n45});
     expect(repository.formatVersions(), {_e10n45: '11.2'});
