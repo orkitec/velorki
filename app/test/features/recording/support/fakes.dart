@@ -173,6 +173,7 @@ class FakeTrackExporter implements TrackExporter {
     List<RoutePoi> pois = const <RoutePoi>[],
     List<TurnHint> turns = const <TurnHint>[],
     List<double?> temperaturesC = const <double?>[],
+    List<DateTime> lapEnds = const <DateTime>[],
   }) async {
     final failure = error;
     if (failure != null) throw failure;

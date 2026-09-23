@@ -1,7 +1,15 @@
 import 'package:drift/drift.dart';
 
 /// Where a route came from. Stored as the enum name, not its index.
-enum RouteSource { planned, loop, importedGpx, importedFit, strava, rwgps }
+enum RouteSource {
+  planned,
+  loop,
+  importedGpx,
+  importedFit,
+  strava,
+  rwgps,
+  importedTcx,
+}
 
 @DataClassName('RouteRow')
 class Routes extends Table {

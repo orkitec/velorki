@@ -77,7 +77,7 @@
     },
     "free": {
       "title": "Everything on the phone is free",
-      "body": "Planning, loops, offline maps and routing, search, navigation, recording, sensors and the Apple Watch, ride stats, GPX and FIT files — for everyone, for good. The routing data and the search index are mirrored for you at no charge.",
+      "body": "Planning, loops, offline maps and routing, search, navigation, recording, sensors and the Apple Watch, ride stats, GPX, FIT and TCX files — for everyone, for good. The routing data and the search index are mirrored for you at no charge.",
       "items": {
         "routing": "Routing on the phone",
         "loops": "Loops",
@@ -86,7 +86,7 @@
         "navigation": "Turn-by-turn",
         "recording": "Recording",
         "sensors": "Sensors and watch",
-        "files": "GPX and FIT"
+        "files": "GPX, FIT and TCX"
       }
     },
     "features": {
@@ -165,9 +165,9 @@
       "files": {
         "eyebrow": "Files and services",
         "title": "Your rides are files you own",
-        "body": "GPX and FIT import and export through the share sheet and open-with, so routes and rides move to Komoot, Garmin Connect, Strava or anything else that reads those formats. A GPX route keeps its cue sheet and points of interest, and a Ride with GPS link opens in Velorki. Strava and Ride with GPS connections and share links are the Plus part.",
+        "body": "GPX, FIT and TCX import and export through the share sheet and open-with, so routes and rides move to Komoot, Garmin Connect, Strava or anything else that reads those formats. A GPX route keeps its cue sheet and points of interest, and a Ride with GPS link opens in Velorki. Strava and Ride with GPS connections and share links are the Plus part.",
         "bullets": {
-          "one": "GPX and FIT in and out, from Files, Mail or a browser, with cue sheets and points of interest",
+          "one": "GPX, FIT and TCX in and out, from Files, Mail or a browser, with cue sheets and points of interest",
           "two": "A library of saved routes and recorded rides",
           "three": "Strava, Ride with GPS and share links with Plus"
         }
@@ -192,7 +192,7 @@
         "recording": "Ride recording, stats, splits, climbs, surface, calories and zones",
         "sensors": "Heart rate, cadence and power from sensors, watch and health app",
         "library": "Library of routes and rides",
-        "files": "GPX and FIT import and export",
+        "files": "GPX, FIT and TCX import and export",
         "assistant": "The assistant: a sentence becomes a route",
         "strava": "Strava: upload rides, import routes",
         "rwgps": "Ride with GPS: routes and trips both ways",
@@ -221,7 +221,7 @@
         },
         "price": {
           "q": "What does Velorki cost?",
-          "a": "Everything that runs on the phone is free: planning, loops, offline maps and routing, search, navigation, recording, heart rate, cadence and power from your sensors, ride stats and GPX and FIT files. Velorki Plus is a subscription for the server-side features; the current price is shown in the app, in your currency, by the store."
+          "a": "Everything that runs on the phone is free: planning, loops, offline maps and routing, search, navigation, recording, heart rate, cadence and power from your sensors, ride stats and GPX, FIT and TCX files. Velorki Plus is a subscription for the server-side features; the current price is shown in the app, in your currency, by the store."
         },
         "plus": {
           "q": "What is Velorki Plus?",
@@ -280,7 +280,7 @@
       }
     },
     "freeTitle": "What stays free",
-    "freeBody": "Planning, loops, offline maps and routing, search, turn-by-turn navigation, recording, ride stats and GPX and FIT files stay free, with or without Plus.",
+    "freeBody": "Planning, loops, offline maps and routing, search, turn-by-turn navigation, recording, ride stats and GPX, FIT and TCX files stay free, with or without Plus.",
     "priceTitle": "What it costs",
     "priceBody": "See the price in the app. The store shows the current monthly and yearly price in your own currency, with a free trial, and the price is never quoted here so it cannot go stale.",
     "restoreTitle": "Restoring a subscription",

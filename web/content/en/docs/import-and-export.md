@@ -1,16 +1,16 @@
 ---
 title: Import and export
-description: Open GPX and FIT files from anywhere on the phone, save them as routes or rides, and export yours to Komoot, Garmin or anything else.
+description: Open GPX, FIT and TCX files from anywhere on the phone, save them as routes or rides, and export yours to Komoot, Garmin or anything else.
 order: 9
 ---
 
-Velorki reads and writes GPX and FIT files, which is how routes and rides move between it and the rest of the world. All of it is free, needs no account and no connection, and works with Komoot, Garmin Connect, Strava, a bike computer or a plain file on the phone.
+Velorki reads and writes GPX, FIT and TCX files, which is how routes and rides move between it and the rest of the world. All of it is free, needs no account and no connection, and works with Komoot, Garmin Connect, Strava, a bike computer or a plain file on the phone.
 
 ## Getting a file in
 
 There are three ways, and all three end on the same import screen.
 
-**Open with.** Tap a GPX or FIT file in your files app, in an email, or in the browser's downloads, and choose Velorki. On an iPhone that is "Open in Velorki" from Files, Mail or Safari.
+**Open with.** Tap a GPX, FIT or TCX file in your files app, in an email, or in the browser's downloads, and choose Velorki. On an iPhone that is "Open in Velorki" from Files, Mail or Safari.
 
 **Share sheet.** In another app, share the file and pick Velorki. This is how a route arrives from Komoot or from a friend's message.
 
@@ -18,9 +18,9 @@ There are three ways, and all three end on the same import screen.
 
 **A Ride with GPS link.** Share a route's link from the Ride with GPS app or a browser and pick Velorki, and the route lands on the import screen. A public route needs nothing else; a private one is fetched through your connected Ride with GPS account, and without one the screen says "This Ride with GPS route is private. Connect Ride with GPS in Settings to open it."
 
-A file that cannot be imported opens the same screen with the reason: not a GPX or FIT file, unreadable, empty, or a link that could not be fetched.
+A file that cannot be imported opens the same screen with the reason: not a GPX, FIT or TCX file, unreadable, empty, or a link that could not be fetched.
 
-Velorki works out what the file is by reading its first bytes, not by trusting its name or its type, so a `.gpx` that is really a FIT file still imports.
+Velorki works out what the file is by reading its first bytes, not by trusting its name or its type, so a `.gpx` that is really a FIT file still imports. A TCX file is recognised by its root element.
 
 ## The import screen
 
@@ -37,13 +37,13 @@ The map stays at the top while the pages under it scroll, with dots under the ma
 
 A GPX route with a cue sheet, the route export of Ride with GPS or a Garmin course, brings its turns along: each cue becomes a turn instruction with the author's words, shown in the turn banner, on the cue sheet page and said by the voice. A GPX track carries no cue sheet; Velorki's own turn banner still works on it from the route's shape.
 
-Velorki guesses **Route** or **Ride** from whether the points carry times: a recording does, a planned route does not. A FIT course is recognised as a course and guessed as a route, whatever its synthetic time base says; its course points become the route's cue sheet (turns) and its points of interest (water, food, hazards, named places). Nothing is written until you tap **Save**.
+Velorki guesses **Route** or **Ride** from whether the points carry times: a recording does, a planned route does not. A FIT course is recognised as a course and guessed as a route, whatever its synthetic time base says, and so is a TCX course; its course points become the route's cue sheet (turns) and its points of interest (water, food, hazards, named places). Nothing is written until you tap **Save**.
 
 A FIT activity from a head unit brings more than its track: the laps the device cut stand in for the fixed splits on the ride's page, the totals the device wrote (distance, moving time, ascent, calories) are shown under **As recorded by the device** where they differ from what Velorki works out from the fixes, and a temperature, when the device logged one, gets a chart of its own. A GPX ride brings heart rate, cadence, power and temperature from its extensions the same way. A GPX file with several tracks, a multi-day tour say, lists them with a checkbox each, and saves one ride (or route) per checked track.
 
 Afterwards you get "Alpine loop added to the library" or "Alpine loop added to your rides", and you land on the new item's card on the Library tab.
 
-If the file will not open, Velorki says which problem it was: "That is not a GPX or FIT file.", "That file could not be read.", "That file has no track points." or "That file could not be opened."
+If the file will not open, Velorki says which problem it was: "That is not a GPX, FIT or TCX file.", "That file could not be read.", "That file has no track points." or "That file could not be opened."
 
 ## Getting a file out
 
@@ -53,6 +53,7 @@ If the file will not open, Velorki says which problem it was: "That is not a GPX
 |---|---|
 | **GPX route** | a planned route for another planner, a phone app or a bike computer. A route with a cue sheet goes out as Ride with GPS writes one: a `<rte>` of the turns, each with its direction and words, and a `<trk>` of the whole line beside it; a route without one keeps every point on the `<rte>`. |
 | **FIT course** | a Garmin, Wahoo or similar head unit that expects a course; the cue sheet and the points of interest go along as course points, so the unit shows the next turn |
+| **TCX course** | an older Garmin unit or a training site that reads Training Center XML; the cue sheet and the points of interest go along as course points, names cut to the ten characters the format allows |
 
 **From a ride** (Library → Rides → open it, or the ride's card after finishing):
 
@@ -60,12 +61,13 @@ If the file will not open, Velorki says which problem it was: "That is not a GPX
 |---|---|
 | **Export GPX track** | the recorded track with its timestamps; heart rate, cadence, power and temperature go with it. |
 | **Export FIT activity** | an activity file for a training platform |
+| **Export TCX activity** | the same as Training Center XML, one lap per lap the ride came with, heart rate, cadence and power on every point |
 
 Either way Velorki writes the file and hands it to the system share sheet, so you can put it in your files, mail it, or send it into another app.
 
 ## Komoot, Garmin and the rest
 
-Velorki has no Komoot or Garmin integration, and does not need one: both speak GPX and FIT.
+Velorki has no Komoot or Garmin integration, and does not need one: all of them speak GPX and FIT, and most still read TCX.
 
 - **From Komoot to Velorki**: export the tour as GPX in Komoot, then share it to Velorki, or save it and open it with the **Import file** button.
 - **From Velorki to Komoot**: export the route as **GPX route** and share it into Komoot's import.

@@ -39,7 +39,7 @@ void main() {
       expect(lap.points.first.heartRateBpm, isNotNull);
       expect(lap.points.first.speedMps, isNotNull);
       expect(activity.points.length, greaterThan(40));
-    }, skip: 'phase 4');
+    });
 
     test('a cycling activity: power from ns3:Watts, cadence, and lap watts '
         'from the LX extension', () {
@@ -64,7 +64,7 @@ void main() {
       expect(second.points.last.cadenceRpm, isNull);
       expect(second.avgWatts, isNull);
       expect(doc.author, 'handwritten for velorki tests');
-    }, skip: 'phase 4');
+    });
 
     test('an Edge 705 ride from Garmin Connect: one lap of 500 points with '
         'altitude and distance, no sensors', () {
@@ -76,8 +76,10 @@ void main() {
       expect(activity.laps.single.points, hasLength(500));
       expect(activity.laps.single.points.first.ele, closeTo(0.816, 1e-6));
       expect(activity.laps.single.points.first.heartRateBpm, isNull);
-      expect(activity.creator, 'Garmin Communicator Plugin');
-    }, skip: 'phase 4');
+      // The device is the creator; the plugin that uploaded it the author.
+      expect(activity.creator, 'EDGE705');
+      expect(doc.author, 'Garmin Communicator Plugin');
+    });
   });
 
   group('courses', () {
@@ -100,7 +102,7 @@ void main() {
       expect(course.coursePoints[1].time, DateTime.utc(2026, 5, 3, 8, 0, 20));
       expect(course.coursePoints[2].notes, 'Drinking water');
       expect(course.coursePoints[2].pos, const LatLng(48.143, 11.583));
-    }, skip: 'phase 4');
+    });
   });
 
   group('export', () {
@@ -153,7 +155,7 @@ void main() {
         points.map((p) => p.cadenceRpm),
       );
       expect(looksLikeTcx(Uint8List.fromList(utf8.encode(xml))), isTrue);
-    }, skip: 'phase 4');
+    });
 
     test('a route goes out as a course with its cues as course points', () {
       final xml = TcxCodec.encodeCourse(
@@ -200,7 +202,7 @@ void main() {
         TcxCodec.decode(untimed).courses.single.coursePoints,
         hasLength(1),
       );
-    }, skip: 'phase 4');
+    });
   });
 
   group('sniffing and failure', () {
@@ -226,7 +228,7 @@ void main() {
       );
       expect(looksLikeTcx(gpx), isFalse);
       expect(looksLikeTcx(Uint8List(0)), isFalse);
-    }, skip: 'phase 4');
+    });
 
     test('a document that is not TCX, or is cut off, is reported as such', () {
       expect(
@@ -245,6 +247,6 @@ void main() {
         ).isEmpty,
         isTrue,
       );
-    }, skip: 'phase 4');
+    });
   });
 }

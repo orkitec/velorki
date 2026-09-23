@@ -77,7 +77,7 @@
     },
     "free": {
       "title": "Alles auf dem Handy ist kostenlos",
-      "body": "Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufnahme, Sensoren und Apple Watch, Fahrtstatistik, GPX- und FIT-Dateien, für alle, für immer. Die Routing-Daten und den Suchindex spiegeln wir kostenlos für dich.",
+      "body": "Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufnahme, Sensoren und Apple Watch, Fahrtstatistik, GPX-, FIT- und TCX-Dateien, für alle, für immer. Die Routing-Daten und den Suchindex spiegeln wir kostenlos für dich.",
       "items": {
         "routing": "Routing auf dem Handy",
         "loops": "Runden",
@@ -86,7 +86,7 @@
         "navigation": "Abbiegehinweise",
         "recording": "Aufnahme",
         "sensors": "Sensoren und Uhr",
-        "files": "GPX und FIT"
+        "files": "GPX, FIT und TCX"
       }
     },
     "features": {
@@ -165,9 +165,9 @@
       "files": {
         "eyebrow": "Dateien und Dienste",
         "title": "Deine Fahrten sind Dateien, die dir gehören",
-        "body": "GPX- und FIT-Import und -Export über das Teilen-Menü und „Öffnen mit“, damit Routen und Fahrten zu Komoot, Garmin Connect, Strava oder allem anderen wandern, das diese Formate liest. Eine GPX-Route behält ihr Cue Sheet und ihre Wegpunkte, und ein Ride-with-GPS-Link öffnet sich in Velorki. Die Verbindungen zu Strava und Ride with GPS und die Teilen-Links sind der Plus-Teil.",
+        "body": "GPX-, FIT- und TCX-Import und -Export über das Teilen-Menü und „Öffnen mit“, damit Routen und Fahrten zu Komoot, Garmin Connect, Strava oder allem anderen wandern, das diese Formate liest. Eine GPX-Route behält ihr Cue Sheet und ihre Wegpunkte, und ein Ride-with-GPS-Link öffnet sich in Velorki. Die Verbindungen zu Strava und Ride with GPS und die Teilen-Links sind der Plus-Teil.",
         "bullets": {
-          "one": "GPX und FIT rein und raus, aus Dateien, Mail oder dem Browser, mit Cue Sheets und Wegpunkten",
+          "one": "GPX, FIT und TCX rein und raus, aus Dateien, Mail oder dem Browser, mit Cue Sheets und Wegpunkten",
           "two": "Eine Bibliothek gespeicherter Routen und aufgezeichneter Fahrten",
           "three": "Strava, Ride with GPS und Teilen-Links mit Plus"
         }
@@ -192,7 +192,7 @@
         "recording": "Fahrtenaufzeichnung, Statistik, Splits, Anstiege, Belag, Kalorien und Zonen",
         "sensors": "Puls, Trittfrequenz und Leistung von Sensoren, Uhr und Health-App",
         "library": "Bibliothek mit Routen und Fahrten",
-        "files": "GPX- und FIT-Import und -Export",
+        "files": "GPX-, FIT- und TCX-Import und -Export",
         "assistant": "Der Assistent: ein Satz wird zur Route",
         "strava": "Strava: Fahrten hochladen, Routen importieren",
         "rwgps": "Ride with GPS: Routen und Fahrten in beide Richtungen",
@@ -221,7 +221,7 @@
         },
         "price": {
           "q": "Was kostet Velorki?",
-          "a": "Alles, was auf dem Handy läuft, ist kostenlos: Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufnahme, Puls, Trittfrequenz und Leistung von deinen Sensoren, Fahrtstatistik sowie GPX- und FIT-Dateien. Velorki Plus ist ein Abo für die serverseitigen Funktionen; den aktuellen Preis zeigt dir der Store in der App, in deiner Währung."
+          "a": "Alles, was auf dem Handy läuft, ist kostenlos: Planen, Runden, Offline-Karten und -Routing, Suche, Navigation, Aufnahme, Puls, Trittfrequenz und Leistung von deinen Sensoren, Fahrtstatistik sowie GPX-, FIT- und TCX-Dateien. Velorki Plus ist ein Abo für die serverseitigen Funktionen; den aktuellen Preis zeigt dir der Store in der App, in deiner Währung."
         },
         "plus": {
           "q": "Was ist Velorki Plus?",
@@ -280,7 +280,7 @@
       }
     },
     "freeTitle": "Was kostenlos bleibt",
-    "freeBody": "Planen, Runden, Offline-Karten und -Routing, Suche, Abbiegenavigation, Aufnahme, Fahrtstatistik sowie GPX- und FIT-Dateien bleiben kostenlos, mit oder ohne Plus.",
+    "freeBody": "Planen, Runden, Offline-Karten und -Routing, Suche, Abbiegenavigation, Aufnahme, Fahrtstatistik sowie GPX-, FIT- und TCX-Dateien bleiben kostenlos, mit oder ohne Plus.",
     "priceTitle": "Was es kostet",
     "priceBody": "Den Preis siehst du in der App. Der Store zeigt den aktuellen Monats- und Jahrespreis in deiner eigenen Währung, mit kostenloser Testphase, und hier steht er nie, damit er nicht veralten kann.",
     "restoreTitle": "Ein Abo wiederherstellen",

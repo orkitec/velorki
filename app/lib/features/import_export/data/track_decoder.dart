@@ -5,6 +5,7 @@ import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_fit/velorki_fit.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki_gpx/velorki_gpx.dart';
+import 'package:velorki_tcx/velorki_tcx.dart';
 
 import '../../../core/files/course_points.dart';
 import '../../planner/domain/route_poi.dart';
@@ -63,6 +64,7 @@ class ImportException implements Exception {
 ImportedTrack decodeTrack(Uint8List bytes, {String? fileName}) {
   if (looksLikeGpx(bytes)) return _decodeGpx(bytes, fileName);
   if (looksLikeFit(bytes)) return _decodeFit(bytes, fileName);
+  if (looksLikeTcx(bytes)) return _decodeTcx(bytes, fileName);
   throw ImportException(ImportFailure.unknownFormat, fileName: fileName);
 }
 
@@ -308,6 +310,126 @@ int _nearestIndex(List<TrackPoint> points, LatLng pos) {
   }
   return best;
 }
+
+/// A TCX file: an activity as a ride with its laps and sensors, a course
+/// as a route with its course points as the cue sheet and the places.
+ImportedTrack _decodeTcx(Uint8List bytes, String? fileName) {
+  final TcxDocument document;
+  try {
+    document = TcxCodec.decode(utf8.decode(bytes, allowMalformed: true));
+  } on TcxFormatException catch (e) {
+    throw ImportException(
+      ImportFailure.malformed,
+      fileName: fileName,
+      cause: e,
+    );
+  }
+  final activity = document.activities
+      .where((a) => a.points.isNotEmpty)
+      .firstOrNull;
+  if (activity != null) return _tcxActivity(activity, document);
+  final course = document.courses.where((c) => c.points.isNotEmpty).firstOrNull;
+  if (course != null) return _tcxCourse(course, document);
+  throw ImportException(ImportFailure.empty, fileName: fileName);
+}
+
+ImportedTrack _tcxActivity(TcxActivity activity, TcxDocument document) {
+  final laps = <ImportedLap>[];
+  var distance = 0.0;
+  var moving = 0.0;
+  var calories = 0;
+  var totals = false;
+  for (final lap in activity.laps) {
+    final timeS = lap.totalTimeS;
+    laps.add(
+      ImportedLap(
+        startTime: lap.startTime,
+        endTime: timeS == null
+            ? (lap.points.lastOrNull?.time ?? lap.startTime)
+            : lap.startTime.add(Duration(milliseconds: (timeS * 1000).round())),
+        distanceM: lap.distanceM,
+        movingS: timeS,
+        calories: lap.calories,
+      ),
+    );
+    if (lap.distanceM != null || timeS != null || lap.calories != null) {
+      totals = true;
+    }
+    distance += lap.distanceM ?? 0;
+    moving += timeS ?? 0;
+    calories += lap.calories ?? 0;
+  }
+  return ImportedTrack(
+    format: ImportFormat.tcx,
+    points: activity.points,
+    creator: activity.creator ?? document.author,
+    laps: laps,
+    // TCX has no session: the laps summed are what the device wrote.
+    deviceTotals: totals
+        ? ImportedTotals(
+            distanceM: distance > 0 ? distance : null,
+            movingS: moving > 0 ? moving : null,
+            calories: calories > 0 ? calories : null,
+          )
+        : null,
+  );
+}
+
+ImportedTrack _tcxCourse(TcxCourse course, TcxDocument document) {
+  final points = course.points;
+  final turns = <TurnHint>[];
+  final pois = <RoutePoi>[];
+  for (final cp in course.coursePoints) {
+    final at = _nearestIndex(points, cp.pos);
+    final kind = tcxTurnKindOf(cp.type);
+    if (kind != null) {
+      turns.add(TurnHint(pointIndex: at, kind: kind, note: cp.name));
+      continue;
+    }
+    if (cp.type == TcxCoursePointType.generic) {
+      if (at == 0) continue;
+      if (at == points.length - 1) {
+        turns.add(TurnHint(pointIndex: at, kind: TurnKind.end, note: cp.name));
+        continue;
+      }
+    }
+    pois.add(
+      RoutePoi(
+        pos: cp.pos,
+        name: cp.name ?? '',
+        description: cp.notes,
+        kind: tcxPoiKindOf(cp.type),
+      ),
+    );
+  }
+  turns.sort((a, b) => a.pointIndex.compareTo(b.pointIndex));
+  return ImportedTrack(
+    format: ImportFormat.tcx,
+    points: points,
+    name: course.name,
+    creator: document.author,
+    turns: turns,
+    pois: pois,
+    isCourse: true,
+  );
+}
+
+/// The turn a TCX course point type stands for, `null` for a place.
+TurnKind? tcxTurnKindOf(TcxCoursePointType type) => switch (type) {
+  TcxCoursePointType.left => TurnKind.left,
+  TcxCoursePointType.right => TurnKind.right,
+  TcxCoursePointType.straight => TurnKind.straight,
+  _ => null,
+};
+
+/// The point of interest kind a TCX course point type stands for.
+PoiKind tcxPoiKindOf(TcxCoursePointType type) => switch (type) {
+  TcxCoursePointType.water => PoiKind.water,
+  TcxCoursePointType.food => PoiKind.food,
+  TcxCoursePointType.danger => PoiKind.danger,
+  TcxCoursePointType.summit => PoiKind.summit,
+  _ => PoiKind.generic,
+};
 
 /// The turn instructions a GPX route's cue sheet spells out.
 ///

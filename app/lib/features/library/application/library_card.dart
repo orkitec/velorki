@@ -19,3 +19,19 @@ class LibraryCard extends _$LibraryCard {
     state = routeId;
   }
 }
+
+/// Where the rider left the Library's list card this session, as a fraction
+/// of the screen; `null` until they have dragged it. Once they have, the
+/// card comes back to that height rather than to the one it would choose
+/// for itself, until the app restarts.
+@Riverpod(keepAlive: true)
+class LibraryCardExtent extends _$LibraryCardExtent {
+  @override
+  double? build() => null;
+
+  /// Records the extent the rider dragged the card to.
+  void set(double extent) {
+    if (!ref.mounted || state == extent) return;
+    state = extent;
+  }
+}

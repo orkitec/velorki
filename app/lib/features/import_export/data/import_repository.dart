@@ -73,6 +73,7 @@ class ImportRepository {
   static RouteSource sourceForFormat(ImportFormat format) => switch (format) {
     ImportFormat.gpx => RouteSource.importedGpx,
     ImportFormat.fit => RouteSource.importedFit,
+    ImportFormat.tcx => RouteSource.importedTcx,
   };
 
   /// Saves [track] as a `rides` row called [name] and returns it.

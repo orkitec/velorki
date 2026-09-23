@@ -352,6 +352,10 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
                               value: TrackFormat.fit,
                               child: Text(l10n.exportFitCourse),
                             ),
+                            PopupMenuItem(
+                              value: TrackFormat.tcx,
+                              child: Text(l10n.exportTcxCourse),
+                            ),
                           ],
                         ),
                         RouteSendMenu(
@@ -448,6 +452,7 @@ String? sourceLine(AppLocalizations l10n, SavedRoute route) {
   final format = switch (route.source) {
     RouteSource.importedGpx => l10n.importFormatGpx,
     RouteSource.importedFit => l10n.importFormatFit,
+    RouteSource.importedTcx => l10n.importFormatTcx,
     RouteSource.strava => 'Strava',
     RouteSource.rwgps => 'Ride with GPS',
     RouteSource.planned || RouteSource.loop => null,

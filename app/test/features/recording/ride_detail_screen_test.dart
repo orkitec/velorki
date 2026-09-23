@@ -465,6 +465,25 @@ void main() {
     await unmountApp(tester);
   });
 
+  testWidgets('the menu exports a TCX activity', (tester) async {
+    final harness = RecordingHarness();
+    await _seed(harness);
+    await pumpRecordingScreen(
+      tester,
+      const RideDetailScreen(rideId: 'ride-1'),
+      harness: harness,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.rideDetailExportTcx).last);
+    await tester.pumpAndSettle();
+
+    expect(harness.exporter.exports.single.format, TrackFormat.tcx);
+    await unmountApp(tester);
+  });
+
   testWidgets('a failing export says why', (tester) async {
     final harness = RecordingHarness();
     await _seed(harness);

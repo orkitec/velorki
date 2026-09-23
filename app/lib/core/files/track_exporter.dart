@@ -8,7 +8,7 @@ import '../../features/planner/domain/route_poi.dart';
 /// activity.
 enum TrackKind { route, ride }
 
-enum TrackFormat { gpx, fit }
+enum TrackFormat { gpx, fit, tcx }
 
 /// Hands a route or ride to the platform share sheet (or "Save to Files") as a
 /// GPX or FIT file. Implemented by the import/export feature; other features
@@ -23,6 +23,7 @@ abstract class TrackExporter {
     List<RoutePoi> pois = const <RoutePoi>[],
     List<TurnHint> turns = const <TurnHint>[],
     List<double?> temperaturesC = const <double?>[],
+    List<DateTime> lapEnds = const <DateTime>[],
   });
 }
 

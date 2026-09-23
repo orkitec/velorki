@@ -187,7 +187,7 @@
   "importSavedRoutes": "{count, plural, =1{Eine Route zur Bibliothek hinzugefügt} other{{count} Routen zur Bibliothek hinzugefügt}}",
   "importTracks": "Tracks in dieser Datei",
   "importTrackNumber": "Track {number}",
-  "importFailedUnknown": "Das ist keine GPX- oder FIT-Datei.",
+  "importFailedUnknown": "Das ist keine GPX-, FIT- oder TCX-Datei.",
   "importFailedMalformed": "Die Datei konnte nicht gelesen werden.",
   "importFailedEmpty": "Die Datei enthält keine Trackpunkte.",
   "importFailedUnreadable": "Die Datei konnte nicht geöffnet werden.",
@@ -893,5 +893,8 @@
   "routeDetailAddLink": "Link hinzufügen",
   "routeDetailPois": "Punkte von Interesse",
   "cardImportedFrom": "Importiert aus {source}",
-  "cardImportedFromBy": "Importiert aus {source} · {creator}"
+  "cardImportedFromBy": "Importiert aus {source} · {creator}",
+  "importFormatTcx": "TCX",
+  "exportTcxCourse": "TCX-Strecke",
+  "rideDetailExportTcx": "TCX-Aktivität exportieren"
 }

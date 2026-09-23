@@ -1,16 +1,16 @@
 ---
 title: Import und Export
-description: GPX- und FIT-Dateien von überall auf dem Handy öffnen, als Route oder Fahrt speichern und eigene zu Komoot, Garmin oder sonst wohin exportieren.
+description: GPX-, FIT- und TCX-Dateien von überall auf dem Handy öffnen, als Route oder Fahrt speichern und eigene zu Komoot, Garmin oder sonst wohin exportieren.
 order: 9
 ---
 
-Velorki liest und schreibt GPX- und FIT-Dateien, und so wandern Routen und Fahrten zwischen der App und dem Rest der Welt. Alles davon ist kostenlos, braucht kein Konto und keine Verbindung und funktioniert mit Komoot, Garmin Connect, Strava, einem Radcomputer oder einer schlichten Datei auf dem Handy.
+Velorki liest und schreibt GPX-, FIT- und TCX-Dateien, und so wandern Routen und Fahrten zwischen der App und dem Rest der Welt. Alles davon ist kostenlos, braucht kein Konto und keine Verbindung und funktioniert mit Komoot, Garmin Connect, Strava, einem Radcomputer oder einer schlichten Datei auf dem Handy.
 
 ## Eine Datei hereinbekommen
 
 Es gibt drei Wege, und alle drei enden auf demselben Importbildschirm.
 
-**Öffnen mit.** Tippe in deiner Dateien-App, in einer E-Mail oder in den Downloads des Browsers auf eine GPX- oder FIT-Datei und wähle Velorki. Auf einem iPhone ist das "In Velorki öffnen" aus Dateien, Mail oder Safari.
+**Öffnen mit.** Tippe in deiner Dateien-App, in einer E-Mail oder in den Downloads des Browsers auf eine GPX-, FIT- oder TCX-Datei und wähle Velorki. Auf einem iPhone ist das "In Velorki öffnen" aus Dateien, Mail oder Safari.
 
 **Teilen-Menü.** Teile die Datei in einer anderen App und wähle Velorki. So kommt eine Route von Komoot oder aus der Nachricht eines Freundes an.
 
@@ -18,9 +18,9 @@ Es gibt drei Wege, und alle drei enden auf demselben Importbildschirm.
 
 **Ein Ride-with-GPS-Link.** Teile den Link einer Route aus der Ride-with-GPS-App oder dem Browser und wähle Velorki, und die Route landet auf dem Importbildschirm. Eine öffentliche Route braucht sonst nichts; eine private wird über dein verbundenes Ride-with-GPS-Konto geholt, und ohne Konto sagt der Bildschirm "Diese Ride-with-GPS-Route ist privat. Verbinde Ride with GPS in den Einstellungen, um sie zu öffnen."
 
-Eine Datei, die sich nicht importieren lässt, öffnet denselben Bildschirm mit dem Grund: keine GPX- oder FIT-Datei, nicht lesbar, leer, oder ein Link, der sich nicht laden ließ.
+Eine Datei, die sich nicht importieren lässt, öffnet denselben Bildschirm mit dem Grund: keine GPX-, FIT- oder TCX-Datei, nicht lesbar, leer, oder ein Link, der sich nicht laden ließ.
 
-Velorki erkennt am Anfang der Datei, was sie ist, und vertraut weder ihrem Namen noch ihrem Typ, eine `.gpx`, die in Wahrheit eine FIT-Datei ist, wird also trotzdem importiert.
+Velorki erkennt am Anfang der Datei, was sie ist, und vertraut weder ihrem Namen noch ihrem Typ, eine `.gpx`, die in Wahrheit eine FIT-Datei ist, wird also trotzdem importiert. Eine TCX-Datei wird an ihrem Wurzelelement erkannt.
 
 ## Der Importbildschirm
 
@@ -37,13 +37,13 @@ Die Karte bleibt oben stehen, während die Seiten darunter scrollen, mit Punkten
 
 Eine GPX-Route mit Abbiegeliste, der Routen-Export von Ride with GPS oder eine Garmin-Strecke, bringt ihre Abbiegungen mit: Jeder Eintrag wird ein Abbiegehinweis mit den Worten des Autors, gezeigt im Abbiegeband, auf der Abbiegeliste der Aufnahme und gesagt von der Stimme. Ein GPX-Track hat keine Abbiegeliste; Velorkis eigenes Abbiegeband funktioniert darauf trotzdem, aus der Form der Route.
 
-Velorki rät **Route** oder **Fahrt** danach, ob die Punkte Zeiten tragen: eine Aufnahme tut das, eine geplante Route nicht. Eine FIT-Strecke wird als Strecke erkannt und als Route geraten, was auch immer ihre künstliche Zeitbasis sagt; ihre Streckenpunkte werden zur Abbiegeliste der Route (Abbiegungen) und zu ihren Punkten von Interesse (Wasser, Essen, Gefahren, benannte Orte). Nichts wird geschrieben, bevor du auf **Speichern** tippst.
+Velorki rät **Route** oder **Fahrt** danach, ob die Punkte Zeiten tragen: eine Aufnahme tut das, eine geplante Route nicht. Eine FIT-Strecke wird als Strecke erkannt und als Route geraten, was auch immer ihre künstliche Zeitbasis sagt, eine TCX-Strecke ebenso; ihre Streckenpunkte werden zur Abbiegeliste der Route (Abbiegungen) und zu ihren Punkten von Interesse (Wasser, Essen, Gefahren, benannte Orte). Nichts wird geschrieben, bevor du auf **Speichern** tippst.
 
 Eine FIT-Aktivität von einem Radcomputer bringt mehr mit als ihren Track: Die Runden, die das Gerät gesetzt hat, treten auf der Seite der Fahrt an die Stelle der festen Splits, die Summen, die das Gerät geschrieben hat (Distanz, Fahrzeit, Anstieg, Kalorien), stehen unter **Wie vom Gerät aufgezeichnet**, wo sie von dem abweichen, was Velorki aus den Positionen errechnet, und eine Temperatur, wenn das Gerät eine mitgeschrieben hat, bekommt ein eigenes Diagramm. Eine GPX-Fahrt bringt Herzfrequenz, Trittfrequenz, Leistung und Temperatur aus ihren Erweiterungen genauso mit. Eine GPX-Datei mit mehreren Tracks, etwa eine Mehrtagestour, listet sie mit je einem Häkchen auf und speichert je angehaktem Track eine Fahrt (oder Route).
 
 Danach bekommst du "Alpenrunde zur Bibliothek hinzugefügt" oder "Alpenrunde zu deinen Fahrten hinzugefügt" und landest auf dem Blatt des neuen Eintrags im Tab Bibliothek.
 
-Lässt sich die Datei nicht öffnen, sagt Velorki, woran es lag: "Das ist keine GPX- oder FIT-Datei.", "Die Datei konnte nicht gelesen werden.", "Die Datei enthält keine Trackpunkte." oder "Die Datei konnte nicht geöffnet werden."
+Lässt sich die Datei nicht öffnen, sagt Velorki, woran es lag: "Das ist keine GPX-, FIT- oder TCX-Datei.", "Die Datei konnte nicht gelesen werden.", "Die Datei enthält keine Trackpunkte." oder "Die Datei konnte nicht geöffnet werden."
 
 ## Eine Datei hinausbekommen
 
@@ -53,19 +53,21 @@ Lässt sich die Datei nicht öffnen, sagt Velorki, woran es lag: "Das ist keine 
 |---|---|
 | **GPX-Route** | eine geplante Route für einen anderen Planer, eine Handy-App oder einen Radcomputer. Eine Route mit Abbiegeliste geht hinaus, wie Ride with GPS sie schreibt: eine `<rte>` der Abbiegungen, je mit Richtung und Worten, und daneben ein `<trk>` der ganzen Linie; eine Route ohne behält jeden Punkt auf der `<rte>`. |
 | **FIT-Strecke** | ein Garmin, Wahoo oder ähnliches Gerät, das eine Strecke erwartet; die Abbiegeliste und die Punkte von Interesse gehen als Streckenpunkte mit, sodass das Gerät die nächste Abbiegung zeigt |
+| **TCX-Strecke** | ein älteres Garmin-Gerät oder eine Trainingsseite, die Training Center XML liest; die Abbiegeliste und die Punkte von Interesse gehen als Streckenpunkte mit, die Namen auf die zehn Zeichen gekürzt, die das Format erlaubt |
 
 **Aus einer Fahrt** (Bibliothek → Fahrten → öffnen, oder das Blatt der Fahrt nach dem Beenden):
 
 | Format | Wofür |
 |---|---|
 | **GPX-Track exportieren** | der aufgezeichnete Track mit seinen Zeitstempeln; Herzfrequenz, Trittfrequenz, Leistung und Temperatur gehen mit. |
+| **TCX-Aktivität exportieren** | dasselbe als Training Center XML, eine Runde je Runde, mit der die Fahrt kam, Herzfrequenz, Trittfrequenz und Leistung an jedem Punkt |
 | **FIT-Aktivität exportieren** | eine Aktivitätsdatei für eine Trainingsplattform |
 
 So oder so schreibt Velorki die Datei und reicht sie an das Teilen-Menü des Systems weiter, du kannst sie also in deine Dateien legen, per Mail verschicken oder in eine andere App schicken.
 
 ## Komoot, Garmin und der Rest
 
-Velorki hat keine Anbindung an Komoot oder Garmin und braucht auch keine: Beide sprechen GPX und FIT.
+Velorki hat keine Anbindung an Komoot oder Garmin und braucht auch keine: Alle sprechen GPX und FIT, und die meisten lesen noch TCX.
 
 - **Von Komoot zu Velorki**: Exportiere die Tour in Komoot als GPX und teile sie dann zu Velorki, oder speichere sie und öffne sie über die Schaltfläche **Datei importieren**.
 - **Von Velorki zu Komoot**: Exportiere die Route als **GPX-Route** und teile sie in den Import von Komoot.

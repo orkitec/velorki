@@ -938,7 +938,7 @@
     "description": "Name of an unnamed track in a file with several",
     "placeholders": {"number": {"type": "int"}}
   },
-  "importFailedUnknown": "That is not a GPX or FIT file.",
+  "importFailedUnknown": "That is not a GPX, FIT or TCX file.",
   "@importFailedUnknown": {
     "description": "Error shown when the file sniffer recognised neither format"
   },
@@ -4535,5 +4535,11 @@
   "@cardImportedFromBy": {
     "description": "Line under a route's or ride's name saying the file format and who wrote the file",
     "placeholders": {"source": {"type": "String"}, "creator": {"type": "String"}}
-  }
+  },
+  "importFormatTcx": "TCX",
+  "@importFormatTcx": {"description": "The TCX file format, in the import summary and the source line"},
+  "exportTcxCourse": "TCX course",
+  "@exportTcxCourse": {"description": "Route export menu entry: a TCX course file"},
+  "rideDetailExportTcx": "Export TCX activity",
+  "@rideDetailExportTcx": {"description": "Ride menu entry: export the ride as a TCX activity"}
 }

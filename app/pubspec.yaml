@@ -47,6 +47,7 @@ dependencies:
   velorki_fit:
   velorki_geo:
   velorki_gpx:
+  velorki_tcx:
   wakelock_plus: ^1.8.0
   purchases_flutter: ^10.12.0
   sensors_plus: ^7.1.0

@@ -60,6 +60,37 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   /// The sheet's resting size, as computed by the last build.
   double _restingSheetSize = 0.48;
 
+  /// The sheet's greatest size, as computed by the last build.
+  double _maxSheetSize = 0.9;
+
+  /// How many rows the list on screen has, `null` while it loads or while
+  /// the card shows a detail.
+  int? _rows;
+
+  /// Whether the rows have had their say on the card's height since the
+  /// tab came on screen: they say it once, on arrival, and switching the
+  /// segment afterwards moves nothing.
+  bool _rowsApplied = false;
+
+  /// Whether an animation of this screen's own is moving the sheet, so the
+  /// extents it reports are not taken for the rider's.
+  bool _settling = false;
+
+  /// Whether the sheet has settled since the tab came on screen, so an
+  /// extent change from here on is the rider dragging.
+  bool _armed = false;
+
+  /// The height the list card should have when nothing else decides: what
+  /// the rider left it at this session, else the top for a list longer
+  /// than two rows, else the resting height. A detail rests.
+  double get _preferredExtent {
+    if (_detail) return _restingSheetSize;
+    final left = ref.read(libraryCardExtentProvider);
+    if (left != null) return left;
+    final rows = _rows;
+    return rows != null && rows > 2 ? _maxSheetSize : _restingSheetSize;
+  }
+
   /// The sheet's snap points, kept as one instance for as long as the
   /// resting size holds: the sheet snaps anew on every new list it sees.
   List<double> _snapSizes = const [];
@@ -96,7 +127,50 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   /// The sheet's extent, while this is the tab on screen, for the tab that
   /// comes next.
   void _onSheetExtent(double extent) {
-    if (_active) ref.read(tabHandoverProvider.notifier).setSheetExtent(extent);
+    if (!_active) return;
+    ref.read(tabHandoverProvider.notifier).setSheetExtent(extent);
+    // The rider's own drag of the list card is remembered for the session.
+    if (_armed && !_settling && !_detail) {
+      ref.read(libraryCardExtentProvider.notifier).set(extent);
+    }
+  }
+
+  /// Moves the sheet to [target] as this screen's own doing, and arms the
+  /// drag memory once it is there.
+  Future<void> _settleTo(double target) async {
+    _settling = true;
+    try {
+      await _sheet.animateTo(
+        target,
+        duration: tabSheetSettleDuration,
+        curve: tabChromeSlideCurve,
+      );
+    } finally {
+      _settling = false;
+      _arm();
+    }
+  }
+
+  /// From the next frame on, an extent change is the rider's.
+  void _arm() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _active) _armed = true;
+    });
+  }
+
+  /// The rows are known and the card is on screen for the first time since
+  /// arriving: a long list opens the card to the top, unless the rider has
+  /// left it somewhere this session.
+  void _applyRows() {
+    if (_rowsApplied || !_active || _detail || _rows == null) return;
+    _rowsApplied = true;
+    if (!_sheet.isAttached) return;
+    final target = _preferredExtent;
+    if (target - _sheet.size > 0.005) {
+      unawaited(_settleTo(target));
+    } else {
+      _arm();
+    }
   }
 
   /// This tab is coming on screen: the column glides from wherever it is
@@ -110,18 +184,18 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   /// goes. A sheet already at rest, or pulled higher by the rider, stays.
   void _takeOverSheet() {
     if (!_sheet.isAttached) return;
+    _armed = false;
     final current = _sheet.size;
     final from = ref.read(tabHandoverProvider).sheetExtent ?? current;
     if ((from - current).abs() >= 0.005) _sheet.jumpTo(from);
-    final target = math.max(current, _restingSheetSize);
-    if ((target - from).abs() < 0.005) return;
-    unawaited(
-      _sheet.animateTo(
-        target,
-        duration: tabSheetSettleDuration,
-        curve: tabChromeSlideCurve,
-      ),
-    );
+    // The rows have their say now, if they are known; else when they are.
+    _rowsApplied = _rows != null;
+    final target = math.max(current, _preferredExtent);
+    if ((target - from).abs() < 0.005) {
+      _arm();
+      return;
+    }
+    unawaited(_settleTo(target));
   }
 
   /// Whether the sheet was last reported to the bar as docked in it.
@@ -202,6 +276,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         _takeOverSheet();
       } else if (previous == libraryRoute && next != libraryRoute) {
         _active = false;
+        _armed = false;
+        _rowsApplied = false;
         // The next tab tells the column its own wants; this one tells it
         // again, from scratch, when it comes back.
         _chromeData = null;
@@ -261,7 +337,24 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final maxSheetSize = screenHeight <= 0
         ? 0.9
         : ((screenHeight - topInset - 24) / screenHeight).clamp(0.6, 0.95);
-    final initialSheetSize = _arrivingExtent ?? restingSheetSize;
+    _maxSheetSize = maxSheetSize;
+    // The list on screen, for the card's height on arrival: routes or
+    // rides, whichever segment is up. Watched only for the list card.
+    _rows = _detail
+        ? null
+        : switch (ref.watch(librarySectionProvider)) {
+            LibrarySection.routes =>
+              ref.watch(savedRoutesProvider).value?.length,
+            LibrarySection.rides => ref.watch(ridesProvider).value?.length,
+          };
+    if (!_rowsApplied && _rows != null && active) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _applyRows();
+      });
+    } else if (!_armed && active && _rows == null && _detail) {
+      _arm();
+    }
+    final initialSheetSize = _arrivingExtent ?? _preferredExtent;
 
     // The split or climb picked on a ride card is named over the map, out
     // of the column's way, and clears with a tap.

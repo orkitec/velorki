@@ -47,6 +47,7 @@ class _RecordingExporter implements TrackExporter {
     List<RoutePoi> pois = const <RoutePoi>[],
     List<TurnHint> turns = const <TurnHint>[],
     List<double?> temperaturesC = const <double?>[],
+    List<DateTime> lapEnds = const <DateTime>[],
   }) async {
     exportedTurns.add(turns);
     final error = failure;
@@ -182,6 +183,13 @@ void main() {
       TurnKind.left,
       TurnKind.end,
     ]);
+
+    // The TCX entry, too.
+    await _openExportMenu(tester);
+    await tester.tap(find.text(l10n.exportTcxCourse));
+    await tester.pumpAndSettle();
+    expect(exporter.calls.last.format, TrackFormat.tcx);
+    expect(exporter.calls.last.kind, TrackKind.route);
     await unmountApp(tester);
   });
 

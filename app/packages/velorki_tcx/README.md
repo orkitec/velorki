@@ -6,10 +6,6 @@ courses with their course points; and the same written back out.
 
 Pure Dart. No Flutter dependency, no `dart:ui`, tested on the desktop VM.
 
-Phase 0 of the formats programme: the models and the API are here, the codec
-throws `UnimplementedError` until phase 4. The tests under `test/` describe
-what it will do and are skipped until then.
-
 ## Public API
 
 ```dart

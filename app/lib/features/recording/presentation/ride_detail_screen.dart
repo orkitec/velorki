@@ -395,6 +395,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
             format: format,
             startTime: ride.startedAt,
             temperaturesC: ride.temperaturesC,
+            lapEnds: [for (final lap in ride.laps) lap.endedAt],
           );
     } on Object catch (error) {
       messenger.showSnackBar(
@@ -490,6 +491,10 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
                     ride.value!,
                     TrackFormat.fit,
                   ),
+                  _RideAction.exportTcx => _export(
+                    ride.value!,
+                    TrackFormat.tcx,
+                  ),
                 }),
                 itemBuilder: (context) => [
                   PopupMenuItem(
@@ -499,6 +504,10 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
                   PopupMenuItem(
                     value: _RideAction.exportFit,
                     child: Text(l10n.rideDetailExportFit),
+                  ),
+                  PopupMenuItem(
+                    value: _RideAction.exportTcx,
+                    child: Text(l10n.rideDetailExportTcx),
                   ),
                   const PopupMenuDivider(),
                   PopupMenuItem(
@@ -862,7 +871,14 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
   }
 }
 
-enum _RideAction { continueRide, rename, delete, exportGpx, exportFit }
+enum _RideAction {
+  continueRide,
+  rename,
+  delete,
+  exportGpx,
+  exportFit,
+  exportTcx,
+}
 
 /// The chip over a ride's map that says what the thick line over the track
 /// is: the split or the climb the rider picked, "Split 3 · 2–3 km", with a
@@ -1092,6 +1108,7 @@ String? rideSourceLine(AppLocalizations l10n, Ride ride) {
   final format = switch (ride.sourceFormat) {
     'gpx' => l10n.importFormatGpx,
     'fit' => l10n.importFormatFit,
+    'tcx' => l10n.importFormatTcx,
     final other? => other.toUpperCase(),
     null => null,
   };

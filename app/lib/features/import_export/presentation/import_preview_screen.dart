@@ -410,6 +410,7 @@ String formatLabel(AppLocalizations l10n, ImportFormat format) =>
     switch (format) {
       ImportFormat.gpx => l10n.importFormatGpx,
       ImportFormat.fit => l10n.importFormatFit,
+      ImportFormat.tcx => l10n.importFormatTcx,
     };
 
 /// A timestamp in the locale's medium date plus short time format, in the

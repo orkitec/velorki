@@ -9,7 +9,10 @@ enum ImportFormat {
   gpx('gpx'),
 
   /// A Garmin FIT activity or course.
-  fit('fit');
+  fit('fit'),
+
+  /// Garmin Training Center XML.
+  tcx('tcx');
 
   const ImportFormat(this.extension);
 

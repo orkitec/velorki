@@ -10,6 +10,10 @@ import 'package:velorki_fit/velorki_fit.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki_gpx/velorki_gpx.dart';
 import 'package:velorki/features/import_export/data/track_decoder.dart';
+import 'package:velorki/features/import_export/domain/imported_track.dart';
+import 'package:velorki_tcx/velorki_tcx.dart';
+
+import 'dart:convert';
 
 import 'dart:typed_data';
 
@@ -291,5 +295,97 @@ void main() {
       Uint8List.fromList(h.shared.single.file.readAsBytesSync()),
     );
     expect(back.points, hasLength(4), reason: 'the track, not the route');
+  });
+
+  test('a ride becomes a TCX activity, one lap per device lap, and reads '
+      'back with its sensors', () async {
+    final h = _Harness();
+    final points = [
+      for (var i = 0; i < 6; i++)
+        TrackPoint(
+          LatLng(48.0 + i * 0.001, 11.0),
+          ele: 500 + i * 2.0,
+          time: _start.add(Duration(seconds: 10 * i)),
+          heartRateBpm: 110 + i,
+          cadenceRpm: 80 + i,
+          powerW: 200 + 10 * i,
+          speedMps: 11,
+        ),
+    ];
+    await h.exporter.share(
+      name: 'Laps',
+      points: points,
+      kind: TrackKind.ride,
+      format: TrackFormat.tcx,
+      startTime: _start,
+      lapEnds: [_start.add(const Duration(seconds: 30))],
+    );
+    final shared = h.shared.single;
+    expect(shared.mimeType, 'application/vnd.garmin.tcx+xml');
+    expect(p.basename(shared.file.path), 'Laps.tcx');
+    final xml = shared.file.readAsStringSync();
+    expect(looksLikeTcx(Uint8List.fromList(utf8.encode(xml))), isTrue);
+    final activity = TcxCodec.decode(xml).activities.single;
+    expect(activity.sport, TcxSport.biking);
+    expect(activity.creator, 'Velorki');
+    expect(activity.laps, hasLength(2));
+    expect(activity.laps.first.points, hasLength(3));
+    expect(
+      activity.laps.last.startTime,
+      _start.add(const Duration(seconds: 30)),
+    );
+    expect(activity.points.map((p) => p.powerW), points.map((p) => p.powerW));
+    expect(
+      activity.points.map((p) => p.heartRateBpm),
+      points.map((p) => p.heartRateBpm),
+    );
+    expect(activity.laps.first.avgWatts, 210);
+    // And it imports again as a ride with two laps.
+    final back = decodeTrack(Uint8List.fromList(utf8.encode(xml)));
+    expect(back.format, ImportFormat.tcx);
+    expect(back.laps, hasLength(2));
+  });
+
+  test('a route becomes a TCX course with its cues and places as course '
+      'points', () async {
+    final h = _Harness();
+    final points = _points();
+    await h.exporter.share(
+      name: 'Cued',
+      points: points,
+      kind: TrackKind.route,
+      format: TrackFormat.tcx,
+      turns: const [
+        TurnHint(
+          pointIndex: 1,
+          kind: TurnKind.sharpLeft,
+          note: 'Onto the bridge',
+        ),
+        TurnHint(pointIndex: 3, kind: TurnKind.end),
+      ],
+      pois: [
+        RoutePoi(
+          pos: points[2].pos,
+          name: 'Tap',
+          kind: PoiKind.water,
+          description: 'Cold',
+        ),
+      ],
+    );
+    final xml = h.shared.single.file.readAsStringSync();
+    final course = TcxCodec.decode(xml).courses.single;
+    expect(course.name, 'Cued');
+    expect(course.points, hasLength(4));
+    expect(course.coursePoints.map((c) => c.type), [
+      TcxCoursePointType.left,
+      TcxCoursePointType.water,
+    ]);
+    expect(course.coursePoints.first.name, 'Onto the b', reason: 'ten letters');
+    expect(course.coursePoints.last.notes, 'Cold');
+    // Back in as a route with the turn and the place.
+    final back = decodeTrack(Uint8List.fromList(utf8.encode(xml)));
+    expect(back.isCourse, isTrue);
+    expect(back.turns.single.kind, TurnKind.left);
+    expect(back.pois.single.name, 'Tap');
   });
 }

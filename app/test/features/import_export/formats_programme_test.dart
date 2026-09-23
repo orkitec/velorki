@@ -259,7 +259,7 @@ void main() {
       expect(track.laps, hasLength(2));
       expect(track.laps.first.calories, 12);
       expect(track.creator, 'Handwritten head unit');
-    }, skip: 'phase 4');
+    });
 
     test('a TCX course imports as a route with its course points as cues '
         'and named points', () {
@@ -270,14 +270,14 @@ void main() {
       expect(track.format.name, 'tcx');
       expect(track.name, 'Isar bridge loop');
       expect(track.suggestedKind, ImportKind.route);
-      expect(track.turns.map((t) => t.kind), [
-        TurnKind.left,
-        TurnKind.right,
-        TurnKind.end,
-      ]);
+      // Left and right from the course points; the cue sheet adds the
+      // finish itself.
+      expect(track.turns.map((t) => t.kind), [TurnKind.left, TurnKind.right]);
+      expect(track.turns.first.note, 'Turn left onto Isarweg');
       expect(track.pois.map((p) => p.name), ['Fountain']);
       expect(track.pois.single.description, 'Drinking water');
-    }, skip: 'phase 4');
+      expect(track.pois.single.kind, PoiKind.water);
+    });
 
     test('rides export as TCX activities and routes as TCX courses', () {
       // track_exporter_test and route_export_test once phase 4 lands:
@@ -285,6 +285,6 @@ void main() {
       // activity" and the route card's "TCX course"; the files decode
       // with TcxCodec and carry the laps and the cues.
       expect(true, isTrue);
-    }, skip: 'phase 4');
+    });
   });
 }
