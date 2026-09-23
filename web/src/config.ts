@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { z } from 'zod';
+import { parseWrapKeys, type WrapKeys } from '@/server/wrap';
 
 /**
  * All configuration comes from the environment (Orkify injects it into the
@@ -86,6 +87,20 @@ const envSchema = z
           .map((s) => s.trim())
           .filter((s) => s !== ''),
       ),
+
+    /**
+     * `kid:base64key` entries, comma separated; the first wraps, all unwrap.
+     * Parsed here so a malformed key is fatal at startup, not a 500 later.
+     */
+    TOKEN_WRAP_KEYS: optionalStr.transform((v, ctx): WrapKeys | undefined => {
+      if (v === undefined) return undefined;
+      try {
+        return parseWrapKeys(v);
+      } catch (err) {
+        ctx.addIssue({ code: 'custom', message: err instanceof Error ? err.message : String(err) });
+        return z.NEVER;
+      }
+    }),
 
     REVENUECAT_SECRET_KEY: optionalStr,
     REVENUECAT_ENTITLEMENT: optionalStr.transform((v) => v ?? 'plus'),

@@ -41,6 +41,13 @@ export const LIMITS = {
   aiPlanPerIpHour: { name: 'ai_plan_ip_hour', limit: 60, windowS: 3_600 },
   sharePerDay: { name: 'share_day', limit: 30, windowS: 86_400 },
   /**
+   * Pass-through calls, per rider. An upload is one call plus up to six
+   * polls, and a route list page is one, so a busy afternoon stays well
+   * inside the minute and the day.
+   */
+  proxyPerMin: { name: 'proxy_min', limit: 60, windowS: 60 },
+  proxyPerDay: { name: 'proxy_day', limit: 1_500, windowS: 86_400 },
+  /**
    * Charged before the body is read, so an unauthenticated caller cannot keep
    * a worker buffering megabytes; the per-user daily limit is the real one.
    */

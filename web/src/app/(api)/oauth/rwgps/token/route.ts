@@ -7,6 +7,7 @@ import { requireEntitlement } from '@/server/entitlement';
 import { LIMITS, enforce } from '@/server/ratelimit';
 import { assertAllowedRedirect, codeBodySchema, parse, relay, RWGPS_TOKEN_URL } from '@/server/oauth';
 import { getConfig, getCounters, getEntitlement } from '@/server/singletons';
+import { requireWrapKeys, wrapTokensIn } from '@/server/wrap';
 
 export const POST = withApi(async (request, ctx) => {
   const config = getConfig();
@@ -22,6 +23,7 @@ export const POST = withApi(async (request, ctx) => {
   if (!rwgpsConfigured(config)) {
     throw new ApiError('unavailable', 'Ride with GPS is not configured on this server.');
   }
+  const keys = requireWrapKeys(config.TOKEN_WRAP_KEYS);
   const body = parse(codeBodySchema, raw);
   assertAllowedRedirect(config, body.redirect_uri);
 
@@ -33,5 +35,5 @@ export const POST = withApi(async (request, ctx) => {
     redirect_uri: body.redirect_uri,
   });
   const { status, body: payload } = await relay(config, RWGPS_TOKEN_URL, form);
-  return json(payload, status);
+  return json(wrapTokensIn(payload, keys, 'rwgps'), status);
 });

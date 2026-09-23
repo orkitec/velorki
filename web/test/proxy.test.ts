@@ -150,12 +150,30 @@ describe('host gate', () => {
         ['POST', '/oauth/strava/refresh'],
         ['POST', '/oauth/rwgps/token'],
         ['POST', '/oauth/rwgps/refresh'],
+        ['GET', '/proxy/strava/api/v3/uploads/1'],
+        ['POST', '/proxy/strava/api/v3/uploads'],
+        ['GET', '/proxy/rwgps/api/v1/routes.json'],
+        ['POST', '/proxy/rwgps/api/v1/trips.json'],
         ['POST', '/ai/plan'],
         ['POST', '/share'],
       ];
       for (const [method, path] of routes) {
         const res = await proxy(request(`${API}${path}`, { method }));
         expect(res.status, `${method} ${path}`).toBe(200);
+      }
+    });
+  });
+
+  it('404s the pass-through prefix on its own and with another method', async () => {
+    await withEnv({}, async () => {
+      for (const [method, path] of [
+        ['GET', '/proxy/strava'],
+        ['GET', '/proxy/strava/'],
+        ['DELETE', '/proxy/strava/api/v3/uploads/1'],
+        ['GET', '/proxy/komoot/x'],
+      ] as const) {
+        const res = await proxy(request(`${API}${path}`, { method }));
+        expect(res.status, `${method} ${path}`).toBe(404);
       }
     });
   });

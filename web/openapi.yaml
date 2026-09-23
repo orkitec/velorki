@@ -8,8 +8,10 @@ info:
   description: |
     The Velorki app is open source and therefore cannot hold client secrets.
     This service keeps them: it relays OAuth token exchanges to Strava and
-    Ride with GPS, verifies entitlements against RevenueCat, proxies route
-    planning to a language model, and hosts share links.
+    Ride with GPS, wraps the tokens so the phone never holds one in clear,
+    passes the app's service calls through with the token unwrapped in
+    memory, verifies entitlements against RevenueCat, proxies route planning
+    to a language model, and hosts share links.
 
     All errors share one body shape:
 
@@ -58,7 +60,21 @@ tags:
   - name: health
     description: Liveness and configuration.
   - name: oauth
-    description: Token exchange with third-party services.
+    description: |
+      Token exchange with third-party services. The tokens in every answer are
+      **wrapped**: AES-256-GCM under a key only this service has, in the form
+      `v1.<kid>.<nonce>.<ciphertext>` (base64url). The app stores them as they
+      are and sends them back through the pass-through routes; it can neither
+      read nor use them on its own.
+  - name: proxy
+    description: |
+      Pass-through to Strava and Ride with GPS. The path after
+      `/proxy/<service>` is the upstream path; the wrapped access token comes
+      in `X-Velorki-Token`, goes upstream as `Authorization: Bearer` and is
+      forgotten when the answer has been streamed back with its own status.
+      Only the calls the app makes are forwarded (the list is in
+      `src/server/passthrough.ts`); any other method or path answers 404.
+      Rate limit: 60 per minute and 1500 per day, per rider.
   - name: ai
     description: Language-model assisted route planning.
   - name: share
@@ -240,6 +256,121 @@ paths:
                       message: >-
                         Ride with GPS does not support refresh tokens;
                         re-authorize instead.
+
+  /proxy/strava/{path}:
+    parameters:
+      - $ref: '#/components/parameters/UpstreamPath'
+      - $ref: '#/components/parameters/WrappedToken'
+    get:
+      tags: [proxy]
+      operationId: stravaProxyGet
+      summary: Forward a GET to Strava.
+      description: |
+        Allowed: `/api/v3/uploads/{id}`, `/api/v3/athletes/{id}/routes`,
+        `/api/v3/routes/{id}/export_gpx`. The query string is forwarded
+        (`access_token` is dropped).
+      responses:
+        '2XX':
+          $ref: '#/components/responses/UpstreamPassthrough'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/NotEntitled'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '502':
+          $ref: '#/components/responses/UpstreamError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    post:
+      tags: [proxy]
+      operationId: stravaProxyPost
+      summary: Forward a POST to Strava.
+      description: |
+        Allowed: `/api/v3/uploads` (multipart, streamed, at most 25 MB) and
+        `/oauth/deauthorize`. `Content-Type`, `Content-Length` and `Accept`
+        go upstream; nothing else does.
+      requestBody:
+        required: false
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '2XX':
+          $ref: '#/components/responses/UpstreamPassthrough'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/NotEntitled'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '502':
+          $ref: '#/components/responses/UpstreamError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /proxy/rwgps/{path}:
+    parameters:
+      - $ref: '#/components/parameters/UpstreamPath'
+      - $ref: '#/components/parameters/WrappedToken'
+    get:
+      tags: [proxy]
+      operationId: rwgpsProxyGet
+      summary: Forward a GET to Ride with GPS.
+      description: |
+        Allowed: `/api/v1/users/current.json`, `/api/v1/routes.json`,
+        `/api/v1/trips.json`, `/api/v1/tasks/{id}.json`,
+        `/api/v1/routes/{id}.gpx`.
+      responses:
+        '2XX':
+          $ref: '#/components/responses/UpstreamPassthrough'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/NotEntitled'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '502':
+          $ref: '#/components/responses/UpstreamError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    post:
+      tags: [proxy]
+      operationId: rwgpsProxyPost
+      summary: Forward a POST to Ride with GPS.
+      description: |
+        Allowed: `/api/v1/routes.json` and `/api/v1/trips.json` (multipart,
+        streamed, at most 25 MB).
+      requestBody:
+        required: false
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '2XX':
+          $ref: '#/components/responses/UpstreamPassthrough'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/NotEntitled'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '502':
+          $ref: '#/components/responses/UpstreamError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
 
   /ai/plan:
     post:
@@ -517,6 +648,21 @@ components:
       schema:
         type: string
         const: '1'
+    UpstreamPath:
+      name: path
+      in: path
+      required: true
+      description: The upstream path, e.g. `api/v3/uploads`; only allowlisted values are forwarded.
+      schema:
+        type: string
+    WrappedToken:
+      name: X-Velorki-Token
+      in: header
+      required: true
+      description: The wrapped access token exactly as a token route returned it.
+      schema:
+        type: string
+        pattern: '^v1\.[A-Za-z0-9_-]{1,32}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$'
 
   schemas:
     Error:
@@ -736,8 +882,9 @@ components:
   responses:
     OAuthTokenPassthrough:
       description: |
-        The provider's JSON response, unchanged, with its own status code.
-        The shape is defined by Strava or Ride with GPS, not by this service.
+        The provider's JSON response with its own status code, `access_token`
+        and `refresh_token` replaced by their wrapped forms. Everything else
+        is as Strava or Ride with GPS sent it.
       headers:
         X-Request-Id:
           $ref: '#/components/headers/XRequestId'
@@ -752,9 +899,30 @@ components:
                 token_type: Bearer
                 expires_at: 1893456000
                 expires_in: 21600
-                refresh_token: '...'
-                access_token: '...'
+                refresh_token: 'v1.k1.7Xf…'
+                access_token: 'v1.k1.Qm2…'
                 athlete: { id: 7 }
+
+    UpstreamPassthrough:
+      description: |
+        The service's answer: its status, its body as a stream, and of its
+        headers `Content-Type`, `Content-Length`, `Content-Disposition`,
+        `Retry-After` and Strava's `X-RateLimit-*` / `X-ReadRateLimit-*`.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/XRequestId'
+        X-Velorki-Token-Rewrapped:
+          description: |
+            Present when the token arrived under a key that is being retired:
+            the same token wrapped under the current key. The app stores this
+            in place of what it sent.
+          schema:
+            type: string
+      content:
+        '*/*':
+          schema:
+            type: string
+            format: binary
 
     InvalidRequest:
       description: The request body or parameters did not validate.

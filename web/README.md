@@ -50,14 +50,30 @@ Host separation is strict and enforced before any handler runs, in
 | Route | Purpose |
 | --- | --- |
 | `GET`/`HEAD` `/health` | Liveness, build version, BRouter reachability, LLM configuration. No auth. |
-| `POST /oauth/strava/token` · `/refresh` | Adds the Strava client secret to the token exchange and passes Strava's answer through unchanged. |
+| `POST /oauth/strava/token` · `/refresh` | Adds the Strava client secret to the token exchange and passes Strava's answer through with the tokens wrapped (below). `/refresh` takes the wrapped refresh token. |
 | `POST /oauth/rwgps/token` | Same for Ride with GPS. `/oauth/rwgps/refresh` answers 501: RwGPS tokens do not expire. |
+| `GET`/`POST` `/proxy/strava/*` · `/proxy/rwgps/*` | Pass-through to the service: the upstream path follows the prefix, the wrapped token comes in `X-Velorki-Token`, the body streams both ways. Only the calls the app makes (`src/server/passthrough.ts`); everything else is 404. |
 | `POST /ai/plan` | Server-Sent Events. `step=plan` turns a rider's sentence into structured routing parameters via one forced tool call; `step=describe` streams a short prose description of a computed route. |
 | `POST /share` | Stores a GPX plus a summary and returns a public link on the site host. |
 | `GET /s/<id>` · `/s/<id>.gpx` | The public share page and the raw GPX, on `velorki.com`. No auth. |
 
-Everything under `/oauth/*`, `/ai/*` and `POST /share` requires
+Everything under `/oauth/*`, `/proxy/*`, `/ai/*` and `POST /share` requires
 `Authorization: Bearer <revenuecat_app_user_id>` and an active entitlement.
+
+### Wrapped tokens
+
+The phone never holds a Strava or Ride with GPS token in clear. The token
+routes encrypt `access_token` and `refresh_token` with AES-256-GCM under
+`TOKEN_WRAP_KEYS` before answering (`v1.<kid>.<nonce>.<ciphertext>`, the
+service and the token kind as additional data), the phone stores that, and
+every service call goes through `/proxy/<service>/…` with the wrapped token in
+`X-Velorki-Token`. The relay checks the entitlement, refuses anything off the
+allowlist, unwraps in memory, forwards with `Authorization: Bearer`, streams
+the answer back and keeps nothing. A token that arrived under an older key is
+re-wrapped with the current one and returned in `X-Velorki-Token-Rewrapped`;
+the phone replaces what it stored. Per rider, service and operation the
+counters keep a daily count (`px:<service>:<op>:<day>[:u:<id>]`,
+`proxyUsage()` reads it), which is the whole record of a call.
 
 ### Conventions
 
@@ -111,7 +127,12 @@ These are deliberate, and worth keeping that way in a fork:
   (MapLibre is bundled from npm) and loads only OpenFreeMap tiles.
 - Tokens and secrets are never logged; `authorization` and `cookie` are
   redacted in the pino config, and upstream error messages are scrubbed of the
-  client secret before being echoed.
+  client secret before being echoed. The pass-through logs the service, the
+  operation, the status and the time, never a header, a body or an error
+  message.
+- Service tokens exist in clear only inside one pass-through request. The
+  phone holds them wrapped, so a copy of the phone's storage is useless
+  without this relay's key and an active subscription.
 
 ## Configuration
 
@@ -124,6 +145,7 @@ Missing integrations degrade rather than crash the app:
 | --- | --- |
 | `STRAVA_CLIENT_ID` / `STRAVA_CLIENT_SECRET` | `/oauth/strava/*` → 503 `unavailable` |
 | `RWGPS_CLIENT_ID` / `RWGPS_CLIENT_SECRET` | `/oauth/rwgps/*` → 503 `unavailable` |
+| `TOKEN_WRAP_KEYS` | the token routes and `/proxy/*` → 503 `unavailable` |
 | `LLM_BASE_URL` / `LLM_MODEL` | `/ai/plan` → 503, `/health` reports `llm: "unconfigured"` |
 | `BROUTER_URL` | `/health` reports `brouter: "unconfigured"` |
 | `REVENUECAT_SECRET_KEY` (in live mode) | every authenticated route → 503 `unavailable` |
@@ -149,6 +171,7 @@ COUNTERS=memory
 REVENUECAT_MODE=stub
 SHARE_DB_PATH=./data/share.sqlite
 PUBLIC_BASE_URL=http://localhost:3000
+TOKEN_WRAP_KEYS=dev:<32 random bytes, base64>
 ```
 
 Then `http://localhost:3000/` is the site, `http://localhost:3000/__api/health`

@@ -123,6 +123,9 @@ describe('fixed-window rate limits', () => {
       sharePerDay: { name: 'share_day', limit: 30, windowS: 86_400 },
       // New: charged per IP before the body is read.
       sharePerIpHour: { name: 'share_ip_hour', limit: 60, windowS: 3_600 },
+      // The pass-through, per rider.
+      proxyPerMin: { name: 'proxy_min', limit: 60, windowS: 60 },
+      proxyPerDay: { name: 'proxy_day', limit: 1_500, windowS: 86_400 },
     });
   });
 });

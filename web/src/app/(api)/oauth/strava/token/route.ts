@@ -7,6 +7,7 @@ import { requireEntitlement } from '@/server/entitlement';
 import { LIMITS, enforce } from '@/server/ratelimit';
 import { assertAllowedRedirect, codeBodySchema, parse, relay, STRAVA_TOKEN_URL } from '@/server/oauth';
 import { getConfig, getCounters, getEntitlement } from '@/server/singletons';
+import { requireWrapKeys, wrapTokensIn } from '@/server/wrap';
 
 export const POST = withApi(async (request, ctx) => {
   const config = getConfig();
@@ -23,6 +24,7 @@ export const POST = withApi(async (request, ctx) => {
   if (!stravaConfigured(config)) {
     throw new ApiError('unavailable', 'Strava is not configured on this server.');
   }
+  const keys = requireWrapKeys(config.TOKEN_WRAP_KEYS);
   const body = parse(codeBodySchema, raw);
   assertAllowedRedirect(config, body.redirect_uri);
 
@@ -33,5 +35,6 @@ export const POST = withApi(async (request, ctx) => {
     grant_type: 'authorization_code',
   });
   const { status, body: payload } = await relay(config, STRAVA_TOKEN_URL, form);
-  return json(payload, status);
+  // The phone only ever sees the wrapped tokens; the clear ones end here.
+  return json(wrapTokensIn(payload, keys, 'strava'), status);
 });

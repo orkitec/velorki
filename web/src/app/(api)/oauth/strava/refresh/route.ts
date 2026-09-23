@@ -7,6 +7,7 @@ import { requireEntitlement } from '@/server/entitlement';
 import { LIMITS, enforce } from '@/server/ratelimit';
 import { parse, refreshBodySchema, relay, STRAVA_TOKEN_URL } from '@/server/oauth';
 import { getConfig, getCounters, getEntitlement } from '@/server/singletons';
+import { requireWrapKeys, unwrapToken, wrapTokensIn } from '@/server/wrap';
 
 export const POST = withApi(async (request, ctx) => {
   const config = getConfig();
@@ -22,13 +23,16 @@ export const POST = withApi(async (request, ctx) => {
   if (!stravaConfigured(config)) {
     throw new ApiError('unavailable', 'Strava is not configured on this server.');
   }
+  const keys = requireWrapKeys(config.TOKEN_WRAP_KEYS);
   const body = parse(refreshBodySchema, raw);
+  // The refresh token arrives as the phone stored it: wrapped by this relay.
+  const { token } = unwrapToken(keys, 'strava', 'refresh', body.refresh_token);
   const form = new URLSearchParams({
     client_id: config.STRAVA_CLIENT_ID ?? '',
     client_secret: config.STRAVA_CLIENT_SECRET ?? '',
-    refresh_token: body.refresh_token,
+    refresh_token: token,
     grant_type: 'refresh_token',
   });
   const { status, body: payload } = await relay(config, STRAVA_TOKEN_URL, form);
-  return json(payload, status);
+  return json(wrapTokensIn(payload, keys, 'strava'), status);
 });

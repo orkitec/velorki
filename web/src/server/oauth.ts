@@ -9,8 +9,9 @@ import { ApiError } from './errors';
  * The whole reason this service exists: the client secrets of Strava and
  * Ride with GPS must not ship inside an open-source mobile app. The app does
  * the browser part of the OAuth dance and posts the resulting `code` here; we
- * add the secret, call the provider and hand back its answer untouched, so the
- * app keeps owning the tokens and we never store them.
+ * add the secret, call the provider and hand back its answer with the tokens
+ * wrapped (`./wrap.ts`), so the phone holds them only in a form this relay
+ * can open, and we never store them.
  */
 
 export const STRAVA_TOKEN_URL = 'https://www.strava.com/oauth/token';

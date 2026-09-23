@@ -86,22 +86,34 @@ export function resolveHost(
 /**
  * Every (method, path) pair the api host serves. Anything else is the JSON 404
  * that Fastify's notFoundHandler produced, which keeps the app's error handling
- * identical across the migration.
+ * identical across the migration. The pass-through prefixes let a path
+ * through to the forwarder, whose own allowlist decides the upstream call; a
+ * prefix on its own, with nothing after it, is not a route.
  */
-export const API_ROUTES: readonly { method: string; path: string }[] = [
-  { method: 'GET', path: '/health' },
-  { method: 'HEAD', path: '/health' },
-  { method: 'POST', path: '/oauth/strava/token' },
-  { method: 'POST', path: '/oauth/strava/refresh' },
-  { method: 'POST', path: '/oauth/rwgps/token' },
-  { method: 'POST', path: '/oauth/rwgps/refresh' },
-  { method: 'POST', path: '/ai/plan' },
-  { method: 'POST', path: '/share' },
-];
+export const API_ROUTES: readonly ({ method: string } & ({ path: string } | { prefix: string }))[] =
+  [
+    { method: 'GET', path: '/health' },
+    { method: 'HEAD', path: '/health' },
+    { method: 'POST', path: '/oauth/strava/token' },
+    { method: 'POST', path: '/oauth/strava/refresh' },
+    { method: 'POST', path: '/oauth/rwgps/token' },
+    { method: 'POST', path: '/oauth/rwgps/refresh' },
+    { method: 'GET', prefix: '/proxy/strava/' },
+    { method: 'POST', prefix: '/proxy/strava/' },
+    { method: 'GET', prefix: '/proxy/rwgps/' },
+    { method: 'POST', prefix: '/proxy/rwgps/' },
+    { method: 'POST', path: '/ai/plan' },
+    { method: 'POST', path: '/share' },
+  ];
 
 export function isApiRoute(method: string, pathname: string): boolean {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
-  return API_ROUTES.some((r) => r.method === method.toUpperCase() && r.path === path);
+  const verb = method.toUpperCase();
+  return API_ROUTES.some((r) => {
+    if (r.method !== verb) return false;
+    if ('path' in r) return r.path === path;
+    return path.startsWith(r.prefix) && path.length > r.prefix.length;
+  });
 }
 
 /** 10 base62 characters, as minted by the share store. */

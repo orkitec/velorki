@@ -12,6 +12,11 @@ import { ShareStore } from '@/share/store';
 
 export { resetSingletons };
 
+/** Two wrapping keys: `k2` is current, `k1` still unwraps (a rotation in progress). */
+export const WRAP_KEY_1 = 'k1:' + Buffer.alloc(32, 1).toString('base64');
+export const WRAP_KEY_2 = 'k2:' + Buffer.alloc(32, 2).toString('base64');
+export const TEST_WRAP_KEYS = `${WRAP_KEY_2},${WRAP_KEY_1}`;
+
 /** Build a Config from an explicit env map, ignoring the real process env. */
 export function testConfig(env: Record<string, string> = {}): Config {
   return loadConfig({
@@ -20,6 +25,7 @@ export function testConfig(env: Record<string, string> = {}): Config {
     REVENUECAT_MODE: 'stub',
     LOG_LEVEL: 'silent',
     COUNTERS: 'memory',
+    TOKEN_WRAP_KEYS: TEST_WRAP_KEYS,
     ...env,
   });
 }
