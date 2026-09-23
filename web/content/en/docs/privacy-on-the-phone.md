@@ -18,7 +18,7 @@ Everything you make and everything you download:
 
 None of it is uploaded anywhere unless you ask for it.
 
-On Android, Velorki is deliberately left out of Google's cloud backup and out of device-to-device transfer, so your rides do not get copied off the phone by the system either. Moving to a new phone means exporting what you want to keep as GPX or FIT files, see [import and export](./import-and-export).
+On Android, Velorki is deliberately left out of Google's cloud backup and out of device-to-device transfer, so your rides do not get copied off the phone by the system either. Moving to a new phone means exporting what you want to keep as GPX, FIT or TCX files, see [import and export](./import-and-export).
 
 ## What leaves the phone, and when
 
@@ -50,7 +50,7 @@ Only with your consent, and only what you allowed: your text, optionally a posit
 
 Nothing goes to either until you connect the account and then ask for something, an upload or an import.
 
-Connecting hands a one-time code to the Velorki relay, which turns it into an access token by adding our application secret, and gives the token to your phone wrapped, so that only the relay can open it. We do not keep the token. After that every upload and import passes through the relay: it checks your subscription, counts the transfer, opens the token for that one request and forwards it to Strava or Ride with GPS. It keeps neither the file nor the token, and cannot use the token on its own.
+Connecting hands a one-time code to the Velorki relay, which turns it into an access token by adding our application secret, and gives the token to your phone wrapped, so that only the relay can open it. We do not keep the token. After that every upload and import passes through the relay: it checks your subscription, opens the token for that one request and forwards it to Strava or Ride with GPS. It keeps neither the file nor the token, and cannot use the token on its own.
 
 ### When you make a share link
 
@@ -82,7 +82,7 @@ Uninstalling does not remove share links you created, and it does not remove any
 
 ## Your rights
 
-If you are in the EU or the UK, the GDPR gives you rights over your personal data. Most of them you can exercise yourself, because the data is on your phone and exports as GPX or FIT at any time. For anything on our side, which is share links, log entries and the subscription record, write to [hello@orkitec.com](mailto:hello@orkitec.com). The full statement, including the legal basis and who to complain to, is in the [privacy policy](/privacy).
+If you are in the EU or the UK, the GDPR gives you rights over your personal data. Most of them you can exercise yourself, because the data is on your phone and exports as GPX, FIT or TCX at any time. For anything on our side, which is share links, log entries and the subscription record, write to [hello@orkitec.com](mailto:hello@orkitec.com). The full statement, including the legal basis and who to complain to, is in the [privacy policy](/privacy).
 
 ## Related
 

@@ -84,6 +84,11 @@ export class MemoryCounters implements Counters {
   clear(): void {
     this.#store.clear();
   }
+
+  /** Test helper: every live key, so a test can prove what a call left. */
+  keys(): string[] {
+    return [...this.#store.keys()].filter((key) => this.#live(key) !== undefined);
+  }
 }
 
 type OrkifyCache = {

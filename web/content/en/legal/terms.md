@@ -71,7 +71,7 @@ is binding.
 
 Everything that runs on your phone is free and stays free: planning, smart
 loops, offline maps and offline routing, place search, turn-by-turn navigation,
-recording, ride statistics, and GPX and FIT import and export.
+recording, ride statistics, and GPX, FIT and TCX import and export.
 
 **Velorki Plus** is an optional subscription for the features that need our
 servers or an account with another service: the Strava connection, the Ride
@@ -258,8 +258,8 @@ Because the free part of Velorki is provided free of charge, our liability for
 it is limited to intent and gross negligence to the extent the law allows
 (§ 521, § 599 BGB apply analogously).
 
-Loss of data: back up what matters to you. Export your routes and rides as GPX
-or FIT files. We are liable for loss of data only up to the effort of restoring
+Loss of data: back up what matters to you. Export your routes and rides as GPX,
+FIT or TCX files. We are liable for loss of data only up to the effort of restoring
 it from a backup you kept properly.
 
 ## 12. Changes to these terms

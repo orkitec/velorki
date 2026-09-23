@@ -5,7 +5,6 @@ import { ApiError } from './errors';
 import { requireEntitlement } from './entitlement';
 import { LIMITS, enforce } from './ratelimit';
 import { getConfig, getCounters, getEntitlement } from './singletons';
-import type { Counters } from './counters';
 import {
   REWRAPPED_HEADER,
   TOKEN_HEADER,
@@ -24,15 +23,15 @@ import {
  * is not one of the calls the app makes, unwraps the token in memory, puts it
  * on as `Authorization: Bearer` and streams the body to the service and the
  * answer back, status and all. Nothing is buffered beyond what the network
- * needs and nothing is stored: not the file, not the token, not the answer.
- * The counters record that a call happened, per rider, service and operation,
- * and that is the whole record of it.
+ * needs and nothing is stored: not the file, not the token, not the answer,
+ * and no record of who called what. The per-rider rate-limit windows are the
+ * only state a call leaves, and the host's per-route metrics give the totals.
  */
 
 interface UpstreamRoute {
   readonly method: 'GET' | 'POST';
   readonly pattern: RegExp;
-  /** Counter and log name; no ids, so two riders' calls share one bucket. */
+  /** The log name; no ids, so a line names the kind of call, never the call. */
   readonly operation: string;
   /**
    * The call authenticates with the client secret rather than the bearer:
@@ -124,8 +123,6 @@ const FORWARDED_RESPONSE_HEADERS = [
 /** Query parameters that never go upstream: a token in a URL ends up in logs. */
 const DROPPED_QUERY = ['access_token'];
 
-const COUNTER_TTL_S = 8 * 86_400;
-
 /** The upstream path of a request, i.e. what follows `/proxy/<service>`. */
 export function upstreamPath(pathname: string, service: WrappedService): string | undefined {
   const marker = `/proxy/${service}/`;
@@ -142,45 +139,6 @@ export function matchUpstream(
 ): UpstreamRoute | undefined {
   const verb = method.toUpperCase();
   return UPSTREAMS[service].routes.find((r) => r.method === verb && r.pattern.test(path));
-}
-
-/** UTC day of `now`, the granularity the counters are kept at. */
-function dayOf(now: number): string {
-  return new Date(now).toISOString().slice(0, 10);
-}
-
-export function usageKey(
-  service: WrappedService,
-  operation: string,
-  day: string,
-  userId?: string,
-): string {
-  const base = `px:${service}:${operation}:${day}`;
-  return userId === undefined ? base : `${base}:u:${userId}`;
-}
-
-/** One more call: the per-rider count and the per-operation total. */
-export async function recordUsage(
-  counters: Counters,
-  service: WrappedService,
-  operation: string,
-  userId: string,
-  now: number = Date.now(),
-): Promise<void> {
-  const day = dayOf(now);
-  await counters.incr(usageKey(service, operation, day), 1, { ttlIfNew: COUNTER_TTL_S });
-  await counters.incr(usageKey(service, operation, day, userId), 1, { ttlIfNew: COUNTER_TTL_S });
-}
-
-/** How many calls were forwarded today, for one rider or for everyone. */
-export async function proxyUsage(
-  counters: Counters,
-  service: WrappedService,
-  operation: string,
-  opts: { userId?: string; now?: number } = {},
-): Promise<number> {
-  const key = usageKey(service, operation, dayOf(opts.now ?? Date.now()), opts.userId);
-  return (await counters.get<number>(key)) ?? 0;
 }
 
 /** `TimeoutError`, `AbortError` or the socket code behind a `fetch failed`. */
@@ -303,7 +261,6 @@ export async function forward(
     throw new ApiError('upstream_error', `Could not reach ${upstream.label}.`);
   }
 
-  await recordUsage(counters, service, route.operation, appUserId);
   ctx.log.info(
     { service, operation: route.operation, status: res.status, ms: Date.now() - started },
     'forwarded',

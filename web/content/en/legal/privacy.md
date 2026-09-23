@@ -36,17 +36,18 @@ health app are stored with the ride, on the phone, like the track itself. With
 the Health switch on in Settings, the app reads heart rate from Apple Health or
 Health Connect and writes your finished rides there as cycling workouts; that
 exchange happens on your phone and none of it reaches us. Sensor values travel
-with a ride only where the ride does: in a GPX or FIT file you export, or in an
+with a ride only where the ride does: in a GPX, FIT or TCX file you export, or in an
 upload to Strava or RideWithGPS that you start.
 
 If you connect Strava or RideWithGPS, the access tokens for those accounts are
-stored in the phone's secure storage (Keychain on iOS, Keystore on Android) and
-stay there.
+stored in the phone's secure storage (Keychain on iOS, Keystore on Android), in
+an encrypted form that only our relay can open; see the Strava and RideWithGPS
+section below.
 
 On Android, the app is excluded from Google's cloud backup and from
 device-to-device transfer, so your rides and your access tokens are not copied
 off the phone by the system either. Moving to a new phone means exporting what
-you want to keep as GPX or FIT files.
+you want to keep as GPX, FIT or TCX files.
 
 ## What leaves your device, and when
 
@@ -82,10 +83,18 @@ Nothing is sent to Strava or RideWithGPS unless you connect the account
 yourself and then trigger an action: uploading a ride, importing a route.
 
 When you connect, the app hands a one-time code to our relay server, which
-exchanges it for an access token by adding our application secret, and gives
-the token back to the app. We do not store the token; your phone does. After
-that, your phone talks to Strava and to RideWithGPS **directly** with your own
-token. Your rides and routes do not pass through our servers.
+exchanges it for an access token by adding our application secret, encrypts
+the token with a key only the relay holds, and gives it back to the app in that
+form. Your phone stores the encrypted token; it cannot use it on its own, and
+we do not store it at all.
+
+After that, every upload, route transfer, import and disconnect you trigger
+passes through the relay: it checks that your subscription is active, decrypts
+the token for that one request, forwards the request to Strava or RideWithGPS
+and passes the answer back to the app. It keeps neither the file nor the
+token, and nothing of the answer, and it applies the same rate limiting as
+every other relay call (see Server logs below). Its logs never contain the
+token, the request body or the subscriber id.
 
 What Strava or RideWithGPS then do with the data you send them is governed by
 their own privacy policies.
@@ -163,7 +172,7 @@ They are not used to build profiles of users.
 | Data | Kept | How to delete it |
 |---|---|---|
 | Routes, rides, settings, offline data | on your phone, until you delete them | delete them in the app, or uninstall the app |
-| Strava / RideWithGPS tokens | on your phone, until you disconnect | disconnect in the app, or uninstall |
+| Strava / RideWithGPS tokens | on your phone, encrypted so that only our relay can open them, until you disconnect; never stored on our side | disconnect in the app, or uninstall |
 | Share links | one year, then deleted automatically | delete them from the app |
 | AI prompts | not stored by us beyond what the logs above contain | not applicable |
 | RevenueCat data | per RevenueCat's own policy | contact us and we will pass the request on |
@@ -178,7 +187,7 @@ RideWithGPS.
 If you are in the EU or the UK, the GDPR gives you the right to access, correct
 and delete your personal data, to restrict or object to its processing, and to
 receive it in a portable form. Most of that you can exercise yourself, because
-the data is on your phone and can be exported as GPX or FIT files at any time.
+the data is on your phone and can be exported as GPX, FIT or TCX files at any time.
 
 For anything held on our side (share links, log entries, the RevenueCat
 record) write to **ride@velorki.com**. We will need enough information to

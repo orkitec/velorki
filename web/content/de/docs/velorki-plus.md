@@ -19,7 +19,7 @@ Kostenlos, für alle, auf Dauer:
 - Navigation mit Abbiegeband und Sprachansagen,
 - Fahrten aufzeichnen, auch mit ausgeschaltetem Bildschirm und im Hintergrund,
 - Blätter der Fahrten mit Diagrammen, Splits und dem nach Tempo eingefärbten Track,
-- GPX- und FIT-Import und -Export, in jede Richtung,
+- GPX-, FIT- und TCX-Import und -Export, in jede Richtung,
 - den Teilen-Link von jemand anderem öffnen.
 
 Die Routing-Daten und der Suchindex werden für dich kostenlos gespiegelt.

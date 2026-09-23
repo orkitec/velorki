@@ -70,7 +70,7 @@ A ride that followed a route shows that route under the track, in the quieter co
 
 ### Figures from a sensor
 
-A ride recorded with a heart-rate strap, an Apple Watch or a power meter carries more than the seven: **Avg HR**, **Max HR**, **Avg cadence**, **Max cadence**, **Avg power**, **Max power** and **Norm. power** join the figures, each one only if the ride has it, and the **Heart rate** chart is drawn under the speed chart. **Norm. power** is the meter's readings weighted the way the legs feel them: the power on a one second grid, its 30 s rolling mean, each mean raised to the fourth power, those averaged and the fourth root taken. A steady ride comes out at its average; a ride of surges and rests comes out higher. It needs at least half a minute of readings in one piece, and a gap of more than five seconds in the meter starts a new piece. With **Power zones** on and a threshold set, **Intensity** stands beside it: normalised power divided by your threshold power, so 0.80 is a ride at four fifths of what you can hold for an hour. A ride recorded without a sensor shows none of it, and a ride imported from a GPX or FIT file shows whatever that file carried. See [sensors and your watch](./sensors-and-watch).
+A ride recorded with a heart-rate strap, an Apple Watch or a power meter carries more than the seven: **Avg HR**, **Max HR**, **Avg cadence**, **Max cadence**, **Avg power**, **Max power** and **Norm. power** join the figures, each one only if the ride has it, and the **Heart rate** chart is drawn under the speed chart. **Norm. power** is the meter's readings weighted the way the legs feel them: the power on a one second grid, its 30 s rolling mean, each mean raised to the fourth power, those averaged and the fourth root taken. A steady ride comes out at its average; a ride of surges and rests comes out higher. It needs at least half a minute of readings in one piece, and a gap of more than five seconds in the meter starts a new piece. With **Power zones** on and a threshold set, **Intensity** stands beside it: normalised power divided by your threshold power, so 0.80 is a ride at four fifths of what you can hold for an hour. A ride recorded without a sensor shows none of it, and a ride imported from a GPX, FIT or TCX file shows whatever that file carried. See [sensors and your watch](./sensors-and-watch).
 
 ### Calories, heart-rate zones, power zones and estimated power
 
@@ -108,7 +108,7 @@ Under the climbs, a **Surface** bar like the one on a route card: how much of th
 
 The two buttons at the right of the card's header:
 
-- **Import file** opens the phone's file picker for a GPX or FIT file.
+- **Import file** opens the phone's file picker for a GPX, FIT or TCX file.
 - The cloud button offers **Import from Strava** and **Import from Ride with GPS**, when those services are configured.
 
 Both are covered in [import and export](./import-and-export) and [Strava and Ride with GPS](./strava-and-ridewithgps).

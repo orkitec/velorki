@@ -74,7 +74,7 @@ and hides the Plus features — see [SELF_HOSTING.md](SELF_HOSTING.md).
                               ├─ OAuth code → token (secrets added) → Strava,
                               │  RideWithGPS; tokens handed back wrapped, and
                               │  every service call passes through /proxy/*
-                              │  (entitlement, count, unwrap, forward, keep nothing)
+                              │  (entitlement, unwrap, forward, keep nothing)
                               ├─ AI: prompt → an OpenAI-compatible LLM provider
                               └─ share links
 ```
@@ -333,7 +333,7 @@ exchange the code **through the relay**, store the tokens in secure storage
 **as the relay wrapped them** (AES-GCM under a key only the relay has); a dio
 interceptor refreshes 60 s before expiry. Every service call goes through the
 relay's `/proxy/<service>/…` with the wrapped token in `X-Velorki-Token`: the
-relay checks the entitlement, counts the call, unwraps in memory, forwards
+relay checks the entitlement, unwraps in memory, forwards
 with the service's bearer and streams the answer back, storing nothing; a
 token under a retired key comes back re-wrapped and replaces the stored one.
 Strava rides go up as multipart uploads, polled with backoff and then linked

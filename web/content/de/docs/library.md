@@ -70,7 +70,7 @@ Eine Fahrt, die einer Route gefolgt ist, zeigt diese Route unter dem Track, in d
 
 ### Zahlen von einem Sensor
 
-Eine Fahrt, die mit Pulsgurt, Apple Watch oder Leistungsmesser aufgezeichnet wurde, trägt mehr als die sieben: **Ø Puls**, **Max Puls**, **Ø Kadenz**, **Max Kadenz**, **Ø Leistung**, **Max Leistung** und **Norm. Leistung** kommen zu den Zahlen dazu, jede nur, wenn die Fahrt sie hat, und unter dem Tempo-Diagramm wird das Diagramm **Herzfrequenz** gezeichnet. **Norm. Leistung** sind die Werte des Leistungsmessers so gewichtet, wie die Beine sie spüren: die Leistung auf einem Sekundenraster, davon der gleitende 30-s-Mittelwert, jeder Mittelwert hoch vier, daraus der Durchschnitt und davon die vierte Wurzel. Eine gleichmäßige Fahrt kommt bei ihrem Durchschnitt heraus; eine Fahrt aus Antritten und Pausen darüber. Sie braucht mindestens eine halbe Minute Werte am Stück, und eine Lücke von mehr als fünf Sekunden im Messgerät beginnt ein neues Stück. Mit eingeschalteten **Leistungszonen** und einer Schwelle steht **Intensität** daneben: normalisierte Leistung geteilt durch deine Schwellenleistung, 0,80 ist also eine Fahrt bei vier Fünfteln dessen, was du eine Stunde halten kannst. Eine ohne Sensor aufgezeichnete Fahrt zeigt nichts davon, und eine aus einer GPX- oder FIT-Datei importierte zeigt, was diese Datei mitbrachte. Siehe [Sensoren und deine Uhr](./sensors-and-watch).
+Eine Fahrt, die mit Pulsgurt, Apple Watch oder Leistungsmesser aufgezeichnet wurde, trägt mehr als die sieben: **Ø Puls**, **Max Puls**, **Ø Kadenz**, **Max Kadenz**, **Ø Leistung**, **Max Leistung** und **Norm. Leistung** kommen zu den Zahlen dazu, jede nur, wenn die Fahrt sie hat, und unter dem Tempo-Diagramm wird das Diagramm **Herzfrequenz** gezeichnet. **Norm. Leistung** sind die Werte des Leistungsmessers so gewichtet, wie die Beine sie spüren: die Leistung auf einem Sekundenraster, davon der gleitende 30-s-Mittelwert, jeder Mittelwert hoch vier, daraus der Durchschnitt und davon die vierte Wurzel. Eine gleichmäßige Fahrt kommt bei ihrem Durchschnitt heraus; eine Fahrt aus Antritten und Pausen darüber. Sie braucht mindestens eine halbe Minute Werte am Stück, und eine Lücke von mehr als fünf Sekunden im Messgerät beginnt ein neues Stück. Mit eingeschalteten **Leistungszonen** und einer Schwelle steht **Intensität** daneben: normalisierte Leistung geteilt durch deine Schwellenleistung, 0,80 ist also eine Fahrt bei vier Fünfteln dessen, was du eine Stunde halten kannst. Eine ohne Sensor aufgezeichnete Fahrt zeigt nichts davon, und eine aus einer GPX-, FIT- oder TCX-Datei importierte zeigt, was diese Datei mitbrachte. Siehe [Sensoren und deine Uhr](./sensors-and-watch).
 
 ### Kalorien, Pulszonen, Leistungszonen und geschätzte Leistung
 
@@ -108,7 +108,7 @@ Unter den Anstiegen ein Balken **Belag** wie im Blatt einer Route: wie viel der 
 
 Die beiden Schaltflächen rechts in der Kopfzeile des Blatts:
 
-- **Datei importieren** öffnet die Dateiauswahl des Handys für eine GPX- oder FIT-Datei.
+- **Datei importieren** öffnet die Dateiauswahl des Handys für eine GPX-, FIT- oder TCX-Datei.
 - Die Wolken-Schaltfläche bietet **Aus Strava importieren** und **Aus Ride with GPS importieren**, sofern diese Dienste eingerichtet sind.
 
 Beides steht unter [Import und Export](./import-and-export) und [Strava und Ride with GPS](./strava-and-ridewithgps).

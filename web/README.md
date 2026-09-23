@@ -71,9 +71,8 @@ every service call goes through `/proxy/<service>/…` with the wrapped token in
 allowlist, unwraps in memory, forwards with `Authorization: Bearer`, streams
 the answer back and keeps nothing. A token that arrived under an older key is
 re-wrapped with the current one and returned in `X-Velorki-Token-Rewrapped`;
-the phone replaces what it stored. Per rider, service and operation the
-counters keep a daily count (`px:<service>:<op>:<day>[:u:<id>]`,
-`proxyUsage()` reads it), which is the whole record of a call.
+the phone replaces what it stored. A call leaves nothing behind but its
+per-rider rate-limit window; the host's per-route metrics give the totals.
 
 ### Conventions
 

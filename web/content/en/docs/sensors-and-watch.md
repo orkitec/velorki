@@ -119,13 +119,13 @@ A ride's card in the [library](./library) grows what that ride actually carries:
 - **Avg HR**, **Max HR**, **Avg cadence** and **Avg power** among the figures, each one only if the ride has it,
 - a **Heart rate** chart under the speed chart, which you can drag along for a read-out at any distance.
 
-The **Splits** table is unchanged: **Split**, **Moving**, **Avg** and **Ascent**, with no sensor columns. A ride imported from a GPX or FIT file brings its heart rate, cadence and power with it and shows them the same way.
+The **Splits** table is unchanged: **Split**, **Moving**, **Avg** and **Ascent**, with no sensor columns. A ride imported from a GPX, FIT or TCX file brings its heart rate, cadence and power with it and shows them the same way.
 
 ## What is stored, and what leaves the phone
 
 The readings are part of the ride: a heart rate, a cadence and a power value on each point of the track, and the averages and the maximum heart rate among its figures. They live in Velorki's own storage on the phone, with the track.
 
-Nothing is uploaded by itself. A GPX or FIT export carries the values along with the track, so a ride you export or send to Strava or Ride with GPS arrives complete. The exchange with Apple Health or Health Connect happens on the phone. See [privacy on the phone](./privacy-on-the-phone) for the whole picture.
+Nothing is uploaded by itself. A GPX, FIT or TCX export carries the values along with the track, so a ride you export or send to Strava or Ride with GPS arrives complete. The exchange with Apple Health or Health Connect happens on the phone. See [privacy on the phone](./privacy-on-the-phone) for the whole picture.
 
 ## Related
 

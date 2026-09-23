@@ -7,7 +7,7 @@ an OAuth code for tokens and hands them to the phone **wrapped** (AES-GCM
 under its own key), the phone stores that form in secure storage, and every
 service call goes to `<relay>/proxy/<service>/<upstream path>` with the
 wrapped token in `X-Velorki-Token` and the relay's own bearer. The relay
-checks the subscription, counts the call, opens the token in memory, forwards
+checks the subscription, opens the token in memory, forwards
 the call with `Authorization: Bearer` and streams the answer back. It keeps
 neither the file nor the token, and the phone never holds a token in clear.
 

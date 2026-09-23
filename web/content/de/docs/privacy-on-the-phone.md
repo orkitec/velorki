@@ -18,7 +18,7 @@ Alles, was du machst, und alles, was du herunterlädst:
 
 Nichts davon geht irgendwohin hoch, außer du forderst es an.
 
-Unter Android ist Velorki bewusst aus Googles Cloud-Sicherung und aus der Übertragung von Gerät zu Gerät ausgenommen, deine Fahrten werden also auch vom System nicht vom Handy kopiert. Der Umzug auf ein neues Handy heißt, das Gewünschte als GPX- oder FIT-Datei zu exportieren, siehe [Import und Export](./import-and-export).
+Unter Android ist Velorki bewusst aus Googles Cloud-Sicherung und aus der Übertragung von Gerät zu Gerät ausgenommen, deine Fahrten werden also auch vom System nicht vom Handy kopiert. Der Umzug auf ein neues Handy heißt, das Gewünschte als GPX-, FIT- oder TCX-Datei zu exportieren, siehe [Import und Export](./import-and-export).
 
 ## Was das Handy verlässt und wann
 
@@ -50,7 +50,7 @@ Nur mit deiner Zustimmung und nur, was du erlaubt hast: dein Text, auf Wunsch ei
 
 An keinen der beiden geht etwas, bevor du das Konto verbunden und dann etwas angefordert hast, einen Upload oder einen Import.
 
-Beim Verbinden geht ein Einmalcode an den Velorki-Relay, der ihn mit unserem Anwendungsgeheimnis in einen Zugriffstoken tauscht und den Token deinem Handy verschlüsselt gibt, sodass nur der Relay ihn öffnen kann. Wir behalten den Token nicht. Danach läuft jeder Upload und jeder Import über den Relay: Er prüft dein Abo, zählt die Übertragung, öffnet den Token für diese eine Anfrage und leitet sie an Strava oder Ride with GPS weiter. Er behält weder die Datei noch den Token und kann den Token allein nicht verwenden.
+Beim Verbinden geht ein Einmalcode an den Velorki-Relay, der ihn mit unserem Anwendungsgeheimnis in einen Zugriffstoken tauscht und den Token deinem Handy verschlüsselt gibt, sodass nur der Relay ihn öffnen kann. Wir behalten den Token nicht. Danach läuft jeder Upload und jeder Import über den Relay: Er prüft dein Abo, öffnet den Token für diese eine Anfrage und leitet sie an Strava oder Ride with GPS weiter. Er behält weder die Datei noch den Token und kann den Token allein nicht verwenden.
 
 ### Wenn du einen Teilen-Link machst
 
@@ -82,7 +82,7 @@ Das Deinstallieren entfernt keine von dir erstellten Teilen-Links, und es entfer
 
 ## Deine Rechte
 
-Wenn du in der EU oder im Vereinigten Königreich bist, gibt dir die DSGVO Rechte an deinen personenbezogenen Daten. Die meisten davon kannst du selbst wahrnehmen, weil die Daten auf deinem Handy liegen und sich jederzeit als GPX oder FIT exportieren lassen. Für alles auf unserer Seite, also Teilen-Links, Protokolleinträge und den Abo-Datensatz, schreib an [hello@orkitec.com](mailto:hello@orkitec.com). Die vollständige Darstellung, samt Rechtsgrundlage und Beschwerdestelle, steht in der [Datenschutzerklärung](/privacy).
+Wenn du in der EU oder im Vereinigten Königreich bist, gibt dir die DSGVO Rechte an deinen personenbezogenen Daten. Die meisten davon kannst du selbst wahrnehmen, weil die Daten auf deinem Handy liegen und sich jederzeit als GPX, FIT oder TCX exportieren lassen. Für alles auf unserer Seite, also Teilen-Links, Protokolleinträge und den Abo-Datensatz, schreib an [hello@orkitec.com](mailto:hello@orkitec.com). Die vollständige Darstellung, samt Rechtsgrundlage und Beschwerdestelle, steht in der [Datenschutzerklärung](/privacy).
 
 ## Weiterlesen
 

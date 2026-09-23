@@ -71,11 +71,11 @@ If the chosen voice is marked **Needs internet**, it is generated on a server: w
 
 ## A file will not import
 
-Velorki reads GPX and FIT, and decides by the bytes, not the file name.
+Velorki reads GPX, FIT and TCX, and decides by the bytes, not the file name.
 
 | Message | Meaning |
 |---|---|
-| "That is not a GPX or FIT file." | the content is neither format, whatever the name says |
+| "That is not a GPX, FIT or TCX file." | the content is none of the three formats, whatever the name says |
 | "That file could not be read." | the file is one of the two but damaged |
 | "That file has no track points." | an empty file, or a GPX with only waypoints |
 | "That file could not be opened." | the system would not hand the file over |

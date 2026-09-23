@@ -43,17 +43,18 @@ Track selbst. Ist der Health-Schalter in den Einstellungen an, liest die App
 den Puls aus Apple Health oder Health Connect und schreibt deine beendeten
 Fahrten dort als Radfahr-Trainings hinein; dieser Austausch findet auf deinem
 Handy statt, und nichts davon erreicht uns. Sensorwerte verlassen das Handy nur
-dort, wo die Fahrt es tut: in einer GPX- oder FIT-Datei, die du exportierst,
+dort, wo die Fahrt es tut: in einer GPX-, FIT- oder TCX-Datei, die du exportierst,
 oder in einem Upload zu Strava oder RideWithGPS, den du anstößt.
 
 Verbindest du Strava oder RideWithGPS, liegen die Zugriffstoken für diese
 Konten im sicheren Speicher des Handys (Keychain unter iOS, Keystore unter
-Android) und bleiben dort.
+Android), in einer verschlüsselten Form, die nur unser Relay öffnen kann; siehe
+den Abschnitt zu Strava und RideWithGPS unten.
 
 Unter Android ist die App aus Googles Cloud-Sicherung und aus der Übertragung
 von Gerät zu Gerät ausgenommen, deine Fahrten und deine Zugriffstoken werden
 also auch vom System nicht vom Handy kopiert. Der Umzug auf ein neues Handy
-heißt, das Gewünschte als GPX- oder FIT-Datei zu exportieren.
+heißt, das Gewünschte als GPX-, FIT- oder TCX-Datei zu exportieren.
 
 ## Was dein Gerät verlässt und wann
 
@@ -92,10 +93,19 @@ und löst dann eine Aktion aus: eine Fahrt hochladen, eine Route importieren.
 
 Beim Verbinden übergibt die App einen Einmalcode an unseren Relay-Server, der
 ihn unter Zugabe unseres Anwendungsgeheimnisses gegen einen Zugriffstoken
-tauscht und den Token an die App zurückgibt. Wir speichern den Token nicht;
-dein Handy tut es. Danach spricht dein Handy mit deinem eigenen Token
-**direkt** mit Strava und mit RideWithGPS. Deine Fahrten und Routen laufen über
-keinen unserer Server.
+tauscht, den Token mit einem Schlüssel verschlüsselt, den nur der Relay hat,
+und ihn in dieser Form an die App zurückgibt. Dein Handy speichert den
+verschlüsselten Token; es kann ihn allein nicht verwenden, und wir speichern
+ihn gar nicht.
+
+Danach läuft jeder Upload, jede Routenübertragung, jeder Import und jedes
+Trennen, das du auslöst, über den Relay: Er prüft, dass dein Abo aktiv ist,
+entschlüsselt den Token für diese eine Anfrage, leitet die Anfrage an Strava
+oder RideWithGPS weiter und gibt die Antwort an die App zurück. Er behält weder
+die Datei noch den Token und nichts von der Antwort, und er wendet dieselbe
+Ratenbegrenzung an wie bei jedem anderen Aufruf des Relays (siehe
+Server-Protokolle unten). Seine Protokolle enthalten nie den Token, den Inhalt
+der Anfrage oder die Abonnenten-ID.
 
 Was Strava oder RideWithGPS dann mit den Daten machen, die du ihnen schickst,
 richtet sich nach deren eigenen Datenschutzerklärungen.
@@ -179,7 +189,7 @@ nicht dazu genutzt, Profile von Nutzenden zu bilden.
 | Daten | Aufbewahrt | Wie du sie löschst |
 |---|---|---|
 | Routen, Fahrten, Einstellungen, Offline-Daten | auf deinem Handy, bis du sie löschst | in der App löschen oder die App deinstallieren |
-| Token von Strava / RideWithGPS | auf deinem Handy, bis du trennst | in der App trennen oder deinstallieren |
+| Token von Strava / RideWithGPS | auf deinem Handy, so verschlüsselt, dass nur unser Relay sie öffnen kann, bis du trennst; nie bei uns gespeichert | in der App trennen oder deinstallieren |
 | Teilen-Links | ein Jahr, dann automatisch gelöscht | in der App löschen |
 | KI-Anfragen | von uns nicht gespeichert, über die oben genannten Protokolle hinaus | entfällt |
 | Daten bei RevenueCat | nach der eigenen Erklärung von RevenueCat | schreib uns, und wir geben die Anfrage weiter |
@@ -195,8 +205,8 @@ Wenn du in der EU oder im Vereinigten Königreich bist, gibt dir die DSGVO das
 Recht, deine personenbezogenen Daten einzusehen, zu berichtigen und zu löschen,
 ihre Verarbeitung einzuschränken oder ihr zu widersprechen und sie in einem
 übertragbaren Format zu erhalten. Das meiste davon kannst du selbst wahrnehmen,
-weil die Daten auf deinem Handy liegen und sich jederzeit als GPX- oder
-FIT-Datei exportieren lassen.
+weil die Daten auf deinem Handy liegen und sich jederzeit als GPX-, FIT-
+oder TCX-Datei exportieren lassen.
 
 Für alles, was auf unserer Seite liegt (Teilen-Links, Protokolleinträge, der
 Datensatz bei RevenueCat), schreib an **ride@velorki.com**. Wir brauchen genug

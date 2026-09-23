@@ -19,7 +19,7 @@ Free, for everyone, for good:
 - turn-by-turn navigation with the turn banner and the spoken cues,
 - recording rides, including with the screen off and in the background,
 - ride cards with the charts, the splits and the speed-coloured track,
-- GPX and FIT import and export, in every direction,
+- GPX, FIT and TCX import and export, in every direction,
 - opening someone else's share link.
 
 The routing data and the search index are mirrored for you at no charge.

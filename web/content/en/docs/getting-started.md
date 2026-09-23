@@ -52,7 +52,7 @@ Asked once, ever, the first time you start a ride: **Keep recording in the backg
 
 ### Files
 
-No standing permission. When you import a GPX or FIT file, the system file picker hands that one file to the app; when you export, the system share sheet takes it away again.
+No standing permission. When you import a GPX, FIT or TCX file, the system file picker hands that one file to the app; when you export, the system share sheet takes it away again.
 
 Velorki asks for nothing else. There is no contacts, photos, microphone, health or advertising access anywhere in the app.
 

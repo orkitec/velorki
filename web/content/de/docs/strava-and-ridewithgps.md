@@ -4,7 +4,7 @@ description: Dein Strava- oder Ride-with-GPS-Konto verbinden, Fahrten hochladen 
 order: 11
 ---
 
-Velorki kann in deinem Namen mit Strava und mit Ride with GPS sprechen: eine aufgezeichnete Fahrt hochladen und deine Routen aus diesen Konten in die Bibliothek holen. Einen der beiden Dienste zu verbinden gehört zu [Velorki Plus](./velorki-plus); GPX- und FIT-Dateien bleiben kostenlos und erledigen dieselbe Aufgabe von Hand.
+Velorki kann in deinem Namen mit Strava und mit Ride with GPS sprechen: eine aufgezeichnete Fahrt hochladen und deine Routen aus diesen Konten in die Bibliothek holen. Einen der beiden Dienste zu verbinden gehört zu [Velorki Plus](./velorki-plus); GPX-, FIT- und TCX-Dateien bleiben kostenlos und erledigen dieselbe Aufgabe von Hand.
 
 An keinen der beiden Dienste geht etwas, bevor du das Konto selbst verbunden und dann etwas angefordert hast.
 
@@ -15,7 +15,7 @@ An keinen der beiden Dienste geht etwas, bevor du das Konto selbst verbunden und
 3. Die Anmeldeseite des Dienstes öffnet sich im Browser. Melde dich dort an und bestätige den Zugriff.
 4. Du kommst zurück zu Velorki, und in der Zeile steht dein Name statt **Nicht verbunden**.
 
-Dein Handy bewahrt den Zugriffstoken im sicheren Speicher des Handys auf, in einer Form, die nur der Velorki-Server öffnen kann. Von da an läuft jeder Upload und jeder Import über diesen Server: Er prüft dein Abo, zählt die Übertragung, öffnet den Token für diese eine Anfrage und leitet sie weiter. Er behält weder die Datei noch den Token und kann den Token allein nicht verwenden.
+Dein Handy bewahrt den Zugriffstoken im sicheren Speicher des Handys auf, in einer Form, die nur der Velorki-Server öffnen kann. Von da an läuft jeder Upload und jeder Import über diesen Server: Er prüft dein Abo, öffnet den Token für diese eine Anfrage und leitet sie weiter. Er behält weder die Datei noch den Token und kann den Token allein nicht verwenden.
 
 Scheitert ein Verbindungsversuch, sagt Velorki "Verbindung fehlgeschlagen:" mit dem Grund. Brichst du die Anmeldeseite ab, sagt es gar nichts.
 
@@ -68,8 +68,8 @@ Tippe auf **GPX exportieren**, speichere oder verschicke die Datei und lade sie 
 | Eine Fahrt zu einem der beiden hochladen | ja |
 | Routen aus einem der beiden importieren | ja |
 | Eine Route an Ride with GPS senden | ja |
-| GPX oder FIT exportieren und selbst hochladen | nein |
-| Eine GPX- oder FIT-Datei aus einem der Dienste importieren | nein |
+| GPX, FIT oder TCX exportieren und selbst hochladen | nein |
+| Eine GPX-, FIT- oder TCX-Datei aus einem der Dienste importieren | nein |
 
 ## Eine Anmerkung zu Assistent und Strava
 

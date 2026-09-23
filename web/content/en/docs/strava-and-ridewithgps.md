@@ -4,7 +4,7 @@ description: Connect your Strava or Ride with GPS account to upload recorded rid
 order: 11
 ---
 
-Velorki can talk to Strava and to Ride with GPS on your behalf: upload a ride you recorded, and pull your routes from those accounts into your library. Connecting either service is part of [Velorki Plus](./velorki-plus); GPX and FIT files stay free and do the same job by hand.
+Velorki can talk to Strava and to Ride with GPS on your behalf: upload a ride you recorded, and pull your routes from those accounts into your library. Connecting either service is part of [Velorki Plus](./velorki-plus); GPX, FIT and TCX files stay free and do the same job by hand.
 
 Nothing is sent to either service until you connect the account yourself and then ask for something.
 
@@ -15,7 +15,7 @@ Nothing is sent to either service until you connect the account yourself and the
 3. The service's own sign-in page opens in a browser. Sign in there and approve the access.
 4. You come back to Velorki, and the row shows your name instead of **Not connected**.
 
-Your phone keeps the access token in the phone's secure storage, in a form only the Velorki server can open. From then on every upload and import passes through that server, which checks your subscription, counts the transfer, opens the token for that one request and forwards it. It keeps neither the file nor the token, and cannot use the token on its own.
+Your phone keeps the access token in the phone's secure storage, in a form only the Velorki server can open. From then on every upload and import passes through that server, which checks your subscription, opens the token for that one request and forwards it. It keeps neither the file nor the token, and cannot use the token on its own.
 
 If a connect attempt fails, Velorki says "Could not connect:" with the reason. Cancelling the sign-in page says nothing at all.
 
@@ -68,8 +68,8 @@ Tap **Export GPX**, save or send the file, and upload it as a route on strava.co
 | Uploading a ride to either | yes |
 | Importing routes from either | yes |
 | Sending a route to Ride with GPS | yes |
-| Exporting GPX or FIT and uploading it yourself | no |
-| Importing a GPX or FIT file from either service | no |
+| Exporting GPX, FIT or TCX and uploading it yourself | no |
+| Importing a GPX, FIT or TCX file from either service | no |
 
 ## A note about the assistant and Strava
 

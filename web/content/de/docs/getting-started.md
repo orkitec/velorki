@@ -52,7 +52,7 @@ Wird ein einziges Mal gefragt, beim ersten Start einer Fahrt: **Im Hintergrund w
 
 ### Dateien
 
-Keine dauerhafte Berechtigung. Beim Import einer GPX- oder FIT-Datei reicht die Dateiauswahl des Systems genau diese eine Datei an die App weiter; beim Export nimmt das Teilen-Menü des Systems sie wieder mit.
+Keine dauerhafte Berechtigung. Beim Import einer GPX-, FIT- oder TCX-Datei reicht die Dateiauswahl des Systems genau diese eine Datei an die App weiter; beim Export nimmt das Teilen-Menü des Systems sie wieder mit.
 
 Mehr fragt Velorki nicht. Nirgends in der App gibt es Zugriff auf Kontakte, Fotos, Mikrofon, Gesundheitsdaten oder Werbung.
 

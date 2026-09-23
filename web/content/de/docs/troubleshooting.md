@@ -71,11 +71,11 @@ Ist die gewählte Stimme mit **Braucht Internet** gekennzeichnet, wird sie auf e
 
 ## Eine Datei lässt sich nicht importieren
 
-Velorki liest GPX und FIT und entscheidet nach den Bytes, nicht nach dem Dateinamen.
+Velorki liest GPX, FIT und TCX und entscheidet nach den Bytes, nicht nach dem Dateinamen.
 
 | Meldung | Bedeutung |
 |---|---|
-| "Das ist keine GPX- oder FIT-Datei." | der Inhalt ist keines von beidem, egal was der Name sagt |
+| "Das ist keine GPX-, FIT- oder TCX-Datei." | der Inhalt ist keines der drei Formate, egal was der Name sagt |
 | "Die Datei konnte nicht gelesen werden." | die Datei ist eines von beidem, aber beschädigt |
 | "Die Datei enthält keine Trackpunkte." | eine leere Datei, oder eine GPX nur mit Wegpunkten |
 | "Die Datei konnte nicht geöffnet werden." | das System hat die Datei nicht herausgerückt |

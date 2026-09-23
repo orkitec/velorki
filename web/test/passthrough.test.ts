@@ -3,7 +3,7 @@ import { pino } from 'pino';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GET as stravaGet, POST as stravaPost } from '@/app/(api)/proxy/strava/[...path]/route';
 import { GET as rwgpsGet, POST as rwgpsPost } from '@/app/(api)/proxy/rwgps/[...path]/route';
-import { matchUpstream, proxyUsage, upstreamPath } from '@/server/passthrough';
+import { matchUpstream, upstreamPath } from '@/server/passthrough';
 import { injectSingletons } from '@/server/singletons';
 import { parseWrapKeys, wrapToken } from '@/server/wrap';
 import {
@@ -181,7 +181,7 @@ describe('/proxy/<service>/*', () => {
     const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
     const env = { RWGPS_CLIENT_ID: 'rw-1', RWGPS_CLIENT_SECRET: 'rw-secret' };
-    await withEnv(env, async (ctx) => {
+    await withEnv(env, async () => {
       const res = await rwgpsPost(
         new Request(`${API}/proxy/rwgps/oauth/revoke.json`, {
           method: 'POST',
@@ -206,7 +206,6 @@ describe('/proxy/<service>/*', () => {
         client_secret: 'rw-secret',
         token: 'rw-clear',
       });
-      expect(await proxyUsage(ctx.counters, 'rwgps', 'revoke', { userId: 'user-42' })).toBe(1);
     });
     // Without the credentials the call is a 503, and nothing goes out.
     fetchMock.mockClear();
@@ -328,26 +327,15 @@ describe('/proxy/<service>/*', () => {
     });
   });
 
-  it('counts every forwarded call per rider and per operation', async () => {
+  it('leaves no record of the call but the rate-limit window', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => upstreamOk()));
     await withEnv({}, async (ctx) => {
-      const call = (auth: string, path: string, handler = stravaGet) =>
-        handler(
-          new Request(`${API}${path}`, {
-            headers: { authorization: auth, 'x-velorki-token': WRAPPED },
-          }),
-        );
-      await call('Bearer a', '/proxy/strava/api/v3/uploads/1');
-      await call('Bearer a', '/proxy/strava/api/v3/uploads/2');
-      await call('Bearer b', '/proxy/strava/api/v3/uploads/3');
-      await call('Bearer a', '/proxy/strava/api/v3/athletes/1/routes');
-
-      expect(await proxyUsage(ctx.counters, 'strava', 'upload_status')).toBe(3);
-      expect(await proxyUsage(ctx.counters, 'strava', 'upload_status', { userId: 'a' })).toBe(2);
-      expect(await proxyUsage(ctx.counters, 'strava', 'upload_status', { userId: 'b' })).toBe(1);
-      expect(await proxyUsage(ctx.counters, 'strava', 'list_routes', { userId: 'a' })).toBe(1);
-      expect(await proxyUsage(ctx.counters, 'strava', 'upload')).toBe(0);
-      expect(await proxyUsage(ctx.counters, 'rwgps', 'upload_status')).toBe(0);
+      await stravaGet(
+        new Request(`${API}/proxy/strava/api/v3/uploads/1`, { headers: TOKEN }),
+      );
+      const keys = [...ctx.counters.keys()];
+      expect(keys.filter((k) => k.startsWith('rl:proxy_'))).toHaveLength(2);
+      expect(keys.filter((k) => !k.startsWith('rl:'))).toEqual([]);
     });
   });
 

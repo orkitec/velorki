@@ -119,13 +119,13 @@ Das Blatt einer Fahrt in der [Bibliothek](./library) wächst um das, was diese F
 - **Ø Puls**, **Max Puls**, **Ø Kadenz** und **Ø Leistung** bei den Zahlen, jede nur, wenn die Fahrt sie hat,
 - ein Diagramm **Herzfrequenz** unter dem Diagramm **Tempo**, an dem du entlangziehen kannst, um an jeder Stelle abzulesen.
 
-Die **Splits**-Tabelle bleibt, wie sie war: **Split**, **Fahrzeit**, **Ø** und **Anstieg**, ohne Sensorspalten. Eine aus einer GPX- oder FIT-Datei importierte Fahrt bringt ihren Puls, ihre Trittfrequenz und ihre Leistung mit und zeigt sie genauso.
+Die **Splits**-Tabelle bleibt, wie sie war: **Split**, **Fahrzeit**, **Ø** und **Anstieg**, ohne Sensorspalten. Eine aus einer GPX-, FIT- oder TCX-Datei importierte Fahrt bringt ihren Puls, ihre Trittfrequenz und ihre Leistung mit und zeigt sie genauso.
 
 ## Was gespeichert wird und was das Handy verlässt
 
 Die Werte gehören zur Fahrt: ein Puls, eine Trittfrequenz und eine Leistung an jedem Punkt des Tracks, dazu die Mittelwerte und der höchste Puls bei ihren Zahlen. Sie liegen in Velorkis eigenem Speicher auf dem Handy, beim Track.
 
-Von allein wird nichts hochgeladen. Ein GPX- oder FIT-Export nimmt die Werte mit dem Track mit, eine Fahrt, die du exportierst oder zu Strava oder Ride with GPS schickst, kommt also vollständig an. Der Austausch mit Apple Health oder Health Connect findet auf dem Handy statt. Das ganze Bild steht unter [Privatsphäre auf dem Handy](./privacy-on-the-phone).
+Von allein wird nichts hochgeladen. Ein GPX-, FIT- oder TCX-Export nimmt die Werte mit dem Track mit, eine Fahrt, die du exportierst oder zu Strava oder Ride with GPS schickst, kommt also vollständig an. Der Austausch mit Apple Health oder Health Connect findet auf dem Handy statt. Das ganze Bild steht unter [Privatsphäre auf dem Handy](./privacy-on-the-phone).
 
 ## Weiterlesen
 

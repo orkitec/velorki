@@ -81,7 +81,7 @@ ist verbindlich.
 
 Alles, was auf deinem Handy läuft, ist kostenlos und bleibt es: Planen, smarte
 Runden, Offline-Karten und Offline-Routing, Ortssuche, Navigation mit
-Abbiegehinweisen, Aufnahme, Fahrtenstatistik sowie GPX- und FIT-Import und
+Abbiegehinweisen, Aufnahme, Fahrtenstatistik sowie GPX-, FIT- und TCX-Import und
 -Export.
 
 **Velorki Plus** ist ein freiwilliges Abo für die Funktionen, die unsere Server
@@ -288,7 +288,7 @@ unsere Haftung dafür im gesetzlich zulässigen Umfang auf Vorsatz und grobe
 Fahrlässigkeit begrenzt (§ 521, § 599 BGB gelten entsprechend).
 
 Datenverlust: Sichere, was dir wichtig ist. Exportiere deine Routen und Fahrten
-als GPX- oder FIT-Dateien. Für Datenverlust haften wir nur bis zur Höhe des
+als GPX-, FIT- oder TCX-Dateien. Für Datenverlust haften wir nur bis zur Höhe des
 Aufwands, der zur Wiederherstellung aus einer ordnungsgemäß geführten Sicherung
 nötig gewesen wäre.
 
