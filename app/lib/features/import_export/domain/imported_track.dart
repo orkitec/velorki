@@ -40,7 +40,22 @@ class ImportedTrack {
     this.creator,
     this.pois = const <RoutePoi>[],
     this.turns = const <TurnHint>[],
+    this.laps = const <ImportedLap>[],
+    this.deviceTotals,
+    this.temperaturesC = const <double?>[],
   });
+
+  /// The laps the device recorded, in order; empty when the file has none.
+  /// A ride made from this track gets them as its splits.
+  final List<ImportedLap> laps;
+
+  /// The totals as the recording device computed them, shown beside the
+  /// app's own figures when they differ; `null` when the file has none.
+  final ImportedTotals? deviceTotals;
+
+  /// The temperature per point of [points], `null` where the point had
+  /// none; empty when the file carries no temperature at all.
+  final List<double?> temperaturesC;
 
   /// Which decoder produced this track.
   final ImportFormat format;
@@ -112,6 +127,64 @@ class ImportedTrack {
 }
 
 /// One file waiting to be imported, as the preview screen receives it.
+/// One lap of a recorded activity, as the device cut it.
+class ImportedLap {
+  /// Creates a lap.
+  const ImportedLap({
+    required this.startTime,
+    required this.endTime,
+    this.distanceM,
+    this.movingS,
+    this.calories,
+  });
+
+  /// When the lap began.
+  final DateTime startTime;
+
+  /// When it ended.
+  final DateTime endTime;
+
+  /// Its distance in metres, as the device summed it.
+  final double? distanceM;
+
+  /// Its moving time in seconds, as the device timed it.
+  final double? movingS;
+
+  /// Its calories, as the device estimated them.
+  final int? calories;
+}
+
+/// The totals a device wrote for the whole activity.
+class ImportedTotals {
+  /// Creates the totals.
+  const ImportedTotals({
+    this.distanceM,
+    this.movingS,
+    this.elapsedS,
+    this.calories,
+    this.ascentM,
+    this.descentM,
+  });
+
+  /// Distance in metres.
+  final double? distanceM;
+
+  /// Moving time in seconds.
+  final double? movingS;
+
+  /// Elapsed time in seconds.
+  final double? elapsedS;
+
+  /// Calories.
+  final int? calories;
+
+  /// Ascent in metres.
+  final double? ascentM;
+
+  /// Descent in metres.
+  final double? descentM;
+}
+
 class ImportCandidate {
   /// Creates a candidate.
   const ImportCandidate({

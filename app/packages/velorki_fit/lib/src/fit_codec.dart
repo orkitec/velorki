@@ -5,6 +5,7 @@ import 'package:fit_sdk/fit_sdk.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import 'fit_format_exception.dart';
+import 'fit_models.dart';
 import 'fit_sniffer.dart';
 import 'fit_sport.dart';
 
@@ -307,6 +308,24 @@ class FitCodec {
     return encoder.close();
   }
 
+  /// Decodes a FIT *course* file: its track and its `course_point`s.
+  ///
+  /// Throws [FitFormatException] when [bytes] is not a FIT file or not a
+  /// course.
+  static FitCourse decodeCourse(Uint8List bytes) {
+    // Phase 1: courses come back with their course points as cues.
+    throw UnimplementedError('Phase 1: FIT course import is not written yet');
+  }
+
+  /// Decodes a FIT *activity* file whole: the records as [decodeActivity]
+  /// gives them, plus the temperatures, the laps and the session totals.
+  ///
+  /// Throws [FitFormatException] as [decodeActivity] does.
+  static FitActivity decodeActivityFile(Uint8List bytes) {
+    // Phase 2: laps, session totals and temperature reach the ride.
+    throw UnimplementedError('Phase 2: FIT laps and totals are not read yet');
+  }
+
   /// Encodes [points] as a FIT *course* file — the thing a Garmin head unit
   /// imports as a navigable route.
   ///
@@ -323,7 +342,12 @@ class FitCodec {
     List<TrackPoint> points, {
     required String name,
     FitSport sport = FitSport.cycling,
+    List<FitCoursePoint> coursePoints = const <FitCoursePoint>[],
   }) {
+    // Phase 1: the cue sheet goes out as `course_point` messages.
+    if (coursePoints.isNotEmpty) {
+      throw UnimplementedError('Phase 1: course points are not written yet');
+    }
     if (points.isEmpty) {
       throw ArgumentError.value(
         points,

@@ -65,6 +65,16 @@ ImportedTrack decodeTrack(Uint8List bytes, {String? fileName}) {
   throw ImportException(ImportFailure.unknownFormat, fileName: fileName);
 }
 
+/// Every track in [bytes]: a GPX with several `<trk>` gives one per track,
+/// in file order, so the preview can ask which of them to keep; anything
+/// else gives the one track [decodeTrack] would.
+///
+/// Throws [ImportException] as [decodeTrack] does.
+List<ImportedTrack> decodeTracks(Uint8List bytes, {String? fileName}) {
+  // Phase 2: several tracks in one file import as several rides.
+  throw UnimplementedError('Phase 2: multi-track import is not written yet');
+}
+
 /// Decodes [bytes] and wraps the result in a candidate for the preview screen.
 ImportCandidate decodeCandidate(
   Uint8List bytes, {

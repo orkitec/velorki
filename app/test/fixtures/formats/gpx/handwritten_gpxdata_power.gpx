@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="handwritten for velorki tests"
+     xmlns="http://www.topografix.com/GPX/1/1"
+     xmlns:gpxdata="http://www.cluetrust.com/XML/GPXDATA/1/0"
+     xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1">
+  <metadata>
+    <name>Power over the Isar bridge</name>
+    <desc>Six points with ClueTrust gpxdata hr, cadence, temp and power beside a Garmin TrackPointExtension, the way Ride with GPS and pytrainer write a power meter ride.</desc>
+  </metadata>
+  <trk>
+    <name>Power ride</name>
+    <type>cycling</type>
+    <trkseg>
+      <trkpt lat="48.1400" lon="11.5800"><ele>520.0</ele><time>2026-05-03T08:00:00Z</time>
+        <extensions><gpxdata:hr>112</gpxdata:hr><gpxdata:cadence>78</gpxdata:cadence><gpxdata:temp>14.5</gpxdata:temp><gpxdata:power>180</gpxdata:power></extensions></trkpt>
+      <trkpt lat="48.1410" lon="11.5810"><ele>521.0</ele><time>2026-05-03T08:00:10Z</time>
+        <extensions><gpxdata:hr>118</gpxdata:hr><gpxdata:cadence>82</gpxdata:cadence><gpxdata:temp>14.5</gpxdata:temp><gpxdata:power>205</gpxdata:power></extensions></trkpt>
+      <trkpt lat="48.1420" lon="11.5820"><ele>523.0</ele><time>2026-05-03T08:00:20Z</time>
+        <extensions><gpxdata:hr>124</gpxdata:hr><gpxdata:cadence>85</gpxdata:cadence><gpxdata:temp>14.6</gpxdata:temp><gpxdata:power>240</gpxdata:power></extensions></trkpt>
+      <trkpt lat="48.1430" lon="11.5830"><ele>526.0</ele><time>2026-05-03T08:00:30Z</time>
+        <extensions><gpxdata:hr>131</gpxdata:hr><gpxdata:cadence>88</gpxdata:cadence><gpxdata:temp>14.6</gpxdata:temp><gpxdata:power>310</gpxdata:power>
+          <gpxtpx:TrackPointExtension><gpxtpx:hr>131</gpxtpx:hr><gpxtpx:cad>88</gpxtpx:cad><gpxtpx:atemp>14.6</gpxtpx:atemp></gpxtpx:TrackPointExtension></extensions></trkpt>
+      <trkpt lat="48.1440" lon="11.5840"><ele>528.0</ele><time>2026-05-03T08:00:40Z</time>
+        <extensions><gpxdata:hr>135</gpxdata:hr><gpxdata:cadence>90</gpxdata:cadence><gpxdata:power>0</gpxdata:power></extensions></trkpt>
+      <trkpt lat="48.1450" lon="11.5850"><ele>529.0</ele><time>2026-05-03T08:00:50Z</time>
+        <extensions><gpxdata:hr>133</gpxdata:hr><gpxdata:cadence>0</gpxdata:cadence><gpxdata:temp>14.7</gpxdata:temp></extensions></trkpt>
+    </trkseg>
+  </trk>
+</gpx>

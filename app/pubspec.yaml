@@ -137,6 +137,7 @@ workspace:
   - packages/velorki_geo
   - packages/velorki_gpx
   - packages/velorki_fit
+  - packages/velorki_tcx
   - packages/velorki_brouter
   - packages/velorki_loops
   - packages/velorki_api

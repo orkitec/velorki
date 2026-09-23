@@ -12,6 +12,7 @@ export 'src/fit_codec.dart'
         fitEpochOffsetSeconds,
         semicirclesPerDegree;
 export 'src/fit_format_exception.dart';
+export 'src/fit_models.dart';
 export 'src/fit_sniffer.dart';
 export 'src/fit_sport.dart';
 export 'src/version.dart';

@@ -104,7 +104,13 @@ abstract final class GpxCodec {
     String creator = 'Velorki',
     String? description,
     List<GpxWaypoint> waypoints = const [],
+    List<GpxExtensions?> extensions = const [],
   }) {
+    // Phase 2: a temperature per point goes out as `gpxtpx:atemp`, beside
+    // the heart rate and cadence the points already carry.
+    if (extensions.isNotEmpty) {
+      throw UnimplementedError('Phase 2: per-point extensions are not written');
+    }
     final gpx = gpxlib.Gpx()
       ..version = '1.1'
       ..creator = creator
@@ -132,7 +138,14 @@ abstract final class GpxCodec {
     List<GpxWaypoint> waypoints = const [],
     String creator = 'Velorki',
     String? description,
+    List<GpxRouteCue> cues = const [],
+    List<TrackPoint> track = const [],
   }) {
+    // Phase 3: the cue sheet goes out on the `<rtept>`s, and the full
+    // geometry as a `<trk>` beside the `<rte>`.
+    if (cues.isNotEmpty || track.isNotEmpty) {
+      throw UnimplementedError('Phase 3: route cues and track are not written');
+    }
     final gpx = gpxlib.Gpx()
       ..version = '1.1'
       ..creator = creator

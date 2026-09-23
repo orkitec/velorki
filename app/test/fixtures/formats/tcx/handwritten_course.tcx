@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TrainingCenterDatabase xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2 http://www.garmin.com/xmlschemas/TrainingCenterDatabasev2.xsd">
+  <Courses>
+    <Course>
+      <Name>Isar bridge loop</Name>
+      <Lap>
+        <TotalTimeSeconds>60.0</TotalTimeSeconds>
+        <DistanceMeters>670.0</DistanceMeters>
+        <BeginPosition><LatitudeDegrees>48.1400</LatitudeDegrees><LongitudeDegrees>11.5800</LongitudeDegrees></BeginPosition>
+        <EndPosition><LatitudeDegrees>48.1450</LatitudeDegrees><LongitudeDegrees>11.5850</LongitudeDegrees></EndPosition>
+        <Intensity>Active</Intensity>
+      </Lap>
+      <Track>
+        <Trackpoint><Time>2026-05-03T08:00:00Z</Time><Position><LatitudeDegrees>48.1400</LatitudeDegrees><LongitudeDegrees>11.5800</LongitudeDegrees></Position><AltitudeMeters>520.0</AltitudeMeters><DistanceMeters>0.0</DistanceMeters></Trackpoint>
+        <Trackpoint><Time>2026-05-03T08:00:10Z</Time><Position><LatitudeDegrees>48.1410</LatitudeDegrees><LongitudeDegrees>11.5810</LongitudeDegrees></Position><AltitudeMeters>521.0</AltitudeMeters><DistanceMeters>133.0</DistanceMeters></Trackpoint>
+        <Trackpoint><Time>2026-05-03T08:00:20Z</Time><Position><LatitudeDegrees>48.1420</LatitudeDegrees><LongitudeDegrees>11.5820</LongitudeDegrees></Position><AltitudeMeters>523.0</AltitudeMeters><DistanceMeters>266.0</DistanceMeters></Trackpoint>
+        <Trackpoint><Time>2026-05-03T08:00:30Z</Time><Position><LatitudeDegrees>48.1430</LatitudeDegrees><LongitudeDegrees>11.5830</LongitudeDegrees></Position><AltitudeMeters>526.0</AltitudeMeters><DistanceMeters>400.0</DistanceMeters></Trackpoint>
+        <Trackpoint><Time>2026-05-03T08:00:40Z</Time><Position><LatitudeDegrees>48.1440</LatitudeDegrees><LongitudeDegrees>11.5840</LongitudeDegrees></Position><AltitudeMeters>528.0</AltitudeMeters><DistanceMeters>535.0</DistanceMeters></Trackpoint>
+        <Trackpoint><Time>2026-05-03T08:00:50Z</Time><Position><LatitudeDegrees>48.1450</LatitudeDegrees><LongitudeDegrees>11.5850</LongitudeDegrees></Position><AltitudeMeters>529.0</AltitudeMeters><DistanceMeters>670.0</DistanceMeters></Trackpoint>
+      </Track>
+      <CoursePoint>
+        <Name>Start</Name>
+        <Time>2026-05-03T08:00:00Z</Time>
+        <Position><LatitudeDegrees>48.1400</LatitudeDegrees><LongitudeDegrees>11.5800</LongitudeDegrees></Position>
+        <PointType>Generic</PointType>
+        <Notes>Leave from the bridge</Notes>
+      </CoursePoint>
+      <CoursePoint>
+        <Name>Turn left onto Isarweg</Name>
+        <Time>2026-05-03T08:00:20Z</Time>
+        <Position><LatitudeDegrees>48.1420</LatitudeDegrees><LongitudeDegrees>11.5820</LongitudeDegrees></Position>
+        <PointType>Left</PointType>
+      </CoursePoint>
+      <CoursePoint>
+        <Name>Fountain</Name>
+        <Time>2026-05-03T08:00:30Z</Time>
+        <Position><LatitudeDegrees>48.1430</LatitudeDegrees><LongitudeDegrees>11.5830</LongitudeDegrees></Position>
+        <PointType>Water</PointType>
+        <Notes>Drinking water</Notes>
+      </CoursePoint>
+      <CoursePoint>
+        <Name>Turn right</Name>
+        <Time>2026-05-03T08:00:40Z</Time>
+        <Position><LatitudeDegrees>48.1440</LatitudeDegrees><LongitudeDegrees>11.5840</LongitudeDegrees></Position>
+        <PointType>Right</PointType>
+      </CoursePoint>
+    </Course>
+  </Courses>
+  <Author xsi:type="Application_t">
+    <Name>handwritten for velorki tests</Name>
+    <Build><Version><VersionMajor>1</VersionMajor><VersionMinor>0</VersionMinor><BuildMajor>0</BuildMajor><BuildMinor>0</BuildMinor></Version></Build>
+    <LangID>en</LangID>
+    <PartNumber>000-00000-00</PartNumber>
+  </Author>
+</TrainingCenterDatabase>

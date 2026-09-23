@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="viewmygpx-samples" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>Forest of Dean — pocket query</name>
+    <desc>Sample geocaching pocket query containing 15 cache waypoints in the Forest of Dean, Gloucestershire. No track or route — pure waypoint export.</desc>
+    <author>
+      <name>viewmygpx samples</name>
+    </author>
+    <bounds minlat="51.7721728134687" minlon="-2.676522986471581" maxlat="51.814042605385815" maxlon="-2.6158279123488954"/>
+  </metadata>
+  <wpt lat="51.7721728134687" lon="-2.626551068044976">
+    <ele>116</ele>
+    <name>Beech Glade</name>
+    <desc>Cache placed in 2024. Difficulty 2.4/5, terrain 1.9/5.</desc>
+    <sym>Geocache</sym>
+    <type>Geocache|Traditional</type>
+  </wpt>
+  <wpt lat="51.79198914990828" lon="-2.6329575711249595">
+    <ele>118</ele>
+    <name>Hidden Stump</name>
+    <desc>Cache placed in 2024. Difficulty 3.1/5, terrain 3.5/5.</desc>
+    <sym>Geocache Found</sym>
+    <type>Geocache|Traditional</type>
+  </wpt>
+  <wpt lat="51.78288234016891" lon="-2.624769908119784">
+    <ele>83</ele>
+    <name>Old Stone Wall</name>
+    <desc>Cache placed in 2024. Difficulty 3.5/5, terrain 3.5/5.</desc>
+    <sym>Geocache</sym>
+    <type>Geocache|Multi-cache</type>
+  </wpt>
+  <wpt lat="51.799752474619666" lon="-2.6564858980459376">
+    <ele>93</ele>
+    <name>Fern Crossroads</name>
+    <desc>Cache placed in 2024. Difficulty 1.9/5, terrain 1.5/5.</desc>
+    <sym>Geocache</sym>
+    <type>Geocache|Mystery</type>
+  </wpt>
+  <wpt lat="51.789176847978894" lon="-2.6158279123488954">
+    <ele>114</ele>
+    <name>Three Pines</name>
+    <desc>Cache placed in 2024. Difficulty 1.7/5, terrain 4.2/5.</desc>
+    <sym>Geocache</sym>
+    <type>Geocache|Traditional</type>
+  </wpt>
+  <wpt lat="51.78781503408241" lon="-2.6595949822564795">
+    <ele>94</ele>
+    <name>Bridle Bend</name>
+    <desc>Cache placed in 2024. Difficulty 2.4/5, terrain 3.7/5.</desc>
+    <sym>Geocache Found</sym>
+    <type>Geocache|Traditional</type>
+  </wpt>
+  <wpt lat="51.801689562148994" lon="-2.6387296859435616">
+    <ele>88</ele>
+    <name>Mossy Boulder</name>
+    <desc>Cache placed in 2024. Difficulty 4.4/5, terrain 4.9/5.</desc>
+    <sym>Geocache</sym>
+    <type>Geocache|Multi-cache</type>
+  </wpt>
+  <wpt lat="51.79218840543433" lon="-2.676522986471581">
+    <ele>117</ele>
+    <name>Stream Junction</name>
+    <desc>Cache placed in 2024. Difficulty 4.2/5, terrain 1.1/5.</desc>
+    <sym>Geocache</sym>
+    <type>Geocache|Mystery</type>
+  </wpt>
+  <wpt lat="51.80878882695035" lon="-2.6476970281463346">
+    <ele>80</ele>
+    <name>Ridge Marker</name>
+    <desc>Cache placed in 2024. Difficulty 4.3/5, terrain 4.1/5.</desc>
+    <sym>Geocache</sym>
+    <type>Geocache|Traditional</type>
+  </wpt>
+  <wpt lat="51.79023614027878" lon="-2.6634493400051804">
+    <ele>93</ele>
+    <name>Holly Hedge</name>
+    <desc>Cache placed in 2024. Difficulty 4.9/5, terrain 1.3/5.</desc>
+    <sym>Geocache Found</sym>
+    <type>Geocache|Traditional</type>
+  </wpt>
+  <wpt lat="51.814042605385815" lon="-2.6475224290860635">
+    <ele>89</ele>
+    <name>Charcoal Pit</name>
+    <desc>Cache placed in 2024. Difficulty 4.3/5, terrain 1.7/5.</desc>
+    <sym>Geocache</sym>
+    <type>Geocache|Multi-cache</type>
+  </wpt>
+  <wpt lat="51.80397289285932" lon="-2.642545628284704">
+    <ele>91</ele>
+    <name>Iron Mine Spoil</name>
+    <desc>Cache placed in 2024. Difficulty 4.0/5, terrain 4.4/5.</desc>
+    <sym>Geocache</sym>
+    <type>Geocache|Mystery</type>
+  </wpt>
+  <wpt lat="51.77383872004371" lon="-2.632393061502102">
+    <ele>99</ele>
+    <name>Forest Gate</name>
+    <desc>Cache placed in 2024. Difficulty 3.6/5, terrain 1.0/5.</desc>
+    <sym>Geocache</sym>
+    <type>Geocache|Traditional</type>
+  </wpt>
+  <wpt lat="51.81263353995266" lon="-2.675200628277302">
+    <ele>83</ele>
+    <name>Beech Bench</name>
+    <desc>Cache placed in 2024. Difficulty 4.0/5, terrain 3.1/5.</desc>
+    <sym>Geocache Found</sym>
+    <type>Geocache|Traditional</type>
+  </wpt>
+  <wpt lat="51.79540095926296" lon="-2.67602895711307">
+    <ele>115</ele>
+    <name>Oak Sentinel</name>
+    <desc>Cache placed in 2024. Difficulty 4.1/5, terrain 3.0/5.</desc>
+    <sym>Geocache</sym>
+    <type>Geocache|Multi-cache</type>
+  </wpt>
+</gpx>
