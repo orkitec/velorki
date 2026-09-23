@@ -34,9 +34,12 @@ Opening a route draws it on the map, fitted to the part of the screen above the 
 - the date, the bike profile and the ascent,
 - the description, if the route has one,
 - **Distance**, **Ascent**, **Descent** and **Est. time**,
+- under the name, where an imported route came from: the file format and who wrote it, for example "Imported from GPX · Garmin Connect"; a route planned here says nothing there,
 - the actions below, **Open in planner** first so it is in view at the card's resting height,
+- a **Description** row and a **Link** row, each with a pencil: the description is the file's, the assistant's or yours, the link is the file's `<link>` or one you type, and a tap on it opens the page,
 - the surface breakdown,
 - the elevation profile,
+- **Points of interest**: the file's points that are not on the track, each with its type and note; the ones on the track are lines of the cue sheet instead,
 - for a route imported with turns or points of interest, or with points you named or wrote a note on in the planner, the cue sheet: every turn and point with its distance from the start, a tap on a line panning the map there at your zoom and a tap on a marker scrolling the card to that line.
 
 The actions:

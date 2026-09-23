@@ -17,7 +17,25 @@ enum PoiKind {
   food,
 
   /// Anything else worth a marker.
-  generic;
+  generic,
+
+  /// The top of a climb.
+  summit,
+
+  /// A view worth stopping for.
+  viewpoint,
+
+  /// A roof against the weather: a hut, a bus shelter.
+  shelter,
+
+  /// A shop, for whatever runs out.
+  shop,
+
+  /// A bike shop or a repair stand.
+  repair,
+
+  /// A turn of the cue sheet, with its direction on the waypoint.
+  turn;
 
   /// The kind for the free-form `type`, `sym` and `cmt` strings a GPX
   /// waypoint comes with, as Ride with GPS and Garmin write them.
@@ -33,6 +51,33 @@ enum PoiKind {
         words.contains('warning')) {
       return PoiKind.danger;
     }
+    if (words.contains('summit') ||
+        words.contains('peak') ||
+        words.contains('gipfel')) {
+      return PoiKind.summit;
+    }
+    if (words.contains('viewpoint') ||
+        words.contains('scenic') ||
+        words.contains('view') ||
+        words.contains('aussicht')) {
+      return PoiKind.viewpoint;
+    }
+    if (words.contains('shelter') ||
+        words.contains('hut') ||
+        words.contains('refuge') ||
+        words.contains('lodge')) {
+      return PoiKind.shelter;
+    }
+    if (words.contains('repair') ||
+        words.contains('mechanic') ||
+        words.contains('workshop')) {
+      return PoiKind.repair;
+    }
+    if (words.contains('shop') ||
+        words.contains('store') ||
+        words.contains('supermarket')) {
+      return PoiKind.shop;
+    }
     if (words.contains('water') ||
         words.contains('drink') ||
         words.contains('fountain')) {
@@ -43,8 +88,6 @@ enum PoiKind {
         words.contains('cafe') ||
         words.contains('café') ||
         words.contains('bakery') ||
-        words.contains('shop') ||
-        words.contains('store') ||
         words.contains('coffee')) {
       return PoiKind.food;
     }
@@ -61,17 +104,18 @@ List<GpxWaypoint> gpxWaypoints(List<RoutePoi> pois) => <GpxWaypoint>[
       poi.pos,
       name: poi.name,
       description: poi.description,
-      type: switch (poi.kind) {
-        PoiKind.danger => 'danger',
-        PoiKind.water => 'water',
-        PoiKind.food => 'food',
-        PoiKind.generic => 'generic',
-      },
+      type: poi.kind.name,
       symbol: switch (poi.kind) {
         PoiKind.danger => 'Danger Area',
         PoiKind.water => 'Drinking Water',
         PoiKind.food => 'Restaurant',
         PoiKind.generic => 'Flag, Blue',
+        PoiKind.summit => 'Summit',
+        PoiKind.viewpoint => 'Scenic Area',
+        PoiKind.shelter => 'Lodge',
+        PoiKind.shop => 'Shopping Center',
+        PoiKind.repair => 'Bike Trail',
+        PoiKind.turn => 'Flag, Blue',
       },
     ),
 ];

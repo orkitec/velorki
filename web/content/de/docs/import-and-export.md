@@ -51,7 +51,7 @@ Lässt sich die Datei nicht öffnen, sagt Velorki, woran es lag: "Das ist keine 
 
 | Format | Wofür |
 |---|---|
-| **GPX-Route** | eine geplante Route für einen anderen Planer, eine Handy-App oder einen Radcomputer |
+| **GPX-Route** | eine geplante Route für einen anderen Planer, eine Handy-App oder einen Radcomputer. Eine Route mit Abbiegeliste geht hinaus, wie Ride with GPS sie schreibt: eine `<rte>` der Abbiegungen, je mit Richtung und Worten, und daneben ein `<trk>` der ganzen Linie; eine Route ohne behält jeden Punkt auf der `<rte>`. |
 | **FIT-Strecke** | ein Garmin, Wahoo oder ähnliches Gerät, das eine Strecke erwartet; die Abbiegeliste und die Punkte von Interesse gehen als Streckenpunkte mit, sodass das Gerät die nächste Abbiegung zeigt |
 
 **Aus einer Fahrt** (Bibliothek → Fahrten → öffnen, oder das Blatt der Fahrt nach dem Beenden):

@@ -7,6 +7,7 @@ import '../../../core/links/link_opener.dart';
 import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/domain/saved_route.dart';
+import '../../shared/presentation/button_menu.dart';
 import '../application/connections_controller.dart';
 import '../application/route_sender.dart';
 import '../common/data/connected_accounts_repository.dart';
@@ -113,19 +114,16 @@ class _RouteSendMenuState extends ConsumerState<RouteSendMenu> {
         ),
       );
     }
-    return MenuAnchor(
-      builder: (context, controller, _) => OutlinedButton.icon(
-        onPressed: () =>
-            controller.isOpen ? controller.close() : controller.open(),
-        icon: const Icon(Icons.cloud_upload_outlined),
-        label: Text(l10n.routeDetailSend),
+    return ButtonMenu<_SendTarget>(
+      icon: Icons.cloud_upload_outlined,
+      label: l10n.routeDetailSend,
+      onSelected: (target) => unawaited(
+        target == _SendTarget.rwgps ? _sendToRwgps() : _explainStrava(),
       ),
-      menuChildren: [
+      entries: [
         for (final target in targets)
-          MenuItemButton(
-            onPressed: () => unawaited(
-              target == _SendTarget.rwgps ? _sendToRwgps() : _explainStrava(),
-            ),
+          PopupMenuItem(
+            value: target,
             child: Text(
               target == _SendTarget.rwgps
                   ? l10n.routeDetailSendToRwgps

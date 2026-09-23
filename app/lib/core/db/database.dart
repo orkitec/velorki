@@ -36,7 +36,7 @@ class VelorkiDatabase extends _$VelorkiDatabase {
   factory VelorkiDatabase.open() => VelorkiDatabase(_openConnection());
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -69,6 +69,14 @@ class VelorkiDatabase extends _$VelorkiDatabase {
         await m.addColumn(rides, rides.lapsJson);
         await m.addColumn(rides, rides.deviceTotalsJson);
         await m.addColumn(rides, rides.temperatures);
+      }
+      // 8 added where a route or ride came from: a link and a creator on a
+      // route, the file format and the creator on a ride.
+      if (from < 8) {
+        await m.addColumn(routes, routes.link);
+        await m.addColumn(routes, routes.creator);
+        await m.addColumn(rides, rides.sourceFormat);
+        await m.addColumn(rides, rides.creator);
       }
     },
     beforeOpen: (_) async {

@@ -270,7 +270,12 @@ class GpxDocument {
     this.tracks = const [],
     this.routes = const [],
     this.waypoints = const [],
+    this.link,
   });
+
+  /// The first `<link href>` of the file: the metadata's, else the first
+  /// track's or route's. Where a planning site points back to the route.
+  final String? link;
 
   /// `<metadata><name>` of the file, if it had one.
   final String? name;

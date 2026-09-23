@@ -879,5 +879,19 @@
   "poiKindDanger": "Gefahr",
   "poiKindWater": "Wasser",
   "poiKindFood": "Essen",
-  "poiKindGeneric": "Sonstiges"
+  "poiKindGeneric": "Sonstiges",
+  "poiKindSummit": "Gipfel",
+  "poiKindViewpoint": "Aussicht",
+  "poiKindShelter": "Unterstand",
+  "poiKindShop": "Laden",
+  "poiKindRepair": "Fahrradwerkstatt",
+  "poiKindTurn": "Abbiegung",
+  "plannerTurnDirection": "Richtung",
+  "routeDetailDescription": "Beschreibung",
+  "routeDetailAddDescription": "Beschreibung hinzufügen",
+  "routeDetailLink": "Link",
+  "routeDetailAddLink": "Link hinzufügen",
+  "routeDetailPois": "Punkte von Interesse",
+  "cardImportedFrom": "Importiert aus {source}",
+  "cardImportedFromBy": "Importiert aus {source} · {creator}"
 }

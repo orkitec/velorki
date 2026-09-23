@@ -112,6 +112,12 @@ IconData poiIcon(PoiKind kind) => switch (kind) {
   PoiKind.water => Icons.water_drop_outlined,
   PoiKind.food => Icons.restaurant_outlined,
   PoiKind.generic => Icons.place_outlined,
+  PoiKind.summit => Icons.terrain_outlined,
+  PoiKind.viewpoint => Icons.landscape_outlined,
+  PoiKind.shelter => Icons.cabin_outlined,
+  PoiKind.shop => Icons.storefront_outlined,
+  PoiKind.repair => Icons.build_outlined,
+  PoiKind.turn => Icons.turn_right,
 };
 
 /// The spoken warning before a turn.

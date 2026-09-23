@@ -34,9 +34,12 @@ Eine geöffnete Route wird auf die Karte gezeichnet, eingepasst in den Teil des 
 - Datum, Radprofil und Anstieg,
 - die Beschreibung, falls die Route eine hat,
 - **Distanz**, **Anstieg**, **Abstieg** und **Dauer**,
+- unter dem Namen, woher eine importierte Route kommt: das Dateiformat und wer sie geschrieben hat, etwa "Importiert aus GPX · Garmin Connect"; eine hier geplante Route sagt dort nichts,
 - die Aktionen unten, **Im Planer öffnen** zuerst, damit es in der Ruhehöhe des Blatts zu sehen ist,
+- eine Zeile **Beschreibung** und eine Zeile **Link**, je mit einem Stift: Die Beschreibung ist die der Datei, des Assistenten oder deine, der Link ist der `<link>` der Datei oder einer, den du eintippst, und ein Tipp darauf öffnet die Seite,
 - die Belagsverteilung,
 - das Höhenprofil,
+- **Punkte von Interesse**: die Punkte der Datei, die nicht auf dem Track liegen, je mit Art und Notiz; die auf dem Track sind stattdessen Zeilen der Abbiegeliste,
 - bei einer Route, die mit Abbiegungen oder Punkten von Interesse importiert wurde oder deren Punkte du im Planer benannt oder mit einer Notiz versehen hast, die Abbiegeliste: jede Abbiegung und jeder Punkt mit der Entfernung vom Start, ein Tipp auf eine Zeile schwenkt die Karte in deinem Zoom dorthin und ein Tipp auf einen Marker scrollt das Blatt zu dieser Zeile.
 
 Die Aktionen:

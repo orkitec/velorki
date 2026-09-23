@@ -48,6 +48,14 @@ abstract class SavedRoute with _$SavedRoute {
     /// The points of interest the route came with: an imported file's
     /// waypoints. Empty for a route planned here.
     @Default(<RoutePoi>[]) List<RoutePoi> pois,
+
+    /// A web address the route came with: the file's `<link>`, or one the
+    /// rider typed on the card.
+    String? link,
+
+    /// Who wrote the file the route came from, its `creator`, or the
+    /// manufacturer of the device; `null` for a route planned here.
+    String? creator,
   }) = _SavedRoute;
 
   const SavedRoute._();

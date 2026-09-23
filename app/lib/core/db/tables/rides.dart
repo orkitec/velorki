@@ -49,6 +49,13 @@ class Rides extends Table {
   /// absent sentinel where a point had none; null for a ride without.
   BlobColumn get temperatures => blob().nullable()();
 
+  /// The format of the file an imported ride came from (`gpx`, `fit`);
+  /// null for a ride recorded here.
+  TextColumn get sourceFormat => text().nullable()();
+
+  /// Who wrote that file, its creator or the device's maker.
+  TextColumn get creator => text().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

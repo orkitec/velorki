@@ -265,6 +265,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       name: point.name,
       poiKind: point.poiKind,
       note: point.note,
+      turn: point.turn,
     );
     final result = await showModalBottomSheet<WaypointEditResult>(
       context: context,
@@ -290,6 +291,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
           name: details.name,
           poiKind: details.poiKind,
           note: details.note,
+          turn: details.turn,
         );
     }
   }

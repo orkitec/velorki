@@ -348,4 +348,69 @@ void main() {
     ]);
     expect(encodeTurns(const <TurnHint>[]), isNull);
   });
+
+  test('a turn point saved with a plan goes into the route\'s turns, and '
+      'the link and creator survive a save over the route', () async {
+    final route = syntheticRoute(
+      turns: const [
+        TurnHint(pointIndex: 1, kind: TurnKind.left),
+        TurnHint(pointIndex: 4, kind: TurnKind.end),
+      ],
+    );
+    final imported = await repository.saveImportedRoute(
+      name: 'From a file',
+      points: route.geometry,
+      source: RouteSource.importedGpx,
+      link: 'https://example.com/route/1',
+      creator: 'Garmin Connect',
+    );
+    expect(imported.link, 'https://example.com/route/1');
+    expect(imported.creator, 'Garmin Connect');
+
+    final saved = await repository.savePlannedRoute(
+      name: 'From a file',
+      route: route,
+      waypoints: [
+        _waypoints[0],
+        Waypoint(
+          pos: route.geometry[2].pos,
+          name: 'Sharp right at the barn',
+          poiKind: PoiKind.turn,
+          turn: TurnKind.sharpRight,
+        ),
+        _waypoints[2],
+      ],
+      options: const RoutingOptions(),
+      id: imported.id,
+    );
+    final loaded = (await repository.routeById(saved.id))!;
+    expect(loaded.link, 'https://example.com/route/1');
+    expect(loaded.creator, 'Garmin Connect');
+    expect(loaded.turns.map((t) => t.pointIndex), [1, 2, 4]);
+    expect(loaded.turns[1].kind, TurnKind.sharpRight);
+    expect(loaded.turns[1].note, 'Sharp right at the barn');
+
+    // Details written back without a save merge the same way.
+    await repository.setWaypoints(saved.id, [
+      _waypoints[0],
+      Waypoint(
+        pos: route.geometry[2].pos,
+        name: 'Left at the barn',
+        poiKind: PoiKind.turn,
+        turn: TurnKind.left,
+      ),
+      _waypoints[2],
+    ]);
+    final again = (await repository.routeById(saved.id))!;
+    expect(again.turns[1].kind, TurnKind.left);
+    expect(again.turns[1].note, 'Left at the barn');
+
+    await repository.setLink(saved.id, '  https://example.com/route/2 ');
+    expect(
+      (await repository.routeById(saved.id))!.link,
+      'https://example.com/route/2',
+    );
+    await repository.setLink(saved.id, '');
+    expect((await repository.routeById(saved.id))!.link, isNull);
+  });
 }

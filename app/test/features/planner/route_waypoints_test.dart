@@ -4,6 +4,7 @@ import 'package:velorki/features/planner/domain/route_waypoints.dart';
 import 'package:velorki/features/planner/domain/shape_points.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki_geo/velorki_geo.dart';
+import 'package:velorki_brouter/velorki_brouter.dart';
 
 /// A zigzag north of 48°N, about 111 m per step of latitude.
 List<LatLng> _track(int n) => <LatLng>[
@@ -120,6 +121,25 @@ void main() {
       ),
       saved,
     );
+  });
+  test('the cue sheet\'s written turns open as turn points with their '
+      'direction; the router\'s unnamed ones do not', () {
+    final waypoints = routeWaypoints(
+      track: track,
+      saved: _ends(track),
+      turns: const [
+        TurnHint(pointIndex: 40, kind: TurnKind.left, note: 'Onto Isarweg'),
+        TurnHint(pointIndex: 90, kind: TurnKind.right),
+        TurnHint(pointIndex: 199, kind: TurnKind.end, note: 'Finish'),
+      ],
+    );
+    final turns = waypoints.where((w) => w.poiKind == PoiKind.turn).toList();
+    expect(turns, hasLength(1));
+    expect(turns.single.name, 'Onto Isarweg');
+    expect(turns.single.turn, TurnKind.left);
+    expect(turns.single.pos, track[40]);
+    expect(waypoints.last.kind, WaypointKind.end);
+    expect(waypoints.last.poiKind, PoiKind.generic);
   });
 }
 

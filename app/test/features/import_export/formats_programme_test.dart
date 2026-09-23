@@ -204,9 +204,11 @@ void main() {
       // waypoint sheet edits: planner_screen_test opens a point of a
       // route imported from a <rte>, sees the "Turn" type tile selected
       // with the direction "Left", changes it to "Right" and saves.
-      final track = decodeTrack(formatFixture('gpx', 'gpxpy_all_fields.gpx'));
-      expect(track.turns, isNotEmpty);
-    }, skip: 'phase 3');
+      // A file of one <rte> with 55 named points: every name a cue.
+      final track = decodeTrack(formatFixture('gpx', 'gpxpy_route.gpx'));
+      expect(track.turns, hasLength(55));
+      expect(track.turns.first.note, '#001');
+    });
 
     test('the point type tiles grow to the symbols riders use, in a '
         'scrolling row', () {
@@ -223,7 +225,7 @@ void main() {
       expect(PoiKind.fromGpx(symbol: 'Summit').name, 'summit');
       expect(PoiKind.fromGpx(symbol: 'Scenic Area').name, 'viewpoint');
       expect(PoiKind.fromGpx(type: 'bike shop').name, 'shop');
-    }, skip: 'phase 3');
+    });
 
     test('a route has a description and a link on its card, off-track points '
         'of interest are listed with type and note, and both cards show the '
@@ -238,7 +240,7 @@ void main() {
       );
       expect(track.creator, 'Garmin Connect');
       expect(track.format, ImportFormat.gpx);
-    }, skip: 'phase 3');
+    });
   });
 
   group('phase 4: TCX', () {

@@ -13,6 +13,7 @@ import 'package:velorki/features/planner/domain/route_poi.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
+import 'package:velorki/core/links/link_opener.dart';
 
 import '../../support/app.dart';
 import '../../support/format.dart';
@@ -171,6 +172,106 @@ void main() {
       ),
       findsOneWidget,
     );
+    await unmountApp(tester);
+  });
+
+  testWidgets('an imported route says where it came from, opens its link, '
+      'takes a description, and lists the points of interest off its '
+      'track', (tester) async {
+    final h = PlannerHarness();
+    final opened = <Uri>[];
+    final repository = RouteRepository(
+      h.db.routesDao,
+      clock: () => DateTime.utc(2026, 9, 12, 10),
+    );
+    final saved = await repository.saveImportedRoute(
+      name: 'Ride Queens',
+      points: syntheticRoute().geometry,
+      source: RouteSource.importedGpx,
+      link: 'https://ridewithgps.com/routes/1',
+      creator: 'Garmin Connect',
+      pois: const <RoutePoi>[
+        // On the line: the cue sheet's, not the list's.
+        RoutePoi(pos: LatLng(48.02, 11.02), name: 'Water', kind: PoiKind.water),
+        // Five kilometres east of it: the list's.
+        RoutePoi(
+          pos: LatLng(48.02, 11.09),
+          name: 'Café',
+          description: 'Cake',
+          kind: PoiKind.food,
+        ),
+      ],
+    );
+    await pumpApp(
+      tester,
+      initialLocation: routeDetailLocation(saved.id),
+      harness: h,
+      extraOverrides: [
+        linkOpenerProvider.overrideWithValue((url) async {
+          opened.add(url);
+          return true;
+        }),
+      ],
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(l10n.cardImportedFromBy('GPX', 'Garmin Connect')),
+      findsOneWidget,
+    );
+    expect(find.text('https://ridewithgps.com/routes/1'), findsOneWidget);
+    await tester.ensureVisible(find.text('https://ridewithgps.com/routes/1'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('https://ridewithgps.com/routes/1'));
+    await tester.pumpAndSettle();
+    expect(opened, [Uri.parse('https://ridewithgps.com/routes/1')]);
+
+    // The points off the track, with their kind and note; the one on it
+    // is on the cue sheet instead.
+    await tester.ensureVisible(find.text(l10n.routeDetailPois.toUpperCase()));
+    await tester.pumpAndSettle();
+    expect(find.text('Café'), findsOneWidget);
+    expect(find.text('${l10n.poiKindFood} · Cake'), findsOneWidget);
+    expect(find.text(l10n.cueSheetTitle.toUpperCase()), findsOneWidget);
+
+    // A description typed here is kept.
+    await tester.ensureVisible(find.text(l10n.routeDetailAddDescription));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.routeDetailAddDescription));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextField),
+      ),
+      'Flat and fast',
+    );
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.widgetWithText(FilledButton, l10n.commonSave),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      (await repository.routeById(saved.id))!.description,
+      'Flat and fast',
+    );
+    expect(find.text('Flat and fast'), findsWidgets);
+    await unmountApp(tester);
+  });
+
+  testWidgets('a route planned here has no source line', (tester) async {
+    final h = PlannerHarness();
+    final saved = await _seed(h);
+    await pumpApp(
+      tester,
+      initialLocation: routeDetailLocation(saved.id),
+      harness: h,
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining(l10n.cardImportedFrom('')), findsNothing);
+    expect(find.text(l10n.routeDetailAddLink), findsOneWidget);
     await unmountApp(tester);
   });
 }

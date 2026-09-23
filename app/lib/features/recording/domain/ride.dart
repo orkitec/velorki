@@ -181,7 +181,16 @@ class Ride {
     this.laps = const <RideLap>[],
     this.deviceTotals,
     this.temperaturesC = const <double?>[],
+    this.sourceFormat,
+    this.creator,
   });
+
+  /// The format of the file the ride was imported from (`gpx`, `fit`);
+  /// `null` for a ride recorded here.
+  final String? sourceFormat;
+
+  /// Who wrote that file: its creator, or the device's maker.
+  final String? creator;
 
   /// The laps the recording device cut, for a ride that came from a file
   /// with them; empty for a ride recorded here. They stand in for the
@@ -273,6 +282,8 @@ class Ride {
     laps: laps,
     deviceTotals: deviceTotals,
     temperaturesC: temperaturesC,
+    sourceFormat: sourceFormat,
+    creator: creator,
   );
 
   List<TrackPoint> _decode() {

@@ -147,6 +147,7 @@ class ShareTrackExporter implements TrackExporter {
             points: points,
             kind: kind,
             pois: pois,
+            turns: turns,
             temperaturesC: temperaturesC,
           ),
           flush: true,
@@ -172,15 +173,16 @@ class ShareTrackExporter implements TrackExporter {
     required List<TrackPoint> points,
     required TrackKind kind,
     List<RoutePoi> pois = const <RoutePoi>[],
+    List<TurnHint> turns = const <TurnHint>[],
     List<double?> temperaturesC = const <double?>[],
   }) => switch (kind) {
     // A planned route is a <rte>: turn points, no time base, and its points
     // of interest as <wpt>, so a route goes out the way it came in.
-    TrackKind.route => GpxCodec.encodeRoute(
-      points: points,
+    TrackKind.route => _encodeGpxRoute(
       name: name,
-      creator: creator,
-      waypoints: gpxWaypoints(pois),
+      points: points,
+      pois: pois,
+      turns: turns,
     ),
     // A ride is a <trk> and keeps the timestamps it was recorded with, and
     // the temperature the file it came from carried.
@@ -194,6 +196,55 @@ class ShareTrackExporter implements TrackExporter {
       ],
     ),
   };
+
+  /// A route as Ride with GPS writes one: the `<rte>` holds the ends and
+  /// the turns, each with the manoeuvre as `sym` and `type` and the note as
+  /// its name, and the `<trk>` beside it holds the whole line. A route
+  /// without a cue sheet keeps every point on the `<rte>`, as before.
+  String _encodeGpxRoute({
+    required String name,
+    required List<TrackPoint> points,
+    required List<RoutePoi> pois,
+    required List<TurnHint> turns,
+  }) {
+    final cued = [
+      for (final t in turns)
+        if (t.pointIndex > 0 && t.pointIndex < points.length - 1) t,
+    ]..sort((a, b) => a.pointIndex.compareTo(b.pointIndex));
+    if (cued.isEmpty) {
+      return GpxCodec.encodeRoute(
+        points: points,
+        name: name,
+        creator: creator,
+        waypoints: gpxWaypoints(pois),
+      );
+    }
+    final rtepts = <TrackPoint>[points.first];
+    final cues = <GpxRouteCue>[];
+    var last = -1;
+    for (final t in cued) {
+      if (t.pointIndex == last) continue;
+      last = t.pointIndex;
+      rtepts.add(points[t.pointIndex]);
+      cues.add(
+        GpxRouteCue(
+          pointIndex: rtepts.length - 1,
+          name: t.note ?? turnWord(t.kind),
+          symbol: cueSymbol(t.kind),
+          type: cueSymbol(t.kind),
+        ),
+      );
+    }
+    rtepts.add(points.last);
+    return GpxCodec.encodeRoute(
+      points: rtepts,
+      name: name,
+      creator: creator,
+      waypoints: gpxWaypoints(pois),
+      cues: cues,
+      track: points,
+    );
+  }
 
   Uint8List _encodeFit({
     required String name,

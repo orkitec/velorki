@@ -35,7 +35,8 @@ List<FitCoursePoint> courseCuePoints({
           PoiKind.water => FitCoursePointType.water,
           PoiKind.food => FitCoursePointType.food,
           PoiKind.danger => FitCoursePointType.danger,
-          PoiKind.generic => FitCoursePointType.generic,
+          PoiKind.summit => FitCoursePointType.summit,
+          _ => FitCoursePointType.generic,
         },
       ),
   ];
@@ -80,6 +81,7 @@ PoiKind poiKindOf(FitCoursePointType type) => switch (type) {
   FitCoursePointType.water => PoiKind.water,
   FitCoursePointType.food => PoiKind.food,
   FitCoursePointType.danger => PoiKind.danger,
+  FitCoursePointType.summit => PoiKind.summit,
   _ => PoiKind.generic,
 };
 
@@ -99,4 +101,20 @@ String turnWord(TurnKind kind) => switch (kind) {
   TurnKind.roundabout || TurnKind.roundaboutLeft => 'Roundabout',
   TurnKind.end => 'Finish',
   _ => 'Continue',
+};
+
+/// The manoeuvre as a GPX cue's `sym` and `type`, the words Ride with GPS
+/// and Garmin write and the import reads back.
+String cueSymbol(TurnKind kind) => switch (kind) {
+  TurnKind.left => 'Left',
+  TurnKind.right => 'Right',
+  TurnKind.slightLeft => 'Slight Left',
+  TurnKind.slightRight => 'Slight Right',
+  TurnKind.sharpLeft => 'Sharp Left',
+  TurnKind.sharpRight => 'Sharp Right',
+  TurnKind.keepLeft || TurnKind.exitLeft => 'Left',
+  TurnKind.keepRight || TurnKind.exitRight => 'Right',
+  TurnKind.uTurn || TurnKind.uTurnLeft || TurnKind.uTurnRight => 'U-Turn',
+  TurnKind.end => 'End',
+  _ => 'Straight',
 };

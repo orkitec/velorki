@@ -569,6 +569,10 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
                       formatDate(l10n, saved.startedAt),
                       style: theme.textTheme.bodySmall,
                     ),
+                    if (rideSourceLine(l10n, saved) case final source?) ...[
+                      const SizedBox(height: 4),
+                      Text(source, style: theme.textTheme.bodySmall),
+                    ],
                     const SizedBox(height: 20),
                     RideStatsGrid(
                       items: <RideStatItem>[
@@ -1080,4 +1084,20 @@ bool deviceTotalsDiffer(DeviceTotals totals, RideStats stats) {
       ) ||
       apart(totals.ascentM, stats.ascentM, 0.05, 10) ||
       totals.calories != null;
+}
+
+/// Where an imported ride came from, for the line under its date: the
+/// file's format and who wrote it. Nothing for a ride recorded here.
+String? rideSourceLine(AppLocalizations l10n, Ride ride) {
+  final format = switch (ride.sourceFormat) {
+    'gpx' => l10n.importFormatGpx,
+    'fit' => l10n.importFormatFit,
+    final other? => other.toUpperCase(),
+    null => null,
+  };
+  if (format == null) return null;
+  final creator = ride.creator?.trim();
+  return creator == null || creator.isEmpty
+      ? l10n.cardImportedFrom(format)
+      : l10n.cardImportedFromBy(format, creator);
 }

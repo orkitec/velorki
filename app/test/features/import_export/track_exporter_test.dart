@@ -9,6 +9,9 @@ import 'package:velorki/features/planner/domain/route_poi.dart';
 import 'package:velorki_fit/velorki_fit.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki_gpx/velorki_gpx.dart';
+import 'package:velorki/features/import_export/data/track_decoder.dart';
+
+import 'dart:typed_data';
 
 /// One recorded call to the injected share callback.
 class _SharedFile {
@@ -259,5 +262,34 @@ void main() {
     test('caps the length', () {
       expect(safeFileName('x' * 200).length, 80);
     });
+  });
+
+  test('a route with a cue sheet goes out as a <rte> of its turns beside a '
+      '<trk> of the whole line', () async {
+    final h = _Harness();
+    final points = _points();
+    await h.exporter.share(
+      name: 'Cued',
+      points: points,
+      kind: TrackKind.route,
+      format: TrackFormat.gpx,
+      turns: const [
+        TurnHint(pointIndex: 1, kind: TurnKind.left, note: 'Onto the bridge'),
+        TurnHint(pointIndex: 2, kind: TurnKind.slightRight),
+        TurnHint(pointIndex: 3, kind: TurnKind.end),
+      ],
+    );
+    final doc = GpxCodec.decode(h.shared.single.file.readAsStringSync());
+    final route = doc.routes.single;
+    expect(route.points, hasLength(4), reason: 'start, two turns, finish');
+    expect(route.cues.map((c) => c.name), ['Onto the bridge', 'Slight right']);
+    expect(route.cues.map((c) => c.symbol), ['Left', 'Slight Right']);
+    expect(route.cues.first.pointIndex, 1);
+    expect(doc.tracks.single.pointCount, 4);
+    // And the import reads the cue sheet back as turns.
+    final back = decodeTrack(
+      Uint8List.fromList(h.shared.single.file.readAsBytesSync()),
+    );
+    expect(back.points, hasLength(4), reason: 'the track, not the route');
   });
 }

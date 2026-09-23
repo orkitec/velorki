@@ -40,6 +40,12 @@ class Routes extends Table {
   BoolColumn get aiDescriptionGenerated =>
       boolean().withDefault(const Constant(false))();
 
+  /// A web address the route came with or was given.
+  TextColumn get link => text().nullable()();
+
+  /// Who wrote the file the route came from.
+  TextColumn get creator => text().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

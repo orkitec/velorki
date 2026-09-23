@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import 'route_poi.dart';
@@ -24,6 +25,10 @@ abstract class Waypoint with _$Waypoint {
 
     /// A line or two the rider wrote about the point.
     String? note,
+
+    /// The manoeuvre, for a point of the [PoiKind.turn] kind: what the cue
+    /// sheet says there. `null` for any other kind.
+    TurnKind? turn,
   }) = _Waypoint;
 
   /// Whether the point carries anything beyond its position: a name or a
@@ -52,6 +57,12 @@ abstract class Waypoint with _$Waypoint {
       orElse: () => PoiKind.generic,
     ),
     note: json['note'] as String?,
+    turn: json['turn'] == null
+        ? null
+        : TurnKind.values.firstWhere(
+            (k) => k.name == json['turn'],
+            orElse: () => TurnKind.straight,
+          ),
   );
 
   /// One entry of the `waypoints_json` column.
@@ -62,6 +73,7 @@ abstract class Waypoint with _$Waypoint {
     if (name != null) 'name': name,
     if (poiKind != PoiKind.generic) 'poi': poiKind.name,
     if (note != null) 'note': note,
+    if (turn != null) 'turn': turn!.name,
   };
 }
 
@@ -69,7 +81,7 @@ abstract class Waypoint with _$Waypoint {
 /// interest: what a GPX export writes them as, beside the route's own.
 List<RoutePoi> waypointPois(List<Waypoint> waypoints) => <RoutePoi>[
   for (final w in waypoints)
-    if (w.hasDetails)
+    if (w.hasDetails && w.poiKind != PoiKind.turn)
       RoutePoi(
         pos: w.pos,
         name: w.name ?? '',
@@ -89,4 +101,51 @@ List<Waypoint> normalizeWaypointKinds(List<Waypoint> waypoints) {
     final w = waypoints[i];
     return w.kind == kind ? w : w.copyWith(kind: kind);
   }, growable: false);
+}
+
+/// The waypoints of the [PoiKind.turn] kind as the cue sheet's turns, each
+/// at the point of [geometry] nearest to it, its name as the note. What a
+/// save writes into the route's turns, beside the router's own.
+List<TurnHint> waypointTurns(List<Waypoint> waypoints, List<LatLng> geometry) {
+  if (geometry.isEmpty) return const <TurnHint>[];
+  final turns = <TurnHint>[];
+  for (final w in waypoints) {
+    if (w.poiKind != PoiKind.turn) continue;
+    var best = 0;
+    var bestD = double.infinity;
+    for (var i = 0; i < geometry.length; i++) {
+      final d = haversineMeters(geometry[i], w.pos);
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    }
+    turns.add(
+      TurnHint(
+        pointIndex: best,
+        kind: w.turn ?? TurnKind.straight,
+        note: w.name ?? w.note,
+      ),
+    );
+  }
+  return turns;
+}
+
+/// [turns] with the turn waypoints of [waypoints] merged in: a waypoint's
+/// turn replaces the router's at the same point of [geometry], the rest
+/// stay, in point order.
+List<TurnHint> mergeWaypointTurns(
+  List<TurnHint> turns,
+  List<Waypoint> waypoints,
+  List<LatLng> geometry,
+) {
+  final own = waypointTurns(waypoints, geometry);
+  if (own.isEmpty) return turns;
+  final at = {for (final t in own) t.pointIndex};
+  final merged = <TurnHint>[
+    for (final t in turns)
+      if (!at.contains(t.pointIndex)) t,
+    ...own,
+  ]..sort((a, b) => a.pointIndex.compareTo(b.pointIndex));
+  return merged;
 }

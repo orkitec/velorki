@@ -173,6 +173,7 @@ ImportedTrack _gpxTrack(
     description:
         document.description ?? track?.description ?? route?.description,
     creator: document.creator,
+    link: document.link,
     turns: turns,
     temperaturesC: temperatures.any((t) => t != null)
         ? temperatures

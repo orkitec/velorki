@@ -84,7 +84,20 @@ abstract final class GpxCodec {
       tracks: [for (final trk in parsed.trks) _toTrack(trk)],
       routes: [for (final rte in parsed.rtes) _toRoute(rte)],
       waypoints: [for (final wpt in parsed.wpts) _toWaypoint(wpt)],
+      link: _firstLink([
+        ...?parsed.metadata?.links,
+        for (final trk in parsed.trks) ...trk.links,
+        for (final rte in parsed.rtes) ...rte.links,
+      ]),
     );
+  }
+
+  static String? _firstLink(List<gpxlib.Link> links) {
+    for (final link in links) {
+      final href = link.href.trim();
+      if (href.isNotEmpty) return href;
+    }
+    return null;
   }
 
   /// Encodes [points] as a GPX 1.1 file holding a single `<trk>` with one
@@ -147,24 +160,44 @@ abstract final class GpxCodec {
     List<GpxRouteCue> cues = const [],
     List<TrackPoint> track = const [],
   }) {
-    // Phase 3: the cue sheet goes out on the `<rtept>`s, and the full
-    // geometry as a `<trk>` beside the `<rte>`.
-    if (cues.isNotEmpty || track.isNotEmpty) {
-      throw UnimplementedError('Phase 3: route cues and track are not written');
+    // The cue sheet on the route's points, the way Ride with GPS and Garmin
+    // write one: name, sym and type on the `<rtept>` the cue belongs to.
+    final byIndex = {for (final cue in cues) cue.pointIndex: cue};
+    final rtepts = <gpxlib.Wpt>[];
+    for (var i = 0; i < points.length; i++) {
+      final pt = _fromPoint(points[i]);
+      if (byIndex[i] case final cue?) {
+        pt
+          ..name = cue.name
+          ..desc = cue.description
+          ..sym = cue.symbol
+          ..type = cue.type;
+      }
+      rtepts.add(pt);
     }
     final gpx = gpxlib.Gpx()
       ..version = '1.1'
       ..creator = creator
       ..metadata = _metadata(name, description)
       ..wpts = [for (final w in waypoints) _fromWaypoint(w)]
-      ..rtes = [
-        gpxlib.Rte(
-          name: name,
-          desc: description,
-          rtepts: [for (final p in points) _fromPoint(p)],
-        ),
+      ..rtes = [gpxlib.Rte(name: name, desc: description, rtepts: rtepts)]
+      // The full geometry beside the route, for readers that only draw
+      // tracks; the <rte> then carries the turns alone.
+      ..trks = [
+        if (track.isNotEmpty)
+          gpxlib.Trk(
+            name: name,
+            desc: description,
+            trksegs: [
+              gpxlib.Trkseg(trkpts: [for (final p in track) _fromPoint(p)]),
+            ],
+          ),
       ];
-    return _render(gpx, garminExtensions: _needsGarminNamespace(points));
+    return _render(
+      gpx,
+      garminExtensions:
+          _needsGarminNamespace(points) || _needsGarminNamespace(track),
+    );
   }
 
   // --- decoding helpers ----------------------------------------------------

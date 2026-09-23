@@ -44,7 +44,12 @@ class ImportedTrack {
     this.deviceTotals,
     this.temperaturesC = const <double?>[],
     this.isCourse = false,
+    this.link,
   });
+
+  /// A web address the file carried: its `<link>`, for a route that came
+  /// from a planning site.
+  final String? link;
 
   /// Whether the file was a course (a FIT course, a TCX course): a planned
   /// route with a virtual clock on its points, not a recording.

@@ -1427,4 +1427,42 @@ void main() {
 
     await unmountApp(tester);
   });
+
+  testWidgets('an imported ride says which file and device it came from', (
+    tester,
+  ) async {
+    final harness = RecordingHarness();
+    final points = _threeKilometres();
+    final repository = RideRepository(harness.planner.db.ridesDao);
+    final ride = await repository.finalizeRide(
+      rideId: 'ride-1',
+      name: 'Wahoo ride',
+      points: points,
+      startedAt: points.first.time!,
+      endedAt: points.last.time!,
+    );
+    await repository.save(
+      Ride(
+        id: ride.id,
+        name: ride.name,
+        startedAt: ride.startedAt,
+        endedAt: ride.endedAt,
+        stats: ride.stats,
+        geometry: ride.geometry,
+        sourceFormat: 'fit',
+        creator: 'wahoo_fitness',
+      ),
+    );
+    await pumpRecordingScreen(
+      tester,
+      const RideDetailScreen(rideId: 'ride-1'),
+      harness: harness,
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.text(l10n.cardImportedFromBy('FIT', 'wahoo_fitness')),
+      findsOneWidget,
+    );
+    await unmountApp(tester);
+  });
 }

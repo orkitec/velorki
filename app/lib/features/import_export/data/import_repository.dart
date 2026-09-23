@@ -56,6 +56,8 @@ class ImportRepository {
       description: track.description,
       pois: track.pois,
       turns: track.turns,
+      link: track.link,
+      creator: track.creator,
     );
     if (externalIds != null && externalIds.isNotEmpty) {
       await _routes.markExternal(
@@ -112,6 +114,8 @@ class ImportRepository {
       temperatures: track.temperaturesC.any((t) => t != null)
           ? encodeTemperatures(track.temperaturesC)
           : null,
+      sourceFormat: track.format.name,
+      creator: track.creator,
     );
     await _rides.upsertRide(
       RidesCompanion.insert(
@@ -132,6 +136,8 @@ class ImportRepository {
         lapsJson: Value(row.lapsJson),
         deviceTotalsJson: Value(row.deviceTotalsJson),
         temperatures: Value(row.temperatures),
+        sourceFormat: Value(row.sourceFormat),
+        creator: Value(row.creator),
       ),
     );
     return row;

@@ -832,4 +832,43 @@ void main() {
       await unmountApp(tester);
     }
   });
+
+  testWidgets('a point of the turn kind takes a direction, which its '
+      'marker and the plan keep', (tester) async {
+    final h = await pumpScreen(tester, const PlannerScreen());
+    await _plotRoute(tester, h);
+    h.map.onWaypointTapped!(1);
+    await tester.pumpAndSettle();
+    // No direction to choose until the kind is a turn.
+    expect(find.byType(TurnDirectionChips), findsNothing);
+    await tester.ensureVisible(find.text(l10n.poiKindTurn));
+    await tester.tap(find.text(l10n.poiKindTurn));
+    await tester.pumpAndSettle();
+    expect(find.byType(TurnDirectionChips), findsOneWidget);
+    await tester.tap(find.widgetWithText(ChoiceChip, l10n.navTurnRight));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, l10n.plannerPointName),
+      'Right at the barn',
+    );
+    await tester.tap(find.widgetWithText(FilledButton, l10n.commonDone));
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PlannerScreen)),
+    );
+    final point = container.read(plannerControllerProvider).waypoints[1];
+    expect(point.poiKind, PoiKind.turn);
+    expect(point.turn, TurnKind.right);
+    expect(point.name, 'Right at the barn');
+    expect(h.map.waypoints.map((w) => w.label), [null, 'Right at the barn']);
+
+    // Opened again, the direction is the one chosen.
+    h.map.onWaypointTapped!(1);
+    await tester.pumpAndSettle();
+    final chip = tester.widget<ChoiceChip>(
+      find.widgetWithText(ChoiceChip, l10n.navTurnRight),
+    );
+    expect(chip.selected, isTrue);
+  });
 }

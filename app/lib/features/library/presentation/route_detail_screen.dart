@@ -19,9 +19,15 @@ import '../../planner/data/route_repository.dart';
 import '../../planner/domain/elevation_profile.dart';
 import '../../planner/domain/saved_route.dart';
 import '../../planner/domain/route_poi.dart';
+import '../../planner/domain/route_waypoints.dart';
 import '../../planner/domain/waypoint.dart';
 import '../../planner/presentation/elevation_profile_chart.dart';
 import '../../navigation/application/route_cues.dart';
+import '../../navigation/application/route_geometry.dart';
+import 'edit_text_dialog.dart';
+import '../../planner/presentation/waypoint_edit_sheet.dart';
+import '../../../core/db/database.dart' show RouteSource;
+import '../../../core/links/link_opener.dart';
 import '../../navigation/presentation/cue_sheet_list.dart';
 import '../../navigation/presentation/cue_sheet_map.dart';
 import '../../navigation/presentation/turn_phrases.dart';
@@ -30,6 +36,8 @@ import '../../planner/presentation/route_stats_row.dart';
 import '../../planner/presentation/surface_stats_bar.dart';
 import '../../settings/data/units.dart';
 import '../../shared/presentation/docking_sheet.dart';
+import '../../shared/presentation/button_menu.dart';
+import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/placeholder_body.dart';
 import '../../shared/presentation/sheet_header.dart';
 import '../../sharing/presentation/share_link_button.dart';
@@ -179,6 +187,37 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
     });
   }
 
+  Future<void> _editDescription(SavedRoute route) async {
+    final l10n = AppLocalizations.of(context);
+    final text = await showEditTextDialog(
+      context,
+      title: l10n.routeDetailDescription,
+      initial: route.description,
+      maxLines: 5,
+    );
+    if (text == null || !mounted) return;
+    await ref.read(routeRepositoryProvider).setDescription(route.id, text);
+  }
+
+  Future<void> _editLink(SavedRoute route) async {
+    final l10n = AppLocalizations.of(context);
+    final text = await showEditTextDialog(
+      context,
+      title: l10n.routeDetailLink,
+      initial: route.link,
+      hint: 'https://',
+      keyboardType: TextInputType.url,
+    );
+    if (text == null || !mounted) return;
+    await ref.read(routeRepositoryProvider).setLink(route.id, text);
+  }
+
+  Future<void> _openLink(String link) async {
+    final url = Uri.tryParse(link.contains('://') ? link : 'https://$link');
+    if (url == null) return;
+    await ref.read(linkOpenerProvider)(url);
+  }
+
   Future<void> _export(SavedRoute route, TrackFormat format) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
@@ -260,6 +299,10 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
                       ),
                       style: theme.textTheme.bodySmall,
                     ),
+                    if (sourceLine(l10n, saved) case final source?) ...[
+                      const SizedBox(height: 4),
+                      Text(source, style: theme.textTheme.bodySmall),
+                    ],
                     if (saved.description != null &&
                         saved.description!.isNotEmpty) ...[
                       const SizedBox(height: 12),
@@ -295,24 +338,18 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
                       children: [
                         // A route exports as a GPX <rte> or as a FIT course;
                         // the activity forms belong to a ride.
-                        MenuAnchor(
-                          builder: (context, controller, _) =>
-                              OutlinedButton.icon(
-                                onPressed: () => controller.isOpen
-                                    ? controller.close()
-                                    : controller.open(),
-                                icon: const Icon(Icons.ios_share),
-                                label: Text(l10n.routeDetailExport),
-                              ),
-                          menuChildren: [
-                            MenuItemButton(
-                              onPressed: () =>
-                                  unawaited(_export(saved, TrackFormat.gpx)),
+                        ButtonMenu<TrackFormat>(
+                          icon: Icons.ios_share,
+                          label: l10n.routeDetailExport,
+                          onSelected: (format) =>
+                              unawaited(_export(saved, format)),
+                          entries: [
+                            PopupMenuItem(
+                              value: TrackFormat.gpx,
                               child: Text(l10n.exportGpxRoute),
                             ),
-                            MenuItemButton(
-                              onPressed: () =>
-                                  unawaited(_export(saved, TrackFormat.fit)),
+                            PopupMenuItem(
+                              value: TrackFormat.fit,
                               child: Text(l10n.exportFitCourse),
                             ),
                           ],
@@ -332,7 +369,28 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
                         DescribeRouteButton(route: saved),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
+                    // The route's own words and where it came from, each
+                    // a row the rider can change: a description typed
+                    // here stands where the model's or the file's did.
+                    _DetailRow(
+                      icon: Icons.notes_outlined,
+                      label: l10n.routeDetailDescription,
+                      value: saved.description,
+                      empty: l10n.routeDetailAddDescription,
+                      onEdit: () => _editDescription(saved),
+                    ),
+                    _DetailRow(
+                      icon: Icons.link,
+                      label: l10n.routeDetailLink,
+                      value: saved.link,
+                      empty: l10n.routeDetailAddLink,
+                      onTap: saved.link == null
+                          ? null
+                          : () => _openLink(saved.link!),
+                      onEdit: () => _editLink(saved),
+                    ),
+                    const SizedBox(height: 16),
                     SurfaceStatsBar(stats: saved.surfaceStats),
                     const SizedBox(height: 28),
                     ElevationProfileChart(
@@ -348,6 +406,31 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
                         onSelect: _selectCue,
                       ),
                     ],
+                    // The places the file knew that are not on the way:
+                    // the cue sheet has the ones on the track, these are
+                    // the rest, with what the file said about them.
+                    if (offTrackPois(saved) case final beside
+                        when beside.isNotEmpty) ...[
+                      const SizedBox(height: 28),
+                      SectionCaption(l10n.routeDetailPois),
+                      const SizedBox(height: 4),
+                      for (final poi in beside)
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(poiIcon(poi.kind)),
+                          title: Text(
+                            poi.name.isEmpty
+                                ? poiKindLabel(l10n, poi.kind)
+                                : poi.name,
+                          ),
+                          subtitle: Text(
+                            [
+                              poiKindLabel(l10n, poi.kind),
+                              ?poi.description,
+                            ].join(' · '),
+                          ),
+                        ),
+                    ],
                   ],
                 ),
               ),
@@ -355,6 +438,81 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
           },
         ),
       ],
+    );
+  }
+}
+
+/// Where a route came from, for the line under its name: the format of the
+/// file and who wrote it. Nothing for a route planned here.
+String? sourceLine(AppLocalizations l10n, SavedRoute route) {
+  final format = switch (route.source) {
+    RouteSource.importedGpx => l10n.importFormatGpx,
+    RouteSource.importedFit => l10n.importFormatFit,
+    RouteSource.strava => 'Strava',
+    RouteSource.rwgps => 'Ride with GPS',
+    RouteSource.planned || RouteSource.loop => null,
+  };
+  if (format == null) return null;
+  final creator = route.creator?.trim();
+  return creator == null || creator.isEmpty
+      ? l10n.cardImportedFrom(format)
+      : l10n.cardImportedFromBy(format, creator);
+}
+
+/// The route's points of interest that are not on its track: the ones the
+/// cue sheet leaves out.
+List<RoutePoi> offTrackPois(SavedRoute route) {
+  final line = route.geometry.map((p) => p.pos).toList(growable: false);
+  if (line.length < 2) return route.pois;
+  final cumulative = cumulativeDistances(line);
+  return [
+    for (final poi in route.pois)
+      if (projectOnLine(line, poi.pos, cumulative: cumulative).distanceM >
+          poiOnTrackM)
+        poi,
+  ];
+}
+
+/// One line of the card the rider can change: its label, its value or an
+/// invitation, and a pencil.
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.empty,
+    required this.onEdit,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final String? value;
+  final String empty;
+  final VoidCallback onEdit;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final has = value != null && value!.trim().isNotEmpty;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(icon),
+      title: Text(label, style: theme.textTheme.bodySmall),
+      subtitle: Text(
+        has ? value!.trim() : empty,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: has ? null : theme.colorScheme.onSurfaceVariant,
+        ),
+        maxLines: 3,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: IconButton(
+        icon: const Icon(Icons.edit_outlined),
+        onPressed: onEdit,
+      ),
+      onTap: onTap ?? onEdit,
     );
   }
 }

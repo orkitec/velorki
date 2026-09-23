@@ -36,4 +36,40 @@ void main() {
     expect(wpt.type, 'water');
     expect(wpt.pos, const LatLng(48, 11));
   });
+
+  group('the wider kinds', () {
+    test('summit, viewpoint, shelter, shop and repair read off the words a '
+        'file uses', () {
+      expect(PoiKind.fromGpx(symbol: 'Summit'), PoiKind.summit);
+      expect(PoiKind.fromGpx(symbol: 'Scenic Area'), PoiKind.viewpoint);
+      expect(PoiKind.fromGpx(type: 'viewpoint'), PoiKind.viewpoint);
+      expect(PoiKind.fromGpx(symbol: 'Lodge'), PoiKind.shelter);
+      expect(PoiKind.fromGpx(comment: 'mountain hut'), PoiKind.shelter);
+      expect(PoiKind.fromGpx(type: 'bike shop'), PoiKind.shop);
+      expect(PoiKind.fromGpx(symbol: 'Shopping Center'), PoiKind.shop);
+      expect(PoiKind.fromGpx(type: 'repair'), PoiKind.repair);
+      expect(PoiKind.fromGpx(type: 'bakery'), PoiKind.food);
+      expect(PoiKind.fromGpx(type: 'nothing known'), PoiKind.generic);
+    });
+
+    test('every kind writes a type and a symbol a file reads back', () {
+      for (final kind in PoiKind.values) {
+        final out = gpxWaypoints([
+          RoutePoi(pos: const LatLng(48, 11), name: 'x', kind: kind),
+        ]).single;
+        expect(out.type, kind.name, reason: kind.name);
+        expect(out.symbol, isNotEmpty, reason: kind.name);
+      }
+      expect(
+        gpxWaypoints([
+          const RoutePoi(
+            pos: LatLng(48, 11),
+            name: 'Top',
+            kind: PoiKind.summit,
+          ),
+        ]).single.symbol,
+        'Summit',
+      );
+    });
+  });
 }

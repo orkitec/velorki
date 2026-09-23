@@ -127,6 +127,7 @@ class PlannerController extends _$PlannerController {
     String? name,
     PoiKind poiKind = PoiKind.generic,
     String? note,
+    TurnKind? turn,
   }) {
     if (index < 0 || index >= state.waypoints.length) return;
     _pushUndo();
@@ -135,6 +136,7 @@ class PlannerController extends _$PlannerController {
       name: name?.trim().isEmpty ?? true ? null : name!.trim(),
       poiKind: poiKind,
       note: note?.trim().isEmpty ?? true ? null : note!.trim(),
+      turn: poiKind == PoiKind.turn ? (turn ?? TurnKind.straight) : null,
     );
     state = state.copyWith(waypoints: next);
     final id = state.savedRouteId;
@@ -418,6 +420,7 @@ class PlannerController extends _$PlannerController {
       track: geometry.map((p) => p.pos).toList(growable: false),
       saved: waypoints,
       pois: saved.pois,
+      turns: saved.turns,
     );
   }
 

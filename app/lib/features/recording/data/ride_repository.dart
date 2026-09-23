@@ -167,6 +167,8 @@ class RideRepository {
     temperaturesC: decodeTemperatures(
       row.temperatures == null ? null : Uint8List.fromList(row.temperatures!),
     ),
+    sourceFormat: row.sourceFormat,
+    creator: row.creator,
   );
 
   /// Maps the domain model into a row for `INSERT OR REPLACE`.
@@ -205,6 +207,8 @@ class RideRepository {
           ? encodeTemperatures(ride.temperaturesC)
           : null,
     ),
+    sourceFormat: Value(ride.sourceFormat),
+    creator: Value(ride.creator),
   );
 
   /// Writes the row, dropping the route link when the followed route was

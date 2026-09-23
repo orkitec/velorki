@@ -51,7 +51,7 @@ If the file will not open, Velorki says which problem it was: "That is not a GPX
 
 | Format | Use it for |
 |---|---|
-| **GPX route** | a planned route for another planner, a phone app or a bike computer |
+| **GPX route** | a planned route for another planner, a phone app or a bike computer. A route with a cue sheet goes out as Ride with GPS writes one: a `<rte>` of the turns, each with its direction and words, and a `<trk>` of the whole line beside it; a route without one keeps every point on the `<rte>`. |
 | **FIT course** | a Garmin, Wahoo or similar head unit that expects a course; the cue sheet and the points of interest go along as course points, so the unit shows the next turn |
 
 **From a ride** (Library → Rides → open it, or the ride's card after finishing):

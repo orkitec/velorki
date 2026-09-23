@@ -238,6 +238,6 @@ void main() {
       ]);
       expect(doc.routes.single.cues.first.symbol, 'Left');
       expect(doc.tracks.single.pointCount, 20);
-    }, skip: 'phase 3');
+    });
   });
 }

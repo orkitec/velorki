@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:velorki_brouter/velorki_brouter.dart';
 
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -8,7 +9,15 @@ import '../domain/route_poi.dart';
 /// What a rider can say about a waypoint: a name, a kind and a note.
 class WaypointDetails {
   /// Creates the details.
-  const WaypointDetails({this.name, this.poiKind = PoiKind.generic, this.note});
+  const WaypointDetails({
+    this.name,
+    this.poiKind = PoiKind.generic,
+    this.note,
+    this.turn,
+  });
+
+  /// The manoeuvre, for a point of the turn kind.
+  final TurnKind? turn;
 
   /// The name, or `null` for none.
   final String? name;
@@ -24,10 +33,11 @@ class WaypointDetails {
       other is WaypointDetails &&
       other.name == name &&
       other.poiKind == poiKind &&
-      other.note == note;
+      other.note == note &&
+      other.turn == turn;
 
   @override
-  int get hashCode => Object.hash(name, poiKind, note);
+  int get hashCode => Object.hash(name, poiKind, note, turn);
 }
 
 /// How the edit sheet closed: with details to apply, or with the point to
@@ -103,6 +113,7 @@ class _WaypointEditSheetState extends State<WaypointEditSheet> {
     text: widget.initial.note ?? '',
   );
   late PoiKind _kind = widget.initial.poiKind;
+  late TurnKind _turn = widget.initial.turn ?? TurnKind.left;
 
   @override
   void dispose() {
@@ -129,6 +140,7 @@ class _WaypointEditSheetState extends State<WaypointEditSheet> {
         name: _nameOrNone(),
         poiKind: _kind,
         note: _note.text.trim().isEmpty ? null : _note.text.trim(),
+        turn: _kind == PoiKind.turn ? _turn : null,
       ),
     ),
   );
@@ -163,6 +175,17 @@ class _WaypointEditSheetState extends State<WaypointEditSheet> {
               selected: _kind,
               onSelected: (kind) => setState(() => _kind = kind),
             ),
+            // A turn says which way: the manoeuvre the cue sheet shows and
+            // the voice says at this point.
+            if (_kind == PoiKind.turn) ...[
+              const SizedBox(height: 12),
+              Text(l10n.plannerTurnDirection, style: theme.textTheme.bodySmall),
+              const SizedBox(height: 8),
+              TurnDirectionChips(
+                selected: _turn,
+                onSelected: (turn) => setState(() => _turn = turn),
+              ),
+            ],
             const SizedBox(height: 16),
             TextField(
               controller: _note,
@@ -219,11 +242,12 @@ class _WaypointEditSheetState extends State<WaypointEditSheet> {
   }
 }
 
-/// The four kinds as equal tiles across the sheet, icon over a one-line
+/// The kinds as tiles in a row that scrolls sideways, icon over a one-line
 /// label, the chosen one filled with the scheme's primary.
 ///
-/// Tiles rather than a segmented button: four icon-beside-label segments
-/// did not fit a phone's width, and every label broke onto a second line.
+/// Tiles rather than a segmented button: icon-beside-label segments did not
+/// fit a phone's width, and every label broke onto a second line. A row
+/// that scrolls, since ten kinds are more than a phone shows at once.
 class PoiKindTiles extends StatelessWidget {
   /// Creates the tiles with [selected] filled.
   const PoiKindTiles({
@@ -243,65 +267,124 @@ class PoiKindTiles extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final labelStyle = Theme.of(context).textTheme.labelMedium;
-    return Row(
-      children: [
-        for (final (i, kind) in PoiKind.values.indexed) ...[
-          if (i > 0) const SizedBox(width: 8),
-          Expanded(
-            child: Semantics(
-              button: true,
-              selected: kind == selected,
-              child: Material(
-                // Fill and text from the one scheme, so they agree in both
-                // themes: a tint of the accent under white text did not.
-                color: kind == selected
-                    ? scheme.primary
-                    : scheme.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(12),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  onTap: () => onSelected(kind),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 10,
-                      horizontal: 4,
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          poiIcon(kind),
-                          size: 22,
-                          color: kind == selected
-                              ? scheme.onPrimary
-                              : scheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(height: 4),
-                        // One line whatever the language: a label longer
-                        // than its quarter shrinks rather than wrapping or
-                        // ending in an ellipsis.
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            poiKindLabel(l10n, kind),
-                            maxLines: 1,
-                            softWrap: false,
-                            textAlign: TextAlign.center,
-                            style: labelStyle?.copyWith(
-                              color: kind == selected
-                                  ? scheme.onPrimary
-                                  : scheme.onSurface,
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      clipBehavior: Clip.none,
+      child: Row(
+        children: [
+          for (final (i, kind) in PoiKind.values.indexed) ...[
+            if (i > 0) const SizedBox(width: 8),
+            SizedBox(
+              width: poiKindTileWidth,
+              child: Semantics(
+                button: true,
+                selected: kind == selected,
+                child: Material(
+                  // Fill and text from the one scheme, so they agree in both
+                  // themes: a tint of the accent under white text did not.
+                  color: kind == selected
+                      ? scheme.primary
+                      : scheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(12),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: () => onSelected(kind),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 10,
+                        horizontal: 4,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            poiIcon(kind),
+                            size: 22,
+                            color: kind == selected
+                                ? scheme.onPrimary
+                                : scheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(height: 4),
+                          // One line whatever the language: a label longer
+                          // than its quarter shrinks rather than wrapping or
+                          // ending in an ellipsis.
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              poiKindLabel(l10n, kind),
+                              maxLines: 1,
+                              softWrap: false,
+                              textAlign: TextAlign.center,
+                              style: labelStyle?.copyWith(
+                                color: kind == selected
+                                    ? scheme.onPrimary
+                                    : scheme.onSurface,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+/// How wide a kind's tile is: four fit a phone with room for the fifth to
+/// show, which says the row scrolls.
+const double poiKindTileWidth = 78;
+
+/// The manoeuvres a turn point can stand for, as chips with the turn's icon.
+class TurnDirectionChips extends StatelessWidget {
+  /// Creates the chips with [selected] on.
+  const TurnDirectionChips({
+    required this.selected,
+    required this.onSelected,
+    super.key,
+  });
+
+  /// The manoeuvre chosen now.
+  final TurnKind selected;
+
+  /// Called with the manoeuvre a tap chose.
+  final ValueChanged<TurnKind> onSelected;
+
+  /// The manoeuvres offered, the ones a rider writes on a cue sheet.
+  static const List<TurnKind> kinds = [
+    TurnKind.left,
+    TurnKind.right,
+    TurnKind.slightLeft,
+    TurnKind.slightRight,
+    TurnKind.sharpLeft,
+    TurnKind.sharpRight,
+    TurnKind.keepLeft,
+    TurnKind.keepRight,
+    TurnKind.straight,
+    TurnKind.uTurn,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final kind in kinds)
+          ChoiceChip(
+            avatar: Icon(turnIcon(kind), size: 18),
+            label: Text(
+              turnKindLabel(TurnHint(pointIndex: 0, kind: kind), l10n),
+            ),
+            selected: kind == selected,
+            onSelected: (_) => onSelected(kind),
+          ),
       ],
     );
   }
@@ -313,4 +396,10 @@ String poiKindLabel(AppLocalizations l10n, PoiKind kind) => switch (kind) {
   PoiKind.water => l10n.poiKindWater,
   PoiKind.food => l10n.poiKindFood,
   PoiKind.generic => l10n.poiKindGeneric,
+  PoiKind.summit => l10n.poiKindSummit,
+  PoiKind.viewpoint => l10n.poiKindViewpoint,
+  PoiKind.shelter => l10n.poiKindShelter,
+  PoiKind.shop => l10n.poiKindShop,
+  PoiKind.repair => l10n.poiKindRepair,
+  PoiKind.turn => l10n.poiKindTurn,
 };

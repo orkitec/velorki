@@ -74,10 +74,15 @@ class RouteRepository {
         ))
           poi,
     ];
+    final geometryLine = route.geometry
+        .map((p) => p.pos)
+        .toList(growable: false);
     final saved = SavedRoute(
       id: id ?? _uuid.v4(),
       name: name,
       description: description ?? kept?.description,
+      link: kept?.link,
+      creator: kept?.creator,
       source: source,
       profile: options.profile,
       createdAt: existing?.createdAt ?? now,
@@ -90,7 +95,9 @@ class RouteRepository {
       waypoints: waypoints,
       options: options,
       surfaceStats: route.messages.isEmpty ? null : route.surfaceStats,
-      turns: route.turns,
+      // The rider's own turns, from the waypoints of the turn kind, beside
+      // the router's: what the cue sheet and the navigator read.
+      turns: mergeWaypointTurns(route.turns, waypoints, geometryLine),
       pois: pois,
     );
     await _dao.upsertRoute(toCompanion(saved));
@@ -116,6 +123,8 @@ class RouteRepository {
     List<RoutePoi> pois = const <RoutePoi>[],
     List<TurnHint> turns = const <TurnHint>[],
     RoutingOptions options = const RoutingOptions(),
+    String? link,
+    String? creator,
   }) async {
     if (points.isEmpty) {
       throw ArgumentError.value(points, 'points', 'an imported route is empty');
@@ -144,6 +153,8 @@ class RouteRepository {
       options: options,
       pois: pois,
       turns: turns,
+      link: link,
+      creator: creator,
     );
     await _dao.upsertRoute(toCompanion(saved));
     return saved;
@@ -208,9 +219,33 @@ class RouteRepository {
   Future<void> setWaypoints(String id, List<Waypoint> waypoints) async {
     final row = await _dao.routeById(id);
     if (row == null) return;
+    final route = toDomain(row);
     await _dao.updateRoute(
       row.copyWith(
         waypointsJson: encodeWaypoints(waypoints),
+        turnsJson: Value(
+          encodeTurns(
+            mergeWaypointTurns(
+              route.turns,
+              waypoints,
+              route.geometry.map((p) => p.pos).toList(growable: false),
+            ),
+          ),
+        ),
+        updatedAt: _clock(),
+      ),
+    );
+  }
+
+  /// Writes the route's link, `null` to take it away. An unknown id changes
+  /// nothing.
+  Future<void> setLink(String id, String? link) async {
+    final row = await _dao.routeById(id);
+    if (row == null) return;
+    final trimmed = link?.trim();
+    await _dao.updateRoute(
+      row.copyWith(
+        link: Value(trimmed == null || trimmed.isEmpty ? null : trimmed),
         updatedAt: _clock(),
       ),
     );
@@ -248,6 +283,8 @@ class RouteRepository {
     turns: decodeTurns(row.turnsJson),
     aiDescriptionGenerated: row.aiDescriptionGenerated,
     pois: decodePois(row.poisJson),
+    link: row.link,
+    creator: row.creator,
   );
 
   /// Maps the domain model into a row for `INSERT OR REPLACE`.
@@ -277,6 +314,8 @@ class RouteRepository {
     turnsJson: Value(encodeTurns(route.turns)),
     aiDescriptionGenerated: Value(route.aiDescriptionGenerated),
     poisJson: Value(encodePois(route.pois)),
+    link: Value(route.link),
+    creator: Value(route.creator),
   );
 
   BoundingBox _boundsOf(List<Waypoint> waypoints) => waypoints.isEmpty

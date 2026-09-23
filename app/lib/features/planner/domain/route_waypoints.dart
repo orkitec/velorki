@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import 'route_poi.dart';
@@ -29,6 +30,7 @@ List<Waypoint> routeWaypoints({
   required List<LatLng> track,
   required List<Waypoint> saved,
   List<RoutePoi> pois = const <RoutePoi>[],
+  List<TurnHint> turns = const <TurnHint>[],
   double onTrackM = poiOnTrackM,
   int maxVia = maxShapePoints,
 }) {
@@ -56,6 +58,24 @@ List<Waypoint> routeWaypoints({
       continue;
     }
     named.add((on.alongM, _named(Waypoint(pos: on.snapped), poi)));
+  }
+  // The cue sheet's own turns, the ones an author wrote, as points of the
+  // turn kind, so they can be read and changed in the waypoint sheet. The
+  // router's unnamed turns stay in the route's turns; a point for each
+  // would bury the plan.
+  for (final turn in turns) {
+    if (turn.note == null || turn.note!.isEmpty) continue;
+    if (turn.pointIndex <= 0 || turn.pointIndex >= track.length - 1) continue;
+    if (turn.kind == TurnKind.end) continue;
+    named.add((
+      cumulative[turn.pointIndex],
+      Waypoint(
+        pos: track[turn.pointIndex],
+        name: turn.note,
+        poiKind: PoiKind.turn,
+        turn: turn.kind,
+      ),
+    ));
   }
   named.sort((a, b) => a.$1.compareTo(b.$1));
 

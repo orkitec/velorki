@@ -4501,5 +4501,39 @@
   "poiKindGeneric": "Other",
   "@poiKindGeneric": {
     "description": "A point of interest kind: anything else"
+  },
+  "poiKindSummit": "Summit",
+  "@poiKindSummit": {"description": "Point kind: the top of a climb"},
+  "poiKindViewpoint": "Viewpoint",
+  "@poiKindViewpoint": {"description": "Point kind: a view worth stopping for"},
+  "poiKindShelter": "Shelter",
+  "@poiKindShelter": {"description": "Point kind: a hut or roof against the weather"},
+  "poiKindShop": "Shop",
+  "@poiKindShop": {"description": "Point kind: a shop"},
+  "poiKindRepair": "Bike repair",
+  "@poiKindRepair": {"description": "Point kind: a bike shop or repair stand"},
+  "poiKindTurn": "Turn",
+  "@poiKindTurn": {"description": "Point kind: a turn of the cue sheet"},
+  "plannerTurnDirection": "Direction",
+  "@plannerTurnDirection": {"description": "Caption over the manoeuvre chips of a turn point in the waypoint sheet"},
+  "routeDetailDescription": "Description",
+  "@routeDetailDescription": {"description": "Label of the route card's description row and its edit dialog"},
+  "routeDetailAddDescription": "Add a description",
+  "@routeDetailAddDescription": {"description": "Shown in the description row of a route without one"},
+  "routeDetailLink": "Link",
+  "@routeDetailLink": {"description": "Label of the route card's link row and its edit dialog"},
+  "routeDetailAddLink": "Add a link",
+  "@routeDetailAddLink": {"description": "Shown in the link row of a route without one"},
+  "routeDetailPois": "Points of interest",
+  "@routeDetailPois": {"description": "Caption over the route card's list of points of interest off the track"},
+  "cardImportedFrom": "Imported from {source}",
+  "@cardImportedFrom": {
+    "description": "Line under a route's or ride's name saying which file format it came from",
+    "placeholders": {"source": {"type": "String"}}
+  },
+  "cardImportedFromBy": "Imported from {source} · {creator}",
+  "@cardImportedFromBy": {
+    "description": "Line under a route's or ride's name saying the file format and who wrote the file",
+    "placeholders": {"source": {"type": "String"}, "creator": {"type": "String"}}
   }
 }
