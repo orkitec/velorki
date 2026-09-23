@@ -183,13 +183,52 @@ LIMIT="${VELORKI_ITEST_TIMEOUT:-900}"
 # Xcode build on a shared macOS runner can take longer than this by itself.
 STARTUP="${VELORKI_ITEST_STARTUP_TIMEOUT:-180}"
 
-# The Flutter tooling occasionally fails to bring up its Dart Development
-# Service on a busy CI emulator, or to load the file at all, before the app
-# has even started; that is retried once, anything the test itself says
+# The Flutter tooling occasionally fails to load the file at all before the
+# app has even started; that is retried, anything the test itself says
 # stands.
+#
+# The launcher runs in a process group of its own where the system has
+# setsid (Linux, i.e. CI): a hang is killed as a group, children included.
+# Killing only the launcher left its Dart Development Service and its adb
+# port forwards behind, and the next attempt's DDS then failed to start on
+# the ports they still held ("Failed to start Dart Development Service",
+# three times in a row on API 35 in CI). DDS is off for the same reason: the
+# integration tests never need it, it is the DevTools bridge, and it was the
+# one piece that kept failing to come up.
+# exec, so the backgrounded call *is* the launcher and $! names it; without
+# it the pid would be a subshell waiting on the launcher.
+if command -v setsid >/dev/null 2>&1; then
+  own_group() { exec setsid "$@"; }
+else
+  own_group() { exec "$@"; }
+fi
+
+# Kills the launcher's whole group when it leads one of its own, else just
+# the launcher: this script's own group must never be the target.
+stop_launcher() {
+  local pgid
+  pgid=$(ps -o pgid= -p "$1" 2>/dev/null | tr -d ' ')
+  if [ -n "$pgid" ] && [ "$pgid" = "$1" ]; then
+    kill -- "-$pgid" 2>/dev/null || true
+  else
+    kill "$1" 2>/dev/null || true
+  fi
+}
+
+# Everything an attempt may leave on an emulator: the app from a hung attach,
+# still holding its VM service, and the forwards the launcher opened to it.
+# Cleared before every attempt so a retry starts from the same state as a
+# first try. On the simulator the tooling terminates the app itself.
+clear_emulator() {
+  [[ "$DEVICE" == emulator-* ]] || return 0
+  adb -s "$DEVICE" forward --remove-all >/dev/null 2>&1 || true
+  adb -s "$DEVICE" shell am force-stop com.orkitec.velorki >/dev/null 2>&1 || true
+}
+
 flutter_test_one() {
+  clear_emulator
   # A previous file's app instance still running on the simulator has been
-  # seen to stall the next attach; on Android the tooling restarts it itself.
+  # seen to stall the next attach.
   if command -v xcrun >/dev/null 2>&1 && [[ "$DEVICE" != emulator-* ]]; then
     xcrun simctl terminate "$DEVICE" com.orkitec.velorki >/dev/null 2>&1 || true
     # live_ride_test.dart records from the simulator's own GPS: set the
@@ -198,8 +237,9 @@ flutter_test_one() {
     python3 tool/sim_ride.py "$DEVICE" "$REGION" &
     sim_ride_pid=$!
   fi
-  flutter test "$1" \
+  own_group flutter test "$1" \
     -d "$DEVICE" \
+    --no-dds \
     --dart-define=VELORKI_BROUTER_URL="$BROUTER_URL" \
     --dart-define=VELORKI_API_URL= \
     --dart-define=VELORKI_SEGMENTS_URL="$SEGMENTS_URL" \
@@ -230,7 +270,7 @@ flutter_test_one() {
     # window would close on a healthy run.
     if [[ "$DEVICE" == emulator-* ]] && [ -z "$running_at" ] \
       && [ -n "$built_at" ] && [ $((now - built_at)) -ge "$STARTUP" ]; then
-      outcome=hung; kill "$pid" 2>/dev/null; break
+      outcome=hung; stop_launcher "$pid"; break
     fi
     # On the iOS simulator the tooling has been seen to sit for good after
     # the test itself reported its verdict; a verdict that is followed by
@@ -239,10 +279,10 @@ flutter_test_one() {
       passed_at=$now
     fi
     if [ -n "$passed_at" ] && [ $((now - passed_at)) -ge 30 ]; then
-      outcome=passed; kill "$pid" 2>/dev/null; break
+      outcome=passed; stop_launcher "$pid"; break
     fi
     if [ $((now - start)) -ge "$LIMIT" ]; then
-      outcome=hung; kill "$pid" 2>/dev/null; break
+      outcome=hung; stop_launcher "$pid"; break
     fi
   done
   local rc=0
@@ -268,13 +308,13 @@ attempt() {
   return "$rc"
 }
 
-# A tooling failure: the watchdog killed a hang (143), the Dart Development
-# Service did not come up, or the file never loaded. None of them says
-# anything about the test.
+# A tooling failure: the watchdog killed a hang (143), the VM service
+# connection went away under the launcher, or the file never loaded. None of
+# them says anything about the test.
 tooling_failed() {
   local rc=$1 log=$2
   [ "$rc" -eq 143 ] && return 0
-  grep -qE "Failed to start Dart Development Service|^Failed to load \"|No tests ran|0 tests passed" "$log"
+  grep -qE "Failed to start Dart Development Service|Service connection disposed|^Failed to load \"|No tests ran|0 tests passed" "$log"
 }
 
 # Three tries per file: a freshly booted CI emulator has failed the first file

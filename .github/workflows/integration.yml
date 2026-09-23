@@ -125,6 +125,43 @@ jobs:
           dart run build_runner build
           flutter gen-l10n
 
+      # The emulator action installs the system image itself, once, with no
+      # check: a download that arrived broken ("Error on ZipFile unknown
+      # archive") left it with no image, the emulator never came up and the
+      # shard died on the action's own `adb emu kill`. So the image is
+      # installed here first, verified by the file the emulator boots from,
+      # and fetched again on a bad archive; the action then finds it in place
+      # and downloads nothing. The image's revision comes out of its
+      # package.xml for the AVD cache key below.
+      - name: Install the system image
+        id: sysimg
+        run: |
+          sdk="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          pkg="system-images;android-${{ matrix.api-level }};google_apis;x86_64"
+          dir="$sdk/system-images/android-${{ matrix.api-level }}/google_apis/x86_64"
+          for try in 1 2 3; do
+            # sdkmanager reports a bad archive as a warning and exits 0, so
+            # the file it should have produced is the check, not its status.
+            printf 'y\n%.0s' {1..30} \
+              | "$sdk/cmdline-tools/latest/bin/sdkmanager" --install "$pkg" || true
+            if [ -s "$dir/system.img" ] && [ -f "$dir/package.xml" ]; then
+              revision=$(sed -n 's/.*<major>\([0-9]*\)<\/major>.*/\1/p' "$dir/package.xml" | head -n 1)
+              echo "revision=${revision:-0}" >> "$GITHUB_OUTPUT"
+              echo "==> $pkg r${revision:-0} in place"
+              exit 0
+            fi
+            echo "==> $pkg did not install cleanly (try $try of 3); fetching it again"
+            rm -rf "$dir" "$sdk/.temp"
+            sleep 20
+          done
+          echo "::error::$pkg could not be installed"
+          exit 1
+
+      # Keyed by the image's revision too, so a new image never meets an AVD
+      # and a snapshot made on the old one: those would fail to load and
+      # cold-boot every shard until the key was changed by hand. (The
+      # "Failed to load snapshot 'default_boot'" in a create step's log is
+      # the cold boot on a cache miss, before the snapshot exists: expected.)
       - name: AVD cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: avd-cache
@@ -132,7 +169,7 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-${{ matrix.api-level }}-x86_64-google_apis-pixel_6
+          key: avd-${{ matrix.api-level }}-x86_64-google_apis-pixel_6-r${{ steps.sysimg.outputs.revision }}
 
       # Only on a miss, and only to write the snapshot the run below boots
       # from: no test is installed here, so -no-snapshot-save is absent on
