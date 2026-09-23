@@ -780,7 +780,6 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
               snapSizes: _snapSizesFor(restingSheetSize),
               builder: (context, scrollController) => DockingSheet(
                 controller: scrollController,
-                gripDp: sheetGripWithTitleDp,
                 initialExtent: restingSheetSize,
                 collapsedExtent: collapsedSheetSize,
                 dockedRange: dockedRange,

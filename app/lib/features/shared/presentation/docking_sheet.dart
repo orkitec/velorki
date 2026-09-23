@@ -1,17 +1,12 @@
 import 'dart:math' as math;
 import 'dart:ui' show ImageFilter, lerpDouble;
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/theme.dart';
 
 /// The height of a sheet's handle strip: the drag handle with its margins.
 const double sheetHandleDp = 28;
-
-/// The grip of a sheet whose title row has nothing to tap: the strip and the
-/// title, so a swipe up on the title moves the sheet.
-const double sheetGripWithTitleDp = sheetHandleDp + 60;
 
 /// How far above its collapsed size a sheet travels while it morphs between
 /// the full-width sheet and the pill docked in the navigation bar.
@@ -96,7 +91,6 @@ class DockingSheet extends StatefulWidget {
   /// Creates the sheet body.
   const DockingSheet({
     required this.controller,
-    this.gripDp = sheetHandleDp,
     required this.initialExtent,
     required this.collapsedExtent,
     required this.dockedRange,
@@ -112,10 +106,6 @@ class DockingSheet extends StatefulWidget {
   /// The sheet's own scroll controller, from the sheet's builder; the handle
   /// strip is the scrollable it moves the sheet through.
   final ScrollController controller;
-
-  /// How far down from the sheet's top a drag moves the sheet even over
-  /// content that scrolls; see [DockingSheetShell.gripDp].
-  final double gripDp;
 
   /// The sheet's `initialChildSize`, the extent until the first notification.
   final double initialExtent;
@@ -193,7 +183,6 @@ class _DockingSheetState extends State<DockingSheet> {
         onNotification: _onNotification,
         child: DockingSheetShell(
           controller: widget.controller,
-          gripDp: widget.gripDp,
           extent: _extent,
           collapsedExtent: widget.collapsedExtent,
           dockedRange: widget.dockedRange,
@@ -219,17 +208,11 @@ class _DockingSheetState extends State<DockingSheet> {
 ///
 /// The [handle] strip is the sheet's grip: a scrollable driven by
 /// [controller] whose only child is the strip, so a drag on it moves the
-/// sheet and nothing else, and [child] keeps its own scrolling. The grip
-/// reaches further than the strip, though: down to [gripDp], over the
-/// content's title, a drag moves the sheet whatever the content does, and
-/// content that has nothing to scroll is a grip all over, as a plain sheet
-/// would be. Those drags are fed to the sheet's own scroll position, so the
-/// sheet snaps, docks and reports exactly as it does for the strip.
-class DockingSheetShell extends StatefulWidget {
+/// sheet and nothing else, and [child] keeps its own scrolling.
+class DockingSheetShell extends StatelessWidget {
   /// Creates the shell.
   const DockingSheetShell({
     required this.controller,
-    this.gripDp = sheetHandleDp,
     required this.extent,
     required this.collapsedExtent,
     required this.dockedRange,
@@ -242,11 +225,6 @@ class DockingSheetShell extends StatefulWidget {
 
   /// The sheet's own scroll controller, attached to the handle strip.
   final ScrollController controller;
-
-  /// How far down from the sheet's top a drag moves the sheet even over
-  /// content that scrolls: the strip alone by default, or the strip and the
-  /// content's title row for a sheet whose title has no buttons.
-  final double gripDp;
 
   /// The sheet's current size, as a fraction of the parent's height.
   final double extent;
@@ -290,79 +268,10 @@ class DockingSheetShell extends StatefulWidget {
   );
 
   @override
-  State<DockingSheetShell> createState() => _DockingSheetShellState();
-}
-
-class _DockingSheetShellState extends State<DockingSheetShell> {
-  /// Whether the content has more than fits: then its own scrolling takes
-  /// a drag on it, and only the grip moves the sheet.
-  bool _overflows = false;
-
-  /// The drag under way on the sheet's own scroll position, if any.
-  Drag? _drag;
-
-  bool _onMetrics(ScrollMetricsNotification notification) {
-    final overflows = notification.metrics.maxScrollExtent > 0;
-    if (overflows != _overflows) setState(() => _overflows = overflows);
-    return false;
-  }
-
-  /// A drag that moves the sheet, handed to the sheet's own scroll position
-  /// so it snaps and docks as a drag on the strip does.
-  Map<Type, GestureRecognizerFactory> get _sheetDrag =>
-      <Type, GestureRecognizerFactory>{
-        VerticalDragGestureRecognizer:
-            GestureRecognizerFactoryWithHandlers<VerticalDragGestureRecognizer>(
-              VerticalDragGestureRecognizer.new,
-              (recognizer) {
-                recognizer
-                  ..onStart = (details) {
-                    if (!widget.controller.hasClients) return;
-                    _drag?.cancel();
-                    _drag = widget.controller.position.drag(
-                      details,
-                      () => _drag = null,
-                    );
-                  }
-                  ..onUpdate = (details) => _drag?.update(details)
-                    ..onEnd = (details) {
-                      _drag?.end(details);
-                      _drag = null;
-                    }
-                    ..onCancel = () {
-                      _drag?.cancel();
-                      _drag = null;
-                    };
-              },
-            ),
-      };
-
-  @override
-  void dispose() {
-    _drag?.cancel();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.velorki;
-    final t = widget.docked;
-    final controller = widget.controller;
-    final handle = widget.handle;
-    final dockedBottomInset = widget.dockedBottomInset;
-    final gripDp = widget.gripDp;
-    // Content that fits is a grip all over: its list has nothing to take
-    // the drag, so the sheet does. On a platform that bounces, the list
-    // would take it anyway, so such content is given clamping physics.
-    Widget content = widget.child;
-    if (!_overflows) {
-      content = ScrollConfiguration(
-        behavior: ScrollConfiguration.of(context)
-            .copyWith(physics: const ClampingScrollPhysics()),
-        child: content,
-      );
-    }
+    final t = docked;
     final margin = 16 * t;
     final radius = lerpDouble(28, dockedPillRadius, t)!;
     // The lower edge stays at the screen bottom for the first part of the
@@ -425,36 +334,13 @@ class _DockingSheetShellState extends State<DockingSheetShell> {
                         // widget every frame, so only its opacity changes.
                         // It starts below the strip, so a row scrolled to
                         // the top is in full view and takes its taps.
-                        NotificationListener<ScrollMetricsNotification>(
-                          onNotification: _onMetrics,
-                          child: RawGestureDetector(
-                            gestures: _sheetDrag,
-                            child: Opacity(
-                              opacity: 1 - t,
-                              child: Padding(
-                                padding: const EdgeInsets.only(
-                                  top: sheetHandleDp,
-                                ),
-                                child: content,
-                              ),
-                            ),
+                        Opacity(
+                          opacity: 1 - t,
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: sheetHandleDp),
+                            child: child,
                           ),
                         ),
-                        // The grip below the strip, over the title: a drag
-                        // there moves the sheet whatever the content does;
-                        // a tap goes through to what is under it.
-                        if (gripDp > sheetHandleDp)
-                          Positioned(
-                            top: sheetHandleDp,
-                            left: 0,
-                            right: 0,
-                            height: gripDp - sheetHandleDp,
-                            child: RawGestureDetector(
-                              behavior: HitTestBehavior.translucent,
-                              gestures: _sheetDrag,
-                              child: const SizedBox.expand(),
-                            ),
-                          ),
                         Positioned(
                           top: 0,
                           left: 0,
