@@ -625,27 +625,37 @@ void main() {
     });
   }
 
-  testWidgets('on a small screen the control column reaches down over the '
-      'Plan sheet, and the sheet wins: a tap where the two share pixels is '
-      'the sheet\'s, not the column\'s', (tester) async {
+  testWidgets('on a small screen the control column shrinks: on Record it '
+      'ends above the resting sheet, on Plan the sheet wins where the two '
+      'still share pixels and the column takes its taps above', (tester) async {
     await _pumpShell(tester);
-    // An iPhone SE: 375 by 667 logical pixels.
-    tester.view.physicalSize = const Size(375, 667);
+    // An iPhone SE: 375 by 667 logical pixels at three per pixel, the
+    // surface agreeing with the view so the sheet measures that screen.
+    tester.view.physicalSize = const Size(1125, 2001);
     addTearDown(tester.view.resetPhysicalSize);
     await tester.binding.setSurfaceSize(const Size(375, 667));
     await tester.pumpAndSettle();
 
-    final sheet = tester.getRect(find.byType(DockingSheetShell));
-    final column = tester.getRect(find.byType(MapControls));
-    // The case this guards: the column's foot is under the resting sheet.
-    // Where exactly the sheet's buttons fall depends on the language's line
-    // breaks, so the point tested is the middle of the overlap itself.
-    final shared = column.intersect(sheet);
-    expect(shared.isEmpty, isFalse, reason: 'column $column sheet $sheet');
+    Rect column() => tester.getRect(find.byType(MapControls));
+    Rect sheet() => tester.getRect(find.byType(DockingSheetShell));
+    // Compact: the buttons are the small size.
+    expect(
+      tester.getSize(find.byTooltip(l10n.mapZoomIn)).height,
+      compactMapControlButtonSize,
+    );
 
-    final hits = HitTestResult();
-    tester.binding.hitTestInView(hits, shared.center, tester.view.viewId);
-    final targets = hits.path.map((e) => e.target).toSet();
+    // Under Plan's chrome there is no room for five buttons above a sheet
+    // at half the screen: the foot of the column is under the sheet, and
+    // the sheet takes the touches there.
+    final shared = column().intersect(sheet());
+    expect(
+      shared.isEmpty,
+      isFalse,
+      reason: 'column ${column()} sheet ${sheet()}',
+    );
+    final sheetHits = HitTestResult();
+    tester.binding.hitTestInView(sheetHits, shared.center, tester.view.viewId);
+    final targets = sheetHits.path.map((e) => e.target).toSet();
     expect(
       targets,
       contains(tester.renderObject(find.byType(DockingSheetShell))),
@@ -654,17 +664,23 @@ void main() {
       targets,
       isNot(contains(tester.renderObject(find.byType(MapControls)))),
     );
-
-    // Above the sheet the column still takes its taps: the top of its
-    // first button.
-    final sheetTop = tester.getTopLeft(find.byType(DockingSheetShell)).dy;
-    final aboveSheet = Offset(column.center.dx, column.top + 12);
-    expect(aboveSheet.dy, lessThan(sheetTop));
+    // Above the sheet the column takes its taps: its first button.
+    final locate = tester.getCenter(find.byTooltip(l10n.mapLocateMe));
+    expect(locate.dy, lessThan(sheet().top));
     final columnHits = HitTestResult();
-    tester.binding.hitTestInView(columnHits, aboveSheet, tester.view.viewId);
+    tester.binding.hitTestInView(columnHits, locate, tester.view.viewId);
     expect(
       columnHits.path.map((e) => e.target),
       contains(tester.renderObject(find.byType(MapControls))),
+    );
+
+    // Record has no chrome above the column: the whole compact column,
+    // zoom buttons included, ends above the resting sheet.
+    await _tapTab(tester, l10n.tabRecord);
+    expect(
+      column().bottom,
+      lessThanOrEqualTo(sheet().top),
+      reason: 'column ${column()} sheet ${sheet()}',
     );
 
     await tester.pumpWidget(const SizedBox.shrink());

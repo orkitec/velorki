@@ -1333,8 +1333,20 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     final collapsed = fraction(sheetHandleDp);
     // Idle, the sheet rests where the Plan sheet rests, so the tabs agree;
     // the start button and the chooser scroll where they need more.
+    // Live: the status row and the two rows of key figures, plus a row per
+    // three extra tiles (sensors, what is left of a route), so nothing of
+    // the grid is below the fold at rest.
+    final extraRows = state.isRecording && snapshot != null
+        ? (liveExtraTiles(
+                    snapshot: snapshot,
+                    remembered: ref.watch(sensorsSeenProvider),
+                    remainingM: navigation?.remainingM,
+                  ) +
+                  2) ~/
+              3
+        : 0;
     final initial = state.isRecording
-        ? fraction(292)
+        ? fraction(292.0 + 76 * extraRows)
         : sheetRestingExtent(screenHeight);
     _restingSheetSize = sheetRestingExtent(screenHeight);
     final sheetKey = state.isRecording ? 'live' : 'idle';
@@ -1464,6 +1476,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                   snapSizes: _snapSizesFor(initial),
                   builder: (context, scrollController) => DockingSheet(
                     controller: scrollController,
+                    gripDp: sheetGripWithTitleDp,
                     // Where the sheet really starts: for a screen built in
                     // the middle of a change, where the other tab's sheet is.
                     initialExtent: state.isRecording
@@ -1646,7 +1659,7 @@ class _IdlePanel extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return ListView(
-      primary: false,
+      controller: SheetContentScroll.maybeOf(context),
       padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 24),
       children: [
         Text(l10n.recordingIdleTitle, style: theme.textTheme.headlineMedium),
@@ -1664,7 +1677,7 @@ class _IdlePanel extends ConsumerWidget {
         const FollowRouteField(),
         const SizedBox(height: 16),
         SizedBox(
-          height: 60,
+          height: primaryButtonHeight,
           child: FilledButton.icon(
             onPressed: state.busy ? null : onStart,
             icon: const Icon(Icons.fiber_manual_record_rounded),
@@ -1728,6 +1741,34 @@ DateTime? _eta(double? remainingM, double avgSpeedMps) {
     Duration(seconds: (remainingM / avgSpeedMps).round()),
   );
 }
+
+/// How many tiles the live grid shows under its two fixed rows: one per
+/// sensor that has reported this ride, plus Left and Arrival on a route.
+int liveExtraTiles({
+  required RecordingSnapshot snapshot,
+  required SensorsSeenState remembered,
+  required double? remainingM,
+}) {
+  final seen = remembered.rideId == snapshot.rideId
+      ? remembered
+      : const SensorsSeenState();
+  var count = 0;
+  if ((snapshot.heartRateBpm ?? seen.heartRateBpm) != null) count++;
+  if ((snapshot.cadenceRpm ?? seen.cadenceRpm) != null) count++;
+  if ((snapshot.powerW ?? seen.powerW) != null) count++;
+  if (remainingM != null && remainingM > 0) count += 2;
+  return count;
+}
+
+/// [tiles] in rows of three, the last row padded with empty slots so every
+/// column keeps its width.
+List<List<Widget>> _rowsOf(List<Widget> tiles) => <List<Widget>>[
+  for (var i = 0; i < tiles.length; i += 3)
+    <Widget>[
+      for (var j = i; j < i + 3; j++)
+        j < tiles.length ? tiles[j] : const SizedBox.shrink(),
+    ],
+];
 
 /// One sensor's tile: the current value, or the last one dimmed and marked
 /// with a broken link while the sensor is silent mid-ride. `null` for a sensor
@@ -1820,6 +1861,24 @@ class _LivePanel extends ConsumerWidget {
         paused: state.isPaused,
       ),
     ];
+    final extraTiles = <Widget>[
+      ...sensorTiles,
+      if (remainingM != null && remainingM > 0) ...[
+        StatTile(
+          label: l10n.statRemaining,
+          value: formatDistance(l10n, units, remainingM),
+          size: StatSize.medium,
+        ),
+        StatTile(
+          label: l10n.statArrival,
+          value: eta == null
+              ? '--'
+              : MaterialLocalizations.of(context)
+                    .formatTimeOfDay(TimeOfDay.fromDateTime(eta)),
+          size: StatSize.medium,
+        ),
+      ],
+    ];
     final status = switch (snapshot) {
       RecordingSnapshot(status: RecordingStatus.paused, autoPaused: true) =>
         l10n.recordingStatusAutoPaused,
@@ -1828,7 +1887,7 @@ class _LivePanel extends ConsumerWidget {
       _ => l10n.recordingStatusRecording,
     };
     return ListView(
-      primary: false,
+      controller: SheetContentScroll.maybeOf(context),
       padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 24),
       children: [
         // Everything in view at once: state and elapsed time with the two
@@ -1924,39 +1983,19 @@ class _LivePanel extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  if (remainingM != null && remainingM > 0) ...[
+                  // The extra tiles, in rows of three under the fixed two,
+                  // filled left to right: first the sensors a sensor has
+                  // reported this ride (a rider with a watch and nothing else
+                  // gets one tile, not one and two dashes; a sensor that fell
+                  // silent keeps its tile, dimmed and marked, with the last
+                  // value; paused, nothing is marked), then, on a route, what
+                  // is left and when it ends. So a heart rate keeps its tile
+                  // when a route is followed, and Left and Arrival take the
+                  // free slots beside it or start a row of their own; the
+                  // last row is padded to three so the columns line up.
+                  for (final row in _rowsOf(extraTiles)) ...[
                     const SizedBox(height: 16),
-                    // Three columns like the rows above, the third left
-                    // empty, so the figures line up with the ones over them.
-                    StatRow(
-                      children: [
-                        StatTile(
-                          label: l10n.statRemaining,
-                          value: formatDistance(l10n, units, remainingM),
-                          size: StatSize.medium,
-                        ),
-                        StatTile(
-                          label: l10n.statArrival,
-                          value: eta == null
-                              ? '--'
-                              : MaterialLocalizations.of(
-                                  context,
-                                ).formatTimeOfDay(TimeOfDay.fromDateTime(eta)),
-                          size: StatSize.medium,
-                        ),
-                        const SizedBox.shrink(),
-                      ],
-                    ),
-                  ],
-                  // Only the figures a sensor has reported this ride: a rider
-                  // with a watch and nothing else gets one tile, not one and two
-                  // dashes, and a rider with no sensor gets no row at all. A
-                  // sensor that fell silent keeps its tile, dimmed and marked,
-                  // with the last value; paused, the sensor rests on purpose
-                  // and nothing is marked.
-                  if (sensorTiles.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    StatRow(children: sensorTiles),
+                    StatRow(children: row),
                   ],
                 ],
               ),

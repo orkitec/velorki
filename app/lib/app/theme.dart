@@ -310,6 +310,12 @@ extension VelorkiTextX on TextTheme {
 }
 
 /// The light theme for [preset].
+
+/// The height of the app's full-width pills: Save on Plan, Start ride on
+/// Record, Open in planner on a route card, the loop sheet's button. One
+/// number, so the three sheets agree.
+const double primaryButtonHeight = 52;
+
 ThemeData buildLightTheme([AccentPreset preset = AccentPreset.volt]) =>
     _build(preset, Brightness.light);
 
@@ -507,7 +513,7 @@ ThemeData _build(AccentPreset preset, Brightness brightness) {
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         shape: pill,
-        minimumSize: const Size(64, 52),
+        minimumSize: const Size(64, primaryButtonHeight),
         padding: const EdgeInsets.symmetric(horizontal: 22),
         textStyle: buttonText,
       ),
@@ -515,7 +521,7 @@ ThemeData _build(AccentPreset preset, Brightness brightness) {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         shape: pill,
-        minimumSize: const Size(64, 52),
+        minimumSize: const Size(64, primaryButtonHeight),
         padding: const EdgeInsets.symmetric(horizontal: 22),
         textStyle: buttonText,
         side: BorderSide(color: scheme.outline),
@@ -532,7 +538,7 @@ ThemeData _build(AccentPreset preset, Brightness brightness) {
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         shape: pill,
-        minimumSize: const Size(64, 52),
+        minimumSize: const Size(64, primaryButtonHeight),
         textStyle: buttonText,
       ),
     ),

@@ -330,7 +330,7 @@ class _LibraryList extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final section = ref.watch(librarySectionProvider);
     return CustomScrollView(
-      primary: false,
+      controller: SheetContentScroll.maybeOf(context),
       slivers: [
         SliverSheetHeader(
           title: l10n.tabLibrary,

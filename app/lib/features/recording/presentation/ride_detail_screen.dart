@@ -466,7 +466,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
         : null;
 
     return CustomScrollView(
-      primary: false,
+      controller: SheetContentScroll.maybeOf(context),
       slivers: [
         SliverSheetHeader(
           leading: BackButton(onPressed: () => context.go(libraryRoute)),

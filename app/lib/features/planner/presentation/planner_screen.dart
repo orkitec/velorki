@@ -780,6 +780,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
               snapSizes: _snapSizesFor(restingSheetSize),
               builder: (context, scrollController) => DockingSheet(
                 controller: scrollController,
+                gripDp: sheetGripWithTitleDp,
                 initialExtent: restingSheetSize,
                 collapsedExtent: collapsedSheetSize,
                 dockedRange: dockedRange,
@@ -790,29 +791,32 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                 handle: const SheetHandle(),
                 // Its own scrolling, at any height of the sheet; the
                 // sheet moves by its handle.
-                child: ListView(
-                  primary: false,
-                  padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 24),
-                  children: [
-                    _SheetHeader(state: state),
-                    const SizedBox(height: 14),
-                    // The variants right under the figures, where the sheet
-                    // grows to show them; then the actions, so Loop and Save
-                    // are visible at the sheet's resting height.
-                    if (hasVariants) ...[
-                      _AlternativeChips(state: state),
-                      const SizedBox(height: 12),
+                child: Builder(
+                  // Looked up from inside the shell, which hands the controller down.
+                  builder: (context) => ListView(
+                    controller: SheetContentScroll.maybeOf(context),
+                    padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 24),
+                    children: [
+                      _SheetHeader(state: state),
+                      const SizedBox(height: 14),
+                      // The variants right under the figures, where the sheet
+                      // grows to show them; then the actions, so Loop and Save
+                      // are visible at the sheet's resting height.
+                      if (hasVariants) ...[
+                        _AlternativeChips(state: state),
+                        const SizedBox(height: 12),
+                      ],
+                      _PlannerActions(
+                        state: state,
+                        onAlternatives: _loadAlternatives,
+                        onSmartLoop: _smartLoop,
+                        onAsk: _ask,
+                        onSave: _save,
+                      ),
+                      const SizedBox(height: 16),
+                      _SheetBody(state: state),
                     ],
-                    _PlannerActions(
-                      state: state,
-                      onAlternatives: _loadAlternatives,
-                      onSmartLoop: _smartLoop,
-                      onAsk: _ask,
-                      onSave: _save,
-                    ),
-                    const SizedBox(height: 16),
-                    _SheetBody(state: state),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -1080,10 +1084,13 @@ class _PlannerActions extends ConsumerWidget {
       children: [
         Row(children: [for (final action in actions) Expanded(child: action)]),
         const SizedBox(height: 14),
-        FilledButton.icon(
-          onPressed: state.canSave ? () => unawaited(onSave()) : null,
-          icon: const Icon(Icons.bookmark_add_outlined),
-          label: Text(l10n.plannerSave),
+        SizedBox(
+          height: primaryButtonHeight,
+          child: FilledButton.icon(
+            onPressed: state.canSave ? () => unawaited(onSave()) : null,
+            icon: const Icon(Icons.bookmark_add_outlined),
+            label: Text(l10n.plannerSave),
+          ),
         ),
       ],
     );

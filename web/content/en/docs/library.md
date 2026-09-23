@@ -4,7 +4,7 @@ description: Where your saved routes and recorded rides live, what a route or ri
 order: 8
 ---
 
-The Library tab holds everything you kept: the routes you planned and the rides you recorded. It is a card over the map, like the Plan and Record tabs: its content scrolls at any height, and the handle at its top moves it. Pull the handle up for more room, pull it all the way down and the card folds into the navigation bar, leaving the map. Go here to open a route again, to read a ride's charts and splits, and to get files in and out.
+The Library tab holds everything you kept: the routes you planned and the rides you recorded. It is a card over the map, like the Plan and Record tabs: its content scrolls at any height, and the handle at its top moves it; when there is nothing to scroll, the whole card does. Pull it up for more room, pull it all the way down and the card folds into the navigation bar, leaving the map. Go here to open a route again, to read a ride's charts and splits, and to get files in and out.
 
 Everything in the library is on the phone. There is no account and nothing is synchronised anywhere.
 
@@ -34,8 +34,8 @@ Opening a route draws it on the map, fitted to the part of the screen above the 
 - the date, the bike profile and the ascent,
 - the description, if the route has one,
 - **Distance**, **Ascent**, **Descent** and **Est. time**,
+- the actions below, **Open in planner** first so it is in view at the card's resting height,
 - the surface breakdown,
-- the actions below,
 - the elevation profile,
 - for a route imported with turns or points of interest, the cue sheet: every turn and point with its distance from the start, a tap on a line panning the map there at your zoom and a tap on a marker scrolling the card to that line.
 

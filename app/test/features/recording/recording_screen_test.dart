@@ -828,6 +828,40 @@ void main() {
     await unmountApp(tester);
   });
 
+  testWidgets('with a heart rate and a route, the heart rate keeps its tile '
+      'and Left and Arrival fill the row beside it', (tester) async {
+    final h = await pumpRecordingScreen(
+      tester,
+      const RecordingScreen(),
+      extraOverrides: [
+        navigationControllerProvider.overrideWithValue(
+          const NavigationProgress(alongM: 0, remainingM: 2222),
+        ),
+      ],
+    );
+    await tester.pump();
+    await emitSnapshot(tester, h, _snapshot(heartRateBpm: 142));
+
+    final heart = find.text(l10n.statHeartRate.toUpperCase());
+    final left = find.text(l10n.statRemaining.toUpperCase());
+    final arrival = find.text(l10n.statArrival.toUpperCase());
+    expect(heart, findsOneWidget);
+    expect(left, findsOneWidget);
+    expect(arrival, findsOneWidget);
+    // One row of three, left to right, no empty slot between them.
+    final y = tester.getTopLeft(heart).dy;
+    expect(tester.getTopLeft(left).dy, y);
+    expect(tester.getTopLeft(arrival).dy, y);
+    expect(tester.getTopLeft(heart).dx, lessThan(tester.getTopLeft(left).dx));
+    expect(tester.getTopLeft(left).dx, lessThan(tester.getTopLeft(arrival).dx));
+    // And the row is inside the sheet at rest, not below its fold.
+    final sheet = tester.getRect(find.byType(DockingSheetShell));
+    expect(tester.getRect(arrival).bottom, lessThan(sheet.bottom));
+    expect(tester.getRect(arrival).top, greaterThan(sheet.top));
+
+    await unmountApp(tester);
+  });
+
   testWidgets('the sensor row shows only the figures that are reported', (
     tester,
   ) async {

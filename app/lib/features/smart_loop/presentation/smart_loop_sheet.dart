@@ -204,10 +204,13 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
       _wayBackSwitch(l10n),
       const SizedBox(height: 12),
       if (!_closed)
-        FilledButton.icon(
-          onPressed: _close,
-          icon: const Icon(Icons.loop_rounded),
-          label: Text(l10n.loopClose),
+        SizedBox(
+          height: primaryButtonHeight,
+          child: FilledButton.icon(
+            onPressed: _close,
+            icon: const Icon(Icons.loop_rounded),
+            label: Text(l10n.loopClose),
+          ),
         )
       else ...[
         if (planner.isRouting)
@@ -356,10 +359,13 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
           ],
         ),
       ] else
-        FilledButton.icon(
-          onPressed: () => unawaited(_make()),
-          icon: const Icon(Icons.loop_rounded),
-          label: Text(l10n.loopMake),
+        SizedBox(
+          height: primaryButtonHeight,
+          child: FilledButton.icon(
+            onPressed: () => unawaited(_make()),
+            icon: const Icon(Icons.loop_rounded),
+            label: Text(l10n.loopMake),
+          ),
         ),
       if (state.foundNothing && !state.running)
         _Problem(text: l10n.loopNoneFound),

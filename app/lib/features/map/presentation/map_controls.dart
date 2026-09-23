@@ -22,6 +22,19 @@ const double locateZoom = 15;
 /// How long the column takes to grow or shrink as a button comes or goes.
 const Duration mapControlsResizeDuration = Duration(milliseconds: 200);
 
+/// Screens shorter than this, an iPhone SE among them, get the compact
+/// column: smaller buttons and tighter gaps, so the column ends above the
+/// resting sheet under Plan's chrome.
+const double compactMapControlsHeight = 700;
+
+/// The size of a column button, full and compact.
+const double mapControlButtonSize = 44;
+const double compactMapControlButtonSize = 38;
+
+/// Whether the screen at [context] is short enough for the compact column.
+bool compactMapControls(BuildContext context) =>
+    MediaQuery.sizeOf(context).height < compactMapControlsHeight;
+
 /// Floating buttons over the map: locate me, the CyclOSM overlay toggle and
 /// zoom in/out.
 ///
@@ -40,10 +53,11 @@ class MapControls extends ConsumerWidget {
     final enabled = controller != null;
     final headingUp = chrome?.headingUp ?? false;
     final onCompass = chrome?.onCompass;
+    final compact = compactMapControls(context);
     // One glass column rather than five floating buttons: less chrome over
     // the map, and the group reads as one control.
     return GlassPanel(
-      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 5),
+      padding: EdgeInsets.symmetric(horizontal: 3, vertical: compact ? 3 : 5),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
@@ -346,12 +360,15 @@ class _ControlButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final compact = compactMapControls(context);
+    final size = compact ? compactMapControlButtonSize : mapControlButtonSize;
     return SizedBox(
-      width: 44,
-      height: 44,
+      width: size,
+      height: size,
       child: IconButton(
         icon: Transform.rotate(angle: iconTurns, child: Icon(icon)),
-        iconSize: 20,
+        iconSize: compact ? 18 : 20,
+        padding: EdgeInsets.zero,
         tooltip: tooltip,
         style: IconButton.styleFrom(
           shape: const CircleBorder(),
@@ -389,7 +406,7 @@ class _ControlDivider extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     width: 20,
     height: 1,
-    margin: const EdgeInsets.symmetric(vertical: 3),
+    margin: EdgeInsets.symmetric(vertical: compactMapControls(context) ? 2 : 3),
     color: Theme.of(context).velorki.glassBorder,
   );
 }

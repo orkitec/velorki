@@ -7,6 +7,7 @@ import 'package:velorki_api/velorki_api.dart' show ShareKind;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/router.dart';
+import '../../../app/theme.dart';
 import '../../../core/files/track_exporter.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../assistant/presentation/describe_route_sheet.dart';
@@ -195,7 +196,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
     final route = ref.watch(savedRouteProvider(widget.routeId));
 
     return CustomScrollView(
-      primary: false,
+      controller: SheetContentScroll.maybeOf(context),
       slivers: [
         SliverSheetHeader(
           leading: BackButton(onPressed: () => context.go(libraryRoute)),
@@ -259,15 +260,18 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
                       descentM: saved.descentM,
                       duration: saved.estimatedTime,
                     ),
-                    const SizedBox(height: 24),
-                    SurfaceStatsBar(stats: saved.surfaceStats),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                     // The one thing a saved route is usually opened for gets
-                    // the full-width pill; the rest wraps underneath.
-                    FilledButton.icon(
-                      onPressed: () => _openInPlanner(saved),
-                      icon: const Icon(Icons.route_outlined),
-                      label: Text(l10n.routeDetailOpenInPlanner),
+                    // the full-width pill, right under the figures so it is
+                    // in view at the card's resting height; the rest wraps
+                    // underneath, and the surfaces follow.
+                    SizedBox(
+                      height: primaryButtonHeight,
+                      child: FilledButton.icon(
+                        onPressed: () => _openInPlanner(saved),
+                        icon: const Icon(Icons.route_outlined),
+                        label: Text(l10n.routeDetailOpenInPlanner),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Wrap(
@@ -313,6 +317,8 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
                         DescribeRouteButton(route: saved),
                       ],
                     ),
+                    const SizedBox(height: 24),
+                    SurfaceStatsBar(stats: saved.surfaceStats),
                     const SizedBox(height: 28),
                     ElevationProfileChart(
                       samples: elevationProfile(geometry),
