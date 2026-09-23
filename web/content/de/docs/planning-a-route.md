@@ -35,7 +35,7 @@ Tippe auf eine Markierung, um ihr Menü zu öffnen. Es trägt den Namen des Punk
 - **Punkt entfernen**,
 - **Abbrechen**.
 
-Jeder dieser Schritte lässt sich einzeln rückgängig machen. Ein benannter Punkt zeigt auf seiner Markierung seinen Namen statt seiner Nummer. Die Details werden mit der Route gespeichert und kommen zurück, wenn sie wieder im Planer geöffnet wird, und ein GPX-Export schreibt jeden benannten Punkt und jeden Punkt mit Notiz als eigenen Wegpunkt mit Art und Notiz hinaus, neben den Punkten von Interesse der Route.
+Jeder dieser Schritte lässt sich einzeln rückgängig machen. Ein benannter Punkt zeigt auf seiner Markierung seinen Namen statt seiner Nummer. Die Details werden mit der Route gespeichert und kommen zurück, wenn sie wieder im Planer geöffnet wird; bei einer aus der Bibliothek geöffneten Route landen sie sofort in der Bibliothek, solange die Route seitdem nicht neu berechnet wurde, für einen Namen oder eine Notiz allein gibt es also kein Speichern zu drücken. Die Routenkarte führt benannte Punkte mit ihren Notizen in der Abbiegeliste auf, und ein GPX-Export schreibt jeden benannten Punkt und jeden Punkt mit Notiz als eigenen Wegpunkt mit Art und Notiz hinaus, neben den Punkten von Interesse der Route.
 
 ## Das Rad wählen
 
@@ -87,8 +87,6 @@ Das Diagramm **Höhenprofil** zeichnet die Höhe über der Distanz. Berühre es 
 Der Balken **Belag** ist ein einzelner gestapelter Balken aus drei Anteilen, die zusammen die ganze Route ergeben: **Befestigt**, **Unbefestigt** und **Unbekannt**, mit einer Legende mit Prozentwerten darunter. Zwei weitere Einträge in der Legende, **Radweg** und **Stark befahren**, überlagern die ersten drei, statt sich dazuzuaddieren: Sie sagen dir, wie viel der Route auf einem eigenen Radweg liegt und wie viel auf einer großen Straße.
 
 ### Wo gerechnet wurde
-
-Eine kleine Plakette über dem Diagramm sagt **Auf dem Gerät** mit einem grünen Punkt, wenn dein Handy die Route aus heruntergeladenen Kacheln berechnet hat, oder **Server**, wenn ein Routing-Server es getan hat. Sagt der Router nichts dazu, fehlt die Plakette ganz.
 
 ## Speichern
 

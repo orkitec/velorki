@@ -2877,14 +2877,6 @@
   "@plannerMissingTiles": {
     "description": "Planner banner when on-device routing lacks coverage"
   },
-  "plannerRoutedOnDevice": "On device",
-  "@plannerRoutedOnDevice": {
-    "description": "Chip saying the shown route was computed on the phone"
-  },
-  "plannerRoutedOnServer": "Server",
-  "@plannerRoutedOnServer": {
-    "description": "Chip saying the shown route came from the routing server"
-  },
   "settingsRouting": "Routing",
   "@settingsRouting": {
     "description": "Settings group choosing where routes are computed"

@@ -1,10 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/domain/saved_route.dart';
+import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/planner/data/routing_backend_provider.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/domain/route_poi.dart';
@@ -23,15 +25,32 @@ const LatLng _c = LatLng(48.4, 11.4);
 /// test.
 late SharedPreferences _prefs;
 
-ProviderContainer _container(FakeRoutingBackend? backend) {
+ProviderContainer _container(
+  FakeRoutingBackend? backend, {
+  List<Override> overrides = const <Override>[],
+}) {
   final container = ProviderContainer(
     overrides: [
       routingBackendProvider.overrideWithValue(backend),
       sharedPreferencesProvider.overrideWithValue(_prefs),
+      ...overrides,
     ],
   );
   addTearDown(container.dispose);
   return container;
+}
+
+/// A repository that remembers which waypoints the planner wrote back to
+/// which route, over a database nothing else reads.
+class _RecordingRepository extends RouteRepository {
+  _RecordingRepository(VelorkiDatabase db) : super(db.routesDao);
+
+  final List<(String, List<Waypoint>)> written = [];
+
+  @override
+  Future<void> setWaypoints(String id, List<Waypoint> waypoints) async {
+    written.add((id, waypoints));
+  }
 }
 
 void main() {
@@ -870,6 +889,56 @@ void main() {
             saved(source: RouteSource.planned, waypoints: waypoints),
           );
       expect(container.read(plannerControllerProvider).waypoints, waypoints);
+    });
+
+    testWidgets('details on a saved route as stored go straight to the '
+        'library; once the plan is routed again they wait for Save', (
+      tester,
+    ) async {
+      final db = VelorkiDatabase.memory();
+      addTearDown(db.close);
+      final repository = _RecordingRepository(db);
+      final backend = FakeRoutingBackend();
+      final container = _container(
+        backend,
+        overrides: [routeRepositoryProvider.overrideWithValue(repository)],
+      );
+      final planner = container.read(plannerControllerProvider.notifier);
+      const waypoints = [
+        Waypoint(pos: _a, kind: WaypointKind.start),
+        Waypoint(pos: _b, kind: WaypointKind.end),
+      ];
+      planner.loadSavedRoute(
+        saved(source: RouteSource.planned, waypoints: waypoints),
+      );
+      expect(container.read(plannerControllerProvider).routeIsSaved, isTrue);
+
+      planner.setWaypointDetails(0, name: 'Home', note: 'Start here');
+      await tester.pump();
+      expect(repository.written, hasLength(1));
+      final (id, written) = repository.written.single;
+      expect(id, 'r1');
+      expect(written[0].name, 'Home');
+      expect(written[0].note, 'Start here');
+      expect(written[1].kind, WaypointKind.end);
+      expect(backend.callCount, 0, reason: 'details change no road');
+
+      // A moved point routes again: the geometry on the map is no longer
+      // the one in the library, so details from here on go with the next
+      // Save rather than beside a stale route.
+      planner.moveWaypoint(1, _c);
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(container.read(plannerControllerProvider).routeIsSaved, isFalse);
+      planner.setWaypointDetails(1, name: 'Lake');
+      await tester.pump();
+      expect(repository.written, hasLength(1));
+
+      // Saved again: the plan is the library's once more.
+      planner.markSaved('r1', 'Saved');
+      planner.setWaypointDetails(1, name: 'Lake', note: 'Swim');
+      await tester.pump();
+      expect(repository.written, hasLength(2));
+      expect(repository.written.last.$2[1].note, 'Swim');
     });
 
     test('an imported route with only its ends gets shape points along its '

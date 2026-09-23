@@ -35,7 +35,7 @@ Tap a marker to open its menu. It is titled with the point's name, or **Point 2*
 - **Remove point**,
 - **Cancel**.
 
-Each of those is one step on the undo stack. A named point shows its name on its marker instead of its number. The details are saved with the route and come back when it is opened in the planner again, and a GPX export writes every named point, and every point with a note, as a waypoint of its own with the type and the note, beside the route's own points of interest.
+Each of those is one step on the undo stack. A named point shows its name on its marker instead of its number. The details are saved with the route and come back when it is opened in the planner again; on a route opened from the library they go into the library at once, as long as the route has not been re-routed since, so there is no Save to press for a name or a note alone. The route card lists named points with their notes in the cue sheet, and a GPX export writes every named point, and every point with a note, as a waypoint of its own with the type and the note, beside the route's own points of interest.
 
 ## Pick the bike
 
@@ -87,8 +87,6 @@ The **Elevation** chart draws height against distance. Touch it and drag along i
 The **Surface** bar is a single stacked bar of three shares that add up to the whole route, **Paved**, **Unpaved** and **Unknown**, with a legend of percentages underneath. Two more entries in the legend, **Cycleway** and **Busy roads**, overlap the first three rather than adding to them: they tell you how much of the route is on a dedicated cycleway, and how much is on a big road.
 
 ### Where it was routed
-
-A small pill above the chart says **ON DEVICE** with a green dot when your phone computed the route from downloaded tiles, or **SERVER** when a routing server did. If the router did not say, the pill is not shown at all.
 
 ## Save it
 

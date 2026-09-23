@@ -108,6 +108,62 @@ void main() {
     expect((await repository.routeById(first.id))!.distanceM, 20000);
   });
 
+  test('saving over an existing id rewrites the waypoints with their '
+      'details', () async {
+    final route = syntheticRoute();
+    final saved = await repository.savePlannedRoute(
+      name: 'Isar loop',
+      route: route,
+      waypoints: _waypoints,
+      options: const RoutingOptions(),
+    );
+    final detailed = [
+      _waypoints[0],
+      _waypoints[1].copyWith(
+        name: 'Bakery',
+        poiKind: PoiKind.food,
+        note: 'Croissants',
+      ),
+      _waypoints[2],
+    ];
+    await repository.savePlannedRoute(
+      name: 'Isar loop',
+      route: route,
+      waypoints: detailed,
+      options: const RoutingOptions(),
+      id: saved.id,
+    );
+    final loaded = await repository.routeById(saved.id);
+    expect(loaded!.waypoints, detailed);
+  });
+
+  test('setWaypoints replaces the waypoints and nothing else', () async {
+    final saved = await repository.savePlannedRoute(
+      name: 'Isar loop',
+      route: syntheticRoute(),
+      waypoints: _waypoints,
+      options: const RoutingOptions(profile: RouteProfile.gravel),
+      description: 'Along the river',
+    );
+    final detailed = [
+      _waypoints[0].copyWith(note: 'Start here'),
+      _waypoints[1],
+      _waypoints[2].copyWith(name: 'Lake', poiKind: PoiKind.water),
+    ];
+    await repository.setWaypoints(saved.id, detailed);
+    final loaded = await repository.routeById(saved.id);
+    expect(loaded!.waypoints, detailed);
+    expect(loaded.name, 'Isar loop');
+    expect(loaded.description, 'Along the river');
+    expect(loaded.profile, RouteProfile.gravel);
+    expect(loaded.geometry, saved.geometry);
+    expect(loaded.distanceM, saved.distanceM);
+    expect(loaded.createdAt, saved.createdAt);
+    // An unknown id is not an error and writes nothing.
+    await repository.setWaypoints('nope', detailed);
+    expect(await repository.routeById('nope'), isNull);
+  });
+
   test('watchRoutes emits the library, newest first', () async {
     final stream = repository.watchRoutes();
     await repository.savePlannedRoute(

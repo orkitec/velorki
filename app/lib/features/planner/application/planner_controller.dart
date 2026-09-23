@@ -8,6 +8,7 @@ import 'package:velorki_loops/velorki_loops.dart';
 import '../../../app/app_config.dart';
 import '../../../core/db/tables/routes.dart' show RouteSource;
 import '../../routing_tiles/application/tile_update_check.dart';
+import '../data/route_repository.dart';
 import '../data/routing_backend_provider.dart';
 import '../domain/planner_state.dart';
 import '../domain/route_poi.dart';
@@ -115,6 +116,12 @@ class PlannerController extends _$PlannerController {
 
   /// Gives the waypoint at [index] a name, a kind and a note, undoably.
   /// Details change nothing about the road, so nothing is routed again.
+  ///
+  /// A plan that is a saved route as stored gets the change written to the
+  /// library at once: there is no Save to press for a route that has not
+  /// changed shape, and details a rider typed and then lost were the
+  /// complaint. Once the plan has been routed again the details wait for the
+  /// next Save, with the new geometry.
   void setWaypointDetails(
     int index, {
     String? name,
@@ -130,6 +137,10 @@ class PlannerController extends _$PlannerController {
       note: note?.trim().isEmpty ?? true ? null : note!.trim(),
     );
     state = state.copyWith(waypoints: next);
+    final id = state.savedRouteId;
+    if (id != null && state.routeIsSaved) {
+      unawaited(ref.read(routeRepositoryProvider).setWaypoints(id, next));
+    }
   }
 
   /// Swaps the waypoint at [index] with the one [offset] places away
@@ -296,6 +307,7 @@ class PlannerController extends _$PlannerController {
         route: AsyncData<RouteResult?>(state.alternatives[wanted]),
         loadedSurfaceStats: null,
         error: null,
+        routeIsSaved: false,
       );
       return;
     }
@@ -352,6 +364,7 @@ class PlannerController extends _$PlannerController {
       loadedSurfaceStats: null,
       error: null,
       routingSource: _sourceOf(backend),
+      routeIsSaved: false,
     );
     return true;
   }
@@ -385,6 +398,7 @@ class PlannerController extends _$PlannerController {
       loadedSurfaceStats: saved.surfaceStats,
       savedRouteId: saved.id,
       savedRouteName: saved.name,
+      routeIsSaved: true,
     );
   }
 
@@ -432,7 +446,11 @@ class PlannerController extends _$PlannerController {
 
   /// Remembers which library row the plan belongs to after a save.
   void markSaved(String id, String name) {
-    state = state.copyWith(savedRouteId: id, savedRouteName: name);
+    state = state.copyWith(
+      savedRouteId: id,
+      savedRouteName: name,
+      routeIsSaved: true,
+    );
   }
 
   /// Clears [PlannerState.error] once the screen has shown it.
@@ -466,12 +484,14 @@ class PlannerController extends _$PlannerController {
         route: const AsyncData<RouteResult?>(null),
         loadedSurfaceStats: null,
         error: null,
+        routeIsSaved: false,
       );
       return;
     }
     state = state.copyWith(
       route: const AsyncLoading<RouteResult?>(),
       error: null,
+      routeIsSaved: false,
     );
     _debounce = Timer(plannerDebounce, () => unawaited(_route()));
   }
@@ -485,6 +505,7 @@ class PlannerController extends _$PlannerController {
     state = state.copyWith(
       route: const AsyncLoading<RouteResult?>(),
       error: null,
+      routeIsSaved: false,
     );
     await _route();
   }

@@ -82,6 +82,12 @@ abstract class PlannerState with _$PlannerState {
     /// Name of that saved route, used as the default in the save dialog.
     String? savedRouteName,
 
+    /// Whether the route shown is the one stored under [savedRouteId], as
+    /// loaded or as just saved. Cleared by anything that routes again, so
+    /// the planner knows when a change to a waypoint's details alone can go
+    /// straight into the library.
+    @Default(false) bool routeIsSaved,
+
     /// Surface statistics of a route loaded from the library, which carries
     /// no BRouter `messages` any more. Cleared as soon as a fresh route
     /// arrives from the routing server.

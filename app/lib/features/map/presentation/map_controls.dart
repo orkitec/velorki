@@ -23,8 +23,8 @@ const double locateZoom = 15;
 const Duration mapControlsResizeDuration = Duration(milliseconds: 200);
 
 /// Screens shorter than this, an iPhone SE among them, get the compact
-/// column: smaller buttons and tighter gaps, so the column ends above the
-/// resting sheet under Plan's chrome.
+/// column: smaller buttons, tighter gaps and no download button, so the
+/// column ends above the resting sheet under Plan's chrome.
 const double compactMapControlsHeight = 700;
 
 /// The size of a column button, full and compact.
@@ -98,11 +98,14 @@ class MapControls extends ConsumerWidget {
             selected: cyclosm,
             onPressed: enabled ? () => unawaited(_toggleCyclosm(ref)) : null,
           ),
-          // The one place the rider can download the map and the routing
-          // tiles for exactly the area they are looking at; the screen needs
-          // a live map for that. Embedded maps (record, details) leave it out.
+          // Where the rider downloads the map and the routing tiles for
+          // exactly the area they are looking at; the screen needs a live map
+          // for that. Embedded maps (record, details) leave it out, and so
+          // does a short screen: with it the column would run under Plan's
+          // resting sheet, and the same download is one tap away in the
+          // search field and under Settings.
           _Resizing(
-            child: (chrome?.showRoutingTiles ?? true)
+            child: (chrome?.showRoutingTiles ?? true) && !compact
                 ? _ControlButton(
                     icon: Icons.download_for_offline_outlined,
                     tooltip: l10n.offlineEntryTitle,

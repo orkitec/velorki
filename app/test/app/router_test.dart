@@ -17,6 +17,7 @@ import 'package:velorki/features/library/presentation/library_screen.dart';
 import 'package:velorki/features/map/presentation/shared_map_host.dart';
 import 'package:velorki/features/map/testing/testing.dart';
 import 'package:velorki/features/planner/application/planner_map_binding.dart';
+import 'package:velorki/features/planner/data/routing_backend_provider.dart';
 import 'package:velorki/features/planner/presentation/planner_map_host.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
@@ -26,6 +27,7 @@ import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 import 'package:velorki/features/shared/presentation/tab_chrome_slide.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../features/planner/support/fakes.dart';
 import '../features/planner/support/pump.dart' as planner;
 import '../support/app.dart';
 
@@ -93,6 +95,11 @@ Future<void> _pumpShell(
   // every assertion.
   await tester.binding.setSurfaceSize(const Size(1000, 2000));
   addTearDown(() => tester.binding.setSurfaceSize(null));
+  // The view agrees with the surface, so the screen the widgets measure
+  // is that tall one and not the default 800 by 600 pixels, which would be
+  // a short screen and get the compact column.
+  tester.view.physicalSize = const Size(3000, 6000);
+  addTearDown(tester.view.resetPhysicalSize);
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
   // The library tab reads the database; give it one that needs no platform.
@@ -625,10 +632,18 @@ void main() {
     });
   }
 
-  testWidgets('on a small screen the control column shrinks: on Record it '
-      'ends above the resting sheet, on Plan the sheet wins where the two '
-      'still share pixels and the column takes its taps above', (tester) async {
-    await _pumpShell(tester);
+  testWidgets('on a small screen the control column shrinks and drops the '
+      'download button, and ends above the resting sheet on Plan and on '
+      'Record', (tester) async {
+    // A routing server, as the phone and CI builds have one: without it
+    // Plan shows a banner under the chips, which is not the chrome the
+    // column has to fit under.
+    await _pumpShell(
+      tester,
+      overrides: [
+        routingBackendProvider.overrideWithValue(FakeRoutingBackend()),
+      ],
+    );
     // An iPhone SE: 375 by 667 logical pixels at three per pixel, the
     // surface agreeing with the view so the sheet measures that screen.
     tester.view.physicalSize = const Size(1125, 2001);
@@ -638,45 +653,35 @@ void main() {
 
     Rect column() => tester.getRect(find.byType(MapControls));
     Rect sheet() => tester.getRect(find.byType(DockingSheetShell));
-    // Compact: the buttons are the small size.
+    // Compact: the buttons are the small size, and the download is left to
+    // the search field and Settings.
     expect(
       tester.getSize(find.byTooltip(l10n.mapZoomIn)).height,
       compactMapControlButtonSize,
     );
+    expect(find.byTooltip(l10n.offlineEntryTitle), findsNothing);
+    expect(find.byTooltip(l10n.mapLocateMe), findsOneWidget);
+    expect(find.byTooltip(l10n.mapToggleCyclosm), findsOneWidget);
+    expect(find.byTooltip(l10n.mapZoomOut), findsOneWidget);
 
-    // Under Plan's chrome there is no room for five buttons above a sheet
-    // at half the screen: the foot of the column is under the sheet, and
-    // the sheet takes the touches there.
-    final shared = column().intersect(sheet());
+    // Under Plan's chrome the four buttons end above the resting sheet, so
+    // every one of them takes its taps.
     expect(
-      shared.isEmpty,
-      isFalse,
+      column().bottom,
+      lessThanOrEqualTo(sheet().top),
       reason: 'column ${column()} sheet ${sheet()}',
     );
-    final sheetHits = HitTestResult();
-    tester.binding.hitTestInView(sheetHits, shared.center, tester.view.viewId);
-    final targets = sheetHits.path.map((e) => e.target).toSet();
-    expect(
-      targets,
-      contains(tester.renderObject(find.byType(DockingSheetShell))),
-    );
-    expect(
-      targets,
-      isNot(contains(tester.renderObject(find.byType(MapControls)))),
-    );
-    // Above the sheet the column takes its taps: its first button.
-    final locate = tester.getCenter(find.byTooltip(l10n.mapLocateMe));
-    expect(locate.dy, lessThan(sheet().top));
+    final zoomOut = tester.getCenter(find.byTooltip(l10n.mapZoomOut));
     final columnHits = HitTestResult();
-    tester.binding.hitTestInView(columnHits, locate, tester.view.viewId);
+    tester.binding.hitTestInView(columnHits, zoomOut, tester.view.viewId);
     expect(
       columnHits.path.map((e) => e.target),
       contains(tester.renderObject(find.byType(MapControls))),
     );
 
-    // Record has no chrome above the column: the whole compact column,
-    // zoom buttons included, ends above the resting sheet.
+    // Record has no chrome above the column and the same four buttons.
     await _tapTab(tester, l10n.tabRecord);
+    expect(find.byTooltip(l10n.offlineEntryTitle), findsNothing);
     expect(
       column().bottom,
       lessThanOrEqualTo(sheet().top),

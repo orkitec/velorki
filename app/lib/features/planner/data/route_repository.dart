@@ -189,6 +189,20 @@ class RouteRepository {
     );
   }
 
+  /// Replaces the waypoints of the route with [id], everything else as it
+  /// is: what a change to a point's name, kind or note needs, since it
+  /// leaves the geometry alone. An unknown id changes nothing.
+  Future<void> setWaypoints(String id, List<Waypoint> waypoints) async {
+    final row = await _dao.routeById(id);
+    if (row == null) return;
+    await _dao.updateRoute(
+      row.copyWith(
+        waypointsJson: encodeWaypoints(waypoints),
+        updatedAt: _clock(),
+      ),
+    );
+  }
+
   /// Gives the route with [id] a new [name].
   Future<void> rename(String id, String name) async {
     final row = await _dao.routeById(id);

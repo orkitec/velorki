@@ -21,7 +21,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
-import 'package:velorki/features/routing_tiles/presentation/routing_source_chip.dart';
+import 'package:velorki/features/planner/presentation/elevation_profile_chart.dart';
 import 'package:velorki/features/search/data/gazetteer_store.dart';
 import 'package:velorki/features/search/data/photon_client.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
@@ -123,10 +123,9 @@ void main() {
     expect(result.geometry, isNotEmpty);
     expect(state.routingSource, RoutingSource.local);
 
-    // The chip that says the route came off the device, in the sheet.
+    // The route in the sheet, with its profile chart.
     await dragSheetUp(tester);
-    await waitForWidget(tester, find.byType(RoutingSourceChip));
-    expect(find.text('ON DEVICE'), findsOneWidget);
+    await waitForWidget(tester, find.byType(ElevationProfileChart));
     await screenshot(tester, 'search-to-destination');
 
     await unmountApp(tester);

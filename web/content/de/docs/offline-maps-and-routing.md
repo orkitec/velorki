@@ -21,7 +21,7 @@ Die Routing-Daten tragen auch den Ortsindex, ein heruntergeladenes Gebiet sucht 
 ## Ein Gebiet herunterladen
 
 1. Verschiebe im Tab **Planen** die Karte so, dass das gewünschte Gebiet den Bildschirm ausfüllt. Zoom nicht weiter heraus als nötig: Der Kartendownload folgt genau dem, was auf dem Bildschirm zu sehen ist.
-2. Tippe in der Spalte rechts neben der Karte auf **Offline-Daten**.
+2. Tippe in der Spalte rechts neben der Karte auf **Offline-Daten**. Auf einem kleinen Bildschirm wie dem iPhone SE hat die Spalte dafür keinen Platz: Tippe dort unten in den Ergebnissen des Suchfelds auf **Gebiet herunterladen, um offline zu suchen** oder auf die Download-Schaltfläche unter einer Route, der Kacheln fehlen, und verwalte, was du hast, unter **Einstellungen → Offline-Daten**.
 3. Lies die beiden Karten und tippe unten auf **Sichtbares Gebiet herunterladen**.
 4. Der Dialog **Sichtbares Gebiet herunterladen** listet auf, was du gleich holst: "Karte des sichtbaren Gebiets · Größe erst nach dem Download bekannt" für die Karte, dann eine Zeile je Routing-Kachel mit ihrer Größe, zum Beispiel `E5_N45 · 187 MB`, oder "Routing-Daten für dieses Gebiet sind schon auf dem Gerät".
 5. Tippe auf **Herunterladen**.

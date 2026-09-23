@@ -17,7 +17,6 @@ import '../../map/presentation/map_chrome.dart';
 import '../../map/presentation/shared_map_host.dart';
 import '../../offline/presentation/offline_screen.dart';
 import '../../routing_tiles/presentation/missing_tiles_banner.dart';
-import '../../routing_tiles/presentation/routing_source_chip.dart';
 import '../../search/domain/search_result.dart';
 import '../../search/presentation/search_field.dart';
 import '../../settings/data/units.dart';
@@ -961,18 +960,9 @@ class _SheetBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final route = state.result;
     if (route == null || !state.isRoutable) return const SizedBox.shrink();
-    final source = state.routingSource;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (source != null)
-          Align(
-            alignment: Alignment.centerRight,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: RoutingSourceChip(source: source),
-            ),
-          ),
         ElevationProfileChart(samples: elevationProfile(route.geometry)),
         const SizedBox(height: 20),
         SurfaceStatsBar(stats: state.surfaceStats),

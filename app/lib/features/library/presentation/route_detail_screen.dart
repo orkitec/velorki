@@ -18,6 +18,7 @@ import '../../planner/application/planner_controller.dart';
 import '../../planner/data/route_repository.dart';
 import '../../planner/domain/elevation_profile.dart';
 import '../../planner/domain/saved_route.dart';
+import '../../planner/domain/route_poi.dart';
 import '../../planner/domain/waypoint.dart';
 import '../../planner/presentation/elevation_profile_chart.dart';
 import '../../navigation/application/route_cues.dart';
@@ -101,17 +102,18 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
 
   Future<void> _showOnMap(SavedRoute route) async {
     final map = layersMap;
-    if (map == null || _shownRouteId == route.id) return;
-    _shownRouteId = route.id;
+    if (map == null || _shownRouteId == _versionOf(route)) return;
+    _shownRouteId = _versionOf(route);
     final positions = route.geometry.map((p) => p.pos).toList(growable: false);
     if (positions.isEmpty) return;
-    _cues = routeCuesFor(positions, turns: route.turns, pois: route.pois);
+    final pois = _poisOf(route);
+    _cues = routeCuesFor(positions, turns: route.turns, pois: pois);
     _cuesRouteId = route.id;
     await map.setRouteLine(libraryRouteLineId, positions);
     showCuesOnMap(
       map,
       _cues,
-      pois: route.pois,
+      pois: pois,
       onCueTapped: (index) => _selectCue(index),
     );
     await map.fitBounds(
@@ -126,16 +128,30 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
   int? _selectedCue;
 
   List<RouteCue> _cuesFor(SavedRoute route) {
-    if (_cuesRouteId != route.id) {
+    if (_cuesRouteId != _versionOf(route)) {
       _cues = routeCuesFor(
         route.geometry.map((p) => p.pos).toList(growable: false),
         turns: route.turns,
-        pois: route.pois,
+        pois: _poisOf(route),
       );
-      _cuesRouteId = route.id;
+      _cuesRouteId = _versionOf(route);
     }
     return _cues;
   }
+
+  /// Which version of a route the cues and the map layers were made from:
+  /// the planner writes waypoint details back to a saved route while this
+  /// card may be open, and the card has to show them.
+  static String _versionOf(SavedRoute route) =>
+      '${route.id}@${route.updatedAt.microsecondsSinceEpoch}';
+
+  /// The route's own points of interest and every waypoint the rider named
+  /// or wrote a note on: the cue sheet, the map and the export tell them
+  /// apart no more than the rider does.
+  static List<RoutePoi> _poisOf(SavedRoute route) => [
+    ...route.pois,
+    ...waypointPois(route.waypoints),
+  ];
 
   /// Selects a cue, from the list or from the map, takes the map there and
   /// brings the sheet's line into view.
@@ -174,9 +190,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
             points: route.geometry,
             kind: TrackKind.route,
             format: format,
-            // The route's own points, and every waypoint the rider named or
-            // wrote a note on, so the file carries what the plan knew.
-            pois: [...route.pois, ...waypointPois(route.waypoints)],
+            pois: _poisOf(route),
           );
     } on Object {
       messenger.showSnackBar(SnackBar(content: Text(l10n.exportFailed)));

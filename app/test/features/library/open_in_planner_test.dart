@@ -11,6 +11,7 @@ import 'package:velorki/features/shared/application/active_tab.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
+import '../planner/support/fakes.dart';
 import '../planner/support/pump.dart';
 
 const LatLng _a = LatLng(48.0, 11.0);
@@ -31,6 +32,9 @@ void main() {
       tester.element(find.byType(NavigationBar)),
     );
     final planner = container.read(plannerControllerProvider.notifier);
+    // A route that runs through all three points, so each of them is beside
+    // the line and earns a line on the card's cue sheet.
+    h.backend.result = syntheticRoute(points: 25);
 
     // Three taps on the map, a name and a note on the middle one.
     h.map.onTap!(_a);
@@ -87,6 +91,33 @@ void main() {
     expect(h.map.waypoints.map((w) => w.position), [_a, _b, _c]);
     expect(h.map.waypoints.map((w) => w.label), [null, 'Bakery', null]);
     expect(h.backend.callCount, 1, reason: 'the stored route is shown as is');
+
+    // Details on the route as stored need no Save: name the start, leave
+    // for the Library, and the card already lists it, note and all.
+    planner.setWaypointDetails(0, name: 'Home', note: 'Start here');
+    await tester.pumpAndSettle();
+    await _tapTab(tester, l10n.tabLibrary);
+    await tester.tap(find.text('Three points'));
+    await tester.pumpAndSettle();
+    // The cue sheet names the points; a tap on a line shows its note.
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Bakery'), findsOneWidget);
+    await tester.tap(find.text('Home'));
+    await tester.pumpAndSettle();
+    expect(find.text('Start here'), findsOneWidget);
+    await tester.tap(find.text('Bakery'));
+    await tester.pumpAndSettle();
+    expect(find.text('Croissants'), findsOneWidget);
+
+    await tester.ensureVisible(find.text(l10n.routeDetailOpenInPlanner));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.routeDetailOpenInPlanner));
+    await tester.pumpAndSettle();
+    final again = container.read(plannerControllerProvider).waypoints;
+    expect(again.map((w) => w.name), ['Home', 'Bakery', null]);
+    expect(again.map((w) => w.note), ['Start here', 'Croissants', null]);
+    expect(h.map.waypoints.map((w) => w.label), ['Home', 'Bakery', null]);
+    expect(h.backend.callCount, 1, reason: 'nothing routed for details');
     await unmountApp(tester);
   });
 
