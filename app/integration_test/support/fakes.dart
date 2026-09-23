@@ -386,6 +386,9 @@ String photonAnswer({
 /// way to assert from a test that the route is still drawn — for instance
 /// after a style reload, which throws the layers away and rebuilds them.
 class RecordingMapController implements MapController {
+  @override
+  bool get isReady => true;
+
   /// Wraps [inner].
   RecordingMapController(this.inner);
 

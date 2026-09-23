@@ -15,8 +15,12 @@ class PlaceholderBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    // A scroll view rather than a bare column: a docked card leaves a few
+    // pixels of height, and a column that does not fit them would throw an
+    // overflow every frame, where a scroll view simply shows what it can.
+    // At any ordinary height nothing scrolls and the look is the same.
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 320),

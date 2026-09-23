@@ -63,6 +63,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   /// The sheet's greatest size, as computed by the last build.
   double _maxSheetSize = 0.9;
 
+  /// Where the sheet started, decided once at the first build.
+  double? _initialSheetSize;
+
   /// How many rows the list on screen has, `null` while it loads or while
   /// the card shows a detail.
   int? _rows;
@@ -206,6 +209,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     if (docked == _docked) return;
     _docked = docked;
     _docking.setDocked(libraryRoute, docked);
+    // A card put away in the bar is not a height the rider chose for it:
+    // on the next arrival it rises to the height it would open at anyway.
+    if (docked) ref.read(libraryCardExtentProvider.notifier).clear();
   }
 
   /// The route button of the column, on a ride that followed a route.
@@ -354,7 +360,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     } else if (!_armed && active && _rows == null && _detail) {
       _arm();
     }
-    final initialSheetSize = _arrivingExtent ?? _preferredExtent;
+    // Fixed at the first build: a sheet whose initial size keeps changing
+    // is reset to each new one until something has moved it, so the rows
+    // and the rider move it through the controller instead.
+    final initialSheetSize = _initialSheetSize ??=
+        _arrivingExtent ?? _preferredExtent;
 
     // The split or climb picked on a ride card is named over the map, out
     // of the column's way, and clears with a tap.

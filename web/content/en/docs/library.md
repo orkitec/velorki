@@ -34,6 +34,7 @@ Opening a route draws it on the map, fitted to the part of the screen above the 
 - the date, the bike profile and the ascent,
 - the description, if the route has one,
 - **Distance**, **Ascent**, **Descent** and **Est. time**,
+- the card itself opens to the top when the list on screen has more than two entries, and rests at half height otherwise; once you have dragged it, it comes back to where you left it until the app is restarted,
 - under the name, where an imported route came from: the file format and who wrote it, for example "Imported from GPX · Garmin Connect"; a route planned here says nothing there,
 - the actions below, **Open in planner** first so it is in view at the card's resting height,
 - a **Description** row and a **Link** row, each with a pencil: the description is the file's, the assistant's or yours, the link is the file's `<link>` or one you type, and a tap on it opens the page,

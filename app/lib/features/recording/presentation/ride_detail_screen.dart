@@ -262,12 +262,31 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
   /// The track goes on coloured by speed as soon as the analysis is there;
   /// until then, and for a ride whose fixes carry no times, it is the plain
   /// line the recorder draws.
-  Future<void> _showOnMap(Ride ride, RideAnalysis? analysis) async {
-    final map = layersMap;
-    if (map == null) return;
+  Future<void> _draws = Future<void>.value();
+  String? _wantedKey;
+
+  /// One draw after the other, as the route card does it: the build asks
+  /// for one on every ride and analysis it sees, and a call overtaken by a
+  /// newer one draws nothing.
+  Future<void> _showOnMap(Ride ride, RideAnalysis? analysis) {
+    if (layersMap == null) return Future<void>.value();
     final bands = analysis?.speedBands.segments ?? const <SpeedBandSegment>[];
     final key = '${ride.id}:${bands.length}';
-    if (_shownKey == key) return;
+    if (_shownKey == key) return Future<void>.value();
+    _wantedKey = key;
+    return _draws = _draws
+        .then((_) => _draw(ride, bands, key))
+        .catchError((Object _) {});
+  }
+
+  Future<void> _draw(
+    Ride ride,
+    List<SpeedBandSegment> bands,
+    String key,
+  ) async {
+    if (!mounted || _wantedKey != key || _shownKey == key) return;
+    final map = layersMap;
+    if (map == null) return;
     _shownKey = key;
     final positions = ride.positions;
     if (positions.isEmpty) return;

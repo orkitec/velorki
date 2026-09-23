@@ -34,4 +34,10 @@ class LibraryCardExtent extends _$LibraryCardExtent {
     if (!ref.mounted || state == extent) return;
     state = extent;
   }
+
+  /// Forgets it: the card chooses its height itself again.
+  void clear() {
+    if (!ref.mounted || state == null) return;
+    state = null;
+  }
 }

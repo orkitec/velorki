@@ -6,6 +6,11 @@ import 'package:velorki_geo/velorki_geo.dart';
 /// contract. The production implementation wraps maplibre_gl; tests use a
 /// fake. Nothing outside `features/map` may import maplibre types.
 abstract class MapController {
+  /// Whether the map can draw right now: its style is loaded and attached.
+  /// A layer set on a map that is not ready is remembered and drawn once it
+  /// is; a page that wants to be sure draws again when this turns true.
+  bool get isReady => true;
+
   /// Camera.
   ///
   /// A `null` [bearing] leaves the map turned the way it is; pass `0` to put

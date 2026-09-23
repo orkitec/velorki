@@ -574,6 +574,9 @@ class MaplibreMapControllerAdapter implements MapController {
   /// Whether [attachToStyle] has run and the layers exist.
   bool get isAttached => _attached;
 
+  @override
+  bool get isReady => _attached;
+
   /// Creates the sources and layers. Call once per loaded style, from
   /// `onStyleLoadedCallback`: a style change drops every layer we added.
   Future<void> attachToStyle() async {
@@ -968,17 +971,44 @@ class MaplibreMapControllerAdapter implements MapController {
 
   // ------------------------------------------------------------ route lines
 
+  /// One route line's writes and removals, in the order they were asked
+  /// for. A removal still taking its source down while the next write for
+  /// the same id looked for that source found it, refreshed it, and lost
+  /// it a moment later to the removal: the line was gone and its owner
+  /// none the wiser. Every id has its own queue; different lines do not
+  /// wait for each other.
+  final Map<String, Future<void>> _routeLineQueue = <String, Future<void>>{};
+
+  Future<void> _queuedRouteLine(String id, Future<void> Function() op) {
+    final next = (_routeLineQueue[id] ?? Future<void>.value()).then(
+      (_) => op(),
+    );
+    _routeLineQueue[id] = next.catchError((Object _) {});
+    return next;
+  }
+
   @override
   Future<void> setRouteLine(
     String id,
     List<LatLng> points, {
     RouteLineStyle style = RouteLineStyle.main,
-  }) async {
+  }) {
     // Remembered even before the style is ready: the replay after
     // `attachToStyle` draws it, so owners need not push it twice.
     _routePoints[id] = List<LatLng>.unmodifiable(points);
     _routeStyles[id] = style;
-    if (!_attached) return;
+    return _queuedRouteLine(id, () => _setRouteLineNow(id, points, style));
+  }
+
+  Future<void> _setRouteLineNow(
+    String id,
+    List<LatLng> points,
+    RouteLineStyle style,
+  ) async {
+    // Taken away again while this waited its turn, or no style to draw on:
+    // nothing to do now; the replay after the next attach draws what is
+    // remembered.
+    if (!_attached || !_routePoints.containsKey(id)) return;
     final sourceId = MapLayerIds.routeSource(id);
     final layerId = MapLayerIds.routeLayer(id);
     final data = lineFeatureCollection(
@@ -1068,9 +1098,15 @@ class MaplibreMapControllerAdapter implements MapController {
   }
 
   @override
-  Future<void> removeRouteLine(String id) async {
+  Future<void> removeRouteLine(String id) {
     _routePoints.remove(id);
     _routeStyles.remove(id);
+    return _queuedRouteLine(id, () => _removeRouteLineNow(id));
+  }
+
+  Future<void> _removeRouteLineNow(String id) async {
+    // Set again while this waited its turn: the write after it draws.
+    if (_routePoints.containsKey(id)) return;
     if (!_attached || _routeLines.remove(id) == null) return;
     await _ops.removeLayer(MapLayerIds.routeLayer(id));
     await _ops.removeLayer(MapLayerIds.routeCasingLayer(id));

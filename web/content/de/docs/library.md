@@ -34,6 +34,7 @@ Eine geöffnete Route wird auf die Karte gezeichnet, eingepasst in den Teil des 
 - Datum, Radprofil und Anstieg,
 - die Beschreibung, falls die Route eine hat,
 - **Distanz**, **Anstieg**, **Abstieg** und **Dauer**,
+- die Karte selbst öffnet sich bis oben, wenn die Liste auf dem Bildschirm mehr als zwei Einträge hat, und ruht sonst auf halber Höhe; hast du sie einmal gezogen, kommt sie dorthin zurück, wo du sie gelassen hast, bis die App neu gestartet wird,
 - unter dem Namen, woher eine importierte Route kommt: das Dateiformat und wer sie geschrieben hat, etwa "Importiert aus GPX · Garmin Connect"; eine hier geplante Route sagt dort nichts,
 - die Aktionen unten, **Im Planer öffnen** zuerst, damit es in der Ruhehöhe des Blatts zu sehen ist,
 - eine Zeile **Beschreibung** und eine Zeile **Link**, je mit einem Stift: Die Beschreibung ist die der Datei, des Assistenten oder deine, der Link ist der `<link>` der Datei oder einer, den du eintippst, und ein Tipp darauf öffnet die Seite,

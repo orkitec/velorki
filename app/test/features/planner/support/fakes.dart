@@ -26,6 +26,12 @@ class MapCall {
 /// Deliberately written here rather than reusing the map feature's own fake:
 /// the planner tests must not depend on that feature's internals.
 class TestMapController implements MapController {
+  /// What [isReady] answers; a test flips it to play a map still loading.
+  bool ready = true;
+
+  @override
+  bool get isReady => ready;
+
   /// Every call, in order.
   final List<MapCall> calls = <MapCall>[];
 

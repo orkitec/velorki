@@ -139,6 +139,9 @@ class RecordedPosition {
 /// widget tested: a real map is a platform view and cannot run in
 /// `flutter test`. Handlers can be fired from a test with the `emit*` methods.
 class FakeMapController implements MapController {
+  @override
+  bool get isReady => true;
+
   /// Every [moveTo] call, in order.
   final List<RecordedCameraMove> cameraMoves = <RecordedCameraMove>[];
 

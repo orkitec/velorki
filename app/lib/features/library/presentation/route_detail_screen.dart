@@ -108,15 +108,42 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
     unawaited(map.setSearchPin(null));
   }
 
-  Future<void> _showOnMap(SavedRoute route) async {
+  /// The draws, one after the other: the build asks for one on every
+  /// route it sees and the layers mixin on every (re)draw, and two writes
+  /// of the same line racing each other on the map lost one of them. A
+  /// call for a route that a newer one has overtaken by the time its turn
+  /// comes draws nothing.
+  Future<void> _draws = Future<void>.value();
+  String? _wantedVersion;
+
+  /// The version a second draw is pending for, so a map that was not ready
+  /// gets one more draw, not one per draw it missed.
+  String? _retryFor;
+
+  Future<void> _showOnMap(SavedRoute route) {
+    final version = _versionOf(route);
+    if (layersMap == null || _shownRouteId == version) {
+      return Future<void>.value();
+    }
+    _wantedVersion = version;
+    return _draws = _draws
+        .then((_) => _draw(route, version))
+        .catchError((Object _) {});
+  }
+
+  Future<void> _draw(SavedRoute route, String version) async {
+    if (!mounted || _wantedVersion != version || _shownRouteId == version) {
+      return;
+    }
     final map = layersMap;
-    if (map == null || _shownRouteId == _versionOf(route)) return;
-    _shownRouteId = _versionOf(route);
+    if (map == null) return;
+    _shownRouteId = version;
     final positions = route.geometry.map((p) => p.pos).toList(growable: false);
     if (positions.isEmpty) return;
     final pois = _poisOf(route);
     _cues = routeCuesFor(positions, turns: route.turns, pois: pois);
     _cuesRouteId = route.id;
+    final ready = map.isReady;
     await map.setRouteLine(libraryRouteLineId, positions);
     showCuesOnMap(
       map,
@@ -128,6 +155,24 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
       BoundingBox.fromPoints(positions),
       padding: _fitPadding,
     );
+    // Drawn onto a map that was still loading its style: the map replays
+    // what it remembers once the style is there, and this draws it once
+    // more a moment later in case the replay lost the line.
+    if ((!ready || !map.isReady) && _retryFor != version) {
+      _retryFor = version;
+      await Future<void>.delayed(const Duration(seconds: 1));
+      if (_retryFor == version) _retryFor = null;
+      if (!mounted || _wantedVersion != version) return;
+      final again = layersMap;
+      if (again == null || !again.isReady) return;
+      await again.setRouteLine(libraryRouteLineId, positions);
+      showCuesOnMap(
+        again,
+        _cues,
+        pois: pois,
+        onCueTapped: (index) => _selectCue(index),
+      );
+    }
   }
 
   /// The route's cue sheet, worked out once per route.

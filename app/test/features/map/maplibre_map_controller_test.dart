@@ -794,6 +794,42 @@ void main() {
   });
 
   group('removeRouteLine and clearRouteLines', () {
+    test('a write that follows a removal of the same line waits for it, so '
+        'the line is there at the end', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setRouteLine('main', _points);
+      ops.clearCalls();
+
+      // Fire and forget, as the pages do: the removal is still taking the
+      // source down when the write comes.
+      final removal = adapter.removeRouteLine('main');
+      final write = adapter.setRouteLine('main', _points);
+      await Future.wait([removal, write]);
+
+      // The write overtook the removal before either touched the style, so
+      // the line was never taken down: its data is refreshed in place.
+      final touched = ops.names.where((n) => n != 'getSourceIds').toList();
+      expect(touched, <String>['setGeoJsonSource']);
+      expect(ops.sourceIds, contains(MapLayerIds.routeSource('main')));
+      expect(ops.layerIds, contains(MapLayerIds.routeLayer('main')));
+    });
+
+    test('a removal that follows a write of the same line takes it away '
+        'again, and a write behind a removal is drawn', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setRouteLine('main', _points);
+      final removal = adapter.removeRouteLine('main');
+      final write = adapter.setRouteLine('main', _points);
+      final removalAgain = adapter.removeRouteLine('main');
+      await Future.wait([removal, write, removalAgain]);
+      expect(ops.sourceIds, isNot(contains(MapLayerIds.routeSource('main'))));
+      expect(ops.layerIds, isNot(contains(MapLayerIds.routeLayer('main'))));
+    });
+
     test('removes the layer before its source', () async {
       final ops = RecordingStyleOps();
       final adapter = _adapter(ops);

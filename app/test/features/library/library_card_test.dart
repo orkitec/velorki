@@ -9,8 +9,12 @@ import 'package:velorki/features/recording/presentation/ride_detail_screen.dart'
 import 'package:velorki/features/shared/application/active_tab.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 import 'package:velorki_geo/velorki_geo.dart';
+import 'package:velorki/features/planner/data/route_repository.dart';
+import 'package:velorki/features/planner/domain/routing_options.dart';
+import 'package:velorki/features/planner/domain/waypoint.dart';
 
 import '../../support/app.dart';
+import '../planner/support/fakes.dart';
 import '../recording/support/pump.dart';
 
 List<TrackPoint> _track() => <TrackPoint>[
@@ -30,6 +34,22 @@ Future<void> _seedRide(RecordingHarness h) =>
       startedAt: DateTime.utc(2026, 9, 12, 10),
       endedAt: DateTime.utc(2026, 9, 12, 10, 0, 59),
     );
+
+/// [count] planned routes in the library.
+Future<void> _seedRoutes(RecordingHarness h, int count) async {
+  final repository = RouteRepository(h.planner.db.routesDao);
+  for (var i = 0; i < count; i++) {
+    await repository.savePlannedRoute(
+      name: 'Route ${i + 1}',
+      route: syntheticRoute(),
+      waypoints: const [
+        Waypoint(pos: LatLng(48.0, 11.0), kind: WaypointKind.start),
+        Waypoint(pos: LatLng(48.04, 11.04), kind: WaypointKind.end),
+      ],
+      options: const RoutingOptions(),
+    );
+  }
+}
 
 Future<void> _tapTab(WidgetTester tester, String label) async {
   await tester.tap(find.widgetWithText(NavigationDestination, label));
@@ -199,6 +219,111 @@ void main() {
     await _tapTab(tester, l10n.tabLibrary);
     expect(bar().docked, isFalse);
     expect(shell().extent, closeTo(resting, 0.001));
+    await unmountApp(tester);
+  });
+
+  group('the list card\'s height on arrival', () {
+    DockingSheetShell shell(WidgetTester tester) =>
+        tester.widget<DockingSheetShell>(find.byType(DockingSheetShell));
+    double maxExtent(WidgetTester tester) => tester
+        .widget<DraggableScrollableSheet>(find.byType(DraggableScrollableSheet))
+        .maxChildSize;
+
+    testWidgets('three routes: the card arrives open to the top', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(3000, 6000);
+      addTearDown(tester.view.resetPhysicalSize);
+      final h = RecordingHarness();
+      await _seedRoutes(h, 3);
+      await pumpRecordingApp(tester, initialLocation: plannerRoute, harness: h);
+      await tester.pumpAndSettle();
+      await _tapTab(tester, l10n.tabLibrary);
+      expect(shell(tester).extent, closeTo(maxExtent(tester), 0.001));
+      expect(find.text('Route 3'), findsOneWidget);
+      await unmountApp(tester);
+    });
+
+    testWidgets('two routes: the card rests', (tester) async {
+      tester.view.physicalSize = const Size(3000, 6000);
+      addTearDown(tester.view.resetPhysicalSize);
+      final h = RecordingHarness();
+      await _seedRoutes(h, 2);
+      await pumpRecordingApp(tester, initialLocation: plannerRoute, harness: h);
+      await tester.pumpAndSettle();
+      await _tapTab(tester, l10n.tabLibrary);
+      expect(shell(tester).extent, closeTo(sheetRestingExtent(2000), 0.001));
+      await unmountApp(tester);
+    });
+
+    testWidgets('dragged by the rider, the card comes back to where they '
+        'left it', (tester) async {
+      tester.view.physicalSize = const Size(3000, 6000);
+      addTearDown(tester.view.resetPhysicalSize);
+      final h = RecordingHarness();
+      await _seedRoutes(h, 3);
+      await pumpRecordingApp(tester, initialLocation: plannerRoute, harness: h);
+      await tester.pumpAndSettle();
+      await _tapTab(tester, l10n.tabLibrary);
+      expect(shell(tester).extent, closeTo(maxExtent(tester), 0.001));
+
+      // Down from the top, short of docking.
+      await tester.dragFrom(
+        tester.getCenter(find.byType(SheetHandle)),
+        const Offset(0, 900),
+      );
+      await tester.pumpAndSettle();
+      final left = shell(tester).extent;
+      expect(left, lessThan(maxExtent(tester) - 0.1));
+      expect(left, greaterThan(0.2));
+
+      await _tapTab(tester, l10n.tabPlan);
+      await _tapTab(tester, l10n.tabLibrary);
+      expect(shell(tester).extent, closeTo(left, 0.01));
+      // Switching the segment moves nothing either.
+      await tester.tap(find.text(l10n.libraryRides));
+      await tester.pumpAndSettle();
+      expect(shell(tester).extent, closeTo(left, 0.01));
+      await unmountApp(tester);
+    });
+
+    testWidgets('a deep link to a route card rests, whatever the list '
+        'holds', (tester) async {
+      tester.view.physicalSize = const Size(3000, 6000);
+      addTearDown(tester.view.resetPhysicalSize);
+      final h = RecordingHarness();
+      await _seedRoutes(h, 3);
+      final routes = await h.planner.db.routesDao.allRoutes();
+      await pumpRecordingApp(
+        tester,
+        initialLocation: routeDetailLocation(routes.first.id),
+        harness: h,
+      );
+      await tester.pumpAndSettle();
+      expect(shell(tester).extent, closeTo(sheetRestingExtent(2000), 0.001));
+      await unmountApp(tester);
+    });
+  });
+
+  testWidgets('a ride card opened from the list on a fresh start draws its '
+      'track', (tester) async {
+    tester.view.physicalSize = const Size(3000, 6000);
+    addTearDown(tester.view.resetPhysicalSize);
+    final h = RecordingHarness();
+    await _seedRide(h);
+    await pumpRecordingApp(tester, initialLocation: plannerRoute, harness: h);
+    await tester.pumpAndSettle();
+    await _tapTab(tester, l10n.tabLibrary);
+    await tester.tap(find.text(l10n.libraryRides));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Morning loop'));
+    await tester.pumpAndSettle();
+    expect(find.byType(RideDetailScreen), findsOneWidget);
+    expect(h.map.trackSegments, isNotEmpty);
+    expect(
+      h.map.trackSegments.expand((s) => s.points).length,
+      greaterThanOrEqualTo(60),
+    );
     await unmountApp(tester);
   });
 }
