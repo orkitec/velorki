@@ -24,7 +24,14 @@ class FitCodec {
     List<TrackPoint> points, {
     required String name,
     FitSport sport = FitSport.cycling,
+    List<FitCoursePoint> coursePoints = const [],
   });
+
+  /// A course file: its name, sport, track and `course_point`s.
+  static FitCourse decodeCourse(Uint8List bytes);
+
+  /// Whether a FIT file is a course rather than an activity.
+  static bool isCourse(Uint8List bytes);
 }
 
 /// Cheap content sniffer for the import pipeline.

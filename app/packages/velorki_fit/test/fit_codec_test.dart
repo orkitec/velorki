@@ -297,11 +297,12 @@ void main() {
   });
 
   group('real sample file', () {
+    // A Garmin Edge 820 ride from python-fitparse's test files (MIT), see
+    // app/test/fixtures/formats/README.md.
     test('decodes to a plausible set of points', () {
       final points = FitCodec.decodeActivity(_sampleActivityBytes());
 
-      expect(points.length, greaterThan(1000));
-      expect(points.length, 3601);
+      expect(points.length, 15);
 
       for (final p in points) {
         expect(p.lat, inInclusiveRange(-90, 90));
@@ -311,12 +312,17 @@ void main() {
         expect(p.time!.year, inInclusiveRange(2000, 2100));
         expect(p.ele, isNotNull);
         expect(p.ele!, inInclusiveRange(-500.0, 9000.0));
+        expect(p.heartRateBpm, isNotNull);
+        expect(p.cadenceRpm, isNotNull);
       }
 
-      // The samples are one second apart and in order.
+      // The samples are in order, and the ride took about a minute.
+      for (var i = 1; i < points.length; i++) {
+        expect(points[i].time!.isBefore(points[i - 1].time!), isFalse);
+      }
       expect(
-        points.last.time!.difference(points.first.time!),
-        Duration(seconds: points.length - 1),
+        points.last.time!.difference(points.first.time!).inSeconds,
+        inInclusiveRange(50, 70),
       );
     });
   });
@@ -453,4 +459,4 @@ void main() {
 }
 
 Uint8List _sampleActivityBytes() =>
-    File('test/fixtures/Activity.fit').readAsBytesSync();
+    File('test/fixtures/garmin_edge820_ride.fit').readAsBytesSync();

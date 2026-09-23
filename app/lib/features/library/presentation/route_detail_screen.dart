@@ -191,6 +191,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
             kind: TrackKind.route,
             format: format,
             pois: _poisOf(route),
+            turns: route.turns,
           );
     } on Object {
       messenger.showSnackBar(SnackBar(content: Text(l10n.exportFailed)));

@@ -104,6 +104,13 @@ const int _fActivityEventType = 4;
 // course
 const int _fCourseSport = 4;
 const int _fCourseName = 5;
+// course_point
+const int _fCoursePointTimestamp = 1;
+const int _fCoursePointPositionLat = 2;
+const int _fCoursePointPositionLong = 3;
+const int _fCoursePointDistance = 4;
+const int _fCoursePointType = 5;
+const int _fCoursePointName = 6;
 
 // Local message numbers. Each message type gets its own slot so definitions
 // never have to be repeated.
@@ -114,6 +121,7 @@ const int _lnRecord = 3;
 const int _lnLap = 4;
 const int _lnSession = 5;
 const int _lnActivity = 6;
+const int _lnCoursePoint = 7;
 
 // Representable ranges of the scaled integer fields we write.
 const int _uint8Max = 254; // 255 is the "invalid" sentinel
@@ -313,8 +321,71 @@ class FitCodec {
   /// Throws [FitFormatException] when [bytes] is not a FIT file or not a
   /// course.
   static FitCourse decodeCourse(Uint8List bytes) {
-    // Phase 1: courses come back with their course points as cues.
-    throw UnimplementedError('Phase 1: FIT course import is not written yet');
+    if (!looksLikeFit(bytes)) {
+      throw const FitFormatException(
+        'Not a FIT file: missing ".FIT" signature or bad header size',
+      );
+    }
+    int? fileType;
+    String? name;
+    FitSport? sport;
+    final points = <TrackPoint>[];
+    final coursePoints = <FitCoursePoint>[];
+    final decoder = Decode();
+    decoder.onMesg = (Mesg mesg) {
+      switch (mesg.num) {
+        case MesgNum.fileId:
+          fileType = _asNum(mesg.getFieldValue(_fFileIdType))?.toInt();
+        case MesgNum.course:
+          name = _asString(mesg.getFieldValue(_fCourseName));
+          final raw = _asNum(mesg.getFieldValue(_fCourseSport))?.toInt();
+          sport = raw == null ? null : FitSport.fromFitValue(raw);
+        case MesgNum.record:
+          final point = _recordToTrackPoint(mesg);
+          if (point != null) points.add(point);
+        case MesgNum.coursePoint:
+          final point = _coursePointOf(mesg);
+          if (point != null) coursePoints.add(point);
+      }
+    };
+    try {
+      decoder.read(bytes);
+    } on FitException catch (e) {
+      throw FitFormatException(
+        'FIT file could not be decoded: ${e.message}',
+        e,
+      );
+    } catch (e) {
+      throw FitFormatException('FIT file could not be decoded', e);
+    }
+    if (fileType != File.course) {
+      throw const FitFormatException('Not a FIT course file');
+    }
+    return FitCourse(
+      name: name,
+      sport: sport ?? FitSport.cycling,
+      points: points,
+      coursePoints: coursePoints,
+    );
+  }
+
+  /// Whether the FIT file in [bytes] is a course rather than an activity,
+  /// by its `file_id`. A file that cannot be read is no course.
+  static bool isCourse(Uint8List bytes) {
+    if (!looksLikeFit(bytes)) return false;
+    int? fileType;
+    final decoder = Decode();
+    decoder.onMesg = (Mesg mesg) {
+      if (mesg.num == MesgNum.fileId && fileType == null) {
+        fileType = _asNum(mesg.getFieldValue(_fFileIdType))?.toInt();
+      }
+    };
+    try {
+      decoder.read(bytes);
+    } catch (_) {
+      return false;
+    }
+    return fileType == File.course;
   }
 
   /// Decodes a FIT *activity* file whole: the records as [decodeActivity]
@@ -344,10 +415,6 @@ class FitCodec {
     FitSport sport = FitSport.cycling,
     List<FitCoursePoint> coursePoints = const <FitCoursePoint>[],
   }) {
-    // Phase 1: the cue sheet goes out as `course_point` messages.
-    if (coursePoints.isNotEmpty) {
-      throw UnimplementedError('Phase 1: course points are not written yet');
-    }
     if (points.isEmpty) {
       throw ArgumentError.value(
         points,
@@ -393,9 +460,48 @@ class FitCodec {
 
     _writeTimerEvent(encoder, track.start, EventType.start);
     _writeRecords(encoder, track);
+    // The cues after the records, each stamped and placed like the track
+    // point it sits on, which is what a head unit matches them by.
+    for (var i = 0; i < coursePoints.length; i++) {
+      final cue = coursePoints[i];
+      final at = _nearestIndex(points, cue.pos);
+      final mesg = Mesg.fromMesgNum(MesgNum.coursePoint)
+        ..setFieldValue(_fMessageIndex, i)
+        ..setFieldValue(_fCoursePointTimestamp, _fitTime(times[at]))
+        ..setFieldValue(
+          _fCoursePointDistance,
+          _clampDistance(cue.distanceM ?? track.cumulativeDistance[at]),
+        )
+        ..setFieldValue(_fCoursePointType, cue.type.fitValue);
+      _setPosition(
+        mesg,
+        _fCoursePointPositionLat,
+        _fCoursePointPositionLong,
+        cue.pos,
+      );
+      final cueName = cue.name;
+      if (cueName != null && cueName.trim().isNotEmpty) {
+        mesg.setFieldValue(_fCoursePointName, _fitString(cueName));
+      }
+      _writeMesg(encoder, mesg, _lnCoursePoint);
+    }
     _writeTimerEvent(encoder, track.end, EventType.stopDisableAll);
 
     return encoder.close();
+  }
+
+  /// The index of the point of [points] nearest to [pos].
+  static int _nearestIndex(List<TrackPoint> points, LatLng pos) {
+    var best = 0;
+    var bestD = double.infinity;
+    for (var i = 0; i < points.length; i++) {
+      final d = haversineMeters(points[i].pos, pos);
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    }
+    return best;
   }
 
   // -------------------------------------------------------------------------
@@ -541,7 +647,30 @@ class FitCodec {
     );
   }
 
+  static FitCoursePoint? _coursePointOf(Mesg mesg) {
+    final lat = _asNum(mesg.getFieldValue(_fCoursePointPositionLat));
+    final lon = _asNum(mesg.getFieldValue(_fCoursePointPositionLong));
+    if (lat == null || lon == null) return null;
+    final stamp = _asNum(mesg.getFieldValue(_fCoursePointTimestamp));
+    return FitCoursePoint(
+      pos: LatLng(lat * degreesPerSemicircle, lon * degreesPerSemicircle),
+      name: _asString(mesg.getFieldValue(_fCoursePointName)),
+      type: FitCoursePointType.fromFit(
+        _asNum(mesg.getFieldValue(_fCoursePointType))?.toInt(),
+      ),
+      distanceM: _asNum(mesg.getFieldValue(_fCoursePointDistance))?.toDouble(),
+      time: stamp == null ? null : _fromFitTime(stamp.toInt()),
+    );
+  }
+
   static num? _asNum(Object? value) => value is num ? value : null;
+
+  /// A FIT string field, trimmed of its padding; `null` when blank.
+  static String? _asString(Object? value) {
+    if (value is! String) return null;
+    final text = value.replaceAll('\u0000', '').trim();
+    return text.isEmpty ? null : text;
+  }
 }
 
 /// Per-track values derived once and reused by every message of a file.

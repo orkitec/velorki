@@ -6,6 +6,7 @@ import 'package:velorki_fit/velorki_fit.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki_gpx/velorki_gpx.dart';
 
+import '../../../core/files/course_points.dart';
 import '../../planner/domain/route_poi.dart';
 import '../domain/imported_track.dart';
 
@@ -155,6 +156,7 @@ ImportedTrack _decodeGpx(Uint8List bytes, String? fileName) {
 }
 
 ImportedTrack _decodeFit(Uint8List bytes, String? fileName) {
+  if (FitCodec.isCourse(bytes)) return _decodeFitCourse(bytes, fileName);
   final List<TrackPoint> points;
   try {
     points = FitCodec.decodeActivity(bytes);
@@ -169,6 +171,72 @@ ImportedTrack _decodeFit(Uint8List bytes, String? fileName) {
     throw ImportException(ImportFailure.empty, fileName: fileName);
   }
   return ImportedTrack(format: ImportFormat.fit, points: points);
+}
+
+/// A FIT course: a route, with its course points as the cue sheet and the
+/// points of interest.
+///
+/// A turn type becomes a turn at the track point the course point sits on,
+/// its name as the note; a place (water, food, danger, anything else) a
+/// point of interest. A generic point on the first track point is the
+/// start and says nothing; one on the last is the finish.
+ImportedTrack _decodeFitCourse(Uint8List bytes, String? fileName) {
+  final FitCourse course;
+  try {
+    course = FitCodec.decodeCourse(bytes);
+  } on FitFormatException catch (e) {
+    throw ImportException(
+      ImportFailure.malformed,
+      fileName: fileName,
+      cause: e,
+    );
+  }
+  final points = course.points;
+  if (points.isEmpty) {
+    throw ImportException(ImportFailure.empty, fileName: fileName);
+  }
+  final turns = <TurnHint>[];
+  final pois = <RoutePoi>[];
+  for (final cue in course.coursePoints) {
+    final at = _nearestIndex(points, cue.pos);
+    final kind = turnKindOf(cue.type);
+    if (kind != null) {
+      turns.add(TurnHint(pointIndex: at, kind: kind, note: cue.name));
+      continue;
+    }
+    if (cue.type == FitCoursePointType.generic) {
+      if (at == 0) continue;
+      if (at == points.length - 1) {
+        turns.add(TurnHint(pointIndex: at, kind: TurnKind.end, note: cue.name));
+        continue;
+      }
+    }
+    pois.add(
+      RoutePoi(pos: cue.pos, name: cue.name ?? '', kind: poiKindOf(cue.type)),
+    );
+  }
+  turns.sort((a, b) => a.pointIndex.compareTo(b.pointIndex));
+  return ImportedTrack(
+    format: ImportFormat.fit,
+    points: points,
+    name: course.name,
+    turns: turns,
+    pois: pois,
+    isCourse: true,
+  );
+}
+
+int _nearestIndex(List<TrackPoint> points, LatLng pos) {
+  var best = 0;
+  var bestD = double.infinity;
+  for (var i = 0; i < points.length; i++) {
+    final d = haversineMeters(points[i].pos, pos);
+    if (d < bestD) {
+      bestD = d;
+      best = i;
+    }
+  }
+  return best;
 }
 
 /// The turn instructions a GPX route's cue sheet spells out.

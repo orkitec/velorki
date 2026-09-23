@@ -15,6 +15,10 @@ repository. Files under CC-BY-SA (firefly-cpp/tcx-test-files) and files of
 unknown licence (ThomasKuehne/FIT-test-files, Wikipedia's GPX sample) were
 left out.
 
+`packages/velorki_fit/test/fixtures/garmin_edge820_ride.fit` and
+`test/features/import_export/fixtures/activity.fit` are copies of
+`fit/fitparse_garmin_edge820_ride.fit` below.
+
 ## Licences
 
 | Source | Licence | Files |

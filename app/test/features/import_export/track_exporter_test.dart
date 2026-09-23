@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:velorki/core/files/track_exporter.dart';
 import 'package:velorki/core/files/track_exporter_impl.dart';
+import 'package:velorki_brouter/velorki_brouter.dart';
+import 'package:velorki/features/planner/domain/route_poi.dart';
 import 'package:velorki_fit/velorki_fit.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki_gpx/velorki_gpx.dart';
@@ -119,6 +121,41 @@ void main() {
     final decoded = FitCodec.decodeActivity(bytes);
     expect(decoded, hasLength(4));
     expect(decoded.first.lat, closeTo(48.0, 1e-5));
+  });
+
+  test('a route\'s cue sheet and places go out as course points', () async {
+    final h = _Harness();
+    final points = _points();
+    await h.exporter.share(
+      name: 'Cued',
+      points: points,
+      kind: TrackKind.route,
+      format: TrackFormat.fit,
+      turns: const [
+        TurnHint(pointIndex: 1, kind: TurnKind.left, note: 'Onto the bridge'),
+        TurnHint(pointIndex: 2, kind: TurnKind.slightRight),
+        TurnHint(pointIndex: 3, kind: TurnKind.end),
+      ],
+      pois: [RoutePoi(pos: points[2].pos, name: 'Tap', kind: PoiKind.water)],
+    );
+    final course = FitCodec.decodeCourse(
+      h.shared.single.file.readAsBytesSync(),
+    );
+    expect(course.name, 'Cued');
+    expect(course.points, hasLength(4));
+    // The finish is the end of the track, not a course point.
+    expect(course.coursePoints.map((c) => c.type), [
+      FitCoursePointType.left,
+      FitCoursePointType.slightRight,
+      FitCoursePointType.water,
+    ]);
+    expect(course.coursePoints.map((c) => c.name), [
+      'Onto the bridge',
+      'Slight right',
+      'Tap',
+    ]);
+    expect(course.coursePoints.first.pos.lat, closeTo(points[1].lat, 1e-5));
+    expect(course.coursePoints.first.distanceM, greaterThan(0));
   });
 
   test('a ride becomes a FIT activity with the real timestamps', () async {

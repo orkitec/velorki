@@ -97,7 +97,7 @@ void main() {
       // The places, as points of interest with their kind.
       expect(track.pois.map((p) => p.name), ['Fountain']);
       expect(track.pois.single.kind, PoiKind.water);
-    }, skip: 'phase 1');
+    });
 
     test('a route exported as a FIT course carries its cue sheet as course '
         'points, which the import reads back', () {
@@ -112,7 +112,7 @@ void main() {
       expect(turns.map((t) => t.kind), [TurnKind.left, TurnKind.right]);
       expect(FitCoursePointType.left.fitValue, 6);
       expect(FitCoursePointType.right.fitValue, 7);
-    }, skip: 'phase 1');
+    });
   });
 
   group('phase 2: rides', () {

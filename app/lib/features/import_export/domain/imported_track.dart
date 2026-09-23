@@ -43,7 +43,12 @@ class ImportedTrack {
     this.laps = const <ImportedLap>[],
     this.deviceTotals,
     this.temperaturesC = const <double?>[],
+    this.isCourse = false,
   });
+
+  /// Whether the file was a course (a FIT course, a TCX course): a planned
+  /// route with a virtual clock on its points, not a recording.
+  final bool isCourse;
 
   /// The laps the device recorded, in order; empty when the file has none.
   /// A ride made from this track gets them as its splits.
@@ -119,7 +124,7 @@ class ImportedTrack {
   /// The kind this track most likely is: a ride when it carries timestamps, a
   /// route otherwise.
   ImportKind get suggestedKind =>
-      hasTimestamps ? ImportKind.ride : ImportKind.route;
+      hasTimestamps && !isCourse ? ImportKind.ride : ImportKind.route;
 
   @override
   String toString() =>

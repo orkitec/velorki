@@ -5,11 +5,13 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_fit/velorki_fit.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki_gpx/velorki_gpx.dart';
 
 import '../../features/planner/domain/route_poi.dart';
+import 'course_points.dart';
 import 'track_exporter.dart';
 
 /// MIME type of a GPX file, as registered on both platforms.
@@ -91,6 +93,7 @@ class ShareTrackExporter implements TrackExporter {
     required TrackFormat format,
     DateTime? startTime,
     List<RoutePoi> pois = const <RoutePoi>[],
+    List<TurnHint> turns = const <TurnHint>[],
   }) async {
     final file = await write(
       name: name,
@@ -99,6 +102,7 @@ class ShareTrackExporter implements TrackExporter {
       format: format,
       startTime: startTime,
       pois: pois,
+      turns: turns,
     );
     await _shareFiles(file, mimeType: mimeTypeFor(format));
   }
@@ -117,6 +121,7 @@ class ShareTrackExporter implements TrackExporter {
     required TrackFormat format,
     DateTime? startTime,
     List<RoutePoi> pois = const <RoutePoi>[],
+    List<TurnHint> turns = const <TurnHint>[],
   }) async {
     if (points.isEmpty) {
       throw ArgumentError.value(points, 'points', 'nothing to export');
@@ -144,6 +149,8 @@ class ShareTrackExporter implements TrackExporter {
             points: points,
             kind: kind,
             startTime: startTime,
+            pois: pois,
+            turns: turns,
           ),
           flush: true,
         );
@@ -178,8 +185,16 @@ class ShareTrackExporter implements TrackExporter {
     required List<TrackPoint> points,
     required TrackKind kind,
     required DateTime? startTime,
+    List<RoutePoi> pois = const <RoutePoi>[],
+    List<TurnHint> turns = const <TurnHint>[],
   }) => switch (kind) {
-    TrackKind.route => FitCodec.encodeCourse(points, name: safeFileName(name)),
+    // A course carries its cue sheet and its places as course points, which
+    // is what the head unit shows as the next turn.
+    TrackKind.route => FitCodec.encodeCourse(
+      points,
+      name: safeFileName(name),
+      coursePoints: courseCuePoints(points: points, turns: turns, pois: pois),
+    ),
     TrackKind.ride => FitCodec.encodeActivity(
       points,
       name: name,

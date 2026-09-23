@@ -37,7 +37,7 @@ Die Karte bleibt oben stehen, während die Seiten darunter scrollen, mit Punkten
 
 Eine GPX-Route mit Abbiegeliste, der Routen-Export von Ride with GPS oder eine Garmin-Strecke, bringt ihre Abbiegungen mit: Jeder Eintrag wird ein Abbiegehinweis mit den Worten des Autors, gezeigt im Abbiegeband, auf der Abbiegeliste der Aufnahme und gesagt von der Stimme. Ein GPX-Track hat keine Abbiegeliste; Velorkis eigenes Abbiegeband funktioniert darauf trotzdem, aus der Form der Route.
 
-Velorki rät **Route** oder **Fahrt** danach, ob die Punkte Zeiten tragen: eine Aufnahme tut das, eine geplante Route nicht. FIT-Strecken tragen eine künstliche Zeitbasis und werden darum als Fahrt geraten, stell sie also von Hand um. Nichts wird geschrieben, bevor du auf **Speichern** tippst.
+Velorki rät **Route** oder **Fahrt** danach, ob die Punkte Zeiten tragen: eine Aufnahme tut das, eine geplante Route nicht. Eine FIT-Strecke wird als Strecke erkannt und als Route geraten, was auch immer ihre künstliche Zeitbasis sagt; ihre Streckenpunkte werden zur Abbiegeliste der Route (Abbiegungen) und zu ihren Punkten von Interesse (Wasser, Essen, Gefahren, benannte Orte). Nichts wird geschrieben, bevor du auf **Speichern** tippst.
 
 Danach bekommst du "Alpenrunde zur Bibliothek hinzugefügt" oder "Alpenrunde zu deinen Fahrten hinzugefügt" und landest auf dem Blatt des neuen Eintrags im Tab Bibliothek.
 
@@ -50,7 +50,7 @@ Lässt sich die Datei nicht öffnen, sagt Velorki, woran es lag: "Das ist keine 
 | Format | Wofür |
 |---|---|
 | **GPX-Route** | eine geplante Route für einen anderen Planer, eine Handy-App oder einen Radcomputer |
-| **FIT-Strecke** | ein Garmin, Wahoo oder ähnliches Gerät, das eine Strecke erwartet |
+| **FIT-Strecke** | ein Garmin, Wahoo oder ähnliches Gerät, das eine Strecke erwartet; die Abbiegeliste und die Punkte von Interesse gehen als Streckenpunkte mit, sodass das Gerät die nächste Abbiegung zeigt |
 
 **Aus einer Fahrt** (Bibliothek → Fahrten → öffnen, oder das Blatt der Fahrt nach dem Beenden):
 

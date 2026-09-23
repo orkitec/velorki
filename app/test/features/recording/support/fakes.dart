@@ -11,6 +11,7 @@ import 'package:velorki/features/recording/domain/gps_precision.dart';
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/features/recording/domain/recording_state.dart';
 import 'package:velorki/features/recording/domain/ride.dart';
+import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki/features/planner/domain/route_poi.dart';
 
@@ -170,6 +171,7 @@ class FakeTrackExporter implements TrackExporter {
     required TrackFormat format,
     DateTime? startTime,
     List<RoutePoi> pois = const <RoutePoi>[],
+    List<TurnHint> turns = const <TurnHint>[],
   }) async {
     final failure = error;
     if (failure != null) throw failure;

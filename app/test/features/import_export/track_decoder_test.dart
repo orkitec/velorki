@@ -163,8 +163,11 @@ void main() {
         fileName: 'activity.fit',
       );
       expect(track.format, ImportFormat.fit);
-      expect(track.pointCount, greaterThan(100));
+      // A Garmin Edge 820 ride of fifteen records, see the formats README.
+      expect(track.pointCount, 15);
       expect(track.hasTimestamps, isTrue);
+      expect(track.suggestedKind, ImportKind.ride);
+      expect(track.isCourse, isFalse);
       expect(track.bounds, isNotNull);
     });
 

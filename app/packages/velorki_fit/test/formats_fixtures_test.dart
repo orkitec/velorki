@@ -100,7 +100,7 @@ void main() {
       expect(course.coursePoints[1].distanceM, closeTo(266, 0.5));
       expect(course.coursePoints[1].pos.lat, closeTo(48.142, 1e-6));
       expect(course.coursePoints[1].time, DateTime.utc(2026, 5, 3, 8, 0, 20));
-    }, skip: 'phase 1');
+    });
 
     test('an activity file is not a course', () {
       expect(
@@ -108,7 +108,7 @@ void main() {
             FitCodec.decodeCourse(fixture('fitparse_garmin_edge820_ride.fit')),
         throwsA(isA<FitFormatException>()),
       );
-    }, skip: 'phase 1');
+    });
 
     test('course points written with a course come back the same, in order, '
         'with the distance the track gives them', () {
@@ -151,7 +151,7 @@ void main() {
         FitCodec.decodeCourse(long).coursePoints.single.name!.length,
         lessThanOrEqualTo(64),
       );
-    }, skip: 'phase 1');
+    });
   });
 
   group('activity files whole (phase 2)', () {

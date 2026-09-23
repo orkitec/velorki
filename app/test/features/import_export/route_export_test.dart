@@ -6,6 +6,7 @@ import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/planner/domain/routing_options.dart';
 import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
+import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki/features/planner/domain/route_poi.dart';
 
@@ -31,6 +32,7 @@ class _RecordingExporter implements TrackExporter {
 
   /// The points of interest handed over with each call.
   final List<List<RoutePoi>> exportedPois = <List<RoutePoi>>[];
+  final List<List<TurnHint>> exportedTurns = <List<TurnHint>>[];
 
   /// When set, [share] throws it instead of recording.
   Object? failure;
@@ -43,7 +45,9 @@ class _RecordingExporter implements TrackExporter {
     required TrackFormat format,
     DateTime? startTime,
     List<RoutePoi> pois = const <RoutePoi>[],
+    List<TurnHint> turns = const <TurnHint>[],
   }) async {
+    exportedTurns.add(turns);
     final error = failure;
     if (error != null) throw error;
     calls.add(_Export(name, kind, format, points.length));
@@ -57,7 +61,12 @@ Future<SavedRoute> _seed(PlannerHarness h) =>
       clock: () => DateTime.utc(2026, 9, 12, 10),
     ).savePlannedRoute(
       name: 'Isar loop',
-      route: syntheticRoute(),
+      route: syntheticRoute(
+        turns: const [
+          TurnHint(pointIndex: 2, kind: TurnKind.left),
+          TurnHint(pointIndex: 4, kind: TurnKind.end),
+        ],
+      ),
       waypoints: const [
         Waypoint(pos: LatLng(48.0, 11.0), kind: WaypointKind.start),
         Waypoint(pos: LatLng(48.04, 11.04), kind: WaypointKind.end),
@@ -167,6 +176,11 @@ void main() {
 
     expect(exporter.calls.single.format, TrackFormat.fit);
     expect(exporter.calls.single.kind, TrackKind.route);
+    // The route's cue sheet goes with it, for the course points.
+    expect(exporter.exportedTurns.single.map((t) => t.kind), [
+      TurnKind.left,
+      TurnKind.end,
+    ]);
     await unmountApp(tester);
   });
 

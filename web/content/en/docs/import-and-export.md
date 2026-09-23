@@ -37,7 +37,7 @@ The map stays at the top while the pages under it scroll, with dots under the ma
 
 A GPX route with a cue sheet, the route export of Ride with GPS or a Garmin course, brings its turns along: each cue becomes a turn instruction with the author's words, shown in the turn banner, on the cue sheet page and said by the voice. A GPX track carries no cue sheet; Velorki's own turn banner still works on it from the route's shape.
 
-Velorki guesses **Route** or **Ride** from whether the points carry times: a recording does, a planned route does not. FIT courses carry a synthetic time base and are therefore guessed as a ride, so switch them over by hand. Nothing is written until you tap **Save**.
+Velorki guesses **Route** or **Ride** from whether the points carry times: a recording does, a planned route does not. A FIT course is recognised as a course and guessed as a route, whatever its synthetic time base says; its course points become the route's cue sheet (turns) and its points of interest (water, food, hazards, named places). Nothing is written until you tap **Save**.
 
 Afterwards you get "Alpine loop added to the library" or "Alpine loop added to your rides", and you land on the new item's card on the Library tab.
 
@@ -50,7 +50,7 @@ If the file will not open, Velorki says which problem it was: "That is not a GPX
 | Format | Use it for |
 |---|---|
 | **GPX route** | a planned route for another planner, a phone app or a bike computer |
-| **FIT course** | a Garmin, Wahoo or similar head unit that expects a course |
+| **FIT course** | a Garmin, Wahoo or similar head unit that expects a course; the cue sheet and the points of interest go along as course points, so the unit shows the next turn |
 
 **From a ride** (Library → Rides → open it, or the ride's card after finishing):
 
