@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { rwgpsConfigured, stravaConfigured, type Config } from '@/config';
 import type { ApiContext } from './api';
 import { ApiError } from './errors';
 import { requireEntitlement } from './entitlement';
@@ -33,6 +34,13 @@ interface UpstreamRoute {
   readonly pattern: RegExp;
   /** Counter and log name; no ids, so two riders' calls share one bucket. */
   readonly operation: string;
+  /**
+   * The call authenticates with the client secret rather than the bearer:
+   * the relay writes the body itself (`client_id`, `client_secret`, `token`)
+   * and ignores whatever the phone sent, so the secret never leaves here and
+   * the phone never has to know the shape.
+   */
+  readonly clientCredentials?: true;
 }
 
 interface Upstream {
@@ -70,9 +78,30 @@ export const UPSTREAMS: Readonly<Record<WrappedService, Upstream>> = {
       { method: 'GET', pattern: /^\/api\/v1\/routes\.json$/, operation: 'list_routes' },
       { method: 'GET', pattern: /^\/api\/v1\/trips\.json$/, operation: 'list_trips' },
       { method: 'GET', pattern: /^\/api\/v1\/routes\/[0-9]+\.gpx$/, operation: 'route_gpx' },
+      // Disconnect: Ride with GPS revokes with the client secret, which only
+      // the relay has (https://ridewithgps.com/api/v1/doc/authentication).
+      {
+        method: 'POST',
+        pattern: /^\/oauth\/revoke\.json$/,
+        operation: 'revoke',
+        clientCredentials: true,
+      },
     ],
   },
 };
+
+/** The client id and secret for [service], or undefined when unconfigured. */
+function clientCredentialsFor(
+  config: Config,
+  service: WrappedService,
+): { id: string; secret: string } | undefined {
+  if (service === 'strava') {
+    if (!stravaConfigured(config)) return undefined;
+    return { id: config.STRAVA_CLIENT_ID ?? '', secret: config.STRAVA_CLIENT_SECRET ?? '' };
+  }
+  if (!rwgpsConfigured(config)) return undefined;
+  return { id: config.RWGPS_CLIENT_ID ?? '', secret: config.RWGPS_CLIENT_SECRET ?? '' };
+}
 
 /** A FIT or GPX of a long ride is a few megabytes; this is a sanity bound. */
 export const PROXY_BODY_LIMIT = 25 * 1024 * 1024;
@@ -227,20 +256,29 @@ export async function forward(
     if (!DROPPED_QUERY.includes(name)) target.searchParams.append(name, value);
   }
   const headers = new Headers();
-  for (const name of FORWARDED_REQUEST_HEADERS) {
-    const value = request.headers.get(name);
-    if (value !== null) headers.set(name, value);
-  }
-  headers.set('authorization', `Bearer ${token}`);
   headers.set('user-agent', `velorki-relay/${config.APP_VERSION}`);
-
   let tooLarge = false;
-  const body =
-    request.method === 'POST' && request.body !== null
-      ? bounded(request.body, PROXY_BODY_LIMIT, () => {
-          tooLarge = true;
-        })
-      : undefined;
+  let body: BodyInit | undefined;
+  if (route.clientCredentials) {
+    const credentials = clientCredentialsFor(config, service);
+    if (credentials === undefined) {
+      throw new ApiError('unavailable', `${upstream.label} is not configured on this server.`);
+    }
+    headers.set('content-type', 'application/json');
+    headers.set('accept', 'application/json');
+    body = JSON.stringify({ client_id: credentials.id, client_secret: credentials.secret, token });
+  } else {
+    for (const name of FORWARDED_REQUEST_HEADERS) {
+      const value = request.headers.get(name);
+      if (value !== null) headers.set(name, value);
+    }
+    headers.set('authorization', `Bearer ${token}`);
+    if (request.method === 'POST' && request.body !== null) {
+      body = bounded(request.body, PROXY_BODY_LIMIT, () => {
+        tooLarge = true;
+      });
+    }
+  }
 
   const started = Date.now();
   let res: Response;

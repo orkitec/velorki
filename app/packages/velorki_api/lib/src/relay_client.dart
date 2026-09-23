@@ -12,8 +12,12 @@ import 'version.dart';
 /// The client for the Velorki relay.
 ///
 /// The relay exists so the OAuth client secrets of Strava and Ride with GPS,
-/// and the LLM API key, never ship inside the open-source app. This class is
-/// the only place in the app that talks to it.
+/// and the LLM API key, never ship inside the open-source app. It also wraps
+/// the service tokens it obtains: the app stores them as they come and sends
+/// them back in [tokenHeader] on every call to [proxyBase], where the relay
+/// opens them for the one upstream request. This class is the only place in
+/// the app that talks to the relay directly; the service clients go through
+/// [proxyBase] with the headers in [proxyHeaders].
 ///
 /// ```dart
 /// final client = RelayClient(
@@ -77,6 +81,25 @@ class RelayClient {
 
   /// The header the AI endpoints require to be `1`.
   static const String consentHeader = 'X-AI-Consent';
+
+  /// The header a pass-through call carries the wrapped service token in.
+  static const String tokenHeader = 'X-Velorki-Token';
+
+  /// Set on a pass-through answer when the relay re-wrapped the token under
+  /// a newer key; the app stores the value in place of what it sent.
+  static const String rewrappedHeader = 'X-Velorki-Token-Rewrapped';
+
+  /// The URL the app's calls to [service] (`strava` or `rwgps`) go through:
+  /// the upstream path is appended to it, `/proxy/strava/api/v3/uploads` for
+  /// Strava's `POST /api/v3/uploads`.
+  Uri proxyBase(String service) => uriFor('/proxy/$service');
+
+  /// The headers a pass-through call carries besides [tokenHeader]: the
+  /// client id and, when set, the relay's own bearer.
+  Map<String, String> get proxyHeaders => <String, String>{
+    clientHeader: clientId,
+    if (appUserId != null) 'Authorization': 'Bearer $appUserId',
+  };
 
   /// Strips trailing slashes so paths can be appended verbatim.
   static String _normalizeBase(String baseUrl) {

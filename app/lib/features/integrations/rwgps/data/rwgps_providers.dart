@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../../../core/http/user_agent.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:velorki_api/velorki_api.dart' show RelayClient;
 
 import '../../../../app/app_config.dart';
 import '../../common/data/connected_accounts_repository.dart';
@@ -31,13 +32,18 @@ final rwgpsTokenSourceProvider = Provider<OAuthTokenSource>(
   ),
 );
 
-/// The dio Ride with GPS is talked to over.
+/// The dio Ride with GPS is talked to over, through the relay's pass-through.
 final rwgpsDioProvider = Provider<Dio>((ref) {
-  final dio = Dio(velorkiBaseOptions(rwgpsBaseOptions()));
+  final relay = ref.watch(relayClientProvider);
+  final dio = Dio(velorkiBaseOptions(rwgpsBaseOptions()))
+    // Empty in a build without a relay, where Ride with GPS is hidden anyway.
+    ..options.baseUrl =
+        relay?.proxyBase(IntegrationService.rwgps.id).toString() ?? '';
   dio.interceptors.add(
     OAuthTokenInterceptor(
       tokens: ref.watch(rwgpsTokenSourceProvider),
       dio: () => dio,
+      relayHeaders: () => relay?.proxyHeaders ?? const <String, String>{},
     ),
   );
   ref.onDispose(dio.close);
@@ -58,8 +64,8 @@ Dio buildRwgpsBareDio() => Dio(velorkiBaseOptions(rwgpsBaseOptions()));
 
 /// How the connector builds that one client.
 ///
-/// Behind a provider because the call goes straight to ridewithgps.com, which
-/// a test has no way to answer; the default is the real factory.
+/// Behind a provider because the call goes out to the relay, which a test
+/// has no way to answer; the default is the real factory.
 final rwgpsBareDioProvider = Provider<RwgpsBareDioFactory>(
   (ref) => buildRwgpsBareDio,
 );
@@ -80,11 +86,18 @@ final rwgpsConnectorProvider = Provider<RwgpsConnector?>((ref) {
     relayClient: relay,
     clientId: config.rwgpsClientId,
     callbackScheme: config.oauthScheme,
+    // The interceptor puts the account's token on, as on any other call.
+    revokeAt: (account) => ref.read(rwgpsClientProvider).revoke(),
     readUser: (token) async {
       // The token is not in secure storage yet, so this one call carries it
-      // by hand instead of going through the interceptor.
+      // by hand instead of going through the interceptor; it still goes
+      // through the relay, like every other.
       final dio = ref.read(rwgpsBareDioProvider)()
-        ..options.headers['Authorization'] = 'Bearer $token';
+        ..options.baseUrl = relay
+            .proxyBase(IntegrationService.rwgps.id)
+            .toString()
+        ..options.headers.addAll(relay.proxyHeaders)
+        ..options.headers[RelayClient.tokenHeader] = token;
       try {
         return await RwgpsClient(dio: dio).currentUser();
       } finally {

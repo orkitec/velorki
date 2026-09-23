@@ -737,7 +737,12 @@ class PlanUsage {
 
 /* ----------------------------------------------------------------- tokens */
 
-/// The OAuth tokens Strava returned, passed through by the relay unchanged.
+/// The OAuth tokens Strava returned, as the relay hands them on.
+///
+/// [accessToken] and [refreshToken] are wrapped by the relay: opaque strings
+/// only the relay can open, which the app stores as they are and sends back
+/// in [RelayClient.tokenHeader] and to `/oauth/strava/refresh`. Everything
+/// else is Strava's own.
 class StravaTokens {
   /// Creates a Strava token set.
   const StravaTokens({
@@ -818,8 +823,9 @@ class StravaTokens {
       'athlete: ${athlete == null ? 'none' : athlete!['id']})';
 }
 
-/// The OAuth tokens Ride with GPS returned, passed through by the relay.
+/// The OAuth tokens Ride with GPS returned, as the relay hands them on.
 ///
+/// [accessToken] is wrapped by the relay, like [StravaTokens.accessToken].
 /// Ride with GPS access tokens do not expire, so [refreshToken] and
 /// [expiresAt] are usually absent and the relay has no refresh endpoint.
 class RwgpsTokens {

@@ -23,6 +23,7 @@ class RwgpsConnector implements IntegrationConnector {
     required this.clientId,
     required this.callbackScheme,
     required this.readUser,
+    required this.revokeAt,
   });
 
   /// The OAuth plumbing.
@@ -39,6 +40,10 @@ class RwgpsConnector implements IntegrationConnector {
 
   /// Reads the connected user with [accessToken].
   final Future<RwgpsUser?> Function(String accessToken) readUser;
+
+  /// Revokes the token at Ride with GPS, through the relay; injected so a
+  /// disconnect can be tested without a client.
+  final Future<void> Function(ConnectedAccount account) revokeAt;
 
   @override
   IntegrationService get service => IntegrationService.rwgps;
@@ -84,10 +89,16 @@ class RwgpsConnector implements IntegrationConnector {
     );
   }
 
-  /// Nothing to revoke from the app: `POST /oauth/revoke.json` needs the
-  /// client secret, which lives in the relay, and the relay has no revoke
-  /// endpoint in v1. Disconnecting deletes the token from the phone; the rider
-  /// can also remove the authorisation on ridewithgps.com.
+  /// Revokes the authorisation at Ride with GPS through the relay, which
+  /// holds the client secret the call needs. The relay being unreachable
+  /// must not keep the token on the phone: the caller deletes it either way,
+  /// and the rider can also remove the authorisation on ridewithgps.com.
   @override
-  Future<void> revoke(ConnectedAccount account) async {}
+  Future<void> revoke(ConnectedAccount account) async {
+    try {
+      await revokeAt(account);
+    } on Object catch (e) {
+      _log.info('revoke failed; disconnecting locally anyway', e);
+    }
+  }
 }

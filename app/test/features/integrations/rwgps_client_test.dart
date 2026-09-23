@@ -28,7 +28,10 @@ void main() {
     final adapter = FakeApiAdapter(
       (_) => FakeResponse.json(_task(status: 'pending'), status: 202),
     );
-    final client = RwgpsClient(dio: dioWith(adapter), sleep: _noSleep);
+    final client = RwgpsClient(
+      dio: dioWith(adapter, baseUrl: '$testProxyBase/rwgps'),
+      sleep: _noSleep,
+    );
 
     final task = await client.uploadRoute(
       gpxBytes: utf8.encode('<gpx/>'),
@@ -38,7 +41,11 @@ void main() {
 
     final request = adapter.requests.single;
     expect(request.method, 'POST');
-    expect('${request.uri}', 'https://ridewithgps.com/api/v1/routes.json');
+    // Relative to the relay's pass-through, which forwards the same path.
+    expect(
+      '${request.uri}',
+      'https://relay.test/proxy/rwgps/api/v1/routes.json',
+    );
     expect(multipartFileNames(request), <String>['file']);
     expect(multipartFields(request), <String, String>{
       'name': 'Sunday loop',
@@ -71,7 +78,10 @@ void main() {
               ),
       );
     });
-    final client = RwgpsClient(dio: dioWith(adapter), sleep: _noSleep);
+    final client = RwgpsClient(
+      dio: dioWith(adapter, baseUrl: '$testProxyBase/rwgps'),
+      sleep: _noSleep,
+    );
 
     final task = await client.uploadRouteAndWait(
       gpxBytes: utf8.encode('<gpx/>'),
@@ -79,7 +89,7 @@ void main() {
     );
 
     expect(polls, 3);
-    expect(adapter.uris.last.path, '/api/v1/tasks/77.json');
+    expect(adapter.uris.last.path, '/proxy/rwgps/api/v1/tasks/77.json');
     expect(task.isCompleted, isTrue);
     expect(task.firstItem!.itemId, '4242');
     expect(task.firstItem!.itemType, 'route');
@@ -103,7 +113,10 @@ void main() {
         ),
       );
     });
-    final client = RwgpsClient(dio: dioWith(adapter), sleep: _noSleep);
+    final client = RwgpsClient(
+      dio: dioWith(adapter, baseUrl: '$testProxyBase/rwgps'),
+      sleep: _noSleep,
+    );
 
     final e = await integrationFailure(
       () => client.uploadTripAndWait(
@@ -122,7 +135,10 @@ void main() {
         status: options.method == 'POST' ? 202 : 200,
       ),
     );
-    final client = RwgpsClient(dio: dioWith(adapter), sleep: _noSleep);
+    final client = RwgpsClient(
+      dio: dioWith(adapter, baseUrl: '$testProxyBase/rwgps'),
+      sleep: _noSleep,
+    );
 
     final e = await integrationFailure(
       () => client.uploadRouteAndWait(
@@ -145,7 +161,10 @@ void main() {
         status: 202,
       ),
     );
-    final client = RwgpsClient(dio: dioWith(adapter), sleep: _noSleep);
+    final client = RwgpsClient(
+      dio: dioWith(adapter, baseUrl: '$testProxyBase/rwgps'),
+      sleep: _noSleep,
+    );
 
     final task = await client.uploadTripAndWait(
       gpxBytes: utf8.encode('<gpx/>'),
@@ -154,7 +173,7 @@ void main() {
 
     expect(
       '${adapter.uris.single}',
-      'https://ridewithgps.com/api/v1/trips.json',
+      'https://relay.test/proxy/rwgps/api/v1/trips.json',
     );
     expect(task.firstItem!.webUrl, 'https://ridewithgps.com/trips/9');
   });
@@ -176,11 +195,14 @@ void main() {
         },
       }),
     );
-    final client = RwgpsClient(dio: dioWith(adapter), sleep: _noSleep);
+    final client = RwgpsClient(
+      dio: dioWith(adapter, baseUrl: '$testProxyBase/rwgps'),
+      sleep: _noSleep,
+    );
 
     final routes = await client.listRoutes(pageSize: 20);
 
-    expect(adapter.uris.single.path, '/api/v1/routes.json');
+    expect(adapter.uris.single.path, '/proxy/rwgps/api/v1/routes.json');
     expect(adapter.uris.single.queryParameters, <String, String>{
       'page': '1',
       'page_size': '20',
@@ -202,11 +224,14 @@ void main() {
         ],
       }),
     );
-    final client = RwgpsClient(dio: dioWith(adapter), sleep: _noSleep);
+    final client = RwgpsClient(
+      dio: dioWith(adapter, baseUrl: '$testProxyBase/rwgps'),
+      sleep: _noSleep,
+    );
 
     final trips = await client.listTrips();
 
-    expect(adapter.uris.single.path, '/api/v1/trips.json');
+    expect(adapter.uris.single.path, '/proxy/rwgps/api/v1/trips.json');
     expect(trips.single.id, '5');
     expect(trips.single.departedAt, DateTime.utc(2026, 9, 11, 7, 30));
   });
@@ -215,11 +240,14 @@ void main() {
     final adapter = FakeApiAdapter(
       (_) => FakeResponse.text('<gpx version="1.1"></gpx>'),
     );
-    final client = RwgpsClient(dio: dioWith(adapter), sleep: _noSleep);
+    final client = RwgpsClient(
+      dio: dioWith(adapter, baseUrl: '$testProxyBase/rwgps'),
+      sleep: _noSleep,
+    );
 
     final bytes = await client.routeGpx('4242');
 
-    expect(adapter.uris.single.path, '/api/v1/routes/4242.gpx');
+    expect(adapter.uris.single.path, '/proxy/rwgps/api/v1/routes/4242.gpx');
     expect(utf8.decode(bytes), contains('<gpx'));
   });
 
@@ -229,11 +257,14 @@ void main() {
         'user': <String, Object?>{'id': 1, 'name': 'Steffen'},
       }),
     );
-    final client = RwgpsClient(dio: dioWith(adapter), sleep: _noSleep);
+    final client = RwgpsClient(
+      dio: dioWith(adapter, baseUrl: '$testProxyBase/rwgps'),
+      sleep: _noSleep,
+    );
 
     final user = await client.currentUser();
 
-    expect(adapter.uris.single.path, '/api/v1/users/current.json');
+    expect(adapter.uris.single.path, '/proxy/rwgps/api/v1/users/current.json');
     expect(user.id, '1');
     expect(user.name, 'Steffen');
   });
@@ -244,9 +275,32 @@ void main() {
         'errors': <Object?>['Unauthorized'],
       }, status: 401),
     );
-    final client = RwgpsClient(dio: dioWith(adapter), sleep: _noSleep);
+    final client = RwgpsClient(
+      dio: dioWith(adapter, baseUrl: '$testProxyBase/rwgps'),
+      sleep: _noSleep,
+    );
 
     final e = await integrationFailure(client.listRoutes);
     expect(e.failure, IntegrationFailure.notConnected);
+  });
+
+  test('revoke posts to the OAuth revoke path with an empty body', () async {
+    final adapter = FakeApiAdapter(
+      (_) => FakeResponse.json(<String, Object?>{}),
+    );
+    final client = RwgpsClient(
+      dio: dioWith(adapter, baseUrl: '$testProxyBase/rwgps'),
+      sleep: _noSleep,
+    );
+
+    await client.revoke();
+
+    final request = adapter.requests.single;
+    expect(request.method, 'POST');
+    expect(
+      '${request.uri}',
+      'https://relay.test/proxy/rwgps/oauth/revoke.json',
+    );
+    expect(request.data, isNull);
   });
 }

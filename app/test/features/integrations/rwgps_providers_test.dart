@@ -31,7 +31,7 @@ Future<ProviderContainer> _connectedContainer({
 }) async {
   final container = await integrationsContainer(
     config: config,
-    relay: FakeRelayClient(),
+    relay: FakeRelayClient(appUserId: 'user-42'),
     accounts: <IntegrationService, ConnectedAccount>{
       IntegrationService.rwgps: account ?? _connected(),
     },
@@ -120,6 +120,36 @@ void main() {
       expect(container.read(rwgpsConnectorProvider), isNotNull);
     });
 
+    test('revoking posts to the relay\'s revoke path with the stored '
+        'token', () async {
+      final container = await _connectedContainer();
+      final adapter = _intercept(
+        container,
+        (options) => FakeResponse.json(<String, Object?>{}),
+      );
+
+      await container.read(rwgpsConnectorProvider)!.revoke(_connected());
+
+      final request = adapter.requests.single;
+      expect(request.method, 'POST');
+      expect(
+        '${request.uri}',
+        'https://relay.test/proxy/rwgps/oauth/revoke.json',
+      );
+      expect(request.headers['X-Velorki-Token'], 'stored-access');
+      expect(request.headers['Authorization'], 'Bearer user-42');
+      // The relay writes the credentials body; the phone sends none.
+      expect(request.data, isNull);
+    });
+
+    test('a revoke the relay cannot serve still lets the disconnect '
+        'finish', () async {
+      final container = await _connectedContainer();
+      _intercept(container, (options) => throw Exception('connection reset'));
+
+      await container.read(rwgpsConnectorProvider)!.revoke(_connected());
+    });
+
     test('reading the new user carries the token by hand', () async {
       late final FakeApiAdapter adapter;
       final container = await _connectedContainer(
@@ -138,13 +168,16 @@ void main() {
           .readUser('brand-new');
 
       expect(user!.name, 'Steffen');
-      expect(adapter.requests.single.path, contains('/users/current.json'));
-      // The interceptor cannot see a token that is not stored yet, so the
-      // header has to come from the call itself.
+      final request = adapter.requests.single;
       expect(
-        adapter.requests.single.headers['Authorization'],
-        'Bearer brand-new',
+        '${request.uri}',
+        'https://relay.test/proxy/rwgps/api/v1/users/current.json',
       );
+      // The interceptor cannot see a token that is not stored yet, so the
+      // headers have to come from the call itself: the relay's and the
+      // wrapped token.
+      expect(request.headers['X-Velorki-Token'], 'brand-new');
+      expect(request.headers['Authorization'], 'Bearer user-42');
       // The throwaway client is closed again.
       expect(adapter.closes, 1);
     });
@@ -183,7 +216,8 @@ void main() {
       expect(options.sendTimeout, const Duration(minutes: 2));
     });
 
-    test('puts the stored access token on every request', () async {
+    test('goes through the relay\'s pass-through with the wrapped token '
+        'and the relay\'s bearer', () async {
       final container = await _connectedContainer();
       final adapter = _intercept(
         container,
@@ -193,10 +227,13 @@ void main() {
 
       await container.read(rwgpsClientProvider).listRoutes();
 
+      final request = adapter.requests.single;
       expect(
-        adapter.requests.single.headers['Authorization'],
-        'Bearer stored-access',
+        '${request.uri}',
+        'https://relay.test/proxy/rwgps/api/v1/routes.json?page=1&page_size=50',
       );
+      expect(request.headers['X-Velorki-Token'], 'stored-access');
+      expect(request.headers['Authorization'], 'Bearer user-42');
     });
 
     test('an expired token is sent anyway, because nothing can renew '
@@ -215,8 +252,8 @@ void main() {
       await container.read(rwgpsClientProvider).listRoutes();
 
       expect(
-        adapter.requests.single.headers['Authorization'],
-        'Bearer stored-access',
+        adapter.requests.single.headers['X-Velorki-Token'],
+        'stored-access',
       );
     });
 
@@ -234,10 +271,7 @@ void main() {
 
       expect(e.failure, IntegrationFailure.notConnected);
       expect(adapter.requests, hasLength(2));
-      expect(
-        adapter.requests.last.headers['Authorization'],
-        'Bearer stored-access',
-      );
+      expect(adapter.requests.last.headers['X-Velorki-Token'], 'stored-access');
     });
 
     test('an error that is not a 401 is passed through untouched', () async {

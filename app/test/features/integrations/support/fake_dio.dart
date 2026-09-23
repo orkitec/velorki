@@ -6,10 +6,13 @@ import 'package:dio/dio.dart';
 /// One canned answer of [FakeApiAdapter].
 class FakeResponse {
   /// A JSON answer.
-  FakeResponse.json(Object? body, {this.status = 200})
-    : body = jsonEncode(body),
-      bytes = null,
-      contentType = 'application/json';
+  FakeResponse.json(
+    Object? body, {
+    this.status = 200,
+    this.headers = const <String, String>{},
+  }) : body = jsonEncode(body),
+       bytes = null,
+       contentType = 'application/json';
 
   /// A text answer, for the GPX exports.
   FakeResponse.text(
@@ -17,14 +20,16 @@ class FakeResponse {
     this.status = 200,
     this.contentType = 'application/gpx+xml',
   }) : body = text,
-       bytes = Uint8List.fromList(utf8.encode(text));
+       bytes = Uint8List.fromList(utf8.encode(text)),
+       headers = const <String, String>{};
 
   /// A raw error body.
   FakeResponse.raw(
     this.body, {
     this.status = 500,
     this.contentType = 'text/html',
-  }) : bytes = null;
+  }) : bytes = null,
+       headers = const <String, String>{};
 
   /// The body as a string.
   final String body;
@@ -37,6 +42,9 @@ class FakeResponse {
 
   /// The content type header.
   final String contentType;
+
+  /// Further response headers, such as the relay's re-wrapped token.
+  final Map<String, String> headers;
 }
 
 /// Answers dio requests from a handler instead of the network.
@@ -72,6 +80,8 @@ class FakeApiAdapter implements HttpClientAdapter {
     final response = handler(options);
     final headers = <String, List<String>>{
       Headers.contentTypeHeader: <String>[response.contentType],
+      for (final entry in response.headers.entries)
+        entry.key.toLowerCase(): <String>[entry.value],
     };
     if (options.responseType == ResponseType.bytes) {
       return ResponseBody.fromBytes(
@@ -91,8 +101,12 @@ class FakeApiAdapter implements HttpClientAdapter {
   void close({bool force = false}) => closes++;
 }
 
-/// A dio wired to [adapter] and nothing else.
-Dio dioWith(FakeApiAdapter adapter) => Dio()..httpClientAdapter = adapter;
+/// The relay pass-through a test bases a service client at.
+const String testProxyBase = 'https://relay.test/proxy';
+
+/// A dio wired to [adapter] and nothing else, based at [baseUrl].
+Dio dioWith(FakeApiAdapter adapter, {String baseUrl = ''}) =>
+    Dio(BaseOptions(baseUrl: baseUrl))..httpClientAdapter = adapter;
 
 /// The multipart fields of a recorded request, as a map.
 Map<String, String> multipartFields(RequestOptions options) {

@@ -27,11 +27,16 @@ final stravaTokenSourceProvider = Provider<OAuthTokenSource>(
   ),
 );
 
-/// The dio Strava is talked to over: bearer token, refresh and one retry.
+/// The dio Strava is talked to over, through the relay's pass-through:
+/// wrapped token, refresh and one retry.
 final stravaDioProvider = Provider<Dio>((ref) {
+  final relay = ref.watch(relayClientProvider);
   final dio = Dio(
     velorkiBaseOptions(
       BaseOptions(
+        // Empty in a build without a relay, where Strava is hidden anyway.
+        baseUrl:
+            relay?.proxyBase(IntegrationService.strava.id).toString() ?? '',
         connectTimeout: const Duration(seconds: 20),
         receiveTimeout: const Duration(seconds: 60),
         sendTimeout: const Duration(minutes: 2),
@@ -43,6 +48,7 @@ final stravaDioProvider = Provider<Dio>((ref) {
     OAuthTokenInterceptor(
       tokens: ref.watch(stravaTokenSourceProvider),
       dio: () => dio,
+      relayHeaders: () => relay?.proxyHeaders ?? const <String, String>{},
     ),
   );
   ref.onDispose(dio.close);
@@ -80,9 +86,8 @@ final stravaConnectorProvider = Provider<StravaConnector?>((ref) {
     // authorise URL and takes it over by itself, so the web flow is the
     // app-to-app flow there.
     preferAppToApp: defaultTargetPlatform == TargetPlatform.iOS,
-    deauthorize: (account) => ref
-        .read(stravaClientProvider)
-        .deauthorize(accessToken: account.accessToken),
+    // The interceptor puts the account's token on, as on any other call.
+    deauthorize: (account) => ref.read(stravaClientProvider).deauthorize(),
   );
 });
 

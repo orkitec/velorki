@@ -14,7 +14,7 @@ Everything you make and everything you download:
 - your settings, including which units and which voice you chose, and the weight, year of birth, sex, maximum heart rate, bike weight, bike type and threshold power you may enter under Settings → Rider, which are settings on the phone and are never sent anywhere,
 - downloaded offline map areas,
 - downloaded routing tiles and the place-search indexes that come with them,
-- the access tokens for Strava and Ride with GPS if you connect them, which go into the phone's secure storage.
+- the access tokens for Strava and Ride with GPS if you connect them, which go into the phone's secure storage in a form only the Velorki relay can open.
 
 None of it is uploaded anywhere unless you ask for it.
 
@@ -50,7 +50,7 @@ Only with your consent, and only what you allowed: your text, optionally a posit
 
 Nothing goes to either until you connect the account and then ask for something, an upload or an import.
 
-Connecting hands a one-time code to the Velorki relay, which turns it into an access token by adding our application secret, and gives the token to your phone. We do not keep the token. After that your phone talks to Strava and to Ride with GPS **directly**; your rides and routes do not pass through our servers.
+Connecting hands a one-time code to the Velorki relay, which turns it into an access token by adding our application secret, and gives the token to your phone wrapped, so that only the relay can open it. We do not keep the token. After that every upload and import passes through the relay: it checks your subscription, counts the transfer, opens the token for that one request and forwards it to Strava or Ride with GPS. It keeps neither the file nor the token, and cannot use the token on its own.
 
 ### When you make a share link
 

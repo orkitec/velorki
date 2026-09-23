@@ -348,7 +348,10 @@ paths:
       summary: Forward a POST to Ride with GPS.
       description: |
         Allowed: `/api/v1/routes.json` and `/api/v1/trips.json` (multipart,
-        streamed, at most 25 MB).
+        streamed, at most 25 MB), and `/oauth/revoke.json`, where the relay
+        writes the body itself from its client id, client secret and the
+        unwrapped token and ignores the request's; 503 `unavailable` when
+        Ride with GPS is not configured.
       requestBody:
         required: false
         content:

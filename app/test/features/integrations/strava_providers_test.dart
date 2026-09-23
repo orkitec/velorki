@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/core/http/user_agent.dart';
 import 'package:velorki/features/integrations/common/data/connected_accounts_repository.dart';
+import 'package:velorki/features/integrations/common/data/dio_errors.dart';
 import 'package:velorki/features/integrations/common/data/token_bucket.dart';
 import 'package:velorki/features/integrations/common/domain/connected_account.dart';
 import 'package:velorki/features/integrations/common/domain/integration_exception.dart';
@@ -43,7 +44,9 @@ Future<ProviderContainer> _connectedContainer({
 }) async {
   final container = await integrationsContainer(
     config: config,
-    relay: relayClient ?? FakeRelayClient(refreshedStravaTokens: _fresh()),
+    relay:
+        relayClient ??
+        FakeRelayClient(refreshedStravaTokens: _fresh(), appUserId: 'user-42'),
     accounts:
         accounts ??
         <IntegrationService, ConnectedAccount>{
@@ -159,7 +162,8 @@ void main() {
       expect(ios.read(stravaConnectorProvider)!.preferAppToApp, isTrue);
     });
 
-    test('revoking sends the account\'s token to Strava', () async {
+    test('revoking sends the account\'s token to Strava, through the '
+        'relay', () async {
       final container = await _connectedContainer();
       final adapter = _intercept(
         container,
@@ -168,11 +172,13 @@ void main() {
 
       await container.read(stravaConnectorProvider)!.revoke(_connected());
 
-      expect(adapter.requests.single.path, contains('/oauth/deauthorize'));
+      final request = adapter.requests.single;
       expect(
-        adapter.requests.single.queryParameters['access_token'],
-        'stored-access',
+        '${request.uri}',
+        'https://relay.test/proxy/strava/oauth/deauthorize',
       );
+      expect(request.headers['X-Velorki-Token'], 'stored-access');
+      expect(request.uri.queryParameters, isEmpty);
     });
   });
 
@@ -188,7 +194,8 @@ void main() {
       expect(options.sendTimeout, const Duration(minutes: 2));
     });
 
-    test('puts the stored access token on every request', () async {
+    test('goes through the relay\'s pass-through with the wrapped token '
+        'and the relay\'s bearer', () async {
       final container = await _connectedContainer();
       final adapter = _intercept(
         container,
@@ -197,10 +204,101 @@ void main() {
 
       await container.read(stravaClientProvider).listRoutes(athleteId: '42');
 
+      final request = adapter.requests.single;
       expect(
-        adapter.requests.single.headers['Authorization'],
-        'Bearer stored-access',
+        '${request.uri}',
+        'https://relay.test/proxy/strava/api/v3/athletes/42/routes'
+            '?page=1&per_page=30',
       );
+      expect(request.headers['X-Velorki-Token'], 'stored-access');
+      expect(request.headers['Authorization'], 'Bearer user-42');
+      expect(request.headers['X-Velorki-Client'], isNotEmpty);
+    });
+
+    test('a re-wrapped token from the relay replaces the stored one and is '
+        'published', () async {
+      final container = await _connectedContainer();
+      _intercept(
+        container,
+        (options) => FakeResponse.json(
+          const <Object?>[],
+          headers: <String, String>{'X-Velorki-Token-Rewrapped': 'v1.k2.new'},
+        ),
+      );
+
+      await container.read(stravaClientProvider).listRoutes(athleteId: '42');
+
+      final stored = await container
+          .read(connectedAccountsRepositoryProvider)
+          .read(IntegrationService.strava);
+      expect(stored!.accessToken, 'v1.k2.new');
+      expect(stored.refreshToken, 'stored-refresh');
+      expect(
+        container
+            .read(connectedAccountProvider(IntegrationService.strava))!
+            .accessToken,
+        'v1.k2.new',
+      );
+    });
+
+    test('a lapsed Plus is the relay\'s 401, shown as such and not '
+        'retried', () async {
+      final relayClient = FakeRelayClient(
+        refreshedStravaTokens: _fresh(),
+        appUserId: 'user-42',
+      );
+      final container = await _connectedContainer(relayClient: relayClient);
+      final adapter = _intercept(
+        container,
+        (options) => FakeResponse.json(<String, Object?>{
+          'error': <String, Object?>{
+            'code': 'not_entitled',
+            'message': 'An active Velorki subscription is required.',
+          },
+        }, status: 401),
+      );
+
+      final e = await integrationFailure(
+        () => container.read(stravaClientProvider).listRoutes(athleteId: '42'),
+      );
+
+      expect(e.failure, IntegrationFailure.relayUnavailable);
+      expect(e.message, relayPlusNeededMessage);
+      expect(adapter.requests, hasLength(1));
+      expect(relayClient.refreshedWith, isEmpty);
+    });
+
+    test('a relay out of reach is named as such, apart from Strava\'s own '
+        'errors', () async {
+      final container = await _connectedContainer();
+      _intercept(container, (options) => throw Exception('connection reset'));
+
+      final e = await integrationFailure(
+        () => container.read(stravaClientProvider).listRoutes(athleteId: '42'),
+      );
+
+      expect(e.failure, IntegrationFailure.unreachable);
+      expect(e.message, relayUnreachableMessage);
+    });
+
+    test('a token the relay cannot open means connecting again', () async {
+      final container = await _connectedContainer();
+      _intercept(
+        container,
+        (options) => FakeResponse.json(<String, Object?>{
+          'error': <String, Object?>{
+            'code': 'invalid_request',
+            'message': 'The service token is not valid.',
+          },
+        }, status: 400),
+      );
+
+      final e = await integrationFailure(
+        () => container.read(stravaClientProvider).listRoutes(athleteId: '42'),
+      );
+
+      expect(e.failure, IntegrationFailure.notConnected);
+      expect(e.message, contains('Connect again'));
     });
 
     test('a 401 is refreshed through the relay and retried', () async {
@@ -220,8 +318,8 @@ void main() {
 
       expect(relayClient.refreshedWith, <String>['stored-refresh']);
       expect(
-        adapter.requests.last.headers['Authorization'],
-        'Bearer refreshed-access',
+        adapter.requests.last.headers['X-Velorki-Token'],
+        'refreshed-access',
       );
     });
 

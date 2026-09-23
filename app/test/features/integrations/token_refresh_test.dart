@@ -28,6 +28,12 @@ relay.StravaTokens _freshTokens() => relay.StravaTokens(
   expiresAt: _now.add(const Duration(hours: 6)).millisecondsSinceEpoch ~/ 1000,
 );
 
+/// What the relay client would put on: its bearer and the client id.
+Map<String, String> _relayHeaders() => const <String, String>{
+  'Authorization': 'Bearer user-1',
+  'X-Velorki-Client': 'test/1',
+};
+
 void main() {
   late InMemorySecureKeyValueStore store;
   late ConnectedAccountsRepository repository;
@@ -107,7 +113,8 @@ void main() {
   });
 
   group('the dio interceptor', () {
-    test('puts the bearer token on the request', () async {
+    test('puts the wrapped token and the relay\'s headers on the '
+        'request', () async {
       await repository.save(
         _account(expiresAt: _now.add(const Duration(hours: 1))),
       );
@@ -116,15 +123,80 @@ void main() {
       );
       final dio = dioWith(adapter);
       dio.interceptors.add(
-        OAuthTokenInterceptor(tokens: source(), dio: () => dio),
+        OAuthTokenInterceptor(
+          tokens: source(),
+          dio: () => dio,
+          relayHeaders: _relayHeaders,
+        ),
       );
 
       await dio.get<dynamic>('https://www.strava.com/api/v3/athlete');
 
-      expect(
-        adapter.requests.single.headers['Authorization'],
-        'Bearer old-access',
+      final headers = adapter.requests.single.headers;
+      expect(headers['X-Velorki-Token'], 'old-access');
+      // The relay's bearer is the app user id, never the service token.
+      expect(headers['Authorization'], 'Bearer user-1');
+      expect(headers['X-Velorki-Client'], 'test/1');
+    });
+
+    test('a re-wrapped token in the answer replaces the stored one', () async {
+      await repository.save(
+        _account(expiresAt: _now.add(const Duration(hours: 1))),
       );
+      final adapter = FakeApiAdapter(
+        (options) => FakeResponse.json(
+          <String, Object?>{'ok': true},
+          headers: <String, String>{'X-Velorki-Token-Rewrapped': 'v1.k2.new'},
+        ),
+      );
+      final dio = dioWith(adapter);
+      dio.interceptors.add(
+        OAuthTokenInterceptor(
+          tokens: source(),
+          dio: () => dio,
+          relayHeaders: _relayHeaders,
+        ),
+      );
+
+      await dio.get<dynamic>('https://www.strava.com/api/v3/athlete');
+
+      final stored = await repository.read(IntegrationService.strava);
+      expect(stored!.accessToken, 'v1.k2.new');
+      // Only the token changes; the rest of the account is kept.
+      expect(stored.refreshToken, 'old-refresh');
+      expect(stored.athleteId, '42');
+    });
+
+    test('a 401 in the relay\'s own words is not retried', () async {
+      await repository.save(
+        _account(expiresAt: _now.add(const Duration(hours: 1))),
+      );
+      var calls = 0;
+      final adapter = FakeApiAdapter((options) {
+        calls++;
+        return FakeResponse.json(<String, Object?>{
+          'error': <String, Object?>{
+            'code': 'not_entitled',
+            'message': 'An active Velorki subscription is required.',
+          },
+        }, status: 401);
+      });
+      final dio = dioWith(adapter);
+      dio.interceptors.add(
+        OAuthTokenInterceptor(
+          tokens: source(),
+          dio: () => dio,
+          relayHeaders: _relayHeaders,
+        ),
+      );
+
+      await expectLater(
+        dio.get<dynamic>('https://www.strava.com/api/v3/athlete'),
+        throwsA(isA<DioException>()),
+      );
+      // Plus lapsed: a fresh token would get the same answer.
+      expect(calls, 1);
+      expect(relayClient.refreshedWith, isEmpty);
     });
 
     test(
@@ -138,14 +210,18 @@ void main() {
         );
         final dio = dioWith(adapter);
         dio.interceptors.add(
-          OAuthTokenInterceptor(tokens: source(), dio: () => dio),
+          OAuthTokenInterceptor(
+            tokens: source(),
+            dio: () => dio,
+            relayHeaders: _relayHeaders,
+          ),
         );
 
         await dio.get<dynamic>('https://www.strava.com/api/v3/athlete');
 
         expect(
-          adapter.requests.single.headers['Authorization'],
-          'Bearer new-access',
+          adapter.requests.single.headers['X-Velorki-Token'],
+          'new-access',
         );
         expect(relayClient.refreshedWith, hasLength(1));
       },
@@ -166,7 +242,11 @@ void main() {
       });
       final dio = dioWith(adapter);
       dio.interceptors.add(
-        OAuthTokenInterceptor(tokens: source(), dio: () => dio),
+        OAuthTokenInterceptor(
+          tokens: source(),
+          dio: () => dio,
+          relayHeaders: _relayHeaders,
+        ),
       );
 
       final response = await dio.get<dynamic>(
@@ -175,10 +255,7 @@ void main() {
 
       expect(calls, 2);
       expect((response.data as Map<String, Object?>)['id'], 42);
-      expect(
-        adapter.requests.last.headers['Authorization'],
-        'Bearer new-access',
-      );
+      expect(adapter.requests.last.headers['X-Velorki-Token'], 'new-access');
     });
 
     test('a second 401 is not retried again', () async {
@@ -192,7 +269,11 @@ void main() {
       });
       final dio = dioWith(adapter);
       dio.interceptors.add(
-        OAuthTokenInterceptor(tokens: source(), dio: () => dio),
+        OAuthTokenInterceptor(
+          tokens: source(),
+          dio: () => dio,
+          relayHeaders: _relayHeaders,
+        ),
       );
 
       await expectLater(
@@ -210,7 +291,11 @@ void main() {
         );
         final dio = dioWith(adapter);
         dio.interceptors.add(
-          OAuthTokenInterceptor(tokens: source(), dio: () => dio),
+          OAuthTokenInterceptor(
+            tokens: source(),
+            dio: () => dio,
+            relayHeaders: _relayHeaders,
+          ),
         );
 
         await expectLater(

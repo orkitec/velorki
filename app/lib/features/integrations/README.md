@@ -1,10 +1,15 @@
 # Integrations: Strava and Ride with GPS
 
-Everything in this folder talks to a partner service **directly from the
-phone**. The relay (`web/`) is involved exactly twice: it exchanges an OAuth
-code for a token and it refreshes a Strava token, because both need a client
-secret that an open-source app cannot hold. No ride data ever passes through
-our servers.
+Everything in this folder talks to a partner service **through the relay**
+(`web/`), which holds two things an open-source app cannot: the OAuth client
+secrets, and the key the service tokens are wrapped with. The relay exchanges
+an OAuth code for tokens and hands them to the phone **wrapped** (AES-GCM
+under its own key), the phone stores that form in secure storage, and every
+service call goes to `<relay>/proxy/<service>/<upstream path>` with the
+wrapped token in `X-Velorki-Token` and the relay's own bearer. The relay
+checks the subscription, counts the call, opens the token in memory, forwards
+the call with `Authorization: Bearer` and streams the answer back. It keeps
+neither the file nor the token, and the phone never holds a token in clear.
 
 ```
 features/integrations/
@@ -22,6 +27,31 @@ rider sees a placeholder card and disabled buttons.
 An empty `VELORKI_API_URL`, or an empty `VELORKI_STRAVA_CLIENT_ID` /
 `VELORKI_RWGPS_CLIENT_ID`, hides the service entirely — that is the pure-local
 fork build.
+
+## Through the relay
+
+* `StravaClient` and `RwgpsClient` use paths relative to their dio, which
+  `stravaDioProvider` / `rwgpsDioProvider` base at
+  `RelayClient.proxyBase(service)`. The relay forwards the same path to
+  `www.strava.com` or `ridewithgps.com`; its allowlist
+  (`web/src/server/passthrough.ts`) is exactly the calls made here, so a new
+  call needs both sides.
+* `OAuthTokenInterceptor` puts `RelayClient.proxyHeaders` (client id, bearer
+  app user id) and `X-Velorki-Token` (the stored, wrapped access token) on
+  every request. A `X-Velorki-Token-Rewrapped` answer header, sent when the
+  relay is retiring the key the token was wrapped under, replaces the stored
+  token through `OAuthTokenSource.replaceAccessToken`.
+* Errors: an answer in the relay's own shape (`{"error": {"code": …}}`) is
+  the relay speaking — `not_entitled` becomes the Plus message
+  (`relayPlusNeededMessage`), `invalid_request` "connect again",
+  `upstream_error` "<service> could not be reached"; no answer at all is
+  "Velorki's server could not be reached" (`relayUnreachableMessage`),
+  because the relay, not the service, is what the phone dials. Anything else
+  is the service's answer, passed back unchanged, and read as before. A 401
+  in the relay's words is never retried; a 401 in the service's words is
+  retried once after a forced refresh.
+* Strava's deauthorize carries the token in the header like every other call;
+  the relay drops an `access_token` query parameter anyway.
 
 ## Where the authorisation comes back from, and why there are two ways
 
@@ -76,8 +106,8 @@ Documentation: <https://developers.strava.com/docs/reference/>,
 |---|---|
 | Authorise (web) | `GET https://www.strava.com/oauth/mobile/authorize?client_id=…&redirect_uri=velorki://oauth/strava&response_type=code&approval_prompt=auto&scope=read,activity:write,activity:read` |
 | Authorise (app) | `strava://oauth/mobile/authorize?…` — same query |
-| Token exchange | relay `POST /oauth/strava/token` `{code, redirect_uri}` |
-| Token refresh | relay `POST /oauth/strava/refresh` `{refresh_token}` |
+| Token exchange | relay `POST /oauth/strava/token` `{code, redirect_uri}` → tokens wrapped |
+| Token refresh | relay `POST /oauth/strava/refresh` `{refresh_token}` (the wrapped one) |
 | Upload a ride | `POST https://www.strava.com/api/v3/uploads`, `multipart/form-data`: `file`, `data_type` (`gpx`\|`fit`), `name`, `description`, `sport_type` (`Ride`), `external_id` |
 | Poll an upload | `GET /api/v3/uploads/{uploadId}` → `{id, id_str, external_id, error, status, activity_id}` |
 | List routes | `GET /api/v3/athletes/{id}/routes?page=&per_page=` |
@@ -137,6 +167,7 @@ therefore does **not** send the API key. There is no API version header.
 | List routes | `GET /api/v1/routes.json?page=&page_size=` → `{routes: [...], meta: {pagination}}` |
 | List trips | `GET /api/v1/trips.json?page=&page_size=` |
 | Export a route | `GET /api/v1/routes/{id}.gpx` (GPX 1.1 track, full resolution, no waypoints) |
+| Revoke | `POST /oauth/revoke.json` through the relay, which adds the client credentials |
 
 Notes:
 
@@ -150,9 +181,11 @@ Notes:
   would otherwise answer `time_data_missing`.
 * **Visibility** always follows the account's default privacy setting and
   cannot be set through these endpoints.
-* **Revoking** needs `POST /oauth/revoke.json` with the client secret, so the
-  app cannot do it; Disconnect deletes the token from the phone and the rider
-  can remove the authorisation on ridewithgps.com.
+* **Revoking** is `POST /oauth/revoke.json` with `client_id`,
+  `client_secret` and `token` as JSON, which the relay writes for the app's
+  `POST /proxy/rwgps/oauth/revoke.json` (`RwgpsClient.revoke`, called on
+  Disconnect). The relay being unreachable does not keep the token on the
+  phone; the rider can also remove the authorisation on ridewithgps.com.
 * Page size is between 20 and 200; the app asks for 50.
 
 ## Testing the connections locally
@@ -169,11 +202,15 @@ store and no deployed relay.
 
    ```sh
    REVENUECAT_MODE=stub
+   TOKEN_WRAP_KEYS=dev:<32 random bytes, base64>
    STRAVA_CLIENT_ID=…
    STRAVA_CLIENT_SECRET=…
    RWGPS_CLIENT_ID=…
    RWGPS_CLIENT_SECRET=…
    ```
+
+   (`node -e 'console.log(require("node:crypto").randomBytes(32).toString("base64"))'`
+   makes a key; without one the token routes and the pass-through answer 503.)
 
    then `npm run dev` from `web/`. `next dev` sets `DEV_HOSTS=1` by itself,
    and that is needed but not enough: the relay answers a request by the

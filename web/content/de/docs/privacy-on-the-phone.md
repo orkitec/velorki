@@ -14,7 +14,7 @@ Alles, was du machst, und alles, was du herunterlädst:
 - deine Einstellungen, auch die gewählten Einheiten und die gewählte Stimme sowie Gewicht, Geburtsjahr, Geschlecht, Maximalpuls, Gewicht des Rads, Radtyp und Schwellenleistung, die du unter Einstellungen → Fahrer eintragen kannst; sie sind Einstellungen auf dem Handy und werden nirgendwohin gesendet,
 - heruntergeladene Offline-Kartengebiete,
 - heruntergeladene Routing-Kacheln und die Ortssuch-Indizes, die mitkommen,
-- die Zugriffstoken für Strava und Ride with GPS, falls du sie verbindest, die in den sicheren Speicher des Handys wandern.
+- die Zugriffstoken für Strava und Ride with GPS, falls du sie verbindest, die in den sicheren Speicher des Handys wandern, in einer Form, die nur der Velorki-Relay öffnen kann.
 
 Nichts davon geht irgendwohin hoch, außer du forderst es an.
 
@@ -50,7 +50,7 @@ Nur mit deiner Zustimmung und nur, was du erlaubt hast: dein Text, auf Wunsch ei
 
 An keinen der beiden geht etwas, bevor du das Konto verbunden und dann etwas angefordert hast, einen Upload oder einen Import.
 
-Beim Verbinden geht ein Einmalcode an den Velorki-Relay, der ihn mit unserem Anwendungsgeheimnis in einen Zugriffstoken tauscht und den Token deinem Handy gibt. Wir behalten den Token nicht. Danach spricht dein Handy **direkt** mit Strava und mit Ride with GPS; deine Fahrten und Routen laufen über keinen unserer Server.
+Beim Verbinden geht ein Einmalcode an den Velorki-Relay, der ihn mit unserem Anwendungsgeheimnis in einen Zugriffstoken tauscht und den Token deinem Handy verschlüsselt gibt, sodass nur der Relay ihn öffnen kann. Wir behalten den Token nicht. Danach läuft jeder Upload und jeder Import über den Relay: Er prüft dein Abo, zählt die Übertragung, öffnet den Token für diese eine Anfrage und leitet sie an Strava oder Ride with GPS weiter. Er behält weder die Datei noch den Token und kann den Token allein nicht verwenden.
 
 ### Wenn du einen Teilen-Link machst
 

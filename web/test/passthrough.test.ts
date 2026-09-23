@@ -57,6 +57,7 @@ describe('upstreamPath and the allowlist', () => {
       ['rwgps', 'GET', '/api/v1/routes.json', 'list_routes'],
       ['rwgps', 'GET', '/api/v1/trips.json', 'list_trips'],
       ['rwgps', 'GET', '/api/v1/routes/42.gpx', 'route_gpx'],
+      ['rwgps', 'POST', '/oauth/revoke.json', 'revoke'],
     ];
     for (const [service, method, path, operation] of yes) {
       expect(matchUpstream(service, method, path)?.operation, `${method} ${path}`).toBe(operation);
@@ -69,7 +70,8 @@ describe('upstreamPath and the allowlist', () => {
       ['strava', 'GET', '/api/v3/routes/1/export_gpx/../../athlete'],
       ['strava', 'POST', '/oauth/token'],
       ['rwgps', 'GET', '/api/v1/users/1.json'],
-      ['rwgps', 'POST', '/oauth/revoke.json'],
+      ['rwgps', 'GET', '/oauth/revoke.json'],
+      ['strava', 'POST', '/oauth/revoke.json'],
       ['rwgps', 'GET', '/api/v1/routes/42.json'],
     ];
     for (const [service, method, path] of no) {
@@ -115,7 +117,7 @@ describe('/proxy/<service>/*', () => {
         [stravaGet, '/proxy/strava/api/v3/athlete'],
         [stravaPost, '/proxy/strava/api/v3/uploads/1'],
         [rwgpsGet, '/proxy/rwgps/api/v1/routes/1.json'],
-        [rwgpsPost, '/proxy/rwgps/oauth/revoke.json'],
+        [rwgpsPost, '/proxy/rwgps/oauth/token.json'],
       ] as const) {
         const res = await handler(
           new Request(`${API}${path}`, {
@@ -172,6 +174,51 @@ describe('/proxy/<service>/*', () => {
       expect(res.headers.get('x-velorki-token-rewrapped')).toBeNull();
       expect(res.headers.get('x-request-id')).toBe('r-1');
       expect(res.headers.get('cache-control')).toBe('no-store');
+    });
+  });
+
+  it('revokes a Ride with GPS token with the client secret the relay holds', async () => {
+    const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const env = { RWGPS_CLIENT_ID: 'rw-1', RWGPS_CLIENT_SECRET: 'rw-secret' };
+    await withEnv(env, async (ctx) => {
+      const res = await rwgpsPost(
+        new Request(`${API}/proxy/rwgps/oauth/revoke.json`, {
+          method: 'POST',
+          headers: {
+            ...AUTH,
+            'x-velorki-token': wrapToken(keys, 'rwgps', 'access', 'rw-clear'),
+            'content-type': 'text/plain',
+          },
+          body: 'ignored',
+        }),
+      );
+      expect(res.status).toBe(200);
+      const { url, init } = fetchCall(fetchMock);
+      expect(url).toBe('https://ridewithgps.com/oauth/revoke.json');
+      const sent = new Headers(init.headers);
+      // The secret and the clear token go in the body, as the service
+      // documents; no bearer, and nothing of the phone's request.
+      expect(sent.get('content-type')).toBe('application/json');
+      expect(sent.get('authorization')).toBeNull();
+      expect(JSON.parse(init.body as string)).toEqual({
+        client_id: 'rw-1',
+        client_secret: 'rw-secret',
+        token: 'rw-clear',
+      });
+      expect(await proxyUsage(ctx.counters, 'rwgps', 'revoke', { userId: 'user-42' })).toBe(1);
+    });
+    // Without the credentials the call is a 503, and nothing goes out.
+    fetchMock.mockClear();
+    await withEnv({}, async () => {
+      const res = await rwgpsPost(
+        new Request(`${API}/proxy/rwgps/oauth/revoke.json`, {
+          method: 'POST',
+          headers: { ...AUTH, 'x-velorki-token': wrapToken(keys, 'rwgps', 'access', 'rw') },
+        }),
+      );
+      expect(res.status).toBe(503);
+      expect(fetchMock).not.toHaveBeenCalled();
     });
   });
 

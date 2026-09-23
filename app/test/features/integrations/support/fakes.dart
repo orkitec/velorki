@@ -87,6 +87,7 @@ class FakeRelayClient extends RelayClient {
     this.planEvents = const <PlanEvent>[],
     this.planFailure,
     this.shareLink,
+    super.appUserId,
   }) : super('https://relay.test');
 
   /// What [exchangeStravaCode] answers.

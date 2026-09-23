@@ -52,7 +52,7 @@ Host separation is strict and enforced before any handler runs, in
 | `GET`/`HEAD` `/health` | Liveness, build version, BRouter reachability, LLM configuration. No auth. |
 | `POST /oauth/strava/token` · `/refresh` | Adds the Strava client secret to the token exchange and passes Strava's answer through with the tokens wrapped (below). `/refresh` takes the wrapped refresh token. |
 | `POST /oauth/rwgps/token` | Same for Ride with GPS. `/oauth/rwgps/refresh` answers 501: RwGPS tokens do not expire. |
-| `GET`/`POST` `/proxy/strava/*` · `/proxy/rwgps/*` | Pass-through to the service: the upstream path follows the prefix, the wrapped token comes in `X-Velorki-Token`, the body streams both ways. Only the calls the app makes (`src/server/passthrough.ts`); everything else is 404. |
+| `GET`/`POST` `/proxy/strava/*` · `/proxy/rwgps/*` | Pass-through to the service: the upstream path follows the prefix, the wrapped token comes in `X-Velorki-Token`, the body streams both ways. Only the calls the app makes (`src/server/passthrough.ts`); everything else is 404. `POST /proxy/rwgps/oauth/revoke.json` is the one call the relay writes the body for, from its client secret and the unwrapped token. |
 | `POST /ai/plan` | Server-Sent Events. `step=plan` turns a rider's sentence into structured routing parameters via one forced tool call; `step=describe` streams a short prose description of a computed route. |
 | `POST /share` | Stores a GPX plus a summary and returns a public link on the site host. |
 | `GET /s/<id>` · `/s/<id>.gpx` | The public share page and the raw GPX, on `velorki.com`. No auth. |

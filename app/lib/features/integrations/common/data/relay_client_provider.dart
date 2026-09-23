@@ -21,7 +21,9 @@ String velorkiClientId({required String version}) {
 ///
 /// An empty `VELORKI_API_URL` is the pure-local fork build: no AI, no Strava,
 /// no Ride with GPS, no share links. Every caller treats `null` as "the
-/// integrations do not exist in this build" rather than as an error.
+/// integrations do not exist in this build" rather than as an error. The
+/// service clients do not call it, but they are based at its
+/// [RelayClient.proxyBase] and carry its [RelayClient.proxyHeaders].
 final relayClientProvider = Provider<RelayClient?>((ref) {
   final config = ref.watch(effectiveConfigProvider);
   if (!config.hasApi) return null;

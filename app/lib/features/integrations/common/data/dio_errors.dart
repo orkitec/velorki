@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:velorki_api/velorki_api.dart' show RelayError, RelayErrorCode;
 
 import '../domain/integration_exception.dart';
 
@@ -10,10 +11,24 @@ typedef Sleeper = Future<void> Function(Duration delay);
 /// The production [Sleeper].
 Future<void> realSleep(Duration delay) => Future<void>.delayed(delay);
 
+/// What the rider reads when the relay itself cannot be reached.
+const String relayUnreachableMessage =
+    "Velorki's server could not be reached. Check the connection and try "
+    'again.';
+
+/// What the rider reads when the relay answered that Plus has lapsed.
+const String relayPlusNeededMessage =
+    'Velorki Plus is needed to use this connection.';
+
 /// Turns whatever dio threw into an [IntegrationException] fit to show.
 ///
-/// A rejected request that already carries one — the token interceptor
-/// rejects with the "not connected" case — is passed straight through.
+/// Every call goes through the relay, so there are two speakers to tell
+/// apart: an answer in the relay's own error shape is the relay refusing or
+/// failing to forward, and anything else is the service's answer, passed
+/// back by the relay unchanged. No answer at all means the relay is out of
+/// reach, not the service. A rejected request that already carries an
+/// [IntegrationException] — the token interceptor rejects with the "not
+/// connected" case — is passed straight through.
 IntegrationException integrationExceptionFromDio(
   DioException e, {
   required String service,
@@ -25,9 +40,13 @@ IntegrationException integrationExceptionFromDio(
   if (status == null) {
     return IntegrationException(
       IntegrationFailure.unreachable,
-      '$service could not be reached. Check the connection and try again.',
+      relayUnreachableMessage,
       cause: e,
     );
+  }
+  final relayError = relayErrorOf(e.response?.data);
+  if (relayError != null) {
+    return _fromRelay(relayError, e, service: service);
   }
   final detail = describeServiceError(e.response?.data);
   return switch (status) {
@@ -51,6 +70,81 @@ IntegrationException integrationExceptionFromDio(
       cause: e,
     ),
   };
+}
+
+/// The relay's own failure, by its code.
+IntegrationException _fromRelay(
+  RelayError error,
+  DioException e, {
+  required String service,
+}) => switch (error.code) {
+  RelayErrorCode.notEntitled => IntegrationException(
+    IntegrationFailure.relayUnavailable,
+    relayPlusNeededMessage,
+    cause: e,
+  ),
+  // The stored token did not open: wrapped under a key the relay no longer
+  // has, or written before tokens were wrapped at all.
+  RelayErrorCode.invalidRequest => IntegrationException(
+    IntegrationFailure.notConnected,
+    'The $service connection is no longer valid. Connect again in '
+    'Settings → Connections.',
+    cause: e,
+  ),
+  RelayErrorCode.rateLimited => IntegrationException(
+    IntegrationFailure.rateLimited,
+    error.message,
+    retryAfter:
+        _retryAfter(e.response) ??
+        (error.retryAfterS == null
+            ? null
+            : Duration(seconds: error.retryAfterS!)),
+    cause: e,
+  ),
+  // The relay is up but could not reach the service.
+  RelayErrorCode.upstreamError => IntegrationException(
+    IntegrationFailure.unreachable,
+    '$service could not be reached. Check the connection and try again.',
+    cause: e,
+  ),
+  RelayErrorCode.unavailable => IntegrationException(
+    IntegrationFailure.relayUnavailable,
+    "Velorki's server cannot do this right now. Try again later.",
+    cause: e,
+  ),
+  _ => IntegrationException(
+    IntegrationFailure.serviceError,
+    error.message,
+    cause: e,
+  ),
+};
+
+/// The relay's uniform error, when [body] is one; `null` for anything a
+/// service answered.
+///
+/// Strict on purpose: only `{"error": {"code": "...", ...}}` counts. Strava
+/// answers `{"message", "errors"}` and Ride with GPS `{"errors": [...]}`, and
+/// an OAuth-style `{"error": "invalid_token"}` from either must stay theirs.
+RelayError? relayErrorOf(Object? body) {
+  Object? decoded = body;
+  if (decoded is List<int>) {
+    try {
+      decoded = jsonDecode(utf8.decode(decoded));
+    } on Object {
+      return null;
+    }
+  }
+  if (decoded is String) {
+    try {
+      decoded = jsonDecode(decoded);
+    } on FormatException {
+      return null;
+    }
+  }
+  if (decoded is! Map) return null;
+  final inner = decoded['error'];
+  if (inner is! Map || inner['code'] is! String) return null;
+  return RelayError.fromJson(inner.cast<String, Object?>());
 }
 
 /// Reads a human-readable message out of a service's error body.

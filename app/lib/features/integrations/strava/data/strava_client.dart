@@ -10,12 +10,15 @@ import '../domain/strava_models.dart';
 
 final Logger _log = Logger('StravaClient');
 
-/// The six Strava endpoints Velorki uses.
+/// The Strava endpoints Velorki uses.
 ///
 /// Written by hand rather than taken from `strava_client`, which expects the
-/// client secret to live inside the app; here the secret stays in the relay
-/// and this class only ever carries the athlete's own bearer token, put on by
-/// [OAuthTokenInterceptor].
+/// client secret to live inside the app. Every path here is relative: [dio]
+/// is based at the relay's pass-through for Strava, which checks the
+/// subscription, opens the wrapped token `OAuthTokenInterceptor` put on the
+/// request and forwards the call to `www.strava.com` with the same path.
+/// The relay's allowlist is exactly these calls, so a new one here needs its
+/// counterpart in `web/src/server/passthrough.ts`.
 ///
 /// Documentation: <https://developers.strava.com/docs/reference/> and
 /// <https://developers.strava.com/docs/uploads/>.
@@ -31,12 +34,12 @@ class StravaClient {
     TokenBucket? readBucket,
   }) : _bucket = readBucket;
 
-  /// Strava's API root. Moves to `https://api-v3.strava.com` on 2027-01-04;
-  /// changing this one constant is the whole migration.
-  static const String apiBase = 'https://www.strava.com/api/v3';
+  /// Strava's API root, under the relay's pass-through. The host Strava
+  /// moves to on 2027-01-04 is the relay's concern.
+  static const String apiBase = '/api/v3';
 
-  /// Strava's OAuth root.
-  static const String oauthBase = 'https://www.strava.com/oauth';
+  /// Strava's OAuth root, under the relay's pass-through.
+  static const String oauthBase = '/oauth';
 
   /// The backoff between upload polls, as the milestone specifies.
   static const List<Duration> uploadPollBackoff = <Duration>[
@@ -203,15 +206,12 @@ class StravaClient {
   ///
   /// The newer `POST /oauth/revoke` needs HTTP basic auth with the client
   /// secret, which by design is not in the app, so the legacy endpoint — which
-  /// authenticates with the access token itself — is the one we can call.
-  /// Failing to reach Strava does not stop the local disconnect; the caller
-  /// deletes the token either way.
-  Future<void> deauthorize({String? accessToken}) async {
+  /// authenticates with the access token itself, here the bearer the relay
+  /// puts on — is the one we can call. Failing to reach Strava does not stop
+  /// the local disconnect; the caller deletes the token either way.
+  Future<void> deauthorize() async {
     try {
-      await dio.post<dynamic>(
-        '$oauthBase/deauthorize',
-        queryParameters: <String, Object?>{'access_token': ?accessToken},
-      );
+      await dio.post<dynamic>('$oauthBase/deauthorize');
     } on DioException catch (e) {
       throw integrationExceptionFromDio(e, service: 'Strava');
     }

@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:logging/logging.dart';
+import 'package:velorki_api/velorki_api.dart' show RelayClient, RelayErrorCode;
 
 import '../domain/connected_account.dart';
 import '../domain/integration_exception.dart';
 import 'connected_accounts_repository.dart';
+import 'dio_errors.dart';
 
 final Logger _log = Logger('OAuthTokenSource');
 
@@ -81,9 +83,26 @@ class OAuthTokenSource {
     return _inFlight ??= _refresh(stored);
   }
 
-  /// The bearer token to put on the next request.
+  /// The wrapped token to put on the next request.
   Future<String> accessToken({bool forceRefresh = false}) async =>
       (await account(forceRefresh: forceRefresh)).accessToken;
+
+  /// Stores [wrapped] as the account's access token.
+  ///
+  /// The relay re-wraps a token that arrived under a key it is retiring and
+  /// sends the new form back with the answer; from then on the old form is
+  /// on borrowed time, so it is replaced at once. A refresh that landed in
+  /// between wins: the token is only swapped under the account it came with.
+  Future<void> replaceAccessToken(
+    String wrapped, {
+    required String replacing,
+  }) async {
+    final stored = await repository.read(service);
+    if (stored == null || stored.accessToken != replacing) return;
+    final updated = stored.copyWith(accessToken: wrapped);
+    await repository.save(updated);
+    onRefreshed?.call(updated);
+  }
 
   Future<ConnectedAccount> _refresh(ConnectedAccount expiring) async {
     try {
@@ -98,24 +117,39 @@ class OAuthTokenSource {
   }
 }
 
-/// Puts the bearer token on every request and renews it when it expires.
+/// Puts the wrapped token and the relay's own headers on every request, and
+/// renews the token when it expires.
 ///
-/// A 401 that still gets through — a token revoked in the service's own
-/// settings, a clock far enough off that the leeway did not help — triggers
-/// one forced refresh and one retry. Multipart bodies are not retried: the
-/// stream has already been consumed, and an upload is cheap to repeat by hand.
+/// Every request goes to the relay's pass-through, so it carries two
+/// credentials: the relay's bearer, which says who is asking, and the wrapped
+/// service token in `X-Velorki-Token`, which the relay opens and forwards. A
+/// 401 in the service's own words that still gets through — a token revoked
+/// in the service's settings, a clock far enough off that the leeway did not
+/// help — triggers one forced refresh and one retry. A 401 in the relay's
+/// words is Plus having lapsed, and nothing a refresh could mend. Multipart
+/// bodies are not retried: the stream has already been consumed, and an
+/// upload is cheap to repeat by hand.
 class OAuthTokenInterceptor extends Interceptor {
   /// Creates the interceptor.
   ///
   /// [dio] supplies the client used for the single retry; it is a callback so
   /// the interceptor can be attached to the very client it retries on.
-  OAuthTokenInterceptor({required this.tokens, required this.dio});
+  /// [relayHeaders] are the relay's own, read per request because the relay
+  /// client can be rebuilt under a running dio.
+  OAuthTokenInterceptor({
+    required this.tokens,
+    required this.dio,
+    required this.relayHeaders,
+  });
 
-  /// Where the access token comes from.
+  /// Where the wrapped token comes from.
   final OAuthTokenSource tokens;
 
   /// The client used for the single retry after a 401.
   final Dio Function() dio;
+
+  /// The relay's client id and bearer, see [RelayClient.proxyHeaders].
+  final Map<String, String> Function() relayHeaders;
 
   /// Marks a request that has already been retried once.
   static const String retriedKey = 'velorki.retried';
@@ -126,7 +160,9 @@ class OAuthTokenInterceptor extends Interceptor {
     RequestInterceptorHandler handler,
   ) async {
     try {
-      options.headers['Authorization'] = 'Bearer ${await tokens.accessToken()}';
+      options.headers
+        ..addAll(relayHeaders())
+        ..[RelayClient.tokenHeader] = await tokens.accessToken();
     } on IntegrationException catch (e, stack) {
       handler.reject(
         DioException(requestOptions: options, error: e, stackTrace: stack),
@@ -138,6 +174,25 @@ class OAuthTokenInterceptor extends Interceptor {
   }
 
   @override
+  Future<void> onResponse(
+    Response<dynamic> response,
+    ResponseInterceptorHandler handler,
+  ) async {
+    final fresh = response.headers.value(RelayClient.rewrappedHeader);
+    final sent = response.requestOptions.headers[RelayClient.tokenHeader];
+    if (fresh != null && fresh.isNotEmpty && sent is String) {
+      try {
+        await tokens.replaceAccessToken(fresh, replacing: sent);
+      } on Object catch (e) {
+        // The old form still works until the key is dropped; the next
+        // answer brings the new one again.
+        _log.info('could not store the re-wrapped token', e);
+      }
+    }
+    handler.next(response);
+  }
+
+  @override
   Future<void> onError(
     DioException err,
     ErrorInterceptorHandler handler,
@@ -145,6 +200,7 @@ class OAuthTokenInterceptor extends Interceptor {
     final options = err.requestOptions;
     final retryable =
         err.response?.statusCode == 401 &&
+        relayErrorOf(err.response?.data)?.code != RelayErrorCode.notEntitled &&
         options.extra[retriedKey] != true &&
         options.data is! FormData;
     if (!retryable) {
@@ -154,7 +210,7 @@ class OAuthTokenInterceptor extends Interceptor {
     try {
       final token = await tokens.accessToken(forceRefresh: true);
       options
-        ..headers['Authorization'] = 'Bearer $token'
+        ..headers[RelayClient.tokenHeader] = token
         ..extra[retriedKey] = true;
       handler.resolve(await dio().fetch<dynamic>(options));
     } on Object catch (e) {

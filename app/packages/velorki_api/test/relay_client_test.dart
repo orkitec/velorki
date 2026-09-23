@@ -38,6 +38,34 @@ void main() {
     'athlete': <String, Object?>{'id': 12345, 'username': 'velorki'},
   };
 
+  group('the pass-through', () {
+    test('is under /proxy/<service> with the relay\'s own headers', () {
+      final client = RelayClient(
+        '$base/',
+        client: MockClient((_) async => json(null)),
+        clientId: 'ios/1.2.0',
+        appUserId: 'user-7',
+      );
+      expect(client.proxyBase('strava').toString(), '$base/proxy/strava');
+      expect(client.proxyBase('rwgps').toString(), '$base/proxy/rwgps');
+      expect(client.proxyHeaders, <String, String>{
+        'X-Velorki-Client': 'ios/1.2.0',
+        'Authorization': 'Bearer user-7',
+      });
+      expect(RelayClient.tokenHeader, 'X-Velorki-Token');
+      expect(RelayClient.rewrappedHeader, 'X-Velorki-Token-Rewrapped');
+    });
+
+    test('carries no bearer without an app user id', () {
+      final client = RelayClient(
+        base,
+        client: MockClient((_) async => json(null)),
+        clientId: 'android/1.0',
+      );
+      expect(client.proxyHeaders.keys, <String>['X-Velorki-Client']);
+    });
+  });
+
   group('base url joining', () {
     test('tolerates trailing slashes and a path prefix', () {
       for (final url in <String>[base, '$base/', '$base///', '  $base/  ']) {

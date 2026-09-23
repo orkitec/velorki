@@ -11,11 +11,17 @@ final Logger _log = Logger('RwgpsClient');
 
 /// The Ride with GPS v1 endpoints Velorki uses.
 ///
-/// **Headers.** An OAuth request carries exactly one authentication header,
-/// `Authorization: Bearer <access_token>`, which [OAuthTokenInterceptor] puts
-/// on. `x-rwgps-api-key` and `x-rwgps-auth-token` belong to the *basic*
-/// scheme — the one for single-user and organisation accounts — and must not
-/// be sent alongside a bearer token. There is no API version header.
+/// Every path is relative: [dio] is based at the relay's pass-through for
+/// Ride with GPS, which opens the wrapped token `OAuthTokenInterceptor` put
+/// in `X-Velorki-Token` and forwards the call to `ridewithgps.com` with the
+/// same path. The relay's allowlist is exactly these calls, so a new one here
+/// needs its counterpart in `web/src/server/passthrough.ts`.
+///
+/// **Headers.** Upstream, an OAuth request carries exactly one authentication
+/// header, `Authorization: Bearer <access_token>`, which the relay puts on.
+/// `x-rwgps-api-key` and `x-rwgps-auth-token` belong to the *basic* scheme —
+/// the one for single-user and organisation accounts — and must not be sent
+/// alongside a bearer token. There is no API version header.
 /// Source: <https://ridewithgps.com/api/v1/doc/authentication> and the
 /// machine-readable spec at <https://ridewithgps.com/api/v1/openapi.yaml>.
 ///
@@ -28,8 +34,11 @@ class RwgpsClient {
   /// Creates a client over [dio].
   RwgpsClient({required this.dio, this.sleep = realSleep});
 
-  /// The API root.
-  static const String apiBase = 'https://ridewithgps.com/api/v1';
+  /// The API root, under the relay's pass-through.
+  static const String apiBase = '/api/v1';
+
+  /// The OAuth root, under the relay's pass-through.
+  static const String oauthBase = '/oauth';
 
   /// The waits between task polls. Ride with GPS imports a GPX in a second or
   /// two, so the first poll is quick and the ceiling is low.
@@ -205,6 +214,20 @@ class RwgpsClient {
         );
       }
       return Uint8List.fromList(bytes);
+    } on DioException catch (e) {
+      throw integrationExceptionFromDio(e, service: 'Ride with GPS');
+    }
+  }
+
+  /// Revokes the app's access. `POST /oauth/revoke.json`.
+  ///
+  /// Ride with GPS revokes with the client id and secret in the body, which
+  /// the relay writes for this one call; the app sends nothing but the
+  /// wrapped token in its header. Failing to reach the relay does not stop
+  /// the local disconnect; the caller deletes the token either way.
+  Future<void> revoke() async {
+    try {
+      await dio.post<dynamic>('$oauthBase/revoke.json');
     } on DioException catch (e) {
       throw integrationExceptionFromDio(e, service: 'Ride with GPS');
     }

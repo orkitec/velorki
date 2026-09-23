@@ -22,9 +22,11 @@ enum IntegrationService {
 
 /// One connected partner account, as it is kept in secure storage.
 ///
-/// Access tokens never leave the phone: the relay only ever exchanges a code
-/// or refreshes a token and hands the result back, and every upload and
-/// download goes from the phone to the service directly.
+/// The tokens are held as the relay handed them out: wrapped, so the phone
+/// never has a Strava or Ride with GPS token in clear. [accessToken] is what
+/// goes in `X-Velorki-Token` on every call through the relay's pass-through,
+/// and [refreshToken] is what `/oauth/strava/refresh` takes; neither works
+/// anywhere but through the relay, which checks the subscription first.
 class ConnectedAccount {
   /// Creates an account.
   const ConnectedAccount({
@@ -82,10 +84,11 @@ class ConnectedAccount {
   /// Which service this account belongs to.
   final IntegrationService service;
 
-  /// The bearer token for the service's API.
+  /// The service's access token, wrapped by the relay.
   final String accessToken;
 
-  /// The token that buys the next access token; Ride with GPS issues none.
+  /// The wrapped token that buys the next access token; Ride with GPS
+  /// issues none.
   final String? refreshToken;
 
   /// When [accessToken] stops working, or `null` when it never does.

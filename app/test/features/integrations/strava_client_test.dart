@@ -25,7 +25,10 @@ void main() {
           'activity_id': null,
         }),
       );
-      final client = StravaClient(dio: dioWith(adapter), sleep: _noSleep);
+      final client = StravaClient(
+        dio: dioWith(adapter, baseUrl: '$testProxyBase/strava'),
+        sleep: _noSleep,
+      );
 
       final upload = await client.uploadActivity(
         bytes: utf8.encode('<gpx/>'),
@@ -38,7 +41,11 @@ void main() {
 
       final request = adapter.requests.single;
       expect(request.method, 'POST');
-      expect('${request.uri}', 'https://www.strava.com/api/v3/uploads');
+      // Relative to the relay's pass-through, which forwards the same path.
+      expect(
+        '${request.uri}',
+        'https://relay.test/proxy/strava/api/v3/uploads',
+      );
       expect(multipartFileNames(request), <String>['file']);
       expect(multipartFields(request), <String, String>{
         'data_type': 'gpx',
@@ -69,7 +76,10 @@ void main() {
           'activity_id': polls < 3 ? null : 5555,
         });
       });
-      final client = StravaClient(dio: dioWith(adapter), sleep: _noSleep);
+      final client = StravaClient(
+        dio: dioWith(adapter, baseUrl: '$testProxyBase/strava'),
+        sleep: _noSleep,
+      );
 
       final progress = <String?>[];
       final upload = await client.uploadAndWait(
@@ -84,7 +94,7 @@ void main() {
       expect(upload.succeeded, isTrue);
       expect(upload.activityUrl, 'https://www.strava.com/activities/5555');
       expect(progress, hasLength(4));
-      expect(adapter.uris.last.path, '/api/v3/uploads/99');
+      expect(adapter.uris.last.path, '/proxy/strava/api/v3/uploads/99');
     });
 
     test(
@@ -100,7 +110,10 @@ void main() {
             'status': 'There was an error processing your activity.',
           });
         });
-        final client = StravaClient(dio: dioWith(adapter), sleep: _noSleep);
+        final client = StravaClient(
+          dio: dioWith(adapter, baseUrl: '$testProxyBase/strava'),
+          sleep: _noSleep,
+        );
 
         final e = await integrationFailure(
           () => client.uploadAndWait(
@@ -126,7 +139,10 @@ void main() {
             'status': 'still processing',
           });
         });
-        final client = StravaClient(dio: dioWith(adapter), sleep: _noSleep);
+        final client = StravaClient(
+          dio: dioWith(adapter, baseUrl: '$testProxyBase/strava'),
+          sleep: _noSleep,
+        );
 
         final e = await integrationFailure(
           () => client.uploadAndWait(
@@ -165,11 +181,17 @@ void main() {
           <String, Object?>{'id_str': '2', 'name': 'Commute'},
         ]),
       );
-      final client = StravaClient(dio: dioWith(adapter), sleep: _noSleep);
+      final client = StravaClient(
+        dio: dioWith(adapter, baseUrl: '$testProxyBase/strava'),
+        sleep: _noSleep,
+      );
 
       final routes = await client.listRoutes(athleteId: '42', perPage: 10);
 
-      expect(adapter.uris.single.path, '/api/v3/athletes/42/routes');
+      expect(
+        adapter.uris.single.path,
+        '/proxy/strava/api/v3/athletes/42/routes',
+      );
       expect(adapter.uris.single.queryParameters, <String, String>{
         'page': '1',
         'per_page': '10',
@@ -186,17 +208,26 @@ void main() {
       final adapter = FakeApiAdapter(
         (_) => FakeResponse.text('<gpx version="1.1"></gpx>'),
       );
-      final client = StravaClient(dio: dioWith(adapter), sleep: _noSleep);
+      final client = StravaClient(
+        dio: dioWith(adapter, baseUrl: '$testProxyBase/strava'),
+        sleep: _noSleep,
+      );
 
       final bytes = await client.exportRouteGpx('9');
 
-      expect(adapter.uris.single.path, '/api/v3/routes/9/export_gpx');
+      expect(
+        adapter.uris.single.path,
+        '/proxy/strava/api/v3/routes/9/export_gpx',
+      );
       expect(utf8.decode(bytes), contains('<gpx'));
     });
 
     test('an empty export is an error, not an empty route', () async {
       final adapter = FakeApiAdapter((_) => FakeResponse.text(''));
-      final client = StravaClient(dio: dioWith(adapter), sleep: _noSleep);
+      final client = StravaClient(
+        dio: dioWith(adapter, baseUrl: '$testProxyBase/strava'),
+        sleep: _noSleep,
+      );
 
       final e = await integrationFailure(() => client.exportRouteGpx('9'));
       expect(e.failure, IntegrationFailure.serviceError);
@@ -210,7 +241,10 @@ void main() {
           'message': 'Authorization Error',
         }, status: 401),
       );
-      final client = StravaClient(dio: dioWith(adapter), sleep: _noSleep);
+      final client = StravaClient(
+        dio: dioWith(adapter, baseUrl: '$testProxyBase/strava'),
+        sleep: _noSleep,
+      );
 
       final e = await integrationFailure(
         () => client.listRoutes(athleteId: '42'),
@@ -223,7 +257,10 @@ void main() {
       final adapter = FakeApiAdapter(
         (_) => FakeResponse.json(<String, Object?>{}, status: 429),
       );
-      final client = StravaClient(dio: dioWith(adapter), sleep: _noSleep);
+      final client = StravaClient(
+        dio: dioWith(adapter, baseUrl: '$testProxyBase/strava'),
+        sleep: _noSleep,
+      );
 
       final e = await integrationFailure(
         () => client.listRoutes(athleteId: '42'),
@@ -244,7 +281,10 @@ void main() {
           ],
         }, status: 500),
       );
-      final client = StravaClient(dio: dioWith(adapter), sleep: _noSleep);
+      final client = StravaClient(
+        dio: dioWith(adapter, baseUrl: '$testProxyBase/strava'),
+        sleep: _noSleep,
+      );
 
       final e = await integrationFailure(
         () => client.listRoutes(athleteId: '42'),
@@ -260,7 +300,7 @@ void main() {
       var now = DateTime.utc(2026, 9, 12, 12);
       final adapter = FakeApiAdapter((_) => FakeResponse.json(<Object?>[]));
       final client = StravaClient(
-        dio: dioWith(adapter),
+        dio: dioWith(adapter, baseUrl: '$testProxyBase/strava'),
         sleep: _noSleep,
         readBucket: TokenBucket(
           capacity: 2,
@@ -291,7 +331,7 @@ void main() {
         (_) => FakeResponse.json(<String, Object?>{'id_str': '1'}),
       );
       final client = StravaClient(
-        dio: dioWith(adapter),
+        dio: dioWith(adapter, baseUrl: '$testProxyBase/strava'),
         sleep: _noSleep,
         readBucket: TokenBucket(
           capacity: 1,
@@ -314,20 +354,26 @@ void main() {
     });
   });
 
-  test('deauthorize posts the token to the legacy endpoint', () async {
+  test('deauthorize posts to the legacy endpoint with no token in the '
+      'URL', () async {
     final adapter = FakeApiAdapter(
       (_) => FakeResponse.json(<String, Object?>{'access_token': 'gone'}),
     );
-    final client = StravaClient(dio: dioWith(adapter), sleep: _noSleep);
+    final client = StravaClient(
+      dio: dioWith(adapter, baseUrl: '$testProxyBase/strava'),
+      sleep: _noSleep,
+    );
 
-    await client.deauthorize(accessToken: 'the-token');
+    await client.deauthorize();
 
     final request = adapter.requests.single;
     expect(request.method, 'POST');
+    // The token rides in the interceptor's header, never in the query, so
+    // it cannot end up in a log line.
     expect(
-      '${request.uri.origin}${request.uri.path}',
-      'https://www.strava.com/oauth/deauthorize',
+      '${request.uri}',
+      'https://relay.test/proxy/strava/oauth/deauthorize',
     );
-    expect(request.uri.queryParameters['access_token'], 'the-token');
+    expect(request.uri.queryParameters, isEmpty);
   });
 }

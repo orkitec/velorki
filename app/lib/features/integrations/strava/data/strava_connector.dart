@@ -146,6 +146,7 @@ Future<ConnectedAccount> refreshStravaThroughRelay(
   }
 }
 
-/// Revokes [account] at Strava with a one-off [StravaClient].
+/// Revokes [account] at Strava with [client], whose interceptor carries the
+/// account's token.
 Future<void> deauthorizeWith(StravaClient client, ConnectedAccount account) =>
-    client.deauthorize(accessToken: account.accessToken);
+    client.deauthorize();

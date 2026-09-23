@@ -15,7 +15,7 @@ An keinen der beiden Dienste geht etwas, bevor du das Konto selbst verbunden und
 3. Die Anmeldeseite des Dienstes öffnet sich im Browser. Melde dich dort an und bestätige den Zugriff.
 4. Du kommst zurück zu Velorki, und in der Zeile steht dein Name statt **Nicht verbunden**.
 
-Dein Handy bewahrt den Zugriffstoken im sicheren Speicher des Handys auf, und von da an spricht es **direkt** mit Strava und Ride with GPS. Deine Fahrten und Routen laufen über keinen Velorki-Server.
+Dein Handy bewahrt den Zugriffstoken im sicheren Speicher des Handys auf, in einer Form, die nur der Velorki-Server öffnen kann. Von da an läuft jeder Upload und jeder Import über diesen Server: Er prüft dein Abo, zählt die Übertragung, öffnet den Token für diese eine Anfrage und leitet sie weiter. Er behält weder die Datei noch den Token und kann den Token allein nicht verwenden.
 
 Scheitert ein Verbindungsversuch, sagt Velorki "Verbindung fehlgeschlagen:" mit dem Grund. Brichst du die Anmeldeseite ab, sagt es gar nichts.
 
@@ -25,7 +25,7 @@ Eine Zeile mit **In diesem Build nicht verfügbar** heißt, dass dieser Velorki-
 
 Tippe in der verbundenen Zeile auf **Trennen**. Velorki fragt "Strava trennen?" und erklärt: "Velorki vergisst den Zugriffstoken. Routen und Fahrten in der Bibliothek bleiben erhalten."
 
-Das Trennen entfernt nichts bei Strava oder Ride with GPS und nichts aus deiner Bibliothek.
+Beim Trennen bittet Velorki den Dienst außerdem, den Zugriff zu widerrufen, sofern der Server erreichbar ist. Es entfernt nichts bei Strava oder Ride with GPS und nichts aus deiner Bibliothek.
 
 ## Eine Fahrt hochladen
 

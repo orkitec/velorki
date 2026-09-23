@@ -175,6 +175,7 @@ void main() {
           clientId: 'abcd',
           callbackScheme: 'velorki',
           readUser: (token) async => RwgpsUser(id: '1', name: 'Steffen $token'),
+          revokeAt: (_) async {},
         );
 
         final account = await connector.connect();
@@ -204,11 +205,35 @@ void main() {
         clientId: 'abcd',
         callbackScheme: 'velorki',
         readUser: (_) async => throw StateError('no'),
+        revokeAt: (_) async {},
       );
 
       final account = await connector.connect();
       expect(account.accessToken, 'rw-access');
       expect(account.athleteName, isNull);
+    });
+
+    test('revoke goes to the relay and never throws', () async {
+      final revoked = <String>[];
+      RwgpsConnector connector(Future<void> Function(ConnectedAccount) at) =>
+          RwgpsConnector(
+            flow: _flow(FakeWebAuthenticator(), FakeAppLauncher()),
+            relayClient: FakeRelayClient(),
+            clientId: 'abcd',
+            callbackScheme: 'velorki',
+            readUser: (_) async => null,
+            revokeAt: at,
+          );
+      const account = ConnectedAccount(
+        service: IntegrationService.rwgps,
+        accessToken: 'rw',
+      );
+
+      await connector((a) async => revoked.add(a.accessToken)).revoke(account);
+      expect(revoked, <String>['rw']);
+
+      // The relay being down does not keep the token on the phone.
+      await connector((_) async => throw StateError('down')).revoke(account);
     });
   });
 }
