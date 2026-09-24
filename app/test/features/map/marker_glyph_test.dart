@@ -46,30 +46,52 @@ void main() {
     );
   });
 
-  test('a glyph keeps its share of whatever disc it sits on', () {
+  test('the disc is the glyph plus the same ring at either size', () {
+    final ordinary = markerGlyphOnDiscSizePx * markerGlyphUnselectedScale;
+
+    // The one thing that decides a radius: what the widest glyph paints,
+    // plus an even margin. Measured on the widest of the sixteen, so no
+    // glyph comes nearer its ring than this.
     expect(
-      markerGlyphSizeForDisc(markerDiscRadiusPx),
-      markerDiscRadiusPx * 2 * markerGlyphDiscShare,
+      markerDiscRadiusPx - markerGlyphDrawnHalfPx(ordinary),
+      closeTo(markerGlyphMarginPx, 1e-9),
     );
-    // Wider disc, bigger glyph, same share of it.
     expect(
-      markerGlyphSizeForDisc(markerDiscSelectedRadiusPx),
-      greaterThan(markerGlyphSizeForDisc(markerDiscRadiusPx)),
+      markerDiscSelectedRadiusPx -
+          markerGlyphDrawnHalfPx(markerGlyphOnDiscSizePx),
+      closeTo(markerGlyphMarginPx, 1e-9),
+      reason: 'the chosen disc keeps the same ring, it does not thicken it',
     );
+
+    // The chosen disc is wider only by what its glyph is wider by.
     expect(
-      markerGlyphSizeForDisc(markerDiscRadiusPx) /
-          markerGlyphSizeForDisc(markerDiscSelectedRadiusPx),
-      closeTo(markerGlyphUnselectedScale, 1e-9),
+      markerDiscSelectedRadiusPx - markerDiscRadiusPx,
+      closeTo(
+        markerGlyphDrawnHalfPx(markerGlyphOnDiscSizePx) -
+            markerGlyphDrawnHalfPx(ordinary),
+        1e-9,
+      ),
+    );
+    expect(markerDiscSelectedRadiusPx, greaterThan(markerDiscRadiusPx));
+  });
+
+  test('the glyphs are the size the rider already liked, and the discs '
+      'follow them', () {
+    // Unchanged: only the ring around them moved.
+    expect(markerGlyphOnDiscSizePx, 18);
+    expect(
+      markerGlyphOnDiscSizePx * markerGlyphUnselectedScale,
+      closeTo(14.4, 1e-9),
     );
     // The bitmap is drawn at the size the chosen point wants, so the style
     // only ever scales it down.
-    expect(
-      markerGlyphOnDiscSizePx,
-      markerGlyphSizeForDisc(markerDiscSelectedRadiusPx),
-    );
     expect(markerGlyphUnselectedScale, lessThan(1));
-    // A disc the route line can still be seen under.
-    expect(markerDiscRadiusPx, greaterThan(9));
-    expect(markerDiscSelectedRadiusPx, greaterThan(markerDiscRadiusPx));
+    // Ink, not the square it sits in: a fallback box would fill the square
+    // and push every disc wider.
+    expect(markerGlyphInkShare, lessThan(1));
+    // A disc the route line under it can still be seen past, and one a
+    // finger's target still covers.
+    expect(markerDiscRadiusPx, inInclusiveRange(9, 11));
+    expect(markerDiscSelectedRadiusPx, lessThan(13));
   });
 }

@@ -19,40 +19,64 @@ import 'package:flutter/widgets.dart';
 /// disc of the marker it belongs to.
 String markerGlyphName(IconData icon) => 'velorki-glyph-${icon.codePoint}';
 
-/// Radius of a marker's disc, in logical pixels.
+/// Height of the glyph on the chosen point's disc, in logical pixels.
 ///
-/// Wide enough that the glyph inside it is read at a glance on a moving map,
-/// and still about twice the width of the route line under it, so it reads as
-/// a marker rather than a blob.
-const double markerDiscRadiusPx = 12;
+/// The glyph is the measure here, and the disc is sized to it: picking a
+/// radius and giving the glyph a share of it left an empty ring inside every
+/// marker, which is what a rider sees as a disc that is too big.
+const double markerGlyphOnDiscSizePx = 18;
 
-/// Radius of the disc of the point the rider has chosen.
-const double markerDiscSelectedRadiusPx = 15;
-
-/// How much of a disc's width its glyph takes.
-const double markerGlyphDiscShare = 0.6;
-
-/// The glyph height for a disc of [radiusPx], so the icon keeps its share of
-/// the disc at every size.
-double markerGlyphSizeForDisc(double radiusPx) =>
-    radiusPx * 2 * markerGlyphDiscShare;
-
-/// How much the style has to shrink the on-disc bitmap for a point that is
-/// not the chosen one.
+/// How much smaller the glyph on an ordinary disc is than the chosen
+/// point's.
 ///
 /// The bitmap is drawn once, at the size the chosen point needs, and scaled
 /// down for the rest: scaling a bitmap down keeps its edges, scaling one up
 /// softens them.
-const double markerGlyphUnselectedScale =
-    markerDiscRadiusPx / markerDiscSelectedRadiusPx;
+const double markerGlyphUnselectedScale = 0.8;
+
+/// How much of a glyph's square its ink actually covers, taking the widest
+/// and tallest of the sixteen.
+///
+/// Measured rather than assumed, on a device with the real icon font: at a
+/// size of 18 the widest ink is 15.75 px across — the bike repair wrench,
+/// the shelter, the summit, the campsite, the bed — which is seven eighths.
+/// A unit test cannot measure this: `flutter test` runs with asset fonts off
+/// and every glyph comes back as a full-square fallback box, which would
+/// size every disc a good deal too wide.
+const double markerGlyphInkShare = 0.875;
+
+/// The ring of empty space left between a glyph and the inside of its disc,
+/// in logical pixels.
+///
+/// The same at both sizes, so the chosen point's disc grows by exactly what
+/// its glyph grows by and the ring never thickens.
+const double markerGlyphMarginPx = 2.5;
+
+/// Half of what a glyph of [glyphPx] paints, its outline included.
+///
+/// The outline is part of the one bitmap, so the style scales it along with
+/// the glyph.
+double markerGlyphDrawnHalfPx(double glyphPx) =>
+    glyphPx * markerGlyphInkShare / 2 +
+    markerGlyphHaloPx * glyphPx / markerGlyphOnDiscSizePx;
+
+/// The disc that holds a glyph of [glyphPx] with [markerGlyphMarginPx] of
+/// air all round it.
+double markerDiscRadiusFor(double glyphPx) =>
+    markerGlyphDrawnHalfPx(glyphPx) + markerGlyphMarginPx;
+
+/// Radius of the disc of the point the rider has chosen.
+final double markerDiscSelectedRadiusPx = markerDiscRadiusFor(
+  markerGlyphOnDiscSizePx,
+);
+
+/// Radius of an ordinary marker's disc, in logical pixels.
+final double markerDiscRadiusPx = markerDiscRadiusFor(
+  markerGlyphOnDiscSizePx * markerGlyphUnselectedScale,
+);
 
 /// Height of a marker glyph, in logical pixels.
 const double markerGlyphSizePx = 13;
-
-/// Height of a glyph drawn inside a disc, which has a rim to spare.
-final double markerGlyphOnDiscSizePx = markerGlyphSizeForDisc(
-  markerDiscSelectedRadiusPx,
-);
 
 /// How wide the light outline around a glyph is, in logical pixels. Enough
 /// to read a dark glyph against a dark wood or a motorway.
