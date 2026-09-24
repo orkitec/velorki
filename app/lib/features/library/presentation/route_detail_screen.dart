@@ -33,7 +33,8 @@ import '../../navigation/presentation/cue_sheet_map.dart';
 import '../../navigation/presentation/turn_phrases.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../planner/presentation/route_stats_row.dart';
-import '../../planner/presentation/surface_stats_bar.dart';
+import '../../planner/presentation/surface_section.dart';
+import '../application/route_surface.dart';
 import '../../settings/data/units.dart';
 import '../../map/presentation/map_chrome.dart';
 import '../../map/presentation/visible_map_padding.dart';
@@ -177,6 +178,20 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
         onCueTapped: (index) => _selectCue(index),
       );
     }
+  }
+
+  /// What the Surface section shows: the router's own figures for a route
+  /// planned here, otherwise the matching of its track.
+  ///
+  /// The answer is kept by the provider, not here. Kept in this State it was
+  /// lost whenever the card's subtree was rebuilt from scratch, and the
+  /// section went back to "matching" and forward to its answer over and
+  /// over, each turn a different height.
+  AsyncValue<TrackSurface> _surfaceOf(SavedRoute route) {
+    final planned = route.surfaceStats;
+    return planned != null
+        ? AsyncData<TrackSurface>(TrackSurface.matched(planned))
+        : ref.watch(routeSurfaceProvider(route.id));
   }
 
   /// The route's cue sheet, worked out once per route, and the points it
@@ -454,7 +469,15 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
                       onEdit: () => _editLink(saved),
                     ),
                     const SizedBox(height: 16),
-                    SurfaceStatsBar(stats: saved.surfaceStats),
+                    // One widget at this place whatever the answer is. A
+                    // branch that swapped the bar for another widget when
+                    // the figures arrived remounted the card's subtree, and
+                    // the card draws the route on the shared map from its
+                    // own build, so it went round that path again and again.
+                    SurfaceSection(
+                      surface: _surfaceOf(saved),
+                      hideWithoutRouting: false,
+                    ),
                     const SizedBox(height: 28),
                     ElevationProfileChart(
                       samples: elevationProfile(geometry),

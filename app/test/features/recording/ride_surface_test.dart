@@ -1,10 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/core/db/database.dart';
+import 'package:velorki/features/planner/application/track_surface_service.dart';
 import 'package:velorki/features/recording/application/ride_surface.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
 import 'package:velorki/features/recording/domain/ride.dart';
-import 'package:velorki/features/recording/domain/track_thinning.dart';
+import 'package:velorki/core/geo/track_surface.dart';
+import 'package:velorki/core/geo/track_thinning.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -39,11 +41,11 @@ const RoutingDecision _uncovered = RoutingDecision(
   missingTiles: <TileName>[TileName(10, 45)],
 );
 
-RideSurfaceService _service(
+TrackSurfaceService _service(
   FakeRoutingBackend? backend, {
   RoutingDecision decision = _covered,
   int maxPointsPerQuery = 50,
-}) => RideSurfaceService(
+}) => TrackSurfaceService(
   local: backend,
   decide: (_) => decision,
   maxPointsPerQuery: maxPointsPerQuery,
@@ -69,14 +71,14 @@ void main() {
         endedAt: points.last.time!,
       );
 
-  group('RideSurfaceService', () {
+  group('TrackSurfaceService', () {
     test('routes the thinned track with the shortest profile', () async {
       final ride = await save(_track(3000));
       final backend = FakeRoutingBackend(result: _answer(3000));
 
-      final result = await _service(backend).match(ride);
+      final result = await _service(backend).matchRide(ride);
 
-      expect(result.state, RideSurfaceState.matched);
+      expect(result.state, TrackSurfaceState.matched);
       expect(result.stats!.pavedShare, closeTo(0.6, 1e-9));
       expect(result.stats!.unpavedShare, closeTo(0.4, 1e-9));
       expect(backend.callCount, 1);
@@ -93,10 +95,10 @@ void main() {
       final backend = FakeRoutingBackend(result: _answer(3600));
 
       expect(
-        (await _service(backend).match(ride)).state,
-        RideSurfaceState.unmatched,
+        (await _service(backend).matchRide(ride)).state,
+        TrackSurfaceState.unmatched,
       );
-      expect(await _service(backend).compute(ride), isNull);
+      expect((await _service(backend).matchRide(ride)).stats, isNull);
     });
 
     test('accepts a route 10 % shorter than the ride', () async {
@@ -104,8 +106,8 @@ void main() {
       final backend = FakeRoutingBackend(result: _answer(2700));
 
       expect(
-        (await _service(backend).match(ride)).state,
-        RideSurfaceState.matched,
+        (await _service(backend).matchRide(ride)).state,
+        TrackSurfaceState.matched,
       );
     });
 
@@ -113,9 +115,12 @@ void main() {
       final ride = await save(_track(3000));
       final backend = FakeRoutingBackend(result: _answer(3000));
 
-      final result = await _service(backend, decision: _uncovered).match(ride);
+      final result = await _service(
+        backend,
+        decision: _uncovered,
+      ).matchRide(ride);
 
-      expect(result.state, RideSurfaceState.noTiles);
+      expect(result.state, TrackSurfaceState.noTiles);
       expect(backend.callCount, 0);
     });
 
@@ -123,8 +128,8 @@ void main() {
       final ride = await save(_track(3000));
 
       expect(
-        (await _service(null).match(ride)).state,
-        RideSurfaceState.noRouting,
+        (await _service(null).matchRide(ride)).state,
+        TrackSurfaceState.noRouting,
       );
     });
 
@@ -133,8 +138,8 @@ void main() {
       final backend = FakeRoutingBackend(result: _answer(300));
 
       expect(
-        (await _service(backend).match(ride)).state,
-        RideSurfaceState.unmatched,
+        (await _service(backend).matchRide(ride)).state,
+        TrackSurfaceState.unmatched,
       );
       expect(backend.callCount, 0);
     });
@@ -149,8 +154,8 @@ void main() {
       );
 
       expect(
-        (await _service(backend).match(ride)).state,
-        RideSurfaceState.unmatched,
+        (await _service(backend).matchRide(ride)).state,
+        TrackSurfaceState.unmatched,
       );
     });
 
@@ -165,7 +170,7 @@ void main() {
       final result = await _service(
         backend,
         maxPointsPerQuery: perQuery,
-      ).match(ride);
+      ).matchRide(ride);
 
       expect(backend.callCount, chunks);
       // Every chunk starts where the one before ended, and together they
@@ -181,7 +186,7 @@ void main() {
       for (final q in backend.queries) {
         expect(q.points.length, lessThanOrEqualTo(perQuery));
       }
-      expect(result.state, RideSurfaceState.matched);
+      expect(result.state, TrackSurfaceState.matched);
       expect(result.stats!.totalLengthM, closeTo(3000, 1e-6));
       expect(result.stats!.pavedShare, closeTo(0.6, 1e-9));
     });
@@ -190,11 +195,11 @@ void main() {
   group('rideSurfaceProvider', () {
     /// Reads the ride's surface off a fresh container, kept listened to
     /// while it loads, as a screen would.
-    Future<RideSurface> resolve(RideSurfaceService service) async {
+    Future<TrackSurface> resolve(TrackSurfaceService service) async {
       final c = ProviderContainer(
         overrides: [
           velorkiDatabaseProvider.overrideWithValue(db),
-          rideSurfaceServiceProvider.overrideWithValue(service),
+          trackSurfaceServiceProvider.overrideWithValue(service),
         ],
       );
       addTearDown(c.dispose);
@@ -214,7 +219,7 @@ void main() {
         final service = _service(backend);
 
         final first = await resolve(service);
-        expect(first.state, RideSurfaceState.matched);
+        expect(first.state, TrackSurfaceState.matched);
         expect(backend.callCount, 1);
 
         final row = await db.ridesDao.rideById('ride-1');
@@ -236,7 +241,7 @@ void main() {
       final service = _service(backend);
 
       final first = await resolve(service);
-      expect(first.state, RideSurfaceState.unmatched);
+      expect(first.state, TrackSurfaceState.unmatched);
       expect(backend.callCount, 1);
       expect(
         (await db.ridesDao.rideById('ride-1'))!.surfaceStatsJson,
@@ -244,7 +249,7 @@ void main() {
       );
 
       final second = await resolve(service);
-      expect(second.state, RideSurfaceState.unmatched);
+      expect(second.state, TrackSurfaceState.unmatched);
       expect(backend.callCount, 1);
     });
 
@@ -255,14 +260,14 @@ void main() {
         final backend = FakeRoutingBackend(result: _answer(3000));
 
         final first = await resolve(_service(backend, decision: _uncovered));
-        expect(first.state, RideSurfaceState.noTiles);
+        expect(first.state, TrackSurfaceState.noTiles);
         expect(
           (await db.ridesDao.rideById('ride-1'))!.surfaceStatsJson,
           isNull,
         );
 
         final second = await resolve(_service(backend));
-        expect(second.state, RideSurfaceState.matched);
+        expect(second.state, TrackSurfaceState.matched);
       },
     );
 

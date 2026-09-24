@@ -36,6 +36,11 @@ abstract class SavedRoute with _$SavedRoute {
     String? description,
     SurfaceStats? surfaceStats,
 
+    /// Set once the track was matched against the routing tiles and could
+    /// not be followed, so the card says so instead of trying again on
+    /// every open. See `TrackSurfaceCache`.
+    @Default(false) bool surfaceUnavailable,
+
     /// BRouter's turn instructions, anchored to indices of [geometry]. Empty
     /// for routes that never went through the router (file imports) and for
     /// rows saved before the app stored them.

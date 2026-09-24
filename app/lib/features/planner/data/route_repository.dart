@@ -8,6 +8,7 @@ import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../core/db/daos/routes_dao.dart';
+import '../../../core/geo/track_surface.dart';
 import '../../../core/db/database.dart';
 import '../../../core/geo/ride_stats.dart';
 import '../domain/route_profile.dart';
@@ -231,6 +232,31 @@ class RouteRepository {
     );
   }
 
+  /// Writes the surface breakdown worked out for the route with [id], or,
+  /// with no [stats], the marker for a track the router could not follow.
+  ///
+  /// A route planned here arrives with its surfaces from the router; one
+  /// read from a file has none until its track is matched, which the card
+  /// does once and keeps. An unknown id changes nothing.
+  Future<void> setSurfaceStats(String id, SurfaceStats? stats) async {
+    final row = await _dao.routeById(id);
+    if (row == null) return;
+    await _dao.updateRoute(
+      row.copyWith(
+        surfaceStatsJson: Value(
+          encodeTrackSurface(
+            stats == null
+                ? TrackSurfaceCache.unmatched
+                : TrackSurfaceCache(stats: stats),
+          ),
+        ),
+        // Not a change to the route itself: the figures describe the track
+        // that was always there, so the card's "edited" date stays put.
+        updatedAt: row.updatedAt,
+      ),
+    );
+  }
+
   /// Replaces the points of interest of the route with [id], everything
   /// else as it is: what a change to a point beside the route needs, since
   /// it leaves the geometry and the waypoints alone. An unknown id changes
@@ -285,7 +311,12 @@ class RouteRepository {
     geometryBlob: Uint8List.fromList(row.geometry),
     waypoints: decodeWaypoints(row.waypointsJson),
     options: decodeOptions(row.routingOptionsJson),
-    surfaceStats: decodeSurfaceStats(row.surfaceStatsJson),
+    // One read of the column for both: the marker for a track that could
+    // not be followed lives in it beside the figures, and parsing it as
+    // figures would give a route a breakdown of nothing but zeroes.
+    surfaceStats: decodeTrackSurface(row.surfaceStatsJson)?.stats,
+    surfaceUnavailable:
+        decodeTrackSurface(row.surfaceStatsJson)?.unavailable ?? false,
     turns: decodeTurns(row.turnsJson),
     aiDescriptionGenerated: row.aiDescriptionGenerated,
     pois: decodePois(row.poisJson),

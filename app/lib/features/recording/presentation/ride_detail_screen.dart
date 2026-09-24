@@ -22,7 +22,7 @@ import '../../planner/domain/route_poi.dart';
 import '../../planner/domain/saved_route.dart';
 import '../../planner/presentation/poi_markers.dart';
 import '../../planner/presentation/route_format.dart';
-import '../../planner/presentation/surface_stats_bar.dart';
+import '../../planner/presentation/surface_section.dart';
 import '../../settings/data/units.dart';
 import '../../map/presentation/map_chrome.dart';
 import '../../map/presentation/visible_map_padding.dart';
@@ -997,49 +997,8 @@ class RideSurfaceSection extends ConsumerWidget {
   final String rideId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final quiet = theme.textTheme.bodySmall?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
-    );
-    final surface = ref.watch(rideSurfaceProvider(rideId));
-
-    Widget note(String text) => Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SectionCaption(l10n.surfaceTitle),
-        const SizedBox(height: 10),
-        Text(text, style: quiet),
-      ],
-    );
-
-    return surface.when(
-      // A write-back re-runs the provider; the answer it then reads off the
-      // row is the one already on screen, so no flicker in between.
-      skipLoadingOnReload: true,
-      loading: () => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SectionCaption(l10n.surfaceTitle),
-          const SizedBox(height: 10),
-          const LinearProgressIndicator(minHeight: 2),
-          const SizedBox(height: 8),
-          Text(l10n.rideSurfaceComputing, style: quiet),
-        ],
-      ),
-      error: (_, _) => note(l10n.rideSurfaceUnavailable),
-      data: (result) => switch (result.state) {
-        TrackSurfaceState.matched => SurfaceStatsBar(stats: result.stats),
-        TrackSurfaceState.noTiles => note(l10n.rideSurfaceNoTiles),
-        TrackSurfaceState.unmatched => note(l10n.rideSurfaceUnavailable),
-        // A build without on-device routing has nothing to match against, and
-        // a line saying the track "could not be matched" would blame the
-        // track; the section simply is not there.
-        TrackSurfaceState.noRouting => const SizedBox.shrink(),
-      },
-    );
-  }
+  Widget build(BuildContext context, WidgetRef ref) =>
+      SurfaceSection(surface: ref.watch(rideSurfaceProvider(rideId)));
 }
 
 /// What the calorie figure rests on, for the line under it.

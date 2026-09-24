@@ -8,6 +8,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/core/geo/ride_stats.dart';
+import 'package:velorki/core/geo/track_surface.dart';
 import 'package:velorki/features/recording/application/ride_surface.dart';
 import 'package:velorki/features/recording/domain/ride.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
@@ -74,7 +75,7 @@ Ride _rideAlong(String id) {
 
 void main() {
   late LocalRoutingBackend local;
-  late RideSurfaceService service;
+  late TrackSurfaceService service;
 
   setUpAll(() {
     if (_skip != null) return;
@@ -86,7 +87,7 @@ void main() {
       local: local,
       localTiles: local.availableTiles,
     );
-    service = RideSurfaceService(local: local, decide: composite.decide);
+    service = TrackSurfaceService(local: local, decide: composite.decide);
   });
   tearDownAll(() async {
     if (_skip == null) await local.dispose();
@@ -98,13 +99,13 @@ void main() {
     () async {
       for (final id in const ['pair-000', 'pair-002', 'pair-004', 'pair-008']) {
         final ride = _rideAlong(id);
-        final result = await service.match(ride);
+        final result = await service.matchRide(ride);
         // ignore: avoid_print
         print(
           '$id: ${ride.stats.distanceM.round()} m ridden → ${result.state}; '
           '${result.stats}',
         );
-        expect(result.state, RideSurfaceState.matched, reason: id);
+        expect(result.state, TrackSurfaceState.matched, reason: id);
         final stats = result.stats!;
         expect(stats.coveredLengthM, greaterThan(0), reason: id);
         expect(

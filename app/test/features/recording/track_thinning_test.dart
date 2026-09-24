@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:velorki/features/recording/domain/track_thinning.dart';
+import 'package:velorki/core/geo/track_thinning.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 /// [count] fixes [stepM] apart, heading [bearingDeg] from [from].

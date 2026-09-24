@@ -38,7 +38,7 @@ Opening a route draws it on the map, fitted to the part of the screen above the 
 - under the name, where an imported route came from: the file format and who wrote it, for example "Imported from GPX · Garmin Connect"; a route planned here says nothing there,
 - the actions below, **Open in planner** first so it is in view at the card's resting height,
 - a **Description** row and a **Link** row, each with a pencil: the description is the file's, the assistant's or yours, the link is the file's `<link>` or one you type, and a tap on it opens the page,
-- the surface breakdown,
+- the surface breakdown: the router's own figures for a route planned here, and for one read from a file the same matching a ride gets, see below,
 - the elevation profile,
 - **Points of interest**: the route's points that are not on its track, each with its type icon, its name and its note — the ones a file came with off the course, and the places you marked beside the route in the planner; the ones on the track are lines of the cue sheet instead,
 - for a route imported with turns or points of interest, or with points you named or wrote a note on in the planner, the cue sheet: every turn and point with its distance from the start, a tap on a line panning the map there at your zoom and a tap on a marker scrolling the card to that line.
@@ -95,6 +95,8 @@ Under the splits, on a ride that had any, a **Climbs** table: one row per climb 
 A climb is found the way the record sheet's profile finds the one you are on: it starts where the next 100 m of road rise by at least 3 %, and it ends at its high point once the road has dropped 10 m below it, so a dip in a long climb does not cut it in two. Rises shorter than 300 m, gaining less than 20 m or averaging under 3 % from foot to top are not listed. Heights are smoothed over 50 m first, as for the power estimate, and pauses count towards neither the time nor the height.
 
 ### Surface
+
+A route read from a file gets its **Surface** the same way, and for the same reason: nobody ever routed it, so nothing ever said what it is paved with. The first time such a route is opened, its track is laid over the offline routing tiles and the shares are read off the roads it lands on, then kept with the route so it is worked out once. The same caveats hold — the routing region has to be downloaded, and a track the map cannot follow says so — and a route planned here is untouched, because the router already answered. Routes saved from a file before this existed are matched the first time you open them.
 
 Under the climbs, a **Surface** bar like the one on a route card: how much of the ride was paved, unpaved or unknown, with the cycleway and busy-road shares beside it. The ride was never planned, so the app finds out afterwards: it lays the recorded track over the offline routing tiles on the phone and reads the surface off the roads it lands on. No track leaves the phone for this. It needs the routing region for the area to be downloaded; until it is, the section says so. A track the map cannot follow, through a park, over a ferry or along a cut through, shows "The track could not be matched to the map" instead, and the result, either way, is kept with the ride, so it is worked out once. A new routing tile gives an unmatched ride another go.
 
