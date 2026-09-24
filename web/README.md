@@ -284,11 +284,37 @@ the five accents) taken from `app/lib/app/theme.dart`.
 | Where | What |
 | --- | --- |
 | `src/app/(site)/[locale]/` | the pages: landing, `plus`, `download`, `docs/[[...slug]]`, `credits`, `privacy`, `terms`, `imprint` |
+| `src/app/fonts/` | the two typefaces, pinned woff2 subsets, with their licences |
 | `content/<locale>/` | the Markdown behind `/docs` and the legal pages - see [content/README.md](./content/README.md) |
 | `messages/<locale>.json` | the UI strings; `src/i18n/locales.generated.ts` lists the locales that exist |
 | `src/components/` | header, footer, docs navigation, the phone frame, the appearance and locale switchers |
 | `src/site/` | content loading, the Markdown pipeline, SEO helpers, the screenshot manifest |
 | `public/screenshots/<lang>/<mode>-<accent>/` | written by `app/tool/screenshots.sh`; a missing file renders as a labelled placeholder |
+
+**The fonts are in the repository.** `src/app/fonts/` holds the upstream latin
+subsets of the two families, as woff2, with the Open Font Licence of each
+beside them: Barlow Condensed v13 in semibold and bold, and Manrope v20, one
+variable file that serves all three weights the layout asks for. They are the
+exact files Google Fonts serves a current browser, fetched once on 2026-09-24
+and pinned here, and the layout loads them with `next/font/local`.
+
+Pinned rather than fetched, because `next/font/google` downloads the faces
+while the site compiles: a runner that cannot reach `fonts.googleapis.com`
+fails the whole build rather than falling back, which is what happened in CI.
+Nothing about what the site renders changed - same families, same five
+weights, same latin subset the layout asked for before.
+
+To update them, request the CSS with a browser user agent, which is what makes
+Google answer with woff2 rather than TrueType:
+
+```
+curl -sH 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36' \
+  'https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Manrope:wght@400;500;700&display=swap'
+```
+
+then download the `latin` block's `src: url(...)` for each face. Only latin:
+the two characters the docs use outside it, an arrow and an almost-equal sign,
+are in no subset of either family and fall back to the system stack anyway.
 
 **The screenshots follow the site.** A reader on a light page sees the app in
 light, one on a dark page sees it dark: `src/site/appearance.ts` resolves the

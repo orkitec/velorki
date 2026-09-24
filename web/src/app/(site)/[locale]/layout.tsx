@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import type { AbstractIntlMessages } from 'next-intl';
 import type { Metadata, Viewport } from 'next';
-import { Barlow_Condensed, Manrope } from 'next/font/google';
+import localFont from 'next/font/local';
 import { notFound } from 'next/navigation';
 import { NextIntlClientProvider, hasLocale } from 'next-intl';
 import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
@@ -16,18 +16,37 @@ import { languageAlternates } from '@/site/paths';
 import { METADATA_BASE } from '@/site/seo';
 import '../../globals.css';
 
-// The app's two typefaces, self-hosted by next/font: Barlow Condensed for
+// The app's two typefaces, served from this repository: Barlow Condensed for
 // headlines and figures, Manrope for everything else (app/lib/app/theme.dart).
-const barlow = Barlow_Condensed({
-  subsets: ['latin'],
-  weight: ['600', '700'],
+//
+// The files under `src/app/fonts` are the upstream latin subsets, fetched
+// once and pinned there rather than downloaded while the site compiles: a
+// build that fetches its fonts fails outright on a runner that cannot reach
+// fonts.googleapis.com, which is what happened. See web/README.md.
+//
+// Only the weights below are loaded, as before, and the two glyphs the docs
+// use outside the latin subset were never in it either, so they fall back to
+// the system stack as they always have.
+const barlow = localFont({
+  src: [
+    { path: '../../fonts/BarlowCondensed-SemiBold-latin.woff2', weight: '600', style: 'normal' },
+    { path: '../../fonts/BarlowCondensed-Bold-latin.woff2', weight: '700', style: 'normal' },
+  ],
   display: 'swap',
   variable: '--font-barlow',
 });
 
-const manrope = Manrope({
-  subsets: ['latin'],
-  weight: ['400', '500', '700'],
+// One file three times: Manrope is a variable font, and upstream serves the
+// same latin file for each weight it is asked for. Naming the three weights
+// separately rather than a `400 700` range keeps what the site renders
+// exactly as it was — a class asking for 600 still snaps to a neighbour
+// instead of finding a real 600 instance.
+const manrope = localFont({
+  src: [
+    { path: '../../fonts/Manrope-latin.woff2', weight: '400', style: 'normal' },
+    { path: '../../fonts/Manrope-latin.woff2', weight: '500', style: 'normal' },
+    { path: '../../fonts/Manrope-latin.woff2', weight: '700', style: 'normal' },
+  ],
   display: 'swap',
   variable: '--font-manrope',
 });
