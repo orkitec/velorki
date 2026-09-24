@@ -13,7 +13,6 @@ import '../../../core/geo/ride_stats.dart';
 import '../domain/route_profile.dart';
 import '../domain/routing_options.dart';
 import '../domain/route_poi.dart';
-import '../domain/route_waypoints.dart';
 import '../domain/saved_route.dart';
 import '../domain/waypoint.dart';
 
@@ -57,6 +56,7 @@ class RouteRepository {
     required RouteResult route,
     required List<Waypoint> waypoints,
     required RoutingOptions options,
+    List<RoutePoi> pois = const <RoutePoi>[],
     String? id,
     String? description,
     RouteSource source = RouteSource.planned,
@@ -64,16 +64,10 @@ class RouteRepository {
     final now = _clock();
     final existing = id == null ? null : await _dao.routeById(id);
     // Saving over a route keeps what the planner does not carry: its
-    // description, and its points of interest except those the plan now
-    // holds as named waypoints, which the file would otherwise get twice.
+    // description, its link and who wrote the file it came from. The points
+    // of interest it does carry — the plan's points beside the route — are
+    // written as they stand, so one that was removed there goes here too.
     final kept = existing == null ? null : toDomain(existing);
-    final pois = <RoutePoi>[
-      for (final poi in kept?.pois ?? const <RoutePoi>[])
-        if (!waypoints.any(
-          (w) => w.hasDetails && haversineMeters(w.pos, poi.pos) <= poiOnTrackM,
-        ))
-          poi,
-    ];
     final geometryLine = route.geometry
         .map((p) => p.pos)
         .toList(growable: false);
@@ -234,6 +228,18 @@ class RouteRepository {
         ),
         updatedAt: _clock(),
       ),
+    );
+  }
+
+  /// Replaces the points of interest of the route with [id], everything
+  /// else as it is: what a change to a point beside the route needs, since
+  /// it leaves the geometry and the waypoints alone. An unknown id changes
+  /// nothing.
+  Future<void> setPois(String id, List<RoutePoi> pois) async {
+    final row = await _dao.routeById(id);
+    if (row == null) return;
+    await _dao.updateRoute(
+      row.copyWith(poisJson: Value(encodePois(pois)), updatedAt: _clock()),
     );
   }
 

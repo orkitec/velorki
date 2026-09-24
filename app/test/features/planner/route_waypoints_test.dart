@@ -141,6 +141,70 @@ void main() {
     expect(waypoints.last.kind, WaypointKind.end);
     expect(waypoints.last.poiKind, PoiKind.generic);
   });
+
+  group('the points beside a route', () {
+    test('besideTrackPois keeps what routeWaypoints leaves: together they '
+        'are every point, once each', () {
+      final onTrack = RoutePoi(pos: track[120], name: 'Tap');
+      final offTrack = RoutePoi(
+        // Well over a kilometre off the course.
+        pos: LatLng(track[120].lat, track[120].lon + 0.05),
+        name: 'Castle',
+      );
+      final pois = [onTrack, offTrack];
+
+      final waypoints = routeWaypoints(
+        track: track,
+        saved: _ends(track),
+        pois: pois,
+      );
+      expect(waypoints.map((w) => w.name), contains('Tap'));
+      expect(waypoints.map((w) => w.name), isNot(contains('Castle')));
+      expect(besideTrackPois(track: track, pois: pois), [offTrack]);
+    });
+
+    test('a track too short to shape keeps every point beside it, as '
+        'routeWaypoints keeps every waypoint', () {
+      final short = <LatLng>[track.first, track.last];
+      final pois = [RoutePoi(pos: track.first, name: 'Home')];
+      expect(besideTrackPois(track: short, pois: pois), pois);
+    });
+
+    test('viaIndexAlongTrack puts a point where the route comes past it, '
+        'never at an end', () {
+      final waypoints = <Waypoint>[
+        Waypoint(pos: track.first, kind: WaypointKind.start),
+        Waypoint(pos: track[100]),
+        Waypoint(pos: track.last, kind: WaypointKind.end),
+      ];
+      expect(
+        viaIndexAlongTrack(track: track, waypoints: waypoints, pos: track[50]),
+        1,
+      );
+      expect(
+        viaIndexAlongTrack(track: track, waypoints: waypoints, pos: track[150]),
+        2,
+      );
+      // Beyond the end it is still a via, the last one.
+      expect(
+        viaIndexAlongTrack(
+          track: track,
+          waypoints: waypoints,
+          pos: LatLng(track.last.lat + 0.01, track.last.lon),
+        ),
+        2,
+      );
+      // With nothing to sit between, it simply goes on the end.
+      expect(
+        viaIndexAlongTrack(
+          track: track,
+          waypoints: [waypoints.first],
+          pos: track[50],
+        ),
+        1,
+      );
+    });
+  });
 }
 
 int _indexNear(List<LatLng> track, LatLng pos) {

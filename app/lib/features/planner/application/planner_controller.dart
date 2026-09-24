@@ -114,6 +114,105 @@ class PlannerController extends _$PlannerController {
     _setWaypoints(next);
   }
 
+  /// Adds a point beside the route: a place the route is not routed
+  /// through, drawn with its kind's icon. The map's long press puts one
+  /// here.
+  void addPoi(
+    LatLng pos, {
+    String? name,
+    PoiKind kind = PoiKind.generic,
+    String? note,
+  }) {
+    _pushUndo();
+    _setPois([
+      ...state.pois,
+      RoutePoi(
+        pos: pos,
+        name: name?.trim() ?? '',
+        description: _orNull(note),
+        kind: kind,
+      ),
+    ]);
+  }
+
+  /// Gives the point beside the route at [index] a name, a kind and a note,
+  /// undoably. Nothing is routed again: a point the route does not pass
+  /// through cannot change it.
+  void setPoiDetails(
+    int index, {
+    String? name,
+    PoiKind poiKind = PoiKind.generic,
+    String? note,
+  }) {
+    if (index < 0 || index >= state.pois.length) return;
+    _pushUndo();
+    final next = [...state.pois];
+    final poi = next[index];
+    next[index] = RoutePoi(
+      pos: poi.pos,
+      name: name?.trim() ?? '',
+      description: _orNull(note),
+      kind: poiKind,
+    );
+    _setPois(next);
+  }
+
+  /// Removes the point beside the route at [index].
+  void removePoi(int index) {
+    if (index < 0 || index >= state.pois.length) return;
+    _pushUndo();
+    _setPois([...state.pois]..removeAt(index));
+  }
+
+  /// Takes the waypoint at [index] off the route and leaves it beside it:
+  /// the marker stays where it is as a place, and the route is drawn again
+  /// without it.
+  void movePointBeside(int index) {
+    if (index < 0 || index >= state.waypoints.length) return;
+    _pushUndo();
+    final point = state.waypoints[index];
+    final waypoints = [...state.waypoints]..removeAt(index);
+    _setWaypoints(
+      waypoints,
+      pois: [
+        ...state.pois,
+        RoutePoi(
+          pos: point.pos,
+          name: point.name ?? '',
+          description: point.note,
+          // A turn is a cue of the route, so a point taken off it is just a
+          // place.
+          kind: point.poiKind == PoiKind.turn ? PoiKind.generic : point.poiKind,
+        ),
+      ],
+    );
+  }
+
+  /// Puts the point beside the route at [index] on it: a via where the
+  /// route comes past it, so the ride now goes through the place.
+  void movePointOnRoute(int index) {
+    if (index < 0 || index >= state.pois.length) return;
+    _pushUndo();
+    final poi = state.pois[index];
+    final pois = [...state.pois]..removeAt(index);
+    final at = viaIndexAlongTrack(
+      track: state.result?.positions ?? const <LatLng>[],
+      waypoints: state.waypoints,
+      pos: poi.pos,
+    );
+    final waypoints = [...state.waypoints]
+      ..insert(
+        at.clamp(0, state.waypoints.length),
+        Waypoint(
+          pos: poi.pos,
+          name: poi.name.isEmpty ? null : poi.name,
+          poiKind: poi.kind,
+          note: poi.description,
+        ),
+      );
+    _setWaypoints(waypoints, pois: pois);
+  }
+
   /// Gives the waypoint at [index] a name, a kind and a note, undoably.
   /// Details change nothing about the road, so nothing is routed again.
   ///
@@ -133,9 +232,9 @@ class PlannerController extends _$PlannerController {
     _pushUndo();
     final next = [...state.waypoints];
     next[index] = next[index].copyWith(
-      name: name?.trim().isEmpty ?? true ? null : name!.trim(),
+      name: _orNull(name),
       poiKind: poiKind,
-      note: note?.trim().isEmpty ?? true ? null : note!.trim(),
+      note: _orNull(note),
       turn: poiKind == PoiKind.turn ? (turn ?? TurnKind.straight) : null,
     );
     state = state.copyWith(waypoints: next);
@@ -251,11 +350,12 @@ class PlannerController extends _$PlannerController {
     _setWaypoints(state.waypoints.reversed.toList());
   }
 
-  /// Throws the whole plan away, undoably.
+  /// Throws the whole plan away, undoably: the waypoints and the points
+  /// beside the route alike.
   void clear() {
-    if (state.waypoints.isEmpty) return;
+    if (!state.hasPoints) return;
     _pushUndo();
-    _setWaypoints(const <Waypoint>[]);
+    _setWaypoints(const <Waypoint>[], pois: const <RoutePoi>[]);
   }
 
   /// Takes back the last change, one step at a time.
@@ -270,7 +370,7 @@ class PlannerController extends _$PlannerController {
         returnVariant: previous.returnVariant,
       ),
     );
-    _setWaypoints(previous.waypoints);
+    _setWaypoints(previous.waypoints, pois: previous.pois);
   }
 
   /// Switches the routing profile, re-routes and keeps the pick for the next
@@ -383,8 +483,10 @@ class PlannerController extends _$PlannerController {
     _debounce?.cancel();
     _pending?.cancel('saved route loaded');
     final geometry = saved.geometry;
+    final (waypoints, pois) = _pointsOf(saved, geometry);
     state = PlannerState(
-      waypoints: normalizeWaypointKinds(_waypointsOf(saved, geometry)),
+      waypoints: normalizeWaypointKinds(waypoints),
+      pois: pois,
       options: saved.options,
       route: AsyncData<RouteResult?>(
         RouteResult(
@@ -405,7 +507,15 @@ class PlannerController extends _$PlannerController {
     );
   }
 
-  static List<Waypoint> _waypointsOf(
+  /// The plan a saved route opens as: the points the route is routed
+  /// through, and the points beside it.
+  ///
+  /// Every point of interest the route carries becomes one or the other.
+  /// A route that was planned here keeps its waypoints as they are and all
+  /// its points stay beside the route; an imported one has the points on
+  /// its track turned into waypoints by [routeWaypoints], and only the
+  /// rest stay beside it.
+  static (List<Waypoint>, List<RoutePoi>) _pointsOf(
     SavedRoute saved,
     List<TrackPoint> geometry,
   ) {
@@ -414,13 +524,17 @@ class PlannerController extends _$PlannerController {
         saved.source == RouteSource.loop ||
         waypoints.length > 2 ||
         geometry.length <= 2) {
-      return waypoints;
+      return (waypoints, saved.pois);
     }
-    return routeWaypoints(
-      track: geometry.map((p) => p.pos).toList(growable: false),
-      saved: waypoints,
-      pois: saved.pois,
-      turns: saved.turns,
+    final track = geometry.map((p) => p.pos).toList(growable: false);
+    return (
+      routeWaypoints(
+        track: track,
+        saved: waypoints,
+        pois: saved.pois,
+        turns: saved.turns,
+      ),
+      besideTrackPois(track: track, pois: saved.pois),
     );
   }
 
@@ -466,14 +580,36 @@ class PlannerController extends _$PlannerController {
     );
   }
 
-  void _setWaypoints(List<Waypoint> waypoints) {
+  void _setWaypoints(List<Waypoint> waypoints, {List<RoutePoi>? pois}) {
+    final empty = waypoints.isEmpty && (pois ?? state.pois).isEmpty;
     state = state.copyWith(
       waypoints: normalizeWaypointKinds(waypoints),
+      pois: pois ?? state.pois,
       alternatives: const <RouteResult>[],
-      savedRouteId: waypoints.isEmpty ? null : state.savedRouteId,
-      savedRouteName: waypoints.isEmpty ? null : state.savedRouteName,
+      savedRouteId: empty ? null : state.savedRouteId,
+      savedRouteName: empty ? null : state.savedRouteName,
     );
     _scheduleRoute();
+  }
+
+  /// The points beside the route, changed without routing again: the road
+  /// does not depend on them.
+  ///
+  /// As with a waypoint's details, a plan that is a saved route as stored
+  /// gets the change written to the library at once, so a place the rider
+  /// marked is not lost for want of a Save.
+  void _setPois(List<RoutePoi> pois) {
+    state = state.copyWith(pois: pois);
+    final id = state.savedRouteId;
+    if (id != null && state.routeIsSaved) {
+      unawaited(ref.read(routeRepositoryProvider).setPois(id, pois));
+    }
+  }
+
+  /// A field the rider left blank, or filled only with spaces, is none.
+  static String? _orNull(String? text) {
+    final trimmed = text?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
   }
 
   void _scheduleRoute() {

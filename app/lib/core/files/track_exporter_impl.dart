@@ -308,6 +308,7 @@ class ShareTrackExporter implements TrackExporter {
               PoiKind.food => TcxCoursePointType.food,
               PoiKind.danger => TcxCoursePointType.danger,
               PoiKind.summit => TcxCoursePointType.summit,
+              PoiKind.firstAid => TcxCoursePointType.firstAid,
               _ => TcxCoursePointType.generic,
             },
           ),

@@ -428,6 +428,7 @@ PoiKind tcxPoiKindOf(TcxCoursePointType type) => switch (type) {
   TcxCoursePointType.food => PoiKind.food,
   TcxCoursePointType.danger => PoiKind.danger,
   TcxCoursePointType.summit => PoiKind.summit,
+  TcxCoursePointType.firstAid => PoiKind.firstAid,
   _ => PoiKind.generic,
 };
 

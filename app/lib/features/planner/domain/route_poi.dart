@@ -4,8 +4,8 @@ import 'package:velorki_gpx/velorki_gpx.dart';
 
 /// What a point of interest is about, as far as the map and the voice care.
 ///
-/// Ride with GPS, Komoot and the rest each have their own long list of
-/// categories; on a handlebar four are enough to tell a hazard from a tap.
+/// Other planners each keep their own long list of categories; these are the
+/// ones a rider can tell apart on a handlebar at speed.
 enum PoiKind {
   /// Something to watch out for: a dismount zone, a rough patch, traffic.
   danger,
@@ -34,11 +34,39 @@ enum PoiKind {
   /// A bike shop or a repair stand.
   repair,
 
+  /// Help: a first-aid post, a pharmacy, a hospital.
+  firstAid,
+
+  /// A toilet.
+  toilet,
+
+  /// A place to sleep outside: a campsite, a pitch.
+  campsite,
+
+  /// Somewhere to leave a car or lock a bike.
+  parking,
+
+  /// Public transport: a station, a stop, a ferry.
+  transport,
+
   /// A turn of the cue sheet, with its direction on the waypoint.
   turn;
 
+  /// The word an export writes as a waypoint's `type`, and the one the
+  /// import reads back: the enum's own name where that is already the word
+  /// other planners use, a plainer one where it is not.
+  String get gpxType => switch (this) {
+    PoiKind.firstAid => 'first_aid',
+    PoiKind.toilet => 'restroom',
+    PoiKind.campsite => 'campground',
+    PoiKind.parking => 'parking',
+    PoiKind.transport => 'transit',
+    _ => name,
+  };
+
   /// The kind for the free-form `type`, `sym` and `cmt` strings a GPX
-  /// waypoint comes with, as Ride with GPS and Garmin write them.
+  /// waypoint comes with, in the words the planners and the head units of
+  /// the world write them.
   static PoiKind fromGpx({String? type, String? symbol, String? comment}) {
     final words = <String?>[
       type,
@@ -50,6 +78,17 @@ enum PoiKind {
         words.contains('hazard') ||
         words.contains('warning')) {
       return PoiKind.danger;
+    }
+    // Before anything that looks for a station: an aid station is help, not
+    // a platform.
+    if (words.contains('first aid') ||
+        words.contains('first_aid') ||
+        words.contains('firstaid') ||
+        words.contains('aid station') ||
+        words.contains('aid_station') ||
+        words.contains('pharmacy') ||
+        words.contains('hospital')) {
+      return PoiKind.firstAid;
     }
     if (words.contains('summit') ||
         words.contains('peak') ||
@@ -68,6 +107,9 @@ enum PoiKind {
         words.contains('lodge')) {
       return PoiKind.shelter;
     }
+    if (words.contains('camp')) {
+      return PoiKind.campsite;
+    }
     if (words.contains('repair') ||
         words.contains('mechanic') ||
         words.contains('workshop')) {
@@ -77,6 +119,16 @@ enum PoiKind {
         words.contains('store') ||
         words.contains('supermarket')) {
       return PoiKind.shop;
+    }
+    if (words.contains('parking') || words.contains('car park')) {
+      return PoiKind.parking;
+    }
+    // Before water: a water closet is the other thing.
+    if (words.contains('toilet') ||
+        words.contains('restroom') ||
+        words.contains('rest room') ||
+        words.contains('lavatory')) {
+      return PoiKind.toilet;
     }
     if (words.contains('water') ||
         words.contains('drink') ||
@@ -91,20 +143,30 @@ enum PoiKind {
         words.contains('coffee')) {
       return PoiKind.food;
     }
+    // Last: a water station is water, a food stop is food.
+    if (words.contains('station') ||
+        words.contains('ferry') ||
+        words.contains('train') ||
+        words.contains('bus') ||
+        words.contains('tram') ||
+        words.contains('metro') ||
+        words.contains('transit')) {
+      return PoiKind.transport;
+    }
     return PoiKind.generic;
   }
 }
 
-/// The points as GPX `<wpt>` elements, the kind written back as the `type`
-/// Ride with GPS spells and the `sym` Garmin does, so the file round-trips
-/// through either.
+/// The points as GPX `<wpt>` elements, the kind written back both as a
+/// `type` word and as one of the symbol names a head unit knows, so the
+/// file round-trips through either.
 List<GpxWaypoint> gpxWaypoints(List<RoutePoi> pois) => <GpxWaypoint>[
   for (final poi in pois)
     GpxWaypoint(
       poi.pos,
       name: poi.name,
       description: poi.description,
-      type: poi.kind.name,
+      type: poi.kind.gpxType,
       symbol: switch (poi.kind) {
         PoiKind.danger => 'Danger Area',
         PoiKind.water => 'Drinking Water',
@@ -115,6 +177,11 @@ List<GpxWaypoint> gpxWaypoints(List<RoutePoi> pois) => <GpxWaypoint>[
         PoiKind.shelter => 'Lodge',
         PoiKind.shop => 'Shopping Center',
         PoiKind.repair => 'Bike Trail',
+        PoiKind.firstAid => 'First Aid',
+        PoiKind.toilet => 'Restroom',
+        PoiKind.campsite => 'Campground',
+        PoiKind.parking => 'Parking Area',
+        PoiKind.transport => 'Flag, Blue',
         PoiKind.turn => 'Flag, Blue',
       },
     ),

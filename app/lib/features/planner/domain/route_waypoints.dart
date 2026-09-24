@@ -100,19 +100,40 @@ Waypoint _named(Waypoint point, RoutePoi poi) => point.copyWith(
   note: poi.description?.isEmpty ?? true ? point.note : poi.description,
 );
 
-class _OnTrack {
-  const _OnTrack(this.distanceM, this.alongM, this.snapped);
+/// Where a point falls on a track: how far off it is, how far along the
+/// track that is, and the point of the track it maps to.
+class TrackProjection {
+  /// Creates a projection.
+  const TrackProjection(this.distanceM, this.alongM, this.snapped);
 
+  /// How far the point lies off the track.
   final double distanceM;
+
+  /// How far along the track the nearest place is.
   final double alongM;
+
+  /// That place on the track.
   final LatLng snapped;
 }
 
 /// Where [point] is nearest to [track]: how far off, how far along, and
 /// the point of the track it maps to. Flat-earth segment maths, exact
 /// enough for the tens of metres that matter here.
-_OnTrack _project(List<LatLng> track, LatLng point, List<double> cumulative) {
-  var best = const _OnTrack(double.infinity, 0, LatLng(0, 0));
+///
+/// [cumulative] is [cumulativeDistancesMeters] of the same track, computed
+/// here when the caller has none to hand.
+TrackProjection projectOnTrack(
+  List<LatLng> track,
+  LatLng point, {
+  List<double>? cumulative,
+}) => _project(track, point, cumulative ?? cumulativeDistancesMeters(track));
+
+TrackProjection _project(
+  List<LatLng> track,
+  LatLng point,
+  List<double> cumulative,
+) {
+  var best = const TrackProjection(double.infinity, 0, LatLng(0, 0));
   for (var i = 0; i < track.length - 1; i++) {
     final a = track[i];
     final b = track[i + 1];
@@ -128,7 +149,7 @@ _OnTrack _project(List<LatLng> track, LatLng point, List<double> cumulative) {
     final snapped = LatLng(a.lat + t * aby, a.lon + t * abx / kx);
     final distance = haversineMeters(point, snapped);
     if (distance < best.distanceM) {
-      best = _OnTrack(
+      best = TrackProjection(
         distance,
         cumulative[i] + t * (cumulative[i + 1] - cumulative[i]),
         snapped,
@@ -136,4 +157,52 @@ _OnTrack _project(List<LatLng> track, LatLng point, List<double> cumulative) {
     }
   }
   return best;
+}
+
+/// The points of interest of [pois] that do not lie on [track]: what a plan
+/// carries as points beside the route, since routing through one would pull
+/// the route off its course to visit it.
+///
+/// The mirror image of what [routeWaypoints] takes: together the two sets
+/// are every point the file came with, once each.
+List<RoutePoi> besideTrackPois({
+  required List<LatLng> track,
+  required List<RoutePoi> pois,
+  double onTrackM = poiOnTrackM,
+}) {
+  if (pois.isEmpty) return const <RoutePoi>[];
+  if (track.length <= 2) return pois;
+  final cumulative = cumulativeDistancesMeters(track);
+  return <RoutePoi>[
+    for (final poi in pois)
+      if (projectOnTrack(track, poi.pos, cumulative: cumulative).distanceM >
+          onTrackM)
+        poi,
+  ];
+}
+
+/// Where a point beside the route belongs in [waypoints] once the route is
+/// routed through it: before the first waypoint that lies further along
+/// [track] than it does.
+///
+/// Always a via: a point picked up beside the route neither starts nor ends
+/// the ride, whatever end of the track it sits near.
+int viaIndexAlongTrack({
+  required List<LatLng> track,
+  required List<Waypoint> waypoints,
+  required LatLng pos,
+}) {
+  if (waypoints.length < 2) return waypoints.length;
+  if (track.length < 2) return waypoints.length - 1;
+  final cumulative = cumulativeDistancesMeters(track);
+  final along = projectOnTrack(track, pos, cumulative: cumulative).alongM;
+  for (var i = 1; i < waypoints.length; i++) {
+    final at = projectOnTrack(
+      track,
+      waypoints[i].pos,
+      cumulative: cumulative,
+    ).alongM;
+    if (at >= along) return i;
+  }
+  return waypoints.length - 1;
 }

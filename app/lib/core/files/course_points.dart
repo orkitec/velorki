@@ -36,6 +36,9 @@ List<FitCoursePoint> courseCuePoints({
           PoiKind.food => FitCoursePointType.food,
           PoiKind.danger => FitCoursePointType.danger,
           PoiKind.summit => FitCoursePointType.summit,
+          PoiKind.firstAid => FitCoursePointType.firstAid,
+          PoiKind.toilet => FitCoursePointType.toilet,
+          PoiKind.campsite => FitCoursePointType.campsite,
           _ => FitCoursePointType.generic,
         },
       ),
@@ -82,6 +85,9 @@ PoiKind poiKindOf(FitCoursePointType type) => switch (type) {
   FitCoursePointType.food => PoiKind.food,
   FitCoursePointType.danger => PoiKind.danger,
   FitCoursePointType.summit => PoiKind.summit,
+  FitCoursePointType.firstAid => PoiKind.firstAid,
+  FitCoursePointType.toilet => PoiKind.toilet,
+  FitCoursePointType.campsite => PoiKind.campsite,
   _ => PoiKind.generic,
 };
 

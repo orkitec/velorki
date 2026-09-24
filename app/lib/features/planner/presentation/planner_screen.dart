@@ -261,10 +261,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     super.dispose();
   }
 
-  /// A tapped marker: one sheet for the point's name, kind and note, its
-  /// place in the order, and Remove. Swaps are applied while the sheet is
-  /// open; name, kind and note when it closes with Done, as one undo step,
-  /// and only when something about them changed.
+  /// A tapped marker on the route: one sheet for the point's name, kind and
+  /// note, its place in the order, the switch to the side of the route, and
+  /// Remove. Swaps are applied while the sheet is open; the rest when it
+  /// closes with Done, and only what changed.
   Future<void> _editWaypoint(int index) async {
     final state = ref.read(plannerControllerProvider);
     if (index < 0 || index >= state.waypoints.length) return;
@@ -276,18 +276,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       note: point.note,
       turn: point.turn,
     );
-    final result = await showModalBottomSheet<WaypointEditResult>(
-      context: context,
-      useRootNavigator: true,
-      isScrollControlled: true,
-      useSafeArea: true,
-      showDragHandle: true,
-      builder: (context) => WaypointEditSheet(
-        index: index,
-        count: state.waypoints.length,
-        initial: initial,
-        onSwap: planner.swapWaypoint,
-      ),
+    final result = await _showPointSheet(
+      index: index,
+      count: state.waypoints.length,
+      initial: initial,
+      onSwap: planner.swapWaypoint,
     );
     if (!mounted || result == null) return;
     switch (result) {
@@ -295,15 +288,76 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
         planner.removeWaypoint(index);
       case WaypointEditDone(:final index, :final details):
         if (details == initial) return;
-        planner.setWaypointDetails(
-          index,
-          name: details.name,
-          poiKind: details.poiKind,
-          note: details.note,
-          turn: details.turn,
-        );
+        if (!details.sameDetailsAs(initial)) {
+          planner.setWaypointDetails(
+            index,
+            name: details.name,
+            poiKind: details.poiKind,
+            note: details.note,
+            turn: details.turn,
+          );
+        }
+        // The details are on the point before it moves, so the place that
+        // stays beside the route carries what the rider just typed.
+        if (details.beside) planner.movePointBeside(index);
     }
   }
+
+  /// A tapped place beside the route: the same sheet, opened on its side of
+  /// the switch. Flipping it back routes the ride through the place.
+  Future<void> _editPoi(int index) async {
+    final state = ref.read(plannerControllerProvider);
+    if (index < 0 || index >= state.pois.length) return;
+    final poi = state.pois[index];
+    final planner = ref.read(plannerControllerProvider.notifier);
+    final initial = WaypointDetails(
+      name: poi.name.isEmpty ? null : poi.name,
+      poiKind: poi.kind,
+      note: poi.description,
+      beside: true,
+    );
+    final result = await _showPointSheet(
+      index: index,
+      count: state.pois.length,
+      initial: initial,
+      onSwap: (_, _) {},
+    );
+    if (!mounted || result == null) return;
+    switch (result) {
+      case WaypointEditRemove(:final index):
+        planner.removePoi(index);
+      case WaypointEditDone(:final index, :final details):
+        if (details == initial) return;
+        if (!details.sameDetailsAs(initial)) {
+          planner.setPoiDetails(
+            index,
+            name: details.name,
+            poiKind: details.poiKind,
+            note: details.note,
+          );
+        }
+        if (!details.beside) planner.movePointOnRoute(index);
+    }
+  }
+
+  Future<WaypointEditResult?> _showPointSheet({
+    required int index,
+    required int count,
+    required WaypointDetails initial,
+    required void Function(int index, int offset) onSwap,
+  }) => showModalBottomSheet<WaypointEditResult>(
+    context: context,
+    useRootNavigator: true,
+    isScrollControlled: true,
+    useSafeArea: true,
+    showDragHandle: true,
+    builder: (context) => WaypointEditSheet(
+      index: index,
+      count: count,
+      initial: initial,
+      onSwap: onSwap,
+    ),
+  );
 
   /// The shared map came, went, or was replaced after a style reload: the
   /// binding to the old one is worthless, and a new map is bare.
@@ -357,6 +411,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       );
       binding.onWaypointTap = (index) {
         unawaited(_editWaypoint(index));
+      };
+      binding.onPoiTap = (index) {
+        unawaited(_editPoi(index));
       };
       _binding = binding;
     }
@@ -526,6 +583,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
           name: name,
           route: route,
           waypoints: state.waypoints,
+          pois: state.pois,
           options: state.options,
           id: state.savedRouteId,
         );
@@ -986,7 +1044,7 @@ class _PlannerActions extends ConsumerWidget {
       LabeledIconButton(
         icon: Icons.delete_outline_rounded,
         label: l10n.plannerClear,
-        onPressed: state.isEmpty ? null : planner.clear,
+        onPressed: state.hasPoints ? planner.clear : null,
       ),
       LabeledIconButton(
         icon: Icons.alt_route_rounded,

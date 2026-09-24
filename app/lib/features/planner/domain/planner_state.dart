@@ -3,6 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import 'route_poi.dart';
 import 'routing_options.dart';
 import 'waypoint.dart';
 
@@ -19,6 +20,7 @@ class PlannerEdit {
   /// Captures one state of the plan.
   const PlannerEdit({
     required this.waypoints,
+    required this.pois,
     required this.differentWayBack,
     required this.returnVariant,
   });
@@ -26,12 +28,16 @@ class PlannerEdit {
   /// Snapshots the loop-shaping part of [state].
   factory PlannerEdit.of(PlannerState state) => PlannerEdit(
     waypoints: state.waypoints,
+    pois: state.pois,
     differentWayBack: state.options.differentWayBack,
     returnVariant: state.options.returnVariant,
   );
 
   /// The waypoints as they were.
   final List<Waypoint> waypoints;
+
+  /// The points beside the route as they were.
+  final List<RoutePoi> pois;
 
   /// [RoutingOptions.differentWayBack] as it was.
   final bool differentWayBack;
@@ -44,11 +50,13 @@ class PlannerEdit {
       identical(this, other) ||
       other is PlannerEdit &&
           other.waypoints == waypoints &&
+          other.pois == pois &&
           other.differentWayBack == differentWayBack &&
           other.returnVariant == returnVariant;
 
   @override
-  int get hashCode => Object.hash(waypoints, differentWayBack, returnVariant);
+  int get hashCode =>
+      Object.hash(waypoints, pois, differentWayBack, returnVariant);
 }
 
 /// Everything the Plan tab shows.
@@ -57,6 +65,11 @@ abstract class PlannerState with _$PlannerState {
   const factory PlannerState({
     /// The waypoints in ride order; the first is the start, the last the end.
     @Default(<Waypoint>[]) List<Waypoint> waypoints,
+
+    /// The plan's points beside the route: places the route is not routed
+    /// through, drawn with their kind's icon and saved as the route's own
+    /// points of interest.
+    @Default(<RoutePoi>[]) List<RoutePoi> pois,
 
     /// Profile and selected alternative.
     @Default(RoutingOptions()) RoutingOptions options,
@@ -146,6 +159,10 @@ abstract class PlannerState with _$PlannerState {
   bool get canReverse => waypoints.length >= 2;
 
   bool get isEmpty => waypoints.isEmpty;
+
+  /// Whether the plan holds anything at all: a waypoint, or a point beside
+  /// the route. What Clear has to throw away.
+  bool get hasPoints => waypoints.isNotEmpty || pois.isNotEmpty;
 
   /// Whether enough waypoints are set to ask for a route.
   bool get isRoutable => waypoints.length >= 2;

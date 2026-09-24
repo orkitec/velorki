@@ -114,10 +114,12 @@ void main() {
     expect(h.map.trackSegments, isEmpty);
     final cleared = h.map.calls.where((c) => c.method == 'setTrackLine').last;
     expect(cleared.arguments.single, isEmpty);
-    expect(h.map.onPoiTapped, isNull);
+    // The ride's places are off the map too.
+    expect(h.map.pois, isEmpty);
 
-    // Plan's own layers went on unhindered.
+    // Plan's own layers went on unhindered, its own handlers with them.
     expect(h.map.onTap, isNotNull);
+    expect(h.map.onPoiTapped, isNotNull);
 
     await _tapTab(tester, l10n.tabLibrary);
     expect(find.byType(RideDetailScreen), findsOneWidget);

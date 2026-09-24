@@ -32,7 +32,9 @@ enum FitCoursePointType {
   sharpRight(22),
   uTurn(23),
   segmentStart(24),
-  segmentEnd(25);
+  segmentEnd(25),
+  campsite(27),
+  toilet(39);
 
   const FitCoursePointType(this.fitValue);
 

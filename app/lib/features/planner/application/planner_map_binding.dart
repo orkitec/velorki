@@ -7,6 +7,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 import '../../map/domain/map_controller.dart';
 import '../domain/planner_state.dart';
 import '../domain/waypoint.dart';
+import '../presentation/poi_markers.dart';
 import 'planner_controller.dart';
 
 /// Id of the main route line on the map.
@@ -57,10 +58,15 @@ class PlannerMapBinding {
     map.onLongPress = (pos) => planner.insertWaypoint(pos);
     map.onWaypointDragged = planner.moveWaypoint;
     map.onWaypointTapped = (index) => onWaypointTap?.call(index);
+    map.onPoiTapped = (index) => onPoiTap?.call(index);
   }
 
   /// What the screen does when a marker is tapped; `null` does nothing.
   void Function(int index)? onWaypointTap;
+
+  /// What the screen does when a place beside the route is tapped; `null`
+  /// does nothing.
+  void Function(int index)? onPoiTap;
 
   /// Unsubscribes, so a disposed screen cannot move waypoints any more.
   void detach() {
@@ -70,6 +76,7 @@ class PlannerMapBinding {
     map.onLongPress = null;
     map.onWaypointDragged = null;
     map.onWaypointTapped = null;
+    map.onPoiTapped = null;
   }
 
   /// Takes everything this binding drew off the map — the markers and every
@@ -79,6 +86,7 @@ class PlannerMapBinding {
   /// its fit when the tab comes back.
   Future<void> clear() async {
     await map.setWaypoints(const <MapWaypoint>[]);
+    await map.setPois(const <MapPoi>[]);
     for (final id in _lineIds) {
       await map.removeRouteLine(id);
     }
@@ -96,6 +104,9 @@ class PlannerMapBinding {
         ? state.waypoints.sublist(0, state.waypoints.length - 1)
         : state.waypoints;
     await map.setWaypoints(shown.map(_marker).toList(growable: false));
+    // The plan's places, each with its kind's icon: not points the route is
+    // routed through, so they are drawn as themselves.
+    await map.setPois(poiMarkers(state.pois));
 
     final result = state.result;
     final positions = result?.positions ?? const <LatLng>[];

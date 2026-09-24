@@ -164,8 +164,8 @@ void main() {
     expect(await repository.routeById('nope'), isNull);
   });
 
-  test('saving over a route keeps its description and the points of '
-      'interest the plan does not hold as named waypoints', () async {
+  test('saving over a route keeps its description and writes the points '
+      'beside the route the plan now holds', () async {
     final route = syntheticRoute();
     final imported = await repository.saveImportedRoute(
       name: 'From a file',
@@ -190,12 +190,49 @@ void main() {
         _waypoints[2],
       ],
       options: const RoutingOptions(),
+      pois: [const RoutePoi(pos: LatLng(48.5, 11.5), name: 'Castle')],
       id: imported.id,
     );
     final loaded = await repository.routeById(saved.id);
     expect(loaded!.description, 'Along the river');
     expect(loaded.pois.map((p) => p.name), ['Castle']);
     expect(loaded.waypoints[1].name, 'Tap');
+
+    // The plan owns the list now: a place taken off it goes from the
+    // library too.
+    await repository.savePlannedRoute(
+      name: 'From a file',
+      route: route,
+      waypoints: _waypoints,
+      options: const RoutingOptions(),
+      id: imported.id,
+    );
+    expect((await repository.routeById(saved.id))!.pois, isEmpty);
+  });
+
+  test('setPois writes the points beside the route on their own', () async {
+    final saved = await repository.savePlannedRoute(
+      name: 'Planned',
+      route: syntheticRoute(),
+      waypoints: _waypoints,
+      options: const RoutingOptions(),
+    );
+    expect((await repository.routeById(saved.id))!.pois, isEmpty);
+
+    const pois = <RoutePoi>[
+      RoutePoi(pos: LatLng(48.1, 11.1), name: 'Tap', kind: PoiKind.water),
+    ];
+    await repository.setPois(saved.id, pois);
+    final loaded = await repository.routeById(saved.id);
+    expect(loaded!.pois, pois);
+    expect(
+      loaded.waypoints,
+      hasLength(_waypoints.length),
+      reason: 'the waypoints and the geometry are left alone',
+    );
+    // An unknown id is not an error and writes nothing.
+    await repository.setPois('nope', pois);
+    expect(await repository.routeById('nope'), isNull);
   });
 
   test('watchRoutes emits the library, newest first', () async {

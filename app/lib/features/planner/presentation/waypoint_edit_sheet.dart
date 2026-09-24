@@ -8,7 +8,8 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../navigation/presentation/turn_phrases.dart';
 import '../domain/route_poi.dart';
 
-/// What a rider can say about a waypoint: a name, a kind and a note.
+/// What a rider can say about a point: a name, a kind, a note, and which
+/// side of the route it is on.
 class WaypointDetails {
   /// Creates the details.
   const WaypointDetails({
@@ -16,6 +17,7 @@ class WaypointDetails {
     this.poiKind = PoiKind.generic,
     this.note,
     this.turn,
+    this.beside = false,
   });
 
   /// The manoeuvre, for a point of the turn kind.
@@ -30,16 +32,25 @@ class WaypointDetails {
   /// The note, or `null` for none.
   final String? note;
 
-  @override
-  bool operator ==(Object other) =>
-      other is WaypointDetails &&
+  /// Whether the point sits beside the route rather than on it: a place the
+  /// ride passes, not one it is routed through.
+  final bool beside;
+
+  /// Whether anything but the side of the route differs from [other].
+  bool sameDetailsAs(WaypointDetails other) =>
       other.name == name &&
       other.poiKind == poiKind &&
       other.note == note &&
       other.turn == turn;
 
   @override
-  int get hashCode => Object.hash(name, poiKind, note, turn);
+  bool operator ==(Object other) =>
+      other is WaypointDetails &&
+      sameDetailsAs(other) &&
+      other.beside == beside;
+
+  @override
+  int get hashCode => Object.hash(name, poiKind, note, turn, beside);
 }
 
 /// How the edit sheet closed: with details to apply, or with the point to
@@ -67,13 +78,18 @@ class WaypointEditRemove extends WaypointEditResult {
   const WaypointEditRemove(super.index);
 }
 
-/// The one sheet a tapped marker opens: name, kind and note above the row
-/// that moves the point in the order, Remove, and Done.
+/// The one sheet a tapped marker opens: the switch between a point on the
+/// route and one beside it, name, kind and note above the row that moves
+/// the point in the order, Remove, and Done.
 ///
-/// Name, kind and note are handed back in the sheet's result when it closes
-/// with Done; earlier and later go through [onSwap] at once and leave the
-/// sheet open, so a point can be moved and named in one visit. A pull down
-/// or a tap outside cancels the typing, the swaps stay.
+/// The switch, name, kind and note are handed back in the sheet's result
+/// when it closes with Done; earlier and later go through [onSwap] at once
+/// and leave the sheet open, so a point can be moved and named in one
+/// visit. A pull down or a tap outside cancels the typing, the swaps stay.
+///
+/// A point beside the route has no place in the order, so it gets neither
+/// the earlier and later row nor the turn kind: a turn is a cue of the
+/// route, and this point is not on it.
 class WaypointEditSheet extends StatefulWidget {
   /// Creates the sheet for the point at [index] of [count].
   const WaypointEditSheet({
@@ -104,10 +120,13 @@ class WaypointEditSheet extends StatefulWidget {
 class _WaypointEditSheetState extends State<WaypointEditSheet> {
   late int _index = widget.index;
 
-  /// The number the name field opens with when the point has no name: a
-  /// field that shows what the marker shows, rather than an empty one under
-  /// a "Point 6" title.
-  late final String _number = '${widget.index + 1}';
+  /// The number the name field opens with when a point on the route has no
+  /// name: a field that shows what the marker shows, rather than an empty
+  /// one under a "Point 6" title. A point beside the route wears no number,
+  /// so its field opens empty.
+  late final String _number = widget.initial.beside
+      ? ''
+      : '${widget.index + 1}';
   late final TextEditingController _name = TextEditingController(
     text: widget.initial.name ?? _number,
   );
@@ -116,6 +135,23 @@ class _WaypointEditSheetState extends State<WaypointEditSheet> {
   );
   late PoiKind _kind = widget.initial.poiKind;
   late TurnKind _turn = widget.initial.turn ?? TurnKind.left;
+  late bool _beside = widget.initial.beside;
+
+  /// The kinds the grid offers: every one for a point on the route, all but
+  /// the turn for one beside it.
+  List<PoiKind> get _kinds => _beside
+      ? <PoiKind>[
+          for (final kind in PoiKind.values)
+            if (kind != PoiKind.turn) kind,
+        ]
+      : PoiKind.values;
+
+  /// Flips the point between the route and the side of it. A turn cannot
+  /// stand beside the route, so it becomes a plain place.
+  void _setBeside(bool beside) => setState(() {
+    _beside = beside;
+    if (beside && _kind == PoiKind.turn) _kind = PoiKind.generic;
+  });
 
   @override
   void dispose() {
@@ -129,7 +165,9 @@ class _WaypointEditSheetState extends State<WaypointEditSheet> {
   /// swap, so leaving the field alone names nothing.
   String? _nameOrNone() {
     final text = _name.text.trim();
-    if (text.isEmpty || text == _number || text == '${_index + 1}') {
+    if (text.isEmpty ||
+        (_number.isNotEmpty && text == _number) ||
+        text == '${_index + 1}') {
       return null;
     }
     return text;
@@ -143,6 +181,7 @@ class _WaypointEditSheetState extends State<WaypointEditSheet> {
         poiKind: _kind,
         note: _note.text.trim().isEmpty ? null : _note.text.trim(),
         turn: _kind == PoiKind.turn ? _turn : null,
+        beside: _beside,
       ),
     ),
   );
@@ -165,6 +204,10 @@ class _WaypointEditSheetState extends State<WaypointEditSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Which side of the route the point is on, first: it decides
+            // what the rest of the sheet offers.
+            _OnOrBesideSwitch(beside: _beside, onChanged: _setBeside),
+            const SizedBox(height: 16),
             TextField(
               controller: _name,
               textCapitalization: TextCapitalization.sentences,
@@ -175,6 +218,7 @@ class _WaypointEditSheetState extends State<WaypointEditSheet> {
             const SizedBox(height: 8),
             PoiKindTiles(
               selected: _kind,
+              kinds: _kinds,
               onSelected: (kind) => setState(() => _kind = kind),
             ),
             // A turn says which way: the manoeuvre the cue sheet shows and
@@ -201,28 +245,31 @@ class _WaypointEditSheetState extends State<WaypointEditSheet> {
             ),
             const SizedBox(height: 16),
             // Reordering by one place at a time: swap with a neighbour.
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _index > 0 ? () => _swap(-1) : null,
-                    icon: const Icon(Icons.arrow_upward_rounded),
-                    label: Text(l10n.plannerVisitEarlier),
+            // Only a point on the route has an order to be moved in.
+            if (!_beside) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _index > 0 ? () => _swap(-1) : null,
+                      icon: const Icon(Icons.arrow_upward_rounded),
+                      label: Text(l10n.plannerVisitEarlier),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _index < widget.count - 1
-                        ? () => _swap(1)
-                        : null,
-                    icon: const Icon(Icons.arrow_downward_rounded),
-                    label: Text(l10n.plannerVisitLater),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _index < widget.count - 1
+                          ? () => _swap(1)
+                          : null,
+                      icon: const Icon(Icons.arrow_downward_rounded),
+                      label: Text(l10n.plannerVisitLater),
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
             FilledButton.tonalIcon(
               onPressed: () =>
                   Navigator.of(context).pop(WaypointEditRemove(_index)),
@@ -249,18 +296,22 @@ class _WaypointEditSheetState extends State<WaypointEditSheet> {
 ///
 /// Tiles rather than a segmented button: icon-beside-label segments did not
 /// fit a phone's width, and every label broke onto a second line. A grid
-/// rather than a row that scrolls: ten kinds are two rows of five on a
-/// phone, all in view at once, three rows of four on a narrow sheet.
+/// rather than a row that scrolls: fifteen kinds are three rows of five on
+/// a phone, all in view at once, four rows of four on a narrow sheet.
 class PoiKindTiles extends StatelessWidget {
   /// Creates the tiles with [selected] filled.
   const PoiKindTiles({
     required this.selected,
     required this.onSelected,
+    this.kinds = PoiKind.values,
     super.key,
   });
 
   /// The kind chosen now.
   final PoiKind selected;
+
+  /// The kinds offered, in the order they are laid out.
+  final List<PoiKind> kinds;
 
   /// Called with the kind a tap chose.
   final ValueChanged<PoiKind> onSelected;
@@ -276,7 +327,6 @@ class PoiKindTiles extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final perRow = constraints.maxWidth < narrowWidth ? 4 : 5;
-      final kinds = PoiKind.values;
       final rows = <List<PoiKind?>>[
         for (var i = 0; i < kinds.length; i += perRow)
           <PoiKind?>[
@@ -447,5 +497,49 @@ String poiKindLabel(AppLocalizations l10n, PoiKind kind) => switch (kind) {
   PoiKind.shelter => l10n.poiKindShelter,
   PoiKind.shop => l10n.poiKindShop,
   PoiKind.repair => l10n.poiKindRepair,
+  PoiKind.firstAid => l10n.poiKindFirstAid,
+  PoiKind.toilet => l10n.poiKindToilet,
+  PoiKind.campsite => l10n.poiKindCampsite,
+  PoiKind.parking => l10n.poiKindParking,
+  PoiKind.transport => l10n.poiKindTransport,
   PoiKind.turn => l10n.poiKindTurn,
 };
+
+/// The two-way switch at the top of the sheet: the point is on the route,
+/// or it is beside it.
+class _OnOrBesideSwitch extends StatelessWidget {
+  const _OnOrBesideSwitch({required this.beside, required this.onChanged});
+
+  final bool beside;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return SegmentedButton<bool>(
+      showSelectedIcon: false,
+      segments: <ButtonSegment<bool>>[
+        ButtonSegment<bool>(
+          value: false,
+          icon: const Icon(Icons.route_outlined, size: 18),
+          label: Text(
+            l10n.plannerPointOnRoute,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        ButtonSegment<bool>(
+          value: true,
+          icon: const Icon(Icons.place_outlined, size: 18),
+          label: Text(
+            l10n.plannerPointBeside,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+      selected: <bool>{beside},
+      onSelectionChanged: (selection) => onChanged(selection.first),
+    );
+  }
+}

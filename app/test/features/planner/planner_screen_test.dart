@@ -384,6 +384,98 @@ void main() {
     expect(h.map.waypoints.map((w) => w.label), [null, null]);
   });
 
+  testWidgets('a point flips to the side of the route and back, and the map '
+      'draws it as a place', (tester) async {
+    final h = await pumpScreen(tester, const PlannerScreen());
+    await _plotRoute(tester, h);
+    expect(h.map.waypoints, hasLength(2));
+    expect(h.map.pois, isEmpty);
+
+    h.map.onWaypointTapped!(1);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, l10n.plannerPointName),
+      'Castle',
+    );
+    await tester.tap(find.text(l10n.plannerPointBeside));
+    await tester.pumpAndSettle();
+    // A place has no order to be moved in.
+    expect(find.text(l10n.plannerVisitEarlier), findsNothing);
+    await tester.tap(find.widgetWithText(FilledButton, l10n.commonDone));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+
+    expect(h.map.waypoints, hasLength(1));
+    expect(h.map.pois.single.name, 'Castle');
+    expect(h.map.pois.single.position, _b);
+
+    // Tapped again, it goes back on the route.
+    h.map.onPoiTapped!(0);
+    await tester.pumpAndSettle();
+    expect(_nameField(tester).controller!.text, 'Castle');
+    await tester.tap(find.text(l10n.plannerPointOnRoute));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, l10n.commonDone));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+
+    expect(h.map.pois, isEmpty);
+    expect(h.map.waypoints, hasLength(2));
+    expect(h.map.waypoints.last.label, 'Castle');
+  });
+
+  testWidgets('the sheet for a place beside the route opens on its side of '
+      'the switch, with an empty name and no turn to choose', (tester) async {
+    await tester.pumpWidget(
+      testApp(
+        home: Scaffold(
+          body: WaypointEditSheet(
+            index: 0,
+            count: 1,
+            initial: const WaypointDetails(beside: true),
+            onSwap: (_, _) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(_nameField(tester).controller!.text, '');
+    expect(find.text(l10n.poiKindTurn), findsNothing);
+    expect(find.text(l10n.poiKindGeneric), findsOneWidget);
+    expect(find.text(l10n.plannerVisitEarlier), findsNothing);
+    expect(find.text(l10n.plannerVisitLater), findsNothing);
+    expect(find.text(l10n.plannerRemovePoint), findsOneWidget);
+  });
+
+  testWidgets('a turn flipped to the side of the route stops being a turn', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      testApp(
+        home: Scaffold(
+          body: WaypointEditSheet(
+            index: 0,
+            count: 1,
+            initial: const WaypointDetails(
+              poiKind: PoiKind.turn,
+              turn: TurnKind.left,
+            ),
+            onSwap: (_, _) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.plannerTurnDirection), findsOneWidget);
+
+    await tester.tap(find.text(l10n.plannerPointBeside));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.poiKindTurn), findsNothing);
+    expect(find.text(l10n.plannerTurnDirection), findsNothing);
+  });
+
   testWidgets('the type tiles keep every label on one line at phone width, '
       'in English and in German', (tester) async {
     await tester.binding.setSurfaceSize(const Size(390, 800));
@@ -446,13 +538,13 @@ void main() {
 
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final phone = await tiles(390);
-    expect(phone.map((r) => r.top.round()).toSet(), hasLength(2));
+    expect(phone.map((r) => r.top.round()).toSet(), hasLength(3));
     expect(phone.map((r) => r.width.round()).toSet(), hasLength(1));
     expect(phone.every((r) => r.right <= 390), isTrue);
     expect(find.byType(SingleChildScrollView), findsNothing);
 
     final narrow = await tiles(340);
-    expect(narrow.map((r) => r.top.round()).toSet(), hasLength(3));
+    expect(narrow.map((r) => r.top.round()).toSet(), hasLength(4));
     expect(narrow.map((r) => r.width.round()).toSet(), hasLength(1));
     expect(narrow.every((r) => r.right <= 340), isTrue);
   });

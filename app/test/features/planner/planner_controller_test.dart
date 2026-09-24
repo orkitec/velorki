@@ -847,6 +847,174 @@ void main() {
     });
   });
 
+  group('points beside the route', () {
+    const mid = LatLng(48.02, 11.02);
+
+    testWidgets('a point moves off the route and back, one undo step each', (
+      tester,
+    ) async {
+      final backend = FakeRoutingBackend();
+      final container = _container(backend);
+      final planner = container.read(plannerControllerProvider.notifier);
+      planner.addWaypoint(_a);
+      planner.addWaypoint(mid);
+      planner.addWaypoint(_b);
+      await tester.pump(const Duration(milliseconds: 400));
+      final routed = backend.callCount;
+      expect(container.read(plannerControllerProvider).waypoints, hasLength(3));
+
+      planner.movePointBeside(1);
+      await tester.pump(const Duration(milliseconds: 400));
+      var state = container.read(plannerControllerProvider);
+      expect(state.waypoints, hasLength(2));
+      expect(state.pois.single.pos, mid);
+      expect(
+        backend.callCount,
+        greaterThan(routed),
+        reason: 'the route is drawn again without the point',
+      );
+
+      planner.movePointOnRoute(0);
+      await tester.pump(const Duration(milliseconds: 400));
+      state = container.read(plannerControllerProvider);
+      expect(state.pois, isEmpty);
+      expect(state.waypoints, hasLength(3));
+      expect(state.waypoints[1].pos, mid, reason: 'a via where it lies');
+      expect(state.waypoints[1].kind, WaypointKind.via);
+
+      planner.undo();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(container.read(plannerControllerProvider).pois, hasLength(1));
+      planner.undo();
+      await tester.pump(const Duration(milliseconds: 400));
+      state = container.read(plannerControllerProvider);
+      expect(state.pois, isEmpty);
+      expect(state.waypoints, hasLength(3));
+    });
+
+    testWidgets('the name, the kind and the note go with it both ways', (
+      tester,
+    ) async {
+      final container = _container(FakeRoutingBackend());
+      final planner = container.read(plannerControllerProvider.notifier);
+      planner.addWaypoint(_a);
+      planner.addWaypoint(mid);
+      planner.addWaypoint(_b);
+      await tester.pump(const Duration(milliseconds: 400));
+      planner.setWaypointDetails(
+        1,
+        name: 'Bakery',
+        poiKind: PoiKind.food,
+        note: 'Croissants',
+      );
+
+      planner.movePointBeside(1);
+      await tester.pump(const Duration(milliseconds: 400));
+      final poi = container.read(plannerControllerProvider).pois.single;
+      expect(poi.name, 'Bakery');
+      expect(poi.kind, PoiKind.food);
+      expect(poi.description, 'Croissants');
+
+      planner.movePointOnRoute(0);
+      await tester.pump(const Duration(milliseconds: 400));
+      final back = container.read(plannerControllerProvider).waypoints[1];
+      expect(back.name, 'Bakery');
+      expect(back.poiKind, PoiKind.food);
+      expect(back.note, 'Croissants');
+    });
+
+    testWidgets('a turn taken off the route is only a place: a cue of a road '
+        'the ride no longer takes is nothing', (tester) async {
+      final container = _container(FakeRoutingBackend());
+      final planner = container.read(plannerControllerProvider.notifier);
+      planner.addWaypoint(_a);
+      planner.addWaypoint(mid);
+      planner.addWaypoint(_b);
+      await tester.pump(const Duration(milliseconds: 400));
+      planner.setWaypointDetails(
+        1,
+        name: 'Left at the mill',
+        poiKind: PoiKind.turn,
+        turn: TurnKind.left,
+      );
+
+      planner.movePointBeside(1);
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(
+        container.read(plannerControllerProvider).pois.single.kind,
+        PoiKind.generic,
+      );
+    });
+
+    testWidgets('one is added, named and removed without routing', (
+      tester,
+    ) async {
+      final backend = FakeRoutingBackend();
+      final container = _container(backend);
+      final planner = container.read(plannerControllerProvider.notifier);
+      planner.addWaypoint(_a);
+      planner.addWaypoint(_b);
+      await tester.pump(const Duration(milliseconds: 400));
+      final routed = backend.callCount;
+
+      planner.addPoi(_c, name: '  Fountain  ', kind: PoiKind.water);
+      await tester.pump(const Duration(milliseconds: 400));
+      var state = container.read(plannerControllerProvider);
+      expect(state.pois.single.name, 'Fountain');
+      expect(state.pois.single.kind, PoiKind.water);
+      expect(state.waypoints, hasLength(2));
+      expect(
+        backend.callCount,
+        routed,
+        reason: 'a place beside the route changes no road',
+      );
+
+      planner.setPoiDetails(
+        0,
+        name: 'Tap',
+        poiKind: PoiKind.water,
+        note: '  cold  ',
+      );
+      state = container.read(plannerControllerProvider);
+      expect(state.pois.single.name, 'Tap');
+      expect(state.pois.single.description, 'cold');
+
+      planner.removePoi(0);
+      expect(container.read(plannerControllerProvider).pois, isEmpty);
+      expect(backend.callCount, routed);
+
+      planner.undo();
+      expect(container.read(plannerControllerProvider).pois.single.name, 'Tap');
+      // An undo schedules a route; let it run out.
+      await tester.pump(const Duration(milliseconds: 400));
+    });
+
+    testWidgets('Clear throws the places away with the waypoints', (
+      tester,
+    ) async {
+      final container = _container(FakeRoutingBackend());
+      final planner = container.read(plannerControllerProvider.notifier);
+      planner.addWaypoint(_a);
+      planner.addWaypoint(_b);
+      planner.addPoi(_c, name: 'Tap');
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(container.read(plannerControllerProvider).hasPoints, isTrue);
+
+      planner.clear();
+      await tester.pump(const Duration(milliseconds: 400));
+      var state = container.read(plannerControllerProvider);
+      expect(state.waypoints, isEmpty);
+      expect(state.pois, isEmpty);
+      expect(state.hasPoints, isFalse);
+
+      planner.undo();
+      await tester.pump(const Duration(milliseconds: 400));
+      state = container.read(plannerControllerProvider);
+      expect(state.waypoints, hasLength(2));
+      expect(state.pois, hasLength(1));
+    });
+  });
+
   group('saved routes', () {
     SavedRoute saved({
       required RouteSource source,
@@ -977,6 +1145,89 @@ void main() {
         container.read(plannerControllerProvider).result!.geometry.length,
         200,
       );
+    });
+
+    test('an imported route splits its points: the ones on the track are '
+        'ridden through, the rest stand beside it', () {
+      final container = _container(FakeRoutingBackend());
+      final track = <TrackPoint>[
+        for (var i = 0; i < 200; i++) TrackPoint(LatLng(48 + i * 0.0005, 11)),
+      ];
+      final onTrack = RoutePoi(
+        pos: track[100].pos,
+        name: 'Tap',
+        kind: PoiKind.water,
+      );
+      const offTrack = RoutePoi(
+        pos: LatLng(48.05, 11.4),
+        name: 'Castle',
+        kind: PoiKind.generic,
+      );
+      container
+          .read(plannerControllerProvider.notifier)
+          .loadSavedRoute(
+            SavedRoute(
+              id: 'r1',
+              name: 'From a file',
+              source: RouteSource.importedGpx,
+              profile: RouteProfile.trekking,
+              createdAt: DateTime.utc(2026, 9, 12),
+              updatedAt: DateTime.utc(2026, 9, 12),
+              distanceM: 10000,
+              ascentM: 0,
+              descentM: 0,
+              bounds: BoundingBox.fromPoints(track.map((p) => p.pos)),
+              geometryBlob: PackedTrack.encode(track),
+              waypoints: [
+                Waypoint(pos: track.first.pos, kind: WaypointKind.start),
+                Waypoint(pos: track.last.pos, kind: WaypointKind.end),
+              ],
+              options: const RoutingOptions(),
+              pois: [onTrack, offTrack],
+            ),
+          );
+      final state = container.read(plannerControllerProvider);
+      expect(
+        state.waypoints.map((w) => w.name),
+        contains('Tap'),
+        reason: 'a point on the track is one the route goes through',
+      );
+      expect(state.pois, [offTrack]);
+    });
+
+    test('a route planned here keeps every point of interest beside the '
+        'route, whatever it passes', () {
+      final container = _container(FakeRoutingBackend());
+      final geometry = syntheticRoute().geometry;
+      const pois = <RoutePoi>[
+        RoutePoi(pos: LatLng(48.01, 11.01), name: 'Tap', kind: PoiKind.water),
+      ];
+      container
+          .read(plannerControllerProvider.notifier)
+          .loadSavedRoute(
+            SavedRoute(
+              id: 'r1',
+              name: 'Planned',
+              source: RouteSource.planned,
+              profile: RouteProfile.trekking,
+              createdAt: DateTime.utc(2026, 9, 12),
+              updatedAt: DateTime.utc(2026, 9, 12),
+              distanceM: 10000,
+              ascentM: 0,
+              descentM: 0,
+              bounds: BoundingBox.fromPoints(geometry.map((p) => p.pos)),
+              geometryBlob: PackedTrack.encode(geometry),
+              waypoints: const [
+                Waypoint(pos: _a, kind: WaypointKind.start),
+                Waypoint(pos: _b, kind: WaypointKind.end),
+              ],
+              options: const RoutingOptions(),
+              pois: pois,
+            ),
+          );
+      final state = container.read(plannerControllerProvider);
+      expect(state.waypoints, hasLength(2));
+      expect(state.pois, pois);
     });
 
     test('loading one puts its turn instructions back on the plan', () {

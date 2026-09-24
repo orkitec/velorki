@@ -117,6 +117,11 @@ IconData poiIcon(PoiKind kind) => switch (kind) {
   PoiKind.shelter => Icons.cabin_outlined,
   PoiKind.shop => Icons.storefront_outlined,
   PoiKind.repair => Icons.build_outlined,
+  PoiKind.firstAid => Icons.medical_services_outlined,
+  PoiKind.toilet => Icons.wc_outlined,
+  PoiKind.campsite => Icons.festival_outlined,
+  PoiKind.parking => Icons.local_parking_outlined,
+  PoiKind.transport => Icons.directions_transit_outlined,
   PoiKind.turn => Icons.turn_right,
 };
 

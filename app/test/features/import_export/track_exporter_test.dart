@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
+import 'package:velorki/core/files/course_points.dart';
 import 'package:velorki/core/files/track_exporter.dart';
 import 'package:velorki/core/files/track_exporter_impl.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
@@ -163,6 +164,36 @@ void main() {
     ]);
     expect(course.coursePoints.first.pos.lat, closeTo(points[1].lat, 1e-5));
     expect(course.coursePoints.first.distanceM, greaterThan(0));
+  });
+
+  test('the places a rider can mark go out as the course point types a head '
+      'unit knows, and come back as themselves', () async {
+    final h = _Harness();
+    final points = _points();
+    await h.exporter.share(
+      name: 'Places',
+      points: points,
+      kind: TrackKind.route,
+      format: TrackFormat.fit,
+      pois: [
+        RoutePoi(pos: points[1].pos, name: 'Aid', kind: PoiKind.firstAid),
+        RoutePoi(pos: points[2].pos, name: 'Loo', kind: PoiKind.toilet),
+        RoutePoi(pos: points[3].pos, name: 'Camp', kind: PoiKind.campsite),
+      ],
+    );
+    final course = FitCodec.decodeCourse(
+      h.shared.single.file.readAsBytesSync(),
+    );
+    expect(course.coursePoints.map((c) => c.type), [
+      FitCoursePointType.firstAid,
+      FitCoursePointType.toilet,
+      FitCoursePointType.campsite,
+    ]);
+    expect(course.coursePoints.map((c) => poiKindOf(c.type)), [
+      PoiKind.firstAid,
+      PoiKind.toilet,
+      PoiKind.campsite,
+    ]);
   });
 
   test('a ride becomes a FIT activity with the real timestamps', () async {
