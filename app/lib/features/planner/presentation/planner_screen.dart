@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
+import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/router.dart';
 import '../../../app/theme.dart';
@@ -454,8 +455,29 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   }
 
   /// Opens the loop sheet, handing it the planner's map for the map-centre
-  /// fallback start.
-  Future<void> _smartLoop() => showSmartLoopSheet(context, map: _map);
+  /// fallback start. A loop the sheet made, closed or re-routed is fitted
+  /// into the visible map once the sheet is gone: the start may have been
+  /// off screen, and the sheet itself covered most of the map until now.
+  Future<void> _smartLoop() async {
+    final before = ref.read(plannerControllerProvider).result;
+    await showSmartLoopSheet(context, map: _map, chromeTop: _ownControlsTop);
+    if (!mounted) return;
+    final result = ref.read(plannerControllerProvider).result;
+    if (result == null || identical(result, before)) return;
+    _fitRoute(result);
+  }
+
+  /// Fits [result] into the map between this tab's chrome and its sheet.
+  void _fitRoute(RouteResult result) {
+    final positions = result.positions;
+    if (positions.isEmpty) return;
+    unawaited(
+      _map?.fitBounds(
+        BoundingBox.fromPoints(positions),
+        padding: _visiblePadding(),
+      ),
+    );
+  }
 
   /// Opens the assistant, then shows whatever it produced.
   ///

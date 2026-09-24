@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show immutable;
 import 'package:flutter/painting.dart' show EdgeInsets, Size;
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -59,6 +60,62 @@ LatLng offsetCenter(
   final y = _worldY(target.lat, world) - wy;
   return LatLng(_latOf(y, world), _lonOf(x, world));
 }
+
+/// A camera that fits some bounds: where it aims and how far in.
+@immutable
+class FitCamera {
+  const FitCamera({required this.center, required this.zoom});
+
+  final LatLng center;
+  final double zoom;
+
+  @override
+  bool operator ==(Object other) =>
+      other is FitCamera && other.center == center && other.zoom == zoom;
+
+  @override
+  int get hashCode => Object.hash(center, zoom);
+
+  @override
+  String toString() => 'FitCamera($center, z$zoom)';
+}
+
+/// The camera that fits [bounds] into the part of a [size] map that
+/// [padding] leaves visible: the zoom at which the bounds just fill that
+/// rectangle (capped at [maxZoom], so a short route is not a wall of
+/// buildings), aimed so the bounds' middle is the visible middle.
+///
+/// Computed here rather than asked of the map: MapLibre's bounds camera on
+/// iOS spreads per-side padding evenly, which puts a route under the card.
+FitCamera fitCamera(
+  BoundingBox bounds, {
+  required Size size,
+  required EdgeInsets padding,
+  double maxZoom = 18,
+}) {
+  final visibleW = math.max(1.0, size.width - padding.left - padding.right);
+  final visibleH = math.max(1.0, size.height - padding.top - padding.bottom);
+  // The bounds in world pixels at zoom 0, the east span wrapped when the
+  // box crosses the antimeridian.
+  const world0 = 512.0;
+  var spanX = _worldX(bounds.east, world0) - _worldX(bounds.west, world0);
+  if (spanX < 0) spanX += world0;
+  final top = _worldY(bounds.north, world0);
+  final spanY = _worldY(bounds.south, world0) - top;
+  final zoomX = spanX <= 0 ? maxZoom : _log2(visibleW / spanX);
+  final zoomY = spanY <= 0 ? maxZoom : _log2(visibleH / spanY);
+  final zoom = math.min(zoomX, zoomY).clamp(0.0, maxZoom);
+  // The middle in world pixels, not in degrees: Mercator stretches the
+  // north, so the arithmetic middle of the latitudes sits too far south.
+  final midX = _worldX(bounds.west, world0) + spanX / 2;
+  final mid = LatLng(_latOf(top + spanY / 2, world0), _lonOf(midX, world0));
+  return FitCamera(
+    center: offsetCenter(mid, size: size, padding: padding, zoom: zoom),
+    zoom: zoom,
+  );
+}
+
+double _log2(double x) => math.log(x) / math.ln2;
 
 /// MapLibre's world is 512 px wide at zoom 0 and doubles per zoom.
 double _worldSize(double zoom) => 512 * math.pow(2, zoom).toDouble();

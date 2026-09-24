@@ -964,6 +964,26 @@ class MaplibreMapControllerAdapter implements MapController {
     BoundingBox bounds, {
     EdgeInsets padding = const EdgeInsets.all(48),
   }) async {
+    // Worked out here once the view's size is known: MapLibre's own bounds
+    // camera on iOS spreads per-side padding evenly, so a route fitted
+    // above a card landed under it. Before the first layout the map's own
+    // fit is the only one possible.
+    final size = viewSize;
+    if (size != null) {
+      final camera = fitCamera(bounds, size: size, padding: padding);
+      await _ops.animateCamera(
+        ml.CameraUpdate.newCameraPosition(
+          ml.CameraPosition(
+            target: _toMl(camera.center),
+            zoom: camera.zoom,
+            // A fit is north-up, as the map's own would be.
+            bearing: 0,
+            tilt: 0,
+          ),
+        ),
+      );
+      return;
+    }
     await _ops.animateCamera(
       ml.CameraUpdate.newLatLngBounds(
         _toMlBounds(bounds),

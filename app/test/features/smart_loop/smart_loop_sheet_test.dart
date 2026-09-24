@@ -7,6 +7,8 @@ import 'package:velorki/features/map/data/position_provider.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
+import 'package:velorki/features/map/presentation/visible_map_padding.dart';
+import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki/features/smart_loop/application/smart_loop_controller.dart';
 import 'package:velorki/features/smart_loop/presentation/smart_loop_sheet.dart';
@@ -341,6 +343,80 @@ void main() {
       expect(
         _inSheet(find.widgetWithText(FilledButton, l10n.loopMakeTitle)),
         findsOneWidget,
+      );
+    });
+  });
+
+  group('the map after a loop', () {
+    testWidgets('a loop made from a far-away start is fitted into the '
+        'visible map, above the sheet and then above the resting sheet', (
+      tester,
+    ) async {
+      // The start is far from where the fake backend's loop lies, so the
+      // loop would be off screen unless the camera went to it.
+      final h = await _openSheet(tester, points: const [LatLng(52.5, 13.4)]);
+      expect(h.map.fittedBounds, isNull);
+
+      await _make(tester);
+
+      final result = _container(tester).read(plannerControllerProvider).result!;
+      final bounds = BoundingBox.fromPoints(result.positions);
+      // While the sheet is up: the loop is fitted above the sheet itself.
+      expect(h.map.fittedBounds, bounds);
+      final sheetHeight = tester.getSize(find.byType(SmartLoopSheet)).height;
+      expect(h.map.fittedPadding!.bottom, greaterThanOrEqualTo(sheetHeight));
+
+      await tester.tap(
+        _inSheet(find.widgetWithText(FilledButton, l10n.loopDone)),
+      );
+      await tester.pumpAndSettle();
+
+      // Once it is gone: the whole loop between the chrome and the resting
+      // Plan sheet, clear of the column.
+      final element = tester.element(find.byType(PlannerScreen));
+      final height = MediaQuery.sizeOf(element).height;
+      expect(h.map.fittedBounds, bounds);
+      expect(
+        h.map.fittedPadding!.bottom,
+        closeTo(sheetRestingExtent(height) * height + 24, 1e-6),
+      );
+      expect(h.map.fittedPadding!.right, mapControlsWidth(element) + 24);
+      expect(h.map.fittedPadding!.top, greaterThan(100));
+    });
+
+    testWidgets('closing a route into a loop fits it too, and "Another way '
+        'back" again', (tester) async {
+      final h = await _openSheet(
+        tester,
+        points: const [_first, _second],
+        harness: PlannerHarness(backend: VariedRoutingBackend()),
+      );
+      h.map.fittedBounds = null;
+
+      await tester.tap(
+        _inSheet(find.widgetWithText(FilledButton, l10n.loopClose)),
+      );
+      await tester.pumpAndSettle();
+      expect(h.map.fittedBounds, isNotNull);
+
+      h.map.fittedBounds = null;
+      await tester.tap(
+        _inSheet(find.widgetWithText(OutlinedButton, l10n.loopAnotherWayBack)),
+      );
+      await tester.pumpAndSettle();
+      expect(h.map.fittedBounds, isNotNull);
+
+      h.map.fittedBounds = null;
+      await tester.tap(
+        _inSheet(find.widgetWithText(FilledButton, l10n.loopDone)),
+      );
+      await tester.pumpAndSettle();
+      final element = tester.element(find.byType(PlannerScreen));
+      final height = MediaQuery.sizeOf(element).height;
+      expect(h.map.fittedBounds, isNotNull);
+      expect(
+        h.map.fittedPadding!.bottom,
+        closeTo(sheetRestingExtent(height) * height + 24, 1e-6),
       );
     });
   });

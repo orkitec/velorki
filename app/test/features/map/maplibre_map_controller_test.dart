@@ -10,6 +10,7 @@ import 'package:velorki/features/map/data/geojson.dart';
 import 'package:velorki/features/map/data/heading_cone.dart';
 import 'package:velorki/features/map/data/maplibre_map_controller.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
+import 'package:velorki/features/map/domain/visible_map.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import 'support/maplibre_style_ops_fake.dart';
@@ -2006,7 +2007,39 @@ void main() {
       expect(ops.names, <String>['moveCamera']);
     });
 
-    test('fitBounds animates to the padded bounds', () async {
+    test(
+      'fitBounds works the camera out itself once the view has a size',
+      () async {
+        final ops = RecordingStyleOps();
+        final adapter = _adapter(ops)..viewSize = const Size(512, 512);
+        const bounds = BoundingBox(south: 0, west: -90, north: 0, east: 90);
+        const padding = EdgeInsets.only(bottom: 256);
+
+        await adapter.fitBounds(bounds, padding: padding);
+
+        // The same camera the pure fit computes, as a whole position, north
+        // up: MapLibre's own bounds fit on iOS spreads the padding evenly.
+        final wanted = fitCamera(
+          bounds,
+          size: const Size(512, 512),
+          padding: padding,
+        );
+        final update = ops.calls.single.cameraUpdate! as List<Object?>;
+        expect(update.first, 'newCameraPosition');
+        final position = update[1]! as Map<Object?, Object?>;
+        expect(position['zoom'], closeTo(wanted.zoom, 1e-9));
+        expect(position['bearing'], 0.0);
+        final target = position['target']! as List<Object?>;
+        expect(target[0] as double, closeTo(wanted.center.lat, 1e-9));
+        expect(target[1] as double, closeTo(wanted.center.lon, 1e-9));
+        // The sheet covers the lower half: the camera aims south of the
+        // equator so the bounds sit in the upper half.
+        expect(wanted.center.lat, lessThan(0));
+      },
+    );
+
+    test('fitBounds animates to the padded bounds before the view has a '
+        'size', () async {
       final ops = RecordingStyleOps();
       final adapter = _adapter(ops);
 

@@ -2,13 +2,17 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/theme.dart';
 import '../../../core/units/units.dart' as units;
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/domain/map_controller.dart';
+import '../../map/domain/visible_map.dart';
 import '../../map/presentation/device_position_request.dart';
+import '../../map/presentation/map_chrome.dart';
+import '../../map/presentation/visible_map_padding.dart';
 import '../../planner/application/planner_controller.dart';
 import '../../planner/presentation/profile_chip_row.dart';
 import '../../planner/presentation/route_format.dart';
@@ -26,6 +30,7 @@ import '../domain/loops.dart';
 Future<void> showSmartLoopSheet(
   BuildContext context, {
   MapController? map,
+  double chromeTop = defaultMapControlsTop,
 }) async {
   final container = ProviderScope.containerOf(context, listen: false);
   // A search the assistant has just started keeps running; anything older is
@@ -40,7 +45,7 @@ Future<void> showSmartLoopSheet(
     // The shell's floating navigation bar belongs to the branch navigator, so
     // a sheet opened there would sit under it.
     useRootNavigator: true,
-    builder: (context) => SmartLoopSheet(map: map),
+    builder: (context) => SmartLoopSheet(map: map, chromeTop: chromeTop),
   );
   container.read(smartLoopControllerProvider.notifier).cancel();
 }
@@ -54,10 +59,19 @@ Future<void> showSmartLoopSheet(
 /// coming back.
 class SmartLoopSheet extends ConsumerStatefulWidget {
   /// Creates the sheet.
-  const SmartLoopSheet({super.key, this.map});
+  const SmartLoopSheet({
+    super.key,
+    this.map,
+    this.chromeTop = defaultMapControlsTop,
+  });
 
-  /// The planner's map, for the map-centre fallback.
+  /// The planner's map, for the map-centre fallback and the fit of a loop
+  /// that lands while the sheet is up.
   final MapController? map;
+
+  /// How far the planner's chrome reaches below the safe area, so that fit
+  /// keeps clear of it.
+  final double chromeTop;
 
   @override
   ConsumerState<SmartLoopSheet> createState() => _SmartLoopSheetState();
@@ -164,10 +178,45 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
     setState(() => _closed = true);
   }
 
+  /// A loop that lands while the sheet is up is fitted into the map above
+  /// the sheet, so the rider sees what was made without closing it first.
+  /// The sheet's own height is the bottom inset; the planner's chrome is
+  /// still there at the top, under the barrier.
+  void _fitAboveSheet(RouteResult result) {
+    final map = widget.map;
+    if (map == null || result.positions.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final box = context.findRenderObject();
+      final sheetHeight = box is RenderBox && box.hasSize ? box.size.height : 0;
+      final screen = MediaQuery.sizeOf(context);
+      unawaited(
+        map.fitBounds(
+          BoundingBox.fromPoints(result.positions),
+          padding: visibleMapInsets(
+            size: screen,
+            topInset: MediaQuery.viewPaddingOf(context).top,
+            chromeTop: widget.chromeTop,
+            sheetExtent:
+                (sheetHeight + MediaQuery.viewPaddingOf(context).bottom) /
+                screen.height,
+            columnWidth: mapControlsWidth(context),
+          ),
+        ),
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    ref.listen(plannerControllerProvider.select((s) => s.result), (
+      previous,
+      next,
+    ) {
+      if (next != null && !identical(next, previous)) _fitAboveSheet(next);
+    });
 
     return ConstrainedBox(
       constraints: BoxConstraints(
