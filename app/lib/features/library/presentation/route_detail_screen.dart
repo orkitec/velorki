@@ -305,6 +305,8 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
             format: format,
             pois: _poisOf(route),
             turns: route.turns,
+            // A file that named no bike goes back out naming none.
+            profile: route.profileKnown ? route.profile : null,
           );
     } on Object {
       messenger.showSnackBar(SnackBar(content: Text(l10n.exportFailed)));

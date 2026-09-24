@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
+import 'package:velorki/features/planner/domain/route_legs.dart';
 import 'package:velorki/features/planner/domain/route_poi.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/domain/routing_options.dart';
@@ -367,6 +368,45 @@ void main() {
 
     expect(saved.turns, isEmpty);
     expect((await repository.routeById(saved.id))!.turns, isEmpty);
+  });
+
+  test('the legs of a planned route survive a save, a change of details '
+      'and a load; a row without them has none', () async {
+    final kept = RouteLeg.kept(syntheticRoute().geometry.sublist(0, 3));
+    final routed = RouteLeg.routed(
+      syntheticRoute(startLat: 48.02, startLon: 11.02, points: 3),
+    );
+    final route = PlannedRoute.join([kept, routed]);
+    final saved = await repository.savePlannedRoute(
+      name: 'Half a file',
+      route: route,
+      waypoints: _waypoints,
+      options: const RoutingOptions(),
+    );
+
+    var loaded = (await repository.routeById(saved.id))!;
+    expect(loaded.legs, const [
+      SavedLeg(start: 0, kept: true),
+      SavedLeg(start: 2),
+    ]);
+    expect(loaded.geometry, route.geometry);
+
+    await repository.setWaypoints(saved.id, [
+      _waypoints[0].copyWith(name: 'Home again'),
+      ..._waypoints.skip(1),
+    ]);
+    loaded = (await repository.routeById(saved.id))!;
+    expect(loaded.waypoints.first.name, 'Home again');
+    expect(loaded.legs, hasLength(2), reason: 'details move no leg');
+
+    final plain = await repository.savePlannedRoute(
+      name: 'Routed whole',
+      route: syntheticRoute(),
+      waypoints: _waypoints,
+      options: const RoutingOptions(),
+    );
+    expect((await repository.routeById(plain.id))!.legs, isNull);
+    expect(decodeLegs('[{"lat":48,"lon":11},{"lat":49,"lon":12}]'), isNull);
   });
 
   test('unreadable JSON columns degrade to empty defaults', () {

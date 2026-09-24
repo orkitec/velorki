@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/planner/domain/route_poi.dart';
 import 'package:velorki/features/planner/domain/route_waypoints.dart';
-import 'package:velorki/features/planner/domain/shape_points.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
@@ -17,12 +16,28 @@ List<Waypoint> _ends(List<LatLng> track) => [
   Waypoint(pos: track.last, kind: WaypointKind.end),
 ];
 
+/// The waypoints of [trackMarkers], without their indices.
+List<Waypoint> _markers({
+  required List<LatLng> track,
+  required List<Waypoint> saved,
+  List<RoutePoi> pois = const <RoutePoi>[],
+  List<TurnHint> turns = const <TurnHint>[],
+}) => [
+  for (final m in trackMarkers(
+    track: track,
+    saved: saved,
+    pois: pois,
+    turns: turns,
+  ))
+    m.$2,
+];
+
 void main() {
   final track = _track(200);
 
   test('points of interest on the track become named waypoints in track '
       'order, with kind and note; those off the track do not', () {
-    final waypoints = routeWaypoints(
+    final markers = trackMarkers(
       track: track,
       saved: _ends(track),
       pois: [
@@ -45,43 +60,40 @@ void main() {
         ),
       ],
     );
+    final waypoints = [for (final m in markers) m.$2];
     final named = waypoints.where((w) => w.hasDetails).toList();
     expect(named.map((w) => w.name), ['Tap', 'Bakery']);
     expect(named.map((w) => w.poiKind), [PoiKind.water, PoiKind.food]);
     expect(named.map((w) => w.note), [null, 'Croissants']);
     expect(named.map((w) => w.kind), everyElement(WaypointKind.via));
-    // Snapped onto the track, not left beside it.
-    expect(haversineMeters(named.first.pos, track[60]), lessThan(10));
+    // On a point of the track itself, where the file's line is split.
+    expect(named.first.pos, track[60]);
+    expect(named.last.pos, track[150]);
+    expect(markers.map((m) => m.$1), [0, 60, 150, 199]);
+    for (final m in markers) {
+      expect(m.$2.pos, track[m.$1]);
+    }
     expect(waypoints.first.kind, WaypointKind.start);
     expect(waypoints.last.kind, WaypointKind.end);
-    // Shape points around them keep the course; in order along the track.
-    expect(waypoints.length, greaterThan(4));
-    expect(waypoints.length, lessThanOrEqualTo(maxShapePoints + 2));
-    final along = [for (final w in waypoints) _indexNear(track, w.pos)];
-    expect(along, orderedEquals([...along]..sort()));
+    // Nothing else: no shape points between them.
+    expect(waypoints, hasLength(4));
   });
 
-  test('the cap grows for named points rather than dropping one', () {
+  test('every named point on the track is kept, however many', () {
     final pois = <RoutePoi>[
-      for (var i = 5; i < 200; i += 7) RoutePoi(pos: track[i], name: 'P$i'),
+      for (var i = 5; i < 195; i += 7) RoutePoi(pos: track[i], name: 'P$i'),
     ];
-    expect(pois.length, greaterThan(maxShapePoints));
-    final waypoints = routeWaypoints(
-      track: track,
-      saved: _ends(track),
-      pois: pois,
-    );
+    final waypoints = _markers(track: track, saved: _ends(track), pois: pois);
     expect(
       waypoints.where((w) => w.hasDetails).map((w) => w.name),
       pois.map((p) => p.name),
     );
-    // Nothing but the named points and the ends: no room for shape points.
     expect(waypoints.length, pois.length + 2);
   });
 
   test('a point at the start or the end names that end instead of adding '
       'one', () {
-    final waypoints = routeWaypoints(
+    final waypoints = _markers(
       track: track,
       saved: _ends(track),
       pois: [
@@ -103,18 +115,17 @@ void main() {
     expect(waypoints.first.pos, track.first);
   });
 
-  test('without points of interest the route gets its shape points, as '
-      'before', () {
-    final waypoints = routeWaypoints(track: track, saved: _ends(track));
-    expect(waypoints.map((w) => w.pos), shapePoints(track).map((p) => p));
-    expect(waypoints.any((w) => w.hasDetails), isFalse);
+  test('without points of interest the route is its two ends', () {
+    final markers = trackMarkers(track: track, saved: _ends(track));
+    expect(markers.map((m) => m.$1), [0, 199]);
+    expect(markers.map((m) => m.$2), _ends(track));
   });
 
   test('a track of two points comes back as saved', () {
     final short = _track(2);
     final saved = _ends(short);
     expect(
-      routeWaypoints(
+      _markers(
         track: short,
         saved: saved,
         pois: [RoutePoi(pos: short.first, name: 'Home')],
@@ -124,7 +135,7 @@ void main() {
   });
   test('the cue sheet\'s written turns open as turn points with their '
       'direction; the router\'s unnamed ones do not', () {
-    final waypoints = routeWaypoints(
+    final waypoints = _markers(
       track: track,
       saved: _ends(track),
       turns: const [
@@ -143,7 +154,7 @@ void main() {
   });
 
   group('the points beside a route', () {
-    test('besideTrackPois keeps what routeWaypoints leaves: together they '
+    test('besideTrackPois keeps what trackMarkers leaves: together they '
         'are every point, once each', () {
       final onTrack = RoutePoi(pos: track[120], name: 'Tap');
       final offTrack = RoutePoi(
@@ -153,18 +164,14 @@ void main() {
       );
       final pois = [onTrack, offTrack];
 
-      final waypoints = routeWaypoints(
-        track: track,
-        saved: _ends(track),
-        pois: pois,
-      );
+      final waypoints = _markers(track: track, saved: _ends(track), pois: pois);
       expect(waypoints.map((w) => w.name), contains('Tap'));
       expect(waypoints.map((w) => w.name), isNot(contains('Castle')));
       expect(besideTrackPois(track: track, pois: pois), [offTrack]);
     });
 
-    test('a track too short to shape keeps every point beside it, as '
-        'routeWaypoints keeps every waypoint', () {
+    test('a track of two points keeps every point beside it, as '
+        'trackMarkers keeps only the ends', () {
       final short = <LatLng>[track.first, track.last];
       final pois = [RoutePoi(pos: track.first, name: 'Home')];
       expect(besideTrackPois(track: short, pois: pois), pois);
@@ -205,17 +212,4 @@ void main() {
       );
     });
   });
-}
-
-int _indexNear(List<LatLng> track, LatLng pos) {
-  var best = 0;
-  var bestD = double.infinity;
-  for (var i = 0; i < track.length; i++) {
-    final d = haversineMeters(track[i], pos);
-    if (d < bestD) {
-      bestD = d;
-      best = i;
-    }
-  }
-  return best;
 }

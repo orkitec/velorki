@@ -39,6 +39,7 @@ import 'elevation_profile_chart.dart';
 import 'profile_chip_row.dart';
 import 'route_format.dart';
 import 'save_route_dialog.dart';
+import 'surface_section.dart';
 import 'surface_stats_bar.dart';
 import 'waypoint_edit_sheet.dart';
 
@@ -614,6 +615,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
           pois: state.pois,
           options: state.options,
           id: state.savedRouteId,
+          surfaceStats: state.surfaceStats,
+          original: state.original,
         );
     ref
         .read(plannerControllerProvider.notifier)
@@ -989,7 +992,16 @@ class _SheetBody extends StatelessWidget {
       children: [
         ElevationProfileChart(samples: elevationProfile(route.geometry)),
         const SizedBox(height: 20),
-        SurfaceStatsBar(stats: state.surfaceStats),
+        // A route the router did not draw all of has its line matched
+        // against the routing tiles; until that is done, the section says
+        // what is in the way rather than showing part of the route.
+        if (state.surfaceStats == null && state.matchedSurface != null)
+          SurfaceSection(
+            surface: state.matchedSurface!,
+            hideWithoutRouting: false,
+          )
+        else
+          SurfaceStatsBar(stats: state.surfaceStats),
       ],
     );
   }

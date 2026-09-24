@@ -104,6 +104,7 @@ const int _fActivityEventType = 4;
 // course
 const int _fCourseSport = 4;
 const int _fCourseName = 5;
+const int _fCourseSubSport = 7;
 // device_info
 const int _fDeviceInfoIndex = 0;
 const int _fDeviceInfoProductName = 27;
@@ -216,6 +217,7 @@ class FitCodec {
   static Uint8List encodeActivity(
     List<TrackPoint> points, {
     FitSport sport = FitSport.cycling,
+    FitSubSport subSport = FitSubSport.generic,
     DateTime? startTime,
     String? name,
   }) {
@@ -236,7 +238,7 @@ class FitCodec {
     if (name != null && name.trim().isNotEmpty) {
       final sportMesg = Mesg.fromMesgNum(MesgNum.sport)
         ..setFieldValue(_fSportSport, sport.fitValue)
-        ..setFieldValue(_fSportSubSport, SubSport.generic)
+        ..setFieldValue(_fSportSubSport, subSport.fitValue)
         ..setFieldValue(_fSportName, _fitString(name));
       _writeMesg(encoder, sportMesg, _lnMeta);
     }
@@ -288,7 +290,7 @@ class FitCodec {
       ..setFieldValue(_fSessionEvent, Event.session)
       ..setFieldValue(_fSessionEventType, EventType.stop)
       ..setFieldValue(_fSessionSport, sport.fitValue)
-      ..setFieldValue(_fSessionSubSport, SubSport.generic)
+      ..setFieldValue(_fSessionSubSport, subSport.fitValue)
       ..setFieldValue(_fSessionTotalElapsedTime, track.elapsedSeconds)
       ..setFieldValue(_fSessionTotalTimerTime, track.elapsedSeconds)
       ..setFieldValue(
@@ -343,6 +345,7 @@ class FitCodec {
     int? fileType;
     String? name;
     FitSport? sport;
+    FitSubSport? subSport;
     final points = <TrackPoint>[];
     final coursePoints = <FitCoursePoint>[];
     final decoder = Decode();
@@ -354,6 +357,8 @@ class FitCodec {
           name = _asString(mesg.getFieldValue(_fCourseName));
           final raw = _asNum(mesg.getFieldValue(_fCourseSport))?.toInt();
           sport = raw == null ? null : FitSport.fromFitValue(raw);
+          final sub = _asNum(mesg.getFieldValue(_fCourseSubSport))?.toInt();
+          subSport = sub == null ? null : FitSubSport.fromFitValue(sub);
         case MesgNum.record:
           final point = _recordToTrackPoint(mesg);
           if (point != null) points.add(point);
@@ -378,6 +383,7 @@ class FitCodec {
     return FitCourse(
       name: name,
       sport: sport ?? FitSport.cycling,
+      subSport: subSport,
       points: points,
       coursePoints: coursePoints,
     );
@@ -482,11 +488,14 @@ class FitCodec {
   /// Course points have no natural time base, so each record is stamped one
   /// second after the previous one unless the point carries its own time.
   ///
+  /// [subSport] says what kind of riding it is, `road` or `mountain`.
+  ///
   /// Throws [ArgumentError] if [points] is empty or [name] is blank.
   static Uint8List encodeCourse(
     List<TrackPoint> points, {
     required String name,
     FitSport sport = FitSport.cycling,
+    FitSubSport subSport = FitSubSport.generic,
     List<FitCoursePoint> coursePoints = const <FitCoursePoint>[],
   }) {
     if (points.isEmpty) {
@@ -508,6 +517,7 @@ class FitCodec {
 
     final course = Mesg.fromMesgNum(MesgNum.course)
       ..setFieldValue(_fCourseSport, sport.fitValue)
+      ..setFieldValue(_fCourseSubSport, subSport.fitValue)
       ..setFieldValue(_fCourseName, _fitString(name));
     _writeMesg(encoder, course, _lnMeta);
 
@@ -751,7 +761,9 @@ class FitCodec {
     final end = _asNum(mesg.getFieldValue(_fTimestamp));
     if (start == null || end == null) return null;
     final sport = _asNum(mesg.getFieldValue(_fSessionSport))?.toInt();
+    final subSport = _asNum(mesg.getFieldValue(_fSessionSubSport))?.toInt();
     return FitSession(
+      subSport: subSport == null ? null : FitSubSport.fromFitValue(subSport),
       startTime: _fromFitTime(start.toInt()),
       endTime: _fromFitTime(end.toInt()),
       sport:

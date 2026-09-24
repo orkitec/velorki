@@ -6,7 +6,6 @@ import 'package:velorki/core/db/tables/routes.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/planner/domain/route_poi.dart';
-import 'package:velorki/features/planner/domain/shape_points.dart';
 import 'package:velorki/features/shared/application/active_tab.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -90,7 +89,8 @@ void main() {
     // Drawn on the shared map: three markers, the named one labelled.
     expect(h.map.waypoints.map((w) => w.position), [_a, _b, _c]);
     expect(h.map.waypoints.map((w) => w.label), [null, 'Bakery', null]);
-    expect(h.backend.callCount, 1, reason: 'the stored route is shown as is');
+    // Two legs when it was planned, and nothing since.
+    expect(h.backend.callCount, 2, reason: 'the stored route is shown as is');
 
     // Details on the route as stored need no Save: name the start, leave
     // for the Library, and the card already lists it, note and all.
@@ -117,7 +117,7 @@ void main() {
     expect(again.map((w) => w.name), ['Home', 'Bakery', null]);
     expect(again.map((w) => w.note), ['Start here', 'Croissants', null]);
     expect(h.map.waypoints.map((w) => w.label), ['Home', 'Bakery', null]);
-    expect(h.backend.callCount, 1, reason: 'nothing routed for details');
+    expect(h.backend.callCount, 2, reason: 'nothing routed for details');
     await unmountApp(tester);
   });
 
@@ -173,8 +173,7 @@ void main() {
     expect(named.map((w) => w.name), ['Tap', 'Bakery']);
     expect(named.map((w) => w.poiKind), [PoiKind.water, PoiKind.food]);
     expect(named.map((w) => w.note), ['Fill up', null]);
-    expect(waypoints.length, greaterThan(4), reason: 'shape points too');
-    expect(waypoints.length, lessThanOrEqualTo(maxShapePoints + 2));
+    expect(waypoints, hasLength(4), reason: 'the ends and the two named');
     // On the map the named markers wear their names.
     expect(h.map.waypoints.map((w) => w.label).nonNulls, ['Tap', 'Bakery']);
     expect(h.backend.callCount, 0, reason: 'nothing routed on opening');
@@ -204,6 +203,11 @@ void main() {
     await tester.pumpAndSettle();
     final again = container.read(plannerControllerProvider).waypoints;
     expect(again.map((w) => w.pos), waypoints.map((w) => w.pos));
+    // The file's line between them is still the file's own.
+    expect(
+      container.read(plannerControllerProvider).legs.map((l) => l!.kept),
+      everyElement(isTrue),
+    );
     final namedAgain = again.where((w) => w.hasDetails).toList();
     expect(namedAgain.map((w) => w.name), ['Tap', 'Bakery']);
     expect(namedAgain.map((w) => w.note), ['Fill up', null]);
@@ -211,8 +215,8 @@ void main() {
     await unmountApp(tester);
   });
 
-  testWidgets('an imported route opens in the planner with shape points '
-      'along its track', (tester) async {
+  testWidgets('an imported route opens in the planner with its ends and '
+      'the file\'s whole line as one leg', (tester) async {
     final h = PlannerHarness();
     final track = <TrackPoint>[
       for (var i = 0; i < 200; i++)
@@ -246,11 +250,11 @@ void main() {
       tester.element(find.byType(NavigationBar)),
     );
     final waypoints = container.read(plannerControllerProvider).waypoints;
-    expect(waypoints.length, greaterThan(2));
-    expect(waypoints.length, lessThanOrEqualTo(maxShapePoints + 2));
-    expect(waypoints.first.pos, track.first.pos);
-    expect(waypoints.last.pos, track.last.pos);
-    expect(h.map.waypoints, hasLength(waypoints.length));
+    expect(waypoints.map((w) => w.pos), [track.first.pos, track.last.pos]);
+    expect(h.map.waypoints, hasLength(2));
+    final state = container.read(plannerControllerProvider);
+    expect(state.legs.single!.kept, isTrue);
+    expect(state.result!.geometry, track);
     expect(h.backend.callCount, 0, reason: 'nothing routed on opening');
     await unmountApp(tester);
   });

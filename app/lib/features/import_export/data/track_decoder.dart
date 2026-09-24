@@ -9,6 +9,7 @@ import 'package:velorki_tcx/velorki_tcx.dart';
 
 import '../../../core/files/course_points.dart';
 import '../../planner/domain/route_poi.dart';
+import '../../../core/files/bike_type.dart';
 import '../domain/imported_track.dart';
 
 /// Why a file could not be imported.
@@ -176,6 +177,7 @@ ImportedTrack _gpxTrack(
         document.description ?? track?.description ?? route?.description,
     creator: document.creator,
     link: document.link,
+    profile: profileFromGpxType(track?.type ?? route?.type),
     turns: turns,
     temperaturesC: temperatures.any((t) => t != null)
         ? temperatures
@@ -225,6 +227,9 @@ ImportedTrack _decodeFit(Uint8List bytes, String? fileName) {
     format: ImportFormat.fit,
     points: points,
     creator: activity.manufacturer,
+    profile: session == null
+        ? null
+        : profileFromFit(session.sport, session.subSport),
     temperaturesC: activity.temperaturesC,
     laps: [
       for (final lap in activity.laps)
@@ -304,6 +309,7 @@ ImportedTrack _decodeFitCourse(Uint8List bytes, String? fileName) {
     turns: turns,
     pois: pois,
     isCourse: true,
+    profile: profileFromFit(course.sport, course.subSport),
   );
 }
 

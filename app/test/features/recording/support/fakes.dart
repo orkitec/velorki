@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:geolocator/geolocator.dart' as geo;
 import 'package:velorki/core/files/track_exporter.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
+import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
 import 'package:velorki/features/recording/data/recording_gateways.dart';
 import 'package:velorki/features/recording/data/recording_service.dart';
@@ -174,6 +175,7 @@ class FakeTrackExporter implements TrackExporter {
     List<TurnHint> turns = const <TurnHint>[],
     List<double?> temperaturesC = const <double?>[],
     List<DateTime> lapEnds = const <DateTime>[],
+    RouteProfile? profile,
   }) async {
     final failure = error;
     if (failure != null) throw failure;

@@ -119,9 +119,14 @@ class GpxRoute {
   const GpxRoute({
     this.name,
     this.description,
+    this.type,
     this.points = const [],
     this.cues = const [],
   });
+
+  /// `<type>` of the route: a free word for what it is for, e.g.
+  /// `road_biking`.
+  final String? type;
 
   /// The route points that carry a cue — a name, a symbol or a type — in
   /// point order: a Ride with GPS or Garmin cue sheet.

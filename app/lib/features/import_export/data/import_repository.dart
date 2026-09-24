@@ -58,6 +58,7 @@ class ImportRepository {
       turns: track.turns,
       link: track.link,
       creator: track.creator,
+      profile: track.profile,
     );
     if (externalIds != null && externalIds.isNotEmpty) {
       await _routes.markExternal(

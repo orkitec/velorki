@@ -2,6 +2,7 @@ import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../planner/domain/route_poi.dart';
+import '../../planner/domain/route_profile.dart';
 
 /// The file format an import came from.
 enum ImportFormat {
@@ -48,11 +49,16 @@ class ImportedTrack {
     this.temperaturesC = const <double?>[],
     this.isCourse = false,
     this.link,
+    this.profile,
   });
 
   /// A web address the file carried: its `<link>`, for a route that came
   /// from a planning site.
   final String? link;
+
+  /// The bike the file says it is for, or `null` when it names none the
+  /// planner has a profile for.
+  final RouteProfile? profile;
 
   /// Whether the file was a course (a FIT course, a TCX course): a planned
   /// route with a virtual clock on its points, not a recording.

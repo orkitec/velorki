@@ -228,9 +228,8 @@ void main() {
       expect(backend.queries.single.profile, 'trekking');
     });
 
-    testWidgets('edits inside the debounce window produce one request', (
-      tester,
-    ) async {
+    testWidgets('edits inside the debounce window produce one round of '
+        'requests, one per leg', (tester) async {
       final backend = FakeRoutingBackend();
       final container = _container(backend);
       final planner = container.read(plannerControllerProvider.notifier)
@@ -244,8 +243,11 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pump();
 
-      expect(backend.callCount, 1);
-      expect(backend.queries.single.points.length, 3);
+      expect(backend.callCount, 2);
+      expect(backend.queries.map((q) => q.points), [
+        [const LatLng(47.9, 10.9), _b],
+        [_b, _c],
+      ]);
     });
 
     testWidgets('a new edit cancels the request in flight', (tester) async {
@@ -266,10 +268,14 @@ void main() {
       await tester.pump(const Duration(milliseconds: 1000));
       await tester.pump();
 
-      expect(backend.callCount, 2);
+      // The cancelled leg is asked for again, beside the new one.
+      expect(backend.callCount, 3);
       // The cancelled answer never became the shown route.
       expect(container.read(plannerControllerProvider).error, isNull);
-      expect(backend.queries.last.points.length, 3);
+      expect(backend.queries.skip(1).map((q) => q.points), [
+        [_a, _b],
+        [_b, _c],
+      ]);
     });
 
     testWidgets('fewer than two waypoints clears the route', (tester) async {
@@ -314,7 +320,8 @@ void main() {
           .map((w) => w.pos)
           .toList();
       expect(positions, [_a, _c, _b]);
-      expect(backend.callCount, before + 1);
+      // Both legs touch one of the two points.
+      expect(backend.callCount, before + 2);
 
       // The ends cannot move past the edges; nothing changes and no route.
       planner
@@ -322,7 +329,7 @@ void main() {
         ..swapWaypoint(2, 1)
         ..swapWaypoint(1, 0);
       await tester.pump(const Duration(milliseconds: 400));
-      expect(backend.callCount, before + 1);
+      expect(backend.callCount, before + 2);
 
       planner.undo();
       await tester.pump(const Duration(milliseconds: 400));
@@ -484,18 +491,18 @@ void main() {
         expect(state.options.differentWayBack, isTrue);
         expect(state.waypoints.last.kind, WaypointKind.end);
 
-        expect(backend.queries, hasLength(2));
-        expect(backend.queries[0].points, [_a, _b]);
-        expect(backend.queries[0].nogos, isEmpty);
-        expect(backend.queries[1].points, [_b, _a]);
-        expect(backend.queries[1].nogos, isNotEmpty);
-        // One route, not two: the legs are merged before anyone sees them.
+        // The way out stays as it is; only the way home is asked for, past
+        // it.
+        expect(backend.queries, hasLength(1));
+        expect(backend.queries.single.points, [_b, _a]);
+        expect(backend.queries.single.nogos, isNotEmpty);
+        // One route, not two: the legs are joined before anyone sees them.
         expect(state.result!.lengthM, 20000);
         expect(state.error, isNull);
       },
     );
 
-    testWidgets('without a different way back it is one request', (
+    testWidgets('without a different way back the way home is a plain leg', (
       tester,
     ) async {
       final backend = FakeRoutingBackend();
@@ -507,9 +514,12 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pump();
 
-      expect(backend.queries, hasLength(1));
-      expect(backend.queries.single.points, [_a, _b, _a]);
-      expect(container.read(plannerControllerProvider).result!.lengthM, 10000);
+      expect(backend.queries.map((q) => q.points), [
+        [_a, _b],
+        [_b, _a],
+      ]);
+      expect(backend.queries.every((q) => q.nogos.isEmpty), isTrue);
+      expect(container.read(plannerControllerProvider).result!.lengthM, 20000);
     });
 
     testWidgets('undo takes the whole loop back in one step', (tester) async {
@@ -657,11 +667,9 @@ void main() {
         container.read(plannerControllerProvider).options.returnVariant,
         1,
       );
-      expect(backend.queries, hasLength(2));
-      expect(backend.queries[0].points, [_a, _b]);
-      expect(backend.queries[0].alternativeIdx, 0);
-      expect(backend.queries[1].points, [_b, _a]);
-      expect(backend.queries[1].alternativeIdx, 1);
+      expect(backend.queries, hasLength(1));
+      expect(backend.queries.single.points, [_b, _a]);
+      expect(backend.queries.single.alternativeIdx, 1);
     });
 
     testWidgets('wraps around after the last variant', (tester) async {
@@ -1288,8 +1296,8 @@ void main() {
       expect(repository.written.last.$2[1].note, 'Swim');
     });
 
-    test('an imported route with only its ends gets shape points along its '
-        'track, so an edit follows the course', () {
+    test('an old imported route with only its two ends opens as one kept '
+        'leg: the file\'s line, point for point', () {
       final container = _container(FakeRoutingBackend());
       final track = <TrackPoint>[
         for (var i = 0; i < 200; i++)
@@ -1309,21 +1317,14 @@ void main() {
               ],
             ),
           );
-      final waypoints = container.read(plannerControllerProvider).waypoints;
-      expect(waypoints.length, greaterThan(2));
-      expect(waypoints.length, lessThanOrEqualTo(22));
-      expect(waypoints.first.pos, track.first.pos);
-      expect(waypoints.first.kind, WaypointKind.start);
-      expect(waypoints.last.pos, track.last.pos);
-      expect(waypoints.last.kind, WaypointKind.end);
-      for (final w in waypoints) {
-        expect(track.map((p) => p.pos), contains(w.pos));
-      }
+      final state = container.read(plannerControllerProvider);
+      expect(state.positions, [track.first.pos, track.last.pos]);
+      expect(state.legs, hasLength(1));
+      expect(state.legs.single!.kept, isTrue);
+      expect(state.legs.single!.geometry, track);
       // Nothing was routed: the imported geometry is what shows.
-      expect(
-        container.read(plannerControllerProvider).result!.geometry.length,
-        200,
-      );
+      expect(state.result!.geometry, track);
+      expect(state.result!.lengthM, 10000, reason: 'the stored figures');
     });
 
     test('an imported route splits its points: the ones on the track are '

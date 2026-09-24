@@ -143,18 +143,19 @@ void main() {
       expect(planner.isClosedLoop, isTrue);
       expect(planner.options.differentWayBack, isTrue);
 
-      // Two legs: the way out, then the way home past the way out.
-      expect(h.backend.queries, hasLength(2));
-      expect(h.backend.queries[0].points, <LatLng>[_first, _second]);
-      expect(h.backend.queries[0].nogos, isEmpty);
-      expect(h.backend.queries[1].points, <LatLng>[_second, _first]);
-      expect(h.backend.queries[1].nogos, isNotEmpty);
-      expect(h.backend.queries[1].nogos.every((n) => n.weight != null), isTrue);
+      // The way out is on the map already; only the way home is asked
+      // for, past the way out.
+      expect(h.backend.queries, hasLength(1));
+      expect(h.backend.queries[0].points, <LatLng>[_second, _first]);
+      expect(h.backend.queries[0].nogos, isNotEmpty);
+      expect(h.backend.queries[0].nogos.every((n) => n.weight != null), isTrue);
       // The two legs arrive as one route.
       expect(planner.result!.lengthM, 20000);
     });
 
-    testWidgets('with the switch off it is one plain request', (tester) async {
+    testWidgets('with the switch off the way home is one plain request', (
+      tester,
+    ) async {
       final h = await _openSheet(tester, points: const [_first, _second]);
       h.backend.queries.clear();
 
@@ -167,12 +168,10 @@ void main() {
 
       final planner = _container(tester).read(plannerControllerProvider);
       expect(planner.options.differentWayBack, isFalse);
+      // Only the new leg home, and no way out to keep off.
       expect(h.backend.queries, hasLength(1));
-      expect(h.backend.queries.single.points, <LatLng>[
-        _first,
-        _second,
-        _first,
-      ]);
+      expect(h.backend.queries.single.points, <LatLng>[_second, _first]);
+      expect(h.backend.queries.single.nogos, isEmpty);
     });
 
     testWidgets('"Another way back" redraws only the way home', (tester) async {
@@ -194,9 +193,9 @@ void main() {
 
       final planner = _container(tester).read(plannerControllerProvider);
       expect(planner.options.returnVariant, 1);
-      expect(h.backend.queries, hasLength(2));
-      expect(h.backend.queries[0].alternativeIdx, 0);
-      expect(h.backend.queries[1].alternativeIdx, 1);
+      expect(h.backend.queries, hasLength(1));
+      expect(h.backend.queries.single.points, <LatLng>[_second, _first]);
+      expect(h.backend.queries.single.alternativeIdx, 1);
       // Still a loop, still on the map, sheet still open.
       expect(planner.isClosedLoop, isTrue);
       expect(find.byType(SmartLoopSheet), findsOneWidget);
@@ -236,11 +235,8 @@ void main() {
         isFalse,
       );
       expect(h.backend.queries, hasLength(1));
-      expect(h.backend.queries.single.points, <LatLng>[
-        _first,
-        _second,
-        _first,
-      ]);
+      expect(h.backend.queries.single.points, <LatLng>[_second, _first]);
+      expect(h.backend.queries.single.nogos, isEmpty);
       // "Another way back" has nothing to redraw any more.
       expect(
         tester

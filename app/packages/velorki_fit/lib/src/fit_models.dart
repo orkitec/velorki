@@ -85,6 +85,7 @@ class FitCourse {
     required this.points,
     this.name,
     this.sport = FitSport.cycling,
+    this.subSport,
     this.coursePoints = const <FitCoursePoint>[],
   });
 
@@ -93,6 +94,9 @@ class FitCourse {
 
   /// `course.sport`.
   final FitSport sport;
+
+  /// `course.sub_sport`, `null` when absent or unknown.
+  final FitSubSport? subSport;
 
   /// The `record`s with a position, in file order.
   final List<TrackPoint> points;
@@ -172,6 +176,7 @@ class FitSession {
     required this.startTime,
     required this.endTime,
     this.sport = FitSport.cycling,
+    this.subSport,
     this.totalTimerS,
     this.totalElapsedS,
     this.totalDistanceM,
@@ -195,6 +200,9 @@ class FitSession {
 
   /// `sport`.
   final FitSport sport;
+
+  /// `sub_sport`, `null` when absent or unknown.
+  final FitSubSport? subSport;
 
   /// `total_timer_time`, the moving time in seconds.
   final double? totalTimerS;

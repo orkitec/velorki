@@ -36,7 +36,7 @@ class VelorkiDatabase extends _$VelorkiDatabase {
   factory VelorkiDatabase.open() => VelorkiDatabase(_openConnection());
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -77,6 +77,13 @@ class VelorkiDatabase extends _$VelorkiDatabase {
         await m.addColumn(routes, routes.creator);
         await m.addColumn(rides, rides.sourceFormat);
         await m.addColumn(rides, rides.creator);
+      }
+      // 9 kept the line and the markers a route was imported with, so it
+      // can be put back after an edit; older routes keep null and take the
+      // line they have as theirs.
+      if (from < 9) {
+        await m.addColumn(routes, routes.originalJson);
+        await m.addColumn(routes, routes.originalGeometry);
       }
     },
     beforeOpen: (_) async {

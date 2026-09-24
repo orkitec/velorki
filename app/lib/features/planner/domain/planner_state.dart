@@ -3,8 +3,12 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../../core/geo/track_surface.dart';
+import 'route_legs.dart';
 import 'route_poi.dart';
+import 'route_profile.dart';
 import 'routing_options.dart';
+import 'saved_route.dart' show RouteOriginal;
 import 'waypoint.dart';
 
 part 'planner_state.freezed.dart';
@@ -24,13 +28,16 @@ part 'planner_state.freezed.dart';
 /// difference between an answer and a wait for the same answer.
 ///
 /// Only the two loop options are kept of the routing options — undoing an
-/// edit must not also undo a profile the rider picked since.
+/// edit must not also undo a profile the rider picked since. A switch of the
+/// profile is a step of its own, which records the profile it left in
+/// [profile]: taking it back puts that profile back with the legs it drew.
 @immutable
 class PlannerEdit {
   /// Captures one step.
   const PlannerEdit({
     required this.waypoints,
     required this.pois,
+    required this.legs,
     required this.result,
     required this.loadedSurfaceStats,
     required this.routeIsSaved,
@@ -38,26 +45,41 @@ class PlannerEdit {
     required this.savedRouteName,
     required this.differentWayBack,
     required this.returnVariant,
+    this.original,
+    this.profile,
   });
 
-  /// Snapshots [state] as one step.
-  factory PlannerEdit.of(PlannerState state) => PlannerEdit(
-    waypoints: state.waypoints,
-    pois: state.pois,
-    result: state.result,
-    loadedSurfaceStats: state.loadedSurfaceStats,
-    routeIsSaved: state.routeIsSaved,
-    savedRouteId: state.savedRouteId,
-    savedRouteName: state.savedRouteName,
-    differentWayBack: state.options.differentWayBack,
-    returnVariant: state.options.returnVariant,
-  );
+  /// Snapshots [state] as one step; [profile] only for a switch of it.
+  factory PlannerEdit.of(PlannerState state, {RouteProfile? profile}) =>
+      PlannerEdit(
+        waypoints: state.waypoints,
+        pois: state.pois,
+        legs: state.legs,
+        result: state.result,
+        loadedSurfaceStats: state.loadedSurfaceStats,
+        routeIsSaved: state.routeIsSaved,
+        savedRouteId: state.savedRouteId,
+        savedRouteName: state.savedRouteName,
+        differentWayBack: state.options.differentWayBack,
+        returnVariant: state.options.returnVariant,
+        original: state.original,
+        profile: profile,
+      );
 
   /// The waypoints as they were.
   final List<Waypoint> waypoints;
 
   /// The points beside the route as they were.
   final List<RoutePoi> pois;
+
+  /// [PlannerState.legs] as they were.
+  final List<RouteLeg?> legs;
+
+  /// The profile the step switched away from; `null` for any other step.
+  final RouteProfile? profile;
+
+  /// [PlannerState.original] as it was.
+  final RouteOriginal? original;
 
   /// The route that was on the map, or `null` when there was none — an
   /// empty plan, or one whose route had not come back yet.
@@ -89,18 +111,22 @@ class PlannerEdit {
       other is PlannerEdit &&
           other.waypoints == waypoints &&
           other.pois == pois &&
+          other.legs == legs &&
           identical(other.result, result) &&
           other.loadedSurfaceStats == loadedSurfaceStats &&
           other.routeIsSaved == routeIsSaved &&
           other.savedRouteId == savedRouteId &&
           other.savedRouteName == savedRouteName &&
           other.differentWayBack == differentWayBack &&
-          other.returnVariant == returnVariant;
+          other.returnVariant == returnVariant &&
+          identical(other.original, original) &&
+          other.profile == profile;
 
   @override
   int get hashCode => Object.hash(
     waypoints,
     pois,
+    legs,
     identityHashCode(result),
     loadedSurfaceStats,
     routeIsSaved,
@@ -108,6 +134,8 @@ class PlannerEdit {
     savedRouteName,
     differentWayBack,
     returnVariant,
+    identityHashCode(original),
+    profile,
   );
 }
 
@@ -122,6 +150,14 @@ abstract class PlannerState with _$PlannerState {
     /// through, drawn with their kind's icon and saved as the route's own
     /// points of interest.
     @Default(<RoutePoi>[]) List<RoutePoi> pois,
+
+    /// The plan's legs, one per pair of consecutive waypoints: the ones
+    /// drawn, and `null` for each one still to be routed. An edit sets the
+    /// legs it touches to `null` and only those are routed again. A plan
+    /// whose legs are not known — a loop from the loop sheet, a route saved
+    /// before legs were stored — has them all `null`, and its next edit
+    /// routes the whole of it.
+    @Default(<RouteLeg?>[]) List<RouteLeg?> legs,
 
     /// Profile and selected alternative.
     @Default(RoutingOptions()) RoutingOptions options,
@@ -153,10 +189,22 @@ abstract class PlannerState with _$PlannerState {
     /// straight into the library.
     @Default(false) bool routeIsSaved,
 
-    /// Surface statistics of a route loaded from the library, which carries
-    /// no BRouter `messages` any more. Cleared as soon as a fresh route
-    /// arrives from the routing server.
+    /// Surface statistics the routing answer does not carry: a route
+    /// loaded from the library, which has no BRouter `messages` any more,
+    /// or one whose line is not all the router's own, matched against the
+    /// routing tiles. Cleared whenever the route changes.
     SurfaceStats? loadedSurfaceStats,
+
+    /// Matching the shown route against the routing tiles, for a route the
+    /// router did not draw all of; `null` when the router's own figures
+    /// cover it. Its figures, once there, go to [loadedSurfaceStats].
+    AsyncValue<TrackSurface>? matchedSurface,
+
+    /// The line and the markers of the file the plan was opened from, for
+    /// a route read from a file; what Restore puts
+    /// back. `null` for a route planned here, and gone once the plan
+    /// is cleared or replaced.
+    RouteOriginal? original,
 
     /// Which backend computed the shown route, when the composite backend
     /// said. `null` for a route loaded from the library or computed by a
@@ -229,6 +277,17 @@ abstract class PlannerState with _$PlannerState {
   /// Only a closed plan can: for an ordinary A to B there is no way out to
   /// stay off.
   bool get ridesBackAnotherWay => isClosedLoop && options.differentWayBack;
+
+  /// [legs], or all of them unknown when they do not fit the waypoints.
+  List<RouteLeg?> get planLegs {
+    final count = waypoints.length < 2 ? 0 : waypoints.length - 1;
+    return legs.length == count
+        ? legs
+        : List<RouteLeg?>.filled(count, null, growable: false);
+  }
+
+  /// Whether some of the shown route is a file's own line.
+  bool get hasKeptLegs => legs.any((l) => l?.kept ?? false);
 
   /// The waypoint positions, for the routing query and the map.
   List<LatLng> get positions =>

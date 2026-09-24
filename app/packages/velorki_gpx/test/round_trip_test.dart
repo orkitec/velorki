@@ -280,4 +280,31 @@ void main() {
       expect(powerOf('<atemp>19</atemp>'), isNull);
     });
   });
+
+  group('type', () {
+    test('a track keeps its <type> through a round trip', () {
+      final decoded = GpxCodec.decode(
+        GpxCodec.encodeTrack(points: _points, type: 'mountain_biking'),
+      );
+      expect(decoded.tracks.single.type, 'mountain_biking');
+    });
+
+    test('a route writes its <type> on the route and on the track beside '
+        'it, and reads it back from the route', () {
+      final xml = GpxCodec.encodeRoute(
+        points: _points,
+        track: _points,
+        type: 'road_biking',
+      );
+      expect('<type>road_biking</type>'.allMatches(xml), hasLength(2));
+      final decoded = GpxCodec.decode(xml);
+      expect(decoded.routes.single.type, 'road_biking');
+      expect(decoded.tracks.single.type, 'road_biking');
+    });
+
+    test('a route without a type reads as none', () {
+      final decoded = GpxCodec.decode(GpxCodec.encodeRoute(points: _points));
+      expect(decoded.routes.single.type, isNull);
+    });
+  });
 }

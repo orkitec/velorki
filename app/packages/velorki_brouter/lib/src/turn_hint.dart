@@ -195,6 +195,7 @@ class TurnHint {
     exitNumber: exitNumber,
     distanceToNextM: distanceToNextM,
     angleDeg: angleDeg,
+    note: note,
   );
 
   static int? _int(Object? v) {

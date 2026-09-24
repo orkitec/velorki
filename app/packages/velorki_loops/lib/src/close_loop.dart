@@ -71,28 +71,20 @@ class CloseLoopRouter {
     );
     final first = await backend.route(outbound, cancel: cancel);
 
-    final back = closed.copyWith(
-      points: <LatLng>[points[points.length - 2], points.last],
-      alternativeIdx: returnAlternativeIdx,
-    );
-    final nogos = nogosAlong(
-      first.positions,
+    final second = await routeWayBack(
+      backend,
+      outbound: first.positions,
+      back: closed.copyWith(
+        points: <LatLng>[points[points.length - 2], points.last],
+        alternativeIdx: returnAlternativeIdx,
+      ),
+      cancel: cancel,
       sampleEveryM: sampleEveryM,
       skipEndsM: skipEndsM,
-      radiusM: nogoRadiusM,
-      weight: nogoWeight,
+      nogoRadiusM: nogoRadiusM,
+      nogoWeight: nogoWeight,
       maxNogos: maxNogos,
     );
-
-    RouteResult second;
-    try {
-      second = await backend.route(back.copyWith(nogos: nogos), cancel: cancel);
-    } on RoutingException catch (e) {
-      if (e.kind == RoutingErrorKind.cancelled || nogos.isEmpty) rethrow;
-      // The no-gos made the way home unroutable — an island, a single track
-      // in and out. Coming back the same way beats not coming back at all.
-      second = await backend.route(back, cancel: cancel);
-    }
     return mergeLegs(first, second);
   }
 
@@ -100,6 +92,42 @@ class CloseLoopRouter {
   /// is what "close the loop" leaves behind.
   static bool isClosedPlan(List<LatLng> points) =>
       points.length >= 3 && points.first == points.last;
+}
+
+/// Routes [back], the way home of a closed plan, so it keeps off the roads
+/// of [outbound], the way out that is already drawn.
+///
+/// The way out is sprinkled with weighted no-go circles (see [nogosAlong])
+/// and [back] is routed through them. When that fails, it is retried once
+/// without them: coming back the same way beats not coming back at all.
+/// Cancellation is never retried.
+Future<RouteResult> routeWayBack(
+  RoutingBackend backend, {
+  required List<LatLng> outbound,
+  required RouteQuery back,
+  CancelToken? cancel,
+  double sampleEveryM = closeLoopSampleEveryM,
+  double skipEndsM = closeLoopSkipEndsM,
+  double nogoRadiusM = closeLoopNogoRadiusM,
+  double nogoWeight = closeLoopNogoWeight,
+  int maxNogos = closeLoopMaxNogos,
+}) async {
+  final nogos = nogosAlong(
+    outbound,
+    sampleEveryM: sampleEveryM,
+    skipEndsM: skipEndsM,
+    radiusM: nogoRadiusM,
+    weight: nogoWeight,
+    maxNogos: maxNogos,
+  );
+  try {
+    return await backend.route(back.copyWith(nogos: nogos), cancel: cancel);
+  } on RoutingException catch (e) {
+    if (e.kind == RoutingErrorKind.cancelled || nogos.isEmpty) rethrow;
+    // The no-gos made the way home unroutable — an island, a single track
+    // in and out.
+    return backend.route(back, cancel: cancel);
+  }
 }
 
 /// Distance along the outbound leg between two no-go circles.
@@ -155,31 +183,41 @@ List<NoGo> nogosAlong(
   final usable = total - 2 * skipEndsM;
   if (usable <= 0) return const <NoGo>[];
 
-  var step = sampleEveryM;
-  if (step <= 0) return const <NoGo>[];
-  if (usable / step + 1 > maxNogos) {
-    step = maxNogos > 1 ? usable / (maxNogos - 1) : double.infinity;
-  }
+  if (sampleEveryM <= 0) return const <NoGo>[];
+  // The samples are counted first and placed by index, sample k at
+  // k * step, so how many there are cannot hang on how the sums of
+  // distances happen to round: a last sample that lands a hair past the
+  // usable end is clamped onto it rather than dropped.
+  final fit = (usable / sampleEveryM + 1e-9).floor() + 1;
+  final count = fit > maxNogos ? maxNogos : fit;
+  final step = fit > maxNogos
+      ? (maxNogos > 1 ? usable / (maxNogos - 1) : 0.0)
+      : sampleEveryM;
 
   final out = <NoGo>[];
   var travelled = 0.0;
-  var next = skipEndsM;
-  for (var i = 1; i < line.length && out.length < maxNogos; i++) {
-    final segment = haversineMeters(line[i - 1], line[i]);
-    if (segment <= 0) continue;
-    while (next <= travelled + segment && out.length < maxNogos) {
-      if (next > total - skipEndsM) return out;
-      final fraction = (next - travelled) / segment;
-      out.add(
-        NoGo(
-          center: _lerp(line[i - 1], line[i], fraction),
-          radiusM: radiusM,
-          weight: weight,
-        ),
-      );
-      next += step;
+  var i = 1;
+  for (var k = 0; k < count; k++) {
+    final at = skipEndsM + (k * step > usable ? usable : k * step);
+    // Walk on to the segment the sample falls on; the last segment takes
+    // whatever rounding leaves past the end.
+    while (i < line.length - 1) {
+      final segment = haversineMeters(line[i - 1], line[i]);
+      if (travelled + segment >= at) break;
+      travelled += segment;
+      i++;
     }
-    travelled += segment;
+    final segment = haversineMeters(line[i - 1], line[i]);
+    final fraction = segment <= 0
+        ? 0.0
+        : ((at - travelled) / segment).clamp(0.0, 1.0);
+    out.add(
+      NoGo(
+        center: _lerp(line[i - 1], line[i], fraction),
+        radiusM: radiusM,
+        weight: weight,
+      ),
+    );
   }
   return out;
 }

@@ -48,3 +48,49 @@ enum FitSport {
     return null;
   }
 }
+
+/// The kind of a sport in a FIT file, as far as a bike is concerned.
+///
+/// Each value maps to a value of the FIT `sub_sport` enum; [fitValue] is the
+/// number written to the file. Sub-sports this package has no use for read
+/// as `null`.
+enum FitSubSport {
+  /// FIT `sub_sport.generic` (0).
+  generic(0),
+
+  /// FIT `sub_sport.road` (7).
+  road(7),
+
+  /// FIT `sub_sport.mountain` (8).
+  mountain(8),
+
+  /// FIT `sub_sport.cyclocross` (11).
+  cyclocross(11),
+
+  /// FIT `sub_sport.e_bike_fitness` (28).
+  eBikeFitness(28),
+
+  /// FIT `sub_sport.gravel_cycling` (46).
+  gravelCycling(46),
+
+  /// FIT `sub_sport.e_bike_mountain` (47).
+  eBikeMountain(47),
+
+  /// FIT `sub_sport.commuting` (48).
+  commuting(48);
+
+  /// Creates a sub-sport with its FIT enum value.
+  const FitSubSport(this.fitValue);
+
+  /// The numeric value of the FIT `sub_sport` enum.
+  final int fitValue;
+
+  /// The [FitSubSport] for a raw FIT `sub_sport` value, or `null` when the
+  /// value is not one this package knows about.
+  static FitSubSport? fromFitValue(int value) {
+    for (final subSport in FitSubSport.values) {
+      if (subSport.fitValue == value) return subSport;
+    }
+    return null;
+  }
+}

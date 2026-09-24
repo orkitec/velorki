@@ -111,11 +111,14 @@ abstract final class GpxCodec {
   /// A point that carries sensor values gets an `<extensions>` block: heart
   /// rate and cadence inside Garmin's `TrackPointExtension`, power as a bare
   /// `<power>` beside it.
+  ///
+  /// [type] goes into the track's `<type>`.
   static String encodeTrack({
     required List<TrackPoint> points,
     String? name,
     String creator = 'Velorki',
     String? description,
+    String? type,
     List<GpxWaypoint> waypoints = const [],
     List<GpxExtensions?> extensions = const [],
   }) {
@@ -128,6 +131,7 @@ abstract final class GpxCodec {
         gpxlib.Trk(
           name: name,
           desc: description,
+          type: type,
           trksegs: [
             gpxlib.Trkseg(trkpts: [for (final p in points) _fromPoint(p)]),
           ],
@@ -150,13 +154,15 @@ abstract final class GpxCodec {
   /// Encodes [points] as a GPX 1.1 file holding a single `<rte>`, plus any
   /// [waypoints] as top level `<wpt>` elements.
   ///
-  /// Same conventions as [encodeTrack].
+  /// Same conventions as [encodeTrack]; [type] goes into the `<type>` of
+  /// the route and of the track beside it.
   static String encodeRoute({
     required List<TrackPoint> points,
     String? name,
     List<GpxWaypoint> waypoints = const [],
     String creator = 'Velorki',
     String? description,
+    String? type,
     List<GpxRouteCue> cues = const [],
     List<TrackPoint> track = const [],
   }) {
@@ -180,7 +186,9 @@ abstract final class GpxCodec {
       ..creator = creator
       ..metadata = _metadata(name, description)
       ..wpts = [for (final w in waypoints) _fromWaypoint(w)]
-      ..rtes = [gpxlib.Rte(name: name, desc: description, rtepts: rtepts)]
+      ..rtes = [
+        gpxlib.Rte(name: name, desc: description, type: type, rtepts: rtepts),
+      ]
       // The full geometry beside the route, for readers that only draw
       // tracks; the <rte> then carries the turns alone.
       ..trks = [
@@ -188,6 +196,7 @@ abstract final class GpxCodec {
           gpxlib.Trk(
             name: name,
             desc: description,
+            type: type,
             trksegs: [
               gpxlib.Trkseg(trkpts: [for (final p in track) _fromPoint(p)]),
             ],
@@ -232,6 +241,7 @@ abstract final class GpxCodec {
   static GpxRoute _toRoute(gpxlib.Rte rte) => GpxRoute(
     name: _nonEmpty(rte.name),
     description: _nonEmpty(rte.desc),
+    type: _nonEmpty(rte.type),
     points: [for (final pt in rte.rtepts) _toTrackPoint(pt)],
     cues: [
       for (var i = 0; i < rte.rtepts.length; i++)

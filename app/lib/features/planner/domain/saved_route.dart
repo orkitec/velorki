@@ -5,6 +5,7 @@ import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../core/db/database.dart' show RouteSource;
+import 'route_legs.dart';
 import 'route_profile.dart';
 import 'routing_options.dart';
 import 'route_poi.dart';
@@ -61,6 +62,20 @@ abstract class SavedRoute with _$SavedRoute {
     /// Who wrote the file the route came from, its `creator`, or the
     /// manufacturer of the device; `null` for a route planned here.
     String? creator,
+
+    /// Where each leg between two waypoints starts in [geometry], and
+    /// whether it is a file's own line; `null` for a row saved before legs
+    /// were stored, or from a route whose legs were not known.
+    List<SavedLeg>? legs,
+
+    /// The line and the markers the route was imported with, kept through
+    /// every edit; `null` for a route planned here, or imported before
+    /// that was kept.
+    RouteOriginal? original,
+
+    /// Whether [options] name a bike: `false` for a file that named none,
+    /// which then opens with the bike the rider rode last.
+    @Default(true) bool profileKnown,
   }) = _SavedRoute;
 
   const SavedRoute._();
@@ -70,4 +85,32 @@ abstract class SavedRoute with _$SavedRoute {
 
   /// Estimated riding time at the profile's typical speed.
   Duration get estimatedTime => profile.estimatedTime(distanceM);
+}
+
+/// A route as its file drew it: the line, the markers on it, where each leg
+/// between them starts, and the file's cue sheet.
+@immutable
+class RouteOriginal {
+  /// Creates the original.
+  const RouteOriginal({
+    required this.geometryBlob,
+    required this.waypoints,
+    required this.legs,
+    this.turns = const <TurnHint>[],
+  });
+
+  /// The line, packed.
+  final Uint8List geometryBlob;
+
+  /// The markers: the ends and the named points on the line.
+  final List<Waypoint> waypoints;
+
+  /// Where the leg from each marker but the last starts; every one kept.
+  final List<SavedLeg> legs;
+
+  /// The file's turn instructions, anchored to the line.
+  final List<TurnHint> turns;
+
+  /// The line, decoded on every call.
+  List<TrackPoint> get geometry => PackedTrack.decode(geometryBlob);
 }

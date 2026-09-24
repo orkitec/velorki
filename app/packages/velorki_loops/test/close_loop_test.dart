@@ -92,6 +92,25 @@ void main() {
       );
     });
 
+    test('a cap that puts the last sample exactly on the free end still '
+        'gets every sample', () {
+      // 2 * 400 m free, 2300 m usable, 24 samples 100 m apart: the last one
+      // sits on the end of the usable stretch.
+      final line = _line(3100);
+      final nogos = nogosAlong(line, sampleEveryM: 50, maxNogos: 24);
+      expect(nogos, hasLength(24));
+      final end = destinationPoint(_start, 90, 2700);
+      expect(haversineMeters(nogos.last.center, end), lessThan(1));
+      final start = destinationPoint(_start, 90, 400);
+      expect(haversineMeters(nogos.first.center, start), lessThan(1));
+    });
+
+    test('an unthinned sampling ending on the free end keeps its last', () {
+      // 2000 m usable at 100 m: 21 samples, the last on the end.
+      final nogos = nogosAlong(_line(2800), sampleEveryM: 100);
+      expect(nogos, hasLength(21));
+    });
+
     test('a route shorter than the two free ends gets none', () {
       expect(nogosAlong(_line(500)), isEmpty);
       expect(nogosAlong(const <LatLng>[]), isEmpty);

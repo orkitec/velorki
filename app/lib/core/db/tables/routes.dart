@@ -54,6 +54,16 @@ class Routes extends Table {
   /// Who wrote the file the route came from.
   TextColumn get creator => text().nullable()();
 
+  /// A route read from a file: the file's own markers, where each leg
+  /// between them starts, and its cue sheet, as JSON, written once at the
+  /// import and never by an edit; null for a route planned here and for one
+  /// imported before it was kept.
+  TextColumn get originalJson => text().nullable()();
+
+  /// The file's own line, packed like [geometry], once an edit saved over
+  /// it; null while [geometry] still is that line.
+  BlobColumn get originalGeometry => blob().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

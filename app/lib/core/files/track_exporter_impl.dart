@@ -12,6 +12,8 @@ import 'package:velorki_gpx/velorki_gpx.dart';
 import 'package:velorki_tcx/velorki_tcx.dart';
 
 import '../../features/planner/domain/route_poi.dart';
+import '../../features/planner/domain/route_profile.dart';
+import 'bike_type.dart';
 import 'course_points.dart';
 import 'track_exporter.dart';
 
@@ -103,6 +105,7 @@ class ShareTrackExporter implements TrackExporter {
     List<TurnHint> turns = const <TurnHint>[],
     List<double?> temperaturesC = const <double?>[],
     List<DateTime> lapEnds = const <DateTime>[],
+    RouteProfile? profile,
   }) async {
     final file = await write(
       name: name,
@@ -114,6 +117,7 @@ class ShareTrackExporter implements TrackExporter {
       turns: turns,
       temperaturesC: temperaturesC,
       lapEnds: lapEnds,
+      profile: profile,
     );
     await _shareFiles(file, mimeType: mimeTypeFor(format));
   }
@@ -135,6 +139,7 @@ class ShareTrackExporter implements TrackExporter {
     List<TurnHint> turns = const <TurnHint>[],
     List<double?> temperaturesC = const <double?>[],
     List<DateTime> lapEnds = const <DateTime>[],
+    RouteProfile? profile,
   }) async {
     if (points.isEmpty) {
       throw ArgumentError.value(points, 'points', 'nothing to export');
@@ -159,6 +164,7 @@ class ShareTrackExporter implements TrackExporter {
             pois: pois,
             turns: turns,
             temperaturesC: temperaturesC,
+            profile: profile,
           ),
           flush: true,
         );
@@ -184,6 +190,7 @@ class ShareTrackExporter implements TrackExporter {
             startTime: startTime,
             pois: pois,
             turns: turns,
+            profile: profile,
           ),
           flush: true,
         );
@@ -198,6 +205,7 @@ class ShareTrackExporter implements TrackExporter {
     List<RoutePoi> pois = const <RoutePoi>[],
     List<TurnHint> turns = const <TurnHint>[],
     List<double?> temperaturesC = const <double?>[],
+    RouteProfile? profile,
   }) => switch (kind) {
     // A planned route is a <rte>: turn points, no time base, and its points
     // of interest as <wpt>, so a route goes out the way it came in.
@@ -206,6 +214,7 @@ class ShareTrackExporter implements TrackExporter {
       points: points,
       pois: pois,
       turns: turns,
+      type: profile == null ? null : gpxTypeOf(profile),
     ),
     // A ride is a <trk> and keeps the timestamps it was recorded with, and
     // the temperature the file it came from carried.
@@ -229,6 +238,7 @@ class ShareTrackExporter implements TrackExporter {
     required List<TrackPoint> points,
     required List<RoutePoi> pois,
     required List<TurnHint> turns,
+    String? type,
   }) {
     final cued = [
       for (final t in turns)
@@ -240,6 +250,7 @@ class ShareTrackExporter implements TrackExporter {
         name: name,
         creator: creator,
         waypoints: gpxWaypoints(pois),
+        type: type,
       );
     }
     final rtepts = <TrackPoint>[points.first];
@@ -266,6 +277,7 @@ class ShareTrackExporter implements TrackExporter {
       waypoints: gpxWaypoints(pois),
       cues: cues,
       track: points,
+      type: type,
     );
   }
 
@@ -320,6 +332,7 @@ class ShareTrackExporter implements TrackExporter {
     required DateTime? startTime,
     List<RoutePoi> pois = const <RoutePoi>[],
     List<TurnHint> turns = const <TurnHint>[],
+    RouteProfile? profile,
   }) => switch (kind) {
     // A course carries its cue sheet and its places as course points, which
     // is what the head unit shows as the next turn.
@@ -327,6 +340,7 @@ class ShareTrackExporter implements TrackExporter {
       points,
       name: safeFileName(name),
       coursePoints: courseCuePoints(points: points, turns: turns, pois: pois),
+      subSport: profile == null ? FitSubSport.generic : fitSubSportOf(profile),
     ),
     TrackKind.ride => FitCodec.encodeActivity(
       points,

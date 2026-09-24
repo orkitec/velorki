@@ -11,7 +11,9 @@ import '../../../core/db/daos/routes_dao.dart';
 import '../../../core/geo/track_surface.dart';
 import '../../../core/db/database.dart';
 import '../../../core/geo/ride_stats.dart';
+import '../domain/route_legs.dart';
 import '../domain/route_profile.dart';
+import '../domain/route_waypoints.dart';
 import '../domain/routing_options.dart';
 import '../domain/route_poi.dart';
 import '../domain/saved_route.dart';
@@ -52,6 +54,11 @@ class RouteRepository {
   ///
   /// Passing the [id] of an existing row updates it and keeps its creation
   /// date; without one a new row is created.
+  ///
+  /// A [PlannedRoute] has its legs written with it, so it opens with the
+  /// same kept and routed stretches. [surfaceStats] are the figures the
+  /// planner showed; without them, the router's own, when it has them for
+  /// the whole route.
   Future<SavedRoute> savePlannedRoute({
     required String name,
     required RouteResult route,
@@ -61,6 +68,8 @@ class RouteRepository {
     String? id,
     String? description,
     RouteSource source = RouteSource.planned,
+    SurfaceStats? surfaceStats,
+    RouteOriginal? original,
   }) async {
     final now = _clock();
     final existing = id == null ? null : await _dao.routeById(id);
@@ -89,7 +98,14 @@ class RouteRepository {
       geometryBlob: PackedTrack.encode(route.geometry),
       waypoints: waypoints,
       options: options,
-      surfaceStats: route.messages.isEmpty ? null : route.surfaceStats,
+      surfaceStats:
+          surfaceStats ?? (route.messages.isEmpty ? null : route.surfaceStats),
+      legs: route is PlannedRoute && route.legs.length == waypoints.length - 1
+          ? route.savedLegs
+          : null,
+      // The file's own line outlives every save over it: the row's own when
+      // it has one, else what the planner took for it.
+      original: kept?.original ?? original,
       // The rider's own turns, from the waypoints of the turn kind, beside
       // the router's: what the cue sheet and the navigator read.
       turns: mergeWaypointTurns(route.turns, waypoints, geometryLine),
@@ -100,6 +116,10 @@ class RouteRepository {
   }
 
   /// Writes a route that came out of a file rather than out of the router.
+  ///
+  /// [profile] is the bike the file names; `null` leaves the bike to the
+  /// planner, which opens the route with the one the rider rode last. The
+  /// line and the markers it opens with are kept as its original.
   ///
   /// There is no [RouteResult] here — nobody asked BRouter — so the distance
   /// and the elevation gain are computed from the geometry itself, and the
@@ -118,6 +138,7 @@ class RouteRepository {
     List<RoutePoi> pois = const <RoutePoi>[],
     List<TurnHint> turns = const <TurnHint>[],
     RoutingOptions options = const RoutingOptions(),
+    RouteProfile? profile,
     String? link,
     String? creator,
   }) async {
@@ -131,25 +152,46 @@ class RouteRepository {
       Waypoint(pos: points.first.pos),
       if (points.length > 1) Waypoint(pos: points.last.pos),
     ]);
+    final blob = PackedTrack.encode(points);
+    final markers = trackMarkers(
+      track: points.map((p) => p.pos).toList(growable: false),
+      saved: waypoints ?? ends,
+      pois: pois,
+      turns: turns,
+    );
     final saved = SavedRoute(
       id: id ?? _uuid.v4(),
       name: name,
       description: description,
       source: source,
-      profile: options.profile,
+      profile: profile ?? options.profile,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
       distanceM: geometry.distanceM,
       ascentM: geometry.ascentM,
       descentM: geometry.descentM,
       bounds: BoundingBox.fromPoints(points.map((p) => p.pos)),
-      geometryBlob: PackedTrack.encode(points),
+      geometryBlob: blob,
       waypoints: waypoints ?? ends,
-      options: options,
+      options: profile == null ? options : options.copyWith(profile: profile),
+      profileKnown: profile != null,
       pois: pois,
       turns: turns,
       link: link,
       creator: creator,
+      original: markers.length < 2
+          ? null
+          : RouteOriginal(
+              geometryBlob: blob,
+              waypoints: normalizeWaypointKinds([
+                for (final m in markers) m.$2,
+              ]),
+              legs: [
+                for (final m in markers.take(markers.length - 1))
+                  SavedLeg(start: m.$1, kept: true),
+              ],
+              turns: turns,
+            ),
     );
     await _dao.upsertRoute(toCompanion(saved));
     return saved;
@@ -215,9 +257,16 @@ class RouteRepository {
     final row = await _dao.routeById(id);
     if (row == null) return;
     final route = toDomain(row);
+    final legs = route.legs;
     await _dao.updateRoute(
       row.copyWith(
-        waypointsJson: encodeWaypoints(waypoints),
+        // Details move no point, so the legs stay where they were.
+        waypointsJson: encodeWaypoints(
+          waypoints,
+          legs: legs != null && legs.length == waypoints.length - 1
+              ? legs
+              : null,
+        ),
         turnsJson: Value(
           encodeTurns(
             mergeWaypointTurns(
@@ -297,6 +346,8 @@ class RouteRepository {
     description: row.description,
     source: row.source,
     profile: RouteProfile.fromName(row.profile),
+    profileKnown: decodeProfileKnown(row.routingOptionsJson),
+    original: decodeOriginal(row.originalJson, row.originalGeometry, row),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     distanceM: row.distanceM,
@@ -310,6 +361,7 @@ class RouteRepository {
     ),
     geometryBlob: Uint8List.fromList(row.geometry),
     waypoints: decodeWaypoints(row.waypointsJson),
+    legs: decodeLegs(row.waypointsJson),
     options: decodeOptions(row.routingOptionsJson),
     // One read of the column for both: the marker for a track that could
     // not be followed lives in it beside the figures, and parsing it as
@@ -341,8 +393,11 @@ class RouteRepository {
     bboxMaxLat: route.bounds.north,
     bboxMaxLon: route.bounds.east,
     geometry: route.geometryBlob,
-    waypointsJson: encodeWaypoints(route.waypoints),
-    routingOptionsJson: jsonEncode(route.options.toMap()),
+    waypointsJson: encodeWaypoints(route.waypoints, legs: route.legs),
+    routingOptionsJson: jsonEncode(
+      <String, dynamic>{...route.options.toMap()}
+        ..removeWhere((key, _) => key == 'profile' && !route.profileKnown),
+    ),
     surfaceStatsJson: Value(
       route.surfaceStats == null
           ? null
@@ -353,6 +408,15 @@ class RouteRepository {
     poisJson: Value(encodePois(route.pois)),
     link: Value(route.link),
     creator: Value(route.creator),
+    originalJson: Value(encodeOriginal(route.original)),
+    // The file's line is stored apart only once it is not the line any
+    // more.
+    originalGeometry: Value(
+      route.original == null ||
+              _sameBytes(route.original!.geometryBlob, route.geometryBlob)
+          ? null
+          : route.original!.geometryBlob,
+    ),
   );
 
   BoundingBox _boundsOf(List<Waypoint> waypoints) => waypoints.isEmpty
@@ -360,9 +424,85 @@ class RouteRepository {
       : BoundingBox.fromPoints(waypoints.map((w) => w.pos));
 }
 
+bool _sameBytes(Uint8List a, Uint8List b) {
+  if (identical(a, b)) return true;
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
+
+/// Whether the `routing_options_json` column names a bike; a file that
+/// named none was saved without one.
+bool decodeProfileKnown(String json) {
+  final decoded = _tryDecode(json);
+  return decoded is! Map<String, dynamic> || decoded.containsKey('profile');
+}
+
+/// The `original_json` column: the markers with their legs, and the turns.
+String? encodeOriginal(RouteOriginal? original) => original == null
+    ? null
+    : jsonEncode(<String, dynamic>{
+        'waypoints': jsonDecode(
+          encodeWaypoints(original.waypoints, legs: original.legs),
+        ),
+        if (original.turns.isNotEmpty)
+          'turns': [for (final t in original.turns) t.toMap()],
+      });
+
+/// Reads the original of [row] back: [json] from `original_json`, the line
+/// from [geometry] (`original_geometry`) or, while that is empty, the row's
+/// own. `null` when there is none or it cannot be read.
+RouteOriginal? decodeOriginal(String? json, Uint8List? geometry, RouteRow row) {
+  if (json == null || json.isEmpty) return null;
+  final decoded = _tryDecode(json);
+  if (decoded is! Map<String, dynamic>) return null;
+  final points = jsonEncode(decoded['waypoints']);
+  final legs = decodeLegs(points);
+  if (legs == null) return null;
+  final turns = decoded['turns'];
+  return RouteOriginal(
+    geometryBlob: Uint8List.fromList(geometry ?? row.geometry),
+    waypoints: decodeWaypoints(points),
+    legs: legs,
+    turns: turns is List ? decodeTurns(jsonEncode(turns)) : const <TurnHint>[],
+  );
+}
+
 /// The `waypoints_json` column.
-String encodeWaypoints(List<Waypoint> waypoints) =>
-    jsonEncode(waypoints.map((w) => w.toMap()).toList());
+///
+/// With [legs], every waypoint but the last also says where the leg from it
+/// starts in the geometry (`leg`) and whether that leg is a file's own line
+/// (`kept`): keys an older build does not read and a row without them does
+/// not have.
+String encodeWaypoints(List<Waypoint> waypoints, {List<SavedLeg>? legs}) {
+  final withLegs = legs != null && legs.length == waypoints.length - 1;
+  return jsonEncode(<Map<String, dynamic>>[
+    for (var i = 0; i < waypoints.length; i++)
+      <String, dynamic>{
+        ...waypoints[i].toMap(),
+        if (withLegs && i < legs.length) 'leg': legs[i].start,
+        if (withLegs && i < legs.length && legs[i].kept) 'kept': true,
+      },
+  ]);
+}
+
+/// The legs stored in the `waypoints_json` column, or `null` when the row
+/// has none — saved before legs were, or without them.
+List<SavedLeg>? decodeLegs(String json) {
+  final decoded = _tryDecode(json);
+  if (decoded is! List || decoded.length < 2) return null;
+  final legs = <SavedLeg>[];
+  for (var i = 0; i < decoded.length - 1; i++) {
+    final entry = decoded[i];
+    if (entry is! Map<String, dynamic>) return null;
+    final start = entry['leg'];
+    if (start is! int) return null;
+    legs.add(SavedLeg(start: start, kept: entry['kept'] == true));
+  }
+  return legs;
+}
 
 /// Parses the `waypoints_json` column; anything unreadable yields an empty
 /// list rather than breaking the library.

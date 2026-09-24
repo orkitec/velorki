@@ -39,6 +39,8 @@ A GPX route with a cue sheet, the route export of Ride with GPS or a Garmin cour
 
 Velorki guesses **Route** or **Ride** from whether the points carry times: a recording does, a planned route does not. A FIT course is recognised as a course and guessed as a route, whatever its synthetic time base says, and so is a TCX course; its course points become the route's cue sheet (turns) and its points of interest (water, food, hazards, named places). Nothing is written until you tap **Save**.
 
+A route opens with the bike its file names: a GPX `<type>` such as `road_biking` or `mountain_biking`, or a FIT course's or activity's sub-sport (road, mountain, gravel), becomes **Road**, **MTB**, **Gravel** or **Touring**. A file that names none opens with the bike you rode last. An exported route writes its bike back the same way; a TCX file has no word for it.
+
 A FIT activity from a head unit brings more than its track: the laps the device cut stand in for the fixed splits on the ride's page, the totals the device wrote (distance, moving time, ascent, calories) are shown under **As recorded by the device** where they differ from what Velorki works out from the fixes, and a temperature, when the device logged one, gets a chart of its own. A GPX ride brings heart rate, cadence, power and temperature from its extensions the same way. A GPX file with several tracks, a multi-day tour say, lists them with a checkbox each, and saves one ride (or route) per checked track.
 
 Afterwards you get "Alpine loop added to the library" or "Alpine loop added to your rides", and you land on the new item's card on the Library tab.

@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/router.dart';
 import 'package:velorki/core/files/track_exporter.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
+import 'package:velorki/features/planner/domain/route_legs.dart';
+import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/domain/routing_options.dart';
 import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
@@ -16,12 +18,14 @@ import '../planner/support/pump.dart';
 
 /// One recorded call to [TrackExporter.share].
 class _Export {
-  const _Export(this.name, this.kind, this.format, this.pointCount);
+  const _Export(this.name, this.kind, this.format, this.points);
 
   final String name;
   final TrackKind kind;
   final TrackFormat format;
-  final int pointCount;
+  final List<TrackPoint> points;
+
+  int get pointCount => points.length;
 
   @override
   String toString() => '$name ${kind.name}/${format.name} ($pointCount)';
@@ -33,6 +37,7 @@ class _RecordingExporter implements TrackExporter {
   /// The points of interest handed over with each call.
   final List<List<RoutePoi>> exportedPois = <List<RoutePoi>>[];
   final List<List<TurnHint>> exportedTurns = <List<TurnHint>>[];
+  final List<RouteProfile?> exportedProfiles = <RouteProfile?>[];
 
   /// When set, [share] throws it instead of recording.
   Object? failure;
@@ -48,11 +53,13 @@ class _RecordingExporter implements TrackExporter {
     List<TurnHint> turns = const <TurnHint>[],
     List<double?> temperaturesC = const <double?>[],
     List<DateTime> lapEnds = const <DateTime>[],
+    RouteProfile? profile,
   }) async {
     exportedTurns.add(turns);
+    exportedProfiles.add(profile);
     final error = failure;
     if (error != null) throw error;
-    calls.add(_Export(name, kind, format, points.length));
+    calls.add(_Export(name, kind, format, points));
     exportedPois.add(pois);
   }
 }
@@ -109,6 +116,51 @@ void main() {
     expect(call.kind, TrackKind.route);
     expect(call.format, TrackFormat.gpx);
     expect(call.pointCount, saved.geometry.length);
+    expect(exporter.exportedProfiles.single, RouteProfile.trekking);
+    await unmountApp(tester);
+  });
+
+  testWidgets('a route of a file\'s line and a routed leg goes out as the '
+      'one line they join into', (tester) async {
+    final h = PlannerHarness();
+    final route = PlannedRoute.join([
+      RouteLeg.kept(syntheticRoute(points: 4).geometry),
+      RouteLeg.routed(
+        syntheticRoute(startLat: 48.05, startLon: 11.05, points: 3),
+      ),
+    ]);
+    final saved =
+        await RouteRepository(
+          h.db.routesDao,
+          clock: () => DateTime.utc(2026, 9, 12, 10),
+        ).savePlannedRoute(
+          name: 'Half a file',
+          route: route,
+          waypoints: const [
+            Waypoint(pos: LatLng(48.0, 11.0), kind: WaypointKind.start),
+            Waypoint(pos: LatLng(48.03, 11.03)),
+            Waypoint(pos: LatLng(48.07, 11.07), kind: WaypointKind.end),
+          ],
+          options: const RoutingOptions(),
+        );
+    final exporter = _RecordingExporter();
+    await pumpApp(
+      tester,
+      harness: h,
+      initialLocation: routeDetailLocation(saved.id),
+      extraOverrides: [trackExporterProvider.overrideWithValue(exporter)],
+    );
+    await tester.pumpAndSettle();
+
+    await _openExportMenu(tester);
+    await tester.tap(find.text(l10n.exportGpxRoute));
+    await tester.pumpAndSettle();
+
+    expect(route.geometry, hasLength(7));
+    expect(
+      exporter.calls.single.points.map((p) => p.pos),
+      route.geometry.map((p) => p.pos),
+    );
     await unmountApp(tester);
   });
 

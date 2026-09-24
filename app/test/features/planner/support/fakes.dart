@@ -351,3 +351,40 @@ SegmentMessage syntheticMessage(
   timeS: 600,
   energyJ: 0,
 );
+
+/// A [RoutingBackend] that draws each query as a line through its points,
+/// with a point halfway along every stretch, so a test can tell the legs of
+/// a plan apart and join them up.
+///
+/// Every answer carries a `messages` table, like the router's.
+class LineRoutingBackend extends FakeRoutingBackend {
+  @override
+  Future<RouteResult> route(RouteQuery q, {CancelToken? cancel}) async {
+    await super.route(q, cancel: cancel);
+    final geometry = <TrackPoint>[];
+    for (var i = 0; i < q.points.length; i++) {
+      final p = q.points[i];
+      if (i > 0) {
+        final a = q.points[i - 1];
+        geometry.add(
+          TrackPoint(LatLng((a.lat + p.lat) / 2, (a.lon + p.lon) / 2)),
+        );
+      }
+      geometry.add(TrackPoint(p));
+    }
+    final lengthM = polylineLengthMeters(q.points);
+    return RouteResult(
+      geometry: geometry,
+      lengthM: lengthM,
+      ascentM: 10,
+      descentM: 5,
+      messages: <SegmentMessage>[
+        syntheticMessage(q.points.last, lengthM, const {
+          'highway': 'residential',
+          'surface': 'asphalt',
+        }),
+      ],
+      raw: const <String, dynamic>{},
+    );
+  }
+}
