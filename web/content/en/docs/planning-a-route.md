@@ -31,7 +31,7 @@ To move a point you already have, **drag its marker**. On a closed loop, draggin
 Tap a marker to open its sheet. From the top:
 
 - **Name**, filled with the point's name or, while it has none, its number; a number left as it is names nothing,
-- **Type**: a row of tiles that scrolls sideways: **Hazard**, **Water**, **Food**, **Other**, **Summit**, **Viewpoint**, **Shelter**, **Shop**, **Bike repair** and **Turn**. A **Turn** takes a **Direction** underneath (left, right, slight, sharp, keep left or right, straight, U-turn) and becomes a line of the route's cue sheet, so the turn banner and the voice say it there; a route imported with a cue sheet opens with its written turns as points of this type, ready to be changed,
+- **Type**: a grid of tiles, all in view: **Hazard**, **Water**, **Food**, **Other**, **Summit**, **Viewpoint**, **Shelter**, **Shop**, **Bike repair** and **Turn**. A **Turn** takes a **Direction** underneath (left, right, slight, sharp, keep left or right, straight, U-turn) and becomes a line of the route's cue sheet, so the turn banner and the voice say it there; a route imported with a cue sheet opens with its written turns as points of this type, ready to be changed,
 - **Note**,
 - **Visit earlier** and **Visit later**, which swap the point with its neighbour in the order at once and leave the sheet open, so a point can be moved and named in one visit,
 - **Remove point**,

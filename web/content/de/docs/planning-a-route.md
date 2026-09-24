@@ -31,7 +31,7 @@ Um einen vorhandenen Punkt zu verschieben, **zieh seine Markierung**. Bei einer 
 Tippe auf eine Markierung, um ihr Blatt zu öffnen. Von oben:
 
 - **Name**, vorbelegt mit dem Namen des Punkts oder, solange er keinen hat, mit seiner Nummer; eine Nummer, die so stehen bleibt, benennt nichts,
-- **Art**: eine Reihe Kacheln, die seitwärts scrollt: **Gefahr**, **Wasser**, **Essen**, **Sonstiges**, **Gipfel**, **Aussicht**, **Unterstand**, **Laden**, **Fahrradwerkstatt** und **Abbiegung**. Eine **Abbiegung** bekommt darunter eine **Richtung** (links, rechts, leicht, scharf, links oder rechts halten, geradeaus, Wende) und wird eine Zeile der Abbiegeliste der Route, sodass Abbiegeband und Stimme sie dort sagen; eine mit Abbiegeliste importierte Route öffnet sich mit ihren geschriebenen Abbiegungen als Punkten dieser Art, bereit zum Ändern,
+- **Art**: ein Raster aus Kacheln, alle im Blick: **Gefahr**, **Wasser**, **Essen**, **Sonstiges**, **Gipfel**, **Aussicht**, **Unterstand**, **Laden**, **Fahrradwerkstatt** und **Abbiegung**. Eine **Abbiegung** bekommt darunter eine **Richtung** (links, rechts, leicht, scharf, links oder rechts halten, geradeaus, Wende) und wird eine Zeile der Abbiegeliste der Route, sodass Abbiegeband und Stimme sie dort sagen; eine mit Abbiegeliste importierte Route öffnet sich mit ihren geschriebenen Abbiegungen als Punkten dieser Art, bereit zum Ändern,
 - **Notiz**,
 - **Früher anfahren** und **Später anfahren**, was den Punkt sofort mit seinem Nachbarn in der Reihenfolge tauscht und das Blatt offen lässt, sodass sich ein Punkt in einem Besuch verschieben und benennen lässt,
 - **Punkt entfernen**,

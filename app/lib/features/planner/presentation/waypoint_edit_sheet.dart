@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 
@@ -242,12 +244,13 @@ class _WaypointEditSheetState extends State<WaypointEditSheet> {
   }
 }
 
-/// The kinds as tiles in a row that scrolls sideways, icon over a one-line
-/// label, the chosen one filled with the scheme's primary.
+/// The kinds as a grid of equal tiles, icon over a one-line label, the
+/// chosen one filled with the scheme's primary.
 ///
 /// Tiles rather than a segmented button: icon-beside-label segments did not
-/// fit a phone's width, and every label broke onto a second line. A row
-/// that scrolls, since ten kinds are more than a phone shows at once.
+/// fit a phone's width, and every label broke onto a second line. A grid
+/// rather than a row that scrolls: ten kinds are two rows of five on a
+/// phone, all in view at once, three rows of four on a narrow sheet.
 class PoiKindTiles extends StatelessWidget {
   /// Creates the tiles with [selected] filled.
   const PoiKindTiles({
@@ -262,83 +265,126 @@ class PoiKindTiles extends StatelessWidget {
   /// Called with the kind a tap chose.
   final ValueChanged<PoiKind> onSelected;
 
+  /// Below this width the grid drops to four tiles a row, so a label still
+  /// has room to be read.
+  static const double narrowWidth = 360;
+
+  /// The air between tiles, sideways and down.
+  static const double gap = 8;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final perRow = constraints.maxWidth < narrowWidth ? 4 : 5;
+      final kinds = PoiKind.values;
+      final rows = <List<PoiKind?>>[
+        for (var i = 0; i < kinds.length; i += perRow)
+          <PoiKind?>[
+            ...kinds.sublist(i, math.min(i + perRow, kinds.length)),
+            // A short last row keeps its tiles the width of the others.
+            for (
+              var j = math.min(i + perRow, kinds.length);
+              j < i + perRow;
+              j++
+            )
+              null,
+          ],
+      ];
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final (r, row) in rows.indexed) ...[
+            if (r > 0) const SizedBox(height: gap),
+            // Every tile of a row as tall as the tallest, so a row reads as
+            // one band; intrinsic rather than stretch, since the sheet's
+            // scroll view gives the column no height to stretch to.
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final (i, kind) in row.indexed) ...[
+                    if (i > 0) const SizedBox(width: gap),
+                    Expanded(
+                      child: kind == null
+                          ? const SizedBox.shrink()
+                          : _PoiKindTile(
+                              kind: kind,
+                              selected: kind == selected,
+                              onTap: () => onSelected(kind),
+                            ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ],
+      );
+    },
+  );
+}
+
+/// One kind's tile.
+class _PoiKindTile extends StatelessWidget {
+  const _PoiKindTile({
+    required this.kind,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final PoiKind kind;
+  final bool selected;
+  final VoidCallback onTap;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final labelStyle = Theme.of(context).textTheme.labelMedium;
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      clipBehavior: Clip.none,
-      child: Row(
-        children: [
-          for (final (i, kind) in PoiKind.values.indexed) ...[
-            if (i > 0) const SizedBox(width: 8),
-            SizedBox(
-              width: poiKindTileWidth,
-              child: Semantics(
-                button: true,
-                selected: kind == selected,
-                child: Material(
-                  // Fill and text from the one scheme, so they agree in both
-                  // themes: a tint of the accent under white text did not.
-                  color: kind == selected
-                      ? scheme.primary
-                      : scheme.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(12),
-                  clipBehavior: Clip.antiAlias,
-                  child: InkWell(
-                    onTap: () => onSelected(kind),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 10,
-                        horizontal: 4,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            poiIcon(kind),
-                            size: 22,
-                            color: kind == selected
-                                ? scheme.onPrimary
-                                : scheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(height: 4),
-                          // One line whatever the language: a label longer
-                          // than its quarter shrinks rather than wrapping or
-                          // ending in an ellipsis.
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              poiKindLabel(l10n, kind),
-                              maxLines: 1,
-                              softWrap: false,
-                              textAlign: TextAlign.center,
-                              style: labelStyle?.copyWith(
-                                color: kind == selected
-                                    ? scheme.onPrimary
-                                    : scheme.onSurface,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: Material(
+        // Fill and text from the one scheme, so they agree in both themes:
+        // a tint of the accent under white text did not.
+        color: selected ? scheme.primary : scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(12),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  poiIcon(kind),
+                  size: 22,
+                  color: selected ? scheme.onPrimary : scheme.onSurfaceVariant,
+                ),
+                const SizedBox(height: 4),
+                // One line whatever the language: a label longer than its
+                // tile shrinks rather than wrapping or ending in an ellipsis.
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    poiKindLabel(l10n, kind),
+                    maxLines: 1,
+                    softWrap: false,
+                    textAlign: TextAlign.center,
+                    style: labelStyle?.copyWith(
+                      color: selected ? scheme.onPrimary : scheme.onSurface,
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ],
+          ),
+        ),
       ),
     );
   }
 }
-
-/// How wide a kind's tile is: four fit a phone with room for the fifth to
-/// show, which says the row scrolls.
-const double poiKindTileWidth = 78;
 
 /// The manoeuvres a turn point can stand for, as chips with the turn's icon.
 class TurnDirectionChips extends StatelessWidget {

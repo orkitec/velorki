@@ -421,6 +421,42 @@ void main() {
     }
   });
 
+  testWidgets('the type tiles are a grid: five a row on a phone, four when '
+      'narrow, all the same width, nothing to scroll', (tester) async {
+    Future<List<Rect>> tiles(double width) async {
+      await tester.binding.setSurfaceSize(Size(width, 800));
+      await tester.pumpWidget(
+        testApp(
+          home: Scaffold(
+            body: PoiKindTiles(selected: PoiKind.food, onSelected: (_) {}),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return [
+        for (final kind in PoiKind.values)
+          tester.getRect(
+            find.ancestor(
+              of: find.text(poiKindLabel(l10n, kind)),
+              matching: find.byType(InkWell),
+            ),
+          ),
+      ];
+    }
+
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final phone = await tiles(390);
+    expect(phone.map((r) => r.top.round()).toSet(), hasLength(2));
+    expect(phone.map((r) => r.width.round()).toSet(), hasLength(1));
+    expect(phone.every((r) => r.right <= 390), isTrue);
+    expect(find.byType(SingleChildScrollView), findsNothing);
+
+    final narrow = await tiles(340);
+    expect(narrow.map((r) => r.top.round()).toSet(), hasLength(3));
+    expect(narrow.map((r) => r.width.round()).toSet(), hasLength(1));
+    expect(narrow.every((r) => r.right <= 340), isTrue);
+  });
+
   testWidgets('the sheet has one resting height, with or without variants', (
     tester,
   ) async {
