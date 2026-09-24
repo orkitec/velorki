@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../domain/map_controller.dart';
+import 'marker_glyph.dart';
 
 /// Pure builders for the GeoJSON the map layers are fed with.
 ///
@@ -151,6 +152,11 @@ Map<String, dynamic> waypointsFeatureCollection(List<MapWaypoint> waypoints) {
         'index': i,
         'kind': w.kind.name,
         'label': waypointLabel(w, i),
+        if (w.icon != null)
+          'icon': markerGlyphName(
+            w.icon!,
+            style: MarkerGlyphStyle.besideMarker,
+          ),
         'draggable': true,
       },
       'geometry': <String, dynamic>{
@@ -175,6 +181,7 @@ Map<String, dynamic> poisFeatureCollection(List<MapPoi> pois) =>
             'properties': <String, dynamic>{
               'name': pois[i].name,
               'kind': pois[i].kind.name,
+              if (pois[i].icon != null) 'icon': markerGlyphName(pois[i].icon!),
             },
             'geometry': <String, dynamic>{
               'type': 'Point',

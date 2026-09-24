@@ -20,24 +20,42 @@ You can also start from a place instead of a tap. Type into the search field at 
 
 Once a route is being planned, picking a search result simply adds that place as the next waypoint. See [search](./search) for what the search field can find.
 
-## Add a point in the middle
+## Mark a place beside the route
 
-**Long-press the map** to insert a point. Velorki works out which part of the drawn route your press was nearest to and inserts the new point into that stretch, so the route bends to go past it rather than doubling back at the end.
+**Hold the map** where something worth remembering is, and the point sheet opens for a place there: a fountain, a station, a campsite. The route is not drawn through it. The marker wears the icon of whatever type you pick, with its name beside it, and a tap on it opens the sheet again.
 
 To move a point you already have, **drag its marker**. On a closed loop, dragging the start marker moves both ends so the loop stays closed.
+
+## On the route or beside it
+
+Every point is one of two things, and the switch at the top of its sheet says which:
+
+- **On the route**: a point the ride goes through. It wears a numbered disc, and the router bends the route to visit it.
+- **Beside the route**: a place the ride passes. It wears its type's icon, and the route ignores it.
+
+Flip a point to **Beside the route** and it leaves the route, which is drawn again without it; the marker stays where it is. Flip it to **On the route** and it becomes a point in the middle, at the place along the route where it lies, and the route is drawn again through it. Either way the name, the type and the note go with it.
 
 ## Change or remove a point
 
 Tap a marker to open its sheet. From the top:
 
-- **Name**, filled with the point's name or, while it has none, its number; a number left as it is names nothing,
-- **Type**: a grid of tiles, all in view: **Hazard**, **Water**, **Food**, **Other**, **Summit**, **Viewpoint**, **Shelter**, **Shop**, **Bike repair** and **Turn**. A **Turn** takes a **Direction** underneath (left, right, slight, sharp, keep left or right, straight, U-turn) and becomes a line of the route's cue sheet, so the turn banner and the voice say it there; a route imported with a cue sheet opens with its written turns as points of this type, ready to be changed,
+- **On the route** or **Beside the route**, the switch above,
+- **Name**, with the type's icon in front of it, filled with the point's name or, for a point on the route with none, its number; a number left as it is names nothing. A place beside the route opens with an empty name,
+- **Type**: a grid of tiles, all in view at once, five to a row on a phone and four on a narrow screen: **Hazard**, **Water**, **Food**, **Other**, **Summit**, **Viewpoint**, **Shelter**, **Shop**, **Bike repair**, **First aid**, **Toilet**, **Campsite**, **Parking**, **Transport** and **Turn**. A **Turn** takes a **Direction** underneath (left, right, slight, sharp, keep left or right, straight, U-turn) and becomes a line of the route's cue sheet, so the turn banner and the voice say it there; a route imported with a cue sheet opens with its written turns as points of this type, ready to be changed. **Turn** is only offered for a point on the route: a cue of a road the ride does not take says nothing,
 - **Note**,
-- **Visit earlier** and **Visit later**, which swap the point with its neighbour in the order at once and leave the sheet open, so a point can be moved and named in one visit,
-- **Remove point**,
-- **Done**, which applies the name, the type and the note. Pull the sheet down to leave them as they were.
+- **Visit earlier** and **Visit later**, which swap the point with its neighbour in the order at once and leave the sheet open, so a point can be moved and named in one visit. Only for a point on the route; a place beside it has no place in the order,
+- **Remove point**, for either kind,
+- **Done**, which applies the switch, the name, the type and the note. Pull the sheet down to leave them as they were.
 
-A swap, a removal and a Done that changed something are each one step on the undo stack. A named point shows its name on its marker instead of its number. The details are saved with the route and come back when it is opened in the planner again; on a route opened from the library they go into the library at once, as long as the route has not been re-routed since, so there is no Save to press for a name or a note alone. The route card lists named points with their notes in the cue sheet, and a GPX export writes every named point, and every point with a note, as a waypoint of its own with the type and the note, beside the route's own points of interest.
+A swap, a removal, a flip and a Done that changed something are each one step on the undo stack. A named point on the route shows its name on its marker instead of its number, with its type's icon beside it. The details are saved with the route and come back when it is opened in the planner again; on a route opened from the library they go into the library at once, as long as the route has not been re-routed since, so there is no Save to press for a name or a note alone.
+
+## What each point becomes in an exported file
+
+Both kinds go out, and a head unit tells them apart as well as the format lets it:
+
+- **GPX**: every place beside the route, and every point on the route with a name or a note, is written as a `<wpt>` with its type and its note. The points on the route are also the `<rtept>` list, so the file can be planned again.
+- **FIT** and **TCX**: both kinds become course points on the course, beside the cue sheet's turns. FIT has a type of its own for water, food, a hazard, a summit, first aid, a toilet and a campsite; TCX only for water, food, a hazard, a summit and first aid. Anything else goes out as a generic course point with its name.
+- A point that came out of a file keeps the word that file used for it. Export it again without changing its type and that word is written back, so a climb category, a sprint or a segment marker — things Velorki has no type of its own for — survives the round trip. Change the type and the new type's word is written instead.
 
 ## Pick the bike
 

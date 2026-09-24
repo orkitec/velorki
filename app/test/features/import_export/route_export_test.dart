@@ -160,6 +160,54 @@ void main() {
     await unmountApp(tester);
   });
 
+  testWidgets('both sets go out: the places beside the route and the points '
+      'on it that say something', (tester) async {
+    final h = PlannerHarness();
+    final saved =
+        await RouteRepository(
+          h.db.routesDao,
+          clock: () => DateTime.utc(2026, 9, 12, 10),
+        ).savePlannedRoute(
+          name: 'Isar loop',
+          route: syntheticRoute(),
+          waypoints: const [
+            Waypoint(pos: LatLng(48.0, 11.0), kind: WaypointKind.start),
+            Waypoint(
+              pos: LatLng(48.02, 11.02),
+              name: 'Bakery',
+              poiKind: PoiKind.food,
+            ),
+            Waypoint(pos: LatLng(48.04, 11.04), kind: WaypointKind.end),
+          ],
+          pois: const [
+            RoutePoi(
+              pos: LatLng(48.5, 11.5),
+              name: 'Castle',
+              kind: PoiKind.viewpoint,
+            ),
+          ],
+          options: const RoutingOptions(),
+        );
+    final exporter = _RecordingExporter();
+    await pumpApp(
+      tester,
+      harness: h,
+      initialLocation: routeDetailLocation(saved.id),
+      extraOverrides: [trackExporterProvider.overrideWithValue(exporter)],
+    );
+    await tester.pumpAndSettle();
+
+    await _openExportMenu(tester);
+    await tester.tap(find.text(l10n.exportGpxRoute));
+    await tester.pumpAndSettle();
+
+    expect(exporter.exportedPois.single.map((p) => p.name), [
+      'Castle',
+      'Bakery',
+    ]);
+    await unmountApp(tester);
+  });
+
   testWidgets('the FIT entry exports a course', (tester) async {
     final h = PlannerHarness();
     final saved = await _seed(h);

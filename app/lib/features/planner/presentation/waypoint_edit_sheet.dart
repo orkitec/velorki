@@ -211,7 +211,12 @@ class _WaypointEditSheetState extends State<WaypointEditSheet> {
             TextField(
               controller: _name,
               textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(labelText: l10n.plannerPointName),
+              decoration: InputDecoration(
+                labelText: l10n.plannerPointName,
+                // What the point is, before what it is called, as the cue
+                // sheet and the card show it.
+                prefixIcon: Icon(poiIcon(_kind)),
+              ),
             ),
             const SizedBox(height: 16),
             Text(l10n.plannerPointKind, style: theme.textTheme.bodySmall),

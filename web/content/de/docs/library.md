@@ -40,12 +40,12 @@ Eine geöffnete Route wird auf die Karte gezeichnet, eingepasst in den Teil des 
 - eine Zeile **Beschreibung** und eine Zeile **Link**, je mit einem Stift: Die Beschreibung ist die der Datei, des Assistenten oder deine, der Link ist der `<link>` der Datei oder einer, den du eintippst, und ein Tipp darauf öffnet die Seite,
 - die Belagsverteilung,
 - das Höhenprofil,
-- **Punkte von Interesse**: die Punkte der Datei, die nicht auf dem Track liegen, je mit Art und Notiz; die auf dem Track sind stattdessen Zeilen der Abbiegeliste,
+- **Punkte von Interesse**: die Punkte der Route, die nicht auf ihrem Track liegen, je mit dem Symbol ihrer Art, ihrem Namen und ihrer Notiz — die, mit denen eine Datei abseits der Strecke kam, und die Orte, die du im Planer neben der Route markiert hast; die auf dem Track sind stattdessen Zeilen der Abbiegeliste,
 - bei einer Route, die mit Abbiegungen oder Punkten von Interesse importiert wurde oder deren Punkte du im Planer benannt oder mit einer Notiz versehen hast, die Abbiegeliste: jede Abbiegung und jeder Punkt mit der Entfernung vom Start, ein Tipp auf eine Zeile schwenkt die Karte in deinem Zoom dorthin und ein Tipp auf einen Marker scrollt das Blatt zu dieser Zeile.
 
 Die Aktionen:
 
-- **Im Planer öffnen** lädt sie mit all ihren Punkten in den Tab Planen, Zwischenpunkte samt Namen, Art und Notizen eingeschlossen, wo du sie bearbeiten und erneut speichern kannst. Eine importierte statt geplante Route hat nur ihre beiden Enden als Punkte; die Punkte der Datei, die auf dem Track liegen, kommen als benannte Punkte mit Art und Notiz mit, und bis zu zwanzig Formpunkte füllen die Abschnitte dazwischen, damit eine Änderung entlang der importierten Strecke routet statt geradewegs von Start zu Ziel. Punkte abseits des Tracks bleiben Punkte von Interesse der Route.
+- **Im Planer öffnen** lädt sie mit all ihren Punkten in den Tab Planen, Zwischenpunkte samt Namen, Art und Notizen eingeschlossen, wo du sie bearbeiten und erneut speichern kannst. Eine importierte statt geplante Route hat nur ihre beiden Enden als Punkte; die Punkte der Datei, die auf dem Track liegen, kommen als Punkte auf der Route mit Art und Notiz mit, und bis zu zwanzig Formpunkte füllen die Abschnitte dazwischen, damit eine Änderung entlang der importierten Strecke routet statt geradewegs von Start zu Ziel. Die Punkte abseits des Tracks kommen als Orte neben der Route mit, wo sie sich wie jeder andere Punkt benennen, mit einer Art versehen, auf die Route stellen oder entfernen lassen. Das nächste Speichern schreibt beide Mengen zurück, ein im Planer gelöschter Ort ist also auch von der Karte weg.
 - **Export** bietet **GPX-Route** und **FIT-Strecke**, siehe [Import und Export](./import-and-export).
 - **Senden** bietet **An Ride with GPS senden** und **An Strava senden**, siehe [Strava und Ride with GPS](./strava-and-ridewithgps).
 - **Link teilen** macht einen Link daraus, siehe [Teilen](./sharing).

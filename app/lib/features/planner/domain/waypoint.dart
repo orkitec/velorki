@@ -29,6 +29,10 @@ abstract class Waypoint with _$Waypoint {
     /// The manoeuvre, for a point of the [PoiKind.turn] kind: what the cue
     /// sheet says there. `null` for any other kind.
     TurnKind? turn,
+
+    /// The word the file this point came from called it, kept so an export
+    /// can write it back. See [RoutePoi.sourceType].
+    String? sourceType,
   }) = _Waypoint;
 
   /// Whether the point carries anything beyond its position: a name or a
@@ -63,6 +67,7 @@ abstract class Waypoint with _$Waypoint {
             (k) => k.name == json['turn'],
             orElse: () => TurnKind.straight,
           ),
+    sourceType: json['source'] as String?,
   );
 
   /// One entry of the `waypoints_json` column.
@@ -74,6 +79,7 @@ abstract class Waypoint with _$Waypoint {
     if (poiKind != PoiKind.generic) 'poi': poiKind.name,
     if (note != null) 'note': note,
     if (turn != null) 'turn': turn!.name,
+    if (sourceType != null) 'source': sourceType,
   };
 }
 
@@ -87,6 +93,7 @@ List<RoutePoi> waypointPois(List<Waypoint> waypoints) => <RoutePoi>[
         name: w.name ?? '',
         description: w.note,
         kind: w.poiKind,
+        sourceType: w.sourceType,
       ),
 ];
 

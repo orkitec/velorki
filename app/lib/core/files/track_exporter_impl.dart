@@ -303,14 +303,7 @@ class ShareTrackExporter implements TrackExporter {
             time: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
             name: poi.name.isEmpty ? null : poi.name,
             notes: poi.description,
-            type: switch (poi.kind) {
-              PoiKind.water => TcxCoursePointType.water,
-              PoiKind.food => TcxCoursePointType.food,
-              PoiKind.danger => TcxCoursePointType.danger,
-              PoiKind.summit => TcxCoursePointType.summit,
-              PoiKind.firstAid => TcxCoursePointType.firstAid,
-              _ => TcxCoursePointType.generic,
-            },
+            type: _tcxTypeOf(poi),
           ),
       ],
     ),
@@ -424,4 +417,23 @@ List<TcxLap> tcxLaps(
   }
   laps.add(TcxLap(startTime: timed[cut].time!, points: timed.sublist(cut)));
   return laps;
+}
+
+/// The TCX course point type for a place.
+///
+/// A point of no particular kind goes back out as the `PointType` the file
+/// it came from used, so a category or a sprint marker survives the round
+/// trip; anything else takes the word for its kind.
+TcxCoursePointType _tcxTypeOf(RoutePoi poi) {
+  if (poi.kind == PoiKind.generic && poi.sourceType != null) {
+    return TcxCoursePointType.fromXml(poi.sourceType);
+  }
+  return switch (poi.kind) {
+    PoiKind.water => TcxCoursePointType.water,
+    PoiKind.food => TcxCoursePointType.food,
+    PoiKind.danger => TcxCoursePointType.danger,
+    PoiKind.summit => TcxCoursePointType.summit,
+    PoiKind.firstAid => TcxCoursePointType.firstAid,
+    _ => TcxCoursePointType.generic,
+  };
 }

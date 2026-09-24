@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show ValueChanged;
 import 'package:flutter/painting.dart' show EdgeInsets;
 
 import 'dart:async';
@@ -5,7 +6,9 @@ import 'dart:async';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../map/domain/map_controller.dart';
+import '../../navigation/presentation/turn_phrases.dart';
 import '../domain/planner_state.dart';
+import '../domain/route_poi.dart';
 import '../domain/waypoint.dart';
 import '../presentation/poi_markers.dart';
 import 'planner_controller.dart';
@@ -55,7 +58,9 @@ class PlannerMapBinding {
     if (_attached) return;
     _attached = true;
     map.onTap = (pos) => planner.addWaypoint(pos);
-    map.onLongPress = (pos) => planner.insertWaypoint(pos);
+    // A long press marks a place rather than routing through it; the screen
+    // opens the sheet for it.
+    map.onLongPress = (pos) => onLongPress?.call(pos);
     map.onWaypointDragged = planner.moveWaypoint;
     map.onWaypointTapped = (index) => onWaypointTap?.call(index);
     map.onPoiTapped = (index) => onPoiTap?.call(index);
@@ -67,6 +72,9 @@ class PlannerMapBinding {
   /// What the screen does when a place beside the route is tapped; `null`
   /// does nothing.
   void Function(int index)? onPoiTap;
+
+  /// What the screen does when the map is held down: mark a place there.
+  ValueChanged<LatLng>? onLongPress;
 
   /// Unsubscribes, so a disposed screen cannot move waypoints any more.
   void detach() {
@@ -157,5 +165,8 @@ class PlannerMapBinding {
       WaypointKind.end => MapWaypointKind.end,
     },
     label: w.name,
+    // A point that stands for something wears its icon beside the disc; a
+    // plain one has nothing to say.
+    icon: w.poiKind == PoiKind.generic ? null : poiIcon(w.poiKind),
   );
 }

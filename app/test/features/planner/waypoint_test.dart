@@ -5,6 +5,23 @@ import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 
 void main() {
+  test('a point keeps the word the file called it through the column and '
+      'into the points an export writes', () {
+    const point = Waypoint(
+      pos: LatLng(48, 11),
+      name: 'Sprint',
+      sourceType: 'sprint',
+    );
+    final back = Waypoint.fromMap(point.toMap());
+    expect(back.sourceType, 'sprint');
+    expect(back, point);
+    expect(waypointPois(const [point]).single.sourceType, 'sprint');
+    expect(
+      const Waypoint(pos: LatLng(48, 11)).toMap().containsKey('source'),
+      isFalse,
+    );
+  });
+
   group('Waypoint', () {
     test('a name, a kind and a note round-trip through the stored map', () {
       const point = Waypoint(

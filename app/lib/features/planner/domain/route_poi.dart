@@ -166,7 +166,7 @@ List<GpxWaypoint> gpxWaypoints(List<RoutePoi> pois) => <GpxWaypoint>[
       poi.pos,
       name: poi.name,
       description: poi.description,
-      type: poi.kind.gpxType,
+      type: poi.exportType,
       symbol: switch (poi.kind) {
         PoiKind.danger => 'Danger Area',
         PoiKind.water => 'Drinking Water',
@@ -201,6 +201,7 @@ class RoutePoi {
     required this.name,
     this.description,
     this.kind = PoiKind.generic,
+    this.sourceType,
   });
 
   /// One entry of the `pois_json` column.
@@ -215,6 +216,7 @@ class RoutePoi {
       (k) => k.name == json['kind'],
       orElse: () => PoiKind.generic,
     ),
+    sourceType: json['source'] as String?,
   );
 
   /// Where it is.
@@ -229,6 +231,23 @@ class RoutePoi {
   /// What it is about.
   final PoiKind kind;
 
+  /// The word the file this point came from called it: a GPX `type`, a
+  /// course point type. `null` for a point a rider made here.
+  ///
+  /// Kept so an export can write it back, and a category or a marker no
+  /// kind of ours stands for survives the round trip.
+  final String? sourceType;
+
+  /// The `type` an export writes: the word the file used, while the kind
+  /// still agrees with it, and the word for the kind once a rider has
+  /// changed it.
+  String get exportType {
+    final source = sourceType;
+    if (source == null || source.isEmpty) return kind.gpxType;
+    if (kind == PoiKind.generic) return source;
+    return PoiKind.fromGpx(type: source) == kind ? source : kind.gpxType;
+  }
+
   /// One entry of the `pois_json` column.
   Map<String, dynamic> toMap() => <String, dynamic>{
     'lat': pos.lat,
@@ -236,6 +255,7 @@ class RoutePoi {
     'name': name,
     if (description != null) 'description': description,
     'kind': kind.name,
+    if (sourceType != null) 'source': sourceType,
   };
 
   @override
@@ -245,10 +265,11 @@ class RoutePoi {
           other.pos == pos &&
           other.name == name &&
           other.description == description &&
-          other.kind == kind;
+          other.kind == kind &&
+          other.sourceType == sourceType;
 
   @override
-  int get hashCode => Object.hash(pos, name, description, kind);
+  int get hashCode => Object.hash(pos, name, description, kind, sourceType);
 
   @override
   String toString() => 'RoutePoi(${kind.name} "$name" at $pos)';

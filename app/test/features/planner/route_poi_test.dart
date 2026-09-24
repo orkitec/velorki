@@ -73,6 +73,52 @@ void main() {
     });
   });
 
+  group('the word the file used', () {
+    test('survives the column round trip and goes back out while the kind '
+        'still agrees with it', () {
+      const poi = RoutePoi(
+        pos: LatLng(48, 11),
+        name: 'Col du Galibier',
+        kind: PoiKind.generic,
+        sourceType: 'hors_category',
+      );
+      expect(RoutePoi.fromMap(poi.toMap()), poi);
+      expect(RoutePoi.fromMap(poi.toMap()).sourceType, 'hors_category');
+      // Nothing of ours stands for a climb category, so the file's own word
+      // is written back.
+      expect(gpxWaypoints(const [poi]).single.type, 'hors_category');
+    });
+
+    test('gives way once the rider has said what the point is', () {
+      const poi = RoutePoi(
+        pos: LatLng(48, 11),
+        name: 'Fountain',
+        kind: PoiKind.water,
+        sourceType: 'my own word',
+      );
+      expect(gpxWaypoints(const [poi]).single.type, 'water');
+      // A word the kind still agrees with stays as it was written.
+      const kept = RoutePoi(
+        pos: LatLng(48, 11),
+        name: 'Fountain',
+        kind: PoiKind.water,
+        sourceType: 'Drinking Water',
+      );
+      expect(gpxWaypoints(const [kept]).single.type, 'Drinking Water');
+    });
+
+    test('a point a rider made here has none, and writes its kind', () {
+      const poi = RoutePoi(
+        pos: LatLng(48, 11),
+        name: 'Loo',
+        kind: PoiKind.toilet,
+      );
+      expect(poi.sourceType, isNull);
+      expect(poi.toMap().containsKey('source'), isFalse);
+      expect(gpxWaypoints(const [poi]).single.type, 'restroom');
+    });
+  });
+
   group('the places beside a route', () {
     test('first aid, toilet, campsite, parking and transport read off the '
         'words a file uses', () {

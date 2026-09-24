@@ -20,24 +20,42 @@ Du kannst auch von einem Ort aus starten statt mit einem Tipper. Tippe oben ins 
 
 Sobald eine Route geplant wird, hängt ein Suchergebnis den Ort einfach als nächsten Wegpunkt an. Was das Suchfeld alles findet, steht unter [Suche](./search).
 
-## Einen Punkt dazwischen einfügen
+## Einen Ort neben der Route markieren
 
-**Drücke lange auf die Karte**, um einen Punkt einzufügen. Velorki ermittelt, welchem Abschnitt der gezeichneten Route dein Druck am nächsten lag, und fügt den neuen Punkt dort ein, sodass die Route einen Bogen darum macht, statt am Ende zurückzuspringen.
+**Halte die Karte gedrückt**, wo etwas Erinnernswertes liegt, und das Punktblatt öffnet sich für einen Ort dort: ein Brunnen, ein Bahnhof, ein Campingplatz. Die Route wird nicht dorthin gelegt. Die Markierung trägt das Symbol der gewählten Art, daneben ihren Namen, und ein Tippen darauf öffnet das Blatt wieder.
 
 Um einen vorhandenen Punkt zu verschieben, **zieh seine Markierung**. Bei einer geschlossenen Runde verschiebt das Ziehen der Startmarkierung beide Enden, damit die Runde geschlossen bleibt.
+
+## Auf der Route oder daneben
+
+Jeder Punkt ist eines von beidem, und der Schalter oben in seinem Blatt sagt, was:
+
+- **Auf der Route**: ein Punkt, durch den die Fahrt geht. Er trägt eine nummerierte Scheibe, und der Router legt die Route darüber.
+- **Neben der Route**: ein Ort, an dem die Fahrt vorbeikommt. Er trägt das Symbol seiner Art, und die Route kümmert sich nicht um ihn.
+
+Stellst du einen Punkt auf **Neben der Route**, verlässt er die Route, die ohne ihn neu gezeichnet wird; die Markierung bleibt, wo sie ist. Stellst du ihn auf **Auf der Route**, wird er ein Punkt dazwischen, an der Stelle der Route, an der er liegt, und die Route wird neu durch ihn gezeichnet. So oder so gehen Name, Art und Notiz mit.
 
 ## Einen Punkt ändern oder entfernen
 
 Tippe auf eine Markierung, um ihr Blatt zu öffnen. Von oben:
 
-- **Name**, vorbelegt mit dem Namen des Punkts oder, solange er keinen hat, mit seiner Nummer; eine Nummer, die so stehen bleibt, benennt nichts,
-- **Art**: ein Raster aus Kacheln, alle im Blick: **Gefahr**, **Wasser**, **Essen**, **Sonstiges**, **Gipfel**, **Aussicht**, **Unterstand**, **Laden**, **Fahrradwerkstatt** und **Abbiegung**. Eine **Abbiegung** bekommt darunter eine **Richtung** (links, rechts, leicht, scharf, links oder rechts halten, geradeaus, Wende) und wird eine Zeile der Abbiegeliste der Route, sodass Abbiegeband und Stimme sie dort sagen; eine mit Abbiegeliste importierte Route öffnet sich mit ihren geschriebenen Abbiegungen als Punkten dieser Art, bereit zum Ändern,
+- **Auf der Route** oder **Neben der Route**, der Schalter von oben,
+- **Name**, mit dem Symbol der Art davor, vorbelegt mit dem Namen des Punkts oder, bei einem Punkt auf der Route ohne Namen, mit seiner Nummer; eine Nummer, die so stehen bleibt, benennt nichts. Ein Ort neben der Route öffnet sich mit leerem Namen,
+- **Art**: ein Raster aus Kacheln, alle auf einmal im Blick, fünf pro Reihe auf einem Telefon und vier auf einem schmalen Bildschirm: **Gefahr**, **Wasser**, **Essen**, **Sonstiges**, **Gipfel**, **Aussicht**, **Unterstand**, **Laden**, **Fahrradwerkstatt**, **Erste Hilfe**, **Toilette**, **Campingplatz**, **Parkplatz**, **Bahn/Fähre** und **Abbiegung**. Eine **Abbiegung** bekommt darunter eine **Richtung** (links, rechts, leicht, scharf, links oder rechts halten, geradeaus, Wende) und wird eine Zeile der Abbiegeliste der Route, sodass Abbiegeband und Stimme sie dort sagen; eine mit Abbiegeliste importierte Route öffnet sich mit ihren geschriebenen Abbiegungen als Punkten dieser Art, bereit zum Ändern. **Abbiegung** gibt es nur für einen Punkt auf der Route: ein Hinweis für eine Straße, die die Fahrt nicht nimmt, sagt nichts,
 - **Notiz**,
-- **Früher anfahren** und **Später anfahren**, was den Punkt sofort mit seinem Nachbarn in der Reihenfolge tauscht und das Blatt offen lässt, sodass sich ein Punkt in einem Besuch verschieben und benennen lässt,
-- **Punkt entfernen**,
-- **Fertig**, was Name, Art und Notiz übernimmt. Zieh das Blatt nach unten, um sie zu lassen, wie sie waren.
+- **Früher anfahren** und **Später anfahren**, was den Punkt sofort mit seinem Nachbarn in der Reihenfolge tauscht und das Blatt offen lässt, sodass sich ein Punkt in einem Besuch verschieben und benennen lässt. Nur für einen Punkt auf der Route; ein Ort daneben hat keinen Platz in der Reihenfolge,
+- **Punkt entfernen**, für beide Arten,
+- **Fertig**, was Schalter, Name, Art und Notiz übernimmt. Zieh das Blatt nach unten, um sie zu lassen, wie sie waren.
 
-Ein Tausch, ein Entfernen und ein Fertig, das etwas geändert hat, sind je ein Schritt zum Rückgängigmachen. Ein benannter Punkt zeigt auf seiner Markierung seinen Namen statt seiner Nummer. Die Details werden mit der Route gespeichert und kommen zurück, wenn sie wieder im Planer geöffnet wird; bei einer aus der Bibliothek geöffneten Route landen sie sofort in der Bibliothek, solange die Route seitdem nicht neu berechnet wurde, für einen Namen oder eine Notiz allein gibt es also kein Speichern zu drücken. Die Routenkarte führt benannte Punkte mit ihren Notizen in der Abbiegeliste auf, und ein GPX-Export schreibt jeden benannten Punkt und jeden Punkt mit Notiz als eigenen Wegpunkt mit Art und Notiz hinaus, neben den Punkten von Interesse der Route.
+Ein Tausch, ein Entfernen, ein Umstellen und ein Fertig, das etwas geändert hat, sind je ein Schritt zum Rückgängigmachen. Ein benannter Punkt auf der Route zeigt auf seiner Markierung seinen Namen statt seiner Nummer, daneben das Symbol seiner Art. Die Details werden mit der Route gespeichert und kommen zurück, wenn sie wieder im Planer geöffnet wird; bei einer aus der Bibliothek geöffneten Route landen sie sofort in der Bibliothek, solange die Route seitdem nicht neu berechnet wurde, für einen Namen oder eine Notiz allein gibt es also kein Speichern zu drücken.
+
+## Was aus jedem Punkt in einer exportierten Datei wird
+
+Beide Arten gehen hinaus, und ein Radcomputer unterscheidet sie, so gut das Format es zulässt:
+
+- **GPX**: jeder Ort neben der Route und jeder Punkt auf der Route mit Namen oder Notiz wird als `<wpt>` mit Art und Notiz geschrieben. Die Punkte auf der Route sind außerdem die `<rtept>`-Liste, sodass sich die Datei wieder planen lässt.
+- **FIT** und **TCX**: beide Arten werden zu Kurspunkten auf dem Kurs, neben den Abbiegungen der Abbiegeliste. FIT hat eine eigene Art für Wasser, Essen, Gefahr, Gipfel, Erste Hilfe, Toilette und Campingplatz; TCX nur für Wasser, Essen, Gefahr, Gipfel und Erste Hilfe. Alles andere geht als allgemeiner Kurspunkt mit seinem Namen hinaus.
+- Ein Punkt aus einer Datei behält das Wort, das diese Datei für ihn benutzt hat. Exportierst du ihn wieder, ohne seine Art zu ändern, wird genau dieses Wort zurückgeschrieben, sodass eine Bergwertung, ein Sprint oder eine Segmentmarke — Dinge, für die Velorki keine eigene Art hat — die Runde übersteht. Änderst du die Art, wird stattdessen das Wort der neuen Art geschrieben.
 
 ## Das Rad wählen
 

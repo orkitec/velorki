@@ -132,34 +132,6 @@ void main() {
       );
     });
 
-    test('a long press inserts into the nearest segment', () {
-      final container = _container(FakeRoutingBackend());
-      final planner = container.read(plannerControllerProvider.notifier)
-        ..addWaypoint(_a)
-        ..addWaypoint(_b)
-        ..addWaypoint(_c);
-
-      // Close to the middle of the first segment.
-      planner.insertWaypoint(const LatLng(48.1, 11.1));
-
-      expect(container.read(plannerControllerProvider).positions, [
-        _a,
-        const LatLng(48.1, 11.1),
-        _b,
-        _c,
-      ]);
-    });
-
-    test('a long press with one waypoint appends instead', () {
-      final container = _container(FakeRoutingBackend());
-      final planner = container.read(plannerControllerProvider.notifier)
-        ..addWaypoint(_a)
-        ..insertWaypoint(_b);
-
-      expect(container.read(plannerControllerProvider).positions, [_a, _b]);
-      expect(planner, isNotNull);
-    });
-
     test('moving a waypoint replaces its position and drops its label', () {
       final container = _container(FakeRoutingBackend());
       container.read(plannerControllerProvider.notifier)
@@ -1228,6 +1200,75 @@ void main() {
       final state = container.read(plannerControllerProvider);
       expect(state.waypoints, hasLength(2));
       expect(state.pois, pois);
+    });
+
+    testWidgets('an import opened in the planner keeps both sets, and the '
+        'word the file used, through a Save', (tester) async {
+      final db = VelorkiDatabase.memory();
+      addTearDown(db.close);
+      final repository = RouteRepository(db.routesDao);
+      final container = _container(
+        FakeRoutingBackend(),
+        overrides: [routeRepositoryProvider.overrideWithValue(repository)],
+      );
+      final track = <TrackPoint>[
+        for (var i = 0; i < 200; i++) TrackPoint(LatLng(48 + i * 0.0005, 11)),
+      ];
+      final imported = await repository.saveImportedRoute(
+        name: 'From a file',
+        points: track,
+        source: RouteSource.importedGpx,
+        pois: [
+          RoutePoi(
+            pos: track[100].pos,
+            name: 'Tap',
+            kind: PoiKind.water,
+            sourceType: 'Drinking Water',
+          ),
+          const RoutePoi(
+            pos: LatLng(48.05, 11.4),
+            name: 'Castle',
+            sourceType: 'monument',
+          ),
+        ],
+      );
+
+      final planner = container.read(plannerControllerProvider.notifier);
+      planner.loadSavedRoute(imported);
+      var state = container.read(plannerControllerProvider);
+      expect(state.waypoints.map((w) => w.name), contains('Tap'));
+      expect(state.pois.single.name, 'Castle');
+
+      // The rider says what the place off the course is, and saves.
+      planner.setPoiDetails(0, name: 'Castle', poiKind: PoiKind.viewpoint);
+      state = container.read(plannerControllerProvider);
+      await repository.savePlannedRoute(
+        name: imported.name,
+        route: state.result!,
+        waypoints: state.waypoints,
+        pois: state.pois,
+        options: state.options,
+        id: state.savedRouteId,
+      );
+
+      final reloaded = (await repository.routeById(imported.id))!;
+      expect(reloaded.pois.single.name, 'Castle');
+      expect(reloaded.pois.single.kind, PoiKind.viewpoint);
+      expect(
+        reloaded.pois.single.sourceType,
+        'monument',
+        reason: 'the file\'s own word outlives the edit',
+      );
+      final tap = reloaded.waypoints.firstWhere((w) => w.name == 'Tap');
+      expect(tap.poiKind, PoiKind.water);
+      expect(tap.sourceType, 'Drinking Water');
+
+      // Opened again, the two sets come back the same.
+      planner.loadSavedRoute(reloaded);
+      final again = container.read(plannerControllerProvider);
+      expect(again.pois.single.name, 'Castle');
+      expect(again.waypoints.map((w) => w.name), contains('Tap'));
+      await tester.pump(const Duration(milliseconds: 400));
     });
 
     test('loading one puts its turn instructions back on the plan', () {

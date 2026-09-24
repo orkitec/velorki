@@ -4,6 +4,7 @@ import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import 'route_poi.dart';
+import 'segment_math.dart';
 import 'shape_points.dart';
 import 'waypoint.dart';
 
@@ -98,6 +99,7 @@ Waypoint _named(Waypoint point, RoutePoi poi) => point.copyWith(
   name: poi.name.isEmpty ? point.name : poi.name,
   poiKind: poi.kind,
   note: poi.description?.isEmpty ?? true ? point.note : poi.description,
+  sourceType: poi.sourceType,
 );
 
 /// Where a point falls on a track: how far off it is, how far along the
@@ -187,13 +189,20 @@ List<RoutePoi> besideTrackPois({
 ///
 /// Always a via: a point picked up beside the route neither starts nor ends
 /// the ride, whatever end of the track it sits near.
+///
+/// With no route drawn yet — one that failed, or one still being computed —
+/// there is no course to measure along, and the straight line from waypoint
+/// to waypoint answers instead.
 int viaIndexAlongTrack({
   required List<LatLng> track,
   required List<Waypoint> waypoints,
   required LatLng pos,
 }) {
   if (waypoints.length < 2) return waypoints.length;
-  if (track.length < 2) return waypoints.length - 1;
+  if (track.length < 2) {
+    final line = waypoints.map((w) => w.pos).toList(growable: false);
+    return (nearestSegmentIndex(line, pos) + 1).clamp(1, waypoints.length - 1);
+  }
   final cumulative = cumulativeDistancesMeters(track);
   final along = projectOnTrack(track, pos, cumulative: cumulative).alongM;
   for (var i = 1; i < waypoints.length; i++) {

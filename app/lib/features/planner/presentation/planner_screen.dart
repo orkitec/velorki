@@ -340,6 +340,31 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     }
   }
 
+  /// The map held down: the sheet for a new place there, on the beside
+  /// side of the switch. Flipped to the route before Done, the point is
+  /// routed through instead.
+  Future<void> _addPoiAt(LatLng pos) async {
+    final planner = ref.read(plannerControllerProvider.notifier);
+    final result = await _showPointSheet(
+      index: 0,
+      count: 0,
+      initial: const WaypointDetails(beside: true),
+      onSwap: (_, _) {},
+    );
+    if (!mounted || result is! WaypointEditDone) return;
+    final details = result.details;
+    planner.addPoi(
+      pos,
+      name: details.name,
+      kind: details.poiKind,
+      note: details.note,
+    );
+    if (details.beside) return;
+    planner.movePointOnRoute(
+      ref.read(plannerControllerProvider).pois.length - 1,
+    );
+  }
+
   Future<WaypointEditResult?> _showPointSheet({
     required int index,
     required int count,
@@ -414,6 +439,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       };
       binding.onPoiTap = (index) {
         unawaited(_editPoi(index));
+      };
+      binding.onLongPress = (pos) {
+        unawaited(_addPoiAt(pos));
       };
       _binding = binding;
     }

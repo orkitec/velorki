@@ -167,7 +167,7 @@
   "@plannerEmptyState": {
     "description": "Hint in the planner bottom sheet while no waypoint is set"
   },
-  "plannerEmptyStateDetail": "Tap again to add more points, long-press the map to insert a point in between.",
+  "plannerEmptyStateDetail": "Tap again to add more points, hold the map to mark a place beside the route.",
   "@plannerEmptyStateDetail": {
     "description": "Second line of the planner empty state explaining the map gestures"
   },

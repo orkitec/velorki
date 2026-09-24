@@ -31,19 +31,34 @@ List<FitCoursePoint> courseCuePoints({
       FitCoursePoint(
         pos: poi.pos,
         name: poi.name.isEmpty ? poi.description : poi.name,
-        type: switch (poi.kind) {
-          PoiKind.water => FitCoursePointType.water,
-          PoiKind.food => FitCoursePointType.food,
-          PoiKind.danger => FitCoursePointType.danger,
-          PoiKind.summit => FitCoursePointType.summit,
-          PoiKind.firstAid => FitCoursePointType.firstAid,
-          PoiKind.toilet => FitCoursePointType.toilet,
-          PoiKind.campsite => FitCoursePointType.campsite,
-          _ => FitCoursePointType.generic,
-        },
+        type: coursePointTypeOfPoi(poi),
       ),
   ];
   return cues;
+}
+
+/// The FIT course point type for a place.
+///
+/// A point of no particular kind that came out of a FIT course goes back as
+/// the type it arrived as, so a climb category or a segment marker — things
+/// no kind of ours stands for — survives the round trip.
+FitCoursePointType coursePointTypeOfPoi(RoutePoi poi) {
+  if (poi.kind == PoiKind.generic) {
+    final source = poi.sourceType;
+    for (final type in FitCoursePointType.values) {
+      if (type.name == source) return type;
+    }
+  }
+  return switch (poi.kind) {
+    PoiKind.water => FitCoursePointType.water,
+    PoiKind.food => FitCoursePointType.food,
+    PoiKind.danger => FitCoursePointType.danger,
+    PoiKind.summit => FitCoursePointType.summit,
+    PoiKind.firstAid => FitCoursePointType.firstAid,
+    PoiKind.toilet => FitCoursePointType.toilet,
+    PoiKind.campsite => FitCoursePointType.campsite,
+    _ => FitCoursePointType.generic,
+  };
 }
 
 /// The FIT course point type for a turn.

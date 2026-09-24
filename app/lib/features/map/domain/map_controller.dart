@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart' show EdgeInsets;
+import 'package:flutter/widgets.dart' show IconData;
 import 'package:velorki_geo/velorki_geo.dart';
 
 /// The planner, recorder and library talk to the map only through this
@@ -180,11 +181,16 @@ class MapPoi {
     required this.position,
     required this.name,
     required this.kind,
+    this.icon,
   });
 
   final LatLng position;
   final String name;
   final MapPoiKind kind;
+
+  /// The icon drawn on the marker, from the app's own icon table; `null`
+  /// leaves the plain disc. [kind] still picks the colour.
+  final IconData? icon;
 
   @override
   bool operator ==(Object other) =>
@@ -192,27 +198,38 @@ class MapPoi {
       other is MapPoi &&
           other.position == position &&
           other.name == name &&
-          other.kind == kind;
+          other.kind == kind &&
+          other.icon == icon;
 
   @override
-  int get hashCode => Object.hash(position, name, kind);
+  int get hashCode => Object.hash(position, name, kind, icon);
 }
 
 @immutable
 class MapWaypoint {
-  const MapWaypoint({required this.position, required this.kind, this.label});
+  const MapWaypoint({
+    required this.position,
+    required this.kind,
+    this.label,
+    this.icon,
+  });
 
   final LatLng position;
   final MapWaypointKind kind;
   final String? label;
+
+  /// A small icon beside the numbered disc, for a point that stands for
+  /// something: a fountain, a hazard, a summit. `null` for a plain point.
+  final IconData? icon;
 
   @override
   bool operator ==(Object other) =>
       other is MapWaypoint &&
       other.position == position &&
       other.kind == kind &&
-      other.label == label;
+      other.label == label &&
+      other.icon == icon;
 
   @override
-  int get hashCode => Object.hash(position, kind, label);
+  int get hashCode => Object.hash(position, kind, label, icon);
 }

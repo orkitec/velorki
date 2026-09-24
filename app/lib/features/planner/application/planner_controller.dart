@@ -15,7 +15,6 @@ import '../domain/route_poi.dart';
 import '../domain/route_profile.dart';
 import '../domain/routing_options.dart';
 import '../domain/saved_route.dart';
-import '../domain/segment_math.dart';
 import '../domain/route_waypoints.dart';
 import '../domain/waypoint.dart';
 
@@ -73,20 +72,6 @@ class PlannerController extends _$PlannerController {
   void addWaypoint(LatLng pos, {String? name}) {
     _pushUndo();
     _setWaypoints([...state.waypoints, Waypoint(pos: pos, name: name)]);
-  }
-
-  /// Inserts a via point into the segment it lies closest to (the map's
-  /// long-press gesture). With fewer than two waypoints it appends instead.
-  void insertWaypoint(LatLng pos, {String? name}) {
-    if (state.waypoints.length < 2) {
-      addWaypoint(pos, name: name);
-      return;
-    }
-    _pushUndo();
-    final at = nearestSegmentIndex(state.positions, pos) + 1;
-    final next = [...state.waypoints]
-      ..insert(at, Waypoint(pos: pos, name: name));
-    _setWaypoints(next);
   }
 
   /// Moves the waypoint at [index] (the map's drag gesture).
@@ -153,6 +138,7 @@ class PlannerController extends _$PlannerController {
       name: name?.trim() ?? '',
       description: _orNull(note),
       kind: poiKind,
+      sourceType: poi.sourceType,
     );
     _setPois(next);
   }
@@ -183,6 +169,7 @@ class PlannerController extends _$PlannerController {
           // A turn is a cue of the route, so a point taken off it is just a
           // place.
           kind: point.poiKind == PoiKind.turn ? PoiKind.generic : point.poiKind,
+          sourceType: point.sourceType,
         ),
       ],
     );
@@ -208,6 +195,7 @@ class PlannerController extends _$PlannerController {
           name: poi.name.isEmpty ? null : poi.name,
           poiKind: poi.kind,
           note: poi.description,
+          sourceType: poi.sourceType,
         ),
       );
     _setWaypoints(waypoints, pois: pois);

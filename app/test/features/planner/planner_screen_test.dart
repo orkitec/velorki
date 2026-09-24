@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki/features/map/presentation/visible_map_padding.dart';
 import 'package:velorki/app/router.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
@@ -422,6 +423,33 @@ void main() {
     expect(h.map.pois, isEmpty);
     expect(h.map.waypoints, hasLength(2));
     expect(h.map.waypoints.last.label, 'Castle');
+  });
+
+  testWidgets('holding the map opens the sheet for a new place there, and '
+      'Done marks it', (tester) async {
+    final h = await pumpScreen(tester, const PlannerScreen());
+    await _plotRoute(tester, h);
+
+    h.map.onLongPress!(const LatLng(48.1, 11.1));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(WaypointEditSheet), findsOneWidget);
+    expect(_nameField(tester).controller!.text, '', reason: 'a new place');
+    expect(find.text(l10n.plannerVisitEarlier), findsNothing);
+    await tester.enterText(
+      find.widgetWithText(TextField, l10n.plannerPointName),
+      'Fountain',
+    );
+    await tester.tap(find.text(l10n.poiKindWater));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, l10n.commonDone));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+
+    expect(h.map.waypoints, hasLength(2), reason: 'the route is untouched');
+    expect(h.map.pois.single.name, 'Fountain');
+    expect(h.map.pois.single.position, const LatLng(48.1, 11.1));
+    expect(h.map.pois.single.kind, MapPoiKind.water);
   });
 
   testWidgets('the sheet for a place beside the route opens on its side of '

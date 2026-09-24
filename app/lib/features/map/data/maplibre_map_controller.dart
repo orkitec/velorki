@@ -2,7 +2,8 @@ import 'dart:async';
 
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart' show Brightness, Color, ThemeData;
+import 'package:flutter/material.dart'
+    show Brightness, Color, IconData, ThemeData;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart' show EdgeInsets, Size;
 import 'package:flutter/services.dart'
@@ -14,6 +15,7 @@ import '../../../app/theme.dart';
 import '../domain/map_controller.dart';
 import '../domain/visible_map.dart';
 import 'cyclosm_tone.dart';
+import 'marker_glyph.dart';
 import 'geojson.dart';
 import 'heading_cone.dart';
 import 'heading_smoother.dart';
@@ -40,7 +42,9 @@ abstract final class MapLayerIds {
   static const String waypointsLabelLayer = 'velorki-waypoints-label';
   static const String poisSource = 'velorki-pois';
   static const String poisCircleLayer = 'velorki-pois-circle';
+  static const String poisIconLayer = 'velorki-pois-icon';
   static const String poisLabelLayer = 'velorki-pois-label';
+  static const String waypointsIconLayer = 'velorki-waypoints-icon';
   static const String turnsSource = 'velorki-turns';
   static const String turnsLayer = 'velorki-turns-dot';
 
@@ -588,6 +592,9 @@ class MaplibreMapControllerAdapter implements MapController {
   Future<void> attachToStyle() async {
     _attached = false;
     _routeLines.clear();
+    // A fresh style holds none of our bitmaps; the replay registers the
+    // ones the markers still need.
+    _glyphImages.clear();
     // A fresh style draws the track in the plain colour until something asks
     // for the speed ramp again.
     _trackColoured = false;
@@ -724,6 +731,20 @@ class MaplibreMapControllerAdapter implements MapController {
       ),
       enableInteraction: false,
     );
+    // What a point on the route stands for, beside its disc rather than on
+    // it: the disc belongs to the number.
+    await _ops.addLayer(
+      MapLayerIds.waypointsSource,
+      MapLayerIds.waypointsIconLayer,
+      ml.SymbolLayerProperties(
+        iconImage: <Object>['get', 'icon'],
+        iconAnchor: 'left',
+        iconOffset: <Object>[16, 0],
+        iconAllowOverlap: true,
+        iconIgnorePlacement: true,
+      ),
+      enableInteraction: false,
+    );
 
     // The route's points of interest: small discs in the colour of their
     // kind, the name above each. Under the waypoints, so a start marker on a
@@ -752,11 +773,25 @@ class MaplibreMapControllerAdapter implements MapController {
       MapLayerIds.poisSource,
       MapLayerIds.poisCircleLayer,
       ml.CircleLayerProperties(
-        circleRadius: 6.0,
+        // Wide enough for the kind's glyph to sit inside it.
+        circleRadius: 9.0,
         circleColor: _poiColorExpression(),
         circleStrokeWidth: 2.0,
         circleStrokeColor: palette.waypointStroke,
       ),
+    );
+    // What the place is, on its disc. A point whose feature carries no icon
+    // simply keeps the plain disc.
+    await _ops.addLayer(
+      MapLayerIds.poisSource,
+      MapLayerIds.poisIconLayer,
+      ml.SymbolLayerProperties(
+        iconImage: <Object>['get', 'icon'],
+        iconAnchor: 'center',
+        iconAllowOverlap: true,
+        iconIgnorePlacement: true,
+      ),
+      enableInteraction: false,
     );
     await _ops.addLayer(
       MapLayerIds.poisSource,
@@ -847,6 +882,59 @@ class MaplibreMapControllerAdapter implements MapController {
     } catch (_) {
       return null;
     }
+  }
+
+  /// Names of the marker glyphs registered with the style so far.
+  final Set<String> _glyphImages = <String>{};
+
+  /// Registers the glyph of every icon of [icons] the style has not got
+  /// yet, so the symbol layers have a picture to draw by the time the
+  /// features naming it arrive.
+  ///
+  /// A glyph that cannot be drawn is skipped: the marker then wears its
+  /// plain disc, which is what it wore before there were icons at all.
+  Future<void> _addMarkerGlyphs(
+    Iterable<IconData?> icons,
+    MarkerGlyphStyle style,
+  ) async {
+    for (final icon in icons) {
+      if (icon == null) continue;
+      final name = markerGlyphName(icon, style: style);
+      if (!_glyphImages.add(name)) continue;
+      try {
+        // On a disc the glyph is the light thing on the colour; beside one
+        // it is the dark thing on the map, like the waypoint numbers.
+        final bytes = await buildMarkerGlyphImage(
+          icon: icon,
+          color: colorFromMapHex(
+            style == MarkerGlyphStyle.onDisc
+                ? palette.waypointStroke
+                : palette.waypointLabel,
+          ),
+          haloColor: style == MarkerGlyphStyle.onDisc
+              ? const Color(0x59000000)
+              : colorFromMapHex(palette.waypointStroke),
+          devicePixelRatio: devicePixelRatio,
+          sizePx: style == MarkerGlyphStyle.onDisc
+              ? markerGlyphOnDiscSizePx
+              : markerGlyphSizePx,
+        );
+        if (_disposed) return;
+        await _ops.addImage(name, bytes);
+      } on Object catch (error) {
+        _glyphImages.remove(name);
+        debugPrint('velorki: marker glyph failed: $error');
+      }
+    }
+  }
+
+  /// Draws every registered glyph again in the new palette's colours.
+  Future<void> _redrawMarkerGlyphs() async {
+    final waypointIcons = <IconData>{for (final w in _waypoints) ?w.icon};
+    final poiIcons = <IconData>{for (final poi in _pois) ?poi.icon};
+    _glyphImages.clear();
+    await _addMarkerGlyphs(waypointIcons, MarkerGlyphStyle.besideMarker);
+    await _addMarkerGlyphs(poiIcons, MarkerGlyphStyle.onDisc);
   }
 
   /// Rasterises the heading cone in the palette's position colour and hands
@@ -1258,8 +1346,10 @@ class MaplibreMapControllerAdapter implements MapController {
       MapLayerIds.positionHaloLayer,
       ml.CircleLayerProperties(circleColor: palette.positionDot),
     );
-    // The cone is a bitmap, not a style colour, so it has to be redrawn.
+    // The cone and the marker glyphs are bitmaps, not style colours, so
+    // they have to be drawn again.
     await _addHeadingConeImage();
+    await _redrawMarkerGlyphs();
     await _ops.setLayerProperties(
       MapLayerIds.positionAccuracyLayer,
       ml.CircleLayerProperties(
@@ -1362,6 +1452,10 @@ class MaplibreMapControllerAdapter implements MapController {
       await attachToStyle();
       return;
     }
+    await _addMarkerGlyphs(
+      waypoints.map((w) => w.icon),
+      MarkerGlyphStyle.besideMarker,
+    );
     await _writeBaseSource(
       MapLayerIds.waypointsSource,
       waypointsFeatureCollection(waypoints),
@@ -1390,6 +1484,10 @@ class MaplibreMapControllerAdapter implements MapController {
       await attachToStyle();
       return;
     }
+    await _addMarkerGlyphs(
+      pois.map((poi) => poi.icon),
+      MarkerGlyphStyle.onDisc,
+    );
     await _writeBaseSource(MapLayerIds.poisSource, poisFeatureCollection(pois));
   }
 

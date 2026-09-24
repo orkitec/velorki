@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 
+import 'package:flutter/material.dart' show Icons;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/map/data/geojson.dart';
+import 'package:velorki/features/map/data/marker_glyph.dart';
 import 'package:velorki/features/map/data/tile_template.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -13,6 +15,48 @@ Map<String, dynamic> _first(Map<String, dynamic> collection) =>
     _features(collection).first as Map<String, dynamic>;
 
 void main() {
+  test('a marker that stands for something carries its glyph in the '
+      'feature, and a plain one carries none', () {
+    const icon = Icons.water_drop_outlined;
+    final pois = poisFeatureCollection(const [
+      MapPoi(
+        position: LatLng(48, 11),
+        name: 'Tap',
+        kind: MapPoiKind.water,
+        icon: icon,
+      ),
+      MapPoi(position: LatLng(48, 11.1), name: 'X', kind: MapPoiKind.generic),
+    ]);
+    final features = pois['features']! as List<dynamic>;
+    final first = (features[0] as Map<String, dynamic>)['properties']!;
+    expect((first as Map<String, dynamic>)['icon'], markerGlyphName(icon));
+    expect(markerGlyphName(icon), 'velorki-glyph-onDisc-${icon.codePoint}');
+    final second = (features[1] as Map<String, dynamic>)['properties']!;
+    expect((second as Map<String, dynamic>).containsKey('icon'), isFalse);
+
+    final waypoints = waypointsFeatureCollection(const [
+      MapWaypoint(
+        position: LatLng(48, 11),
+        kind: MapWaypointKind.start,
+        icon: icon,
+      ),
+    ]);
+    final wp =
+        ((waypoints['features']! as List<dynamic>).single
+                as Map<String, dynamic>)['properties']!
+            as Map<String, dynamic>;
+    // A point on the route wears its glyph on the map beside the disc, not
+    // on it, so it is the dark bitmap under a light outline.
+    expect(
+      wp['icon'],
+      markerGlyphName(icon, style: MarkerGlyphStyle.besideMarker),
+    );
+    expect(
+      wp['icon'],
+      isNot(markerGlyphName(icon, style: MarkerGlyphStyle.onDisc)),
+    );
+  });
+
   group('lineFeatureCollection', () {
     test('writes lon/lat pairs in GeoJSON order', () {
       final json = lineFeatureCollection(const [

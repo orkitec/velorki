@@ -41,7 +41,7 @@
   "profileMtb": "MTB",
   "profileShortest": "Direkt",
   "plannerEmptyState": "Karte antippen, um den Start zu setzen.",
-  "plannerEmptyStateDetail": "Erneut antippen für weitere Punkte, lange drücken, um einen Punkt dazwischen einzufügen.",
+  "plannerEmptyStateDetail": "Erneut antippen für weitere Punkte, gedrückt halten, um einen Ort neben der Route zu markieren.",
   "plannerOnePointHint": "Karte erneut antippen, um ein Ziel zu setzen.",
   "plannerNoRoutingServer": "Kein Routing-Server konfiguriert, einen unter Einstellungen → Erweitert festlegen.",
   "plannerRoutingFailed": "Routing fehlgeschlagen: {message}",

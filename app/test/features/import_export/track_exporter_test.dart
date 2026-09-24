@@ -196,6 +196,39 @@ void main() {
     ]);
   });
 
+  test('a climb category no type of ours stands for goes back out as the '
+      'course point it arrived as', () async {
+    final h = _Harness();
+    final points = _points();
+    await h.exporter.share(
+      name: 'Category',
+      points: points,
+      kind: TrackKind.route,
+      format: TrackFormat.fit,
+      pois: [
+        RoutePoi(
+          pos: points[1].pos,
+          name: 'Galibier',
+          sourceType: 'horsCategory',
+        ),
+        // A rider who said what it is gets what they said.
+        RoutePoi(
+          pos: points[2].pos,
+          name: 'Tap',
+          kind: PoiKind.water,
+          sourceType: 'horsCategory',
+        ),
+      ],
+    );
+    final course = FitCodec.decodeCourse(
+      h.shared.single.file.readAsBytesSync(),
+    );
+    expect(course.coursePoints.map((c) => c.type), [
+      FitCoursePointType.horsCategory,
+      FitCoursePointType.water,
+    ]);
+  });
+
   test('a ride becomes a FIT activity with the real timestamps', () async {
     final h = _Harness();
     final points = _points(withTime: true);

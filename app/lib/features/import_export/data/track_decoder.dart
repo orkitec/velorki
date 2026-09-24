@@ -195,6 +195,10 @@ ImportedTrack _gpxTrack(
             symbol: w.symbol,
             comment: w.comment,
           ),
+          // What the file called it, kept for the way back out.
+          sourceType: w.type?.trim().isNotEmpty ?? false
+              ? w.type!.trim()
+              : w.symbol?.trim(),
         ),
     ],
   );
@@ -284,7 +288,12 @@ ImportedTrack _decodeFitCourse(Uint8List bytes, String? fileName) {
       }
     }
     pois.add(
-      RoutePoi(pos: cue.pos, name: cue.name ?? '', kind: poiKindOf(cue.type)),
+      RoutePoi(
+        pos: cue.pos,
+        name: cue.name ?? '',
+        kind: poiKindOf(cue.type),
+        sourceType: cue.type.name,
+      ),
     );
   }
   turns.sort((a, b) => a.pointIndex.compareTo(b.pointIndex));
@@ -399,6 +408,7 @@ ImportedTrack _tcxCourse(TcxCourse course, TcxDocument document) {
         name: cp.name ?? '',
         description: cp.notes,
         kind: tcxPoiKindOf(cp.type),
+        sourceType: cp.type.xmlValue,
       ),
     );
   }

@@ -8,6 +8,8 @@ import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/application/planner_map_binding.dart';
 import 'package:velorki/features/planner/data/routing_backend_provider.dart';
 import 'package:velorki/features/planner/domain/planner_state.dart';
+import 'package:velorki/features/navigation/presentation/turn_phrases.dart';
+import 'package:velorki/features/planner/domain/route_poi.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/domain/routing_options.dart';
 import 'package:velorki/features/planner/domain/saved_route.dart';
@@ -55,12 +57,13 @@ void main() {
     map.onTap!(_b);
     expect(container.read(plannerControllerProvider).positions, [_a, _b]);
 
+    // A long press is the screen's to answer: it opens the sheet for a
+    // place there rather than routing through it.
+    LatLng? held;
+    binding.onLongPress = (pos) => held = pos;
     map.onLongPress!(const LatLng(48.1, 11.1));
-    expect(container.read(plannerControllerProvider).positions, [
-      _a,
-      const LatLng(48.1, 11.1),
-      _b,
-    ]);
+    expect(held, const LatLng(48.1, 11.1));
+    expect(container.read(plannerControllerProvider).positions, [_a, _b]);
 
     map.onWaypointDragged!(0, const LatLng(47.5, 10.5));
     expect(
@@ -171,10 +174,42 @@ void main() {
     expect(map.lines[mainRouteLineId], hasLength(5));
   });
 
+  testWidgets('the plan\'s places are drawn with their kind icon and go '
+      'when the tab leaves the map', (tester) async {
+    map.onTap!(_a);
+    map.onTap!(_b);
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump();
+    expect(map.pois, isEmpty);
+
+    container
+        .read(plannerControllerProvider.notifier)
+        .addPoi(const LatLng(48.1, 11.1), name: 'Tap', kind: PoiKind.water);
+    await tester.pump();
+
+    expect(map.pois.single.name, 'Tap');
+    expect(map.pois.single.kind, MapPoiKind.water);
+    expect(map.pois.single.icon, poiIcon(PoiKind.water));
+
+    // A point on the route that stands for something wears its icon too.
+    container
+        .read(plannerControllerProvider.notifier)
+        .setWaypointDetails(1, name: 'Top', poiKind: PoiKind.summit);
+    await tester.pump();
+    expect(map.waypoints.last.icon, poiIcon(PoiKind.summit));
+    expect(map.waypoints.first.icon, isNull, reason: 'a plain point');
+
+    await binding.clear();
+    expect(map.pois, isEmpty);
+    expect(map.waypoints, isEmpty);
+    await tester.pump(const Duration(milliseconds: 400));
+  });
+
   testWidgets('detaching stops the gestures', (tester) async {
     binding.detach();
     expect(map.onTap, isNull);
     expect(map.onLongPress, isNull);
     expect(map.onWaypointDragged, isNull);
+    expect(map.onPoiTapped, isNull);
   });
 }
