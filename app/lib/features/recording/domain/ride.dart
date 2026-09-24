@@ -5,6 +5,7 @@ import 'package:velorki_brouter/velorki_brouter.dart' show SurfaceStats;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../core/geo/ride_stats.dart';
+import '../../../core/geo/track_surface.dart';
 import 'ride_upload.dart';
 
 /// One interval during which the recording was paused.
@@ -104,61 +105,16 @@ List<RidePause> decodeRidePauses(String? json) {
 
 /// What the `surface_stats_json` column of a ride holds.
 ///
-/// Null until the ride was ever matched against the routing tiles; [stats]
-/// once it was; [unavailable] once matching failed for a reason a retry
-/// would not change, so the page does not route the track again on every
-/// open. A ride whose area had no tiles is not recorded at all: it is tried
-/// again once they are there.
-class RideSurfaceCache {
-  /// Creates the cache entry.
-  const RideSurfaceCache({this.stats, this.unavailable = false});
+/// A ride and a route read from a file keep the same thing in the same
+/// shape, so the model and its two coders are shared; see `TrackSurfaceCache`
+/// under `core/geo`.
+typedef RideSurfaceCache = TrackSurfaceCache;
 
-  /// The marker for a track the map could not follow.
-  static const RideSurfaceCache unmatched = RideSurfaceCache(unavailable: true);
+/// The `surface_stats_json` column of a ride.
+String encodeRideSurface(RideSurfaceCache cache) => encodeTrackSurface(cache);
 
-  /// The matched surface breakdown, when there is one.
-  final SurfaceStats? stats;
-
-  /// Whether matching failed for good.
-  final bool unavailable;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is RideSurfaceCache &&
-          other.stats == stats &&
-          other.unavailable == unavailable;
-
-  @override
-  int get hashCode => Object.hash(stats, unavailable);
-
-  @override
-  String toString() => unavailable ? 'RideSurfaceCache.unmatched' : '$stats';
-}
-
-/// The `surface_stats_json` column: the statistics as `SurfaceStats.toJson`,
-/// or `{"unavailable": true}` for a track that could not be matched.
-String encodeRideSurface(RideSurfaceCache cache) => jsonEncode(
-  cache.unavailable
-      ? const <String, Object?>{'unavailable': true}
-      : cache.stats?.toJson() ?? const <String, Object?>{},
-);
-
-/// Parses the `surface_stats_json` column; null or anything unreadable
-/// means "not matched yet", which is safe: the page then matches again.
-RideSurfaceCache? decodeRideSurface(String? json) {
-  if (json == null || json.isEmpty) return null;
-  Object? decoded;
-  try {
-    decoded = jsonDecode(json);
-  } on FormatException {
-    return null;
-  }
-  if (decoded is! Map<String, dynamic>) return null;
-  if (decoded['unavailable'] == true) return RideSurfaceCache.unmatched;
-  final stats = SurfaceStats.fromJson(decoded);
-  return stats.totalLengthM > 0 ? RideSurfaceCache(stats: stats) : null;
-}
+/// Parses the `surface_stats_json` column of a ride.
+RideSurfaceCache? decodeRideSurface(String? json) => decodeTrackSurface(json);
 
 /// A finished ride, as the app works with it.
 ///

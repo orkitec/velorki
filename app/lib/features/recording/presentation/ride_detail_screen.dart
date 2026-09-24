@@ -1030,13 +1030,13 @@ class RideSurfaceSection extends ConsumerWidget {
       ),
       error: (_, _) => note(l10n.rideSurfaceUnavailable),
       data: (result) => switch (result.state) {
-        RideSurfaceState.matched => SurfaceStatsBar(stats: result.stats),
-        RideSurfaceState.noTiles => note(l10n.rideSurfaceNoTiles),
-        RideSurfaceState.unmatched => note(l10n.rideSurfaceUnavailable),
+        TrackSurfaceState.matched => SurfaceStatsBar(stats: result.stats),
+        TrackSurfaceState.noTiles => note(l10n.rideSurfaceNoTiles),
+        TrackSurfaceState.unmatched => note(l10n.rideSurfaceUnavailable),
         // A build without on-device routing has nothing to match against, and
         // a line saying the track "could not be matched" would blame the
         // track; the section simply is not there.
-        RideSurfaceState.noRouting => const SizedBox.shrink(),
+        TrackSurfaceState.noRouting => const SizedBox.shrink(),
       },
     );
   }

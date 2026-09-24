@@ -178,10 +178,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(h.backend.queries.last.points, [_b, _a]);
 
+    final routed = h.backend.queries.length;
     await tester.tap(find.widgetWithText(LabeledIconButton, l10n.commonUndo));
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
-    expect(h.backend.queries.last.points, [_a, _b]);
+    // The plan is back the way round it was, and the route with it: an
+    // undo puts back what it recorded rather than asking for it again.
+    expect(h.map.waypoints.map((w) => w.position), [_a, _b]);
+    expect(h.backend.queries.length, routed);
 
     await tester.tap(find.widgetWithText(LabeledIconButton, l10n.plannerClear));
     await tester.pumpAndSettle();

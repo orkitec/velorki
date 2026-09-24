@@ -347,18 +347,47 @@ class PlannerController extends _$PlannerController {
   }
 
   /// Takes back the last change, one step at a time.
+  ///
+  /// A step is put back as it was recorded, the route on the map included,
+  /// rather than routed again between the restored points. The two are not
+  /// the same thing: a route that came out of a file is the course its
+  /// author drew, and asking the router for a line through the same points
+  /// gives a slightly different one — which is what the rider saw when an
+  /// undo quietly changed their imported ride. For a plan of our own the
+  /// recorded route already answers the recorded points, so routing again
+  /// would only be a wait for the same line.
+  ///
+  /// Anything in flight is dropped first, so a late answer to the edit
+  /// being taken back cannot land on top of what was restored.
   void undo() {
     if (state.undoStack.isEmpty) return;
     final stack = [...state.undoStack];
     final previous = stack.removeLast();
+    _debounce?.cancel();
+    _pending?.cancel('undone');
+    _pending = null;
     state = state.copyWith(
       undoStack: stack,
+      waypoints: normalizeWaypointKinds(previous.waypoints),
+      pois: previous.pois,
       options: state.options.copyWith(
         differentWayBack: previous.differentWayBack,
         returnVariant: previous.returnVariant,
       ),
+      route: AsyncData<RouteResult?>(previous.result),
+      loadedSurfaceStats: previous.loadedSurfaceStats,
+      // The variants belonged to the edit being taken back; the rider can
+      // ask for them again against the plan that is back on screen.
+      alternatives: const <RouteResult>[],
+      error: null,
+      routeIsSaved: previous.routeIsSaved,
+      savedRouteId: previous.savedRouteId,
+      savedRouteName: previous.savedRouteName,
     );
-    _setWaypoints(previous.waypoints, pois: previous.pois);
+    // The one case with something left to do: a step recorded while its own
+    // route was still on its way, so there is a plan but nothing to show
+    // for it. An empty plan is not that case and stays empty.
+    if (previous.result == null && state.isRoutable) _scheduleRoute();
   }
 
   /// Switches the routing profile, re-routes and keeps the pick for the next

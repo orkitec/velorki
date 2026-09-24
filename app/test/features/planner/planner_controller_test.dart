@@ -819,6 +819,213 @@ void main() {
     });
   });
 
+  group('undo puts back what it recorded', () {
+    /// A route that is not what the router would answer with, so a re-route
+    /// is told apart from a restore by looking at the geometry.
+    SavedRoute importedRoute(List<TrackPoint> track) => SavedRoute(
+      id: 'r1',
+      name: 'From a file',
+      source: RouteSource.importedGpx,
+      profile: RouteProfile.trekking,
+      createdAt: DateTime.utc(2026, 9, 12),
+      updatedAt: DateTime.utc(2026, 9, 12),
+      distanceM: 4321,
+      ascentM: 65,
+      descentM: 65,
+      bounds: BoundingBox.fromPoints(track.map((p) => p.pos)),
+      geometryBlob: PackedTrack.encode(track),
+      waypoints: [
+        Waypoint(pos: track.first.pos, kind: WaypointKind.start),
+        Waypoint(pos: track.last.pos, kind: WaypointKind.end),
+      ],
+      options: const RoutingOptions(),
+      surfaceStats: const SurfaceStats(
+        pavedShare: 0.7,
+        unpavedShare: 0.3,
+        unknownShare: 0,
+        cyclewayShare: 0.1,
+        busyShare: 0,
+        coveredLengthM: 4321,
+        totalLengthM: 4321,
+      ),
+    );
+
+    testWidgets('an imported route comes back as the file drew it, not as '
+        'the router would draw it', (tester) async {
+      final backend = FakeRoutingBackend();
+      final container = _container(backend);
+      final planner = container.read(plannerControllerProvider.notifier);
+      final track = <TrackPoint>[
+        for (var i = 0; i < 60; i++)
+          TrackPoint(LatLng(40.75 + i * 0.0004, -73.85 + i * 0.0003)),
+      ];
+      planner.loadSavedRoute(importedRoute(track));
+      final before = container.read(plannerControllerProvider);
+      final drawn = before.result!.geometry
+          .map((p) => p.pos)
+          .toList(growable: false);
+      expect(before.routeIsSaved, isTrue);
+      expect(before.surfaceStats, isNotNull);
+
+      planner.moveWaypoint(1, const LatLng(40.8, -73.8));
+      await tester.pump(const Duration(milliseconds: 400));
+      final routed = backend.callCount;
+      expect(routed, greaterThan(0), reason: 'the move is routed');
+      expect(
+        container
+            .read(plannerControllerProvider)
+            .result!
+            .geometry
+            .map((p) => p.pos),
+        isNot(drawn),
+      );
+
+      planner.undo();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      final after = container.read(plannerControllerProvider);
+      expect(
+        after.result!.geometry.map((p) => p.pos).toList(growable: false),
+        drawn,
+        reason: 'point for point, the course the file came with',
+      );
+      expect(after.result!.lengthM, before.result!.lengthM);
+      expect(after.routeIsSaved, isTrue);
+      expect(after.savedRouteId, 'r1');
+      expect(after.surfaceStats, isNotNull);
+      expect(after.isRouting, isFalse);
+      expect(
+        backend.callCount,
+        routed,
+        reason: 'nothing was asked of the router to put a known route back',
+      );
+    });
+
+    testWidgets('a planned route comes back without asking again', (
+      tester,
+    ) async {
+      final backend = FakeRoutingBackend();
+      final container = _container(backend);
+      final planner = container.read(plannerControllerProvider.notifier);
+      planner
+        ..addWaypoint(_a)
+        ..addWaypoint(_b);
+      await tester.pump(const Duration(milliseconds: 400));
+      final recorded = container.read(plannerControllerProvider).result;
+      expect(recorded, isNotNull);
+
+      planner.addWaypoint(_c);
+      await tester.pump(const Duration(milliseconds: 400));
+      final routed = backend.callCount;
+
+      planner.undo();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      final after = container.read(plannerControllerProvider);
+      expect(after.positions, [_a, _b]);
+      expect(identical(after.result, recorded), isTrue);
+      expect(after.isRouting, isFalse);
+      expect(backend.callCount, routed);
+    });
+
+    testWidgets('undoing the first point leaves nothing, and nothing '
+        'spinning', (tester) async {
+      final backend = FakeRoutingBackend();
+      final container = _container(backend);
+      final planner = container.read(plannerControllerProvider.notifier);
+      planner.addWaypoint(_a);
+      await tester.pump(const Duration(milliseconds: 400));
+
+      planner.undo();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      final after = container.read(plannerControllerProvider);
+      expect(after.waypoints, isEmpty);
+      expect(after.result, isNull);
+      expect(after.isRouting, isFalse);
+      expect(after.route.hasError, isFalse);
+      expect(backend.callCount, 0);
+    });
+
+    testWidgets('a route that failed gives way to the last good one', (
+      tester,
+    ) async {
+      final backend = FakeRoutingBackend();
+      final container = _container(backend);
+      final planner = container.read(plannerControllerProvider.notifier);
+      planner
+        ..addWaypoint(_a)
+        ..addWaypoint(_b);
+      await tester.pump(const Duration(milliseconds: 400));
+      final good = container.read(plannerControllerProvider).result;
+      expect(good, isNotNull);
+
+      backend.error = const RoutingException(
+        kind: RoutingErrorKind.noRoute,
+        message: 'no route here',
+      );
+      planner.addWaypoint(_c);
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(container.read(plannerControllerProvider).error, isNotNull);
+
+      planner.undo();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      final after = container.read(plannerControllerProvider);
+      expect(identical(after.result, good), isTrue);
+      expect(after.error, isNull);
+      expect(after.route.hasError, isFalse);
+      expect(after.isRouting, isFalse);
+    });
+
+    testWidgets('a plan emptied and put back is the library route again', (
+      tester,
+    ) async {
+      final container = _container(FakeRoutingBackend());
+      final planner = container.read(plannerControllerProvider.notifier);
+      final track = <TrackPoint>[
+        for (var i = 0; i < 20; i++)
+          TrackPoint(LatLng(40.75 + i * 0.001, -73.85)),
+      ];
+      planner.loadSavedRoute(importedRoute(track));
+      await tester.pump(const Duration(milliseconds: 400));
+
+      planner.clear();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(container.read(plannerControllerProvider).savedRouteId, isNull);
+
+      planner.undo();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      final after = container.read(plannerControllerProvider);
+      expect(after.waypoints, isNotEmpty);
+      expect(after.savedRouteId, 'r1');
+      expect(after.savedRouteName, 'From a file');
+      expect(after.routeIsSaved, isTrue);
+      expect(after.result, isNotNull);
+    });
+
+    testWidgets('an edit taken back before its route lands is routed, and '
+        'the late answer to the edit is dropped', (tester) async {
+      final backend = FakeRoutingBackend();
+      final container = _container(backend);
+      final planner = container.read(plannerControllerProvider.notifier);
+      planner
+        ..addWaypoint(_a)
+        ..addWaypoint(_b);
+      // A second edit while the first route is still on its way: the step
+      // it records has a plan but no route to show for it.
+      planner.addWaypoint(_c);
+      planner.undo();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      final after = container.read(plannerControllerProvider);
+      expect(after.positions, [_a, _b]);
+      expect(after.result, isNotNull, reason: 'the plan is drawn in the end');
+      expect(after.isRouting, isFalse);
+    });
+  });
+
   group('points beside the route', () {
     const mid = LatLng(48.02, 11.02);
 

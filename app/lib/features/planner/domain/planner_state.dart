@@ -9,26 +9,46 @@ import 'waypoint.dart';
 
 part 'planner_state.freezed.dart';
 
-/// One step on the planner's undo stack.
+/// One step on the planner's undo stack: the plan as it stood, and the
+/// route that was on the map with it.
 ///
-/// Waypoints alone are not enough any more: closing a loop and cycling the way
-/// home change the plan without touching the waypoint list, and each of those
-/// has to come back one step at a time. Only the two loop options are kept —
-/// undoing an edit must not also undo a profile the rider picked since.
+/// Waypoints alone are not enough: closing a loop and cycling the way home
+/// change the plan without touching the waypoint list, and each of those has
+/// to come back one step at a time.
+///
+/// Neither is the plan alone. A step carries [result], so taking the step
+/// back puts the very route the rider was looking at back on the map instead
+/// of asking the router for one between the same points. For a route that
+/// came out of a file that is the difference between the course the file
+/// drew and the router's own line through it; for a planned one it is the
+/// difference between an answer and a wait for the same answer.
+///
+/// Only the two loop options are kept of the routing options — undoing an
+/// edit must not also undo a profile the rider picked since.
 @immutable
 class PlannerEdit {
-  /// Captures one state of the plan.
+  /// Captures one step.
   const PlannerEdit({
     required this.waypoints,
     required this.pois,
+    required this.result,
+    required this.loadedSurfaceStats,
+    required this.routeIsSaved,
+    required this.savedRouteId,
+    required this.savedRouteName,
     required this.differentWayBack,
     required this.returnVariant,
   });
 
-  /// Snapshots the loop-shaping part of [state].
+  /// Snapshots [state] as one step.
   factory PlannerEdit.of(PlannerState state) => PlannerEdit(
     waypoints: state.waypoints,
     pois: state.pois,
+    result: state.result,
+    loadedSurfaceStats: state.loadedSurfaceStats,
+    routeIsSaved: state.routeIsSaved,
+    savedRouteId: state.savedRouteId,
+    savedRouteName: state.savedRouteName,
     differentWayBack: state.options.differentWayBack,
     returnVariant: state.options.returnVariant,
   );
@@ -38,6 +58,24 @@ class PlannerEdit {
 
   /// The points beside the route as they were.
   final List<RoutePoi> pois;
+
+  /// The route that was on the map, or `null` when there was none — an
+  /// empty plan, or one whose route had not come back yet.
+  final RouteResult? result;
+
+  /// [PlannerState.loadedSurfaceStats] as it was, which is the only surface
+  /// breakdown a route from the library has.
+  final SurfaceStats? loadedSurfaceStats;
+
+  /// [PlannerState.routeIsSaved] as it was.
+  final bool routeIsSaved;
+
+  /// [PlannerState.savedRouteId] as it was, so a step that emptied the plan
+  /// gives the library row back when it is taken back.
+  final String? savedRouteId;
+
+  /// [PlannerState.savedRouteName] as it was.
+  final String? savedRouteName;
 
   /// [RoutingOptions.differentWayBack] as it was.
   final bool differentWayBack;
@@ -51,12 +89,26 @@ class PlannerEdit {
       other is PlannerEdit &&
           other.waypoints == waypoints &&
           other.pois == pois &&
+          identical(other.result, result) &&
+          other.loadedSurfaceStats == loadedSurfaceStats &&
+          other.routeIsSaved == routeIsSaved &&
+          other.savedRouteId == savedRouteId &&
+          other.savedRouteName == savedRouteName &&
           other.differentWayBack == differentWayBack &&
           other.returnVariant == returnVariant;
 
   @override
-  int get hashCode =>
-      Object.hash(waypoints, pois, differentWayBack, returnVariant);
+  int get hashCode => Object.hash(
+    waypoints,
+    pois,
+    identityHashCode(result),
+    loadedSurfaceStats,
+    routeIsSaved,
+    savedRouteId,
+    savedRouteName,
+    differentWayBack,
+    returnVariant,
+  );
 }
 
 /// Everything the Plan tab shows.
