@@ -14,6 +14,7 @@ import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/domain/routing_options.dart';
 import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
+import 'package:velorki/features/planner/presentation/poi_markers.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import 'support/fakes.dart';
@@ -203,6 +204,40 @@ void main() {
     expect(map.pois, isEmpty);
     expect(map.waypoints, isEmpty);
     await tester.pump(const Duration(milliseconds: 400));
+  });
+
+  test('every screen builds its markers the same way', () {
+    // The one rule, in one place: a kind puts the icon on the disc and the
+    // number in the name; a plain point keeps the number on the disc.
+    final points = waypointMarkers(const [
+      Waypoint(pos: _a, kind: WaypointKind.start, name: 'Home'),
+      Waypoint(pos: LatLng(48.1, 11.1), name: 'Pico', poiKind: PoiKind.summit),
+      Waypoint(pos: _b, kind: WaypointKind.end),
+    ], selected: 1);
+
+    expect(points.map((w) => w.label), ['Home', 'Pico', null]);
+    expect(points.map((w) => w.icon != null), [false, true, false]);
+    expect(points.map((w) => w.selected), [false, true, false]);
+    expect(points.map((w) => w.kind), [
+      MapWaypointKind.start,
+      MapWaypointKind.via,
+      MapWaypointKind.end,
+    ]);
+    // A turn is a cue of the route, not a place, so it wears no icon.
+    expect(
+      waypointMarkers(const [
+        Waypoint(pos: _a, poiKind: PoiKind.turn, name: 'Left at the mill'),
+      ]).single.icon,
+      isNull,
+    );
+    // The ends of a route read from a file are the same plain markers.
+    final ends = endMarkers(start: _a, finish: _b, finishSelected: true);
+    expect(ends.map((w) => w.kind), [
+      MapWaypointKind.start,
+      MapWaypointKind.end,
+    ]);
+    expect(ends.map((w) => w.icon), [isNull, isNull]);
+    expect(ends.map((w) => w.selected), [false, true]);
   });
 
   testWidgets('detaching stops the gestures', (tester) async {

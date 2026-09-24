@@ -182,6 +182,7 @@ class MapPoi {
     required this.name,
     required this.kind,
     this.icon,
+    this.selected = false,
   });
 
   final LatLng position;
@@ -192,6 +193,11 @@ class MapPoi {
   /// leaves the plain disc. [kind] still picks the colour.
   final IconData? icon;
 
+  /// Whether this is the point the rider has chosen, from the map or from a
+  /// list beside it. A chosen point wears a wider disc in the chosen colour
+  /// and a larger name; it keeps its icon, like every other state.
+  final bool selected;
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -199,10 +205,11 @@ class MapPoi {
           other.position == position &&
           other.name == name &&
           other.kind == kind &&
-          other.icon == icon;
+          other.icon == icon &&
+          other.selected == selected;
 
   @override
-  int get hashCode => Object.hash(position, name, kind, icon);
+  int get hashCode => Object.hash(position, name, kind, icon, selected);
 }
 
 @immutable
@@ -212,15 +219,20 @@ class MapWaypoint {
     required this.kind,
     this.label,
     this.icon,
+    this.selected = false,
   });
 
   final LatLng position;
   final MapWaypointKind kind;
   final String? label;
 
-  /// A small icon beside the numbered disc, for a point that stands for
-  /// something: a fountain, a hazard, a summit. `null` for a plain point.
+  /// What the point stands for: a fountain, a hazard, a summit. The disc
+  /// carries this instead of the point's number, and the number moves into
+  /// the label. `null` for a plain point, whose disc carries the number.
   final IconData? icon;
+
+  /// Whether this is the point the rider has chosen. See [MapPoi.selected].
+  final bool selected;
 
   @override
   bool operator ==(Object other) =>
@@ -228,8 +240,9 @@ class MapWaypoint {
       other.position == position &&
       other.kind == kind &&
       other.label == label &&
-      other.icon == icon;
+      other.icon == icon &&
+      other.selected == selected;
 
   @override
-  int get hashCode => Object.hash(position, kind, label, icon);
+  int get hashCode => Object.hash(position, kind, label, icon, selected);
 }

@@ -130,11 +130,27 @@ List<Object> trackSpeedColorExpression(String slow, String fast) => <Object>[
   fast,
 ];
 
-/// The label drawn inside a waypoint circle: the 1-based position in the
-/// list. A place name would not fit a 20 px disc; it lives in the plan.
-String waypointLabel(MapWaypoint waypoint, int index) {
-  final label = waypoint.label;
-  return label == null || label.isEmpty ? '${index + 1}' : label;
+/// What is drawn inside a waypoint's disc: its 1-based number, or nothing
+/// for a point whose disc carries an icon instead.
+///
+/// A disc holds one thing. A point that stands for something shows what it
+/// is; a plain one shows where it comes in the ride.
+String waypointDiscText(MapWaypoint waypoint, int index) =>
+    waypoint.icon == null ? '${index + 1}' : '';
+
+/// The label drawn beside a waypoint's disc, so the number appears exactly
+/// once however the point is drawn.
+///
+/// A point whose disc carries an icon puts its number in the label, in
+/// brackets before the name: `(4) Brooklyn Bridge`, or `(4)` with no name —
+/// the brackets read as a position rather than a count. A point whose disc
+/// carries the number needs only its name, and an unnamed one needs no label
+/// at all.
+String waypointLabelText(MapWaypoint waypoint, int index) {
+  final name = waypoint.label ?? '';
+  if (waypoint.icon == null) return name;
+  final number = '${index + 1}';
+  return name.isEmpty ? number : '($number) $name';
 }
 
 /// One `Point` feature per waypoint, each draggable and carrying its index.
@@ -151,12 +167,12 @@ Map<String, dynamic> waypointsFeatureCollection(List<MapWaypoint> waypoints) {
       'properties': <String, dynamic>{
         'index': i,
         'kind': w.kind.name,
-        'label': waypointLabel(w, i),
-        if (w.icon != null)
-          'icon': markerGlyphName(
-            w.icon!,
-            style: MarkerGlyphStyle.besideMarker,
-          ),
+        'disc': waypointDiscText(w, i),
+        'label': waypointLabelText(w, i),
+        if (w.icon != null) 'icon': markerGlyphName(w.icon!),
+        // Always written, never absent: the style asks every feature whether
+        // it is the chosen one, and a missing property is not an answer.
+        'selected': w.selected,
         'draggable': true,
       },
       'geometry': <String, dynamic>{
@@ -169,7 +185,7 @@ Map<String, dynamic> waypointsFeatureCollection(List<MapWaypoint> waypoints) {
 }
 
 /// The points of interest as a FeatureCollection: one point each, with the
-/// name for the label and the kind for the colour.
+/// name for the label, the kind for the colour and whether it is chosen.
 Map<String, dynamic> poisFeatureCollection(List<MapPoi> pois) =>
     <String, dynamic>{
       'type': 'FeatureCollection',
@@ -182,6 +198,7 @@ Map<String, dynamic> poisFeatureCollection(List<MapPoi> pois) =>
               'name': pois[i].name,
               'kind': pois[i].kind.name,
               if (pois[i].icon != null) 'icon': markerGlyphName(pois[i].icon!),
+              'selected': pois[i].selected,
             },
             'geometry': <String, dynamic>{
               'type': 'Point',

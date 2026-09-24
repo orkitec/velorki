@@ -42,15 +42,34 @@ void main() {
     expect(icons.map(markerGlyphName).toSet(), hasLength(icons.length));
     expect(
       markerGlyphName(Icons.water_drop_outlined),
-      'velorki-glyph-onDisc-${Icons.water_drop_outlined.codePoint}',
+      'velorki-glyph-${Icons.water_drop_outlined.codePoint}',
     );
-    // The same icon is a different bitmap on a disc and beside one.
+  });
+
+  test('a glyph keeps its share of whatever disc it sits on', () {
     expect(
-      markerGlyphName(
-        Icons.water_drop_outlined,
-        style: MarkerGlyphStyle.besideMarker,
-      ),
-      isNot(markerGlyphName(Icons.water_drop_outlined)),
+      markerGlyphSizeForDisc(markerDiscRadiusPx),
+      markerDiscRadiusPx * 2 * markerGlyphDiscShare,
     );
+    // Wider disc, bigger glyph, same share of it.
+    expect(
+      markerGlyphSizeForDisc(markerDiscSelectedRadiusPx),
+      greaterThan(markerGlyphSizeForDisc(markerDiscRadiusPx)),
+    );
+    expect(
+      markerGlyphSizeForDisc(markerDiscRadiusPx) /
+          markerGlyphSizeForDisc(markerDiscSelectedRadiusPx),
+      closeTo(markerGlyphUnselectedScale, 1e-9),
+    );
+    // The bitmap is drawn at the size the chosen point wants, so the style
+    // only ever scales it down.
+    expect(
+      markerGlyphOnDiscSizePx,
+      markerGlyphSizeForDisc(markerDiscSelectedRadiusPx),
+    );
+    expect(markerGlyphUnselectedScale, lessThan(1));
+    // A disc the route line can still be seen under.
+    expect(markerDiscRadiusPx, greaterThan(9));
+    expect(markerDiscSelectedRadiusPx, greaterThan(markerDiscRadiusPx));
   });
 }

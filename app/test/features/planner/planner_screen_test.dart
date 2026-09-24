@@ -541,8 +541,8 @@ void main() {
     }
   });
 
-  testWidgets('the type tiles are a grid: five a row on a phone, four when '
-      'narrow, all the same width, nothing to scroll', (tester) async {
+  testWidgets('the type tiles are a four by four grid at every width, all '
+      'the same size, nothing to scroll', (tester) async {
     Future<List<Rect>> tiles(double width) async {
       await tester.binding.setSurfaceSize(Size(width, 800));
       await tester.pumpWidget(
@@ -565,16 +565,25 @@ void main() {
     }
 
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    final phone = await tiles(390);
-    expect(phone.map((r) => r.top.round()).toSet(), hasLength(3));
-    expect(phone.map((r) => r.width.round()).toSet(), hasLength(1));
-    expect(phone.every((r) => r.right <= 390), isTrue);
+    // Sixteen kinds, four to a row, four rows — the same block whatever the
+    // sheet is wide.
+    for (final width in <double>[390, 340]) {
+      final grid = await tiles(width);
+      expect(grid, hasLength(PoiKind.values.length));
+      expect(
+        grid.map((r) => r.top.round()).toSet(),
+        hasLength(4),
+        reason: 'rows at $width',
+      );
+      expect(
+        grid.map((r) => r.left.round()).toSet(),
+        hasLength(4),
+        reason: 'columns at $width',
+      );
+      expect(grid.map((r) => r.width.round()).toSet(), hasLength(1));
+      expect(grid.every((r) => r.right <= width), isTrue);
+    }
     expect(find.byType(SingleChildScrollView), findsNothing);
-
-    final narrow = await tiles(340);
-    expect(narrow.map((r) => r.top.round()).toSet(), hasLength(4));
-    expect(narrow.map((r) => r.width.round()).toSet(), hasLength(1));
-    expect(narrow.every((r) => r.right <= 340), isTrue);
   });
 
   testWidgets('the sheet has one resting height, with or without variants', (

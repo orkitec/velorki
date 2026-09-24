@@ -37,6 +37,8 @@ const MapPalette _repainted = MapPalette(
   waypointStroke: '#999999',
   waypointLabel: '#AAAAAA',
   waypointLabelHalo: '#BBBBBB',
+  mapLabel: '#ABABAB',
+  mapLabelHalo: '#BCBCBC',
   positionDot: '#CCCCCC',
   positionAccuracy: '#DDDDDD',
 );
@@ -123,8 +125,9 @@ void main() {
           MapLayerIds.waypointsSource,
           MapLayerIds.waypointsHitLayer,
           MapLayerIds.waypointsCircleLayer,
-          MapLayerIds.waypointsLabelLayer,
           MapLayerIds.waypointsIconLayer,
+          MapLayerIds.waypointsLabelLayer,
+          MapLayerIds.waypointsNameLayer,
           MapLayerIds.poisSource,
           MapLayerIds.turnsSource,
           MapLayerIds.turnsLayer,
@@ -194,6 +197,7 @@ void main() {
       expect(features.single['properties'], {
         'name': 'Water Fountain',
         'kind': 'water',
+        'selected': false,
       });
 
       await adapter.attachToStyle();
@@ -918,7 +922,9 @@ void main() {
       expect((features.first as Map<String, dynamic>)['id'], 'velorki-wp-0');
       final properties = _firstProperties(ops, MapLayerIds.waypointsSource);
       expect(properties['kind'], 'start');
-      expect(properties['label'], '1');
+      expect(properties['disc'], '1');
+      expect(properties['label'], '');
+      expect(properties['selected'], isFalse);
       expect(properties['draggable'], isTrue);
     });
 
@@ -1241,19 +1247,35 @@ void main() {
       expect(ring.properties!['circle-color'], '#DDDDDD');
       expect(ring.properties!['circle-stroke-color'], '#DDDDDD');
       final circle = ops.lastPropertiesOf(MapLayerIds.waypointsCircleLayer)!;
+      // The chosen point's colour, then the kind's for every other.
       expect(circle.properties!['circle-color'], <Object>[
-        'match',
-        <Object>['get', 'kind'],
-        'start',
-        '#666666',
-        'end',
-        '#888888',
-        '#777777',
+        'case',
+        <Object>['get', 'selected'],
+        '#444444',
+        <Object>[
+          'match',
+          <Object>['get', 'kind'],
+          'start',
+          '#666666',
+          'end',
+          '#888888',
+          '#777777',
+        ],
       ]);
       expect(circle.properties!['circle-stroke-color'], '#999999');
-      final label = ops.lastPropertiesOf(MapLayerIds.waypointsLabelLayer)!;
-      expect(label.properties!['text-color'], '#AAAAAA');
-      expect(label.properties!['text-halo-color'], '#BBBBBB');
+      // The number inside a disc is dark on the disc's own colour.
+      final number = ops.lastPropertiesOf(MapLayerIds.waypointsLabelLayer)!;
+      expect(number.properties!['text-color'], '#AAAAAA');
+      expect(number.properties!['text-halo-color'], '#BBBBBB');
+      // A name beside a marker is on the map, and turns over with it.
+      for (final layer in <String>[
+        MapLayerIds.waypointsNameLayer,
+        MapLayerIds.poisLabelLayer,
+      ]) {
+        final name = ops.lastPropertiesOf(layer)!;
+        expect(name.properties!['text-color'], '#ABABAB');
+        expect(name.properties!['text-halo-color'], '#BCBCBC');
+      }
     });
 
     test('redraws the heading cone, which is a bitmap not a colour', () async {

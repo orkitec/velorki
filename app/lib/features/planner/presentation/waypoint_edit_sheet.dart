@@ -301,8 +301,9 @@ class _WaypointEditSheetState extends State<WaypointEditSheet> {
 ///
 /// Tiles rather than a segmented button: icon-beside-label segments did not
 /// fit a phone's width, and every label broke onto a second line. A grid
-/// rather than a row that scrolls: fifteen kinds are three rows of five on
-/// a phone, all in view at once, four rows of four on a narrow sheet.
+/// rather than a row that scrolls: sixteen kinds are four rows of four, all
+/// in view at once, and four a row at every width, so the block reads the
+/// same on a small phone as on a large one.
 class PoiKindTiles extends StatelessWidget {
   /// Creates the tiles with [selected] filled.
   const PoiKindTiles({
@@ -321,62 +322,56 @@ class PoiKindTiles extends StatelessWidget {
   /// Called with the kind a tap chose.
   final ValueChanged<PoiKind> onSelected;
 
-  /// Below this width the grid drops to four tiles a row, so a label still
-  /// has room to be read.
-  static const double narrowWidth = 360;
+  /// How many tiles a row holds, whatever the sheet is wide: sixteen kinds
+  /// in four rows of four, and a label with room to be read on the smallest
+  /// phone.
+  static const int perRow = 4;
 
   /// The air between tiles, sideways and down.
   static const double gap = 8;
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      final perRow = constraints.maxWidth < narrowWidth ? 4 : 5;
-      final rows = <List<PoiKind?>>[
-        for (var i = 0; i < kinds.length; i += perRow)
-          <PoiKind?>[
-            ...kinds.sublist(i, math.min(i + perRow, kinds.length)),
-            // A short last row keeps its tiles the width of the others.
-            for (
-              var j = math.min(i + perRow, kinds.length);
-              j < i + perRow;
-              j++
-            )
-              null,
-          ],
-      ];
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final (r, row) in rows.indexed) ...[
-            if (r > 0) const SizedBox(height: gap),
-            // Every tile of a row as tall as the tallest, so a row reads as
-            // one band; intrinsic rather than stretch, since the sheet's
-            // scroll view gives the column no height to stretch to.
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (final (i, kind) in row.indexed) ...[
-                    if (i > 0) const SizedBox(width: gap),
-                    Expanded(
-                      child: kind == null
-                          ? const SizedBox.shrink()
-                          : _PoiKindTile(
-                              kind: kind,
-                              selected: kind == selected,
-                              onTap: () => onSelected(kind),
-                            ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
+  Widget build(BuildContext context) {
+    final rows = <List<PoiKind?>>[
+      for (var i = 0; i < kinds.length; i += perRow)
+        <PoiKind?>[
+          ...kinds.sublist(i, math.min(i + perRow, kinds.length)),
+          // A short last row keeps its tiles the width of the others.
+          for (var j = math.min(i + perRow, kinds.length); j < i + perRow; j++)
+            null,
         ],
-      );
-    },
-  );
+    ];
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final (r, row) in rows.indexed) ...[
+          if (r > 0) const SizedBox(height: gap),
+          // Every tile of a row as tall as the tallest, so a row reads as
+          // one band; intrinsic rather than stretch, since the sheet's
+          // scroll view gives the column no height to stretch to.
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final (i, kind) in row.indexed) ...[
+                  if (i > 0) const SizedBox(width: gap),
+                  Expanded(
+                    child: kind == null
+                        ? const SizedBox.shrink()
+                        : _PoiKindTile(
+                            kind: kind,
+                            selected: kind == selected,
+                            onTap: () => onSelected(kind),
+                          ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
 }
 
 /// One kind's tile.
@@ -505,6 +500,7 @@ String poiKindLabel(AppLocalizations l10n, PoiKind kind) => switch (kind) {
   PoiKind.firstAid => l10n.poiKindFirstAid,
   PoiKind.toilet => l10n.poiKindToilet,
   PoiKind.campsite => l10n.poiKindCampsite,
+  PoiKind.accommodation => l10n.poiKindAccommodation,
   PoiKind.parking => l10n.poiKindParking,
   PoiKind.transport => l10n.poiKindTransport,
   PoiKind.turn => l10n.poiKindTurn,

@@ -132,6 +132,20 @@ void main() {
       expect(PoiKind.fromGpx(symbol: 'Campground'), PoiKind.campsite);
       expect(PoiKind.fromGpx(type: 'camping'), PoiKind.campsite);
       expect(PoiKind.fromGpx(symbol: 'Parking Area'), PoiKind.parking);
+      expect(PoiKind.fromGpx(symbol: 'Lodging'), PoiKind.accommodation);
+      expect(PoiKind.fromGpx(type: 'hotel'), PoiKind.accommodation);
+      expect(
+        PoiKind.fromGpx(comment: 'hostel by the bridge'),
+        PoiKind.accommodation,
+      );
+      expect(PoiKind.fromGpx(type: 'Pension Flor'), PoiKind.accommodation);
+      expect(PoiKind.fromGpx(comment: 'Jugendherberge'), PoiKind.accommodation);
+      // A lodge is a roof against the weather, a lodging is a bed, and
+      // neither word contains the other.
+      expect(PoiKind.fromGpx(symbol: 'Lodge'), PoiKind.shelter);
+      // `inn` is a word, not a run of letters inside one.
+      expect(PoiKind.fromGpx(comment: 'the inn'), PoiKind.accommodation);
+      expect(PoiKind.fromGpx(comment: 'winning stretch'), PoiKind.generic);
       expect(PoiKind.fromGpx(type: 'transit'), PoiKind.transport);
       expect(PoiKind.fromGpx(symbol: 'Train Station'), PoiKind.transport);
       expect(

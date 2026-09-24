@@ -1364,16 +1364,22 @@ void main() {
     await unmountApp(tester);
   });
 
-  testWidgets('a tap on a point pins it with its name and takes the map '
-      'there', (tester) async {
+  testWidgets('a tap on a point draws it as the chosen one, icon and all, '
+      'and takes the map there', (tester) async {
     final harness = RecordingHarness();
     await _openWithRoute(tester, harness);
+    final chosen = harness.map.pois[1].position;
 
     harness.map.onPoiTapped!(1);
     await tester.pumpAndSettle();
 
-    expect(harness.map.searchPin, harness.map.pois[1].position);
-    expect(harness.map.movedTo, harness.map.pois[1].position);
+    expect(harness.map.pois[1].selected, isTrue);
+    expect(harness.map.pois[0].selected, isFalse);
+    // The choice is drawn by the marker, not by a pin dropped on top of it,
+    // which hid the icon and wrote the name a second time.
+    expect(harness.map.pois[1].icon, isNotNull);
+    expect(harness.map.searchPin, isNull);
+    expect(harness.map.movedTo, chosen);
 
     await unmountApp(tester);
   });

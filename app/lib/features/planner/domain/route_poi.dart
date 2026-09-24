@@ -43,6 +43,10 @@ enum PoiKind {
   /// A place to sleep outside: a campsite, a pitch.
   campsite,
 
+  /// A roof and a bed: a hotel, a hostel, a guesthouse. What a rider going
+  /// a long way marks, and the one thing a campsite does not cover.
+  accommodation,
+
   /// Somewhere to leave a car or lock a bike.
   parking,
 
@@ -59,6 +63,7 @@ enum PoiKind {
     PoiKind.firstAid => 'first_aid',
     PoiKind.toilet => 'restroom',
     PoiKind.campsite => 'campground',
+    PoiKind.accommodation => 'lodging',
     PoiKind.parking => 'parking',
     PoiKind.transport => 'transit',
     _ => name,
@@ -109,6 +114,23 @@ enum PoiKind {
     }
     if (words.contains('camp')) {
       return PoiKind.campsite;
+    }
+    // A bed rather than a pitch. `lodge` is a shelter and `lodging` a bed,
+    // and neither string contains the other, so the two stay apart. `inn`
+    // is checked as a word: it sits inside `beginning` and `winning`.
+    if (words.contains('lodging') ||
+        words.contains('hotel') ||
+        words.contains('hostel') ||
+        words.contains('guesthouse') ||
+        words.contains('guest house') ||
+        words.contains('accommodation') ||
+        words.contains('herberge') ||
+        words.contains('pension') ||
+        words.contains('gasthaus') ||
+        words.contains('gasthof') ||
+        words.contains('unterkunft') ||
+        RegExp(r'\binn\b').hasMatch(words)) {
+      return PoiKind.accommodation;
     }
     if (words.contains('repair') ||
         words.contains('mechanic') ||
@@ -180,6 +202,7 @@ List<GpxWaypoint> gpxWaypoints(List<RoutePoi> pois) => <GpxWaypoint>[
         PoiKind.firstAid => 'First Aid',
         PoiKind.toilet => 'Restroom',
         PoiKind.campsite => 'Campground',
+        PoiKind.accommodation => 'Lodging',
         PoiKind.parking => 'Parking Area',
         PoiKind.transport => 'Flag, Blue',
         PoiKind.turn => 'Flag, Blue',

@@ -4518,6 +4518,8 @@
   "@poiKindToilet": {"description": "Point kind: a toilet"},
   "poiKindCampsite": "Campsite",
   "@poiKindCampsite": {"description": "Point kind: a place to sleep outside"},
+  "poiKindAccommodation": "Lodging",
+  "@poiKindAccommodation": {"description": "Point kind: a hotel, hostel or guesthouse, a bed rather than a pitch"},
   "poiKindParking": "Parking",
   "@poiKindParking": {"description": "Point kind: somewhere to leave a car or lock a bike"},
   "poiKindTransport": "Transport",

@@ -6,10 +6,7 @@ import 'dart:async';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../map/domain/map_controller.dart';
-import '../../navigation/presentation/turn_phrases.dart';
 import '../domain/planner_state.dart';
-import '../domain/route_poi.dart';
-import '../domain/waypoint.dart';
 import '../presentation/poi_markers.dart';
 import 'planner_controller.dart';
 
@@ -111,7 +108,7 @@ class PlannerMapBinding {
     final shown = state.isClosedLoop
         ? state.waypoints.sublist(0, state.waypoints.length - 1)
         : state.waypoints;
-    await map.setWaypoints(shown.map(_marker).toList(growable: false));
+    await map.setWaypoints(waypointMarkers(shown));
     // The plan's places, each with its kind's icon: not points the route is
     // routed through, so they are drawn as themselves.
     await map.setPois(poiMarkers(state.pois));
@@ -156,17 +153,4 @@ class PlannerMapBinding {
       );
     }
   }
-
-  MapWaypoint _marker(Waypoint w) => MapWaypoint(
-    position: w.pos,
-    kind: switch (w.kind) {
-      WaypointKind.start => MapWaypointKind.start,
-      WaypointKind.via => MapWaypointKind.via,
-      WaypointKind.end => MapWaypointKind.end,
-    },
-    label: w.name,
-    // A point that stands for something wears its icon beside the disc; a
-    // plain one has nothing to say.
-    icon: w.poiKind == PoiKind.generic ? null : poiIcon(w.poiKind),
-  );
 }

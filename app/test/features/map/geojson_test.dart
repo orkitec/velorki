@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart' show Icons;
+import 'package:flutter/material.dart' show IconData, Icons;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/map/data/geojson.dart';
 import 'package:velorki/features/map/data/marker_glyph.dart';
@@ -30,7 +30,7 @@ void main() {
     final features = pois['features']! as List<dynamic>;
     final first = (features[0] as Map<String, dynamic>)['properties']!;
     expect((first as Map<String, dynamic>)['icon'], markerGlyphName(icon));
-    expect(markerGlyphName(icon), 'velorki-glyph-onDisc-${icon.codePoint}');
+    expect(markerGlyphName(icon), 'velorki-glyph-${icon.codePoint}');
     final second = (features[1] as Map<String, dynamic>)['properties']!;
     expect((second as Map<String, dynamic>).containsKey('icon'), isFalse);
 
@@ -45,16 +45,108 @@ void main() {
         ((waypoints['features']! as List<dynamic>).single
                 as Map<String, dynamic>)['properties']!
             as Map<String, dynamic>;
-    // A point on the route wears its glyph on the map beside the disc, not
-    // on it, so it is the dark bitmap under a light outline.
-    expect(
-      wp['icon'],
-      markerGlyphName(icon, style: MarkerGlyphStyle.besideMarker),
-    );
-    expect(
-      wp['icon'],
-      isNot(markerGlyphName(icon, style: MarkerGlyphStyle.onDisc)),
-    );
+    // On the route or beside it, a point wears the same glyph on its own
+    // disc; nothing sits next to a disc any more.
+    expect(wp['icon'], markerGlyphName(icon));
+  });
+
+  group('what a point on the route is drawn with', () {
+    const icon = Icons.terrain_outlined;
+
+    Map<String, dynamic> drawn({
+      String? name,
+      IconData? withIcon,
+      bool selected = false,
+    }) {
+      final collection = waypointsFeatureCollection([
+        MapWaypoint(
+          position: const LatLng(48, 11),
+          kind: MapWaypointKind.via,
+          label: name,
+          icon: withIcon,
+          selected: selected,
+        ),
+        // A second point, so the one under test is number 2 and a number
+        // left over from the index cannot pass for a name.
+        const MapWaypoint(
+          position: LatLng(48.1, 11),
+          kind: MapWaypointKind.end,
+        ),
+      ]);
+      return ((collection['features']! as List<dynamic>).first
+              as Map<String, dynamic>)['properties']!
+          as Map<String, dynamic>;
+    }
+
+    // The four points a plan can hold, chosen and not: the disc says one
+    // thing, the label the other, and the number is written exactly once.
+    final cases = <String, (Map<String, dynamic>, String, String, bool)>{
+      'a kind and a name': (
+        drawn(name: 'Pico', withIcon: icon),
+        '',
+        '(1) Pico',
+        true,
+      ),
+      'a kind, no name': (drawn(withIcon: icon), '', '1', true),
+      'no kind, a name': (drawn(name: 'Home'), '1', 'Home', false),
+      'no kind, no name': (drawn(), '1', '', false),
+      'a kind and a name, chosen': (
+        drawn(name: 'Pico', withIcon: icon, selected: true),
+        '',
+        '(1) Pico',
+        true,
+      ),
+      'a kind, no name, chosen': (
+        drawn(withIcon: icon, selected: true),
+        '',
+        '1',
+        true,
+      ),
+      'no kind, a name, chosen': (
+        drawn(name: 'Home', selected: true),
+        '1',
+        'Home',
+        false,
+      ),
+      'no kind, no name, chosen': (drawn(selected: true), '1', '', false),
+    };
+
+    cases.forEach((what, expected) {
+      final (props, disc, label, hasIcon) = expected;
+      test('$what: one disc, one label, and the icon in every state', () {
+        expect(props['disc'], disc, reason: 'disc of $what');
+        expect(props['label'], label, reason: 'label of $what');
+        // The number is written once: on the disc, or in the label, never
+        // both and never neither.
+        final onDisc = disc == '1';
+        final inLabel = label.startsWith('(1)') || label == '1';
+        expect(onDisc ^ inLabel, isTrue, reason: 'the number of $what');
+        // A point that stands for something keeps its icon whatever else
+        // is true of it.
+        expect(props.containsKey('icon'), hasIcon, reason: 'the icon of $what');
+        if (hasIcon) expect(props['icon'], markerGlyphName(icon));
+      });
+    });
+
+    test('a place beside the route keeps its icon and its one name when it '
+        'is the chosen one', () {
+      final chosen = poisFeatureCollection(const [
+        MapPoi(
+          position: LatLng(48, 11),
+          name: 'Tap',
+          kind: MapPoiKind.water,
+          icon: icon,
+          selected: true,
+        ),
+      ]);
+      final poi =
+          ((chosen['features']! as List<dynamic>).single
+                  as Map<String, dynamic>)['properties']!
+              as Map<String, dynamic>;
+      expect(poi['selected'], isTrue);
+      expect(poi['icon'], markerGlyphName(icon));
+      expect(poi['name'], 'Tap');
+    });
   });
 
   group('lineFeatureCollection', () {
@@ -101,13 +193,21 @@ void main() {
       ),
     ];
 
-    test('numbers the waypoints from one; a named one wears its name', () {
+    test('numbers the waypoints from one on their discs; a named one wears '
+        'its name beside it', () {
       final features = _features(waypointsFeatureCollection(waypoints))
           .cast<Map<String, dynamic>>();
 
-      expect(features.map((f) => (f['properties'] as Map)['label']), [
+      // No kind on any of these, so the disc keeps the number and the label
+      // says only the name.
+      expect(features.map((f) => (f['properties'] as Map)['disc']), [
         '1',
         '2',
+        '3',
+      ]);
+      expect(features.map((f) => (f['properties'] as Map)['label']), [
+        '',
+        '',
         'Zoo',
       ]);
       expect(features.map((f) => (f['properties'] as Map)['kind']), [

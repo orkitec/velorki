@@ -186,7 +186,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
     }
     final pois = shown.pois;
     map.onPoiTapped = (index) {
-      if (index < pois.length) unawaited(_showPoi(map, pois[index]));
+      if (index < pois.length) unawaited(_showPoi(map, pois, index));
     };
     final positions = shown.geometry.map((p) => p.pos).toList(growable: false);
     if (positions.length >= 2) {
@@ -200,11 +200,19 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
     await map.setPois(poiMarkers(pois));
   }
 
-  /// Pins [poi] with its name and takes the map there, as the route page
-  /// does for a tapped marker.
-  Future<void> _showPoi(MapController map, RoutePoi poi) async {
-    await map.setSearchPin(poi.pos, label: poi.name);
-    await map.moveTo(poi.pos);
+  /// Draws the place at [index] as the chosen one and takes the map there,
+  /// as the route page does for a tapped marker.
+  ///
+  /// The marker itself carries the choice — a wider disc in the chosen
+  /// colour, its icon and its one name — rather than a pin dropped on top,
+  /// which hid the icon and wrote the name a second time.
+  Future<void> _showPoi(
+    MapController map,
+    List<RoutePoi> pois,
+    int index,
+  ) async {
+    await map.setPois(poiMarkers(pois, selected: index));
+    await map.moveTo(pois[index].pos);
   }
 
   /// Where along the ride the route's points of interest were passed, for

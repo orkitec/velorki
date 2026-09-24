@@ -12,31 +12,47 @@ import 'package:flutter/widgets.dart';
 /// Drawing them rather than shipping a PNG per kind keeps one icon table —
 /// the app's — for the sheet, the lists and the map alike.
 
-/// Where a glyph is drawn, which decides what colour it has to be.
-enum MarkerGlyphStyle {
-  /// Inside a marker's coloured disc: light, so it reads on the colour.
-  onDisc,
-
-  /// On the map beside a marker: dark under a light outline, like the
-  /// numbers on the waypoint discs.
-  besideMarker,
-}
-
-/// Name the glyph of [icon] in [style] is registered under in the style.
+/// Name the glyph of [icon] is registered under in the style.
 ///
-/// The code point and the placement: every icon the app draws on the map
-/// comes from the one icon font, and the same icon is a different bitmap on
-/// a disc and beside one.
-String markerGlyphName(
-  IconData icon, {
-  MarkerGlyphStyle style = MarkerGlyphStyle.onDisc,
-}) => 'velorki-glyph-${style.name}-${icon.codePoint}';
+/// The code point alone: every icon the app draws on the map comes from the
+/// one icon font, and every one of them is drawn the same way, light on the
+/// disc of the marker it belongs to.
+String markerGlyphName(IconData icon) => 'velorki-glyph-${icon.codePoint}';
+
+/// Radius of a marker's disc, in logical pixels.
+///
+/// Wide enough that the glyph inside it is read at a glance on a moving map,
+/// and still about twice the width of the route line under it, so it reads as
+/// a marker rather than a blob.
+const double markerDiscRadiusPx = 12;
+
+/// Radius of the disc of the point the rider has chosen.
+const double markerDiscSelectedRadiusPx = 15;
+
+/// How much of a disc's width its glyph takes.
+const double markerGlyphDiscShare = 0.6;
+
+/// The glyph height for a disc of [radiusPx], so the icon keeps its share of
+/// the disc at every size.
+double markerGlyphSizeForDisc(double radiusPx) =>
+    radiusPx * 2 * markerGlyphDiscShare;
+
+/// How much the style has to shrink the on-disc bitmap for a point that is
+/// not the chosen one.
+///
+/// The bitmap is drawn once, at the size the chosen point needs, and scaled
+/// down for the rest: scaling a bitmap down keeps its edges, scaling one up
+/// softens them.
+const double markerGlyphUnselectedScale =
+    markerDiscRadiusPx / markerDiscSelectedRadiusPx;
 
 /// Height of a marker glyph, in logical pixels.
 const double markerGlyphSizePx = 13;
 
 /// Height of a glyph drawn inside a disc, which has a rim to spare.
-const double markerGlyphOnDiscSizePx = 11;
+final double markerGlyphOnDiscSizePx = markerGlyphSizeForDisc(
+  markerDiscSelectedRadiusPx,
+);
 
 /// How wide the light outline around a glyph is, in logical pixels. Enough
 /// to read a dark glyph against a dark wood or a motorway.

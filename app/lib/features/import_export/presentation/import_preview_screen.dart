@@ -11,6 +11,7 @@ import '../../../core/geo/ride_stats.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/domain/map_controller.dart';
 import '../../navigation/application/route_cues.dart';
+import '../../planner/domain/route_poi.dart';
 import '../../navigation/presentation/cue_sheet_list.dart';
 import '../../navigation/presentation/cue_sheet_map.dart';
 import '../../navigation/presentation/turn_phrases.dart';
@@ -128,9 +129,16 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
     if (map == null) return;
     final cue = _cues[index];
     final l10n = AppLocalizations.of(context);
-    final label =
-        cue.poi?.name ?? (cue.turn == null ? '' : turnLabel(cue.turn!, l10n));
-    unawaited(goToCue(map, cue, label));
+    unawaited(
+      goToCue(
+        map,
+        _cues,
+        index,
+        pois: widget.candidate?.track.pois ?? const <RoutePoi>[],
+        onCueTapped: _selectCue,
+        turnLabel: cue.turn == null ? '' : turnLabel(cue.turn!, l10n),
+      ),
+    );
   }
 
   Future<void> _save() async {

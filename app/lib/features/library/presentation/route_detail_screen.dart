@@ -145,6 +145,7 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
     if (positions.isEmpty) return;
     final pois = _poisOf(route);
     _cues = routeCuesFor(positions, turns: route.turns, pois: pois);
+    _cuePois = pois;
     _cuesRouteId = route.id;
     final ready = map.isReady;
     await map.setRouteLine(libraryRouteLineId, positions);
@@ -178,17 +179,20 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
     }
   }
 
-  /// The route's cue sheet, worked out once per route.
+  /// The route's cue sheet, worked out once per route, and the points it
+  /// refers to, which selecting a cue has to draw again.
   List<RouteCue> _cues = const <RouteCue>[];
+  List<RoutePoi> _cuePois = const <RoutePoi>[];
   String? _cuesRouteId;
   int? _selectedCue;
 
   List<RouteCue> _cuesFor(SavedRoute route) {
     if (_cuesRouteId != _versionOf(route)) {
+      _cuePois = _poisOf(route);
       _cues = routeCuesFor(
         route.geometry.map((p) => p.pos).toList(growable: false),
         turns: route.turns,
-        pois: _poisOf(route),
+        pois: _cuePois,
       );
       _cuesRouteId = _versionOf(route);
     }
@@ -218,9 +222,16 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
     if (map != null) {
       final cue = _cues[index];
       final l10n = AppLocalizations.of(context);
-      final label =
-          cue.poi?.name ?? (cue.turn == null ? '' : turnLabel(cue.turn!, l10n));
-      unawaited(goToCue(map, cue, label));
+      unawaited(
+        goToCue(
+          map,
+          _cues,
+          index,
+          pois: _cuePois,
+          onCueTapped: _selectCue,
+          turnLabel: cue.turn == null ? '' : turnLabel(cue.turn!, l10n),
+        ),
+      );
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final context = _cueSheetKey.currentContext;
