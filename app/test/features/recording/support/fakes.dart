@@ -353,6 +353,7 @@ class FakePositionSource implements PositionSource {
   @override
   Future<geo.Position?> current({
     Duration timeLimit = const Duration(seconds: 10),
+    geo.LocationAccuracy accuracy = geo.LocationAccuracy.high,
   }) async => null;
 
   /// Closes the stream.

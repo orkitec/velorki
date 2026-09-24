@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
+import 'package:velorki/features/map/application/locate_on_open.dart';
 import 'package:velorki/features/map/data/map_preferences.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/map/presentation/puck_ownership.dart';
@@ -47,6 +48,31 @@ class _FakeMapViewState extends State<_FakeMapView> {
   }
 }
 
+/// Counts what the host tells the move to the rider on opening.
+class _Locate extends LocateOnOpen {
+  _Locate(super.ref);
+
+  final List<String> calls = <String>[];
+
+  @override
+  Future<bool> opened() async {
+    calls.add('opened');
+    return false;
+  }
+
+  @override
+  void touched() => calls.add('touched');
+
+  @override
+  void paused(DateTime at) => calls.add('paused');
+
+  @override
+  Future<bool> resumed(DateTime at) async {
+    calls.add('resumed');
+    return false;
+  }
+}
+
 /// The recorder's claim on the puck, as a test sets it.
 class _Owns extends Notifier<bool> {
   @override
@@ -74,6 +100,7 @@ Future<ProviderContainer> _pump(
         builds.add(builds.length);
         return _FakeMapView(onReady: onReady, onCreated: maps.add);
       }),
+      locateOnOpenProvider.overrideWith(_Locate.new),
       ...overrides,
     ],
   );
@@ -147,5 +174,38 @@ void main() {
     await tester.pump();
     expect(_FakeMapViewState.owned, isFalse);
     expect(builds, hasLength(1));
+  });
+
+  testWidgets('tells the move to the rider when the app opens, comes back, '
+      'and when the map is touched', (tester) async {
+    final container = await _pump(
+      tester,
+      maps: <FakeMapController>[],
+      builds: <int>[],
+    );
+    await tester.pump();
+    final locate = container.read(locateOnOpenProvider) as _Locate;
+    expect(locate.calls, ['opened']);
+
+    // A touch on the map itself: what the listener around it hears.
+    tester
+        .widget<Listener>(
+          find
+              .ancestor(
+                of: find.byType(_FakeMapView),
+                matching: find.byType(Listener),
+              )
+              .first,
+        )
+        .onPointerDown!(const PointerDownEvent());
+    expect(locate.calls.last, 'touched');
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    expect(locate.calls.skip(2), ['paused', 'paused', 'paused', 'resumed']);
   });
 }

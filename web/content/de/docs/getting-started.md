@@ -40,6 +40,8 @@ Wird gefragt, sobald du zum ersten Mal auf **Meine Position anzeigen** tippst, e
 
 Velorki zeigt zuerst einen eigenen Dialog mit dem Titel **Deine Position anzeigen?**: "Velorki nutzt deinen Standort, um die Karte auf dich zu zentrieren und Fahrten aufzuzeichnen. Die Position bleibt auf diesem Gerät und wird nie hochgeladen." Du kannst **Jetzt nicht** antworten und die App weiter nutzen; nur die Funktionen, die deine Position kennen müssen, fallen dann aus.
 
+Mit der Berechtigung öffnet sich die Karte dort, wo du sie verlassen hast, und gleitet dann zu deiner Position: sofort dorthin, wo das Telefon dich zuletzt kannte, wenn das weniger als eine Stunde her ist, und zur ersten frischen Ortung, wenn nicht, oder wenn diese dich mehr als etwa 300 m davon entfernt zeigt, beim Start der App ebenso wie bei einer Rückkehr nach einer halben Stunde oder mehr. Sie bleibt, wo sie ist, solange eine Planung im Tab Planen liegt, eine Routen- oder Fahrtenkarte offen ist, eine Fahrt aufgezeichnet wird, du schon zu sehen bist oder du die Karte selbst bewegt hast.
+
 "Beim Verwenden der App" reicht. Unter Android fragt Velorki bewusst **nicht** nach dem Standort im Hintergrund: Die Aufnahme läuft stattdessen als Vordergrunddienst mit einer Mitteilung. Unter iOS deckt "Beim Verwenden" zusammen mit dem Hintergrund-Standortmodus eine Aufnahme bei ausgeschaltetem Bildschirm ab.
 
 ### Mitteilungen (Android)

@@ -55,7 +55,8 @@ class SharedPositionSource implements PositionSource {
   @override
   Future<geo.Position?> current({
     Duration timeLimit = const Duration(seconds: 10),
-  }) => _inner.current(timeLimit: timeLimit);
+    geo.LocationAccuracy accuracy = geo.LocationAccuracy.high,
+  }) => _inner.current(timeLimit: timeLimit, accuracy: accuracy);
 
   /// Restarts the platform stream when the strongest request changed. Serial:
   /// the cancel of the old stream is awaited before the new one is opened,

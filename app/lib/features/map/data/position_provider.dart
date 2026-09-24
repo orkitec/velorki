@@ -111,7 +111,12 @@ abstract interface class PositionSource {
   Future<geo.Position?> lastKnown();
 
   /// One fresh fix, or `null` when none arrives within [timeLimit].
-  Future<geo.Position?> current({Duration timeLimit});
+  /// [accuracy] below `high` settles for what Wi-Fi and cell towers say,
+  /// which comes much sooner than a satellite fix.
+  Future<geo.Position?> current({
+    Duration timeLimit,
+    geo.LocationAccuracy accuracy,
+  });
 }
 
 /// [PositionSource] over geolocator.
@@ -128,11 +133,12 @@ class GeolocatorPositionSource implements PositionSource {
   @override
   Future<geo.Position?> current({
     Duration timeLimit = const Duration(seconds: 10),
+    geo.LocationAccuracy accuracy = geo.LocationAccuracy.high,
   }) async {
     try {
       return await geo.Geolocator.getCurrentPosition(
         locationSettings: geo.LocationSettings(
-          accuracy: mapLocationSettings.accuracy,
+          accuracy: accuracy,
           distanceFilter: mapLocationSettings.distanceFilter,
           timeLimit: timeLimit,
         ),

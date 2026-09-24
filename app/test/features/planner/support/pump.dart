@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:velorki/features/map/application/locate_on_open.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/router.dart';
 import 'package:velorki/core/db/database.dart';
@@ -71,6 +72,28 @@ class _SharedMapReady extends SharedMapController {
   MapController? build() => controller;
 }
 
+/// A [LocateOnOpen] that never moves the map, for tests that are not about
+/// it.
+class StayPutOnOpen extends LocateOnOpen {
+  /// Creates it.
+  StayPutOnOpen(super.ref);
+
+  /// How often the app was opened.
+  int opens = 0;
+
+  /// How often the map was touched.
+  int touches = 0;
+
+  @override
+  Future<bool> opened() async {
+    opens++;
+    return false;
+  }
+
+  @override
+  void touched() => touches++;
+}
+
 /// Everything a planner or library widget test needs.
 class PlannerHarness {
   /// Wires the fakes together.
@@ -123,6 +146,9 @@ class PlannerHarness {
     // Plan and Record tabs, and the one a detail or preview screen builds.
     mapViewBuilderProvider.overrideWithValue(testMapViewBuilder(map)),
     sharedMapControllerProvider.overrideWith(() => _SharedMapReady(map)),
+    // The move to the rider on opening waits for a real fix; these tests
+    // place the camera themselves.
+    locateOnOpenProvider.overrideWith(StayPutOnOpen.new),
     velorkiDatabaseProvider.overrideWithValue(db),
   ];
 }

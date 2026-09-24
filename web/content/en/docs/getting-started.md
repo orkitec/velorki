@@ -40,6 +40,8 @@ Asked the first time you tap **Show my position**, start a ride, or ask for a lo
 
 Velorki shows its own dialog first, titled **Show your position?**: "Velorki uses your location to centre the map on you and to record rides. The position stays on this device; it is never uploaded." You can answer **Not now** and keep using the app; only the features that need to know where you are stop working.
 
+With the permission given, the map opens where you left it and then glides to your position: at once to where the phone last knew you were if that is under an hour old, and to the first fresh fix when it is not, or when that fix puts you more than about 300 m from there, both when the app starts and when you come back to it after half an hour or more. It stays put while a plan is on the Plan tab, a route or ride card is open, a ride is being recorded, you are already in view, or you have moved the map yourself.
+
 "While using the app" is enough. On Android, Velorki deliberately does **not** ask for background location: ride recording runs as a foreground service with a notification instead. On iOS, "When In Use" plus the background location mode covers a recorded ride with the screen off.
 
 ### Notifications (Android)

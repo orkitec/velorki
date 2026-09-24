@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../planner/presentation/planner_map_host.dart';
+import '../application/locate_on_open.dart';
 import '../data/map_preferences.dart';
 import '../domain/map_controller.dart';
 import 'map_chrome.dart';
@@ -40,7 +41,9 @@ class SharedMapController extends _$SharedMapController {
 /// where the control column sits — reaches the map through inherited
 /// widgets, so the map widget itself is the same element frame after frame.
 /// The app-wide overlay setting is applied here, as [PlannerMapHost] does
-/// for the other maps.
+/// for the other maps, and so is [LocateOnOpen]: this host is there from the
+/// app's start to its end, sees the app come and go, and is the one place a
+/// hand on the map can be noticed.
 class SharedMapHost extends ConsumerStatefulWidget {
   /// Creates the host.
   const SharedMapHost({super.key});
@@ -49,7 +52,8 @@ class SharedMapHost extends ConsumerStatefulWidget {
   ConsumerState<SharedMapHost> createState() => _SharedMapHostState();
 }
 
-class _SharedMapHostState extends ConsumerState<SharedMapHost> {
+class _SharedMapHostState extends ConsumerState<SharedMapHost>
+    with WidgetsBindingObserver {
   MapController? _map;
 
   /// The map widget, built once per builder rather than once per build.
@@ -62,6 +66,29 @@ class _SharedMapHostState extends ConsumerState<SharedMapHost> {
   void initState() {
     super.initState();
     _shared = ref.read(sharedMapControllerProvider.notifier);
+    _locate = ref.read(locateOnOpenProvider);
+    WidgetsBinding.instance.addObserver(this);
+    // A cold start: the remembered view is on screen from the first frame,
+    // and the rider's position follows once there is a fix.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_locate.opened());
+    });
+  }
+
+  late final LocateOnOpen _locate;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+        _locate.paused(DateTime.now());
+      case AppLifecycleState.resumed:
+        unawaited(_locate.resumed(DateTime.now()));
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.detached:
+        break;
+    }
   }
 
   /// Takes the map the builder just handed over (a fresh one, or the same
@@ -78,6 +105,7 @@ class _SharedMapHostState extends ConsumerState<SharedMapHost> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     // Deferred: the tree is locked while a widget goes.
     final shared = _shared;
     scheduleMicrotask(() => shared.set(null));
@@ -100,7 +128,10 @@ class _SharedMapHostState extends ConsumerState<SharedMapHost> {
       hoistedControls: true,
       child: PuckOwnership(
         owned: ref.watch(recorderOwnsPuckProvider),
-        child: _view!,
+        // Any touch on the map itself — a pan, a pinch, a tap — is the
+        // rider's own say over the camera, which a late move to their
+        // position must not overrule.
+        child: Listener(onPointerDown: (_) => _locate.touched(), child: _view!),
       ),
     );
   }

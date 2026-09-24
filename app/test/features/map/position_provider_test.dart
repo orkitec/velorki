@@ -80,6 +80,7 @@ class ScriptedPositionSource implements PositionSource {
   @override
   Future<geo.Position?> current({
     Duration timeLimit = const Duration(seconds: 10),
+    geo.LocationAccuracy accuracy = geo.LocationAccuracy.high,
   }) async => cached;
 
   /// Closes the stream.

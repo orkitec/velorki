@@ -64,6 +64,7 @@ class FixedPositionSource implements PositionSource {
   @override
   Future<geo.Position?> current({
     Duration timeLimit = const Duration(seconds: 10),
+    geo.LocationAccuracy accuracy = geo.LocationAccuracy.high,
   }) async => _fix;
 }
 
@@ -104,6 +105,7 @@ class ScriptedPositionSource implements PositionSource {
   @override
   Future<geo.Position?> current({
     Duration timeLimit = const Duration(seconds: 10),
+    geo.LocationAccuracy accuracy = geo.LocationAccuracy.high,
   }) async => lastKnown();
 
   /// Closes the stream.

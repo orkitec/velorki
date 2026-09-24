@@ -13,6 +13,7 @@ import '../features/library/presentation/library_screen.dart';
 import '../features/map/presentation/map_chrome.dart';
 import '../features/map/presentation/map_controls.dart';
 import '../features/map/presentation/visible_map_padding.dart';
+import '../features/map/application/locate_on_open.dart';
 import '../features/map/presentation/shared_map_host.dart';
 import '../features/navigation/application/navigation_controller.dart';
 import '../features/planner/presentation/planner_screen.dart';
@@ -244,6 +245,18 @@ class HomeShell extends ConsumerWidget {
         matched == route ||
         (route == libraryRoute && matched.startsWith('$libraryRoute/'));
     final chrome = ref.watch(activeMapChromeProvider);
+    // What the move to the rider on opening needs of the shell, read when
+    // it happens: where the visible map is, and whether the Library shows
+    // a card.
+    final locate = ref.read(locateOnOpenProvider);
+    locate.visiblePadding = () => visibleMapPadding(
+      context,
+      chromeTop: ref.read(mapControlsTopProvider).target,
+      sheetExtent: ref.read(tabHandoverProvider).sheetExtent,
+    );
+    locate.cardOpen = () =>
+        context.mounted &&
+        GoRouter.of(context).state.matchedLocation.startsWith('$libraryRoute/');
     final showColumn =
         mapTabs.contains(shell.currentIndex) &&
         atTabRoot &&
