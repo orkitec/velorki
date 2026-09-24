@@ -153,7 +153,10 @@ class TrackSegment {
   String toString() => 'TrackSegment(${points.length} points, t: $t)';
 }
 
-enum RouteLineStyle { main, alternative, preview }
+/// How a route line is drawn: the route, a variant beside it, a preview
+/// of a route to follow, or the faint original a route read from a file had
+/// before it was edited.
+enum RouteLineStyle { main, alternative, preview, original }
 
 enum MapWaypointKind { start, via, end }
 

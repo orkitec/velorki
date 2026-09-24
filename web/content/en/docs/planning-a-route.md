@@ -10,7 +10,7 @@ The Plan tab turns taps on the map into a bike route, computed on your phone whe
 
 1. Open the **Plan** tab and move the map to where you want to start.
 2. **Tap the map** to set the start. The sheet at the bottom says "Tap the map again to add a destination."
-3. **Tap again** for the next point. Every tap appends a point to the end of the route.
+3. **Tap again** for the next point. Every tap appends a point to the end of the route. To put a point in the middle instead, **tap the route line** where it should go: the point lands on the line there, and you can drag it like any other.
 4. Velorki waits a moment after your last edit and then routes. While it works the sheet shows a spinner and **Routing…**; then the figures appear.
 
 You can also start from a place instead of a tap. Type into the search field at the top, pick a result, and while the plan is still empty two buttons appear under the bike chips:
@@ -24,7 +24,7 @@ Once a route is being planned, picking a search result simply adds that place as
 
 **Hold the map** where something worth remembering is, and the point sheet opens for a place there: a fountain, a station, a campsite. The route is not drawn through it. The marker wears the icon of whatever type you pick, with its name beside it, and a tap on it opens the sheet again.
 
-To move a point you already have, **drag its marker**. On a closed loop, dragging the start marker moves both ends so the loop stays closed.
+To move a point you already have, **drag its marker**. On a closed loop, dragging the start marker moves both ends so the loop stays closed. An edit routes only the stretches next to the point it touched; the rest of the route stays as it was.
 
 ## On the route or beside it
 
@@ -69,13 +69,17 @@ The row of chips under the search field is the bike profile, and it decides whic
 | **MTB** | trails and singletrack |
 | **Direct** | the shortest way, with the least regard for comfort |
 
-Changing the profile re-routes the whole plan and clears any variants you had loaded. Velorki keeps the profile you chose last for the next start.
+Changing the profile re-routes the whole plan, a route from a file included, and clears any variants you had loaded; **Undo** puts the route and the profile back. Velorki keeps the profile you chose last for the next start.
+
+## A route from a file
+
+A route opened from a file keeps the file's exact line, with points only at its start, its end and the named places on its track. Moving, adding or removing a point routes only the stretches beside it; everywhere else the line stays the file's. While the route differs from the file, the file's line is drawn faint underneath and a chip over the map says **Differs from the file**; its **Restore** puts the file's route back, in one step Undo can take back.
 
 ## The toolbar
 
 The row of buttons inside the route sheet:
 
-- **Undo** takes back the last edit. There is no limit and no redo. Adding, inserting, moving, removing and reordering points, **Reverse**, **Clear**, closing a loop and taking another way back are all undoable; changing the bike profile, switching variant and loading a saved route are not.
+- **Undo** takes back the last edit. There is no limit and no redo. Adding, inserting, moving, removing and reordering points, **Reverse**, **Clear**, changing the bike profile, **Restore**, closing a loop and taking another way back are all undoable; switching variant and loading a saved route are not.
 - **Reverse** rides the route the other way round.
 - **Clear** throws the plan away. That is undoable too.
 - **Variants** asks for alternatives (see below).
@@ -90,7 +94,7 @@ Velorki does not fetch alternatives on its own, because each one is a separate r
 
 A chip row then appears above the toolbar: **Main**, **Alt 1**, **Alt 2**, **Alt 3**, each with a coloured dot matching its line on the map. Tapping a chip switches instantly, with no new computation, and draws that line on top.
 
-Often fewer than four come back; whatever the router found is what you get. If none does, Velorki says "No alternatives available." Editing a waypoint or changing the bike profile clears the variants, so ask again afterwards.
+Variants are whole routes the router drew, so on a route from a file they replace the file's line; **Undo** brings it back. Often fewer than four come back; whatever the router found is what you get. If none does, Velorki says "No alternatives available." Editing a waypoint or changing the bike profile clears the variants, so ask again afterwards.
 
 ## Read the route
 
@@ -104,7 +108,7 @@ The **Elevation** chart draws height against distance. Touch it and drag along i
 
 ### Surface
 
-The **Surface** bar is a single stacked bar of three shares that add up to the whole route, **Paved**, **Unpaved** and **Unknown**, with a legend of percentages underneath. Two more entries in the legend, **Cycleway** and **Busy roads**, overlap the first three rather than adding to them: they tell you how much of the route is on a dedicated cycleway, and how much is on a big road.
+The **Surface** bar is a single stacked bar of three shares that add up to the whole route, **Paved**, **Unpaved** and **Unknown**, with a legend of percentages underneath. Two more entries in the legend, **Cycleway** and **Busy roads**, overlap the first three rather than adding to them: they tell you how much of the route is on a dedicated cycleway, and how much is on a big road. For a route that is not all the router's own, a file's line in it, the whole line is laid over the routing data for the figures, which needs the region downloaded.
 
 ## Save it
 

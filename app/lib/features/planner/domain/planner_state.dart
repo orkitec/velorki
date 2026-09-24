@@ -286,6 +286,28 @@ abstract class PlannerState with _$PlannerState {
         : List<RouteLeg?>.filled(count, null, growable: false);
   }
 
+  /// Whether the route on the map is not the one its file drew: a marker
+  /// moved, added or taken away, a leg routed, the bike switched. What the
+  /// faint original line and the chip offering Restore stand for; `false`
+  /// for a route that did not come from a file.
+  bool get differsFromOriginal {
+    final o = original;
+    if (o == null) return false;
+    if (waypoints.length != o.waypoints.length) return true;
+    for (var i = 0; i < waypoints.length; i++) {
+      if (waypoints[i].pos != o.waypoints[i].pos) return true;
+    }
+    if (legs.any((l) => l == null || !l.kept)) return true;
+    final shown = result?.geometry;
+    if (shown == null) return true;
+    final line = o.geometry;
+    if (shown.length != line.length) return true;
+    for (var i = 0; i < line.length; i++) {
+      if (shown[i].pos != line[i].pos) return true;
+    }
+    return false;
+  }
+
   /// Whether some of the shown route is a file's own line.
   bool get hasKeptLegs => legs.any((l) => l?.kept ?? false);
 

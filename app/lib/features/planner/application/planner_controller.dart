@@ -85,6 +85,50 @@ class PlannerController extends _$PlannerController {
     );
   }
 
+  /// The map tapped at [pos]: a tap on the route line, within
+  /// [lineToleranceM] of it, puts a new point on the line there, between
+  /// the two waypoints of the leg it falls on; anywhere else adds a point
+  /// at the end.
+  void tapAt(LatLng pos, {double lineToleranceM = 0}) {
+    final route = state.result;
+    if (route != null &&
+        state.isRoutable &&
+        lineToleranceM > 0 &&
+        route.geometry.length >= 2) {
+      final track = route.positions;
+      final cumulative = cumulativeDistancesMeters(track);
+      final on = projectOnTrack(track, pos, cumulative: cumulative);
+      if (on.distanceM <= lineToleranceM) {
+        insertWaypoint(_legAlong(route, track, cumulative, on), on.snapped);
+        return;
+      }
+    }
+    addWaypoint(pos);
+  }
+
+  /// The index a point at [on] along [route] goes in at: after the
+  /// waypoint whose leg it falls on.
+  int _legAlong(
+    RouteResult route,
+    List<LatLng> track,
+    List<double> cumulative,
+    TrackProjection on,
+  ) {
+    if (route is PlannedRoute &&
+        route.legStarts.length == state.waypoints.length - 1) {
+      var leg = 0;
+      for (var i = 0; i < route.legStarts.length; i++) {
+        if (cumulative[route.legStarts[i]] <= on.alongM) leg = i;
+      }
+      return leg + 1;
+    }
+    return viaIndexAlongTrack(
+      track: track,
+      waypoints: state.waypoints,
+      pos: on.snapped,
+    ).clamp(1, state.waypoints.length - 1);
+  }
+
   /// Puts a new waypoint at [pos] between the waypoints at [index] - 1 and
   /// [index]: the leg between them is split in two, and only those two are
   /// routed (the map's gesture on the route line).

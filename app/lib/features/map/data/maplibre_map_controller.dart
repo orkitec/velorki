@@ -92,7 +92,11 @@ class MapPalette {
     this.poiWater = '#1E88E5',
     this.poiFood = '#8E24AA',
     this.poiGeneric = '#78909C',
+    this.routeOriginal = '#607D8B',
   });
+
+  /// The line a route was imported with, drawn faint under an edited one.
+  final String routeOriginal;
 
   /// The points of interest by kind: a hazard, water, food, anything else.
   final String poiDanger;
@@ -123,7 +127,8 @@ class MapPalette {
       poiDanger = '#EF6C00',
       poiWater = '#1E88E5',
       poiFood = '#8E24AA',
-      poiGeneric = '#78909C';
+      poiGeneric = '#78909C',
+      routeOriginal = '#607D8B';
 
   /// The palette of [theme]'s [VelorkiColors].
   factory MapPalette.fromTheme(ThemeData theme) {
@@ -158,6 +163,7 @@ class MapPalette {
       poiWater: VelorkiColors.hex(colors.position),
       poiFood: VelorkiColors.hex(theme.colorScheme.tertiary),
       poiGeneric: VelorkiColors.hex(colors.routeAlternative),
+      routeOriginal: VelorkiColors.hex(theme.colorScheme.onSurfaceVariant),
     );
   }
 
@@ -209,7 +215,8 @@ class MapPalette {
       other.mapLabelHalo == mapLabelHalo &&
       other.waypointLabelHalo == waypointLabelHalo &&
       other.positionDot == positionDot &&
-      other.positionAccuracy == positionAccuracy;
+      other.positionAccuracy == positionAccuracy &&
+      other.routeOriginal == routeOriginal;
 
   @override
   int get hashCode => Object.hash(
@@ -231,6 +238,7 @@ class MapPalette {
     mapLabelHalo,
     positionDot,
     positionAccuracy,
+    routeOriginal,
   );
 }
 
@@ -1182,7 +1190,8 @@ class MaplibreMapControllerAdapter implements MapController {
     // and, since every chosen route sits above the track, under the chosen
     // route, whatever order they arrive in. A ride page draws the route it
     // followed that way, so the ridden track stays the subject.
-    final below = style == RouteLineStyle.alternative
+    final below =
+        style == RouteLineStyle.alternative || style == RouteLineStyle.original
         ? MapLayerIds.trackLayer
         : MapLayerIds.positionAccuracyLayer;
     // A dark casing under the line keeps any accent readable on any map
@@ -1255,6 +1264,13 @@ class MaplibreMapControllerAdapter implements MapController {
           lineJoin: 'round',
           lineDasharray: <double>[2, 1.5],
         ),
+        RouteLineStyle.original => ml.LineLayerProperties(
+          lineColor: palette.routeOriginal,
+          lineWidth: 4.0,
+          lineOpacity: 0.5,
+          lineCap: 'round',
+          lineJoin: 'round',
+        ),
       };
 
   /// Whether [id] names a numbered variant (`alt-2`, `main-2`).
@@ -1292,6 +1308,14 @@ class MaplibreMapControllerAdapter implements MapController {
           lineCap: 'round',
           lineJoin: 'round',
           lineDasharray: <double>[2, 1.5],
+        ),
+        // Faint enough to read as a trace: no casing.
+        RouteLineStyle.original => ml.LineLayerProperties(
+          lineColor: palette.routeMainCasing,
+          lineWidth: 6.0,
+          lineOpacity: 0.0,
+          lineCap: 'round',
+          lineJoin: 'round',
         ),
       };
 

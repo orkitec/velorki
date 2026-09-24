@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
@@ -5,7 +6,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/core/db/database.dart';
 import 'package:velorki/core/geo/track_surface.dart';
+import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
+import 'package:velorki/features/planner/application/planner_map_binding.dart';
 import 'package:velorki/features/planner/application/track_surface_service.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/planner/data/routing_backend_provider.dart';
@@ -16,10 +19,14 @@ import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/domain/routing_options.dart';
 import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
+import 'package:velorki/features/planner/presentation/original_route_chip.dart';
+import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../support/app.dart';
 import 'support/fakes.dart';
+import 'support/pump.dart';
 
 late SharedPreferences _prefs;
 
@@ -577,6 +584,198 @@ void main() {
       expect(mtbBack.options.profile, RouteProfile.mtb);
       expect(mtbBack.profileKnown, isTrue);
       expect((await repository.routeById(plain.id))!.profileKnown, isFalse);
+    });
+  });
+
+  group('the map\'s gestures', () {
+    /// A binding over a fake map at zoom 15, where 20 pixels are some 32 m
+    /// at this latitude, synced with every change of the plan.
+    Future<(ProviderContainer, TestMapController, PlannerMapBinding)> bound(
+      FakeRoutingBackend backend,
+    ) async {
+      final container = _container(backend);
+      final map = TestMapController()..zoom = 15;
+      final binding = PlannerMapBinding(
+        map: map,
+        planner: container.read(plannerControllerProvider.notifier),
+      )..attach();
+      await binding.sync(container.read(plannerControllerProvider));
+      container.listen<PlannerState>(
+        plannerControllerProvider,
+        (_, next) => binding.sync(next),
+      );
+      return (container, map, binding);
+    }
+
+    testWidgets('a tap on the route line puts a point on it, in the leg it '
+        'falls on, and routes only the two halves', (tester) async {
+      final backend = LineRoutingBackend();
+      final (container, map, _) = await bound(backend);
+      container
+          .read(plannerControllerProvider.notifier)
+          .loadSavedRoute(_imported());
+      final before = container.read(plannerControllerProvider).legs;
+
+      // Some 15 m beside point 100, between the Tap (60) and the Bakery
+      // (140).
+      map.onTap!(LatLng(_track[100].lat, _track[100].lon + 0.0002));
+      await _settle(tester);
+
+      final state = container.read(plannerControllerProvider);
+      expect(state.waypoints, hasLength(5));
+      final inserted = state.positions[2];
+      expect(haversineMeters(inserted, _track[100].pos), lessThan(1));
+      expect(backend.queries.map((q) => q.points), [
+        [_track[60].pos, inserted],
+        [inserted, _track[140].pos],
+      ]);
+      expect(identical(state.legs[0], before[0]), isTrue);
+      expect(identical(state.legs[3], before[2]), isTrue);
+    });
+
+    testWidgets('a tap off the line adds a point at the end, and a long '
+        'press anywhere is a place for the screen', (tester) async {
+      final backend = LineRoutingBackend();
+      final (container, map, binding) = await bound(backend);
+      container
+          .read(plannerControllerProvider.notifier)
+          .loadSavedRoute(_imported());
+      LatLng? held;
+      binding.onLongPress = (pos) => held = pos;
+
+      // 150 m off the line: not on it.
+      const off = LatLng(48.05, 11.002);
+      map.onTap!(off);
+      await _settle(tester);
+      var state = container.read(plannerControllerProvider);
+      expect(state.positions.last, off);
+      expect(state.waypoints, hasLength(5));
+
+      map.onLongPress!(_track[100].pos);
+      expect(held, _track[100].pos);
+      state = container.read(plannerControllerProvider);
+      expect(state.waypoints, hasLength(5), reason: 'a place is no waypoint');
+    });
+
+    testWidgets('without a zoom a tap is never on the line', (tester) async {
+      final backend = LineRoutingBackend();
+      final (container, map, _) = await bound(backend);
+      map.zoom = null;
+      container
+          .read(plannerControllerProvider.notifier)
+          .loadSavedRoute(_imported());
+      map.onTap!(_track[100].pos);
+      await _settle(tester);
+      expect(
+        container.read(plannerControllerProvider).positions.last,
+        _track[100].pos,
+      );
+    });
+
+    testWidgets('the file\'s line is drawn faint once the route differs from '
+        'it, and goes with Restore and with Clear', (tester) async {
+      final backend = LineRoutingBackend();
+      final (container, map, _) = await bound(backend);
+      final planner = container.read(plannerControllerProvider.notifier)
+        ..loadSavedRoute(_imported());
+      await tester.pump();
+      expect(map.lines.containsKey(originalLineId), isFalse);
+      expect(
+        container.read(plannerControllerProvider).differsFromOriginal,
+        isFalse,
+      );
+
+      planner.setProfile(RouteProfile.fastbike);
+      await _settle(tester);
+      expect(map.styles[originalLineId], RouteLineStyle.original);
+      expect(map.lines[originalLineId], [for (final p in _track) p.pos]);
+      expect(
+        container.read(plannerControllerProvider).differsFromOriginal,
+        isTrue,
+      );
+
+      planner.restoreOriginal();
+      await _settle(tester);
+      expect(map.lines.containsKey(originalLineId), isFalse);
+      expect(
+        container.read(plannerControllerProvider).differsFromOriginal,
+        isFalse,
+      );
+
+      planner.moveWaypoint(1, const LatLng(48.03, 11.001));
+      await _settle(tester);
+      expect(map.lines.containsKey(originalLineId), isTrue);
+
+      planner.clear();
+      await _settle(tester);
+      expect(map.lines, isEmpty);
+    });
+
+    test('a route planned here has no original to differ from', () {
+      final container = _container(LineRoutingBackend());
+      container.read(plannerControllerProvider.notifier)
+        ..addWaypoint(const LatLng(48.0, 11.0))
+        ..addWaypoint(const LatLng(48.01, 11.0));
+      expect(
+        container.read(plannerControllerProvider).differsFromOriginal,
+        isFalse,
+      );
+    });
+  });
+
+  group('the chip over the map', () {
+    testWidgets('shows while an imported route differs from its file, and '
+        'Restore puts the file\'s route back with no routing', (tester) async {
+      final h = await pumpScreen(
+        tester,
+        const PlannerScreen(),
+        harness: PlannerHarness(backend: LineRoutingBackend()),
+      );
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(PlannerScreen)),
+      );
+      container
+          .read(plannerControllerProvider.notifier)
+          .loadSavedRoute(_imported());
+      await tester.pumpAndSettle();
+      expect(find.byType(OriginalRouteChip), findsNothing);
+
+      await tester.tap(find.widgetWithText(ChoiceChip, l10n.profileFastbike));
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.plannerDiffersFromFile), findsOneWidget);
+      expect(h.map.lines.containsKey(originalLineId), isTrue);
+      final routed = h.backend.callCount;
+
+      await tester.tap(find.text(l10n.plannerRestoreOriginal));
+      await tester.pumpAndSettle();
+      expect(find.byType(OriginalRouteChip), findsNothing);
+      expect(h.map.lines.containsKey(originalLineId), isFalse);
+      expect(h.backend.callCount, routed);
+      final state = container.read(plannerControllerProvider);
+      expect(state.result!.geometry, _track);
+      expect(state.legs.map((l) => l!.kept), everyElement(isTrue));
+
+      // Restore is one step; Undo brings the edited route back, chip and all.
+      container.read(plannerControllerProvider.notifier).undo();
+      await tester.pumpAndSettle();
+      expect(find.byType(OriginalRouteChip), findsOneWidget);
+    });
+
+    testWidgets('never shows for a route planned here', (tester) async {
+      final h = await pumpScreen(
+        tester,
+        const PlannerScreen(),
+        harness: PlannerHarness(backend: LineRoutingBackend()),
+      );
+      h.map.onTap!(const LatLng(48.0, 11.0));
+      h.map.onTap!(const LatLng(48.01, 11.0));
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ChoiceChip, l10n.profileFastbike));
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+      expect(find.byType(OriginalRouteChip), findsNothing);
     });
   });
 

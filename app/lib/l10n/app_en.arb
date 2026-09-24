@@ -167,9 +167,17 @@
   "@plannerEmptyState": {
     "description": "Hint in the planner bottom sheet while no waypoint is set"
   },
-  "plannerEmptyStateDetail": "Tap again to add more points, hold the map to mark a place beside the route.",
+  "plannerEmptyStateDetail": "Tap again to add more points, tap the route to add one on it, hold the map to mark a place beside the route.",
   "@plannerEmptyStateDetail": {
     "description": "Second line of the planner empty state explaining the map gestures"
+  },
+  "plannerDiffersFromFile": "Differs from the file",
+  "@plannerDiffersFromFile": {
+    "description": "Chip over the planner map while a route read from a file has been changed from the file's own route"
+  },
+  "plannerRestoreOriginal": "Restore",
+  "@plannerRestoreOriginal": {
+    "description": "Action on the chip that puts the file's own route back"
   },
   "plannerOnePointHint": "Tap the map again to add a destination.",
   "@plannerOnePointHint": {

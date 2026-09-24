@@ -36,6 +36,7 @@ import '../domain/elevation_profile.dart';
 import '../domain/planner_state.dart';
 import '../domain/routing_options.dart';
 import 'elevation_profile_chart.dart';
+import 'original_route_chip.dart';
 import 'profile_chip_row.dart';
 import 'route_format.dart';
 import 'save_route_dialog.dart';
@@ -750,6 +751,20 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                             .read(plannerControllerProvider.notifier)
                             .setProfile,
                       ),
+                      // Shown with the faint line of the file's route,
+                      // and gone with it.
+                      if (state.differsFromOriginal)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: OriginalRouteChip(
+                              onRestore: ref
+                                  .read(plannerControllerProvider.notifier)
+                                  .restoreOriginal,
+                            ),
+                          ),
+                        ),
                       if (_placeToStartFrom != null)
                         Padding(
                           padding: const EdgeInsets.only(top: 10),

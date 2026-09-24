@@ -89,10 +89,9 @@ abstract class SavedRoute with _$SavedRoute {
 
 /// A route as its file drew it: the line, the markers on it, where each leg
 /// between them starts, and the file's cue sheet.
-@immutable
 class RouteOriginal {
   /// Creates the original.
-  const RouteOriginal({
+  RouteOriginal({
     required this.geometryBlob,
     required this.waypoints,
     required this.legs,
@@ -111,6 +110,9 @@ class RouteOriginal {
   /// The file's turn instructions, anchored to the line.
   final List<TurnHint> turns;
 
-  /// The line, decoded on every call.
-  List<TrackPoint> get geometry => PackedTrack.decode(geometryBlob);
+  /// The line, decoded once.
+  late final List<TrackPoint> geometry = PackedTrack.decode(geometryBlob);
+
+  /// The line as bare coordinates.
+  late final List<LatLng> positions = [for (final p in geometry) p.pos];
 }

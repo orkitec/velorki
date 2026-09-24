@@ -10,7 +10,7 @@ Der Tab Planen macht aus Tippern auf der Karte eine Radroute, berechnet auf dein
 
 1. Öffne den Tab **Planen** und verschiebe die Karte dorthin, wo du starten willst.
 2. **Tippe auf die Karte**, um den Start zu setzen. Unten steht dann "Karte erneut antippen, um ein Ziel zu setzen."
-3. **Tippe erneut** für den nächsten Punkt. Jeder Tipper hängt einen Punkt ans Ende der Route.
+3. **Tippe erneut** für den nächsten Punkt. Jeder Tipper hängt einen Punkt ans Ende der Route. Für einen Punkt mittendrin **tippe auf die Routenlinie**, wo er hin soll: Der Punkt landet dort auf der Linie, und du kannst ihn ziehen wie jeden anderen.
 4. Velorki wartet nach deiner letzten Änderung einen Moment und berechnet dann. Währenddessen dreht sich unten ein Ladekreis mit **Route wird berechnet…**, danach erscheinen die Zahlen.
 
 Du kannst auch von einem Ort aus starten statt mit einem Tipper. Tippe oben ins Suchfeld, wähle ein Ergebnis, und solange die Planung noch leer ist, erscheinen unter den Rad-Chips zwei Schaltflächen:
@@ -24,7 +24,7 @@ Sobald eine Route geplant wird, hängt ein Suchergebnis den Ort einfach als näc
 
 **Halte die Karte gedrückt**, wo etwas Erinnernswertes liegt, und das Punktblatt öffnet sich für einen Ort dort: ein Brunnen, ein Bahnhof, ein Campingplatz. Die Route wird nicht dorthin gelegt. Die Markierung trägt das Symbol der gewählten Art, daneben ihren Namen, und ein Tippen darauf öffnet das Blatt wieder.
 
-Um einen vorhandenen Punkt zu verschieben, **zieh seine Markierung**. Bei einer geschlossenen Runde verschiebt das Ziehen der Startmarkierung beide Enden, damit die Runde geschlossen bleibt.
+Um einen vorhandenen Punkt zu verschieben, **zieh seine Markierung**. Bei einer geschlossenen Runde verschiebt das Ziehen der Startmarkierung beide Enden, damit die Runde geschlossen bleibt. Eine Änderung berechnet nur die Abschnitte neben dem geänderten Punkt neu; der Rest der Route bleibt, wie er war.
 
 ## Auf der Route oder daneben
 
@@ -69,13 +69,17 @@ Die Reihe von Chips unter dem Suchfeld ist das Radprofil, und sie entscheidet, w
 | **MTB** | Trails und Singletrails |
 | **Direkt** | der kürzeste Weg, mit möglichst wenig Rücksicht auf Komfort |
 
-Ein Profilwechsel berechnet die ganze Planung neu und verwirft geladene Varianten. Das zuletzt gewählte Profil behält Velorki für den nächsten Start.
+Ein Profilwechsel berechnet die ganze Planung neu, auch eine Route aus einer Datei, und verwirft geladene Varianten; **Rückgängig** holt Route und Profil zurück. Das zuletzt gewählte Profil behält Velorki für den nächsten Start.
+
+## Eine Route aus einer Datei
+
+Eine aus einer Datei geöffnete Route behält die Linie der Datei genau, mit Punkten nur am Start, am Ziel und an den benannten Orten auf dem Track. Ein Punkt verschoben, hinzugefügt oder entfernt berechnet nur die Abschnitte daneben neu; überall sonst bleibt die Linie die der Datei. Solange die Route von der Datei abweicht, liegt die Linie der Datei blass darunter, und ein Chip über der Karte sagt **Weicht von der Datei ab**; sein **Wiederherstellen** holt die Route der Datei zurück, in einem Schritt, den Rückgängig zurücknehmen kann.
 
 ## Die Leiste
 
 Die Reihe von Schaltflächen in der Routenübersicht:
 
-- **Rückgängig** nimmt die letzte Änderung zurück. Es gibt keine Grenze und kein Wiederherstellen. Punkte hinzufügen, einfügen, verschieben, entfernen und umsortieren, **Umkehren**, **Leeren**, das Schließen einer Runde und ein anderer Rückweg lassen sich rückgängig machen; ein Profilwechsel, ein Variantenwechsel und das Laden einer gespeicherten Route nicht.
+- **Rückgängig** nimmt die letzte Änderung zurück. Es gibt keine Grenze und kein Wiederherstellen. Punkte hinzufügen, einfügen, verschieben, entfernen und umsortieren, **Umkehren**, **Leeren**, ein Profilwechsel, **Wiederherstellen**, das Schließen einer Runde und ein anderer Rückweg lassen sich rückgängig machen; ein Variantenwechsel und das Laden einer gespeicherten Route nicht.
 - **Umkehren** fährt die Route andersherum.
 - **Leeren** wirft die Planung weg. Auch das lässt sich rückgängig machen.
 - **Varianten** fragt Alternativen an (siehe unten).
@@ -90,7 +94,7 @@ Velorki holt Alternativen nicht von selbst, weil jede davon ein eigener Routing-
 
 Über der Leiste erscheint dann eine Chip-Reihe: **Hauptroute**, **Alt 1**, **Alt 2**, **Alt 3**, jede mit einem farbigen Punkt passend zu ihrer Linie auf der Karte. Ein Tipper auf einen Chip wechselt sofort, ohne neue Berechnung, und legt diese Linie nach oben.
 
-Oft kommen weniger als vier zurück; du bekommst, was der Router gefunden hat. Findet er nichts, sagt Velorki "Keine Alternativen verfügbar." Ein geänderter Wegpunkt oder ein Profilwechsel verwirft die Varianten, frag danach also erneut an.
+Varianten sind ganze Routen des Routers, auf einer Route aus einer Datei ersetzen sie also deren Linie; **Rückgängig** holt sie zurück. Oft kommen weniger als vier zurück; du bekommst, was der Router gefunden hat. Findet er nichts, sagt Velorki "Keine Alternativen verfügbar." Ein geänderter Wegpunkt oder ein Profilwechsel verwirft die Varianten, frag danach also erneut an.
 
 ## Die Route lesen
 
@@ -104,7 +108,7 @@ Das Diagramm **Höhenprofil** zeichnet die Höhe über der Distanz. Berühre es 
 
 ### Belag
 
-Der Balken **Belag** ist ein einzelner gestapelter Balken aus drei Anteilen, die zusammen die ganze Route ergeben: **Befestigt**, **Unbefestigt** und **Unbekannt**, mit einer Legende mit Prozentwerten darunter. Zwei weitere Einträge in der Legende, **Radweg** und **Stark befahren**, überlagern die ersten drei, statt sich dazuzuaddieren: Sie sagen dir, wie viel der Route auf einem eigenen Radweg liegt und wie viel auf einer großen Straße.
+Der Balken **Belag** ist ein einzelner gestapelter Balken aus drei Anteilen, die zusammen die ganze Route ergeben: **Befestigt**, **Unbefestigt** und **Unbekannt**, mit einer Legende mit Prozentwerten darunter. Zwei weitere Einträge in der Legende, **Radweg** und **Stark befahren**, überlagern die ersten drei, statt sich dazuzuaddieren: Sie sagen dir, wie viel der Route auf einem eigenen Radweg liegt und wie viel auf einer großen Straße. Ist die Route nicht ganz die des Routers, etwa mit der Linie einer Datei darin, wird für die Zahlen die ganze Linie über die Routing-Daten gelegt; dafür muss die Region geladen sein.
 
 ## Speichern
 

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show ValueChanged;
 import 'package:flutter/painting.dart' show EdgeInsets;
 
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -21,6 +22,17 @@ String chosenRouteLineId(int alternativeIdx) =>
 
 /// Id of alternative [index] on the map.
 String alternativeLineId(int index) => 'alt-$index';
+
+/// Id of the faint line a route read from a file had before it was edited.
+const String originalLineId = 'original';
+
+/// How close to the route line a tap has to land, in logical pixels, to put
+/// a point on the line rather than at the end of the route.
+const double lineTapPx = 20;
+
+/// Metres per logical pixel at [zoom] and [lat] on a map of 512-pixel tiles.
+double metresPerPixel(double zoom, double lat) =>
+    40075016.686 * math.cos(lat * math.pi / 180) / (512 * math.pow(2, zoom));
 
 /// Keeps the map in step with [PlannerState] and turns map gestures into
 /// planner actions.
@@ -54,7 +66,17 @@ class PlannerMapBinding {
   void attach() {
     if (_attached) return;
     _attached = true;
-    map.onTap = (pos) => planner.addWaypoint(pos);
+    // A tap on the route line puts a point on it there; anywhere else
+    // adds one at the end.
+    map.onTap = (pos) {
+      final zoom = map.zoom;
+      planner.tapAt(
+        pos,
+        lineToleranceM: zoom == null
+            ? 0
+            : lineTapPx * metresPerPixel(zoom, pos.lat),
+      );
+    };
     // A long press marks a place rather than routing through it; the screen
     // opens the sheet for it.
     map.onLongPress = (pos) => onLongPress?.call(pos);
@@ -121,6 +143,18 @@ class PlannerMapBinding {
       final chosen = chosenRouteLineId(state.options.alternativeIdx);
       wanted.add(chosen);
       await map.setRouteLine(chosen, positions);
+    }
+    // The file's own line, faint, while the route on top is not it any
+    // more, so the rider can compare; the chip offering Restore shows for
+    // exactly as long.
+    final original = state.original;
+    if (original != null && state.differsFromOriginal) {
+      wanted.add(originalLineId);
+      await map.setRouteLine(
+        originalLineId,
+        original.positions,
+        style: RouteLineStyle.original,
+      );
     }
     for (var i = 0; i < state.alternatives.length; i++) {
       if (i == state.options.alternativeIdx) continue;
