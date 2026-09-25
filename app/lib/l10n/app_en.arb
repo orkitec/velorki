@@ -1038,6 +1038,10 @@
   "@recordingFinish": {
     "description": "Button that ends the recording and saves the ride"
   },
+  "recordingFiguresBarOpen": "Ride figures. Tap to open the ride sheet.",
+  "@recordingFiguresBarOpen": {
+    "description": "Screen-reader label of the bar the Record sheet docks into during a ride, showing the first figures"
+  },
   "recordingStatusRecording": "Recording",
   "@recordingStatusRecording": {
     "description": "Status line while fixes are being recorded"

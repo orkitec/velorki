@@ -212,6 +212,7 @@
   "recordingPause": "Pause",
   "recordingResume": "Fortsetzen",
   "recordingFinish": "Beenden",
+  "recordingFiguresBarOpen": "Fahrtwerte. Tippen öffnet das Fahrtblatt.",
   "recordingStatusRecording": "Aufnahme",
   "recordingStatusPaused": "Pausiert",
   "recordingStatusAutoPaused": "Auto-Pause",

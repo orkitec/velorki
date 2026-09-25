@@ -45,6 +45,8 @@ import 'package:velorki/features/recording/presentation/follow_route_picker.dart
 import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
 import 'package:velorki/features/recording/presentation/rides_list.dart';
 import 'package:velorki/features/recording/presentation/save_ride_sheet.dart';
+import 'package:velorki/features/recording/domain/live_figures.dart';
+import 'package:velorki/features/recording/presentation/live_figures_view.dart';
 import 'package:velorki/features/shared/application/nav_bar_docking.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
@@ -658,7 +660,7 @@ void main() {
   });
 
   testWidgets('before a ride the sheet docks in the navigation bar; during '
-      'one it only drops to its handle', (tester) async {
+      'one it docks in a bar of its own figures', (tester) async {
     final h = await pumpRecordingScreen(tester, const RecordingScreen());
     await tester.pump();
     DockingSheetShell shell() =>
@@ -676,30 +678,199 @@ void main() {
     await tester.pumpAndSettle();
     expect(shell().docked, 1);
     expect(container.read(navBarDockingProvider), {recordingRoute});
+    expect(find.byType(FiguresBar), findsNothing);
     expectNoClippedText(tester);
 
-    // A ride starting under the docked sheet (from the watch, say): the bar
-    // goes, the live sheet has nothing to dock into, and the bar is told so
-    // it comes back round.
+    // A ride starting under the docked sheet (from the watch, say): the
+    // navigation bar goes and is told so, so it comes back round; the live
+    // sheet opens as a sheet, the figures bar not yet showing.
     await emitSnapshot(
       tester,
       h,
       _snapshot(newPoints: const [LatLng(48.0, 11.0), LatLng(48.1, 11.2)]),
     );
     await tester.pumpAndSettle();
-    expect(shell().docks, isFalse);
     expect(shell().docked, 0);
     expect(container.read(navBarDockingProvider), isEmpty);
+    expect(find.byType(FiguresBar), findsNothing);
 
+    // Pulled down, it docks into its figures bar; the navigation bar is
+    // not told, it is away.
     await tester.dragFrom(
       tester.getCenter(find.byType(SheetHandle)),
       const Offset(0, 1500),
     );
     await tester.pumpAndSettle();
-    expect(shell().docked, 0);
+    expect(shell().docked, 1);
     expect(container.read(navBarDockingProvider), isEmpty);
+    expect(find.byType(FiguresBar), findsOneWidget);
 
     await unmountApp(tester);
+  });
+
+  group('the figures bar', () {
+    /// A ride with a snapshot, its sheet pulled down into the bar.
+    Future<RecordingHarness> docked(
+      WidgetTester tester, {
+      RecordingSnapshot? snapshot,
+    }) async {
+      final h = await pumpRecordingScreen(tester, const RecordingScreen());
+      await tester.pump();
+      await emitSnapshot(tester, h, snapshot ?? _snapshot());
+      await tester.pumpAndSettle();
+      await tester.dragFrom(
+        tester.getCenter(find.byType(SheetHandle)),
+        const Offset(0, 1500),
+      );
+      await tester.pumpAndSettle();
+      return h;
+    }
+
+    testWidgets('shows the first four of the grid\'s figures, in its order, '
+        'and nothing to pause or stop the ride with', (tester) async {
+      await docked(tester);
+      final bar = find.byType(FiguresBar);
+      expect(bar, findsOneWidget);
+
+      final figures = tester.widget<FiguresBar>(bar).figures;
+      expect(figures.map((f) => f.figure).take(4), [
+        LiveFigure.distance,
+        LiveFigure.speed,
+        LiveFigure.avgSpeed,
+        LiveFigure.ascent,
+      ]);
+      for (final label in [
+        l10n.statDistance,
+        l10n.statSpeed,
+        l10n.statAvgSpeed,
+        l10n.statAscent,
+      ]) {
+        expect(
+          find.descendant(of: bar, matching: find.text(label.toUpperCase())),
+          findsOneWidget,
+        );
+      }
+      expect(
+        find.descendant(
+          of: bar,
+          matching: find.text(l10n.statDescent.toUpperCase()),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: bar, matching: find.text(testDistance(12345))),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: bar, matching: find.byIcon(Icons.pause_rounded)),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: bar, matching: find.byIcon(Icons.stop_rounded)),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: bar,
+          matching: find.byKey(const ValueKey('figures-bar-paused')),
+        ),
+        findsNothing,
+      );
+      await unmountApp(tester);
+    });
+
+    testWidgets('a sheet at rest is a sheet, whatever rows its figures '
+        'take, on an SE', (tester) async {
+      const size = Size(375, 667);
+      _phone(tester, size, statusBar: 20);
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        surfaceSize: size,
+        extraOverrides: [
+          navigationControllerProvider.overrideWithValue(
+            const NavigationProgress(alongM: 0, remainingM: 2500),
+          ),
+        ],
+      );
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot(heartRateBpm: 140));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.widget<DockingSheetShell>(find.byType(DockingSheetShell)).docked,
+        0,
+      );
+      expect(find.byType(FiguresBar), findsNothing);
+      await unmountApp(tester);
+    });
+
+    testWidgets('paused, a dot says so', (tester) async {
+      await docked(tester, snapshot: _snapshot(status: RecordingStatus.paused));
+      expect(find.byKey(const ValueKey('figures-bar-paused')), findsOneWidget);
+      await unmountApp(tester);
+    });
+
+    testWidgets('a tap opens the sheet again, at rest', (tester) async {
+      await docked(tester);
+      DockingSheetShell shell() =>
+          tester.widget<DockingSheetShell>(find.byType(DockingSheetShell));
+      expect(shell().docked, 1);
+
+      await tester.tap(find.byType(FiguresBar));
+      await tester.pumpAndSettle();
+
+      expect(shell().docked, 0);
+      expect(find.byType(FiguresBar), findsNothing);
+      final sheet = tester.widget<DraggableScrollableSheet>(
+        find.byType(DraggableScrollableSheet),
+      );
+      expect(shell().extent, closeTo(sheet.initialChildSize, 0.01));
+      await unmountApp(tester);
+    });
+
+    testWidgets('a drag up opens it too', (tester) async {
+      await docked(tester);
+      await tester.fling(find.byType(FiguresBar), const Offset(0, -200), 800);
+      await tester.pumpAndSettle();
+      expect(find.byType(FiguresBar), findsNothing);
+      await unmountApp(tester);
+    });
+
+    testWidgets('docked, the follow camera places the rider above the bar', (
+      tester,
+    ) async {
+      const size = Size(375, 667);
+      _phone(tester, size, statusBar: 20);
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        surfaceSize: size,
+        preferences: const {'recording.follow': 'headingUp'},
+      );
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot(headingDeg: 90));
+      await tester.pumpAndSettle();
+      await tester.dragFrom(
+        tester.getCenter(find.byType(SheetHandle)),
+        const Offset(0, 1500),
+      );
+      await tester.pumpAndSettle();
+      await emitSnapshot(
+        tester,
+        h,
+        _snapshot(lastPosition: const LatLng(48.2, 11.3), headingDeg: 90),
+      );
+
+      final moves = h.map.calls.where((c) => c.method == 'moveTo').toList();
+      final padding = moves.last.arguments[5] as EdgeInsets;
+      final riderY = (padding.top + size.height - padding.bottom) / 2;
+      // The sheet's handle strip, resting on the bar, is the edge.
+      final edge = tester.getTopLeft(find.byType(DockingSheet)).dy;
+      expect(edge, greaterThan(size.height - 160));
+      expect(riderY, closeTo(20 + followAheadShare * (edge - 20), 1));
+      await unmountApp(tester);
+    });
   });
 
   testWidgets('the idle sheet rests where the Plan sheet rests', (

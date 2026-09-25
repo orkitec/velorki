@@ -56,10 +56,12 @@ import '../data/recording_recovery.dart';
 import '../data/recording_service.dart';
 import '../data/recording_settings.dart';
 import '../domain/follow_choice.dart';
+import '../domain/live_figures.dart';
 import '../domain/recording_snapshot.dart';
 import '../domain/recording_state.dart';
 import '../domain/ride_naming.dart';
 import 'follow_route_picker.dart';
+import 'live_figures_view.dart';
 import 'recording_format.dart';
 import 'save_ride_sheet.dart';
 
@@ -264,16 +266,52 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// comes next.
   void _onSheetExtent(double extent) {
     _sheetExtent = extent;
+    // Only the live sheet folds into the figures bar; the idle one's height
+    // must not show it for the frame before the live sheet first reports.
+    _liveExtent.value = _liveSheetShown ? extent : 1;
     if (_active) ref.read(tabHandoverProvider.notifier).setSheetExtent(extent);
   }
 
   /// The sheet's extent as last reported; `null` before the first report.
   double? _sheetExtent;
 
+  /// The same, for the figures bar, which fades in as the live sheet folds
+  /// down into it and is rebuilt on every step of that.
+  final ValueNotifier<double> _liveExtent = ValueNotifier<double>(1);
+
+  /// The live sheet's controller, to open it again from the figures bar.
+  final DraggableScrollableController _liveSheet =
+      DraggableScrollableController();
+
+  /// Where the live sheet rests, as the last build worked it out.
+  double _liveRestingSize = 0.45;
+
+  /// The figures bar was tapped or pulled up: the sheet comes back to rest.
+  void _openLiveSheet() {
+    if (!_liveSheet.isAttached) return;
+    unawaited(
+      _liveSheet.animateTo(
+        _liveRestingSize,
+        duration: tabSheetSettleDuration,
+        curve: tabChromeSlideCurve,
+      ),
+    );
+  }
+
   /// The sheet on screen, whose top the next follow move places the rider
   /// above: read from its box as last laid out, which is where the rider
   /// sees it, whatever the sheet last reported while it snapped.
-  final GlobalKey _sheetBoxKey = GlobalKey();
+  ///
+  /// One key per sheet: the live sheet is a new sheet, and a key shared
+  /// with the idle one would carry the idle sheet's state, extent and all,
+  /// over into it.
+  final GlobalKey _idleSheetBoxKey = GlobalKey();
+  final GlobalKey _liveSheetBoxKey = GlobalKey();
+  GlobalKey get _sheetBoxKey =>
+      _liveSheetShown ? _liveSheetBoxKey : _idleSheetBoxKey;
+
+  /// Whether the sheet on screen is the live one.
+  bool _liveSheetShown = false;
 
   /// How far the sheet reaches up from the bottom of a [size] screen.
   double _sheetCover(Size size) {
@@ -429,6 +467,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     _glanceTimer?.cancel();
     if (_drawing) _map?.onCameraIdle = null;
     _idleSheet.dispose();
+    _liveSheet.dispose();
+    _liveExtent.dispose();
     if (_docked) {
       // Deferred: the tree is locked while a widget goes, and the shell
       // would rebuild for this.
@@ -1572,31 +1612,42 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     double fraction(double dp) => screenHeight <= 0
         ? 0.3
         : ((bottomInset + dp) / screenHeight).clamp(0.01, 0.9);
-    // Collapsed: the handle alone. Before a ride that is above the
-    // navigation bar, which the bottom padding covers under `extendBody`,
-    // and the sheet docks in the bar; the bar goes while a ride is recorded
-    // on this tab, and the handle then rests at the bottom. Live: the status
-    // row and the three key figures. Idle: the start button and the chooser.
-    final collapsed = fraction(sheetHandleDp);
+    // Collapsed: the handle alone, docked in a bar. Before a ride that is
+    // the navigation bar, which the bottom padding covers under
+    // `extendBody`. The navigation bar goes while a ride is recorded on this
+    // tab, and the figures bar takes its place and shape: the sheet docks
+    // into that, and the ride's first figures stay in view over most of
+    // the map.
+    final barInset = state.isRecording
+        ? MediaQuery.viewPaddingOf(context).bottom +
+              figuresBarBottomGap +
+              figuresBarHeight
+        : bottomInset;
+    final collapsed = screenHeight <= 0
+        ? 0.1
+        : ((barInset + sheetHandleDp) / screenHeight).clamp(0.01, 0.9);
     // Idle, the sheet rests where the Plan sheet rests, so the tabs agree;
     // the start button and the chooser scroll where they need more.
     // Live: the status row and the two rows of key figures, plus a row per
     // three extra tiles (sensors, what is left of a route), so nothing of
     // the grid is below the fold at rest.
-    final extraRows = state.isRecording && snapshot != null
-        ? (liveExtraTiles(
-                    snapshot: snapshot,
-                    remembered: ref.watch(sensorsSeenProvider),
-                    remainingM: navigation?.remainingM,
-                  ) +
-                  2) ~/
-              3
-        : 0;
+    final figures = state.isRecording && snapshot != null
+        ? liveFigures(
+            snapshot: snapshot,
+            remembered: ref.watch(sensorsSeenProvider),
+            speedMps: _speedMps(ref, snapshot),
+            paused: state.isPaused,
+            remainingM: navigation?.remainingM,
+          )
+        : const <LiveFigureReading>[];
+    final extraRows = math.max(0, (figures.length + 2) ~/ 3 - 2);
     final initial = state.isRecording
         ? fraction(292.0 + 76 * extraRows)
         : sheetRestingExtent(screenHeight);
+    if (state.isRecording) _liveRestingSize = initial;
     _restingSheetSize = sheetRestingExtent(screenHeight);
     final sheetKey = state.isRecording ? 'live' : 'idle';
+    _liveSheetShown = state.isRecording;
 
     // The tab on screen: the banner over the map slides in when it is this
     // one, the ride goes on the map, and the map's control column and the
@@ -1658,13 +1709,25 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
         }
       });
     }
-    final docks = !state.isRecording;
-    final dockedRange = screenHeight <= 0
+    // The live sheet at rest sits lower than the idle one, and above a bar
+    // that is taller than the handle: its morph ends short of its resting
+    // height, so a sheet at rest is a sheet, not half a bar.
+    final fullRange = screenHeight <= 0
         ? 0.15
         : sheetDockingRangeDp / screenHeight;
-    if (!docks && _docked) {
+    // Reckoned from the lowest the live sheet ever rests, before any sensor
+    // or route adds a row, so a sheet that rests lower for a moment while
+    // its figures arrive does not start to fold.
+    final dockedRange = state.isRecording
+        ? math.min(
+            fullRange,
+            math.max(0.0, (fraction(292.0) - collapsed) * 0.8),
+          )
+        : fullRange;
+    if (state.isRecording && _docked) {
       // The ride started under a docked sheet (from the watch, say): the
-      // bar is away now, and it comes back round when the ride ends.
+      // navigation bar is away now, and it comes back round when the ride
+      // ends. The figures bar is this screen's own.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _reportDocked(false);
       });
@@ -1714,7 +1777,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                   // A fresh sheet per state, so the initial size applies again
                   // when a ride starts or ends.
                   key: ValueKey(sheetKey),
-                  controller: state.isRecording ? null : _idleSheet,
+                  controller: state.isRecording ? _liveSheet : _idleSheet,
                   initialChildSize: state.isRecording
                       ? initial
                       : _arrivingExtent ?? initial,
@@ -1723,7 +1786,9 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                   snap: true,
                   snapSizes: _snapSizesFor(initial),
                   builder: (context, scrollController) => DockingSheet(
-                    key: _sheetBoxKey,
+                    key: state.isRecording
+                        ? _liveSheetBoxKey
+                        : _idleSheetBoxKey,
                     controller: scrollController,
                     gripDp: sheetGripWithTitleDp,
                     // Where the sheet really starts: for a screen built in
@@ -1733,14 +1798,17 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                         : _arrivingExtent ?? initial,
                     collapsedExtent: collapsed,
                     dockedRange: dockedRange,
-                    docks: docks,
-                    dockedBottomInset: bottomInset,
-                    onDocked: _reportDocked,
+                    docks: true,
+                    dockedBottomInset: barInset,
+                    // Docked during a ride, the sheet rests on the figures
+                    // bar, not the navigation bar, which is away.
+                    onDocked: state.isRecording ? null : _reportDocked,
                     onExtent: _onSheetExtent,
                     handle: const SheetHandle(),
                     child: state.isRecording
                         ? _LivePanel(
                             state: state,
+                            figures: figures,
                             bottomInset: bottomInset,
                             page: _sheetPage,
                             onPage: _setSheetPage,
@@ -1768,6 +1836,40 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                                 unawaited(_setKeepScreenOn(v)),
                             onStart: () => unawaited(_start()),
                           ),
+                  ),
+                ),
+              if (state.isRecording && !glance)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: ValueListenableBuilder<double>(
+                    valueListenable: _liveExtent,
+                    builder: (context, extent, _) {
+                      final t = DockingSheetShell.dockedFraction(
+                        extent: extent,
+                        collapsedExtent: collapsed,
+                        dockedRange: dockedRange,
+                        docks: true,
+                      );
+                      if (t <= 0) return const SizedBox.shrink();
+                      final docked = t >= sheetDockedThreshold;
+                      // Fades in as the sheet folds down into it, and takes
+                      // a touch only once it is all there.
+                      return IgnorePointer(
+                        ignoring: !docked,
+                        child: Opacity(
+                          opacity: t,
+                          child: FiguresBar(
+                            figures: figures,
+                            paused: state.isPaused,
+                            system: ref.watch(unitSystemProvider),
+                            docked: docked,
+                            onOpen: _openLiveSheet,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
             ],
@@ -1991,24 +2093,6 @@ DateTime? _eta(double? remainingM, double avgSpeedMps) {
   );
 }
 
-/// How many tiles the live grid shows under its two fixed rows: one per
-/// sensor that has reported this ride, plus Left and Arrival on a route.
-int liveExtraTiles({
-  required RecordingSnapshot snapshot,
-  required SensorsSeenState remembered,
-  required double? remainingM,
-}) {
-  final seen = remembered.rideId == snapshot.rideId
-      ? remembered
-      : const SensorsSeenState();
-  var count = 0;
-  if ((snapshot.heartRateBpm ?? seen.heartRateBpm) != null) count++;
-  if ((snapshot.cadenceRpm ?? seen.cadenceRpm) != null) count++;
-  if ((snapshot.powerW ?? seen.powerW) != null) count++;
-  if (remainingM != null && remainingM > 0) count += 2;
-  return count;
-}
-
 /// [tiles] in rows of three, the last row padded with empty slots so every
 /// column keeps its width.
 List<List<Widget>> _rowsOf(List<Widget> tiles) => <List<Widget>>[
@@ -2019,33 +2103,10 @@ List<List<Widget>> _rowsOf(List<Widget> tiles) => <List<Widget>>[
     ],
 ];
 
-/// One sensor's tile: the current value, or the last one dimmed and marked
-/// with a broken link while the sensor is silent mid-ride. `null` for a sensor
-/// that has not reported this ride.
-Widget? _sensorTile(
-  String label, {
-  required int? current,
-  required int? last,
-  required String Function(int?) format,
-  required bool paused,
-  String? detail,
-}) {
-  final value = current ?? last;
-  if (value == null) return null;
-  final lost = current == null && !paused;
-  return StatTile(
-    label: label,
-    value: format(value),
-    size: StatSize.medium,
-    icon: lost ? Icons.link_off : null,
-    muted: lost,
-    detail: detail,
-  );
-}
-
 class _LivePanel extends ConsumerWidget {
   const _LivePanel({
     required this.state,
+    required this.figures,
     required this.bottomInset,
     required this.page,
     required this.onPage,
@@ -2057,6 +2118,9 @@ class _LivePanel extends ConsumerWidget {
   });
 
   final RecordingUiState state;
+
+  /// The ride's figures, in order: the grid shows them all.
+  final List<LiveFigureReading> figures;
   final double bottomInset;
 
   /// The page showing: 0 the figures, 1 the elevation profile.
@@ -2074,60 +2138,6 @@ class _LivePanel extends ConsumerWidget {
     final theme = Theme.of(context);
     final units = ref.watch(unitSystemProvider);
     final snapshot = state.snapshot!;
-    final seen = ref.watch(sensorsSeenProvider);
-    final remembered = seen.rideId == snapshot.rideId
-        ? seen
-        : const SensorsSeenState();
-    final avgHeartRate = snapshot.avgHeartRateBpm;
-    // What is left of a followed route and when it ends at today's average:
-    // the two figures a rider on a route glances at most, on the page they
-    // are already looking at rather than a swipe away.
-    final remainingM = ref.watch(navigationControllerProvider)?.remainingM;
-    final eta = _eta(remainingM, snapshot.avgSpeedMps);
-    final sensorTiles = <Widget>[
-      ?_sensorTile(
-        l10n.statHeartRate,
-        current: snapshot.heartRateBpm,
-        last: remembered.heartRateBpm,
-        format: (bpm) => formatHeartRate(l10n, bpm),
-        paused: state.isPaused,
-        detail: avgHeartRate == null
-            ? null
-            : '${l10n.statAvgHeartRate} ${formatHeartRate(l10n, avgHeartRate)}',
-      ),
-      ?_sensorTile(
-        l10n.statCadence,
-        current: snapshot.cadenceRpm,
-        last: remembered.cadenceRpm,
-        format: (rpm) => formatCadence(l10n, rpm),
-        paused: state.isPaused,
-      ),
-      ?_sensorTile(
-        l10n.statPower,
-        current: snapshot.powerW,
-        last: remembered.powerW,
-        format: (watts) => formatPower(l10n, watts),
-        paused: state.isPaused,
-      ),
-    ];
-    final extraTiles = <Widget>[
-      ...sensorTiles,
-      if (remainingM != null && remainingM > 0) ...[
-        StatTile(
-          label: l10n.statRemaining,
-          value: formatDistance(l10n, units, remainingM),
-          size: StatSize.medium,
-        ),
-        StatTile(
-          label: l10n.statArrival,
-          value: eta == null
-              ? '--'
-              : MaterialLocalizations.of(context)
-                    .formatTimeOfDay(TimeOfDay.fromDateTime(eta)),
-          size: StatSize.medium,
-        ),
-      ],
-    ];
     final status = switch (snapshot) {
       RecordingSnapshot(status: RecordingStatus.paused, autoPaused: true) =>
         l10n.recordingStatusAutoPaused,
@@ -2143,20 +2153,24 @@ class _LivePanel extends ConsumerWidget {
         // buttons, then two rows of three figures. Nothing hides below.
         Row(
           children: [
-            // Gives way before the buttons do, on a narrow phone in a
-            // language with a long word for it.
-            Flexible(
-              child: _StatusPill(label: status, paused: state.isPaused),
-            ),
-            const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                formatClock(snapshot.elapsed),
-                style: theme.textTheme.statMedium.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              child: Row(
+                children: [
+                  // Gives way to the clock and the buttons, but only when
+                  // there is not room for all of it: on a narrow phone in a
+                  // language with a long word for it.
+                  Flexible(
+                    child: _StatusPill(label: status, paused: state.isPaused),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    formatClock(snapshot.elapsed),
+                    style: theme.textTheme.statMedium.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    maxLines: 1,
+                  ),
+                ],
               ),
             ),
             _RoundAction(
@@ -2193,61 +2207,28 @@ class _LivePanel extends ConsumerWidget {
           children: [
             _PausedFade(
               paused: state.isPaused,
+              // The ride's figures in rows of three, in the one order every
+              // view of them follows: at first the three a rider glances
+              // at most, larger, then the climb and the moving time, then
+              // the sensors a sensor has reported this ride (a silent one
+              // keeps its tile, dimmed and marked, with the last value;
+              // paused, nothing is marked), then on a route what is left
+              // and when it ends. The last row is padded to three so the
+              // columns line up.
               child: Column(
                 children: [
-                  StatRow(
-                    children: [
-                      StatTile(
-                        label: l10n.statDistance,
-                        value: formatDistance(l10n, units, snapshot.distanceM),
-                        emphasize: !state.isPaused,
+                  for (final (i, row) in _rowsOf(<Widget>[
+                    for (final (index, reading) in figures.indexed)
+                      liveFigureTile(
+                        context,
+                        reading,
+                        index: index,
+                        paused: state.isPaused,
+                        l10n: l10n,
+                        system: units,
                       ),
-                      StatTile(
-                        label: l10n.statSpeed,
-                        value: formatSpeed(
-                          l10n,
-                          units,
-                          _speedMps(ref, snapshot),
-                        ),
-                      ),
-                      StatTile(
-                        label: l10n.statAvgSpeed,
-                        value: formatSpeed(l10n, units, snapshot.avgSpeedMps),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  StatRow(
-                    children: [
-                      StatTile(
-                        label: l10n.statAscent,
-                        value: formatHeight(l10n, units, snapshot.ascentM),
-                        size: StatSize.medium,
-                      ),
-                      StatTile(
-                        label: l10n.statDescent,
-                        value: formatHeight(l10n, units, snapshot.descentM),
-                        size: StatSize.medium,
-                      ),
-                      StatTile(
-                        label: l10n.statMovingTime,
-                        value: formatClock(snapshot.moving),
-                        size: StatSize.medium,
-                      ),
-                    ],
-                  ),
-                  // The extra tiles, in rows of three under the fixed two,
-                  // filled left to right: first the sensors a sensor has
-                  // reported this ride (a rider with a watch and nothing else
-                  // gets one tile, not one and two dashes; a sensor that fell
-                  // silent keeps its tile, dimmed and marked, with the last
-                  // value; paused, nothing is marked), then, on a route, what
-                  // is left and when it ends. So a heart rate keeps its tile
-                  // when a route is followed, and Left and Arrival take the
-                  // free slots beside it or start a row of their own; the
-                  // last row is padded to three so the columns line up.
-                  for (final row in _rowsOf(extraTiles)) ...[
-                    const SizedBox(height: 16),
+                  ]).indexed) ...[
+                    if (i > 0) const SizedBox(height: 16),
                     StatRow(children: row),
                   ],
                 ],
