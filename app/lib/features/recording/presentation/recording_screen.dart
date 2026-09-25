@@ -74,9 +74,22 @@ const String replacedRouteLineId = 'replaced';
 /// Preference key of the one-time battery-optimisation explanation.
 const String batteryPromptShownKey = 'recording.batteryPromptShown';
 
-/// The zoom the map follows the rider at; a camera that is already closer
-/// keeps its zoom.
+/// The zoom the map goes to when it starts following the rider: at the
+/// start of a ride and from the locate button. While it follows, the zoom
+/// is whatever the rider pinched it to, within [followZoomMin] and
+/// [followZoomMax].
 const double followZoom = 16;
+
+/// How far out a followed map may be zoomed: a few kilometres across, still
+/// enough to see the streets the rider is on.
+const double followZoomMin = 11;
+
+/// How far in: a block or so, closer than any fix is accurate.
+const double followZoomMax = 19;
+
+/// How much the zoom may differ from the one we sent before a camera that
+/// came to rest counts as zoomed by the rider.
+const double _handZoomDelta = 0.05;
 
 /// How far the camera may come to rest from the fix we last moved it to
 /// before that counts as the rider having panned the map by hand.
@@ -325,6 +338,13 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// measured against.
   LatLng? _followTarget;
 
+  /// The zoom our last follow move asked for, to tell a pinch from a pan.
+  double? _sentZoom;
+
+  /// Whether the next follow move starts the following, and so goes to
+  /// [followZoom] rather than keeping the rider's zoom.
+  bool _followStarts = true;
+
   /// Whether a ride was running on the previous build, so the start of one can
   /// switch following back on.
   bool _wasRecording = false;
@@ -499,6 +519,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     bool fromCompass = false,
     bool saver = false,
   }) {
+    final moving = _autoMoving;
     _autoMoving = true;
     _followTarget = position;
     // North-up says so on every move; heading-up leaves the map alone until a
@@ -514,10 +535,20 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       bearing = 0.0;
       _sentBearing = 0;
     }
+    // The rider's own zoom, however they pinched it, unless the following
+    // starts here or the map has none yet. While our last move is still
+    // gliding, the camera's zoom is somewhere on the way to the one we sent,
+    // and taking it would stop the glide short of it.
+    final current = moving ? _sentZoom ?? map.zoom : map.zoom;
+    final zoom = _followStarts || current == null
+        ? followZoom
+        : current.clamp(followZoomMin, followZoomMax).toDouble();
+    _followStarts = false;
+    _sentZoom = zoom;
     unawaited(
       map.moveTo(
         position,
-        zoom: math.max(map.zoom ?? followZoom, followZoom),
+        zoom: zoom,
         bearing: bearing,
         // A saver ride jumps the camera instead of gliding it: an animation
         // is a second of redraws for a move that takes one step anyway.
@@ -620,6 +651,16 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       if (mounted) setState(() => _following = false);
       return;
     }
+    // Zoomed rather than dragged — a pinch, a double tap, the zoom buttons:
+    // the rider wants to see more or less, not somewhere else, so the map
+    // keeps following at the new zoom. A pinch moves the centre towards the
+    // fingers, which is why this comes before the pan check.
+    final zoom = map.zoom;
+    final sent = _sentZoom;
+    if (zoom != null && sent != null && (zoom - sent).abs() > _handZoomDelta) {
+      _sentZoom = zoom;
+      return;
+    }
     final center = map.center;
     final target = _followTarget;
     if (center == null || target == null) return;
@@ -659,6 +700,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     // left the camera on the rider — neither must read as a hand pan.
     _autoMoving = true;
     _followTarget = _map?.center ?? _followTarget;
+    // Asking for the rider is asking for the following's own zoom too.
+    _followStarts = true;
     if (_following) return;
     setState(() => _following = true);
   }
@@ -750,6 +793,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       _wasRecording = state.isRecording;
       _following = state.isRecording;
       _followTarget = null;
+      _followStarts = true;
       if (ended) _sheetPage = 0;
     }
     final map = _map;

@@ -1588,7 +1588,7 @@ void main() {
       await unmountApp(tester);
     });
 
-    testWidgets('a camera that is already closer keeps its zoom', (
+    testWidgets('starting a ride goes to the follow zoom, from any zoom', (
       tester,
     ) async {
       final h = RecordingHarness()..map.zoom = 18;
@@ -1597,7 +1597,116 @@ void main() {
 
       await emitSnapshot(tester, h, _snapshot());
 
-      expect(moves(h).single.arguments[1], 18);
+      expect(moves(h).single.arguments[1], followZoom);
+      await unmountApp(tester);
+    });
+
+    testWidgets('a pinch keeps the following, and the zoom it chose', (
+      tester,
+    ) async {
+      final h = await pumpRecordingScreen(tester, const RecordingScreen());
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot());
+      await settleCamera(tester, h);
+
+      // The rider pinches out to 13; a pinch moves the centre towards the
+      // fingers, here a good 400 m, which would be a pan at the same zoom.
+      h.map
+        ..zoom = 13
+        ..center = const LatLng(48.104, 11.2);
+      await settleCamera(tester, h);
+      expect(chromeOf(tester).following, isTrue);
+
+      for (var i = 1; i <= 4; i++) {
+        await emitSnapshot(
+          tester,
+          h,
+          _snapshot(lastPosition: LatLng(48.1 + i * 0.001, 11.2)),
+        );
+        await settleCamera(tester, h);
+        expect(moves(h).last.arguments.first, LatLng(48.1 + i * 0.001, 11.2));
+        expect(moves(h).last.arguments[1], 13, reason: 'fix $i');
+      }
+      await unmountApp(tester);
+    });
+
+    testWidgets('a zoom the rider takes too far is held to the range', (
+      tester,
+    ) async {
+      final h = await pumpRecordingScreen(tester, const RecordingScreen());
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot());
+      await settleCamera(tester, h);
+
+      h.map.zoom = 8;
+      await settleCamera(tester, h);
+      await emitSnapshot(
+        tester,
+        h,
+        _snapshot(lastPosition: const LatLng(48.2, 11.3)),
+      );
+      expect(moves(h).last.arguments[1], followZoomMin);
+
+      await settleCamera(tester, h);
+      h.map.zoom = 21;
+      await settleCamera(tester, h);
+      await emitSnapshot(
+        tester,
+        h,
+        _snapshot(lastPosition: const LatLng(48.3, 11.3)),
+      );
+      expect(moves(h).last.arguments[1], followZoomMax);
+      await unmountApp(tester);
+    });
+
+    testWidgets('a fix during our own glide keeps the zoom it glides to', (
+      tester,
+    ) async {
+      final h = RecordingHarness()..map.zoom = 12;
+      await pumpRecordingScreen(tester, const RecordingScreen(), harness: h);
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot());
+      // Half way there when the next fix comes: no idle yet.
+      h.map.zoom = 14;
+
+      await emitSnapshot(
+        tester,
+        h,
+        _snapshot(lastPosition: const LatLng(48.2, 11.3)),
+      );
+
+      expect(moves(h).last.arguments[1], followZoom);
+      await unmountApp(tester);
+    });
+
+    testWidgets('the locate button goes back to the follow zoom', (
+      tester,
+    ) async {
+      final h = await pumpRecordingScreen(tester, const RecordingScreen());
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot());
+      await settleCamera(tester, h);
+      h.map.zoom = 13;
+      await settleCamera(tester, h);
+      await emitSnapshot(
+        tester,
+        h,
+        _snapshot(lastPosition: const LatLng(48.2, 11.3)),
+      );
+      await settleCamera(tester, h);
+      expect(moves(h).last.arguments[1], 13);
+
+      chromeOf(tester).onLocate!();
+      await tester.pump();
+      await settleCamera(tester, h);
+      await emitSnapshot(
+        tester,
+        h,
+        _snapshot(lastPosition: const LatLng(48.3, 11.3)),
+      );
+
+      expect(moves(h).last.arguments[1], followZoom);
+      expect(chromeOf(tester).following, isTrue);
       await unmountApp(tester);
     });
 
