@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../app/app_config.dart';
 import '../application/turn_announcer.dart';
@@ -7,6 +8,7 @@ import '../domain/voice_option.dart';
 const String _prefsTurns = 'navigation.turns';
 const String _prefsVoice = 'navigation.voice';
 const String _prefsReroute = 'navigation.reroute';
+const String _prefsRerouteMode = 'navigation.rerouteMode';
 const String _prefsLead = 'navigation.leadSeconds';
 const String _prefsVoiceId = 'navigation.voiceId';
 
@@ -16,16 +18,30 @@ const int minLeadSeconds = 5;
 /// See [minLeadSeconds].
 const int maxLeadSeconds = 30;
 
+/// What the ride does when the rider leaves the route.
+enum RerouteMode {
+  /// Keep the plan and work out the best way back onto it, ahead of the
+  /// rider, drawn beside it: the planned route is never replaced.
+  guideBack,
+
+  /// Plan a new route from the rider to the stops still ahead and the end,
+  /// and ride that from there on.
+  newRoute,
+
+  /// Only say how far the route is and which way; never ask the router.
+  off,
+}
+
 /// Whether turn-by-turn guidance is shown and spoken while recording, how far
-/// ahead a turn is announced, and whether a new way back onto the route is
-/// planned when the rider leaves it.
+/// ahead a turn is announced, and what leaving the route does.
 class NavigationSettings {
-  /// Creates the settings. All three switches are on and the lead is
-  /// [defaultLeadSeconds] unless the rider says otherwise.
+  /// Creates the settings. The switches are on, leaving the route guides the
+  /// rider back, and the lead is [defaultLeadSeconds] unless the rider says
+  /// otherwise.
   const NavigationSettings({
     this.turns = true,
     this.voice = true,
-    this.reroute = true,
+    this.rerouteMode = RerouteMode.guideBack,
     this.leadSeconds = defaultLeadSeconds,
     this.voiceId,
   });
@@ -36,9 +52,8 @@ class NavigationSettings {
   /// Whether the turns are spoken. Only has an effect while [turns] is on.
   final bool voice;
 
-  /// Whether leaving the route asks the router for a way back onto it. Only
-  /// has an effect while [turns] is on.
-  final bool reroute;
+  /// What leaving the route does. Only has an effect while [turns] is on.
+  final RerouteMode rerouteMode;
 
   /// How many seconds of travel before a turn it is announced, at the
   /// rider's current speed.
@@ -53,14 +68,14 @@ class NavigationSettings {
   NavigationSettings copyWith({
     bool? turns,
     bool? voice,
-    bool? reroute,
+    RerouteMode? rerouteMode,
     int? leadSeconds,
     String? voiceId,
     bool setVoiceId = false,
   }) => NavigationSettings(
     turns: turns ?? this.turns,
     voice: voice ?? this.voice,
-    reroute: reroute ?? this.reroute,
+    rerouteMode: rerouteMode ?? this.rerouteMode,
     leadSeconds: leadSeconds ?? this.leadSeconds,
     voiceId: setVoiceId ? voiceId : this.voiceId,
   );
@@ -71,16 +86,18 @@ class NavigationSettings {
       other is NavigationSettings &&
           other.turns == turns &&
           other.voice == voice &&
-          other.reroute == reroute &&
+          other.rerouteMode == rerouteMode &&
           other.leadSeconds == leadSeconds &&
           other.voiceId == voiceId;
 
   @override
-  int get hashCode => Object.hash(turns, voice, reroute, leadSeconds, voiceId);
+  int get hashCode =>
+      Object.hash(turns, voice, rerouteMode, leadSeconds, voiceId);
 
   @override
   String toString() =>
-      'NavigationSettings(turns: $turns, voice: $voice, reroute: $reroute, '
+      'NavigationSettings(turns: $turns, voice: $voice, '
+      'rerouteMode: ${rerouteMode.name}, '
       'leadSeconds: $leadSeconds, voiceId: $voiceId)';
 }
 
@@ -96,7 +113,7 @@ class NavigationSettingsController extends Notifier<NavigationSettings> {
     return NavigationSettings(
       turns: prefs.getBool(_prefsTurns) ?? true,
       voice: prefs.getBool(_prefsVoice) ?? true,
-      reroute: prefs.getBool(_prefsReroute) ?? true,
+      rerouteMode: _storedRerouteMode(prefs),
       leadSeconds: (prefs.getInt(_prefsLead) ?? defaultLeadSeconds).clamp(
         minLeadSeconds,
         maxLeadSeconds,
@@ -140,10 +157,29 @@ class NavigationSettingsController extends Notifier<NavigationSettings> {
     state = state.copyWith(voice: value);
   }
 
-  /// Switches re-routing on or off.
-  Future<void> setReroute(bool value) async {
-    await _write(_prefsReroute, value);
-    state = state.copyWith(reroute: value);
+  /// Chooses what leaving the route does. The switch it replaces is
+  /// forgotten on the way.
+  Future<void> setRerouteMode(RerouteMode mode) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.remove(_prefsReroute);
+    if (mode == RerouteMode.guideBack) {
+      await prefs.remove(_prefsRerouteMode);
+    } else {
+      await prefs.setString(_prefsRerouteMode, mode.name);
+    }
+    state = state.copyWith(rerouteMode: mode);
+  }
+
+  /// The stored choice, or the old switch it replaced: on is guiding back,
+  /// off is not re-routing.
+  static RerouteMode _storedRerouteMode(SharedPreferences prefs) {
+    final stored = prefs.getString(_prefsRerouteMode);
+    if (stored != null) {
+      return RerouteMode.values.asNameMap()[stored] ?? RerouteMode.guideBack;
+    }
+    return prefs.getBool(_prefsReroute) == false
+        ? RerouteMode.off
+        : RerouteMode.guideBack;
   }
 
   Future<void> _write(String key, bool value) async {

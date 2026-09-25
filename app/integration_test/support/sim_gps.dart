@@ -16,16 +16,23 @@ import 'harness.dart';
 /// Where tool/sim_ride.py looks, relative to the app's support directory.
 const String simRouteFile = 'itest/route.txt';
 
-/// Asks the runner to ride [line] on the simulator's GPS, and waits long
-/// enough for it to have picked the request up and moved the position to
-/// the start of it.
-Future<void> rideSimulatorAlong(WidgetTester tester, List<LatLng> line) async {
+/// Asks the runner to ride [line] on the simulator's GPS, at [speedMps] when
+/// given (the runner's own pace otherwise), and waits long enough for it to
+/// have picked the request up and moved the position to the start of it.
+Future<void> rideSimulatorAlong(
+  WidgetTester tester,
+  List<LatLng> line, {
+  double? speedMps,
+}) async {
   final base = await getApplicationSupportDirectory();
   final file = File(p.join(base.path, simRouteFile));
   await file.parent.create(recursive: true);
   final points = thinLine(line, 12);
   await file.writeAsString(
-    points.map((point) => '${point.lat},${point.lon}').join('\n'),
+    <String>[
+      if (speedMps != null) 'speed=$speedMps',
+      for (final point in points) '${point.lat},${point.lon}',
+    ].join('\n'),
   );
   // The runner polls once a second; simctl needs a moment more to issue the
   // first fix on the new path.

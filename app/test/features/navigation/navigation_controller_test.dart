@@ -910,8 +910,8 @@ void main() {
     );
 
     test(
-      'a rider who rides away from two ways back while getting on beside '
-      'the plan gets it re-planned once, and then quiet until they ask',
+      'a rider who keeps to their own way beside the plan is never '
+      're-planned, and asked a way back at most every 300 m, always ahead',
       () async {
         final h = await _NavHarness.create(
           saved: _longRoute(),
@@ -920,35 +920,62 @@ void main() {
         await h.follow('route-2');
         await h.ride(300);
         var along = 300.0;
-        Future<void> onBeside(int fixes, double aside) async {
-          for (var i = 0; i < fixes; i++) {
-            h.clock.advance(const Duration(seconds: 4));
-            along += 20;
-            await h.stray(along, asideM: aside);
-          }
+        // Where the rider was each time a way back was asked for.
+        final askedAt = <double>[];
+        // Riding north a street over, ignoring every way back.
+        for (var i = 0; i < 80; i++) {
+          h.clock.advance(const Duration(seconds: 4));
+          along += 20;
+          final before = h.scripted.queries.length;
+          await h.stray(along, asideM: 150);
+          if (h.scripted.queries.length > before) askedAt.add(along);
+          expect(h.detour?.replacesPlan ?? false, isFalse, reason: '$along');
+          expect(h.active!.key, isNot(startsWith('reroute:')));
         }
 
-        // Riding north a street over, ignoring every way back.
-        await onBeside(40, 150);
-        final replans = h.scripted.queries
-            .where((q) => q.points.last == _at(5000) && q.points.length == 2)
-            .toList();
-        final rejoins = h.scripted.queries.length - replans.length;
-        expect(replans, hasLength(1));
-        expect(rejoins, ignoredRejoinsBeforeReplan);
-        expect(h.detour!.replacesPlan, isTrue);
-
-        // Straying off the new plan too: quiet, nothing asked.
-        final asked = h.scripted.queries.length;
-        await onBeside(20, 900);
-        expect(h.scripted.queries.length, asked);
-
-        // Until the rider asks.
-        h.container.read(navigationControllerProvider.notifier).requestRejoin();
-        await Future<void>.delayed(const Duration(milliseconds: 5));
-        expect(h.scripted.queries.length, greaterThan(asked));
+        // Every query is a way back, never a re-plan to the finish.
+        for (final q in h.scripted.queries) {
+          final targetM = (q.points.last.lat - 48) * _metresPerDegree;
+          final fromM = (q.points.first.lat - 48) * _metresPerDegree;
+          expect(q.points.last, isNot(_at(5000)));
+          expect(targetM, greaterThan(fromM), reason: 'ahead of the rider');
+        }
+        expect(askedAt, isNotEmpty);
+        for (var i = 1; i < askedAt.length; i++) {
+          expect(
+            askedAt[i] - askedAt[i - 1],
+            greaterThanOrEqualTo(detourRecomputeMovedM - 20),
+            reason: 'asked at $askedAt',
+          );
+        }
       },
     );
+
+    test('a rider who rides away from a way back is never aimed short of '
+        'it', () async {
+      final h = await _NavHarness.create(
+        saved: _longRoute(),
+        backend: _rejoinBackend(),
+      );
+      await h.follow('route-2');
+      await h.ride(300);
+      await h.driftAway(from: 320);
+      final first = h.detour!.rejoinAlongM;
+
+      // Heading off west, a long way from the plan and from the way back,
+      // well past the 300 m that earns another.
+      for (var i = 1; i <= 12; i++) {
+        h.clock.advance(const Duration(seconds: 6));
+        await h.stray(340, asideM: -200.0 - i * 50);
+      }
+
+      expect(h.scripted.queries.length, greaterThan(1));
+      expect(h.detour!.rejoinAlongM, greaterThanOrEqualTo(first - 1));
+      for (final q in h.scripted.queries) {
+        final targetM = (q.points.last.lat - 48) * _metresPerDegree;
+        expect(targetM, greaterThanOrEqualTo(first - 1));
+      }
+    });
 
     test('the finish of a long plan is never a candidate', () async {
       final h = await _NavHarness.create(
@@ -1137,31 +1164,42 @@ void main() {
     });
   });
 
-  group('re-routing switched off', () {
-    test('the rider is guided back and nothing else happens', () async {
-      final h = await _NavHarness.create(
-        saved: _savedRoute(),
-        backend: _rejoinBackend(),
-        preferences: const <String, Object>{'navigation.reroute': false},
+  group('don\'t re-route', () {
+    for (final (name, stored) in <(String, Map<String, Object>)>[
+      ('chosen', <String, Object>{'navigation.rerouteMode': 'off'}),
+      ('from the old switch', <String, Object>{'navigation.reroute': false}),
+    ]) {
+      test(
+        '$name: the rider is guided back and nothing else happens',
+        () async {
+          final h = await _NavHarness.create(
+            saved: _savedRoute(),
+            backend: _rejoinBackend(),
+            preferences: stored,
+          );
+          await h.follow('route-1');
+          await h.ride(300);
+
+          await h.driftAway(from: 320);
+          h.clock.advance(const Duration(minutes: 10));
+          await h.stray(400, asideM: 5000);
+
+          expect(h.scripted.callCount, 0);
+          expect(h.detour, isNull);
+          expect(h.offRouteState, OffRouteState.guiding);
+          expect(h.progress!.offRoute, isTrue);
+          expect(h.guidance, isNotNull);
+          expect(h.guidance!.distanceM, closeTo(5000, 50));
+          expect(h.progress!.rerouting, isFalse);
+        },
       );
-      await h.follow('route-1');
-      await h.ride(300);
-
-      await h.driftAway(from: 320);
-      h.clock.advance(const Duration(minutes: 10));
-      await h.stray(400, asideM: 5000);
-
-      expect(h.scripted.callCount, 0);
-      expect(h.detour, isNull);
-      expect(h.offRouteState, OffRouteState.guiding);
-      expect(h.guidance, isNotNull);
-    });
+    }
 
     test('a tap on the banner does not go behind the rider\'s back', () async {
       final h = await _NavHarness.create(
         saved: _savedRoute(),
         backend: _rejoinBackend(),
-        preferences: const <String, Object>{'navigation.reroute': false},
+        preferences: const <String, Object>{'navigation.rerouteMode': 'off'},
       );
       await h.follow('route-1');
       await h.ride(300);
@@ -1178,7 +1216,7 @@ void main() {
       final h = await _NavHarness.create(
         saved: _savedRoute(),
         backend: _rejoinBackend(),
-        preferences: const <String, Object>{'navigation.reroute': false},
+        preferences: const <String, Object>{'navigation.rerouteMode': 'off'},
       );
       await h.follow('route-1');
       await h.ride(300);
@@ -1194,8 +1232,8 @@ void main() {
     });
   });
 
-  group('the whole ride re-planned', () {
-    test('three kilometres out for five minutes', () async {
+  group('guide me back', () {
+    test('far out for a long time, the plan still stands', () async {
       final h = await _NavHarness.create(
         saved: _savedRoute(),
         backend: _rejoinBackend(),
@@ -1208,35 +1246,14 @@ void main() {
       h.clock.advance(const Duration(minutes: 6));
       await h.stray(340, asideM: 4000);
 
-      final detour = h.detour!;
-      expect(detour.replacesPlan, isTrue);
-      expect(
-        detour.branch,
-        isEmpty,
-        reason: 'it is the plan now, not a branch',
-      );
-      expect(h.active!.key, detour.key);
-      expect(h.speaker.spoken, contains('Route recalculated'));
-      // The new route runs from where the rider stands to the rest of the
-      // plan's waypoints, exactly as a re-route always did.
-      expect(h.scripted.queries.last.points.first, _at(340, asideM: 4000));
-      expect(h.scripted.queries.last.points.last, _at(1000));
-    });
-
-    test('a long way out but not for long is still only a rejoin', () async {
-      final h = await _NavHarness.create(
-        saved: _savedRoute(),
-        backend: _rejoinBackend(),
-      );
-      await h.follow('route-1');
-      await h.ride(300);
-      await h.strayOff(from: 320, asideM: 4000);
-
-      h.clock.advance(detourAfter + const Duration(seconds: 1));
-      await h.stray(340, asideM: 4000);
-
       expect(h.detour!.replacesPlan, isFalse);
       expect(h.detour!.branch, isNotEmpty);
+      expect(h.offRouteState, OffRouteState.detour);
+      expect(
+        h.scripted.queries.map((q) => q.points.last),
+        isNot(contains(_at(1000))),
+        reason: 'no query to the finish',
+      );
     });
 
     test('the new route is the one the rider is then held to', () async {
@@ -1260,6 +1277,116 @@ void main() {
       await h.ride(420);
 
       expect(h.detour!.replacesPlan, isTrue, reason: 'the new route stands');
+    });
+  });
+
+  group('a new route to the destination', () {
+    const newRoute = <String, Object>{'navigation.rerouteMode': 'newRoute'};
+
+    test('leaving the route re-plans from the rider through the stops still '
+        'ahead', () async {
+      final h = await _NavHarness.create(
+        saved: _savedRoute(),
+        backend: _rejoinBackend(),
+        preferences: newRoute,
+      );
+      await h.follow('route-1');
+      await h.ride(300);
+      await h.strayOff(from: 320);
+      expect(h.scripted.callCount, 0, reason: 'not before the wait');
+
+      h.clock.advance(detourAfter + const Duration(seconds: 1));
+      await h.stray(340);
+
+      final detour = h.detour!;
+      expect(detour.replacesPlan, isTrue);
+      expect(detour.branch, isEmpty, reason: 'it is the plan now');
+      expect(h.active!.key, detour.key);
+      expect(h.speaker.spoken, contains('Route recalculated'));
+      // From the rider, through the stops at 500 m and 800 m, to the end;
+      // the start is behind them and stays there.
+      expect(h.scripted.queries.single.points, <LatLng>[
+        _at(340, asideM: 200),
+        _at(500),
+        _at(800),
+        _at(1000),
+      ]);
+      expect(detour.waypoints, h.scripted.queries.single.points);
+    });
+
+    test('noise never re-plans', () async {
+      final h = await _NavHarness.create(
+        saved: _savedRoute(),
+        backend: _rejoinBackend(),
+        preferences: newRoute,
+      );
+      await h.follow('route-1');
+      for (var along = 0.0; along <= 1000; along += 20) {
+        h.clock.advance(const Duration(seconds: 4));
+        // Every fifth fix thrown 120 m out.
+        await h.ride(along, asideM: along % 100 == 0 ? 120 : 0);
+      }
+
+      expect(h.scripted.callCount, 0);
+      expect(h.detour, isNull);
+    });
+
+    test(
+      'straying off the new route again waits for 300 m of riding',
+      () async {
+        final h = await _NavHarness.create(
+          saved: _longRoute(),
+          backend: _rejoinBackend(),
+          preferences: newRoute,
+        );
+        await h.follow('route-2');
+        await h.ride(300);
+        var along = 300.0;
+        final askedAt = <LatLng>[];
+        // A rider riding their own way, ignoring every new route: the fake
+        // router's new route sets off north from wherever the rider stood, so
+        // they cross to the next street over, away from it, each time.
+        var asideM = 150.0;
+        for (var i = 0; i < 80; i++) {
+          h.clock.advance(const Duration(seconds: 4));
+          along += 20;
+          final before = h.scripted.queries.length;
+          await h.stray(along, asideM: asideM);
+          if (h.scripted.queries.length > before) {
+            askedAt.add(_at(along, asideM: asideM));
+            asideM = asideM == 150 ? 450 : 150;
+          }
+        }
+
+        expect(askedAt.length, greaterThan(1));
+        for (var i = 1; i < askedAt.length; i++) {
+          // As the crow flies, which no ride between the two is shorter than.
+          expect(
+            haversineMeters(askedAt[i - 1], askedAt[i]),
+            greaterThanOrEqualTo(replanMovedM),
+            reason: 'asked at $askedAt',
+          );
+        }
+        for (final q in h.scripted.queries) {
+          expect(q.points.last, _at(5000), reason: 'always to the finish');
+        }
+      },
+    );
+
+    test('a tap on the banner re-plans rather than guiding back', () async {
+      final h = await _NavHarness.create(
+        saved: _savedRoute(),
+        backend: _rejoinBackend(),
+        preferences: newRoute,
+      );
+      await h.follow('route-1');
+      await h.ride(300);
+      await h.strayOff(from: 320);
+
+      h.container.read(navigationControllerProvider.notifier).requestRejoin();
+      await _NavHarness._settle();
+
+      expect(h.detour!.replacesPlan, isTrue);
     });
   });
 }

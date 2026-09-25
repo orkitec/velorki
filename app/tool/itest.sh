@@ -18,7 +18,7 @@
 # nine files in one process. It is what the iOS job runs, where the Xcode build
 # and the simulator boot cost far more than the tests and were being paid once
 # per file. A combined run needs a longer watchdog than one file does, so set
-# VELORKI_ITEST_TIMEOUT with it (the iOS workflow uses 2400).
+# VELORKI_ITEST_TIMEOUT with it (the iOS workflow uses 3000).
 #
 # Configuration is fixed here on purpose:
 #   VELORKI_BROUTER_URL empty  -> nothing to route against but the device, so a
@@ -80,7 +80,7 @@ fi
 # as 1, so adding a test file needs no change here unless it is slow.
 itest_weight() {
   case "$(basename "$1")" in
-    close_loop_test.dart | navigate_route_test.dart | record_ride_test.dart | live_ride_test.dart | live_navigate_test.dart) echo 2 ;;
+    close_loop_test.dart | navigate_route_test.dart | record_ride_test.dart | live_ride_test.dart | live_navigate_test.dart | live_reroute_test.dart) echo 2 ;;
     *) echo 1 ;;
   esac
 }

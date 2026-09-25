@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/navigation/application/off_route_machine.dart';
 import 'package:velorki/features/navigation/application/route_geometry.dart';
+import 'package:velorki/features/navigation/data/navigation_settings.dart';
 import 'package:velorki/features/navigation/domain/off_route_guidance.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -32,7 +33,8 @@ OffRouteDecision _fix(
   double speedMps = 6,
   double? headingDeg = 0,
   Duration at = Duration.zero,
-  bool rerouteAllowed = true,
+  RerouteMode mode = RerouteMode.guideBack,
+  double? alongNowM,
   double? distanceFromDetourM,
   double? accuracyM,
 }) => machine.update(
@@ -42,7 +44,8 @@ OffRouteDecision _fix(
   speedMps: speedMps,
   headingDeg: headingDeg,
   now: _t0.add(at),
-  rerouteAllowed: rerouteAllowed,
+  mode: mode,
+  alongNowM: alongNowM,
   distanceFromDetourM: distanceFromDetourM,
   accuracyM: accuracyM,
 );
@@ -133,7 +136,7 @@ void main() {
         speedMps: 6,
         headingDeg: 0,
         now: _t0.add(const Duration(seconds: 9)),
-        rerouteAllowed: true,
+        mode: RerouteMode.guideBack,
       );
 
       expect(decision.state, OffRouteState.guiding);
@@ -453,7 +456,7 @@ void main() {
           distanceFromRouteM: aside,
           alongM: 300,
           at: Duration(seconds: second),
-          rerouteAllowed: false,
+          mode: RerouteMode.off,
         );
         if (decision.speakGuidance) spokenAt.add(second);
       }
@@ -475,7 +478,7 @@ void main() {
           distanceFromRouteM: 120,
           alongM: 300,
           at: Duration(seconds: second),
-          rerouteAllowed: false,
+          mode: RerouteMode.off,
         );
         if (decision.speakGuidance) spoken++;
       }
@@ -568,10 +571,9 @@ void main() {
           distanceFromRouteM: 120.0 + second * 10,
           alongM: 300,
           at: Duration(seconds: second),
-          rerouteAllowed: false,
+          mode: RerouteMode.off,
         );
         expect(decision.planDetour, isFalse, reason: '$second s');
-        expect(decision.fullReroute, isFalse, reason: '$second s');
         expect(decision.state, OffRouteState.guiding, reason: '$second s');
         expect(decision.guidance, isNotNull, reason: '$second s');
       }
@@ -654,60 +656,168 @@ void main() {
     });
   });
 
-  group('the whole ride re-planned', () {
-    test('three kilometres out for five minutes', () {
+  group('what each mode asks for', () {
+    /// Guided for [seconds], a kilometre out, in [mode].
+    bool asksAfter(RerouteMode mode, int seconds) {
       final machine = _machine();
-      for (var i = 0; i < 2; i++) {
-        _fix(
+      var asked = false;
+      for (var second = 0; second <= seconds; second += 5) {
+        final decision = _fix(
+          machine,
+          _at(300, asideM: 1000),
+          distanceFromRouteM: 1000,
+          alongM: 300,
+          at: Duration(seconds: second),
+          mode: mode,
+        );
+        asked |= decision.planDetour;
+        if (second == 0) continue; // One stray fix is noise.
+        expect(decision.state, OffRouteState.guiding);
+        expect(decision.guidance, isNotNull);
+      }
+      return asked;
+    }
+
+    test('guide me back and a new route both ask after the same wait', () {
+      expect(asksAfter(RerouteMode.guideBack, 40), isFalse);
+      expect(asksAfter(RerouteMode.guideBack, 50), isTrue);
+      expect(asksAfter(RerouteMode.newRoute, 40), isFalse);
+      expect(asksAfter(RerouteMode.newRoute, 50), isTrue);
+    });
+
+    test('don\'t re-route never asks, and still guides', () {
+      expect(asksAfter(RerouteMode.off, 3600), isFalse);
+    });
+
+    test('a long time far out is still only a way back', () {
+      // No three-kilometre, five-minute re-plan any more: a rider who asked
+      // to be guided back is guided back, however long they are away.
+      final machine = _machine();
+      for (var second = 0; second <= 600; second += 5) {
+        final decision = _fix(
           machine,
           _at(300, asideM: 4000),
           distanceFromRouteM: 4000,
           alongM: 300,
-          at: Duration(seconds: i),
+          at: Duration(seconds: second),
         );
+        if (second > 0) expect(decision.state, OffRouteState.guiding);
       }
-
-      final early = _fix(
-        machine,
-        _at(300, asideM: 4000),
-        distanceFromRouteM: 4000,
-        alongM: 300,
-        at: const Duration(minutes: 4),
-      );
-      expect(early.fullReroute, isFalse, reason: 'four minutes is not five');
-
-      final late = _fix(
-        machine,
-        _at(300, asideM: 4000),
-        distanceFromRouteM: 4000,
-        alongM: 300,
-        at: const Duration(minutes: 6),
-      );
-      expect(late.fullReroute, isTrue);
     });
+  });
 
-    test('a long time close by is still only a rejoin', () {
+  group('ignoring a way back', () {
+    /// A rider at 300 m along, 120 m out, handed a way back that meets the
+    /// plan at 900 m.
+    OffRouteMachine ignoring() {
       final machine = _machine();
       for (var i = 0; i < 2; i++) {
         _fix(
           machine,
-          _at(300, asideM: 200),
-          distanceFromRouteM: 200,
+          _at(300, asideM: 120),
+          distanceFromRouteM: 120,
           alongM: 300,
           at: Duration(seconds: i),
         );
       }
+      machine.detourStarted(
+        _t0.add(const Duration(seconds: 2)),
+        from: _at(300, asideM: 120),
+        targetAlongM: 900,
+      );
+      return machine;
+    }
 
+    test('riding away from it asks again only three hundred metres on', () {
+      final machine = ignoring();
+      // Riding north beside the plan, 120 m out, 5 m/s, off the way back.
+      double? askedAtM;
+      for (var second = 5; second <= 120; second += 5) {
+        final aheadM = 300.0 + second * 5;
+        final decision = _fix(
+          machine,
+          _at(aheadM, asideM: 120),
+          distanceFromRouteM: 120,
+          alongM: 300,
+          alongNowM: math.min(aheadM, 880),
+          at: Duration(seconds: second),
+          distanceFromDetourM: 100,
+        );
+        if (decision.planDetour) {
+          askedAtM = aheadM - 300;
+          break;
+        }
+      }
+      expect(askedAtM, isNotNull);
+      expect(askedAtM, greaterThanOrEqualTo(detourRecomputeMovedM));
+      expect(askedAtM, lessThan(detourRecomputeMovedM + 30));
+    });
+
+    test('a target the rider has passed is replaced, once they have got '
+        'three hundred metres on', () {
+      final machine = ignoring();
+      // Right beside the way back's end: not adrift of it, but past it.
+      bool at(double alongM, int second) => _fix(
+        machine,
+        _at(alongM, asideM: 60),
+        distanceFromRouteM: 60,
+        alongM: 300,
+        alongNowM: alongM,
+        at: Duration(seconds: second),
+        distanceFromDetourM: 5,
+      ).planDetour;
+
+      expect(at(560, 25), isFalse, reason: 'not past it yet');
+      expect(at(900, 50), isTrue);
+    });
+
+    test('a target not yet reached and a rider on the way back ask for '
+        'nothing, however far they ride', () {
+      final machine = ignoring();
       final decision = _fix(
         machine,
-        _at(300, asideM: 200),
-        distanceFromRouteM: 200,
+        _at(800, asideM: 60),
+        distanceFromRouteM: 60,
         alongM: 300,
-        at: const Duration(minutes: 10),
+        alongNowM: 800,
+        at: const Duration(seconds: 90),
+        distanceFromDetourM: 5,
       );
+      expect(decision.planDetour, isFalse);
+    });
 
-      expect(decision.fullReroute, isFalse);
-      expect(decision.planDetour, isTrue);
+    test('standing still off it never asks again', () {
+      final machine = ignoring();
+      for (var second = 20; second <= 600; second += 10) {
+        final decision = _fix(
+          machine,
+          _at(310, asideM: 150),
+          distanceFromRouteM: 150,
+          alongM: 300,
+          alongNowM: 310,
+          at: Duration(seconds: second),
+          distanceFromDetourM: 100,
+          speedMps: 0,
+        );
+        expect(decision.planDetour, isFalse, reason: '$second s');
+      }
+    });
+
+    test('only guide me back ever asks for another', () {
+      for (final mode in [RerouteMode.newRoute, RerouteMode.off]) {
+        final machine = ignoring();
+        final decision = _fix(
+          machine,
+          _at(1200, asideM: 120),
+          distanceFromRouteM: 120,
+          alongM: 300,
+          alongNowM: 1200,
+          at: const Duration(seconds: 60),
+          distanceFromDetourM: 200,
+          mode: mode,
+        );
+        expect(decision.planDetour, isFalse, reason: mode.name);
+      }
     });
   });
 
@@ -732,6 +842,33 @@ void main() {
       expect(
         headingViaPoint(position: _at(300), headingDeg: null, speedMps: 6),
         isNull,
+      );
+    });
+  });
+
+  group('where a way back is aimed from', () {
+    final cumulative = cumulativeDistances(_line);
+
+    test('where the rider left, while they have not got on beside it', () {
+      expect(rejoinFromM(_line, cumulative, _at(250, asideM: 200), 300), 300);
+    });
+
+    test('their own place beside the plan, once it is ahead', () {
+      expect(
+        rejoinFromM(_line, cumulative, _at(1200, asideM: 200), 300),
+        closeTo(1200, 1),
+      );
+    });
+
+    test('where they left, for a rider far out and far on', () {
+      expect(rejoinFromM(_line, cumulative, _at(5000, asideM: 1500), 300), 300);
+    });
+
+    test('their own place for a rider close to the plan far on: they '
+        'skipped a stretch of it', () {
+      expect(
+        rejoinFromM(_line, cumulative, _at(5000, asideM: 200), 300),
+        closeTo(5000, 1),
       );
     });
   });

@@ -125,10 +125,10 @@
       "navigate": {
         "eyebrow": "Navigation",
         "title": "Gesprochene Abbiegehinweise, auf dem Handy",
-        "body": "Ein Abbiegebanner und gesprochene Hinweise, während du eine Route fährst, Neuberechnung auf dem Handy, wenn du sie verlässt, Folgemodus mit Kompass oder nach Norden ausgerichtet. Die Hinweise entstehen aus denselben Routing-Daten, die schon die Fahrt geplant haben, also funktionieren sie auch dort, wo kein Netz ist. Eine GPX-Route bringt ihr eigenes Cue Sheet und ihre Wegpunkte mit, und die Aufnahme-Karte zeigt als wischbare Seiten ein Höhenprofil mit dem Anstieg voraus, die Ankunftszeit und die Cue-Liste.",
+        "body": "Ein Abbiegebanner und gesprochene Hinweise, während du eine Route fährst, und wenn du sie verlässt, nach deiner Wahl ein Weg zurück auf die Planung, eine neue Route zum Ziel oder nur die Richtung zurück, alles auf dem Handy berechnet. Folgemodus mit Kompass oder nach Norden ausgerichtet. Die Hinweise entstehen aus denselben Routing-Daten, die schon die Fahrt geplant haben, also funktionieren sie auch dort, wo kein Netz ist. Eine GPX-Route bringt ihr eigenes Cue Sheet und ihre Wegpunkte mit, und die Aufnahme-Karte zeigt als wischbare Seiten ein Höhenprofil mit dem Anstieg voraus, die Ankunftszeit und die Cue-Liste.",
         "bullets": {
           "one": "Abbiegebanner und Sprachhinweise, offline",
-          "two": "Berechnet auf dem Gerät neu, wenn du die Linie verlässt",
+          "two": "Linie verlassen: zurückgeführt, neue Route oder nur die Richtung zurück",
           "three": "Cue Sheet, Wegpunkte, Anstieg und Ankunftszeit auf der Aufnahme-Karte"
         }
       },

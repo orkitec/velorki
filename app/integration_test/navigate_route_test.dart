@@ -136,7 +136,7 @@ void main() {
     final settings = container.read(navigationSettingsProvider.notifier);
     await settings.setTurns(true);
     await settings.setVoice(true);
-    await settings.setReroute(true);
+    await settings.setRerouteMode(RerouteMode.guideBack);
 
     // ------------------------------------------------------------- the route
     final planner = container.read(plannerControllerProvider.notifier);
@@ -193,7 +193,11 @@ void main() {
     );
     final chosen = container.read(navigationSettingsProvider);
     expect(chosen.turns, isTrue, reason: 'the turn directions stay on');
-    expect(chosen.reroute, isTrue, reason: 're-routing stays on');
+    expect(
+      chosen.rerouteMode,
+      RerouteMode.guideBack,
+      reason: 'leaving the route still guides back',
+    );
 
     // -------------------------------------------------------------- the ride
     // The start button is back above the fold, and the sheet's list has

@@ -2,8 +2,8 @@ name: routing-scenarios
 
 # app/test/features/navigation/routing_scenarios_test.dart over New York,
 # and the routing sweep (routing_sweep_test.dart) as a nightly metric:
-# rides replayed through the navigation controller and the on-device router
-# on W75_N40.rd5, the tile the one-way and pavement assertions matter most
+# rides replayed through the navigation controller and the on-device router,
+# each in every re-routing mode, on W75_N40.rd5, the tile the one-way and pavement assertions matter most
 # in. The Madeira scenarios run on every push with the committed oracle
 # tile; this job adds the city, whose 120 MB tile is downloaded from the
 # mirror rather than committed, and kept in the Actions cache per mirror

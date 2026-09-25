@@ -75,7 +75,7 @@ Velorki's watch app ships inside the iPhone app. It arrives on the watch by itse
 - Your **heart rate** in large figures, with the heart beating while the watch measures; two dashes while nothing is measuring, and the last reading dimmed while the ride is paused. The heart and the buttons take the accent colour you chose in the app.
 - A line in orange when something is wrong: Health access refused, a workout the watch would not run, or a phone that did not answer.
 - While a ride runs, its distance, the elapsed clock and the speed, and **Paused** when it is paused. The phone formats all of them, so they are in your units and your language.
-- The next turn with its icon, its name and the distance to it, as the lock screen has it, in orange while you are off route.
+- The next turn with its icon, its name and the distance to it, as the lock screen has it, in orange while you are off route; once a way back or a new route is worked out, its turns.
 - One tap on the wrist when a turn cue is due, and one when you leave the route. A watch that slept through three turns taps once rather than three times.
 
 The watch's own words, which is to say the buttons and the two footnotes, are English whatever language the phone is in. There are no complications yet.

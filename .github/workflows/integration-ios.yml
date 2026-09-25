@@ -56,7 +56,7 @@ env:
 jobs:
   simulator:
     runs-on: macos-15
-    timeout-minutes: 60
+    timeout-minutes: 75
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -142,7 +142,7 @@ jobs:
           VELORKI_ITEST_COMBINED: "1"
           # The watchdog in tool/itest.sh guards one `flutter test` call, which
           # is now the whole suite: 900 s would kill a healthy run.
-          VELORKI_ITEST_TIMEOUT: "2400"
+          VELORKI_ITEST_TIMEOUT: "3000"
         run: tool/itest.sh
 
       # After the run, which is what fills it, and even on a red one.

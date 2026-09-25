@@ -28,7 +28,11 @@ Future<ProviderContainer> _pump(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: testApp(home: const Scaffold(body: NavigationSection())),
+      child: testApp(
+        home: const Scaffold(
+          body: SingleChildScrollView(child: NavigationSection()),
+        ),
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -39,19 +43,41 @@ Future<ProviderContainer> _pump(
 SwitchListTile _tile(WidgetTester tester, String title) =>
     tester.widget<SwitchListTile>(find.widgetWithText(SwitchListTile, title));
 
+RadioListTile<RerouteMode> _mode(WidgetTester tester, String title) =>
+    tester.widget<RadioListTile<RerouteMode>>(
+      find.widgetWithText(RadioListTile<RerouteMode>, title),
+    );
+
+/// The mode the choice shows as picked.
+RerouteMode? _picked(WidgetTester tester) => tester
+    .widget<RadioGroup<RerouteMode>>(find.byType(RadioGroup<RerouteMode>))
+    .groupValue;
+
 void main() {
-  testWidgets('all three switches start on', (tester) async {
+  testWidgets('both switches start on, and leaving the route guides back', (
+    tester,
+  ) async {
     await _pump(tester);
 
     expect(find.text(l10n.settingsTurnDirections), findsOneWidget);
     expect(find.text(l10n.settingsTurnDirectionsHint), findsOneWidget);
     expect(find.text(l10n.settingsVoiceDirections), findsOneWidget);
     expect(find.text(l10n.settingsVoiceDirectionsHint), findsOneWidget);
-    expect(find.text(l10n.settingsReroute), findsOneWidget);
-    expect(find.text(l10n.settingsRerouteHint), findsOneWidget);
+    expect(find.text(l10n.settingsRerouteMode), findsOneWidget);
+    for (final text in [
+      l10n.settingsRerouteGuideBack,
+      l10n.settingsRerouteGuideBackHint,
+      l10n.settingsRerouteNewRoute,
+      l10n.settingsRerouteNewRouteHint,
+      l10n.settingsRerouteOff,
+      l10n.settingsRerouteOffHint,
+    ]) {
+      await tester.ensureVisible(find.text(text));
+      expect(find.text(text), findsOneWidget);
+    }
     expect(_tile(tester, l10n.settingsTurnDirections).value, isTrue);
     expect(_tile(tester, l10n.settingsVoiceDirections).value, isTrue);
-    expect(_tile(tester, l10n.settingsReroute).value, isTrue);
+    expect(_picked(tester), RerouteMode.guideBack);
   });
 
   testWidgets('switching the turns off persists and greys out the rest', (
@@ -66,7 +92,8 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getBool('navigation.turns'), isFalse);
     expect(_tile(tester, l10n.settingsVoiceDirections).onChanged, isNull);
-    expect(_tile(tester, l10n.settingsReroute).onChanged, isNull);
+    await tester.ensureVisible(find.text(l10n.settingsRerouteOff));
+    expect(_mode(tester, l10n.settingsRerouteOff).enabled, isFalse);
   });
 
   testWidgets('switching the voice off persists', (tester) async {
@@ -100,32 +127,38 @@ void main() {
     expect(container.read(navigationSettingsProvider).voice, isTrue);
   });
 
-  testWidgets('switching re-routing off persists', (tester) async {
+  testWidgets('choosing a mode persists it', (tester) async {
     final container = await _pump(tester);
 
-    await tester.tap(find.text(l10n.settingsReroute));
-    await tester.pumpAndSettle();
-
-    expect(container.read(navigationSettingsProvider).reroute, isFalse);
-    expect(_tile(tester, l10n.settingsReroute).value, isFalse);
+    for (final (text, mode) in [
+      (l10n.settingsRerouteNewRoute, RerouteMode.newRoute),
+      (l10n.settingsRerouteOff, RerouteMode.off),
+      (l10n.settingsRerouteGuideBack, RerouteMode.guideBack),
+    ]) {
+      await tester.ensureVisible(find.text(text));
+      await tester.tap(find.text(text));
+      await tester.pumpAndSettle();
+      expect(container.read(navigationSettingsProvider).rerouteMode, mode);
+      expect(_picked(tester), mode);
+    }
     final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getBool('navigation.reroute'), isFalse);
+    expect(prefs.getString('navigation.rerouteMode'), isNull);
   });
 
-  testWidgets('the re-route switch is dead while the turns are off', (
-    tester,
-  ) async {
+  testWidgets('the choice is dead while the turns are off', (tester) async {
     final container = await _pump(
       tester,
       initial: const <String, Object>{'navigation.turns': false},
     );
 
-    expect(_tile(tester, l10n.settingsReroute).onChanged, isNull);
-
-    await tester.tap(find.text(l10n.settingsReroute), warnIfMissed: false);
+    await tester.ensureVisible(find.text(l10n.settingsRerouteOff));
+    await tester.tap(find.text(l10n.settingsRerouteOff), warnIfMissed: false);
     await tester.pumpAndSettle();
 
-    expect(container.read(navigationSettingsProvider).reroute, isTrue);
+    expect(
+      container.read(navigationSettingsProvider).rerouteMode,
+      RerouteMode.guideBack,
+    );
   });
 
   testWidgets('the stored switches are the ones shown', (tester) async {
@@ -139,7 +172,8 @@ void main() {
 
     expect(_tile(tester, l10n.settingsTurnDirections).value, isTrue);
     expect(_tile(tester, l10n.settingsVoiceDirections).value, isFalse);
-    expect(_tile(tester, l10n.settingsReroute).value, isFalse);
+    // The old switch, off, reads as Don't re-route.
+    expect(_picked(tester), RerouteMode.off);
   });
 
   testWidgets('the announce-turns slider shows and stores the lead', (

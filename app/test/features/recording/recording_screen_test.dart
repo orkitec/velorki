@@ -366,6 +366,13 @@ void main() {
 
     expect(h.map.lines[followedRouteLineId], detour);
     expect(h.map.lines[detourRouteLineId], isNull);
+    // The plan it replaced stays, faint, under it.
+    expect(h.map.styles[replacedRouteLineId], RouteLineStyle.original);
+    expect(h.map.lines[replacedRouteLineId], isNotEmpty);
+
+    container.read(detourRouteProvider.notifier).replace(null);
+    await tester.pumpAndSettle();
+    expect(h.map.lines[replacedRouteLineId], isNull);
 
     await unmountApp(tester);
   });

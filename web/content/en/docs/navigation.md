@@ -4,17 +4,17 @@ description: Follow a route while you record, with a turn banner and spoken cues
 order: 6
 ---
 
-Velorki guides you along a route while a ride is recording: a banner over the map shows the next turn, and a voice says it out loud. Turn on the three navigation switches, pick a route to follow on the Record tab, and start the ride.
+Velorki guides you along a route while a ride is recording: a banner over the map shows the next turn, and a voice says it out loud. Turn on the navigation switches, pick a route to follow on the Record tab, and start the ride.
 
 Navigation is free, works offline where you have downloaded the routing data, and needs no account.
 
 ## Turn it on
 
-The three switches live in two places at once, and they are the same setting either way: in **Settings → Navigation**, and on the Record tab's sheet below **Keep screen on**.
+The settings live in two places at once, and they are the same setting either way: in **Settings → Navigation**, and on the Record tab's sheet below **Keep screen on**.
 
-1. **Turn directions**, "Show the next turn while you record along a route". This is the master switch; the other two are greyed out while it is off.
+1. **Turn directions**, "Show the next turn while you record along a route". This is the master switch; the rest is greyed out while it is off.
 2. **Voice**, "Say the turns out loud".
-3. **Re-route when off course**, "Plan a new way back onto the route when you leave it".
+3. **When you leave the route**: **Guide me back**, **New route to the destination** or **Don't re-route**. See [when you leave the route](#when-you-leave-the-route).
 
 Then on the **Record** tab pick something under **Follow a route**: **The route on the Plan tab** if the planner holds a route, or any route from your library. Start the ride and the banner appears.
 
@@ -56,29 +56,31 @@ If the phone has no voice for your language at all: "No voice for your language 
 
 ## When you leave the route
 
-Most wrong turns are undone within a block, so Velorki does not re-plan the moment you stray. It works through three stages instead, and each one costs more than the last.
+Most wrong turns are undone within a block, so nothing happens the moment you stray.
 
-### 1. Guide you back
+Roughly **75 metres** off the route, for two fixes running or about eight seconds, and the banner turns orange: **Back to the route, on your left**, with the distance to the nearest point of the route still ahead of you. That much happens in every mode, and costs no routing.
 
-Roughly **75 metres** off the route, for two fixes running or about eight seconds, and the banner turns orange: **Back to the route, on your left**, with the distance to the nearest point of the route still ahead of you. Nothing is re-routed; the plan stays exactly as it was, and the moment you rejoin it the ordinary turns carry on.
+What happens next is the choice under **When you leave the route**. The wait is the same for both modes that route: about **three quarters of a minute off the route, or 150 metres from where you left it**, and never sooner than 15 seconds, so a burst of bad fixes costs nothing. **Tap the banner** to skip the wait.
 
-**Tap the banner** to skip the wait and ask for a detour now.
+### Guide me back
 
-### 2. Compute a detour
+The default. Your plan is never replaced. Velorki works out a way back onto it, to a point **ahead** of you: it tries 300 metres, 800 metres and 2 kilometres further along the plan, counted from where you have got to beside it rather than where you left it, and takes the first that is not a silly diversion and does not send you the wrong way down a one-way street, along a pavement or back the way you came. The way back is drawn as its own line in its own colour, with the plan still on the map, and the banner and the voice follow it. Back on the plan, the way back disappears without a word and the plan's own turns carry on.
 
-Still off the route about **three quarters of a minute later, or 150 metres from where you left it** (and never sooner than 15 seconds, so a burst of bad fixes costs nothing), and Velorki routes you back. It tries three places to rejoin the plan, 300 metres, 800 metres and 2 kilometres further along it, counted from where you have got to beside the plan rather than where you left it, and takes the first that is not a silly diversion and does not send you the wrong way down a one-way street, along a pavement or back the way you came. The answer is drawn as a branch beside your original plan and stitched to the rest of it, so the turns after the rejoin are the ones you already had.
+If you ride your own way instead, the way back is worked out again, but only once you are **300 metres** from where the last one was worked out, and never to a point short of the last one: it moves on with you rather than calling you back, and a minute of riding is the most it will ask of the router. It never gives up on the plan and plans a new route by itself.
 
-The aim is the nearest sensible way back onto the plan, not the fastest way to the finish. While you are off route the branch is recomputed when you have drifted another 50 metres or so, and at most every 20 seconds, unless you are already making your own way back. Ride away from two branches and Velorki takes the hint: it plans once from where you are to the destination and then leaves you in peace until you have followed that route for a while, rejoined it, or asked. Get back within about 30 metres of the plan and the branch disappears without a word.
+### New route to the destination
 
-The banner says **Recalculating…** while it works, and **Route recalculated** when it lands.
+When you leave the route, Velorki plans again from where you are to the destination, through the stops you have not reached yet, and that becomes the route for the rest of the ride. The old plan stays on the map, faint. Leave the new route too and it plans again, once you are 300 metres from where it last did, so it cannot go round in circles.
 
-### 3. Start again from here
+### Don't re-route
 
-**New route from here** is a button beside the banner while you are off route. It abandons the rest of the plan and routes from where you stand to the destination. Velorki also does this by itself if you are more than 3 kilometres off the route for more than five minutes, which is what a deliberate change of plan looks like.
+Only the orange banner, with the distance to the route and the direction back to it. Velorki asks the router for nothing, and tapping the banner does nothing.
+
+### While you are off the route
+
+The banner says **Recalculating…** while a way back or a new route is being worked out, and **Route recalculated** when a new route lands. **New route from here**, a button beside the orange banner, plans from where you stand to the destination straight away, whatever the setting.
 
 All of the distances above grow with how bad your GPS fix is, roughly doubling with the reported accuracy, so a phone under trees does not keep declaring you lost. They stop growing at 100 metres of accuracy, so a phone that has lost the sky entirely cannot switch off-route detection off.
-
-With **Re-route when off course** switched off, stage 1 still happens and stages 2 and 3 do not: you get the banner pointing back at the route and nothing more.
 
 ## The map while navigating
 

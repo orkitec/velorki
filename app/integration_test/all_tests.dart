@@ -44,6 +44,7 @@ import 'live_ble_test.dart' as live_ble;
 import 'live_health_test.dart' as live_health;
 import 'live_navigate_test.dart' as live_navigate;
 import 'live_recover_test.dart' as live_recover;
+import 'live_reroute_test.dart' as live_reroute;
 import 'live_ride_test.dart' as live_ride;
 import 'live_voice_test.dart' as live_voice;
 import 'live_watch_test.dart' as live_watch;
@@ -65,6 +66,7 @@ void main() {
   group('live_health_test.dart', live_health.main);
   group('live_navigate_test.dart', live_navigate.main);
   group('live_recover_test.dart', live_recover.main);
+  group('live_reroute_test.dart', live_reroute.main);
   group('live_ride_test.dart', live_ride.main);
   group('live_voice_test.dart', live_voice.main);
   group('live_watch_test.dart', live_watch.main);

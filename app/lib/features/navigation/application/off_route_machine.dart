@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../domain/off_route_guidance.dart';
+import '../data/navigation_settings.dart';
 import 'off_route_thresholds.dart';
 import 'route_geometry.dart';
 
@@ -77,12 +78,20 @@ const double headingViaSpeedMps = 1.5;
 /// another one, so a rider weaving around one is not re-routed on every fix.
 const Duration detourRecomputeGap = Duration(seconds: 20);
 
-/// Farther than this from the plan, for longer than [fullRerouteAfter], and
-/// the ride is re-planned to its destination rather than back onto the plan.
-const double fullRerouteMeters = 3000;
+/// How far a rider has to have got, as the crow flies, from where their way
+/// back was worked out before they are given another one.
+///
+/// A rider who keeps to their own way beside the plan rides away from every
+/// way back put up for them. Asking again every twenty seconds only nags:
+/// three hundred metres is a minute at cycling speed and a city block or
+/// two, far enough for the answer to be different. Measured in a straight
+/// line, so no ride between two ways back is shorter than this, and a rider
+/// circling one spot is not asked again at all.
+const double detourRecomputeMovedM = 300;
 
-/// See [fullRerouteMeters].
-const Duration fullRerouteAfter = Duration(minutes: 5);
+/// How much short of a way back's target a rider may be along the plan and
+/// still count as having passed it.
+const double _targetPassedSlackM = 20;
 
 /// How much further from the plan the rider has to get before the way back
 /// is said again. Said once on leaving and once when the detour starts; a
@@ -116,7 +125,6 @@ class OffRouteDecision {
     this.guidance,
     this.speakGuidance = false,
     this.planDetour = false,
-    this.fullReroute = false,
     this.restored = false,
   });
 
@@ -129,11 +137,10 @@ class OffRouteDecision {
   /// Whether [guidance] should be said out loud on this fix.
   final bool speakGuidance;
 
-  /// Whether a way back onto the plan should be computed now.
+  /// Whether the ride should do something about the rider being off the
+  /// route now: work out a way back onto it, or, with
+  /// [RerouteMode.newRoute], a new route from where they are.
   final bool planDetour;
-
-  /// Whether a whole new route to the destination should be computed now.
-  final bool fullReroute;
 
   /// Whether this fix is the one that put the rider back on the plan.
   final bool restored;
@@ -144,7 +151,6 @@ class OffRouteDecision {
       '${guidance != null ? ', $guidance' : ''}'
       '${speakGuidance ? ', speak' : ''}'
       '${planDetour ? ', plan a detour' : ''}'
-      '${fullReroute ? ', re-route' : ''}'
       '${restored ? ', restored' : ''})';
 }
 
@@ -194,8 +200,11 @@ class OffRouteMachine {
   /// When the way back was last said out loud.
   double? _spokenDistanceM;
 
-  /// When the rejoin in use was computed.
+  /// When the rejoin in use was computed, where the rider was then, and how
+  /// far along the plan it meets it.
   DateTime? _detourAt;
+  LatLng? _detourFrom;
+  double? _detourTargetAlongM;
 
   /// Where the ride stands.
   OffRouteState get state => _state;
@@ -209,8 +218,12 @@ class OffRouteMachine {
   /// [distanceFromRouteM] is the distance from the plan, [alongM] how far
   /// along it the rider last was while on it, and [distanceFromDetourM] the
   /// distance from the rejoin in use, or `null` while none is.
-  /// [rerouteAllowed] is the rider's re-route setting: with it off the ride
-  /// never gets past [OffRouteState.guiding] on its own.
+  /// [mode] is the rider's choice for leaving the route: with
+  /// [RerouteMode.off] the ride never gets past [OffRouteState.guiding], and
+  /// only with [RerouteMode.guideBack] is a way back followed and
+  /// recalculated. [alongNowM] is where the rider is along the plan by
+  /// projection, on it or not, which tells whether a way back's target has
+  /// fallen behind them.
   /// [accuracyM] is the horizontal accuracy the fix came with, in metres,
   /// which widens every distance threshold here — see [strayThresholdM] and
   /// [snapThresholdM]. Unknown accuracy leaves the base distances standing.
@@ -221,7 +234,8 @@ class OffRouteMachine {
     required double speedMps,
     required double? headingDeg,
     required DateTime now,
-    required bool rerouteAllowed,
+    required RerouteMode mode,
+    double? alongNowM,
     double? distanceFromDetourM,
     double? accuracyM,
   }) {
@@ -255,9 +269,7 @@ class OffRouteMachine {
     // again, and whatever was worked out for them is not needed.
     if (distanceFromRouteM <= snapThresholdM(accuracyM)) return _restore();
 
-    if (rerouteAllowed && _wantsFullReroute(distanceFromRouteM, now)) {
-      return OffRouteDecision(state: _state, fullReroute: true);
-    }
+    final routing = mode != RerouteMode.off;
 
     if (_state == OffRouteState.detour) {
       final drift = distanceFromDetourM;
@@ -267,9 +279,25 @@ class OffRouteMachine {
       final adrift =
           drift != null &&
           drift > strayThresholdM(accuracyM, baseM: detourDriftMeters);
+      // Another way back only for a rider who has got a good way from where
+      // the last was worked out, and then only if they are not on it, or
+      // are past where it meets the plan: it would send them back.
+      final from = _detourFrom;
+      final movedOn =
+          from == null ||
+          haversineMeters(from, position) >= detourRecomputeMovedM;
+      final target = _detourTargetAlongM;
+      final passed =
+          target != null &&
+          alongNowM != null &&
+          alongNowM >= target - _targetPassedSlackM;
       return OffRouteDecision(
         state: _state,
-        planDetour: rerouteAllowed && adrift && stale,
+        planDetour:
+            mode == RerouteMode.guideBack &&
+            stale &&
+            movedOn &&
+            (adrift || passed),
       );
     }
 
@@ -283,7 +311,7 @@ class OffRouteMachine {
       state: _state,
       guidance: guidance,
       speakGuidance: due && guidance != null,
-      planDetour: rerouteAllowed && _wantsDetour(now),
+      planDetour: routing && _wantsDetour(now),
     );
   }
 
@@ -297,19 +325,14 @@ class OffRouteMachine {
     return off >= detourAfter || _offTravelM >= detourAfterMeters;
   }
 
-  /// Whether the ride has drifted so far, for so long, that heading back to
-  /// the plan at all has stopped making sense.
-  bool _wantsFullReroute(double distanceFromRouteM, DateTime now) {
-    final since = _offSince;
-    if (since == null) return false;
-    return distanceFromRouteM > fullRerouteMeters &&
-        now.difference(since) > fullRerouteAfter;
-  }
-
-  /// Notes that a rejoin is now being followed, so the drift clock starts.
-  void detourStarted(DateTime now) {
+  /// Notes that a rejoin is now being followed, so the drift clock starts:
+  /// worked out for a rider at [from], meeting the plan [targetAlongM]
+  /// metres along it.
+  void detourStarted(DateTime now, {LatLng? from, double? targetAlongM}) {
     _state = OffRouteState.detour;
     _detourAt = now;
+    _detourFrom = from;
+    _detourTargetAlongM = targetAlongM;
   }
 
   /// Notes that the whole ride was re-planned: the machine's plan is gone, so
@@ -323,6 +346,8 @@ class OffRouteMachine {
     _offTravelM = 0;
     _spokenDistanceM = null;
     _detourAt = null;
+    _detourFrom = null;
+    _detourTargetAlongM = null;
   }
 
   OffRouteDecision _restore() {
@@ -412,16 +437,20 @@ LatLng? headingViaPoint({
 /// left, as long as it is within the reach of a rejoin
 /// ([rejoinTargetsM]'s last) — a rider further on than that is not beside
 /// the plan any more but somewhere else, and projecting them onto it says
-/// nothing.
+/// nothing. Unless they are close to it there, within the nearest rejoin's
+/// reach: that is a rider who skipped a stretch of the plan, a stop on a
+/// spur say, and has come up beside it further on.
 double rejoinFromM(
   List<LatLng> line,
   List<double> cumulative,
   LatLng position,
   double lastOnM,
 ) {
-  final here = projectOnLine(line, position, cumulative: cumulative).alongM;
-  if (here <= lastOnM || here - lastOnM > rejoinTargetsM.last) return lastOnM;
-  return here;
+  final here = projectOnLine(line, position, cumulative: cumulative);
+  if (here.alongM <= lastOnM) return lastOnM;
+  final beside = here.distanceM <= rejoinTargetsM.first;
+  if (here.alongM - lastOnM > rejoinTargetsM.last && !beside) return lastOnM;
+  return here.alongM;
 }
 
 /// The points of [line] a rejoin should aim for: [rejoinTargetsM] metres

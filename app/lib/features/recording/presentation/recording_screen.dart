@@ -67,6 +67,10 @@ const String followedRouteLineId = 'follow';
 /// Id of the way back onto that route, drawn as a branch beside it.
 const String detourRouteLineId = 'detour';
 
+/// Id of the route the ride set out on, drawn faint under a new route that
+/// took its place after the rider left it.
+const String replacedRouteLineId = 'replaced';
+
 /// Preference key of the one-time battery-optimisation explanation.
 const String batteryPromptShownKey = 'recording.batteryPromptShown';
 
@@ -304,6 +308,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   String? _drawnRouteId;
   RouteLineStyle? _drawnRouteStyle;
   String? _drawnBranchId;
+  String? _drawnReplacedId;
   String? _drawnPoisId;
 
   /// Whether the camera stays on the rider. On from the moment a ride starts,
@@ -455,6 +460,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     _drawnRouteId = null;
     _drawnRouteStyle = null;
     _drawnBranchId = null;
+    _drawnReplacedId = null;
     _drawnPoisId = null;
     _autoMoving = false;
     _followTarget = null;
@@ -470,11 +476,15 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     if (_drawnBranchId != null) {
       unawaited(map.removeRouteLine(detourRouteLineId));
     }
+    if (_drawnReplacedId != null) {
+      unawaited(map.removeRouteLine(replacedRouteLineId));
+    }
     if (_drawnPoisId != null) unawaited(map.setPois(const <MapPoi>[]));
     _drawnTrackPoints = -1;
     _drawnRouteId = null;
     _drawnRouteStyle = null;
     _drawnBranchId = null;
+    _drawnReplacedId = null;
     _drawnPoisId = null;
   }
 
@@ -878,6 +888,24 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
         unawaited(map.removeRouteLine(followedRouteLineId));
       } else {
         unawaited(map.setRouteLine(followedRouteLineId, line, style: style));
+      }
+    }
+    // A new route that took the plan's place leaves the plan faint under
+    // it, so the rider can see what they left.
+    final replaced = detour != null && branch.isEmpty && plan.isNotEmpty;
+    final replacedKey = replaced ? '${detour.key}:${planKey ?? ''}' : null;
+    if (replacedKey != _drawnReplacedId) {
+      _drawnReplacedId = replacedKey;
+      if (replacedKey == null) {
+        unawaited(map.removeRouteLine(replacedRouteLineId));
+      } else {
+        unawaited(
+          map.setRouteLine(
+            replacedRouteLineId,
+            plan,
+            style: RouteLineStyle.original,
+          ),
+        );
       }
     }
     // The followed route's points of interest ride along with it: only a

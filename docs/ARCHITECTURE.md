@@ -290,9 +290,11 @@ matches the rider onto the followed route — the saved one, or the plan when no
 was chosen — and reports the next turn, the one after it, the distance left and
 whether the rider strayed. `TurnAnnouncer` turns that stream into cues given
 once each; `TurnBanner` shows the current one over the map and `TurnSpeaker`
-(`flutter_tts`) says it. Three switches in Settings: `navigation.turns` shows
-the banner, `navigation.voice` speaks it, `navigation.reroute` repairs a ride
-that has gone astray. The same three are chips on the record sheet, and the
+(`flutter_tts`) says it. Settings: `navigation.turns` shows the banner,
+`navigation.voice` speaks it, `navigation.rerouteMode` (`RerouteMode`: guide
+back, new route, off; the old `navigation.reroute` bool is read as guide back
+or off) says what leaving the route does. The same settings are on the record
+sheet, and the
 banner carries a mute button that silences the voice for the rest of the ride
 only (`voiceMutedForRideProvider`, cleared whenever a ride starts or ends).
 On iOS the speaker holds one audio session for the whole spoken stretch rather
@@ -301,31 +303,30 @@ cue is preceded by 1.5 s of silence (`assets/audio/silence.wav`, played by
 `AppDelegate` over `app.velorki/audio`). Both are for Bluetooth headsets, whose
 A2DP link goes idle between cues and takes about a second to come back — long
 enough to swallow the first syllables of a turn.
-A rider who leaves the route is repaired in three steps, and `OffRouteMachine`
-decides which: more than `max(75 m, 2 × accuracy)` out for two fixes (or 8 s) is
-`guiding`, where the
-plan stays the active route and the banner and the voice point at the nearest
-route point still ahead, with a distance and a left/right/ahead/behind taken
-from the bearing minus the rider's heading — no routing at all, because most
-strays are a wrong turn undone within a block. Still off 30 s or 150 m later, or
-on a tap, it is `detour`: candidates 300 m, 800 m and 2 km further along the plan
-are routed from the rider in that order (through a via point 40 m along their
-heading above 1.5 m/s, BRouter having no heading parameter) and the first whose
-length is at most 3× the beeline to it wins — a bigger multiple is a river or a
-one-way, so the next candidate is tried, and if all three loop the shortest of
-them is taken. The goal is the nearest way back onto the plan, not the shortest
-way to the finish, which is only ever a candidate when it falls inside the 2 km
-window. The answer is stitched to the rest of the plan as one
-route in `detourRouteProvider` — drawn as a branch beside the plan, recomputed
-only on a `max(50 m, 2 × accuracy)` drift and at most every 20 s. Within
-`max(30 m, accuracy)` of the plan again the branch is dropped silently and its
-hints carry on. Every one of those distances scales with the fix's reported
-horizontal accuracy the way OsmAnd and Organic Maps do, capped at 100 m of
-accuracy so a phone that has lost the sky cannot switch off-route detection off
-(`off_route_thresholds.dart` holds the two formulas and the constants). Only an explicit
-"New route from here", or 3 km out for over 5 minutes, re-plans the whole ride to
-its destination; `navigation.reroute` off leaves the rider with the guidance and
-nothing more.
+A rider who leaves the route goes through `OffRouteMachine`: more than
+`max(75 m, 2 × accuracy)` out for two fixes (or 8 s) is `guiding`, in every
+mode — the plan stays the active route and the banner and the voice point at
+the nearest route point still ahead, with a distance and a
+left/right/ahead/behind from the bearing minus the rider's heading, no routing
+at all, because most strays are a wrong turn undone within a block. Still off
+45 s or 150 m later (never before 15 s), or on a tap, the mode decides.
+`guideBack` routes a way back: candidates 300 m, 800 m and 2 km further along
+the plan, counted from the rider's own place beside it (`rejoinFromM`), are
+routed from the rider in that order (through a via point 40 m along their
+heading above 1.5 m/s, BRouter having no heading parameter); the first that
+rides no one-way the wrong way, no pavement and does not turn the rider round
+(`route_check.dart`), and is at most 3× its beeline, wins. It is stitched to
+the rest of the plan as one route in `detourRouteProvider`, drawn as a branch
+beside the plan, and dropped silently within `max(30 m, accuracy)` of the plan.
+A rider who rides away from it gets another only 300 m (straight line) from
+where the last was worked out, and only if off it or past its target, never
+aimed short of the last target; the plan is never replaced. `newRoute`
+re-plans from the rider through the stops not yet reached, which replaces the
+plan (the old one drawn faint), and again only 300 m from where it last did.
+`off` routes nothing. Every distance scales with the fix's reported horizontal
+accuracy, capped at 100 m so a phone that has lost the sky cannot switch
+off-route detection off (`off_route_thresholds.dart`). "New route from here"
+re-plans the whole ride on request in any mode.
 
 **Integrations and OAuth.** One `OAuthFlow`: build the authorise URL, open it
 with `flutter_web_auth_2`, receive the redirect on `velorki://oauth/<service>`,

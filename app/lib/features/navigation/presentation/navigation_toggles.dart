@@ -14,11 +14,12 @@ enum NavigationToggle {
   /// Turn directions and voice only.
   turnsAndVoice,
 
-  /// Re-routing only.
+  /// What leaving the route does, only.
   reroute,
 }
 
-/// The navigation switches — turn directions, voice, re-routing — as they
+/// The navigation switches — turn directions, voice — and the choice of what
+/// leaving the route does, as they
 /// appear in Settings, for any screen that wants them.
 ///
 /// The record sheet shows the same rows below "Keep screen on", so a rider
@@ -68,19 +69,52 @@ class NavigationToggles extends ConsumerWidget {
                 ? (value) => unawaited(controller.setVoice(value))
                 : null,
           ),
-        // Re-routing needs a route to be matched against, which is what the
-        // turn directions do, so it greys out with them too.
-        if (showReroute)
-          SwitchListTile(
+        // Leaving the route only means something while the turns are
+        // matched against it, so the choice greys out with them.
+        if (showReroute) ...[
+          ListTile(
             contentPadding: contentPadding,
-            value: settings.reroute,
-            title: Text(l10n.settingsReroute),
-            subtitle: Text(l10n.settingsRerouteHint),
-            onChanged: settings.turns
-                ? (value) => unawaited(controller.setReroute(value))
-                : null,
+            enabled: settings.turns,
+            title: Text(l10n.settingsRerouteMode),
           ),
+          RadioGroup<RerouteMode>(
+            groupValue: settings.rerouteMode,
+            onChanged: (mode) {
+              if (mode != null && settings.turns) {
+                unawaited(controller.setRerouteMode(mode));
+              }
+            },
+            child: Column(
+              children: [
+                for (final mode in RerouteMode.values)
+                  RadioListTile<RerouteMode>(
+                    contentPadding: contentPadding,
+                    value: mode,
+                    enabled: settings.turns,
+                    title: Text(rerouteModeLabel(mode, l10n)),
+                    subtitle: Text(rerouteModeHint(mode, l10n)),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
 }
+
+/// The name of [mode] in the choice.
+String rerouteModeLabel(RerouteMode mode, AppLocalizations l10n) =>
+    switch (mode) {
+      RerouteMode.guideBack => l10n.settingsRerouteGuideBack,
+      RerouteMode.newRoute => l10n.settingsRerouteNewRoute,
+      RerouteMode.off => l10n.settingsRerouteOff,
+    };
+
+/// The line under [mode]'s name.
+String rerouteModeHint(RerouteMode mode, AppLocalizations l10n) =>
+    switch (mode) {
+      RerouteMode.guideBack => l10n.settingsRerouteGuideBackHint,
+      RerouteMode.newRoute => l10n.settingsRerouteNewRouteHint,
+      RerouteMode.off => l10n.settingsRerouteOffHint,
+    };

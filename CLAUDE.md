@@ -111,8 +111,11 @@ changing structure.
   `GAZETTEER_PERF_FILE` names a `.gaz` (`--dart-define` or the environment).
 - `app/test/features/navigation/routing_scenarios_test.dart`: rides replayed
   through the navigation controller and the on-device router
-  (`support/ride_replay.dart`). Madeira runs always on the oracle tile; New
-  York when `VELORKI_NYC_SEGMENTS_DIR` holds `W75_N40.rd5`.
+  (`support/ride_replay.dart`), every scenario in every `RerouteMode`, each
+  held to what its mode promises (`_expectMode`). Madeira runs always on the
+  oracle tile; New York when `VELORKI_NYC_SEGMENTS_DIR` holds `W75_N40.rd5`.
+  `integration_test/live_reroute_test.dart` rides each mode off the route and
+  back on the iOS simulator.
 - CI: `app.yml` (every push; `check` is the static checks and the unit tests,
   `apk` builds the debug artifact beside it, and `gazetteer` builds the
   Liechtenstein extract and checks the `.gaz` fixtures), `integration.yml` and

@@ -23,8 +23,10 @@ A Flutter app for iOS and Android. What it does:
   is downloaded.
 - **Offline maps.** Vector map areas from OpenFreeMap saved per region, with
   the CyclOSM cycling overlay online.
-- **Turn-by-turn.** Turn banner and spoken cues while recording along a route,
-  re-routing when you leave it, compass or north-up follow modes.
+- **Turn-by-turn.** Turn banner and spoken cues while recording along a route;
+  leave it and you choose what happens: a way back onto the plan, a new route
+  to the destination, or only the direction back. Compass or north-up follow
+  modes.
 - **Recording.** Runs in the background with a foreground notification on
   Android and a live activity on iOS; survives the app being killed; battery
   saver dims the screen and coarsens the GPS; ride pages with elevation,

@@ -44,28 +44,19 @@ const Duration rerouteRetryGap = Duration(seconds: 30);
 /// How long a routing request is given before it is abandoned.
 const Duration rerouteTimeout = Duration(seconds: 20);
 
-/// How many ways back a rider may ride away from before the ride is
-/// re-planned from where they are.
-const int ignoredRejoinsBeforeReplan = 2;
-
-/// How far a rider has to have ridden since a way back was worked out for
-/// drifting off it to count as ignoring it, rather than as standing still
-/// while the phone wanders.
+/// With [RerouteMode.newRoute], how far a rider has to be from where the
+/// ride was last re-planned before leaving the new route re-plans it again.
 ///
-/// Distance ridden, not progress along the plan: the replayed rides show
-/// riders heading off sideways, a block or two away from the plan, for
-/// minutes, their place along it not moving at all while every way back
-/// was ignored in turn.
-const double ignoredRejoinMovedM = 50;
+/// A new route starts where the rider stands, so a rider still turning
+/// round, or a phone still settling, would leave it at once; re-planning
+/// for that would only re-plan the same spot. Three hundred metres, the
+/// same as a way back's, is past the corner and into the next choice.
+const double replanMovedM = 300;
 
 /// How much nearer the plan than when their way back was worked out a rider
 /// has to be, off that way back, to count as finding their own way back to
 /// it, which no new way back is worked out for.
 const double convergingM = 20;
-
-/// How far a rider has to ride along a re-planned route, on it, before the
-/// ride stops keeping quiet and works out ways back again.
-const double quietUntilFollowedM = 300;
 
 /// The route a ride is being guided along, plus a key that says when it is a
 /// different route from the one before.
@@ -373,21 +364,20 @@ class NavigationController extends _$NavigationController {
   /// Whether the notifier is being created right now.
   bool _building = false;
 
-  /// Ways back the rider rode away from, and where they were when the last
-  /// one was worked out.
-  int _rejoinsIgnored = 0;
-  LatLng? _rejoinAskedAt;
-
-  /// How far off the plan the rider was when the last way back was worked
-  /// out.
+  /// Where the rider was, and how far off the plan, when the last way back
+  /// was worked out, so a rider finding their own way back is not handed
+  /// another and one going their own way is not handed one too often.
+  LatLng? _rejoinFrom;
   double _rejoinAskedOffM = double.infinity;
 
-  /// Whether the ride was re-planned because the rider kept to their own
-  /// way: no more ways back are worked out until they follow a route again,
-  /// get back onto it, or ask. How far along the plan they were when it
-  /// started.
-  bool _quiet = false;
-  double _quietFromM = 0;
+  /// How far along the plan the last way back met it, while the rider is
+  /// still off it: the next one is aimed further along, never short of it.
+  double? _rejoinTargetM;
+
+  /// Where the rider was when the ride was last re-planned for leaving the
+  /// route, with [RerouteMode.newRoute]: the next one waits until they have
+  /// got [replanMovedM] from there.
+  LatLng? _replannedAt;
 
   @override
   NavigationProgress? build() {
@@ -441,10 +431,9 @@ class NavigationController extends _$NavigationController {
       _detours = 0;
       _offRouteState = OffRouteState.onRoute;
       _guidance = null;
-      _rejoinsIgnored = 0;
-      _rejoinAskedAt = null;
       _rejoinAskedOffM = double.infinity;
-      _quiet = false;
+      _rejoinTargetM = null;
+      _replannedAt = null;
       _cancelRouting();
       _setDetour(null);
     }
@@ -479,7 +468,7 @@ class NavigationController extends _$NavigationController {
     // Where the ride stands is worked out before the fix is matched, because
     // the answer decides what it is matched against: a rider who has just
     // found the plan again belongs on the plan from this fix, not the next.
-    _decide(plan, detour, snapshot, position, now, settings.reroute);
+    _decide(plan, detour, snapshot, position, now, settings.rerouteMode);
     final stored = ref.read(detourRouteProvider);
     _ensureNavigator(
       stored != null && !stored.replacesPlan ? stored : plan,
@@ -531,7 +520,7 @@ class NavigationController extends _$NavigationController {
     RecordingSnapshot snapshot,
     LatLng position,
     DateTime now,
-    bool rerouteAllowed,
+    RerouteMode mode,
   ) {
     final machine = _machine;
     if (machine == null) return;
@@ -555,7 +544,8 @@ class NavigationController extends _$NavigationController {
       speedMps: snapshot.speedMps,
       headingDeg: snapshot.headingDeg,
       now: now,
-      rerouteAllowed: rerouteAllowed,
+      mode: mode,
+      alongNowM: onPlan.alongM,
       distanceFromDetourM: detour == null
           ? null
           : projectOnLine(detour.branch, position).distanceM,
@@ -583,39 +573,30 @@ class NavigationController extends _$NavigationController {
       ]);
     }
     if (decision.restored) {
-      _rejoinsIgnored = 0;
-      _rejoinAskedAt = null;
       _rejoinAskedOffM = double.infinity;
-      _quiet = false;
+      _rejoinTargetM = null;
     }
-    // Keeping quiet after a re-plan the rider asked for by keeping to their
-    // own way: until they have followed a route again for a while.
-    if (_quiet &&
-        onPlan.distanceM <= snapThresholdM(snapshot.accuracyM) &&
-        _planAlongM - _quietFromM >= quietUntilFollowedM) {
-      _quiet = false;
-    }
-    if (_quiet) return;
-    if (decision.fullReroute) {
-      _startFullReroute(plan, position, now);
-    } else if (decision.planDetour) {
-      final lastAsked = _rejoinAskedAt;
-      if (detour != null && lastAsked != null) {
-        // Off the way back, but nearer the plan than when it was put up:
-        // the rider is finding their own way back, and another way back
-        // would only be in the way of it.
-        if (onPlan.distanceM < _rejoinAskedOffM - convergingM) return;
-        // A way back that was put up and ridden away from: the rider is
-        // taking their own way.
-        if (haversineMeters(lastAsked, position) >= ignoredRejoinMovedM) {
-          _rejoinsIgnored++;
+    if (!decision.planDetour) return;
+    switch (mode) {
+      case RerouteMode.off:
+        return;
+      case RerouteMode.guideBack:
+        // Off the way back, but nearer the plan than when it was put up: the
+        // rider is finding their own way back, and another way back would
+        // only be in the way of it.
+        if (detour != null &&
+            onPlan.distanceM < _rejoinAskedOffM - convergingM) {
+          return;
         }
-      }
-      if (_rejoinsIgnored >= ignoredRejoinsBeforeReplan) {
-        _startFullReroute(plan, position, now, thenQuiet: true);
-      } else {
         _startRejoin(plan, position, snapshot, now);
-      }
+      case RerouteMode.newRoute:
+        // Once per real departure: not again until the rider has got away
+        // from where the last new route started.
+        final last = _replannedAt;
+        if (last != null && haversineMeters(last, position) < replanMovedM) {
+          return;
+        }
+        _startFullReroute(plan, position, now, fromDeparture: true);
     }
   }
 
@@ -688,22 +669,27 @@ class NavigationController extends _$NavigationController {
     return const <TurnCue>[];
   }
 
-  /// Works out a way back onto the plan now, because the rider asked for one
-  /// by tapping the banner.
+  /// Does now what leaving the route does, because the rider asked for it
+  /// by tapping the banner: a way back onto the plan, or with
+  /// [RerouteMode.newRoute] a new route from here.
   ///
-  /// Does nothing while the rider has re-routing switched off: then the plan
-  /// itself is the only guidance they asked for.
+  /// Does nothing with [RerouteMode.off]: then the plan itself is the only
+  /// guidance they asked for.
   void requestRejoin() {
-    if (!ref.read(navigationSettingsProvider).reroute) return;
+    final mode = ref.read(navigationSettingsProvider).rerouteMode;
+    if (mode == RerouteMode.off) return;
     final plan = _currentPlan();
     final snapshot = ref.read(recordingControllerProvider).snapshot;
     final position = snapshot?.lastPosition;
     if (plan == null || snapshot == null || position == null) return;
     if (_offRouteState == OffRouteState.onRoute) return;
-    _quiet = false;
-    _rejoinsIgnored = 0;
     _lastAttemptAt = null;
-    _startRejoin(plan, position, snapshot, ref.read(navigationClockProvider)());
+    final now = ref.read(navigationClockProvider)();
+    if (mode == RerouteMode.newRoute) {
+      _startFullReroute(plan, position, now, fromDeparture: true);
+    } else {
+      _startRejoin(plan, position, snapshot, now);
+    }
     _refresh();
   }
 
@@ -717,8 +703,6 @@ class NavigationController extends _$NavigationController {
         .snapshot
         ?.lastPosition;
     if (plan == null || position == null) return;
-    _quiet = false;
-    _rejoinsIgnored = 0;
     _lastAttemptAt = null;
     _startFullReroute(plan, position, ref.read(navigationClockProvider)());
     _refresh();
@@ -756,15 +740,28 @@ class NavigationController extends _$NavigationController {
   ) {
     final backend = _backendFor(now);
     if (backend == null) return;
-    final from = rejoinFromM(plan.line, _planCumulative, position, _planAlongM);
-    final targets = rejoinTargets(plan.line, _planCumulative, from);
-    if (targets.isEmpty) return;
-    _rejoinAskedAt = position;
-    _rejoinAskedOffM = projectOnLine(
+    // A rider who rode away from the last way back is never aimed short of
+    // where it met the plan: going their own way, they are no further back
+    // by now, and a point short of it would lead them back. Its target is
+    // the nearest candidate again, from somewhere else, until the rider is
+    // past it along the plan; then they are aimed from where they are.
+    final here = projectOnLine(
       plan.line,
       position,
       cumulative: _planCumulative,
-    ).distanceM;
+    );
+    var from = rejoinFromM(plan.line, _planCumulative, position, _planAlongM);
+    final previous = _rejoinTargetM;
+    if (previous != null) {
+      from = math.max(
+        from,
+        here.alongM > previous ? here.alongM : previous - rejoinTargetsM.first,
+      );
+    }
+    final targets = rejoinTargets(plan.line, _planCumulative, from);
+    if (targets.isEmpty) return;
+    _rejoinFrom = position;
+    _rejoinAskedOffM = here.distanceM;
 
     _lastAttemptAt = now;
     _gap = rerouteGap;
@@ -905,7 +902,12 @@ class NavigationController extends _$NavigationController {
     }
     _detours++;
     _setDetour(_stitch(plan, best));
-    _machine?.detourStarted(ref.read(navigationClockProvider)());
+    _rejoinTargetM = best.target.alongM;
+    _machine?.detourStarted(
+      ref.read(navigationClockProvider)(),
+      from: _rejoinFrom,
+      targetAlongM: best.target.alongM,
+    );
     _offRouteState = OffRouteState.detour;
     _guidance = null;
     _refresh();
@@ -948,25 +950,33 @@ class NavigationController extends _$NavigationController {
 
   /// Asks the router for a whole new route from where the rider stands to the
   /// end of the ride. The answer takes the plan's place.
+  ///
+  /// [fromDeparture] marks the re-plan leaving the route asked for, with
+  /// [RerouteMode.newRoute], so the next one waits for [replanMovedM].
   void _startFullReroute(
     GuidedRoute plan,
     LatLng position,
     DateTime now, {
-    bool thenQuiet = false,
+    bool fromDeparture = false,
   }) {
     final backend = _backendFor(now);
     if (backend == null) return;
+    if (fromDeparture) _replannedAt = position;
     _lastAttemptAt = now;
     _gap = rerouteGap;
     _rerouting = true;
     final generation = ++_generation;
     final token = CancelToken();
     _cancel = token;
+    // The stops already passed are left behind with the old line; the new
+    // route's own waypoints are only the ones it was asked through, so the
+    // next re-plan cannot send the rider back to one.
+    final points = <LatLng>[
+      position,
+      ...remainingWaypoints(plan.line, plan.waypoints, _planAlongM),
+    ];
     final query = RouteQuery(
-      points: <LatLng>[
-        position,
-        ...remainingWaypoints(plan.line, plan.waypoints, _planAlongM),
-      ],
+      points: points,
       profile: plan.options.profile.engineName,
       alternativeIdx: 0,
       timeout: rerouteTimeout,
@@ -975,8 +985,7 @@ class NavigationController extends _$NavigationController {
       backend
           .route(query, cancel: token)
           .then(
-            (result) =>
-                _replanned(generation, plan, result, thenQuiet: thenQuiet),
+            (result) => _replanned(generation, plan, points, result),
             onError: (Object error) => _routingFailed(generation, error),
           ),
     );
@@ -986,9 +995,9 @@ class NavigationController extends _$NavigationController {
   void _replanned(
     int generation,
     GuidedRoute plan,
-    RouteResult result, {
-    bool thenQuiet = false,
-  }) {
+    List<LatLng> waypoints,
+    RouteResult result,
+  ) {
     if (generation != _generation) return;
     _rerouting = false;
     _cancel = null;
@@ -1002,17 +1011,14 @@ class NavigationController extends _$NavigationController {
     _planAlongM = 0;
     _offRouteState = OffRouteState.onRoute;
     _guidance = null;
-    _rejoinsIgnored = 0;
-    _rejoinAskedAt = null;
     _rejoinAskedOffM = double.infinity;
-    _quiet = thenQuiet;
-    _quietFromM = 0;
+    _rejoinTargetM = null;
     _setDetour(
       GuidedRoute(
         key: 'reroute:$_detours:${line.length}',
         line: line,
         turns: result.turns,
-        waypoints: plan.waypoints,
+        waypoints: waypoints,
         options: plan.options,
         replacesPlan: true,
       ),
@@ -1125,6 +1131,10 @@ class NavigationController extends _$NavigationController {
 
   void _forget() {
     _cancelRouting();
+    _rejoinFrom = null;
+    _rejoinAskedOffM = double.infinity;
+    _rejoinTargetM = null;
+    _replannedAt = null;
     _navigator = null;
     _announcer = null;
     _machine = null;

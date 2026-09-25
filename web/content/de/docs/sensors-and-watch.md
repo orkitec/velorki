@@ -75,7 +75,7 @@ Velorkis Uhren-App steckt in der iPhone-App. Sie landet von selbst auf der Uhr, 
 - Deinen **Puls** in großen Ziffern, mit schlagendem Herz, solange die Uhr misst; zwei Striche, solange nichts gemessen wird, und den letzten Wert abgedunkelt, solange die Fahrt pausiert ist. Herz und Knöpfe tragen die Akzentfarbe, die du in der App gewählt hast.
 - Eine Zeile in Orange, wenn etwas nicht stimmt: Health-Zugriff abgelehnt, ein Training, das die Uhr nicht starten wollte, oder ein Handy, das nicht geantwortet hat.
 - Während einer Fahrt ihre Distanz, die laufende Uhr und das Tempo, und **Paused**, wenn pausiert ist. Formatiert wird alles vom Handy, es steht also in deinen Einheiten und deiner Sprache da.
-- Die nächste Abbiegung mit Symbol, Namen und Entfernung, so wie auf dem Sperrbildschirm, in Orange, solange du von der Route ab bist.
+- Die nächste Abbiegung mit Symbol, Namen und Entfernung, so wie auf dem Sperrbildschirm, in Orange, solange du von der Route ab bist; sobald ein Weg zurück oder eine neue Route berechnet ist, deren Abbiegungen.
 - Ein Tippen aufs Handgelenk, wenn ein Abbiegehinweis fällig ist, und eines, wenn du die Route verlässt. Eine Uhr, die drei Abbiegungen verschlafen hat, tippt einmal statt dreimal.
 
 Die eigenen Worte der Uhr, also die Knöpfe und die zwei Fußnoten, sind englisch, in welcher Sprache das Handy auch läuft. Komplikationen gibt es noch nicht.

@@ -125,10 +125,10 @@
       "navigate": {
         "eyebrow": "Navigation",
         "title": "Spoken turns, on the phone",
-        "body": "A turn banner and spoken cues while you ride a route, re-routing on the phone when you leave it, compass or north-up follow modes. The cues are generated from the same routing data that planned the ride, so they work where there is no network. A GPX route brings its own cue sheet and points of interest along, and the record sheet adds an elevation profile with the climb ahead, the arrival time and the cue list as swipeable pages.",
+        "body": "A turn banner and spoken cues while you ride a route, and when you leave it, your choice of a way back onto the plan, a new route to the destination or just the direction back, all worked out on the phone. Compass or north-up follow modes. The cues are generated from the same routing data that planned the ride, so they work where there is no network. A GPX route brings its own cue sheet and points of interest along, and the record sheet adds an elevation profile with the climb ahead, the arrival time and the cue list as swipeable pages.",
         "bullets": {
           "one": "Turn banner and voice cues, offline",
-          "two": "Re-routes on the device when you leave the line",
+          "two": "Leave the line: guided back, a new route, or just the direction back",
           "three": "Cue sheet, points of interest, climb and arrival time on the record sheet"
         }
       },

@@ -4,17 +4,17 @@ description: Einer Route während der Aufnahme folgen, mit Abbiegeband und Sprac
 order: 6
 ---
 
-Velorki führt dich während einer laufenden Aufnahme an einer Route entlang: Ein Band über der Karte zeigt die nächste Abbiegung, und eine Stimme sagt sie an. Schalte die drei Navigationsschalter ein, wähle im Tab Aufnahme eine Route zum Folgen und starte die Fahrt.
+Velorki führt dich während einer laufenden Aufnahme an einer Route entlang: Ein Band über der Karte zeigt die nächste Abbiegung, und eine Stimme sagt sie an. Schalte die Navigation ein, wähle im Tab Aufnahme eine Route zum Folgen und starte die Fahrt.
 
 Die Navigation ist kostenlos, läuft offline, wo du die Routing-Daten heruntergeladen hast, und braucht kein Konto.
 
 ## Einschalten
 
-Die drei Schalter liegen an zwei Stellen gleichzeitig und sind so oder so dieselbe Einstellung: unter **Einstellungen → Navigation** und in der Übersicht des Tabs Aufnahme unterhalb von **Bildschirm anlassen**.
+Die Einstellungen liegen an zwei Stellen gleichzeitig und sind so oder so dieselben: unter **Einstellungen → Navigation** und in der Übersicht des Tabs Aufnahme unterhalb von **Bildschirm anlassen**.
 
-1. **Abbiegehinweise**, "Nächste Abbiegung während der Aufnahme auf einer Route zeigen". Das ist der Hauptschalter; die anderen beiden sind ausgegraut, solange er aus ist.
+1. **Abbiegehinweise**, "Nächste Abbiegung während der Aufnahme auf einer Route zeigen". Das ist der Hauptschalter; der Rest ist ausgegraut, solange er aus ist.
 2. **Stimme**, "Abbiegehinweise laut ansagen".
-3. **Abseits der Route neu berechnen**, "Nach dem Verlassen der Route einen Weg zurück planen".
+3. **Wenn du die Route verlässt**: **Zurückführen**, **Neue Route zum Ziel** oder **Nicht neu berechnen**. Siehe [Wenn du die Route verlässt](#wenn-du-die-route-verlässt).
 
 Wähle dann im Tab **Aufnahme** etwas unter **Einer Route folgen**: **Die Route im Tab Planen**, wenn der Planer eine Route enthält, oder eine beliebige Route aus deiner Bibliothek. Starte die Fahrt, und das Band erscheint.
 
@@ -56,29 +56,31 @@ Hat das Handy gar keine Stimme für deine Sprache: "Für deine Sprache ist keine
 
 ## Wenn du die Route verlässt
 
-Die meisten falschen Abbiegungen sind nach einem Häuserblock wieder ausgebügelt, deshalb plant Velorki nicht sofort neu, sobald du abkommst. Es arbeitet stattdessen drei Stufen ab, und jede kostet mehr als die vorige.
+Die meisten falschen Abbiegungen sind nach einem Häuserblock wieder ausgebügelt, deshalb passiert nichts, sobald du abkommst.
 
-### 1. Zurückführen
+Etwa **75 Meter** neben der Route, bei zwei Positionen hintereinander oder rund acht Sekunden lang, wird das Band orange: **Zurück zur Route, links**, mit der Entfernung zum nächsten Punkt der Route, der noch vor dir liegt. So weit ist es in jeder Einstellung gleich, und es kostet keine Routenberechnung.
 
-Etwa **75 Meter** neben der Route, bei zwei Positionen hintereinander oder rund acht Sekunden lang, wird das Band orange: **Zurück zur Route, links**, mit der Entfernung zum nächsten Punkt der Route, der noch vor dir liegt. Es wird nichts neu berechnet; die Planung bleibt genau, wie sie war, und sobald du wieder darauf bist, laufen die gewöhnlichen Hinweise weiter.
+Was danach kommt, bestimmt **Wenn du die Route verlässt**. Die Wartezeit ist für beide Einstellungen, die rechnen, dieselbe: etwa **eine Dreiviertelminute neben der Route oder 150 Meter von der Stelle, an der du sie verlassen hast**, und nie früher als nach 15 Sekunden, damit ein Schwall schlechter Ortungen nichts kostet. **Tippe auf das Band**, um das Warten zu überspringen.
 
-**Tippe auf das Band**, um das Warten zu überspringen und sofort einen Umweg anzufragen.
+### Zurückführen
 
-### 2. Einen Umweg berechnen
+Die Voreinstellung. Deine Planung wird nie ersetzt. Velorki berechnet einen Weg zurück auf sie, zu einem Punkt **vor** dir: Es probiert 300 Meter, 800 Meter und 2 Kilometer weiter entlang der Planung, gezählt ab dort, wo du neben ihr angekommen bist, nicht ab der Stelle, an der du sie verlassen hast, und nimmt den ersten Weg, der kein Unsinn ist und dich weder falsch herum durch eine Einbahnstraße noch über einen Gehweg noch zurück schickt. Der Weg zurück wird als eigene Linie in eigener Farbe gezeichnet, die Planung bleibt auf der Karte, und Band und Stimme folgen ihm. Bist du wieder auf der Planung, verschwindet der Weg zurück kommentarlos, und die Hinweise der Planung laufen weiter.
 
-Bist du etwa **eine Dreiviertelminute später oder 150 Meter von der Stelle entfernt, an der du sie verlassen hast,** immer noch daneben (und nie früher als nach 15 Sekunden, damit ein Schwall schlechter Ortungen nichts kostet), führt Velorki dich zurück. Es probiert drei Stellen zum Wiedereinstieg in die Planung, 300 Meter, 800 Meter und 2 Kilometer weiter entlang, gezählt ab dort, wo du neben der Planung angekommen bist, nicht ab der Stelle, an der du sie verlassen hast, und nimmt die erste, die kein Unsinn ist und dich weder falsch herum durch eine Einbahnstraße noch über einen Gehweg noch zurück schickt. Die Antwort wird als Ast neben deiner ursprünglichen Planung gezeichnet und an den Rest angenäht, die Abbiegungen nach dem Wiedereinstieg sind also die, die du schon hattest.
+Fährst du stattdessen deinen eigenen Weg, wird der Weg zurück neu berechnet, aber erst, wenn du **300 Meter** von der Stelle entfernt bist, an der der letzte berechnet wurde, und nie zu einem Punkt vor dem letzten: Er zieht mit dir weiter, statt dich zurückzurufen, und mehr als eine Berechnung pro Minute Fahrt wird es nicht. Die Planung gibt er nie auf, eine neue Route plant er nicht von selbst.
 
-Ziel ist der nächstgelegene sinnvolle Weg zurück auf die Planung, nicht der schnellste Weg ins Ziel. Solange du daneben bist, wird der Ast neu berechnet, sobald du weitere rund 50 Meter abgekommen bist, und höchstens alle 20 Sekunden, außer du bist schon auf eigenem Weg zurück. Fährst du von zwei Ästen weg, versteht Velorki den Wink: Es plant einmal von deinem Standort zum Ziel und lässt dich dann in Ruhe, bis du dieser Route eine Weile gefolgt, wieder auf sie gekommen bist oder danach fragst. Kommst du auf etwa 30 Meter an die Planung heran, verschwindet der Ast kommentarlos.
+### Neue Route zum Ziel
 
-Das Band sagt **Wird neu berechnet…**, solange es rechnet, und **Route neu berechnet**, wenn es fertig ist.
+Verlässt du die Route, plant Velorki von deinem Standort neu zum Ziel, über die Stopps, die du noch nicht erreicht hast, und das ist dann die Route für den Rest der Fahrt. Die alte Planung bleibt blass auf der Karte. Verlässt du auch die neue Route, plant es wieder, sobald du 300 Meter von der Stelle entfernt bist, an der es zuletzt geplant hat, es kann sich also nicht im Kreis drehen.
 
-### 3. Von hier neu anfangen
+### Nicht neu berechnen
 
-**Neue Route von hier** ist eine Schaltfläche neben dem Band, solange du abseits der Route bist. Sie gibt den Rest der Planung auf und berechnet eine Route von deinem Standort zum Ziel. Velorki tut das auch von selbst, wenn du länger als fünf Minuten mehr als 3 Kilometer neben der Route bist, denn so sieht eine bewusste Planänderung aus.
+Nur das orange Band, mit der Entfernung zur Route und der Richtung dorthin. Velorki fragt nichts beim Routing an, und ein Tippen auf das Band tut nichts.
+
+### Während du neben der Route bist
+
+Das Band sagt **Wird neu berechnet…**, solange ein Weg zurück oder eine neue Route berechnet wird, und **Route neu berechnet**, wenn eine neue Route da ist. **Neue Route von hier**, eine Schaltfläche neben dem orangen Band, plant sofort von deinem Standort zum Ziel, egal was eingestellt ist.
 
 Alle genannten Entfernungen wachsen mit, je schlechter dein GPS-Empfang ist, ungefähr im Doppelten der gemeldeten Genauigkeit, damit ein Handy unter Bäumen dich nicht dauernd für verirrt erklärt. Bei 100 Metern Genauigkeit wachsen sie nicht weiter, ein Handy ohne jede Sicht zum Himmel kann die Erkennung also nicht abschalten.
-
-Mit ausgeschaltetem **Abseits der Route neu berechnen** passiert Stufe 1 weiterhin, Stufe 2 und 3 nicht: Du bekommst das Band, das zurück zur Route zeigt, und sonst nichts.
 
 ## Die Karte während der Navigation
 

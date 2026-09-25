@@ -17,9 +17,9 @@ can record a real ride:
 
 Once the permission is granted the script stays around and watches the
 app's own container for `Library/Application Support/itest/route.txt`, one
-`lat,lon` per line: a test writes the route it planned there (see
-integration_test/support/sim_gps.dart) and the simulated rider switches to
-it. tool/itest.sh kills the script after the run.
+`lat,lon` per line, optionally after a `speed=<m/s>` line: a test writes the
+route it planned there (see integration_test/support/sim_gps.dart) and the
+simulated rider switches to it. tool/itest.sh kills the script after the run.
 """
 import os
 import subprocess
@@ -88,10 +88,13 @@ def follow_requests(udid: str, speed: str, deadline: float) -> int:
                     seen = stamp
                     with open(path) as fh:
                         points = [line.strip() for line in fh if line.strip()]
+                    pace = speed
+                    if points and points[0].startswith("speed="):
+                        pace = points.pop(0).split("=", 1)[1]
                     if len(points) >= 2:
                         subprocess.run(
                             ["xcrun", "simctl", "location", udid, "start",
-                             f"--speed={speed}", "--interval=1", *points],
+                             f"--speed={pace}", "--interval=1", *points],
                             check=True,
                         )
                         print(f"sim_ride: riding the app's route, "

@@ -3776,13 +3776,33 @@
       }
     }
   },
-  "settingsReroute": "Re-route when off course",
-  "@settingsReroute": {
-    "description": "Settings switch that plans a new way back when the rider leaves the route"
+  "settingsRerouteMode": "When you leave the route",
+  "@settingsRerouteMode": {
+    "description": "Heading of the choice of what the ride does when the rider leaves the planned route"
   },
-  "settingsRerouteHint": "Plan a new way back onto the route when you leave it",
-  "@settingsRerouteHint": {
-    "description": "Explanation under the re-route switch"
+  "settingsRerouteGuideBack": "Guide me back",
+  "@settingsRerouteGuideBack": {
+    "description": "Option: keep the planned route and show the best way back onto it"
+  },
+  "settingsRerouteGuideBackHint": "Keep the plan and show the best way back onto it, ahead of you",
+  "@settingsRerouteGuideBackHint": {
+    "description": "Line under the Guide me back option"
+  },
+  "settingsRerouteNewRoute": "New route to the destination",
+  "@settingsRerouteNewRoute": {
+    "description": "Option: plan a new route from where the rider is to the stops ahead and the end"
+  },
+  "settingsRerouteNewRouteHint": "Plan again from where you are, keeping the stops still ahead",
+  "@settingsRerouteNewRouteHint": {
+    "description": "Line under the New route option"
+  },
+  "settingsRerouteOff": "Don't re-route",
+  "@settingsRerouteOff": {
+    "description": "Option: never route, only say how far the route is and which way"
+  },
+  "settingsRerouteOffHint": "Only show how far the route is and which way",
+  "@settingsRerouteOffHint": {
+    "description": "Line under the Don't re-route option"
   },
   "settingsRecording": "Recording",
   "@settingsRecording": {

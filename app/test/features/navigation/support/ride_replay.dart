@@ -9,6 +9,7 @@ import 'package:velorki/core/db/database.dart' show RouteSource;
 import 'package:velorki/core/geo/track_surface.dart' show keepAllTags;
 import 'package:velorki/features/navigation/application/navigation_controller.dart';
 import 'package:velorki/features/navigation/application/route_geometry.dart';
+import 'package:velorki/features/navigation/data/navigation_settings.dart';
 import 'package:velorki/features/navigation/data/turn_speaker.dart';
 import 'package:velorki/features/navigation/domain/off_route_guidance.dart';
 import 'package:velorki/features/navigation/testing/fake_turn_speaker.dart';
@@ -79,6 +80,7 @@ class ReplayAdopted {
     required this.replacesPlan,
     required this.rejoinAlongM,
     required this.riderAlongM,
+    required this.riderOffM,
     required this.result,
   });
 
@@ -94,12 +96,96 @@ class ReplayAdopted {
   /// Where the rider was along the plan when it was adopted, by projection.
   final double riderAlongM;
 
+  /// How far from the plan the rider was then: a long way out, where they
+  /// project onto it says little.
+  final double riderOffM;
+
   /// The router's answer it was made from.
   final RouteResult? result;
 }
 
+/// Where one fix left the ride.
+class ReplayStep {
+  /// Creates the step.
+  const ReplayStep({
+    required this.at,
+    required this.pos,
+    required this.riddenM,
+    required this.state,
+    required this.offRoute,
+    required this.guidanceM,
+    required this.detourShown,
+  });
+
+  /// When, by the ride's clock.
+  final DateTime at;
+
+  /// Where the fix put the rider.
+  final LatLng pos;
+
+  /// How far the rider had ridden, fix to fix, by then.
+  final double riddenM;
+
+  /// Where the ride stood in relation to the plan.
+  final OffRouteState state;
+
+  /// What the banner, the watch and the Live Activity were told.
+  final bool offRoute;
+
+  /// The distance back to the route the banner showed, if it showed one.
+  final double? guidanceM;
+
+  /// Whether a way back or a replacing route was drawn.
+  final bool detourShown;
+}
+
 /// What the controller did over a replayed ride.
 class ReplayLog {
+  /// Every fix, as the controller left it.
+  final List<ReplayStep> steps = <ReplayStep>[];
+
+  /// The routing requests grouped by the fix that made them: one entry per
+  /// recalculation, however many candidates it asked for.
+  List<List<ReplayRouting>> get recalculations {
+    final groups = <List<ReplayRouting>>[];
+    for (final r in routings) {
+      if (groups.isNotEmpty && groups.last.first.at == r.at) {
+        groups.last.add(r);
+      } else {
+        groups.add(<ReplayRouting>[r]);
+      }
+    }
+    return groups;
+  }
+
+  /// How far the rider had ridden at [at].
+  double riddenAt(DateTime at) {
+    for (final step in steps) {
+      if (!step.at.isBefore(at)) return step.riddenM;
+    }
+    return steps.isEmpty ? 0 : steps.last.riddenM;
+  }
+
+  /// Where the rider was at [at].
+  LatLng positionAt(DateTime at) {
+    for (final step in steps) {
+      if (!step.at.isBefore(at)) return step.pos;
+    }
+    return steps.last.pos;
+  }
+
+  /// How often the ride went from on the route to off it.
+  int get departures {
+    var n = 0;
+    for (var i = 1; i < steps.length; i++) {
+      if (steps[i - 1].state == OffRouteState.onRoute &&
+          steps[i].state != OffRouteState.onRoute) {
+        n++;
+      }
+    }
+    return n;
+  }
+
   /// Every routing request.
   final List<ReplayRouting> routings = <ReplayRouting>[];
 
@@ -170,7 +256,11 @@ class ReplayLog {
   String toString() {
     final lines = <String>[
       'plan ${planLengthM.round()} m, ${routings.length} routing requests, '
-          '$reroutes adopted, $flips flips',
+          '$reroutes adopted, $flips flips, $departures departures, '
+          '${steps.isEmpty ? 0 : steps.last.riddenM.round()} m ridden',
+      for (final r in recalculations)
+        '  ${_clock(r.first.at)} asked ${r.length}x at '
+            '${riddenAt(r.first.at).round()} m ridden',
       for (final a in adopted)
         '  ${_clock(a.at)} ${a.replacesPlan ? 'RE-PLAN' : 'rejoin at ${a.rejoinAlongM.round()} m'}'
             ' with the rider at ${a.riderAlongM.round()} m',
@@ -221,8 +311,11 @@ Future<ReplayLog> replayRide({
   required List<ReplayFix> fixes,
   required RoutingBackend backend,
   RoutingOptions options = const RoutingOptions(),
+  RerouteMode mode = RerouteMode.guideBack,
 }) async {
-  SharedPreferences.setMockInitialValues(<String, Object>{});
+  SharedPreferences.setMockInitialValues(<String, Object>{
+    'navigation.rerouteMode': mode.name,
+  });
   final prefs = await SharedPreferences.getInstance();
   final service = FakeRecordingService();
   final log = ReplayLog();
@@ -275,10 +368,12 @@ Future<ReplayLog> replayRide({
     log.planLengthM = cumulative.isEmpty ? 0 : cumulative.last;
     GuidedRoute? lastDetour;
     var previous = fixes.first;
+    var ridden = 0.0;
     for (var i = 0; i < fixes.length; i++) {
       final fix = fixes[i];
       now = fix.time;
       final moved = haversineMeters(previous.pos, fix.pos);
+      if (i > 0) ridden += haversineMeters(fixes[i - 1].pos, fix.pos);
       final seconds = fix.time.difference(previous.time).inMilliseconds / 1000;
       final speed = seconds > 0 ? moved / seconds : 0.0;
       // The phone's course: the direction of travel since the last fix
@@ -321,6 +416,17 @@ Future<ReplayLog> replayRide({
         progress?.offRouteState ?? OffRouteState.onRoute,
       ));
       final detour = container.read(detourRouteProvider);
+      log.steps.add(
+        ReplayStep(
+          at: fix.time,
+          pos: fix.pos,
+          riddenM: ridden,
+          state: progress?.offRouteState ?? OffRouteState.onRoute,
+          offRoute: progress?.offRoute ?? false,
+          guidanceM: progress?.guidance?.distanceM,
+          detourShown: detour != null,
+        ),
+      );
       if (detour != null && !identical(detour, lastDetour)) {
         final drawn = detour.replacesPlan ? detour.line : detour.branch;
         RouteResult? made;
@@ -333,16 +439,14 @@ Future<ReplayLog> replayRide({
             break;
           }
         }
+        final onHeld = projectOnLine(held, fix.pos, cumulative: cumulative);
         log.adopted.add(
           ReplayAdopted(
             at: fix.time,
             replacesPlan: detour.replacesPlan,
             rejoinAlongM: detour.rejoinAlongM,
-            riderAlongM: projectOnLine(
-              held,
-              fix.pos,
-              cumulative: cumulative,
-            ).alongM,
+            riderAlongM: onHeld.alongM,
+            riderOffM: onHeld.distanceM,
             result: made,
           ),
         );
@@ -387,6 +491,16 @@ class RideMaker {
           profileParams: keepAllTags,
         ),
       );
+
+  /// The streets through [points], or `null` where there are none: a
+  /// point out at sea, or on a hill no road climbs.
+  Future<List<LatLng>?> _streets(List<LatLng> points) async {
+    try {
+      return (await route(points)).positions;
+    } on RoutingException {
+      return null;
+    }
+  }
 
   /// The ride along [path], a fix a second. [noise] gives each fix its
   /// error in metres and the accuracy the phone reports; without it the
@@ -440,11 +554,12 @@ class RideMaker {
       headingAt(plan, cumulative, mid) + 90,
       asideM,
     );
-    final around = (await route(<LatLng>[
+    final around = await _streets(<LatLng>[
       pointAt(plan, cumulative, fromM),
       side,
       pointAt(plan, cumulative, toM),
-    ])).positions;
+    ]);
+    if (around == null) return null;
     if (polylineLengthMeters(around) > maxFactor * (toM - fromM)) return null;
     var furthest = 0.0;
     var along = fromM;
@@ -502,6 +617,128 @@ class RideMaker {
         ),
     ];
     return (await route(<LatLng>[plan.first, ...shifted, plan.last])).positions;
+  }
+
+  /// [plan] with a way round of at least [minM] metres: off it a quarter
+  /// of the way along, out to a point well to one side, and back onto it
+  /// further on.
+  Future<List<LatLng>> longDetour(List<LatLng> plan, double minM) async {
+    final total = cumulativeDistances(plan).last;
+    for (final asideM in const <double>[800, -800, 1200, -1200, 1600, -1600]) {
+      for (final (from, to) in const <(double, double)>[
+        (0.25, 0.6),
+        (0.3, 0.7),
+        (0.2, 0.5),
+      ]) {
+        final path = await detour(
+          plan,
+          total * from,
+          total * to,
+          asideM,
+          maxFactor: 20,
+        );
+        if (path == null) continue;
+        final roundM = polylineLengthMeters(path) - total * (1 - to + from);
+        if (roundM >= minM) return path;
+      }
+    }
+    throw StateError('no detour of $minM m off this plan');
+  }
+
+  /// [plan] ridden to [turnM], back along itself to [backToM], and then on
+  /// to its end: a rider who went the wrong way for a while.
+  List<LatLng> backAndForth(List<LatLng> plan, double turnM, double backToM) {
+    final cumulative = cumulativeDistances(plan);
+    List<LatLng> stretch(double fromM, double toM) {
+      final step = fromM < toM ? 10.0 : -10.0;
+      return <LatLng>[
+        for (var m = fromM; step > 0 ? m < toM : m > toM; m += step)
+          pointAt(plan, cumulative, m),
+        pointAt(plan, cumulative, toM),
+      ];
+    }
+
+    return <LatLng>[
+      ...stretch(0, turnM),
+      ...stretch(turnM, backToM),
+      ...stretch(backToM, cumulative.last),
+    ];
+  }
+
+  /// A stop about [asideM] metres to one side of [plan], near halfway
+  /// along it, on a street, and the plan re-routed through it, which is at
+  /// least 300 m longer: a rider riding [plan] itself skips that stop.
+  Future<(LatLng, List<LatLng>)> stopAside(
+    List<LatLng> plan,
+    double asideM,
+  ) async {
+    final cumulative = cumulativeDistances(plan);
+    final total = cumulative.last;
+    for (final f in const <double>[0.5, 0.4, 0.6, 0.3, 0.7]) {
+      for (final side in <double>[asideM, -asideM, asideM / 2, -asideM / 2]) {
+        final at = total * f;
+        final aside = destinationPoint(
+          pointAt(plan, cumulative, at),
+          headingAt(plan, cumulative, at) + 90,
+          side,
+        );
+        // The stop is where the streets reach, as the planner would snap it.
+        final to = await _streets(<LatLng>[plan.first, aside]);
+        if (to == null) continue;
+        final stop = to.last;
+        if (projectOnLine(plan, stop).distanceM < 150) continue;
+        final via = await _streets(<LatLng>[plan.first, stop, plan.last]);
+        if (via == null) continue;
+        if (polylineLengthMeters(via) > total + 300) return (stop, via);
+      }
+    }
+    throw StateError('no stop $asideM m off this plan');
+  }
+
+  /// [plan] up to [fraction] of the way along, then away along the streets
+  /// to a point [awayM] metres to one side, and the ride ends there.
+  Future<List<LatLng>> awayFor(
+    List<LatLng> plan,
+    double fraction,
+    double awayM,
+  ) async {
+    final cumulative = cumulativeDistances(plan);
+    final atM = cumulative.last * fraction;
+    final leave = pointAt(plan, cumulative, atM);
+    for (final side in <double>[awayM, -awayM]) {
+      final far = destinationPoint(
+        leave,
+        headingAt(plan, cumulative, atM) + 90,
+        side,
+      );
+      final away = await _streets(<LatLng>[leave, far]);
+      if (away == null || haversineMeters(away.last, far) > 200) continue;
+      return <LatLng>[
+        for (var i = 0; i < plan.length; i++)
+          if (cumulative[i] < atM) plan[i],
+        ...away,
+      ];
+    }
+    throw StateError('nowhere $awayM m off this plan');
+  }
+
+  /// [plan] up to [fraction] of the way along, out to a point [awayM]
+  /// metres to one side and back the same way, and on along the plan.
+  Future<List<LatLng>> outAndBack(
+    List<LatLng> plan,
+    double fraction,
+    double awayM,
+  ) async {
+    final cumulative = cumulativeDistances(plan);
+    final atM = cumulative.last * fraction;
+    final away = await awayFor(plan, fraction, awayM);
+    final out = away.sublist(cumulative.where((m) => m < atM).length);
+    return <LatLng>[
+      ...away,
+      ...out.reversed.skip(1),
+      for (var i = 0; i < plan.length; i++)
+        if (cumulative[i] >= atM) plan[i],
+    ];
   }
 }
 
