@@ -66,9 +66,9 @@ Roughly **75 metres** off the route, for two fixes running or about eight second
 
 ### 2. Compute a detour
 
-Still off the route about **half a minute later, or 150 metres further on**, and Velorki routes you back. It tries three places to rejoin the plan, 300 metres, 800 metres and 2 kilometres further along it, and takes the first that is not a silly diversion. The answer is drawn as a branch beside your original plan and stitched to the rest of it, so the turns after the rejoin are the ones you already had.
+Still off the route about **half a minute later, or 150 metres from where you left it** (and never sooner than 15 seconds, so a burst of bad fixes costs nothing), and Velorki routes you back. It tries three places to rejoin the plan, 300 metres, 800 metres and 2 kilometres further along it, counted from where you have got to beside the plan rather than where you left it, and takes the first that is not a silly diversion and does not send you the wrong way down a one-way street, along a pavement or back the way you came. The answer is drawn as a branch beside your original plan and stitched to the rest of it, so the turns after the rejoin are the ones you already had.
 
-The aim is the nearest sensible way back onto the plan, not the fastest way to the finish. While you are off route the branch is recomputed when you have drifted another 50 metres or so, and at most every 20 seconds. Get back within about 30 metres of the plan and the branch disappears without a word.
+The aim is the nearest sensible way back onto the plan, not the fastest way to the finish. While you are off route the branch is recomputed when you have drifted another 50 metres or so, and at most every 20 seconds, unless you are already making your own way back. Ride away from two branches and Velorki takes the hint: it plans once from where you are to the destination and then leaves you in peace until you have followed that route for a while, rejoined it, or asked. Get back within about 30 metres of the plan and the branch disappears without a word.
 
 The banner says **Recalculating…** while it works, and **Route recalculated** when it lands.
 

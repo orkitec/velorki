@@ -66,9 +66,9 @@ Etwa **75 Meter** neben der Route, bei zwei Positionen hintereinander oder rund 
 
 ### 2. Einen Umweg berechnen
 
-Bist du etwa **eine halbe Minute später oder 150 Meter weiter** immer noch daneben, führt Velorki dich zurück. Es probiert drei Stellen zum Wiedereinstieg in die Planung, 300 Meter, 800 Meter und 2 Kilometer weiter entlang, und nimmt die erste, die kein Unsinn ist. Die Antwort wird als Ast neben deiner ursprünglichen Planung gezeichnet und an den Rest angenäht, die Abbiegungen nach dem Wiedereinstieg sind also die, die du schon hattest.
+Bist du etwa **eine halbe Minute später oder 150 Meter von der Stelle entfernt, an der du sie verlassen hast,** immer noch daneben (und nie früher als nach 15 Sekunden, damit ein Schwall schlechter Ortungen nichts kostet), führt Velorki dich zurück. Es probiert drei Stellen zum Wiedereinstieg in die Planung, 300 Meter, 800 Meter und 2 Kilometer weiter entlang, gezählt ab dort, wo du neben der Planung angekommen bist, nicht ab der Stelle, an der du sie verlassen hast, und nimmt die erste, die kein Unsinn ist und dich weder falsch herum durch eine Einbahnstraße noch über einen Gehweg noch zurück schickt. Die Antwort wird als Ast neben deiner ursprünglichen Planung gezeichnet und an den Rest angenäht, die Abbiegungen nach dem Wiedereinstieg sind also die, die du schon hattest.
 
-Ziel ist der nächstgelegene sinnvolle Weg zurück auf die Planung, nicht der schnellste Weg ins Ziel. Solange du daneben bist, wird der Ast neu berechnet, sobald du weitere rund 50 Meter abgekommen bist, und höchstens alle 20 Sekunden. Kommst du auf etwa 30 Meter an die Planung heran, verschwindet der Ast kommentarlos.
+Ziel ist der nächstgelegene sinnvolle Weg zurück auf die Planung, nicht der schnellste Weg ins Ziel. Solange du daneben bist, wird der Ast neu berechnet, sobald du weitere rund 50 Meter abgekommen bist, und höchstens alle 20 Sekunden, außer du bist schon auf eigenem Weg zurück. Fährst du von zwei Ästen weg, versteht Velorki den Wink: Es plant einmal von deinem Standort zum Ziel und lässt dich dann in Ruhe, bis du dieser Route eine Weile gefolgt, wieder auf sie gekommen bist oder danach fragst. Kommst du auf etwa 30 Meter an die Planung heran, verschwindet der Ast kommentarlos.
 
 Das Band sagt **Wird neu berechnet…**, solange es rechnet, und **Route neu berechnet**, wenn es fertig ist.
 

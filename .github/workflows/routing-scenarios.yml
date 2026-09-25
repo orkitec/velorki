@@ -1,0 +1,100 @@
+name: routing-scenarios
+
+# app/test/features/navigation/routing_scenarios_test.dart over New York:
+# rides replayed through the navigation controller and the on-device router
+# on W75_N40.rd5, the tile the one-way and pavement assertions matter most
+# in. The Madeira scenarios run on every push with the committed oracle
+# tile; this job adds the city, whose 120 MB tile is downloaded from the
+# mirror rather than committed, and kept in the Actions cache per mirror
+# snapshot so a night only downloads it when the mirror moved on.
+#
+# Nightly rather than per-push: the download is most of a cold run, and
+# the city's streets change underneath the scenarios anyway, so a failure
+# here is a regression in the app or a change in the data, to be read
+# either way.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 06:11 UTC, after gazetteer-perf.
+    - cron: "11 6 * * *"
+
+# Reads the repository and the public mirror; writes nothing but its cache.
+permissions:
+  contents: read
+
+env:
+  CITY_TILE: W75_N40
+  MIRROR_LATEST: https://raw.githubusercontent.com/orkitec/velorki-data/main/latest.json
+
+jobs:
+  scenarios:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: 3.47.4  # keep in sync with mise.toml and app/.fvmrc
+          cache: true
+
+      - name: Prepare the app package
+        working-directory: app
+        run: |
+          flutter pub get
+          dart run build_runner build
+          flutter gen-l10n
+
+      # The mirror is sharded across several releases; the pointer lists
+      # every shard's base URL, and the tile is in one of them.
+      - name: Resolve the current mirror snapshot
+        id: snapshot
+        run: |
+          set -euo pipefail
+          pointer=$(curl --retry 3 --retry-all-errors --fail --location --silent --show-error \
+            --user-agent "velorki-ci (+https://github.com/orkitec/velorki)" "$MIRROR_LATEST")
+          tag=$(printf '%s' "$pointer" | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag"])')
+          bases=$(printf '%s' "$pointer" | python3 -c '
+          import json, sys
+          d = json.load(sys.stdin)
+          urls = [s["baseUrl"] for s in d.get("shards", []) if s.get("baseUrl")]
+          if d.get("baseUrl") and d["baseUrl"] not in urls:
+              urls.insert(0, d["baseUrl"])
+          print(" ".join(urls))')
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "bases=$bases" >> "$GITHUB_OUTPUT"
+          echo "Tile snapshot: $tag" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Tile cache
+        id: tile-cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/city-tiles
+          key: routing-scenarios-${{ env.CITY_TILE }}-${{ steps.snapshot.outputs.tag }}
+
+      - name: Download the New York tile
+        if: steps.tile-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p ~/city-tiles
+          found=""
+          for base in ${{ steps.snapshot.outputs.bases }}; do
+            if curl --retry 3 --retry-all-errors --fail --location --silent --show-error \
+              --user-agent "velorki-ci (+https://github.com/orkitec/velorki)" \
+              --output ~/city-tiles/"$CITY_TILE.rd5" "${base}$CITY_TILE.rd5"; then
+              found="$base"
+              break
+            fi
+          done
+          test -n "$found" || { echo "$CITY_TILE.rd5 is in no shard of the mirror"; exit 1; }
+          echo "Shard: $found" >> "$GITHUB_STEP_SUMMARY"
+          ls -l ~/city-tiles
+
+      - name: Ride the scenarios
+        working-directory: app
+        run: |
+          set -euo pipefail
+          VELORKI_NYC_SEGMENTS_DIR="$HOME/city-tiles" \
+            flutter test test/features/navigation/routing_scenarios_test.dart

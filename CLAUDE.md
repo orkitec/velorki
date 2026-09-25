@@ -109,6 +109,10 @@ changing structure.
   `tools/brouter-oracle/tiles/`; the corpus is bound to those exact bytes.
 - `app/test/perf`: timings against a real gazetteer, skipped unless
   `GAZETTEER_PERF_FILE` names a `.gaz` (`--dart-define` or the environment).
+- `app/test/features/navigation/routing_scenarios_test.dart`: rides replayed
+  through the navigation controller and the on-device router
+  (`support/ride_replay.dart`). Madeira runs always on the oracle tile; New
+  York when `VELORKI_NYC_SEGMENTS_DIR` holds `W75_N40.rd5`.
 - CI: `app.yml` (every push; `check` is the static checks and the unit tests,
   `apk` builds the debug artifact beside it, and `gazetteer` builds the
   Liechtenstein extract and checks the `.gaz` fixtures), `integration.yml` and
@@ -119,7 +123,8 @@ changing structure.
   (`VELORKI_ITEST_COMBINED=1`), because there the Xcode build and the simulator
   boot cost more than the tests, and caches the pods and the derived data),
   `gazetteer-perf.yml` (nightly, times the search against New York off the
-  mirror), `brouter-oracle.yml` (weekly), `web.yml` (every push touching
+  mirror), `routing-scenarios.yml` (nightly, the routing scenarios over the
+  New York tile, cached per mirror snapshot), `brouter-oracle.yml` (weekly), `web.yml` (every push touching
   `web/`: lint, typecheck, vitest, `check:deps`, the locale check,
   `npm audit --omit=dev` and `next build`). No rd5 comes off brouter.de; the oracle job
   does fetch the pinned upstream release zip. Every workflow declares the least

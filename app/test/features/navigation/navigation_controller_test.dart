@@ -30,7 +30,8 @@ import 'package:velorki/features/planner/domain/route_poi.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
-import '../planner/support/fakes.dart' show FakeRoutingBackend;
+import '../planner/support/fakes.dart'
+    show FakeRoutingBackend, syntheticMessage;
 import '../recording/support/fakes.dart';
 import '../../support/units.dart';
 
@@ -295,6 +296,9 @@ class _NavHarness {
   Future<void> driftAway({double from = 300}) async {
     await strayOff(from: from);
     for (var i = 1; i <= 5; i++) {
+      // A way back waits for the rider to be off the route a while; a
+      // second or two between fixes, as a phone gives them.
+      clock.advance(const Duration(seconds: 3));
       await stray(from + 20, asideM: 200 + i * 50);
     }
   }
@@ -705,14 +709,16 @@ void main() {
 
         await h.driftAway(from: 320);
 
-        expect(h.detour!.rejoinAlongM, closeTo(600, 2));
+        // Aimed from where the rider has got to beside the plan, 340 m,
+        // not from where they left it: the plan point at or past 640 m.
+        expect(h.detour!.rejoinAlongM, closeTo(650, 2));
         expect(
           h.scripted.queries,
           hasLength(1),
           reason:
               'the first candidate answered, so the others were never asked',
         );
-        expect(h.scripted.queries.single.points.last, _at(600));
+        expect(h.scripted.queries.single.points.last, _at(650));
         expect(h.scripted.queries.single.profile, 'trekking');
       },
     );
@@ -721,7 +727,7 @@ void main() {
       final h = await _NavHarness.create(
         saved: _savedRoute(),
         // A river between the rider and the point three hundred metres on.
-        backend: _rejoinBackend(factors: <double, double>{600: 4}),
+        backend: _rejoinBackend(factors: <double, double>{650: 4}),
       );
       await h.follow('route-1');
       await h.ride(300);
@@ -730,7 +736,7 @@ void main() {
 
       expect(h.detour!.rejoinAlongM, closeTo(1000, 2));
       expect(h.scripted.queries.map((q) => q.points.last), <LatLng>[
-        _at(600),
+        _at(650),
         _at(1000),
       ], reason: 'the candidates are asked in order, nearest first');
     });
@@ -738,18 +744,211 @@ void main() {
     test('when every candidate loops, the shortest way back wins', () async {
       final h = await _NavHarness.create(
         saved: _savedRoute(),
-        backend: _rejoinBackend(factors: <double, double>{600: 8, 1000: 3.5}),
+        backend: _rejoinBackend(factors: <double, double>{650: 8, 1000: 3.5}),
       );
       await h.follow('route-1');
       await h.ride(300);
 
       await h.driftAway(from: 320);
 
-      // Eight times a 440 m beeline is longer than three and a half times a
-      // 750 m one, so the far rejoin is the shorter ride of the two.
+      // Eight times the beeline to 650 m is longer than three and a half
+      // times the one to 1000 m, so the far rejoin is the shorter ride.
       expect(h.detour!.rejoinAlongM, closeTo(1000, 2));
       expect(h.scripted.queries, hasLength(2));
     });
+
+    test('a way back aimed from the rider beside the plan, not from where '
+        'they left it', () async {
+      final h = await _NavHarness.create(
+        saved: _longRoute(),
+        backend: _rejoinBackend(),
+      );
+      await h.follow('route-2');
+      await h.ride(300);
+      // Off at 300 m, then riding on beside the plan, a street over.
+      for (var i = 0; i < 8; i++) {
+        h.clock.advance(const Duration(seconds: 4));
+        await h.stray(320 + i * 40.0, asideM: 150);
+      }
+
+      expect(h.detour, isNotNull);
+      // The rider is at 600 m along; the way back meets the plan ahead of
+      // them, not behind at 600 m (300 m past where they left).
+      expect(h.detour!.rejoinAlongM, greaterThan(600));
+    });
+
+    RouteResult flawed(
+      RouteQuery q, {
+      Map<String, String>? middle,
+      bool back = false,
+    }) {
+      final from = q.points.first;
+      final to = q.points.last;
+      final length = haversineMeters(from, to) * 1.2;
+      final start = back ? LatLng(from.lat - 0.001, from.lon) : from;
+      return RouteResult(
+        geometry: <TrackPoint>[
+          TrackPoint(from),
+          if (back) TrackPoint(start),
+          TrackPoint(LatLng((from.lat + to.lat) / 2, from.lon)),
+          TrackPoint(to),
+        ],
+        lengthM: length,
+        ascentM: 0,
+        descentM: 0,
+        messages: <SegmentMessage>[
+          syntheticMessage(from, length * 0.4, const {
+            'highway': 'residential',
+          }),
+          syntheticMessage(
+            to,
+            length * 0.2,
+            middle ?? const {'highway': 'residential'},
+          ),
+          syntheticMessage(to, length * 0.4, const {'highway': 'residential'}),
+        ],
+        raw: const <String, dynamic>{},
+      );
+    }
+
+    double alongOf(RouteQuery q) => (q.points.last.lat - 48) * _metresPerDegree;
+
+    const wrongWay = <String, String>{
+      'highway': 'residential',
+      'oneway': 'yes',
+      'reversedirection': 'yes',
+    };
+
+    test('a way back against a one-way is passed over for the next one, and '
+        'every candidate is asked with its tags', () async {
+      final h = await _NavHarness.create(
+        saved: _savedRoute(),
+        backend: _ScriptedBackend(
+          (q) => flawed(q, middle: alongOf(q) < 700 ? wrongWay : null),
+        ),
+      );
+      await h.follow('route-1');
+      await h.ride(300);
+      await h.driftAway(from: 320);
+
+      expect(h.detour!.rejoinAlongM, closeTo(1000, 2));
+      // The one against the one-way is asked again without the point ahead,
+      // in case that was what put it there, then the next candidate.
+      expect(h.scripted.queries.map((q) => q.points.length), [3, 2, 3]);
+      expect(
+        h.scripted.queries.map((q) => q.profileParams['processUnusedTags']),
+        everyElement('1'),
+      );
+    });
+
+    test(
+      'so is one along the pavement, and one that turns the rider round',
+      () async {
+        for (final bad in <RouteResult Function(RouteQuery)>[
+          (q) => flawed(
+            q,
+            middle: const {'highway': 'footway', 'footway': 'sidewalk'},
+          ),
+          (q) => flawed(q, back: true),
+        ]) {
+          final h = await _NavHarness.create(
+            saved: _savedRoute(),
+            backend: _ScriptedBackend(
+              (q) => alongOf(q) < 700 ? bad(q) : flawed(q),
+            ),
+          );
+          await h.follow('route-1');
+          await h.ride(300);
+          await h.driftAway(from: 320);
+          expect(h.detour!.rejoinAlongM, closeTo(1000, 2));
+        }
+      },
+    );
+
+    test('a pavement a bicycle is let onto is no flaw', () async {
+      final h = await _NavHarness.create(
+        saved: _savedRoute(),
+        backend: _ScriptedBackend(
+          (q) => flawed(
+            q,
+            middle: const {
+              'highway': 'footway',
+              'footway': 'sidewalk',
+              'bicycle': 'designated',
+            },
+          ),
+        ),
+      );
+      await h.follow('route-1');
+      await h.ride(300);
+      await h.driftAway(from: 320);
+      expect(h.detour!.rejoinAlongM, closeTo(650, 2));
+    });
+
+    test(
+      'when every way back is flawed, the least bad one is still taken',
+      () async {
+        final h = await _NavHarness.create(
+          saved: _savedRoute(),
+          backend: _ScriptedBackend(
+            (q) => flawed(
+              q,
+              middle: alongOf(q) < 700
+                  ? wrongWay
+                  : const {'highway': 'footway', 'footway': 'sidewalk'},
+            ),
+          ),
+        );
+        await h.follow('route-1');
+        await h.ride(300);
+        await h.driftAway(from: 320);
+
+        // Pavement is the lesser evil next to a one-way ridden the wrong way.
+        expect(h.detour, isNotNull);
+        expect(h.detour!.rejoinAlongM, closeTo(1000, 2));
+      },
+    );
+
+    test(
+      'a rider who rides away from two ways back while getting on beside '
+      'the plan gets it re-planned once, and then quiet until they ask',
+      () async {
+        final h = await _NavHarness.create(
+          saved: _longRoute(),
+          backend: _rejoinBackend(),
+        );
+        await h.follow('route-2');
+        await h.ride(300);
+        var along = 300.0;
+        Future<void> onBeside(int fixes, double aside) async {
+          for (var i = 0; i < fixes; i++) {
+            h.clock.advance(const Duration(seconds: 4));
+            along += 20;
+            await h.stray(along, asideM: aside);
+          }
+        }
+
+        // Riding north a street over, ignoring every way back.
+        await onBeside(40, 150);
+        final replans = h.scripted.queries
+            .where((q) => q.points.last == _at(5000) && q.points.length == 2)
+            .toList();
+        final rejoins = h.scripted.queries.length - replans.length;
+        expect(replans, hasLength(1));
+        expect(rejoins, ignoredRejoinsBeforeReplan);
+        expect(h.detour!.replacesPlan, isTrue);
+
+        // Straying off the new plan too: quiet, nothing asked.
+        final asked = h.scripted.queries.length;
+        await onBeside(20, 900);
+        expect(h.scripted.queries.length, asked);
+
+        // Until the rider asks.
+        h.container.read(navigationControllerProvider.notifier).requestRejoin();
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+        expect(h.scripted.queries.length, greaterThan(asked));
+      },
+    );
 
     test('the finish of a long plan is never a candidate', () async {
       final h = await _NavHarness.create(

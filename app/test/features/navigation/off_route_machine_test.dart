@@ -504,12 +504,15 @@ void main() {
       expect(asked, isTrue);
     });
 
-    test('a hundred and fifty metres of travel asks sooner', () {
+    test('a hundred and fifty metres from where the rider left asks sooner '
+        'than half a minute, but not before fifteen seconds', () {
       final machine = _machine();
-      var asked = false;
-      // Walking away from the route, a fix every 40 m and every second.
-      for (var i = 0; i <= 6; i++) {
-        final aside = 100.0 + i * 40;
+      // On the route at 300 m, then riding straight away from it, 20 m a
+      // second.
+      _fix(machine, _at(300), distanceFromRouteM: 0, alongM: 300);
+      var askedAt = -1;
+      for (var i = 1; i <= 20; i++) {
+        final aside = 20.0 * i;
         final decision = _fix(
           machine,
           _at(300, asideM: aside),
@@ -517,11 +520,35 @@ void main() {
           alongM: 300,
           at: Duration(seconds: i),
         );
-        asked |= decision.planDetour;
+        if (decision.planDetour && askedAt < 0) askedAt = i;
       }
 
-      expect(asked, isTrue, reason: '200 m of travel is well past 150');
+      expect(askedAt, greaterThan(0), reason: 'well past 150 m');
+      expect(askedAt, lessThan(detourAfter.inSeconds));
+      // Off route from the fifth fix on; the rule waits fifteen seconds.
+      expect(askedAt, greaterThanOrEqualTo(4 + detourMinTime.inSeconds));
       expect(machine.offTravelM, greaterThan(detourAfterMeters));
+    });
+
+    test('fixes thrown about by a street canyon add up to no travel', () {
+      final machine = _machine();
+      _fix(machine, _at(300), distanceFromRouteM: 0, alongM: 300);
+      var asked = false;
+      // Ten wild fixes a second apart, 100 m either side of the route: a
+      // kilometre of steps between them, and the rider nowhere else.
+      for (var i = 1; i <= 10; i++) {
+        final aside = i.isEven ? 100.0 : -100.0;
+        final decision = _fix(
+          machine,
+          _at(300 + i * 5.0, asideM: aside),
+          distanceFromRouteM: 100,
+          alongM: 300,
+          at: Duration(seconds: i),
+        );
+        asked |= decision.planDetour;
+      }
+      expect(asked, isFalse);
+      expect(machine.offTravelM, lessThan(detourAfterMeters));
     });
 
     test('re-routing switched off never asks', () {

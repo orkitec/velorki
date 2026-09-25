@@ -18,8 +18,24 @@ const Duration offRouteAfter = Duration(seconds: 8);
 /// How long guiding a rider back goes on before a rejoin is worked out.
 const Duration detourAfter = Duration(seconds: 30);
 
-/// ...or how far they travel while off the route, whichever comes first.
+/// ...or how far they get from where they left the route, whichever comes
+/// first.
+///
+/// Measured as the straight-line distance from the last fix that was on the
+/// route, not as the sum of the steps since: a phone in a street canyon that
+/// throws its fixes about adds up a hundred and fifty metres of steps in a
+/// second or two without the rider going anywhere.
 const double detourAfterMeters = 150;
+
+/// However far the rider has got, a way back is not worked out before they
+/// have been off the route this long.
+///
+/// Fifteen seconds: the longest run of wild fixes in the replayed rides and
+/// the synthetic canyon was ten seconds, and a rider round a one-block
+/// detour was back on the route within fourteen, so neither ever costs a
+/// routing request, while a real two-block detour still gets its way back
+/// before the next corner.
+const Duration detourMinTime = Duration(seconds: 15);
 
 /// How far ahead along the plan a rejoin is aimed for.
 ///
@@ -160,10 +176,14 @@ class OffRouteMachine {
   int _strayCount = 0;
   DateTime? _strayingSince;
 
-  /// When the rider left the route, and how far they have gone since.
+  /// When the rider left the route, where they left it, and how far from
+  /// there they have got at most.
   DateTime? _offSince;
+  LatLng? _leftAt;
   double _offTravelM = 0;
-  LatLng? _lastPosition;
+
+  /// The last fix that was on the route.
+  LatLng? _lastOnRoute;
 
   /// When the way back was last said out loud.
   double? _spokenDistanceM;
@@ -174,7 +194,8 @@ class OffRouteMachine {
   /// Where the ride stands.
   OffRouteState get state => _state;
 
-  /// How far the rider has travelled since leaving the route, in metres.
+  /// How far the rider has got from where they left the route, at most, in
+  /// metres.
   double get offTravelM => _offTravelM;
 
   /// Takes one fix in and says what it calls for.
@@ -198,16 +219,16 @@ class OffRouteMachine {
     double? distanceFromDetourM,
     double? accuracyM,
   }) {
-    final previous = _lastPosition;
-    _lastPosition = position;
-    if (previous != null && _state != OffRouteState.onRoute) {
-      _offTravelM += haversineMeters(previous, position);
+    final left = _leftAt;
+    if (left != null && _state != OffRouteState.onRoute) {
+      _offTravelM = math.max(_offTravelM, haversineMeters(left, position));
     }
 
     if (_state == OffRouteState.onRoute) {
       if (distanceFromRouteM <= strayThresholdM(accuracyM)) {
         _strayCount = 0;
         _strayingSince = null;
+        _lastOnRoute = position;
         return const OffRouteDecision(state: OffRouteState.onRoute);
       }
       _strayCount++;
@@ -218,7 +239,8 @@ class OffRouteMachine {
       }
       _state = OffRouteState.guiding;
       _offSince = now;
-      _offTravelM = 0;
+      _leftAt = _lastOnRoute ?? position;
+      _offTravelM = haversineMeters(_leftAt!, position);
       _spokenDistanceM = null;
       _detourAt = null;
     }
@@ -264,8 +286,9 @@ class OffRouteMachine {
   bool _wantsDetour(DateTime now) {
     final since = _offSince;
     if (since == null) return false;
-    return now.difference(since) >= detourAfter ||
-        _offTravelM >= detourAfterMeters;
+    final off = now.difference(since);
+    if (off < detourMinTime) return false;
+    return off >= detourAfter || _offTravelM >= detourAfterMeters;
   }
 
   /// Whether the ride has drifted so far, for so long, that heading back to
@@ -290,6 +313,7 @@ class OffRouteMachine {
     _strayCount = 0;
     _strayingSince = null;
     _offSince = null;
+    _leftAt = null;
     _offTravelM = 0;
     _spokenDistanceM = null;
     _detourAt = null;
@@ -370,6 +394,28 @@ LatLng? headingViaPoint({
 }) {
   if (headingDeg == null || speedMps <= headingViaSpeedMps) return null;
   return destinationPoint(position, headingDeg, headingViaMeters);
+}
+
+/// How far along [line] a rejoin is aimed from, for a rider at [position]
+/// who was last on it [lastOnM] metres along.
+///
+/// Where they left it, unless they have gone on since: a rider riding beside
+/// the plan, on the next street over, has left the corner they strayed at
+/// far behind, and a way back aimed from there would turn them round. So
+/// their own place along the plan counts once it is ahead of where they
+/// left, as long as it is within the reach of a rejoin
+/// ([rejoinTargetsM]'s last) — a rider further on than that is not beside
+/// the plan any more but somewhere else, and projecting them onto it says
+/// nothing.
+double rejoinFromM(
+  List<LatLng> line,
+  List<double> cumulative,
+  LatLng position,
+  double lastOnM,
+) {
+  final here = projectOnLine(line, position, cumulative: cumulative).alongM;
+  if (here <= lastOnM || here - lastOnM > rejoinTargetsM.last) return lastOnM;
+  return here;
 }
 
 /// The points of [line] a rejoin should aim for: [rejoinTargetsM] metres

@@ -7,6 +7,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../../core/geo/track_surface.dart' show keepAllTags;
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/application/planner_controller.dart';
 import '../../planner/domain/route_poi.dart';
@@ -26,6 +27,7 @@ import '../../settings/data/language_controller.dart';
 import '../../settings/data/units.dart';
 import 'off_route_machine.dart';
 import 'off_route_thresholds.dart';
+import 'route_check.dart';
 import 'route_geometry.dart';
 import 'turn_announcer.dart';
 import 'turn_navigator.dart';
@@ -41,6 +43,29 @@ const Duration rerouteRetryGap = Duration(seconds: 30);
 
 /// How long a routing request is given before it is abandoned.
 const Duration rerouteTimeout = Duration(seconds: 20);
+
+/// How many ways back a rider may ride away from before the ride is
+/// re-planned from where they are.
+const int ignoredRejoinsBeforeReplan = 2;
+
+/// How far a rider has to have ridden since a way back was worked out for
+/// drifting off it to count as ignoring it, rather than as standing still
+/// while the phone wanders.
+///
+/// Distance ridden, not progress along the plan: the replayed rides show
+/// riders heading off sideways, a block or two away from the plan, for
+/// minutes, their place along it not moving at all while every way back
+/// was ignored in turn.
+const double ignoredRejoinMovedM = 50;
+
+/// How much nearer the plan than when their way back was worked out a rider
+/// has to be, off that way back, to count as finding their own way back to
+/// it, which no new way back is worked out for.
+const double convergingM = 20;
+
+/// How far a rider has to ride along a re-planned route, on it, before the
+/// ride stops keeping quiet and works out ways back again.
+const double quietUntilFollowedM = 300;
 
 /// The route a ride is being guided along, plus a key that says when it is a
 /// different route from the one before.
@@ -348,6 +373,22 @@ class NavigationController extends _$NavigationController {
   /// Whether the notifier is being created right now.
   bool _building = false;
 
+  /// Ways back the rider rode away from, and where they were when the last
+  /// one was worked out.
+  int _rejoinsIgnored = 0;
+  LatLng? _rejoinAskedAt;
+
+  /// How far off the plan the rider was when the last way back was worked
+  /// out.
+  double _rejoinAskedOffM = double.infinity;
+
+  /// Whether the ride was re-planned because the rider kept to their own
+  /// way: no more ways back are worked out until they follow a route again,
+  /// get back onto it, or ask. How far along the plan they were when it
+  /// started.
+  bool _quiet = false;
+  double _quietFromM = 0;
+
   @override
   NavigationProgress? build() {
     ref.listen(recordingControllerProvider, (previous, next) => _refresh());
@@ -400,6 +441,10 @@ class NavigationController extends _$NavigationController {
       _detours = 0;
       _offRouteState = OffRouteState.onRoute;
       _guidance = null;
+      _rejoinsIgnored = 0;
+      _rejoinAskedAt = null;
+      _rejoinAskedOffM = double.infinity;
+      _quiet = false;
       _cancelRouting();
       _setDetour(null);
     }
@@ -537,10 +582,40 @@ class NavigationController extends _$NavigationController {
         ),
       ]);
     }
+    if (decision.restored) {
+      _rejoinsIgnored = 0;
+      _rejoinAskedAt = null;
+      _rejoinAskedOffM = double.infinity;
+      _quiet = false;
+    }
+    // Keeping quiet after a re-plan the rider asked for by keeping to their
+    // own way: until they have followed a route again for a while.
+    if (_quiet &&
+        onPlan.distanceM <= snapThresholdM(snapshot.accuracyM) &&
+        _planAlongM - _quietFromM >= quietUntilFollowedM) {
+      _quiet = false;
+    }
+    if (_quiet) return;
     if (decision.fullReroute) {
       _startFullReroute(plan, position, now);
     } else if (decision.planDetour) {
-      _startRejoin(plan, position, snapshot, now);
+      final lastAsked = _rejoinAskedAt;
+      if (detour != null && lastAsked != null) {
+        // Off the way back, but nearer the plan than when it was put up:
+        // the rider is finding their own way back, and another way back
+        // would only be in the way of it.
+        if (onPlan.distanceM < _rejoinAskedOffM - convergingM) return;
+        // A way back that was put up and ridden away from: the rider is
+        // taking their own way.
+        if (haversineMeters(lastAsked, position) >= ignoredRejoinMovedM) {
+          _rejoinsIgnored++;
+        }
+      }
+      if (_rejoinsIgnored >= ignoredRejoinsBeforeReplan) {
+        _startFullReroute(plan, position, now, thenQuiet: true);
+      } else {
+        _startRejoin(plan, position, snapshot, now);
+      }
     }
   }
 
@@ -625,6 +700,8 @@ class NavigationController extends _$NavigationController {
     final position = snapshot?.lastPosition;
     if (plan == null || snapshot == null || position == null) return;
     if (_offRouteState == OffRouteState.onRoute) return;
+    _quiet = false;
+    _rejoinsIgnored = 0;
     _lastAttemptAt = null;
     _startRejoin(plan, position, snapshot, ref.read(navigationClockProvider)());
     _refresh();
@@ -640,6 +717,8 @@ class NavigationController extends _$NavigationController {
         .snapshot
         ?.lastPosition;
     if (plan == null || position == null) return;
+    _quiet = false;
+    _rejoinsIgnored = 0;
     _lastAttemptAt = null;
     _startFullReroute(plan, position, ref.read(navigationClockProvider)());
     _refresh();
@@ -677,8 +756,15 @@ class NavigationController extends _$NavigationController {
   ) {
     final backend = _backendFor(now);
     if (backend == null) return;
-    final targets = rejoinTargets(plan.line, _planCumulative, _planAlongM);
+    final from = rejoinFromM(plan.line, _planCumulative, position, _planAlongM);
+    final targets = rejoinTargets(plan.line, _planCumulative, from);
     if (targets.isEmpty) return;
+    _rejoinAskedAt = position;
+    _rejoinAskedOffM = projectOnLine(
+      plan.line,
+      position,
+      cumulative: _planCumulative,
+    ).distanceM;
 
     _lastAttemptAt = now;
     _gap = rerouteGap;
@@ -693,8 +779,11 @@ class NavigationController extends _$NavigationController {
       headingDeg: snapshot.headingDeg,
       speedMps: snapshot.speedMps,
     );
+    final heading = snapshot.speedMps > headingViaSpeedMps
+        ? snapshot.headingDeg
+        : null;
     unawaited(
-      _routeRejoin(backend, plan, position, via, targets, token).then(
+      _routeRejoin(backend, plan, position, via, heading, targets, token).then(
         (best) => _rejoined(generation, plan, best),
         onError: (Object error) => _routingFailed(generation, error),
       ),
@@ -702,7 +791,16 @@ class NavigationController extends _$NavigationController {
   }
 
   /// Routes the candidates in turn and takes the first that is a way back
-  /// rather than a loop, or the shortest of them when none is.
+  /// a rider can ride as it is drawn, rather than a loop.
+  ///
+  /// A candidate is clean when it rides no one-way the wrong way, keeps off
+  /// the pavement between its two ends, and does not start by turning the
+  /// rider round ([headingDeg], when there is one). The first clean one no
+  /// longer than [rejoinDetourFactor] times its beeline is the answer;
+  /// failing that, the shortest clean one. When none is clean, a way back is
+  /// still better than none: the one with the fewest metres against a
+  /// one-way, then of pavement, then one that does not turn back, then the
+  /// shortest.
   ///
   /// `null` when nothing could be routed at all.
   Future<_Rejoin?> _routeRejoin(
@@ -710,10 +808,12 @@ class NavigationController extends _$NavigationController {
     GuidedRoute plan,
     LatLng position,
     LatLng? via,
+    double? headingDeg,
     List<RejoinTarget> targets,
     CancelToken token,
   ) async {
-    _Rejoin? shortest;
+    _Rejoin? shortestClean;
+    _Rejoin? leastBad;
     RoutingException? failure;
     for (final target in targets) {
       if (token.isCancelled) break;
@@ -722,18 +822,45 @@ class NavigationController extends _$NavigationController {
         profile: plan.options.profile.brouterName,
         alternativeIdx: 0,
         timeout: rerouteTimeout,
+        // Every tag in the messages, so the way back can be checked for
+        // one-ways and pavements before the rider is sent down it.
+        profileParams: keepAllTags,
       );
       try {
-        final result = await backend.route(query, cancel: token);
-        if (result.positions.length < 2) continue;
-        final rejoin = _Rejoin(result: result, target: target);
-        // Near enough its own beeline to be a road rather than a way round
-        // something: the nearest of those is the way back, and the candidates
-        // further on need not be asked for at all.
-        final beeline = haversineMeters(position, target.point);
-        if (result.lengthM <= beeline * rejoinDetourFactor) return rejoin;
-        if (shortest == null || result.lengthM < shortest.result.lengthM) {
-          shortest = rejoin;
+        var rejoin = await _candidate(
+          backend,
+          query,
+          target,
+          headingDeg,
+          token,
+        );
+        // The point ahead that stands in for a heading is matched to the
+        // nearest way, which in a city that draws its pavements is often a
+        // pavement: asked again without it, the way back may be clean.
+        if (rejoin != null && !rejoin.clean && via != null) {
+          final plain = await _candidate(
+            backend,
+            query.copyWith(points: <LatLng>[position, target.point]),
+            target,
+            headingDeg,
+            token,
+          );
+          if (plain != null && !plain.worseThan(rejoin)) rejoin = plain;
+        }
+        if (rejoin == null) continue;
+        final result = rejoin.result;
+        if (rejoin.clean) {
+          // Near enough its own beeline to be a road rather than a way round
+          // something: the nearest of those is the way back, and the
+          // candidates further on need not be asked for at all.
+          final beeline = haversineMeters(position, target.point);
+          if (result.lengthM <= beeline * rejoinDetourFactor) return rejoin;
+          if (shortestClean == null ||
+              result.lengthM < shortestClean.result.lengthM) {
+            shortestClean = rejoin;
+          }
+        } else if (leastBad == null || !rejoin.worseThan(leastBad)) {
+          leastBad = rejoin;
         }
       } on RoutingException catch (error) {
         // One target out of reach is normal — a one-way street, a river —
@@ -741,8 +868,29 @@ class NavigationController extends _$NavigationController {
         failure = error;
       }
     }
-    if (shortest == null && failure != null) throw failure;
-    return shortest;
+    final best = shortestClean ?? leastBad;
+    if (best == null && failure != null) throw failure;
+    return best;
+  }
+
+  /// One candidate way back, with what it asks of the rider; `null` for an
+  /// answer that is no route.
+  Future<_Rejoin?> _candidate(
+    RoutingBackend backend,
+    RouteQuery query,
+    RejoinTarget target,
+    double? headingDeg,
+    CancelToken token,
+  ) async {
+    final result = await backend.route(query, cancel: token);
+    if (result.positions.length < 2) return null;
+    return _Rejoin(
+      result: result,
+      target: target,
+      againstM: againstOnewayM(result),
+      sidewalkM: sidewalkM(result),
+      turnsBack: headingDeg != null && turnsBack(result, headingDeg),
+    );
   }
 
   /// Hangs a rejoin off the plan: from here the rider is guided along the way
@@ -800,7 +948,12 @@ class NavigationController extends _$NavigationController {
 
   /// Asks the router for a whole new route from where the rider stands to the
   /// end of the ride. The answer takes the plan's place.
-  void _startFullReroute(GuidedRoute plan, LatLng position, DateTime now) {
+  void _startFullReroute(
+    GuidedRoute plan,
+    LatLng position,
+    DateTime now, {
+    bool thenQuiet = false,
+  }) {
     final backend = _backendFor(now);
     if (backend == null) return;
     _lastAttemptAt = now;
@@ -822,14 +975,20 @@ class NavigationController extends _$NavigationController {
       backend
           .route(query, cancel: token)
           .then(
-            (result) => _replanned(generation, plan, result),
+            (result) =>
+                _replanned(generation, plan, result, thenQuiet: thenQuiet),
             onError: (Object error) => _routingFailed(generation, error),
           ),
     );
   }
 
   /// Takes a fresh route on as the plan itself.
-  void _replanned(int generation, GuidedRoute plan, RouteResult result) {
+  void _replanned(
+    int generation,
+    GuidedRoute plan,
+    RouteResult result, {
+    bool thenQuiet = false,
+  }) {
     if (generation != _generation) return;
     _rerouting = false;
     _cancel = null;
@@ -843,6 +1002,11 @@ class NavigationController extends _$NavigationController {
     _planAlongM = 0;
     _offRouteState = OffRouteState.onRoute;
     _guidance = null;
+    _rejoinsIgnored = 0;
+    _rejoinAskedAt = null;
+    _rejoinAskedOffM = double.infinity;
+    _quiet = thenQuiet;
+    _quietFromM = 0;
     _setDetour(
       GuidedRoute(
         key: 'reroute:$_detours:${line.length}',
@@ -978,15 +1142,47 @@ class NavigationController extends _$NavigationController {
   }
 }
 
-/// One routed way back onto the plan.
+/// One routed way back onto the plan, with what it asks of the rider.
 class _Rejoin {
-  const _Rejoin({required this.result, required this.target});
+  const _Rejoin({
+    required this.result,
+    required this.target,
+    this.againstM = 0,
+    this.sidewalkM = 0,
+    this.turnsBack = false,
+  });
 
   /// The way back itself.
   final RouteResult result;
 
   /// Where it meets the plan again.
   final RejoinTarget target;
+
+  /// Metres of it against a one-way bicycles have to keep to.
+  final double againstM;
+
+  /// Metres of pavement between its two ends.
+  final double sidewalkM;
+
+  /// Whether it starts by turning the rider round.
+  final bool turnsBack;
+
+  /// Whether it asks nothing of the rider it should not.
+  bool get clean => againstM < 1 && sidewalkM < 1 && !turnsBack;
+
+  /// Whether this one is worse than [other], for a fallback when none is
+  /// clean: more against a one-way, then more pavement, then turning back,
+  /// then longer.
+  bool worseThan(_Rejoin other) {
+    if ((againstM - other.againstM).abs() >= 1) {
+      return againstM > other.againstM;
+    }
+    if ((sidewalkM - other.sidewalkM).abs() >= 1) {
+      return sidewalkM > other.sidewalkM;
+    }
+    if (turnsBack != other.turnsBack) return turnsBack;
+    return result.lengthM > other.result.lengthM;
+  }
 }
 
 /// How far off the plan a point of interest may sit and still be announced.
