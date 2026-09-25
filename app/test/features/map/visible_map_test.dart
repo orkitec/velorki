@@ -91,8 +91,10 @@ void main() {
     });
 
     test('follows the map when it is turned', () {
-      // Turned 90° clockwise, north is at the right and screen-up is west:
-      // a sheet at the bottom now wants the camera east of the target.
+      // The camera faces east (bearing 90, as MapLibre means it): screen-up
+      // is east, north is at the left. A sheet at the bottom wants the
+      // target above the middle, east of the camera, so the camera goes
+      // west of the target.
       final center = offsetCenter(
         target,
         size: size,
@@ -101,7 +103,18 @@ void main() {
         bearing: 90,
       );
       expect(center.lat, closeTo(0, 1e-6));
-      expect(center.lon, closeTo(90, 1e-6));
+      expect(center.lon, closeTo(-90, 1e-6));
+
+      // Facing south, screen-up is south: the camera goes north.
+      final south = offsetCenter(
+        target,
+        size: size,
+        padding: const EdgeInsets.only(bottom: 256),
+        zoom: 0,
+        bearing: 180,
+      );
+      expect(south.lon, closeTo(0, 1e-6));
+      expect(south.lat, greaterThan(0));
     });
 
     test('wraps at the antimeridian', () {
@@ -184,6 +197,52 @@ void main() {
       // 20° of longitude, not 340°.
       expect(fit.zoom, greaterThan(4));
       expect(fit.center.lon.abs(), closeTo(180, 1e-6));
+    });
+  });
+
+  group('followPadding', () {
+    const size = Size(375, 667);
+
+    /// Where a move with [padding] lands its target on the screen.
+    double landsAt(EdgeInsets padding) =>
+        (padding.top + size.height - padding.bottom) / 2;
+
+    test('heading-up puts the rider most of the way down what is visible', () {
+      final padding = followPadding(
+        size: size,
+        top: 20,
+        bottom: 300,
+        headingUp: true,
+      );
+      expect(landsAt(padding), closeTo(20 + 0.7 * 347, 1e-9));
+      expect(padding.left, 0);
+      expect(padding.right, 0);
+    });
+
+    test('north-up puts them in its middle', () {
+      final padding = followPadding(
+        size: size,
+        top: 20,
+        bottom: 300,
+        headingUp: false,
+      );
+      expect(landsAt(padding), closeTo(20 + 347 / 2, 1e-9));
+    });
+
+    test('with too little showing, the middle of it; with none, just under '
+        'the chrome, never beneath it', () {
+      expect(
+        landsAt(
+          followPadding(size: size, top: 20, bottom: 567, headingUp: true),
+        ),
+        closeTo(20 + 40, 1e-9),
+      );
+      expect(
+        landsAt(
+          followPadding(size: size, top: 20, bottom: 700, headingUp: true),
+        ),
+        closeTo(20, 1e-9),
+      );
     });
   });
 }

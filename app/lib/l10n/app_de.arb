@@ -212,7 +212,7 @@
   "recordingPause": "Pause",
   "recordingResume": "Fortsetzen",
   "recordingFinish": "Beenden",
-  "recordingStatusRecording": "Aufnahme läuft",
+  "recordingStatusRecording": "Aufnahme",
   "recordingStatusPaused": "Pausiert",
   "recordingStatusAutoPaused": "Auto-Pause",
   "recordingFollowRoute": "Einer Route folgen",

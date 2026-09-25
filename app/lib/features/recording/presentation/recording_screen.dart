@@ -27,6 +27,7 @@ import '../../navigation/application/off_route_thresholds.dart';
 import '../../navigation/domain/navigation_progress.dart';
 import '../../navigation/presentation/navigation_toggles.dart';
 import '../../navigation/presentation/turn_banner.dart';
+import '../../map/domain/visible_map.dart';
 import '../../navigation/presentation/turn_phrases.dart';
 import '../../library/application/library_card.dart';
 import '../../planner/application/planner_controller.dart';
@@ -91,6 +92,9 @@ const double followZoomMax = 19;
 /// How much the zoom may differ from the one we sent before a camera that
 /// came to rest counts as zoomed by the rider.
 const double _handZoomDelta = 0.05;
+
+/// The air between the turn banner and the rider's part of the map.
+const double _bannerGapPx = 8;
 
 /// How far the camera may come to rest from the fix we last moved it to
 /// before that counts as the rider having panned the map by hand.
@@ -259,7 +263,27 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// The sheet's extent, while this is the tab on screen, for the tab that
   /// comes next.
   void _onSheetExtent(double extent) {
+    _sheetExtent = extent;
     if (_active) ref.read(tabHandoverProvider.notifier).setSheetExtent(extent);
+  }
+
+  /// The sheet's extent as last reported; `null` before the first report.
+  double? _sheetExtent;
+
+  /// The sheet on screen, whose top the next follow move places the rider
+  /// above: read from its box as last laid out, which is where the rider
+  /// sees it, whatever the sheet last reported while it snapped.
+  final GlobalKey _sheetBoxKey = GlobalKey();
+
+  /// How far the sheet reaches up from the bottom of a [size] screen.
+  double _sheetCover(Size size) {
+    final box = _sheetBoxKey.currentContext?.findRenderObject();
+    if (box is RenderBox && box.hasSize && box.attached) {
+      final top = box.localToGlobal(Offset.zero).dy;
+      return (size.height - top).clamp(0.0, size.height);
+    }
+    return (_sheetExtent ?? sheetRestingExtent(size.height)).clamp(0.0, 1.0) *
+        size.height;
   }
 
   /// The idle sheet's resting size, as computed by the last build.
@@ -348,6 +372,10 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// The fix the camera was last sent to, the reference a camera idle is
   /// measured against.
   LatLng? _followTarget;
+
+  /// Where our last follow move put the camera's centre, which the
+  /// rider's placement above the sheet sets apart from the rider.
+  LatLng? _followCamera;
 
   /// The zoom our last follow move asked for, to tell a pinch from a pan.
   double? _sentZoom;
@@ -496,6 +524,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     _drawnStopsId = null;
     _autoMoving = false;
     _followTarget = null;
+    _followCamera = null;
   }
 
   /// Draws the followed route's own points: the start, the destination with
@@ -582,6 +611,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     double? speedMps,
     bool fromCompass = false,
     bool saver = false,
+    bool banner = false,
   }) {
     final moving = _autoMoving;
     _autoMoving = true;
@@ -609,11 +639,33 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
         : current.clamp(followZoomMin, followZoomMax).toDouble();
     _followStarts = false;
     _sentZoom = zoom;
+    // Above the sheet and below the banner or the status bar; low in that,
+    // heading-up, so most of what shows is the road ahead.
+    final size = MediaQuery.sizeOf(context);
+    final padding = followPadding(
+      size: size,
+      top:
+          MediaQuery.viewPaddingOf(context).top +
+          (banner ? turnBannerHeight + _bannerGapPx : 0),
+      bottom: _sheetCover(size),
+
+      headingUp: mode == FollowMode.headingUp,
+    );
+    // Where the camera itself comes to rest: the rider's placement moves it
+    // off the rider, and a camera found there is not a hand pan.
+    _followCamera = offsetCenter(
+      position,
+      size: size,
+      padding: padding,
+      zoom: zoom,
+      bearing: bearing ?? map.bearing ?? 0,
+    );
     unawaited(
       map.moveTo(
         position,
         zoom: zoom,
         bearing: bearing,
+        padding: padding,
         // A saver ride jumps the camera instead of gliding it: an animation
         // is a second of redraws for a move that takes one step anyway.
         animate: !saver,
@@ -689,6 +741,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     _bearing = 0;
     _autoMoving = true;
     _followTarget = center;
+    _followCamera = center;
     unawaited(map.moveTo(center, bearing: 0));
   }
 
@@ -726,9 +779,15 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       return;
     }
     final center = map.center;
-    final target = _followTarget;
-    if (center == null || target == null) return;
-    if (haversineMeters(center, target) <= handPanMeters) return;
+    if (center == null) return;
+    // Resting where we sent it — on the rider, or where their placement
+    // above the sheet puts the camera — is our own move, not a pan.
+    for (final ours in <LatLng?>[_followCamera, _followTarget]) {
+      if (ours != null && haversineMeters(center, ours) <= handPanMeters) {
+        return;
+      }
+    }
+    if (_followCamera == null && _followTarget == null) return;
     if (mounted) setState(() => _following = false);
   }
 
@@ -764,6 +823,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     // left the camera on the rider — neither must read as a hand pan.
     _autoMoving = true;
     _followTarget = _map?.center ?? _followTarget;
+    _followCamera = _followTarget;
     // Asking for the rider is asking for the following's own zoom too.
     _followStarts = true;
     if (_following) return;
@@ -859,6 +919,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       _wasRecording = state.isRecording;
       _following = state.isRecording;
       _followTarget = null;
+      _followCamera = null;
       _followStarts = true;
       if (ended) _sheetPage = 0;
     }
@@ -964,6 +1025,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
           speedMps: speed,
           fromCompass: _bearingFromCompass,
           saver: saver,
+          banner: navigation != null,
         );
       }
     }
@@ -1661,6 +1723,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                   snap: true,
                   snapSizes: _snapSizesFor(initial),
                   builder: (context, scrollController) => DockingSheet(
+                    key: _sheetBoxKey,
                     controller: scrollController,
                     gripDp: sheetGripWithTitleDp,
                     // Where the sheet really starts: for a screen built in
@@ -2080,7 +2143,11 @@ class _LivePanel extends ConsumerWidget {
         // buttons, then two rows of three figures. Nothing hides below.
         Row(
           children: [
-            _StatusPill(label: status, paused: state.isPaused),
+            // Gives way before the buttons do, on a narrow phone in a
+            // language with a long word for it.
+            Flexible(
+              child: _StatusPill(label: status, paused: state.isPaused),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -2339,9 +2406,13 @@ class _StatusPill extends StatelessWidget {
                 ),
               ),
             const SizedBox(width: 8),
-            Text(
-              label.toUpperCase(),
-              style: theme.textTheme.overline.copyWith(color: textColor),
+            Flexible(
+              child: Text(
+                label.toUpperCase(),
+                style: theme.textTheme.overline.copyWith(color: textColor),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),

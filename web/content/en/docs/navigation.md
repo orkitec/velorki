@@ -85,6 +85,7 @@ All of the distances above grow with how bad your GPS fix is, roughly doubling w
 ## The map while navigating
 
 - The compass button on the map swaps between **North up** and **Map turns with you**. Your choice is remembered for the next ride.
+- Your position sits in the part of the map above the sheet: in the middle of it with north up, low in it when the map turns with you, so most of what shows is the road ahead.
 - The map keeps the zoom you pinch it to while it follows you, anywhere from a few kilometres across to a single block; only dragging it stops the following.
 - **Show my position** picks the following up again after you have panned the map, at the usual street-level zoom.
 - While you are on the route the position marker is drawn on the route and pointed along it, rather than wandering with the fix.

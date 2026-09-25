@@ -31,6 +31,43 @@ EdgeInsets visibleMapInsets({
   sheetExtent.clamp(0.0, 1.0) * size.height + margin,
 );
 
+/// How far down the visible map a rider being followed heading-up sits, as
+/// a share of its height: most of what shows is the road ahead, as on a
+/// bike computer, and a strip behind is left to see where they came from.
+const double followAheadShare = 0.7;
+
+/// The least of the map, in logical pixels, worth placing a rider in with
+/// room ahead; with less showing, the rider is centred in what there is.
+const double followMinVisiblePx = 120;
+
+/// The padding a follow move sends so the rider lands where they should in
+/// a [size] map whose visible part runs from [top] down to [bottom] above
+/// the bottom edge: [followAheadShare] of the way down it when the map
+/// turns with them ([headingUp]), in its middle when north is up, since
+/// ahead can then be any way. Horizontally the rider stays in the middle.
+///
+/// With less than [followMinVisiblePx] showing, the rider is centred in
+/// what is visible, and never above [top]: under the chrome nobody sees
+/// them.
+EdgeInsets followPadding({
+  required Size size,
+  required double top,
+  required double bottom,
+  required bool headingUp,
+}) {
+  final visible = size.height - top - bottom;
+  final share = !headingUp || visible < followMinVisiblePx
+      ? 0.5
+      : followAheadShare;
+  final y = top + math.max(visible, 0) * share;
+  // Where a padded move lands its target: the middle of what the padding
+  // leaves. One side's padding is enough to put it at any height.
+  final offset = 2 * y - size.height;
+  return offset >= 0
+      ? EdgeInsets.only(top: offset)
+      : EdgeInsets.only(bottom: -offset);
+}
+
 /// The camera centre that puts [target] in the middle of the part of a
 /// [size] map that [padding] leaves visible, at [zoom] with the map turned
 /// by [bearing] degrees clockwise.
@@ -50,11 +87,13 @@ LatLng offsetCenter(
   final dx = (padding.left - padding.right) / 2;
   final dy = (padding.top - padding.bottom) / 2;
   if (dx == 0 && dy == 0) return target;
-  // A screen vector in world axes: turning the map by the bearing turns
-  // every screen direction back by the same amount.
+  // A screen vector in world axes. The bearing is where the camera faces,
+  // clockwise from north, so screen-up is that direction in the world and
+  // every screen vector turns clockwise by it: at 90, up is east and down,
+  // where the sheet is, west.
   final rad = bearing * math.pi / 180;
-  final wx = dx * math.cos(rad) + dy * math.sin(rad);
-  final wy = -dx * math.sin(rad) + dy * math.cos(rad);
+  final wx = dx * math.cos(rad) - dy * math.sin(rad);
+  final wy = dx * math.sin(rad) + dy * math.cos(rad);
   final world = _worldSize(zoom);
   final x = _worldX(target.lon, world) - wx;
   final y = _worldY(target.lat, world) - wy;

@@ -18,6 +18,7 @@ import 'package:velorki/features/recording/domain/ride_naming.dart';
 import 'package:velorki/core/geo/ride_stats.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
+import 'package:velorki/features/map/domain/visible_map.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/map/presentation/puck_ownership.dart';
 import 'package:velorki/features/shared/application/active_tab.dart';
@@ -1694,6 +1695,105 @@ void main() {
       await tester.pump();
     }
 
+    /// Where on the screen the last follow move puts the rider: the middle
+    /// of what its padding leaves of a [height] map.
+    double riderY(RecordingHarness h, double height) {
+      final padding = moves(h).last.arguments[5] as EdgeInsets;
+      return (padding.top + height - padding.bottom) / 2;
+    }
+
+    /// Where the sheet's top is on screen.
+    double sheetTop(WidgetTester tester) =>
+        tester.getTopLeft(find.byType(DockingSheet)).dy;
+
+    for (final (phone, size, statusBar) in const [
+      ('an SE', Size(375, 667), 20.0),
+      ('a 13 Pro', Size(390, 844), 47.0),
+    ]) {
+      for (final headingUp in [true, false]) {
+        testWidgets('on $phone, ${headingUp ? 'heading-up' : 'north-up'}: '
+            'the rider is above the sheet, '
+            '${headingUp ? 'low, with the road ahead' : 'in the middle'}', (
+          tester,
+        ) async {
+          _phone(tester, size, statusBar: statusBar);
+          final h = await pumpRecordingScreen(
+            tester,
+            const RecordingScreen(),
+            surfaceSize: size,
+            preferences: {if (headingUp) 'recording.follow': 'headingUp'},
+          );
+          await tester.pump();
+
+          await emitSnapshot(tester, h, _snapshot(headingDeg: 90));
+          await tester.pumpAndSettle();
+          await emitSnapshot(
+            tester,
+            h,
+            _snapshot(lastPosition: const LatLng(48.2, 11.3), headingDeg: 90),
+          );
+
+          final bottom = sheetTop(tester);
+          final share = headingUp ? followAheadShare : 0.5;
+          expect(bottom - statusBar, greaterThan(followMinVisiblePx));
+          expect(
+            riderY(h, size.height),
+            closeTo(statusBar + share * (bottom - statusBar), 1),
+          );
+          await unmountApp(tester);
+        });
+      }
+    }
+
+    for (final (phone, size, statusBar) in const [
+      ('an SE', Size(375, 667), 20.0),
+      ('a 13 Pro', Size(390, 844), 47.0),
+    ]) {
+      testWidgets('on $phone, a sheet dragged all the way up takes the rider '
+          'up with it, centred once too little is left', (tester) async {
+        _phone(tester, size, statusBar: statusBar);
+        final h = await pumpRecordingScreen(
+          tester,
+          const RecordingScreen(),
+          surfaceSize: size,
+          preferences: const {'recording.follow': 'headingUp'},
+        );
+        await tester.pump();
+        await emitSnapshot(tester, h, _snapshot(headingDeg: 90));
+        await tester.pumpAndSettle();
+        await emitSnapshot(
+          tester,
+          h,
+          _snapshot(lastPosition: const LatLng(48.2, 11.3), headingDeg: 90),
+        );
+        final restingY = riderY(h, size.height);
+
+        await tester.drag(find.byType(SheetHandle), const Offset(0, -600));
+        await tester.pumpAndSettle();
+        await emitSnapshot(
+          tester,
+          h,
+          _snapshot(lastPosition: const LatLng(48.3, 11.3), headingDeg: 90),
+        );
+
+        final top = sheetTop(tester);
+        final visible = top - statusBar;
+        final y = riderY(h, size.height);
+        expect(y, lessThan(restingY));
+        expect(y, greaterThanOrEqualTo(statusBar), reason: 'never under it');
+        expect(
+          y,
+          closeTo(
+            statusBar +
+                visible *
+                    (visible < followMinVisiblePx ? 0.5 : followAheadShare),
+            1,
+          ),
+        );
+        await unmountApp(tester);
+      });
+    }
+
     testWidgets('a fix moves the camera once a ride runs', (tester) async {
       final h = await pumpRecordingScreen(tester, const RecordingScreen());
       await tester.pump();
@@ -2735,3 +2835,14 @@ const List<Waypoint> _stops = <Waypoint>[
   Waypoint(pos: LatLng(48.03, 11.03), poiKind: PoiKind.water),
   Waypoint(pos: LatLng(48.04, 11.04), kind: WaypointKind.end),
 ];
+
+/// Makes the test view [size] logical pixels with a status bar of
+/// [statusBar], as a phone is: what the screen reads from its
+/// `MediaQuery`, not only the surface it is laid out on.
+void _phone(WidgetTester tester, Size size, {required double statusBar}) {
+  final ratio = tester.view.devicePixelRatio;
+  tester.view.physicalSize = size * ratio;
+  tester.view.viewPadding = FakeViewPadding(top: statusBar * ratio);
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetViewPadding);
+}

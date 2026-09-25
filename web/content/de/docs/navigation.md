@@ -85,6 +85,7 @@ Alle genannten Entfernungen wachsen mit, je schlechter dein GPS-Empfang ist, ung
 ## Die Karte während der Navigation
 
 - Die Kompass-Schaltfläche auf der Karte wechselt zwischen **Norden oben** und **Karte dreht mit**. Deine Wahl gilt auch für die nächste Fahrt.
+- Deine Position steht im Teil der Karte über dem Blatt: mit Norden oben in dessen Mitte, wenn die Karte mitdreht weit unten darin, sodass vor allem der Weg vor dir zu sehen ist.
 - Die Karte behält beim Folgen den Zoom, den du mit zwei Fingern einstellst, von ein paar Kilometern bis zu einem einzelnen Häuserblock; nur Verschieben beendet das Folgen.
 - **Meine Position anzeigen** nimmt das Folgen wieder auf, nachdem du die Karte verschoben hast, im gewohnten Zoom auf Straßenebene.
 - Solange du auf der Route bist, wird die Positionsmarkierung auf der Route gezeichnet und daran ausgerichtet, statt mit dem Empfang umherzuwandern.
