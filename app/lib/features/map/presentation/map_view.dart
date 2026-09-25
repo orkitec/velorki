@@ -11,7 +11,6 @@ import 'package:velorki_geo/velorki_geo.dart';
 import '../../../app/app_config.dart';
 import '../../recording/data/battery_saver.dart';
 import '../../settings/data/appearance_controller.dart';
-import '../application/map_attribution_lift.dart';
 import '../data/cyclosm_tone.dart';
 import '../data/map_preferences.dart';
 import '../data/maplibre_map_controller.dart';
@@ -134,23 +133,7 @@ class _MapViewState extends ConsumerState<MapView> {
   MaplibreMapControllerAdapter? _adapter;
 
   @override
-  void initState() {
-    super.initState();
-    _lift = ref.read(mapAttributionLiftProvider)..addListener(_onLift);
-  }
-
-  /// The lift of the attribution over a bar a screen lays on the map; see
-  /// [mapAttributionLiftProvider]. Followed a step at a time, as the bar
-  /// comes and goes.
-  late final ValueNotifier<double> _lift;
-
-  void _onLift() {
-    if (mounted) setState(() {});
-  }
-
-  @override
   void dispose() {
-    _lift.removeListener(_onLift);
     _adapter?.dispose();
     _adapter = null;
     _map = null;
@@ -311,12 +294,10 @@ class _MapViewState extends ConsumerState<MapView> {
     final chrome = MapChromeInsets.maybeOf(context);
     final chromeTop = chrome?.controlsTop;
     // The bottom of the view, whatever an owner removed from the padding:
-    // the chip and the (i) button sit in the band under the bar, or above
-    // a bar a screen lays in its place.
+    // the chip and the (i) button sit in the band under the bar.
     final attributionBottom =
         MediaQuery.viewPaddingOf(context).bottom +
-        widget.attributionPadding.bottom +
-        _lift.value;
+        widget.attributionPadding.bottom;
 
     final map = ml.MapLibreMap(
       styleString: styleUrl,

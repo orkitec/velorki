@@ -4,18 +4,13 @@ import '../../../app/theme.dart';
 import '../../../core/units/units.dart' as units;
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/presentation/route_format.dart';
+import '../../shared/presentation/floating_bar.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../domain/live_figures.dart';
 import 'recording_format.dart';
 
 /// How many figures the docked bar shows: the first of the ride's list.
 const int figuresBarCount = 4;
-
-/// The height of the docked bar's glass, the tab bar's own.
-const double figuresBarHeight = 72;
-
-/// The air under the docked bar and the tab bar, above the safe area.
-const double figuresBarBottomGap = 12;
 
 /// A figure's caption, as the grid and the bar write it.
 String liveFigureLabel(LiveFigure figure, AppLocalizations l10n) =>
@@ -123,18 +118,11 @@ class FiguresBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final colors = theme.velorki;
     final shown = figures.take(figuresBarCount).toList();
-    final radius = docked
-        ? const BorderRadius.vertical(bottom: Radius.circular(30))
-        : BorderRadius.circular(30);
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        16,
-        0,
-        16,
-        MediaQuery.viewPaddingOf(context).bottom + figuresBarBottomGap,
-      ),
+    // The tab bar's own shell: the same place, the same shape, the same
+    // open top under the sheet's strip, whose hairline is the seam.
+    return FloatingBarShell(
+      docked: docked,
       child: Semantics(
         button: true,
         label: l10n.recordingFiguresBarOpen,
@@ -144,52 +132,42 @@ class FiguresBar extends StatelessWidget {
           onVerticalDragEnd: (details) {
             if ((details.primaryVelocity ?? 0) < 0) onOpen();
           },
-          child: ClipRRect(
-            borderRadius: radius,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: colors.glass,
-                borderRadius: radius,
-                border: Border.all(color: colors.glassBorder, width: 0.5),
-              ),
-              child: SizedBox(
-                height: figuresBarHeight,
-                child: Stack(
+          child: SizedBox(
+            height: floatingBarHeight,
+            child: Stack(
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        for (final reading in shown)
-                          Expanded(
-                            child: _BarFigure(
-                              label: liveFigureLabel(reading.figure, l10n),
-                              value: liveFigureValue(
-                                context,
-                                reading,
-                                l10n,
-                                system,
-                              ),
-                              muted: paused || reading.lost,
-                            ),
+                    for (final reading in shown)
+                      Expanded(
+                        child: _BarFigure(
+                          label: liveFigureLabel(reading.figure, l10n),
+                          value: liveFigureValue(
+                            context,
+                            reading,
+                            l10n,
+                            system,
                           ),
-                      ],
-                    ),
-                    if (paused)
-                      Positioned(
-                        top: 10,
-                        right: 14,
-                        child: Container(
-                          key: const ValueKey('figures-bar-paused'),
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.tertiary,
-                            shape: BoxShape.circle,
-                          ),
+                          muted: paused || reading.lost,
                         ),
                       ),
                   ],
                 ),
-              ),
+                if (paused)
+                  Positioned(
+                    top: 10,
+                    right: 14,
+                    child: Container(
+                      key: const ValueKey('figures-bar-paused'),
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.tertiary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ),

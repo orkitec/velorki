@@ -27,7 +27,6 @@ import '../../navigation/application/off_route_thresholds.dart';
 import '../../navigation/domain/navigation_progress.dart';
 import '../../navigation/presentation/navigation_toggles.dart';
 import '../../navigation/presentation/turn_banner.dart';
-import '../../map/application/map_attribution_lift.dart';
 import '../../map/domain/visible_map.dart';
 import '../../navigation/presentation/turn_phrases.dart';
 import '../../library/application/library_card.dart';
@@ -45,6 +44,7 @@ import '../../settings/data/units.dart';
 import '../../shared/application/active_tab.dart';
 import '../../shared/application/nav_bar_docking.dart';
 import '../../shared/presentation/docking_sheet.dart';
+import '../../shared/presentation/floating_bar.dart';
 import '../../shared/presentation/tab_chrome_slide.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/swipe_pages.dart';
@@ -211,7 +211,6 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   @override
   void initState() {
     super.initState();
-    _attributionLift = ref.read(mapAttributionLiftProvider);
     _active = ref.read(activeTabProvider) == recordingRoute;
     _map = ref.read(sharedMapControllerProvider);
     _updateMapUse();
@@ -273,7 +272,6 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     // Only the live sheet folds into the figures bar; the idle one's height
     // must not show it for the frame before the live sheet first reports.
     _liveExtent.value = _liveSheetShown ? extent : 1;
-    _liftAttribution();
     if (_active) ref.read(tabHandoverProvider.notifier).setSheetExtent(extent);
   }
 
@@ -283,32 +281,6 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// The same, for the figures bar, which fades in as the live sheet folds
   /// down into it and is rebuilt on every step of that.
   final ValueNotifier<double> _liveExtent = ValueNotifier<double>(1);
-
-  /// The shared map's attribution lift, which this screen raises over its
-  /// figures bar; read once, since it is still set as the screen goes.
-  late final ValueNotifier<double> _attributionLift;
-
-  /// The live sheet's collapsed extent and the travel of its fold, as the
-  /// last build worked them out.
-  double _liveCollapsed = 0;
-  double _liveDockedRange = 0;
-
-  /// Raises the map's attribution over the figures bar as far as the bar
-  /// has come in, so the licence line and the (i) button ride up with it;
-  /// down again when the sheet opens, the ride ends or the tab goes.
-  void _liftAttribution() {
-    final t = _active && _liveSheetShown
-        ? DockingSheetShell.dockedFraction(
-            extent: _liveExtent.value,
-            collapsedExtent: _liveCollapsed,
-            dockedRange: _liveDockedRange,
-            docks: true,
-          )
-        : 0.0;
-    // Over the bar and the sheet's strip resting on it.
-    _attributionLift.value =
-        t * (figuresBarBottomGap + figuresBarHeight + sheetHandleDp);
-  }
 
   /// The live sheet's controller, to open it again from the figures bar.
   final DraggableScrollableController _liveSheet =
@@ -500,7 +472,6 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     _idleSheet.dispose();
     _liveSheet.dispose();
     _liveExtent.dispose();
-    _attributionLift.value = 0;
     if (_docked) {
       // Deferred: the tree is locked while a widget goes, and the shell
       // would rebuild for this.
@@ -1652,8 +1623,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     // the map.
     final barInset = state.isRecording
         ? MediaQuery.viewPaddingOf(context).bottom +
-              figuresBarBottomGap +
-              figuresBarHeight
+              floatingBarBottomGap +
+              floatingBarHeight
         : bottomInset;
     final collapsed = screenHeight <= 0
         ? 0.1
@@ -1698,11 +1669,9 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
         _hintIndex = _nextHint(_hintIndex);
         _takeOverControls();
         _takeOverSheet();
-        _liftAttribution();
       } else if (previous == recordingRoute && next != recordingRoute) {
         _active = false;
         _updateMapUse();
-        _liftAttribution();
         // The next tab tells the column its own wants; this one tells it
         // again, from scratch, when it comes back.
         _chromeData = null;
@@ -1761,10 +1730,6 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
             math.max(0.0, (fraction(292.0) - collapsed) * 0.8),
           )
         : fullRange;
-    if (state.isRecording) {
-      _liveCollapsed = collapsed;
-      _liveDockedRange = dockedRange;
-    }
     if (state.isRecording && _docked) {
       // The ride started under a docked sheet (from the watch, say): the
       // navigation bar is away now, and it comes back round when the ride

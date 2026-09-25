@@ -17,7 +17,6 @@ import 'package:velorki/features/recording/domain/ride.dart';
 import 'package:velorki/features/recording/domain/ride_naming.dart';
 import 'package:velorki/core/geo/ride_stats.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
-import 'package:velorki/features/map/application/map_attribution_lift.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki/features/map/domain/visible_map.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
@@ -925,52 +924,6 @@ void main() {
     testWidgets('paused, a dot says so', (tester) async {
       await docked(tester, snapshot: _snapshot(status: RecordingStatus.paused));
       expect(find.byKey(const ValueKey('figures-bar-paused')), findsOneWidget);
-      await unmountApp(tester);
-    });
-
-    testWidgets('the map\'s attribution rides up over the bar as the sheet '
-        'folds, and down again as it opens', (tester) async {
-      final h = await pumpRecordingScreen(tester, const RecordingScreen());
-      await tester.pump();
-      await emitSnapshot(tester, h, _snapshot());
-      await tester.pumpAndSettle();
-      final lift = ProviderScope.containerOf(
-        tester.element(find.byType(RecordingScreen)),
-      ).read(mapAttributionLiftProvider);
-      expect(lift.value, 0, reason: 'a sheet at rest covers it anyway');
-
-      // Part of the way down: part of the way up, no jump.
-      final gesture = await tester.startGesture(
-        tester.getCenter(find.byType(SheetHandle)),
-      );
-      final seen = <double>[];
-      for (var i = 0; i < 30; i++) {
-        await gesture.moveBy(const Offset(0, 40));
-        await tester.pump();
-        seen.add(lift.value);
-      }
-      await gesture.up();
-      await tester.pumpAndSettle();
-      expect(
-        lift.value,
-        figuresBarBottomGap + figuresBarHeight + sheetHandleDp,
-      );
-      expect(
-        seen.where(
-          (v) =>
-              v > 0 &&
-              v < figuresBarBottomGap + figuresBarHeight + sheetHandleDp,
-        ),
-        isNotEmpty,
-        reason: 'it follows the sheet: $seen',
-      );
-      for (var i = 1; i < seen.length; i++) {
-        expect(seen[i] - seen[i - 1], lessThan(40), reason: '$seen');
-      }
-
-      await tester.tap(find.byType(FiguresBar));
-      await tester.pumpAndSettle();
-      expect(lift.value, 0);
       await unmountApp(tester);
     });
 
