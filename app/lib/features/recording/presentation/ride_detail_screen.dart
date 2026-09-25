@@ -308,6 +308,9 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
         for (final band in bands) TrackSegment(points: band.points, t: band.t),
       ]);
     }
+    // The card may have closed while the track went on: the map is the next
+    // screen's then, and not to be moved.
+    if (!mounted || _wantedKey != key) return;
     final bounds = ride.bounds;
     if (bounds != null) await map.fitBounds(bounds, padding: _fitPadding);
   }

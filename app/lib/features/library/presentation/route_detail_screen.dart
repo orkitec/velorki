@@ -150,6 +150,9 @@ class _RouteDetailScreenState extends ConsumerState<RouteDetailScreen>
     _cuesRouteId = route.id;
     final ready = map.isReady;
     await map.setRouteLine(libraryRouteLineId, positions);
+    // The card may have closed while the line went on, and the map is the
+    // next screen's then: nothing more to draw or fit.
+    if (!mounted || _wantedVersion != version) return;
     showCuesOnMap(
       map,
       _cues,

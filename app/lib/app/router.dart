@@ -249,11 +249,15 @@ class HomeShell extends ConsumerWidget {
     // it happens: where the visible map is, and whether the Library shows
     // a card.
     final locate = ref.read(locateOnOpenProvider);
-    locate.visiblePadding = () => visibleMapPadding(
-      context,
-      chromeTop: ref.read(mapControlsTopProvider).target,
-      sheetExtent: ref.read(tabHandoverProvider).sheetExtent,
-    );
+    // Read after a fix has been awaited: a shell that has gone since has no
+    // context to measure.
+    locate.visiblePadding = () => context.mounted
+        ? visibleMapPadding(
+            context,
+            chromeTop: ref.read(mapControlsTopProvider).target,
+            sheetExtent: ref.read(tabHandoverProvider).sheetExtent,
+          )
+        : EdgeInsets.zero;
     locate.cardOpen = () =>
         context.mounted &&
         GoRouter.of(context).state.matchedLocation.startsWith('$libraryRoute/');
@@ -303,11 +307,17 @@ class HomeShell extends ConsumerWidget {
                       onToggleRoute: chrome?.onToggleRoute,
                       // Read at the tap: the sheet moves without a rebuild
                       // of the column.
-                      visiblePadding: () => visibleMapPadding(
-                        context,
-                        chromeTop: columnGlide.target,
-                        sheetExtent: ref.read(tabHandoverProvider).sheetExtent,
-                      ),
+                      // Read after the fix is awaited, so the shell may be
+                      // gone by then.
+                      visiblePadding: () => context.mounted
+                          ? visibleMapPadding(
+                              context,
+                              chromeTop: columnGlide.target,
+                              sheetExtent: ref
+                                  .read(tabHandoverProvider)
+                                  .sheetExtent,
+                            )
+                          : EdgeInsets.zero,
                       child: MapControls(
                         controller: ref.watch(sharedMapControllerProvider),
                       ),

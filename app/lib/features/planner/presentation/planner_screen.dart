@@ -133,8 +133,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   /// its resting height. A searched place and a route that arrives whole
   /// both bring the sheet to rest, so they aim for the map above that
   /// rather than above wherever the sheet was a moment before.
-  EdgeInsets _visiblePadding() =>
-      visibleMapPadding(context, chromeTop: _ownControlsTop);
+  ///
+  /// Asked for by work that finishes after an await; a screen that has gone
+  /// in the meantime has no context to measure, and nothing left to fit.
+  EdgeInsets _visiblePadding() => mounted
+      ? visibleMapPadding(context, chromeTop: _ownControlsTop)
+      : EdgeInsets.zero;
 
   /// Where the map's control column rests under this tab's chrome. The
   /// column itself is one shared, animated value ([mapControlsTopProvider]):

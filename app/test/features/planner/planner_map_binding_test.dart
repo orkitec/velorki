@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -175,6 +177,37 @@ void main() {
     expect(map.lines[mainRouteLineId], hasLength(5));
   });
 
+  test('a sync still in flight when the screen goes neither asks it for '
+      'its padding nor moves the camera', () async {
+    final gated = _GatedMapController();
+    var asked = 0;
+    final owned = PlannerMapBinding(
+      map: gated,
+      planner: container.read(plannerControllerProvider.notifier),
+      // What a disposed screen's padding did: read a context it no longer
+      // has.
+      fitPadding: () {
+        asked++;
+        throw StateError('This widget has been unmounted');
+      },
+    )..attach();
+    await owned.sync(const PlannerState());
+
+    // A saved route arrives whole, which fits the camera, and the sync
+    // is held up at its first call to the map...
+    container.read(plannerControllerProvider.notifier).loadSavedRoute(_saved());
+    gated.gate = Completer<void>();
+    final syncing = owned.sync(container.read(plannerControllerProvider));
+    // ...while the screen is disposed, which detaches the binding.
+    owned.detach();
+    gated.gate!.complete();
+    await syncing;
+
+    expect(asked, 0);
+    expect(gated.fittedBounds, isNull);
+    expect(gated.lines, isEmpty, reason: 'nothing drawn after the detach');
+  });
+
   testWidgets('the plan\'s places are drawn with their kind icon and go '
       'when the tab leaves the map', (tester) async {
     map.onTap!(_a);
@@ -247,4 +280,36 @@ void main() {
     expect(map.onWaypointDragged, isNull);
     expect(map.onPoiTapped, isNull);
   });
+}
+
+/// A saved route of two points, whole.
+SavedRoute _saved() => SavedRoute(
+  id: 'r2',
+  name: 'Saved',
+  source: RouteSource.planned,
+  profile: RouteProfile.trekking,
+  createdAt: DateTime(2026, 9, 12),
+  updatedAt: DateTime(2026, 9, 12),
+  distanceM: 10000,
+  ascentM: 0,
+  descentM: 0,
+  bounds: const BoundingBox(south: 48, west: 11, north: 48.1, east: 11.1),
+  geometryBlob: PackedTrack.encode(syntheticRoute().geometry),
+  waypoints: const [
+    Waypoint(pos: _a, kind: WaypointKind.start),
+    Waypoint(pos: _b, kind: WaypointKind.end),
+  ],
+  options: const RoutingOptions(),
+);
+
+/// A map whose markers wait for [gate], as a real one waits for its
+/// platform channel.
+class _GatedMapController extends TestMapController {
+  Completer<void>? gate;
+
+  @override
+  Future<void> setWaypoints(List<MapWaypoint> waypoints) async {
+    await gate?.future;
+    return super.setWaypoints(waypoints);
+  }
 }

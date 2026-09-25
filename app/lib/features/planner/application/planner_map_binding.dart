@@ -62,6 +62,11 @@ class PlannerMapBinding {
   int? _lastWaypointCount;
   bool _attached = false;
 
+  /// Counts the detaches, so a [sync] still awaiting the map when the
+  /// binding is detached stops there: the screen that owns it may be gone,
+  /// and another tab may already own the map.
+  int _epoch = 0;
+
   /// Subscribes to the map's gestures.
   void attach() {
     if (_attached) return;
@@ -99,6 +104,7 @@ class PlannerMapBinding {
   void detach() {
     if (!_attached) return;
     _attached = false;
+    _epoch++;
     map.onTap = null;
     map.onLongPress = null;
     map.onWaypointDragged = null;
@@ -124,16 +130,25 @@ class PlannerMapBinding {
   ///
   /// The camera is only moved when a whole route appears at once — which is
   /// what loading a saved route does — never while the user is editing.
+  ///
+  /// A detached binding does nothing, and a sync that is detached while it
+  /// awaits the map stops at its next step, before anything else is drawn
+  /// and before [fitPadding] is asked for.
   Future<void> sync(PlannerState state) async {
+    if (!_attached) return;
+    final epoch = _epoch;
+    bool gone() => epoch != _epoch;
     // A closed loop's last waypoint sits exactly on its first: one marker
     // is enough, and the start marker stays the one to drag.
     final shown = state.isClosedLoop
         ? state.waypoints.sublist(0, state.waypoints.length - 1)
         : state.waypoints;
     await map.setWaypoints(waypointMarkers(shown));
+    if (gone()) return;
     // The plan's places, each with its kind's icon: not points the route is
     // routed through, so they are drawn as themselves.
     await map.setPois(poiMarkers(state.pois));
+    if (gone()) return;
 
     final result = state.result;
     final positions = result?.positions ?? const <LatLng>[];
@@ -142,7 +157,11 @@ class PlannerMapBinding {
     if (positions.isNotEmpty) {
       final chosen = chosenRouteLineId(state.options.alternativeIdx);
       wanted.add(chosen);
+      // Remembered before it is drawn, so a [clear] that runs while this
+      // awaits takes it off again.
+      _lineIds.add(chosen);
       await map.setRouteLine(chosen, positions);
+      if (gone()) return;
     }
     // The file's own line, faint, while the route on top is not it any
     // more, so the rider can compare; the chip offering Restore shows for
@@ -150,11 +169,13 @@ class PlannerMapBinding {
     final original = state.original;
     if (original != null && state.differsFromOriginal) {
       wanted.add(originalLineId);
+      _lineIds.add(originalLineId);
       await map.setRouteLine(
         originalLineId,
         original.positions,
         style: RouteLineStyle.original,
       );
+      if (gone()) return;
     }
     for (var i = 0; i < state.alternatives.length; i++) {
       if (i == state.options.alternativeIdx) continue;
@@ -162,10 +183,13 @@ class PlannerMapBinding {
       if (points.isEmpty) continue;
       final id = alternativeLineId(i);
       wanted.add(id);
+      _lineIds.add(id);
       await map.setRouteLine(id, points, style: RouteLineStyle.alternative);
+      if (gone()) return;
     }
-    for (final id in _lineIds.difference(wanted)) {
+    for (final id in _lineIds.difference(wanted).toList()) {
       await map.removeRouteLine(id);
+      if (gone()) return;
     }
     _lineIds
       ..clear()
@@ -180,6 +204,7 @@ class PlannerMapBinding {
     final appearedAtOnce = previous == 0 && state.waypoints.length > 1;
     _lastWaypointCount = state.waypoints.length;
     if (previous != null && appearedAtOnce && positions.isNotEmpty) {
+      if (gone()) return;
       final padding = fitPadding?.call();
       await map.fitBounds(
         BoundingBox.fromPoints(positions),
