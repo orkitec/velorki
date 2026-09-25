@@ -31,6 +31,7 @@ String liveFigureLabel(LiveFigure figure, AppLocalizations l10n) =>
       LiveFigure.power => l10n.statPower,
       LiveFigure.remaining => l10n.statRemaining,
       LiveFigure.arrival => l10n.statArrival,
+      LiveFigure.elapsed => l10n.statElapsed,
     };
 
 /// A figure's value, unit included, in the rider's units.
@@ -47,7 +48,8 @@ String liveFigureValue(
     LiveFigure.speed || LiveFigure.avgSpeed => formatSpeed(l10n, system, value),
     LiveFigure.ascent ||
     LiveFigure.descent => formatHeight(l10n, system, value),
-    LiveFigure.movingTime => formatClock(reading.duration ?? Duration.zero),
+    LiveFigure.movingTime ||
+    LiveFigure.elapsed => formatClock(reading.duration ?? Duration.zero),
     LiveFigure.heartRate => formatHeartRate(l10n, value.round()),
     LiveFigure.cadence => formatCadence(l10n, value.round()),
     LiveFigure.power => formatPower(l10n, value.round()),

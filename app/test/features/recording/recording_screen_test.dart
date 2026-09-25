@@ -17,6 +17,7 @@ import 'package:velorki/features/recording/domain/ride.dart';
 import 'package:velorki/features/recording/domain/ride_naming.dart';
 import 'package:velorki/core/geo/ride_stats.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
+import 'package:velorki/features/map/application/map_attribution_lift.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki/features/map/domain/visible_map.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
@@ -47,8 +48,10 @@ import 'package:velorki/features/recording/presentation/rides_list.dart';
 import 'package:velorki/features/recording/presentation/save_ride_sheet.dart';
 import 'package:velorki/features/recording/domain/live_figures.dart';
 import 'package:velorki/features/recording/presentation/live_figures_view.dart';
+import 'package:velorki/features/recording/presentation/live_figures_settings_screen.dart';
 import 'package:velorki/features/shared/application/nav_bar_docking.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
+import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -708,6 +711,120 @@ void main() {
     await unmountApp(tester);
   });
 
+  group('the rider\'s own figures', () {
+    /// Moving time first, speed switched off.
+    const reordered = <String, Object>{
+      'recording.figureOrder': [
+        'movingTime',
+        'distance',
+        'speed',
+        'avgSpeed',
+        'ascent',
+        'descent',
+        'heartRate',
+        'cadence',
+        'power',
+        'remaining',
+        'arrival',
+        'elapsed',
+      ],
+      'recording.figuresDisabled': ['speed', 'elapsed'],
+    };
+
+    testWidgets('the grid takes them in the rider\'s order, the first '
+        'emphasised, and the bar its first four', (tester) async {
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        preferences: reordered,
+      );
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot());
+      await tester.pumpAndSettle();
+
+      final tiles = tester.widgetList<StatTile>(find.byType(StatTile)).toList();
+      expect(tiles.map((t) => t.label).take(5), [
+        l10n.statMovingTime,
+        l10n.statDistance,
+        l10n.statAvgSpeed,
+        l10n.statAscent,
+        l10n.statDescent,
+      ]);
+      expect(tiles.first.emphasize, isTrue);
+      expect(tiles.map((t) => t.label), isNot(contains(l10n.statSpeed)));
+
+      await tester.dragFrom(
+        tester.getCenter(find.byType(SheetHandle)),
+        const Offset(0, 1500),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<FiguresBar>(find.byType(FiguresBar))
+            .figures
+            .take(4)
+            .map((f) => f.figure),
+        [
+          LiveFigure.movingTime,
+          LiveFigure.distance,
+          LiveFigure.avgSpeed,
+          LiveFigure.ascent,
+        ],
+      );
+      await unmountApp(tester);
+    });
+
+    testWidgets('the glance view takes the first two, beside the ride\'s '
+        'clock', (tester) async {
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        preferences: <String, Object>{...reordered, 'recording.saver': true},
+      );
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot());
+      await tester.pump(glanceAfter + const Duration(seconds: 1));
+
+      final tiles = tester.widgetList<StatTile>(find.byType(StatTile)).toList();
+      expect(tiles.map((t) => t.label), [
+        l10n.statMovingTime,
+        l10n.statDistance,
+        l10n.statElapsed,
+      ]);
+      expect(tiles.first.size, StatSize.hero);
+      await unmountApp(tester);
+    });
+
+    testWidgets('Edit figures opens the list over everything', (tester) async {
+      final h = await pumpRecordingScreen(tester, const RecordingScreen());
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot());
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.text(l10n.liveFiguresEdit),
+        200,
+        scrollable: find
+            .descendant(
+              of: find.byType(DockingSheet),
+              matching: find.byType(Scrollable),
+            )
+            .last,
+      );
+      await tester.tap(find.text(l10n.liveFiguresEdit));
+      await tester.pumpAndSettle();
+
+      final screen = find.byType(LiveFiguresSettingsScreen);
+      expect(screen, findsOneWidget);
+      final context = tester.element(screen);
+      expect(
+        Navigator.of(context),
+        same(Navigator.of(context, rootNavigator: true)),
+      );
+      await unmountApp(tester);
+    });
+  });
+
   group('the figures bar', () {
     /// A ride with a snapshot, its sheet pulled down into the bar.
     Future<RecordingHarness> docked(
@@ -808,6 +925,52 @@ void main() {
     testWidgets('paused, a dot says so', (tester) async {
       await docked(tester, snapshot: _snapshot(status: RecordingStatus.paused));
       expect(find.byKey(const ValueKey('figures-bar-paused')), findsOneWidget);
+      await unmountApp(tester);
+    });
+
+    testWidgets('the map\'s attribution rides up over the bar as the sheet '
+        'folds, and down again as it opens', (tester) async {
+      final h = await pumpRecordingScreen(tester, const RecordingScreen());
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot());
+      await tester.pumpAndSettle();
+      final lift = ProviderScope.containerOf(
+        tester.element(find.byType(RecordingScreen)),
+      ).read(mapAttributionLiftProvider);
+      expect(lift.value, 0, reason: 'a sheet at rest covers it anyway');
+
+      // Part of the way down: part of the way up, no jump.
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byType(SheetHandle)),
+      );
+      final seen = <double>[];
+      for (var i = 0; i < 30; i++) {
+        await gesture.moveBy(const Offset(0, 40));
+        await tester.pump();
+        seen.add(lift.value);
+      }
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(
+        lift.value,
+        figuresBarBottomGap + figuresBarHeight + sheetHandleDp,
+      );
+      expect(
+        seen.where(
+          (v) =>
+              v > 0 &&
+              v < figuresBarBottomGap + figuresBarHeight + sheetHandleDp,
+        ),
+        isNotEmpty,
+        reason: 'it follows the sheet: $seen',
+      );
+      for (var i = 1; i < seen.length; i++) {
+        expect(seen[i] - seen[i - 1], lessThan(40), reason: '$seen');
+      }
+
+      await tester.tap(find.byType(FiguresBar));
+      await tester.pumpAndSettle();
+      expect(lift.value, 0);
       await unmountApp(tester);
     });
 

@@ -31,7 +31,7 @@ Ohne Sensor erscheint nichts davon, und eingeschaltet wird nichts, bevor du es u
 
 ## Das Höhenprofil und die Abbiegeliste
 
-Die Übersicht unter der Karte hat drei Seiten, einen Wisch auseinander, mit drei Punkten unter den Zahlen, die sagen, welche gerade oben ist. Eine neue Fahrt beginnt auf den Zahlen. Die Übersicht scrollt in jeder Höhe und bewegt sich am Griff oder am Titel, oder als Ganzes, wenn es nichts zu scrollen gibt, etwa während einer Fahrt. Vor einer Fahrt faltet sie sich, ganz nach unten gezogen, in die Navigationsleiste und lässt nur den Griff über den Tabs, damit die Karte frei ist; zieh den Griff nach oben, um sie zurückzuholen. Während einer Fahrt sind die Tabs weg, und die Übersicht faltet sich in eine gleich geformte Leiste mit den ersten vier Werten der Fahrt, Distanz, Tempo, Ø und Anstieg, und die Karte darüber; ein Punkt darauf heißt pausiert. Sie hat keine Schaltflächen: Tippe darauf oder zieh sie nach oben, um die Übersicht zurückzuholen.
+Die Übersicht unter der Karte hat drei Seiten, einen Wisch auseinander, mit drei Punkten unter den Zahlen, die sagen, welche gerade oben ist. Eine neue Fahrt beginnt auf den Zahlen. Die Übersicht scrollt in jeder Höhe und bewegt sich am Griff oder am Titel, oder als Ganzes, wenn es nichts zu scrollen gibt, etwa während einer Fahrt. Vor einer Fahrt faltet sie sich, ganz nach unten gezogen, in die Navigationsleiste und lässt nur den Griff über den Tabs, damit die Karte frei ist; zieh den Griff nach oben, um sie zurückzuholen. Während einer Fahrt sind die Tabs weg, und die Übersicht faltet sich in eine gleich geformte Leiste mit den ersten vier Werten der Fahrt (voreingestellt Distanz, Tempo, Ø und Anstieg; die Reihenfolge wählst du, siehe [Einstellungen](./settings-and-appearance)), und die Karte darüber; ein Punkt darauf heißt pausiert. Sie hat keine Schaltflächen: Tippe darauf oder zieh sie nach oben, um die Übersicht zurückzuholen.
 
 **Das Höhenprofil**, einen Wisch nach links: die gefolgte Route als Höhe über Distanz, der schon gefahrene Teil in der Akzentfarbe gefüllt, die Straße voraus in Grau, eine Linie, wo du bist, und darüber, was noch kommt, "12,4 km übrig, 320 m Anstieg". An einer Steigung ab 3 % sagt eine zweite Zeile die Steigung und was bis oben bleibt, "6 % Steigung, 120 m bis oben", und sobald die Fahrt einen Schnitt hat, sagt dieselbe Zeile, wann du ankommst, "Ankunft 14:32". Ohne Route sagt die Seite es: "Folge einer Route, um hier ihr Höhenprofil zu sehen."
 
@@ -64,7 +64,7 @@ Läuft eine Aufnahme mit eingeschaltetem Energiesparen, wird Velorki:
 - nur einen schlichten Positionspunkt zeichnen, ohne Genauigkeitsring und ohne Richtungskegel,
 - die Kamera springen lassen statt sie zu animieren,
 - das Display auf 40 % dimmen, solange **Bildschirm anlassen** es wach hält,
-- und nach **30 Sekunden ohne Berührung** alles durch eine Blickseite ersetzen: weiß auf schwarz, die nächste Abbiegung, falls es eine gibt, dann **Distanz** als große Zahl mit **Tempo** und **Zeit** darunter.
+- und nach **30 Sekunden ohne Berührung** alles durch eine Blickseite ersetzen: weiß auf schwarz, die nächste Abbiegung, falls es eine gibt, dann der erste deiner Werte, voreingestellt **Distanz**, als große Zahl mit dem zweiten, **Tempo**, und **Zeit** darunter.
 
 Berühre den Bildschirm irgendwo, und die Karte kommt zurück; der Countdown beginnt von vorn. Alles kehrt zurück, sobald die Fahrt endet oder Energiesparen ausgeht. Das Design, das du für den Rest der App gewählt hast, ändert Energiesparen nie.
 

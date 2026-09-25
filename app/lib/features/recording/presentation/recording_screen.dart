@@ -27,6 +27,7 @@ import '../../navigation/application/off_route_thresholds.dart';
 import '../../navigation/domain/navigation_progress.dart';
 import '../../navigation/presentation/navigation_toggles.dart';
 import '../../navigation/presentation/turn_banner.dart';
+import '../../map/application/map_attribution_lift.dart';
 import '../../map/domain/visible_map.dart';
 import '../../navigation/presentation/turn_phrases.dart';
 import '../../library/application/library_card.dart';
@@ -56,11 +57,13 @@ import '../data/recording_recovery.dart';
 import '../data/recording_service.dart';
 import '../data/recording_settings.dart';
 import '../domain/follow_choice.dart';
+import '../data/live_figure_preferences.dart';
 import '../domain/live_figures.dart';
 import '../domain/recording_snapshot.dart';
 import '../domain/recording_state.dart';
 import '../domain/ride_naming.dart';
 import 'follow_route_picker.dart';
+import 'live_figures_settings_screen.dart';
 import 'live_figures_view.dart';
 import 'recording_format.dart';
 import 'save_ride_sheet.dart';
@@ -208,6 +211,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   @override
   void initState() {
     super.initState();
+    _attributionLift = ref.read(mapAttributionLiftProvider);
     _active = ref.read(activeTabProvider) == recordingRoute;
     _map = ref.read(sharedMapControllerProvider);
     _updateMapUse();
@@ -269,6 +273,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     // Only the live sheet folds into the figures bar; the idle one's height
     // must not show it for the frame before the live sheet first reports.
     _liveExtent.value = _liveSheetShown ? extent : 1;
+    _liftAttribution();
     if (_active) ref.read(tabHandoverProvider.notifier).setSheetExtent(extent);
   }
 
@@ -278,6 +283,32 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// The same, for the figures bar, which fades in as the live sheet folds
   /// down into it and is rebuilt on every step of that.
   final ValueNotifier<double> _liveExtent = ValueNotifier<double>(1);
+
+  /// The shared map's attribution lift, which this screen raises over its
+  /// figures bar; read once, since it is still set as the screen goes.
+  late final ValueNotifier<double> _attributionLift;
+
+  /// The live sheet's collapsed extent and the travel of its fold, as the
+  /// last build worked them out.
+  double _liveCollapsed = 0;
+  double _liveDockedRange = 0;
+
+  /// Raises the map's attribution over the figures bar as far as the bar
+  /// has come in, so the licence line and the (i) button ride up with it;
+  /// down again when the sheet opens, the ride ends or the tab goes.
+  void _liftAttribution() {
+    final t = _active && _liveSheetShown
+        ? DockingSheetShell.dockedFraction(
+            extent: _liveExtent.value,
+            collapsedExtent: _liveCollapsed,
+            dockedRange: _liveDockedRange,
+            docks: true,
+          )
+        : 0.0;
+    // Over the bar and the sheet's strip resting on it.
+    _attributionLift.value =
+        t * (figuresBarBottomGap + figuresBarHeight + sheetHandleDp);
+  }
 
   /// The live sheet's controller, to open it again from the figures bar.
   final DraggableScrollableController _liveSheet =
@@ -469,6 +500,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     _idleSheet.dispose();
     _liveSheet.dispose();
     _liveExtent.dispose();
+    _attributionLift.value = 0;
     if (_docked) {
       // Deferred: the tree is locked while a widget goes, and the shell
       // would rebuild for this.
@@ -1638,6 +1670,9 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
             speedMps: _speedMps(ref, snapshot),
             paused: state.isPaused,
             remainingM: navigation?.remainingM,
+            // The rider's own choice and order, which every view of the
+            // figures follows: the grid, the bar, the glance view.
+            order: ref.watch(liveFigurePreferencesProvider).shown,
           )
         : const <LiveFigureReading>[];
     final extraRows = math.max(0, (figures.length + 2) ~/ 3 - 2);
@@ -1663,9 +1698,11 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
         _hintIndex = _nextHint(_hintIndex);
         _takeOverControls();
         _takeOverSheet();
+        _liftAttribution();
       } else if (previous == recordingRoute && next != recordingRoute) {
         _active = false;
         _updateMapUse();
+        _liftAttribution();
         // The next tab tells the column its own wants; this one tells it
         // again, from scratch, when it comes back.
         _chromeData = null;
@@ -1724,6 +1761,10 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
             math.max(0.0, (fraction(292.0) - collapsed) * 0.8),
           )
         : fullRange;
+    if (state.isRecording) {
+      _liveCollapsed = collapsed;
+      _liveDockedRange = dockedRange;
+    }
     if (state.isRecording && _docked) {
       // The ride started under a docked sheet (from the watch, say): the
       // navigation bar is away now, and it comes back round when the ride
@@ -1769,6 +1810,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                 Positioned.fill(
                   child: _GlancePanel(
                     snapshot: snapshot,
+                    figures: figures,
                     navigation: guiding ? navigation : null,
                   ),
                 )
@@ -1887,9 +1929,17 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
 /// must not be able to stop the ride on by accident. One tap anywhere brings
 /// the map and the sheet back.
 class _GlancePanel extends ConsumerWidget {
-  const _GlancePanel({required this.snapshot, this.navigation});
+  const _GlancePanel({
+    required this.snapshot,
+    required this.figures,
+    this.navigation,
+  });
 
   final RecordingSnapshot snapshot;
+
+  /// The ride's figures in the rider's order: the first is the big one, the
+  /// second sits beside the ride's clock.
+  final List<LiveFigureReading> figures;
   final NavigationProgress? navigation;
 
   @override
@@ -1944,18 +1994,27 @@ class _GlancePanel extends ConsumerWidget {
                   ),
                   const SizedBox(height: 32),
                 ],
-                StatTile(
-                  label: l10n.statDistance,
-                  value: formatDistance(l10n, units, snapshot.distanceM),
-                  size: StatSize.hero,
-                ),
+                if (figures.isNotEmpty)
+                  StatTile(
+                    label: liveFigureLabel(figures.first.figure, l10n),
+                    value: liveFigureValue(context, figures.first, l10n, units),
+                    size: StatSize.hero,
+                    muted: figures.first.lost,
+                  ),
                 const SizedBox(height: 32),
                 StatRow(
                   children: [
-                    StatTile(
-                      label: l10n.statSpeed,
-                      value: formatSpeed(l10n, units, _speedMps(ref, snapshot)),
-                    ),
+                    if (figures.length > 1)
+                      StatTile(
+                        label: liveFigureLabel(figures[1].figure, l10n),
+                        value: liveFigureValue(
+                          context,
+                          figures[1],
+                          l10n,
+                          units,
+                        ),
+                        muted: figures[1].lost,
+                      ),
                     StatTile(
                       label: l10n.statElapsed,
                       value: formatClock(snapshot.elapsed),
@@ -2231,6 +2290,16 @@ class _LivePanel extends ConsumerWidget {
                     if (i > 0) const SizedBox(height: 16),
                     StatRow(children: row),
                   ],
+                  // Which figures these are, and in which order, is the
+                  // rider's to say.
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: TextButton(
+                      onPressed: () =>
+                          unawaited(openLiveFiguresSettings(context)),
+                      child: Text(l10n.liveFiguresEdit),
+                    ),
+                  ),
                 ],
               ),
             ),

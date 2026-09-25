@@ -14,12 +14,45 @@ enum LiveFigure {
   power,
   remaining,
   arrival,
+  elapsed;
+
+  /// The figure stored under [name], or `null` for one this build does not
+  /// know.
+  static LiveFigure? byName(String name) {
+    for (final figure in values) {
+      if (figure.name == name) return figure;
+    }
+    return null;
+  }
 }
 
 /// The order the figures are shown in unless the rider chose another: the
 /// three a rider glances at most, then the climb and the moving time, then
-/// the sensors, then what is left of a followed route.
+/// the sensors, then what is left of a followed route, then the ones a
+/// rider turns on for themselves.
 const List<LiveFigure> defaultLiveFigureOrder = LiveFigure.values;
+
+/// The figures that are off until a rider turns them on: the elapsed time,
+/// which the sheet's clock already shows.
+const Set<LiveFigure> defaultDisabledLiveFigures = <LiveFigure>{
+  LiveFigure.elapsed,
+};
+
+/// The figures shown by default, in order: [defaultLiveFigureOrder] without
+/// [defaultDisabledLiveFigures].
+const List<LiveFigure> defaultShownLiveFigures = <LiveFigure>[
+  LiveFigure.distance,
+  LiveFigure.speed,
+  LiveFigure.avgSpeed,
+  LiveFigure.ascent,
+  LiveFigure.descent,
+  LiveFigure.movingTime,
+  LiveFigure.heartRate,
+  LiveFigure.cadence,
+  LiveFigure.power,
+  LiveFigure.remaining,
+  LiveFigure.arrival,
+];
 
 /// One figure with what it reads now.
 ///
@@ -85,7 +118,7 @@ List<LiveFigureReading> liveFigures({
   required bool paused,
   double? remainingM,
   DateTime? now,
-  List<LiveFigure> order = defaultLiveFigureOrder,
+  List<LiveFigure> order = defaultShownLiveFigures,
 }) {
   final seen = remembered.rideId == snapshot.rideId
       ? remembered
@@ -120,6 +153,7 @@ List<LiveFigureReading> liveFigures({
       figure,
       duration: snapshot.moving,
     ),
+    LiveFigure.elapsed => LiveFigureReading(figure, duration: snapshot.elapsed),
     LiveFigure.heartRate => sensor(
       figure,
       snapshot.heartRateBpm,

@@ -7,6 +7,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../recording/data/recording_settings.dart';
 import '../../recording/domain/gps_precision.dart';
 import '../../recording/domain/split_length.dart';
+import '../../recording/presentation/live_figures_settings_screen.dart';
 import '../../recording/presentation/recording_format.dart';
 import '../data/units.dart';
 
@@ -106,6 +107,7 @@ class RecordingSection extends ConsumerWidget {
           subtitle: Text(l10n.settingsBatterySaverHint),
           onChanged: (value) => unawaited(controller.setSaver(value)),
         ),
+        const LiveFiguresSettingsEntry(),
       ],
     );
   }

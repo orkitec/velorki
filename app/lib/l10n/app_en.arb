@@ -1038,6 +1038,22 @@
   "@recordingFinish": {
     "description": "Button that ends the recording and saves the ride"
   },
+  "liveFiguresTitle": "Ride figures",
+  "@liveFiguresTitle": {
+    "description": "Title of the screen and the Settings row where the rider orders and picks the figures a ride shows"
+  },
+  "liveFiguresCaption": "The figures a ride shows, in this order. The bar the sheet folds into shows the first four; a figure with nothing to show gives its place to the next.",
+  "@liveFiguresCaption": {
+    "description": "Explanation under the ride figures title and on its Settings row"
+  },
+  "liveFiguresEdit": "Edit figures",
+  "@liveFiguresEdit": {
+    "description": "Button at the bottom of the live figures that opens the ride figures list"
+  },
+  "liveFiguresReset": "Reset",
+  "@liveFiguresReset": {
+    "description": "Button that puts the ride figures back to the default order and set"
+  },
   "recordingFiguresBarOpen": "Ride figures. Tap to open the ride sheet.",
   "@recordingFiguresBarOpen": {
     "description": "Screen-reader label of the bar the Record sheet docks into during a ride, showing the first figures"

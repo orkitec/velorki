@@ -40,6 +40,8 @@ Die drei Schalter hier sind dieselben wie in der Übersicht des Tabs Aufnahme.
 
 **Energiesparen**: "Dunkle Karte, keine Animationen, nach 30 s eine schlichte Seite mit den Zahlen; der Bildschirm zieht den Akku leer". Das ganze Verhalten steht unter [Fahrt aufzeichnen](./recording-a-ride).
 
+**Fahrtwerte**: jeder Wert, den eine Fahrt zeigen kann, mit einem Griff zum Verschieben und einem Schalter zum Ausblenden. Die Übersicht zeigt sie in dieser Reihenfolge, die Leiste, in die sie sich faltet, die ersten vier, die Blickseite die ersten zwei neben der Zeit der Fahrt; ein Wert ohne Anzeige, ein nicht verbundener Sensor oder keine gefolgte Route, gibt seinen Platz an den nächsten ab. Einer bleibt mindestens an, die Schaltfläche zum Zurücksetzen oben rechts stellt die Voreinstellung wieder her, und **Zeit**, die die Übersicht ohnehin neben dem Status zeigt, ist aus, bis du sie einschaltest. **Werte bearbeiten** unter den Werten in der Übersicht öffnet dieselbe Liste.
+
 ## Fahrer
 
 Drei Schalter, alle standardmäßig aus, und die Felder, die sie brauchen.

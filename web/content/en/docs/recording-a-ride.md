@@ -64,7 +64,7 @@ While a ride records with the saver on, Velorki:
 - draws a bare position dot, with no accuracy ring and no heading cone,
 - jumps the camera instead of animating it,
 - dims the display to 40 % while **Keep screen on** is holding it awake,
-- and after **30 seconds without a touch** replaces everything with a glance page: white on black, the next turn if there is one, then **Distance** as a big figure with **Speed** and **Time** under it.
+- and after **30 seconds without a touch** replaces everything with a glance page: white on black, the next turn if there is one, then the first of your figures, by default **Distance**, as a big figure with the second, **Speed**, and **Time** under it.
 
 Touch anywhere to bring the map back; the countdown starts again. Everything reverts when the ride ends or the saver goes off. The saver never changes the theme you chose for the rest of the app.
 
