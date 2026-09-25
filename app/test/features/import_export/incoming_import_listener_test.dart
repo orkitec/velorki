@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/router.dart';
 import 'package:velorki/features/import_export/application/incoming_import_listener.dart';
 import 'package:velorki/features/import_export/data/incoming_file_service.dart';
+import 'package:velorki/features/recording/data/recording_recovery.dart';
 
 import '../../support/app.dart';
 import '../planner/support/pump.dart';
@@ -63,6 +64,8 @@ Future<ProviderContainer> _pumpAppWith(
     overrides: [
       ...h.overrides(prefs),
       routerProvider.overrideWithValue(router),
+      // Nothing left over from a ride: the file opens at once.
+      recordingRecoveryProvider.overrideWith((ref) async => const NoRecovery()),
       incomingFileServiceProvider.overrideWithValue(
         IncomingFileService(sources),
       ),

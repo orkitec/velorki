@@ -83,6 +83,12 @@ class RecordingHarness {
   /// What the launch check found.
   final RecoveryResult recovery;
 
+  /// What a second look finds, when the screen checks again after a
+  /// reattach that failed; [recovery] again when `null`.
+  RecoveryResult? recheck;
+
+  int _checks = 0;
+
   /// A throw-away journal directory, so nothing reaches path_provider.
   final Directory directory = Directory.systemTemp.createTempSync(
     'velorki_recording_ui',
@@ -111,7 +117,9 @@ class RecordingHarness {
     recordingStoreProvider.overrideWithValue(
       Future<RecordingStore>.value(RecordingStore(directory)),
     ),
-    recordingRecoveryProvider.overrideWith((ref) async => recovery),
+    recordingRecoveryProvider.overrideWith(
+      (ref) async => _checks++ == 0 ? recovery : recheck ?? recovery,
+    ),
     gazetteerStoreProvider.overrideWith((ref) async {
       final store = GazetteerStore(gazetteerDirectory);
       ref.onDispose(store.close);

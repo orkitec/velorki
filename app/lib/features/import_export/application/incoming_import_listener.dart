@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:logging/logging.dart';
 
 import '../../../app/router.dart';
+import '../../recording/data/recording_recovery.dart';
 import '../data/incoming_file_service.dart';
 import '../data/track_decoder.dart';
 import '../domain/imported_track.dart';
@@ -29,7 +30,7 @@ void listenForIncomingImports(ProviderContainer container) {
     (previous, next) {
       final candidate = next.value;
       if (candidate == null || candidate == previous?.value) return;
-      _open(router, candidate);
+      unawaited(_afterRecovery(container, () => _open(router, candidate)));
     },
     fireImmediately: true,
     onError: (error, _) => _log.warning('incoming import failed', error),
@@ -43,14 +44,33 @@ void listenForIncomingImports(ProviderContainer container) {
       final rejection = next.value;
       if (rejection == null || rejection == previous?.value) return;
       _log.info('refusing ${rejection.fileName}: ${rejection.failure.name}');
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        router.go(importRoute, extra: rejection);
-      });
+      unawaited(
+        _afterRecovery(
+          container,
+          () => WidgetsBinding.instance.addPostFrameCallback((_) {
+            router.go(importRoute, extra: rejection);
+          }),
+        ),
+      );
     },
     onError: (error, _) => _log.warning('incoming rejection failed', error),
   );
 
   unawaited(container.read(incomingFileServiceProvider).start());
+}
+
+/// Runs [open] once a ride left unfinished at launch has been answered for:
+/// a file that opened the app shows after the question, not over it.
+Future<void> _afterRecovery(
+  ProviderContainer container,
+  void Function() open,
+) async {
+  try {
+    await waitForRecovery(container);
+  } on Object catch (error) {
+    _log.warning('recovery check failed; opening the file anyway', error);
+  }
+  open();
 }
 
 void _open(GoRouter router, ImportCandidate candidate) {

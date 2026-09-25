@@ -74,13 +74,13 @@ Berühre den Bildschirm irgendwo, und die Karte kommt zurück; der Countdown beg
 
 Velorki schreibt den Track unterwegs in eine Journaldatei, ein Absturz, ein erzwungenes Beenden oder ein leerer Akku kostet die Fahrt also nicht.
 
-- Lebt der Aufnahmedienst noch, wenn du zurückkommst, hängt sich die App still wieder an und macht weiter.
-- Lebt er nicht mehr, zeigt der Tab Aufnahme beim Öffnen **Nicht beendete Fahrt**: "Eine Fahrt vom 16. Sept. 2026 wurde nie beendet. 42,1 km und 2 h 10 min sind gespeichert. Jetzt fortsetzen oder beenden?" mit drei Antworten:
+- Lebt der Aufnahmedienst noch, wenn du zurückkommst, öffnet die App auf dem Tab Aufnahme, hängt sich still wieder an und macht weiter.
+- Lebt er nicht mehr, öffnet die App auf dem Tab Aufnahme und fragt sofort, **Nicht beendete Fahrt**: "Eine Fahrt vom 16. Sept. 2026 wurde nie beendet. 42,1 km und 2 h 10 min sind gespeichert. Jetzt fortsetzen oder beenden?" mit drei Antworten:
   - **Fortsetzen** nimmt die Fahrt dort auf, wo sie stehen blieb,
   - **Beenden** speichert, was da ist, und öffnet das Blatt der Fahrt im Tab Bibliothek,
   - **Verwerfen** wirft sie weg.
 
-Der Dialog lässt sich nicht ohne Antwort schließen, eine wiederhergestellte Fahrt geht also nie still verloren.
+Der Dialog lässt sich nicht ohne Antwort schließen, eine wiederhergestellte Fahrt geht also nie still verloren. Er kommt einmal pro App-Start; eine Datei oder eine geteilte Route, mit der die App geöffnet wurde, wartet auf die Antwort und öffnet danach.
 
 ## Eine beendete Fahrt fortsetzen
 

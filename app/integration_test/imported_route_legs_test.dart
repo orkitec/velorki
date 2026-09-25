@@ -25,6 +25,7 @@ import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/planner/domain/planner_state.dart';
 import 'package:velorki/features/planner/domain/route_legs.dart';
+import 'package:velorki/features/recording/data/recording_recovery.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki_gpx/velorki_gpx.dart';
 
@@ -39,7 +40,16 @@ void main() {
       'legs, and the rest stays the file\'s line through a save', (
     tester,
   ) async {
-    final container = await pumpApp(tester);
+    final container = await pumpApp(
+      tester,
+      overrides: [
+        // Whatever an earlier test on this device left of a ride is not
+        // this test's business: the file opens at once.
+        recordingRecoveryProvider.overrideWith(
+          (ref) async => const NoRecovery(),
+        ),
+      ],
+    );
     listenForIncomingImports(container);
     await ensureRegionTile(tester, container);
 

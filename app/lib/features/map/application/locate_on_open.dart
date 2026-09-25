@@ -10,6 +10,7 @@ import '../../../app/router.dart' show libraryRoute;
 import '../../../core/permissions/location_permission.dart';
 import '../../planner/application/planner_controller.dart';
 import '../../recording/application/recording_controller.dart';
+import '../../recording/data/recording_recovery.dart';
 import '../../shared/application/active_tab.dart';
 import '../data/position_provider.dart';
 import '../domain/map_controller.dart';
@@ -171,6 +172,11 @@ class LocateOnOpen {
   bool _inTheWay() {
     if (_ref.read(plannerControllerProvider).waypoints.isNotEmpty) return true;
     if (_ref.read(recordingControllerProvider).isRecording) return true;
+    // A ride found at launch brings Record up, whose camera follows it.
+    if (_ref.read(recordingRecoveryProvider).value
+        case ReattachRecording() || InterruptedRecording()) {
+      return true;
+    }
     return _ref.read(activeTabProvider) == libraryRoute &&
         (cardOpen?.call() ?? false);
   }

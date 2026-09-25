@@ -15,6 +15,7 @@ import '../features/integrations/common/data/oauth_flow.dart';
 import '../features/integrations/rwgps/application/rwgps_link_listener.dart';
 import '../features/map/presentation/map_view.dart';
 import '../features/planner/presentation/planner_map_host.dart';
+import '../features/recording/application/recovery_on_launch.dart';
 import '../features/recording/data/recording_recovery.dart';
 import '../features/routing_tiles/application/routing_tiles_startup.dart';
 import '../features/sensors/application/ble_sources_controller.dart';
@@ -53,9 +54,11 @@ Future<void> bootstrap() async {
     ],
   );
 
-  // Looks for a ride that was left unfinished by a crash or a force quit; the
-  // record tab awaits the same future and offers Resume or Finish.
+  // Looks for a ride that was left unfinished by a crash or a force quit;
+  // when there is one the Record tab comes up at once and asks, or shows the
+  // ride that is still running.
   unawaited(RecordingRecovery.checkOnLaunch());
+  showRecoveryOnLaunch(container);
 
   // Strava's API terms allow its data to be cached for seven days. Enforcing
   // that at launch means the rule holds even for an app that is never opened

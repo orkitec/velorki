@@ -115,3 +115,42 @@ abstract final class RecordingRecovery {
 final recordingRecoveryProvider = FutureProvider<RecoveryResult>(
   (ref) => RecordingRecovery.checkOnLaunch(),
 );
+
+/// Whether the launch's leftover recording has been dealt with: reattached,
+/// or resumed, finished or discarded from the dialog. Stays `false` when
+/// there was none, which [waitForRecovery] reads as nothing to wait for.
+final recoverySettledProvider = NotifierProvider<RecoverySettled, bool>(
+  RecoverySettled.new,
+);
+
+/// See [recoverySettledProvider].
+class RecoverySettled extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  /// The recovery has been dealt with.
+  void settle() => state = true;
+}
+
+/// Completes once whatever the launch found of an unfinished ride has been
+/// dealt with, at once when there was nothing.
+///
+/// A file or a shared link that opened the app waits for this, so its
+/// preview comes after the rider has answered for the ride, not over the
+/// question, and neither is lost.
+Future<void> waitForRecovery(ProviderContainer container) async {
+  final result = await container.read(recordingRecoveryProvider.future);
+  if (result is NoRecovery || container.read(recoverySettledProvider)) return;
+  final settled = Completer<void>();
+  final subscription = container.listen<bool>(recoverySettledProvider, (
+    _,
+    next,
+  ) {
+    if (next && !settled.isCompleted) settled.complete();
+  });
+  try {
+    await settled.future;
+  } finally {
+    subscription.close();
+  }
+}

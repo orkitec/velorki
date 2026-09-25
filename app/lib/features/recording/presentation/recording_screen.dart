@@ -1197,12 +1197,19 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     final running = await ref
         .read(recordingControllerProvider.notifier)
         .reattach(state);
+    if (running) ref.read(recoverySettledProvider.notifier).settle();
     if (running || !mounted) return;
     // The service died between the launch check and now; fall back to the
     // interrupted flow so the journal is not orphaned.
     RecordingRecovery.reset();
     ref.invalidate(recordingRecoveryProvider);
     _recoveryHandled = false;
+    // A second look that finds nothing left has nothing to ask either, so a
+    // file waiting on the answer must not wait for good.
+    final again = await ref.read(recordingRecoveryProvider.future);
+    if (again is NoRecovery) {
+      ref.read(recoverySettledProvider.notifier).settle();
+    }
   }
 
   Future<void> _askResumeOrFinish(InterruptedRecording recovery) async {
@@ -1243,6 +1250,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       ),
     );
     if (!mounted || decision == null) return;
+    // Answered: a file that opened the app with this ride waiting may show.
+    ref.read(recoverySettledProvider.notifier).settle();
     final controller = ref.read(recordingControllerProvider.notifier);
     switch (decision) {
       case _RecoveryDecision.resume:

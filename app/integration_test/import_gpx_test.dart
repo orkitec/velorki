@@ -21,6 +21,7 @@ import 'package:velorki/features/import_export/application/incoming_import_liste
 import 'package:velorki/features/import_export/data/incoming_file_service.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/planner/presentation/route_stats_row.dart';
+import 'package:velorki/features/recording/data/recording_recovery.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 import 'package:velorki_gpx/velorki_gpx.dart';
 
@@ -31,7 +32,16 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('imports a GPX file and saves it to the library', (tester) async {
-    final container = await pumpApp(tester);
+    final container = await pumpApp(
+      tester,
+      overrides: [
+        // Whatever an earlier test on this device left of a ride is not
+        // this test's business: the file opens at once.
+        recordingRecoveryProvider.overrideWith(
+          (ref) async => const NoRecovery(),
+        ),
+      ],
+    );
     // bootstrap() attaches this; a test that builds its own container has to
     // do it itself, or nothing ever navigates to the preview.
     listenForIncomingImports(container);
