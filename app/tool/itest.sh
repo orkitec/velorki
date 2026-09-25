@@ -237,7 +237,12 @@ flutter_test_one() {
     python3 tool/sim_ride.py "$DEVICE" "$REGION" &
     sim_ride_pid=$!
   fi
+  # The expanded reporter, always: under GitHub Actions flutter picks its
+  # github reporter, which prints no "+0: <test>" progress line and no "All
+  # tests passed!", so the attach window below never closed and a file that
+  # ran past STARTUP was killed mid-test (navigate_route_test on API 35).
   own_group flutter test "$1" \
+    --reporter expanded \
     -d "$DEVICE" \
     --dart-define=VELORKI_BROUTER_URL="$BROUTER_URL" \
     --dart-define=VELORKI_API_URL= \
