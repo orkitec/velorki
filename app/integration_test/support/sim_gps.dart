@@ -17,8 +17,12 @@ import 'harness.dart';
 const String simRouteFile = 'itest/route.txt';
 
 /// Asks the runner to ride [line] on the simulator's GPS, at [speedMps] when
-/// given (the runner's own pace otherwise), and waits long enough for it to
-/// have picked the request up and moved the position to the start of it.
+/// given (the runner's own pace otherwise), and waits until it says it has
+/// started, and a moment more for the first fix on the new path.
+///
+/// Fails when the runner never answers: a test that went on regardless
+/// would watch the rider do whatever the last route said, and report that
+/// as the app's fault.
 Future<void> rideSimulatorAlong(
   WidgetTester tester,
   List<LatLng> line, {
@@ -26,17 +30,27 @@ Future<void> rideSimulatorAlong(
 }) async {
   final base = await getApplicationSupportDirectory();
   final file = File(p.join(base.path, simRouteFile));
+  final ack = File(p.join(file.parent.path, 'route.ack'));
   await file.parent.create(recursive: true);
+  final token = '${DateTime.now().microsecondsSinceEpoch}';
   final points = thinLine(line, 12);
   await file.writeAsString(
     <String>[
+      'id=$token',
       if (speedMps != null) 'speed=$speedMps',
       for (final point in points) '${point.lat},${point.lon}',
     ].join('\n'),
   );
-  // The runner polls once a second; simctl needs a moment more to issue the
-  // first fix on the new path.
-  await pumpFor(tester, const Duration(seconds: 5));
+  // The runner polls once a second.
+  await waitUntil(
+    tester,
+    () => ack.existsSync() && ack.readAsStringSync() == token,
+    describe: 'tool/sim_ride.py to ride the new route',
+    timeout: const Duration(seconds: 30),
+    onTimeout: () => 'is tool/sim_ride.py still running?',
+  );
+  // simctl needs a moment to issue the first fix on the new path.
+  await pumpFor(tester, const Duration(seconds: 2));
 }
 
 /// [line] with points closer than [everyM] to the previous kept one dropped,

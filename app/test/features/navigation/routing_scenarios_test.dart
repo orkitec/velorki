@@ -565,6 +565,53 @@ void main() {
             skip: region.skip,
           );
 
+          for (final aheadM in const <double>[500, 1000, 2000]) {
+            test(
+              '${region.longPlanName}: a rider who leaves and rejoins the plan '
+              '${aheadM.round()} m further on is back on it the moment they '
+              'reach it',
+              () async {
+                final (leaveM, path) = await _rejoinAhead(
+                  maker,
+                  longPlan,
+                  aheadM,
+                );
+                final log = await ride(maker.ride(path), on: longPlan);
+                expect(log.everOff, isTrue, reason: '$log');
+                if (mode == RerouteMode.newRoute) return;
+                // The first fix within the snap distance of the plan, past
+                // where the rider left it, and not a stray one: the state is
+                // back on the route within two more.
+                final cumulative = cumulativeDistances(longPlan);
+                final left = log.steps.indexWhere(
+                  (s) => s.state != OffRouteState.onRoute,
+                );
+                var reached = -1;
+                for (var i = left; i < log.steps.length; i++) {
+                  final on = projectOnLine(
+                    longPlan,
+                    log.steps[i].pos,
+                    cumulative: cumulative,
+                  );
+                  if (on.distanceM <= 20 && on.alongM > leaveM + 100) {
+                    reached = i;
+                    break;
+                  }
+                }
+                expect(reached, greaterThan(left), reason: '$log');
+                final back = log.steps.indexWhere(
+                  (s) => s.state == OffRouteState.onRoute,
+                  left,
+                );
+                expect(back, isNot(-1), reason: '$log');
+                expect(back - reached, lessThanOrEqualTo(2), reason: '$log');
+                expect(log.steps.last.state, OffRouteState.onRoute);
+              },
+              timeout: _slow,
+              skip: region.skip,
+            );
+          }
+
           test(
             '${region.longPlanName}: a rider who comes back after a long way '
             'out is on the plan again, with nothing left drawn beside it',
@@ -584,6 +631,29 @@ void main() {
       }
     });
   }
+}
+
+/// [plan] to about 800 m along, a way round to one side, and back onto it
+/// [aheadM] further on: the first way round the streets allow, with where
+/// the rider leaves the plan.
+Future<(double, List<LatLng>)> _rejoinAhead(
+  RideMaker maker,
+  List<LatLng> plan,
+  double aheadM,
+) async {
+  for (final leaveM in const <double>[800, 1000, 600, 1200]) {
+    for (final asideM in const <double>[300, -300, 500, -500, 150, -150]) {
+      final path = await maker.detour(
+        plan,
+        leaveM,
+        leaveM + aheadM,
+        asideM,
+        maxFactor: 4,
+      );
+      if (path != null) return (leaveM, path);
+    }
+  }
+  throw StateError('no way round to ${aheadM.round()} m further on');
 }
 
 /// The stretches of [route] against a one-way or on a pavement, for a

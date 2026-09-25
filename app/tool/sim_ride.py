@@ -17,9 +17,13 @@ can record a real ride:
 
 Once the permission is granted the script stays around and watches the
 app's own container for `Library/Application Support/itest/route.txt`, one
-`lat,lon` per line, optionally after a `speed=<m/s>` line: a test writes the
-route it planned there (see integration_test/support/sim_gps.dart) and the
-simulated rider switches to it. tool/itest.sh kills the script after the run.
+`lat,lon` per line, optionally after an `id=<token>` and a `speed=<m/s>`
+line: a test writes the route it planned there (see
+integration_test/support/sim_gps.dart), the simulated rider switches to it,
+and the token is written to `route.ack` beside it so the test knows. It
+keeps doing that for as long as the script that started it runs: a combined
+suite can take the better part of an hour, and a fixed deadline once left
+the last tests of a run riding a route they never asked for. tool/itest.sh kills the script after the run.
 """
 import os
 import subprocess
@@ -63,16 +67,18 @@ def main() -> int:
                     check=True,
                 )
             print("sim_ride: location permission granted", flush=True)
-            return follow_requests(udid, speed, deadline)
+            return follow_requests(udid, speed)
         time.sleep(1)
     print("sim_ride: the app never got installed", file=sys.stderr)
     return 1
 
 
-def follow_requests(udid: str, speed: str, deadline: float) -> int:
-    """Rides any route the app writes to its container, until killed."""
+def follow_requests(udid: str, speed: str) -> int:
+    """Rides any route the app writes to its container, until killed or
+    until the script that started this one is gone."""
+    parent = os.getppid()
     seen = None
-    while time.monotonic() < deadline:
+    while os.getppid() == parent:
         data = subprocess.run(
             ["xcrun", "simctl", "get_app_container", udid, BUNDLE, "data"],
             capture_output=True, text=True,
@@ -89,8 +95,13 @@ def follow_requests(udid: str, speed: str, deadline: float) -> int:
                     with open(path) as fh:
                         points = [line.strip() for line in fh if line.strip()]
                     pace = speed
-                    if points and points[0].startswith("speed="):
-                        pace = points.pop(0).split("=", 1)[1]
+                    token = None
+                    while points and "=" in points[0]:
+                        key, value = points.pop(0).split("=", 1)
+                        if key == "speed":
+                            pace = value
+                        elif key == "id":
+                            token = value
                     if len(points) >= 2:
                         subprocess.run(
                             ["xcrun", "simctl", "location", udid, "start",
@@ -99,6 +110,11 @@ def follow_requests(udid: str, speed: str, deadline: float) -> int:
                         )
                         print(f"sim_ride: riding the app's route, "
                               f"{len(points)} points", flush=True)
+                        if token is not None:
+                            with open(os.path.join(
+                                os.path.dirname(path), "route.ack",
+                            ), "w") as fh:
+                                fh.write(token)
         time.sleep(1)
     return 0
 
