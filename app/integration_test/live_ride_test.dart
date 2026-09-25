@@ -17,6 +17,9 @@ import 'package:integration_test/integration_test.dart';
 import 'package:live_activities/live_activities.dart';
 import 'package:live_activities/models/live_activity_state.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
+import 'package:velorki/features/map/data/heading_smoother.dart';
+import 'package:velorki/features/map/data/maplibre_map_controller.dart';
+import 'package:velorki/features/map/presentation/shared_map_host.dart';
 import 'package:velorki/features/recording/application/recording_controller.dart';
 import 'package:velorki/features/recording/data/live_activity.dart'
     show liveActivityAppGroupId;
@@ -101,6 +104,29 @@ void main() {
       timeout: const Duration(seconds: 90),
       onTimeout: () => '${recording.read().snapshot}',
     );
+
+    // The recorder owns the puck while the ride runs, and the puck carries
+    // its heading: the cone is read back from the map's renderer, which
+    // draws nothing for a cone layer whose bitmap the style never got —
+    // every write to it looks right then, and a ride once went without one.
+    double? cone;
+    final coneClock = Stopwatch()..start();
+    while (cone == null && coneClock.elapsed < const Duration(seconds: 20)) {
+      final map = container.read(sharedMapControllerProvider);
+      if (map is MaplibreMapControllerAdapter) {
+        cone = await map.renderedConeHeading();
+      }
+      if (cone == null) await pumpFor(tester, const Duration(seconds: 1));
+    }
+    expect(
+      cone,
+      isNotNull,
+      reason: 'the map drew no heading cone at the puck while recording',
+    );
+    final course = recording.read().snapshot?.headingDeg;
+    if (course != null) {
+      expect(headingDifference(cone!, course), lessThan(45));
+    }
 
     // The lock-screen card exists and is live while the ride runs. The
     // plugin lists activities by ActivityKit's own id, so there is exactly

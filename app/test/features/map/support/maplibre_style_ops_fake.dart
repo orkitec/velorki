@@ -167,14 +167,25 @@ class RecordingStyleOps implements MapLibreStyleOps {
   /// Thrown by the next [setLayerProperties] call, then cleared.
   Object? layerPropertiesError;
 
+  /// Thrown by the next [addImage] call, then cleared.
+  Object? addImageError;
+
+  /// The style images that currently exist.
+  final Set<String> images = <String>{};
+
+  /// What [renderedFeaturesNear] finds, each with a `layer` entry naming the
+  /// layer that drew it.
+  List<Map<String, dynamic>> renderedFeatures = <Map<String, dynamic>>[];
+
   /// Forgets the recorded calls; the sources, layers and scripts stay.
   void clearCalls() => calls.clear();
 
-  /// What a real style reload does to the map: every source and layer the
-  /// adapter added is gone, the calls are kept.
+  /// What a real style reload does to the map: every source, layer and image
+  /// the adapter added is gone, the calls are kept.
   void reloadStyle() {
     sourceIds.clear();
     layerIds.clear();
+    images.clear();
   }
 
   /// Fires a drag event at every registered listener, as the plugin does.
@@ -307,6 +318,12 @@ class RecordingStyleOps implements MapLibreStyleOps {
 
   @override
   Future<void> addImage(String name, Uint8List bytes) async {
+    final error = addImageError;
+    if (error != null) {
+      addImageError = null;
+      throw error;
+    }
+    images.add(name);
     calls.add(RecordedStyleCall('addImage', id: name, imageBytes: bytes));
   }
 
@@ -339,6 +356,16 @@ class RecordingStyleOps implements MapLibreStyleOps {
     if (scriptedSourceIds.isNotEmpty) return scriptedSourceIds.removeAt(0);
     return List<String>.of(sourceIds);
   }
+
+  @override
+  Future<List<Map<String, dynamic>>> renderedFeaturesNear(
+    ml.LatLng at,
+    double radiusPx,
+    List<String> layerIds,
+  ) async => <Map<String, dynamic>>[
+    for (final feature in renderedFeatures)
+      if (layerIds.contains(feature['layer'])) feature,
+  ];
 
   @override
   Future<ml.LatLngBounds> getVisibleRegion() async {

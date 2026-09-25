@@ -134,10 +134,4 @@ class MarkerLayers {
         textOffset: <Object>[0, nameOffsetEm],
         symbolSortKey: whenSelected(0.0, 1.0),
       );
-
-  /// The colours a repaint writes back over a name layer.
-  ml.SymbolLayerProperties nameColours() => ml.SymbolLayerProperties(
-    textColor: palette.mapLabel,
-    textHaloColor: palette.mapLabelHalo,
-  );
 }

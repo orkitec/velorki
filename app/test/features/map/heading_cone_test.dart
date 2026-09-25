@@ -1,3 +1,4 @@
+import 'dart:isolate';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -27,7 +28,7 @@ void main() {
 
   group('buildHeadingConeImage', () {
     test('returns PNG bytes', () async {
-      final bytes = await buildHeadingConeImage(
+      final bytes = buildHeadingConeImage(
         color: const Color(0xFF1E88E5),
         devicePixelRatio: 1,
       );
@@ -37,11 +38,39 @@ void main() {
       expect(bytes.take(8), <int>[137, 80, 78, 71, 13, 10, 26, 10]);
     });
 
+    test('needs no raster thread, so it works with the app in the '
+        'background', () async {
+      // A spawned isolate has no access to the engine's raster thread:
+      // `Picture.toImage` cannot run there, just as it cannot complete on
+      // iOS while the app is in the background. The cone is drawn anyway.
+      final bytes = await Isolate.run(
+        () => buildHeadingConeImage(
+          color: const Color(0xFF1E88E5),
+          devicePixelRatio: 3,
+        ),
+      );
+      final image = await _decode(bytes);
+      addTearDown(image.dispose);
+      final logical = headingConeLogicalSize();
+
+      expect(image.width, (logical.width * 3).round());
+      expect(image.height, (logical.height * 3).round());
+    });
+
+    test('hands out the same bytes for the same cone', () {
+      Uint8List cone() => buildHeadingConeImage(
+        color: const Color(0xFF1E88E5),
+        devicePixelRatio: 2,
+      );
+
+      expect(identical(cone(), cone()), isTrue);
+    });
+
     test('scales the bitmap with the device pixel ratio', () async {
       final logical = headingConeLogicalSize();
       for (final ratio in <double>[1, 2, 3]) {
         final image = await _decode(
-          await buildHeadingConeImage(
+          buildHeadingConeImage(
             color: const Color(0xFF1E88E5),
             devicePixelRatio: ratio,
           ),
@@ -55,7 +84,7 @@ void main() {
 
     test('paints the cone above the apex and nothing beside it', () async {
       final image = await _decode(
-        await buildHeadingConeImage(
+        buildHeadingConeImage(
           color: const Color(0xFF1E88E5),
           devicePixelRatio: 1,
         ),

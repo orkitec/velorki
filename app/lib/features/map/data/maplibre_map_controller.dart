@@ -5,7 +5,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart'
     show Brightness, Color, IconData, ThemeData;
 import 'package:flutter/foundation.dart';
-import 'package:flutter/painting.dart' show EdgeInsets, Size;
+import 'package:flutter/painting.dart' show EdgeInsets, Offset, Rect, Size;
 import 'package:flutter/services.dart'
     show MissingPluginException, PlatformException;
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
@@ -359,6 +359,15 @@ abstract class MapLibreStyleOps {
   /// The area currently on screen. Throws once the platform view is gone.
   Future<ml.LatLngBounds> getVisibleRegion();
 
+  /// The features of [layerIds] the renderer has actually drawn within
+  /// [radiusPx] logical pixels of [at], as GeoJSON maps. A symbol whose image
+  /// the style lacks is not drawn, so it is not among them.
+  Future<List<Map<String, dynamic>>> renderedFeaturesNear(
+    ml.LatLng at,
+    double radiusPx,
+    List<String> layerIds,
+  );
+
   /// The plugin's own list of feature drag listeners. It is a plain list, so
   /// the adapter registers and unregisters by adding to and removing from it
   /// rather than by holding a subscription.
@@ -490,6 +499,28 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
   Future<ml.LatLngBounds> getVisibleRegion() => map.getVisibleRegion();
 
   @override
+  Future<List<Map<String, dynamic>>> renderedFeaturesNear(
+    ml.LatLng at,
+    double radiusPx,
+    List<String> layerIds,
+  ) async {
+    final point = await map.toScreenLocation(at);
+    final features = await map.queryRenderedFeaturesInRect(
+      Rect.fromCenter(
+        center: Offset(point.x.toDouble(), point.y.toDouble()),
+        width: radiusPx * 2,
+        height: radiusPx * 2,
+      ),
+      layerIds,
+      null,
+    );
+    return <Map<String, dynamic>>[
+      for (final feature in features)
+        if (feature is Map) Map<String, dynamic>.from(feature),
+    ];
+  }
+
+  @override
   List<ml.OnFeatureDragCallback> get onFeatureDrag => map.onFeatureDrag;
 
   @override
@@ -617,8 +648,15 @@ class MaplibreMapControllerAdapter implements MapController {
 
   /// Creates the sources and layers. Call once per loaded style, from
   /// `onStyleLoadedCallback`: a style change drops every layer we added.
+  ///
+  /// A disposed adapter does nothing: its successor, built for the style that
+  /// replaced its own, draws everything. A late write that finds its source
+  /// gone must not rebuild the layers onto that successor's style in the
+  /// middle of the successor's own attach.
   Future<void> attachToStyle() async {
+    if (_disposed) return;
     _attached = false;
+    _coneRegistered = false;
     _routeLines.clear();
     // A fresh style holds none of our bitmaps; the replay registers the
     // ones the markers still need.
@@ -638,87 +676,35 @@ class MaplibreMapControllerAdapter implements MapController {
 
     await _addCyclosmLayer();
 
+    final layers = _baseLayerProperties();
+    Future<void> add(
+      String sourceId,
+      String layerId, {
+      bool enableInteraction = false,
+    }) => _ops.addLayer(
+      sourceId,
+      layerId,
+      layers[layerId]!,
+      enableInteraction: enableInteraction,
+    );
+
     await _ops.addGeoJsonSource(
       MapLayerIds.trackSource,
       emptyFeatureCollection(),
     );
-    await _ops.addLayer(
-      MapLayerIds.trackSource,
-      MapLayerIds.trackLayer,
-      ml.LineLayerProperties(
-        lineColor: palette.track,
-        lineWidth: 4.0,
-        lineOpacity: 0.9,
-        lineCap: 'round',
-        lineJoin: 'round',
-      ),
-      enableInteraction: false,
-    );
+    await add(MapLayerIds.trackSource, MapLayerIds.trackLayer);
 
     await _ops.addGeoJsonSource(
       MapLayerIds.positionSource,
       emptyFeatureCollection(),
     );
-    await _ops.addLayer(
-      MapLayerIds.positionSource,
-      MapLayerIds.positionAccuracyLayer,
-      ml.CircleLayerProperties(
-        circleRadius: 0.0,
-        circleColor: palette.positionAccuracy,
-        circleOpacity: 0.15,
-        circleStrokeWidth: 1.0,
-        circleStrokeColor: palette.positionAccuracy,
-        circleStrokeOpacity: 0.4,
-      ),
-      enableInteraction: false,
-    );
+    await add(MapLayerIds.positionSource, MapLayerIds.positionAccuracyLayer);
     // The cone is a symbol, so its bitmap has to exist before the layer that
     // names it; re-registering under the same name replaces it.
     await _addHeadingConeImage();
-    await _ops.addLayer(
-      MapLayerIds.positionSource,
-      MapLayerIds.positionHeadingLayer,
-      ml.SymbolLayerProperties(
-        iconImage: headingConeImageName,
-        iconAnchor: 'bottom',
-        iconRotate: <Object>['get', 'heading'],
-        // The cone points along a compass course, so it turns with the map
-        // rather than staying upright on the screen.
-        iconRotationAlignment: 'map',
-        iconAllowOverlap: true,
-        iconIgnorePlacement: true,
-        // No course worth drawing means no cone; the property is simply
-        // absent from the feature then.
-        iconOpacity: <Object>[
-          'case',
-          <Object>['has', 'heading'],
-          1,
-          0,
-        ],
-      ),
-      enableInteraction: false,
-    );
-    await _ops.addLayer(
-      MapLayerIds.positionSource,
-      MapLayerIds.positionHaloLayer,
-      ml.CircleLayerProperties(
-        circleRadius: 14.0,
-        circleColor: palette.positionDot,
-        circleOpacity: 0.18,
-      ),
-      enableInteraction: false,
-    );
-    await _ops.addLayer(
-      MapLayerIds.positionSource,
-      MapLayerIds.positionDotLayer,
-      ml.CircleLayerProperties(
-        circleRadius: 8.0,
-        circleColor: palette.positionDot,
-        circleStrokeWidth: 3.0,
-        circleStrokeColor: '#FFFFFF',
-      ),
-      enableInteraction: false,
-    );
+    await add(MapLayerIds.positionSource, MapLayerIds.positionHeadingLayer);
+    await add(MapLayerIds.positionSource, MapLayerIds.positionHaloLayer);
+    await add(MapLayerIds.positionSource, MapLayerIds.positionDotLayer);
 
     await _ops.addGeoJsonSource(
       MapLayerIds.waypointsSource,
@@ -727,39 +713,19 @@ class MaplibreMapControllerAdapter implements MapController {
     // The touch target: an invisible disc twice the marker's size. It is the
     // only interactive waypoint layer, so a tap or a drag is reported once,
     // and a finger on a dense screen still hits it.
-    await _ops.addLayer(
+    await add(
       MapLayerIds.waypointsSource,
       MapLayerIds.waypointsHitLayer,
-      ml.CircleLayerProperties(circleRadius: 22.0, circleOpacity: 0.0),
+      enableInteraction: true,
     );
-    await _ops.addLayer(
-      MapLayerIds.waypointsSource,
-      MapLayerIds.waypointsCircleLayer,
-      _markers.disc(color: _waypointColorExpression(), strokeWidth: 2.5),
-      enableInteraction: false,
-    );
+    await add(MapLayerIds.waypointsSource, MapLayerIds.waypointsCircleLayer);
     // What a point on the route stands for, on its disc. Nothing sits beside
     // a disc: a glyph next to the name ran into the text at small sizes.
-    await _ops.addLayer(
-      MapLayerIds.waypointsSource,
-      MapLayerIds.waypointsIconLayer,
-      _markers.glyph(),
-      enableInteraction: false,
-    );
+    await add(MapLayerIds.waypointsSource, MapLayerIds.waypointsIconLayer);
     // The number, for a point whose disc carries no icon. A point that has
     // one carries its number in the label instead, so it is written once.
-    await _ops.addLayer(
-      MapLayerIds.waypointsSource,
-      MapLayerIds.waypointsLabelLayer,
-      _markers.number(),
-      enableInteraction: false,
-    );
-    await _ops.addLayer(
-      MapLayerIds.waypointsSource,
-      MapLayerIds.waypointsNameLayer,
-      _markers.name(field: 'label'),
-      enableInteraction: false,
-    );
+    await add(MapLayerIds.waypointsSource, MapLayerIds.waypointsLabelLayer);
+    await add(MapLayerIds.waypointsSource, MapLayerIds.waypointsNameLayer);
 
     // The route's points of interest: small discs in the colour of their
     // kind, the name above each. Under the waypoints, so a start marker on a
@@ -774,35 +740,20 @@ class MaplibreMapControllerAdapter implements MapController {
       MapLayerIds.turnsSource,
       emptyFeatureCollection(),
     );
-    await _ops.addLayer(
+    await add(
       MapLayerIds.turnsSource,
       MapLayerIds.turnsLayer,
-      ml.CircleLayerProperties(
-        circleRadius: 5.0,
-        circleColor: palette.routeMain,
-        circleStrokeWidth: 2.0,
-        circleStrokeColor: palette.waypointStroke,
-      ),
+      enableInteraction: true,
     );
-    await _ops.addLayer(
+    await add(
       MapLayerIds.poisSource,
       MapLayerIds.poisCircleLayer,
-      _markers.disc(color: _poiColorExpression(), strokeWidth: 2),
+      enableInteraction: true,
     );
     // What the place is, on its disc. A point whose feature carries no icon
     // simply keeps the plain disc.
-    await _ops.addLayer(
-      MapLayerIds.poisSource,
-      MapLayerIds.poisIconLayer,
-      _markers.glyph(),
-      enableInteraction: false,
-    );
-    await _ops.addLayer(
-      MapLayerIds.poisSource,
-      MapLayerIds.poisLabelLayer,
-      _markers.name(field: 'name'),
-      enableInteraction: false,
-    );
+    await add(MapLayerIds.poisSource, MapLayerIds.poisIconLayer);
+    await add(MapLayerIds.poisSource, MapLayerIds.poisLabelLayer);
 
     // The searched place: a pin in the preview colour with the place name,
     // shown until the rider makes it a start, a destination, or drops it.
@@ -810,34 +761,8 @@ class MaplibreMapControllerAdapter implements MapController {
       MapLayerIds.searchPinSource,
       emptyFeatureCollection(),
     );
-    await _ops.addLayer(
-      MapLayerIds.searchPinSource,
-      MapLayerIds.searchPinLayer,
-      ml.CircleLayerProperties(
-        circleRadius: 9.0,
-        circleColor: palette.routePreview,
-        circleStrokeWidth: 2.5,
-        circleStrokeColor: palette.waypointStroke,
-      ),
-      enableInteraction: false,
-    );
-    await _ops.addLayer(
-      MapLayerIds.searchPinSource,
-      MapLayerIds.searchPinLabelLayer,
-      ml.SymbolLayerProperties(
-        textField: <Object>['get', 'label'],
-        textFont: waypointLabelFont,
-        textSize: 13.0,
-        textOffset: <Object>[0, -1.6],
-        textAnchor: 'bottom',
-        textColor: palette.waypointLabel,
-        textHaloColor: palette.waypointLabelHalo,
-        textHaloWidth: 1.2,
-        textAllowOverlap: true,
-        textIgnorePlacement: true,
-      ),
-      enableInteraction: false,
-    );
+    await add(MapLayerIds.searchPinSource, MapLayerIds.searchPinLayer);
+    await add(MapLayerIds.searchPinSource, MapLayerIds.searchPinLabelLayer);
 
     _attached = true;
     await _refreshVisibleBounds();
@@ -925,19 +850,35 @@ class MaplibreMapControllerAdapter implements MapController {
   /// Rasterises the heading cone in the palette's position colour and hands
   /// it to the style. Called on attach and again whenever the palette
   /// changes: `addImage` under an existing name replaces the bitmap.
+  ///
+  /// The bitmap is worked out on the CPU, never on the GPU, so this completes
+  /// the same in the background as in the foreground; see
+  /// [buildHeadingConeImage].
   Future<void> _addHeadingConeImage() async {
+    final Uint8List bytes;
     try {
-      final bytes = await buildHeadingConeImage(
+      bytes = buildHeadingConeImage(
         color: colorFromMapHex(palette.positionDot),
         devicePixelRatio: devicePixelRatio,
       );
-      if (_disposed) return;
-      await _ops.addImage(headingConeImageName, bytes);
     } on Object catch (error) {
       // A missing cone is a cosmetic loss; the dot and ring still draw.
       debugPrint('velorki: heading cone image failed: $error');
+      _coneRegistered = false;
+      return;
+    }
+    try {
+      await _ops.addImage(headingConeImageName, bytes);
+      _coneRegistered = true;
+    } on Object catch (error) {
+      // Tried again with the next fix that has a cone to draw.
+      _coneRegistered = false;
+      debugPrint('velorki: heading cone image not registered: $error');
     }
   }
+
+  /// Whether the style has the cone bitmap, as far as the adapter knows.
+  bool _coneRegistered = false;
 
   Future<void> _addCyclosmLayer() async {
     final tiles = expandTileTemplate(cyclosmTileUrl);
@@ -1324,7 +1265,8 @@ class MaplibreMapControllerAdapter implements MapController {
   Future<void> setPalette(MapPalette palette) async {
     if (palette == _palette) return;
     _palette = palette;
-    if (!_attached) return;
+    // A disposed adapter's layers belong to the adapter that replaced it.
+    if (!_attached || _disposed) return;
     try {
       await _recolour(palette);
     } on PlatformException {
@@ -1335,84 +1277,14 @@ class MaplibreMapControllerAdapter implements MapController {
   }
 
   Future<void> _recolour(MapPalette palette) async {
-    await _ops.setLayerProperties(
-      MapLayerIds.trackLayer,
-      ml.LineLayerProperties(lineColor: _trackLineColor()),
-    );
-    await _ops.setLayerProperties(
-      MapLayerIds.positionDotLayer,
-      ml.CircleLayerProperties(circleColor: palette.positionDot),
-    );
-    await _ops.setLayerProperties(
-      MapLayerIds.positionHaloLayer,
-      ml.CircleLayerProperties(circleColor: palette.positionDot),
-    );
+    // Every base layer is written whole; see [_baseLayerProperties].
+    for (final entry in _baseLayerProperties().entries) {
+      await _ops.setLayerProperties(entry.key, entry.value);
+    }
     // The cone and the marker glyphs are bitmaps, not style colours, so
     // they have to be drawn again.
     await _addHeadingConeImage();
     await _redrawMarkerGlyphs();
-    await _ops.setLayerProperties(
-      MapLayerIds.positionAccuracyLayer,
-      ml.CircleLayerProperties(
-        circleColor: palette.positionAccuracy,
-        circleStrokeColor: palette.positionAccuracy,
-      ),
-    );
-    await _ops.setLayerProperties(
-      MapLayerIds.waypointsCircleLayer,
-      ml.CircleLayerProperties(
-        circleColor: MarkerLayers.whenSelected(
-          palette.routePreview,
-          _waypointColorExpression(),
-        ),
-        circleStrokeColor: palette.waypointStroke,
-      ),
-    );
-    await _ops.setLayerProperties(
-      MapLayerIds.poisCircleLayer,
-      ml.CircleLayerProperties(
-        circleColor: MarkerLayers.whenSelected(
-          palette.routePreview,
-          _poiColorExpression(),
-        ),
-        circleStrokeColor: palette.waypointStroke,
-      ),
-    );
-    await _ops.setLayerProperties(
-      MapLayerIds.turnsLayer,
-      ml.CircleLayerProperties(
-        circleColor: palette.routeMain,
-        circleStrokeColor: palette.waypointStroke,
-      ),
-    );
-    for (final layer in <String>[
-      MapLayerIds.poisLabelLayer,
-      MapLayerIds.waypointsNameLayer,
-    ]) {
-      await _ops.setLayerProperties(layer, _markers.nameColours());
-    }
-    await _ops.setLayerProperties(
-      MapLayerIds.waypointsLabelLayer,
-      ml.SymbolLayerProperties(
-        textColor: palette.waypointLabel,
-        textHaloColor: palette.waypointLabelHalo,
-      ),
-    );
-
-    await _ops.setLayerProperties(
-      MapLayerIds.searchPinLayer,
-      ml.CircleLayerProperties(
-        circleColor: palette.routePreview,
-        circleStrokeColor: palette.waypointStroke,
-      ),
-    );
-    await _ops.setLayerProperties(
-      MapLayerIds.searchPinLabelLayer,
-      ml.SymbolLayerProperties(
-        textColor: palette.waypointLabel,
-        textHaloColor: palette.waypointLabelHalo,
-      ),
-    );
     for (final entry in _routeLines.entries) {
       await _ops.setLayerProperties(
         MapLayerIds.routeCasingLayer(entry.key),
@@ -1424,6 +1296,102 @@ class MaplibreMapControllerAdapter implements MapController {
       );
     }
   }
+
+  /// Every layer [attachToStyle] adds, with everything it is drawn with in
+  /// the current palette.
+  ///
+  /// The one table both the attach and a recolour read, and complete on
+  /// purpose: on iOS `setLayerProperties` resets every property it is not
+  /// given to the style default, so a recolour that sent only the colours
+  /// shrank the puck's dot, took its white ring, thinned the track to a
+  /// hairline and emptied the markers' labels.
+  Map<String, ml.LayerProperties> _baseLayerProperties() {
+    final markers = _markers;
+    return <String, ml.LayerProperties>{
+      MapLayerIds.trackLayer: _trackProperties(),
+      MapLayerIds.positionAccuracyLayer: _accuracyProperties(),
+      MapLayerIds.positionHeadingLayer: ml.SymbolLayerProperties(
+        iconImage: headingConeImageName,
+        iconAnchor: 'bottom',
+        iconRotate: <Object>['get', 'heading'],
+        // The cone points along a compass course, so it turns with the map
+        // rather than staying upright on the screen.
+        iconRotationAlignment: 'map',
+        iconAllowOverlap: true,
+        iconIgnorePlacement: true,
+        // No course worth drawing means no cone; the property is simply
+        // absent from the feature then.
+        iconOpacity: <Object>[
+          'case',
+          <Object>['has', 'heading'],
+          1,
+          0,
+        ],
+      ),
+      MapLayerIds.positionHaloLayer: ml.CircleLayerProperties(
+        circleRadius: 14.0,
+        circleColor: palette.positionDot,
+        circleOpacity: 0.18,
+      ),
+      MapLayerIds.positionDotLayer: ml.CircleLayerProperties(
+        circleRadius: 8.0,
+        circleColor: palette.positionDot,
+        circleStrokeWidth: 3.0,
+        circleStrokeColor: '#FFFFFF',
+      ),
+      MapLayerIds.waypointsHitLayer: const ml.CircleLayerProperties(
+        circleRadius: 22.0,
+        circleOpacity: 0.0,
+      ),
+      MapLayerIds.waypointsCircleLayer: markers.disc(
+        color: _waypointColorExpression(),
+        strokeWidth: 2.5,
+      ),
+      MapLayerIds.waypointsIconLayer: markers.glyph(),
+      MapLayerIds.waypointsLabelLayer: markers.number(),
+      MapLayerIds.waypointsNameLayer: markers.name(field: 'label'),
+      MapLayerIds.turnsLayer: ml.CircleLayerProperties(
+        circleRadius: 5.0,
+        circleColor: palette.routeMain,
+        circleStrokeWidth: 2.0,
+        circleStrokeColor: palette.waypointStroke,
+      ),
+      MapLayerIds.poisCircleLayer: markers.disc(
+        color: _poiColorExpression(),
+        strokeWidth: 2,
+      ),
+      MapLayerIds.poisIconLayer: markers.glyph(),
+      MapLayerIds.poisLabelLayer: markers.name(field: 'name'),
+      MapLayerIds.searchPinLayer: ml.CircleLayerProperties(
+        circleRadius: 9.0,
+        circleColor: palette.routePreview,
+        circleStrokeWidth: 2.5,
+        circleStrokeColor: palette.waypointStroke,
+      ),
+      MapLayerIds.searchPinLabelLayer: ml.SymbolLayerProperties(
+        textField: <Object>['get', 'label'],
+        textFont: waypointLabelFont,
+        textSize: 13.0,
+        textOffset: <Object>[0, -1.6],
+        textAnchor: 'bottom',
+        textColor: palette.waypointLabel,
+        textHaloColor: palette.waypointLabelHalo,
+        textHaloWidth: 1.2,
+        textAllowOverlap: true,
+        textIgnorePlacement: true,
+      ),
+    };
+  }
+
+  /// Everything the track line is drawn with, in the flat colour of a
+  /// recording or the speed ramp of a finished ride.
+  ml.LineLayerProperties _trackProperties() => ml.LineLayerProperties(
+    lineColor: _trackLineColor(),
+    lineWidth: 4.0,
+    lineOpacity: 0.9,
+    lineCap: 'round',
+    lineJoin: 'round',
+  );
 
   /// How every point on the map is drawn, in this palette's colours.
   MarkerLayers get _markers => MarkerLayers(palette);
@@ -1514,7 +1482,7 @@ class MaplibreMapControllerAdapter implements MapController {
       await _ops.setGeoJsonSource(sourceId, data);
     } on PlatformException catch (e) {
       if (!isStyleGoneError(e)) rethrow;
-      if (_reattaching) return;
+      if (_reattaching || _disposed) return;
       _reattaching = true;
       try {
         await attachToStyle();
@@ -1561,10 +1529,7 @@ class MaplibreMapControllerAdapter implements MapController {
   Future<void> _setTrackColoured(bool coloured) async {
     if (_trackColoured == coloured) return;
     _trackColoured = coloured;
-    await _ops.setLayerProperties(
-      MapLayerIds.trackLayer,
-      ml.LineLayerProperties(lineColor: _trackLineColor()),
-    );
+    await _ops.setLayerProperties(MapLayerIds.trackLayer, _trackProperties());
   }
 
   /// What the track layer paints with: one colour for a recording, the
@@ -1625,23 +1590,60 @@ class MaplibreMapControllerAdapter implements MapController {
       );
     }
     if (!_attached) return;
+    // A cone whose bitmap did not make it into the style is registered again
+    // before it is needed, rather than left missing for the rest of the ride.
+    if (heading != null && !_coneRegistered) await _addHeadingConeImage();
     // circle-radius is in pixels, so a metre-accurate ring needs a fresh
     // zoom expression whenever the accuracy or the latitude changes.
-    final radius = position == null || accuracyM == null || accuracyM <= 0
+    _accuracyRadius = position == null || accuracyM == null || accuracyM <= 0
         ? 0.0
         : accuracyRingRadiusExpression(accuracyM, position.lat);
+    _puckMinimal = minimal;
     await _ops.setLayerProperties(
       MapLayerIds.positionAccuracyLayer,
-      ml.CircleLayerProperties(
-        circleRadius: radius,
-        circleColor: palette.positionAccuracy,
-        circleOpacity: minimal ? 0.0 : 0.15,
-        circleStrokeWidth: 1.0,
-        circleStrokeColor: palette.positionAccuracy,
-        circleStrokeOpacity: minimal ? 0.0 : 0.4,
-      ),
+      _accuracyProperties(),
     );
   }
+
+  /// The heading of the cone the renderer has actually drawn at the puck, or
+  /// `null` when it drew none.
+  ///
+  /// Read back from the native map rather than from what the adapter wrote:
+  /// a cone layer whose bitmap the style lacks draws nothing while every
+  /// write to it looks right, which is how a ride went without a cone.
+  /// For tests on a device.
+  Future<double?> renderedConeHeading() async {
+    final at = _puckPosition;
+    if (!_attached || at == null) return null;
+    final features = await _ops.renderedFeaturesNear(
+      _toMl(at),
+      headingConeRadiusPx,
+      const <String>[MapLayerIds.positionHeadingLayer],
+    );
+    for (final feature in features) {
+      final properties = feature['properties'];
+      final heading = properties is Map ? properties['heading'] : null;
+      if (heading is num) return heading.toDouble();
+    }
+    return null;
+  }
+
+  /// The accuracy ring's radius as last drawn: a zoom expression, or 0.
+  Object _accuracyRadius = 0.0;
+
+  /// Whether the puck was last drawn bare, without ring or cone.
+  bool _puckMinimal = false;
+
+  /// Everything the accuracy ring is drawn with. Complete, because a property
+  /// left out of `setLayerProperties` is reset to the style default on iOS.
+  ml.CircleLayerProperties _accuracyProperties() => ml.CircleLayerProperties(
+    circleRadius: _accuracyRadius,
+    circleColor: palette.positionAccuracy,
+    circleOpacity: _puckMinimal ? 0.0 : 0.15,
+    circleStrokeWidth: 1.0,
+    circleStrokeColor: palette.positionAccuracy,
+    circleStrokeOpacity: _puckMinimal ? 0.0 : 0.4,
+  );
 
   /// Draws the puck on its way from [from] to [to] over
   /// [puckInterpolationDuration], ending exactly on [to].

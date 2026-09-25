@@ -3,12 +3,14 @@ import 'dart:math' show Point;
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart' show PlatformException;
+import 'package:flutter/widgets.dart' show IconData;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:velorki/features/map/data/cyclosm_tone.dart';
 import 'package:velorki/features/map/data/geojson.dart';
 import 'package:velorki/features/map/data/heading_cone.dart';
 import 'package:velorki/features/map/data/maplibre_map_controller.dart';
+import 'package:velorki/features/map/data/marker_glyph.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki/features/map/domain/visible_map.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -1189,6 +1191,161 @@ void main() {
     });
   });
 
+  group('the heading cone', () {
+    const glyph = IconData(0xe1b1, fontFamily: 'MaterialIcons');
+
+    void expectCone(RecordingStyleOps ops) {
+      expect(ops.images, contains(headingConeImageName));
+      expect(ops.layerIds, contains(MapLayerIds.positionHeadingLayer));
+      expect(
+        ops
+            .addLayerOf(MapLayerIds.positionHeadingLayer)!
+            .properties!['icon-image'],
+        headingConeImageName,
+      );
+    }
+
+    test('has its bitmap and its layer after the first style load', () async {
+      final ops = RecordingStyleOps();
+
+      await _adapter(ops).attachToStyle();
+
+      expectCone(ops);
+    });
+
+    test('has them again after a style reload with marker glyphs '
+        'registered', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setWaypoints(const <MapWaypoint>[
+        MapWaypoint(
+          position: LatLng(47.0, 8.0),
+          kind: MapWaypointKind.via,
+          icon: glyph,
+        ),
+      ]);
+      await adapter.setPois(const <MapPoi>[
+        MapPoi(
+          position: LatLng(47.1, 8.1),
+          name: 'Fountain',
+          kind: MapPoiKind.water,
+          icon: glyph,
+        ),
+      ]);
+      expect(ops.images, contains(markerGlyphName(glyph)));
+
+      ops.reloadStyle();
+      await adapter.attachToStyle();
+
+      expectCone(ops);
+      // The glyphs come back beside it: neither pushes the other out.
+      expect(ops.images, contains(markerGlyphName(glyph)));
+    });
+
+    test('draws a position pushed with a heading, as the recorder pushes '
+        'it while it owns the puck', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+
+      // Moving at riding speed with a course.
+      await adapter.setPosition(
+        const LatLng(47.0, 8.0),
+        accuracyM: 4,
+        headingDeg: 90,
+        speedMps: 5,
+      );
+      expect(_firstProperties(ops, MapLayerIds.positionSource)['heading'], 90);
+
+      // Standing still, turned by the compass.
+      await adapter.setPosition(
+        const LatLng(47.0, 8.0),
+        accuracyM: 4,
+        headingDeg: 180,
+        speedMps: 0,
+        headingFromCompass: true,
+      );
+      expect(
+        _firstProperties(ops, MapLayerIds.positionSource)['heading'],
+        isNotNull,
+      );
+      expectCone(ops);
+    });
+
+    test('a bitmap the style did not take is registered again with the next '
+        'fix that has a cone to draw', () async {
+      final ops = RecordingStyleOps()
+        ..addImageError = PlatformException(code: 'error');
+      final adapter = _adapter(ops);
+
+      await adapter.attachToStyle();
+      expect(ops.images, isNot(contains(headingConeImageName)));
+      // The rest of the style is there all the same.
+      expect(ops.layerIds, contains(MapLayerIds.positionDotLayer));
+
+      await adapter.setPosition(
+        const LatLng(47.0, 8.0),
+        headingDeg: 90,
+        speedMps: 5,
+      );
+
+      expect(ops.images, contains(headingConeImageName));
+      ops.clearCalls();
+      await adapter.setPosition(
+        const LatLng(47.0, 8.0),
+        headingDeg: 90,
+        speedMps: 5,
+      );
+      // Once is enough.
+      expect(ops.callsNamed('addImage'), isEmpty);
+    });
+
+    test('a disposed adapter leaves a reloaded style to its '
+        'successor', () async {
+      final ops = RecordingStyleOps();
+      final old = _adapter(ops);
+      await old.attachToStyle();
+      await old.setTrackLine(_points);
+      old.dispose();
+      ops
+        ..reloadStyle()
+        ..clearCalls();
+
+      // A late write from a screen that still holds the old adapter finds
+      // its source gone, and a late theme change reaches it.
+      await old.setTrackLine(_points);
+      await old.setPalette(_repainted);
+
+      expect(ops.callsNamed('addLayer'), isEmpty);
+      expect(ops.callsNamed('setLayerProperties'), isEmpty);
+
+      await _adapter(ops).attachToStyle();
+      expectCone(ops);
+    });
+
+    test('reads the cone back from the renderer', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setPosition(
+        const LatLng(47.0, 8.0),
+        headingDeg: 90,
+        speedMps: 5,
+      );
+
+      expect(await adapter.renderedConeHeading(), isNull);
+
+      ops.renderedFeatures = <Map<String, dynamic>>[
+        <String, dynamic>{
+          'layer': MapLayerIds.positionHeadingLayer,
+          'properties': <String, dynamic>{'heading': 90.0},
+        },
+      ];
+      expect(await adapter.renderedConeHeading(), 90);
+    });
+  });
+
   group('setSearchPin', () {
     test('writes the place with its label and clears it again', () async {
       final ops = RecordingStyleOps();
@@ -1276,6 +1433,47 @@ void main() {
         expect(name.properties!['text-color'], '#ABABAB');
         expect(name.properties!['text-halo-color'], '#BCBCBC');
       }
+    });
+
+    test('writes each layer whole, since iOS resets whatever a property '
+        'update leaves out', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setTrackSegments(_segments);
+
+      await adapter.setPalette(_repainted);
+
+      final dot = ops.lastPropertiesOf(MapLayerIds.positionDotLayer)!;
+      expect(dot.properties!['circle-color'], '#CCCCCC');
+      expect(dot.properties!['circle-radius'], 8.0);
+      expect(dot.properties!['circle-stroke-width'], 3.0);
+      expect(dot.properties!['circle-stroke-color'], '#FFFFFF');
+      final halo = ops.lastPropertiesOf(MapLayerIds.positionHaloLayer)!;
+      expect(halo.properties!['circle-radius'], 14.0);
+      expect(halo.properties!['circle-opacity'], 0.18);
+      final track = ops.lastPropertiesOf(MapLayerIds.trackLayer)!;
+      expect(track.properties!['line-width'], 4.0);
+      final name = ops.lastPropertiesOf(MapLayerIds.waypointsNameLayer)!;
+      expect(name.properties!['text-field'], <Object>['get', 'label']);
+      final number = ops.lastPropertiesOf(MapLayerIds.waypointsLabelLayer)!;
+      expect(number.properties!['text-field'], <Object>['get', 'disc']);
+      final pin = ops.lastPropertiesOf(MapLayerIds.searchPinLabelLayer)!;
+      expect(pin.properties!['text-field'], <Object>['get', 'label']);
+      final cone = ops.lastPropertiesOf(MapLayerIds.positionHeadingLayer)!;
+      expect(cone.properties!['icon-image'], headingConeImageName);
+    });
+
+    test('switching the track to the speed ramp keeps its width', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+
+      await adapter.setTrackSegments(_segments);
+
+      final track = ops.lastPropertiesOf(MapLayerIds.trackLayer)!;
+      expect(track.properties!['line-width'], 4.0);
+      expect(track.properties!['line-cap'], 'round');
     });
 
     test('redraws the heading cone, which is a bitmap not a colour', () async {
