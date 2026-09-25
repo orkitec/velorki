@@ -49,7 +49,8 @@ void main() {
       expect(one, isNot(const RecordingSettings()));
       expect(
         one.toString(),
-        'RecordingSettings(precision: saver, saver: false, splitLength: auto)',
+        'RecordingSettings(precision: saver, saver: false, splitLength: auto, '
+        'keepScreenOn: true)',
       );
     });
   });
@@ -63,6 +64,7 @@ void main() {
       expect(settings.precision, GpsPrecision.normal);
       expect(settings.saver, isFalse);
       expect(settings.effectivePrecision, GpsPrecision.normal);
+      expect(settings.keepScreenOn, isTrue, reason: 'on from the start');
     });
 
     test('the stored choices come back', () async {
@@ -146,6 +148,28 @@ void main() {
       await notifier.setSaver(false);
       expect(prefs.containsKey('recording.saver'), isFalse);
       expect(container.read(recordingSettingsProvider).saver, isFalse);
+    });
+
+    test('keeping the screen on is stored only once it is off, and survives '
+        'a restart', () async {
+      final container = await _containerWith(<String, Object>{});
+      final prefs = container.read(sharedPreferencesProvider);
+      final notifier = container.read(recordingSettingsProvider.notifier);
+
+      await notifier.setKeepScreenOn(false);
+      expect(prefs.getBool('recording.keepScreenOn'), isFalse);
+      expect(container.read(recordingSettingsProvider).keepScreenOn, isFalse);
+
+      // A new container over the same preferences: the app started again.
+      final restarted = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(restarted.dispose);
+      expect(restarted.read(recordingSettingsProvider).keepScreenOn, isFalse);
+
+      await notifier.setKeepScreenOn(true);
+      expect(prefs.containsKey('recording.keepScreenOn'), isFalse);
+      expect(container.read(recordingSettingsProvider).keepScreenOn, isTrue);
     });
   });
 }

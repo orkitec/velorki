@@ -49,7 +49,9 @@ point. The choice is read when a ride starts and written into
 isolate — that isolate has no access to the preferences.
 
 **A battery saver switch**, in Settings → Recording and on the record sheet
-next to "Keep screen on". While it is on and a ride is running
+next to "Keep screen on" (one stored preference, `recording.keepScreenOn`,
+on by default: the wake lock is held while a ride runs on the Record tab and
+the rider has not paused it). While the saver is on and a ride is running
 (`batterySaverActiveProvider`):
 
 - the app runs in the dark theme and the map in the **Black** style, through
@@ -60,9 +62,9 @@ next to "Keep screen on". While it is on and a ride is running
   ring and the heading cone;
 - the camera jumps to each fix (`animate: false`) instead of gliding;
 - the display is held at 40 % through the `screen_brightness` plugin, but
-  only while "keep screen on" is also on — a screen that switches itself off
+  only while the screen is held awake — a screen that switches itself off
   costs nothing already. It is reset when the ride ends, the saver goes off,
-  keep-screen-on goes off, or the screen is left;
+  keep-screen-on goes off, the rider pauses, or the screen is left;
 - after 30 s without a touch the map and the sheet give way to a black page
   with the distance, the speed, the elapsed time and, when a route is being
   navigated, the next turn. No controls at all, so nothing can be stopped by

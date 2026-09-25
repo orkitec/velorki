@@ -3890,6 +3890,10 @@
   "@settingsBatterySaverHint": {
     "description": "Explanation under the battery saver switch"
   },
+  "settingsKeepScreenOnHint": "While a ride is recorded on the Record tab and not paused; the same switch as there",
+  "@settingsKeepScreenOnHint": {
+    "description": "Explanation under the keep-screen-on switch in Settings, Recording"
+  },
   "mapAttributionTitle": "Map data and tiles",
   "@mapAttributionTitle": {
     "description": "Title of the map attribution chip and of the dialog it opens"

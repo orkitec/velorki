@@ -40,6 +40,8 @@ The three switches here are the same ones as on the Record tab's sheet.
 
 **Battery saver**: "Dark map, no animations, a plain page with the numbers after 30 s; the screen is what drains the battery". The full behaviour is in [recording a ride](./recording-a-ride).
 
+**Keep screen on**: "While a ride is recorded on the Record tab and not paused; the same switch as there". On until you turn it off; switching it here or on the Record sheet is one and the same.
+
 **Ride figures**: every figure a ride can show, with a handle to drag it into place and a switch to turn it off. The sheet shows them in this order, the bar the sheet folds into the first four, the glance page the first two beside the ride's time; a figure with nothing to show, a sensor not connected or no route followed, gives its place to the next. One stays on at least, the reset button at the top right puts back the default, and **Time**, which the sheet shows beside the status anyway, is off until you turn it on. **Edit figures** under the figures on the sheet opens the same list.
 
 ## Rider

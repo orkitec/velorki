@@ -102,7 +102,7 @@ void main() {
 
   testWidgets('the saver switch is remembered', (tester) async {
     final container = await _pump(tester);
-    final tile = find.byType(SwitchListTile);
+    final tile = find.widgetWithText(SwitchListTile, l10n.settingsBatterySaver);
     expect(tester.widget<SwitchListTile>(tile).value, isFalse);
 
     await tester.tap(tile);
@@ -132,8 +132,46 @@ void main() {
       {GpsPrecision.saver},
     );
     expect(
-      tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
+      tester
+          .widget<SwitchListTile>(
+            find.widgetWithText(SwitchListTile, l10n.settingsBatterySaver),
+          )
+          .value,
       isTrue,
+    );
+  });
+
+  testWidgets('keep screen on is on by default, and turning it off is '
+      'remembered', (tester) async {
+    final container = await _pump(tester);
+    final tile = find.widgetWithText(
+      SwitchListTile,
+      l10n.recordingKeepScreenOn,
+    );
+    expect(find.text(l10n.settingsKeepScreenOnHint), findsOneWidget);
+    expect(tester.widget<SwitchListTile>(tile).value, isTrue);
+
+    await tester.tap(tile);
+    await tester.pumpAndSettle();
+
+    expect(container.read(recordingSettingsProvider).keepScreenOn, isFalse);
+    expect(tester.widget<SwitchListTile>(tile).value, isFalse);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getBool('recording.keepScreenOn'), isFalse);
+  });
+
+  testWidgets('a stored "off" is shown off', (tester) async {
+    await _pump(
+      tester,
+      initial: const <String, Object>{'recording.keepScreenOn': false},
+    );
+    expect(
+      tester
+          .widget<SwitchListTile>(
+            find.widgetWithText(SwitchListTile, l10n.recordingKeepScreenOn),
+          )
+          .value,
+      isFalse,
     );
   });
 }

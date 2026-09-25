@@ -52,7 +52,7 @@ Der Track wird während der Fahrt auf das Handy geschrieben und alle paar Sekund
 - **Android**: Die Fahrt läuft als Vordergrunddienst mit einer laufenden Mitteilung namens **Fahrt wird aufgezeichnet**, deren zweite Zeile Distanz und Zeit trägt, und die nächste Abbiegung, wenn du einer Route folgst. Ein Tipper darauf bringt dich zurück in die App.
 - **iPhone**: Die Fahrt läuft mit gesperrtem Bildschirm weiter, und eine Live-Aktivität zeigt dieselben Zahlen auf dem Sperrbildschirm.
 
-**Bildschirm anlassen** in der Aufnahmeübersicht hält das Display wach, was am Lenker praktisch und für den Akku teuer ist.
+**Bildschirm anlassen** in der Aufnahmeübersicht hält das Display wach, solange im Tab Aufnahme eine Fahrt läuft, was am Lenker praktisch und für den Akku teuer ist. Es ist an, bis du es ausschaltest, und deine Wahl gilt auch für die nächste Fahrt; unter **Einstellungen → Aufnahme** steht derselbe Schalter. Der Bildschirm darf wieder ausgehen, solange du die Fahrt pausierst (nicht, wenn sie bei einem Halt von selbst pausiert), wenn du zu einem anderen Tab wechselst und wenn die Fahrt endet.
 
 ## Energiesparen
 

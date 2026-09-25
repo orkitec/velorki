@@ -52,7 +52,7 @@ The track is written to the phone as you ride, flushed every few seconds, so not
 - **Android**: the ride runs in a foreground service with an ongoing notification titled **Recording a ride**, whose second line carries your distance and time, and the next turn when you are following a route. Tapping it comes back to the app.
 - **iPhone**: the ride keeps running with the screen locked, and a live activity shows the same figures on the lock screen.
 
-**Keep screen on** in the Record sheet stops the display sleeping, which is handy on a handlebar mount and expensive for the battery.
+**Keep screen on** in the Record sheet stops the display sleeping while a ride runs on the Record tab, which is handy on a handlebar mount and expensive for the battery. It is on until you turn it off, and your choice carries to the next ride; **Settings → Recording** has the same switch. The screen may sleep again while you pause the ride (not while it pauses itself at a stop), when you switch to another tab, and when the ride ends.
 
 ## Battery saver
 

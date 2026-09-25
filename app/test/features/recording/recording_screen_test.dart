@@ -1476,19 +1476,112 @@ void main() {
     await unmountApp(tester);
   });
 
-  testWidgets('the keep-screen-on toggle drives the wake lock', (tester) async {
-    final h = await pumpRecordingScreen(tester, const RecordingScreen());
-    await tester.pump();
+  group('keep screen on', () {
+    final keepOn = find.widgetWithText(
+      SwitchListTile,
+      l10n.recordingKeepScreenOn,
+    );
+    bool shown(WidgetTester tester) =>
+        tester.widget<SwitchListTile>(keepOn).value;
+    void go(WidgetTester tester, String location) =>
+        GoRouter.of(tester.element(find.byType(Scaffold).first)).go(location);
 
-    await tester.tap(find.text(l10n.recordingKeepScreenOn));
-    await tester.pumpAndSettle();
-    expect(h.screenWake.enabled, isTrue);
+    testWidgets('is on from the start, holds the screen through a ride, and '
+        'lets it sleep on a pause and at the end', (tester) async {
+      final h = await pumpRecordingScreen(tester, const RecordingScreen());
+      await tester.pump();
+      expect(shown(tester), isTrue);
+      expect(h.screenWake.enabled, isFalse, reason: 'no ride yet');
 
-    await tester.tap(find.text(l10n.recordingKeepScreenOn));
-    await tester.pumpAndSettle();
-    expect(h.screenWake.enabled, isFalse);
+      await emitSnapshot(tester, h, _snapshot());
+      expect(h.screenWake.enabled, isTrue);
 
-    await unmountApp(tester);
+      await emitSnapshot(
+        tester,
+        h,
+        _snapshot(status: RecordingStatus.paused, autoPaused: true),
+      );
+      expect(h.screenWake.enabled, isTrue, reason: 'waiting at the lights');
+
+      await emitSnapshot(tester, h, _snapshot(status: RecordingStatus.paused));
+      expect(h.screenWake.enabled, isFalse, reason: "the rider's pause");
+
+      await emitSnapshot(tester, h, _snapshot());
+      expect(h.screenWake.enabled, isTrue);
+
+      await emitSnapshot(tester, h, _snapshot(status: RecordingStatus.idle));
+      expect(h.screenWake.enabled, isFalse);
+
+      await unmountApp(tester);
+    });
+
+    testWidgets('the switch on the card is the stored preference', (
+      tester,
+    ) async {
+      final h = await pumpRecordingScreen(tester, const RecordingScreen());
+      await tester.pump();
+      await emitSnapshot(tester, h, _snapshot());
+      expect(h.screenWake.enabled, isTrue);
+
+      await tester.tap(keepOn);
+      await tester.pumpAndSettle();
+
+      expect(h.screenWake.enabled, isFalse);
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(RecordingScreen)),
+      );
+      expect(container.read(recordingSettingsProvider).keepScreenOn, isFalse);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getBool('recording.keepScreenOn'), isFalse);
+      await unmountApp(tester);
+    });
+
+    testWidgets('a stored "off" carries to the next ride', (tester) async {
+      final h = await pumpRecordingScreen(
+        tester,
+        const RecordingScreen(),
+        preferences: const <String, Object>{'recording.keepScreenOn': false},
+      );
+      await tester.pump();
+      expect(shown(tester), isFalse);
+
+      await emitSnapshot(tester, h, _snapshot());
+
+      expect(shown(tester), isFalse);
+      expect(h.screenWake.enabled, isFalse);
+      await unmountApp(tester);
+    });
+
+    testWidgets('the card and Settings are one switch, and another tab lets '
+        'the screen sleep', (tester) async {
+      final h = await pumpRecordingApp(tester);
+      await tester.pumpAndSettle();
+      await emitSnapshot(tester, h, _snapshot());
+      expect(h.screenWake.enabled, isTrue);
+
+      go(tester, settingsRoute);
+      await tester.pumpAndSettle();
+      expect(h.screenWake.enabled, isFalse, reason: 'Record is away');
+      await tester.ensureVisible(keepOn);
+      expect(shown(tester), isTrue);
+      await tester.tap(keepOn);
+      await tester.pumpAndSettle();
+
+      go(tester, recordingRoute);
+      await tester.pumpAndSettle();
+      expect(shown(tester), isFalse);
+      expect(h.screenWake.enabled, isFalse);
+
+      await tester.tap(keepOn);
+      await tester.pumpAndSettle();
+      expect(h.screenWake.enabled, isTrue);
+
+      go(tester, settingsRoute);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(keepOn);
+      expect(shown(tester), isTrue);
+      await unmountApp(tester);
+    });
   });
 
   testWidgets('the navigation switches sit below the fold on both sheets', (
@@ -2892,20 +2985,25 @@ void main() {
       );
       await tester.pump();
       await emitSnapshot(tester, h, _snapshot());
+      expect(h.dimmer.brightness, saverBrightness);
+
+      final keepOn = find.widgetWithText(
+        SwitchListTile,
+        l10n.recordingKeepScreenOn,
+      );
+      await tester.tap(keepOn);
+      await tester.pumpAndSettle();
       expect(h.dimmer.brightness, isNull, reason: 'the screen may sleep');
 
-      await tester.tap(
-        find.widgetWithText(SwitchListTile, l10n.recordingKeepScreenOn),
-      );
+      await tester.tap(keepOn);
       await tester.pumpAndSettle();
-
       expect(h.dimmer.brightness, saverBrightness);
 
       // The ride ends: the rider's own brightness comes back.
       await emitSnapshot(tester, h, _snapshot(status: RecordingStatus.idle));
 
       expect(h.dimmer.brightness, isNull);
-      expect(h.dimmer.calls, ['dim(0.4)', 'reset']);
+      expect(h.dimmer.calls, ['dim(0.4)', 'reset', 'dim(0.4)', 'reset']);
 
       await unmountApp(tester);
     });

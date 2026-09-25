@@ -756,6 +756,7 @@
   "settingsGpsPrecisionHint": "Genau für Trails, Normal reicht für Straßen",
   "settingsBatterySaver": "Energiesparen",
   "settingsBatterySaverHint": "Dunkle Karte, keine Animationen, nach 30 s eine schlichte Seite mit den Zahlen; der Bildschirm zieht den Akku leer",
+  "settingsKeepScreenOnHint": "Solange im Tab Aufnahme eine Fahrt läuft und nicht pausiert ist; derselbe Schalter wie dort",
   "mapAttributionTitle": "Kartendaten und Kacheln",
   "mapAttributionBody": "Kartendaten von OpenStreetMap, verfügbar unter der Open Database Licence. Vektorkacheln von OpenFreeMap; das optionale Rad-Overlay wird von CyclOSM auf Kachelservern der OpenStreetMap Foundation gezeichnet.",
   "mapAttributionOpenFreeMap": "OpenFreeMap",

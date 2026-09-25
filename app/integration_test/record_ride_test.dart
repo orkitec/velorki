@@ -193,6 +193,7 @@ void main() {
         .snapshot!
         .distanceM;
     debugPrint('VELORKI_RIDE after $_points fixes: ${total.round()}m');
+    expect(wake.enabled, isTrue, reason: 'the screen stays on by default');
 
     // --------------------------------------------------------------- finish
     await tapAndPump(

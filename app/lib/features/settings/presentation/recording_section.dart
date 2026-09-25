@@ -12,7 +12,8 @@ import '../../recording/presentation/recording_format.dart';
 import '../data/units.dart';
 
 /// Settings → Recording: how hard the GPS is driven, how long a split on the
-/// ride page is, and the one switch that trades everything else for battery.
+/// ride page is, the one switch that trades everything else for battery, and
+/// whether the screen stays on during a ride.
 class RecordingSection extends ConsumerWidget {
   /// Creates the section.
   const RecordingSection({super.key});
@@ -106,6 +107,12 @@ class RecordingSection extends ConsumerWidget {
           title: Text(l10n.settingsBatterySaver),
           subtitle: Text(l10n.settingsBatterySaverHint),
           onChanged: (value) => unawaited(controller.setSaver(value)),
+        ),
+        SwitchListTile(
+          value: settings.keepScreenOn,
+          title: Text(l10n.recordingKeepScreenOn),
+          subtitle: Text(l10n.settingsKeepScreenOnHint),
+          onChanged: (value) => unawaited(controller.setKeepScreenOn(value)),
         ),
         const LiveFiguresSettingsEntry(),
       ],

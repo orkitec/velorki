@@ -178,7 +178,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// ended while this tab was away.
   bool _northDue = false;
 
-  bool _keepScreenOn = false;
+  /// Whether the screen is being held awake by us.
+  bool _awake = false;
 
   /// Whether the map and the sheet have given way to the glance view: the
   /// figures on black, the way a bike computer shows them.
@@ -465,7 +466,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
 
   @override
   void dispose() {
-    if (_keepScreenOn) unawaited(_wake?.disable());
+    if (_awake) unawaited(_wake?.disable());
     if (_dimmed) unawaited(_dimmer?.reset());
     _glanceTimer?.cancel();
     if (_drawing) _map?.onCameraIdle = null;
@@ -490,6 +491,17 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     _saverRide = saver;
     _glance = false;
     _restartGlanceTimer(saver);
+  }
+
+  /// Holds the screen awake while a ride runs on this tab and the rider wants
+  /// it so, and lets it sleep again on a pause, at the end of the ride and
+  /// when another tab comes up.
+  void _syncWake(bool wanted) {
+    if (wanted == _awake) return;
+    _awake = wanted;
+    final ScreenWake wake = _wake ?? ref.read(screenWakeProvider);
+    _wake = wake;
+    unawaited(wanted ? wake.enable() : wake.disable());
   }
 
   /// Dims the display for a saver ride, and only while the screen is being
@@ -1491,13 +1503,6 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     }
   }
 
-  Future<void> _setKeepScreenOn(bool value) async {
-    setState(() => _keepScreenOn = value);
-    final ScreenWake wake = _wake ?? ref.read(screenWakeProvider);
-    _wake = wake;
-    await (value ? wake.enable() : wake.disable());
-  }
-
   /// The name the save sheet starts with: the followed route's name, or the
   /// time of day and the places the ride ran between.
   Future<String> _defaultRideName(
@@ -1599,7 +1604,19 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     // view. It is false again the moment the ride ends.
     final saver = ref.watch(batterySaverActiveProvider);
     _syncSaver(saver);
-    _syncBrightness(saver && _keepScreenOn);
+    final keepScreenOn = ref.watch(
+      recordingSettingsProvider.select((s) => s.keepScreenOn),
+    );
+    final active = ref.watch(activeTabProvider) == recordingRoute;
+    // Awake through an auto-pause at the lights, not through the rider's
+    // own pause.
+    final awake =
+        keepScreenOn &&
+        active &&
+        state.isRecording &&
+        !(state.snapshot?.isManuallyPaused ?? false);
+    _syncWake(awake);
+    _syncBrightness(saver && awake);
     _syncMap(
       state,
       route,
@@ -1667,7 +1684,6 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     // The tab on screen: the banner over the map slides in when it is this
     // one, the ride goes on the map, and the map's control column and the
     // sheet pick up where the last tab left them.
-    final active = ref.watch(activeTabProvider) == recordingRoute;
     _active = active;
     ref.listen(activeTabProvider, (previous, next) {
       if (next == recordingRoute && previous != recordingRoute) {
@@ -1828,9 +1844,12 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                             bottomInset: bottomInset,
                             page: _sheetPage,
                             onPage: _setSheetPage,
-                            keepScreenOn: _keepScreenOn,
-                            onKeepScreenOn: (v) =>
-                                unawaited(_setKeepScreenOn(v)),
+                            keepScreenOn: keepScreenOn,
+                            onKeepScreenOn: (v) => unawaited(
+                              ref
+                                  .read(recordingSettingsProvider.notifier)
+                                  .setKeepScreenOn(v),
+                            ),
                             onPause: () => unawaited(
                               ref
                                   .read(recordingControllerProvider.notifier)
@@ -1847,9 +1866,12 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                             state: state,
                             hintIndex: _hintIndex,
                             bottomInset: bottomInset,
-                            keepScreenOn: _keepScreenOn,
-                            onKeepScreenOn: (v) =>
-                                unawaited(_setKeepScreenOn(v)),
+                            keepScreenOn: keepScreenOn,
+                            onKeepScreenOn: (v) => unawaited(
+                              ref
+                                  .read(recordingSettingsProvider.notifier)
+                                  .setKeepScreenOn(v),
+                            ),
                             onStart: () => unawaited(_start()),
                           ),
                   ),

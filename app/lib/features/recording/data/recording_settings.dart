@@ -7,15 +7,17 @@ import '../domain/split_length.dart';
 const String _prefsPrecision = 'recording.precision';
 const String _prefsSaver = 'recording.saver';
 const String _prefsSplitLength = 'recording.splitLength';
+const String _prefsKeepScreenOn = 'recording.keepScreenOn';
 
 /// What the rider chose under Settings → Recording.
 class RecordingSettings {
-  /// Creates the settings. A normal-precision ride with no saver is what a
-  /// rider who never opened the section gets.
+  /// Creates the settings. A normal-precision ride with no saver, on a
+  /// screen that stays on, is what a rider who never opened the section gets.
   const RecordingSettings({
     this.precision = GpsPrecision.normal,
     this.saver = false,
     this.splitLength = SplitLength.auto,
+    this.keepScreenOn = true,
   });
 
   /// How precisely the ride is recorded.
@@ -29,6 +31,10 @@ class RecordingSettings {
   /// How long a split on the ride page is.
   final SplitLength splitLength;
 
+  /// Whether the screen is held on while a ride is recorded. One value, set
+  /// from the Record sheet or from Settings, and kept for the next ride.
+  final bool keepScreenOn;
+
   /// The profile a ride actually runs at: the saver overrules the choice
   /// above it, which is the whole point of one switch.
   GpsPrecision get effectivePrecision => saver ? GpsPrecision.saver : precision;
@@ -38,10 +44,12 @@ class RecordingSettings {
     GpsPrecision? precision,
     bool? saver,
     SplitLength? splitLength,
+    bool? keepScreenOn,
   }) => RecordingSettings(
     precision: precision ?? this.precision,
     saver: saver ?? this.saver,
     splitLength: splitLength ?? this.splitLength,
+    keepScreenOn: keepScreenOn ?? this.keepScreenOn,
   );
 
   @override
@@ -50,15 +58,16 @@ class RecordingSettings {
       other is RecordingSettings &&
           other.precision == precision &&
           other.saver == saver &&
-          other.splitLength == splitLength;
+          other.splitLength == splitLength &&
+          other.keepScreenOn == keepScreenOn;
 
   @override
-  int get hashCode => Object.hash(precision, saver, splitLength);
+  int get hashCode => Object.hash(precision, saver, splitLength, keepScreenOn);
 
   @override
   String toString() =>
       'RecordingSettings(precision: ${precision.name}, saver: $saver, '
-      'splitLength: ${splitLength.name})';
+      'splitLength: ${splitLength.name}, keepScreenOn: $keepScreenOn)';
 }
 
 /// The recording settings, kept in shared_preferences.
@@ -73,6 +82,7 @@ class RecordingSettingsController extends Notifier<RecordingSettings> {
       precision: GpsPrecision.fromName(prefs.getString(_prefsPrecision)),
       saver: prefs.getBool(_prefsSaver) ?? false,
       splitLength: SplitLength.fromName(prefs.getString(_prefsSplitLength)),
+      keepScreenOn: prefs.getBool(_prefsKeepScreenOn) ?? true,
     );
   }
 
@@ -107,6 +117,17 @@ class RecordingSettingsController extends Notifier<RecordingSettings> {
       await prefs.remove(_prefsSaver);
     }
     state = state.copyWith(saver: value);
+  }
+
+  /// Holds the screen on during rides, or lets it sleep as usual.
+  Future<void> setKeepScreenOn(bool value) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    if (value) {
+      await prefs.remove(_prefsKeepScreenOn);
+    } else {
+      await prefs.setBool(_prefsKeepScreenOn, value);
+    }
+    state = state.copyWith(keepScreenOn: value);
   }
 }
 
