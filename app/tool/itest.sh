@@ -318,7 +318,8 @@ attempt() {
 tooling_failed() {
   local rc=$1 log=$2
   [ "$rc" -eq 143 ] && return 0
-  grep -qE "Failed to start Dart Development Service|Service connection disposed|^Failed to load \"|No tests ran|0 tests passed" "$log"
+  # The expanded reporter indents the load error under the "loading" line.
+  grep -qE "Failed to start Dart Development Service|Service connection disposed|VmServiceDisappearedException|^[[:space:]]*Failed to load \"|No tests ran|0 tests passed" "$log"
 }
 
 # Three tries per file: a freshly booted CI emulator has failed the first file
