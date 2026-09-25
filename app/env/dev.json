@@ -1,5 +1,6 @@
 {
   "VELORKI_BROUTER_URL": "https://api.velorki.com/brouter",
+  "VELORKI_BROUTER_VARIANTS": "",
   "VELORKI_API_URL": "https://api.velorki.com",
   "VELORKI_SEGMENTS_URL": "https://raw.githubusercontent.com/orkitec/velorki-data/main/latest.json",
   "VELORKI_PHOTON_URL": "https://photon.komoot.io",

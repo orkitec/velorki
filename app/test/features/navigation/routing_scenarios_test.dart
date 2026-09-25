@@ -13,6 +13,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/navigation/application/navigation_controller.dart'
     show ignoredRejoinsBeforeReplan;
+import 'package:velorki/features/navigation/application/off_route_machine.dart'
+    show detourAfter;
 import 'package:velorki/features/navigation/application/route_check.dart';
 import 'package:velorki/features/navigation/application/route_geometry.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
@@ -108,13 +110,11 @@ void _expectClean(ReplayLog log) {
       lessThan(1),
       reason: 'no one-way ridden the wrong way: $log',
     );
-    if (_pavementChecked) {
-      expect(
-        sidewalkM(result),
-        lessThan(1),
-        reason: 'no pavement between the ends: $log',
-      );
-    }
+    expect(
+      sidewalkM(result),
+      lessThan(1),
+      reason: 'no pavement between the ends: $log',
+    );
   }
 }
 
@@ -173,11 +173,15 @@ void main() {
             region.plan.$1,
             region.plan.$2,
           ]);
-          expect(againstOnewayM(route), lessThan(1));
-          expect(sidewalkM(route), lessThan(1));
+          expect(againstOnewayM(route), lessThan(1), reason: _flaws(route));
+          expect(
+            sidewalkM(route, endsM: 60),
+            lessThan(1),
+            reason: _flaws(route),
+          );
         },
         timeout: _slow,
-        skip: region.skip ?? _planChecks,
+        skip: region.skip,
       );
 
       test(
@@ -235,21 +239,18 @@ void main() {
       );
 
       test(
-        'a one-block detour needs no routing and is back on the route within '
-        'half a minute',
+        'a one-block detour needs no routing: the rider is back on the route '
+        'before a way back would be worked out',
         () async {
           final path = await maker.anyDetour(
             plan,
             region.blockM,
             region.blockAsideM,
+            maxFactor: 2,
           );
           final log = await ride(maker.ride(path));
           expect(log.routings, isEmpty, reason: '$log');
-          expect(
-            log.longestOff,
-            lessThanOrEqualTo(const Duration(seconds: 30)),
-            reason: '$log',
-          );
+          expect(log.longestOff, lessThan(detourAfter), reason: '$log');
         },
         timeout: _slow,
         skip: region.skip,
@@ -311,25 +312,35 @@ void main() {
               _centralPark.$1,
               _centralPark.$2,
             ]);
-            expect(againstOnewayM(route), lessThan(1));
-            expect(sidewalkM(route), lessThan(1));
+            expect(againstOnewayM(route), lessThan(1), reason: _flaws(route));
+            expect(
+              sidewalkM(route, endsM: 60),
+              lessThan(1),
+              reason: _flaws(route),
+            );
           },
           timeout: _slow,
-          skip: region.skip ?? _planChecks,
+          skip: region.skip,
         );
       }
     });
   }
 }
 
-/// Whether a way back is held to keeping off the pavement. The upstream
-/// profiles push a bike along one wherever it saves a block, and in a city
-/// that draws its pavements every candidate may; Velorki's own profile
-/// variants take that up.
-const bool _pavementChecked = false;
-
-/// The plans themselves come from the upstream profiles, which push a bike
-/// along a pavement and the wrong way down a small one-way street; Velorki's
-/// own profile variants take that up.
-const String _planChecks =
-    'the upstream profiles allow pushing; checked with Velorki\'s variants';
+/// The stretches of [route] against a one-way or on a pavement, for a
+/// failure to name.
+String _flaws(RouteResult route) {
+  final total = route.messages.fold<double>(0, (sum, m) => sum + m.distanceM);
+  var along = 0.0;
+  final lines = <String>[];
+  for (final m in route.messages) {
+    along += m.distanceM;
+    if (!againstOneway(m.wayTags) && !sidewalk(m.wayTags)) continue;
+    lines.add(
+      '${m.distanceM.round()} m ending ${along.round()} of ${total.round()} m '
+      'at ${m.position.lat.toStringAsFixed(5)},'
+      '${m.position.lon.toStringAsFixed(5)}: ${m.wayTags}',
+    );
+  }
+  return lines.join('\n');
+}

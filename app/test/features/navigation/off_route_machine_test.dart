@@ -484,10 +484,10 @@ void main() {
   });
 
   group('the rejoin trigger', () {
-    test('half a minute off the route asks for one', () {
+    test('three quarters of a minute off the route asks for one', () {
       final machine = _machine();
       var asked = false;
-      for (var second = 0; second <= 40; second += 10) {
+      for (var second = 0; second <= 60; second += 10) {
         final decision = _fix(
           machine,
           _at(300, asideM: 120),
@@ -495,7 +495,8 @@ void main() {
           alongM: 300,
           at: Duration(seconds: second),
         );
-        if (second < 30) {
+        // Off the route from the second fix, at ten seconds.
+        if (second < 10 + detourAfter.inSeconds) {
           expect(decision.planDetour, isFalse, reason: '$second');
         }
         asked |= decision.planDetour;
@@ -504,8 +505,8 @@ void main() {
       expect(asked, isTrue);
     });
 
-    test('a hundred and fifty metres from where the rider left asks sooner '
-        'than half a minute, but not before fifteen seconds', () {
+    test('a hundred and fifty metres from where the rider left asks sooner, '
+        'but not before fifteen seconds', () {
       final machine = _machine();
       // On the route at 300 m, then riding straight away from it, 20 m a
       // second.

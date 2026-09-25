@@ -129,7 +129,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
 
-    expect(h.backend.queries.last.profile, 'fastbike');
+    expect(h.backend.queries.last.profile, 'velorki-fastbike');
     // 10 km at 25 km/h.
     expect(find.text('24 min'), findsOneWidget);
   });

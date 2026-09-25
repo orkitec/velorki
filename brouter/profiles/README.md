@@ -41,6 +41,25 @@ We ran exactly that command and confirmed the result is byte-identical
 (15975 bytes) to `profiles2/fastbike-lowtraffic.brf` inside `brouter-1.7.10.zip`.
 It differs from `fastbike.brf` in one line only (`consider_traffic`).
 
+### Velorki's own variants
+
+`velorki-trekking.brf`, `velorki-fastbike.brf`, `velorki-gravel.brf` and
+`velorki-mtb.brf` are **not upstream files**. Each is the upstream profile of
+the same name with a short header and a few lines changed, every one marked
+`velorki:`: riding the wrong way down a small one-way street costs about as
+much as on a primary road (upstream treats it as pushing, +4), and a pavement
+a bicycle is not let onto (`footway=sidewalk` without `bicycle=yes`) costs
+about three times what upstream charges. They are what the app asks the
+router for (`RouteProfile.engineName`); saved routes still store the upstream
+name. The upstream files beside them stay byte-identical, so the oracle
+corpus, which only uses those, is untouched. `app/assets/brouter/profiles/`
+carries the same files for the on-device engine, which always uses them. A
+routing server is asked for them only when the app is built with
+`VELORKI_BROUTER_VARIANTS=1`; otherwise it gets the upstream names, so a
+server deployed before the variants existed keeps working. Redeploying a
+server with this directory and building with the define switches its routes
+to the variants (`../../deploy/README.md`, "Velorki's profile variants").
+
 ### Note on file names
 
 Two names differ from what you might expect:

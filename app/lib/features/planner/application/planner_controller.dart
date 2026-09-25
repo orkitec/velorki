@@ -1097,7 +1097,7 @@ class PlannerController extends _$PlannerController {
     final out = [...legs];
     final wayBack = state.ridesBackAnotherWay;
     final returnVariant = state.options.returnVariant;
-    final profile = state.options.profile.brouterName;
+    final profile = state.options.profile.engineName;
     final last = legs.length - 1;
     RouteQuery query(int i, int alternative) => RouteQuery(
       points: [waypoints[i].pos, waypoints[i + 1].pos],

@@ -1,6 +1,7 @@
 /// The BRouter profiles the planner offers.
 ///
-/// [brouterName] is the profile file on the routing server (without `.brf`);
+/// [brouterName] is the upstream BRouter profile a route is stored and
+/// exported under, [engineName] the one the router is asked for;
 /// [typicalSpeedKmh] is the speed the estimated riding time is derived from
 /// when the profile itself produced no time model.
 enum RouteProfile {
@@ -12,8 +13,18 @@ enum RouteProfile {
 
   const RouteProfile(this.brouterName, this.typicalSpeedKmh);
 
-  /// The profile name BRouter knows, e.g. `trekking`.
+  /// The upstream BRouter profile name, e.g. `trekking`: what a saved route
+  /// and its options store, so rows from before Velorki had profiles of its
+  /// own still read.
   final String brouterName;
+
+  /// The profile the router is asked for: Velorki's own variant of the
+  /// upstream one (`velorki-trekking.brf`, beside the untouched upstream
+  /// files), which does not push a bike the wrong way down a one-way street
+  /// or along a pavement to save a block. Direct has none: it is the
+  /// shortest way, as it always was.
+  String get engineName =>
+      this == RouteProfile.shortest ? brouterName : 'velorki-$brouterName';
 
   /// Speed a rider of this profile is assumed to keep, in km/h.
   final double typicalSpeedKmh;

@@ -69,7 +69,7 @@ Die Reihe von Chips unter dem Suchfeld ist das Radprofil, und sie entscheidet, w
 | **MTB** | Trails und Singletrails |
 | **Direkt** | der kürzeste Weg, mit möglichst wenig Rücksicht auf Komfort |
 
-Ein Profilwechsel berechnet die ganze Planung neu, auch eine Route aus einer Datei, und verwirft geladene Varianten; **Rückgängig** holt Route und Profil zurück. Das zuletzt gewählte Profil behält Velorki für den nächsten Start.
+Jedes Profil außer **Direkt** ist das von BRouter mit einer Änderung von Velorki: Es schickt dich nicht falsch herum durch eine Einbahnstraße oder über einen Gehweg, um einen Block zu sparen. Ein Profilwechsel berechnet die ganze Planung neu, auch eine Route aus einer Datei, und verwirft geladene Varianten; **Rückgängig** holt Route und Profil zurück. Das zuletzt gewählte Profil behält Velorki für den nächsten Start.
 
 ## Eine Route aus einer Datei
 

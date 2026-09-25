@@ -675,7 +675,7 @@ void main() {
       await h.strayOff();
       expect(h.scripted.callCount, 0);
 
-      h.clock.advance(const Duration(seconds: 31));
+      h.clock.advance(detourAfter + const Duration(seconds: 1));
       await h.stray(340);
 
       expect(h.scripted.callCount, greaterThan(0));
@@ -719,7 +719,7 @@ void main() {
               'the first candidate answered, so the others were never asked',
         );
         expect(h.scripted.queries.single.points.last, _at(650));
-        expect(h.scripted.queries.single.profile, 'trekking');
+        expect(h.scripted.queries.single.profile, 'velorki-trekking');
       },
     );
 
@@ -1007,7 +1007,7 @@ void main() {
       await h.ride(300);
       await h.strayOff(from: 320);
 
-      h.clock.advance(const Duration(seconds: 31));
+      h.clock.advance(detourAfter + const Duration(seconds: 1));
       await h.stray(340, speedMps: 0.4);
 
       expect(h.scripted.queries.first.points, hasLength(2));
@@ -1232,7 +1232,7 @@ void main() {
       await h.ride(300);
       await h.strayOff(from: 320, asideM: 4000);
 
-      h.clock.advance(const Duration(seconds: 31));
+      h.clock.advance(detourAfter + const Duration(seconds: 1));
       await h.stray(340, asideM: 4000);
 
       expect(h.detour!.replacesPlan, isFalse);

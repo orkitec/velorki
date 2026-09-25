@@ -148,7 +148,16 @@ void main() {
           lookupsFile,
           profilesDir,
         );
-        expect(lines.length, 7);
+        // One line per profile in the directory: BRouter's own seven and
+        // Velorki's variants beside them. Counted, not fixed, so a profile
+        // added later is checked too.
+        final profiles = profilesDir
+            .listSync()
+            .whereType<File>()
+            .where((f) => f.path.endsWith('.brf'))
+            .length;
+        expect(lines.length, profiles);
+        expect(profiles, greaterThanOrEqualTo(7));
         for (final l in lines) {
           expect(l, startsWith('test 11.2 '));
         }

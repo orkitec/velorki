@@ -16,7 +16,13 @@ const int offRouteFixes = 2;
 const Duration offRouteAfter = Duration(seconds: 8);
 
 /// How long guiding a rider back goes on before a rejoin is worked out.
-const Duration detourAfter = Duration(seconds: 30);
+///
+/// Three quarters of a minute: round a Manhattan block, a long one between
+/// two avenues, a rider at eighteen kilometres an hour is off the route for
+/// up to thirty-five seconds, and a way back worked out in the last of them
+/// is gone again before it is read. A rider further away than a block is
+/// caught sooner, by [detourAfterMeters].
+const Duration detourAfter = Duration(seconds: 45);
 
 /// ...or how far they get from where they left the route, whichever comes
 /// first.

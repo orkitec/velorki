@@ -59,15 +59,31 @@ void main() {
     expect(await assets.bundledVersion(), startsWith('v'));
   });
 
-  test('does nothing on the next launch', () async {
+  test('copies nothing on the next launch', () async {
     await assets.install();
-    final before = bundle.profileLoads.length;
-    expect(before, greaterThan(1));
+    final trekking = File('${profilesDir.path}/trekking.brf');
+    final stamp = DateTime.utc(2020);
+    trekking.setLastModifiedSync(stamp);
 
     await assets.install();
 
-    expect(bundle.profileLoads.length, before);
+    expect(trekking.lastModifiedSync().toUtc(), stamp);
   });
+
+  test(
+    'copies again when a bundled profile changed, the version not',
+    () async {
+      await assets.install();
+      File('${profilesDir.path}/trekking.brf').writeAsStringSync('stale');
+
+      await assets.install();
+
+      expect(
+        File('${profilesDir.path}/trekking.brf').lengthSync(),
+        greaterThan(1000),
+      );
+    },
+  );
 
   test('copies again when the bundled version moved on', () async {
     await assets.install();

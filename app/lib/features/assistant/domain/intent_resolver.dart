@@ -310,7 +310,7 @@ class IntentResolver {
           start: startPosition,
           via: via.map((p) => p.position).toList(growable: false),
           targetM: request.distanceKm * 1000,
-          profile: profileFor(request.profileHint).brouterName,
+          profile: profileFor(request.profileHint).engineName,
           prefs: prefsFor(request),
         ),
         start: start,

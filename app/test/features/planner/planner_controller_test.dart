@@ -225,7 +225,7 @@ void main() {
       expect(state.result!.lengthM, 10000);
       expect(state.error, isNull);
       expect(backend.queries.single.points, [_a, _b]);
-      expect(backend.queries.single.profile, 'trekking');
+      expect(backend.queries.single.profile, 'velorki-trekking');
     });
 
     testWidgets('edits inside the debounce window produce one round of '
@@ -389,7 +389,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pump();
 
-      expect(backend.queries.last.profile, 'gravel');
+      expect(backend.queries.last.profile, 'velorki-gravel');
       expect(
         container.read(plannerControllerProvider).options.profile,
         RouteProfile.gravel,

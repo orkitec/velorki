@@ -16,6 +16,7 @@ import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/planner/data/routing_backend_provider.dart';
 import 'package:velorki/features/planner/domain/planner_state.dart';
+import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/domain/routing_options.dart';
 import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
@@ -375,11 +376,13 @@ class RideMaker {
   /// When the ride starts.
   final DateTime start;
 
-  /// The route through [points] with the default bike.
+  /// The route through [points] with the default bike, as the planner asks
+  /// for it.
   Future<RouteResult> route(List<LatLng> points, {int alternative = 0}) =>
       backend.route(
         RouteQuery(
           points: points,
+          profile: RouteProfile.trekking.engineName,
           alternativeIdx: alternative,
           profileParams: keepAllTags,
         ),
@@ -420,15 +423,16 @@ class RideMaker {
   /// the plan at [toM], and the rest of the plan.
   ///
   /// `null` when the streets make that no detour at all: a way round that
-  /// runs back along the plan, never gets off it, or is more than three
-  /// times the stretch it replaces. Hills and one-ways do that; the caller
-  /// tries another stretch.
+  /// runs back along the plan, never gets off it, or is more than
+  /// [maxFactor] times the stretch it replaces. Hills and one-ways do that;
+  /// the caller tries another stretch.
   Future<List<LatLng>?> detour(
     List<LatLng> plan,
     double fromM,
     double toM,
-    double asideM,
-  ) async {
+    double asideM, {
+    double maxFactor = 3,
+  }) async {
     final cumulative = cumulativeDistances(plan);
     final mid = (fromM + toM) / 2;
     final side = destinationPoint(
@@ -441,7 +445,7 @@ class RideMaker {
       side,
       pointAt(plan, cumulative, toM),
     ])).positions;
-    if (polylineLengthMeters(around) > 3 * (toM - fromM)) return null;
+    if (polylineLengthMeters(around) > maxFactor * (toM - fromM)) return null;
     var furthest = 0.0;
     var along = fromM;
     for (final p in around) {
@@ -465,12 +469,19 @@ class RideMaker {
   Future<List<LatLng>> anyDetour(
     List<LatLng> plan,
     double lengthM,
-    double asideM,
-  ) async {
+    double asideM, {
+    double maxFactor = 3,
+  }) async {
     final total = cumulativeDistances(plan).last;
     for (var f = 0.3; f + lengthM / total < 0.95; f += 0.05) {
       for (final side in <double>[asideM, -asideM]) {
-        final path = await detour(plan, total * f, total * f + lengthM, side);
+        final path = await detour(
+          plan,
+          total * f,
+          total * f + lengthM,
+          side,
+          maxFactor: maxFactor,
+        );
         if (path != null) return path;
       }
     }

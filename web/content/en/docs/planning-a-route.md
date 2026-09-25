@@ -69,7 +69,7 @@ The row of chips under the search field is the bike profile, and it decides whic
 | **MTB** | trails and singletrack |
 | **Direct** | the shortest way, with the least regard for comfort |
 
-Changing the profile re-routes the whole plan, a route from a file included, and clears any variants you had loaded; **Undo** puts the route and the profile back. Velorki keeps the profile you chose last for the next start.
+Every profile but **Direct** is BRouter's own with one change of Velorki's: it will not send you the wrong way down a one-way street or along a pavement to save a block. Changing the profile re-routes the whole plan, a route from a file included, and clears any variants you had loaded; **Undo** puts the route and the profile back. Velorki keeps the profile you chose last for the next start.
 
 ## A route from a file
 

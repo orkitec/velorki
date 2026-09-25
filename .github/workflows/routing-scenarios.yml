@@ -1,6 +1,7 @@
 name: routing-scenarios
 
-# app/test/features/navigation/routing_scenarios_test.dart over New York:
+# app/test/features/navigation/routing_scenarios_test.dart over New York,
+# and the routing sweep (routing_sweep_test.dart) as a nightly metric:
 # rides replayed through the navigation controller and the on-device router
 # on W75_N40.rd5, the tile the one-way and pavement assertions matter most
 # in. The Madeira scenarios run on every push with the committed oracle
@@ -98,3 +99,19 @@ jobs:
           set -euo pipefail
           VELORKI_NYC_SEGMENTS_DIR="$HOME/city-tiles" \
             flutter test test/features/navigation/routing_scenarios_test.dart
+
+      # The planner's routes over forty Manhattan pairs, per profile: metres
+      # against a one-way and along the pavement per 100 km, Velorki's own
+      # profiles held under ceilings, upstream's measured beside them.
+      - name: Measure the sweep
+        working-directory: app
+        run: |
+          set -euo pipefail
+          VELORKI_NYC_SEGMENTS_DIR="$HOME/city-tiles" \
+            flutter test test/features/navigation/routing_sweep_test.dart \
+            | tee "$RUNNER_TEMP/sweep.log"
+          {
+            echo "| profile | routed | against a one-way | pavement |"
+            echo "| --- | --- | --- | --- |"
+            sed -n 's/^ROUTESWEEP //p' "$RUNNER_TEMP/sweep.log" | sed 's/$/ |/'
+          } >> "$GITHUB_STEP_SUMMARY"

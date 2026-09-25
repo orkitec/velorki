@@ -209,6 +209,18 @@ Keep `../brouter/profiles/lookups.dat` and `BROUTER_VERSION` on the *same*
 upstream tag. If the lookup version changes between releases, the mirrored
 segments must be re-downloaded too — delete the volume and re-sync.
 
+### Velorki's profile variants
+
+`../brouter/profiles` also carries Velorki's own `velorki-*.brf` variants,
+which keep a bike off one-way streets ridden the wrong way and off pavements
+(see its README). A server deployed from this repo has them; the app only
+asks a server for them when it is built with `VELORKI_BROUTER_VARIANTS=1`.
+Without that define it asks for the upstream profiles, so a server deployed
+before the variants existed keeps answering, with upstream behaviour. After
+redeploying with the current `../brouter/profiles`, build the app with the
+define to switch the server's routes to the variants; the on-device engine
+always uses them.
+
 ## 7. Running the website and API
 
 `web/` is one Next.js app that serves both the website and the relay API,

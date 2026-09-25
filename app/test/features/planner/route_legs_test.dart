@@ -275,7 +275,10 @@ void main() {
       [_track[60].pos, _track[140].pos],
       [_track[140].pos, _track[199].pos],
     ]);
-    expect(backend.queries.map((q) => q.profile), everyElement('gravel'));
+    expect(
+      backend.queries.map((q) => q.profile),
+      everyElement('velorki-gravel'),
+    );
     final state = container.read(plannerControllerProvider);
     expect(state.legs.map((l) => l!.kept), everyElement(isFalse));
     expect(state.hasKeptLegs, isFalse);

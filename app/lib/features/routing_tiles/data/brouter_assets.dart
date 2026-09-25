@@ -37,8 +37,8 @@ class BrouterAssets {
   /// Copies the profiles when they are missing or out of date and returns the
   /// directory they are in.
   ///
-  /// Cheap on every later launch: one asset read of the version string and one
-  /// file read of the marker.
+  /// Cheap on every later launch: the version string, the marker, and the
+  /// sizes of the bundled profiles against the copies.
   Future<Directory> install() async {
     final version = await bundledVersion();
     if (await _isInstalled(version)) return profilesDir;
@@ -86,10 +86,15 @@ class BrouterAssets {
     if (await installedVersion() != version) return false;
     // A half-written copy (killed mid-install, or a file removed by a
     // cleaner) must not pass as installed.
+    // So must a profile the bundle has since changed without upstream
+    // moving: Velorki's own variants sit beside upstream's and change on
+    // their own schedule. The size is the check; reading the bundle's
+    // copies costs a couple of hundred kilobytes, once per launch.
     for (final asset in await profileAssets()) {
-      if (!File(p.join(profilesDir.path, p.basename(asset))).existsSync()) {
-        return false;
-      }
+      final file = File(p.join(profilesDir.path, p.basename(asset)));
+      if (!file.existsSync()) return false;
+      final bundled = await bundle.load(asset);
+      if (file.lengthSync() != bundled.lengthInBytes) return false;
     }
     return true;
   }

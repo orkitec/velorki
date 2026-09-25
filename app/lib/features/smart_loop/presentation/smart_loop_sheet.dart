@@ -160,7 +160,7 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
           LoopRequest(
             start: start,
             targetM: _km * 1000,
-            profile: profile.brouterName,
+            profile: profile.engineName,
             // The rider's own preferences only ever arrive from the
             // assistant; the sheet itself has no opinion any more.
             prefs: previous?.prefs ?? const LoopPrefs(),
@@ -334,7 +334,7 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
     final stale =
         state.request != null &&
         ((state.request!.targetM / 1000 - _km).abs() > 0.01 ||
-            state.request!.profile != profile.brouterName);
+            state.request!.profile != profile.engineName);
 
     return [
       if (!_startIsPlotted)

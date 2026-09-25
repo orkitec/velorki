@@ -59,21 +59,40 @@ double againstOnewayM(RouteResult route) {
 }
 
 /// How much of a route is pavement, in metres, not counting the first and
-/// the last [endsM] metres: a start or a finish tapped beside a road is
-/// matched to the pavement in a city that draws its pavements, and getting
-/// off it is not the route's doing.
-double sidewalkM(RouteResult route, {double endsM = 30}) {
+/// the last [endsM] metres, nor a run of pavement shorter than [shortM].
+///
+/// A start or a finish tapped beside a road is matched to the pavement in a
+/// city that draws its pavements, and getting off it is not the route's
+/// doing; nor is the metre or two of pavement a crossing is drawn joined to
+/// the road by.
+double sidewalkM(RouteResult route, {double endsM = 30, double shortM = 10}) {
   final total = route.messages.fold<double>(0, (sum, m) => sum + m.distanceM);
   var along = 0.0;
   var metres = 0.0;
+  // The run of pavement being walked through: where it started, and how
+  // much of it lies between the ends.
+  double? runFrom;
+  var runInside = 0.0;
+  void closeRun(double end) {
+    final from = runFrom;
+    if (from != null && end - from >= shortM) metres += runInside;
+    runFrom = null;
+    runInside = 0;
+  }
+
   for (final m in route.messages) {
     final from = along;
     along += m.distanceM;
-    if (!sidewalk(m.wayTags)) continue;
+    if (!sidewalk(m.wayTags)) {
+      closeRun(from);
+      continue;
+    }
+    runFrom ??= from;
     final start = from < endsM ? endsM : from;
     final end = along > total - endsM ? total - endsM : along;
-    if (end > start) metres += end - start;
+    if (end > start) runInside += end - start;
   }
+  closeRun(along);
   return metres;
 }
 

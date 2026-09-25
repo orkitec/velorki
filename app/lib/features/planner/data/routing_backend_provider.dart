@@ -57,11 +57,15 @@ RoutingBackend? routingBackend(Ref ref) {
     local = backend;
   }
 
-  BRouterHttpBackend? remote;
+  RoutingBackend? remote;
   if (preference.allowsRemote && config.brouterUrl.isNotEmpty) {
     final backend = BRouterHttpBackend(config.brouterUrl);
     ref.onDispose(backend.close);
-    remote = backend;
+    // A server gets Velorki's profile variants only once it says it has
+    // them; until it is redeployed with them it answers with the upstream
+    // profiles it has always had, rather than failing on a name it has
+    // never heard of.
+    remote = config.brouterVariants ? backend : UpstreamProfiles(backend);
   }
 
   if (local == null && remote == null) return null;
@@ -85,4 +89,30 @@ RoutingBackend? routingBackend(Ref ref) {
 bool onDeviceRoutingActive(Ref ref) {
   final backend = ref.watch(routingBackendProvider);
   return backend is CompositeRoutingBackend && backend.local != null;
+}
+
+/// A routing backend asked for the upstream profile wherever the app asks
+/// for Velorki's own variant of it: `velorki-trekking` goes out as
+/// `trekking`. For a routing server that has not been redeployed with
+/// `brouter/profiles`, which knows the upstream names only.
+class UpstreamProfiles implements RoutingBackend {
+  /// Wraps [inner].
+  const UpstreamProfiles(this.inner);
+
+  /// The backend the queries go to.
+  final RoutingBackend inner;
+
+  /// The prefix of Velorki's own profile names.
+  static const String variantPrefix = 'velorki-';
+
+  @override
+  Future<RouteResult> route(RouteQuery query, {CancelToken? cancel}) =>
+      inner.route(
+        query.profile.startsWith(variantPrefix)
+            ? query.copyWith(
+                profile: query.profile.substring(variantPrefix.length),
+              )
+            : query,
+        cancel: cancel,
+      );
 }

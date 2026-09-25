@@ -297,7 +297,7 @@ void main() {
         _container(tester).read(plannerControllerProvider).options.profile,
         RouteProfile.gravel,
       );
-      expect(h.backend.queries.last.profile, 'gravel');
+      expect(h.backend.queries.last.profile, 'velorki-gravel');
     });
 
     testWidgets('a bare start makes the loop with the chosen bike', (
@@ -313,7 +313,7 @@ void main() {
 
       expect(
         _container(tester).read(smartLoopControllerProvider).request!.profile,
-        'mtb',
+        'velorki-mtb',
       );
     });
 

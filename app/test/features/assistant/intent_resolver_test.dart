@@ -35,7 +35,7 @@ void main() {
         final loop = intent as LoopIntent;
         expect(loop.request.start, _here);
         expect(loop.request.targetM, 65000);
-        expect(loop.request.profile, 'gravel');
+        expect(loop.request.profile, 'velorki-gravel');
         expect(loop.request.via.single, const LatLng(47.90, 11.30));
         expect(loop.request.prefs.hills, Hills.seek);
         expect(loop.request.prefs.surface, Surface.gravel);

@@ -819,7 +819,7 @@ class NavigationController extends _$NavigationController {
       if (token.isCancelled) break;
       final query = RouteQuery(
         points: <LatLng>[position, ?via, target.point],
-        profile: plan.options.profile.brouterName,
+        profile: plan.options.profile.engineName,
         alternativeIdx: 0,
         timeout: rerouteTimeout,
         // Every tag in the messages, so the way back can be checked for
@@ -967,7 +967,7 @@ class NavigationController extends _$NavigationController {
         position,
         ...remainingWaypoints(plan.line, plan.waypoints, _planAlongM),
       ],
-      profile: plan.options.profile.brouterName,
+      profile: plan.options.profile.engineName,
       alternativeIdx: 0,
       timeout: rerouteTimeout,
     );

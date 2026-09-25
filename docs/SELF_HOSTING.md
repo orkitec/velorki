@@ -112,6 +112,7 @@ need.
 |---|---|
 | `VELORKI_SEGMENTS_URL` | your rd5 tile host, for on-device routing |
 | `VELORKI_BROUTER_URL` | your BRouter server — **empty** for on-device only |
+| `VELORKI_BROUTER_VARIANTS` | `1` once that server is deployed with `brouter/profiles`, so it routes with Velorki's profile variants; empty asks it for the upstream profiles |
 | `VELORKI_API_URL` | your relay — **empty** to build without the Plus features |
 | `VELORKI_PHOTON_URL` | your Photon instance, or the public one |
 | `VELORKI_MAP_STYLE_URL` / `_DARK` | your MapLibre styles (OpenFreeMap, or self-hosted PMTiles) |

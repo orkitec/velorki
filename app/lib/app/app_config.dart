@@ -28,6 +28,12 @@ abstract class AppConfig with _$AppConfig {
     @Default('') String storeUrlAndroid,
     @Default('') String storeUrlIos,
     @Default(false) bool plusStub,
+
+    /// Whether the routing server at [brouterUrl] carries Velorki's own
+    /// profile variants (`velorki-*.brf`, deployed with `brouter/profiles`).
+    /// Without it the server is asked for the upstream profiles it has
+    /// always had, and only the on-device engine uses the variants.
+    @Default(false) bool brouterVariants,
   }) = _AppConfig;
 
   const AppConfig._();
@@ -53,6 +59,7 @@ abstract class AppConfig with _$AppConfig {
       defaultValue: 'velorki',
     ),
     plusStub: String.fromEnvironment('VELORKI_PLUS_STUB') == '1',
+    brouterVariants: String.fromEnvironment('VELORKI_BROUTER_VARIANTS') == '1',
   );
 
   /// Empty relay URL hides AI, Strava, RideWithGPS and link sharing entirely.
