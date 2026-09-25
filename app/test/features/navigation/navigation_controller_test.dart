@@ -562,6 +562,24 @@ void main() {
     expect(h.speaker.spoken, contains('In 50 metres, turn left'));
   });
 
+  test(
+    'the progress says which of the plan\'s points are still ahead',
+    () async {
+      final h = await _NavHarness.create(saved: _savedRoute());
+      await h.follow('route-1');
+
+      await h.ride(100);
+      expect(h.progress!.stopsAhead, <LatLng>[_at(500), _at(800), _at(1000)]);
+
+      await h.ride(600);
+      expect(h.progress!.stopsAhead, <LatLng>[_at(800), _at(1000)]);
+
+      // Off the route, the place on the plan stands where the rider left it.
+      await h.strayOff(from: 900);
+      expect(h.progress!.stopsAhead, <LatLng>[_at(800), _at(1000)]);
+    },
+  );
+
   group('leaving the route', () {
     test('one stray fix changes nothing', () async {
       final h = await _NavHarness.create(saved: _savedRoute());

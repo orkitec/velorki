@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -28,6 +29,7 @@ class NavigationProgress {
     this.guidance,
     this.poi,
     this.distanceToPoiM = 0,
+    this.stopsAhead = const <LatLng>[],
   });
 
   /// The turn that has not been passed yet, or `null` when none is left.
@@ -102,12 +104,17 @@ class NavigationProgress {
   ///
   /// The navigator knows nothing about re-routing or about the plan a rider
   /// has left, so those three come from [NavigationController].
+  /// The points of the plan the rider has still to reach, the destination
+  /// included, in order: what is not among them is behind them.
+  final List<LatLng> stopsAhead;
+
   NavigationProgress decorated({
     required bool rerouting,
     required OffRouteState offRouteState,
     OffRouteGuidance? guidance,
     RoutePoi? poi,
     double distanceToPoiM = 0,
+    List<LatLng> stopsAhead = const <LatLng>[],
   }) => NavigationProgress(
     next: next,
     distanceToNextM: distanceToNextM,
@@ -124,6 +131,7 @@ class NavigationProgress {
     guidance: guidance,
     poi: poi,
     distanceToPoiM: distanceToPoiM,
+    stopsAhead: stopsAhead,
   );
 
   @override
@@ -144,7 +152,8 @@ class NavigationProgress {
           other.offRouteState == offRouteState &&
           other.guidance == guidance &&
           other.poi == poi &&
-          other.distanceToPoiM == distanceToPoiM;
+          other.distanceToPoiM == distanceToPoiM &&
+          listEquals(other.stopsAhead, stopsAhead);
 
   @override
   int get hashCode => Object.hash(

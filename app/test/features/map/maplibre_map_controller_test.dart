@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' show Point;
 
 import 'package:fake_async/fake_async.dart';
@@ -204,6 +205,67 @@ void main() {
 
       await adapter.attachToStyle();
       expect(_featuresOf(ops, MapLayerIds.poisSource), hasLength(1));
+    });
+
+    group('the last call wins, however the calls finish', () {
+      test('points of interest cleared while an earlier draw waits for its '
+          'glyphs stay cleared', () async {
+        final ops = RecordingStyleOps();
+        final adapter = _adapter(ops);
+        await adapter.attachToStyle();
+        ops.addImageGate = Completer<void>();
+
+        final drawing = adapter.setPois(const <MapPoi>[
+          MapPoi(
+            position: LatLng(48, 11),
+            name: 'Tap',
+            kind: MapPoiKind.water,
+            icon: IconData(0xe798, fontFamily: 'MaterialIcons'),
+          ),
+        ]);
+        await adapter.setPois(const <MapPoi>[]);
+        ops.addImageGate!.complete();
+        await drawing;
+
+        expect(_featuresOf(ops, MapLayerIds.poisSource), isEmpty);
+      });
+
+      test(
+        'waypoints drawn over a clear that is still waiting stay drawn',
+        () async {
+          final ops = RecordingStyleOps();
+          final adapter = _adapter(ops);
+          await adapter.attachToStyle();
+          final gate = Completer<void>();
+          ops.nextSourceIdsGate = gate;
+
+          final clearing = adapter.setWaypoints(const <MapWaypoint>[]);
+          await adapter.setWaypoints(const <MapWaypoint>[
+            MapWaypoint(position: LatLng(48, 11), kind: MapWaypointKind.start),
+          ]);
+          gate.complete();
+          await clearing;
+
+          expect(_featuresOf(ops, MapLayerIds.waypointsSource), hasLength(1));
+        },
+      );
+
+      test('turn markers too', () async {
+        final ops = RecordingStyleOps();
+        final adapter = _adapter(ops);
+        await adapter.attachToStyle();
+        final gate = Completer<void>();
+        ops.nextSourceIdsGate = gate;
+
+        final clearing = adapter.setTurnMarkers(const <MapTurnMarker>[]);
+        await adapter.setTurnMarkers(const <MapTurnMarker>[
+          MapTurnMarker(position: LatLng(48, 11)),
+        ]);
+        gate.complete();
+        await clearing;
+
+        expect(_featuresOf(ops, MapLayerIds.turnsSource), hasLength(1));
+      });
     });
 
     test('starts every source off as an empty feature collection', () async {
@@ -913,6 +975,8 @@ void main() {
     test('writes one draggable point feature per waypoint', () async {
       final ops = RecordingStyleOps();
       final adapter = _adapter(ops);
+      // A screen that edits the markers listens for their drags.
+      adapter.onWaypointDragged = (_, _) {};
       await adapter.attachToStyle();
       ops.clearCalls();
 
@@ -928,6 +992,33 @@ void main() {
       expect(properties['label'], '');
       expect(properties['selected'], isFalse);
       expect(properties['draggable'], isTrue);
+    });
+
+    test('without anyone to report a drag to, the markers are written '
+        'static and stay put under a finger', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+
+      await adapter.setWaypoints(_waypoints);
+      expect(
+        _firstProperties(ops, MapLayerIds.waypointsSource)['draggable'],
+        isFalse,
+      );
+
+      ops.clearCalls();
+      ops.emitFeatureDrag(
+        waypointFeatureId(0),
+        const ml.LatLng(47.5, 8.5),
+        eventType: ml.DragEventType.start,
+      );
+      ops.emitFeatureDrag(waypointFeatureId(0), const ml.LatLng(47.6, 8.6));
+      ops.emitFeatureDrag(
+        waypointFeatureId(0),
+        const ml.LatLng(47.7, 8.7),
+        eventType: ml.DragEventType.end,
+      );
+      expect(ops.callsNamed('setGeoJsonSource'), isEmpty);
     });
 
     test('rebuilds the style when its source has vanished', () async {
@@ -1944,6 +2035,8 @@ void main() {
     test('a long press while dragging a marker inserts nothing', () async {
       final ops = RecordingStyleOps();
       final adapter = _adapter(ops);
+      // A screen that edits the markers listens for their drags.
+      adapter.onWaypointDragged = (_, _) {};
       await adapter.attachToStyle();
       final inserted = <LatLng>[];
       adapter.onLongPress = inserted.add;
@@ -1967,6 +2060,8 @@ void main() {
     test('the marker follows the finger while it is dragged', () async {
       final ops = RecordingStyleOps();
       final adapter = _adapter(ops);
+      // A screen that edits the markers listens for their drags.
+      adapter.onWaypointDragged = (_, _) {};
       await adapter.attachToStyle();
       await adapter.setWaypoints(_waypoints);
       ops.clearCalls();
@@ -2027,6 +2122,8 @@ void main() {
     test('the release after a drag is not also a map tap', () async {
       final ops = RecordingStyleOps();
       final adapter = _adapter(ops);
+      // A screen that edits the markers listens for their drags.
+      adapter.onWaypointDragged = (_, _) {};
       await adapter.attachToStyle();
       final taps = <LatLng>[];
       adapter.onTap = taps.add;

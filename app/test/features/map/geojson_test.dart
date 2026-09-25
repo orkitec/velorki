@@ -228,6 +228,44 @@ void main() {
       }
     });
 
+    test('a screen that reads a route writes its markers static', () {
+      final features = _features(
+        waypointsFeatureCollection(waypoints, draggable: false),
+      ).cast<Map<String, dynamic>>();
+      for (final f in features) {
+        expect((f['properties'] as Map)['draggable'], isFalse);
+      }
+    });
+
+    test('a point keeps the number it has in the route, and says whether '
+        'the rider has passed it', () {
+      final features = _features(
+        waypointsFeatureCollection(const [
+          MapWaypoint(
+            position: LatLng(47.0, 8.0),
+            kind: MapWaypointKind.start,
+            passed: true,
+            number: 1,
+          ),
+          MapWaypoint(
+            position: LatLng(47.5, 8.5),
+            kind: MapWaypointKind.via,
+            number: 3,
+          ),
+          MapWaypoint(
+            position: LatLng(48.0, 9.0),
+            kind: MapWaypointKind.end,
+            icon: Icons.flag,
+            number: 5,
+          ),
+        ]),
+      ).cast<Map<String, dynamic>>();
+      final props = features.map((f) => f['properties'] as Map).toList();
+      expect(props.map((p) => p['disc']), ['1', '3', '']);
+      expect(props.last['label'], '5');
+      expect(props.map((p) => p['passed']), [true, false, false]);
+    });
+
     test('ignores feature ids that are not waypoints', () {
       expect(waypointIndexFromFeatureId(null), isNull);
       expect(waypointIndexFromFeatureId('velorki-position'), isNull);

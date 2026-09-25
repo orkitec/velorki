@@ -117,13 +117,18 @@ class PlannerMapBinding {
   /// [sync] draws it all again; what it remembers of the plan's history
   /// stays, so a route that arrived whole while the tab was away still gets
   /// its fit when the tab comes back.
+  ///
+  /// Every clear is asked for at once, before the first is awaited: the tab
+  /// that comes next draws on the map in a microtask, and a clear still
+  /// queued behind an await would arrive after that draw and wipe it.
   Future<void> clear() async {
-    await map.setWaypoints(const <MapWaypoint>[]);
-    await map.setPois(const <MapPoi>[]);
-    for (final id in _lineIds) {
-      await map.removeRouteLine(id);
-    }
+    final ids = List<String>.of(_lineIds);
     _lineIds.clear();
+    await Future.wait(<Future<void>>[
+      map.setWaypoints(const <MapWaypoint>[]),
+      map.setPois(const <MapPoi>[]),
+      for (final id in ids) map.removeRouteLine(id),
+    ]);
   }
 
   /// Pushes [state] to the map: markers, the main line and the alternatives.

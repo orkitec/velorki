@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:go_router/go_router.dart';
 import 'package:velorki/app/router.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
@@ -34,7 +35,10 @@ import 'package:velorki/features/library/presentation/library_screen.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/recording/application/recording_controller.dart';
 import 'package:velorki/features/recording/domain/follow_choice.dart';
+import 'package:velorki/features/navigation/presentation/turn_phrases.dart';
+import 'package:velorki/features/planner/domain/route_poi.dart';
 import 'package:velorki/features/planner/domain/routing_options.dart';
+import 'package:velorki/features/planner/presentation/poi_markers.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki/features/recording/presentation/follow_route_picker.dart';
 import 'package:velorki/features/recording/presentation/ride_detail_screen.dart';
@@ -309,6 +313,132 @@ void main() {
     expect(find.text(l10n.recordingFollowNone), findsOneWidget);
 
     await unmountApp(tester);
+  });
+
+  group('the followed route\'s points', () {
+    /// A saved route with a start, a point that only shapes the line, a
+    /// named stop, a stop that is a kind, the destination, and a place
+    /// beside it; followed.
+    Future<RecordingHarness> following(
+      WidgetTester tester, {
+      String initialLocation = recordingRoute,
+    }) async {
+      final h = RecordingHarness();
+      final saved =
+          await RouteRepository(
+            h.planner.db.routesDao,
+            clock: () => DateTime.utc(2026, 9, 12, 10),
+          ).savePlannedRoute(
+            name: 'Isar loop',
+            route: syntheticRoute(),
+            waypoints: _stops,
+            options: const RoutingOptions(),
+            pois: const [
+              RoutePoi(
+                pos: LatLng(48.025, 11.03),
+                name: 'Tap',
+                kind: PoiKind.water,
+              ),
+            ],
+          );
+      await pumpRecordingApp(
+        tester,
+        harness: h,
+        initialLocation: initialLocation,
+      );
+      await tester.pumpAndSettle();
+      ProviderScope.containerOf(tester.element(find.byType(MaterialApp).first))
+          .read(recordingControllerProvider.notifier)
+          .choose(FollowSaved(saved.id));
+      await tester.pumpAndSettle();
+      return h;
+    }
+
+    testWidgets('the start, the named stops and the flagged destination are '
+        'drawn with the places beside the route; a point that only shapes '
+        'the line is not', (tester) async {
+      final h = await following(tester);
+
+      expect(h.map.waypoints.map((w) => w.number), [1, 3, 4, 5]);
+      expect(h.map.waypoints.map((w) => w.kind), [
+        MapWaypointKind.start,
+        MapWaypointKind.via,
+        MapWaypointKind.via,
+        MapWaypointKind.end,
+      ]);
+      expect(h.map.waypoints[1].label, 'Café');
+      expect(h.map.waypoints[2].icon, poiIcon(PoiKind.water));
+      expect(h.map.waypoints.last.icon, destinationIcon);
+      expect(h.map.waypoints.where((w) => w.passed), isEmpty);
+      expect(h.map.pois.single.name, 'Tap');
+
+      await unmountApp(tester);
+    });
+
+    testWidgets('stops fade as the ride goes past them, and stay faded', (
+      tester,
+    ) async {
+      final h = await following(tester);
+      List<bool> passed() => h.map.waypoints.map((w) => w.passed).toList();
+
+      // Under way, just past the start.
+      await emitSnapshot(
+        tester,
+        h,
+        _snapshot(lastPosition: const LatLng(48.005, 11.005)),
+      );
+      expect(passed(), [true, false, false, false]);
+
+      // Past the café.
+      await emitSnapshot(
+        tester,
+        h,
+        _snapshot(lastPosition: const LatLng(48.025, 11.025)),
+      );
+      expect(passed(), [true, true, false, false]);
+
+      // Back before it: what was passed stays passed.
+      await emitSnapshot(
+        tester,
+        h,
+        _snapshot(lastPosition: const LatLng(48.015, 11.015)),
+      );
+      expect(passed(), [true, true, false, false]);
+
+      // Past the fountain.
+      await emitSnapshot(
+        tester,
+        h,
+        _snapshot(lastPosition: const LatLng(48.035, 11.035)),
+      );
+      expect(passed(), [true, true, true, false]);
+
+      await unmountApp(tester);
+    });
+
+    for (final from in [plannerRoute, libraryRoute]) {
+      testWidgets('coming from $from leaves them on the map, and leaving '
+          'Record takes them off', (tester) async {
+        final h = await following(tester, initialLocation: from);
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(MaterialApp).first),
+        );
+
+        GoRouter.of(tester.element(find.byType(Scaffold).first))
+            .go(recordingRoute);
+        await tester.pumpAndSettle();
+        expect(h.map.waypoints, hasLength(4));
+        expect(h.map.pois, hasLength(1));
+
+        GoRouter.of(tester.element(find.byType(Scaffold).first)).go(from);
+        await tester.pumpAndSettle();
+        expect(h.map.waypoints.map((w) => w.number), isNot(contains(4)));
+        expect(h.map.pois.where((p) => p.name == 'Tap'), isEmpty);
+        expect(container.read(recordingControllerProvider), isNotNull);
+
+        await unmountApp(tester);
+      });
+    }
   });
 
   testWidgets('the planned route is drawn while no saved route is followed', (
@@ -2595,3 +2725,13 @@ void main() {
     await unmountApp(tester);
   });
 }
+
+/// The points of the followed route in the marker tests: along the
+/// synthetic route's diagonal, one a hundredth of a degree apart.
+const List<Waypoint> _stops = <Waypoint>[
+  Waypoint(pos: LatLng(48.0, 11.0), kind: WaypointKind.start),
+  Waypoint(pos: LatLng(48.01, 11.01)),
+  Waypoint(pos: LatLng(48.02, 11.02), name: 'Café'),
+  Waypoint(pos: LatLng(48.03, 11.03), poiKind: PoiKind.water),
+  Waypoint(pos: LatLng(48.04, 11.04), kind: WaypointKind.end),
+];

@@ -16,6 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
+import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki/features/map/presentation/map_view.dart';
 import 'package:velorki/features/navigation/application/navigation_controller.dart';
 import 'package:velorki/features/navigation/application/off_route_machine.dart'
@@ -31,6 +32,7 @@ import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/data/routing_backend_provider.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/presentation/planner_map_host.dart';
+import 'package:velorki/features/planner/presentation/poi_markers.dart';
 import 'package:velorki/features/recording/application/recording_controller.dart';
 import 'package:velorki/features/recording/data/recording_gateways.dart';
 import 'package:velorki/features/recording/data/recording_recovery.dart';
@@ -171,6 +173,17 @@ Future<void> _leaveAndComeBack(WidgetTester tester, RerouteMode mode) async {
   router.calls = 0;
   RecordingMapController map() => maps.last;
   expect(map().lines[followedRouteLineId], isNotEmpty);
+  // The plan's own points are on the map too: the start, behind the rider
+  // now, and the destination with its flag.
+  await waitUntil(
+    tester,
+    () => map().waypoints.length == 2 && map().waypoints.first.passed,
+    describe: 'the start and the destination on the map',
+    onTimeout: () => '${map().waypoints}',
+  );
+  expect(map().waypoints.last.kind, MapWaypointKind.end);
+  expect(map().waypoints.last.icon, destinationIcon);
+  expect(map().waypoints.last.passed, isFalse);
 
   // ----------------------------------------------------- off the route
   await waitUntil(

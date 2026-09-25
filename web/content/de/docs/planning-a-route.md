@@ -10,7 +10,7 @@ Der Tab Planen macht aus Tippern auf der Karte eine Radroute, berechnet auf dein
 
 1. Öffne den Tab **Planen** und verschiebe die Karte dorthin, wo du starten willst.
 2. **Tippe auf die Karte**, um den Start zu setzen. Unten steht dann "Karte erneut antippen, um ein Ziel zu setzen."
-3. **Tippe erneut** für den nächsten Punkt. Jeder Tipper hängt einen Punkt ans Ende der Route. Für einen Punkt mittendrin **tippe auf die Routenlinie**, wo er hin soll: Der Punkt landet dort auf der Linie, und du kannst ihn ziehen wie jeden anderen.
+3. **Tippe erneut** für den nächsten Punkt. Jeder Tipper hängt einen Punkt ans Ende der Route, und der letzte, das Ziel, trägt eine Flagge. Für einen Punkt mittendrin **tippe auf die Routenlinie**, wo er hin soll: Der Punkt landet dort auf der Linie, und du kannst ihn ziehen wie jeden anderen.
 4. Velorki wartet nach deiner letzten Änderung einen Moment und berechnet dann. Währenddessen dreht sich unten ein Ladekreis mit **Route wird berechnet…**, danach erscheinen die Zahlen.
 
 Du kannst auch von einem Ort aus starten statt mit einem Tipper. Tippe oben ins Suchfeld, wähle ein Ergebnis, und solange die Planung noch leer ist, erscheinen unter den Rad-Chips zwei Schaltflächen:
@@ -30,7 +30,7 @@ Um einen vorhandenen Punkt zu verschieben, **zieh seine Markierung**. Bei einer 
 
 Jeder Punkt ist eines von beidem, und der Schalter oben in seinem Blatt sagt, was:
 
-- **Auf der Route**: ein Punkt, durch den die Fahrt geht. Er trägt eine nummerierte Scheibe, und der Router legt die Route darüber.
+- **Auf der Route**: ein Punkt, durch den die Fahrt geht. Er trägt eine nummerierte Scheibe, das Ziel eine Flagge mit der Nummer daneben, und der Router legt die Route darüber.
 - **Neben der Route**: ein Ort, an dem die Fahrt vorbeikommt. Er trägt das Symbol seiner Art, und die Route kümmert sich nicht um ihn.
 
 Stellst du einen Punkt auf **Neben der Route**, verlässt er die Route, die ohne ihn neu gezeichnet wird; die Markierung bleibt, wo sie ist. Stellst du ihn auf **Auf der Route**, wird er ein Punkt dazwischen, an der Stelle der Route, an der er liegt, und die Route wird neu durch ihn gezeichnet. So oder so gehen Name, Art und Notiz mit.

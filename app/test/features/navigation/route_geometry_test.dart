@@ -87,4 +87,39 @@ void main() {
     ]);
     expect(remainingWaypoints(_line(), waypoints, 300), <LatLng>[_at(1000)]);
   });
+
+  group('stopAlongs', () {
+    test('the ends are where the line starts and stops, the stops in '
+        'between where they sit on it', () {
+      final line = _line();
+      final alongs = stopAlongs(line, cumulativeDistances(line), <LatLng>[
+        _at(0),
+        _at(300, asideM: 20),
+        _at(700),
+        _at(1000),
+      ]);
+      expect(alongs[0], 0);
+      expect(alongs[1], closeTo(300, 1));
+      expect(alongs[2], closeTo(700, 1));
+      expect(alongs[3], closeTo(1000, 1));
+    });
+
+    test('on a loop the finish is at the end, not back at the start, and '
+        'a stop passed twice is placed after the one before it', () {
+      // Out 500 m north and back down the same street.
+      final line = <LatLng>[
+        for (var i = 0; i <= 5; i++) _at(i * 100.0),
+        for (var i = 4; i >= 0; i--) _at(i * 100.0),
+      ];
+      final alongs = stopAlongs(line, cumulativeDistances(line), <LatLng>[
+        _at(0),
+        _at(500),
+        _at(200),
+        _at(0),
+      ]);
+      expect(alongs[1], closeTo(500, 1));
+      expect(alongs[2], closeTo(800, 1), reason: 'on the way back');
+      expect(alongs[3], closeTo(1000, 1));
+    });
+  });
 }

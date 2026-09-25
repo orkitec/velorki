@@ -109,4 +109,24 @@ void main() {
       MarkerLayers.namePx,
     ]);
   });
+
+  test('a point the rider has ridden past is drawn faded, disc, glyph and '
+      'words alike; one that never says is not', () {
+    final faded = <Object>[
+      'case',
+      <Object>[
+        'coalesce',
+        <Object>['get', 'passed'],
+        false,
+      ],
+      MarkerLayers.passedOpacity,
+      1.0,
+    ];
+    final disc = markers.disc(color: '#123456', strokeWidth: 2).toJson();
+    expect(disc['circle-opacity'], faded);
+    expect(disc['circle-stroke-opacity'], faded);
+    expect(markers.glyph().toJson()['icon-opacity'], faded);
+    expect(markers.number().toJson()['text-opacity'], faded);
+    expect(markers.name(field: 'label').toJson()['text-opacity'], faded);
+  });
 }

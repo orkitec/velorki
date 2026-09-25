@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
@@ -106,6 +107,13 @@ class RecordingStyleOps implements MapLibreStyleOps {
 
   /// How often [getSourceIds] was asked.
   int getSourceIdsCount = 0;
+
+  /// When set, the next [getSourceIds] waits for it, then clears it: one
+  /// call held up on the platform channel while later ones go through.
+  Completer<void>? nextSourceIdsGate;
+
+  /// When set, every [addImage] waits for it: glyphs still being drawn.
+  Completer<void>? addImageGate;
 
   /// How often [getVisibleRegion] was asked.
   int getVisibleRegionCount = 0;
@@ -318,6 +326,7 @@ class RecordingStyleOps implements MapLibreStyleOps {
 
   @override
   Future<void> addImage(String name, Uint8List bytes) async {
+    await addImageGate?.future;
     final error = addImageError;
     if (error != null) {
       addImageError = null;
@@ -351,6 +360,9 @@ class RecordingStyleOps implements MapLibreStyleOps {
   @override
   Future<List<String>> getSourceIds() async {
     getSourceIdsCount++;
+    final gate = nextSourceIdsGate;
+    nextSourceIdsGate = null;
+    if (gate != null) await gate.future;
     final error = sourceIdsError;
     if (error != null) throw error;
     if (scriptedSourceIds.isNotEmpty) return scriptedSourceIds.removeAt(0);

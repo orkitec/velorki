@@ -709,10 +709,14 @@ void main() {
     final route = map.lines[mainRouteLineId]!;
     expect(map.lines[followedRouteLineId], isNull);
 
-    // Record comes up: the plan's markers and line go, and Record draws
-    // the same route as the one to ride, in its own line.
+    // Record comes up: the plan's line goes, and Record draws the same
+    // route as the one to ride, in its own line, with its own markers of
+    // it: the start and the flagged destination, not to be dragged.
     await _tapTab(tester, l10n.tabRecord);
-    expect(map.waypoints, isEmpty);
+    expect(map.waypoints.map((w) => w.kind), [
+      MapWaypointKind.start,
+      MapWaypointKind.end,
+    ]);
     expect(map.lines[mainRouteLineId], isNull);
     expect(map.lines[followedRouteLineId], route);
     expect(map.onWaypointDragged, isNull);

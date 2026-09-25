@@ -177,6 +177,24 @@ void main() {
     expect(map.lines[mainRouteLineId], hasLength(5));
   });
 
+  test(
+    'a clear does not wipe what the next tab draws right after it',
+    () async {
+      const place = MapPoi(position: _a, name: 'Tap', kind: MapPoiKind.water);
+      const start = MapWaypoint(position: _b, kind: MapWaypointKind.start);
+
+      // The Plan tab leaves; the Record tab draws in the same turn.
+      final clearing = binding.clear();
+      unawaited(map.setPois(const <MapPoi>[place]));
+      unawaited(map.setWaypoints(const <MapWaypoint>[start]));
+      await clearing;
+      await pumpEventQueue();
+
+      expect(map.pois, const <MapPoi>[place]);
+      expect(map.waypoints, const <MapWaypoint>[start]);
+    },
+  );
+
   test('a sync still in flight when the screen goes neither asks it for '
       'its padding nor moves the camera', () async {
     final gated = _GatedMapController();
@@ -228,10 +246,11 @@ void main() {
     // A point on the route that stands for something wears its icon too.
     container
         .read(plannerControllerProvider.notifier)
-        .setWaypointDetails(1, name: 'Top', poiKind: PoiKind.summit);
+        .setWaypointDetails(0, name: 'Top', poiKind: PoiKind.summit);
     await tester.pump();
-    expect(map.waypoints.last.icon, poiIcon(PoiKind.summit));
-    expect(map.waypoints.first.icon, isNull, reason: 'a plain point');
+    expect(map.waypoints.first.icon, poiIcon(PoiKind.summit));
+    // The destination wears the flag, whatever else it stands for.
+    expect(map.waypoints.last.icon, destinationIcon);
 
     await binding.clear();
     expect(map.pois, isEmpty);
@@ -249,7 +268,11 @@ void main() {
     ], selected: 1);
 
     expect(points.map((w) => w.label), ['Home', 'Pico', null]);
-    expect(points.map((w) => w.icon != null), [false, true, false]);
+    expect(points.map((w) => w.icon), [
+      isNull,
+      poiIcon(PoiKind.summit),
+      destinationIcon,
+    ], reason: 'the destination wears the flag');
     expect(points.map((w) => w.selected), [false, true, false]);
     expect(points.map((w) => w.kind), [
       MapWaypointKind.start,
@@ -263,13 +286,13 @@ void main() {
       ]).single.icon,
       isNull,
     );
-    // The ends of a route read from a file are the same plain markers.
+    // The ends of a route read from a file are the same markers.
     final ends = endMarkers(start: _a, finish: _b, finishSelected: true);
     expect(ends.map((w) => w.kind), [
       MapWaypointKind.start,
       MapWaypointKind.end,
     ]);
-    expect(ends.map((w) => w.icon), [isNull, isNull]);
+    expect(ends.map((w) => w.icon), [isNull, destinationIcon]);
     expect(ends.map((w) => w.selected), [false, true]);
   });
 

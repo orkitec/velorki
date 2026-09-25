@@ -593,6 +593,15 @@ class MaplibreMapControllerAdapter implements MapController {
   List<MapPoi> _pois = const <MapPoi>[];
   List<MapTurnMarker> _turns = const <MapTurnMarker>[];
 
+  /// Counts the calls to [setWaypoints], [setPois] and [setTurnMarkers], so
+  /// a call that finds a newer one made while it awaited the platform
+  /// leaves the source to that one. The last call wins, however the calls
+  /// finish: a tab clearing the map while the next tab draws on it must not
+  /// wipe what the next one drew, nor an old draw come back over a clear.
+  int _waypointsCall = 0;
+  int _poisCall = 0;
+  int _turnsCall = 0;
+
   @override
   void Function(int index)? onPoiTapped;
 
@@ -1423,6 +1432,7 @@ class MaplibreMapControllerAdapter implements MapController {
   @override
   Future<void> setWaypoints(List<MapWaypoint> waypoints) async {
     _waypoints = List<MapWaypoint>.unmodifiable(waypoints);
+    final call = ++_waypointsCall;
     if (!_attached) return;
     if (await _hasSource(MapLayerIds.waypointsSource) == false) {
       // The style dropped our sources without a style-loaded callback;
@@ -1430,21 +1440,28 @@ class MaplibreMapControllerAdapter implements MapController {
       await attachToStyle();
       return;
     }
+    if (call != _waypointsCall) return;
     await _addMarkerGlyphs(waypoints.map((w) => w.icon));
+    if (call != _waypointsCall) return;
     await _writeBaseSource(
       MapLayerIds.waypointsSource,
-      waypointsFeatureCollection(waypoints),
+      waypointsFeatureCollection(
+        waypoints,
+        draggable: onWaypointDragged != null,
+      ),
     );
   }
 
   @override
   Future<void> setTurnMarkers(List<MapTurnMarker> turns) async {
     _turns = List<MapTurnMarker>.unmodifiable(turns);
+    final call = ++_turnsCall;
     if (!_attached) return;
     if (await _hasSource(MapLayerIds.turnsSource) == false) {
       await attachToStyle();
       return;
     }
+    if (call != _turnsCall) return;
     await _writeBaseSource(
       MapLayerIds.turnsSource,
       turnsFeatureCollection(turns),
@@ -1454,12 +1471,15 @@ class MaplibreMapControllerAdapter implements MapController {
   @override
   Future<void> setPois(List<MapPoi> pois) async {
     _pois = List<MapPoi>.unmodifiable(pois);
+    final call = ++_poisCall;
     if (!_attached) return;
     if (await _hasSource(MapLayerIds.poisSource) == false) {
       await attachToStyle();
       return;
     }
+    if (call != _poisCall) return;
     await _addMarkerGlyphs(pois.map((poi) => poi.icon));
+    if (call != _poisCall) return;
     await _writeBaseSource(MapLayerIds.poisSource, poisFeatureCollection(pois));
   }
 
@@ -1766,6 +1786,9 @@ class MaplibreMapControllerAdapter implements MapController {
     // re-routed on the way, which made the drag shaky.
     final index = waypointIndexFromFeatureId(id);
     if (index == null) return;
+    // Nobody to tell where it went: the markers are a route being read, not
+    // edited, and stay where they are.
+    if (onWaypointDragged == null) return;
     if (eventType == ml.DragEventType.start) {
       _dragging = true;
       return;
@@ -1775,12 +1798,7 @@ class MaplibreMapControllerAdapter implements MapController {
     // on release.
     if (index < _waypoints.length) {
       final moved = List<MapWaypoint>.of(_waypoints);
-      final old = moved[index];
-      moved[index] = MapWaypoint(
-        position: _fromMl(current),
-        kind: old.kind,
-        label: old.label,
-      );
+      moved[index] = moved[index].movedTo(_fromMl(current));
       _waypoints = List<MapWaypoint>.unmodifiable(moved);
       if (_attached) {
         unawaited(
@@ -1799,12 +1817,7 @@ class MaplibreMapControllerAdapter implements MapController {
       // back where it was and the tap is reported instead of a move.
       if (index < _waypoints.length) {
         final restored = List<MapWaypoint>.of(_waypoints);
-        final old = restored[index];
-        restored[index] = MapWaypoint(
-          position: _fromMl(origin),
-          kind: old.kind,
-          label: old.label,
-        );
+        restored[index] = restored[index].movedTo(_fromMl(origin));
         _waypoints = List<MapWaypoint>.unmodifiable(restored);
         if (_attached) {
           unawaited(

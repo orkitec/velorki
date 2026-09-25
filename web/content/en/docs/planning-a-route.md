@@ -10,7 +10,7 @@ The Plan tab turns taps on the map into a bike route, computed on your phone whe
 
 1. Open the **Plan** tab and move the map to where you want to start.
 2. **Tap the map** to set the start. The sheet at the bottom says "Tap the map again to add a destination."
-3. **Tap again** for the next point. Every tap appends a point to the end of the route. To put a point in the middle instead, **tap the route line** where it should go: the point lands on the line there, and you can drag it like any other.
+3. **Tap again** for the next point. Every tap appends a point to the end of the route, and the last one, the destination, wears a flag. To put a point in the middle instead, **tap the route line** where it should go: the point lands on the line there, and you can drag it like any other.
 4. Velorki waits a moment after your last edit and then routes. While it works the sheet shows a spinner and **Routing…**; then the figures appear.
 
 You can also start from a place instead of a tap. Type into the search field at the top, pick a result, and while the plan is still empty two buttons appear under the bike chips:
@@ -30,7 +30,7 @@ To move a point you already have, **drag its marker**. On a closed loop, draggin
 
 Every point is one of two things, and the switch at the top of its sheet says which:
 
-- **On the route**: a point the ride goes through. It wears a numbered disc, and the router bends the route to visit it.
+- **On the route**: a point the ride goes through. It wears a numbered disc, the destination a flag with its number beside it, and the router bends the route to visit it.
 - **Beside the route**: a place the ride passes. It wears its type's icon, and the route ignores it.
 
 Flip a point to **Beside the route** and it leaves the route, which is drawn again without it; the marker stays where it is. Flip it to **On the route** and it becomes a point in the middle, at the place along the route where it lies, and the route is drawn again through it. Either way the name, the type and the note go with it.

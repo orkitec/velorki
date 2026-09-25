@@ -33,6 +33,7 @@ import '../../planner/application/planner_controller.dart';
 import '../../planner/data/route_repository.dart';
 import '../../planner/domain/saved_route.dart';
 import '../../planner/domain/route_poi.dart';
+import '../../planner/domain/waypoint.dart';
 import '../../planner/presentation/poi_markers.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../search/data/gazetteer_store.dart';
@@ -324,6 +325,16 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   String? _drawnReplacedId;
   String? _drawnPoisId;
 
+  /// What of the followed route's points is on the map: which route, and
+  /// which of its stops were drawn as passed.
+  String? _drawnStopsId;
+
+  /// The stops of the followed route the rider has ridden past on this ride,
+  /// by their index in the route, and which route and ride that was for. A
+  /// stop once passed stays passed.
+  final Set<int> _passedStops = <int>{};
+  String? _passedFor;
+
   /// Whether the camera stays on the rider. On from the moment a ride starts,
   /// off as soon as the rider drags the map, back on with the locate button.
   bool _following = false;
@@ -482,8 +493,57 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     _drawnBranchId = null;
     _drawnReplacedId = null;
     _drawnPoisId = null;
+    _drawnStopsId = null;
     _autoMoving = false;
     _followTarget = null;
+  }
+
+  /// Draws the followed route's own points: the start, the destination with
+  /// its flag, and the stops that are something. The ones the rider has
+  /// ridden past fade; which those are is what navigation knows of the
+  /// plan's points still ahead, and a stop once passed stays passed, even
+  /// when a new route to the destination has taken the plan's place. The
+  /// markers are the route's, never the new route's.
+  void _drawStops(
+    MapController map,
+    RecordingUiState state,
+    List<Waypoint> stops,
+    String? planKey,
+    NavigationProgress? navigation,
+  ) {
+    final key = planKey == null || stops.length < 2
+        ? null
+        : '$planKey:${Object.hashAll(stops)}';
+    final passedFor = '$key:${state.snapshot?.rideId}';
+    if (passedFor != _passedFor) {
+      _passedFor = passedFor;
+      _passedStops.clear();
+    }
+    if (key != null && state.isRecording) {
+      // Under way, the start is behind the rider.
+      _passedStops.add(0);
+      final ahead = navigation?.stopsAhead;
+      if (ahead != null && ahead.isNotEmpty) {
+        for (var i = 1; i < stops.length; i++) {
+          final pos = stops[i].pos;
+          if (!ahead.any((a) => haversineMeters(a, pos) < 1)) {
+            _passedStops.add(i);
+          }
+        }
+      }
+    }
+    final drawnId = key == null
+        ? null
+        : '$key:${(_passedStops.toList()..sort()).join(',')}';
+    if (drawnId == _drawnStopsId) return;
+    _drawnStopsId = drawnId;
+    unawaited(
+      map.setWaypoints(
+        key == null
+            ? const <MapWaypoint>[]
+            : followedRouteMarkers(stops, passed: _passedStops),
+      ),
+    );
   }
 
   /// Takes off the map what this tab drew on it, so the other tab finds it
@@ -500,12 +560,16 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       unawaited(map.removeRouteLine(replacedRouteLineId));
     }
     if (_drawnPoisId != null) unawaited(map.setPois(const <MapPoi>[]));
+    if (_drawnStopsId != null) {
+      unawaited(map.setWaypoints(const <MapWaypoint>[]));
+    }
     _drawnTrackPoints = -1;
     _drawnRouteId = null;
     _drawnRouteStyle = null;
     _drawnBranchId = null;
     _drawnReplacedId = null;
     _drawnPoisId = null;
+    _drawnStopsId = null;
   }
 
   // --------------------------------------------------------- follow mode
@@ -778,6 +842,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     RecordingUiState state,
     SavedRoute? route,
     List<LatLng> planned,
+    List<Waypoint> stops,
+    List<RoutePoi> routePois,
     GuidedRoute? detour,
     FollowMode mode,
     NavigationProgress? navigation,
@@ -952,13 +1018,18 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
         );
       }
     }
-    // The followed route's points of interest ride along with it: only a
-    // saved route has any, a plan never does.
-    final poisKey = route?.pois.isEmpty ?? true ? null : route!.id;
+    // The followed route's points of interest ride along with it, a saved
+    // route's or the plan's.
+    final poisKey = routePois.isEmpty || planKey == null
+        ? null
+        : '$planKey:${Object.hashAll(routePois)}';
     if (poisKey != _drawnPoisId) {
       _drawnPoisId = poisKey;
-      unawaited(map.setPois(poiMarkers(route?.pois ?? const <RoutePoi>[])));
+      unawaited(
+        map.setPois(poiMarkers(poisKey == null ? const [] : routePois)),
+      );
     }
+    _drawStops(map, state, stops, planKey, navigation);
     final branchKey = branch.isEmpty ? null : detour!.key;
     if (branchKey != _drawnBranchId) {
       _drawnBranchId = branchKey;
@@ -1385,6 +1456,19 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
             ),
           )
         : const <LatLng>[];
+    // Its own points, to draw on the map beside the line.
+    final List<Waypoint> stops;
+    final List<RoutePoi> routePois;
+    if (route != null) {
+      stops = route.waypoints;
+      routePois = route.pois;
+    } else if (follow is FollowPlan) {
+      stops = ref.watch(plannerControllerProvider.select((p) => p.waypoints));
+      routePois = ref.watch(plannerControllerProvider.select((p) => p.pois));
+    } else {
+      stops = const <Waypoint>[];
+      routePois = const <RoutePoi>[];
+    }
     final followMode = ref.watch(followModeProvider);
     // A re-route, while one is being followed, is the line to draw.
     final detour = ref.watch(detourRouteProvider);
@@ -1406,6 +1490,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       state,
       route,
       planned,
+      stops,
+      routePois,
       detour,
       followMode,
       navigation,

@@ -223,6 +223,8 @@ class MapWaypoint {
     this.label,
     this.icon,
     this.selected = false,
+    this.passed = false,
+    this.number,
   });
 
   final LatLng position;
@@ -237,6 +239,26 @@ class MapWaypoint {
   /// Whether this is the point the rider has chosen. See [MapPoi.selected].
   final bool selected;
 
+  /// Whether the rider has already ridden past this point, which the map
+  /// draws faded.
+  final bool passed;
+
+  /// The number the point is known by, when it is not its place in the list
+  /// drawn: a screen that leaves points out still numbers the rest as the
+  /// route does.
+  final int? number;
+
+  /// This point at [to], everything else as it is: a marker being dragged.
+  MapWaypoint movedTo(LatLng to) => MapWaypoint(
+    position: to,
+    kind: kind,
+    label: label,
+    icon: icon,
+    selected: selected,
+    passed: passed,
+    number: number,
+  );
+
   @override
   bool operator ==(Object other) =>
       other is MapWaypoint &&
@@ -244,8 +266,11 @@ class MapWaypoint {
       other.kind == kind &&
       other.label == label &&
       other.icon == icon &&
-      other.selected == selected;
+      other.selected == selected &&
+      other.passed == passed &&
+      other.number == number;
 
   @override
-  int get hashCode => Object.hash(position, kind, label, icon, selected);
+  int get hashCode =>
+      Object.hash(position, kind, label, icon, selected, passed, number);
 }

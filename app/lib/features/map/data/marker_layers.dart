@@ -53,6 +53,24 @@ class MarkerLayers {
     rest,
   ];
 
+  /// How opaque a point the rider has already ridden past is drawn: there,
+  /// so the route still reads, but plainly behind them.
+  static const double passedOpacity = 0.35;
+
+  /// The opacity of a marker: faded when the feature says it is `passed`.
+  /// A feature without the property (a place beside the route) is never
+  /// passed.
+  static List<Object> opacity() => <Object>[
+    'case',
+    <Object>[
+      'coalesce',
+      <Object>['get', 'passed'],
+      false,
+    ],
+    passedOpacity,
+    1.0,
+  ];
+
   /// A marker's disc, wider for the chosen point.
   static List<Object> discRadius() =>
       whenSelected(markerDiscSelectedRadiusPx, markerDiscRadiusPx);
@@ -80,6 +98,8 @@ class MarkerLayers {
     circleColor: whenSelected(palette.routePreview, color),
     circleStrokeWidth: strokeWidth,
     circleStrokeColor: palette.waypointStroke,
+    circleOpacity: opacity(),
+    circleStrokeOpacity: opacity(),
   );
 
   /// The glyph on a marker's disc. A feature with no `icon` keeps the plain
@@ -87,6 +107,7 @@ class MarkerLayers {
   ml.SymbolLayerProperties glyph() => ml.SymbolLayerProperties(
     iconImage: <Object>['get', 'icon'],
     iconSize: glyphScale(),
+    iconOpacity: opacity(),
     iconAnchor: 'center',
     iconAllowOverlap: true,
     iconIgnorePlacement: true,
@@ -103,6 +124,7 @@ class MarkerLayers {
     textColor: palette.waypointLabel,
     textHaloColor: palette.waypointLabelHalo,
     textHaloWidth: 0.6,
+    textOpacity: opacity(),
     textAllowOverlap: true,
     textIgnorePlacement: true,
     textAnchor: 'center',
@@ -129,6 +151,7 @@ class MarkerLayers {
         textColor: palette.mapLabel,
         textHaloColor: palette.mapLabelHalo,
         textHaloWidth: 1.2,
+        textOpacity: opacity(),
         textAnchor: nameAnchor,
         // Ems of the text's own size, so the gap grows with it.
         textOffset: <Object>[0, nameOffsetEm],

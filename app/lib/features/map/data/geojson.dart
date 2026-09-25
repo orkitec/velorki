@@ -136,7 +136,7 @@ List<Object> trackSpeedColorExpression(String slow, String fast) => <Object>[
 /// A disc holds one thing. A point that stands for something shows what it
 /// is; a plain one shows where it comes in the ride.
 String waypointDiscText(MapWaypoint waypoint, int index) =>
-    waypoint.icon == null ? '${index + 1}' : '';
+    waypoint.icon == null ? '${waypoint.number ?? index + 1}' : '';
 
 /// The label drawn beside a waypoint's disc, so the number appears exactly
 /// once however the point is drawn.
@@ -149,15 +149,20 @@ String waypointDiscText(MapWaypoint waypoint, int index) =>
 String waypointLabelText(MapWaypoint waypoint, int index) {
   final name = waypoint.label ?? '';
   if (waypoint.icon == null) return name;
-  final number = '${index + 1}';
+  final number = '${waypoint.number ?? index + 1}';
   return name.isEmpty ? number : '($number) $name';
 }
 
-/// One `Point` feature per waypoint, each draggable and carrying its index.
+/// One `Point` feature per waypoint, carrying its index.
 ///
 /// `draggable: true` in the properties is what the Android and iOS sides look
-/// for before they start a drag gesture on a raw style layer feature.
-Map<String, dynamic> waypointsFeatureCollection(List<MapWaypoint> waypoints) {
+/// for before they start a drag gesture on a raw style layer feature, so it
+/// is written only when [draggable]: on a screen that reads a route rather
+/// than edits it, a marker must not come off its place under a finger.
+Map<String, dynamic> waypointsFeatureCollection(
+  List<MapWaypoint> waypoints, {
+  bool draggable = true,
+}) {
   final features = <Map<String, dynamic>>[];
   for (var i = 0; i < waypoints.length; i++) {
     final w = waypoints[i];
@@ -173,7 +178,9 @@ Map<String, dynamic> waypointsFeatureCollection(List<MapWaypoint> waypoints) {
         // Always written, never absent: the style asks every feature whether
         // it is the chosen one, and a missing property is not an answer.
         'selected': w.selected,
-        'draggable': true,
+        // Written always, for the same reason: the style fades what it says.
+        'passed': w.passed,
+        'draggable': draggable,
       },
       'geometry': <String, dynamic>{
         'type': 'Point',

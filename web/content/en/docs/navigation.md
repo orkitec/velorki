@@ -88,6 +88,7 @@ All of the distances above grow with how bad your GPS fix is, roughly doubling w
 - The map keeps the zoom you pinch it to while it follows you, anywhere from a few kilometres across to a single block; only dragging it stops the following.
 - **Show my position** picks the following up again after you have panned the map, at the usual street-level zoom.
 - While you are on the route the position marker is drawn on the route and pointed along it, rather than wandering with the fix.
+- The route's own points are on the map too: the start, the destination with its flag, every stop that has a name or a type, and the places beside the route. A point that only shapes the line is left out. The stops you have ridden past fade, and they stay faded if you go back. After a new route to the destination, the markers are still your route's.
 
 ## Related
 

@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show listEquals;
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -305,6 +307,12 @@ class NavigationController extends _$NavigationController {
   /// every fix is projected onto the plan.
   List<double> _planCumulative = const <double>[];
 
+  /// The plan's waypoints, how far along it each one is, and the ones the
+  /// rider has not reached yet.
+  List<LatLng> _machinePlanWaypoints = const <LatLng>[];
+  List<double> _stopAlongs = const <double>[];
+  List<LatLng> _stopsAhead = const <LatLng>[];
+
   /// The plan's points of interest, each with how far along the plan it
   /// sits, in order; and which of them have been announced this ride.
   List<_PoiAlong> _planPois = const <_PoiAlong>[];
@@ -447,6 +455,9 @@ class NavigationController extends _$NavigationController {
       _machineKey = plan.key;
       _machine = OffRouteMachine(line: plan.line);
       _planCumulative = cumulativeDistances(plan.line);
+      _machinePlanWaypoints = plan.waypoints;
+      _stopAlongs = stopAlongs(plan.line, _planCumulative, plan.waypoints);
+      _stopsAhead = const <LatLng>[];
       _planPois = _placePois(plan);
       _poisAnnounced.clear();
       _poi = null;
@@ -609,7 +620,20 @@ class NavigationController extends _$NavigationController {
         guidance: _guidance,
         poi: _poi,
         distanceToPoiM: _poiDistanceM,
+        stopsAhead: _currentStopsAhead(),
       );
+
+  /// The plan's points still ahead of where the rider last was on it; the
+  /// same list as long as nothing was passed, so progress compares equal.
+  List<LatLng> _currentStopsAhead() {
+    final plan = _machinePlanWaypoints;
+    final ahead = <LatLng>[
+      for (var i = 0; i < _stopAlongs.length && i < plan.length; i++)
+        if (_stopAlongs[i] > _planAlongM) plan[i],
+    ];
+    if (!listEquals(ahead, _stopsAhead)) _stopsAhead = ahead;
+    return _stopsAhead;
+  }
 
   /// The plan's points of interest that sit on or beside it, with how far
   /// along the plan each one is. One too far off the line is not on this
@@ -1142,6 +1166,9 @@ class NavigationController extends _$NavigationController {
     _planKey = null;
     _machineKey = null;
     _planCumulative = const <double>[];
+    _machinePlanWaypoints = const <LatLng>[];
+    _stopAlongs = const <double>[];
+    _stopsAhead = const <LatLng>[];
     _rideId = null;
     _fedSnapshot = null;
     _progress = null;

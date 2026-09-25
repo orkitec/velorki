@@ -80,6 +80,46 @@ LineProjection projectOnLine(
   return LineProjection(distanceM: bestDistance, alongM: bestAlong);
 }
 
+/// How far along [line] each of [waypoints] is, in order.
+///
+/// The first is where the line starts and the last where it ends, whatever
+/// the projection says: on a loop the two are the same spot, and the finish
+/// must not read as already reached. Every stop in between is looked for
+/// only from the one before it on, so a route that passes a stop twice
+/// places it where the route means to visit it.
+List<double> stopAlongs(
+  List<LatLng> line,
+  List<double> cumulative,
+  List<LatLng> waypoints,
+) {
+  if (waypoints.isEmpty || line.length < 2) return <double>[];
+  final total = cumulative.last;
+  final out = <double>[];
+  var from = 0.0;
+  for (var i = 0; i < waypoints.length; i++) {
+    if (i == 0) {
+      out.add(0);
+      continue;
+    }
+    if (i == waypoints.length - 1) {
+      out.add(total);
+      break;
+    }
+    var start = 0;
+    while (start < line.length - 2 && cumulative[start + 1] < from) {
+      start++;
+    }
+    final along = projectOnLine(
+      line.sublist(start),
+      waypoints[i],
+      cumulative: cumulative.sublist(start),
+    ).alongM;
+    from = math.max(from, along);
+    out.add(from);
+  }
+  return out;
+}
+
 /// The points a re-route still has to visit, given that the rider last stood
 /// [alongM] metres along [line].
 ///

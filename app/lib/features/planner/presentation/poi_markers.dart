@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' show IconData, Icons;
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../map/domain/map_controller.dart';
@@ -16,6 +17,25 @@ import '../domain/waypoint.dart';
 ///
 /// What a marker carries is all this file decides; where it is drawn is the
 /// style's business.
+
+/// What the destination wears on its disc, on every map: the one point a
+/// rider looks for first.
+const IconData destinationIcon = Icons.flag;
+
+/// The icon a point's disc carries: the flag for the destination, whatever
+/// it stands for; the kind's own icon for a point that stands for
+/// something; none for a plain point, which carries its number.
+IconData? _discIcon(MapWaypointKind kind, PoiKind poiKind) {
+  if (kind == MapWaypointKind.end) return destinationIcon;
+  if (poiKind == PoiKind.generic || poiKind == PoiKind.turn) return null;
+  return poiIcon(poiKind);
+}
+
+MapWaypointKind _mapKind(WaypointKind kind) => switch (kind) {
+  WaypointKind.start => MapWaypointKind.start,
+  WaypointKind.via => MapWaypointKind.via,
+  WaypointKind.end => MapWaypointKind.end,
+};
 
 /// The route's points of interest as the map draws them.
 ///
@@ -49,31 +69,57 @@ List<MapPoi> poiMarkers(List<RoutePoi> pois, {int? selected}) => <MapPoi>[
 /// `waypointLabelText`.
 ///
 /// A turn is a cue of the route rather than a place, and the cue sheet draws
-/// it; on the map it is a plain numbered point like any other.
+/// it; on the map it is a plain numbered point like any other. The
+/// destination wears the flag.
 List<MapWaypoint> waypointMarkers(List<Waypoint> waypoints, {int? selected}) =>
     <MapWaypoint>[
       for (final (i, w) in waypoints.indexed)
         MapWaypoint(
           position: w.pos,
-          kind: switch (w.kind) {
-            WaypointKind.start => MapWaypointKind.start,
-            WaypointKind.via => MapWaypointKind.via,
-            WaypointKind.end => MapWaypointKind.end,
-          },
+          kind: _mapKind(w.kind),
           label: w.name,
-          icon: w.poiKind == PoiKind.generic || w.poiKind == PoiKind.turn
-              ? null
-              : poiIcon(w.poiKind),
+          icon: _discIcon(_mapKind(w.kind), w.poiKind),
           selected: i == selected,
         ),
     ];
+
+/// The points of a route being ridden, as the Record map draws them: the
+/// start, the destination, and the stops that are something — a name or a
+/// kind. A plain point only shapes the line and is left out. Each keeps the
+/// number it has in the route, and the ones in [passed] (indices into
+/// [waypoints]) are drawn faded.
+List<MapWaypoint> followedRouteMarkers(
+  List<Waypoint> waypoints, {
+  Set<int> passed = const <int>{},
+}) => <MapWaypoint>[
+  for (final (i, w) in waypoints.indexed)
+    if (i == 0 ||
+        i == waypoints.length - 1 ||
+        (w.name?.isNotEmpty ?? false) ||
+        _discIcon(MapWaypointKind.via, w.poiKind) != null)
+      MapWaypoint(
+        position: w.pos,
+        kind: i == 0
+            ? MapWaypointKind.start
+            : i == waypoints.length - 1
+            ? MapWaypointKind.end
+            : MapWaypointKind.via,
+        label: w.name,
+        icon: _discIcon(
+          i == waypoints.length - 1 ? MapWaypointKind.end : MapWaypointKind.via,
+          w.poiKind,
+        ),
+        passed: passed.contains(i),
+        number: i + 1,
+      ),
+];
 
 /// The two ends of a route that was not planned here, for a screen that
 /// reads a route rather than edits it.
 ///
 /// An imported route has no waypoints worth drawing, only a start and a
-/// finish, and they are plain numbered points: built here so they are the
-/// same markers the planner draws, not a second idea of one.
+/// finish: a numbered point and the flag, built here so they are the same
+/// markers the planner draws, not a second idea of one.
 List<MapWaypoint> endMarkers({
   required LatLng start,
   required LatLng finish,
@@ -88,6 +134,7 @@ List<MapWaypoint> endMarkers({
   MapWaypoint(
     position: finish,
     kind: MapWaypointKind.end,
+    icon: destinationIcon,
     selected: finishSelected,
   ),
 ];

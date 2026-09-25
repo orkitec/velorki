@@ -88,6 +88,7 @@ Alle genannten Entfernungen wachsen mit, je schlechter dein GPS-Empfang ist, ung
 - Die Karte behält beim Folgen den Zoom, den du mit zwei Fingern einstellst, von ein paar Kilometern bis zu einem einzelnen Häuserblock; nur Verschieben beendet das Folgen.
 - **Meine Position anzeigen** nimmt das Folgen wieder auf, nachdem du die Karte verschoben hast, im gewohnten Zoom auf Straßenebene.
 - Solange du auf der Route bist, wird die Positionsmarkierung auf der Route gezeichnet und daran ausgerichtet, statt mit dem Empfang umherzuwandern.
+- Auch die Punkte der Route stehen auf der Karte: der Start, das Ziel mit seiner Flagge, jeder Stopp mit Namen oder Art und die Orte neben der Route. Ein Punkt, der nur die Linie formt, fehlt. Stopps, an denen du vorbei bist, werden blass und bleiben es, auch wenn du zurückfährst. Nach einer neuen Route zum Ziel sind es weiter die Punkte deiner Route.
 
 ## Weiterlesen
 
