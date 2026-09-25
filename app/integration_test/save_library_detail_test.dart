@@ -89,15 +89,22 @@ void main() {
     );
     await tester.enterText(field, name);
     await pumpFor(tester, const Duration(milliseconds: 200));
+    // The confirmation lives for a few seconds of wall time, and on a slow
+    // emulator a fixed settle after the tap has taken longer than that: it
+    // is looked for on every frame from the tap on instead.
     await tapAndPump(
       tester,
       find.descendant(
         of: find.byType(AlertDialog),
         matching: find.widgetWithText(FilledButton, 'Save'),
       ),
+      settle: Duration.zero,
     );
-
-    expect(find.text('Route saved'), findsOneWidget);
+    await waitUntil(
+      tester,
+      () => find.text('Route saved').evaluate().isNotEmpty,
+      describe: 'the saved confirmation',
+    );
     await waitUntil(
       tester,
       () => routes.read().value?.any((route) => route.name == name) ?? false,
