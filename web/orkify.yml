@@ -85,9 +85,10 @@ processes:
       NODE_ENV: 'production'
       # Port Next's standalone server binds. Must match `port:` above.
       PORT: '3100'
-      # Interface Next binds. 0.0.0.0 so the proxy on the same host can reach it;
-      # the box is firewalled to Cloudflare's ranges, nothing else can.
-      HOSTNAME: '0.0.0.0'
+      # Interface Next binds. Loopback only: the proxy sits on the same host,
+      # so nothing outside the box should be able to reach the app directly,
+      # firewall or no firewall.
+      HOSTNAME: '127.0.0.1'
       # SQLite file for share links. Absolute and OUTSIDE the release tree:
       # Orkify keeps releases in their own directories, so a relative path
       # would hand out links that break on the next deploy.
