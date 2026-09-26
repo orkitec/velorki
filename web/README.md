@@ -256,8 +256,10 @@ change.
 
 ## Deployment
 
-See `docs/DEPLOY_WEB.md` in the repository root for the VPS, Caddy, Cloudflare
-and Orkify setup. The parts that matter here:
+See `docs/DEPLOY_WEB.md` in the repository root for the VPS, Cloudflare and
+Orkify setup, with a choice of reverse proxy: step 4a is Caddy on a box of its
+own, step 4b is `deploy/web/velorki.nginx.conf` on a box that already runs nginx
+for another site. The parts that matter here:
 
 - Entry point `node .next/standalone/server.js`, configuration from
   `process.env` only, health check `GET /health`.

@@ -67,7 +67,7 @@ processes:
     # `Host: localhost:8080` and no `x-velorki-host`. `/health` is an API-host
     # route, so the host gate treats a loopback Host (`localhost:<PORT>`,
     # `127.0.0.1:<PORT>`, `[::1]:<PORT>`) as the API role - that is the only
-    # way the probe reaches it, and it is safe because Caddy always forwards
+    # way the probe reaches it, and it is safe because the proxy always forwards
     # the real public Host and the origin only accepts Cloudflare's addresses.
     # On the box, `curl -s http://127.0.0.1:8080/health` is the same request.
     healthCheck: /health
@@ -85,7 +85,7 @@ processes:
       NODE_ENV: 'production'
       # Port Next's standalone server binds. Must match `port:` above.
       PORT: '8080'
-      # Interface Next binds. 0.0.0.0 so Caddy on the same host can reach it;
+      # Interface Next binds. 0.0.0.0 so the proxy on the same host can reach it;
       # the box is firewalled to Cloudflare's ranges, nothing else can.
       HOSTNAME: '0.0.0.0'
       # SQLite file for share links. Absolute and OUTSIDE the release tree:

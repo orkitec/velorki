@@ -19,7 +19,7 @@ mirrors the routing data.
 |---|---|
 | `docker-compose.yml` | The stack: `caddy`, `brouter`, `brouter-updater`, optional `api` |
 | `Caddyfile` | TLS + routing: `/brouter*` → BRouter, everything else → the app |
-| `web/` | The official deployment: Caddy config, Cloudflare and backup scripts, the deploy forced command — see [docs/DEPLOY_WEB.md](../docs/DEPLOY_WEB.md) |
+| `web/` | The official deployment: Caddy **or** nginx config (`velorki.nginx.conf`, for a box that already serves another site), Cloudflare and backup scripts, the deploy forced command — see [docs/DEPLOY_WEB.md](../docs/DEPLOY_WEB.md) |
 | `.env.example` | Configuration template |
 | `Makefile`, `bin/` | `sync-now`, `logs`, `route-test` helpers |
 | `systemd/` | Docker-free alternative: run BRouter straight from a jar |
@@ -233,14 +233,19 @@ The official Velorki deployment does **not** run it in Docker. Orkify deploys
 `api.velorki.com`, behind Caddy and Cloudflare.
 
 **[docs/DEPLOY_WEB.md](../docs/DEPLOY_WEB.md) is the complete runbook** — the
-VPS, Node, Orkify, Caddy with a Cloudflare Origin CA certificate, the Cloudflare
-zone, the deploy workflow, backups and operations. The pieces it installs live
-in `deploy/web/`: `Caddyfile`, `cloudflare-ips.sh`, `backup-sqlite.sh`,
-`velorki-deploy` and `velorki-web.env.example`.
+VPS, Node, Orkify, the reverse proxy with a Cloudflare Origin CA certificate,
+the Cloudflare zone, the deploy workflow, backups and operations. The pieces it
+installs live in `deploy/web/`: `Caddyfile`, `cloudflare-ips.sh`,
+`backup-sqlite.sh`, `velorki-deploy` and `velorki-web.env.example`.
+
+The proxy is a choice, step 4a or 4b of that runbook: Caddy on a box that is
+only Velorki's, or `velorki.nginx.conf` plus `cloudflare-ips-nginx.sh` on a box
+that already runs nginx for another site — two proxies cannot both hold 443.
 
 That Caddy config replaces this directory's `Caddyfile`, which only knows about
 BRouter and a single domain. If you run BRouter on the same box, copy the
-`/brouter*` block out of `deploy/Caddyfile` into `deploy/web/Caddyfile`.
+`/brouter*` block out of `deploy/Caddyfile` into `deploy/web/Caddyfile` (or turn
+it into a `location /brouter` in the nginx config).
 
 ### b) In compose — for a self-contained box
 
