@@ -27,6 +27,14 @@ deploy:
   # example (https://orkify.com/docs/nextjs) here; it would be a second copy.
   build: npm run build
 
+  # Build-time-only variables. Next inlines every NEXT_PUBLIC_* into the client
+  # bundle while `next build` runs, so they have to be here and not in the
+  # runtime environment; Orkify does not pass this block to the processes
+  # (https://github.com/orkify/orkify, "buildEnv"). The store URLs stay empty
+  # until the listings exist; the site hides the badges while they are.
+  buildEnv:
+    NEXT_PUBLIC_SITE_URL: 'https://velorki.com'
+
   # Seconds a freshly started worker has to stay alive before the release
   # counts as good. A crash inside this window rolls back to the previous
   # release on disk. 30 s covers Next's cold start plus the first health probe.
