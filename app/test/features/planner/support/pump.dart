@@ -127,6 +127,10 @@ class PlannerHarness {
   /// The map the screens draw on.
   final TestMapController map;
 
+  /// What builds every map instead of a bare [TestMapView] over [map], for a
+  /// test that needs something drawn over it.
+  MapViewBuilder? mapViewBuilder;
+
   /// The overrides to hand to a [ProviderScope].
   List<Override> overrides(SharedPreferences prefs) => [
     sharedPreferencesProvider.overrideWithValue(prefs),
@@ -144,7 +148,9 @@ class PlannerHarness {
     ),
     // Every map the harness sees is [map]: the shell's shared one under the
     // Plan and Record tabs, and the one a detail or preview screen builds.
-    mapViewBuilderProvider.overrideWithValue(testMapViewBuilder(map)),
+    mapViewBuilderProvider.overrideWithValue(
+      mapViewBuilder ?? testMapViewBuilder(map),
+    ),
     sharedMapControllerProvider.overrideWith(() => _SharedMapReady(map)),
     // The move to the rider on opening waits for a real fix; these tests
     // place the camera themselves.

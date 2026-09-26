@@ -278,7 +278,16 @@ class HomeShell extends ConsumerWidget {
           // on it and are transparent over it. Never hidden and never moved
           // in the stack: the platform view would start over and show black.
           // The settings tab is an opaque page over it.
-          const SharedMapHost(key: ValueKey<String>('shared-map')),
+          //
+          // Its bottom inset is pinned to nothing: the scaffold takes the
+          // bottom view padding off its body only while it has a bar, so
+          // with the bar hidden for a ride the map's credit and (i) would
+          // climb by the home indicator's height into the figures bar.
+          MediaQuery.removeViewPadding(
+            context: context,
+            removeBottom: true,
+            child: const SharedMapHost(key: ValueKey<String>('shared-map')),
+          ),
           if (showColumn)
             Positioned.fill(
               child: SafeArea(

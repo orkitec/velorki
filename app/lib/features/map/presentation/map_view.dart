@@ -295,9 +295,10 @@ class _MapViewState extends ConsumerState<MapView> {
     final chromeTop = chrome?.controlsTop;
     // The bottom of the view, whatever an owner removed from the padding:
     // the chip and the (i) button sit in the band under the bar.
-    final attributionBottom =
-        MediaQuery.viewPaddingOf(context).bottom +
-        widget.attributionPadding.bottom;
+    final attributionBottom = mapAttributionBottom(
+      context,
+      gap: widget.attributionPadding.bottom,
+    );
 
     final map = ml.MapLibreMap(
       styleString: styleUrl,

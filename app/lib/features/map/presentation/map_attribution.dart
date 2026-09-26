@@ -12,6 +12,13 @@ const String _osmUrl = 'https://www.openstreetmap.org/copyright';
 const String _openFreeMapUrl = 'https://openfreemap.org/';
 const String _cyclosmUrl = 'https://www.cyclosm.org/';
 
+/// How far above the bottom of a map view in [context] the attribution chip
+/// and the native (i) button sit: [gap] over the bottom view padding the view
+/// is given. The shell gives its shared map none, so the two stay in the
+/// band under the floating bar whether that bar is shown or not.
+double mapAttributionBottom(BuildContext context, {double gap = 6}) =>
+    MediaQuery.viewPaddingOf(context).bottom + gap;
+
 /// The attribution required by the OpenStreetMap licence, drawn by us rather
 /// than by the native SDK so it survives our own map chrome.
 ///
