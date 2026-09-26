@@ -182,7 +182,7 @@ through `POST /__api/share` is readable at `http://localhost:3000/s/<id>`.
 | `npm run dev` | `next dev` |
 | `npm run build` | `next build` (standalone) plus the asset copy |
 | `npm start` | `node .next/standalone/server.js` |
-| `npm run start:cluster` | `orkify run` with two workers on port 8080, the same flags the VPS uses, to see the shared counters work |
+| `npm run start:cluster` | `orkify run` with two workers on port 3100, the same flags the VPS uses, to see the shared counters work |
 | `npm run lint` | ESLint (flat config, typescript-eslint, type-checked rules) |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm test` | Vitest; upstreams are mocked, nothing touches the network |

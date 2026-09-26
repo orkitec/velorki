@@ -17,7 +17,7 @@ Cloudflare (proxied, Full strict)
    ▼
 Caddy or nginx ── Origin CA cert, Cloudflare trusted as the proxy,
    │               Host preserved
-   │ 127.0.0.1:8080
+   │ 127.0.0.1:3100
    ▼
 orkify cluster "velorki-web" ── 2 workers, .next/standalone/server.js
    │
@@ -35,7 +35,7 @@ Orkify's own site, with nginx on 80 and 443 and its processes owned by an
 commands settle most of it:
 
 ```sh
-ss -ltnp | grep -E ':(80|443|8080) '     # what already listens, and as whom
+ss -ltnp | grep -E ':(80|443|3100) '     # what already listens, and as whom
 systemctl is-active nginx caddy          # which proxy is in charge
 ```
 
@@ -46,7 +46,7 @@ systemctl is-active nginx caddy          # which proxy is in charge
 | 3 | `/var/log/caddy` is not needed. Install `cloudflare-ips-nginx.sh`, not `cloudflare-ips.sh`. |
 | 4 | **4b, not 4a.** Do not install Caddy — two proxies cannot share 443. One Origin CA certificate **per domain**: velorki.com gets its own under `/etc/ssl/velorki/`, the other site keeps its own. |
 | 3, 4b | **Do not let the Cloudflare IP script rewrite the firewall.** `cloudflare-ips-nginx.sh` deliberately does not touch ufw: the rules are shared with the other site. It prints the `ufw allow` lines it would have added; apply them by hand once you know they do not lock the neighbour out. |
-| 6 | Pick a port nothing else holds. 8080 is free on this box; if it were not, change `port:` **and** `env.PORT` in `web/orkify.yml` and the `proxy_pass` in the nginx config together — they must agree or the health probe dials a closed socket. |
+| 6 | Pick a port nothing else holds. 3100 is free on this box; if it were not, change `port:` **and** `env.PORT` in `web/orkify.yml` and the `proxy_pass` in the nginx config together — they must agree or the health probe dials a closed socket. |
 
 Everything else — the directories, the cron jobs, the deploy key and the
 forced command, the Cloudflare zone, backups, operations — is the same on a
@@ -220,7 +220,7 @@ block to the nginx that is already running, which is right on a box that serves
 something else — two proxies cannot both hold 443.
 
 ```sh
-ss -ltnp | grep -E ':(80|443|8080) '     # is anything already on 80/443?
+ss -ltnp | grep -E ':(80|443|3100) '     # is anything already on 80/443?
 systemctl is-active nginx caddy          # and is it one of these two?
 ```
 
@@ -349,7 +349,7 @@ Read the file before reloading — it carries the reasoning for every directive.
 The four that matter:
 
 - `proxy_set_header Host $host` — load-bearing. nginx's default upstream `Host`
-  is `$proxy_host`, i.e. `127.0.0.1:8080`, which the app's host gate reads as
+  is `$proxy_host`, i.e. `127.0.0.1:3100`, which the app's host gate reads as
   the *api* role (that is how Orkify's header-less health probe reaches
   `/health`). Without this line the site is unreachable and the relay answers on
   every hostname.
@@ -547,16 +547,16 @@ set it explicitly to `stub` until RevenueCat exists, or every authenticated
 route answers 503).
 
 **The health check.** `web/orkify.yml` sets `healthCheck: /health`. Orkify
-probes `http://localhost:8080/health`, three attempts one second apart, and a
+probes `http://localhost:3100/health`, three attempts one second apart, and a
 non-2xx marks the worker failed — that gates every start and every rolling
 reload. (<https://orkify.com/docs/cli>) The probe dials loopback and cannot send
-headers, so it arrives with `Host: localhost:8080`; the app's host gate treats a
+headers, so it arrives with `Host: localhost:3100`; the app's host gate treats a
 loopback Host (`localhost:<port>`, `127.0.0.1:<port>`, `[::1]:<port>`) as the
 API role for exactly that reason. On the box:
 
 ```sh
-curl -s http://127.0.0.1:8080/health | head -c 200      # the relay's JSON
-curl -s -H 'Host: velorki.com' http://127.0.0.1:8080/ | head -c 200   # a site page
+curl -s http://127.0.0.1:3100/health | head -c 200      # the relay's JSON
+curl -s -H 'Host: velorki.com' http://127.0.0.1:3100/ | head -c 200   # a site page
 ```
 
 A site page needs the explicit `Host:` header; without one you get the API role.
@@ -633,8 +633,8 @@ On the box, straight to the app. Proxy-independent: these two skip whatever
 terminates TLS and prove the app itself is up and that its host gate works.
 
 ```sh
-curl -s http://127.0.0.1:8080/health
-curl -s -H 'Host: velorki.com' -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8080/
+curl -s http://127.0.0.1:3100/health
+curl -s -H 'Host: velorki.com' -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3100/
 ```
 
 Then the proxy, still without Cloudflare. `--resolve` pins the public name to
@@ -771,7 +771,7 @@ back from a checkout and this file.
 `npm run build && npm run start:cluster` for the cluster.
 
 `start:cluster` is deliberately the same shape as the VPS: two workers, the
-`/health` readiness probe, the 15 s kill timeout, and `PORT=8080` so it listens
+`/health` readiness probe, the 15 s kill timeout, and `PORT=3100` so it listens
 where `web/orkify.yml` says the process listens. What it is *not* is a copy of
 the deploy - Orkify reads `orkify.yml` there and adds `crashWindow`, the rolling
 reload and the dashboard secrets, none of which a bare `orkify run` has. It is
@@ -831,4 +831,4 @@ release.
   therefore shipped in a `.env.production` written by the deploy workflow
   instead of relying on it.
 - Whether Orkify's `port:` also sets `PORT` in the process environment.
-  `orkify.yml` sets both to 8080 so it does not matter.
+  `orkify.yml` sets both to 3100 so it does not matter.

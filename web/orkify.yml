@@ -56,20 +56,20 @@ processes:
     # The port Orkify knows the app listens on. It is what the health probe
     # dials and what sticky routing would use. Next's server.js reads PORT from
     # the environment, so it is set in `env` below as well - keep the two equal.
-    port: 8080
+    port: 3100
 
     # Readiness probe for every start and every rolling reload: Orkify requests
-    # `http://localhost:8080/health` and retries 3 times with 1 s between
+    # `http://localhost:3100/health` and retries 3 times with 1 s between
     # attempts; a non-2xx after that marks the worker failed.
     # (https://orkify.com/docs/cli, "Health Check Mechanism")
     #
     # The probe dials loopback and cannot be given headers, so it arrives with
-    # `Host: localhost:8080` and no `x-velorki-host`. `/health` is an API-host
+    # `Host: localhost:3100` and no `x-velorki-host`. `/health` is an API-host
     # route, so the host gate treats a loopback Host (`localhost:<PORT>`,
     # `127.0.0.1:<PORT>`, `[::1]:<PORT>`) as the API role - that is the only
     # way the probe reaches it, and it is safe because the proxy always forwards
     # the real public Host and the origin only accepts Cloudflare's addresses.
-    # On the box, `curl -s http://127.0.0.1:8080/health` is the same request.
+    # On the box, `curl -s http://127.0.0.1:3100/health` is the same request.
     healthCheck: /health
 
     # Grace period for SIGTERM before SIGKILL, in ms. Long enough to finish an
@@ -84,7 +84,7 @@ processes:
       # Production mode for Next and for the app's own logging defaults.
       NODE_ENV: 'production'
       # Port Next's standalone server binds. Must match `port:` above.
-      PORT: '8080'
+      PORT: '3100'
       # Interface Next binds. 0.0.0.0 so the proxy on the same host can reach it;
       # the box is firewalled to Cloudflare's ranges, nothing else can.
       HOSTNAME: '0.0.0.0'
