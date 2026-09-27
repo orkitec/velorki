@@ -43,7 +43,7 @@
 #   nginx -V 2>&1 | tr ' ' '\n' | grep realip
 set -euo pipefail
 
-SNIPPET=${SNIPPET:-/etc/nginx/conf.d/cloudflare-real-ip.conf}
+SNIPPET=${SNIPPET:-/etc/nginx/snippets/velorki-cloudflare-real-ip.conf}
 V4_URL=${V4_URL:-https://www.cloudflare.com/ips-v4}
 V6_URL=${V6_URL:-https://www.cloudflare.com/ips-v6}
 

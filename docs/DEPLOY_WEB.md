@@ -205,7 +205,7 @@ they write and what they refuse to do:
 
 | | 4a `cloudflare-ips.sh` | 4b `cloudflare-ips-nginx.sh` |
 |---|---|---|
-| Writes | `/etc/caddy/cloudflare-ips.caddy` (one `trusted_proxies static` line) | `/etc/nginx/conf.d/cloudflare-real-ip.conf` (`set_real_ip_from` per range, `real_ip_header CF-Connecting-IP`, `real_ip_recursive on`) |
+| Writes | `/etc/caddy/cloudflare-ips.caddy` (one `trusted_proxies static` line) | `/etc/nginx/snippets/velorki-cloudflare-real-ip.conf` (`set_real_ip_from` per range, `real_ip_header CF-Connecting-IP`, `real_ip_recursive on`) |
 | Firewall | adds and removes its own `ufw` rules for 443 | **touches nothing**; prints the `ufw allow` lines for the operator |
 | Validates | `caddy validate` before reloading | `nginx -t`, and puts the previous file back if it fails |
 | Reload | `systemctl reload caddy`, only on change | `systemctl reload nginx`, only on change |
@@ -296,7 +296,7 @@ directive in it is inside a server block, so the site already on this nginx
 keeps its own settings.
 
 The one file that is global is the generated
-`/etc/nginx/conf.d/cloudflare-real-ip.conf`: Debian and Ubuntu glob `conf.d/*.conf`
+`/etc/nginx/snippets/velorki-cloudflare-real-ip.conf`: Debian and Ubuntu glob `conf.d/*.conf`
 into the `http` block, so `real_ip_header CF-Connecting-IP` applies to the other
 site too — but only to requests whose peer address is in a Cloudflare range, so
 it either does exactly the same good thing there or nothing at all. If the
@@ -314,17 +314,17 @@ not the other site's:
 
 ```sh
 sudo install -d -m 0755 /etc/ssl/velorki
-sudo install -m 0644 /dev/null /etc/ssl/velorki/velorki.com.pem
-sudo install -m 0600 /dev/null /etc/ssl/velorki/velorki.com.key
-sudo nano /etc/ssl/velorki/velorki.com.pem      # paste the certificate
-sudo nano /etc/ssl/velorki/velorki.com.key      # paste the private key
+sudo install -m 0644 /dev/null /etc/ssl/velorki-origin.pem
+sudo install -m 0600 /dev/null /etc/ssl/velorki-origin.key
+sudo nano /etc/ssl/velorki-origin.pem      # paste the certificate
+sudo nano /etc/ssl/velorki-origin.key      # paste the private key
 ```
 
 nginx's master process reads both as root before dropping privileges, so the key
 stays `0600 root:root`; no group needs it.
 
 **The Cloudflare ranges first.** The server blocks `include`
-`/etc/nginx/conf.d/cloudflare-real-ip.conf`, so `nginx -t` fails while that file
+`/etc/nginx/snippets/velorki-cloudflare-real-ip.conf`, so `nginx -t` fails while that file
 does not exist. Generate it before enabling the site:
 
 ```sh
