@@ -41,11 +41,15 @@ exercised there. The items here are the parts not yet covered by that.
 - [ ] **velorki.com**: the `ride@velorki.com`
       mailbox (support and security reports). (Nameservers, DNS and TLS are step 5 of
       [DEPLOY_WEB.md](DEPLOY_WEB.md).)
-- [ ] **Website legal pages**: fill the imprint placeholders in
-      `web/content/en/legal/imprint.md`, set the effective dates in
-      `privacy.md` and `terms.md`, have a lawyer read both — and `CLA.md`, the
-      Contributor Licence Agreement, with them: it is written in plain language
-      and has not been reviewed by one.
+- [ ] **Website legal pages**: the imprint, the privacy policy and the terms
+      are filled in and published (`draft: false`, effective 27 September 2026,
+      provider data from the Orkify imprint). What is left is a lawyer's read of
+      all three — and of `CLA.md`, the Contributor Licence Agreement, with them:
+      it is written in plain language and has not been reviewed by one. Two
+      statements in the privacy policy have to be kept true as things change:
+      the AI section says no provider is configured, and the log retention says
+      14 days for the web server's access logs and 90 for the application log
+      lines in Orkify.
 - [ ] **Crowdin**: create the project (source English, target German), request
       the open-source plan, and add the `CROWDIN_PROJECT_ID` and
       `CROWDIN_PERSONAL_TOKEN` secrets in the GitHub repo.

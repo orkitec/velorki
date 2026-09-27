@@ -1,27 +1,22 @@
 ---
 title: Nutzungsbedingungen
 description: Die Bedingungen für die Nutzung der Velorki-App und der Website, für das Abo Velorki Plus, für Teilen-Links und für den Assistenten.
-draft: true
+draft: false
 ---
 
 > **Hinweis zur Übersetzung.** Dies ist eine Übersetzung der englischen
 > Fassung. Bei Abweichungen gilt die englische Fassung.
 
-> **Dies ist ein Entwurf.** Er wurde von den Leuten geschrieben, die Velorki
-> bauen, nicht von einer Anwältin oder einem Anwalt, und eine anwaltliche
-> Prüfung muss erfolgen, bevor er als Nutzungsbedingungen einer
-> veröffentlichten App erscheint. Einige Punkte sind noch mit "noch
-> einzutragen" gekennzeichnet.
-
-Gültig ab: wird zum Start festgelegt.
+Gültig ab: 27. September 2026.
 
 ## 1. Zwischen wem diese Bedingungen gelten
 
 Diese Nutzungsbedingungen regeln deine Nutzung der Velorki-App fürs Handy, der
 Velorki-Website unter velorki.com und der Dienste, die die App über das Netz
-erreicht (Routing-Server, Relay, Assistent, Teilen-Links). Anbieter ist
-Orkitec, dessen vollständige Angaben auf der Seite [Impressum](./imprint)
-stehen. "Wir" und "uns" meint Orkitec; "du" meint die Person, die Velorki
+erreicht (Routing-Server, Relay, Assistent, Teilen-Links). Anbieter ist Steffen
+Roemer, handelnd unter „Orkitec“, Straße der Pariser Kommune 27, 10243 Berlin,
+Deutschland — die vollständigen Angaben stehen auf der Seite
+[Impressum](./imprint). "Wir" und "uns" meint Orkitec; "du" meint die Person, die Velorki
 nutzt.
 
 Mit dem Installieren oder Nutzen von Velorki stimmst du diesen Bedingungen zu.
@@ -30,6 +25,11 @@ Wenn du nicht zustimmst, nutze die App nicht.
 Velorki hat **kein Nutzerkonto**. Du registrierst dich nicht, und wir haben
 keine Möglichkeit, dich zu identifizieren. Alles Folgende knüpft daher an deine
 Nutzung der Software an, nicht an ein Konto.
+
+Velorki richtet sich nicht an Kinder. Bist du unter 16, nutze es nur mit dem
+Einverständnis eines Erziehungsberechtigten; ein Abo Velorki Plus darf nur
+abschließen, wer wirksam einen Vertrag schließen kann — das verlangen auch die
+App-Stores.
 
 ## 2. Was Velorki ist und was nicht
 
@@ -137,6 +137,18 @@ wir einen wesentlichen Teil dessen, was Plus bietet, dauerhaft, kannst du
 kündigen; es gelten dann die Erstattungs- und Anteilsregeln des Stores. Alles
 Kostenlose funktioniert davon unabhängig weiter, auch offline, und deine Routen
 und Fahrten bleiben auf deinem Handy und bleiben exportierbar.
+
+### 4.6 Widerrufsrecht
+
+Velorki Plus kaufst du bei Apple oder Google, nicht bei uns: Verkäufer ist der
+Store, und ein gesetzliches Widerrufsrecht für ein digitales Abo wird dort
+ausgeübt, nach den Bedingungen des Stores und innerhalb der dort genannten
+Frist. Käufe bei Apple laufen über die Apple Distribution International Ltd in
+Irland, Käufe bei Google über die Google Ireland Ltd; beide geben
+Verbraucherinnen und Verbrauchern in der EU einen Weg, eine Rückerstattung
+direkt beim Store zu verlangen. Wir können sie weder gewähren noch verweigern;
+schreib aber an ride@velorki.com, wenn ein Store eine Anfrage ablehnt, die aus
+unserer Sicht hätte durchgehen müssen — wir unterstützen sie, soweit wir können.
 
 ## 5. Zulässige Nutzung
 
@@ -324,7 +336,8 @@ deinen gewöhnlichen Aufenthalt hast, und du kannst vor den Gerichten dieses
 Staates klagen.
 
 Bist du Kaufmann, juristische Person des öffentlichen Rechts oder
-öffentlich-rechtliches Sondervermögen, ist Gerichtsstand unser Sitz.
+öffentlich-rechtliches Sondervermögen, ist Gerichtsstand Berlin, der Ort
+unserer Niederlassung.
 
 ### Online-Streitbeilegung
 
@@ -340,7 +353,8 @@ Rest wirksam.
 
 ## 16. Kontakt
 
-Orkitec, ride@velorki.com. Postanschrift und die übrigen Anbieterangaben
+Steffen Roemer, handelnd unter „Orkitec“, Straße der Pariser Kommune 27, 10243
+Berlin, Deutschland, ride@velorki.com. Die übrigen Anbieterangaben
 stehen auf der Seite [Impressum](./imprint). Für Sicherheitsmeldungen siehe
 [SECURITY.md](https://github.com/orkitec/velorki/blob/main/SECURITY.md) im
 Quellcode-Repository.

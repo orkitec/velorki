@@ -410,7 +410,9 @@
     "credits": "Credits",
     "copyright": "© {year} Orkitec. App, website and relay under AGPL-3.0-only.",
     "github": "GitHub",
-    "orkify": "Hosted with Orkify"
+    "release": "Version {release}",
+    "commit": "Commit {commit}",
+    "orkify": "Deployed with Orkify"
   },
   "notFound": {
     "title": "Off the route",

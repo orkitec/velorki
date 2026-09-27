@@ -1,21 +1,18 @@
 ---
 title: Terms of use
 description: The terms for using the Velorki app and website, the Velorki Plus subscription, share links and the assistant.
-draft: true
+draft: false
 ---
 
-> **This is a draft.** It has been written by the people who build Velorki, not
-> by a lawyer, and a lawyer has to read it before it is published as the terms
-> of a released app. Some points are still marked "to be filled in".
-
-Effective date: to be set at launch.
+Effective date: 27 September 2026.
 
 ## 1. Who these terms are between
 
 These terms of use govern your use of the Velorki mobile app, the Velorki
 website at velorki.com and the services the app reaches over the network (the
-routing server, the relay, the assistant, share links). The provider is
-Orkitec, whose full details are on the [imprint](./imprint) page. "We" and "us"
+routing server, the relay, the assistant, share links). The provider is Steffen
+Roemer, trading as "Orkitec", Straße der Pariser Kommune 27, 10243 Berlin,
+Germany — the full details are on the [imprint](./imprint) page. "We" and "us"
 mean Orkitec; "you" means the person using Velorki.
 
 By installing or using Velorki you agree to these terms. If you do not agree,
@@ -24,6 +21,11 @@ do not use the app.
 Velorki has **no user account**. You do not register, and we have no way to
 identify you. Everything below therefore attaches to your use of the software,
 not to an account.
+
+Velorki is not directed at children. If you are under 16, use it only with the
+agreement of a parent or guardian; a Velorki Plus subscription may only be
+bought by someone who can enter into a contract, which is also what the app
+stores require.
 
 ## 2. What Velorki is, and what it is not
 
@@ -123,6 +125,17 @@ API closes or an AI provider becomes unavailable. If we permanently remove a
 substantial part of what Plus offers, you may cancel; the store's refund and
 proration rules then apply. Everything free keeps working regardless, including
 offline, and your routes and rides remain on your phone and exportable.
+
+### 4.6 Right of withdrawal
+
+You buy Velorki Plus from Apple or Google, not from us: the seller is the store,
+and a statutory right of withdrawal for a digital subscription is exercised
+there, under the store's own terms and within the period they state. Apple's
+purchases are handled by Apple Distribution International Ltd in Ireland, and
+Google's by Google Ireland Ltd, both of which give consumers in the EU a way to
+request a refund from the store directly. We cannot grant or refuse one, but
+write to ride@velorki.com if a store refuses a request that looks to us like it
+should have been granted, and we will support it as far as we can.
 
 ## 5. Acceptable use
 
@@ -294,7 +307,7 @@ have your habitual residence, and you may bring proceedings in the courts of
 that country.
 
 If you are a merchant, a legal entity under public law or a special fund under
-public law, the place of jurisdiction is our registered seat.
+public law, the place of jurisdiction is Berlin, our place of business.
 
 ### Online dispute resolution
 
@@ -309,8 +322,9 @@ If a provision of these terms is or becomes invalid, the rest stays in force.
 
 ## 16. Contact
 
-Orkitec, ride@velorki.com. Postal address and the rest of the provider details
-are on the [imprint](./imprint) page. For security reports see
+Steffen Roemer, trading as "Orkitec", Straße der Pariser Kommune 27, 10243
+Berlin, Germany, ride@velorki.com. The rest of the provider details are on the
+[imprint](./imprint) page. For security reports see
 [SECURITY.md](https://github.com/orkitec/velorki/blob/main/SECURITY.md) in the
 source repository.
 

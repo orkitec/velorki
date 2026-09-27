@@ -53,6 +53,13 @@ jobs:
       # the deploy step needs no global install and no unpinned `npx` download.
       - run: npm ci
 
+      # The artifact has no `.git` - `orkify deploy upload` excludes it - so the
+      # commit this release was built from has to travel inside the tarball.
+      # This writes web/build-info.json from GITHUB_SHA; next.config.ts reads it
+      # during the build on the box and inlines it for the footer. Before the
+      # build below, so CI's build exercises the same path.
+      - run: npm run build-info
+
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test

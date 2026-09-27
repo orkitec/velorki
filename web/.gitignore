@@ -9,3 +9,8 @@ data/
 *.sqlite-*
 *.tsbuildinfo
 next-env.d.ts
+
+# build-info.json is deliberately NOT ignored: scripts/build-info.mjs writes the
+# release commit into it in CI, and `orkify deploy upload` packs whatever git
+# does not ignore. Ignoring it would silently drop the commit from the artifact,
+# and the footer would stop naming what is deployed.

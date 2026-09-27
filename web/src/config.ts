@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { z } from 'zod';
 import { parseWrapKeys, type WrapKeys } from '@/server/wrap';
+import { buildMeta } from './build-meta';
 
 /**
  * All configuration comes from the environment (Orkify injects it into the
@@ -46,7 +47,10 @@ const envSchema = z
       .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
       .optional()
       .transform((v) => v ?? 'info'),
-    APP_VERSION: optionalStr.transform((v) => v ?? 'dev'),
+    // Set it in the environment to override; otherwise it is the release
+    // number Orkify gave this artifact (`v2`), inlined at build time, so
+    // /health names the running release without anyone maintaining a variable.
+    APP_VERSION: optionalStr.transform((v) => v ?? buildMeta().release ?? 'dev'),
     PUBLIC_BASE_URL: optionalStr.transform((v) =>
       (v ?? 'https://velorki.com').replace(/\/+$/, ''),
     ),

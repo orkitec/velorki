@@ -410,7 +410,9 @@
     "credits": "Danksagung",
     "copyright": "© {year} Orkitec. App, Website und Relay unter AGPL-3.0-only.",
     "github": "GitHub",
-    "orkify": "Gehostet mit Orkify"
+    "release": "Version {release}",
+    "commit": "Commit {commit}",
+    "orkify": "Bereitgestellt mit Orkify"
   },
   "notFound": {
     "title": "Von der Route abgekommen",

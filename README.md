@@ -64,14 +64,14 @@ every such item.
 
 ## Layout
 
-| Directory | Contents | Licence |
-|-----------|----------|---------|
-| `app/` | the Flutter app and its pure-Dart packages (`app/packages/`) | AGPL-3.0-only |
-| `web/` | velorki.com: the website and the relay (OAuth token exchange, AI relay, share links) in one Next.js app | AGPL-3.0-only |
-| `brouter/` | routing profiles and the map-data updater for the BRouter routing server | AGPL-3.0-only |
-| `deploy/` | self-hosting with Docker Compose or systemd | AGPL-3.0-only |
-| `docs/` | architecture, self-hosting, privacy, store checklist | AGPL-3.0-only |
-| `tools/` | the BRouter test oracle and the gazetteer builder | AGPL-3.0-only |
+| Directory | Contents |
+|-----------|----------|
+| `app/` | the Flutter app and its pure-Dart packages (`app/packages/`) |
+| `web/` | velorki.com: the website and the relay (OAuth token exchange, AI relay, share links) in one Next.js app |
+| `brouter/` | routing profiles and the map-data updater for the BRouter routing server |
+| `deploy/` | self-hosting with Docker Compose or systemd |
+| `docs/` | architecture, self-hosting, privacy, store checklist |
+| `tools/` | the BRouter test oracle and the gazetteer builder |
 
 ## Design in one paragraph
 
@@ -95,12 +95,12 @@ the step-by-step for the last two. Forks must rebrand, see `TRADEMARK.md`.
 
 ## Licence
 
-[AGPL-3.0](LICENSE). Modified versions have to flow back: whoever distributes
-a changed app, or serves a changed relay or website, publishes the source
-under the same licence, and keeps a "Based on Velorki (velorki.com) by
-Orkitec" line in its about screen or website footer, see
-`ADDITIONAL_TERMS.md`. The name, the logo and the app icon stay reserved, see
-`TRADEMARK.md`.
+[AGPL-3.0-only](LICENSE), for every directory above — one licence, no
+exceptions. Modified versions have to flow back: whoever distributes a changed
+app, or serves a changed relay or website, publishes the source under the same
+licence, and keeps a "Based on Velorki (velorki.com) by Orkitec" line in its
+about screen or website footer, see `ADDITIONAL_TERMS.md`. The name, the logo
+and the app icon stay reserved, see `TRADEMARK.md`.
 
 ## Credits
 

@@ -205,7 +205,7 @@ they write and what they refuse to do:
 
 | | 4a `cloudflare-ips.sh` | 4b `cloudflare-ips-nginx.sh` |
 |---|---|---|
-| Writes | `/etc/caddy/cloudflare-ips.caddy` (one `trusted_proxies static` line) | `/etc/nginx/conf.d/cloudflare-real-ip.conf` (`set_real_ip_from` per range, `real_ip_header CF-Connecting-IP`, `real_ip_recursive on`) |
+| Writes | `/etc/caddy/cloudflare-ips.caddy` (one `trusted_proxies static` line) | `/etc/nginx/snippets/velorki-cloudflare-real-ip.conf` (`set_real_ip_from` per range, `real_ip_header CF-Connecting-IP`, `real_ip_recursive on`) |
 | Firewall | adds and removes its own `ufw` rules for 443 | **touches nothing**; prints the `ufw allow` lines for the operator |
 | Validates | `caddy validate` before reloading | `nginx -t`, and puts the previous file back if it fails |
 | Reload | `systemctl reload caddy`, only on change | `systemctl reload nginx`, only on change |
@@ -296,7 +296,7 @@ directive in it is inside a server block, so the site already on this nginx
 keeps its own settings.
 
 The one file that is global is the generated
-`/etc/nginx/conf.d/cloudflare-real-ip.conf`: Debian and Ubuntu glob `conf.d/*.conf`
+`/etc/nginx/snippets/velorki-cloudflare-real-ip.conf`: Debian and Ubuntu glob `conf.d/*.conf`
 into the `http` block, so `real_ip_header CF-Connecting-IP` applies to the other
 site too — but only to requests whose peer address is in a Cloudflare range, so
 it either does exactly the same good thing there or nothing at all. If the
@@ -314,17 +314,17 @@ not the other site's:
 
 ```sh
 sudo install -d -m 0755 /etc/ssl/velorki
-sudo install -m 0644 /dev/null /etc/ssl/velorki/velorki.com.pem
-sudo install -m 0600 /dev/null /etc/ssl/velorki/velorki.com.key
-sudo nano /etc/ssl/velorki/velorki.com.pem      # paste the certificate
-sudo nano /etc/ssl/velorki/velorki.com.key      # paste the private key
+sudo install -m 0644 /dev/null /etc/ssl/velorki-origin.pem
+sudo install -m 0600 /dev/null /etc/ssl/velorki-origin.key
+sudo nano /etc/ssl/velorki-origin.pem      # paste the certificate
+sudo nano /etc/ssl/velorki-origin.key      # paste the private key
 ```
 
 nginx's master process reads both as root before dropping privileges, so the key
 stays `0600 root:root`; no group needs it.
 
 **The Cloudflare ranges first.** The server blocks `include`
-`/etc/nginx/conf.d/cloudflare-real-ip.conf`, so `nginx -t` fails while that file
+`/etc/nginx/snippets/velorki-cloudflare-real-ip.conf`, so `nginx -t` fails while that file
 does not exist. Generate it before enabling the site:
 
 ```sh
@@ -811,6 +811,13 @@ the distribution's own logrotate rule already globs — nothing to add. The two
 cron scripts append to `/var/log/velorki-*.log` — add *those* to logrotate if
 they ever matter.
 
+The privacy policy quotes two of these numbers as promises: *14 days* for the
+web server's access logs (Debian's `/etc/logrotate.d/nginx` default, `daily` +
+`rotate 14`, which globs `/var/log/nginx/*.log`) and *90 days* for the
+application log lines Orkify collects. Check them on the box with
+`grep -A6 'rotate' /etc/logrotate.d/nginx`, and change
+`web/content/*/legal/privacy.md` in the same commit as any retention you tune.
+
 **Updating Node.** Minor releases come from `apt` with the NodeSource repo. For
 a major: install it, `orkify reload velorki-web`, check `orkify list`, and keep
 `engines.node` in `web/package.json` and the `node-version` in `web.yml` and
@@ -910,9 +917,13 @@ release.
   already carries one (`src/deploy/DeployExecutor.ts`), and that same source
   shows the build runs with `{ ...secrets, ...deployConfig.buildEnv }`, so
   dashboard secrets do reach `deploy.build`.
-- `APP_VERSION` is still unset, so `/health` reports `version: "dev"`. Set it
-  as a dashboard secret if the running version should be visible there; the old
-  SSH workflow stamped it into a `.env.production`, which the upload flow
-  cannot carry (`web/.gitignore` excludes `.env.*`).
+- `APP_VERSION` needs no setting either: unset, it falls back to the release
+  number Orkify gave the artifact (`v2`), which `next.config.ts` inlines from
+  `NEXT_DEPLOYMENT_ID` at build time (`web/src/build-meta.ts`). Set it as a
+  dashboard secret only to name a release something else. The commit is inlined
+  the same way, from `web/build-info.json`, which `web-deploy.yml` writes before
+  the upload — the artifact carries no `.git`, so that file is the only way the
+  box can know what it is building. The site footer shows both and links the
+  commit to GitHub.
 - Whether Orkify's `port:` also sets `PORT` in the process environment.
   `orkify.yml` sets both to 3100 so it does not matter.

@@ -1,21 +1,23 @@
 ---
 title: Datenschutzerklärung
 description: "Was Velorki mit deinen Daten macht: kein Konto, Routen und Fahrten bleiben auf dem Handy, und eine Liste dessen, was das Gerät wann verlässt."
-draft: true
+draft: false
 ---
 
 > **Hinweis zur Übersetzung.** Dies ist eine Übersetzung der englischen
 > Fassung. Bei Abweichungen gilt die englische Fassung.
 
-> **Dies ist ein Entwurf.** Er beschreibt, was die App tun soll. Er wurde nicht
-> von einer Anwältin oder einem Anwalt geprüft, und das muss geschehen, bevor
-> er als Datenschutzerklärung einer veröffentlichten App erscheint. Einige
-> Punkte unten sind noch mit "noch zu entscheiden" gekennzeichnet.
-
-Gültig ab: wird zum Start festgelegt.
+Gültig ab: 27. September 2026.
 
 Velorki ist eine App zum Planen von Radrouten und zum Aufzeichnen von Fahrten,
 gemacht von Orkitec. Diese Seite erklärt, was mit deinen Daten geschieht.
+
+**Wer verantwortlich ist.** Verantwortlich für alles, was hier beschrieben wird,
+ist Steffen Roemer, handelnd unter „Orkitec“, Straße der Pariser Kommune 27,
+10243 Berlin, Deutschland, ride@velorki.com. Ein Datenschutzbeauftragter ist
+nicht bestellt; die unten beschriebene Verarbeitung erfordert das nach Art. 37
+DSGVO nicht. Die vollständigen Anbieterangaben stehen im
+[Impressum](./imprint).
 
 ## Die kurze Fassung
 
@@ -27,6 +29,8 @@ gemacht von Orkitec. Diese Seite erklärt, was mit deinen Daten geschieht.
   heruntergeladenen Gebiete, die Suche, wenn du sie anforderst, und, falls du
   sie nutzt, der KI-Assistent, die Verbindungen zu Strava und RideWithGPS und
   die Teilen-Links. Jedes davon ist unten beschrieben.
+- Diese **Website** hat keine Analyse, keine Werbung und kein Tracking —
+  deshalb hat sie auch kein Cookie-Banner.
 - Wir verkaufen deine Daten nicht, und wir nutzen sie nicht für Werbung oder
   Profilbildung.
 
@@ -131,15 +135,19 @@ liefert eine strukturierte Anfrage zurück: eine Distanz, eine Form, Ortsnamen,
 Vorlieben. Das eigentliche Routing geschieht danach in der App; das Modell
 sieht deine Route nie.
 
-Unser KI-Anbieter ist **OpenAI (oder der vom Betreiber konfigurierte
-Anbieter)**. Der Assistent läuft auf einem gehosteten Modell, das unser Relay
-über eine OpenAI-kompatible Schnittstelle erreicht: Der offizielle
-Velorki-Build schickt Anfragen an OpenAI, und wer Velorki selbst betreibt, kann
-den Relay auf einen anderen Anbieter oder auf ein eigenes Modell richten; dann
-gilt die Erklärung dieses Betreibers. Wir erlauben dem Anbieter nicht, Modelle
-mit diesen Daten zu trainieren, wo das als Option angeboten wird. Die
-Rechtsordnung des Anbieters ist **vor der Veröffentlichung einzutragen**,
-zusammen mit der Rechtsgrundlage für die Übermittlung.
+**Im offiziellen Build ist derzeit kein KI-Anbieter konfiguriert**, der
+Assistent ist damit abgeschaltet und es wird nichts übermittelt: Der Relay
+antwortet, dass die Funktion nicht verfügbar ist. Bevor sie eingeschaltet wird,
+nennt dieser Abschnitt den Anbieter, das Land seiner Server und die Garantie für
+die Übermittlung, falls dieses Land außerhalb der EU liegt — und die App fragt
+erneut nach deiner Einwilligung, wenn sich die Antwort geändert hat. Wer es auch
+wird: Der Vertrag wird dem Anbieter nicht erlauben, Modelle mit dem Übermittelten
+zu trainieren, wo diese Wahl angeboten wird.
+
+Der Assistent erreicht das Modell über eine OpenAI-kompatible Schnittstelle. Wer
+Velorki selbst betreibt, kann seinen Relay deshalb auf jeden Anbieter oder auf
+ein eigenes Modell richten; dann gilt die Erklärung dieses Betreibers und nicht
+diese.
 
 Daten von Strava gehen nie an den KI-Anbieter.
 
@@ -169,20 +177,60 @@ nichts.
 
 Deine Zahlungsdaten sehen wir nie; die bleiben bei Apple oder Google.
 
-### Absturzberichte
+### Absturzberichte und Analyse
 
-**Noch zu entscheiden.** Zum jetzigen Zeitpunkt ist kein SDK für
-Absturzberichte oder Analysen enthalten. Kommt eines dazu, wird dieser
-Abschnitt es beim Namen nennen und sagen, was es erhebt, bevor die Funktion
-ausgeliefert wird.
+Es gibt keine. Die App enthält kein SDK für Absturzberichte, keine Analyse und
+keine Werbung, und sie schickt keine Nutzungsstatistik; jede Netzwerkanfrage,
+die sie stellt, ist eine der oben beschriebenen. Abstürze meldet der App-Store
+gesammelt an das Entwicklerkonto, ohne etwas, das dich identifiziert, und nur
+wenn du das in den Einstellungen deines Handys eingeschaltet hast. Kommt später
+ein Absturzbericht-Dienst dazu, nennt dieser Abschnitt ihn beim Namen und sagt,
+was er erhebt, bevor diese Version ausgeliefert wird.
 
 ### Server-Protokolle
 
-Unser Routing-Server und unser Relay führen Betriebsprotokolle (Zeitpunkt der
+Unser Relay und unser Routing-Server führen Betriebsprotokolle (Zeitpunkt der
 Anfrage, Endpunkt, Status, IP-Adresse und einen Header mit der Client-Version),
-um den Dienst zu betreiben und Ratenbegrenzungen durchzusetzen. Die
-Aufbewahrungsdauer dieser Protokolle ist **noch zu entscheiden**. Sie werden
-nicht dazu genutzt, Profile von Nutzenden zu bilden.
+um den Dienst zu betreiben, Fehler zu finden und Ratenbegrenzungen
+durchzusetzen. Sie werden nicht dazu genutzt, Profile von Nutzenden zu bilden,
+und sie enthalten nie ein Zugriffstoken, einen Anfragetext oder eine
+Abonnenten-Kennung.
+
+- Die Zugriffsprotokolle des Webservers bleiben **14 Tage** auf der Maschine und
+  werden dann von der Protokollrotation gelöscht.
+- Die Protokollzeilen der Anwendung sammelt Orkify, das Deployment-Dashboard
+  desselben Betreibers auf derselben Hetzner-Infrastruktur, und löscht sie dort
+  spätestens nach **90 Tagen**.
+
+## Diese Website
+
+velorki.com ist eine einfache Website: kein Konto, keine Werbung, keine
+Analyse, kein Tracking, keine fremden Skripte. Nichts, was du hier tust, wird
+gemessen — deshalb gibt es kein Cookie-Banner, es ist nichts zu fragen.
+
+- **Server-Protokolle.** Jede Anfrage wird protokolliert wie oben unter
+  Server-Protokolle beschrieben: Zeitpunkt, Pfad, Status, Größe, deine
+  IP-Adresse und die Kennung deines Browsers, 14 Tage lang.
+- **Cloudflare.** Die Website wird über Cloudflare ausgeliefert, das die
+  Verbindung annimmt, Angriffe abfängt und die Anfrage an unseren Server
+  weitergibt. Cloudflare verarbeitet dabei deine IP-Adresse und die Anfrage
+  selbst. Cloudflare sitzt in den USA; die Übermittlung stützt sich auf die
+  Standardvertragsklauseln der EU.
+- **Ein Sprach-Cookie.** Wählst du oben eine Sprache, wird ein Cookie
+  `NEXT_LOCALE` gesetzt (Wert `en` oder `de`, ein Jahr). Es sorgt dafür, dass die
+  Website in der gewählten Sprache öffnet. Mehr steht nicht darin, und es wird
+  nur gesetzt, wenn du diese Wahl triffst — es ist für eine von dir
+  angeforderte Funktion unbedingt erforderlich und braucht nach § 25 Abs. 2
+  TTDSG keine Einwilligung.
+- **Die Darstellung.** Wählst du hell, dunkel oder eine Akzentfarbe, wird
+  `velorki.theme` im lokalen Speicher deines Browsers abgelegt. Das verlässt den
+  Browser nie und ist für uns nicht lesbar.
+- **Freigabe-Seiten.** Öffnest du einen `velorki.com/s/…`-Link, kommt die
+  geteilte Route von unserem Server und die Kartenkacheln von OpenFreeMap, das
+  dabei deine IP-Adresse sieht wie bei jeder Webanfrage. Weitere fremde Inhalte
+  hat die Seite nicht.
+- **Schriften, Bilder und Skripte** kommen alle von diesem Server. Es gibt kein
+  CDN dafür und keinen Schriftdienst.
 
 ## Aufbewahrung und Löschung
 
@@ -199,23 +247,108 @@ gespeichert hat. Es entfernt keine von dir erstellten Teilen-Links (die laufen
 nach einem Jahr ab oder auf Anfrage), und es entfernt nichts, was du zu Strava
 oder RideWithGPS hochgeladen hast.
 
+## Rechtsgrundlagen
+
+Für Leserinnen und Leser in der EU und im Vereinigten Königreich sind die
+Rechtsgrundlagen nach Art. 6 Abs. 1 DSGVO:
+
+| Wofür | Grundlage |
+|---|---|
+| Betrieb der Website und der Freigabe-Seiten, Verfügbarkeit der Server, Fehlersuche, Ratenbegrenzung, Abwehr von Angriffen | (f) berechtigtes Interesse an einem Dienst, der funktioniert und nicht missbraucht wird |
+| Online-Routing und Online-Suche, wenn du sie anforderst | (b) Erbringung der von dir angeforderten Leistung, und (f) für die Koordinaten, die zur Antwort nötig sind |
+| Velorki Plus: Prüfung bei RevenueCat, ob ein Abo aktiv ist | (b) Erfüllung des Vertrags |
+| Strava und RideWithGPS: Verbinden eines Kontos und jede von dir ausgelöste Übertragung | (b) Erfüllung des Vertrags und (a) Einwilligung, erteilt durch das Verbinden des Kontos |
+| Von dir erstellte Freigabe-Links | (b) Erfüllung des Vertrags |
+| Der KI-Assistent | (a) Einwilligung, in der App gesondert erfragt und in den Einstellungen widerruflich |
+| Aufbewahrung steuerlich relevanter Unterlagen zu einem Abo | (c) rechtliche Verpflichtung — die Zahlungsdaten liegen bei Apple und Google, nicht bei uns |
+
+Wir bilden keine Profile, treffen keine automatisierten Entscheidungen über dich
+und nutzen nichts davon für Direktwerbung.
+
+## Wer sonst Daten erhält
+
+Wir verkaufen, vermieten und tauschen keine personenbezogenen Daten. Sie
+erreichen diese Stellen und keine anderen:
+
+**Auftragsverarbeiter, die mit Vertrag zur Auftragsverarbeitung für uns tätig
+sind**
+
+- **Hetzner Cloud GmbH**, Gunzenhausen, Deutschland — der Server, auf dem der
+  Relay, die Freigabe-Links und diese Website laufen. Die Daten bleiben in
+  Deutschland.
+- **Cloudflare, Inc.**, San Francisco, USA — DNS, CDN und Angriffsabwehr für
+  velorki.com und api.velorki.com. IP-Adressen und Metadaten der Anfragen.
+- **RevenueCat, Inc.**, San Francisco, USA — die Abo-Prüfung. Die anonyme
+  App-Nutzer-Kennung und der Kaufbeleg, kein Name und keine E-Mail-Adresse.
+- **Orkify**, betrieben von demselben Betreiber auf der oben genannten
+  Hetzner-Infrastruktur — das Deployment-Dashboard, das die Anwendungsprotokolle
+  und Prozessmetriken aus dem Abschnitt Server-Protokolle sammelt.
+
+**Dienste, die dein Handy oder dein Browser direkt kontaktiert und die jeweils
+selbst verantwortlich sind**
+
+- **OpenFreeMap** (Kartenkacheln) und **OpenStreetMap France** (die
+  CyclOSM-Überlagerung, nur wenn du sie einschaltest) — die Kacheln für den
+  Kartenausschnitt, den du ansiehst, und deine IP-Adresse.
+- **komoot GmbH**, Potsdam, Deutschland — der Photon-Geocoder unter
+  `photon.komoot.io`, und nur für eine von dir angeforderte Online-Suche.
+- **Apple Inc.** und **Google Ireland Ltd** — der Verkauf von Velorki Plus. Sie
+  sind die Verkäufer; deine Zahlungsdaten sehen wir nie.
+- **Strava, Inc.** und **Ride with GPS** — erst nachdem du das Konto verbunden
+  hast, und nur für eine von dir ausgelöste Übertragung. Was dort damit
+  geschieht, richtet sich nach deren eigenen Erklärungen.
+
+Außerdem geben wir Daten heraus, wo ein Gericht oder eine Behörde es nach dem
+Gesetz verlangt.
+
+## Übermittlungen außerhalb der EU
+
+Cloudflare, RevenueCat, Strava, Ride with GPS, Apple und Google sitzen in den
+USA oder übermitteln dorthin. Diese Übermittlungen stützen sich auf die
+Standardvertragsklauseln der Europäischen Kommission oder, wo der Anbieter
+zertifiziert ist, auf das EU-US Data Privacy Framework, zusammen mit den
+technischen Maßnahmen des Anbieters. Hetzner, komoot und die Kartendienste, auf
+die wir uns stützen, liegen in der EU. Alles, was die App für dich speichert,
+bleibt auf deinem Handy und wird überhaupt nicht übermittelt.
+
+## Sicherheit
+
+Jede Verbindung zu unseren Servern und zu den oben genannten Diensten ist mit
+TLS verschlüsselt. Tokens von Strava und RideWithGPS liegen nirgends
+unverschlüsselt: Dein Handy hält sie im sicheren Speicher der Plattform,
+verpackt mit einem Schlüssel, den nur der Relay hat; der Relay öffnet einen für
+die eine Anfrage, für die er gebraucht wird, und behält nichts. Die
+Freigabe-Datenbank liegt auf der Platte des Servers, außerhalb des
+Release-Verzeichnisses, lesbar nur für den Dienstbenutzer. Protokolle sind
+bereinigt: kein `Authorization`-Header, kein Anfragetext, keine
+Abonnenten-Kennung. Der Zugang zum Server verlangt einen Schlüssel, kein
+Passwort, und steht nur dem Betreiber offen. Sollte eine Verletzung deine Rechte
+gefährden, melden wir sie binnen 72 Stunden der Aufsichtsbehörde (Art. 33
+DSGVO) und, wo das Gesetz es verlangt, dir.
+
 ## Deine Rechte
 
-Wenn du in der EU oder im Vereinigten Königreich bist, gibt dir die DSGVO das
-Recht, deine personenbezogenen Daten einzusehen, zu berichtigen und zu löschen,
-ihre Verarbeitung einzuschränken oder ihr zu widersprechen und sie in einem
-übertragbaren Format zu erhalten. Das meiste davon kannst du selbst wahrnehmen,
-weil die Daten auf deinem Handy liegen und sich jederzeit als GPX-, FIT-
-oder TCX-Datei exportieren lassen.
+Wenn du in der EU oder im Vereinigten Königreich bist, hast du das Recht auf
+Auskunft (Art. 15 DSGVO), Berichtigung (16), Löschung (17), Einschränkung der
+Verarbeitung (18), Datenübertragbarkeit (20) und Widerspruch gegen eine
+Verarbeitung auf Grundlage eines berechtigten Interesses (21); und wo wir uns
+auf deine Einwilligung stützen — beim Assistenten — kannst du sie jederzeit
+widerrufen, ohne dass das Bisherige unrechtmäßig wird (Art. 7 Abs. 3). Das
+meiste davon kannst du selbst wahrnehmen, weil die Daten auf deinem Handy liegen
+und sich jederzeit als GPX-, FIT- oder TCX-Datei exportieren lassen.
 
 Für alles, was auf unserer Seite liegt (Teilen-Links, Protokolleinträge, der
-Datensatz bei RevenueCat), schreib an **ride@velorki.com**. Wir brauchen genug
-Angaben, um die Daten zu finden, was bei Teilen-Links den Link selbst bedeutet,
-da wir kein Konto haben, über das wir dich nachschlagen könnten. Du hast
-außerdem das Recht, dich bei deiner Datenschutzaufsichtsbehörde zu beschweren.
+Datensatz bei RevenueCat), schreib an **ride@velorki.com**. Wir antworten
+innerhalb von 30 Tagen. Wir brauchen genug Angaben, um die Daten zu finden, was
+bei einem Teilen-Link den Link selbst bedeutet, da es kein Konto gibt, über das
+wir dich nachschlagen könnten.
 
-Verantwortlich ist Orkitec. Postanschrift und eine etwaige
-Datenschutzvertretung: **vor der Veröffentlichung einzutragen.**
+Du kannst dich außerdem bei einer Aufsichtsbehörde beschweren. Für uns ist das
+die [Berliner Beauftragte für Datenschutz und Informationsfreiheit](https://www.datenschutz-berlin.de);
+du kannst dich ebenso an die Behörde deines Wohnorts wenden.
+
+Verantwortlich ist Steffen Roemer, handelnd unter „Orkitec“, Straße der Pariser
+Kommune 27, 10243 Berlin, Deutschland.
 
 ## Kinder
 
@@ -231,6 +364,7 @@ Fassungen bleiben in der Git-Historie des Repositorys.
 
 ## Kontakt
 
-Orkitec, ride@velorki.com. Für Sicherheitsmeldungen siehe
+Orkitec, ride@velorki.com; Postanschrift im [Impressum](./imprint). Für
+Sicherheitsmeldungen siehe
 [SECURITY.md](https://github.com/orkitec/velorki/blob/main/SECURITY.md) im
 Quellcode-Repository.

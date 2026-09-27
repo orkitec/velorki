@@ -9,7 +9,7 @@
 # ips-v6 (plain text, one CIDR per line) and changes them occasionally. This
 # script turns that list into
 #
-#   /etc/nginx/conf.d/cloudflare-real-ip.conf
+#   /etc/nginx/snippets/velorki-cloudflare-real-ip.conf
 #
 # holding one `set_real_ip_from <cidr>;` per range plus
 # `real_ip_header CF-Connecting-IP;` and `real_ip_recursive on;`, so
@@ -17,9 +17,10 @@
 # the real visitor rather than a Cloudflare edge node, and only when the
 # connection really came from Cloudflare.
 #
-# Debian/Ubuntu's /etc/nginx/nginx.conf globs conf.d/*.conf into the http block,
-# so the file takes effect everywhere on the box; velorki.nginx.conf also
-# includes it per server block, which is a harmless re-declaration.
+# It goes to snippets/, not conf.d/: Debian and Ubuntu glob conf.d/*.conf into
+# the http block, which would apply these directives to every site on the box,
+# including a neighbour's. snippets/ is not globbed, so velorki.nginx.conf's
+# per-server `include` lines are what put them in force - for Velorki alone.
 #
 # UNLIKE THE CADDY VARIANT, THIS SCRIPT DOES NOT TOUCH ufw. A box running nginx
 # is a box that already serves something else, and its firewall is shared: an
@@ -43,7 +44,7 @@
 #   nginx -V 2>&1 | tr ' ' '\n' | grep realip
 set -euo pipefail
 
-SNIPPET=${SNIPPET:-/etc/nginx/conf.d/cloudflare-real-ip.conf}
+SNIPPET=${SNIPPET:-/etc/nginx/snippets/velorki-cloudflare-real-ip.conf}
 V4_URL=${V4_URL:-https://www.cloudflare.com/ips-v4}
 V6_URL=${V6_URL:-https://www.cloudflare.com/ips-v6}
 

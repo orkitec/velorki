@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
@@ -37,6 +39,31 @@ const CSP = [
   "form-action 'none'",
   "frame-ancestors 'none'",
 ].join('; ');
+
+// What this build is, for the footer and for /health's `version`. Neither fact
+// can be read at runtime: Orkify passes NEXT_DEPLOYMENT_ID
+// (`v<release>-<artifact>`) into the build only, and the release artifact has
+// no `.git` for the box to ask. See src/build-meta.ts for the whole story.
+//
+// build-info.json is written by scripts/build-info.mjs in CI before the upload;
+// `git rev-parse` is the fallback that gives a local build a real commit too.
+function buildCommit(): string {
+  try {
+    const raw = readFileSync(new URL('./build-info.json', import.meta.url), 'utf-8');
+    const commit = (JSON.parse(raw) as { commit?: unknown }).commit;
+    if (typeof commit === 'string' && commit) return commit;
+  } catch {
+    // No build-info.json: a local build, or a `next build` outside CI.
+  }
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], {
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+  } catch {
+    return '';
+  }
+}
 
 const SECURITY_HEADERS = [
   { key: 'content-security-policy', value: CSP },
@@ -82,6 +109,13 @@ const nextConfig: NextConfig = {
       }
     : {}),
   deploymentId: process.env.NEXT_DEPLOYMENT_ID || undefined,
+  // Inlined into every bundle as string literals, so nothing reads the
+  // environment at runtime - which is the point, the values only exist while
+  // the artifact is being built. Both are validated where they are consumed.
+  env: {
+    VELORKI_RELEASE: process.env.NEXT_DEPLOYMENT_ID ?? '',
+    VELORKI_COMMIT: buildCommit(),
+  },
   experimental: { serverSourceMaps: true },
   // Files read at runtime with readFileSync must be traced into the standalone
   // output by hand: the prompts, the markdown content, the message catalogues.

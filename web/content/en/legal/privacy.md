@@ -1,18 +1,19 @@
 ---
 title: Privacy policy
 description: "What Velorki does with your data: no account, routes and rides stay on your phone, and a list of exactly what leaves the device and when."
-draft: true
+draft: false
 ---
 
-> **This is a draft.** It describes what the app is designed to do. It has not
-> been reviewed by a lawyer, and it must be before it is published as the
-> privacy policy of a released app. Some points below are still marked "to be
-> decided".
-
-Effective date: to be set at launch.
+Effective date: 27 September 2026.
 
 Velorki is a bike route planning and ride recording app made by Orkitec. This
 page explains what happens to your data.
+
+**Who is responsible.** The controller for everything described here is Steffen
+Roemer, trading as "Orkitec", Straße der Pariser Kommune 27, 10243 Berlin,
+Germany, ride@velorki.com. No data protection officer is appointed: the
+processing described below does not require one under Article 37 GDPR. The full
+provider details are on the [imprint](./imprint) page.
 
 ## The short version
 
@@ -22,6 +23,8 @@ page explains what happens to your data.
   downloaded, search when you ask for it, and, if you use them, the AI
   assistant, the Strava and RideWithGPS connections, and share links. Each is
   described below.
+- This **website** has no analytics, no advertising and no tracking, which is
+  why it has no cookie banner either.
 - We do not sell your data, and we do not use it for advertising or profiling.
 
 ## What stays on your device
@@ -119,15 +122,18 @@ No identifier of you or your phone is put into the prompt. The model returns a
 structured request: a distance, a shape, place names, preferences. The actual
 routing then happens in the app; the model never sees your route.
 
-Our AI provider is **OpenAI (or the provider configured by the operator)**.
-The assistant runs on a hosted model that our relay reaches over an
-OpenAI-compatible interface: the official Velorki build sends prompts to
-OpenAI, and anyone who self-hosts Velorki can point the relay at a different
-provider or at their own model, in which case that operator's policy is the
-one that applies. We do not permit the provider to train models on this data,
-where that is offered as an option. The provider's jurisdiction is **to be
-filled in before publication**, together with the legal basis for the
-transfer.
+**No AI provider is configured in the official build at the time of writing**,
+so the assistant is switched off and nothing is sent anywhere: the relay answers
+that the feature is unavailable. Before it is switched on, this section will
+name the provider, the country its servers are in and the safeguard for the
+transfer if that country is outside the EU, and the app will ask for your
+consent again if the answer has changed. Whoever it is, the contract will not
+permit the provider to train models on what is sent, where that choice is
+offered.
+
+The assistant reaches the model over an OpenAI-compatible interface, so anyone
+who self-hosts Velorki can point their relay at any provider or at their own
+model; then that operator's policy applies, not this one.
 
 Data from Strava is never sent to the AI provider.
 
@@ -154,18 +160,55 @@ subscription is active, and to nothing else.
 
 We never see your payment details; those stay with Apple or Google.
 
-### Crash reporting
+### Crash reporting and analytics
 
-**To be decided.** No crash reporting or analytics SDK is included at the time
-of writing. If one is added, this section will name it and say what it collects
-before the feature ships.
+There is none. The app contains no crash reporting, no analytics and no
+advertising SDK, and it sends no usage statistics; every network request it
+makes is one of those described above. Crashes are reported by the app stores
+in aggregate to the developer account, without anything that identifies you,
+and only if you have that switched on in your phone's own settings. If a crash
+reporter is ever added, this section will name it and say what it collects
+before that version ships.
 
 ### Server logs
 
-Our routing server and our relay keep operational logs (request time, endpoint,
-status, IP address, and a client version header) to run the service and to
-apply rate limits. The retention period for these logs is **to be decided**.
-They are not used to build profiles of users.
+Our relay and our routing server keep operational logs (request time, endpoint,
+status, IP address, and a client version header) to run the service, to find
+faults and to apply rate limits. They are not used to build profiles of users,
+and they never contain an access token, a request body or a subscriber id.
+
+- The web server's access logs are kept on the machine for **14 days** and then
+  deleted by log rotation.
+- The application's own log lines are collected by Orkify, the deployment
+  dashboard the operator runs on the same Hetzner infrastructure, and are purged
+  there after **90 days** at the latest.
+
+## This website
+
+velorki.com is a plain website: no account, no advertising, no analytics, no
+tracking, no third-party scripts. Nothing you do here is measured, which is why
+there is no cookie banner — there is nothing to ask you about.
+
+- **Server logs.** Every request is logged as described under Server logs
+  above: time, path, status, size, your IP address and your browser's user
+  agent, kept 14 days.
+- **Cloudflare.** The site is served through Cloudflare, which terminates the
+  connection, filters attacks and passes the request on to our server. It
+  therefore processes your IP address and the request itself. Cloudflare is in
+  the United States; the transfer rests on the EU Standard Contractual Clauses.
+- **A language cookie.** Picking a language in the header sets a cookie called
+  `NEXT_LOCALE` (the value `en` or `de`, one year). It exists so the site opens
+  in the language you chose. Nothing else is stored in it, and it is only set
+  when you make that choice — it is strictly necessary for a function you asked
+  for and needs no consent under section 25 (2) TTDSG.
+- **A theme preference.** Choosing light, dark or an accent colour writes
+  `velorki.theme` into your browser's local storage. It never leaves the
+  browser and is not readable by us.
+- **Share pages.** Opening a `velorki.com/s/…` link loads the shared route from
+  our server and the map tiles from OpenFreeMap, which sees your IP address as
+  any web request does. The page has no other third-party content.
+- **Fonts, images and scripts** all come from this server. There is no CDN for
+  them and no font service.
 
 ## Retention and deletion
 
@@ -182,21 +225,100 @@ not remove share links you created (they expire after one year, or on
 request), and it does not remove anything you uploaded to Strava or
 RideWithGPS.
 
+## Legal bases
+
+For readers in the EU and the UK, the legal bases under Article 6 (1) GDPR are:
+
+| What | Basis |
+|---|---|
+| Serving the website and the share pages, keeping the servers up, finding faults, rate limits, defending against attacks | (f) legitimate interest in running a service that works and is not abused |
+| Online routing and online search, when you ask for them | (b) performance of the service you requested, and (f) for the coordinates strictly needed to answer |
+| Velorki Plus: checking with RevenueCat that a subscription is active | (b) performance of the contract |
+| Strava and RideWithGPS: connecting an account and every transfer you trigger | (b) performance of the contract, plus (a) consent, given by connecting the account |
+| Share links you create | (b) performance of the contract |
+| The AI assistant | (a) consent, asked for separately in the app and revocable in the settings |
+| Keeping tax-relevant records of a subscription | (c) legal obligation — and Apple and Google, not we, hold the billing data |
+
+We do not profile, we take no automated decisions about you, and we do not use
+any of this for direct marketing.
+
+## Who else receives data
+
+We do not sell, rent or trade personal data. It reaches these parties, and no
+others:
+
+**Processors, acting for us under a data processing agreement**
+
+- **Hetzner Cloud GmbH**, Gunzenhausen, Germany — the server that runs the
+  relay, the share links and this website. Data stays in Germany.
+- **Cloudflare, Inc.**, San Francisco, USA — DNS, CDN and attack protection for
+  velorki.com and api.velorki.com. IP addresses and request metadata.
+- **RevenueCat, Inc.**, San Francisco, USA — the subscription check. The
+  anonymous app user id and the store receipt, no name and no email address.
+- **Orkify**, run by the same operator on the Hetzner infrastructure above —
+  the deployment dashboard that collects the application logs and process
+  metrics described under Server logs.
+
+**Services your phone or browser contacts directly, each responsible for its
+own processing**
+
+- **OpenFreeMap** (map tiles) and **OpenStreetMap France** (the CyclOSM
+  overlay, only when you switch it on) — the tiles for the part of the map you
+  are looking at, and your IP address.
+- **komoot GmbH**, Potsdam, Germany — the Photon geocoder at
+  `photon.komoot.io`, and only for an online search you asked for.
+- **Apple Inc.** and **Google Ireland Ltd** — the sale of Velorki Plus. They
+  are the sellers; we never see your payment details.
+- **Strava, Inc.** and **Ride with GPS** — only after you connect the account
+  and only for a transfer you trigger. What they do with it is governed by
+  their own policies.
+
+We will also hand data to a court or an authority where the law requires it.
+
+## Transfers outside the EU
+
+Cloudflare, RevenueCat, Strava, Ride with GPS, Apple and Google are in the
+United States or transfer data there. Those transfers rest on the European
+Commission's Standard Contractual Clauses, or on the provider's certification
+under the EU–US Data Privacy Framework where it has one, together with the
+provider's own technical safeguards. Hetzner, komoot and the map tile services
+we rely on are in the EU. Everything the app stores for you stays on your
+phone and is transferred nowhere at all.
+
+## Security
+
+Every connection to our servers and to the services above is encrypted with
+TLS. Strava and RideWithGPS tokens never sit unencrypted anywhere: your phone
+holds them in the platform's secure storage, wrapped with a key only the relay
+has, and the relay unwraps one for the single request it is needed for and
+keeps nothing. The share database is on the server's disk, outside the release
+directory, readable only by the service user. Logs are redacted: no
+`Authorization` header, no request body, no subscriber id. Access to the server
+requires a key, not a password, and is restricted to the operator. Should a
+breach put your rights at risk, we will notify the supervisory authority within
+72 hours (Article 33 GDPR) and, where the law requires it, you.
+
 ## Your rights
 
-If you are in the EU or the UK, the GDPR gives you the right to access, correct
-and delete your personal data, to restrict or object to its processing, and to
-receive it in a portable form. Most of that you can exercise yourself, because
-the data is on your phone and can be exported as GPX, FIT or TCX files at any time.
+If you are in the EU or the UK, you have the right of access (Article 15
+GDPR), rectification (16), erasure (17), restriction of processing (18), data
+portability (20) and objection to processing based on a legitimate interest
+(21), and where we rely on your consent — the assistant — you may withdraw it
+at any time without affecting what was lawful before (Article 7 (3)). Most of
+it you can exercise yourself, because the data is on your phone and can be
+exported as GPX, FIT or TCX files whenever you like.
 
-For anything held on our side (share links, log entries, the RevenueCat
-record) write to **ride@velorki.com**. We will need enough information to
-identify the data, which for share links means the link itself, since we have
-no account to look you up by. You also have the right to complain to your data
-protection authority.
+For anything held on our side (share links, log entries, the RevenueCat record)
+write to **ride@velorki.com**. We answer within 30 days. We will need enough
+information to identify the data, which for a share link means the link itself,
+since there is no account to look you up by.
 
-The controller is Orkitec. Postal address and any data protection
-representative: **to be filled in before publication.**
+You may also complain to a supervisory authority. Ours is the
+[Berliner Beauftragte für Datenschutz und Informationsfreiheit](https://www.datenschutz-berlin.de),
+and you may equally go to the authority where you live.
+
+The controller is Steffen Roemer, trading as "Orkitec", Straße der Pariser
+Kommune 27, 10243 Berlin, Germany.
 
 ## Children
 
@@ -211,6 +333,7 @@ Old versions remain in the repository's git history.
 
 ## Contact
 
-Orkitec, ride@velorki.com. For security reports see
+Orkitec, ride@velorki.com; postal address in the [imprint](./imprint). For
+security reports see
 [SECURITY.md](https://github.com/orkitec/velorki/blob/main/SECURITY.md) in the
 source repository.
