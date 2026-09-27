@@ -409,7 +409,8 @@
     "osm": "Map data © OpenStreetMap contributors",
     "credits": "Credits",
     "copyright": "© {year} Orkitec. App, website and relay under AGPL-3.0-only.",
-    "github": "GitHub"
+    "github": "GitHub",
+    "orkify": "Hosted with Orkify"
   },
   "notFound": {
     "title": "Off the route",

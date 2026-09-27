@@ -18,6 +18,9 @@ export const SECURITY_EMAIL = 'ride@velorki.com';
 
 export const OSM_COPYRIGHT_URL = 'https://www.openstreetmap.org/copyright';
 
+/** The platform this site is deployed and run with. */
+export const ORKIFY_URL = 'https://orkify.com';
+
 /** Licence: the whole repository — app, relay and this site — is AGPL-3.0-only. */
 export const LICENSE_URL = 'https://www.gnu.org/licenses/agpl-3.0.html';
 

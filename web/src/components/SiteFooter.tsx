@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { COPYRIGHT_YEAR, GITHUB_URL, OSM_COPYRIGHT_URL, SECURITY_EMAIL } from '@/site/config';
+import { COPYRIGHT_YEAR, GITHUB_URL, ORKIFY_URL, OSM_COPYRIGHT_URL, SECURITY_EMAIL } from '@/site/config';
 import { LEGAL_DOCS } from '@/site/content';
 import { localePath } from '@/site/paths';
 import { AppIcon } from './AppIcon';
@@ -97,7 +97,13 @@ export function SiteFooter({ locale }: { locale: string }) {
             {t('credits')}
           </Link>
         </p>
-        <p>{t('copyright', { year })}</p>
+        <p>
+          {t('copyright', { year })}{' '}
+          ·{' '}
+          <a href={ORKIFY_URL} rel="noreferrer" className="hover:text-fg">
+            {t('orkify')}
+          </a>
+        </p>
       </div>
     </footer>
   );
