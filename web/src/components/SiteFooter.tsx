@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { buildMeta } from '@/build-meta';
+import { CookieNoticeButton } from './CookieNotice';
 import { COPYRIGHT_YEAR, GITHUB_URL, ORKIFY_URL, OSM_COPYRIGHT_URL, SECURITY_EMAIL } from '@/site/config';
 import { LEGAL_DOCS } from '@/site/content';
 import { localePath } from '@/site/paths';
@@ -18,6 +19,7 @@ export function SiteFooter({ locale }: { locale: string }) {
   const t = useTranslations('footer');
   const nav = useTranslations('nav');
   const legal = useTranslations('legal');
+  const cookies = useTranslations('cookies');
   // A literal, not new Date(): reading the clock is a dynamic API under
   // cacheComponents and would cost every page its static render.
   const year = COPYRIGHT_YEAR;
@@ -100,7 +102,13 @@ export function SiteFooter({ locale }: { locale: string }) {
             {t('credits')}
           </Link>
         </p>
-        <p>{t('copyright', { year })}</p>
+        <p>
+          {t('copyright', { year })}
+          {' '}·{' '}
+          {/* Opens the notice again; it is informational, so there is nothing
+              to change here, only to read. */}
+          <CookieNoticeButton label={cookies('footer')} />
+        </p>
         {/* What is actually running here: Orkify's release number and the
             commit it was built from, linked to that commit on GitHub. Both are
             null on a build that was never deployed (dev, a plain `next build`),

@@ -7,13 +7,14 @@ import { NextIntlClientProvider, hasLocale } from 'next-intl';
 import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
 import { JsonLd } from '@/components/JsonLd';
 import { SiteFooter } from '@/components/SiteFooter';
+import { CookieNotice } from '@/components/CookieNotice';
 import { SupportChat } from '@/components/SupportChat';
 import { SiteHeader } from '@/components/SiteHeader';
 import { ThemeScript } from '@/components/ThemeScript';
 import { routing } from '@/i18n/routing';
 import { ORG_NAME, ORG_URL } from '@/site/config';
 import { mobileApplicationJsonLd, organizationJsonLd, webSiteJsonLd } from '@/site/jsonld';
-import { languageAlternates } from '@/site/paths';
+import { languageAlternates, localePath } from '@/site/paths';
 import { METADATA_BASE } from '@/site/seo';
 import '../../globals.css';
 
@@ -117,6 +118,9 @@ export default async function SiteLayout({
 
   const messages = await getMessages();
   const t = await getTranslations({ locale, namespace: 'nav' });
+  // The cookie notice takes its strings as props: it is a client component, but
+  // this keeps its catalogue on the server with the rest.
+  const cookies = await getTranslations({ locale, namespace: 'cookies' });
   const description = (await getTranslations({ locale, namespace: 'site' }))('description');
 
   // Only the namespaces the three client components need cross to the browser;
@@ -157,6 +161,17 @@ export default async function SiteLayout({
         {/* Last in the body, outside the intl provider: it brings its own UI
             and its own strings. Renders nothing without a widget key. */}
         <SupportChat />
+        <CookieNotice
+          // The section about this site, whose heading id differs per language;
+          // test/cookienotice.test.tsx keeps the two in step.
+          href={`${localePath(locale, '/privacy')}#${cookies('anchor')}`}
+          strings={{
+            label: cookies('label'),
+            body: cookies('body'),
+            link: cookies('link'),
+            dismiss: cookies('dismiss'),
+          }}
+        />
       </body>
     </html>
   );

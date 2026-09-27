@@ -23,8 +23,8 @@ provider details are on the [imprint](./imprint) page.
   downloaded, search when you ask for it, and, if you use them, the AI
   assistant, the Strava and RideWithGPS connections, and share links. Each is
   described below.
-- This **website** has no analytics, no advertising and no tracking, which is
-  why it has no cookie banner either.
+- This **website** has no analytics, no advertising and no tracking, so the
+  short notice at the bottom of it asks nothing of you.
 - We do not sell your data, and we do not use it for advertising or profiling.
 
 ## What stays on your device
@@ -186,8 +186,10 @@ and they never contain an access token, a request body or a subscriber id.
 ## This website
 
 velorki.com is a plain website: no account, no advertising, no analytics, no
-tracking. Nothing you do here is measured, which is why there is no cookie
-banner — there is nothing to ask you about.
+tracking. Nothing you do here is measured, so the notice you may have seen at
+the bottom of the page is exactly that, a notice: there is no consent to give or
+to refuse, because nothing is stored on your device until you ask for it. The
+🍪 Cookies entry in the footer brings it back.
 
 - **Server logs.** Every request is logged as described under Server logs
   above: time, path, status, size, your IP address and your browser's user
@@ -203,7 +205,8 @@ banner — there is nothing to ask you about.
   for and needs no consent under section 25 (2) TTDSG.
 - **A theme preference.** Choosing light, dark or an accent colour writes
   `velorki.theme` into your browser's local storage. It never leaves the
-  browser and is not readable by us.
+  browser and is not readable by us. Dismissing the notice above writes one
+  more key, `velorki.cookie-notice`, so it is not shown again.
 - **Share pages.** Opening a `velorki.com/s/…` link loads the shared route from
   our server and the map tiles from OpenFreeMap, which sees your IP address as
   any web request does. The page has no other third-party content.
