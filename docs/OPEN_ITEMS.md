@@ -86,11 +86,6 @@ exercised there. The items here are the parts not yet covered by that.
 - [ ] Sign once with the **Share Extension**: the `VelorkiShare` target exists
       and CI compiles it, but the App Group `group.com.orkitec.velorki` is only
       registered in the developer portal after one signed build on the Mac.
-- [ ] Background recording on an iPhone: screen off for a long ride and the
-      blue indicator. (The recorder on the real geolocator, the Live Activity,
-      resuming an interrupted ride and the speaker are covered on the
-      simulator by `integration_test/live_*_test.dart`; the locked screen is
-      not scriptable there.)
 - [ ] **Apple Watch app** (`app/ios/VelorkiWatch`): its buttons and footnotes
       are English only (the ARB cannot reach a native target; add
       `Localizable.strings` for German); no complications. A ride on the
