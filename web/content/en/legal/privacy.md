@@ -186,8 +186,8 @@ and they never contain an access token, a request body or a subscriber id.
 ## This website
 
 velorki.com is a plain website: no account, no advertising, no analytics, no
-tracking, no third-party scripts. Nothing you do here is measured, which is why
-there is no cookie banner — there is nothing to ask you about.
+tracking. Nothing you do here is measured, which is why there is no cookie
+banner — there is nothing to ask you about.
 
 - **Server logs.** Every request is logged as described under Server logs
   above: time, path, status, size, your IP address and your browser's user
@@ -207,8 +207,27 @@ there is no cookie banner — there is nothing to ask you about.
 - **Share pages.** Opening a `velorki.com/s/…` link loads the shared route from
   our server and the map tiles from OpenFreeMap, which sees your IP address as
   any web request does. The page has no other third-party content.
-- **Fonts, images and scripts** all come from this server. There is no CDN for
-  them and no font service.
+- **The support chat.** The chat button in the corner is Orkify's widget.
+  Orkitec runs Orkify as well, so it is our own infrastructure, but it is a
+  different site: the script is loaded from orkify.com and asks orkify.com for
+  its settings when the page opens, which means your IP address reaches it as it
+  reaches any server you make a request to. Nothing else happens until you open
+  the chat.
+
+  When you do write to us, your message — and the name and email address you
+  type into its form — is delivered to a private Discord channel where we
+  answer, and the conversation stays there until we delete it. Ask at
+  ride@velorki.com and we remove yours. The widget keeps the conversation's id
+  and the name and email you gave in your browser's local storage, so a reply
+  still finds you when you come back, and clears them when you end the chat. If
+  you open the sticker picker, your search goes to Klipy, which returns the
+  images. Do not put anything into the chat you would not want in a support
+  ticket; for a security report, use the address in
+  [SECURITY.md](https://github.com/orkitec/velorki/blob/main/SECURITY.md)
+  instead.
+- **Fonts and images** all come from this server, and apart from the support
+  chat there is no third-party script, no CDN for our own assets and no font
+  service.
 
 ## Retention and deletion
 
@@ -219,6 +238,7 @@ there is no cookie banner — there is nothing to ask you about.
 | Share links | one year, then deleted automatically | delete them from the app |
 | AI prompts | not stored by us beyond what the logs above contain | not applicable |
 | RevenueCat data | per RevenueCat's own policy | contact us and we will pass the request on |
+| Support chat conversations | in our Discord channel until we delete them | ask at ride@velorki.com |
 
 Uninstalling the app removes everything the app stored on the device. It does
 not remove share links you created (they expire after one year, or on
@@ -237,6 +257,7 @@ For readers in the EU and the UK, the legal bases under Article 6 (1) GDPR are:
 | Strava and RideWithGPS: connecting an account and every transfer you trigger | (b) performance of the contract, plus (a) consent, given by connecting the account |
 | Share links you create | (b) performance of the contract |
 | The AI assistant | (a) consent, asked for separately in the app and revocable in the settings |
+| Answering you in the support chat | (b) where it concerns a subscription, otherwise (f) legitimate interest in answering the person who wrote to us |
 | Keeping tax-relevant records of a subscription | (c) legal obligation — and Apple and Google, not we, hold the billing data |
 
 We do not profile, we take no automated decisions about you, and we do not use
@@ -257,7 +278,12 @@ others:
   anonymous app user id and the store receipt, no name and no email address.
 - **Orkify**, run by the same operator on the Hetzner infrastructure above —
   the deployment dashboard that collects the application logs and process
-  metrics described under Server logs.
+  metrics described under Server logs, and the support chat widget.
+- **Discord Netherlands B.V.** (for users in Europe; Discord Inc., San
+  Francisco, USA, for the underlying service) — where a support chat
+  conversation is delivered and kept.
+- **Klipy** — the sticker and GIF search in the support chat, and only while
+  that picker is open.
 
 **Services your phone or browser contacts directly, each responsible for its
 own processing**
@@ -277,8 +303,8 @@ We will also hand data to a court or an authority where the law requires it.
 
 ## Transfers outside the EU
 
-Cloudflare, RevenueCat, Strava, Ride with GPS, Apple and Google are in the
-United States or transfer data there. Those transfers rest on the European
+Cloudflare, RevenueCat, Discord, Klipy, Strava, Ride with GPS, Apple and Google
+are in the United States or transfer data there. Those transfers rest on the European
 Commission's Standard Contractual Clauses, or on the provider's certification
 under the EU–US Data Privacy Framework where it has one, together with the
 provider's own technical safeguards. Hetzner, komoot and the map tile services

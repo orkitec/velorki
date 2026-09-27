@@ -25,12 +25,33 @@ const SCRIPT_SRC =
     ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
     : "script-src 'self' 'unsafe-inline'";
 
+// The support chat (src/components/SupportChat.tsx) is the one third party in
+// the page, and only when a widget key was set at build time - no key, no
+// widget, and none of these sources granted. The script source is pinned to the
+// single file, not to the host: a path in a CSP source expression matches that
+// URL exactly, so `orkify.com` and `cdnjs.cloudflare.com` cannot serve anything
+// else here. cdnjs is the widget's own hard-coded lottie URL, used to play
+// animated stickers; blocked, the sticker renders as a text placeholder, so it
+// is only listed when the chat is.
+const CHAT_WIDGET_SRC =
+  process.env.NEXT_PUBLIC_CHAT_WIDGET_SRC ?? 'https://orkify.com/orkify-chat.js';
+const CHAT_API_ORIGIN = new URL(CHAT_WIDGET_SRC).origin;
+const CHAT_ENABLED = Boolean(process.env.NEXT_PUBLIC_CHAT_WIDGET_KEY);
+const LOTTIE_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js';
+// Staff avatars and message attachments come from Discord's CDN; the sticker
+// picker's previews from Klipy, whose media host is wildcarded because the API
+// returns absolute URLs we do not control.
+const CHAT_IMG = ['https://cdn.discordapp.com', 'https://media.discordapp.net', 'https://*.klipy.com'];
+const CHAT_CONNECT = [CHAT_API_ORIGIN, 'https://api.klipy.com'];
+
+const chat = (sources: string[]) => (CHAT_ENABLED ? ` ${sources.join(' ')}` : '');
+
 const CSP = [
   "default-src 'none'",
-  SCRIPT_SRC,
+  `${SCRIPT_SRC}${chat([CHAT_WIDGET_SRC, LOTTIE_SRC])}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://tiles.openfreemap.org",
-  "connect-src 'self' https://tiles.openfreemap.org",
+  `img-src 'self' data: blob: https://tiles.openfreemap.org${chat(CHAT_IMG)}`,
+  `connect-src 'self' https://tiles.openfreemap.org${chat(CHAT_CONNECT)}`,
   'worker-src blob:',
   'child-src blob:',
   "font-src 'self'",

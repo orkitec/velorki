@@ -7,6 +7,7 @@ import { NextIntlClientProvider, hasLocale } from 'next-intl';
 import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
 import { JsonLd } from '@/components/JsonLd';
 import { SiteFooter } from '@/components/SiteFooter';
+import { SupportChat } from '@/components/SupportChat';
 import { SiteHeader } from '@/components/SiteHeader';
 import { ThemeScript } from '@/components/ThemeScript';
 import { routing } from '@/i18n/routing';
@@ -153,6 +154,9 @@ export default async function SiteLayout({
           <SiteFooter locale={locale} />
           <JsonLd data={[organizationJsonLd(), webSiteJsonLd(locale), mobileApplicationJsonLd(description)]} />
         </NextIntlClientProvider>
+        {/* Last in the body, outside the intl provider: it brings its own UI
+            and its own strings. Renders nothing without a widget key. */}
+        <SupportChat />
       </body>
     </html>
   );
