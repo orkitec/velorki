@@ -55,11 +55,14 @@ processes:
     # a load balancer in front.
     execMode: cluster
 
-    # Two workers. Enough for a 2 vCPU box and the minimum that actually
+    # Four workers: headroom on a large box while the site is young. Worker
+    # count follows load, not core count - each one costs a few hundred MB and
+    # idles when there is nothing to serve, so `0` (one per CPU) only makes
+    # sense once this app has the machine to itself. Two is the minimum that
     # exercises the cross-worker paths: rate limits and the entitlement cache
     # go through @orkify/cache, and only ORKIFY_WORKER_ID=0 runs the share
     # sweeper.
-    workerCount: 2
+    workerCount: 4
 
     # The port Orkify knows the app listens on. It is what the health probe
     # dials and what sticky routing would use. Next's server.js reads PORT from

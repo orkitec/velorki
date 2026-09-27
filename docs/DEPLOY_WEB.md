@@ -2,7 +2,7 @@
 
 `web/` is one Next.js app serving two hostnames: `velorki.com` (site, docs,
 legal, `/s/<id>` share pages) and `api.velorki.com` (the relay: OAuth exchange,
-`/ai/plan`, `POST /share`, `/health`). It runs on a VPS as a two-worker Orkify
+`/ai/plan`, `POST /share`, `/health`). It runs on a VPS as a four-worker Orkify
 cluster behind a reverse proxy — Caddy on a box of its own, nginx on a box that
 already has one — behind Cloudflare.
 
@@ -19,7 +19,7 @@ Caddy or nginx ── Origin CA cert, Cloudflare trusted as the proxy,
    │               Host preserved
    │ 127.0.0.1:3100
    ▼
-orkify cluster "velorki-web" ── 2 workers, .next/standalone/server.js
+orkify cluster "velorki-web" ── 4 workers, .next/standalone/server.js
    │
    ├── /var/lib/velorki/share.sqlite   (persistent, outside the release tree)
    └── @orkify/cache                    (rate limits, entitlements, LLM budget)
@@ -564,7 +564,7 @@ A site page needs the explicit `Host:` header; without one you get the API role.
 Check it came up:
 
 ```sh
-orkify list                      # velorki-web, 2 workers, online
+orkify list                      # velorki-web, 4 workers, online
 orkify logs velorki-web -f
 ```
 
