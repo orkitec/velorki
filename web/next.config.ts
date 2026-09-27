@@ -54,6 +54,23 @@ const nextConfig: NextConfig = {
   // in every diff.
   agentRules: false,
   cacheComponents: true,
+  // Every rewrite `src/proxy.ts` returns - next-intl's `/` -> `/en` included -
+  // would otherwise be treated as a rewrite to a different origin, and Next
+  // would re-issue the request over loopback HTTP instead of routing it
+  // internally. `NextURL` rewrites a loopback hostname to the literal
+  // `localhost` (`REGEX_LOCALHOST_HOSTNAME`, next/dist/server/web/next-url.js)
+  // while the router compares the rewrite against `http://<HOSTNAME>:<PORT>`,
+  // and the deployment binds `HOSTNAME=127.0.0.1` (orkify.yml), so the two
+  // origins never matched. The second request arrives with
+  // `Host: localhost:<PORT>`, which the host gate reads as the api role, and
+  // the landing page answers the api host's JSON 404. This keeps the request
+  // URL the proxy sees exactly as Next built it, so a rewrite resolved against
+  // `request.url` lands on the origin the router expects and stays internal.
+  // The flag also stops Next from stripping its internal search params
+  // (`_rsc`) before the proxy sees them, which changes nothing here: every
+  // branch decides on `nextUrl.pathname` and only ever forwards the search
+  // string verbatim.
+  skipProxyUrlNormalize: true,
   // Orkify's shared cache is for the cluster in production. In development it
   // would serve pages prerendered by an older build from ~/.orkify/cache, whose
   // scripts no longer exist, and the page never hydrates.

@@ -207,7 +207,7 @@ imports the route module and calls its exported `GET`/`POST` with a real
 | `ai.test.ts` | Consent, budget, validation, the `route_request` / `text` / `done` / `error` events, coordinate rounding. |
 | `body.test.ts` | `readJsonBody`: content-length, streamed limit with cancel, empty, non-JSON, wrong content type. |
 | `sse.test.ts` | Headers, the `: open` preamble, `: ping` every 20 s under fake timers, abort on `request.signal` and on stream cancel. |
-| `proxy.test.ts` | The host gate, the JSON 404 message, `/s/` id validation and the `.gpx` rewrite, the 308, request id, cache headers, `config.matcher`. Uses `next/experimental/testing/server`. |
+| `proxy.test.ts` | The host gate, the JSON 404 message, `/s/` id validation and the `.gpx` rewrite, the 308, request id, cache headers, `config.matcher`, and that every rewrite stays on the origin Next built the request URL from. Uses `next/experimental/testing/server`. |
 | `prompts.test.ts` | Both system prompts load from `src/ai/prompts` without their SPDX header. |
 | `wellknown.test.ts` | The association files, configured and unconfigured. |
 | `contract/sse.test.ts` | Replays the three `text/event-stream` examples from `openapi.yaml` byte for byte. |
@@ -219,10 +219,15 @@ build:
 
 ```sh
 npm run build
-DEV_HOSTS=1 REVENUECAT_MODE=stub COUNTERS=memory npm start   # standalone reads
-                                                             # no .env file
-curl -so /dev/null -w '%{http_code}\n' http://localhost:3000/s/AbCdEf0123   # 404
+HOSTNAME=127.0.0.1 DEV_HOSTS=1 REVENUECAT_MODE=stub COUNTERS=memory npm start
+curl -so /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/s/AbCdEf0123   # 404
 ```
+
+`npm start` reads no `.env` file, so every variable has to be on the line.
+`HOSTNAME` belongs there too: it is what the deployment binds (`orkify.yml`),
+and Next builds the URL the proxy sees from it. Left out, the server binds
+`0.0.0.0` and a rewrite that would be broken in production resolves fine here -
+which is how the landing page's 404 got past this check once.
 
 An unknown or expired link has to be **404**, not a 200 carrying the "no longer
 available" page: under `cacheComponents` the page streams a static shell before

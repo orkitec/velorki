@@ -149,6 +149,27 @@ function addVary(response: NextResponse, names: readonly string[]): void {
   response.headers.set('vary', present.join(', '));
 }
 
+/**
+ * The absolute URL a rewrite of `path` must carry.
+ *
+ * Next decides whether a proxy rewrite is internal or a request to another
+ * origin by comparing the origin of `x-middleware-rewrite` with the origin it
+ * built the incoming request URL from - `http://<HOSTNAME>:<PORT>` for the
+ * standalone server. `request.nextUrl` is a `NextURL`, and a `NextURL`
+ * rewrites every loopback hostname to the literal `localhost`
+ * (`REGEX_LOCALHOST_HOSTNAME` in next/dist/server/web/next-url.js), so with
+ * `HOSTNAME=127.0.0.1` a rewrite resolved against it comes out as
+ * `http://localhost:<PORT>/...` while Next compares against
+ * `http://127.0.0.1:<PORT>/...`. The origins differ, Next calls the rewrite
+ * external and re-issues the whole request over loopback HTTP with
+ * `Host: localhost:<PORT>` - which this file's own host gate then answers with
+ * the api host's JSON 404. `request.url` is the string Next built, untouched,
+ * which is what `skipProxyUrlNormalize` in next.config.ts is on for.
+ */
+function rewriteTarget(path: string, request: NextRequest): URL {
+  return new URL(path, request.url);
+}
+
 function jsonResponse(status: number, body: unknown, requestId: string): NextResponse {
   return new NextResponse(JSON.stringify(body), {
     status,
@@ -202,7 +223,7 @@ export default async function proxy(request: NextRequest): Promise<NextResponse>
 
     const headers = forwardHeaders(request, requestId);
     const response = host.rewritten
-      ? NextResponse.rewrite(new URL(`${host.pathname}${url.search}`, url), {
+      ? NextResponse.rewrite(rewriteTarget(`${host.pathname}${url.search}`, request), {
           request: { headers },
         })
       : NextResponse.next({ request: { headers } });
@@ -230,7 +251,7 @@ export default async function proxy(request: NextRequest): Promise<NextResponse>
     }
     const headers = forwardHeaders(request, requestId);
     if (share.gpx) {
-      const response = NextResponse.rewrite(new URL(`/s/${share.id}/gpx`, url), {
+      const response = NextResponse.rewrite(rewriteTarget(`/s/${share.id}/gpx`, request), {
         request: { headers },
       });
       response.headers.set(REQUEST_ID_HEADER, requestId);
@@ -244,7 +265,7 @@ export default async function proxy(request: NextRequest): Promise<NextResponse>
     // route; `SHARE_GONE_PATH` is that route. The probe is a single indexed
     // `SELECT 1` in the same process.
     if (!getStore().has(share.id)) {
-      const response = NextResponse.rewrite(new URL(SHARE_GONE_PATH, url), {
+      const response = NextResponse.rewrite(rewriteTarget(SHARE_GONE_PATH, request), {
         request: { headers },
       });
       response.headers.set(REQUEST_ID_HEADER, requestId);
@@ -261,7 +282,7 @@ export default async function proxy(request: NextRequest): Promise<NextResponse>
 
   const missing = docsNotFoundPath(url.pathname);
   if (missing !== null) {
-    const response = NextResponse.rewrite(new URL(missing, url), {
+    const response = NextResponse.rewrite(rewriteTarget(missing, request), {
       request: { headers: forwardHeaders(request, requestId) },
     });
     response.headers.set(REQUEST_ID_HEADER, requestId);

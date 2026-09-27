@@ -525,3 +525,67 @@ describe('request id', () => {
     });
   });
 });
+
+/**
+ * Next settles whether a rewrite is internal or a request to another origin by
+ * comparing the origin of `x-middleware-rewrite` with the origin it built the
+ * request URL from, which on the standalone server is
+ * `http://<HOSTNAME>:<PORT>`. `request.nextUrl` is a `NextURL`, and a
+ * `NextURL` rewrites every loopback hostname to the literal `localhost`, so a
+ * rewrite resolved against it leaves that origin as soon as the deployment
+ * binds `HOSTNAME=127.0.0.1` - and Next then re-issues the whole request over
+ * loopback HTTP with `Host: localhost:<PORT>`, which the host gate above reads
+ * as the api role and answers with the api host's JSON 404. `request.url` is
+ * the string Next wrote, which is what `skipProxyUrlNormalize` in
+ * next.config.ts keeps intact; these assertions are what hold the rewrites to
+ * it.
+ */
+describe('rewrite origins', () => {
+  const LOOPBACK = 'http://127.0.0.1:3100';
+
+  /** A request as the standalone server makes it: loopback URL, public Host. */
+  function asServed(path: string): NextRequest {
+    return request(`${LOOPBACK}${path}`, { headers: { host: 'velorki.com' } });
+  }
+
+  it('is built on the un-normalized request URL', async () => {
+    // Half of the fix lives in next.config.ts: without the flag Next hands the
+    // proxy a `NextURL`-normalized `request.url` too, and resolving against it
+    // is no different from resolving against `nextUrl`.
+    const config = (await import('../next.config')) as { default: Record<string, unknown> };
+    expect(config.default.skipProxyUrlNormalize).toBe(true);
+  });
+
+  it('keeps every rewrite on the origin Next built the request URL from', async () => {
+    const previous = process.env.__NEXT_NO_MIDDLEWARE_URL_NORMALIZE;
+    process.env.__NEXT_NO_MIDDLEWARE_URL_NORMALIZE = '1';
+    try {
+      const { store } = storeWithShare();
+      await withEnv(
+        {},
+        async () => {
+          // The premise: the two URLs on the request disagree about the host.
+          const probe = asServed('/s/ZZZZZZZZZZ');
+          expect(new URL(probe.url).host).toBe('127.0.0.1:3100');
+          expect(probe.nextUrl.host).toBe('localhost:3100');
+
+          const cases: [string, string][] = [
+            ['/s/ZZZZZZZZZZ', `${LOOPBACK}/s/gone`],
+            ['/s/AbCdEf0123.gpx', `${LOOPBACK}/s/AbCdEf0123/gpx`],
+            ['/docs/no-such-page', `${LOOPBACK}/en/_missing`],
+          ];
+          for (const [path, target] of cases) {
+            const res = await proxy(asServed(path));
+            expect(isRewrite(res), path).toBe(true);
+            expect(getRewrittenUrl(res), path).toBe(target);
+          }
+        },
+        { store },
+      );
+      store.close();
+    } finally {
+      if (previous === undefined) delete process.env.__NEXT_NO_MIDDLEWARE_URL_NORMALIZE;
+      else process.env.__NEXT_NO_MIDDLEWARE_URL_NORMALIZE = previous;
+    }
+  });
+});
