@@ -25,6 +25,25 @@ export const ORKIFY_URL = 'https://orkify.com';
 export const LICENSE_URL = 'https://www.gnu.org/licenses/agpl-3.0.html';
 
 /**
+ * The support chat (`src/components/SupportChat.tsx`). The same Orkify widget
+ * and the same Discord channel as orkify.com uses; Orkitec runs both.
+ *
+ * Both keys are public by nature - they end up in the page's markup - but they
+ * are still not in the repository: they come from the build environment (the
+ * Orkify dashboard's secrets reach `deploy.build`), and with no widget key the
+ * widget is not rendered and its CSP sources are not granted.
+ */
+export const CHAT_WIDGET_KEY = process.env.NEXT_PUBLIC_CHAT_WIDGET_KEY ?? '';
+export const CHAT_KLIPY_KEY = process.env.NEXT_PUBLIC_KLIPY_API_KEY ?? '';
+/**
+ * Where the widget script comes from, and therefore which host its API calls
+ * go to - see the note in SupportChat. Overridable for a fork that runs its own
+ * Orkify; the CSP in next.config.ts is derived from the same value.
+ */
+export const CHAT_WIDGET_SRC =
+  process.env.NEXT_PUBLIC_CHAT_WIDGET_SRC ?? 'https://orkify.com/orkify-chat.js';
+
+/**
  * Store links. Empty until the listings exist; every badge that has no URL is
  * left out of the markup entirely rather than rendered as a dead link.
  */

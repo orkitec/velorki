@@ -205,8 +205,8 @@ Abonnenten-Kennung.
 ## Diese Website
 
 velorki.com ist eine einfache Website: kein Konto, keine Werbung, keine
-Analyse, kein Tracking, keine fremden Skripte. Nichts, was du hier tust, wird
-gemessen — deshalb gibt es kein Cookie-Banner, es ist nichts zu fragen.
+Analyse, kein Tracking. Nichts, was du hier tust, wird gemessen — deshalb gibt
+es kein Cookie-Banner, es ist nichts zu fragen.
 
 - **Server-Protokolle.** Jede Anfrage wird protokolliert wie oben unter
   Server-Protokolle beschrieben: Zeitpunkt, Pfad, Status, Größe, deine
@@ -229,8 +229,27 @@ gemessen — deshalb gibt es kein Cookie-Banner, es ist nichts zu fragen.
   geteilte Route von unserem Server und die Kartenkacheln von OpenFreeMap, das
   dabei deine IP-Adresse sieht wie bei jeder Webanfrage. Weitere fremde Inhalte
   hat die Seite nicht.
-- **Schriften, Bilder und Skripte** kommen alle von diesem Server. Es gibt kein
-  CDN dafür und keinen Schriftdienst.
+- **Der Support-Chat.** Die Chat-Schaltfläche in der Ecke ist das Widget von
+  Orkify. Orkitec betreibt auch Orkify, es ist also unsere eigene
+  Infrastruktur, aber eine andere Website: Das Skript wird von orkify.com
+  geladen und fragt dort beim Öffnen der Seite seine Einstellungen ab — dabei
+  erreicht orkify.com deine IP-Adresse, wie bei jedem Server, den du anfragst.
+  Mehr passiert nicht, bis du den Chat öffnest.
+
+  Schreibst du uns, geht deine Nachricht — mit dem Namen und der E-Mail-Adresse,
+  die du in das Formular einträgst — in einen privaten Discord-Kanal, in dem wir
+  antworten, und das Gespräch bleibt dort, bis wir es löschen. Schreib an
+  ride@velorki.com, dann entfernen wir deines. Das Widget legt die Kennung des
+  Gesprächs und den angegebenen Namen und die E-Mail-Adresse im lokalen Speicher
+  deines Browsers ab, damit eine Antwort dich wiederfindet, wenn du
+  zurückkommst, und löscht sie, wenn du den Chat beendest. Öffnest du die
+  Stickerauswahl, geht deine Suche an Klipy, das die Bilder zurückgibt. Schreib
+  in den Chat nichts, was nicht in einem Support-Ticket stehen soll; für eine
+  Sicherheitsmeldung nutze die Adresse in
+  [SECURITY.md](https://github.com/orkitec/velorki/blob/main/SECURITY.md).
+- **Schriften und Bilder** kommen alle von diesem Server, und außer dem
+  Support-Chat gibt es kein fremdes Skript, kein CDN für unsere eigenen Dateien
+  und keinen Schriftdienst.
 
 ## Aufbewahrung und Löschung
 
@@ -241,6 +260,7 @@ gemessen — deshalb gibt es kein Cookie-Banner, es ist nichts zu fragen.
 | Teilen-Links | ein Jahr, dann automatisch gelöscht | in der App löschen |
 | KI-Anfragen | von uns nicht gespeichert, über die oben genannten Protokolle hinaus | entfällt |
 | Daten bei RevenueCat | nach der eigenen Erklärung von RevenueCat | schreib uns, und wir geben die Anfrage weiter |
+| Support-Chat-Gespräche | in unserem Discord-Kanal, bis wir sie löschen | schreib an ride@velorki.com |
 
 Das Deinstallieren der App entfernt alles, was die App auf dem Gerät
 gespeichert hat. Es entfernt keine von dir erstellten Teilen-Links (die laufen
@@ -260,6 +280,7 @@ Rechtsgrundlagen nach Art. 6 Abs. 1 DSGVO:
 | Strava und RideWithGPS: Verbinden eines Kontos und jede von dir ausgelöste Übertragung | (b) Erfüllung des Vertrags und (a) Einwilligung, erteilt durch das Verbinden des Kontos |
 | Von dir erstellte Freigabe-Links | (b) Erfüllung des Vertrags |
 | Der KI-Assistent | (a) Einwilligung, in der App gesondert erfragt und in den Einstellungen widerruflich |
+| Antworten im Support-Chat | (b), soweit es ein Abo betrifft, sonst (f) berechtigtes Interesse daran, der Person zu antworten, die uns geschrieben hat |
 | Aufbewahrung steuerlich relevanter Unterlagen zu einem Abo | (c) rechtliche Verpflichtung — die Zahlungsdaten liegen bei Apple und Google, nicht bei uns |
 
 Wir bilden keine Profile, treffen keine automatisierten Entscheidungen über dich
@@ -282,7 +303,13 @@ sind**
   App-Nutzer-Kennung und der Kaufbeleg, kein Name und keine E-Mail-Adresse.
 - **Orkify**, betrieben von demselben Betreiber auf der oben genannten
   Hetzner-Infrastruktur — das Deployment-Dashboard, das die Anwendungsprotokolle
-  und Prozessmetriken aus dem Abschnitt Server-Protokolle sammelt.
+  und Prozessmetriken aus dem Abschnitt Server-Protokolle sammelt, und das
+  Widget des Support-Chats.
+- **Discord Netherlands B.V.** (für Nutzende in Europa; dahinter Discord Inc.,
+  San Francisco, USA) — dorthin wird ein Support-Chat geliefert und dort bleibt
+  er.
+- **Klipy** — die Sticker- und GIF-Suche im Support-Chat, und nur solange diese
+  Auswahl geöffnet ist.
 
 **Dienste, die dein Handy oder dein Browser direkt kontaktiert und die jeweils
 selbst verantwortlich sind**
@@ -303,8 +330,8 @@ Gesetz verlangt.
 
 ## Übermittlungen außerhalb der EU
 
-Cloudflare, RevenueCat, Strava, Ride with GPS, Apple und Google sitzen in den
-USA oder übermitteln dorthin. Diese Übermittlungen stützen sich auf die
+Cloudflare, RevenueCat, Discord, Klipy, Strava, Ride with GPS, Apple und Google
+sitzen in den USA oder übermitteln dorthin. Diese Übermittlungen stützen sich auf die
 Standardvertragsklauseln der Europäischen Kommission oder, wo der Anbieter
 zertifiziert ist, auf das EU-US Data Privacy Framework, zusammen mit den
 technischen Maßnahmen des Anbieters. Hetzner, komoot und die Kartendienste, auf
