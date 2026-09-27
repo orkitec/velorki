@@ -577,10 +577,16 @@ orkify logs velorki-web -f
 
 `main` is the trunk, `production` is the release branch. A push to `production`
 runs `.github/workflows/web-deploy.yml`: it re-runs the whole `web.yml` gate on
-that exact tree and then hands the release to Orkify with
+that exact tree and then **publishes** the release to Orkify with
 `npx orkify deploy upload .`. There is no SSH, no deploy user and no host key in
-it — the workflow POSTs the release to Orkify's API and the agent on the box
-collects it, so CI needs nothing but one secret.
+it, so CI needs nothing but one secret.
+
+**The workflow does not deploy.** `orkify deploy upload` uploads and confirms an
+artifact and stops there (`src/cli/commands/deploy.ts` ends at "Artifact vN
+uploaded"); nothing is dispatched to any agent. Releasing is two steps: the
+merge publishes the artifact, then somebody presses **Deploy Now** in the
+dashboard and picks the target agent. Until Orkify grows a flag on `upload` or
+an auto-deploy setting per project, that second step is manual and deliberate.
 
 One-time setup. Create the branch:
 
@@ -589,14 +595,14 @@ git switch -c production main
 git push -u origin production
 ```
 
-Then Settings → Environments → **`production`**, one secret:
+Then Settings → Environments → **`web-production`**, one secret:
 
 | Secret | What |
 |---|---|
 | `ORKIFY_API_KEY` | a project API key from the Orkify dashboard (Settings → API keys). The key decides which project and which box the upload goes to, so it *is* the deploy credential: treat it like a password, and rotate it in the dashboard if it ever leaks. |
 
 An *environment* secret, not a repository one: only a job that declares
-`environment: production` can read it. Restrict that environment to the
+`environment: web-production` can read it. Restrict that environment to the
 `production` branch so no other ref can spend the key, and add the maintainer as
 a required reviewer if a release should wait for an approval in the Actions tab.
 
@@ -620,13 +626,16 @@ redeploy the current release without a new commit.
    repeated: a release is never published on the strength of a check that ran on
    a different tree.
 2. `orkify deploy upload .` makes its own tarball of `web/` and POSTs it with
-   the sha256, the size and the commit metadata. The workflow is finished at
-   that point; the deploy is not.
-3. The agent on the box picks the deploy up on its next poll, unpacks it into a
-   fresh release directory, runs `deploy.install` (`npm ci`) and `deploy.build`
-   (`next build`) from `web/orkify.yml`, probes `/health`, and rolling-reloads
-   the four workers one at a time. The build happens **on the box**, so it needs
-   the RAM from step 6.
+   the sha256, the size and the commit metadata. The artifact now exists in the
+   dashboard with its version number and commit. **The workflow is done; nothing
+   has been deployed.**
+3. In the dashboard: open the project, **Deploy**, pick the new artifact, select
+   the agent (`velorki` on this box) and **Deploy Now**. Only then does the
+   agent receive a command on its next poll, unpack the release into a fresh
+   directory, run `deploy.install` (`npm ci`) and `deploy.build` (`next build`)
+   from `web/orkify.yml`, probe `/health`, and rolling-reload the four workers
+   one at a time. The build happens **on the box**, so it needs the RAM from
+   step 6.
 
 Watch it there or in the dashboard, which lists the deploy with its commit and
 its outcome:

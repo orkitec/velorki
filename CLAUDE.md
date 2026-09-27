@@ -143,10 +143,11 @@ changing structure.
   maintainer's approval in the Actions UI before anything is signed or
   published. A push to the `production`
   branch (main merged in, which is how a release happens) runs
-  `web-deploy.yml` in the `production` environment: it re-runs `web.yml`'s gate
+  `web-deploy.yml` in the `web-production` environment: it re-runs `web.yml`'s gate
   and then `npx orkify deploy upload .` from `web/`, with `ORKIFY_API_KEY` as
-  that environment's only secret. No SSH, no host key, no deploy user — the
-  agent on the VPS collects the release and builds it there.
+  that environment's only secret. No SSH, no host key, no deploy user. Uploading
+  only publishes the artifact; the deploy is triggered in the Orkify dashboard,
+  and the agent on the VPS then builds it there.
   `deploy/web/velorki-deploy`, the old forced command, stays as the SSH
   fallback for forks without an Orkify dashboard; `docs/DEPLOY_WEB.md` is the
   runbook.

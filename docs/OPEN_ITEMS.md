@@ -11,7 +11,7 @@ exercised there. The items here are the parts not yet covered by that.
       Ubuntu 24.04, Node 22, Orkify, Caddy with a Cloudflare Origin CA
       certificate, the Cloudflare zone on Full (strict), backups. Then the
       `production` branch, `ORKIFY_API_KEY` (a project key from the Orkify
-      dashboard) as a secret of the `production` environment for
+      dashboard) as a secret of the `web-production` environment for
       `web-deploy.yml` — the only secret that deploy needs — and the process
       environment from `deploy/web/velorki-web.env.example` in the Orkify
       dashboard (`SHARE_DB_PATH` must stay outside the release tree).
