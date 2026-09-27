@@ -29,8 +29,8 @@ DSGVO nicht. Die vollständigen Anbieterangaben stehen im
   heruntergeladenen Gebiete, die Suche, wenn du sie anforderst, und, falls du
   sie nutzt, der KI-Assistent, die Verbindungen zu Strava und RideWithGPS und
   die Teilen-Links. Jedes davon ist unten beschrieben.
-- Diese **Website** hat keine Analyse, keine Werbung und kein Tracking —
-  deshalb hat sie auch kein Cookie-Banner.
+- Diese **Website** hat keine Analyse, keine Werbung und kein Tracking — der
+  kurze Hinweis unten auf der Seite verlangt deshalb nichts von dir.
 - Wir verkaufen deine Daten nicht, und wir nutzen sie nicht für Werbung oder
   Profilbildung.
 
@@ -205,8 +205,11 @@ Abonnenten-Kennung.
 ## Diese Website
 
 velorki.com ist eine einfache Website: kein Konto, keine Werbung, keine
-Analyse, kein Tracking. Nichts, was du hier tust, wird gemessen — deshalb gibt
-es kein Cookie-Banner, es ist nichts zu fragen.
+Analyse, kein Tracking. Nichts, was du hier tust, wird gemessen — der Hinweis,
+den du unten auf der Seite gesehen haben magst, ist deshalb genau das, ein
+Hinweis: Es gibt keine Einwilligung zu erteilen und keine zu verweigern, denn
+auf deinem Gerät wird nichts gespeichert, bis du es verlangst. Der Eintrag
+🍪 Cookies im Fußbereich holt ihn zurück.
 
 - **Server-Protokolle.** Jede Anfrage wird protokolliert wie oben unter
   Server-Protokolle beschrieben: Zeitpunkt, Pfad, Status, Größe, deine
@@ -224,7 +227,9 @@ es kein Cookie-Banner, es ist nichts zu fragen.
   TTDSG keine Einwilligung.
 - **Die Darstellung.** Wählst du hell, dunkel oder eine Akzentfarbe, wird
   `velorki.theme` im lokalen Speicher deines Browsers abgelegt. Das verlässt den
-  Browser nie und ist für uns nicht lesbar.
+  Browser nie und ist für uns nicht lesbar. Schließt du den Hinweis oben, kommt
+  ein weiterer Schlüssel dazu, `velorki.cookie-notice`, damit er nicht wieder
+  erscheint.
 - **Freigabe-Seiten.** Öffnest du einen `velorki.com/s/…`-Link, kommt die
   geteilte Route von unserem Server und die Kartenkacheln von OpenFreeMap, das
   dabei deine IP-Adresse sieht wie bei jeder Webanfrage. Weitere fremde Inhalte

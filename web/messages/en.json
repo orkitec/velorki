@@ -414,6 +414,14 @@
     "commit": "Commit {commit}",
     "orkify": "Deployed with Orkify"
   },
+  "cookies": {
+    "label": "About what this site stores",
+    "body": "velorki.com stores nothing on your device until you ask it to: your language, your theme and the support chat keep a little in your browser. No tracking, no advertising, nothing to consent to.",
+    "link": "What the site stores",
+    "anchor": "this-website",
+    "dismiss": "Got it",
+    "footer": "Cookies"
+  },
   "notFound": {
     "title": "Off the route",
     "body": "This page does not exist. It may have moved, or the link may have been mistyped.",
