@@ -33,9 +33,12 @@ export function CookieNoticeCard({
     <div
       role="region"
       aria-label={strings.label}
-      // pb-24 keeps the card clear of the support chat's bubble in the corner,
-      // which sits above this and would otherwise cover the dismiss button.
-      className="fixed inset-x-0 bottom-0 z-50 p-4 pb-24"
+      // The support chat's launcher is a 56 px circle at bottom/right 20 px and
+      // renders above this, so on a narrow screen - where the card spans the
+      // full width - it would sit on the dismiss button. Hence the bottom
+      // clearance there and not above `sm`, where a centred max-w-md card never
+      // reaches that corner.
+      className="fixed inset-x-0 bottom-0 z-50 p-4 pb-24 sm:pb-6"
     >
       <div className="hairline mx-auto max-w-md rounded-2xl bg-canvas-deep p-4 shadow-lg">
         <p className="text-sm text-muted">
