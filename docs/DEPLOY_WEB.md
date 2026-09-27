@@ -910,9 +910,13 @@ release.
   already carries one (`src/deploy/DeployExecutor.ts`), and that same source
   shows the build runs with `{ ...secrets, ...deployConfig.buildEnv }`, so
   dashboard secrets do reach `deploy.build`.
-- `APP_VERSION` is still unset, so `/health` reports `version: "dev"`. Set it
-  as a dashboard secret if the running version should be visible there; the old
-  SSH workflow stamped it into a `.env.production`, which the upload flow
-  cannot carry (`web/.gitignore` excludes `.env.*`).
+- `APP_VERSION` needs no setting either: unset, it falls back to the release
+  number Orkify gave the artifact (`v2`), which `next.config.ts` inlines from
+  `NEXT_DEPLOYMENT_ID` at build time (`web/src/build-meta.ts`). Set it as a
+  dashboard secret only to name a release something else. The commit is inlined
+  the same way, from `web/build-info.json`, which `web-deploy.yml` writes before
+  the upload — the artifact carries no `.git`, so that file is the only way the
+  box can know what it is building. The site footer shows both and links the
+  commit to GitHub.
 - Whether Orkify's `port:` also sets `PORT` in the process environment.
   `orkify.yml` sets both to 3100 so it does not matter.

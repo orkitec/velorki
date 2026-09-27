@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { buildMeta } from '@/build-meta';
 import { COPYRIGHT_YEAR, GITHUB_URL, ORKIFY_URL, OSM_COPYRIGHT_URL, SECURITY_EMAIL } from '@/site/config';
 import { LEGAL_DOCS } from '@/site/content';
 import { localePath } from '@/site/paths';
@@ -20,6 +21,8 @@ export function SiteFooter({ locale }: { locale: string }) {
   // A literal, not new Date(): reading the clock is a dynamic API under
   // cacheComponents and would cost every page its static render.
   const year = COPYRIGHT_YEAR;
+  // Build-time constants after `next build`; see src/build-meta.ts.
+  const { release, commit, commitShort, commitUrl } = buildMeta();
 
   return (
     <footer className="hairline mt-24 bg-canvas-deep/40">
@@ -97,9 +100,27 @@ export function SiteFooter({ locale }: { locale: string }) {
             {t('credits')}
           </Link>
         </p>
-        <p>
-          {t('copyright', { year })}{' '}
-          ·{' '}
+        <p>{t('copyright', { year })}</p>
+        {/* What is actually running here: Orkify's release number and the
+            commit it was built from, linked to that commit on GitHub. Both are
+            null on a build that was never deployed (dev, a plain `next build`),
+            and then only the Orkify credit is left. */}
+        <p className="flex flex-wrap items-center gap-x-1.5">
+          {release ? <span>{t('release', { release })}</span> : null}
+          {commit && commitShort && commitUrl ? (
+            <>
+              {release ? <span aria-hidden="true">·</span> : null}
+              <a
+                href={commitUrl}
+                rel="noreferrer"
+                title={t('commit', { commit })}
+                className="font-mono hover:text-fg"
+              >
+                {commitShort}
+              </a>
+            </>
+          ) : null}
+          {release || commitShort ? <span aria-hidden="true">·</span> : null}
           <a href={ORKIFY_URL} rel="noreferrer" className="hover:text-fg">
             {t('orkify')}
           </a>

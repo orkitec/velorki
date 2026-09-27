@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build-info": "node scripts/build-info.mjs",
     "postbuild": "node scripts/standalone-assets.mjs",
     "start": "node .next/standalone/server.js",
     "start:cluster": "PORT=8080 orkify run .next/standalone/server.js --name velorki-web --workers 2 --health-check /health --kill-timeout 15000",
