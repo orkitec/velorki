@@ -811,6 +811,13 @@ the distribution's own logrotate rule already globs — nothing to add. The two
 cron scripts append to `/var/log/velorki-*.log` — add *those* to logrotate if
 they ever matter.
 
+The privacy policy quotes two of these numbers as promises: *14 days* for the
+web server's access logs (Debian's `/etc/logrotate.d/nginx` default, `daily` +
+`rotate 14`, which globs `/var/log/nginx/*.log`) and *90 days* for the
+application log lines Orkify collects. Check them on the box with
+`grep -A6 'rotate' /etc/logrotate.d/nginx`, and change
+`web/content/*/legal/privacy.md` in the same commit as any retention you tune.
+
 **Updating Node.** Minor releases come from `apt` with the NodeSource repo. For
 a major: install it, `orkify reload velorki-web`, check `orkify list`, and keep
 `engines.node` in `web/package.json` and the `node-version` in `web.yml` and

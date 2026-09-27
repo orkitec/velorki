@@ -1,12 +1,10 @@
 ---
 title: Imprint
 description: Provider identification for velorki.com under section 5 DDG, in English and German.
-draft: true
+draft: false
 ---
 
-> **Draft.** Every value in double braces below is a placeholder and must be
-> replaced with the real company data before this page goes live. Nothing here
-> should still contain `{{` when the site is published.
+Last updated: 27 September 2026.
 
 ## Imprint (English)
 
@@ -14,37 +12,55 @@ Information required by section 5 of the German Digital Services Act (DDG).
 
 **Provider**
 
-{{COMPANY_NAME}}  
-{{ADDRESS_STREET}}  
-{{ADDRESS_POSTCODE_CITY}}  
-{{ADDRESS_COUNTRY}}
+Steffen Roemer, trading as "Orkitec"  
+Straße der Pariser Kommune 27  
+10243 Berlin  
+Germany
 
 **Represented by**
 
-{{REPRESENTED_BY}}
+Steffen Roemer
 
 **Contact**
 
-Email: {{CONTACT_EMAIL}}  
-Phone: {{CONTACT_PHONE}}
+Email: ride@velorki.com
+
+Rapid electronic contact and direct communication: by email at the address
+above. There is no telephone line for Velorki; email is answered.
 
 **Register entry**
 
-Register court: {{REGISTER_COURT}}  
-Register number: {{REGISTER_NUMBER}}
+None. Sole trader (Einzelunternehmer), not entered in a trade register.
 
 **VAT identification number** under section 27 a of the German VAT Act
 (Umsatzsteuergesetz)
 
-{{VAT_ID}}
+DE265345074
 
 **Responsible for the content** under section 18 (2) of the German Interstate
 Media Treaty (MStV)
 
-{{CONTENT_RESPONSIBLE}}  
-{{ADDRESS_STREET}}  
-{{ADDRESS_POSTCODE_CITY}}  
-{{ADDRESS_COUNTRY}}
+Steffen Roemer  
+Straße der Pariser Kommune 27  
+10243 Berlin  
+Germany
+
+**Hosting and infrastructure**
+
+- **Hetzner Cloud GmbH**, Industriestr. 25, 91710 Gunzenhausen, Germany — the
+  server that runs this website, the relay and the share links.
+- **Cloudflare, Inc.**, 101 Townsend St, San Francisco, CA 94107, USA — DNS,
+  CDN and protection against denial-of-service attacks for velorki.com.
+
+What each of them processes, and every other service the app can reach, is in
+the [privacy policy](./privacy).
+
+**Contact points under the Digital Services Act** (Article 11 of Regulation
+(EU) 2022/2065)
+
+For users of the service: ride@velorki.com  
+Single point of contact for authorities: ride@velorki.com  
+Languages: German and English.
 
 **Dispute resolution**
 
@@ -75,8 +91,9 @@ learn of one.
 The content of the Velorki app and this website is, where not marked otherwise,
 open source: the app, the website and the relay are licensed under the GNU
 Affero General Public License, version 3 only. Map data is © OpenStreetMap
-contributors, licensed under the Open Database License (ODbL). "Velorki", the Velorki logo and the Velorki app icon are trademarks of
-{{COMPANY_NAME}} and are not covered by those licences; see the
+contributors, licensed under the Open Database License (ODbL). "Velorki", the
+Velorki logo and the Velorki app icon are trademarks of Steffen Roemer
+(Orkitec) and are not covered by those licences; see the
 [trademark policy](https://github.com/orkitec/velorki/blob/main/TRADEMARK.md).
 
 ## Impressum (Deutsch)
@@ -85,35 +102,54 @@ Angaben gemäß § 5 DDG.
 
 **Diensteanbieter**
 
-{{COMPANY_NAME}}  
-{{ADDRESS_STREET}}  
-{{ADDRESS_POSTCODE_CITY}}  
-{{ADDRESS_COUNTRY}}
+Steffen Roemer, handelnd unter „Orkitec“  
+Straße der Pariser Kommune 27  
+10243 Berlin  
+Deutschland
 
 **Vertreten durch**
 
-{{REPRESENTED_BY}}
+Steffen Roemer
 
 **Kontakt**
 
-E-Mail: {{CONTACT_EMAIL}}  
-Telefon: {{CONTACT_PHONE}}
+E-Mail: ride@velorki.com
+
+Schnelle elektronische Kontaktaufnahme und unmittelbare Kommunikation: per
+E-Mail an die oben genannte Adresse. Für Velorki gibt es keine Telefonnummer;
+E-Mails werden beantwortet.
 
 **Registereintrag**
 
-Registergericht: {{REGISTER_COURT}}  
-Registernummer: {{REGISTER_NUMBER}}
+Keiner. Einzelunternehmer, nicht im Handelsregister eingetragen.
 
 **Umsatzsteuer-Identifikationsnummer** gemäß § 27 a Umsatzsteuergesetz
 
-{{VAT_ID}}
+DE265345074
 
 **Verantwortlich für den Inhalt** nach § 18 Abs. 2 MStV
 
-{{CONTENT_RESPONSIBLE}}  
-{{ADDRESS_STREET}}  
-{{ADDRESS_POSTCODE_CITY}}  
-{{ADDRESS_COUNTRY}}
+Steffen Roemer  
+Straße der Pariser Kommune 27  
+10243 Berlin  
+Deutschland
+
+**Hosting und Infrastruktur**
+
+- **Hetzner Cloud GmbH**, Industriestr. 25, 91710 Gunzenhausen, Deutschland —
+  der Server, auf dem diese Website, der Relay und die Freigabe-Links laufen.
+- **Cloudflare, Inc.**, 101 Townsend St, San Francisco, CA 94107, USA — DNS,
+  CDN und Schutz vor Überlastungsangriffen für velorki.com.
+
+Was dort jeweils verarbeitet wird, und jeder weitere Dienst, den die App
+erreichen kann, steht in der [Datenschutzerklärung](./privacy).
+
+**Kontaktstellen nach dem Digital Services Act** (Artikel 11 der Verordnung
+(EU) 2022/2065)
+
+Für Nutzerinnen und Nutzer des Dienstes: ride@velorki.com  
+Zentrale Kontaktstelle für Behörden: ride@velorki.com  
+Sprachen: Deutsch und Englisch.
 
 **Streitschlichtung**
 
@@ -149,9 +185,9 @@ Die Inhalte der Velorki-App und dieser Website stehen, soweit nicht anders
 gekennzeichnet, unter einer Open-Source-Lizenz: die App, die Website und der
 Relay stehen unter der GNU Affero General Public License, Version 3 only.
 Kartendaten © OpenStreetMap-Mitwirkende, lizenziert unter der Open Database
-License (ODbL). "Velorki", das Velorki-Logo und das
-App-Symbol sind Marken von {{COMPANY_NAME}} und werden von diesen Lizenzen
-nicht erfasst; siehe die
+License (ODbL). „Velorki“, das Velorki-Logo und das App-Symbol sind Marken von
+Steffen Roemer (Orkitec) und werden von diesen Lizenzen nicht erfasst; siehe
+die
 [Markenrichtlinie](https://github.com/orkitec/velorki/blob/main/TRADEMARK.md).
 
 Related: [Privacy policy](./privacy) · [Terms of use](./terms)
