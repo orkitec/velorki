@@ -39,7 +39,7 @@ jobs:
     # Holds ORKIFY_API_KEY as an environment secret, so nothing outside this
     # workflow's environment can read it, and the maintainer can put a required
     # reviewer or a branch restriction on it without touching the workflow.
-    environment: production
+    environment: web-production
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
