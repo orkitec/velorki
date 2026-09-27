@@ -48,10 +48,10 @@ systemctl is-active nginx caddy          # which proxy is in charge
 | 3, 4b | **Do not let the Cloudflare IP script rewrite the firewall.** `cloudflare-ips-nginx.sh` deliberately does not touch ufw: the rules are shared with the other site. It prints the `ufw allow` lines it would have added; apply them by hand once you know they do not lock the neighbour out. |
 | 6 | Pick a port nothing else holds. 3100 is free on this box; if it were not, change `port:` **and** `env.PORT` in `web/orkify.yml` and the `proxy_pass` in the nginx config together — they must agree or the health probe dials a closed socket. |
 
-Everything else — the directories, the cron jobs, the deploy key and the
-forced command, the Cloudflare zone, backups, operations — is the same on a
-shared box as on a fresh one, because all of it is scoped to the `velorki`
-user, `/srv/velorki`, `/var/lib/velorki` and the `velorki.com` zone.
+Everything else — the directories, the cron jobs, the Cloudflare zone, backups,
+operations — is the same on a shared box as on a fresh one, because all of it is
+scoped to the `velorki` user, `/srv/velorki`, `/var/lib/velorki` and the
+`velorki.com` zone.
 
 ---
 
@@ -89,17 +89,19 @@ Firewall. 443 is opened per Cloudflare range in step 3; nothing else is public.
 ufw default deny incoming
 ufw default allow outgoing
 ufw allow from <your.ip.addr.ess> to any port 22 proto tcp comment 'admin ssh'
-ufw allow from <github.actions.ip> to any port 22 proto tcp comment 'deploy'  # optional, see step 7
 ufw --force enable
 ufw status verbose
 ```
 
-GitHub-hosted runners have no fixed address. Either leave 22 open to the
-world (key-only auth, forced command — see step 7) or run the deploy from a
-self-hosted runner or your own machine. Leaving it open is the normal choice:
+Nothing but an administrator needs SSH: the deploy workflow (step 7) uploads the
+release to Orkify's API and the agent on this box fetches it, so 22 can stay shut
+to everything but your own address. Only the SSH fallback at the end of step 7
+needs an inbound rule, and a GitHub-hosted runner has no fixed address to write
+one for — that path means leaving 22 open to the world (key-only auth and a
+forced command) or deploying from a self-hosted runner:
 
 ```sh
-ufw allow 22/tcp comment 'ssh'
+ufw allow 22/tcp comment 'ssh'      # SSH fallback only
 ```
 
 Unattended upgrades:
@@ -187,7 +189,8 @@ sudo install -m 0755 deploy/web/cloudflare-ips.sh       /usr/local/bin/velorki-c
 sudo install -m 0755 deploy/web/cloudflare-ips-nginx.sh /usr/local/bin/velorki-cloudflare-ips-nginx  # 4b, nginx
 
 sudo install -m 0755 deploy/web/backup-sqlite.sh  /usr/local/bin/velorki-backup-sqlite
-sudo install -m 0755 deploy/web/velorki-deploy    /usr/local/bin/velorki-deploy
+# velorki-deploy is NOT needed here: the deploy workflow uploads to Orkify's API
+# and the agent collects it. Only the SSH fallback at the end of step 7 uses it.
 
 cat <<'EOF' | sudo tee /etc/cron.d/velorki
 # m h dom mon dow user command
@@ -521,8 +524,10 @@ cd /srv/velorki
 orkify deploy local /srv/velorki/incoming/velorki-web.tar.gz
 ```
 
-(Once the forced-command key from step 7 is installed, `scp` to that key is
-blocked; use the workflow, or your own admin key.)
+(This is the manual path, with your own admin key. The deploy workflow in
+step 7 does not use SSH at all — it uploads to Orkify's API with
+`orkify deploy upload`, and `/srv/velorki/incoming` only fills up if you use the
+SSH fallback described there.)
 
 **Configuration.** Two supported homes, in this order of preference:
 
@@ -570,28 +575,95 @@ orkify logs velorki-web -f
 
 ## 7. Deploys from GitHub
 
-`.github/workflows/web-deploy.yml` runs on a `web-v*` tag in the `release`
-environment (maintainer approval), after `web.yml`'s checks, and streams the
-artefact into the forced command.
+`main` is the trunk, `production` is the release branch. A push to `production`
+runs `.github/workflows/web-deploy.yml`: it re-runs the whole `web.yml` gate on
+that exact tree and then hands the release to Orkify with
+`npx orkify deploy upload .`. There is no SSH, no deploy user and no host key in
+it — the workflow POSTs the release to Orkify's API and the agent on the box
+collects it, so CI needs nothing but one secret.
 
-Secrets on the `release` environment:
+One-time setup. Create the branch:
+
+```sh
+git switch -c production main
+git push -u origin production
+```
+
+Then Settings → Environments → **`production`**, one secret:
 
 | Secret | What |
 |---|---|
-| `DEPLOY_SSH_KEY` | the private half of a dedicated ed25519 key, deploy-only |
-| `DEPLOY_HOST` | the VPS hostname or address |
-| `DEPLOY_HOST_KEY` | `ssh-keyscan -t ed25519 <host>` output, verbatim |
-| `DEPLOY_USER` | `velorki` |
+| `ORKIFY_API_KEY` | a project API key from the Orkify dashboard (Settings → API keys). The key decides which project and which box the upload goes to, so it *is* the deploy credential: treat it like a password, and rotate it in the dashboard if it ever leaks. |
+
+An *environment* secret, not a repository one: only a job that declares
+`environment: production` can read it. Restrict that environment to the
+`production` branch so no other ref can spend the key, and add the maintainer as
+a required reviewer if a release should wait for an approval in the Actions tab.
+
+### Releasing
 
 ```sh
-ssh-keygen -t ed25519 -f ~/.ssh/velorki-deploy -C deploy@github -N ''
-ssh-keyscan -t ed25519 <host>          # paste the output into DEPLOY_HOST_KEY
+# the normal way: a pull request from main into production
+gh pr create --base production --head main --title 'Release' --body ''
+
+# or straight from a checkout
+git switch production && git merge --ff-only main && git push
+```
+
+`workflow_dispatch` on `production` runs the same job again, which is how to
+redeploy the current release without a new commit.
+
+### What happens then
+
+1. The workflow runs `npm ci`, `lint`, `typecheck`, `test`, the locale check,
+   `next build` and `check:deps`. The same gate as `web.yml`, deliberately
+   repeated: a release is never published on the strength of a check that ran on
+   a different tree.
+2. `orkify deploy upload .` makes its own tarball of `web/` and POSTs it with
+   the sha256, the size and the commit metadata. The workflow is finished at
+   that point; the deploy is not.
+3. The agent on the box picks the deploy up on its next poll, unpacks it into a
+   fresh release directory, runs `deploy.install` (`npm ci`) and `deploy.build`
+   (`next build`) from `web/orkify.yml`, probes `/health`, and rolling-reloads
+   the four workers one at a time. The build happens **on the box**, so it needs
+   the RAM from step 6.
+
+Watch it there or in the dashboard, which lists the deploy with its commit and
+its outcome:
+
+```sh
+orkify list                       # velorki-web, 4 workers, online
+orkify logs velorki-web -f        # install, build, reload, then the app's lines
+```
+
+Then step 8's checks against the public hostnames.
+
+**Rollback.** Orkify keeps the previous release on disk and rolls back on its
+own if a worker crashes inside `crashWindow` (30 s). For a bad release that
+comes up and *then* misbehaves, redeploy the previous release from the dashboard
+(or `orkify deploy local` on the box, step 9) and put `production` back where it
+was — `git revert` the merge, or reset the branch to the previous commit and
+force-push — so the branch and the box agree again.
+
+### Without a dashboard: the SSH fallback
+
+`deploy upload` needs an Orkify account, so a fork running its own box with a
+bare `@orkify/cli` cannot use it. `deploy/web/velorki-deploy` is the fallback
+for that case, and the official deployment no longer uses it: it is a forced
+command for a dedicated deploy key that takes an `orkify deploy pack` tarball on
+stdin and runs `orkify deploy local` on it. Install it (step 3 skips it
+otherwise):
+
+```sh
+sudo install -m 0755 deploy/web/velorki-deploy /usr/local/bin/velorki-deploy
+ssh-keygen -t ed25519 -f ~/.ssh/velorki-deploy -C deploy@ci -N ''
+ssh-keyscan -t ed25519 <host>          # pin this in the CI that will use it
 ```
 
 On the box, in `/home/velorki/.ssh/authorized_keys`, one line:
 
 ```
-command="/usr/local/bin/velorki-deploy",restrict ssh-ed25519 AAAA...  deploy@github
+command="/usr/local/bin/velorki-deploy",restrict ssh-ed25519 AAAA...  deploy@ci
 ```
 
 `restrict` turns off port, agent and X11 forwarding, pty allocation and
@@ -604,16 +676,12 @@ velorki-deploy deploy /srv/velorki/incoming/<name>.tar.gz   # redeploy, rollback
 ```
 
 rejects shell metacharacters, refuses any path that does not resolve inside
-`/srv/velorki/incoming`, and verifies the sha256 before `orkify deploy local`
-sees the file. A forced command also blocks `scp` and `sftp`, which is why the
-artefact travels on stdin rather than as a separate copy step.
-
-Release:
-
-```sh
-git tag web-v1.0.0 && git push origin web-v1.0.0
-# approve the run in the Actions tab
-```
+`/srv/velorki/incoming`, keeps the last five artefacts there, and verifies the
+sha256 before `orkify deploy local` sees the file. A forced command also blocks
+`scp` and `sftp`, which is why the artefact travels on stdin rather than as a
+separate copy step. A fork's own workflow therefore needs the private key, the
+host, its host key and the user as secrets — all four of which the upload flow
+above does without.
 
 ## 8. Verification
 
@@ -712,17 +780,18 @@ Finally `orkify list` shows `velorki-web` with **2** workers online, and
 | Hard restart | `orkify restart velorki-web` |
 | Status | `orkify list` |
 | Logs | `orkify logs velorki-web -f` (`--err`, `-n 200`) |
-| Redeploy a previous artefact | `orkify deploy local /srv/velorki/incoming/velorki-web-<sha>.tar.gz` |
+| Redeploy a release | from the Orkify dashboard, or `orkify deploy local <tarball>` for one on the box (SSH fallback, step 7) |
 | Refresh Cloudflare ranges now | `sudo /usr/local/bin/velorki-cloudflare-ips` (4a) / `…-ips-nginx` (4b) |
 | Back up now | `sudo -u velorki /usr/local/bin/velorki-backup-sqlite` |
 | Reload the proxy after a config change | `sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl reload caddy` (4a) / `sudo nginx -t && sudo systemctl reload nginx` (4b) |
 
 **Rollback.** Orkify keeps the previous release on disk and rolls back by itself
-if a worker crashes inside `crashWindow` (30 s). For a bad release that does not
-crash, re-run `orkify deploy local` with the previous artefact from
-`/srv/velorki/incoming` (the deploy script keeps the last five), or push the
-previous tag again. The database is outside the release tree and schema changes
-are additive, so a rollback never needs a database restore.
+if a worker crashes inside `crashWindow` (30 s). For a bad release that comes up
+and only then misbehaves, redeploy the previous release from the dashboard, and
+put the `production` branch back where it was — `git revert` the merge, or reset
+the branch to the previous commit and force-push — so the branch and the box do
+not disagree. The database is outside the release tree and schema changes are
+additive, so a rollback never needs a database restore.
 
 **Logs.** Orkify rotates its own (`~/.orkify/logs/`, 100 MB / 90 files /
 90 days; tune with `logMaxSize`, `logMaxFiles`, `logMaxAge` in `orkify.yml`).
@@ -817,18 +886,24 @@ release.
 
 **Not verified — check in the Orkify docs before relying on it:**
 
-- The exact spelling of `orkify deploy pack`'s `--output` flag. The CLI
-  reference names the flag but not its syntax; `orkify deploy pack --help` on
-  the box is the authority.
-- What `orkify deploy pack` includes and excludes (whether it honours
-  `.gitignore`, and whether `node_modules/` and `.next/` are left out). The
-  workflow assumes a source artefact that the server installs and builds.
+- The exact spelling of `orkify deploy pack`'s `--output` flag (the manual path
+  in step 6 and the SSH fallback). The CLI reference names the flag but not its
+  syntax; `orkify deploy pack --help` on the box is the authority.
+- What `orkify deploy pack` and `orkify deploy upload` include and exclude
+  (whether they honour `.gitignore`, and whether `node_modules/` and `.next/`
+  are left out). Both paths assume a source artefact that the server installs
+  and builds.
 - Where `orkify deploy local` puts the unpacked releases and what the previous
   release directory is called. "Keeps the previous release on disk" is
   documented; the path is not.
-- Whether dashboard secrets are present in the environment of the **build**
-  step (`deploy.build`) as well as the running process. `NEXT_DEPLOYMENT_ID` is
-  therefore shipped in a `.env.production` written by the deploy workflow
-  instead of relying on it.
+- `NEXT_DEPLOYMENT_ID` needs no setting of ours: Orkify's deploy executor
+  passes its own deployment id into the build environment unless `buildEnv`
+  already carries one (`src/deploy/DeployExecutor.ts`), and that same source
+  shows the build runs with `{ ...secrets, ...deployConfig.buildEnv }`, so
+  dashboard secrets do reach `deploy.build`.
+- `APP_VERSION` is still unset, so `/health` reports `version: "dev"`. Set it
+  as a dashboard secret if the running version should be visible there; the old
+  SSH workflow stamped it into a `.env.production`, which the upload flow
+  cannot carry (`web/.gitignore` excludes `.env.*`).
 - Whether Orkify's `port:` also sets `PORT` in the process environment.
   `orkify.yml` sets both to 3100 so it does not matter.

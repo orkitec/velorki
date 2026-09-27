@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
-# Forced command for the deploy SSH key: receive one tarball and deploy it.
+# Forced command for a deploy SSH key: receive one tarball and deploy it.
+#
+# FALLBACK, not the official path. Velorki's own deploy workflow uploads the
+# release to Orkify's API (`orkify deploy upload`) and the agent on the box
+# collects it, so CI needs no SSH at all. This script is for a fork that runs
+# its own box with a plain @orkify/cli and no Orkify dashboard, and therefore
+# has to push the artefact in itself. See docs/DEPLOY_WEB.md step 7.
 #
 #   sudo install -m 0755 velorki-deploy /usr/local/bin/velorki-deploy
 #

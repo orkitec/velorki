@@ -19,7 +19,7 @@ mirrors the routing data.
 |---|---|
 | `docker-compose.yml` | The stack: `caddy`, `brouter`, `brouter-updater`, optional `api` |
 | `Caddyfile` | TLS + routing: `/brouter*` → BRouter, everything else → the app |
-| `web/` | The official deployment: Caddy **or** nginx config (`velorki.nginx.conf`, for a box that already serves another site), Cloudflare and backup scripts, the deploy forced command — see [docs/DEPLOY_WEB.md](../docs/DEPLOY_WEB.md) |
+| `web/` | The official deployment: Caddy **or** nginx config (`velorki.nginx.conf`, for a box that already serves another site), Cloudflare and backup scripts, and `velorki-deploy`, the SSH deploy fallback for a fork without an Orkify dashboard — see [docs/DEPLOY_WEB.md](../docs/DEPLOY_WEB.md) |
 | `.env.example` | Configuration template |
 | `Makefile`, `bin/` | `sync-now`, `logs`, `route-test` helpers |
 | `systemd/` | Docker-free alternative: run BRouter straight from a jar |
@@ -236,7 +236,11 @@ The official Velorki deployment does **not** run it in Docker. Orkify deploys
 VPS, Node, Orkify, the reverse proxy with a Cloudflare Origin CA certificate,
 the Cloudflare zone, the deploy workflow, backups and operations. The pieces it
 installs live in `deploy/web/`: `Caddyfile`, `cloudflare-ips.sh`,
-`backup-sqlite.sh`, `velorki-deploy` and `velorki-web.env.example`.
+`backup-sqlite.sh` and `velorki-web.env.example`. (`velorki-deploy` is there
+too, but the official deploy no longer uses it: the GitHub workflow uploads the
+release to Orkify's API and the agent on the box collects it. It is the fallback
+for a fork that runs its own box with a plain `@orkify/cli` and no dashboard —
+step 7 of the runbook.)
 
 The proxy is a choice, step 4a or 4b of that runbook: Caddy on a box that is
 only Velorki's, or `velorki.nginx.conf` plus `cloudflare-ips-nginx.sh` on a box

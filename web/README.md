@@ -269,6 +269,10 @@ for another site. The parts that matter here:
   is firewalled to the proxy that sets them. `CLIENT_IP_HEADER` is read only
   when `TRUST_PROXY=1`; without it every caller shares the key "unknown".
 - Worker `0` runs the daily share sweep; the others do not.
+- A release is `main` merged into the `production` branch: the push runs
+  `.github/workflows/web-deploy.yml`, which re-runs this directory's checks and
+  then `npx orkify deploy upload .`. The agent on the box unpacks, `npm ci`s,
+  builds and rolling-reloads — so the **build happens on the server**.
 
 **Keep this app free of native dependencies.** No `node-gyp`, no
 `better-sqlite3`, no `sharp`, no packages with install scripts: it must stay a

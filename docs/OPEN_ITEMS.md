@@ -10,8 +10,9 @@ exercised there. The items here are the parts not yet covered by that.
 - [ ] **Web + relay on the VPS**: follow [docs/DEPLOY_WEB.md](DEPLOY_WEB.md) —
       Ubuntu 24.04, Node 22, Orkify, Caddy with a Cloudflare Origin CA
       certificate, the Cloudflare zone on Full (strict), backups. Then the
-      `release`-environment secrets for `web-deploy.yml`: `DEPLOY_SSH_KEY`,
-      `DEPLOY_HOST`, `DEPLOY_HOST_KEY`, `DEPLOY_USER`; and the process
+      `production` branch, `ORKIFY_API_KEY` (a project key from the Orkify
+      dashboard) as a secret of the `production` environment for
+      `web-deploy.yml` — the only secret that deploy needs — and the process
       environment from `deploy/web/velorki-web.env.example` in the Orkify
       dashboard (`SHARE_DB_PATH` must stay outside the release tree).
 - [ ] **BRouter on the VPS**: `deploy/` (compose with Caddy + BRouter + updater,
