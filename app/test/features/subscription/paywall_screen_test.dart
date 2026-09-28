@@ -6,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/core/links/link_opener.dart';
 import 'package:velorki/core/plus/plus_gate.dart';
+import 'package:velorki/features/integrations/rwgps/data/rwgps_providers.dart';
+import 'package:velorki/features/integrations/strava/data/strava_providers.dart';
 import 'package:velorki/features/subscription/data/subscription_service.dart';
 import 'package:velorki/features/subscription/domain/plus_subscription.dart';
 import 'package:velorki/features/subscription/presentation/paywall_screen.dart';
@@ -62,6 +64,10 @@ void main() {
         tester,
         const PaywallScreen(),
         service: FakeSubscriptionService(offering: defaultOffering),
+        extraOverrides: [
+          stravaConfiguredProvider.overrideWithValue(true),
+          rwgpsConfiguredProvider.overrideWithValue(true),
+        ],
       );
 
       expect(find.text(l10n.plusFeatureAiAssistant), findsOneWidget);
@@ -71,6 +77,28 @@ void main() {
       expect(find.textContaining(l10n.plusLegal), findsOneWidget);
       expect(find.text(l10n.settingsTerms), findsOneWidget);
       expect(find.text(l10n.settingsPrivacyPolicy), findsOneWidget);
+    });
+
+    testWidgets('does not sell an integration this build cannot connect', (
+      tester,
+    ) async {
+      // A build without a Ride with GPS client id hides the connection
+      // everywhere else; offering it on the paywall would charge for a feature
+      // the rider then cannot find - the App Review 2.1 rejection.
+      await _pump(
+        tester,
+        const PaywallScreen(),
+        service: FakeSubscriptionService(offering: defaultOffering),
+        extraOverrides: [
+          stravaConfiguredProvider.overrideWithValue(true),
+          rwgpsConfiguredProvider.overrideWithValue(false),
+        ],
+      );
+
+      expect(find.text(l10n.plusFeatureStrava), findsOneWidget);
+      expect(find.text(l10n.plusFeatureRwgps), findsNothing);
+      expect(find.text(l10n.plusFeatureAiAssistant), findsOneWidget);
+      expect(find.text(l10n.plusFeatureLinkSharing), findsOneWidget);
     });
 
     testWidgets('shows every package with its price, period and trial', (

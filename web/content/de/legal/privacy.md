@@ -135,14 +135,14 @@ liefert eine strukturierte Anfrage zurück: eine Distanz, eine Form, Ortsnamen,
 Vorlieben. Das eigentliche Routing geschieht danach in der App; das Modell
 sieht deine Route nie.
 
-**Im offiziellen Build ist derzeit kein KI-Anbieter konfiguriert**, der
-Assistent ist damit abgeschaltet und es wird nichts übermittelt: Der Relay
-antwortet, dass die Funktion nicht verfügbar ist. Bevor sie eingeschaltet wird,
-nennt dieser Abschnitt den Anbieter, das Land seiner Server und die Garantie für
-die Übermittlung, falls dieses Land außerhalb der EU liegt — und die App fragt
-erneut nach deiner Einwilligung, wenn sich die Antwort geändert hat. Wer es auch
-wird: Der Vertrag wird dem Anbieter nicht erlauben, Modelle mit dem Übermittelten
-zu trainieren, wo diese Wahl angeboten wird.
+Unser Relay gibt die Anfrage an **OpenRouter, Inc.** (USA) weiter, einen Dienst,
+der Zugang zu Sprachmodellen verschiedener Anbieter bietet, und OpenRouter leitet
+sie an den Anbieter weiter, der das von uns genutzte Modell bereitstellt. Wir
+haben OpenRouter so eingestellt, dass Anfragen nur an Anbieter gehen, die damit
+keine Modelle trainieren und sie nicht speichern. Die Übermittlung in die USA
+stützt sich auf die Standardvertragsklauseln der Europäischen Kommission.
+OpenRouter und der Modellanbieter erhalten die Anfrage von unserem Relay, nicht
+von deinem Handy; sie sehen also die Adresse unseres Servers, nicht deine.
 
 Der Assistent erreicht das Modell über eine OpenAI-kompatible Schnittstelle. Wer
 Velorki selbst betreibt, kann seinen Relay deshalb auf jeden Anbieter oder auf
@@ -315,6 +315,9 @@ sind**
   er.
 - **Klipy** — die Sticker- und GIF-Suche im Support-Chat, und nur solange diese
   Auswahl geöffnet ist.
+- **OpenRouter, Inc.**, USA, und der Modellanbieter, an den es weiterleitet — der
+  KI-Assistent, nur nach deiner Einwilligung, beschränkt auf Anbieter, die
+  Anfragen weder zum Training nutzen noch speichern.
 
 **Dienste, die dein Handy oder dein Browser direkt kontaktiert und die jeweils
 selbst verantwortlich sind**
@@ -335,8 +338,9 @@ Gesetz verlangt.
 
 ## Übermittlungen außerhalb der EU
 
-Cloudflare, RevenueCat, Discord, Klipy, Strava, Ride with GPS, Apple und Google
-sitzen in den USA oder übermitteln dorthin. Diese Übermittlungen stützen sich auf die
+Cloudflare, RevenueCat, OpenRouter und der Modellanbieter dahinter, Discord,
+Klipy, Strava, Ride with GPS, Apple und Google sitzen in den USA oder
+übermitteln dorthin. Diese Übermittlungen stützen sich auf die
 Standardvertragsklauseln der Europäischen Kommission oder, wo der Anbieter
 zertifiziert ist, auf das EU-US Data Privacy Framework, zusammen mit den
 technischen Maßnahmen des Anbieters. Hetzner, komoot und die Kartendienste, auf

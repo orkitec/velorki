@@ -128,22 +128,25 @@ routes to our share store.
 
 ## Privacy policy
 
-- [ ] A public privacy policy URL is live. — `https://velorki.com/privacy`
-      must be published; nothing serves it yet.
+- [x] A public privacy policy URL is live. — `https://velorki.com/privacy`
+      (and `/terms`, `/imprint`), published 27 September 2026.
 - [x] It is linked from the app: Settings → About → "Privacy policy", and from
       the paywall. — `lib/features/settings/presentation/about_section.dart`,
       `lib/core/links/velorki_urls.dart`.
 - [ ] It is linked from both store listings (the URL field in each console).
 - [x] It names the AI provider, Strava, RideWithGPS, RevenueCat, the map tile
-      provider and the search provider. — `docs/PRIVACY.md`; the AI section
-      now says "OpenAI (or the provider configured by the operator)", the
-      relay being OpenAI-compatible.
+      provider and the search provider. — `web/content/*/legal/privacy.md`; the
+      assistant goes through OpenRouter, restricted to providers that neither
+      train on nor retain requests (set in the OpenRouter account).
 - [x] It states retention for share links (one year) and that uninstalling
       removes local data. — `docs/PRIVACY.md`, "Retention and deletion".
 - [ ] It has been reviewed by a lawyer (`docs/PRIVACY.md` is a draft).
-- [ ] The crash-reporting section is resolved rather than "to be decided".
-- [ ] The server-log retention period is filled in, and so are the controller's
+- [x] The crash-reporting section is resolved rather than "to be decided". —
+      "there is none", `web/content/en/legal/privacy.md`.
+- [x] The server-log retention period is filled in, and so are the controller's
       postal address and, if one is needed, the data protection representative.
+      — 14 days web server, 90 days application logs; controller in Berlin; no
+      representative needed for an EU controller.
 
 ## AI features
 

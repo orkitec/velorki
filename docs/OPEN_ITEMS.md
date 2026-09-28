@@ -36,8 +36,11 @@ exercised there. The items here are the parts not yet covered by that.
       a `prod` env file (not committed), secret REST key into the relay
       (`REVENUECAT_SECRET_KEY`; `REVENUECAT_MODE` defaults to `live`, so set
       `stub` explicitly until then).
-- [ ] **LLM**: `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`,
-      `LLM_DAILY_BUDGET_USD` in the relay.
+- [ ] **LLM**: OpenRouter — `LLM_BASE_URL=https://openrouter.ai/api/v1`,
+      `LLM_API_KEY`, `LLM_MODEL` (a model with tool calling), both
+      `LLM_USD_PER_1K_*` prices and `LLM_DAILY_BUDGET_USD` in the relay; in the
+      OpenRouter account, exclude providers that train on or retain prompts,
+      as the privacy policy promises.
 - [ ] **velorki.com**: the `ride@velorki.com`
       mailbox (support and security reports). (Nameservers, DNS and TLS are step 5 of
       [DEPLOY_WEB.md](DEPLOY_WEB.md).)
@@ -47,7 +50,8 @@ exercised there. The items here are the parts not yet covered by that.
       all three — and of `CLA.md`, the Contributor Licence Agreement, with them:
       it is written in plain language and has not been reviewed by one. Two
       statements in the privacy policy have to be kept true as things change:
-      the AI section says no provider is configured, and the log retention says
+      the AI section says requests go through OpenRouter only to providers that
+      neither train on nor retain them (keep those account settings on), and the log retention says
       14 days for the web server's access logs and 90 for the application log
       lines in Orkify.
 - [ ] **Crowdin**: create the project (source English, target German), request
@@ -86,11 +90,6 @@ exercised there. The items here are the parts not yet covered by that.
 - [ ] Sign once with the **Share Extension**: the `VelorkiShare` target exists
       and CI compiles it, but the App Group `group.com.orkitec.velorki` is only
       registered in the developer portal after one signed build on the Mac.
-- [ ] Background recording on an iPhone: screen off for a long ride and the
-      blue indicator. (The recorder on the real geolocator, the Live Activity,
-      resuming an interrupted ride and the speaker are covered on the
-      simulator by `integration_test/live_*_test.dart`; the locked screen is
-      not scriptable there.)
 - [ ] **Apple Watch app** (`app/ios/VelorkiWatch`): its buttons and footnotes
       are English only (the ARB cannot reach a native target; add
       `Localizable.strings` for German); no complications. A ride on the

@@ -11,6 +11,7 @@ import '../../shared/presentation/stat_tile.dart';
 import '../application/subscription_controller.dart';
 import '../data/subscription_service.dart';
 import '../domain/plus_subscription.dart';
+import '../application/offered_plus_features.dart';
 import 'plus_strings.dart';
 
 /// The paywall, at `/plus`.
@@ -103,11 +104,10 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           const SizedBox(height: 24),
           SectionCaption(l10n.plusIncludes, accent: true),
           const SizedBox(height: 12),
-          // Driven by the one gate list, so moving a feature to the free
-          // tier takes it off the paywall in the same edit.
-          for (final feature in PlusFeature.values.where(
-            gatedFeatures.contains,
-          ))
+          // Driven by the gate list, minus what this build cannot deliver
+          // (an integration without its client id); see
+          // offeredPlusFeaturesProvider.
+          for (final feature in ref.watch(offeredPlusFeaturesProvider))
             _FeatureRow(feature: feature),
           const SizedBox(height: 16),
           Text(l10n.plusFreeAnyway, style: theme.textTheme.bodySmall),
