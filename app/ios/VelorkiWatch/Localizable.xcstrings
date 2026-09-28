@@ -1,0 +1,166 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Finish" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beenden"
+          }
+        }
+      }
+    },
+    "Finish opens the save sheet on the phone." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach „Beenden“ speicherst du die Fahrt auf dem Handy."
+          }
+        }
+      }
+    },
+    "Health access is needed: allow it on the watch or in the phone's Health app." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velorki braucht Zugriff auf Health: Erlaube ihn auf der Uhr oder in der Health-App des Handys."
+          }
+        }
+      }
+    },
+    "Low Power Mode in the watch's settings makes a long ride last." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit dem Stromsparmodus in den Einstellungen der Uhr hält der Akku auch eine lange Fahrt durch."
+          }
+        }
+      }
+    },
+    "Pause" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause"
+          }
+        }
+      }
+    },
+    "Paused" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pausiert"
+          }
+        }
+      }
+    },
+    "Resume" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fortsetzen"
+          }
+        }
+      }
+    },
+    "Riding" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unterwegs"
+          }
+        }
+      }
+    },
+    "Start a ride here or on the phone." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starte die Fahrt hier oder auf dem Handy."
+          }
+        }
+      }
+    },
+    "Start heart rate" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulsmessung starten"
+          }
+        }
+      }
+    },
+    "Start ride" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fahrt starten"
+          }
+        }
+      }
+    },
+    "Stop heart rate" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulsmessung beenden"
+          }
+        }
+      }
+    },
+    "The phone did not answer. Open Velorki on the phone and try again." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Handy antwortet nicht. Öffne Velorki auf dem Handy und versuch es noch einmal."
+          }
+        }
+      }
+    },
+    "The watch would not start a workout: %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Uhr konnte kein Training starten: %@"
+          }
+        }
+      }
+    },
+    "The workout stopped: %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Training wurde beendet: %@"
+          }
+        }
+      }
+    },
+    "bpm" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "S/min"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

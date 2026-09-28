@@ -1,0 +1,26 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NSHealthShareUsageDescription" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velorki liest während der Fahrt deinen Puls von der Uhr, um ihn anzuzeigen und mit der Fahrt zu speichern."
+          }
+        }
+      }
+    },
+    "NSHealthUpdateUsageDescription" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velorki startet während der Fahrt ein Training auf der Uhr; nur so misst der Pulssensor auch bei gesenktem Arm weiter."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}
