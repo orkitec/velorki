@@ -93,7 +93,8 @@ is its unit test (`python3 -m unittest app/tool/store_text_check_test.py`).
 ## One-time setup (Steffen)
 
 1. Create the project at crowdin.com: source language English, target language
-   German, file structure "preserve hierarchy" (it must match `crowdin.yml`).
+   German. The file layout comes from `preserve_hierarchy: true` in
+   `crowdin.yml`; the web interface has no setting for it.
 2. Request the open-source plan at
    <https://crowdin.com/page/open-source-project-setup-request>. What to say:
    the repository is `github.com/orkitec/velorki`, all of it public and open
