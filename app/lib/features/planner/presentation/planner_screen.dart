@@ -1038,26 +1038,42 @@ class _AlternativeChips extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final colors = Theme.of(context).velorki;
-    return Wrap(
-      spacing: 8,
+    // One row, whatever the language: the chips share the width, and a label
+    // that does not fit is set a little smaller rather than pushing a chip onto
+    // a second row under the others.
+    final count = state.alternatives.length;
+    return Row(
       children: [
-        for (var i = 0; i < state.alternatives.length; i++)
-          ChoiceChip(
-            // The dot is the colour the line has on the map.
-            avatar: CircleAvatar(
-              radius: 6,
-              // Same formula as the map: alternative i wears colour i.
-              backgroundColor: i == 0
-                  ? colors.routeMain
-                  : colors.routeAlternatives[i %
-                        colors.routeAlternatives.length],
+        for (var i = 0; i < count; i++)
+          Expanded(
+            child: Padding(
+              padding: EdgeInsetsDirectional.only(end: i == count - 1 ? 0 : 8),
+              child: ChoiceChip(
+                // The dot is the colour the line has on the map.
+                avatar: CircleAvatar(
+                  radius: 6,
+                  // Same formula as the map: alternative i wears colour i.
+                  backgroundColor: i == 0
+                      ? colors.routeMain
+                      : colors.routeAlternatives[i %
+                            colors.routeAlternatives.length],
+                ),
+                label: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    i == 0
+                        ? l10n.plannerMainRoute
+                        : l10n.plannerAlternativeIndex(i),
+                    maxLines: 1,
+                    softWrap: false,
+                  ),
+                ),
+                selected: i == state.options.alternativeIdx,
+                onSelected: (_) => ref
+                    .read(plannerControllerProvider.notifier)
+                    .setAlternative(i),
+              ),
             ),
-            label: Text(
-              i == 0 ? l10n.plannerMainRoute : l10n.plannerAlternativeIndex(i),
-            ),
-            selected: i == state.options.alternativeIdx,
-            onSelected: (_) =>
-                ref.read(plannerControllerProvider.notifier).setAlternative(i),
           ),
       ],
     );
