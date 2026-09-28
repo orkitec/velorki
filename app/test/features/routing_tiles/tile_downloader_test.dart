@@ -320,9 +320,12 @@ void main() {
         isTrue,
         reason: 'the gazetteer is the same tile, seen a second time',
       );
-      expect(progress.first.received, 0);
-      expect(progress.last.received, _gaz.length);
-      expect(progress.last.total, _gaz.length);
+      // The second phase: it carries on from the rd5, towards the one total
+      // the rider was quoted for the tile.
+      final entry = _withGaz();
+      expect(progress.first.received, entry.bytes);
+      expect(progress.last.received, entry.bytes + _gaz.length);
+      expect(progress.last.total, entry.downloadBytes);
       expect(progress.last.fraction, 1.0);
     });
 

@@ -16,6 +16,7 @@ import '../../map/presentation/visible_map_padding.dart';
 import '../../planner/application/planner_controller.dart';
 import '../../planner/presentation/profile_chip_row.dart';
 import '../../planner/presentation/route_format.dart';
+import '../../routing_tiles/presentation/missing_tiles_banner.dart';
 import '../../settings/data/units.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../application/smart_loop_controller.dart';
@@ -414,6 +415,8 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
         ),
       if (state.foundNothing && !state.running)
         _Problem(text: l10n.loopNoneFound),
+      if (state.missingTiles.isNotEmpty && !state.running)
+        MissingTilesBanner(tiles: state.missingTiles),
       if (state.error != null) _Problem(text: l10n.loopFailed(state.error!)),
       if (_problem != null) _Problem(text: _problem!),
     ];

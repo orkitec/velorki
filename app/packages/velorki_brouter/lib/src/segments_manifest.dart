@@ -87,6 +87,10 @@ class SegmentEntry {
   /// listing never has one.
   final GazetteerEntry? gazetteer;
 
+  /// What fetching this tile costs, in bytes: the `.rd5` and, when the mirror
+  /// has one, its gazetteer, which the app downloads with it.
+  int get downloadBytes => bytes + (gazetteer?.bytes ?? 0);
+
   /// The directory this tile is served from, when it is not the mirror's
   /// default one.
   ///
@@ -194,12 +198,13 @@ class SegmentsManifest {
     return null;
   }
 
-  /// Sum of the sizes of [wanted], ignoring tiles the mirror does not have.
+  /// What downloading [wanted] costs, each tile's [SegmentEntry.downloadBytes]
+  /// summed, ignoring tiles the mirror does not have.
   int bytesFor(Iterable<TileName> wanted) {
     final index = byTile;
     var sum = 0;
     for (final t in wanted) {
-      sum += index[t]?.bytes ?? 0;
+      sum += index[t]?.downloadBytes ?? 0;
     }
     return sum;
   }

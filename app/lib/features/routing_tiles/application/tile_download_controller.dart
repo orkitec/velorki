@@ -146,7 +146,7 @@ class TileDownloadQueue extends _$TileDownloadQueue {
           progress: TileDownloadProgress(
             tile: entry.tile,
             received: 0,
-            total: entry.bytes,
+            total: entry.downloadBytes,
           ),
         );
         await progress?.cancel();
@@ -200,8 +200,8 @@ class TileDownloadQueue extends _$TileDownloadQueue {
   /// Runs after the rd5 has arrived and before the tile is marked ready, so
   /// that by the time the tiles list changes the `.gaz` is already there for
   /// `GazetteerStore` to pick up — the tile is not finished until this is. It
-  /// reports progress under the same tile, so the screen's bar starts over for
-  /// the smaller file. A failure is only logged: the tile itself is complete
+  /// reports progress under the same tile, carrying the bar on from the
+  /// `.rd5`. A failure is only logged: the tile itself is complete
   /// and routable, and place search simply stays online for that area.
   /// Downloading the same (already ready) tile again retries it.
   Future<void> _fetchGazetteer(

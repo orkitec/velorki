@@ -9,4 +9,4 @@ Everything else is free and works without Plus: planning, navigation, recording,
 
 Location: the app asks for "When In Use" location to show you on the map and to record a ride. Background location runs only while a ride is being recorded or navigated, with the blue indicator shown. Apple Health, Bluetooth and notifications are asked for only when the matching switch or screen is used.
 
-To test routing without travelling: in the Plan tab, tap two points on the map; the route is computed right away.
+Routing runs on the phone, from map data downloaded per region. To test it: in the Plan tab, tap two points on the map. The first route in a new area says "This route needs routing tiles that are not on this device." with a "Download 1 tile (…)" button; around Cupertino that is one download of about 76 MB (typically 50 to 250 MB per region). Confirm it, and once it has finished the route appears by itself, computed on the phone. Loops ("Loop" in the Plan tab) offer the same download the first time, then work on the phone too.

@@ -159,6 +159,17 @@ void main() {
     });
   });
 
+  test('what a tile costs to fetch includes its gazetteer', () {
+    final m = SegmentsManifest.parse(
+      '[{"tile": "E5_N45", "bytes": 1000, "gazetteer": '
+      '{"bytes": 400, "sha256": "GAZHASH"}}, '
+      '{"tile": "E10_N45", "bytes": 700}]',
+    );
+    expect(m[const TileName(5, 45)]!.downloadBytes, 1400);
+    expect(m[const TileName(10, 45)]!.downloadBytes, 700);
+    expect(m.bytesFor([const TileName(5, 45), const TileName(10, 45)]), 2100);
+  });
+
   group('the optional gazetteer object', () {
     test('is read with its size, checksum and date', () {
       final e = SegmentsManifest.parse(
