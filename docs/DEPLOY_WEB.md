@@ -137,20 +137,19 @@ orkify --version
 
 Boot persistence. `orkify autostart` installs the systemd template shipped with
 the package (`$(npm root -g)/orkify/boot/systemd/[email protected]`); the unit
-calls `orkify restore` on start and `orkify kill` on stop, and loads
-`/etc/orkify/env` if it exists.
+calls `orkify restore` on start and `orkify kill` on stop, and can load an
+environment file (Orkify's CLI documentation names it). If you use one, keep it
+root-owned and mode 0600; see step 6.
 
 ```sh
 sudo orkify autostart          # run as the user that will own the processes
-sudo install -d -m 0755 /etc/orkify
-sudo install -m 0600 /dev/null /etc/orkify/env     # optional; see step 6
 ```
 
 "As the user that will own the processes" is the whole point on a shared box:
 the unit is per user, so running this as `velorki` gives `velorki`'s cluster its
 own unit beside the one another user (`orkify`, say) already has, and the two
-restart independently. `/etc/orkify/env` is loaded by *every* such unit, so on a
-shared box put Velorki's variables in `/etc/velorki/web.env` instead (step 6).
+restart independently. A shared environment file is loaded by *every* such
+unit, so on a shared box give Velorki a file of its own (step 6).
 
 The process list is snapshotted to `~/.orkify/snapshot.yml`; logs go to
 `~/.orkify/logs/velorki-web.stdout.log` and `.stderr.log`, rotated at 100 MB,
@@ -535,14 +534,10 @@ SSH fallback described there.)
    injects them into the managed processes on its next heartbeat and they take
    precedence over the `env:` block in `orkify.yml`. Changing one and restarting
    the process is enough. (<https://orkify.com/docs/secrets>)
-2. **A file on the box.** `/etc/orkify/env` (0600) is loaded by the systemd unit
-   `orkify autostart` installed, for every managed process. For a file scoped to
-   this app only, put it at `/etc/velorki/web.env` (0600, owned by `velorki`)
-   and add to the process in `web/orkify.yml`:
-
-   ```yaml
-       nodeArgs: ['--env-file=/etc/velorki/web.env']
-   ```
+2. **A file on the box**, root-owned and mode 0600: either the environment
+   file the agent's systemd unit loads, or a file for this app only, passed to
+   the process in `web/orkify.yml` with `nodeArgs: ['--env-file=<path>']`.
+   Where it lives is the operator's choice and is not recorded here.
 
 `deploy/web/velorki-web.env.example` is the complete list with comments. The
 values that must be right on the first boot: `API_HOST`, `SITE_HOST`,
@@ -707,18 +702,18 @@ curl -sI https://velorki.com/            | grep -i content-security-policy
 ```
 
 **Checking a secret you cannot see.** `/health` says whether each integration
-has what it needs, never a value. To confirm *which* key is live - after
-editing `/etc/velorki/env` and `systemctl restart orkify@velorki`, the only way
-an edit there takes effect - the `velorki web starting` line in the process log
-carries `keys: { LLM_API_KEY: "sha256:1a2b3c4d", ... }`. Compare with the key
-you meant to set:
+has what it needs, never a value. To confirm *which* key is live, the
+`velorki web starting` line in the process log carries
+`keys: { LLM_API_KEY: "sha256:1a2b3c4d", ... }`. Compare with the key you meant
+to set:
 
 ```sh
 printf %s "$KEY" | sha256sum | cut -c1-8
 ```
 
-A key also set as an Orkify dashboard secret overrides the file, so keep each
-one in exactly one of the two places.
+An environment file is read when the agent's service starts, so an edit there
+needs that service restarted; and a dashboard secret of the same name overrides
+the file, so keep each key in exactly one of the two places.
 
 On the box, straight to the app. Proxy-independent: these two skip whatever
 terminates TLS and prove the app itself is up and that its host gate works.
@@ -851,8 +846,8 @@ orkify restore              # or: orkify deploy local <last artefact>
 **What to back up.** Three things are not reproducible from this repository:
 
 1. `/var/lib/velorki/share.sqlite` — the share links (the nightly job).
-2. The environment: the Orkify dashboard secrets, or `/etc/velorki/web.env` /
-   `/etc/orkify/env`.
+2. The environment: the Orkify dashboard secrets, or the environment file on
+   the box.
 3. The Origin CA certificate and its private key —
    `/etc/caddy/certs/velorki.com.{pem,key}` in 4a,
    `/etc/ssl/velorki/velorki.com.{pem,key}` in 4b. The key is shown once at
@@ -887,7 +882,7 @@ release.
 | Health probe is `http://localhost:{port}{healthCheck}`, 3 retries 1 s apart, 2xx = ready; skipped if `port` is unset. No headers can be added | <https://orkify.com/docs/cli> |
 | `orkify deploy local <tarball>` extracts, runs install/build, reconciles processes, keeps the previous release and auto-rolls-back on a crash inside the window | <https://orkify.com/docs/cli>, <https://orkify.com/docs/deployments> |
 | `orkify reload` is a rolling restart with at least one worker always serving | <https://orkify.com/docs/cli> |
-| `orkify autostart` uses a systemd template from `$(npm root -g)/orkify/boot/systemd/`, calls `orkify restore`, loads `/etc/orkify/env` | <https://orkify.com/docs/cli> |
+| `orkify autostart` uses a systemd template from `$(npm root -g)/orkify/boot/systemd/`, calls `orkify restore`, loads an environment file | <https://orkify.com/docs/cli> |
 | Logs in `~/.orkify/logs/{process}.std{out,err}.log`, defaults 100 MB / 90 files / 90 days | <https://orkify.com/docs/cli> |
 | `ORKIFY_WORKER_ID`, `ORKIFY_WORKERS`, `ORKIFY_CLUSTER_MODE` are set on every managed process (the share sweeper uses worker 0) | <https://orkify.com/docs/cli> |
 | Dashboard secrets are per project, injected at runtime on the agent's next heartbeat, and take precedence over the config's `env` block | <https://orkify.com/docs/secrets> |

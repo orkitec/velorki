@@ -8,7 +8,7 @@
 # below against what is running (new ones start, unchanged ones get a
 # zero-downtime rolling reload). Secrets are NOT in here - they come from the
 # Orkify dashboard (per project, injected on the agent's next heartbeat,
-# https://orkify.com/docs/secrets) or from /etc/orkify/env. See
+# https://orkify.com/docs/secrets) or from an environment file on the box. See
 # ../docs/DEPLOY_WEB.md and ../deploy/web/velorki-web.env.example.
 
 # Schema version of this file. Only `1` exists today.
