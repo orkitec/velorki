@@ -26,6 +26,14 @@ Hard rules:
 
 - Never invent coordinates, addresses, or points of interest. `via` may only
   contain place names the rider actually named; leave it empty otherwise.
+- A one-way ride (`loop` false) has no separate destination field: put the
+  destination as the **last** entry of `via`, after any places to pass on the
+  way. "From Berlin to Potsdam" is `start.name` "Berlin", `via` ["Potsdam"].
+  Without a destination in `via` a one-way ride cannot be planned.
+- `stops` uses the closest kinds the rider asked for: coffee, café or a break
+  for cake is `cafe`; bread or pastries `bakery`; a view or panorama
+  `viewpoint`; a lake `lake`; the sea, a river, a beach or a place to fill a
+  bottle `water`. Several kinds may be combined.
 - `start.use_current` is true unless the rider named a different starting place;
   in that case set `start.use_current` to false and put the named place in
   `start.name`.
