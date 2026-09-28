@@ -418,6 +418,11 @@ class _MetricChartState extends State<MetricChart> {
                       sideTitles: SideTitles(
                         showTitles: true,
                         reservedSize: 24,
+                        // Only the evenly spaced steps: the ends of the axis
+                        // are rarely round and sit on top of the step
+                        // beside them ("13" over "13.6").
+                        minIncluded: false,
+                        maxIncluded: false,
                         getTitlesWidget: (_, meta) => _axisLabel(context, meta),
                       ),
                     ),
@@ -425,6 +430,11 @@ class _MetricChartState extends State<MetricChart> {
                       sideTitles: SideTitles(
                         showTitles: true,
                         reservedSize: widget.leftReservedSize,
+                        // Only the evenly spaced steps: the ends of the axis
+                        // are rarely round and sit on top of the step
+                        // beside them ("13" over "13.6").
+                        minIncluded: false,
+                        maxIncluded: false,
                         getTitlesWidget: (_, meta) => _axisLabel(context, meta),
                       ),
                     ),
