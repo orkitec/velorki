@@ -4,20 +4,32 @@
     tool/store_shutter.py <udid> <out-dir>
 
 The test writes `Library/Application Support/itest/shot.txt` in the app's
-container, an `id=<token>` line and a `name=<theme>/<locale>/NN-name` line,
-and waits. This script polls for that file, photographs the simulator's screen
-with `simctl io screenshot` into `<out-dir>/<name>.png`, and writes the token
-to `shot.ack` beside the request, which lets the test go on. It runs until it
-is killed; tool/store_screenshots.sh starts and stops it around each run.
+container: an `id=<token>` line, a `name=<theme>/<locale>/<screen>` line and an
+`action=` line, and waits.
+
+* `action=shot` photographs the simulator's screen with `simctl io
+  screenshot` into `<out-dir>/<name>.png`; with `status=offline` the status
+  bar shows no signal for that one picture.
+* `action=data` copies `data.json` from beside the request to
+  `<out-dir>/<name>.json`.
+
+Then the token goes into `shot.ack` beside the request, which lets the test
+go on. The script runs until it is killed; tool/store_screenshots.sh starts
+and stops it around each run.
 """
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
 
 BUNDLE = "com.orkitec.velorki"
-NAME = re.compile(r"^[a-z]+/[a-z]{2,3}(-[A-Za-z]+)?/[0-9]{2}-[a-z0-9-]+$")
+NAME = re.compile(r"^[a-z]+/[a-z]{2,3}(-[A-Za-z]+)?/[a-z0-9-]+$")
+ONLINE = ["--dataNetwork", "wifi", "--wifiMode", "active", "--wifiBars", "3",
+          "--cellularMode", "active", "--cellularBars", "4"]
+OFFLINE = ["--dataNetwork", "hide", "--wifiMode", "failed", "--wifiBars", "0",
+           "--cellularMode", "searching", "--cellularBars", "0"]
 
 
 def container(udid: str) -> str | None:
@@ -36,6 +48,12 @@ def request(folder: str) -> dict[str, str] | None:
     except OSError:
         return None
     return dict(line.split("=", 1) for line in lines if "=" in line)
+
+
+def status_bar(udid: str, network: list[str]) -> None:
+    subprocess.run(["xcrun", "simctl", "status_bar", udid, "override", *network],
+                   check=True, capture_output=True)
+    time.sleep(0.5)
 
 
 def main() -> int:
@@ -66,17 +84,29 @@ def main() -> int:
         if not NAME.match(name):
             print(f"store_shutter: refusing the name {name!r}", file=sys.stderr)
             return 1
-        target = os.path.join(out, name + ".png")
+        target = os.path.join(out, name)
         os.makedirs(os.path.dirname(target), exist_ok=True)
-        subprocess.run(
-            ["xcrun", "simctl", "io", udid, "screenshot", "--type=png", target],
-            check=True,
-            capture_output=True,
-        )
+        if fields.get("action") == "data":
+            shutil.copyfile(os.path.join(folder, "data.json"), target + ".json")
+            print(f"store_shutter: {target}.json", flush=True)
+        else:
+            offline = fields.get("status") == "offline"
+            if offline:
+                status_bar(udid, OFFLINE)
+            try:
+                subprocess.run(
+                    ["xcrun", "simctl", "io", udid, "screenshot", "--type=png",
+                     target + ".png"],
+                    check=True,
+                    capture_output=True,
+                )
+            finally:
+                if offline:
+                    status_bar(udid, ONLINE)
+            print(f"store_shutter: {target}.png", flush=True)
         with open(os.path.join(folder, "shot.ack"), "w") as f:
             f.write(token)
         last = token
-        print(f"store_shutter: {target}", flush=True)
 
 
 if __name__ == "__main__":

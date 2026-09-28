@@ -1,27 +1,52 @@
 {
-  "01-plan": {
-    "headline": "Routes made for **bikes**",
-    "subline": "Tap the map. Velorki finds the way for touring, road, gravel or MTB.",
-    "badge": "No account · Open source · Offline routing"
+  "plan": {
+    "eyebrow": "Free & open source",
+    "headline": "Ride where the **signal ends**",
+    "subline": "Plan, route and navigate on your iPhone, even offline."
   },
-  "02-choice": {
-    "headline": "Pick your **way**",
-    "subline": "Alternatives with elevation and surfaces at a glance."
+  "variants": {
+    "eyebrow": "Route planning",
+    "headline": "Routes that fit **your bike**",
+    "subline": "Touring, road, gravel or MTB, with alternatives, elevation and surfaces."
   },
-  "03-navigate": {
-    "headline": "Eyes on the **road**",
-    "subline": "Spoken turns, and a way back if you leave the route."
+  "navigation": {
+    "eyebrow": "Navigation",
+    "headline": "Every turn, **spoken aloud**",
+    "subline": "Leave the route and choose: a way back, a new route, or nothing."
   },
-  "04-ride": {
-    "headline": "Every ride in **detail**",
+  "loops": {
+    "eyebrow": "Loops",
+    "headline": "Out the door, **back for dinner**",
+    "subline": "Say how far. Velorki finds round trips from where you stand."
+  },
+  "lock-screen": {
+    "eyebrow": "Recording",
+    "headline": "Your ride on the **Lock Screen**",
+    "subline": "Live figures on the Lock Screen and in the Dynamic Island."
+  },
+  "watch": {
+    "eyebrow": "Apple Watch",
+    "headline": "Start and stop **from your wrist**",
+    "subline": "Heart rate and the ride on your watch, in sync with your iPhone."
+  },
+  "ride": {
+    "eyebrow": "Ride stats",
+    "headline": "Every climb **on the record**",
     "subline": "Elevation, speed, heart rate and splits for every ride."
   },
-  "05-library": {
-    "headline": "Your routes, **always** with you",
-    "subline": "Saved on your phone and ready without a connection."
+  "offline": {
+    "eyebrow": "Offline",
+    "headline": "No signal? **No problem.**",
+    "subline": "Download a region once. Maps, routing and search keep working."
   },
-  "06-import": {
-    "headline": "Bring your **GPX** and FIT",
-    "subline": "Open files from anywhere and ride them."
+  "themes": {
+    "eyebrow": "Light & dark",
+    "headline": "Dawn ride or **night ride**",
+    "subline": "Light and dark themes, with the accent colour of your choice."
+  },
+  "import": {
+    "eyebrow": "Files",
+    "headline": "Bring **any route** along",
+    "subline": "Open GPX, FIT and TCX from anywhere. Export to GPX or FIT."
   }
 }

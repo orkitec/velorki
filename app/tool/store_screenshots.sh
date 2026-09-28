@@ -8,8 +8,14 @@
 #   tool/store_screenshots.sh --shots dark             # both slide styles show the dark app
 #
 # Output, under app/build/store_screenshots/ (git-ignored):
-#   raw/<theme>/<locale>/NN-name.png              the simulator's screen, 1320x2868
-#   slides/<style>/<size>/<locale>/NN-name.png    the slides, 6.9" and 6.5"
+#   raw/<theme>/<locale>/<screen>.png          the simulator's screen, 1320x2868
+#   slides/<style>/<size>/<locale>/<slide>.png every slide in both styles
+#   slides/set/<size>/<locale>/NN-<slide>.png  the set to upload (store/slide_set.json)
+#   slides/set/contact-<locale>.png            the set at a glance
+#
+# The watch slide takes the watch app's riding screenshot from
+# $VELORKI_STORE_WATCH/<locale>/2-riding.png (default build/store_screenshots/watch);
+# without one it shows a placeholder.
 #
 # What it does:
 # * picks the simulator named "Velorki Shots 6.9" (VELORKI_STORE_SIM takes a
@@ -108,10 +114,46 @@ boot() {  # boot <udid> <language> <region>
     xcrun simctl boot "$udid"
     xcrun simctl bootstatus "$udid" -b > /dev/null
   fi
+  # A moment for SpringBoard to settle before anything is installed.
+  sleep 15
   xcrun simctl status_bar "$udid" override --time 9:41 \
     --dataNetwork wifi --wifiMode active --wifiBars 3 \
     --cellularMode active --cellularBars 4 --operatorName '' \
     --batteryState discharging --batteryLevel 100
+}
+
+# Runs the test for one locale. Right after the simulator boots, flutter test
+# now and then installs and launches the app and then never attaches to it,
+# with the app on its splash screen for good; a run that has not started its
+# first test within ten minutes is stopped and tried once more.
+capture() {
+  local locale=$1 log="$WORK/test-$1.log" attempt pid started
+  for attempt in 1 2; do
+    flutter test integration_test/store/store_screenshots_test.dart -d "$UDID" \
+      --dart-define-from-file="$DEFINES" \
+      --dart-define=VELORKI_STORE_LOCALE="$locale" \
+      --dart-define=VELORKI_STORE_THEMES="$THEMES" > "$log" 2>&1 &
+    pid=$!
+    started=0
+    for _ in $(seq 1 600); do
+      kill -0 "$pid" 2> /dev/null || break
+      if [ "$started" = 0 ] && grep -q 'store screenshots, ' "$log"; then started=1; fi
+      [ "$started" = 1 ] && break
+      sleep 1
+    done
+    if [ "$started" = 1 ] || ! kill -0 "$pid" 2> /dev/null; then
+      if wait "$pid"; then
+        grep -E 'VELORKI_STORE|All tests passed' "$log" || true
+        return 0
+      fi
+      cat "$log" >&2
+      die "the capture for $locale failed"
+    fi
+    say "the test never started; trying again ($attempt)"
+    kill "$pid" 2> /dev/null || true
+    wait "$pid" 2> /dev/null || true
+  done
+  die "the capture for $locale never started"
 }
 
 MIRROR_PID=""
@@ -169,10 +211,7 @@ PY
     python3 "$APP/tool/store_shutter.py" "$UDID" "$OUT/raw" &
     SHUTTER_PID=$!
     say "capturing $locale ($THEMES)"
-    flutter test integration_test/store/store_screenshots_test.dart -d "$UDID" \
-      --dart-define-from-file="$DEFINES" \
-      --dart-define=VELORKI_STORE_LOCALE="$locale" \
-      --dart-define=VELORKI_STORE_THEMES="$THEMES"
+    capture "$locale"
     kill "$SHUTTER_PID" 2> /dev/null || true
     wait "$SHUTTER_PID" 2> /dev/null || true
     SHUTTER_PID=""
@@ -180,8 +219,5 @@ PY
 fi
 
 say "making the slides"
-styles=""
-IFS=, read -r -a themes <<< "$THEMES"
-for theme in "${themes[@]}"; do styles="${styles:+$styles,}$theme"; done
-python3 "$APP/tool/store_slides.py" --locales "$LOCALES" --styles "$styles" --shots "$SHOTS" \
-  --raw "$OUT/raw" --out "$OUT/slides" | tail -1
+python3 "$APP/tool/store_slides.py" --locales "$LOCALES" --shots "$SHOTS" \
+  --raw "$OUT/raw" --watch "${VELORKI_STORE_WATCH:-$OUT/watch}" --out "$OUT/slides" | tail -1

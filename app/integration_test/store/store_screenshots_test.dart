@@ -1,5 +1,5 @@
-// The App Store screenshots: six screens of the real app on Madeira, in one
-// language, in each app theme asked for.
+// The App Store screenshots: every screen the slides use, from the real app
+// on Madeira, in one language, in each app theme asked for.
 //
 //   tool/store_screenshots.sh            # the whole pipeline; see there
 //
@@ -18,6 +18,7 @@
 // Map taps never reach the native map view from a test, so waypoints go in
 // through the planner; the plan shot loads a saved route because only a whole
 // route appearing at once makes the planner fit the camera to it.
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -25,11 +26,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/theme.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/import_export/application/incoming_import_listener.dart';
 import 'package:velorki/features/import_export/data/incoming_file_service.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
+import 'package:velorki/features/map/presentation/map_controls.dart';
+import 'package:velorki/features/map/presentation/shared_map_host.dart';
+import 'package:velorki/features/planner/presentation/planner_screen.dart';
+import 'package:velorki/features/planner/presentation/profile_chip_row.dart';
+import 'package:velorki/features/map/data/offline_regions_repository.dart';
+import 'package:velorki/features/recording/application/ride_notification_updater.dart';
+import 'package:velorki/features/recording/data/follow_mode.dart';
+import 'package:velorki/features/smart_loop/application/smart_loop_controller.dart';
 import 'package:velorki/features/navigation/data/navigation_settings.dart';
 import 'package:velorki/features/navigation/data/turn_speaker.dart';
 import 'package:velorki/features/navigation/domain/navigation_progress.dart';
@@ -71,6 +81,9 @@ const String _themes = String.fromEnvironment(
   defaultValue: 'light,dark',
 );
 
+/// How long the loop on the loop shot is: a morning's ride from Funchal.
+const double _loopKm = 25;
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -95,6 +108,9 @@ void main() {
 
       final positions = ScriptedPositionSource(funchal);
       addTearDown(positions.close);
+      // The loop sheet opens at the distance last asked for.
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble('loop.distance_km', _loopKm);
       final container = await pumpApp(
         tester,
         overrides: [
@@ -138,31 +154,23 @@ void main() {
 
       final shot = '$theme/$_locale';
       final featured = await _seedLibrary(tester, container);
+      await _seedOfflineMap(tester, container);
       final planner = container.read(plannerControllerProvider.notifier);
 
-      // ---------------------------------------------------------- 01 plan
+      // ------------------------------------------------------------ plan
       planner
         ..clear()
         ..loadSavedRoute(featured);
+      await _frameRoute(tester, container, featured.geometry);
       // The first shot of a run waits for the map style and its tiles.
       await takeStoreShot(
         tester,
-        '$shot/01-plan',
+        '$shot/plan',
         hold: const Duration(seconds: 10),
       );
 
-      // -------------------------------------------------------- 02 choice
-      // The label sits under the button, outside what takes the tap.
-      await tapAndPump(
-        tester,
-        find.descendant(
-          of: find.ancestor(
-            of: find.text(l10n.plannerVariants),
-            matching: find.byType(LabeledIconButton),
-          ),
-          matching: find.byType(InkWell),
-        ),
-      );
+      // -------------------------------------------------------- variants
+      await tapAndPump(tester, _action(l10n.plannerVariants));
       await waitUntil(
         tester,
         () {
@@ -178,9 +186,44 @@ void main() {
         },
       );
       await tapAndPump(tester, find.text(l10n.plannerAlternativeIndex(1)));
-      await takeStoreShot(tester, '$shot/02-choice');
+      await takeStoreShot(tester, '$shot/variants');
 
-      // -------------------------------------------------------- 06 import
+      // ------------------------------------------------------------ loop
+      // From the rider's position, at the distance seeded before the start.
+      planner.clear();
+      await pumpFor(tester, const Duration(milliseconds: 500));
+      await tapAndPump(tester, _action(l10n.loopAction));
+      // The sheet's title says the same as the button.
+      await tapAndPump(
+        tester,
+        find.ancestor(
+          of: find.text(l10n.loopMake),
+          matching: find.byWidgetPredicate((w) => w is FilledButton),
+        ),
+      );
+      await waitUntil(
+        tester,
+        () {
+          final loop = container.read(smartLoopControllerProvider);
+          if (loop.error != null) fail('loop search: ${loop.error}');
+          return !loop.running && loop.hasSearched;
+        },
+        describe: 'the loop search',
+        timeout: const Duration(minutes: 3),
+        onTimeout: () => '${container.read(smartLoopControllerProvider)}',
+      );
+      expect(container.read(smartLoopControllerProvider).foundNothing, isFalse);
+      await takeStoreShot(tester, '$shot/loop');
+      await tapAndPump(
+        tester,
+        find.ancestor(
+          of: find.text(l10n.loopDone),
+          matching: find.byWidgetPredicate((w) => w is FilledButton),
+        ),
+      );
+      planner.clear();
+
+      // ---------------------------------------------------------- import
       final rideRoute = await _plan(tester, container, rideWaypoints);
       planner.clear();
       final gpx = GpxCodec.encodeTrack(
@@ -198,9 +241,9 @@ void main() {
       await pumpFor(tester, const Duration(milliseconds: 500));
       await waitForWidget(tester, find.text(l10n.importKindRide));
       await tapAndPump(tester, find.text(l10n.importKindRide));
-      await takeStoreShot(tester, '$shot/06-import');
+      await takeStoreShot(tester, '$shot/import');
 
-      // ---------------------------------------------------------- 04 ride
+      // ------------------------------------------------------------ ride
       await tapAndPump(tester, find.text(l10n.commonSave).last);
       await waitForWidget(
         tester,
@@ -212,19 +255,28 @@ void main() {
       await Scrollable.ensureVisible(
         tester.element(find.byType(RideElevationChart)),
       );
-      await takeStoreShot(tester, '$shot/04-ride');
+      await takeStoreShot(tester, '$shot/ride');
 
-      // ------------------------------------------------------- 05 library
+      // --------------------------------------------------------- library
       await tapAndPump(tester, find.text(l10n.tabLibrary));
       await tapAndPump(tester, find.text(l10n.tabLibrary));
       await tapAndPump(tester, find.text(l10n.libraryRoutes));
       await waitForWidget(tester, find.text(featuredRoute.name));
       _clearSnackBars(tester);
-      await takeStoreShot(tester, '$shot/05-library');
+      await takeStoreShot(tester, '$shot/library');
 
-      // ------------------------------------------------------ 03 navigate
+      // --------------------------------------------------------- offline
       await tapAndPump(tester, find.text(l10n.tabPlan));
+      await tapAndPump(tester, find.byTooltip(l10n.offlineEntryTitle));
+      await waitForWidget(tester, find.text(l10n.offlineTitle));
+      await takeStoreShot(tester, '$shot/offline', offline: true);
+      await tapAndPump(tester, find.byType(BackButton));
+
+      // ------------------------------------------------ live and navigation
       final route = await _plan(tester, container, navigationWaypoints);
+      await container
+          .read(followModeProvider.notifier)
+          .select(FollowMode.headingUp);
       await tapAndPump(tester, find.text(l10n.tabRecord));
       final sheet = find
           .descendant(
@@ -240,31 +292,50 @@ void main() {
         () => positions.isListenedTo,
         describe: 'the recorder to subscribe to the GPS',
       );
+      // One fix a second, a second apart on the clock as well, so the ride's
+      // elapsed time, its moving time and its speed agree the way they do on
+      // the road. Navigation only sees the recorder's last snapshot, so the
+      // banner is read after every fix; the ride stops where the next turn
+      // is close enough to read as one.
+      const second = Duration(seconds: 1);
       final ride = ScriptedRide(
         source: positions,
         line: route.positions,
-        stepM: 15,
+        stepM: 6,
         speedMps: 6,
       );
-      // Ridden in steps with a tick between them, because navigation only
-      // sees the position of the recorder's last snapshot; stopped where the
-      // next turn is close enough to read as one.
+      Future<void> rideOn(int seconds) =>
+          ride.rideTo(tester, ride.alongM + seconds * 6, pump: second);
       var shown = false;
-      for (var target = 60.0; target < ride.totalM - 100; target += 30) {
-        await ride.rideTo(tester, target);
-        await pumpFor(tester, const Duration(milliseconds: 1200));
+      while (ride.alongM < ride.totalM - 200) {
+        await rideOn(1);
         final progress = _progress(tester);
         final next = progress?.distanceToNextM;
         if (progress?.next != null &&
-            target > 250 &&
+            ride.alongM > 700 &&
             next != null &&
-            next > 40 &&
-            next < 160) {
+            next > 110 &&
+            next < 200) {
           shown = true;
           break;
         }
       }
       expect(shown, isTrue, reason: 'a turn has to come up on the way');
+      // Held still, the speed would drop to nothing: the rider rides on
+      // through every pause.
+      await rideOn(4);
+      await takeStoreShot(tester, '$shot/live', hold: Duration.zero);
+      // What the Live Activity shows right now, for the slide that draws it.
+      await sendStoreData(
+        tester,
+        '$shot/activity',
+        rideActivityData(
+          l10n,
+          UnitSystem.metric,
+          container.read(recordingControllerProvider).snapshot!,
+          _progress(tester),
+        ),
+      );
       // Folded down, the live sheet docks into the figures bar.
       await tester.dragFrom(
         tester.getCenter(
@@ -277,13 +348,16 @@ void main() {
         ),
         const Offset(0, 700),
       );
-      await pumpFor(tester, const Duration(seconds: 1));
+      await rideOn(3);
       await waitForWidget(tester, find.byType(FiguresBar));
-      await takeStoreShot(tester, '$shot/03-navigate');
+      await takeStoreShot(tester, '$shot/navigation', hold: Duration.zero);
 
       final recording = container.read(recordingControllerProvider.notifier);
       final halted = await recording.halt();
       if (halted != null) await recording.discardInterrupted(halted);
+      await container
+          .read(followModeProvider.notifier)
+          .select(FollowMode.northUp);
       await pumpFor(tester, const Duration(seconds: 1));
       planner.clear();
       await unmountApp(tester);
@@ -364,4 +438,80 @@ void _clearSnackBars(WidgetTester tester) {
   )) {
     messenger.clearSnackBars();
   }
+}
+
+/// The button of a planner action by its label, which sits under the button,
+/// outside what takes the tap.
+Finder _action(String label) => find.descendant(
+  of: find.ancestor(
+    of: find.text(label),
+    matching: find.byType(LabeledIconButton),
+  ),
+  matching: find.byType(InkWell),
+);
+
+/// Downloads the map around Funchal for offline use, once per simulator, so
+/// the offline screen has a region to show next to the routing tile.
+Future<void> _seedOfflineMap(
+  WidgetTester tester,
+  ProviderContainer container,
+) async {
+  final regions = container.read(offlineRegionsRepositoryProvider);
+  if ((await regions.regions()).isNotEmpty) return;
+  final download = container
+      .read(offlineDownloadControllerProvider.notifier)
+      .download(
+        OfflineRegionSpec(
+          name: 'Funchal',
+          bounds: const BoundingBox(
+            south: 32.63,
+            west: -16.96,
+            north: 32.69,
+            east: -16.86,
+          ),
+          styleUrl: container.read(offlineStyleUrlProvider),
+        ),
+      );
+  var done = false;
+  unawaited(download.whenComplete(() => done = true));
+  await waitUntil(
+    tester,
+    () => done,
+    describe: 'the offline map around Funchal',
+    timeout: const Duration(minutes: 5),
+  );
+}
+
+/// Fits [line] between the planner's chrome with room to spare: the planner
+/// fits a loaded route to the edge of what is visible, which leaves the
+/// place names beside its end markers cut off by the screen's edge.
+Future<void> _frameRoute(
+  WidgetTester tester,
+  ProviderContainer container,
+  List<TrackPoint> line,
+) async {
+  // The planner's own fit goes first; this one lands after it.
+  await pumpFor(tester, const Duration(seconds: 2));
+  final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
+  final chips = tester.getRect(find.byType(ProfileChipRow).first);
+  final controls = tester.getRect(find.byType(MapControls).first);
+  final sheet = tester.getRect(
+    find
+        .descendant(
+          of: find.byType(PlannerScreen),
+          matching: find.byType(SheetHandle),
+        )
+        .first,
+  );
+  await container
+      .read(sharedMapControllerProvider)
+      ?.fitBounds(
+        BoundingBox.fromPoints([for (final point in line) point.pos]),
+        padding: EdgeInsets.fromLTRB(
+          72,
+          chips.bottom + 24,
+          screen.width - controls.left + 24,
+          screen.height - sheet.top + 24,
+        ),
+      );
 }

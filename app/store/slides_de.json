@@ -1,27 +1,52 @@
 {
-  "01-plan": {
-    "headline": "Routen fürs **Fahrrad**",
-    "subline": "Auf die Karte tippen. Velorki findet den Weg für Tour, Rennrad, Gravel oder MTB.",
-    "badge": "Ohne Konto · Open Source · Offline-Routing"
+  "plan": {
+    "eyebrow": "Kostenlos & quelloffen",
+    "headline": "Fahr dort, wo der **Empfang endet**",
+    "subline": "Planen, routen und navigieren auf dem iPhone, auch offline."
   },
-  "02-choice": {
-    "headline": "Wähle deinen **Weg**",
-    "subline": "Alternativen mit Höhenprofil und Belag auf einen Blick."
+  "variants": {
+    "eyebrow": "Routenplanung",
+    "headline": "Routen, die zu **deinem Rad** passen",
+    "subline": "Tour, Rennrad, Gravel oder MTB, mit Alternativen, Höhe und Belag."
   },
-  "03-navigate": {
-    "headline": "Augen auf die **Straße**",
-    "subline": "Gesprochene Ansagen und ein Weg zurück, wenn du abweichst."
+  "navigation": {
+    "eyebrow": "Navigation",
+    "headline": "Jede Abbiegung **angesagt**",
+    "subline": "Von der Route ab? Weg zurück, neue Route oder nichts, du wählst."
   },
-  "04-ride": {
-    "headline": "Jede Fahrt im **Detail**",
+  "loops": {
+    "eyebrow": "Runden",
+    "headline": "Raus vor die Tür, **pünktlich zurück**",
+    "subline": "Sag, wie weit. Velorki findet Runden ab deinem Standort."
+  },
+  "lock-screen": {
+    "eyebrow": "Aufzeichnung",
+    "headline": "Deine Fahrt auf dem **Sperrbildschirm**",
+    "subline": "Live-Werte auf dem Sperrbildschirm und in der Dynamic Island."
+  },
+  "watch": {
+    "eyebrow": "Apple Watch",
+    "headline": "Start und Stopp **am Handgelenk**",
+    "subline": "Puls und Fahrt auf der Uhr, synchron mit dem iPhone."
+  },
+  "ride": {
+    "eyebrow": "Fahrtstatistik",
+    "headline": "Jeder Anstieg **im Protokoll**",
     "subline": "Höhe, Tempo, Puls und Splits für jede Fahrt."
   },
-  "05-library": {
-    "headline": "Deine Routen **immer** dabei",
-    "subline": "Auf dem Handy gespeichert und auch ohne Netz bereit."
+  "offline": {
+    "eyebrow": "Offline",
+    "headline": "Kein Netz? **Kein Problem.**",
+    "subline": "Region einmal laden. Karte, Routing und Suche laufen weiter."
   },
-  "06-import": {
-    "headline": "**GPX** und FIT mitnehmen",
-    "subline": "Dateien von überall öffnen und losfahren."
+  "themes": {
+    "eyebrow": "Hell & dunkel",
+    "headline": "Frühtour oder **Nachtfahrt**",
+    "subline": "Helles und dunkles Design, mit der Akzentfarbe deiner Wahl."
+  },
+  "import": {
+    "eyebrow": "Dateien",
+    "headline": "Jede Route **kommt mit**",
+    "subline": "GPX, FIT und TCX von überall öffnen. Als GPX oder FIT exportieren."
   }
 }

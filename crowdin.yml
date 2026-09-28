@@ -65,7 +65,8 @@ files:
   - source: /app/fastlane/metadata/android/en-US/*.txt
     translation: /app/fastlane/metadata/android/%locale%/%original_file_name%
 
-  # The store listing screenshots' slide captions: a flat JSON object per
-  # language, named after the language rather than living in a folder.
+  # The App Store slides' copy: per slide an eyebrow, a headline (the
+  # **phrase** in it is the accent colour) and a subline. See
+  # docs/STORE_ASSETS.md.
   - source: /app/store/slides_en.json
     translation: /app/store/slides_%two_letters_code%.json

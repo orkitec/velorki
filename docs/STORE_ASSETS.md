@@ -20,38 +20,60 @@ app/tool/store_screenshots.sh [--locales en,de] [--themes light,dark] [--shots s
 
 1. **Capture.** On the iOS simulator "Velorki Shots 6.9" (an iPhone 17 Pro
    Max, created on the first run), once per language: the simulator's
-   language and region are set, the status bar reads 9:41 with full bars,
-   and `app/integration_test/store/store_screenshots_test.dart` takes six
-   screens in each theme — the plan with its elevation profile, the route
-   variants, navigation with the turn banner and the figures bar, a ride's
-   charts, the library and a GPX import. Everything is on Madeira and
-   computed on the device from the tile `app/tool/itest_mirror.sh` serves;
-   the ride is laid along a route the device plans, with a speed from the
-   gradient and a heart rate from the effort. The test clears that
-   simulator's library first. It is not part of the integration suite.
-2. **Slides.** `app/tool/store_slides.py` puts each screenshot in a phone
-   frame under a headline and a subline, with headless Chrome and the app's
-   own fonts. Two styles: `dark` (deep green, lime) and `light` (pale lime,
-   deep green). Each style shows the app in the matching theme unless
-   `--shots` says otherwise. A headline too long for three lines shrinks to
-   fit.
+   language and region are set, the status bar reads 9:41, and
+   `app/integration_test/store/store_screenshots_test.dart` takes every screen
+   the slides use, in each theme: the plan, its variants, a loop, a GPX import,
+   a ride's charts, the library, the offline screen (with the status bar
+   showing no signal), and a ride under way, once with the live card and once
+   navigating with the figures bar. It also saves the figures the Live
+   Activity shows at that moment. Everything is on Madeira and computed on the
+   device from the tile `app/tool/itest_mirror.sh` serves; the demo ride is
+   laid along a route the device plans, with a speed from the gradient and a
+   heart rate from the effort. The test clears that simulator's library first.
+   It is not part of the integration suite.
+2. **Slides.** `app/tool/store_slides.py` builds each slide with headless
+   Chrome in the website's hero style: an eyebrow chip, a sentence-case
+   headline with the accent phrase, a subline, accent glows over contour
+   lines, and the screenshot in a phone frame. Every slide is made in both
+   styles, `dark` and `light`, each showing the app in the matching theme
+   unless `--shots` says otherwise.
 
-Output, git-ignored:
+Five layouts: `phone`, running off the bottom edge; `whole`, the phone sized
+to show all of the screen; `watch`, the phone beside the Apple Watch app's
+riding screen; `lock`, the Lock Screen with the ride's Live Activity and the
+expanded Dynamic Island, drawn after `app/ios/VelorkiLiveActivity/` with the
+figures the test saved (the simulator cannot show a Live Activity on its Lock
+Screen); `split`, the same screen light and dark, cut diagonally.
 
-- `app/build/store_screenshots/raw/<theme>/<locale>/NN-name.png`, 1320 × 2868
-- `app/build/store_screenshots/slides/<style>/<size>/<locale>/NN-name.png`
+The watch screenshot is not taken here: the driver reads
+`$VELORKI_STORE_WATCH/<locale>/2-riding.png` (default
+`app/build/store_screenshots/watch`), and the slide shows a placeholder
+without it.
 
-The copy is `app/store/slides_en.json`: per slide a `headline` with the
-emphasised word in `**`, a `subline` and an optional `badge`. Other languages
-are `slides_<lang>.json`, from Crowdin; a slide missing there falls back to
-English.
+Copy and order live in `app/store/`:
+
+- `slides_en.json`: per slide an `eyebrow`, a `headline` with the accent
+  phrase in `**`, and a `subline`. Other languages are `slides_<lang>.json`
+  from Crowdin; a slide missing there falls back to English. A headline that
+  runs past three lines, or a subline past two, shrinks to fit.
+- `slide_set.json`: the set that is uploaded, in order, and per slide its
+  layout, the screen it shows and its style. Changing the mix is an edit
+  there and `--skip-capture`.
+
+Output, git-ignored, under `app/build/store_screenshots/`:
+
+- `raw/<theme>/<locale>/<screen>.png`, 1320 × 2868
+- `slides/<style>/<size>/<locale>/<slide>.png`, every slide in both styles
+- `slides/set/<size>/<locale>/NN-<slide>.png`, the set to upload
+- `slides/set/contact-<locale>.png`, the set side by side
 
 ## Adding a language
 
 1. The app strings, the store texts and `slides_<lang>.json` arrive through
    Crowdin.
 2. If the store's region for the language is not in `region_of` in
-   `store_screenshots.sh`, add it.
+   `store_screenshots.sh`, add it; the watch screenshot for it goes into the
+   watch folder.
 3. `app/tool/store_screenshots.sh --locales <lang>`.
 
 ## Uploading
@@ -60,13 +82,13 @@ In App Store Connect, the version's page, per localization:
 
 | Folder | Field |
 |---|---|
-| `slides/<style>/6.9/<locale>/` | iPhone 6.9" Display |
-| `slides/<style>/6.5/<locale>/` | iPhone 6.5" Display |
+| `slides/set/6.9/<locale>/` | iPhone 6.9" Display |
+| `slides/set/6.5/<locale>/` | iPhone 6.5" Display |
 
-Upload them in file order. A localization without its own screenshots shows
-the primary language's.
+Upload them in file order; ten is the most a size takes. A localization
+without its own screenshots shows the primary language's.
 
-The App Store shows one set of screenshots whatever the viewer's appearance,
-so the listing uses one style. Product Page Optimization (App Store Connect →
-the app → Product Page Optimization) runs the other style as a treatment
+The App Store shows one set of screenshots whatever the viewer's appearance.
+Product Page Optimization (App Store Connect → the app → Product Page
+Optimization) runs another set, such as all-dark or all-light, as a treatment
 against it, to see which converts better.
