@@ -135,9 +135,9 @@ routes to our share store.
       `lib/core/links/velorki_urls.dart`.
 - [ ] It is linked from both store listings (the URL field in each console).
 - [x] It names the AI provider, Strava, RideWithGPS, RevenueCat, the map tile
-      provider and the search provider. — `docs/PRIVACY.md`; the AI section
-      now says "OpenAI (or the provider configured by the operator)", the
-      relay being OpenAI-compatible.
+      provider and the search provider. — `web/content/*/legal/privacy.md`; the
+      assistant goes through OpenRouter, restricted to providers that neither
+      train on nor retain requests (set in the OpenRouter account).
 - [x] It states retention for share links (one year) and that uninstalling
       removes local data. — `docs/PRIVACY.md`, "Retention and deletion".
 - [ ] It has been reviewed by a lawyer (`docs/PRIVACY.md` is a draft).

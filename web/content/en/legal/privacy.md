@@ -122,14 +122,14 @@ No identifier of you or your phone is put into the prompt. The model returns a
 structured request: a distance, a shape, place names, preferences. The actual
 routing then happens in the app; the model never sees your route.
 
-**No AI provider is configured in the official build at the time of writing**,
-so the assistant is switched off and nothing is sent anywhere: the relay answers
-that the feature is unavailable. Before it is switched on, this section will
-name the provider, the country its servers are in and the safeguard for the
-transfer if that country is outside the EU, and the app will ask for your
-consent again if the answer has changed. Whoever it is, the contract will not
-permit the provider to train models on what is sent, where that choice is
-offered.
+Our relay passes the request to **OpenRouter, Inc.** (USA), a service that
+gives access to language models from several providers, and OpenRouter forwards
+it to the provider serving the model we use. We have configured OpenRouter to
+send requests only to providers that do not train models on them and do not
+retain them. The transfer to the United States rests on the European
+Commission's Standard Contractual Clauses. OpenRouter and the model provider
+receive the request from our relay, not from your phone, so they see our
+server's address and not yours.
 
 The assistant reaches the model over an OpenAI-compatible interface, so anyone
 who self-hosts Velorki can point their relay at any provider or at their own
@@ -287,6 +287,9 @@ others:
   conversation is delivered and kept.
 - **Klipy** — the sticker and GIF search in the support chat, and only while
   that picker is open.
+- **OpenRouter, Inc.**, USA, and the model provider it forwards to — the AI
+  assistant, only after you consented, restricted to providers that neither
+  train on nor retain requests.
 
 **Services your phone or browser contacts directly, each responsible for its
 own processing**
@@ -306,8 +309,9 @@ We will also hand data to a court or an authority where the law requires it.
 
 ## Transfers outside the EU
 
-Cloudflare, RevenueCat, Discord, Klipy, Strava, Ride with GPS, Apple and Google
-are in the United States or transfer data there. Those transfers rest on the European
+Cloudflare, RevenueCat, OpenRouter and the model provider behind it, Discord,
+Klipy, Strava, Ride with GPS, Apple and Google are in the United States or
+transfer data there. Those transfers rest on the European
 Commission's Standard Contractual Clauses, or on the provider's certification
 under the EU–US Data Privacy Framework where it has one, together with the
 provider's own technical safeguards. Hetzner, komoot and the map tile services
