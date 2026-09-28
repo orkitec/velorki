@@ -317,8 +317,8 @@ routes to our share store.
       from the same SVG, see `app/assets/icon/README.md`; they are not
       committed.
 - [ ] Screenshots: at least 2 (Play, phone) and the required sizes for iPhone
-      6.9" and 6.5". Plan, loop result, recording and library are the four
-      screens worth showing.
+      6.9" and 6.5". The iPhone slides come out of `app/tool/store_screenshots.sh`,
+      see [STORE_ASSETS.md](STORE_ASSETS.md).
 - [ ] **(Play)** Feature graphic, 1024 × 500.
 
 ## Accounts and store administration

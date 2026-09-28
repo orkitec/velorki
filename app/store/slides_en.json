@@ -1,0 +1,27 @@
+{
+  "01-plan": {
+    "headline": "Routes made for **bikes**",
+    "subline": "Tap the map. Velorki finds the way for touring, road, gravel or MTB.",
+    "badge": "No account · Open source · Offline routing"
+  },
+  "02-choice": {
+    "headline": "Pick your **way**",
+    "subline": "Alternatives with elevation and surfaces at a glance."
+  },
+  "03-navigate": {
+    "headline": "Eyes on the **road**",
+    "subline": "Spoken turns, and a way back if you leave the route."
+  },
+  "04-ride": {
+    "headline": "Every ride in **detail**",
+    "subline": "Elevation, speed, heart rate and splits for every ride."
+  },
+  "05-library": {
+    "headline": "Your routes, **always** with you",
+    "subline": "Saved on your phone and ready without a connection."
+  },
+  "06-import": {
+    "headline": "Bring your **GPX** and FIT",
+    "subline": "Open files from anywhere and ride them."
+  }
+}

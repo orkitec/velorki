@@ -1,0 +1,27 @@
+{
+  "01-plan": {
+    "headline": "Routen fürs **Fahrrad**",
+    "subline": "Auf die Karte tippen. Velorki findet den Weg für Tour, Rennrad, Gravel oder MTB.",
+    "badge": "Ohne Konto · Open Source · Offline-Routing"
+  },
+  "02-choice": {
+    "headline": "Wähle deinen **Weg**",
+    "subline": "Alternativen mit Höhenprofil und Belag auf einen Blick."
+  },
+  "03-navigate": {
+    "headline": "Augen auf die **Straße**",
+    "subline": "Gesprochene Ansagen und ein Weg zurück, wenn du abweichst."
+  },
+  "04-ride": {
+    "headline": "Jede Fahrt im **Detail**",
+    "subline": "Höhe, Tempo, Puls und Splits für jede Fahrt."
+  },
+  "05-library": {
+    "headline": "Deine Routen **immer** dabei",
+    "subline": "Auf dem Handy gespeichert und auch ohne Netz bereit."
+  },
+  "06-import": {
+    "headline": "**GPX** und FIT mitnehmen",
+    "subline": "Dateien von überall öffnen und losfahren."
+  }
+}
