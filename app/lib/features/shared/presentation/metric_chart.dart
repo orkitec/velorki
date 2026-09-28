@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
@@ -112,6 +114,25 @@ const double chartMinWindowShare = 0.05;
 ChartAxis paddedYAxis(double lowest, double highest) {
   final padding = ((highest - lowest) * 0.1).clamp(0.5, double.infinity);
   return (min: lowest - padding, max: highest + padding);
+}
+
+/// A step for an axis spanning [range] that lands on round numbers: 1, 2 or
+/// 5 times a power of ten, giving at most about [count] steps.
+double niceAxisStep(double range, int count) {
+  if (range <= 0 || count < 1) return 1;
+  final raw = range / count;
+  final magnitude = math
+      .pow(10, (math.log(raw) / math.ln10).floor())
+      .toDouble();
+  final norm = raw / magnitude;
+  final nice = norm <= 1
+      ? 1
+      : norm <= 2
+      ? 2
+      : norm <= 5
+      ? 5
+      : 10;
+  return nice * magnitude;
 }
 
 /// The y axis of a height chart: five to a hundred metres of air around a
@@ -430,6 +451,13 @@ class _MetricChartState extends State<MetricChart> {
                       sideTitles: SideTitles(
                         showTitles: true,
                         reservedSize: widget.leftReservedSize,
+                        // Round steps, about one per 40 points of height;
+                        // left to itself fl_chart halves the range
+                        // ("429.1").
+                        interval: niceAxisStep(
+                          axis.max - axis.min,
+                          math.max(2, widget.height ~/ 40),
+                        ),
                         // Only the evenly spaced steps: the ends of the axis
                         // are rarely round and sit on top of the step
                         // beside them ("13" over "13.6").
