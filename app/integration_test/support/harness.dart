@@ -179,6 +179,12 @@ Future<void> tapAndPump(
   } on Object {
     // No scrollable around it, or it is already on screen.
   }
+  // What was there a frame ago can be gone now: the tab bar hides while the
+  // keyboard is up, and a slow emulator can still be lowering it. Wait for
+  // it again rather than tap nothing.
+  if (finder.evaluate().isEmpty) {
+    await waitForWidget(tester, finder, timeout: timeout);
+  }
   await tester.tap(finder.first, warnIfMissed: false);
   await pumpFor(tester, settle);
 }
