@@ -7,6 +7,7 @@ import 'package:velorki/features/map/data/position_provider.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
+import 'package:velorki/features/routing_tiles/presentation/missing_tiles_banner.dart';
 import 'package:velorki/features/map/presentation/visible_map_padding.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
@@ -568,6 +569,27 @@ void main() {
       await _make(tester);
 
       expect(find.text(l10n.loopNoneFound), findsOneWidget);
+    });
+
+    testWidgets('a region not downloaded yet offers the download, not '
+        '"try another distance"', (tester) async {
+      final backend = FakeRoutingBackend()
+        ..error = const RoutingException(
+          kind: RoutingErrorKind.missingTiles,
+          message: 'no tiles for this loop',
+          missingTiles: <TileName>[TileName(-125, 35)],
+        );
+      await _openSheet(tester, harness: PlannerHarness(backend: backend));
+
+      await _make(tester);
+
+      expect(find.text(l10n.loopNoneFound), findsNothing);
+      expect(find.byType(MissingTilesBanner), findsOneWidget);
+      expect(find.text(l10n.plannerMissingTiles), findsOneWidget);
+      expect(
+        _container(tester).read(smartLoopControllerProvider).missingTiles,
+        const <TileName>[TileName(-125, 35)],
+      );
     });
 
     testWidgets('a broken routing server is reported', (tester) async {

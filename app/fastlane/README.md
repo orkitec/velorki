@@ -29,12 +29,13 @@ bundle exec fastlane ios beta           # macOS with Xcode only
 |---|---|
 | `android internal` | Gradle `bundleRelease` (the Flutter Gradle plugin builds the Dart side), then `supply` to the Play **internal testing** track. |
 | `android promote_closed` | Promotes the newest internal build to the closed test track without rebuilding. |
-| `ios certs` | `match appstore` for the three bundle ids. Read-only unless `MATCH_READONLY=false`, which is the one-time bootstrap. |
+| `ios certs` | `match appstore` for the four bundle ids. Read-only unless `MATCH_READONLY=false`, which is the one-time bootstrap. |
 | `ios beta` | `match(readonly)` → `flutter build ios --no-codesign` → manual signing with the match profiles → `gym` → `pilot` to TestFlight. |
 | `ios release` | the same build, then `deliver` to App Store Connect **without** submitting for review. Promotion stays a human decision. |
 
-The iOS lanes sign three bundle ids in one pass — `com.orkitec.velorki`, its
-`.VelorkiLiveActivity` widget extension and its `.share` extension — and flip
+The iOS lanes sign four bundle ids in one pass — `com.orkitec.velorki`, its
+`.VelorkiLiveActivity` widget extension, its `.share` extension and its
+`.watchkitapp` Apple Watch app — and flip
 those targets to manual signing, which rewrites
 `ios/Runner.xcodeproj/project.pbxproj`. After a local run,
 `git checkout app/ios/Runner.xcodeproj`.

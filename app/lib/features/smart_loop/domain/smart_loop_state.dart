@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:velorki_brouter/velorki_brouter.dart';
 
 import 'loops.dart';
 
@@ -25,6 +26,11 @@ abstract class SmartLoopState with _$SmartLoopState {
 
     /// Why the search failed, in the routing server's own words.
     String? error,
+
+    /// The routing tiles a search that found nothing was missing: with no
+    /// routing server, the first loop in a new area needs its tiles
+    /// downloaded, which is not the same as "try another distance".
+    @Default(<TileName>[]) List<TileName> missingTiles,
   }) = _SmartLoopState;
 
   const SmartLoopState._();
@@ -39,5 +45,9 @@ abstract class SmartLoopState with _$SmartLoopState {
   /// Whether the finished search found nothing, which is the "try another
   /// distance" state rather than an error.
   bool get foundNothing =>
-      hasSearched && !running && error == null && candidates.isEmpty;
+      hasSearched &&
+      !running &&
+      error == null &&
+      missingTiles.isEmpty &&
+      candidates.isEmpty;
 }

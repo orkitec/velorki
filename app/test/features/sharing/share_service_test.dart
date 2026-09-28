@@ -198,6 +198,37 @@ void main() {
         expect(points.last.time, DateTime.utc(2026, 9, 12, 9));
       },
     );
+
+    test('the link carries no heart rate, cadence or power', () async {
+      final relay = _FakeRelay();
+      final measured = [
+        for (final p in _ride)
+          TrackPoint(
+            p.pos,
+            ele: p.ele,
+            time: p.time,
+            heartRateBpm: 150,
+            cadenceRpm: 85,
+            powerW: 210,
+          ),
+      ];
+
+      await ShareService(relay).share(
+        name: 'Saturday',
+        points: measured,
+        kind: ShareKind.ride,
+        distanceM: 30000,
+      );
+
+      final gpx = relay.calls.single.gpx;
+      expect(gpx, isNot(contains('150')));
+      expect(gpx, isNot(contains('hr>')));
+      expect(gpx, isNot(contains('cad>')));
+      expect(gpx, isNot(contains('power')));
+      final track = GpxCodec.decode(gpx).tracks.single;
+      expect(track.segments.single, hasLength(3));
+      expect(track.extensionsAt(0), isNull);
+    });
   });
 
   group('the numbers stored beside the GPX', () {

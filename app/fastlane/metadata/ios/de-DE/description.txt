@@ -1,0 +1,48 @@
+Velorki plant Radrouten, führt dich darauf entlang und zeichnet deine Fahrten auf. Es nutzt OpenStreetMap-Daten mit einem Routing, das für Räder gemacht ist, die Routen rechnet dein iPhone selbst, und die ganze App ist Open Source.
+
+PLANEN
+• Tippe Wegpunkte auf die Karte und bekomme eine Route für das Rad, auf dem du sitzt: Tour, Rennrad, Gravel, Mountainbike oder der direkte Weg.
+• Alternativrouten, ein Höhenprofil und eine Aufstellung der Beläge, über die du fährst.
+• Rundtouren: Sag, wie weit du fahren willst und, wenn du magst, einen Ort, an dem du vorbeikommen willst, und Velorki schlägt Runden vor, die dorthin zurückführen, wo du losgefahren bist.
+• Orte suchen und Routen in deiner Bibliothek speichern.
+• Eine Region einmal herunterladen und dort ohne Verbindung planen, suchen und navigieren.
+
+NAVIGATION
+• Abbiegehinweise mit Sprachansagen, auch bei gesperrtem Bildschirm.
+• Kommst du von der Route ab, entscheidest du, was passiert: ein Weg zurück, eine neue Route zum Ziel oder gar nichts.
+• Die Karte folgt dir in Fahrtrichtung, die nächste Abbiegung immer im Blick.
+
+AUFZEICHNEN
+• Zeichnet bei ausgeschaltetem Bildschirm auf, mit automatischer Pause, und zeigt die Fahrt auf dem Sperrbildschirm und in der Dynamic Island.
+• Wähle und ordne die Werte, die du beim Fahren siehst: Strecke, Tempo, Zeit, Anstieg, Puls, Trittfrequenz, Leistung, was von der Route noch bleibt.
+• Ein Energiesparmodus für lange Tage: dunkle Karte, gedimmter Bildschirm und eine schlichte Seite mit den Zahlen.
+• Puls von der Apple Watch, von Bluetooth-Sensoren und aus Apple Health. Geschwindigkeits-, Trittfrequenz- und Leistungssensoren gehen auch.
+• Die Velorki-App auf der Apple Watch zeigt die Fahrt und startet, pausiert und beendet sie am Handgelenk.
+• Jede Fahrt bekommt eine Seite mit Karte, Diagrammen für Höhe, Tempo und Puls sowie Splits.
+
+DATEIEN
+• GPX-, FIT- und TCX-Dateien aus Dateien, Mail, Safari oder dem Teilen-Menü öffnen.
+• Routen und Fahrten als GPX oder FIT exportieren und überall sonst verwenden.
+
+KOSTENLOS, UND VELORKI PLUS
+Alles, was auf dem Handy läuft, ist kostenlos: Planen, Rundtouren, Navigation, Aufzeichnen, die Bibliothek, Offline-Regionen, Sensoren sowie Import und Export von Dateien.
+
+Velorki Plus ist ein Abo für die Teile, die einen Server brauchen:
+• Der Assistent: Beschreibe in einem Satz, welche Fahrt du willst, und bekomme eine Route.
+• Links teilen: Aus einer Route oder Fahrt wird ein Link, den jeder im Browser öffnen kann.
+• Verbindungen zu zwei beliebten Routen- und Fahrtenplattformen, um Fahrten hochzuladen und Routen zu holen.
+
+Velorki Plus gibt es als monatliches und als jährliches, sich automatisch verlängerndes Abo, mit kostenloser Testphase. Die Zahlung wird bei Bestätigung des Kaufs über deinen Apple Account abgerechnet. Das Abo verlängert sich automatisch, sofern es nicht mindestens 24 Stunden vor Ende der laufenden Periode deaktiviert wird, und lässt sich in den Einstellungen deines Apple Accounts verwalten und kündigen. Ein ungenutzter Teil einer kostenlosen Testphase verfällt mit dem Kauf eines Abos.
+
+Nutzungsbedingungen: https://velorki.com/de/terms
+Datenschutzerklärung: https://velorki.com/de/privacy
+
+DATENSCHUTZ
+Kein Konto, keine Anmeldung. Routen, Fahrten und Einstellungen bleiben auf deinem iPhone. Der Assistent fragt nach deiner Zustimmung, bevor ein Text das Gerät verlässt, und die Position, die er sendet, ist auf etwa einen Kilometer gerundet.
+
+GPS IM HINTERGRUND
+Die dauerhafte Nutzung von GPS im Hintergrund kann die Akkulaufzeit deutlich verkürzen. Velorki hält das GPS nur an, solange eine Fahrt aufgezeichnet oder navigiert wird.
+
+Kartendaten © OpenStreetMap-Mitwirkende.
+
+Quellcode: https://github.com/orkitec/velorki

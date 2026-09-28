@@ -131,7 +131,8 @@ class TileDownloader {
       fileName: entry.fileName,
       bytes: entry.bytes,
       sha256: entry.sha256,
-      onProgress: (received) => _emit(entry.tile, received, entry.bytes),
+      onProgress: (received) =>
+          _emit(entry.tile, received, entry.downloadBytes),
       cancelToken: cancelToken,
     );
   }
@@ -145,8 +146,9 @@ class TileDownloader {
   /// Same resumable fetch and the same verification as a tile, and progress on
   /// the same [progress] stream under the same tile name — a dense tile's
   /// index is tens of megabytes, so the screen has to show it going down the
-  /// wire. It is the second phase of that tile's download, so the bar simply
-  /// starts again at zero for the smaller file. Its checksum is mandatory, so
+  /// wire. It is the second phase of that tile's download, so the bar carries
+  /// on from the `.rd5` towards the one total the rider was quoted. Its
+  /// checksum is mandatory, so
   /// a truncated or rewritten file can never be opened as a search index.
   Future<File?> downloadGazetteer(
     SegmentEntry entry, {
@@ -161,7 +163,8 @@ class TileDownloader {
       fileName: gazetteer.fileName,
       bytes: gazetteer.bytes,
       sha256: gazetteer.sha256,
-      onProgress: (received) => _emit(entry.tile, received, gazetteer.bytes),
+      onProgress: (received) =>
+          _emit(entry.tile, entry.bytes + received, entry.downloadBytes),
       cancelToken: cancelToken,
     );
   }

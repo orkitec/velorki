@@ -81,8 +81,8 @@ end
 # ---------------------------------------------------------------------------
 # iOS
 #
-# One upload signs three bundle ids: the app, the Live Activity widget
-# extension and the share extension. Each needs its own App Store provisioning
+# One upload signs four bundle ids: the app, the Live Activity widget
+# extension, the share extension and the Apple Watch app. Each needs its own App Store provisioning
 # profile, and match keeps all of them — plus the distribution certificate — in
 # a private git repository (see docs/RELEASE_IOS.md).
 IOS_APP_ID  = ENV["IOS_BUNDLE_ID"] || "com.orkitec.velorki"
@@ -90,6 +90,7 @@ IOS_APP_IDS = [
   IOS_APP_ID,                               # the app
   "#{IOS_APP_ID}.VelorkiLiveActivity",      # Live Activity / widget extension
   "#{IOS_APP_ID}.share",                    # share extension
+  "#{IOS_APP_ID}.watchkitapp",              # Apple Watch app
 ].freeze
 # The Xcode target behind each bundle id; update_code_signing_settings writes
 # the build settings per target, not per bundle id.
@@ -97,6 +98,7 @@ IOS_TARGETS = {
   IOS_APP_IDS[0] => "Runner",
   IOS_APP_IDS[1] => "VelorkiLiveActivity",
   IOS_APP_IDS[2] => "VelorkiShare",
+  IOS_APP_IDS[3] => "VelorkiWatch",
 }.freeze
 IOS_TEAM_ID   = ENV["APPLE_TEAM_ID"] || "8Z44M8DMKK"
 IOS_XCODEPROJ = File.join(IOS_DIR, "Runner.xcodeproj")
@@ -179,7 +181,9 @@ def ios_archive
       bundle_identifier: app_id,
       code_sign_identity: "Apple Distribution",
       profile_name: profiles[app_id],
-      sdk: "iphoneos*",
+      # The watch app builds against watchOS; a setting scoped to iphoneos
+      # would never reach it.
+      sdk: app_id.end_with?(".watchkitapp") ? "watchos*" : "iphoneos*",
     )
   end
 

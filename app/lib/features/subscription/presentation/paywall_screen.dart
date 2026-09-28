@@ -149,7 +149,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           ],
           const SizedBox(height: 24),
           Text(
-            l10n.plusLegal,
+            plusLegalText(l10n, theme.platform),
             style: theme.textTheme.bodySmall?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -420,10 +420,7 @@ class _PackageTile extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          l10n.plusPricePeriod(
-                            package.priceString,
-                            plusPeriodLabel(l10n, package.period),
-                          ),
+                          plusPriceLabel(l10n, package),
                           style: theme.textTheme.statLarge,
                         ),
                         if (intro != null) ...[

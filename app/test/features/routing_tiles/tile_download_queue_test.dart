@@ -184,16 +184,24 @@ void main() {
       <SegmentEntry>[_entry(_first, gazetteer: true)],
     );
 
-    final gazetteer = seen.indexWhere((s) => s.total == _gaz.length);
-    expect(gazetteer, greaterThan(0), reason: 'the .gaz is reported too');
+    final whole = _body.length + _gaz.length;
     expect(
-      seen.take(gazetteer).every((s) => s.total == _body.length),
+      seen.every((s) => s.total == whole),
       isTrue,
-      reason: 'the rd5 first, in full',
+      reason: 'one total for the tile: the rd5 and its gazetteer',
     );
-    expect(seen[gazetteer - 1].received, _body.length);
-    expect(seen[gazetteer].received, 0, reason: 'the bar starts over');
-    expect(seen.last.received, _gaz.length);
+    final gazetteer = seen.indexWhere((s) => s.received > _body.length);
+    expect(gazetteer, greaterThan(0), reason: 'the .gaz is reported too');
+    expect(seen[gazetteer - 1].received, _body.length, reason: 'rd5 first');
+    expect(
+      [
+        for (var i = 1; i < seen.length; i++)
+          seen[i].received >= seen[i - 1].received,
+      ].every((up) => up),
+      isTrue,
+      reason: 'the bar never goes back',
+    );
+    expect(seen.last.received, whole);
     expect(
       seen.take(gazetteer + 1).every((s) => !s.finished),
       isTrue,
@@ -201,7 +209,7 @@ void main() {
     );
     expect(
       seen
-          .where((s) => s.total == _gaz.length && s.received < s.total)
+          .where((s) => s.received > _body.length && s.received < s.total)
           .every((s) => !s.finished),
       isTrue,
       reason: 'nor does a gazetteer that is still coming down',

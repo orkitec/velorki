@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show TargetPlatform;
+
 import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../domain/plus_subscription.dart';
@@ -45,12 +47,30 @@ String plusPeriodLabel(AppLocalizations l10n, PlusPeriod period) =>
       PlusPeriod.lifetime || PlusPeriod.other => l10n.plusPeriodLifetime,
     };
 
+/// What [package] costs and how often, e.g. "€4.99 per month".
+String plusPriceLabel(AppLocalizations l10n, PlusPackage package) =>
+    l10n.plusPricePeriod(
+      package.priceString,
+      plusPeriodLabel(l10n, package.period),
+    );
+
 /// The trial or introductory note under a package, or `null` when it has
-/// neither.
+/// neither. It says what is charged once the trial or the introductory
+/// price ends, which the App Store wants beside every trial.
 String? plusIntroLabel(AppLocalizations l10n, PlusPackage package) {
   final offer = package.introOffer;
   if (offer == null) return null;
-  if (!offer.isFree) return l10n.plusIntroNote(offer.priceString);
+  final price = plusPriceLabel(l10n, package);
+  if (!offer.isFree) return l10n.plusIntroNote(offer.priceString, price);
   final days = offer.days;
-  return days == null ? l10n.plusTrialNoteGeneric : l10n.plusTrialNote(days);
+  return days == null
+      ? l10n.plusTrialNoteGeneric(price)
+      : l10n.plusTrialNote(days, price);
 }
+
+/// The auto-renewal terms for the store this build buys through: an iPhone
+/// must not mention the other platform's store.
+String plusLegalText(AppLocalizations l10n, TargetPlatform platform) =>
+    platform == TargetPlatform.iOS || platform == TargetPlatform.macOS
+    ? l10n.plusLegalAppStore
+    : l10n.plusLegalPlay;

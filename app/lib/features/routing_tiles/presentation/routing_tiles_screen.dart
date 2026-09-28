@@ -153,8 +153,8 @@ class TileDownloadPlan {
   /// The format this build reads, or `null` when unknown.
   final Rd5Format? supported;
 
-  /// How many bytes [entries] add up to.
-  int get bytes => entries.fold<int>(0, (sum, e) => sum + e.bytes);
+  /// How many bytes fetching [entries] takes, gazetteers included.
+  int get bytes => entries.fold<int>(0, (sum, e) => sum + e.downloadBytes);
 
   /// The format of the first tile in [tooNew], for the explanation.
   String get tooNewFormat => tooNew.isEmpty
@@ -265,7 +265,7 @@ Future<void> confirmTileDownload(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           for (final entry in entries)
-            Text('${entry.tile.name} · ${formatBytes(entry.bytes)}'),
+            Text('${entry.tile.name} · ${formatBytes(entry.downloadBytes)}'),
           const SizedBox(height: 12),
           Text(l10n.routingTilesDataNotice),
         ],

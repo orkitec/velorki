@@ -146,6 +146,9 @@ class SmartLoopController extends _$SmartLoopController {
       running: false,
       progress: 1,
       error: state.candidates.isEmpty ? run.lastFailure : null,
+      missingTiles: state.candidates.isEmpty
+          ? run.missingTiles.toList()
+          : const <TileName>[],
     );
     adopt();
   }
@@ -257,6 +260,9 @@ class _LoopRun {
   /// The last routing failure worth reporting, shown when nothing routed.
   String? lastFailure;
 
+  /// The tiles the on-device engine lacked, with no server to fall back to.
+  final Set<TileName> missingTiles = <TileName>{};
+
   double get progress => planned == 0 ? 1 : math.min(1, done / planned);
 
   /// Notes one more request going out, growing [planned] when the planner
@@ -326,6 +332,11 @@ class _CountingBackend implements RoutingBackend {
       if (e.kind == RoutingErrorKind.network ||
           e.kind == RoutingErrorKind.invalid) {
         _run.lastFailure = e.message;
+      }
+      // Nor is a region that is not downloaded yet: it becomes the sheet's
+      // download offer.
+      if (e.kind == RoutingErrorKind.missingTiles) {
+        _run.missingTiles.addAll(e.missingTiles);
       }
       rethrow;
     } on Object catch (e) {

@@ -156,7 +156,9 @@ Daten von Strava gehen nie an den KI-Anbieter.
 Erstellst du einen Teilen-Link für eine Route oder eine Fahrt, wird diese Route
 oder Fahrt mit ihrem Track, ihrem Namen und ihren Statistiken auf unseren
 Server hochgeladen und dort gespeichert, damit jeder mit dem Link sie öffnen
-kann. Der Link ist öffentlich: Wer ihn hat, kann den Inhalt sehen, samt Start-
+kann. Puls, Trittfrequenz und Leistung bleiben dabei weg: Eine geteilte Fahrt
+enthält ihren Track und ihre Zeiten, nicht, was ein Sensor gemessen hat. Der
+Link ist öffentlich: Wer ihn hat, kann den Inhalt sehen, samt Start-
 und Endpunkt des Tracks. Bedenke das, bevor du eine Fahrt teilst, die an deinem
 Zuhause beginnt.
 

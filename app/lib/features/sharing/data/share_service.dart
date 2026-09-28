@@ -42,7 +42,8 @@ class ShareService {
 
   final RelayClient _relay;
 
-  /// Stores [points] as a GPX and returns its public link.
+  /// Stores [points] as a GPX and returns its public link, without the
+  /// heart rate, cadence and power a ride's points may carry.
   ///
   /// [kind] decides both the GPX shape and what the share page calls it: a
   /// route becomes a `<rte>`, a recorded ride a `<trk>` with its timestamps.
@@ -58,10 +59,16 @@ class ShareService {
     if (points.isEmpty) {
       throw const ShareException('There is nothing to share.');
     }
+    // The track, its heights and its times, and nothing a sensor measured:
+    // a link is public, and heart rate is health data, often read from the
+    // phone's health store.
+    final bare = [
+      for (final p in points) TrackPoint(p.pos, ele: p.ele, time: p.time),
+    ];
     final gpx = kind == ShareKind.ride
-        ? GpxCodec.encodeTrack(points: points, name: name)
+        ? GpxCodec.encodeTrack(points: bare, name: name)
         : GpxCodec.encodeRoute(
-            points: points,
+            points: bare,
             name: name,
             waypoints: gpxWaypoints(pois),
           );

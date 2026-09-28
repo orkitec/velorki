@@ -26,6 +26,9 @@ Map<String, Object?> _manifest() => <String, Object?>{
       'tile': 'E10_N45',
       'bytes': 131072000,
       'updatedAt': '2026-09-12T01:03:00Z',
+      // The offline search index comes down with the tile, and the rider is
+      // quoted both: 125 MB + 20 MB.
+      'gazetteer': <String, Object?>{'bytes': 20971520, 'sha256': 'GAZHASH'},
     },
   ],
 };
@@ -75,13 +78,13 @@ void main() {
 
     expect(find.text(l10n.plannerMissingTiles), findsOneWidget);
     expect(
-      find.text(l10n.routingTilesDownloadCount(1, '125 MB')),
+      find.text(l10n.routingTilesDownloadCount(1, '145 MB')),
       findsOneWidget,
     );
     // The rider gets one clear action, not a snack bar they cannot act on.
     expect(find.byType(SnackBar), findsNothing);
 
-    await tester.tap(find.text(l10n.routingTilesDownloadCount(1, '125 MB')));
+    await tester.tap(find.text(l10n.routingTilesDownloadCount(1, '145 MB')));
     await tester.pumpAndSettle();
 
     expect(find.byType(RoutingTilesScreen), findsOneWidget);
