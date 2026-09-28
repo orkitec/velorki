@@ -1,147 +1,107 @@
-# iOS release setup
+# iOS release
 
-What has to be done once, on the Mac, before `git tag v1.0.0 && git push --tags`
-signs and uploads an iOS build. Android is in
+The app is signed with Xcode's automatic signing, the distribution side with
+Apple's cloud-managed certificate: no certificate repository, no manual
+profiles. `.github/workflows/ios-release.yml` does it on a runner, a Mac with
+Xcode signed into the team does it by hand. Android is in
 [`app/fastlane/README.md`](../app/fastlane/README.md).
 
-Everything after the one-time setup runs read-only: no lane and no workflow can
-create or revoke a certificate.
+Signing happens twice. `xcodebuild archive` signs with an **Apple Development**
+identity, and its private key has to be in a keychain (Apple keeps no copy, so
+CI gets it from a secret). `xcodebuild -exportArchive` then re-signs with the
+cloud-managed **Apple Distribution** certificate and the App Store profiles.
+The archive cannot skip signing: the export takes each target's entitlements
+(App Groups, HealthKit, push) from the archive's signature.
 
-## One-time, on the Mac
+One upload carries four bundle ids, all under team `8Z44M8DMKK`:
 
-1. **Create the private certificates repository.** `orkitec/velorki-certs`,
-   private, empty. It holds the distribution certificate and the provisioning
-   profiles, encrypted; anyone who can read it *and* knows the passphrase can
-   sign as Orkitec.
-
-2. **Install the tools.** From the repository root:
-
-   ```sh
-   cd app && bundle install
-   ```
-
-   Xcode and its command line tools have to be installed and licensed
-   (`sudo xcodebuild -license accept`).
-
-3. **Point match at the repository.** `app/fastlane/Matchfile` is already
-   written; `fastlane match init` only regenerates it, so run it only if the
-   URL changes:
-
-   ```sh
-   cd app && bundle exec fastlane match init      # storage: git, URL as below
-   ```
-
-   Otherwise just export the URL and pick a passphrase:
-
-   ```sh
-   export MATCH_GIT_URL=https://github.com/orkitec/velorki-certs.git
-   export MATCH_PASSWORD='…'                      # keep it in the password manager
-   ```
-
-4. **Create the App Store Connect API key.** App Store Connect → *Users and
-   Access* → *Integrations* → *App Store Connect API* → **+**, role **App
-   Manager**. The `.p8` downloads once and cannot be downloaded again; put it in
-   the password manager. Note the **Key ID** and the **Issuer ID** on the same
-   page, then:
-
-   ```sh
-   export ASC_KEY_ID=…
-   export ASC_ISSUER_ID=…
-   export ASC_KEY_P8_BASE64="$(base64 -i AuthKey_XXXXXXXX.p8)"
-   ```
-
-5. **Create the certificate and the profiles.** This is the only run with write
-   access to the Apple account:
-
-   ```sh
-   cd app && MATCH_READONLY=false bundle exec fastlane ios certs
-   ```
-
-   It creates one distribution certificate and an App Store profile for each of
-   the four bundle ids:
-
-   | Bundle id | Xcode target |
-   |---|---|
-   | `com.orkitec.velorki` | `Runner` |
-   | `com.orkitec.velorki.VelorkiLiveActivity` | `VelorkiLiveActivity` |
-   | `com.orkitec.velorki.share` | `VelorkiShare` |
-   | `com.orkitec.velorki.watchkitapp` | `VelorkiWatch` |
-
-   If match asks to register an identifier or a capability, say yes — the App
-   Group `group.com.orkitec.velorki` that the share extension writes through
-   has to exist on the app and the two extensions, and the watch app carries
-   HealthKit. Check afterwards in the Developer Portal that the
-   app id and the share extension id both carry App Groups, and that
-   `VelorkiLiveActivity` carries Push Notifications (Live Activities).
-
-   Commit nothing: match pushes the encrypted material to `velorki-certs`
-   itself.
-
-6. **Create a fine-grained PAT for CI** with *Contents: read* on
-   `orkitec/velorki-certs` only, then:
-
-   ```sh
-   printf 'x-access-token:%s' "$PAT" | base64
-   ```
-
-   That string is `MATCH_GIT_BASIC_AUTHORIZATION`; it lets a runner clone the
-   certificates repository over https without an SSH key.
-
-## GitHub secrets
-
-Repository → *Settings* → *Secrets and variables* → *Actions*. Exact names,
-because `.github/workflows/ios-release.yml` skips every signing step when one
-of them is empty:
-
-| Secret | What it is |
+| Bundle id | Xcode target |
 |---|---|
-| `MATCH_GIT_URL` | `https://github.com/orkitec/velorki-certs.git` |
-| `MATCH_PASSWORD` | the match encryption passphrase |
-| `MATCH_GIT_BASIC_AUTHORIZATION` | base64 of `x-access-token:<PAT>`, contents-read on the certs repo |
-| `ASC_KEY_ID` | App Store Connect API key id |
-| `ASC_ISSUER_ID` | App Store Connect issuer id |
-| `ASC_KEY_P8_BASE64` | base64 of the `.p8` private key |
-| `APP_ENV_PROD_JSON` | the contents of `app/env/prod.json`; **shared with the Android release**, already set if `release.yml` uploads to Play |
+| `com.orkitec.velorki` | `Runner` |
+| `com.orkitec.velorki.VelorkiLiveActivity` | `VelorkiLiveActivity` |
+| `com.orkitec.velorki.share` | `VelorkiShare` |
+| `com.orkitec.velorki.watchkitapp` | `VelorkiWatch` |
 
-Also create the `release` **environment** (*Settings* → *Environments*) with
-Steffen as a required reviewer, if `release.yml` has not created it already.
-Both release workflows run in it.
+## One-time setup
 
-## Running a build by hand
+1. **App Store Connect API key.** App Store Connect → *Users and Access* →
+   *Integrations* → *App Store Connect API* → *Team Keys* → **+**, role
+   **Admin** (or **App Manager** with *Access to Cloud Managed Distribution
+   Certificate*). The `.p8` downloads once; keep it in the password manager
+   with the **Key ID** and the **Issuer ID** shown on the same page.
 
-`app/env/prod.json` is not in git — write it from the password manager first
-(`app/env/example.json` shows the shape). Then:
+2. **Development identity for CI.** Any Apple Development certificate of the
+   team with its private key; a dedicated one keeps it apart from a person's.
+   Create it in the Developer Portal (*Certificates* → **+** → *Apple
+   Development*, with a CSR from Keychain Access → *Certificate Assistant*),
+   open the downloaded `.cer`, then in Keychain Access → *My Certificates*
+   export the identity as a `.p12` with a password.
+
+3. **GitHub secrets**, in the `release` environment (*Settings* →
+   *Environments* → `release`, which has the required reviewer):
+
+   | Secret | Value |
+   |---|---|
+   | `ASC_KEY_ID` | the API key's Key ID |
+   | `ASC_ISSUER_ID` | the Issuer ID |
+   | `ASC_KEY_P8_BASE64` | `base64 -i AuthKey_<KEYID>.p8` |
+   | `IOS_DEV_CERT_P12_BASE64` | `base64 -i ci-development.p12` |
+   | `IOS_DEV_CERT_PASSWORD` | the `.p12` password |
+   | `APP_ENV_PROD_JSON` | `app/env/prod.json`; shared with `release.yml` |
+
+   With any of them empty except the password, the workflow builds unsigned, prints a notice and finishes green.
+
+## What a tag or a dispatch does
+
+`git tag v1.2.3 && git push origin v1.2.3`, or *Actions* → *ios release* →
+*Run workflow* on a tag (`gh workflow run ios-release.yml --ref v1.2.3`). The
+`release` environment admits only `v*` tags, so a dispatch on a branch gets no
+secrets and builds unsigned; a trial run uses a tag such as `v1.0.1-rc1`.
+
+1. The job waits for approval in the `release` environment.
+2. It writes `env/prod.json`, decodes the key into the runner's temp directory
+   and imports the development identity into a throwaway keychain.
+3. `flutter build ios --config-only` writes the Flutter configuration with
+   build number `run_number + 1` (`BUILD_NUMBER_OFFSET`; 1.0 (1) was uploaded
+   by hand). The version is the pubspec's.
+4. `xcodebuild archive` signs for development, fetching the profiles with the
+   API key; the export re-signs for the App Store and uploads to App Store
+   Connect. Nothing is submitted for review.
+5. On a tag, the same archive is also exported as an `.ipa` and attached to
+   the tag's GitHub Release.
+6. The key, the keychain and `env/prod.json` are deleted, also on failure.
+
+App Store Connect refuses a version whose train is closed: after 1.0.0 is
+released, bump `version:` in `app/pubspec.yaml` before the next upload.
+
+## What stays manual
+
+- Check the build in TestFlight once processing is done (a few minutes).
+- Pick the build on the App Store version page, fill in the release notes.
+- New subscriptions or in-app purchases: create them in App Store Connect and
+  add them to the same submission as the app version the first time.
+- **Submit for Review**, and the release itself. The App Privacy answers, the
+  age rating and the metadata are listed in
+  [`STORE_CHECKLIST.md`](STORE_CHECKLIST.md).
+
+## Building and uploading by hand
+
+On a Mac whose Xcode is signed into the team (*Settings* → *Accounts*), from a
+clean checkout of the release commit, with `app/env/prod.json` written from
+the password manager (`app/env/example.json` shows the shape):
 
 ```sh
 cd app
-export MATCH_GIT_URL=… MATCH_PASSWORD=… ASC_KEY_ID=… ASC_ISSUER_ID=… ASC_KEY_P8_BASE64=…
-bundle exec fastlane ios beta          # build + TestFlight
-bundle exec fastlane ios release       # build + App Store Connect, no submission
+flutter build ipa --release --dart-define-from-file=env/prod.json --build-number=<N>
+plutil -replace destination -string upload -o /tmp/ExportUpload.plist ios/ExportOptions.plist
+xcodebuild -exportArchive -archivePath build/ios/archive/Runner.xcarchive \
+  -exportOptionsPlist /tmp/ExportUpload.plist -exportPath /tmp/velorki-upload \
+  -allowProvisioningUpdates
 ```
 
-Both lanes flip the three targets to manual signing, which rewrites
-`app/ios/Runner.xcodeproj/project.pbxproj`. Undo it afterwards so Xcode keeps
-signing development builds automatically:
-
-```sh
-git checkout app/ios/Runner.xcodeproj
-```
-
-## What a tag does
-
-1. `git tag v1.2.3 && git push origin v1.2.3`.
-2. `release.yml` builds the Android AAB and APK and creates the GitHub Release;
-   `ios-release.yml` starts in parallel and **waits for approval** — the
-   `release` environment has a required reviewer.
-3. Approve it under *Actions* → the run → *Review deployments* → **Approve and
-   deploy**. Without approval nothing is signed and nothing is uploaded.
-4. The job signs, uploads the build to TestFlight and attaches
-   `Velorki.ipa` to the tag's GitHub Release. Processing in App Store Connect
-   takes a few more minutes before the build appears to testers.
-5. Promoting a TestFlight build to the App Store is not automated: run
-   `bundle exec fastlane ios release` from the Mac and submit for review in App
-   Store Connect. The App Privacy answers, the age rating and the metadata are
-   listed in [`STORE_CHECKLIST.md`](STORE_CHECKLIST.md).
-
-Without the secrets — a fork, or before step 5 above — the workflow builds an
-unsigned archive, prints a notice and finishes green.
+`<N>` must be higher than every build uploaded before, CI's included. Without
+an Xcode account, add `-authenticationKeyPath AuthKey_<KEYID>.p8
+-authenticationKeyID <KEYID> -authenticationKeyIssuerID <ISSUER>` to the
+export; `flutter build ipa` still needs a development identity in the login
+keychain. `ios/ExportOptions.plist` unchanged exports an `.ipa` instead of
+uploading it.

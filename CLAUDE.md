@@ -138,7 +138,7 @@ changing structure.
   the run ends in `startup_failure` with no log. (GitHub's "require SHA
   pinning" setting stays off: it also rejects the unpinned actions that
   composite actions such as flutter-action call internally); a `v*` tag push runs `release.yml` (Android)
-  and `ios-release.yml` (fastlane, TestFlight; one-time setup in
+  and `ios-release.yml` (xcodebuild with cloud signing, TestFlight; one-time setup in
   `docs/RELEASE_IOS.md`) in the `release` environment, so both wait for the
   maintainer's approval in the Actions UI before anything is signed or
   published. A push to the `production`
