@@ -14,8 +14,13 @@
   * No tracking, no advertising identifier, no third-party SDK that tracks, so
     NSPrivacyTrackingDomains is empty and Info.plist has no
     NSUserTrackingUsageDescription.
-  * Contacts, health, photos and the like are never touched.
-  * System boot time is not read anywhere in the app or its packages.
+  * Contacts, photos and the like are never touched. Heart rate read from
+    Apple Health and the workouts written there stay on the phone; they are
+    declared below only because a ride's share link can carry them.
+  * Strava and RideWithGPS uploads pass through the relay in real time and
+    are not kept, so they are not "collected" either.
+  * System boot time and disk space are not read anywhere in the app or its
+    packages.
 
   Plugins ship their own manifests inside their pods; this file covers the
   app's own code and the pure-Dart packages in app/packages/.
@@ -28,8 +33,9 @@
 	<array/>
 	<key>NSPrivacyCollectedDataTypes</key>
 	<array>
-		<!-- Waypoints for routing, and the starting point sent with an AI
-		     prompt (rounded to about a kilometre, only with consent). -->
+		<!-- Waypoints for routing, the starting point sent with an AI prompt
+		     (rounded to about a kilometre, only with consent), and the track of
+		     a shared route or ride. -->
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>
 			<string>NSPrivacyCollectedDataTypePreciseLocation</string>
@@ -69,7 +75,35 @@
 				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
 			</array>
 		</dict>
-		<!-- The text typed into the AI assistant, relayed to the model. -->
+		<!-- A ride shared as a link (Velorki Plus) is kept on our server for a
+		     year: its track with timestamps, distance, ascent and time, and the
+		     heart rate, cadence and power recorded with it. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeFitness</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeHealth</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<!-- The text typed into the AI assistant, relayed to the model, and the
+		     name of a shared route or ride. -->
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>
 			<string>NSPrivacyCollectedDataTypeOtherUserContent</string>
@@ -86,13 +120,16 @@
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>
 		<!-- shared_preferences: settings, the AI consent choice, the server
-		     URL overrides. CA92.1 = the app's own container only. -->
+		     URL overrides. CA92.1 = the app's own container only. The App
+		     Group's defaults carry shared files in from the share extension
+		     and the ride's figures out to the Live Activity: 1C8F.1. -->
 		<dict>
 			<key>NSPrivacyAccessedAPIType</key>
 			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
 			<key>NSPrivacyAccessedAPITypeReasons</key>
 			<array>
 				<string>CA92.1</string>
+				<string>1C8F.1</string>
 			</array>
 		</dict>
 		<!-- brouter_dart reads the modification time of the routing profile
