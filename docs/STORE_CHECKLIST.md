@@ -43,8 +43,9 @@ background-location app.
 - [x] **(iOS)** `NSBluetoothAlwaysUsageDescription` says the app connects to
       heart-rate straps, speed, cadence and power sensors; the prompt comes on
       the first scan from the Bluetooth sensors screen. — `ios/Runner/Info.plist`.
-- [ ] **(iOS)** App Store privacy label: "Health & Fitness" (heart rate) as
-      data collected for app functionality, not linked, not for tracking.
+- [x] **(iOS)** Health data is not collected: heart rate from Apple Health
+      and the workouts written there stay on the phone, and a ride's share
+      link carries no heart rate, cadence or power. — `ShareService`.
 - [ ] **(Play)** Health Connect: the permissions declaration form in the Play
       Console (**Policy → App content → Health apps**) with the privacy policy
       link, and `READ_HEART_RATE`, `WRITE_EXERCISE`, `WRITE_DISTANCE` explained
@@ -53,10 +54,11 @@ background-location app.
 - [x] **(Play)** `BLUETOOTH_SCAN` carries `neverForLocation`, so the scan does
       not count as a location permission. — `AndroidManifest.xml`.
 - [x] **(iOS)** `PrivacyInfo.xcprivacy` is present and lists the required-reason
-      APIs actually used. — `ios/Runner/PrivacyInfo.xcprivacy`: UserDefaults
-      `CA92.1` and file timestamp `C617.1`. **It still has to be added to the
-      Runner target in Xcode**, see the Mac list at the end; a file that is not
-      in Copy Bundle Resources is not in the app.
+      APIs actually used, in every bundle. — `ios/Runner/PrivacyInfo.xcprivacy`:
+      UserDefaults `CA92.1` and `1C8F.1` (the App Group), file timestamp
+      `C617.1`; `ios/VelorkiShare/` and `ios/VelorkiLiveActivity/` each carry
+      their own with UserDefaults `1C8F.1`. All three are in Copy Bundle
+      Resources.
 - [x] **(Play)** `android:foregroundServiceType="location"` is declared on the
       recording service and the `FOREGROUND_SERVICE_LOCATION` permission is in
       the manifest. — `android/app/src/main/AndroidManifest.xml`.
@@ -94,10 +96,11 @@ only on user action — rides and routes to Strava or RideWithGPS, and shared
 routes to our share store.
 
 - [x] **(iOS)** The privacy manifest in the bundle declares precise location,
-      purchase history, the RevenueCat user id and other user content, all
+      purchase history, the RevenueCat user id, other user content and
+      fitness (a shared ride's track with its times), all
       "app functionality", none linked to identity, none used for tracking. —
       `ios/Runner/PrivacyInfo.xcprivacy`. The App Privacy **answers in App
-      Store Connect must say the same**; the four boxes below are those
+      Store Connect must say the same**; the five boxes below are those
       answers.
 - [ ] **(iOS)** App Privacy answers declare **precise location** (app
       functionality; not linked to identity; not used for tracking).
@@ -106,6 +109,8 @@ routes to our share store.
       as an identifier.
 - [ ] **(iOS)** App Privacy answers cover the **AI prompt text** (user content)
       and the coarse start position sent with it.
+- [ ] **(iOS)** App Privacy answers declare **fitness** (a ride shared as a
+      link: its track, times, distance and ascent; no sensor values).
 - [ ] **(Play)** The Data safety form mirrors all of the above, including who
       the data is shared with: the routing server, Photon, OpenFreeMap/CyclOSM,
       the AI provider, RevenueCat, and Strava/RideWithGPS on user action.
@@ -356,20 +361,17 @@ Everything above that is still open, grouped by where the work happens.
 
 ### In Xcode, on the Mac
 
-Add `ios/Runner/PrivacyInfo.xcprivacy` to the **Runner** target: select the file
-in the navigator, File inspector → Target Membership → Runner, and check it
-appears under Runner → Build Phases → Copy Bundle Resources. Until then the
-manifest is in the repository but not in the app. The Share Extension target
+The Share Extension target
 exists and only needs one signed build to register its app group — the
 `fastlane ios certs` run in [RELEASE_IOS.md](RELEASE_IOS.md) registers the App
-Group along with the three profiles. The rest of the Mac work is in
+Group along with the four profiles. The rest of the Mac work is in
 [OPEN_ITEMS.md](OPEN_ITEMS.md).
 
 ### In App Store Connect
 
 | What | Where |
 |---|---|
-| App Privacy answers (precise location, purchases, user id, user content) | App → App Privacy → **Get Started / Edit**, one card per data type; they must match `ios/Runner/PrivacyInfo.xcprivacy` |
+| App Privacy answers (precise location, purchases, user id, user content, fitness) | App → App Privacy → **Get Started / Edit**, one card per data type; they must match `ios/Runner/PrivacyInfo.xcprivacy` |
 | Age rating | App → **App Information** → Age Rating → Edit; answer the AI and user-generated-content questions for a constrained planner |
 | Privacy policy URL | App → **App Information** → Privacy Policy URL, and App Privacy → Privacy Policy |
 | Terms of use (EULA) | App → **App Information** → License Agreement, or the standard EULA plus the paywall link |

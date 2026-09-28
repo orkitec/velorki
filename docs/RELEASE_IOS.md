@@ -58,17 +58,19 @@ create or revoke a certificate.
    ```
 
    It creates one distribution certificate and an App Store profile for each of
-   the three bundle ids:
+   the four bundle ids:
 
    | Bundle id | Xcode target |
    |---|---|
    | `com.orkitec.velorki` | `Runner` |
    | `com.orkitec.velorki.VelorkiLiveActivity` | `VelorkiLiveActivity` |
    | `com.orkitec.velorki.share` | `VelorkiShare` |
+   | `com.orkitec.velorki.watchkitapp` | `VelorkiWatch` |
 
    If match asks to register an identifier or a capability, say yes — the App
    Group `group.com.orkitec.velorki` that the share extension writes through
-   has to exist on all three. Check afterwards in the Developer Portal that the
+   has to exist on the app and the two extensions, and the watch app carries
+   HealthKit. Check afterwards in the Developer Portal that the
    app id and the share extension id both carry App Groups, and that
    `VelorkiLiveActivity` carries Push Notifications (Live Activities).
 

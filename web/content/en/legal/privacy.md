@@ -141,7 +141,9 @@ Data from Strava is never sent to the AI provider.
 
 If you create a share link for a route or a ride, that route or ride, with its
 track, its name and its statistics, is uploaded to our server and stored there
-so that anyone with the link can open it. The link is public: anyone who has it
+so that anyone with the link can open it. Heart rate, cadence and power are
+left out: a shared ride carries its track and times, not what a sensor
+measured. The link is public: anyone who has it
 can see the content, including the start and end points of the track. Consider
 that before sharing a ride that starts at your home.
 

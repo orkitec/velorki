@@ -7,10 +7,10 @@ name: ios release
 # The flow, in one pass on a macOS runner:
 #
 #   1. Flutter compiles the Dart and assembles Runner.app with --no-codesign.
-#   2. `fastlane ios beta` fetches the distribution certificate and the three
+#   2. `fastlane ios beta` fetches the distribution certificate and the four
 #      App Store profiles from the private match repository (read-only),
-#      switches Runner, VelorkiLiveActivity and VelorkiShare to manual signing,
-#      archives, exports and uploads to TestFlight.
+#      switches Runner, VelorkiLiveActivity, VelorkiShare and VelorkiWatch to
+#      manual signing, archives, exports and uploads to TestFlight.
 #   3. The .ipa is attached to the tag's GitHub Release.
 #
 # The approval gate is the `release` environment: it has a required reviewer, so
