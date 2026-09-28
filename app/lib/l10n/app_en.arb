@@ -2076,27 +2076,41 @@
   "@plusPeriodLifetime": {
     "description": "Billing period of a one-off purchase"
   },
-  "plusTrialNote": "Starts with a {days}-day free trial.",
+  "plusTrialNote": "Free for {days} days, then {price}. Cancel at least 24 hours before the trial ends and nothing is charged.",
   "@plusTrialNote": {
-    "description": "Trial note under a package that has a free introductory phase",
+    "description": "Trial note under a package that has a free introductory phase; price is the package's price and period, e.g. '€4.99 per month'",
     "placeholders": {
       "days": {
         "type": "int",
         "example": "7"
+      },
+      "price": {
+        "type": "String",
+        "example": "€4.99 per month"
       }
     }
   },
-  "plusTrialNoteGeneric": "Starts with a free trial.",
+  "plusTrialNoteGeneric": "Free trial first, then {price}. Cancel at least 24 hours before the trial ends and nothing is charged.",
   "@plusTrialNoteGeneric": {
-    "description": "Trial note when the trial length is unknown"
-  },
-  "plusIntroNote": "Starts at {price}.",
-  "@plusIntroNote": {
-    "description": "Note under a package whose introductory phase is discounted rather than free",
+    "description": "Trial note when the trial length is unknown; price is the package's price and period",
     "placeholders": {
       "price": {
         "type": "String",
+        "example": "€4.99 per month"
+      }
+    }
+  },
+  "plusIntroNote": "{intro} at first, then {price}.",
+  "@plusIntroNote": {
+    "description": "Note under a package whose introductory phase is discounted rather than free; intro is the introductory price, price the regular price and period",
+    "placeholders": {
+      "intro": {
+        "type": "String",
         "example": "€0.99"
+      },
+      "price": {
+        "type": "String",
+        "example": "€4.99 per month"
       }
     }
   },
@@ -2152,9 +2166,13 @@
   "@plusPrivacy": {
     "description": "Link to the privacy policy on the paywall"
   },
-  "plusLegal": "The subscription renews automatically at the end of each period unless it is cancelled at least 24 hours before. Payment is taken by the App Store or Google Play, where the subscription can be managed or cancelled at any time. A free trial that is not cancelled becomes a paid subscription.",
-  "@plusLegal": {
-    "description": "Auto-renewal legal copy required by the stores"
+  "plusLegalAppStore": "Payment is charged to your Apple Account when you confirm the purchase. The subscription renews automatically at the price shown unless it is cancelled at least 24 hours before the end of the current period; the renewal is charged within the 24 hours before. Manage or cancel it at any time in your Apple Account settings. A free trial that is not cancelled becomes a paid subscription, and any unused part of it ends when you subscribe.",
+  "@plusLegalAppStore": {
+    "description": "Auto-renewal legal copy on the paywall on an iPhone, required by the App Store"
+  },
+  "plusLegalPlay": "Payment is charged to your Google Play account when you confirm the purchase. The subscription renews automatically at the price shown unless it is cancelled before the end of the current period. Manage or cancel it at any time in Google Play under Subscriptions. A free trial that is not cancelled becomes a paid subscription.",
+  "@plusLegalPlay": {
+    "description": "Auto-renewal legal copy on the paywall on Android, required by Google Play"
   },
   "plusActive": "Active",
   "@plusActive": {

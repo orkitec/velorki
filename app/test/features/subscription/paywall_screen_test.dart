@@ -74,7 +74,9 @@ void main() {
       expect(find.text(l10n.plusFeatureStrava), findsOneWidget);
       expect(find.text(l10n.plusFeatureRwgps), findsOneWidget);
       expect(find.text(l10n.plusFeatureLinkSharing), findsOneWidget);
-      expect(find.textContaining(l10n.plusLegal), findsOneWidget);
+      // The test platform is Android: Google Play's terms.
+      expect(find.text(l10n.plusLegalPlay), findsOneWidget);
+      expect(find.text(l10n.plusLegalAppStore), findsNothing);
       expect(find.text(l10n.settingsTerms), findsOneWidget);
       expect(find.text(l10n.settingsPrivacyPolicy), findsOneWidget);
     });
@@ -118,8 +120,31 @@ void main() {
         find.text(l10n.plusPricePeriod('€24.99', l10n.plusPeriodYear)),
         findsOneWidget,
       );
-      expect(find.text(l10n.plusTrialNote(7)), findsOneWidget);
+      // The trial says what is charged after it.
+      expect(
+        find.text(
+          l10n.plusTrialNote(
+            7,
+            l10n.plusPricePeriod('€2.99', l10n.plusPeriodMonth),
+          ),
+        ),
+        findsOneWidget,
+      );
     });
+
+    testWidgets('on an iPhone: the App Store terms, no other store named, '
+        'and a Restore button in view', (tester) async {
+      await _pump(
+        tester,
+        const PaywallScreen(),
+        service: FakeSubscriptionService(offering: defaultOffering),
+      );
+
+      expect(find.text(l10n.plusLegalAppStore), findsOneWidget);
+      expect(find.textContaining('Google'), findsNothing);
+      expect(find.textContaining('Android'), findsNothing);
+      expect(find.text(l10n.plusRestore).hitTestable(), findsOneWidget);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
 
     testWidgets('Subscribe buys the selected package', (tester) async {
       final service = FakeSubscriptionService(offering: defaultOffering);
