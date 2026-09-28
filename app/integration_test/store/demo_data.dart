@@ -29,11 +29,23 @@ class DemoRoute {
 const LatLng funchal = LatLng(32.6472, -16.9080);
 
 /// The plan the first two shots show, and the newest route in the library.
+///
+/// It starts at the Lazareto in the east of Funchal rather than at
+/// [funchal]: the map draws the town's name on the centre, where a start
+/// marker, or the line along the seafront, would cover it.
 const DemoRoute featuredRoute = DemoRoute('Funchal – Camacha – Santa Cruz', [
-  funchal,
+  LatLng(32.6448, -16.8878),
   LatLng(32.6789, -16.8448),
   LatLng(32.6880, -16.7935),
 ]);
+
+/// The ride under way on the live, navigation, Lock Screen and watch shots:
+/// Funchal to Santa Cruz by Camacha, from the rider's position.
+const List<LatLng> liveRideWaypoints = [
+  funchal,
+  LatLng(32.6789, -16.8448),
+  LatLng(32.6880, -16.7935),
+];
 
 /// The rest of the library, oldest first; [featuredRoute] is saved last so it
 /// heads the list.

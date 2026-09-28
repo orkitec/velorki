@@ -15,7 +15,8 @@ holds every file to its store's length limit. See [LOCALISATION.md](LOCALISATION
 ## Screenshots
 
 ```
-app/tool/store_screenshots.sh [--locales en,de] [--themes light,dark] [--shots same|light|dark] [--skip-capture]
+app/tool/store_screenshots.sh [--locales en,de] [--themes light,dark] [--shots same|light|dark]
+                              [--until <screen>] [--skip-capture]
 ```
 
 1. **Capture.** On the iOS simulator "Velorki Shots 6.9" (an iPhone 17 Pro
@@ -65,6 +66,10 @@ Copy and order live in `app/store/`:
 - `slide_set.json`: the set that is uploaded, in order, and per slide its
   layout, the screen it shows and its style. Changing the mix is an edit
   there and `--skip-capture`.
+
+`--until plan` or `--until variants` captures only the screens up to that
+one (the test takes them in the order plan, variants, loop, import, ride,
+library, offline, live) and keeps the rest of the last capture.
 
 Output, git-ignored, under `app/build/store_screenshots/`:
 

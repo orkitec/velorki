@@ -6,6 +6,7 @@
 #   tool/store_screenshots.sh --locales de --themes dark
 #   tool/store_screenshots.sh --skip-capture           # slides from the last capture
 #   tool/store_screenshots.sh --shots dark             # both slide styles show the dark app
+#   tool/store_screenshots.sh --until variants         # capture only up to that screen
 #
 # Output, under app/build/store_screenshots/ (git-ignored):
 #   raw/<theme>/<locale>/<screen>.png          the simulator's screen, 1320x2868
@@ -48,12 +49,14 @@ LOCALES=en,de
 THEMES=light,dark
 SHOTS=same
 CAPTURE=1
+UNTIL=
 while [ $# -gt 0 ]; do
   case "$1" in
     --locales) LOCALES="$2"; shift ;;
     --themes) THEMES="$2"; shift ;;
     --shots) SHOTS="$2"; shift ;;
     --skip-capture) CAPTURE=0 ;;
+    --until) UNTIL="$2"; shift ;;
     -h | --help) sed -n '2,/^set -euo/p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//;$d'; exit 0 ;;
     *) printf 'unknown argument %q\n' "$1" >&2; exit 2 ;;
   esac
@@ -133,7 +136,8 @@ capture() {
     flutter test integration_test/store/store_screenshots_test.dart -d "$UDID" \
       --dart-define-from-file="$DEFINES" \
       --dart-define=VELORKI_STORE_LOCALE="$locale" \
-      --dart-define=VELORKI_STORE_THEMES="$THEMES" > "$log" 2>&1 &
+      --dart-define=VELORKI_STORE_THEMES="$THEMES" \
+      --dart-define=VELORKI_STORE_UNTIL="$UNTIL" > "$log" 2>&1 &
     pid=$!
     started=0
     for _ in $(seq 1 600); do
@@ -218,8 +222,11 @@ PY
     SHUTTER_PID=""
   done
 
-  say "the watch, with the phone's figures"
-  bash "$APP/tool/store_watch.sh" "$OUT/raw" "$OUT/watch" "$LOCALES" "$THEMES"
+  # The watch takes the figures of the ride, which comes last.
+  if [ -z "$UNTIL" ]; then
+    say "the watch, with the phone's figures"
+    bash "$APP/tool/store_watch.sh" "$OUT/raw" "$OUT/watch" "$LOCALES" "$THEMES"
+  fi
 fi
 
 say "making the slides"

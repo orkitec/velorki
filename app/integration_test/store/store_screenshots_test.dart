@@ -83,6 +83,10 @@ const String _themes = String.fromEnvironment(
   defaultValue: 'light,dark',
 );
 
+/// The last screen to take, for a run that only needs the first few; the
+/// screens come in the order of the sections below. Empty takes them all.
+const String _until = String.fromEnvironment('VELORKI_STORE_UNTIL');
+
 /// How long the loop on the loop shot is: a morning's ride from Funchal.
 const double _loopKm = 25;
 
@@ -108,7 +112,10 @@ void main() {
       );
       addTearDown(RecordingRecovery.reset);
 
-      final positions = ScriptedPositionSource(funchal);
+      // The rider stands at the plan's start for the first shots, under its
+      // marker, and moves to [funchal] before the loop; a position dot of
+      // its own would sit on the town's name.
+      final positions = ScriptedPositionSource(featuredRoute.waypoints.first);
       addTearDown(positions.close);
       // The recorder's clock and the heart rate follow the scripted ride, so
       // an hour of riding fits in a minute of test and every figure on the
@@ -173,6 +180,12 @@ void main() {
       final featured = await _seedLibrary(tester, container);
       await _seedOfflineMap(tester, container);
       final planner = container.read(plannerControllerProvider.notifier);
+      Future<bool> stopAfter(String screen) async {
+        if (_until != screen) return false;
+        planner.clear();
+        await unmountApp(tester);
+        return true;
+      }
 
       // ------------------------------------------------------------ plan
       planner
@@ -193,6 +206,8 @@ void main() {
         await appearance.setAccent(AccentPreset.volt);
         await pumpFor(tester, const Duration(seconds: 2));
       }
+
+      if (await stopAfter('plan')) return;
 
       // -------------------------------------------------------- variants
       await tapAndPump(tester, _action(l10n.plannerVariants));
@@ -215,8 +230,11 @@ void main() {
       _scrollSheetToTop(tester);
       await takeStoreShot(tester, '$shot/variants');
 
+      if (await stopAfter('variants')) return;
+
       // ------------------------------------------------------------ loop
       // From the rider's position, at the distance seeded before the start.
+      positions.emit(fix(funchal, seconds: 0, speed: 0));
       planner.clear();
       await pumpFor(tester, const Duration(milliseconds: 500));
       await tapAndPump(tester, _action(l10n.loopAction));
@@ -250,6 +268,8 @@ void main() {
       );
       planner.clear();
 
+      if (await stopAfter('loop')) return;
+
       // ---------------------------------------------------------- import
       final rideRoute = await _plan(tester, container, rideWaypoints);
       planner.clear();
@@ -270,6 +290,8 @@ void main() {
       await tapAndPump(tester, find.text(l10n.importKindRide));
       await takeStoreShot(tester, '$shot/import');
 
+      if (await stopAfter('import')) return;
+
       // ------------------------------------------------------------ ride
       await tapAndPump(tester, find.text(l10n.commonSave).last);
       await waitForWidget(
@@ -284,6 +306,8 @@ void main() {
       );
       await takeStoreShot(tester, '$shot/ride');
 
+      if (await stopAfter('ride')) return;
+
       // --------------------------------------------------------- library
       await tapAndPump(tester, find.text(l10n.tabLibrary));
       await tapAndPump(tester, find.text(l10n.tabLibrary));
@@ -291,6 +315,8 @@ void main() {
       await waitForWidget(tester, find.text(featuredRoute.name));
       _clearSnackBars(tester);
       await takeStoreShot(tester, '$shot/library');
+
+      if (await stopAfter('library')) return;
 
       // --------------------------------------------------------- offline
       // The planner with a route on the map downloaded for offline use, and
@@ -308,10 +334,12 @@ void main() {
       await takeStoreShot(tester, '$shot/offline', offline: true);
       planner.clear();
 
+      if (await stopAfter('offline')) return;
+
       // ------------------------------------------------ live and navigation
-      // The featured route, ridden the way the demo ride is: most of it fast
+      // Funchal to Santa Cruz by Camacha, ridden the way the demo ride is: most of it fast
       // forward, then a fix a second until a turn comes up about 20 km in.
-      final route = await _plan(tester, container, featuredRoute.waypoints);
+      final route = await _plan(tester, container, liveRideWaypoints);
       await container
           .read(followModeProvider.notifier)
           .select(FollowMode.headingUp);
