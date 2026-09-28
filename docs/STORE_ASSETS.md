@@ -22,16 +22,23 @@ app/tool/store_screenshots.sh [--locales en,de] [--themes light,dark] [--shots s
    Max, created on the first run), once per language: the simulator's
    language and region are set, the status bar reads 9:41, and
    `app/integration_test/store/store_screenshots_test.dart` takes every screen
-   the slides use, in each theme: the plan, its variants, a loop, a GPX import,
-   a ride's charts, the library, the offline screen (with the status bar
-   showing no signal), and a ride under way, once with the live card and once
-   navigating with the figures bar. It also saves the figures the Live
-   Activity shows at that moment. Everything is on Madeira and computed on the
-   device from the tile `app/tool/itest_mirror.sh` serves; the demo ride is
-   laid along a route the device plans, with a speed from the gradient and a
-   heart rate from the effort. The test clears that simulator's library first.
-   It is not part of the integration suite.
-2. **Slides.** `app/tool/store_slides.py` builds each slide with headless
+   the slides use, in each theme: the plan (in the dark theme also in another
+   accent), its variants, a loop, a GPX import, a ride's charts, the library, a
+   route under a status bar with no signal, and a ride under way, once with
+   the live card and once navigating with the figures bar. Everything is on
+   Madeira and computed on the device from the tile `app/tool/itest_mirror.sh`
+   serves. The demo ride is laid along a route the device plans, with a speed
+   from the gradient and a heart rate from the effort; the ride under way is
+   the same model, fed to the real recorder with its clock and a heart-rate
+   sensor following the fixes, so about 20 km and an hour in take a minute.
+   The test also saves the figures the Live Activity shows at the moment of
+   the live card. It clears that simulator's library first and is not part of
+   the integration suite.
+2. **Watch.** `app/tool/store_watch.sh` compiles the watch app's real
+   `RideView` against `app/tool/store_watch/Stub.swift`, which takes its
+   figures from the environment, and shoots it on an Apple Watch Ultra 3
+   simulator with the figures the phone showed, so the two agree.
+3. **Slides.** `app/tool/store_slides.py` builds each slide with headless
    Chrome in the website's hero style: an eyebrow chip, a sentence-case
    headline with the accent phrase, a subline, accent glows over contour
    lines, and the screenshot in a phone frame. Every slide is made in both
@@ -43,12 +50,11 @@ to show all of the screen; `watch`, the phone beside the Apple Watch app's
 riding screen; `lock`, the Lock Screen with the ride's Live Activity and the
 expanded Dynamic Island, drawn after `app/ios/VelorkiLiveActivity/` with the
 figures the test saved (the simulator cannot show a Live Activity on its Lock
-Screen); `split`, the same screen light and dark, cut diagonally.
+Screen); `split`, the same screen light and dark, cut diagonally below the copy, the
+dark half in another accent.
 
-The watch screenshot is not taken here: the driver reads
-`$VELORKI_STORE_WATCH/<locale>/2-riding.png` (default
-`app/build/store_screenshots/watch`), and the slide shows a placeholder
-without it.
+watchOS keeps its own clock whatever the simulator's status bar is told, so
+the watch slide paints 9:41 over it, as the phone shows.
 
 Copy and order live in `app/store/`:
 
@@ -63,6 +69,7 @@ Copy and order live in `app/store/`:
 Output, git-ignored, under `app/build/store_screenshots/`:
 
 - `raw/<theme>/<locale>/<screen>.png`, 1320 × 2868
+- `watch/<theme>/<locale>/riding.png`, 422 × 514
 - `slides/<style>/<size>/<locale>/<slide>.png`, every slide in both styles
 - `slides/set/<size>/<locale>/NN-<slide>.png`, the set to upload
 - `slides/set/contact-<locale>.png`, the set side by side
@@ -72,8 +79,7 @@ Output, git-ignored, under `app/build/store_screenshots/`:
 1. The app strings, the store texts and `slides_<lang>.json` arrive through
    Crowdin.
 2. If the store's region for the language is not in `region_of` in
-   `store_screenshots.sh`, add it; the watch screenshot for it goes into the
-   watch folder.
+   `store_screenshots.sh`, and to `store_watch.sh`, add it.
 3. `app/tool/store_screenshots.sh --locales <lang>`.
 
 ## Uploading

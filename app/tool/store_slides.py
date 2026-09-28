@@ -30,7 +30,7 @@ set can be re-mixed without a new capture. The set is then assembled from
 them, with a contact sheet per locale.
 
 Input:  build/store_screenshots/raw/<theme>/<locale>/<screen>.png (and
-        activity.json), the watch screenshots in --watch/<locale>/2-riding.png
+        activity.json), the watch screenshots in --watch/<theme>/<locale>/riding.png
 Output: build/store_screenshots/slides/<style>/<size>/<locale>/<slide>.png
         build/store_screenshots/slides/set/<size>/<locale>/NN-<slide>.png
         build/store_screenshots/slides/set/contact-<locale>.png
@@ -107,14 +107,18 @@ p.sub { font-size: 4.7vw; line-height: 1.3; margin: 3.8vw 0 0; font-weight: 700;
   background: #000; }
 .screen > img { display: block; width: 100%; }
 .watch-slide .phone { left: 41%; width: 70vw; }
-.watch { position: absolute; right: 4vw; top: 46vw; width: 40vw; padding: 1.9vw; border-radius: 11.5vw;
+.watch { position: absolute; right: 4vw; top: 18vw; width: 40vw; padding: 1.9vw; border-radius: 11.5vw;
   background: linear-gradient(160deg, #3a4048, #14171a 45%, #23282f);
   box-shadow: 0 0 0 0.25vw rgb(255 255 255 / 0.12), 0 5vw 10vw -3vw rgb(0 0 0 / 0.6),
     0 0 12vw -4vw var(--glow); }
 .watch::after { content: ''; position: absolute; top: 28%; right: -0.9vw; width: 1.2vw; height: 7vw;
   border-radius: 999px; background: linear-gradient(90deg, #3a4048, #8b929b); }
 .watch .face { overflow: hidden; border-radius: 9.6vw; background: #000; aspect-ratio: 422 / 514; }
+.watch .face { position: relative; container-type: inline-size; }
 .watch .face img { display: block; width: 100%; }
+.watch .clock { position: absolute; top: 9cqw; right: 7cqw; width: 30cqw; height: 9cqw; background: #000;
+  color: #fff; text-align: right; font: 600 7.2cqw/9cqw -apple-system, 'SF Pro Text', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums; }
 .missing { display: flex; height: 100%; align-items: center; justify-content: center; padding: 4vw;
   text-align: center; color: #aab2bc; font-size: 3vw;
   background: repeating-linear-gradient(135deg, rgb(255 255 255 / 0.05) 0 2vw, transparent 2vw 4vw), #0e1115; }
@@ -186,6 +190,12 @@ document.fonts.ready.then(() => {
   for (const p of document.querySelectorAll('p.sub')) fit(p, 2, W * 0.036);
   // A `whole` phone is sized to end just above the bottom edge, for a
   // screen whose bottom matters as much as its top.
+  const dark = document.querySelector('.split-dark');
+  if (dark) {
+    const y = document.querySelector('.phone').getBoundingClientRect().top - W * 0.02;
+    dark.style.clipPath = `polygon(100% ${y}px, 100% 100%, 0 100%)`;
+    document.getElementById('seam').setAttribute('y1', y);
+  }
   for (const phone of document.querySelectorAll('.phone.whole')) {
     const room = H - phone.getBoundingClientRect().top - W * 0.05;
     for (let i = 0; i < 2; i++) {
@@ -322,18 +332,21 @@ def slide_html(layout: str, style: str, text: dict, raw: str, screen: str, theme
     needs = []
     if layout == "split":
         light = os.path.join(raw, "light", locale, f"{screen}.png")
-        dark = os.path.join(raw, "dark", locale, f"{screen}.png")
+        # The dark half in another accent, when the capture has one, so the
+        # choice of accent shows as well as the theme.
+        dark = os.path.join(raw, "dark", locale, f"{screen}-accent.png")
+        if not os.path.isfile(dark):
+            dark = os.path.join(raw, "dark", locale, f"{screen}.png")
         needs = [light, dark]
-        # The seam runs from (x0, 0) to (x1, h) across the whole slide; the
-        # dark layer is everything right of it, the phone's screen included,
-        # so the copy and the app switch theme along one line.
-        x0, x1 = 0.66, 0.34
-        clip = f"clip-path: polygon({x0 * 100}% 0, 100% 0, 100% 100%, {x1 * 100}% 100%)"
+        # The seam runs from the right edge where the phone starts down to
+        # the bottom left corner: the copy stays whole on the light side, and
+        # the phone and the ground under it switch theme along one line. The
+        # script below puts it there once the copy has its final height.
         body = (layer("light", text, f'<div class="phone"><div class="screen">{image_or_missing(light)}</div></div>')
                 + layer("dark", text, f'<div class="phone"><div class="screen">{image_or_missing(dark)}</div></div>',
-                        clip=clip)
-                + f'<svg class="seam" viewBox="0 0 {w} {h}"><line x1="{x0 * w}" y1="0" x2="{x1 * w}" y2="{h}" '
-                  f'stroke="#c8f542" stroke-opacity="0.9" stroke-width="{w * 0.0035}"/></svg>')
+                        "split-dark")
+                + f'<svg class="seam" viewBox="0 0 {w} {h}"><line id="seam" x1="{w}" y1="0" x2="0" y2="{h}" '
+                  f'stroke="#ffffff" stroke-opacity="0.85" stroke-width="{w * 0.003}"/></svg>')
         return page(w, h, body), needs
     if layout == "lock":
         data = os.path.join(raw, theme, locale, f"{screen}.json")
@@ -353,8 +366,11 @@ def slide_html(layout: str, style: str, text: dict, raw: str, screen: str, theme
     whole = " whole" if layout == "whole" else ""
     phone = f'<div class="phone{whole}"><div class="screen">{image_or_missing(shot)}</div></div>'
     if layout == "watch":
-        face = os.path.join(watch, locale, "2-riding.png")
-        stage = phone + f'<div class="watch"><div class="face">{image_or_missing(face)}</div></div>'
+        face = os.path.join(watch, theme, locale, "riding.png")
+        # watchOS keeps its own clock whatever the status bar is told, so
+        # the watch shows the phone's 9:41 the way the phone does.
+        clock = '<div class="clock">9:41</div>' if os.path.isfile(face) else ""
+        stage = phone + f'<div class="watch"><div class="face">{image_or_missing(face)}{clock}</div></div>'
         return page(w, h, layer(style, text, stage, "watch-slide")), needs
     return page(w, h, layer(style, text, phone)), needs
 
@@ -422,7 +438,7 @@ def main() -> int:
                         help="which app theme each style shows")
     parser.add_argument("--raw", default=os.path.join(BUILD, "raw"))
     parser.add_argument("--watch", default=os.path.join(BUILD, "watch"),
-                        help="the watch screenshots, <locale>/2-riding.png")
+                        help="the watch screenshots, <theme>/<locale>/riding.png")
     parser.add_argument("--out", default=os.path.join(BUILD, "slides"))
     args = parser.parse_args()
 

@@ -52,6 +52,7 @@ import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/recording/application/recording_controller.dart';
 import 'package:velorki/features/recording/data/recording_gateways.dart';
 import 'package:velorki/features/recording/data/recording_recovery.dart';
+import 'package:velorki/features/recording/data/recording_service.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
 import 'package:velorki/features/recording/presentation/live_figures_view.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
@@ -60,6 +61,7 @@ import 'package:velorki/features/settings/data/appearance_controller.dart';
 import 'package:velorki/features/settings/data/language_controller.dart';
 import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
+import 'package:velorki/features/sensors/domain/sensor_snapshot.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -108,6 +110,10 @@ void main() {
 
       final positions = ScriptedPositionSource(funchal);
       addTearDown(positions.close);
+      // The recorder's clock and the heart rate follow the scripted ride, so
+      // an hour of riding fits in a minute of test and every figure on the
+      // live card, the Live Activity and the watch agrees with the others.
+      final ride = _RideClock();
       // The loop sheet opens at the distance last asked for.
       final prefs = await SharedPreferences.getInstance();
       await prefs.setDouble('loop.distance_km', _loopKm);
@@ -129,6 +135,17 @@ void main() {
           recordingRecoveryProvider.overrideWith(
             (ref) async => const NoRecovery(),
           ),
+          recordingServiceProvider.overrideWith((ref) {
+            final service = MainIsolateRecordingService(
+              store: ref.watch(recordingStoreProvider),
+              rides: ref.watch(rideRepositoryProvider),
+              positions: positions,
+              clock: ride.now,
+              sensors: ride.sensors,
+            );
+            ref.onDispose(service.dispose);
+            return service;
+          }),
         ],
       );
       listenForIncomingImports(container);
@@ -168,6 +185,14 @@ void main() {
         '$shot/plan',
         hold: const Duration(seconds: 10),
       );
+      // The same plan in another accent, for the half of the theme slide
+      // that shows the accent can be chosen.
+      if (mode == ThemeMode.dark) {
+        await appearance.setAccent(AccentPreset.ember);
+        await takeStoreShot(tester, '$shot/plan-accent');
+        await appearance.setAccent(AccentPreset.volt);
+        await pumpFor(tester, const Duration(seconds: 2));
+      }
 
       // -------------------------------------------------------- variants
       await tapAndPump(tester, _action(l10n.plannerVariants));
@@ -186,6 +211,8 @@ void main() {
         },
       );
       await tapAndPump(tester, find.text(l10n.plannerAlternativeIndex(1)));
+      // Tapping scrolled the sheet's content; the chips belong at its top.
+      _scrollSheetToTop(tester);
       await takeStoreShot(tester, '$shot/variants');
 
       // ------------------------------------------------------------ loop
@@ -266,14 +293,25 @@ void main() {
       await takeStoreShot(tester, '$shot/library');
 
       // --------------------------------------------------------- offline
+      // The planner with a route on the map downloaded for offline use, and
+      // the status bar with no signal at all.
       await tapAndPump(tester, find.text(l10n.tabPlan));
-      await tapAndPump(tester, find.byTooltip(l10n.offlineEntryTitle));
-      await waitForWidget(tester, find.text(l10n.offlineTitle));
+      final saved = await container
+          .read(routeRepositoryProvider)
+          .watchRoutes()
+          .first;
+      final coast = saved.firstWhere((r) => r.name == libraryRoutes.first.name);
+      planner
+        ..clear()
+        ..loadSavedRoute(coast);
+      await _frameRoute(tester, container, coast.geometry);
       await takeStoreShot(tester, '$shot/offline', offline: true);
-      await tapAndPump(tester, find.byType(BackButton));
+      planner.clear();
 
       // ------------------------------------------------ live and navigation
-      final route = await _plan(tester, container, navigationWaypoints);
+      // The featured route, ridden the way the demo ride is: most of it fast
+      // forward, then a fix a second until a turn comes up about 20 km in.
+      final route = await _plan(tester, container, featuredRoute.waypoints);
       await container
           .read(followModeProvider.notifier)
           .select(FollowMode.headingUp);
@@ -292,30 +330,25 @@ void main() {
         () => positions.isListenedTo,
         describe: 'the recorder to subscribe to the GPS',
       );
-      // One fix a second, a second apart on the clock as well, so the ride's
-      // elapsed time, its moving time and its speed agree the way they do on
-      // the road. Navigation only sees the recorder's last snapshot, so the
-      // banner is read after every fix; the ride stops where the next turn
-      // is close enough to read as one.
-      const second = Duration(seconds: 1);
-      final ride = ScriptedRide(
-        source: positions,
-        line: route.positions,
-        stepM: 6,
-        speedMps: 6,
-      );
-      Future<void> rideOn(int seconds) =>
-          ride.rideTo(tester, ride.alongM + seconds * 6, pump: second);
+      final rider = _Rider(positions, ride, demoRide(route));
+      await rider.rideTo(tester, 18000);
+      // Navigation only sees the recorder's last snapshot, so the banner is
+      // read after every fix once they come a second apart.
+      Future<void> rideOn(int fixes) async {
+        for (var i = 0; i < fixes && !rider.done; i++) {
+          await rider.step(tester, const Duration(seconds: 1));
+        }
+      }
+
       var shown = false;
-      while (ride.alongM < ride.totalM - 200) {
+      while (!rider.done && rider.alongM < 21500) {
         await rideOn(1);
         final progress = _progress(tester);
         final next = progress?.distanceToNextM;
         if (progress?.next != null &&
-            ride.alongM > 700 &&
             next != null &&
             next > 110 &&
-            next < 200) {
+            next < 250) {
           shown = true;
           break;
         }
@@ -323,9 +356,10 @@ void main() {
       expect(shown, isTrue, reason: 'a turn has to come up on the way');
       // Held still, the speed would drop to nothing: the rider rides on
       // through every pause.
-      await rideOn(4);
+      await rideOn(1);
       await takeStoreShot(tester, '$shot/live', hold: Duration.zero);
-      // What the Live Activity shows right now, for the slide that draws it.
+      // What the Live Activity and the watch show right now, for the slides
+      // that draw them: the same snapshot the live card was built from.
       await sendStoreData(
         tester,
         '$shot/activity',
@@ -348,7 +382,7 @@ void main() {
         ),
         const Offset(0, 700),
       );
-      await rideOn(3);
+      await rideOn(2);
       await waitForWidget(tester, find.byType(FiguresBar));
       await takeStoreShot(tester, '$shot/navigation', hold: Duration.zero);
 
@@ -507,11 +541,98 @@ Future<void> _frameRoute(
       .read(sharedMapControllerProvider)
       ?.fitBounds(
         BoundingBox.fromPoints([for (final point in line) point.pos]),
+        // A town's name is drawn centred on it, so an end marker in a town
+        // needs half a name's width of room on either side.
         padding: EdgeInsets.fromLTRB(
-          72,
+          88,
           chips.bottom + 24,
-          screen.width - controls.left + 24,
+          screen.width - controls.left + 72,
           screen.height - sheet.top + 24,
         ),
       );
+}
+
+/// Scrolls every list in the planner's sheet back to its top.
+void _scrollSheetToTop(WidgetTester tester) {
+  final lists = find.descendant(
+    of: find.descendant(
+      of: find.byType(PlannerScreen),
+      matching: find.byType(DraggableScrollableSheet),
+    ),
+    matching: find.byType(Scrollable),
+  );
+  for (final state in tester.stateList<ScrollableState>(lists)) {
+    if (state.position.axis == Axis.vertical && state.position.pixels > 0) {
+      state.position.jumpTo(0);
+    }
+  }
+}
+
+/// The recorder's clock and heart-rate sensor during the scripted ride: the
+/// time is that of the last fix, the heart rate the one the demo ride has
+/// there.
+class _RideClock {
+  /// Where the clock stands before the first fix; [fix] counts from here.
+  static final DateTime start = DateTime.utc(2026, 9, 12, 10);
+
+  DateTime _now = start;
+  int? _heartRate;
+
+  DateTime now() => _now;
+
+  SensorSnapshot sensors() => SensorSnapshot(
+    heartRateBpm: _heartRate,
+    heartRateAt: _heartRate == null ? null : _now,
+  );
+}
+
+/// Rides [points] (a demo ride: positions, heights, times and heart rates)
+/// through [source], moving [clock] along with every fix.
+class _Rider {
+  _Rider(this.source, this.clock, this.points);
+
+  final ScriptedPositionSource source;
+  final _RideClock clock;
+  final List<TrackPoint> points;
+  int _next = 0;
+  double alongM = 0;
+
+  bool get done => _next >= points.length;
+
+  /// Rides on to [metres] along the ride, a frame between fixes.
+  Future<void> rideTo(WidgetTester tester, double metres) async {
+    while (!done && alongM < metres) {
+      await step(tester, const Duration(milliseconds: 30));
+    }
+  }
+
+  /// Pushes the next fix and pumps [pump].
+  Future<void> step(WidgetTester tester, Duration pump) async {
+    final point = points[_next];
+    final previous = _next == 0 ? null : points[_next - 1];
+    final seconds = point.time!.difference(points.first.time!).inSeconds;
+    var speed = 0.0;
+    var heading = 0.0;
+    if (previous != null) {
+      final metres = haversineMeters(previous.pos, point.pos);
+      final took = point.time!.difference(previous.time!).inMilliseconds;
+      speed = took <= 0 ? 0 : metres / took * 1000;
+      heading = bearingDegrees(previous.pos, point.pos);
+      alongM += metres;
+    }
+    clock
+      .._now = _RideClock.start.add(Duration(seconds: seconds))
+      .._heartRate = point.heartRateBpm;
+    source.emit(
+      fix(
+        point.pos,
+        seconds: seconds,
+        speed: speed,
+        ele: point.ele ?? 0,
+        heading: heading,
+      ),
+    );
+    _next++;
+    await tester.pump(pump);
+  }
 }

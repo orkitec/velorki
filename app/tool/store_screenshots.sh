@@ -13,9 +13,8 @@
 #   slides/set/<size>/<locale>/NN-<slide>.png  the set to upload (store/slide_set.json)
 #   slides/set/contact-<locale>.png            the set at a glance
 #
-# The watch slide takes the watch app's riding screenshot from
-# $VELORKI_STORE_WATCH/<locale>/2-riding.png (default build/store_screenshots/watch);
-# without one it shows a placeholder.
+# The watch slide's screenshot is taken by tool/store_watch.sh with the
+# figures the phone showed, into watch/<theme>/<locale>/riding.png.
 #
 # What it does:
 # * picks the simulator named "Velorki Shots 6.9" (VELORKI_STORE_SIM takes a
@@ -29,6 +28,8 @@
 #   the status bar to 9:41 with full bars, and runs
 #   integration_test/store/store_screenshots_test.dart once, which takes every
 #   theme asked for; tool/store_shutter.py takes the pictures it asks for;
+# * tool/store_watch.sh shoots the watch app with the figures the phone
+#   showed, on the watch simulator;
 # * then tool/store_slides.py makes the slides.
 #
 # The run clears the library on that simulator; it is meant to be one kept for
@@ -216,8 +217,11 @@ PY
     wait "$SHUTTER_PID" 2> /dev/null || true
     SHUTTER_PID=""
   done
+
+  say "the watch, with the phone's figures"
+  bash "$APP/tool/store_watch.sh" "$OUT/raw" "$OUT/watch" "$LOCALES" "$THEMES"
 fi
 
 say "making the slides"
 python3 "$APP/tool/store_slides.py" --locales "$LOCALES" --shots "$SHOTS" \
-  --raw "$OUT/raw" --watch "${VELORKI_STORE_WATCH:-$OUT/watch}" --out "$OUT/slides" | tail -1
+  --raw "$OUT/raw" --watch "$OUT/watch" --out "$OUT/slides" | tail -1

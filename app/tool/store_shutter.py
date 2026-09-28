@@ -26,10 +26,15 @@ import time
 
 BUNDLE = "com.orkitec.velorki"
 NAME = re.compile(r"^[a-z]+/[a-z]{2,3}(-[A-Za-z]+)?/[a-z0-9-]+$")
-ONLINE = ["--dataNetwork", "wifi", "--wifiMode", "active", "--wifiBars", "3",
-          "--cellularMode", "active", "--cellularBars", "4"]
-OFFLINE = ["--dataNetwork", "hide", "--wifiMode", "failed", "--wifiBars", "0",
-           "--cellularMode", "searching", "--cellularBars", "0"]
+# What tool/store_screenshots.sh sets after booting, and the same with no
+# signal. A change is always made from a cleared bar with every value given:
+# overriding a few of them after "searching" leaves the icons in disorder.
+BASE = ["--time", "9:41", "--operatorName", "", "--batteryState", "discharging",
+        "--batteryLevel", "100"]
+ONLINE = BASE + ["--dataNetwork", "wifi", "--wifiMode", "active", "--wifiBars", "3",
+                 "--cellularMode", "active", "--cellularBars", "4"]
+OFFLINE = BASE + ["--dataNetwork", "hide", "--wifiMode", "failed", "--wifiBars", "0",
+                  "--cellularMode", "active", "--cellularBars", "0"]
 
 
 def container(udid: str) -> str | None:
@@ -51,9 +56,13 @@ def request(folder: str) -> dict[str, str] | None:
 
 
 def status_bar(udid: str, network: list[str]) -> None:
+    subprocess.run(["xcrun", "simctl", "status_bar", udid, "clear"],
+                   check=True, capture_output=True)
     subprocess.run(["xcrun", "simctl", "status_bar", udid, "override", *network],
                    check=True, capture_output=True)
-    time.sleep(0.5)
+    # The status bar animates the change; a picture taken sooner catches
+    # the icons half way.
+    time.sleep(2.5)
 
 
 def main() -> int:

@@ -58,14 +58,6 @@ const Map<String, String> rideNames = {
   'de': 'Hinauf nach Camacha',
 };
 
-/// The short ride through Funchal the navigation shot is taken on: from the
-/// old town up towards Monte, which has turns within the first few hundred
-/// metres.
-const List<LatLng> navigationWaypoints = [
-  LatLng(32.6497, -16.9118),
-  LatLng(32.6676, -16.9047),
-];
-
 /// When the demo ride started: half past nine on the phone's clock, whatever
 /// its time zone.
 final DateTime rideStart = DateTime(2026, 9, 20, 9, 30);
