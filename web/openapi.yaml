@@ -89,8 +89,11 @@ paths:
       operationId: getHealth
       summary: Liveness and integration status.
       description: |
-        Unauthenticated. Returns 200 whenever the process is running; the
-        `brouter` and `llm` fields describe integrations, not liveness.
+        Unauthenticated. Returns 200 whenever the process is running; every
+        field after `version` describes an integration, not liveness - whether
+        it has what it needs, never a value. Secrets are write-only where they
+        are stored, so this is how a deploy is checked from outside; the boot
+        log adds a sha256 fingerprint of each set secret.
 
         The BRouter probe is a short trekking query cached for 60 seconds with
         a 3 second timeout.
@@ -105,7 +108,7 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [status, version, brouter, llm]
+                required: [status, version, brouter, llm, llm_model, strava, rwgps, entitlement, token_wrap]
                 additionalProperties: false
                 properties:
                   status:
@@ -121,6 +124,25 @@ paths:
                   llm:
                     type: string
                     enum: [configured, unconfigured]
+                  llm_model:
+                    type: [string, 'null']
+                    description: The model id when an LLM is configured.
+                  strava:
+                    type: string
+                    enum: [configured, unconfigured]
+                  rwgps:
+                    type: string
+                    enum: [configured, unconfigured]
+                  entitlement:
+                    type: string
+                    enum: [live, stub, unconfigured]
+                    description: |
+                      `live` verifies against RevenueCat, `stub` lets everyone
+                      through (development only), `unconfigured` is live mode
+                      without a secret key and refuses every Plus request.
+                  token_wrap:
+                    type: string
+                    enum: [configured, unconfigured]
               examples:
                 configured:
                   value:
@@ -128,6 +150,11 @@ paths:
                     version: '1.4.2'
                     brouter: ok
                     llm: configured
+                    llm_model: z-ai/glm-5.3-flash
+                    strava: configured
+                    rwgps: configured
+                    entitlement: live
+                    token_wrap: configured
 
   /oauth/strava/token:
     post:

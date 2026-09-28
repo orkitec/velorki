@@ -11,6 +11,7 @@ export async function register(): Promise<void> {
 
   const { llmConfigured, rwgpsConfigured, stravaConfigured, workerId } = await import('@/config');
   const { getConfig, getCounters, getLogger, getStore } = await import('@/server/singletons');
+  const { fingerprint } = await import('@/server/fingerprint');
   const { startSweep } = await import('@/share/store');
 
   const config = getConfig();
@@ -35,6 +36,18 @@ export async function register(): Promise<void> {
       llm: llmConfigured(config),
       brouter: config.BROUTER_URL !== undefined,
       revenuecatStub: config.REVENUECAT_MODE === 'stub',
+      // Non-secret settings, printed as they are: the first things to check.
+      llmBaseUrl: config.LLM_BASE_URL ?? null,
+      llmModel: config.LLM_MODEL ?? null,
+      // Dashboard secrets are write-only. These say which key is live - compare
+      // with `printf %s "$KEY" | sha256sum | cut -c1-8` - and never what it is.
+      keys: {
+        LLM_API_KEY: fingerprint(process.env.LLM_API_KEY),
+        STRAVA_CLIENT_SECRET: fingerprint(process.env.STRAVA_CLIENT_SECRET),
+        RWGPS_CLIENT_SECRET: fingerprint(process.env.RWGPS_CLIENT_SECRET),
+        REVENUECAT_SECRET_KEY: fingerprint(process.env.REVENUECAT_SECRET_KEY),
+        TOKEN_WRAP_KEYS: fingerprint(process.env.TOKEN_WRAP_KEYS),
+      },
       trustProxy: config.TRUST_PROXY,
       devHosts: config.DEV_HOSTS,
       counters: config.COUNTERS,

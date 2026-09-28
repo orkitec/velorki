@@ -20,6 +20,12 @@ describe('GET /health', () => {
         version: '1.4.2',
         brouter: 'unconfigured',
         llm: 'unconfigured',
+        llm_model: null,
+        strava: 'unconfigured',
+        rwgps: 'unconfigured',
+        // The test harness runs in stub mode with test wrap keys (helpers.ts).
+        entitlement: 'stub',
+        token_wrap: 'configured',
       });
       expect(res.headers.get('cache-control')).toBe('no-store');
     });
@@ -30,6 +36,44 @@ describe('GET /health', () => {
       const res = await GET(new Request(URL_HEALTH));
       expect((await bodyOf<{ version: string }>(res)).version).toBe('dev');
       expect(res.headers.get('x-request-id')).toBeTruthy();
+    });
+  });
+
+  it('says which integrations are set up, and never a secret value', async () => {
+    const secrets = {
+      LLM_API_KEY: 'sk-or-v1-secret-value-000',
+      STRAVA_CLIENT_SECRET: 'strava-secret-value-000',
+      RWGPS_CLIENT_SECRET: 'rwgps-secret-value-000',
+      REVENUECAT_SECRET_KEY: 'sk_revenuecat-secret-000',
+    };
+    await withEnv(
+      {
+        ...secrets,
+        LLM_BASE_URL: 'https://openrouter.ai/api/v1',
+        LLM_MODEL: 'z-ai/glm-5.3-flash',
+        STRAVA_CLIENT_ID: '123',
+        RWGPS_CLIENT_ID: '456',
+        REVENUECAT_MODE: 'live',
+      },
+      async () => {
+        const res = await GET(new Request(URL_HEALTH));
+        const text = await res.text();
+        expect(JSON.parse(text)).toMatchObject({
+          llm: 'configured',
+          llm_model: 'z-ai/glm-5.3-flash',
+          strava: 'configured',
+          rwgps: 'configured',
+          entitlement: 'live',
+        });
+        for (const value of Object.values(secrets)) expect(text).not.toContain(value);
+      },
+    );
+  });
+
+  it('reports stub entitlement plainly, so a stub in production is visible', async () => {
+    await withEnv({ REVENUECAT_MODE: 'stub' }, async () => {
+      const res = await GET(new Request(URL_HEALTH));
+      expect((await bodyOf<{ entitlement: string }>(res)).entitlement).toBe('stub');
     });
   });
 

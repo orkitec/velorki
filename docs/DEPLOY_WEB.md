@@ -698,13 +698,27 @@ above does without.
 # both hostnames, through Cloudflare
 curl -sI https://velorki.com/            | head -5     # 200, cf-ray present
 curl -sI https://www.velorki.com/        | head -5     # 308 → https://velorki.com/
-curl -s  https://api.velorki.com/health  | jq .        # {"status":"ok", version, brouter, llm}
+curl -s  https://api.velorki.com/health  | jq .        # status, version, and per integration: brouter, llm + llm_model, strava, rwgps, entitlement, token_wrap
 curl -s  https://velorki.com/health      -o /dev/null -w '%{http_code}\n'   # 404, HTML
 curl -s  https://api.velorki.com/        -o /dev/null -w '%{http_code}\n'   # 404, JSON
 curl -s  https://velorki.com/s/nope.gpx  | jq .        # {"error":{"code":"not_found",...}}
 curl -s  https://velorki.com/robots.txt
 curl -sI https://velorki.com/            | grep -i content-security-policy
 ```
+
+**Checking a secret you cannot see.** `/health` says whether each integration
+has what it needs, never a value. To confirm *which* key is live - after
+editing `/etc/velorki/env` and `systemctl restart orkify@velorki`, the only way
+an edit there takes effect - the `velorki web starting` line in the process log
+carries `keys: { LLM_API_KEY: "sha256:1a2b3c4d", ... }`. Compare with the key
+you meant to set:
+
+```sh
+printf %s "$KEY" | sha256sum | cut -c1-8
+```
+
+A key also set as an Orkify dashboard secret overrides the file, so keep each
+one in exactly one of the two places.
 
 On the box, straight to the app. Proxy-independent: these two skip whatever
 terminates TLS and prove the app itself is up and that its host gate works.
