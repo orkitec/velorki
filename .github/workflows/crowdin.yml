@@ -13,6 +13,9 @@ on:
       - "app/lib/l10n/app_en.arb"
       - "web/messages/en.json"
       - "web/content/en/**/*.md"
+      - "app/fastlane/metadata/ios/en-US/*.txt"
+      - "app/fastlane/metadata/android/en-US/*.txt"
+      - "app/store/slides_en.json"
   schedule:
     - cron: "0 6 * * 1"
   workflow_dispatch:
