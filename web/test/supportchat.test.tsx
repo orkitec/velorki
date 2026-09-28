@@ -49,6 +49,12 @@ describe('support chat', () => {
     expect(element.props).not.toHaveProperty('klipyKey');
   });
 
+  it('treats an empty script URL as unset, as copied from .env.example', async () => {
+    vi.stubEnv('NEXT_PUBLIC_CHAT_WIDGET_SRC', '');
+    const { config } = await load();
+    expect(config.CHAT_WIDGET_SRC).toBe('https://orkify.com/orkify-chat.js');
+  });
+
   it('serves the script from the host that answers its API calls', async () => {
     // The widget reads its API base from its own script origin, so this URL is
     // load-bearing: jsDelivr (the package default) or a copy on velorki.com

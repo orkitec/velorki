@@ -33,8 +33,10 @@ const SCRIPT_SRC =
 // else here. cdnjs is the widget's own hard-coded lottie URL, used to play
 // animated stickers; blocked, the sticker renders as a text placeholder, so it
 // is only listed when the chat is.
+// `||`, not `??`: .env.example ships the variable as an empty line, and a copy of
+// it must mean "default", not a URL of '' that fails the whole build.
 const CHAT_WIDGET_SRC =
-  process.env.NEXT_PUBLIC_CHAT_WIDGET_SRC ?? 'https://orkify.com/orkify-chat.js';
+  process.env.NEXT_PUBLIC_CHAT_WIDGET_SRC || 'https://orkify.com/orkify-chat.js';
 const CHAT_API_ORIGIN = new URL(CHAT_WIDGET_SRC).origin;
 const CHAT_ENABLED = Boolean(process.env.NEXT_PUBLIC_CHAT_WIDGET_KEY);
 const LOTTIE_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js';

@@ -3,7 +3,8 @@
 // deployment comes from NEXT_PUBLIC_* so it is inlined at build time and no
 // page has to read a request header to know it.
 
-const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://velorki.com';
+// `||`: an empty value (a copied .env.example line) means the default.
+const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://velorki.com';
 
 /** Origin of the public site, without a trailing slash. */
 export const SITE_URL = rawSiteUrl.replace(/\/+$/, '');
@@ -41,7 +42,8 @@ export const CHAT_KLIPY_KEY = process.env.NEXT_PUBLIC_KLIPY_API_KEY ?? '';
  * Orkify; the CSP in next.config.ts is derived from the same value.
  */
 export const CHAT_WIDGET_SRC =
-  process.env.NEXT_PUBLIC_CHAT_WIDGET_SRC ?? 'https://orkify.com/orkify-chat.js';
+  // `||`: an empty line copied from .env.example means the default.
+  process.env.NEXT_PUBLIC_CHAT_WIDGET_SRC || 'https://orkify.com/orkify-chat.js';
 
 /**
  * Store links. Empty until the listings exist; every badge that has no URL is
