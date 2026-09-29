@@ -67,9 +67,7 @@ secrets and builds unsigned; a trial run uses a tag such as `v1.0.1-rc1`.
 4. `xcodebuild archive` signs for development, fetching the profiles with the
    API key; the export re-signs for the App Store and uploads to App Store
    Connect. Nothing is submitted for review.
-5. On a tag, the same archive is also exported as an `.ipa` and attached to
-   the tag's GitHub Release.
-6. The key, the keychain and `env/prod.json` are deleted, also on failure.
+5. The key, the keychain and `env/prod.json` are deleted, also on failure.
 
 App Store Connect refuses a version whose train is closed: after 1.0.0 is
 released, bump `version:` in `app/pubspec.yaml` before the next upload.

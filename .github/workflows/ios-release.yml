@@ -1,8 +1,8 @@
 name: ios release
 
-# Tag `vX.Y.Z` → signed build → TestFlight, and the .ipa attached to the GitHub
-# Release the Android job created for the same tag. `release.yml` does the same
-# for Android; the two run in parallel off one tag.
+# Tag `vX.Y.Z` → signed build → TestFlight. `release.yml` does the same for
+# Android; the two run in parallel off one tag. The .ipa is not attached to the
+# GitHub Release: it is signed for the App Store and installs nowhere else.
 #
 # Signing is Xcode's automatic signing, authenticated with an App Store Connect
 # API key instead of an Xcode account, in two steps:
@@ -45,9 +45,6 @@ jobs:
     timeout-minutes: 90
     # Required reviewer: the approval gate for signing and uploading.
     environment: release
-    permissions:
-      # Only to attach the .ipa to the GitHub Release of the tag.
-      contents: write
     env:
       HAVE_SIGNING: ${{ secrets.ASC_KEY_ID != '' && secrets.ASC_ISSUER_ID != '' && secrets.ASC_KEY_P8_BASE64 != '' && secrets.IOS_DEV_CERT_P12_BASE64 != '' && secrets.APP_ENV_PROD_JSON != '' && 'true' || 'false' }}
       # App Store Connect refuses a build number it has already seen; 1.0 (1)
@@ -136,27 +133,14 @@ jobs:
             -authenticationKeyID "$ASC_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_ISSUER_ID"
 
-      - name: Export the .ipa
-        if: ${{ env.HAVE_SIGNING == 'true' && startsWith(github.ref, 'refs/tags/v') }}
-        env:
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-        run: |
-          xcodebuild -exportArchive -archivePath "$ARCHIVE_PATH" \
-            -exportOptionsPlist ios/ExportOptions.plist -exportPath build/ios/ipa \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$ASC_KEY_PATH" \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
-
       - name: Upload to App Store Connect
         if: ${{ env.HAVE_SIGNING == 'true' }}
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
-          # The same export with destination `upload`: signed and sent to App
-          # Store Connect in one go, leaving no .ipa behind.
+          # ExportOptions.plist with destination `upload`: signed and sent to
+          # App Store Connect in one go, leaving no .ipa behind.
           plutil -replace destination -string upload \
             -o "$RUNNER_TEMP/ExportUpload.plist" ios/ExportOptions.plist
           xcodebuild -exportArchive -archivePath "$ARCHIVE_PATH" \
@@ -166,12 +150,6 @@ jobs:
             -authenticationKeyPath "$ASC_KEY_PATH" \
             -authenticationKeyID "$ASC_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_ISSUER_ID"
-
-      - name: Attach the .ipa to the GitHub Release
-        if: ${{ env.HAVE_SIGNING == 'true' && startsWith(github.ref, 'refs/tags/v') }}
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
-        with:
-          files: app/build/ios/ipa/*.ipa
 
       - name: Remove the key and the keychain
         if: ${{ always() }}
