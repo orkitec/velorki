@@ -16,7 +16,8 @@
 #   slides/set/contact-<locale>.png            the set at a glance
 #
 # The watch slide's screenshot is taken by tool/store_watch.sh with the
-# figures the phone showed, into watch/<theme>/<locale>/riding.png.
+# figures the phone showed, into watch/<theme>/<locale>/riding.png, and the
+# App Store's four watch screenshots beside it in store/.
 #
 # What it does:
 # * picks the simulator named "Velorki Shots 6.9" (VELORKI_STORE_SIM takes a

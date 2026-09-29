@@ -1,5 +1,9 @@
 import SwiftUI
 
+/// SHOT_STILL=1 holds the heart still (RideView's pulse is patched to read
+/// this), so a store shot never catches it mid-fade.
+let shotStill = ProcessInfo.processInfo.environment["SHOT_STILL"] == "1"
+
 /// The store screenshot's stand-in for RideSession: the members RideView
 /// reads, filled from the environment tool/store_watch.sh sets from the
 /// figures the phone showed at the same moment of the same ride.
@@ -28,6 +32,7 @@ final class RideSession: NSObject, ObservableObject {
     override init() {
         super.init()
         let e = ProcessInfo.processInfo.environment
+        status = (e["SHOT_STATUS"] ?? "").isEmpty ? "active" : e["SHOT_STATUS"]!
         distance = e["SHOT_DISTANCE"] ?? ""
         elapsed = e["SHOT_ELAPSED"] ?? ""
         speed = e["SHOT_SPEED"] ?? ""
@@ -35,7 +40,7 @@ final class RideSession: NSObject, ObservableObject {
         turnLabel = e["SHOT_TURN_LABEL"] ?? ""
         turnDistance = e["SHOT_TURN_DISTANCE"] ?? ""
         heartRate = Int(e["SHOT_HEART_RATE"] ?? "")
-        measuring = heartRate != nil
+        measuring = heartRate != nil && status != "idle"
     }
 }
 

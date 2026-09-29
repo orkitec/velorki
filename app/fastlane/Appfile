@@ -5,7 +5,8 @@
 #
 #   PLAY_SERVICE_ACCOUNT_JSON_PATH  path to the Play service account JSON
 #
-# iOS does not go through fastlane; see docs/RELEASE_IOS.md.
+# The iOS app is not built through fastlane (docs/RELEASE_IOS.md); only its
+# store screenshots and texts are uploaded with it (docs/STORE_ASSETS.md).
 
 for_platform :android do
   package_name(ENV["ANDROID_PACKAGE_NAME"] || "com.orkitec.velorki")

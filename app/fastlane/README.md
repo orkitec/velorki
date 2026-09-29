@@ -1,8 +1,8 @@
 # fastlane
 
-Release automation for Google Play. iOS does not use fastlane: it is built,
-signed and uploaded by `xcodebuild` with automatic signing, see
-[`docs/RELEASE_IOS.md`](../../docs/RELEASE_IOS.md). Nothing here creates the
+Release automation for Google Play, and the App Store screenshots and texts.
+The iOS app itself is built, signed and uploaded by `xcodebuild` with
+automatic signing, see [`docs/RELEASE_IOS.md`](../../docs/RELEASE_IOS.md). Nothing here creates the
 accounts or credentials below.
 
 ```
@@ -28,6 +28,7 @@ bundle exec fastlane android internal
 |---|---|
 | `android internal` | Gradle `bundleRelease` (the Flutter Gradle plugin builds the Dart side), then `supply` to the Play **internal testing** track. |
 | `android promote_closed` | Promotes the newest internal build to the closed test track without rebuilding. |
+| `ios store_assets` | `deliver`: the screenshots in `SCREENSHOTS_PATH` (laid out by `tool/store_stage_deliver.sh`) onto App Store version `APP_VERSION`, replacing those of each language uploaded, and with `UPLOAD_METADATA=true` `metadata/ios`. Run by `.github/workflows/store-assets.yml` with `ASC_KEY_ID`, `ASC_ISSUER_ID` and `ASC_KEY_PATH`; see `docs/STORE_ASSETS.md`. |
 
 ## Environment
 
@@ -71,8 +72,8 @@ a **draft**: written from `README.md` and `docs/ARCHITECTURE.md`, not yet read
 by anyone else, and not yet checked against the final feature set or the
 subscription prices. `android internal` therefore runs with
 `skip_upload_metadata` set, so a release cannot silently overwrite the Play
-listing; the App Store listing is edited in App Store Connect and nothing
-uploads `metadata/ios`. Remove the flags once the copy is agreed and the
+listing; `metadata/ios` is uploaded only when the store-assets workflow is run with
+`metadata`. Remove the flags once the copy is agreed and the
 screenshots are in `metadata/android/en-US/images`.
 
 Character limits, which `title.txt`, `short_description.txt`, `name.txt`,

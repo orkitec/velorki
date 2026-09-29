@@ -1,4 +1,5 @@
-# Velorki release lanes, Android only. iOS is built, signed and uploaded by
+# Velorki release lanes: Android's build and upload, and the App Store
+# screenshots and texts. The iOS app itself is built, signed and uploaded by
 # xcodebuild with automatic signing; see docs/RELEASE_IOS.md. Nothing here
 # creates accounts or store entries — see fastlane/README.md for what has to be
 # set up by hand first.
@@ -72,6 +73,38 @@ platform :android do
       skip_upload_images: true,
       skip_upload_screenshots: true,
       skip_upload_changelogs: true,
+    )
+  end
+end
+
+platform :ios do
+  # Run by .github/workflows/store-assets.yml, with the screenshots laid out by
+  # tool/store_stage_deliver.sh. See docs/STORE_ASSETS.md.
+  desc "Upload the store screenshots (and with UPLOAD_METADATA=true the texts) to an App Store version"
+  lane :store_assets do
+    %w[ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_PATH APP_VERSION SCREENSHOTS_PATH].each do |name|
+      UI.user_error!("Set #{name}") if ENV[name].to_s.empty?
+    end
+
+    api_key = app_store_connect_api_key(
+      key_id: ENV["ASC_KEY_ID"],
+      issuer_id: ENV["ASC_ISSUER_ID"],
+      key_filepath: ENV["ASC_KEY_PATH"],
+    )
+
+    deliver(
+      api_key: api_key,
+      app_identifier: ENV["IOS_BUNDLE_ID"] || "com.orkitec.velorki",
+      app_version: ENV["APP_VERSION"],
+      screenshots_path: ENV["SCREENSHOTS_PATH"],
+      metadata_path: File.join(__dir__, "metadata/ios"),
+      skip_metadata: ENV["UPLOAD_METADATA"] != "true",
+      skip_binary_upload: true,
+      overwrite_screenshots: true,
+      submit_for_review: false,
+      run_precheck_before_submit: false,
+      # No HTML preview to confirm: CI has nobody to confirm it.
+      force: true,
     )
   end
 end
