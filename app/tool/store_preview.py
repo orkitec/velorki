@@ -75,6 +75,16 @@ CARD_IN = 0.35
 CARD_OUT = 0.25
 BLUR = 26
 TINT = {"dark": "rgb(14 17 21 / 0.76)", "light": "rgb(245 246 243 / 0.82)"}
+# The card styles: `frost`, `accent-frame` and `accent-solid`. What the two
+# accent ones add, per scene theme.
+CARD_TOKENS = {
+    "dark": {"glow-strong": "rgb(200 245 66 / 0.40)", "solid-bg": "#c8f542",
+             "solid-fg": "#0e1115", "solid-em": "#2f5c00", "solid-chip-bg": "#0e1115",
+             "solid-chip-fg": "#f1f3f5", "solid-chip-dot": "#c8f542"},
+    "light": {"glow-strong": "rgb(63 122 0 / 0.40)", "solid-bg": "#3f7a00",
+              "solid-fg": "#ffffff", "solid-em": "#c8f542", "solid-chip-bg": "#ffffff",
+              "solid-chip-fg": "#2f5c00", "solid-chip-dot": "#3f7a00"},
+}
 
 CARD_CSS = """
 html, body { margin: 0; width: 886px; height: 1920px; background: transparent; overflow: hidden; }
@@ -91,6 +101,19 @@ html, body { margin: 0; width: 886px; height: 1920px; background: transparent; o
 h1 { font-family: Barlow, sans-serif; font-weight: 700; font-size: 80px; line-height: 0.95;
   letter-spacing: -0.01em; margin: 12px 0 0; text-wrap: balance; }
 h1 em { font-style: normal; color: var(--accent); }
+/* accent-frame: the frosted card with an accent border and glow, so it reads
+   as a caption over the app rather than a panel of it. */
+.card.accent-frame { border: 4px solid var(--accent);
+  box-shadow: 0 0 28px 2px var(--glow-strong), 0 18px 44px -12px rgb(0 0 0 / 0.45); }
+.card.accent-frame::before { content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background: var(--soft); pointer-events: none; }
+.card.accent-frame > * { position: relative; }
+/* accent-solid: an opaque card in the accent colour, no frost. */
+.card.accent-solid { background: var(--solid-bg); color: var(--solid-fg); border: none;
+  box-shadow: 0 18px 44px -10px rgb(0 0 0 / 0.5), 0 2px 8px rgb(0 0 0 / 0.2); }
+.card.accent-solid h1 em { color: var(--solid-em); }
+.card.accent-solid .chip { background: var(--solid-chip-bg); color: var(--solid-chip-fg); border-color: transparent; }
+.card.accent-solid .chip i { background: var(--solid-chip-dot); }
 /* The mask: the card's shape alone, white on black. */
 body.mask { background: #000; }
 body.mask .card { background: #fff; border-color: #fff; box-shadow: none; }
@@ -143,11 +166,13 @@ document.fonts.ready.then(() => {
             f"<body>{body}<script>{fit}</script></body></html>")
 
 
-def card_page(style: str, text: dict, where: str, mask: bool = False) -> str:
+def card_page(style: str, text: dict, where: str, mask: bool = False,
+              card: str = "frost") -> str:
     """The caption card for the full-bleed framing, alone on a transparent
     frame, or with [mask] its shape in white on black. The headline takes two
     lines at most, and shrinks until the card fits its place."""
-    tokens = ";".join(f"--{k}:{v}" for k, v in slides.STYLES[style].items())
+    tokens = ";".join(f"--{k}:{v}" for k, v in
+                      {**slides.STYLES[style], **CARD_TOKENS[style]}.items())
     fonts = slides.CSS[:slides.CSS.index("html, body")].replace("FONTS", "file://" + slides.FONTS)
     css = fonts + (CARD_CSS.replace("MARGINpx", f"{MARGIN}px").replace("RADIUSpx", f"{RADIUS_CARD}px")
                    .replace("TOPpx", f"{TOP_CARD[0]}px")
@@ -155,7 +180,7 @@ def card_page(style: str, text: dict, where: str, mask: bool = False) -> str:
                    .replace("MINHpx", f"{TOP_MIN_END - TOP_CARD[0]}px")
                    .replace("BOTTOMpx", f"{H - BOTTOM_CARD_END}px"))
     body = (
-        f'<div class="card {where}" style="{tokens};--tint:{TINT[style]}">'
+        f'<div class="card {where} {card}" style="{tokens};--tint:{TINT[style]}">'
         f'<div class="chip"><i></i>{html.escape(text["eyebrow"])}</div>'
         f'<h1>{slides.rich(text["headline"])}</h1></div>'
     )
@@ -287,6 +312,8 @@ def main() -> int:
     parser.add_argument("--locales", default="en,de")
     parser.add_argument("--frame", choices=["none", "phone"],
                         help="the framing; default: the set's")
+    parser.add_argument("--card", choices=["frost", "accent-frame", "accent-solid"],
+                        help="the caption card, full-bleed only; default: the set's")
     parser.add_argument("--clips", default=os.path.join(BUILD, "raw", "preview"))
     parser.add_argument("--out", default=os.path.join(BUILD, "preview"))
     args = parser.parse_args()
@@ -299,7 +326,13 @@ def main() -> int:
     preview_set = slides.load_json(os.path.join(STORE, "preview_set.json"))
     chosen = preview_set["clips"]
     frame = args.frame or preview_set.get("frame", "none")
-    name = "preview.mp4" if frame == preview_set.get("frame", "none") else f"preview-{frame}.mp4"
+    card = args.card or preview_set.get("card", "frost")
+    # The set's own framing and card make preview.mp4; any other a file of
+    # its own beside it.
+    variant = [v for v, default in ((frame, preview_set.get("frame", "none")),
+                                    (card, preview_set.get("card", "frost"))) if v != default]
+    suffix = "".join(f"-{v}" for v in variant)
+    name = f"preview{suffix}.mp4"
     english = slides.load_json(os.path.join(STORE, "slides_en.json"))
     with tempfile.TemporaryDirectory() as work:
         for locale in args.locales.split(","):
@@ -321,11 +354,11 @@ def main() -> int:
                     if frame == "phone":
                         f.write(band_page(entry["theme"], text))
                     else:
-                        f.write(card_page(entry["theme"], text, where))
+                        f.write(card_page(entry["theme"], text, where, card=card))
                 slides.photograph(page, band, W, H, work, transparent=True)
                 if frame != "phone":
                     with open(page, "w", encoding="utf-8") as f:
-                        f.write(card_page(entry["theme"], text, where, mask=True))
+                        f.write(card_page(entry["theme"], text, where, mask=True, card=card))
                     shape = os.path.join(work, f"{locale}-{n}-mask.png")
                     slides.photograph(page, shape, W, H, work)
                 part = os.path.join(work, f"{locale}-{n}.mp4")
@@ -344,13 +377,12 @@ def main() -> int:
                 if entry["clip"] == poster:
                     break
                 at = end - FADE
-            suffix = "" if name == "preview.mp4" else f"-{frame}"
             run(["-ss", f"{end - FADE - 0.2:.2f}", "-i", video, "-frames:v", "1",
                  os.path.join(out, f"poster{suffix}.png")])
             for t in STILLS:
                 if t < total:
                     run(["-ss", str(t), "-i", video, "-frames:v", "1",
-                         os.path.join(out, "frames", f"{frame}-t{t:04.1f}.png")])
+                         os.path.join(out, "frames", f"{frame}{suffix}-t{t:04.1f}.png")])
             print(f"store_preview: {video} ({total:.1f} s)")
     return 0
 
