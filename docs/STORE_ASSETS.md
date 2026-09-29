@@ -88,7 +88,7 @@ app/tool/store_screenshots.sh --preview [--locales en]
 python3 app/tool/store_preview.py --locales en --frame phone   # the other framing, from the same clips
 ```
 
-One app preview per language, about 25 s: five clips of the real app, each
+One app preview per language, about 28 s: five clips of the real app, each
 with the eyebrow and headline of a slide, joined by 0.3 s crossfades.
 
 1. **Recording.** `app/integration_test/store/store_preview_test.dart` plays
@@ -107,8 +107,10 @@ with the eyebrow and headline of a slide, joined by 0.3 s crossfades.
      and tinted ink or paper, a hairline border, a soft shadow. A top card
      covers the status bar and search field and ends above the planner's
      bike chips; a bottom one ends above the figures bar, clear of the turn
-     banner. It slides and fades in with each clip and fades out before the
-     crossfade; the first clip's is there from the first frame;
+     banner. It slides and fades in with each clip, holds for
+     `caption_hold` seconds (2.4 by default, per clip if set there), and
+     slides out, so the rest of each clip shows the app alone; the first
+     clip's is there from the first frame;
    - `phone`: the app scaled whole below the caption on the slides' ground.
 
 The card's look is `card` in the set: `accent-frame`, the default

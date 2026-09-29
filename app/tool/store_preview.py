@@ -13,9 +13,10 @@ Two framings of the same footage:
 * `none`: the app full-bleed at 886 x 1920, with the caption on a floating
   frosted card in the slides' palette, near the top or the bottom: the app
   behind it blurred and tinted, a hairline border and a soft shadow. It
-  slides and fades in at the start of a clip and fades out before the
-  crossfade. A top card ends above the planner's bike chips; a bottom one
-  above the figures bar.
+  slides and fades in at the start of a clip, holds for its `caption_hold`,
+  and slides back out, so the rest of the clip shows the app alone. A top
+  card ends above the planner's bike chips; a bottom one above the figures
+  bar.
 * `phone`: the app scaled whole into the lower part of the frame under the
   caption, on the slides' ground, as on the slides.
 
@@ -56,7 +57,7 @@ LEFT = (W - SCREEN_W) // 2
 RADIUS = 46
 FADE = 0.3
 MAX_SPEED = 1.5
-STILLS = (0.5, 2, 5, 9, 13, 17, 21, 24)
+STILLS = (0.5, 3, 4.5, 7, 9.5, 12.5, 15, 18, 20.5, 23.5, 25.5, 27.5)
 
 # The full-bleed caption card: a frosted card like a notification, inset by
 # MARGIN, with the eyebrow chip and a headline of up to two lines. A top card
@@ -72,7 +73,9 @@ TOP_CARD = (44, 272)
 BOTTOM_CARD_END = 1598
 SLIDE_PX = 26
 CARD_IN = 0.35
-CARD_OUT = 0.25
+CARD_OUT = 0.3
+# How long a card holds after it has come in, unless the set says otherwise.
+CARD_HOLD = 2.4
 BLUR = 26
 TINT = {"dark": "rgb(14 17 21 / 0.76)", "light": "rgb(245 246 243 / 0.82)"}
 # The card styles: `frost`, `accent-frame` and `accent-solid`. What the two
@@ -220,8 +223,8 @@ def run(args: list[str]) -> None:
 
 
 def segment(clip: str, band: str, seconds: float, frame: str, target: str,
-            first: bool = False, last: bool = False, where: str = "top",
-            mask: str | None = None) -> None:
+            first: bool = False, where: str = "top", mask: str | None = None,
+            hold: float = CARD_HOLD) -> None:
     """One clip, [seconds] long, with its caption, lossless enough to cut
     again. [band] is the caption picture; for the full-bleed framing [mask]
     is the card's shape, where the app behind it is frosted."""
@@ -246,20 +249,24 @@ def segment(clip: str, band: str, seconds: float, frame: str, target: str,
         )
     else:
         inputs += ["-loop", "1", "-framerate", "30", "-i", mask]
-        # The card slides in from its edge with an ease-out and fades in
-        # over the same time, holds, and fades out before the crossfade; the
-        # first clip's card is there from the first frame, and the last
-        # clip's stays to the end.
+        # The card slides in from its edge with an ease-out and fades in,
+        # holds for [hold], then slides back out towards its edge with an
+        # ease-in and fades out, so the rest of the clip is the app alone.
+        # The first clip's card is there from the first frame.
         sign = -1 if where == "top" else 1
-        if first:
-            dy = "0"
-        else:
-            dy = f"{sign * SLIDE_PX}*pow(1-min(t/{CARD_IN},1),3)"
+        come = 0.0 if first else CARD_IN
+        leave = come + hold
+        slide_in = "0" if first else f"{sign * SLIDE_PX}*pow(1-min(t/{CARD_IN},1),3)"
+        slide_out = f"{sign * SLIDE_PX}*pow(min(max((t-{leave:.3f})/{CARD_OUT},0),1),2)"
+        dy = f"{slide_in}+{slide_out}"
         fades = []
         if not first:
             fades.append(f"fade=t=in:st=0:d={CARD_IN}")
-        if not last:
-            fades.append(f"fade=t=out:st={seconds - FADE - CARD_OUT:.3f}:d={CARD_OUT}")
+        fades.append(f"fade=t=out:st={leave:.3f}:d={CARD_OUT}")
+        clean = seconds - FADE - leave - CARD_OUT
+        if clean < 1.5:
+            print(f"store_preview: warning: {os.path.basename(clip)} shows the app alone for "
+                  f"only {clean:.1f} s; give it more seconds")
         alpha_fades = ",".join(f + ":alpha=1" for f in fades)
         luma_fades = ",".join(fades)
         graph = (
@@ -371,8 +378,9 @@ def main() -> int:
                 part = os.path.join(work, f"{locale}-{n}.mp4")
                 # The first clip opens with its caption already there: the
                 # video starts muted, and its first second has to say it.
+                hold = float(entry.get("caption_hold", preview_set.get("caption_hold", CARD_HOLD)))
                 segment(clip, band, float(entry["seconds"]), frame, part,
-                        first=n == 0, last=n == len(chosen) - 1, where=where, mask=shape)
+                        first=n == 0, where=where, mask=shape, hold=hold)
                 parts.append((part, float(entry["seconds"])))
             video = os.path.join(out, name)
             total = join(parts, video)
