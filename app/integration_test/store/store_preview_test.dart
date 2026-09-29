@@ -28,6 +28,7 @@ import 'package:velorki/features/settings/data/appearance_controller.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 import 'package:velorki/features/smart_loop/application/smart_loop_controller.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
+import 'package:velorki_brouter/velorki_brouter.dart';
 
 import '../support/fakes.dart';
 import '../support/harness.dart';
@@ -102,10 +103,13 @@ void main() {
     await frameRoute(tester, container, featured.geometry);
     planner.clear();
     await theme('plan');
+    // The start is set before the recording, so the clip opens on the line
+    // drawing in rather than on an empty map.
+    planner.addWaypoint(featuredRoute.waypoints.first);
     await pumpFor(tester, const Duration(seconds: 4));
     await startRecording(tester, clip('plan'));
-    await pumpFor(tester, const Duration(milliseconds: 700));
-    for (final point in featuredRoute.waypoints) {
+    await pumpFor(tester, const Duration(milliseconds: 300));
+    for (final point in featuredRoute.waypoints.skip(1)) {
       planner.addWaypoint(point);
       await pumpFor(tester, const Duration(milliseconds: 1400));
     }
@@ -208,23 +212,17 @@ void main() {
       () => positions.isListenedTo,
       describe: 'the recorder to subscribe to the GPS',
     );
-    final rider = Rider(positions, session.clock, demoRide(route));
+    // A fix a second of ride time, so the rider moves a few metres at a
+    // time and the camera glides rather than jumps.
+    final rider = Rider(
+      positions,
+      session.clock,
+      demoRide(route, stepSeconds: 1),
+    );
     await rider.rideTo(tester, 18000);
     Future<void> second() => rider.step(tester, const Duration(seconds: 1));
-    // On until a turn is a few seconds ahead, and far enough past the last
-    // one that the banner has settled on it.
-    var ready = false;
-    while (!rider.done && rider.alongM < 21500) {
-      await second();
-      final next = bannerProgress(tester);
-      final ahead = next?.distanceToNextM;
-      if (next?.next != null && ahead != null && ahead > 28 && ahead < 70) {
-        ready = true;
-        break;
-      }
-    }
-    expect(ready, isTrue, reason: 'a turn has to come up on the way');
-    // Folded down, the live sheet docks into the figures bar.
+    // Folded down, the live sheet docks into the figures bar; one step in
+    // on the zoom buttons brings the streets, the line and the rider close.
     await tester.dragFrom(
       tester.getCenter(
         find
@@ -238,10 +236,33 @@ void main() {
     );
     await second();
     await waitForWidget(tester, find.byType(FiguresBar));
+    await tap(find.byTooltip(l10n.mapZoomIn));
+    // On until a real turn, one the map turns through, is a little ahead.
+    bool turns(TurnKind kind) => const <TurnKind>{
+      TurnKind.left,
+      TurnKind.right,
+      TurnKind.sharpLeft,
+      TurnKind.sharpRight,
+    }.contains(kind);
+    var ready = false;
+    while (!rider.done && rider.alongM < 21500) {
+      await second();
+      final next = bannerProgress(tester);
+      final ahead = next?.distanceToNextM;
+      if (next?.next != null &&
+          turns(next!.next!.kind) &&
+          ahead != null &&
+          ahead > 45 &&
+          ahead < 60) {
+        ready = true;
+        break;
+      }
+    }
+    expect(ready, isTrue, reason: 'a turn has to come up on the way');
     await startRecording(tester, clip('navigation'));
     final turn = bannerProgress(tester)!.next!.pointIndex;
     var after = -1;
-    for (var i = 0; i < 25 && !rider.done; i++) {
+    for (var i = 0; i < 20 && !rider.done; i++) {
       await second();
       final next = bannerProgress(tester)?.next?.pointIndex;
       if (after < 0 && next != null && next != turn) after = i;

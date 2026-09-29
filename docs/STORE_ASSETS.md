@@ -82,34 +82,42 @@ Output, git-ignored, under `app/build/store_screenshots/`:
 ## Preview video
 
 ```
-app/tool/store_screenshots.sh --preview [--locales en,de]
+app/tool/store_screenshots.sh --preview [--locales en]
+python3 app/tool/store_preview.py --locales en --frame phone   # the other framing, from the same clips
 ```
 
-One app preview per language, about 25 s: five clips of the real app,
-each under a caption band with the eyebrow and headline of a slide, joined
-by 0.3 s crossfades.
+One app preview per language, about 25 s: five clips of the real app, each
+with the eyebrow and headline of a slide, joined by 0.3 s crossfades.
 
 1. **Recording.** `app/integration_test/store/store_preview_test.dart` plays
    each clip on the same simulator and demo data as the screenshots, and
    `tool/store_shutter.py` records the screen around it with `simctl io
-   recordVideo`: the plan drawn point by point, the variants loaded and
-   switched, a loop found, the 20 km ride navigating through a turn, and
-   that ride finished, saved and its charts scrolled.
-2. **Cutting.** `app/tool/store_preview.py` puts each clip, scaled whole
-   into the lower part of the frame, under its band (rendered by headless
-   Chrome like the slides), plays a clip that runs long up to 1.5 times as
-   fast and keeps its end, crossfades them, and encodes the result.
+   recordVideo`: the route drawing in point by point, the variants loaded and
+   switched, a loop found, the 20 km ride navigating through a turn close up
+   (heading-up, one fix a second of ride time), and that ride finished, saved
+   and its charts scrolled. The charts are scrolled without touching them, so
+   no chart ever shows a selection.
+2. **Cutting.** `app/tool/store_preview.py` plays a clip that runs long up to
+   1.5 times as fast and keeps its end, puts the caption on, crossfades the
+   clips and encodes the result. Two framings of the same clips:
+   - `none` (the default): the app full-bleed, with the caption on a band in
+     the slides' style over the top (ending above the planner's bike chips)
+     or the bottom (over the figures bar, clear of the turn banner), fading
+     into the app at its inner edge and fading in with each clip;
+   - `phone`: the app scaled whole below the caption on the slides' ground.
 
-`app/store/preview_set.json` sets the clips' order, each clip's theme, the
-slide its caption comes from and its length in seconds. The captions are the
-slides' copy, so they arrive through Crowdin with `slides_<lang>.json`.
+`app/store/preview_set.json` sets the framing, the clip the poster comes
+from, and per clip, in the order they play, its theme, the slide its caption
+comes from, `caption` (`top` or `bottom`) and its seconds. It opens on
+navigation, the scene with the most movement. The captions are the slides'
+copy, so they arrive through Crowdin with `slides_<lang>.json`.
 
 Output, git-ignored: `app/build/store_screenshots/preview/<locale>/`
-`preview.mp4`, `poster.png` (the end of the first clip) and `frames/`
-(stills every few seconds, to look at before uploading). The raw clips are in
+`preview.mp4` (or `preview-phone.mp4`), `poster.png` and `frames/` (stills
+every few seconds, to look at before uploading). The raw clips are in
 `raw/preview/<locale>/`.
 
-What App Store Connect accepts, from Apple's app preview specifications:
+What Apple says, in its app preview specifications and guidelines:
 
 - 15 to 30 s; up to three previews per language and device size.
 - 886 × 1920 portrait for the 6.9", 6.5", 6.3" and 6.1" iPhone sizes alike;
@@ -117,8 +125,10 @@ What App Store Connect accepts, from Apple's app preview specifications:
 - Up to 30 fps; H.264 High Profile level 4.0 at 10 to 12 Mbit/s (this one
   holds 11), `.mp4`, `.mov` or `.m4v`, at most 500 MB.
 - A stereo AAC track at 256 kbit/s, 44.1 or 48 kHz; this one is silent.
-- Only what the app shows: screen recordings, with captions and
-  transitions on top; no people, hands or devices.
+- "App previews must show only content within the app itself", and App
+  Review guideline 2.3.4 asks for "video screen captures of the app itself".
+  Captions and transitions are allowed; people and hands are not. Device
+  frames are not named, which is why `none` is the default.
 - Previews play muted, so the first seconds and the captions carry them. The
   poster frame is chosen in App Store Connect, at 5 s by default.
 

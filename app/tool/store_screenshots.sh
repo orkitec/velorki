@@ -170,7 +170,7 @@ capture() {
 # The theme of each preview clip, as `clip:theme` pairs for the test.
 PREVIEW_SET="$(python3 -c '
 import json, sys
-print(",".join(c["clip"] + ":" + c["theme"] for c in json.load(open(sys.argv[1]))))
+print(",".join(c["clip"] + ":" + c["theme"] for c in json.load(open(sys.argv[1]))["clips"]))
 ' "$APP/store/preview_set.json")"
 
 MIRROR_PID=""

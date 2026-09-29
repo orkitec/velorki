@@ -76,12 +76,17 @@ final DateTime rideStart = DateTime(2026, 9, 20, 9, 30);
 
 /// Seconds between two points of the demo ride: under the recorder's 30 s
 /// gap, so all of it counts as moving, and near what a bike computer logs.
-const int _stepS = 4;
+const int _defaultStepS = 4;
 
 /// A ride along [route]: a point every few seconds, the speed set by the
 /// gradient, the heart rate following the effort with a lag, and a little
 /// noise on both from a fixed seed.
-List<TrackPoint> demoRide(RouteResult route, {DateTime? start}) {
+List<TrackPoint> demoRide(
+  RouteResult route, {
+  DateTime? start,
+  int stepSeconds = _defaultStepS,
+}) {
+  final stepS = stepSeconds;
   final line = route.geometry;
   if (line.length < 2) return const <TrackPoint>[];
   final along = List<double>.filled(line.length, 0);
@@ -160,7 +165,7 @@ List<TrackPoint> demoRide(RouteResult route, {DateTime? start}) {
     final town = metres < 1000 ? 0.7 : 1.0;
     final target = kmh / 3.6 * town * (1 + mood);
     // A rider eases into a new pace over a quarter of a minute or so.
-    speed += (target - speed) * (1 - math.exp(-_stepS / 14));
+    speed += (target - speed) * (1 - math.exp(-stepS / 14));
     speed = speed.clamp(1.5, 12.0);
 
     // Effort from the climb and the pace, a slow drift over the hour, and a
@@ -168,7 +173,7 @@ List<TrackPoint> demoRide(RouteResult route, {DateTime? start}) {
     final effort = math.max(0.0, grade) * 300 + (speed * 3.6 - 20) * 0.3;
     final drift = seconds / 3600 * 6;
     final wanted = (116 + effort + drift).clamp(102.0, 184.0);
-    heart += (wanted - heart) * (1 - math.exp(-_stepS / 28));
+    heart += (wanted - heart) * (1 - math.exp(-stepS / 28));
     final bpm = (heart + (random.nextDouble() - 0.5) * 3).round();
 
     points.add(
@@ -180,8 +185,8 @@ List<TrackPoint> demoRide(RouteResult route, {DateTime? start}) {
       ),
     );
     if (metres >= total) break;
-    metres = math.min(total, metres + speed * _stepS);
-    seconds += _stepS;
+    metres = math.min(total, metres + speed * stepS);
+    seconds += stepS;
   }
   return points;
 }
