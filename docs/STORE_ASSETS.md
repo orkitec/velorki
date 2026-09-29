@@ -79,6 +79,53 @@ Output, git-ignored, under `app/build/store_screenshots/`:
 - `slides/set/<size>/<locale>/NN-<slide>.png`, the set to upload
 - `slides/set/contact-<locale>.png`, the set side by side
 
+## Preview video
+
+```
+app/tool/store_screenshots.sh --preview [--locales en,de]
+```
+
+One app preview per language, about 25 s: five clips of the real app,
+each under a caption band with the eyebrow and headline of a slide, joined
+by 0.3 s crossfades.
+
+1. **Recording.** `app/integration_test/store/store_preview_test.dart` plays
+   each clip on the same simulator and demo data as the screenshots, and
+   `tool/store_shutter.py` records the screen around it with `simctl io
+   recordVideo`: the plan drawn point by point, the variants loaded and
+   switched, a loop found, the 20 km ride navigating through a turn, and
+   that ride finished, saved and its charts scrolled.
+2. **Cutting.** `app/tool/store_preview.py` puts each clip, scaled whole
+   into the lower part of the frame, under its band (rendered by headless
+   Chrome like the slides), plays a clip that runs long up to 1.5 times as
+   fast and keeps its end, crossfades them, and encodes the result.
+
+`app/store/preview_set.json` sets the clips' order, each clip's theme, the
+slide its caption comes from and its length in seconds. The captions are the
+slides' copy, so they arrive through Crowdin with `slides_<lang>.json`.
+
+Output, git-ignored: `app/build/store_screenshots/preview/<locale>/`
+`preview.mp4`, `poster.png` (the end of the first clip) and `frames/`
+(stills every few seconds, to look at before uploading). The raw clips are in
+`raw/preview/<locale>/`.
+
+What App Store Connect accepts, from Apple's app preview specifications:
+
+- 15 to 30 s; up to three previews per language and device size.
+- 886 × 1920 portrait for the 6.9", 6.5", 6.3" and 6.1" iPhone sizes alike;
+  the 5.5" size wants 1080 × 1920.
+- Up to 30 fps; H.264 High Profile level 4.0 at 10 to 12 Mbit/s (this one
+  holds 11), `.mp4`, `.mov` or `.m4v`, at most 500 MB.
+- A stereo AAC track at 256 kbit/s, 44.1 or 48 kHz; this one is silent.
+- Only what the app shows: screen recordings, with captions and
+  transitions on top; no people, hands or devices.
+- Previews play muted, so the first seconds and the captions carry them. The
+  poster frame is chosen in App Store Connect, at 5 s by default.
+
+It goes into App Store Connect under the version's page, per localization,
+in the App Previews and Screenshots section of the 6.9" iPhone display,
+beside the screenshots.
+
 ## Adding a language
 
 1. The app strings, the store texts and `slides_<lang>.json` arrive through

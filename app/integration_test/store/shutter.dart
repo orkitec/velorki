@@ -51,6 +51,19 @@ Future<void> sendStoreData(
   debugPrint('VELORKI_STORE data $name');
 }
 
+/// Has the host start recording the simulator's screen into `<name>.mp4`,
+/// and waits until it is; [stopRecording] ends it.
+Future<void> startRecording(WidgetTester tester, String name) async {
+  await _ask(tester, name, const <String>['action=record-start']);
+  debugPrint('VELORKI_STORE recording $name');
+}
+
+/// Ends the recording [startRecording] began, once the file is complete.
+Future<void> stopRecording(WidgetTester tester, String name) async {
+  await _ask(tester, name, const <String>['action=record-stop']);
+  debugPrint('VELORKI_STORE recorded $name');
+}
+
 Future<Directory> _dir() async {
   final base = await getApplicationSupportDirectory();
   return Directory(p.join(base.path, 'itest')).create(recursive: true);

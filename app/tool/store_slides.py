@@ -375,8 +375,10 @@ def slide_html(layout: str, style: str, text: dict, raw: str, screen: str, theme
     return page(w, h, layer(style, text, phone)), needs
 
 
-def photograph(page_file: str, target: str, w: int, h: int, work: str) -> None:
-    """Has headless Chrome save [page_file] as [target] at w x h.
+def photograph(page_file: str, target: str, w: int, h: int, work: str,
+               transparent: bool = False) -> None:
+    """Has headless Chrome save [page_file] as [target] at w x h, with a
+    transparent background where the page paints none when [transparent].
 
     Chrome writes the picture within a second or two but can take half a
     minute more to quit, while its updater wakes up and goes back to sleep;
@@ -391,6 +393,7 @@ def photograph(page_file: str, target: str, w: int, h: int, work: str) -> None:
          # A profile of its own each time: a second Chrome on the same one
          # hands its work to the first and waits for it.
          f"--user-data-dir={tempfile.mkdtemp(dir=work)}",
+         *(["--default-background-color=00000000"] if transparent else []),
          f"--window-size={w},{h}", f"--screenshot={target}", "file://" + page_file],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True,
     )

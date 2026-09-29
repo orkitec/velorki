@@ -12,6 +12,9 @@ container: an `id=<token>` line, a `name=<theme>/<locale>/<screen>` line and an
   bar shows no signal for that one picture.
 * `action=data` copies `data.json` from beside the request to
   `<out-dir>/<name>.json`.
+* `action=record-start` starts `simctl io recordVideo` into
+  `<out-dir>/<name>.mp4` and answers once the recorder says it is recording;
+  `action=record-stop` stops it and answers once the file is complete.
 
 Then the token goes into `shot.ack` beside the request, which lets the test
 go on. The script runs until it is killed; tool/store_screenshots.sh starts
@@ -20,6 +23,7 @@ and stops it around each run.
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -65,6 +69,23 @@ def status_bar(udid: str, network: list[str]) -> None:
     time.sleep(2.5)
 
 
+def start_recording(udid: str, target: str) -> subprocess.Popen:
+    recorder = subprocess.Popen(
+        ["xcrun", "simctl", "io", udid, "recordVideo", "--codec=h264", "--force", target],
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+    )
+    # simctl says so on its output once the first frame is being written.
+    for line in recorder.stdout:
+        if "Recording started" in line:
+            return recorder
+    raise RuntimeError(f"the recorder quit before it started: {target}")
+
+
+def stop_recording(recorder: subprocess.Popen) -> None:
+    recorder.send_signal(signal.SIGINT)
+    recorder.wait(timeout=60)
+
+
 def main() -> int:
     if len(sys.argv) != 3:
         print(__doc__, file=sys.stderr)
@@ -72,6 +93,15 @@ def main() -> int:
     udid, out = sys.argv[1], sys.argv[2]
     last = None
     started = False
+    recorder = None
+
+    def quit_(*_):
+        # A recording left running would keep the simulator busy for good.
+        if recorder is not None and recorder.poll() is None:
+            stop_recording(recorder)
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, quit_)
     while True:
         home = container(udid)
         if home is None:
@@ -95,7 +125,18 @@ def main() -> int:
             return 1
         target = os.path.join(out, name)
         os.makedirs(os.path.dirname(target), exist_ok=True)
-        if fields.get("action") == "data":
+        action = fields.get("action")
+        if action == "record-start":
+            if recorder is not None:
+                stop_recording(recorder)
+            recorder = start_recording(udid, target + ".mp4")
+            print(f"store_shutter: recording {target}.mp4", flush=True)
+        elif action == "record-stop":
+            if recorder is not None:
+                stop_recording(recorder)
+                recorder = None
+            print(f"store_shutter: {target}.mp4", flush=True)
+        elif action == "data":
             shutil.copyfile(os.path.join(folder, "data.json"), target + ".json")
             print(f"store_shutter: {target}.json", flush=True)
         else:

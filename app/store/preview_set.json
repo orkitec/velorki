@@ -1,0 +1,7 @@
+[
+  { "clip": "plan", "theme": "dark", "slide": "plan", "seconds": 5.4 },
+  { "clip": "variants", "theme": "light", "slide": "variants", "seconds": 5.2 },
+  { "clip": "loop", "theme": "light", "slide": "loops", "seconds": 5.2 },
+  { "clip": "navigation", "theme": "dark", "slide": "navigation", "seconds": 5.4 },
+  { "clip": "ride", "theme": "dark", "slide": "ride", "seconds": 5.2 }
+]

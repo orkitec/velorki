@@ -7,6 +7,7 @@
 #   tool/store_screenshots.sh --skip-capture           # slides from the last capture
 #   tool/store_screenshots.sh --shots dark             # both slide styles show the dark app
 #   tool/store_screenshots.sh --until variants         # capture only up to that screen
+#   tool/store_screenshots.sh --preview                # the preview video instead (store/preview_set.json)
 #
 # Output, under app/build/store_screenshots/ (git-ignored):
 #   raw/<theme>/<locale>/<screen>.png          the simulator's screen, 1320x2868
@@ -50,6 +51,7 @@ THEMES=light,dark
 SHOTS=same
 CAPTURE=1
 UNTIL=
+PREVIEW=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --locales) LOCALES="$2"; shift ;;
@@ -57,6 +59,7 @@ while [ $# -gt 0 ]; do
     --shots) SHOTS="$2"; shift ;;
     --skip-capture) CAPTURE=0 ;;
     --until) UNTIL="$2"; shift ;;
+    --preview) PREVIEW=1 ;;
     -h | --help) sed -n '2,/^set -euo/p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//;$d'; exit 0 ;;
     *) printf 'unknown argument %q\n' "$1" >&2; exit 2 ;;
   esac
@@ -132,17 +135,20 @@ boot() {  # boot <udid> <language> <region>
 # first test within ten minutes is stopped and tried once more.
 capture() {
   local locale=$1 log="$WORK/test-$1.log" attempt pid started
+  local test=store_screenshots_test.dart first='store screenshots, '
+  if [ "$PREVIEW" = 1 ]; then test=store_preview_test.dart first='store preview, '; fi
   for attempt in 1 2; do
-    flutter test integration_test/store/store_screenshots_test.dart -d "$UDID" \
+    flutter test "integration_test/store/$test" -d "$UDID" \
       --dart-define-from-file="$DEFINES" \
       --dart-define=VELORKI_STORE_LOCALE="$locale" \
       --dart-define=VELORKI_STORE_THEMES="$THEMES" \
-      --dart-define=VELORKI_STORE_UNTIL="$UNTIL" > "$log" 2>&1 &
+      --dart-define=VELORKI_STORE_UNTIL="$UNTIL" \
+      --dart-define=VELORKI_PREVIEW_SET="$PREVIEW_SET" > "$log" 2>&1 &
     pid=$!
     started=0
     for _ in $(seq 1 600); do
       kill -0 "$pid" 2> /dev/null || break
-      if [ "$started" = 0 ] && grep -q 'store screenshots, ' "$log"; then started=1; fi
+      if [ "$started" = 0 ] && grep -q "$first" "$log"; then started=1; fi
       [ "$started" = 1 ] && break
       sleep 1
     done
@@ -160,6 +166,12 @@ capture() {
   done
   die "the capture for $locale never started"
 }
+
+# The theme of each preview clip, as `clip:theme` pairs for the test.
+PREVIEW_SET="$(python3 -c '
+import json, sys
+print(",".join(c["clip"] + ":" + c["theme"] for c in json.load(open(sys.argv[1]))))
+' "$APP/store/preview_set.json")"
 
 MIRROR_PID=""
 SHUTTER_PID=""
@@ -215,7 +227,7 @@ PY
     boot "$UDID" "${region/_/-}" "$region"
     python3 "$APP/tool/store_shutter.py" "$UDID" "$OUT/raw" &
     SHUTTER_PID=$!
-    say "capturing $locale ($THEMES)"
+    if [ "$PREVIEW" = 1 ]; then say "recording $locale"; else say "capturing $locale ($THEMES)"; fi
     capture "$locale"
     kill "$SHUTTER_PID" 2> /dev/null || true
     wait "$SHUTTER_PID" 2> /dev/null || true
@@ -223,10 +235,17 @@ PY
   done
 
   # The watch takes the figures of the ride, which comes last.
-  if [ -z "$UNTIL" ]; then
+  if [ -z "$UNTIL" ] && [ "$PREVIEW" = 0 ]; then
     say "the watch, with the phone's figures"
     bash "$APP/tool/store_watch.sh" "$OUT/raw" "$OUT/watch" "$LOCALES" "$THEMES"
   fi
+fi
+
+if [ "$PREVIEW" = 1 ]; then
+  say "making the preview"
+  python3 "$APP/tool/store_preview.py" --locales "$LOCALES" \
+    --clips "$OUT/raw/preview" --out "$OUT/preview"
+  exit 0
 fi
 
 say "making the slides"
