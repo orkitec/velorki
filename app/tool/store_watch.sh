@@ -114,9 +114,17 @@ for name, value in shots.items():
 PY
 
 # shoot <png>: the app launched afresh with the SIMCTL_CHILD_ figures, saved.
+# A launch right after a terminate is now and then refused ("Scene update
+# failed") on a slow machine; it is tried again after a pause.
 shoot() {
-  xcrun simctl launch --terminate-running-process "$udid" "$BUNDLE" \
-    -AppleLanguages "($locale)" -AppleLocale "$region" > /dev/null
+  local try
+  for try in 1 2 3 4; do
+    xcrun simctl launch --terminate-running-process "$udid" "$BUNDLE" \
+      -AppleLanguages "($locale)" -AppleLocale "$region" > /dev/null && break
+    [ "$try" -lt 4 ] || die "the watch app would not launch"
+    xcrun simctl terminate "$udid" "$BUNDLE" 2> /dev/null || true
+    sleep $((try * 5))
+  done
   sleep 3
   mkdir -p "$(dirname "$1")"
   xcrun simctl io "$udid" screenshot "$1" > /dev/null 2>&1
