@@ -16,7 +16,8 @@ What goes on a slide comes from store/:
   the accent) and a `subline`. English is the source, Crowdin writes the
   rest; a slide a translation lacks falls back to English, with a warning.
 * slide_set.json: the set that is uploaded, in order. Per entry the slide,
-  its `layout`, the raw `screen` it shows and the `style` it takes in the set.
+  its `layout`, the raw `screen` it shows, the `style` it takes in the set,
+  and `brand` for the one that carries the app's icon and name.
 
 Layouts: `phone` (one screenshot, running off the bottom edge), `whole` (one
 screenshot, the phone sized to show all of it), `watch` (the phone with the Apple Watch
@@ -93,6 +94,11 @@ html, body { margin: 0; width: Wpx; height: Hpx; overflow: hidden; }
 .chip { display: inline-flex; align-items: center; gap: 1.7vw; padding: 1.5vw 3.4vw;
   border-radius: 999px; border: 0.22vw solid var(--line); background: var(--panel);
   font-size: 3.3vw; font-weight: 600; letter-spacing: 0.01em; }
+.brand { display: flex; align-items: center; gap: 2.4vw; margin-bottom: 4vw; }
+.brand img { width: 6.2vw; height: 6.2vw; border-radius: 22.4%;
+  box-shadow: 0 0 0 0.15vw var(--line), 0 0.8vw 2vw rgb(0 0 0 / 0.25); }
+.brand span { font-family: Barlow, sans-serif; font-weight: 700; font-size: 6vw; letter-spacing: 0.01em;
+  line-height: 1; }
 .chip i { width: 1.9vw; height: 1.9vw; border-radius: 50%; background: var(--accent); }
 h1 { font-family: Barlow, sans-serif; font-weight: 700; font-size: 13.6vw; line-height: 0.95;
   letter-spacing: -0.01em; margin: 4.4vw 0 0; text-wrap: balance; }
@@ -307,13 +313,26 @@ def lock_screen(activity: dict, locale: str) -> tuple[str, str]:
     return screen, island
 
 
-def layer(style: str, text: dict, stage: str, extra_class: str = "", clip: str = "") -> str:
+# The app's own icon, for the brand line of the slides and the preview's
+# first caption.
+APP_ICON = os.path.join(APP, "ios", "Runner", "Assets.xcassets", "AppIcon.appiconset",
+                        "Icon-App-1024x1024@1x.png")
+
+
+def brand_line(css_class: str = "brand") -> str:
+    """The app icon, rounded as iOS rounds it, and the name beside it."""
+    return (f'<div class="{css_class}"><img src="file://{APP_ICON}" alt="">'
+            f"<span>Velorki</span></div>")
+
+
+def layer(style: str, text: dict, stage: str, extra_class: str = "", clip: str = "",
+          brand: bool = False) -> str:
     tokens = STYLES[style]
     variables = ";".join(f"--{k}:{v}" for k, v in tokens.items())
     return (
         f'<div class="layer {extra_class}" style="{variables};{clip}">'
         f'<div class="aurora"></div>{TOPO}'
-        f'<div class="copy"><div class="chip"><i></i>{html.escape(text["eyebrow"])}</div>'
+        f'<div class="copy">{brand_line() if brand else ""}<div class="chip"><i></i>{html.escape(text["eyebrow"])}</div>'
         f'<h1>{rich(text["headline"])}</h1><p class="sub">{html.escape(text["subline"])}</p></div>'
         f'<div class="stage">{stage}</div></div>'
     )
@@ -327,8 +346,10 @@ def page(w: int, h: int, body: str) -> str:
 
 
 def slide_html(layout: str, style: str, text: dict, raw: str, screen: str, theme: str,
-               locale: str, watch: str, w: int, h: int) -> tuple[str, list[str]]:
-    """The page for one slide, and the input files it needs."""
+               locale: str, watch: str, w: int, h: int,
+               brand: bool = False) -> tuple[str, list[str]]:
+    """The page for one slide, and the input files it needs. [brand] puts
+    the app's icon and name above the eyebrow (phone layout)."""
     needs = []
     if layout == "split":
         light = os.path.join(raw, "light", locale, f"{screen}.png")
@@ -372,7 +393,7 @@ def slide_html(layout: str, style: str, text: dict, raw: str, screen: str, theme
         clock = '<div class="clock">9:41</div>' if os.path.isfile(face) else ""
         stage = phone + f'<div class="watch"><div class="face">{image_or_missing(face)}{clock}</div></div>'
         return page(w, h, layer(style, text, stage, "watch-slide")), needs
-    return page(w, h, layer(style, text, phone)), needs
+    return page(w, h, layer(style, text, phone, brand=brand)), needs
 
 
 def photograph(page_file: str, target: str, w: int, h: int, work: str,
@@ -480,7 +501,8 @@ def main() -> int:
                     for size in sizes:
                         w, h = SIZES[size]
                         markup, needs = slide_html(entry["layout"], style, text, args.raw,
-                                                   entry["screen"], theme, locale, args.watch, w, h)
+                                                   entry["screen"], theme, locale, args.watch, w, h,
+                                                   brand=entry.get("brand", False))
                         absent = [n for n in needs if not os.path.isfile(n)]
                         if absent:
                             missing.update(absent)

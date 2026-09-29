@@ -95,6 +95,10 @@ html, body { margin: 0; width: 886px; height: 1920px; background: transparent; o
 .card.top { top: TOPpx; left: EDGEpx; right: EDGEpx; min-height: MINHpx;
   display: flex; flex-direction: column; justify-content: center; align-items: flex-start; }
 .card.bottom { bottom: BOTTOMpx; }
+.row { display: flex; align-items: center; gap: 16px; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand img { width: 40px; height: 40px; border-radius: 22.4%; box-shadow: 0 0 0 1px var(--line); }
+.brand span { font-family: Barlow, sans-serif; font-weight: 700; font-size: 30px; line-height: 1; }
 .chip { display: inline-flex; align-items: center; gap: 10px; padding: 7px 17px; border-radius: 999px;
   border: 1.5px solid var(--line); background: var(--panel); font-size: 23px; font-weight: 600; }
 .chip i { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); }
@@ -167,7 +171,7 @@ document.fonts.ready.then(() => {
 
 
 def card_page(style: str, text: dict, where: str, mask: bool = False,
-              card: str = "frost") -> str:
+              card: str = "frost", brand: bool = False) -> str:
     """The caption card for the full-bleed framing, alone on a transparent
     frame, or with [mask] its shape in white on black. The headline takes two
     lines at most, and shrinks until the card fits its place."""
@@ -181,7 +185,8 @@ def card_page(style: str, text: dict, where: str, mask: bool = False,
                    .replace("BOTTOMpx", f"{H - BOTTOM_CARD_END}px"))
     body = (
         f'<div class="card {where} {card}" style="{tokens};--tint:{TINT[style]}">'
-        f'<div class="chip"><i></i>{html.escape(text["eyebrow"])}</div>'
+        f'<div class="row">{slides.brand_line("brand") if brand else ""}'
+        f'<div class="chip"><i></i>{html.escape(text["eyebrow"])}</div></div>'
         f'<h1>{slides.rich(text["headline"])}</h1></div>'
     )
     limit = TOP_CARD[1] if where == "top" else 0
@@ -354,11 +359,13 @@ def main() -> int:
                     if frame == "phone":
                         f.write(band_page(entry["theme"], text))
                     else:
-                        f.write(card_page(entry["theme"], text, where, card=card))
+                        # The first caption carries the app's icon and name.
+                        f.write(card_page(entry["theme"], text, where, card=card, brand=n == 0))
                 slides.photograph(page, band, W, H, work, transparent=True)
                 if frame != "phone":
                     with open(page, "w", encoding="utf-8") as f:
-                        f.write(card_page(entry["theme"], text, where, mask=True, card=card))
+                        f.write(card_page(entry["theme"], text, where, mask=True, card=card,
+                                          brand=n == 0))
                     shape = os.path.join(work, f"{locale}-{n}-mask.png")
                     slides.photograph(page, shape, W, H, work)
                 part = os.path.join(work, f"{locale}-{n}.mp4")

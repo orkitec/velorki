@@ -64,7 +64,9 @@ Copy and order live in `app/store/`:
   from Crowdin; a slide missing there falls back to English. A headline that
   runs past three lines, or a subline past two, shrinks to fit.
 - `slide_set.json`: the set that is uploaded, in order, and per slide its
-  layout, the screen it shows and its style. Changing the mix is an edit
+  layout, the screen it shows and its style; `brand` puts the app's icon and
+  name above the eyebrow (slide 01 only). The preview's first caption card
+  carries them too. Changing the mix is an edit
   there and `--skip-capture`.
 
 `--until plan` or `--until variants` captures only the screens up to that

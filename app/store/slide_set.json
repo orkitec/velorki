@@ -1,5 +1,5 @@
 [
-  { "slide": "plan", "layout": "phone", "screen": "plan", "style": "dark" },
+  { "slide": "plan", "layout": "phone", "screen": "plan", "style": "dark", "brand": true },
   { "slide": "variants", "layout": "phone", "screen": "variants", "style": "light" },
   { "slide": "navigation", "layout": "whole", "screen": "navigation", "style": "dark" },
   { "slide": "loops", "layout": "phone", "screen": "loop", "style": "light" },
