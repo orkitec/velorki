@@ -236,6 +236,11 @@ void main() {
     );
     await second();
     await waitForWidget(tester, find.byType(FiguresBar));
+    // On a slow machine the sheet can still be moving when the drag comes,
+    // and a drag that lands on the map lets the rider go; asking for the
+    // rider again picks the following up whichever it was.
+    await tap(find.byTooltip(l10n.mapLocateMe));
+    await second();
     await tap(find.byTooltip(l10n.mapZoomIn));
     // On until a real turn, one the map turns through, is a little ahead.
     bool turns(TurnKind kind) => const <TurnKind>{
