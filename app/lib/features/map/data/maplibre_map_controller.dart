@@ -1221,6 +1221,16 @@ class MaplibreMapControllerAdapter implements MapController {
           lineCap: 'round',
           lineJoin: 'round',
         ),
+        // The route's own colour, dimmed: still the route, just not current.
+        RouteLineStyle.stale => ml.LineLayerProperties(
+          lineColor: id == null || !_isVariantId(id)
+              ? palette.routeMain
+              : _alternativeColour(id),
+          lineWidth: 5.0,
+          lineOpacity: 0.4,
+          lineCap: 'round',
+          lineJoin: 'round',
+        ),
       };
 
   /// Whether [id] names a numbered variant (`alt-2`, `main-2`).
@@ -1264,6 +1274,13 @@ class MaplibreMapControllerAdapter implements MapController {
           lineColor: palette.routeMainCasing,
           lineWidth: 6.0,
           lineOpacity: 0.0,
+          lineCap: 'round',
+          lineJoin: 'round',
+        ),
+        RouteLineStyle.stale => ml.LineLayerProperties(
+          lineColor: palette.routeMainCasing,
+          lineWidth: 9.0,
+          lineOpacity: 0.2,
           lineCap: 'round',
           lineJoin: 'round',
         ),
