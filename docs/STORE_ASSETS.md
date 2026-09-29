@@ -100,10 +100,13 @@ with the eyebrow and headline of a slide, joined by 0.3 s crossfades.
 2. **Cutting.** `app/tool/store_preview.py` plays a clip that runs long up to
    1.5 times as fast and keeps its end, puts the caption on, crossfades the
    clips and encodes the result. Two framings of the same clips:
-   - `none` (the default): the app full-bleed, with the caption on a band in
-     the slides' style over the top (ending above the planner's bike chips)
-     or the bottom (over the figures bar, clear of the turn banner), fading
-     into the app at its inner edge and fading in with each clip;
+   - `none` (the default): the app full-bleed, with the caption on a
+     floating frosted card like a notification: the app behind it blurred
+     and tinted ink or paper, a hairline border, a soft shadow. A top card
+     covers the status bar and search field and ends above the planner's
+     bike chips; a bottom one ends above the figures bar, clear of the turn
+     banner. It slides and fades in with each clip and fades out before the
+     crossfade; the first clip's is there from the first frame;
    - `phone`: the app scaled whole below the caption on the slides' ground.
 
 `app/store/preview_set.json` sets the framing, the clip the poster comes

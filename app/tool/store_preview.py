@@ -10,10 +10,12 @@ and per clip, in the order they play, its theme, the slide whose eyebrow and
 headline caption it, where the caption sits and how many seconds it gets.
 
 Two framings of the same footage:
-* `none`: the app full-bleed at 886 x 1920, with the caption on a band in the
-  slides' style over the top or the bottom of it, fading into the app at its
-  inner edge and fading in over the first 0.3 s of the clip. A top band ends
-  above the planner's bike chips; a bottom one covers the figures bar.
+* `none`: the app full-bleed at 886 x 1920, with the caption on a floating
+  frosted card in the slides' palette, near the top or the bottom: the app
+  behind it blurred and tinted, a hairline border and a soft shadow. It
+  slides and fades in at the start of a clip and fades out before the
+  crossfade. A top card ends above the planner's bike chips; a bottom one
+  above the figures bar.
 * `phone`: the app scaled whole into the lower part of the frame under the
   caption, on the slides' ground, as on the slides.
 
@@ -56,36 +58,43 @@ FADE = 0.3
 MAX_SPEED = 1.5
 STILLS = (0.5, 2, 5, 9, 13, 17, 21, 24)
 
-# Where the full-bleed band ends, in frame pixels: at the top, just above the
-# planner's bike chips (they start at 285); at the bottom, above the figures
-# bar with room for two lines. Each fades into the app over its last FADE_PX.
-TOP_BAND = 282
-BOTTOM_BAND = 470
-FADE_PX = 44
+# The full-bleed caption card: a frosted card like a notification, inset by
+# MARGIN, with the eyebrow chip and a headline of up to two lines. A top card
+# sits between the status bar and the planner's bike chips (they start at
+# 285), and is wide and tall enough to cover the search field (24 to 862
+# across, down to 256), whose edges would otherwise show round it; a bottom
+# card ends above the figures bar (from 1630) with a gap.
+MARGIN = 36
+MARGIN_TOP = 18
+TOP_MIN_END = 262
+RADIUS_CARD = 40
+TOP_CARD = (44, 272)
+BOTTOM_CARD_END = 1598
+SLIDE_PX = 26
+CARD_IN = 0.35
+CARD_OUT = 0.25
+BLUR = 26
+TINT = {"dark": "rgb(14 17 21 / 0.76)", "light": "rgb(245 246 243 / 0.82)"}
 
-BLEED_CSS = """
+CARD_CSS = """
 html, body { margin: 0; width: 886px; height: 1920px; background: transparent; overflow: hidden; }
-.band { position: absolute; left: 0; right: 0; overflow: hidden; font-family: Manrope, sans-serif;
-  background: linear-gradient(180deg, var(--canvas), var(--deep)); color: var(--fg); }
-.band.top { top: 0; height: TOPpx; padding: 58px 44px 0; box-sizing: border-box;
-  -webkit-mask: linear-gradient(180deg, #000 calc(100% - FADEpx), transparent);
-  mask: linear-gradient(180deg, #000 calc(100% - FADEpx), transparent); }
-.band.bottom { bottom: 0; height: BOTTOMpx; padding: 0 48px 76px; box-sizing: border-box;
-  display: flex; flex-direction: column; justify-content: flex-end;
-  -webkit-mask: linear-gradient(0deg, #000 calc(100% - FADEpx), transparent);
-  mask: linear-gradient(0deg, #000 calc(100% - FADEpx), transparent); }
-.band .aurora { position: absolute; inset: 0;
-  background: radial-gradient(900px 420px at 12% -30%, var(--glow), transparent 62%),
-              radial-gradient(700px 360px at 98% -20%, var(--soft), transparent 66%); }
-.band .topo { position: absolute; inset: 0; width: 100%; height: 100%; }
-.band .topo path { fill: none; stroke: var(--contour); stroke-width: 0.12; }
-.band .inner { position: relative; }
-.chip { display: inline-flex; align-items: center; gap: 10px; padding: 7px 18px; border-radius: 999px;
-  border: 1.5px solid var(--line); background: var(--panel); font-size: 24px; font-weight: 600; }
+.card { position: absolute; left: MARGINpx; right: MARGINpx; box-sizing: border-box;
+  padding: 26px 30px 30px; border-radius: RADIUSpx; font-family: Manrope, sans-serif;
+  background: var(--tint); color: var(--fg); border: 1.5px solid var(--line);
+  box-shadow: 0 18px 44px -12px rgb(0 0 0 / 0.45), 0 2px 8px rgb(0 0 0 / 0.18); }
+.card.top { top: TOPpx; left: EDGEpx; right: EDGEpx; min-height: MINHpx;
+  display: flex; flex-direction: column; justify-content: center; align-items: flex-start; }
+.card.bottom { bottom: BOTTOMpx; }
+.chip { display: inline-flex; align-items: center; gap: 10px; padding: 7px 17px; border-radius: 999px;
+  border: 1.5px solid var(--line); background: var(--panel); font-size: 23px; font-weight: 600; }
 .chip i { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); }
-h1 { font-family: Barlow, sans-serif; font-weight: 700; font-size: 76px; line-height: 0.95;
-  letter-spacing: -0.01em; margin: 10px 0 0; text-wrap: balance; }
+h1 { font-family: Barlow, sans-serif; font-weight: 700; font-size: 80px; line-height: 0.95;
+  letter-spacing: -0.01em; margin: 12px 0 0; text-wrap: balance; }
 h1 em { font-style: normal; color: var(--accent); }
+/* The mask: the card's shape alone, white on black. */
+body.mask { background: #000; }
+body.mask .card { background: #fff; border-color: #fff; box-shadow: none; }
+body.mask .card * { visibility: hidden; }
 """
 
 BAND_CSS = """
@@ -134,40 +143,38 @@ document.fonts.ready.then(() => {
             f"<body>{body}<script>{fit}</script></body></html>")
 
 
-def bleed_page(style: str, text: dict, where: str) -> str:
-    """The caption band for the full-bleed framing, alone on a transparent
-    frame. A top band has room for one line of headline, which shrinks a
-    little to fit and otherwise takes a second line and a taller band; a
-    bottom band takes two."""
+def card_page(style: str, text: dict, where: str, mask: bool = False) -> str:
+    """The caption card for the full-bleed framing, alone on a transparent
+    frame, or with [mask] its shape in white on black. The headline takes two
+    lines at most, and shrinks until the card fits its place."""
     tokens = ";".join(f"--{k}:{v}" for k, v in slides.STYLES[style].items())
     fonts = slides.CSS[:slides.CSS.index("html, body")].replace("FONTS", "file://" + slides.FONTS)
-    css = fonts + (BLEED_CSS.replace("TOPpx", f"{TOP_BAND}px")
-                   .replace("BOTTOMpx", f"{BOTTOM_BAND}px").replace("FADEpx", f"{FADE_PX}px"))
-    lines = 1 if where == "top" else 2
-    topo = slides.TOPO.replace('preserveAspectRatio="none"', 'preserveAspectRatio="xMidYMid slice"')
+    css = fonts + (CARD_CSS.replace("MARGINpx", f"{MARGIN}px").replace("RADIUSpx", f"{RADIUS_CARD}px")
+                   .replace("TOPpx", f"{TOP_CARD[0]}px")
+                   .replace("EDGEpx", f"{MARGIN_TOP}px")
+                   .replace("MINHpx", f"{TOP_MIN_END - TOP_CARD[0]}px")
+                   .replace("BOTTOMpx", f"{H - BOTTOM_CARD_END}px"))
     body = (
-        f'<div class="band {where}" style="{tokens}"><div class="aurora"></div>{topo}'
-        f'<div class="inner"><div class="chip"><i></i>{html.escape(text["eyebrow"])}</div>'
-        f'<h1>{slides.rich(text["headline"])}</h1></div></div>'
+        f'<div class="card {where}" style="{tokens};--tint:{TINT[style]}">'
+        f'<div class="chip"><i></i>{html.escape(text["eyebrow"])}</div>'
+        f'<h1>{slides.rich(text["headline"])}</h1></div>'
     )
+    limit = TOP_CARD[1] if where == "top" else 0
     fit = f"""
 document.fonts.ready.then(() => {{
   const h = document.querySelector('h1');
+  const card = document.querySelector('.card');
   let size = parseFloat(getComputedStyle(h).fontSize);
-  while (h.scrollHeight > parseFloat(getComputedStyle(h).lineHeight) * {lines} + 1 && size > 58) {{
+  const tooBig = () =>
+    h.scrollHeight > parseFloat(getComputedStyle(h).lineHeight) * 2 + 1 ||
+    ({limit} > 0 && card.getBoundingClientRect().bottom > {limit});
+  while (tooBig() && size > 40) {{
     size -= 1;
     h.style.fontSize = size + 'px';
   }}
-  // A headline that still needs another line gets it, and the band grows.
-  const band = document.querySelector('.band');
-  const inner = document.querySelector('.inner').getBoundingClientRect();
-  const need = band.classList.contains('top')
-    ? inner.bottom + 20 + {FADE_PX}
-    : {H} - inner.top + 20 + {FADE_PX};
-  if (need > band.offsetHeight) band.style.height = need + 'px';
 }});"""
     return (f'<!doctype html><html><head><meta charset="utf-8"><style>{css}</style></head>'
-            f"<body>{body}<script>{fit}</script></body></html>")
+            f'<body class="{"mask" if mask else ""}">{body}<script>{fit}</script></body></html>')
 
 
 def duration(path: str) -> float:
@@ -183,9 +190,11 @@ def run(args: list[str]) -> None:
 
 
 def segment(clip: str, band: str, seconds: float, frame: str, target: str,
-            fade_in: bool = True) -> None:
+            first: bool = False, last: bool = False, where: str = "top",
+            mask: str | None = None) -> None:
     """One clip, [seconds] long, with its caption, lossless enough to cut
-    again."""
+    again. [band] is the caption picture; for the full-bleed framing [mask]
+    is the card's shape, where the app behind it is frosted."""
     # The recorder's first frames can still be the last state before it.
     lead = 0.25
     length = duration(clip) - lead
@@ -198,6 +207,7 @@ def segment(clip: str, band: str, seconds: float, frame: str, target: str,
     if length < seconds:
         print(f"store_preview: warning: {os.path.basename(clip)} is {length:.1f} s, "
               f"shorter than its {seconds} s; its last frame is held")
+    inputs = ["-i", clip, "-loop", "1", "-framerate", "30", "-i", band]
     if frame == "phone":
         graph = (
             f"[0:v]{timing},scale={SCREEN_W}:{SCREEN_H}:flags=lanczos,"
@@ -205,15 +215,40 @@ def segment(clip: str, band: str, seconds: float, frame: str, target: str,
             f"setpts=PTS-STARTPTS[app];[app][1:v]overlay=0:0:format=auto,format=yuv420p[v]"
         )
     else:
-        # The whole screen, 1320 x 2868 scaled to the frame's width, loses
-        # six rows of the home indicator at the bottom.
+        inputs += ["-loop", "1", "-framerate", "30", "-i", mask]
+        # The card slides in from its edge with an ease-out and fades in
+        # over the same time, holds, and fades out before the crossfade; the
+        # first clip's card is there from the first frame, and the last
+        # clip's stays to the end.
+        sign = -1 if where == "top" else 1
+        if first:
+            dy = "0"
+        else:
+            dy = f"{sign * SLIDE_PX}*pow(1-min(t/{CARD_IN},1),3)"
+        fades = []
+        if not first:
+            fades.append(f"fade=t=in:st=0:d={CARD_IN}")
+        if not last:
+            fades.append(f"fade=t=out:st={seconds - FADE - CARD_OUT:.3f}:d={CARD_OUT}")
+        alpha_fades = ",".join(f + ":alpha=1" for f in fades)
+        luma_fades = ",".join(fades)
         graph = (
+            # The whole screen, 1320 x 2868 scaled to the frame's width,
+            # loses six rows of the home indicator at the bottom.
             f"[0:v]{timing},scale={W}:-2:flags=lanczos,crop={W}:{H}:0:0,"
-            f"trim=duration={seconds:.3f},setpts=PTS-STARTPTS[app];"
-            f"[1:v]format=rgba{',fade=t=in:st=0:d=0.3:alpha=1' if fade_in else ''}[band];"
-            f"[app][band]overlay=0:0:format=auto:shortest=1,format=yuv420p[v]"
+            f"trim=duration={seconds:.3f},setpts=PTS-STARTPTS,format=yuv444p,split[app][under];"
+            f"[under]gblur=sigma={BLUR}[frost];"
+            f"color=black:s={W}x{H}:r=30:d={seconds:.3f}[canvas];"
+            f"[2:v]format=gray[shape];"
+            f"[canvas][shape]overlay=x=0:y='{dy}':eval=frame:shortest=1,format=gray"
+            f"{',' + luma_fades if luma_fades else ''}[moving];"
+            f"[frost][moving]alphamerge[glass];"
+            f"[1:v]format=rgba{',' + alpha_fades if alpha_fades else ''}[card];"
+            f"[app][glass]overlay=0:0:format=auto[frosted];"
+            f"[frosted][card]overlay=x=0:y='{dy}':eval=frame:format=auto:shortest=1,"
+            f"format=yuv420p[v]"
         )
-    run(["-i", clip, "-loop", "1", "-framerate", "30", "-i", band, "-filter_complex", graph,
+    run([*inputs, "-filter_complex", graph,
          "-map", "[v]", "-t", f"{seconds:.3f}", "-r", "30", "-c:v", "libx264", "-crf", "10",
          "-preset", "medium", target])
     print(f"store_preview: {os.path.basename(clip)} {length:.1f} s at {speed:.2f}x "
@@ -278,18 +313,26 @@ def main() -> int:
                     print(f"store_preview: missing {clip}; record it first", file=sys.stderr)
                     return 1
                 text = copy.get(entry["slide"]) or english[entry["slide"]]
+                where = entry.get("caption", "top")
                 page = os.path.join(work, "band.html")
+                band = os.path.join(work, f"{locale}-{n}.png")
+                shape = None
                 with open(page, "w", encoding="utf-8") as f:
                     if frame == "phone":
                         f.write(band_page(entry["theme"], text))
                     else:
-                        f.write(bleed_page(entry["theme"], text, entry.get("caption", "top")))
-                band = os.path.join(work, f"{locale}-{n}.png")
+                        f.write(card_page(entry["theme"], text, where))
                 slides.photograph(page, band, W, H, work, transparent=True)
+                if frame != "phone":
+                    with open(page, "w", encoding="utf-8") as f:
+                        f.write(card_page(entry["theme"], text, where, mask=True))
+                    shape = os.path.join(work, f"{locale}-{n}-mask.png")
+                    slides.photograph(page, shape, W, H, work)
                 part = os.path.join(work, f"{locale}-{n}.mp4")
                 # The first clip opens with its caption already there: the
                 # video starts muted, and its first second has to say it.
-                segment(clip, band, float(entry["seconds"]), frame, part, fade_in=n > 0)
+                segment(clip, band, float(entry["seconds"]), frame, part,
+                        first=n == 0, last=n == len(chosen) - 1, where=where, mask=shape)
                 parts.append((part, float(entry["seconds"])))
             video = os.path.join(out, name)
             total = join(parts, video)
