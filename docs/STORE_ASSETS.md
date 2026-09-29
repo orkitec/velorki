@@ -109,9 +109,9 @@ with the eyebrow and headline of a slide, joined by 0.3 s crossfades.
      crossfade; the first clip's is there from the first frame;
    - `phone`: the app scaled whole below the caption on the slides' ground.
 
-The card's look is `card` in the set: `frost` (as above), `accent-frame`
+The card's look is `card` in the set: `accent-frame`, the default
 (the frosted card with a 4 px accent border and an accent glow, so it reads
-as an overlay rather than a panel of the app) or `accent-solid` (an opaque
+as an overlay rather than a panel of the app), `frost` (without them) or `accent-solid` (an opaque
 card in the accent colour, lime with ink text on dark scenes, deep green with
 white text on light ones). `store_preview.py --card <name>` renders another
 one from the same clips as `preview-<name>.mp4`.

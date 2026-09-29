@@ -1,6 +1,6 @@
 {
   "frame": "none",
-  "card": "frost",
+  "card": "accent-frame",
   "poster": "plan",
   "clips": [
     { "clip": "navigation", "theme": "dark", "slide": "navigation", "caption": "bottom", "seconds": 5.6 },
