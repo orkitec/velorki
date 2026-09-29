@@ -13,7 +13,7 @@ Two framings of the same footage:
 * `none`: the app full-bleed at 886 x 1920, with the caption on a floating
   frosted card in the slides' palette, near the top or the bottom: the app
   behind it blurred and tinted, a hairline border and a soft shadow. It
-  slides and fades in at the start of a clip, holds for its `caption_hold`,
+  slides and fades in `caption_delay` into a clip, holds for its `caption_hold`,
   and slides back out, so the rest of the clip shows the app alone. A top
   card ends above the planner's bike chips; a bottom one above the figures
   bar.
@@ -76,6 +76,9 @@ CARD_IN = 0.35
 CARD_OUT = 0.3
 # How long a card holds after it has come in, unless the set says otherwise.
 CARD_HOLD = 2.4
+# How long the scene runs on its own before its card comes in, unless the set
+# says otherwise: counted from the end of the crossfade into it.
+CARD_DELAY = 1.0
 BLUR = 26
 TINT = {"dark": "rgb(14 17 21 / 0.76)", "light": "rgb(245 246 243 / 0.82)"}
 # The card styles: `frost`, `accent-frame` and `accent-solid`. What the two
@@ -224,7 +227,7 @@ def run(args: list[str]) -> None:
 
 def segment(clip: str, band: str, seconds: float, frame: str, target: str,
             first: bool = False, where: str = "top", mask: str | None = None,
-            hold: float = CARD_HOLD) -> None:
+            hold: float = CARD_HOLD, delay: float = 0.0) -> None:
     """One clip, [seconds] long, with its caption, lossless enough to cut
     again. [band] is the caption picture; for the full-bleed framing [mask]
     is the card's shape, where the app behind it is frosted."""
@@ -249,20 +252,19 @@ def segment(clip: str, band: str, seconds: float, frame: str, target: str,
         )
     else:
         inputs += ["-loop", "1", "-framerate", "30", "-i", mask]
-        # The card slides in from its edge with an ease-out and fades in,
-        # holds for [hold], then slides back out towards its edge with an
-        # ease-in and fades out, so the rest of the clip is the app alone.
-        # The first clip's card is there from the first frame.
+        # The scene comes in first: [delay] after the crossfade into it (after
+        # the first frame, for the first clip) the card slides in from its
+        # edge with an ease-out and fades in, holds for [hold], then slides
+        # back out towards its edge with an ease-in and fades out, so the
+        # rest of the clip is the app alone.
         sign = -1 if where == "top" else 1
-        come = 0.0 if first else CARD_IN
-        leave = come + hold
-        slide_in = "0" if first else f"{sign * SLIDE_PX}*pow(1-min(t/{CARD_IN},1),3)"
+        start = (0.0 if first else FADE) + delay
+        leave = start + CARD_IN + hold
+        slide_in = f"{sign * SLIDE_PX}*pow(1-min(max((t-{start:.3f})/{CARD_IN},0),1),3)"
         slide_out = f"{sign * SLIDE_PX}*pow(min(max((t-{leave:.3f})/{CARD_OUT},0),1),2)"
         dy = f"{slide_in}+{slide_out}"
-        fades = []
-        if not first:
-            fades.append(f"fade=t=in:st=0:d={CARD_IN}")
-        fades.append(f"fade=t=out:st={leave:.3f}:d={CARD_OUT}")
+        fades = [f"fade=t=in:st={start:.3f}:d={CARD_IN}",
+                 f"fade=t=out:st={leave:.3f}:d={CARD_OUT}"]
         clean = seconds - FADE - leave - CARD_OUT
         if clean < 1.5:
             print(f"store_preview: warning: {os.path.basename(clip)} shows the app alone for "
@@ -379,8 +381,9 @@ def main() -> int:
                 # The first clip opens with its caption already there: the
                 # video starts muted, and its first second has to say it.
                 hold = float(entry.get("caption_hold", preview_set.get("caption_hold", CARD_HOLD)))
+                delay = float(entry.get("caption_delay", preview_set.get("caption_delay", CARD_DELAY)))
                 segment(clip, band, float(entry["seconds"]), frame, part,
-                        first=n == 0, where=where, mask=shape, hold=hold)
+                        first=n == 0, where=where, mask=shape, hold=hold, delay=delay)
                 parts.append((part, float(entry["seconds"])))
             video = os.path.join(out, name)
             total = join(parts, video)

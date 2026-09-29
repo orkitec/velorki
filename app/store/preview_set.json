@@ -2,12 +2,13 @@
   "frame": "none",
   "card": "accent-frame",
   "poster": "plan",
-  "caption_hold": 2.4,
+  "caption_delay": 1.0,
+  "caption_hold": 2.3,
   "clips": [
-    { "clip": "navigation", "theme": "dark", "slide": "navigation", "caption": "bottom", "seconds": 5.9 },
-    { "clip": "plan", "theme": "dark", "slide": "plan", "caption": "top", "seconds": 5.9 },
-    { "clip": "variants", "theme": "light", "slide": "variants", "caption": "top", "seconds": 5.9 },
-    { "clip": "loop", "theme": "light", "slide": "loops", "caption": "top", "seconds": 5.9 },
-    { "clip": "ride", "theme": "dark", "slide": "ride", "caption": "top", "seconds": 5.9 }
+    { "clip": "navigation", "theme": "dark", "slide": "navigation", "caption": "bottom", "seconds": 5.6, "caption_delay": 0.5 },
+    { "clip": "plan", "theme": "dark", "slide": "plan", "caption": "top", "seconds": 6.1, "caption_delay": 0.5 },
+    { "clip": "variants", "theme": "light", "slide": "variants", "caption": "top", "seconds": 6.1 },
+    { "clip": "loop", "theme": "light", "slide": "loops", "caption": "top", "seconds": 6.1 },
+    { "clip": "ride", "theme": "dark", "slide": "ride", "caption": "top", "seconds": 6.1 }
   ]
 }

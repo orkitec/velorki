@@ -107,10 +107,10 @@ with the eyebrow and headline of a slide, joined by 0.3 s crossfades.
      and tinted ink or paper, a hairline border, a soft shadow. A top card
      covers the status bar and search field and ends above the planner's
      bike chips; a bottom one ends above the figures bar, clear of the turn
-     banner. It slides and fades in with each clip, holds for
-     `caption_hold` seconds (2.4 by default, per clip if set there), and
-     slides out, so the rest of each clip shows the app alone; the first
-     clip's is there from the first frame;
+     banner. It slides and fades in `caption_delay` seconds after the
+     crossfade into its clip (1 s by default), holds for
+     `caption_hold` seconds (both can be set per clip), and
+     slides out, so the rest of each clip shows the app alone;
    - `phone`: the app scaled whole below the caption on the slides' ground.
 
 The card's look is `card` in the set: `accent-frame`, the default
