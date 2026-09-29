@@ -133,13 +133,15 @@ boot() {  # boot <udid> <language> <region>
 # Runs the test for one locale. Right after the simulator boots, flutter test
 # now and then installs and launches the app and then never attaches to it,
 # with the app on its splash screen for good; a run that has not started its
-# first test within ten minutes is stopped and tried once more.
+# first test within VELORKI_STORE_START_TIMEOUT seconds (ten minutes; the
+# build alone takes eight on a CI runner) is stopped and tried once more. The
+# expanded reporter names a test when it starts, not when it ends.
 capture() {
   local locale=$1 log="$WORK/test-$1.log" attempt pid started
   local test=store_screenshots_test.dart first='store screenshots, '
   if [ "$PREVIEW" = 1 ]; then test=store_preview_test.dart first='store preview, '; fi
   for attempt in 1 2; do
-    flutter test "integration_test/store/$test" -d "$UDID" \
+    flutter test "integration_test/store/$test" -d "$UDID" --reporter expanded \
       --dart-define-from-file="$DEFINES" \
       --dart-define=VELORKI_STORE_LOCALE="$locale" \
       --dart-define=VELORKI_STORE_THEMES="$THEMES" \
@@ -147,9 +149,9 @@ capture() {
       --dart-define=VELORKI_PREVIEW_SET="$PREVIEW_SET" > "$log" 2>&1 &
     pid=$!
     started=0
-    for _ in $(seq 1 600); do
+    for _ in $(seq 1 "${VELORKI_STORE_START_TIMEOUT:-600}"); do
       kill -0 "$pid" 2> /dev/null || break
-      if [ "$started" = 0 ] && grep -q "$first" "$log"; then started=1; fi
+      if [ "$started" = 0 ] && grep -qE "$first|VELORKI_STORE" "$log"; then started=1; fi
       [ "$started" = 1 ] && break
       sleep 1
     done

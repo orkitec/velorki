@@ -146,6 +146,8 @@ jobs:
         working-directory: app
         env:
           LOCALES: ${{ inputs.locales }}
+          # The runner's first build of the test app alone takes eight minutes.
+          VELORKI_STORE_START_TIMEOUT: "1500"
         run: tool/store_screenshots.sh --locales "$LOCALES"
 
       - name: Preview video
@@ -153,6 +155,7 @@ jobs:
         working-directory: app
         env:
           LOCALES: ${{ inputs.locales }}
+          VELORKI_STORE_START_TIMEOUT: "1500"
         run: tool/store_screenshots.sh --preview --locales "$LOCALES"
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
