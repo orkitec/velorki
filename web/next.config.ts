@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
-
-const require = createRequire(import.meta.url);
 
 // `next dev` serves the site on localhost and the relay under api.localhost,
 // /__api/* or `x-velorki-host: api`. Production keeps the strict host gate,
@@ -121,16 +118,11 @@ const nextConfig: NextConfig = {
   // branch decides on `nextUrl.pathname` and only ever forwards the search
   // string verbatim.
   skipProxyUrlNormalize: true,
-  // Orkify's shared cache is for the cluster in production. In development it
-  // would serve pages prerendered by an older build from ~/.orkify/cache, whose
-  // scripts no longer exist, and the page never hydrates.
-  ...(process.env.NODE_ENV === 'production'
-    ? {
-        cacheHandlers: { default: require.resolve('@orkify/next/use-cache') },
-        cacheHandler: require.resolve('@orkify/next/isr-cache'),
-        cacheMaxMemorySize: 0,
-      }
-    : {}),
+  // Next's own caches, not @orkify/next's handlers: those key pages by path
+  // alone and keep them across a rolling reload, so after a deploy every
+  // worker served the previous build's HTML, whose stylesheet no longer
+  // existed. Each worker's cache lives and dies with its build; the relay's
+  // shared state (rate limits, entitlements) uses @orkify/cache directly.
   deploymentId: process.env.NEXT_DEPLOYMENT_ID || undefined,
   // Inlined into every bundle as string literals, so nothing reads the
   // environment at runtime - which is the point, the values only exist while

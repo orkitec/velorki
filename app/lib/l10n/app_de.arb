@@ -53,7 +53,7 @@
   "plannerClear": "Leeren",
   "plannerAlternatives": "Alternativen",
   "plannerSave": "Speichern",
-  "plannerMainRoute": "Hauptroute",
+  "plannerMainRoute": "Haupt",
   "plannerAlternativeIndex": "Var. {index}",
   "plannerAlternativesFailed": "Keine Alternativen verfügbar.",
   "plannerSaveDialogTitle": "Route speichern",

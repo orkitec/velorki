@@ -222,6 +222,35 @@ void main() {
     expect(find.text(testDistance(11000)), findsOneWidget);
   });
 
+  testWidgets('four variant chips share one row on a small phone', (
+    tester,
+  ) async {
+    final h = await pumpScreen(
+      tester,
+      const PlannerScreen(),
+      surfaceSize: const Size(560, 1400),
+    );
+    for (var i = 1; i <= 3; i++) {
+      h.backend.byAlternative[i] = syntheticRoute(lengthM: 10000 + i * 500);
+    }
+    await _plotRoute(tester, h);
+    await tester.tap(
+      find.widgetWithText(LabeledIconButton, l10n.plannerVariants),
+    );
+    await tester.pumpAndSettle();
+
+    final labels = [
+      l10n.plannerMainRoute,
+      for (var i = 1; i <= 3; i++) l10n.plannerAlternativeIndex(i),
+    ];
+    final tops = {
+      for (final label in labels)
+        tester.getRect(find.widgetWithText(ChoiceChip, label)).top,
+    };
+    expect(tops, hasLength(1), reason: 'the chips wrapped onto a second row');
+    expectNoClippedText(tester);
+  });
+
   testWidgets('saving asks for a name and writes a library row', (
     tester,
   ) async {

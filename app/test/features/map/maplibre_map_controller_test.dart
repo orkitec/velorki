@@ -782,6 +782,28 @@ void main() {
       expect(restyled.properties!['line-dasharray'], <double>[2, 1.5]);
     });
 
+    test('a stale route is the route dimmed, and goes back in place', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      await adapter.setRouteLine('main', _points);
+      ops.clearCalls();
+
+      await adapter.setRouteLine('main', _points, style: RouteLineStyle.stale);
+      final dimmed = ops.lastPropertiesOf(MapLayerIds.routeLayer('main'))!;
+      expect(
+        dimmed.properties!['line-color'],
+        const MapPalette.classic().routeMain,
+      );
+      expect(dimmed.properties!['line-opacity'], lessThan(1.0));
+
+      await adapter.setRouteLine('main', _points);
+      expect(ops.callsNamed('addLayer'), isEmpty);
+      expect(ops.callsNamed('removeLayer'), isEmpty);
+      final restored = ops.lastPropertiesOf(MapLayerIds.routeLayer('main'))!;
+      expect(restored.properties!['line-opacity'], 1.0);
+    });
+
     test('re-adds the line when the native side dropped the source', () async {
       final ops = RecordingStyleOps();
       final adapter = _adapter(ops);

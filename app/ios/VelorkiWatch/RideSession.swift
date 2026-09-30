@@ -166,7 +166,7 @@ final class RideSession: NSObject, ObservableObject {
             }
             DispatchQueue.main.async {
                 guard granted else {
-                    self.problem = "Health access is needed: allow it on the watch or in the phone's Health app."
+                    self.problem = String(localized: "Health access is needed: allow it on the watch or in the phone's Health app.")
                     return
                 }
                 self.beginSession()
@@ -184,7 +184,7 @@ final class RideSession: NSObject, ObservableObject {
             session = try HKWorkoutSession(healthStore: store, configuration: configuration)
         } catch {
             note("Workout session could not be made: \(error.localizedDescription)")
-            problem = "The watch would not start a workout: \(error.localizedDescription)"
+            problem = String(localized: "The watch would not start a workout: \(error.localizedDescription)")
             return
         }
         let builder = session.associatedWorkoutBuilder()
@@ -245,7 +245,7 @@ final class RideSession: NSObject, ObservableObject {
             // iOS does not launch an app the rider force-quit for a watch
             // message, and a phone out of range hears nothing: only the
             // rider can help, so the wrist says so.
-            problem = "The phone did not answer. Open Velorki on the phone and try again."
+            problem = String(localized: "The phone did not answer. Open Velorki on the phone and try again.")
             return
         }
         pending.tries += 1
@@ -386,7 +386,7 @@ extension RideSession: HKWorkoutSessionDelegate {
         note("Workout session failed: \(error.localizedDescription)")
         DispatchQueue.main.async {
             self.endWorkout("session failed")
-            self.problem = "The workout stopped: \(error.localizedDescription)"
+            self.problem = String(localized: "The workout stopped: \(error.localizedDescription)")
         }
     }
 }

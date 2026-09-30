@@ -1,11 +1,20 @@
 # Velorki
 
+[![app](https://github.com/orkitec/velorki/actions/workflows/app.yml/badge.svg?branch=main)](https://github.com/orkitec/velorki/actions/workflows/app.yml)
+[![Android flows](https://github.com/orkitec/velorki/actions/workflows/integration.yml/badge.svg?branch=main)](https://github.com/orkitec/velorki/actions/workflows/integration.yml)
+[![iOS flows](https://github.com/orkitec/velorki/actions/workflows/integration-ios.yml/badge.svg?branch=main)](https://github.com/orkitec/velorki/actions/workflows/integration-ios.yml)
+[![web](https://github.com/orkitec/velorki/actions/workflows/web.yml/badge.svg?branch=main)](https://github.com/orkitec/velorki/actions/workflows/web.yml)
+[![Crowdin](https://badges.crowdin.net/velorki/localized.svg)](https://crowdin.com/project/velorki)
+[![Licence: AGPL-3.0-only](https://img.shields.io/badge/licence-AGPL--3.0--only-blue)](LICENSE)
+[![Website: velorki.com](https://img.shields.io/badge/website-velorki.com-3f7a00)](https://velorki.com)
+
 Plan the ride, find the café, follow the turns, and do all of it where the
 signal ends. Free, open source, built on OpenStreetMap.
 
 Download a region once and the whole app works without a network: the map,
 the routing, the place search and the spoken turns. No account, no ads, no
 paywall on the ride itself, and no server in the loop unless you ask for one.
+Everything about using it is on **[velorki.com](https://velorki.com)**.
 A Flutter app for iOS and Android. What it does:
 
 - **Routing on the phone.** A Dart port of the BRouter engine routes on

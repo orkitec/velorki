@@ -11,6 +11,9 @@ says what is translated.
 | `app/lib/l10n/app_en.arb` | `app/lib/l10n/app_<lang>.arb` |
 | `web/messages/en.json` | `web/messages/<lang>.json` |
 | `web/content/en/**/*.md` | `web/content/<lang>/**/*.md` |
+| `app/fastlane/metadata/ios/en-US/*.txt` | `app/fastlane/metadata/ios/<store locale>/*.txt` |
+| `app/fastlane/metadata/android/en-US/*.txt` | `app/fastlane/metadata/android/<store locale>/*.txt` |
+| `app/store/slides_en.json` | `app/store/slides_<lang>.json` |
 
 `.github/workflows/crowdin.yml` uploads a source file to Crowdin when it
 changes on `main`, and every Monday morning downloads whatever is finished into
@@ -56,10 +59,42 @@ a language".
   translation that no longer fits its layout is a failed build, not a bug
   report.
 
+## Store listing texts
+
+The App Store and Play Store listing texts are fastlane metadata, not app
+strings: `app/fastlane/metadata/ios/en-US/` (`name.txt`, `subtitle.txt`,
+`keywords.txt`, `description.txt`, `promotional_text.txt`) and
+`app/fastlane/metadata/android/en-US/` (`title.txt`, `short_description.txt`,
+`full_description.txt`), plus the store screenshots' slide captions,
+`app/store/slides_en.json`. English is the source in each; Crowdin writes
+every other language into its own file or folder, named the way the store
+expects rather than `<lang>`.
+
+Both stores mostly use `ll-CC` locale folders (`de-DE`, `fr-FR`, `es-ES`,
+`nl-NL`, `pt-BR`...), which is what Crowdin already gives through `%locale%`.
+Apple is the exception for a few languages: Italian is `it`, Japanese is
+`ja`, Chinese Simplified is `zh-Hans` — `crowdin.yml` maps those under the
+iOS file's `languages_mapping`. Play needs no such mapping. The App Store
+review note, `app/fastlane/metadata/ios/review_information/notes.txt`, is
+not a listing text and is never translated: it lives outside the source glob.
+
+A length check enforces each store's limits (Apple: name 30, subtitle 30,
+keywords 100, promotional text 170, description 4000; Play: title 30, short
+description 80, full description 4000 — all in Unicode code points, and a
+required file may not be empty):
+
+```
+python3 app/tool/store_text_check.py
+```
+
+It runs in CI as part of `app.yml`'s `check` job. `app/tool/store_text_check_test.py`
+is its unit test (`python3 -m unittest app/tool/store_text_check_test.py`).
+
 ## One-time setup (Steffen)
 
 1. Create the project at crowdin.com: source language English, target language
-   German, file structure "preserve hierarchy" (it must match `crowdin.yml`).
+   German. The file layout comes from `preserve_hierarchy: true` in
+   `crowdin.yml`; the web interface has no setting for it.
 2. Request the open-source plan at
    <https://crowdin.com/page/open-source-project-setup-request>. What to say:
    the repository is `github.com/orkitec/velorki`, all of it public and open

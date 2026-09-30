@@ -1,0 +1,10 @@
+{
+  "riding": {
+    "heartRate": 142,
+    "speedKmh": 23.8,
+    "distanceKm": 24.3,
+    "elapsed": "1:12:05",
+    "turn": { "icon": "arrow.turn.up.right", "label": "navTurnRight", "metres": 350 }
+  },
+  "paused": { "heartRate": 118, "speedKmh": 0 }
+}

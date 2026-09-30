@@ -17,6 +17,7 @@ import 'package:velorki/features/planner/domain/routing_options.dart';
 import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki/features/planner/presentation/poi_markers.dart';
+import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import 'support/fakes.dart';
@@ -303,6 +304,217 @@ void main() {
     expect(map.onWaypointDragged, isNull);
     expect(map.onPoiTapped, isNull);
   });
+
+  group('while an edit is routed', () {
+    late _HeldBackend held;
+    late ProviderContainer planner;
+    late TestMapController drawn;
+    const moved = LatLng(48.3, 11.3);
+
+    PlannerController controller() =>
+        planner.read(plannerControllerProvider.notifier);
+
+    /// Plans A to B and answers it, so a route is on the map.
+    Future<void> routed(WidgetTester tester) async {
+      drawn.onTap!(_a);
+      drawn.onTap!(_b);
+      await tester.pump(plannerDebounce);
+      held.answer(0);
+      await tester.pump();
+      expect(drawn.lines[mainRouteLineId], [_a, _mid(_a, _b), _b]);
+    }
+
+    setUp(() async {
+      held = _HeldBackend();
+      final prefs = await SharedPreferences.getInstance();
+      planner = ProviderContainer(
+        overrides: [
+          routingBackendProvider.overrideWithValue(held),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      addTearDown(planner.dispose);
+      drawn = TestMapController();
+      final bound = PlannerMapBinding(
+        map: drawn,
+        planner: planner.read(plannerControllerProvider.notifier),
+      )..attach();
+      await bound.sync(planner.read(plannerControllerProvider));
+      planner.listen<PlannerState>(
+        plannerControllerProvider,
+        (_, next) => bound.sync(next),
+      );
+    });
+
+    testWidgets('the old line stays, dimmed, until the answer replaces it', (
+      tester,
+    ) async {
+      await routed(tester);
+      final since = drawn.calls.length;
+
+      controller().moveWaypoint(1, moved);
+      await tester.pump();
+      expect(planner.read(plannerControllerProvider).isRouting, isTrue);
+      expect(drawn.lines[mainRouteLineId], [_a, _mid(_a, _b), _b]);
+      expect(drawn.styles[mainRouteLineId], RouteLineStyle.stale);
+
+      await tester.pump(plannerDebounce);
+      expect(drawn.styles[mainRouteLineId], RouteLineStyle.stale);
+
+      held.answer(1);
+      await tester.pump();
+      expect(drawn.lines[mainRouteLineId], [_a, _mid(_a, moved), moved]);
+      expect(drawn.styles[mainRouteLineId], RouteLineStyle.main);
+      // Swapped in place: the line was never taken off in between.
+      expect(
+        drawn.calls
+            .skip(since)
+            .where((c) => c.method == 'removeRouteLine')
+            .toList(),
+        isEmpty,
+      );
+    });
+
+    testWidgets('a failed edit takes the old line off', (tester) async {
+      await routed(tester);
+
+      controller().moveWaypoint(1, moved);
+      await tester.pump(plannerDebounce);
+      expect(drawn.styles[mainRouteLineId], RouteLineStyle.stale);
+
+      held.fail(1);
+      await tester.pump();
+      expect(planner.read(plannerControllerProvider).error, isNotNull);
+      expect(drawn.lines, isEmpty);
+
+      // The next edit that routes has nothing old to keep.
+      controller().moveWaypoint(1, _b);
+      await tester.pump();
+      expect(drawn.lines, isEmpty);
+      await tester.pump(plannerDebounce);
+      held.answer(2);
+      await tester.pump();
+      expect(drawn.styles[mainRouteLineId], RouteLineStyle.main);
+    });
+
+    testWidgets('clearing while routing takes the line off at once', (
+      tester,
+    ) async {
+      await routed(tester);
+
+      controller().moveWaypoint(1, moved);
+      await tester.pump(plannerDebounce);
+      expect(drawn.lines[mainRouteLineId], isNotNull);
+
+      controller().clear();
+      await tester.pump();
+      expect(drawn.lines, isEmpty);
+
+      // The answer to the edit that was cleared away draws nothing.
+      held.answer(1);
+      await tester.pump();
+      expect(drawn.lines, isEmpty);
+
+      // Undo puts the edit back, whose route never came: routed afresh,
+      // with the cleared line nowhere, then drawn once it is there.
+      controller().undo();
+      await tester.pump();
+      expect(drawn.lines, isEmpty);
+      await tester.pump(plannerDebounce);
+      held.answer(2);
+      await tester.pump();
+      expect(drawn.lines[mainRouteLineId], [_a, _mid(_a, moved), moved]);
+      expect(drawn.styles[mainRouteLineId], RouteLineStyle.main);
+
+      // And the step before it brings its own route back at once.
+      controller().undo();
+      await tester.pump();
+      expect(drawn.lines[mainRouteLineId], [_a, _mid(_a, _b), _b]);
+      expect(drawn.styles[mainRouteLineId], RouteLineStyle.main);
+    });
+
+    testWidgets('a late answer to a superseded edit is never drawn', (
+      tester,
+    ) async {
+      await routed(tester);
+      const later = LatLng(48.4, 11.4);
+
+      controller().moveWaypoint(1, moved);
+      await tester.pump(plannerDebounce);
+      controller().moveWaypoint(1, later);
+      await tester.pump(plannerDebounce);
+      expect(held.queries, hasLength(3));
+
+      held.answer(2);
+      await tester.pump();
+      expect(drawn.lines[mainRouteLineId], [_a, _mid(_a, later), later]);
+
+      // The older request comes back last, as if it had not been cancelled.
+      held.answer(1);
+      await tester.pump();
+      expect(drawn.lines[mainRouteLineId], [_a, _mid(_a, later), later]);
+      expect(drawn.styles[mainRouteLineId], RouteLineStyle.main);
+    });
+
+    testWidgets('a switch of profile keeps the old line dimmed too', (
+      tester,
+    ) async {
+      await routed(tester);
+
+      controller().setProfile(RouteProfile.values.last);
+      await tester.pump(plannerDebounce);
+      expect(drawn.styles[mainRouteLineId], RouteLineStyle.stale);
+
+      held.answer(1);
+      await tester.pump();
+      expect(drawn.styles[mainRouteLineId], RouteLineStyle.main);
+    });
+  });
+}
+
+/// The point halfway between [a] and [b], as [_HeldBackend] draws it.
+LatLng _mid(LatLng a, LatLng b) =>
+    LatLng((a.lat + b.lat) / 2, (a.lon + b.lon) / 2);
+
+/// A router that answers only when the test says so, in any order, and
+/// ignores cancellation: the planner alone must keep a late answer off the
+/// map. Each answer is a line through the query's points, via the midpoint.
+class _HeldBackend implements RoutingBackend {
+  /// Every query that arrived, in order.
+  final List<RouteQuery> queries = <RouteQuery>[];
+  final List<Completer<RouteResult>> _answers = <Completer<RouteResult>>[];
+
+  @override
+  Future<RouteResult> route(RouteQuery q, {CancelToken? cancel}) {
+    queries.add(q);
+    final answer = Completer<RouteResult>();
+    _answers.add(answer);
+    return answer.future;
+  }
+
+  /// Answers query [index].
+  void answer(int index) {
+    final points = queries[index].points;
+    _answers[index].complete(
+      RouteResult(
+        geometry: [
+          TrackPoint(points.first),
+          TrackPoint(_mid(points.first, points.last)),
+          TrackPoint(points.last),
+        ],
+        lengthM: 1000,
+        ascentM: 0,
+        descentM: 0,
+        messages: const <SegmentMessage>[],
+        raw: const <String, dynamic>{},
+      ),
+    );
+  }
+
+  /// Fails query [index] with no route found.
+  void fail(int index) => _answers[index].completeError(
+    const RoutingException(kind: RoutingErrorKind.noRoute, message: 'no way'),
+  );
 }
 
 /// A saved route of two points, whole.

@@ -8,7 +8,7 @@ Runner by the "Embed Watch Content" phase (into `$(CONTENTS_FOLDER_PATH)/Watch`,
 placed before Flutter's "Thin Binary" phase, or Xcode reports a build cycle).
 A modern single-target watch app — no separate WatchKit extension —
 deployment target watchOS 10.0, bundle id `com.orkitec.velorki.watchkitapp`,
-built from the three Swift files here. It never runs on its own
+built from the three Swift files here and two String Catalogs. It never runs on its own
 (`WKRunsIndependentlyOfCompanionApp` is false): without the phone it has
 nothing to show and nowhere to send what it measures.
 
@@ -25,8 +25,28 @@ first time a workout is started from this app.
 A watch app can save very little on its own, so there is one thing it offers:
 **Stop heart rate** ends the workout session — and with it the sensor — while
 the ride goes on on the phone. Anything more belongs to watchOS Low Power
-Mode, which the screen mentions once in a footnote and does not try to
-duplicate.
+Mode, which the page below the ride mentions in a footnote and does not try
+to duplicate.
+
+## The screen
+
+One page holds the whole ride without scrolling, from the 40 mm case to the
+Ultra: heart rate and speed, distance and time in a two-by-two grid with the
+units set small, the next turn, and Pause/Finish on the bottom edge. The
+title beside the clock says Riding, Paused, or Velorki with no ride. The
+buttons never shrink; a long turn name or a problem wraps and shrinks
+instead. A second page, a turn of the crown below, holds Stop heart rate and
+the footnotes. Text styles scale with the watch, so there is one type scale
+and no per-size layout.
+
+## Language
+
+The watch follows the system language. Its own words are in
+`Localizable.xcstrings`, the Health prompts in `InfoPlist.xcstrings`, each in
+English and German. The figures and the turn arrive formatted and translated
+by the phone; the screen sets the unit after a figure's last space small.
+Crowdin does not see these catalogs: a new language is added in Xcode, or
+by hand in the JSON, and `knownRegions` in the project lists it.
 
 The workout session is what keeps the heart rate sensor measuring with the
 wrist down; `UIBackgroundModes` is `workout-processing` for the same reason.
@@ -91,8 +111,7 @@ its heart and buttons with it. `rest` is the phone's "Rest the sensor while
 paused" switch, see below.
 
 Every string is formatted and translated by the phone, which knows the rider's
-units and language; this app knows neither, and its own handful of words are
-English. `cue` is a timestamp that changes when the rider should *feel*
+units and language. `cue` is a timestamp that changes when the rider should *feel*
 something — the cue for the corner they are at, or the news that they have
 left the route. The watch plays one haptic per change, `.failure` while
 `offRoute` is true and `.notification` otherwise, so a watch that slept
@@ -117,17 +136,13 @@ through three turns buzzes once rather than three times.
   simulator with a fake watch behind `watchGatewayProvider`, which is what CI
   runs — no watch simulator involved.
 
-## Not done
-
-- **The app icon.** There is no asset catalog here yet, so the watch app shows
-  the system placeholder. It needs an `AppIcon` set (and
-  `ASSETCATALOG_COMPILER_APPICON_NAME`) before the app can be submitted.
-- **Complications** and any Always-On display treatment.
-- **Translation.** The figures arrive translated; the buttons and the two
-  footnotes here are English.
-
 The icon is `Assets.xcassets/AppIcon.appiconset/icon.png`, the app's own 1024 px
 icon; watchOS masks it to a circle.
+
+## Not done
+
+- **Complications** and any Always-On display treatment.
+- **Languages** beyond English and German.
 
 ## How a ride started on the phone reaches the watch
 

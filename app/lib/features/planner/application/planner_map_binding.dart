@@ -58,6 +58,10 @@ class PlannerMapBinding {
   final PlannerController planner;
 
   final Set<String> _lineIds = <String>{};
+
+  /// The id and the points of the last route drawn, which stays on the map,
+  /// dimmed, while the edit that replaces it is being routed.
+  (String, List<LatLng>)? _drawn;
   // `null` until the first sync: the first state is the baseline, not a change.
   int? _lastWaypointCount;
   bool _attached = false;
@@ -161,12 +165,25 @@ class PlannerMapBinding {
 
     if (positions.isNotEmpty) {
       final chosen = chosenRouteLineId(state.options.alternativeIdx);
+      _drawn = (chosen, positions);
       wanted.add(chosen);
       // Remembered before it is drawn, so a [clear] that runs while this
       // awaits takes it off again.
       _lineIds.add(chosen);
       await map.setRouteLine(chosen, positions);
       if (gone()) return;
+    } else if (state.isRouting && _drawn != null) {
+      // An edit is being routed: the route it changed stays, dimmed, under
+      // its own id, so the answer replaces it in place rather than after a
+      // blank map. A failure, a clear or an empty plan is not routing, and
+      // takes it off.
+      final (id, stale) = _drawn!;
+      wanted.add(id);
+      _lineIds.add(id);
+      await map.setRouteLine(id, stale, style: RouteLineStyle.stale);
+      if (gone()) return;
+    } else {
+      _drawn = null;
     }
     // The file's own line, faint, while the route on top is not it any
     // more, so the rider can compare; the chip offering Restore shows for

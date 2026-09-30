@@ -79,11 +79,10 @@ exercised there. The items here are the parts not yet covered by that.
 
 ## On the Mac (Xcode)
 
-- [ ] iOS release signing, once: follow [RELEASE_IOS.md](RELEASE_IOS.md) —
-      the private `velorki-certs` repo, `fastlane ios certs` with
-      `MATCH_READONLY=false`, the App Store Connect API key, the six GitHub
-      secrets. The lanes (`app/fastlane/Fastfile`) and the tag workflow
-      (`.github/workflows/ios-release.yml`) are written and wait on it.
+- [ ] iOS release from CI, once: follow [RELEASE_IOS.md](RELEASE_IOS.md) —
+      the App Store Connect API key, a development identity for CI and the
+      GitHub secrets. The tag workflow (`.github/workflows/ios-release.yml`)
+      is written and waits on them.
       Development builds sign automatically with the orkitec team and run on
       a phone; the file-open handler in `ios/Runner/AppDelegate.swift` has
       not been tried yet.

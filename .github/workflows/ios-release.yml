@@ -1,25 +1,26 @@
 name: ios release
 
-# Tag `vX.Y.Z` → signed .ipa → TestFlight, and the .ipa attached to the GitHub
-# Release the Android job created for the same tag. `release.yml` does the same
-# for Android; the two run in parallel off one tag.
+# Tag `vX.Y.Z` → signed build → TestFlight. `release.yml` does the same for
+# Android; the two run in parallel off one tag. The .ipa is not attached to the
+# GitHub Release: it is signed for the App Store and installs nowhere else.
 #
-# The flow, in one pass on a macOS runner:
+# Signing is Xcode's automatic signing, authenticated with an App Store Connect
+# API key instead of an Xcode account, in two steps:
 #
-#   1. Flutter compiles the Dart and assembles Runner.app with --no-codesign.
-#   2. `fastlane ios beta` fetches the distribution certificate and the four
-#      App Store profiles from the private match repository (read-only),
-#      switches Runner, VelorkiLiveActivity, VelorkiShare and VelorkiWatch to
-#      manual signing, archives, exports and uploads to TestFlight.
-#   3. The .ipa is attached to the tag's GitHub Release.
+#   1. Archive. `xcodebuild archive` signs with an Apple Development identity
+#      whose private key must be in a keychain; Apple keeps no copy of it, so
+#      the identity comes from a secret (.p12). Xcode fetches the development
+#      profiles for the four targets with the API key. The archive cannot be
+#      left unsigned: the export takes each target's entitlements (App Groups,
+#      HealthKit, push) from the archive's signature.
+#   2. Export. `xcodebuild -exportArchive` re-signs with Apple's cloud-managed
+#      distribution certificate and the App Store profiles, and uploads to App
+#      Store Connect. Nothing is submitted for review.
 #
 # The approval gate is the `release` environment: it has a required reviewer, so
-# a tag push queues this job and nothing is signed or uploaded until Steffen
-# approves the run on the Actions tab. Nothing here promotes a build to the App
-# Store — `fastlane ios release` does that, by hand, from the Mac.
-#
-# Every signing and upload step is guarded by the presence of its secret, so a
-# fork or a secret-less run builds an unsigned archive and finishes green.
+# a run queues and nothing is signed or uploaded until it is approved on the
+# Actions tab. Without the secrets (a fork, or before the setup in
+# docs/RELEASE_IOS.md) the job builds unsigned and finishes green.
 
 on:
   push:
@@ -44,12 +45,12 @@ jobs:
     timeout-minutes: 90
     # Required reviewer: the approval gate for signing and uploading.
     environment: release
-    permissions:
-      # Only to attach the .ipa to the GitHub Release of the tag.
-      contents: write
     env:
-      HAVE_SIGNING: ${{ secrets.MATCH_PASSWORD != '' && secrets.ASC_KEY_ID != '' && 'true' || 'false' }}
-      HAVE_ENV: ${{ secrets.APP_ENV_PROD_JSON != '' && 'true' || 'false' }}
+      HAVE_SIGNING: ${{ secrets.ASC_KEY_ID != '' && secrets.ASC_ISSUER_ID != '' && secrets.ASC_KEY_P8_BASE64 != '' && secrets.IOS_DEV_CERT_P12_BASE64 != '' && secrets.APP_ENV_PROD_JSON != '' && 'true' || 'false' }}
+      # App Store Connect refuses a build number it has already seen; 1.0 (1)
+      # was uploaded by hand, so the first run (run_number 1) becomes build 2.
+      BUILD_NUMBER_OFFSET: 1
+      ARCHIVE_PATH: build/ios/archive/Runner.xcarchive
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -68,46 +69,92 @@ jobs:
           flutter-version: 3.47.4  # keep in sync with mise.toml and app/.fvmrc
           cache: true
 
-      - uses: ruby/setup-ruby@984c0c890880bbf811283d6f09c4607c62d210a4 # v1.323.0
-        with:
-          ruby-version: "3.3"
-          # Runs `bundle install` against app/Gemfile and caches the gems.
-          bundler-cache: true
-          working-directory: app
-
       - run: flutter pub get
       - run: dart run build_runner build
       - run: flutter gen-l10n
 
-      - name: Restore env/prod.json from secrets
-        if: ${{ env.HAVE_ENV == 'true' }}
-        env:
-          APP_ENV_PROD_JSON: ${{ secrets.APP_ENV_PROD_JSON }}
-        run: echo "$APP_ENV_PROD_JSON" > env/prod.json
-
-      - name: Build and upload to TestFlight
-        if: ${{ env.HAVE_SIGNING == 'true' && env.HAVE_ENV == 'true' }}
-        env:
-          # match: the private certificates repository and its passphrase.
-          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
-          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
-          # App Store Connect API key; no Apple ID, no app-specific password.
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
-          # App Store Connect refuses a build number it has already seen.
-          BUILD_NUMBER: ${{ github.run_number }}
-        run: bundle exec fastlane ios beta
-
       - name: Build unsigned (no secrets)
-        if: ${{ env.HAVE_SIGNING != 'true' || env.HAVE_ENV != 'true' }}
+        if: ${{ env.HAVE_SIGNING != 'true' }}
         run: |
-          echo "::notice::No iOS signing secrets configured — building an unsigned archive and skipping TestFlight. See docs/RELEASE_IOS.md."
+          echo "::notice::iOS signing secrets are not configured — building unsigned and skipping TestFlight. See docs/RELEASE_IOS.md."
           flutter build ios --release --no-codesign --dart-define-from-file=env/ci.json
 
-      - name: Attach the .ipa to the GitHub Release
-        if: ${{ env.HAVE_SIGNING == 'true' && env.HAVE_ENV == 'true' && startsWith(github.ref, 'refs/tags/v') }}
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
-        with:
-          files: app/build/ios/ipa/Velorki.ipa
+      - name: Install the API key and the development identity
+        if: ${{ env.HAVE_SIGNING == 'true' }}
+        env:
+          APP_ENV_PROD_JSON: ${{ secrets.APP_ENV_PROD_JSON }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+          IOS_DEV_CERT_P12_BASE64: ${{ secrets.IOS_DEV_CERT_P12_BASE64 }}
+          IOS_DEV_CERT_PASSWORD: ${{ secrets.IOS_DEV_CERT_PASSWORD }}
+        run: |
+          echo "$APP_ENV_PROD_JSON" > env/prod.json
+
+          key="$RUNNER_TEMP/AuthKey_$ASC_KEY_ID.p8"
+          echo "$ASC_KEY_P8_BASE64" | base64 --decode > "$key"
+          echo "ASC_KEY_PATH=$key" >> "$GITHUB_ENV"
+
+          # A throwaway keychain for the development identity, first in the
+          # search list so codesign finds it without prompting.
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          keychain_password="$(openssl rand -hex 24)"
+          p12="$RUNNER_TEMP/dev.p12"
+          echo "$IOS_DEV_CERT_P12_BASE64" | base64 --decode > "$p12"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security import "$p12" -k "$keychain" -f pkcs12 -P "$IOS_DEV_CERT_PASSWORD" \
+            -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple: -k "$keychain_password" "$keychain" > /dev/null
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          rm -f "$p12"
+          echo "KEYCHAIN_PATH=$keychain" >> "$GITHUB_ENV"
+
+      - name: Archive
+        if: ${{ env.HAVE_SIGNING == 'true' }}
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          build_number=$((RUN_NUMBER + BUILD_NUMBER_OFFSET))
+          echo "::notice::Build number $build_number"
+          # `flutter build ipa` cannot pass the API key to xcodebuild, so
+          # Flutter only writes its configuration (dart-defines, version, build
+          # number, pods) and xcodebuild archives; the Flutter build phase
+          # compiles the Dart inside the archive.
+          flutter build ios --config-only --release \
+            --dart-define-from-file=env/prod.json --build-number="$build_number"
+          xcodebuild archive \
+            -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release \
+            -destination generic/platform=iOS -archivePath "$ARCHIVE_PATH" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      - name: Upload to App Store Connect
+        if: ${{ env.HAVE_SIGNING == 'true' }}
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          # ExportOptions.plist with destination `upload`: signed and sent to
+          # App Store Connect in one go, leaving no .ipa behind.
+          plutil -replace destination -string upload \
+            -o "$RUNNER_TEMP/ExportUpload.plist" ios/ExportOptions.plist
+          xcodebuild -exportArchive -archivePath "$ARCHIVE_PATH" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportUpload.plist" \
+            -exportPath "$RUNNER_TEMP/upload" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      - name: Remove the key and the keychain
+        if: ${{ always() }}
+        run: |
+          rm -f "$RUNNER_TEMP"/AuthKey_*.p8 "$RUNNER_TEMP/dev.p12" env/prod.json
+          if [ -n "${KEYCHAIN_PATH:-}" ]; then
+            security delete-keychain "$KEYCHAIN_PATH" || true
+          fi

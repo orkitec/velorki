@@ -8,7 +8,7 @@
 # accepts: `project_id: ${CROWDIN_PROJECT_ID}` fails validation, because the
 # value is checked as a number before any substitution happens.
 #
-# English is the source language. Only the three `source` paths below are
+# English is the source language. Only the six `source` paths below are
 # edited by hand; every `translation` path is written by Crowdin and arrives
 # in a pull request on `l10n/crowdin`. See docs/LOCALISATION.md.
 project_id_env: CROWDIN_PROJECT_ID
@@ -37,3 +37,36 @@ files:
   # sub-directories (docs/, legal/), %original_file_name% the file name.
   - source: /web/content/en/**/*.md
     translation: /web/content/%two_letters_code%/**/%original_file_name%
+
+  # The App Store listing (fastlane metadata). en-US is the source; Crowdin
+  # writes every other locale into its own folder beside it, named the way
+  # App Store Connect expects. The source glob only reaches en-US, so
+  # review_information/ (a sibling folder, not a locale) is never picked up
+  # and is never translated.
+  #
+  # Crowdin's own locale format is `ll-CC` (%locale%), which already matches
+  # Apple's folder names for most languages (de-DE, fr-FR, es-ES, nl-NL,
+  # pt-BR...). Three of the first languages don't: Apple drops the country
+  # for Italian (`it`, not `it-IT`) and Japanese (`ja`, not `ja-JP`), and
+  # uses a script code for Chinese (`zh-Hans`, not `zh-CN`) — hence the
+  # mapping below.
+  - source: /app/fastlane/metadata/ios/en-US/*.txt
+    translation: /app/fastlane/metadata/ios/%locale%/%original_file_name%
+    languages_mapping:
+      locale:
+        it-IT: it
+        ja-JP: ja
+        zh-CN: zh-Hans
+
+  # The Play Store listing (fastlane metadata). Same shape as the App Store
+  # one above, but Play's folder names are `ll-CC` throughout (it-IT, ja-JP,
+  # zh-CN...), which is exactly what %locale% already gives, so this one
+  # needs no languages_mapping.
+  - source: /app/fastlane/metadata/android/en-US/*.txt
+    translation: /app/fastlane/metadata/android/%locale%/%original_file_name%
+
+  # The App Store slides' copy: per slide an eyebrow, a headline (the
+  # **phrase** in it is the accent colour) and a subline. See
+  # docs/STORE_ASSETS.md.
+  - source: /app/store/slides_en.json
+    translation: /app/store/slides_%two_letters_code%.json

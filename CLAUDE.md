@@ -127,7 +127,7 @@ changing structure.
   boot cost more than the tests, and caches the pods and the derived data),
   `gazetteer-perf.yml` (nightly, times the search against New York off the
   mirror), `routing-scenarios.yml` (nightly, the routing scenarios over the
-  New York tile, cached per mirror snapshot), `brouter-oracle.yml` (weekly), `web.yml` (every push touching
+  New York tile, cached per mirror snapshot), `brouter-oracle.yml` (weekly), `store-assets.yml` (by hand: the App Store screenshots, slides and preview as an artifact, and from a `v*` tag, after approval in `release`, the screenshots onto an App Store version), `web.yml` (every push touching
   `web/`: lint, typecheck, vitest, `check:deps`, the locale check,
   `npm audit --omit=dev` and `next build`). No rd5 comes off brouter.de; the oracle job
   does fetch the pinned upstream release zip. Every workflow declares the least
@@ -138,7 +138,7 @@ changing structure.
   the run ends in `startup_failure` with no log. (GitHub's "require SHA
   pinning" setting stays off: it also rejects the unpinned actions that
   composite actions such as flutter-action call internally); a `v*` tag push runs `release.yml` (Android)
-  and `ios-release.yml` (fastlane, TestFlight; one-time setup in
+  and `ios-release.yml` (xcodebuild with cloud signing, TestFlight; one-time setup in
   `docs/RELEASE_IOS.md`) in the `release` environment, so both wait for the
   maintainer's approval in the Actions UI before anything is signed or
   published. A push to the `production`
