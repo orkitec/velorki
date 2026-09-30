@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import type { ReactNode } from 'react';
+import { OrkifyErrorCapture } from '@orkify/next/error-capture';
 
 /**
  * The share page is its own document root: it is not part of the localised
@@ -39,7 +40,10 @@ export default function ShareLayout({ children }: { children: ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <style>{BASE_CSS}</style>
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <OrkifyErrorCapture />
+      </body>
     </html>
   );
 }

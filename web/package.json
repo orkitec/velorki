@@ -25,6 +25,7 @@
     "@ai-sdk/openai-compatible": "^3.0.54",
     "@orkify/cache": "^1.0.0",
     "@orkify/chat": "^1.0.0",
+    "@orkify/next": "^1.0.0",
     "ai": "^7.0.112",
     "gray-matter": "^4.0.3",
     "maplibre-gl": "^6.11.1",

@@ -4,7 +4,7 @@ description: "What Velorki does with your data: no account, routes and rides sta
 draft: false
 ---
 
-Effective date: 27 September 2026.
+Effective date: 30 September 2026.
 
 Velorki is a bike route planning and ride recording app made by Orkitec. This
 page explains what happens to your data.
@@ -196,6 +196,9 @@ to refuse, because nothing is stored on your device until you ask for it. The
 - **Server logs.** Every request is logged as described under Server logs
   above: time, path, status, size, your IP address and your browser's user
   agent, kept 14 days.
+- **Error reports.** If a page of this site fails in your browser, it sends
+  the error, the page address and your browser's user agent to our server,
+  only so we can fix the bug.
 - **Cloudflare.** The site is served through Cloudflare, which terminates the
   connection, filters attacks and passes the request on to our server. It
   therefore processes your IP address and the request itself. Cloudflare is in
@@ -283,7 +286,8 @@ others:
   anonymous app user id and the store receipt, no name and no email address.
 - **Orkify**, run by the same operator on the Hetzner infrastructure above —
   the deployment dashboard that collects the application logs and process
-  metrics described under Server logs, and the support chat widget.
+  metrics described under Server logs and this website's error reports, and
+  the support chat widget.
 - **Discord Netherlands B.V.** (for users in Europe; Discord Inc., San
   Francisco, USA, for the underlying service) — where a support chat
   conversation is delivered and kept.

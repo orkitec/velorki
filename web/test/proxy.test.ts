@@ -425,6 +425,43 @@ describe('generated site files', () => {
   });
 });
 
+/** Where the browser error capture posts: the site's, and only the site's. */
+describe('browser error reports', () => {
+  const PATH = '/orkify/errors';
+
+  it('reach the route on the site host without locale negotiation', async () => {
+    expect(matches(PATH)).toBe(true);
+    // next-intl would move an unprefixed path under a locale, where no route is.
+    const prefix = (req: NextRequest) =>
+      NextResponse.rewrite(new URL(`/de${req.nextUrl.pathname}`, req.url));
+    await withIntl(prefix, async () => {
+      await withEnv({}, async () => {
+        const res = await proxy(
+          request(`${SITE}${PATH}`, {
+            method: 'POST',
+            headers: { 'accept-language': 'de-DE,de;q=0.9', origin: SITE },
+          }),
+        );
+        expect(res.status).toBe(200);
+        expect(isRewrite(res)).toBe(false);
+        expect(res.headers.get('location')).toBeNull();
+        expect(res.headers.get('vary')).toBeNull();
+        expect(res.headers.get('x-request-id')).toBeTruthy();
+      });
+    });
+  });
+
+  it('404 on the api host', async () => {
+    await withEnv({}, async () => {
+      const res = await proxy(request(`${API}${PATH}`, { method: 'POST' }));
+      expect(res.status).toBe(404);
+      const body = await errOf(res);
+      expect(body.code).toBe('not_found');
+      expect(body.message).toBe(`No route for POST ${PATH}.`);
+    });
+  });
+});
+
 describe('locale negotiation', () => {
   /** `Vary` as a lower-cased set, so order and casing do not matter. */
   function vary(res: Response): Set<string> {

@@ -7,7 +7,7 @@ draft: false
 > **Hinweis zur Übersetzung.** Dies ist eine Übersetzung der englischen
 > Fassung. Bei Abweichungen gilt die englische Fassung.
 
-Gültig ab: 27. September 2026.
+Gültig ab: 30. September 2026.
 
 Velorki ist eine App zum Planen von Radrouten und zum Aufzeichnen von Fahrten,
 gemacht von Orkitec. Diese Seite erklärt, was mit deinen Daten geschieht.
@@ -216,6 +216,9 @@ auf deinem Gerät wird nichts gespeichert, bis du es verlangst. Der Eintrag
 - **Server-Protokolle.** Jede Anfrage wird protokolliert wie oben unter
   Server-Protokolle beschrieben: Zeitpunkt, Pfad, Status, Größe, deine
   IP-Adresse und die Kennung deines Browsers, 14 Tage lang.
+- **Fehlerberichte.** Schlägt eine Seite dieser Website in deinem Browser fehl,
+  schickt sie den Fehler, die Adresse der Seite und die Kennung deines Browsers
+  an unseren Server, nur damit wir den Fehler beheben können.
 - **Cloudflare.** Die Website wird über Cloudflare ausgeliefert, das die
   Verbindung annimmt, Angriffe abfängt und die Anfrage an unseren Server
   weitergibt. Cloudflare verarbeitet dabei deine IP-Adresse und die Anfrage
@@ -310,8 +313,8 @@ sind**
   App-Nutzer-Kennung und der Kaufbeleg, kein Name und keine E-Mail-Adresse.
 - **Orkify**, betrieben von demselben Betreiber auf der oben genannten
   Hetzner-Infrastruktur — das Deployment-Dashboard, das die Anwendungsprotokolle
-  und Prozessmetriken aus dem Abschnitt Server-Protokolle sammelt, und das
-  Widget des Support-Chats.
+  und Prozessmetriken aus dem Abschnitt Server-Protokolle sowie die
+  Fehlerberichte dieser Website sammelt, und das Widget des Support-Chats.
 - **Discord Netherlands B.V.** (für Nutzende in Europa; dahinter Discord Inc.,
   San Francisco, USA) — dorthin wird ein Support-Chat geliefert und dort bleibt
   er.
