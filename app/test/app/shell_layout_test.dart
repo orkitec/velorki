@@ -15,6 +15,7 @@ void main() {
   var asked = 0;
   Object? answer;
   setUp(() {
+    debugShellLayoutOverride = null;
     asked = 0;
     answer = null;
     messenger.setMockMethodCallHandler(channel, (call) async {
@@ -126,12 +127,11 @@ void main() {
     ShellLayout? seen;
     Widget host() => ProviderScope(
       child: ShellLayoutHost(
-        child: Builder(
-          builder: (context) {
-            seen = ShellLayout.of(context);
-            return const SizedBox.shrink();
-          },
-        ),
+        builder: (context, layout) {
+          seen = ShellLayout.of(context);
+          expect(layout, seen);
+          return const SizedBox.shrink();
+        },
       ),
     );
 

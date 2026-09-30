@@ -21,8 +21,10 @@ class ShellLayout {
   /// Creates a layout.
   const ShellLayout({required this.sideRail, this.side = RailSide.right});
 
-  /// The layout for a screen of [size] whose bottom edge is at [side].
+  /// The layout for a screen of [size] whose bottom edge is at [side], or
+  /// [debugShellLayoutOverride] where a test set one.
   factory ShellLayout.resolve(Size size, RailSide side) =>
+      debugShellLayoutOverride ??
       ShellLayout(sideRail: size.width > size.height, side: side);
 
   /// The portrait layout, the one every screen had before landscape.
@@ -58,6 +60,14 @@ class ShellLayout {
   String toString() =>
       sideRail ? 'ShellLayout(rail ${side.name})' : 'ShellLayout(bottom bar)';
 }
+
+/// The layout every screen gets whatever its size, for tests; `null`, the
+/// default, leaves it to the screen.
+///
+/// The test screen is 800 by 600, wider than tall, and the widget tests were
+/// written for a phone held upright: `test/flutter_test_config.dart` sets the
+/// bar at the bottom for all of them, and the tests of the rail clear it.
+ShellLayout? debugShellLayoutOverride;
 
 /// Hands the shell's [ShellLayout] down to the screens.
 class ShellLayoutScope extends InheritedWidget {
@@ -156,14 +166,15 @@ class RailSideNotifier extends _$RailSideNotifier {
   }
 }
 
-/// Puts the [ShellLayout] for the screen it is on over [child], and asks
-/// the platform for the rail's side again whenever the screen turns.
+/// Builds the shell for the [ShellLayout] of the screen it is on, hands
+/// that layout down, and asks the platform for the rail's side again
+/// whenever the screen turns.
 class ShellLayoutHost extends ConsumerStatefulWidget {
   /// Creates the host.
-  const ShellLayoutHost({required this.child, super.key});
+  const ShellLayoutHost({required this.builder, super.key});
 
-  /// The shell.
-  final Widget child;
+  /// The shell, for the layout.
+  final Widget Function(BuildContext context, ShellLayout layout) builder;
 
   @override
   ConsumerState<ShellLayoutHost> createState() => _ShellLayoutHostState();
@@ -185,9 +196,10 @@ class _ShellLayoutHostState extends ConsumerState<ShellLayoutHost> {
       });
     }
     _orientation = orientation;
+    final layout = ShellLayout.resolve(size, ref.watch(railSideProvider));
     return ShellLayoutScope(
-      layout: ShellLayout.resolve(size, ref.watch(railSideProvider)),
-      child: widget.child,
+      layout: layout,
+      child: Builder(builder: (context) => widget.builder(context, layout)),
     );
   }
 }

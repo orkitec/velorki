@@ -2,6 +2,7 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
+import '../../../app/shell_layout.dart';
 import '../../../app/theme.dart';
 import 'docking_sheet.dart' show dockedPillRadius;
 
@@ -15,6 +16,17 @@ const double floatingBarBottomGap = 12;
 /// The side margin of the floating bar.
 const double floatingBarSideMargin = 16;
 
+/// The width of the floating rail the bar becomes on a phone turned
+/// sideways: an icon over its label, like the bar's destinations.
+const double floatingRailWidth = 84;
+
+/// How much of the screen's [side] the floating rail takes, from the edge
+/// to its inner side: the safe area, the air and the rail itself.
+double floatingRailInset(EdgeInsets viewPadding, RailSide side) =>
+    (side == RailSide.left ? viewPadding.left : viewPadding.right) +
+    floatingBarBottomGap +
+    floatingRailWidth;
+
 /// The glass pill a bar floats in at the bottom of the screen: the tab bar,
 /// and the figures bar Record's sheet folds into during a ride, so the two
 /// sit in exactly the same place with exactly the same shape.
@@ -24,12 +36,25 @@ const double floatingBarSideMargin = 16;
 /// rests on its top edge: the top goes square and open, the seam being the
 /// strip's own hairline, and the shadow and blur go (see below). [child] is
 /// [floatingBarHeight] tall.
+///
+/// With a [railSide] the pill stands on that side of the screen instead, the
+/// full height between the safe areas and [floatingRailWidth] wide: the
+/// rail of a phone turned sideways.
 class FloatingBarShell extends StatelessWidget {
   /// Creates the shell.
-  const FloatingBarShell({required this.child, this.docked = false, super.key});
+  const FloatingBarShell({
+    required this.child,
+    this.docked = false,
+    this.railSide,
+    super.key,
+  });
 
   /// Whether a sheet rests on the bar's top edge.
   final bool docked;
+
+  /// The side the pill stands on as a rail; `null` for the bar at the
+  /// bottom.
+  final RailSide? railSide;
 
   /// What the bar holds.
   final Widget child;
@@ -43,13 +68,26 @@ class FloatingBarShell extends StatelessWidget {
     // the bottom with its round border drawn inside. A rect clip and a
     // painted shape need no such favour from the compositor.
     final radius = docked ? BorderRadius.zero : BorderRadius.circular(30);
+    final viewPadding = MediaQuery.viewPaddingOf(context);
+    final rail = railSide;
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        floatingBarSideMargin,
-        0,
-        floatingBarSideMargin,
-        MediaQuery.viewPaddingOf(context).bottom + floatingBarBottomGap,
-      ),
+      padding: rail == null
+          ? EdgeInsets.fromLTRB(
+              floatingBarSideMargin,
+              0,
+              floatingBarSideMargin,
+              viewPadding.bottom + floatingBarBottomGap,
+            )
+          : EdgeInsets.fromLTRB(
+              rail == RailSide.left
+                  ? viewPadding.left + floatingBarBottomGap
+                  : 0,
+              viewPadding.top + floatingBarBottomGap,
+              rail == RailSide.right
+                  ? viewPadding.right + floatingBarBottomGap
+                  : 0,
+              viewPadding.bottom + floatingBarBottomGap,
+            ),
       // Docked there is no shadow to keep off the sheet, but the clip stays
       // in the tree either way so the bar keeps its state.
       child: ClipRect(

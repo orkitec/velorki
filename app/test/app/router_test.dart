@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
@@ -7,6 +8,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/router.dart';
+import 'package:velorki/app/shell_layout.dart';
+import 'package:velorki/features/settings/presentation/settings_screen.dart';
 import 'package:velorki/app/tab_fade.dart';
 import 'package:velorki/app/theme.dart';
 import 'package:velorki/core/db/database.dart';
@@ -123,6 +126,14 @@ Future<void> _pumpShell(
   await tester.pumpAndSettle();
 }
 
+/// Turns the test screen back upright at [size], as [_pumpShell] has it.
+Future<void> _pumpShellSize(WidgetTester tester, Size size) async {
+  await tester.binding.setSurfaceSize(size);
+  tester.view.physicalSize = size * 3;
+  tester.view.devicePixelRatio = 3;
+  await tester.pumpAndSettle();
+}
+
 Future<void> _tapTab(WidgetTester tester, String label) async {
   await tester.tap(find.widgetWithText(NavigationDestination, label));
   await tester.pumpAndSettle();
@@ -179,6 +190,139 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(FloatingNavigationBar), findsNothing);
+  });
+
+  group('turned sideways', () {
+    setUp(() => debugShellLayoutOverride = null);
+
+    /// Turns the test screen to a phone's landscape, 874 by 402 points.
+    Future<void> turnSideways(WidgetTester tester) async {
+      await tester.binding.setSurfaceSize(const Size(874, 402));
+      tester.view.physicalSize = const Size(874 * 3, 402 * 3);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> tapRail(WidgetTester tester, String label) async {
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationRail),
+          matching: find.text(label),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the bar becomes a rail with the same four tabs', (
+      tester,
+    ) async {
+      await _pumpShell(tester);
+      expect(find.byType(NavigationBar), findsOneWidget);
+      expect(find.byType(NavigationRail), findsNothing);
+
+      await turnSideways(tester);
+      expect(find.byType(NavigationBar), findsNothing);
+      expect(find.byType(NavigationRail), findsOneWidget);
+      for (final label in [
+        l10n.tabPlan,
+        l10n.tabRecord,
+        l10n.tabLibrary,
+        l10n.tabSettings,
+      ]) {
+        expect(
+          find.descendant(
+            of: find.byType(NavigationRail),
+            matching: find.text(label),
+          ),
+          findsOneWidget,
+        );
+      }
+
+      await tapRail(tester, l10n.tabSettings);
+      expect(
+        tester
+            .widget<NavigationRail>(find.byType(NavigationRail))
+            .selectedIndex,
+        3,
+      );
+    });
+
+    testWidgets('the rail stands where the phone\'s bottom edge went', (
+      tester,
+    ) async {
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      const channel = MethodChannel(ScreenSideChannel.channelName);
+      messenger.setMockMethodCallHandler(
+        channel,
+        (call) async => call.method == 'side' ? 'left' : null,
+      );
+      addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+
+      await _pumpShell(tester);
+      await turnSideways(tester);
+      final rail = tester.getRect(find.byType(FloatingNavigationBar));
+      expect(rail.left, lessThan(874 / 4));
+
+      await messenger.handlePlatformMessage(
+        ScreenSideChannel.channelName,
+        const StandardMethodCodec().encodeMethodCall(
+          MethodCall('sideChanged', 'right'),
+        ),
+        (_) {},
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester.getRect(find.byType(FloatingNavigationBar)).right,
+        greaterThan(874 * 3 / 4),
+      );
+    });
+
+    testWidgets('a tab\'s page lies beside the rail, not under it', (
+      tester,
+    ) async {
+      await _pumpShell(tester);
+      await turnSideways(tester);
+      await tapRail(tester, l10n.tabSettings);
+      final rail = tester.getRect(find.byType(FloatingNavigationBar));
+      final page = tester.getRect(find.byType(SettingsScreen));
+      expect(page.overlaps(rail), isFalse);
+      expect(page.width, greaterThan(874 / 2));
+    });
+
+    testWidgets('the rail stays while the keyboard is up', (tester) async {
+      await _pumpShell(tester);
+      await turnSideways(tester);
+      tester.view.viewInsets = const FakeViewPadding(bottom: 600);
+      addTearDown(tester.view.resetViewInsets);
+      await tester.pumpAndSettle();
+      expect(find.byType(NavigationRail), findsOneWidget);
+    });
+
+    testWidgets('turning the phone keeps the one map', (tester) async {
+      final maps = <FakeMapController>[];
+      final builds = <int>[];
+      await _pumpShell(
+        tester,
+        overrides: [
+          mapViewBuilderProvider.overrideWithValue(
+            _collectingBuilder(maps, builds: builds),
+          ),
+        ],
+      );
+      final element = tester.element(find.byType(SharedMapHost));
+      await turnSideways(tester);
+      await tapRail(tester, l10n.tabRecord);
+      await _pumpShellSize(tester, const Size(1000, 2000));
+      await _tapTab(tester, l10n.tabPlan);
+      expect(maps, hasLength(1));
+      expect(builds, hasLength(1));
+      expect(tester.element(find.byType(SharedMapHost)), same(element));
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 1));
+    });
   });
 
   testWidgets('a docked sheet squares the bar, on that tab only', (
