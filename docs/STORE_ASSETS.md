@@ -190,7 +190,10 @@ against it, to see which converts better.
 → Run workflow), runs `store_screenshots.sh` for the `locales` given, and with
 `preview` the preview too, on a macOS runner. The artifact `store-assets`
 holds `slides/set/` (both sizes, every language, the contact sheets),
-`watch/` and `preview/<locale>/preview.mp4` with its poster.
+`watch/` and `preview/<locale>/preview.mp4` with its poster. The runner's
+simulator has no GPU and drops frames of the moving map (a third in the
+navigation scene), so the preview for the store is recorded on a Mac with
+`--preview`; `preview` stays off unless asked for.
 
 With `upload`, the run must be started from a `v*` tag, with `app_version`
 the App Store version to fill (created if it does not exist yet). The
@@ -200,4 +203,4 @@ locale and `fastlane ios store_assets` (deliver, with the App Store Connect
 API key) replaces that version's 6.9", 6.5" and Apple Watch screenshots in
 each language uploaded, the watch getting the four `store/` shots.
 `metadata` also uploads `app/fastlane/metadata/ios`. Nothing is submitted for
-review. The preview video is uploaded by hand.
+review. The preview video is uploaded by hand, from the Mac's recording.

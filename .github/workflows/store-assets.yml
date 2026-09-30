@@ -17,10 +17,12 @@ on:
         description: Languages, comma-separated
         type: string
         default: en,de
+      # The runner's simulator has no GPU and drops frames of the moving map;
+      # the preview for the store is recorded on a Mac (docs/STORE_ASSETS.md).
       preview:
-        description: Also record the preview video
+        description: Also record the preview video (choppier than on a Mac)
         type: boolean
-        default: true
+        default: false
       upload:
         description: Upload the screenshots to App Store Connect (from a v* tag)
         type: boolean
