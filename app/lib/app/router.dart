@@ -24,6 +24,7 @@ import '../features/shared/application/nav_bar_docking.dart';
 import '../features/subscription/presentation/paywall_screen.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'map_tab_page.dart';
+import 'shell_layout.dart';
 import 'tab_fade.dart';
 
 part 'router.g.dart';
@@ -263,119 +264,123 @@ class HomeShell extends ConsumerWidget {
         atTabRoot &&
         (chrome?.visible ?? true);
     final columnGlide = ref.watch(mapControlsTopProvider);
-    return Scaffold(
-      // The bar floats over the content; screens read the bottom padding
-      // from MediaQuery to keep their last rows above it.
-      extendBody: true,
-      // The keyboard inset is left to each tab's own scaffold: the map
-      // screens keep their full height under the keyboard, the settings
-      // screen resizes as usual.
-      resizeToAvoidBottomInset: false,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // The one map under the Plan, Record and Library tabs, which draw
-          // on it and are transparent over it. Never hidden and never moved
-          // in the stack: the platform view would start over and show black.
-          // The settings tab is an opaque page over it.
-          //
-          // Its bottom inset is pinned to nothing: the scaffold takes the
-          // bottom view padding off its body only while it has a bar, so
-          // with the bar hidden for a ride the map's credit and (i) would
-          // climb by the home indicator's height into the figures bar.
-          MediaQuery.removeViewPadding(
-            context: context,
-            removeBottom: true,
-            child: const SharedMapHost(key: ValueKey<String>('shared-map')),
-          ),
-          if (showColumn)
-            Positioned.fill(
-              child: SafeArea(
-                child: AnimatedBuilder(
-                  animation: columnGlide.animation,
-                  builder: (context, child) => Padding(
-                    padding: EdgeInsets.only(
-                      top: columnGlide.animation.value,
-                      right: 12,
+    // The layout the screen implies, handed down to the tabs: a bar at the
+    // bottom upright, a rail at the side on a phone turned sideways.
+    return ShellLayoutHost(
+      child: Scaffold(
+        // The bar floats over the content; screens read the bottom padding
+        // from MediaQuery to keep their last rows above it.
+        extendBody: true,
+        // The keyboard inset is left to each tab's own scaffold: the map
+        // screens keep their full height under the keyboard, the settings
+        // screen resizes as usual.
+        resizeToAvoidBottomInset: false,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            // The one map under the Plan, Record and Library tabs, which draw
+            // on it and are transparent over it. Never hidden and never moved
+            // in the stack: the platform view would start over and show black.
+            // The settings tab is an opaque page over it.
+            //
+            // Its bottom inset is pinned to nothing: the scaffold takes the
+            // bottom view padding off its body only while it has a bar, so
+            // with the bar hidden for a ride the map's credit and (i) would
+            // climb by the home indicator's height into the figures bar.
+            MediaQuery.removeViewPadding(
+              context: context,
+              removeBottom: true,
+              child: const SharedMapHost(key: ValueKey<String>('shared-map')),
+            ),
+            if (showColumn)
+              Positioned.fill(
+                child: SafeArea(
+                  child: AnimatedBuilder(
+                    animation: columnGlide.animation,
+                    builder: (context, child) => Padding(
+                      padding: EdgeInsets.only(
+                        top: columnGlide.animation.value,
+                        right: 12,
+                      ),
+                      child: child,
                     ),
-                    child: child,
-                  ),
-                  child: Align(
-                    alignment: Alignment.topRight,
-                    child: MapChromeInsets(
-                      showRoutingTiles: chrome?.showRoutingTiles ?? true,
-                      following: chrome?.following ?? false,
-                      headingUp: chrome?.headingUp ?? false,
-                      bearingDeg: chrome?.bearingDeg ?? 0,
-                      onLocate: chrome?.onLocate,
-                      onCompass: chrome?.onCompass,
-                      routeShown: chrome?.routeShown ?? false,
-                      onToggleRoute: chrome?.onToggleRoute,
-                      // Read at the tap: the sheet moves without a rebuild
-                      // of the column.
-                      // Read after the fix is awaited, so the shell may be
-                      // gone by then.
-                      visiblePadding: () => context.mounted
-                          ? visibleMapPadding(
-                              context,
-                              chromeTop: columnGlide.target,
-                              sheetExtent: ref
-                                  .read(tabHandoverProvider)
-                                  .sheetExtent,
-                            )
-                          : EdgeInsets.zero,
-                      child: MapControls(
-                        controller: ref.watch(sharedMapControllerProvider),
+                    child: Align(
+                      alignment: Alignment.topRight,
+                      child: MapChromeInsets(
+                        showRoutingTiles: chrome?.showRoutingTiles ?? true,
+                        following: chrome?.following ?? false,
+                        headingUp: chrome?.headingUp ?? false,
+                        bearingDeg: chrome?.bearingDeg ?? 0,
+                        onLocate: chrome?.onLocate,
+                        onCompass: chrome?.onCompass,
+                        routeShown: chrome?.routeShown ?? false,
+                        onToggleRoute: chrome?.onToggleRoute,
+                        // Read at the tap: the sheet moves without a rebuild
+                        // of the column.
+                        // Read after the fix is awaited, so the shell may be
+                        // gone by then.
+                        visiblePadding: () => context.mounted
+                            ? visibleMapPadding(
+                                context,
+                                chromeTop: columnGlide.target,
+                                sheetExtent: ref
+                                    .read(tabHandoverProvider)
+                                    .sheetExtent,
+                              )
+                            : EdgeInsets.zero,
+                        child: MapControls(
+                          controller: ref.watch(sharedMapControllerProvider),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-          // Over the column: a sheet or card pulled up covers it, and a
-          // touch beside a tab's chrome falls through to it and to the map,
-          // since the map tabs' routes put no barrier under their content.
-          shell,
-        ],
+            // Over the column: a sheet or card pulled up covers it, and a
+            // touch beside a tab's chrome falls through to it and to the map,
+            // since the map tabs' routes put no barrier under their content.
+            shell,
+          ],
+        ),
+        bottomNavigationBar: hideBar
+            ? null
+            : FloatingNavigationBar(
+                docked: docked,
+                selectedIndex: shell.currentIndex,
+                onDestinationSelected: (index) {
+                  // Told first, so the screens arrange themselves before the
+                  // branch shows.
+                  ref.read(activeTabProvider.notifier).show(tabRoutes[index]);
+                  shell.goBranch(
+                    index,
+                    // Tapping the active tab pops back to that branch's root.
+                    initialLocation: index == shell.currentIndex,
+                  );
+                },
+                destinations: [
+                  NavigationDestination(
+                    icon: const Icon(Icons.route_outlined),
+                    selectedIcon: const Icon(Icons.route),
+                    label: l10n.tabPlan,
+                  ),
+                  NavigationDestination(
+                    icon: const Icon(Icons.radio_button_unchecked),
+                    selectedIcon: const Icon(Icons.radio_button_checked),
+                    label: l10n.tabRecord,
+                  ),
+                  NavigationDestination(
+                    icon: const Icon(Icons.bookmarks_outlined),
+                    selectedIcon: const Icon(Icons.bookmarks),
+                    label: l10n.tabLibrary,
+                  ),
+                  NavigationDestination(
+                    icon: const Icon(Icons.tune_outlined),
+                    selectedIcon: const Icon(Icons.tune),
+                    label: l10n.tabSettings,
+                  ),
+                ],
+              ),
       ),
-      bottomNavigationBar: hideBar
-          ? null
-          : FloatingNavigationBar(
-              docked: docked,
-              selectedIndex: shell.currentIndex,
-              onDestinationSelected: (index) {
-                // Told first, so the screens arrange themselves before the
-                // branch shows.
-                ref.read(activeTabProvider.notifier).show(tabRoutes[index]);
-                shell.goBranch(
-                  index,
-                  // Tapping the active tab pops back to that branch's root.
-                  initialLocation: index == shell.currentIndex,
-                );
-              },
-              destinations: [
-                NavigationDestination(
-                  icon: const Icon(Icons.route_outlined),
-                  selectedIcon: const Icon(Icons.route),
-                  label: l10n.tabPlan,
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.radio_button_unchecked),
-                  selectedIcon: const Icon(Icons.radio_button_checked),
-                  label: l10n.tabRecord,
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.bookmarks_outlined),
-                  selectedIcon: const Icon(Icons.bookmarks),
-                  label: l10n.tabLibrary,
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.tune_outlined),
-                  selectedIcon: const Icon(Icons.tune),
-                  label: l10n.tabSettings,
-                ),
-              ],
-            ),
     );
   }
 }
