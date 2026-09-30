@@ -886,7 +886,7 @@ release.
 | Logs in `~/.orkify/logs/{process}.std{out,err}.log`, defaults 100 MB / 90 files / 90 days | <https://orkify.com/docs/cli> |
 | `ORKIFY_WORKER_ID`, `ORKIFY_WORKERS`, `ORKIFY_CLUSTER_MODE` are set on every managed process (the share sweeper uses worker 0) | <https://orkify.com/docs/cli> |
 | Dashboard secrets are per project, injected at runtime on the agent's next heartbeat, and take precedence over the config's `env` block | <https://orkify.com/docs/secrets> |
-| Next.js needs `output: 'standalone'`, `public/` and `.next/static` copied in by hand, Node 22+, Next 16+ for `use cache`; `@orkify/next/use-cache` and `@orkify/next/isr-cache` are the two handlers | <https://orkify.com/docs/nextjs> |
+| Next.js needs `output: 'standalone'`, `public/` and `.next/static` copied in by hand, Node 22+, Next 16+ for `use cache`. Velorki does not use `@orkify/next`'s cache handlers: they key pages by path and keep them across a rolling reload, so a deploy served the previous build's HTML | <https://orkify.com/docs/nextjs> |
 | `@orkify/cache`: `incr/get/set/getAsync`, cluster writes broadcast over IPC, eventually consistent, degrades to a local cache outside a cluster | <https://orkify.com/docs/cache> |
 | Origin CA: SSL/TLS → Origin Server → Origin Certificates → Create Certificate; up to 200 SANs; a wildcard covers one label; then switch to Full (strict) | <https://developers.cloudflare.com/ssl/origin-configuration/origin-ca/> |
 | Global Authenticated Origin Pulls CA: `https://developers.cloudflare.com/ssl/static/authenticated_origin_pull_ca.pem`, enabled zone-wide from the dashboard | <https://developers.cloudflare.com/ssl/origin-configuration/authenticated-origin-pull/set-up/global/> |
