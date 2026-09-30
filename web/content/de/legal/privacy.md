@@ -217,13 +217,8 @@ auf deinem Gerät wird nichts gespeichert, bis du es verlangst. Der Eintrag
   Server-Protokolle beschrieben: Zeitpunkt, Pfad, Status, Größe, deine
   IP-Adresse und die Kennung deines Browsers, 14 Tage lang.
 - **Fehlerberichte.** Schlägt eine Seite dieser Website in deinem Browser fehl,
-  schickt sie einen Bericht darüber an unseren Server: Name, Meldung und
-  Stacktrace des Fehlers, die Adresse der Seite und die Kennung deines
-  Browsers. Deine IP-Adresse dient nur dazu, die Zahl der Berichte pro
-  Besucher zu begrenzen, und ist nicht Teil des Berichts. Die Berichte gehen
-  mit den Anwendungsprotokollen an Orkify (siehe Server-Protokolle oben) und
-  werden spätestens nach **90 Tagen** gelöscht. Sie dienen dazu, Fehler zu
-  finden und zu beheben, zu nichts anderem.
+  schickt sie den Fehler, die Adresse der Seite und die Kennung deines Browsers
+  an unseren Server, nur damit wir den Fehler beheben können.
 - **Cloudflare.** Die Website wird über Cloudflare ausgeliefert, das die
   Verbindung annimmt, Angriffe abfängt und die Anfrage an unseren Server
   weitergibt. Cloudflare verarbeitet dabei deine IP-Adresse und die Anfrage
@@ -274,7 +269,6 @@ auf deinem Gerät wird nichts gespeichert, bis du es verlangst. Der Eintrag
 | Token von Strava / RideWithGPS | auf deinem Handy, so verschlüsselt, dass nur unser Relay sie öffnen kann, bis du trennst; nie bei uns gespeichert | in der App trennen oder deinstallieren |
 | Teilen-Links | ein Jahr, dann automatisch gelöscht | in der App löschen |
 | KI-Anfragen | von uns nicht gespeichert, über die oben genannten Protokolle hinaus | entfällt |
-| Fehlerberichte der Website | spätestens 90 Tage, bei Orkify | entfällt |
 | Daten bei RevenueCat | nach der eigenen Erklärung von RevenueCat | schreib uns, und wir geben die Anfrage weiter |
 | Support-Chat-Gespräche | in unserem Discord-Kanal, bis wir sie löschen | schreib an ride@velorki.com |
 

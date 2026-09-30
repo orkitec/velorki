@@ -196,13 +196,9 @@ to refuse, because nothing is stored on your device until you ask for it. The
 - **Server logs.** Every request is logged as described under Server logs
   above: time, path, status, size, your IP address and your browser's user
   agent, kept 14 days.
-- **Error reports.** When a page of this site fails in your browser, it sends
-  a report of that failure back to our server: the error's name, message and
-  stack trace, the address of the page and your browser's user agent. Your IP
-  address is used only to limit how many reports one visitor can send, and is
-  not part of the report. The reports go to Orkify with the application logs
-  (see Server logs above) and are purged after **90 days** at the latest. They
-  are there to find and fix bugs, nothing else.
+- **Error reports.** If a page of this site fails in your browser, it sends
+  the error, the page address and your browser's user agent to our server,
+  only so we can fix the bug.
 - **Cloudflare.** The site is served through Cloudflare, which terminates the
   connection, filters attacks and passes the request on to our server. It
   therefore processes your IP address and the request itself. Cloudflare is in
@@ -249,7 +245,6 @@ to refuse, because nothing is stored on your device until you ask for it. The
 | Strava / RideWithGPS tokens | on your phone, encrypted so that only our relay can open them, until you disconnect; never stored on our side | disconnect in the app, or uninstall |
 | Share links | one year, then deleted automatically | delete them from the app |
 | AI prompts | not stored by us beyond what the logs above contain | not applicable |
-| Website error reports | 90 days at the latest, in Orkify | not applicable |
 | RevenueCat data | per RevenueCat's own policy | contact us and we will pass the request on |
 | Support chat conversations | in our Discord channel until we delete them | ask at ride@velorki.com |
 
