@@ -112,12 +112,20 @@ function docsNotFoundPath(pathname: string): string | null {
   return `/${locale}/${DOCS_MISSING_SEGMENT}`;
 }
 
+/**
+ * Where `<OrkifyErrorCapture />` posts the browser's errors. A route of the
+ * site only: the api host has no pages to report from, and `isApiRoute` does
+ * not list it, so there it is the JSON 404 like any other unknown path.
+ */
+const ERROR_REPORT_PATH = '/orkify/errors';
+
 /** Paths the site serves as-is: no locale prefix, no share handling. */
 function isPassThrough(pathname: string): boolean {
   return (
     pathname === '/.well-known' ||
     pathname.startsWith('/.well-known/') ||
     pathname.startsWith('/well-known/') ||
+    pathname === ERROR_REPORT_PATH ||
     SITE_FILES.includes(pathname)
   );
 }

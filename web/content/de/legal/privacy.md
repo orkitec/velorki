@@ -7,7 +7,7 @@ draft: false
 > **Hinweis zur Übersetzung.** Dies ist eine Übersetzung der englischen
 > Fassung. Bei Abweichungen gilt die englische Fassung.
 
-Gültig ab: 27. September 2026.
+Gültig ab: 30. September 2026.
 
 Velorki ist eine App zum Planen von Radrouten und zum Aufzeichnen von Fahrten,
 gemacht von Orkitec. Diese Seite erklärt, was mit deinen Daten geschieht.
@@ -216,6 +216,14 @@ auf deinem Gerät wird nichts gespeichert, bis du es verlangst. Der Eintrag
 - **Server-Protokolle.** Jede Anfrage wird protokolliert wie oben unter
   Server-Protokolle beschrieben: Zeitpunkt, Pfad, Status, Größe, deine
   IP-Adresse und die Kennung deines Browsers, 14 Tage lang.
+- **Fehlerberichte.** Schlägt eine Seite dieser Website in deinem Browser fehl,
+  schickt sie einen Bericht darüber an unseren Server: Name, Meldung und
+  Stacktrace des Fehlers, die Adresse der Seite und die Kennung deines
+  Browsers. Deine IP-Adresse dient nur dazu, die Zahl der Berichte pro
+  Besucher zu begrenzen, und ist nicht Teil des Berichts. Die Berichte gehen
+  mit den Anwendungsprotokollen an Orkify (siehe Server-Protokolle oben) und
+  werden spätestens nach **90 Tagen** gelöscht. Sie dienen dazu, Fehler zu
+  finden und zu beheben, zu nichts anderem.
 - **Cloudflare.** Die Website wird über Cloudflare ausgeliefert, das die
   Verbindung annimmt, Angriffe abfängt und die Anfrage an unseren Server
   weitergibt. Cloudflare verarbeitet dabei deine IP-Adresse und die Anfrage
@@ -266,6 +274,7 @@ auf deinem Gerät wird nichts gespeichert, bis du es verlangst. Der Eintrag
 | Token von Strava / RideWithGPS | auf deinem Handy, so verschlüsselt, dass nur unser Relay sie öffnen kann, bis du trennst; nie bei uns gespeichert | in der App trennen oder deinstallieren |
 | Teilen-Links | ein Jahr, dann automatisch gelöscht | in der App löschen |
 | KI-Anfragen | von uns nicht gespeichert, über die oben genannten Protokolle hinaus | entfällt |
+| Fehlerberichte der Website | spätestens 90 Tage, bei Orkify | entfällt |
 | Daten bei RevenueCat | nach der eigenen Erklärung von RevenueCat | schreib uns, und wir geben die Anfrage weiter |
 | Support-Chat-Gespräche | in unserem Discord-Kanal, bis wir sie löschen | schreib an ride@velorki.com |
 
@@ -310,8 +319,8 @@ sind**
   App-Nutzer-Kennung und der Kaufbeleg, kein Name und keine E-Mail-Adresse.
 - **Orkify**, betrieben von demselben Betreiber auf der oben genannten
   Hetzner-Infrastruktur — das Deployment-Dashboard, das die Anwendungsprotokolle
-  und Prozessmetriken aus dem Abschnitt Server-Protokolle sammelt, und das
-  Widget des Support-Chats.
+  und Prozessmetriken aus dem Abschnitt Server-Protokolle sowie die
+  Fehlerberichte dieser Website sammelt, und das Widget des Support-Chats.
 - **Discord Netherlands B.V.** (für Nutzende in Europa; dahinter Discord Inc.,
   San Francisco, USA) — dorthin wird ein Support-Chat geliefert und dort bleibt
   er.

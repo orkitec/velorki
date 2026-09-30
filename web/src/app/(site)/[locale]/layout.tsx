@@ -5,6 +5,7 @@ import localFont from 'next/font/local';
 import { notFound } from 'next/navigation';
 import { NextIntlClientProvider, hasLocale } from 'next-intl';
 import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
+import { OrkifyErrorCapture } from '@orkify/next/error-capture';
 import { JsonLd } from '@/components/JsonLd';
 import { SiteFooter } from '@/components/SiteFooter';
 import { CookieNotice } from '@/components/CookieNotice';
@@ -161,6 +162,8 @@ export default async function SiteLayout({
         {/* Last in the body, outside the intl provider: it brings its own UI
             and its own strings. Renders nothing without a widget key. */}
         <SupportChat />
+        {/* Uncaught errors and rejections, posted to /orkify/errors. */}
+        <OrkifyErrorCapture />
         <CookieNotice
           // The section about this site, whose heading id differs per language;
           // test/cookienotice.test.tsx keeps the two in step.
