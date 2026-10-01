@@ -92,13 +92,15 @@ changing structure.
 - The floating navigation bar overlays content (`extendBody`): scroll views
   pad by `MediaQuery.paddingOf(context).bottom`.
 - Modal sheets open on the root navigator (`useRootNavigator: true`).
-- Turned sideways (`ShellLayout`, `lib/app/shell_layout.dart`) the bar is a
-  rail on the side the phone's bottom edge went to, and the tab sheets are
-  side panels beside it: a tab builds its sheet with `AdaptiveDockingSheet`
-  and keeps chrome over the map clear of the panel with `BesideSidePanel`.
-  Widget tests run upright (`test/flutter_test_config.dart`); a landscape
-  test clears `debugShellLayoutOverride`. Flutter's `landscapeLeft` is not
-  the same physical turn on iOS and Android.
+- Turned sideways (`ShellLayout`, `lib/app/shell_layout.dart`) the bar is
+  the same floating bar turned a quarter, a rail on the side the phone's
+  bottom edge went to, and each tab's sheet is the upright sheet turned with
+  it (`AdaptiveDockingSheet`, `QuarterTurnedFrame`), content turned back
+  upright. Screens size their sheet from `SheetGeometry`, never from the
+  screen's height, and keep chrome over the map clear of it with
+  `BesideSheet`. Widget tests run upright (`test/flutter_test_config.dart`);
+  a landscape test clears `debugShellLayoutOverride`. Flutter's
+  `landscapeLeft` is not the same physical turn on iOS and Android.
 
 ## Tests
 

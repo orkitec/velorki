@@ -716,12 +716,17 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     final layout = ShellLayout.of(context);
     final screen = MediaQueryData.fromView(View.of(context));
     final sheet = layout.sideRail ? _sheetRect() : null;
-    final left = sheet != null && layout.side == RailSide.left
+    // The far side keeps clear of the camera island's safe area.
+    final left = sheet == null
+        ? 0.0
+        : layout.side == RailSide.left
         ? sheet.right.clamp(0.0, size.width)
-        : 0.0;
-    final right = sheet != null && layout.side == RailSide.right
+        : screen.viewPadding.left;
+    final right = sheet == null
+        ? 0.0
+        : layout.side == RailSide.right
         ? (size.width - sheet.left).clamp(0.0, size.width)
-        : 0.0;
+        : screen.viewPadding.right;
     final padding = followPadding(
       size: size,
       top:

@@ -50,7 +50,7 @@ EdgeInsets visibleMapPadding(
       cover: shell.side == RailSide.left
           ? EdgeInsets.only(left: cover)
           : EdgeInsets.only(right: cover),
-      columnWidth: 0,
+      safeArea: screen.viewPadding,
     );
   }
   final size = MediaQuery.sizeOf(context);

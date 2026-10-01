@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:math' show Point, max;
+import 'dart:math' show Point;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -75,6 +75,12 @@ String mapStyleUrlFor(
   };
 }
 
+/// How far down the native (i) button sits on a phone turned sideways: in
+/// the top corner of the map away from the rail, below the search and the
+/// profile menu, so the attribution chip has the narrow map's whole width at
+/// the bottom.
+const double _infoButtonTopSideways = 124;
+
 /// The map itself: a `MapLibreMap` platform view plus the adapter that turns
 /// it into a [MapController].
 ///
@@ -83,19 +89,6 @@ String mapStyleUrlFor(
 /// drives it from there. [onControllerReady] fires again after a style
 /// reload, because every layer we added is gone at that point and has to be
 /// re-applied by the owner.
-/// How far from the right edge the native (i) button has to move to stand
-/// beside [cover] there. iOS measures its margin from the safe area, which
-/// [cover] already counts from the screen's edge.
-double _infoButtonBeside(BuildContext context, double cover) {
-  if (cover <= 0) return 0;
-  if (defaultTargetPlatform != TargetPlatform.iOS) return cover;
-  return max(0, cover - MediaQuery.viewPaddingOf(context).right);
-}
-
-/// The room the native (i) button takes at the map's bottom right, kept
-/// free of the attribution chip where the map is narrow.
-const double _infoButtonRoom = 40;
-
 class MapView extends ConsumerStatefulWidget {
   const MapView({
     required this.onControllerReady,
@@ -308,6 +301,9 @@ class _MapViewState extends ConsumerState<MapView> {
     final chromeTop = chrome?.controlsTop;
     // The bottom of the view, whatever an owner removed from the padding:
     // the chip and the (i) button sit in the band under the bar.
+    // Turned sideways the map beside the rail and the sheet is narrow.
+    final sideways =
+        (chrome?.attributionInsets ?? EdgeInsets.zero) != EdgeInsets.zero;
     final attributionBottom = mapAttributionBottom(
       context,
       gap: widget.attributionPadding.bottom,
@@ -325,11 +321,17 @@ class _MapViewState extends ConsumerState<MapView> {
       compassEnabled: false,
       logoEnabled: false,
       // maplibre_gl 0.27 cannot hide the native attribution (i) button, so it
-      // is parked bottom right, in the same band as our own chip.
-      attributionButtonPosition: ml.AttributionButtonPosition.bottomRight,
+      // is parked bottom right, in the same band as our own chip; sideways in
+      // the top corner away from the rail, where the narrow map leaves it
+      // room the chip's band does not.
+      attributionButtonPosition: !sideways
+          ? ml.AttributionButtonPosition.bottomRight
+          : (chrome?.attributionInsets.left ?? 0) > 0
+          ? ml.AttributionButtonPosition.topRight
+          : ml.AttributionButtonPosition.topLeft,
       attributionButtonMargins: Point<num>(
-        8 + _infoButtonBeside(context, chrome?.attributionInsets.right ?? 0),
-        attributionBottom,
+        8,
+        sideways ? _infoButtonTopSideways : attributionBottom,
       ),
       rotateGesturesEnabled: true,
       tiltGesturesEnabled: false,
@@ -398,15 +400,9 @@ class _MapViewState extends ConsumerState<MapView> {
                 left:
                     widget.attributionPadding.left +
                     (chrome?.attributionInsets.left ?? 0),
-                // Beside the rail and the sheet the map is narrow: the chip
-                // is centred in what the (i) at its right leaves.
                 right:
                     widget.attributionPadding.right +
-                    (chrome?.attributionInsets.right ?? 0) +
-                    ((chrome?.attributionInsets ?? EdgeInsets.zero) ==
-                            EdgeInsets.zero
-                        ? 0
-                        : _infoButtonRoom),
+                    (chrome?.attributionInsets.right ?? 0),
                 bottom: attributionBottom,
                 child: const Center(child: MapAttributionChip()),
               ),

@@ -32,21 +32,21 @@ EdgeInsets visibleMapInsets({
 );
 
 /// The insets of the visible part of a map on a phone turned sideways:
-/// [cover] is what the rail and the side panel take from one side, the
-/// control column standing right beside them; [topInset] and [chromeTop] as
-/// upright, and [bottomInset] the safe area at the bottom, since no sheet
-/// rises from there.
+/// [cover] is what the rail and the sheet take from one side, [safeArea] the
+/// screen's own, which on the other side is the camera island's;
+/// [topInset] and [chromeTop] as upright, and [bottomInset] what covers the
+/// bottom, since no sheet rises from there.
 EdgeInsets sidewaysVisibleMapInsets({
   required double topInset,
   required double chromeTop,
   required double bottomInset,
   required EdgeInsets cover,
-  required double columnWidth,
+  EdgeInsets safeArea = EdgeInsets.zero,
   double margin = 24,
 }) => EdgeInsets.fromLTRB(
-  cover.left + (cover.left > 0 ? columnWidth : 0) + margin,
+  (cover.left > 0 ? cover.left : safeArea.left) + margin,
   topInset + chromeTop + margin,
-  cover.right + (cover.right > 0 ? columnWidth : 0) + margin,
+  (cover.right > 0 ? cover.right : safeArea.right) + margin,
   bottomInset + margin,
 );
 
