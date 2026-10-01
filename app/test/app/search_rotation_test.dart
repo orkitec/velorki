@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -124,9 +126,13 @@ void _expectListUnderField(
   final field = tester.getRect(find.byType(SearchField));
   final list = tester.getRect(_list);
   expect(list.top, closeTo(field.bottom, 1), reason: '$list under $field');
-  // Held on the field: by its far edge sideways, by both upright.
+  // Held on the field: by both edges upright; sideways by its far edge,
+  // or where that is past the far side's safe area (the field reaches past
+  // it, the rows of the list keep out of the island), 12 inside it.
   if (way == RailSide.left) {
-    expect(list.right, closeTo(field.right, 1));
+    expect(list.right, closeTo(math.min(field.right, size.width - 62 - 12), 1));
+  } else if (way == RailSide.right) {
+    expect(list.left, closeTo(math.max(field.left, 62 + 12), 1));
   } else {
     expect(list.left, closeTo(field.left, 1));
   }

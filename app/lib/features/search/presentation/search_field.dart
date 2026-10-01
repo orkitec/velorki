@@ -26,6 +26,15 @@ import '../domain/search_result.dart';
 /// the text padding on both sides.
 const double _hintChrome = 48 + 20 + 20;
 
+/// The same in a compact field: no magnifier, and less padding.
+const double _hintChromeCompact = 14 + 4;
+
+/// A field with a trailing button narrower than this is compact.
+const double _compactFieldWidth = 240;
+
+/// A field narrower than this has no room for a trailing button at all.
+const double _leastFieldWidthWithTrailing = 140;
+
 /// Whether [hint] fits [width] in one line of the field's text style.
 bool _hintFits(BuildContext context, String hint, double width) {
   final painter = TextPainter(
@@ -47,8 +56,15 @@ class SearchField extends ConsumerStatefulWidget {
     this.onCleared,
     this.onFocusChanged,
     this.onDownloadArea,
+    this.trailing,
     super.key,
   });
+
+  /// Builds what is drawn in the field's glass after the text and its clear
+  /// button: the profile menu, on a phone turned sideways. The hint gets
+  /// what it leaves. `compact` asks for the smaller version a narrow field
+  /// has room for.
+  final Widget Function({required bool compact})? trailing;
 
   /// Called when the field takes or gives up focus, before the keyboard
   /// moves: the screen can make room for it.
@@ -90,17 +106,43 @@ class _SearchFieldState extends ConsumerState<SearchField> {
   /// keyboard up leaves it little more than a row or two.
   final ValueNotifier<double?> _fieldBottom = ValueNotifier<double?>(null);
 
+  /// How far the list moves in from the field's far edge. Sideways the
+  /// field reaches past that edge's safe area, which the list, rows of
+  /// text that the camera's island would hide, keeps to.
+  final ValueNotifier<double> _farShift = ValueNotifier<double>(0);
+
+  double _shiftFromFarEdge(RenderBox box) {
+    final layout = ShellLayout.of(context);
+    if (!layout.sideRail) return 0;
+    // Measured in the overlay the list is drawn in, the screen.
+    final overlay = Overlay.maybeOf(context)?.context.findRenderObject();
+    if (overlay is! RenderBox || !overlay.hasSize) return 0;
+    final padding = MediaQuery.viewPaddingOf(context);
+    final right = layout.side == RailSide.left;
+    final gap = right
+        ? overlay.size.width -
+              box.localToGlobal(Offset(box.size.width, 0), ancestor: overlay).dx
+        : box.localToGlobal(Offset.zero, ancestor: overlay).dx;
+    final safe = right ? padding.right : padding.left;
+    return math.max(0, safe + sidewaysTopRowGap - gap);
+  }
+
   @override
   void initState() {
     super.initState();
     _focusNode.addListener(_onFocus);
   }
 
-  void _onFocus() => widget.onFocusChanged?.call(_focusNode.hasFocus);
+  void _onFocus() {
+    widget.onFocusChanged?.call(_focusNode.hasFocus);
+    // A narrow field puts its trailing button away while the rider types.
+    if (widget.trailing != null) setState(() {});
+  }
 
   @override
   void dispose() {
     _fieldBottom.dispose();
+    _farShift.dispose();
     _controller.dispose();
     _focusNode
       ..removeListener(_onFocus)
@@ -117,6 +159,7 @@ class _SearchFieldState extends ConsumerState<SearchField> {
     final box = context.findRenderObject();
     if (box is RenderBox && box.hasSize && box.attached) {
       _fieldBottom.value = box.localToGlobal(Offset(0, box.size.height)).dy;
+      _farShift.value = _shiftFromFarEdge(box);
     }
     if (_showResults) {
       if (!_results.isShowing) _results.show();
@@ -206,33 +249,41 @@ class _SearchFieldState extends ConsumerState<SearchField> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) _syncResults();
         });
-        // Beside the side panel on a phone turned sideways the full hint
-        // may not fit, in some languages more than in others: measured.
-        final narrow = !_hintFits(
-          context,
-          l10n.searchHint,
-          constraints.maxWidth - _hintChrome,
-        );
         // Sideways the field may be narrower than the list needs: the list
         // is as wide as on a phone held upright, from the field's far-side
         // edge towards the sheet, over which it may lie.
         final layout = ShellLayout.of(context);
         final fromRight = layout.sideRail && layout.side == RailSide.left;
+        // A narrow field, an iPhone SE's sideways, leaves the text little
+        // room beside the trailing button: the magnifier goes and the button
+        // is smaller, and while the rider types it steps aside. Narrower
+        // still, which only a frame of a turn is, it is not there at all.
+        final compact = constraints.maxWidth < _compactFieldWidth;
+        final trailing =
+            constraints.maxWidth < _leastFieldWidthWithTrailing ||
+                (compact && _focusNode.hasFocus)
+            ? null
+            : widget.trailing?.call(compact: compact);
         return OverlayPortal(
           controller: _results,
           overlayChildBuilder: (context) => Positioned(
             width: layout.sideRail
                 ? math.max(_fieldWidth, sidewaysSheetContentWidth)
                 : _fieldWidth,
-            child: CompositedTransformFollower(
-              link: _link,
-              targetAnchor: fromRight
-                  ? Alignment.bottomRight
-                  : Alignment.bottomLeft,
-              followerAnchor: fromRight
-                  ? Alignment.topRight
-                  : Alignment.topLeft,
-              showWhenUnlinked: false,
+            child: ValueListenableBuilder<double>(
+              valueListenable: _farShift,
+              builder: (context, shift, child) => CompositedTransformFollower(
+                link: _link,
+                offset: Offset(fromRight ? -shift : shift, 0),
+                targetAnchor: fromRight
+                    ? Alignment.bottomRight
+                    : Alignment.bottomLeft,
+                followerAnchor: fromRight
+                    ? Alignment.topRight
+                    : Alignment.topLeft,
+                showWhenUnlinked: false,
+                child: child,
+              ),
               child: Material(
                 type: MaterialType.transparency,
                 child: _ResultsCard(
@@ -252,46 +303,84 @@ class _SearchFieldState extends ConsumerState<SearchField> {
             link: _link,
             child: GlassPanel(
               radius: 28,
-              child: TextField(
-                controller: _controller,
-                focusNode: _focusNode,
-                textInputAction: TextInputAction.search,
-                enabled: canSearch,
-                style: Theme.of(context).textTheme.bodyLarge,
-                decoration: InputDecoration(
-                  hintText: !canSearch
-                      ? l10n.searchUnavailable
-                      : narrow
-                      ? l10n.searchHintShort
-                      : l10n.searchHint,
-                  // The "no server configured" hint is a sentence, and in
-                  // German a longer one than the field is wide: let it wrap
-                  // rather than end in an ellipsis.
-                  hintMaxLines: canSearch ? 1 : 2,
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  filled: false,
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  disabledBorder: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 16,
-                  ),
-                  suffixIcon: _controller.text.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip: l10n.searchClear,
-                          icon: const Icon(Icons.close),
-                          onPressed: _clear,
+              child: Row(
+                children: [
+                  Expanded(
+                    // Beside the side panel on a phone turned sideways the
+                    // full hint may not fit, in some languages more than in
+                    // others: measured against what the text has of the
+                    // field, after the menu at its end.
+                    child: LayoutBuilder(
+                      builder: (context, text) => _textField(
+                        context,
+                        canSearch: canSearch,
+                        magnifier: !compact,
+                        narrow: !_hintFits(
+                          context,
+                          l10n.searchHint,
+                          text.maxWidth -
+                              (compact ? _hintChromeCompact : _hintChrome),
                         ),
-                ),
-                onChanged: _onChanged,
+                      ),
+                    ),
+                  ),
+                  if (trailing != null)
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: constraints.maxWidth * 0.6,
+                      ),
+                      child: trailing,
+                    ),
+                ],
               ),
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _textField(
+    BuildContext context, {
+    required bool canSearch,
+    required bool narrow,
+    required bool magnifier,
+  }) {
+    final l10n = AppLocalizations.of(context);
+    return TextField(
+      controller: _controller,
+      focusNode: _focusNode,
+      textInputAction: TextInputAction.search,
+      enabled: canSearch,
+      style: Theme.of(context).textTheme.bodyLarge,
+      decoration: InputDecoration(
+        hintText: !canSearch
+            ? l10n.searchUnavailable
+            : narrow
+            ? l10n.searchHintShort
+            : l10n.searchHint,
+        // The "no server configured" hint is a sentence, and in
+        // German a longer one than the field is wide: let it wrap
+        // rather than end in an ellipsis.
+        hintMaxLines: canSearch ? 1 : 2,
+        prefixIcon: magnifier ? const Icon(Icons.search_rounded) : null,
+        filled: false,
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        disabledBorder: InputBorder.none,
+        contentPadding: magnifier
+            ? const EdgeInsets.symmetric(horizontal: 20, vertical: 16)
+            : const EdgeInsets.fromLTRB(14, 16, 4, 16),
+        suffixIcon: _controller.text.isEmpty
+            ? null
+            : IconButton(
+                tooltip: l10n.searchClear,
+                icon: const Icon(Icons.close),
+                onPressed: _clear,
+              ),
+      ),
+      onChanged: _onChanged,
     );
   }
 }

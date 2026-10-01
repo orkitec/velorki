@@ -107,10 +107,16 @@ void main() {
       );
       expect(list.width, greaterThanOrEqualTo(sidewaysSheetContentWidth));
       expect(list.top, closeTo(field.bottom, 1));
+      // The field reaches the screen's edge; the list keeps 12 inside the
+      // safe area there, where the camera's island is.
+      final padding = MediaQuery.viewPaddingOf(
+        tester.element(find.byType(SearchField)),
+      );
+      final safe = left ? padding.right : padding.left;
       if (left) {
-        expect(list.right, closeTo(field.right, 1));
+        expect(list.right, closeTo(field.right - safe - 12, 1));
       } else {
-        expect(list.left, closeTo(field.left, 1));
+        expect(list.left, closeTo(field.left + safe + 12, 1));
       }
     });
   }

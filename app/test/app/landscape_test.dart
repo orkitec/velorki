@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -52,13 +50,6 @@ Future<void> _screen(WidgetTester tester, Size size) async {
   );
   tester.view.padding = tester.view.viewPadding;
   await tester.pumpAndSettle();
-}
-
-/// The camera island's safe area at each side of a [size] screen, as
-/// [_screen] sets it.
-EdgeInsets _island(Size size) {
-  final inset = size.height > 380 ? 62.0 : 0.0;
-  return EdgeInsets.only(left: inset, right: inset);
 }
 
 /// Tells the app the phone's bottom edge went to [side].
@@ -153,64 +144,88 @@ void main() {
 
   for (final size in [_wideSideways, _sideways, _smallSideways]) {
     group('sideways at $size', () {
-      testWidgets('Plan: the sheet is the upright one turned, out from the '
-          'rail\'s side and as tall as the screen, with its content upright, '
-          'and the chrome over the map beside it', (tester) async {
-        await _screen(tester, size);
-        await pumpRecordingApp(
+      for (final side in RailSide.values) {
+        testWidgets('Plan, rail on the ${side.name}: the sheet is the upright '
+            'one turned, out from the rail\'s side and as tall as the screen, '
+            'with its content upright, and the chrome over the map beside it', (
           tester,
-          initialLocation: plannerRoute,
-          surfaceSize: size,
-          expectTextFits: false,
-        );
-        await tester.pumpAndSettle();
+        ) async {
+          _railOn(tester, side);
+          await _screen(tester, size);
+          await pumpRecordingApp(
+            tester,
+            initialLocation: plannerRoute,
+            surfaceSize: size,
+            expectTextFits: false,
+          );
+          await tester.pumpAndSettle();
 
-        expect(find.byType(NavigationRail), findsOneWidget);
-        expect(find.byType(DraggableScrollableSheet), findsOneWidget);
-        expect(
-          find.ancestor(
-            of: find.byType(DraggableScrollableSheet),
-            matching: find.byType(RotatedBox),
-          ),
-          findsWidgets,
-        );
-        final sheet = _sheet(tester);
-        final rail = _rail(tester);
-        final left = _railOnLeft(tester, size);
-        // As tall as the screen, from the rail's edge of it, under the rail.
-        expect(sheet.height, closeTo(size.height, 1));
-        if (left) {
-          expect(sheet.left, closeTo(0, 1));
-        } else {
-          expect(sheet.right, closeTo(size.width, 1));
-        }
-        expect(sheet.contains(rail.center), isTrue);
-        // The content reads across, as upright: its title is wider than tall.
-        final title = _rect(tester, find.text(l10n.plannerEmptyState));
-        expect(title.width, greaterThan(title.height));
+          expect(find.byType(NavigationRail), findsOneWidget);
+          expect(find.byType(DraggableScrollableSheet), findsOneWidget);
+          expect(
+            find.ancestor(
+              of: find.byType(DraggableScrollableSheet),
+              matching: find.byType(RotatedBox),
+            ),
+            findsWidgets,
+          );
+          final sheet = _sheet(tester);
+          final rail = _rail(tester);
+          final left = _railOnLeft(tester, size);
+          expect(left, side == RailSide.left);
+          // As tall as the screen, from the rail's edge of it, under the rail.
+          expect(sheet.height, closeTo(size.height, 1));
+          if (left) {
+            expect(sheet.left, closeTo(0, 1));
+          } else {
+            expect(sheet.right, closeTo(size.width, 1));
+          }
+          expect(sheet.contains(rail.center), isTrue);
+          // The content reads across, as upright: its title is wider than tall.
+          final title = _rect(tester, find.text(l10n.plannerEmptyState));
+          expect(title.width, greaterThan(title.height));
 
-        expect(find.byType(ProfileChipRow), findsNothing);
-        expect(find.byType(ProfileDropdown), findsOneWidget);
-        // At rest the search stands beside the sheet, the one thing of the
-        // row at the top in reach: no narrower than the strip the sheet
-        // leaves, less the air at its ends.
-        final island = left ? _island(size).right : _island(size).left;
-        final strip = left
-            ? size.width - island - sheet.right
-            : sheet.left - island;
-        final search = _rect(tester, find.byType(SearchField));
-        final visible = left
-            ? search.right - math.max(search.left, sheet.right)
-            : math.min(search.right, sheet.left) - search.left;
-        expect(visible, greaterThanOrEqualTo(strip - 2 * 12 - 1));
-        expect(search.top, lessThan(size.height * 0.3));
-        await unmountApp(tester);
-      });
+          expect(find.byType(ProfileChipRow), findsNothing);
+          // The profile menu is a button at the end of the search field.
+          final search = _rect(tester, find.byType(SearchField));
+          final menu = _rect(tester, find.byType(ProfileDropdown));
+          expect(
+            find.descendant(
+              of: find.byType(SearchField),
+              matching: find.byType(ProfileDropdown),
+            ),
+            findsOneWidget,
+          );
+          expect(search.intersect(menu), menu);
+          // Full size where the field has the room, smaller on the SE.
+          expect(
+            tester
+                .widget<ProfileDropdown>(find.byType(ProfileDropdown))
+                .compact,
+            size == _smallSideways,
+          );
+          // Its far end, 16 points from the screen's edge whatever that
+          // edge's safe area.
+          expect(
+            left ? size.width - search.right : search.left,
+            closeTo(16, 0.5),
+          );
+          // At rest the search stands beside the sheet, the one thing of the
+          // row at the top in reach: whole, menu and all.
+          expect(search.overlaps(sheet), isFalse);
+          expect(
+            left ? search.left - sheet.right : sheet.left - search.right,
+            closeTo(12, 1),
+          );
+          expect(search.top, lessThan(size.height * 0.3));
+          await unmountApp(tester);
+        });
+      }
 
       for (final side in RailSide.values) {
-        testWidgets('Plan docked, rail on the ${side.name}: search, profile '
-            'menu and controls in one row at the top, the search at the far '
-            'end', (tester) async {
+        testWidgets('Plan docked, rail on the ${side.name}: the search, with '
+            'the profile menu in it, and the controls in one row at the top, '
+            'as tall as each other, the search at the far end', (tester) async {
           _railOn(tester, side);
           await _screen(tester, size);
           await pumpRecordingApp(
@@ -227,39 +242,34 @@ void main() {
           final sheet = _sheet(tester);
           final rail = _rail(tester);
           final search = _rect(tester, find.byType(SearchField));
-          final dropdown = _rect(tester, find.byType(ProfileDropdown));
           final controls = _rect(tester, find.byType(MapControls));
           expect(controls.width, greaterThan(controls.height));
-          // One row: the three centred on one line, at the top.
-          for (final r in [dropdown, controls]) {
-            expect(r.center.dy, closeTo(search.center.dy, 3));
-          }
+          // One row at the top: the controls as tall as the search, and
+          // level with it.
+          expect(controls.height, closeTo(search.height, 1));
+          expect(controls.center.dy, closeTo(search.center.dy, 0.5));
           expect(search.top, lessThan(size.height * 0.3));
-          // In the mirrored order, from the far edge to the rail.
-          final inOrder = left
-              ? [controls, dropdown, search]
-              : [search, dropdown, controls];
-          for (var i = 0; i + 1 < inOrder.length; i++) {
-            expect(
-              inOrder[i].right,
-              lessThanOrEqualTo(inOrder[i + 1].left),
-              reason: '${inOrder[i]} before ${inOrder[i + 1]}',
-            );
+          // In the mirrored order, from the rail to the far edge.
+          if (left) {
+            expect(controls.right, lessThanOrEqualTo(search.left));
+          } else {
+            expect(search.right, lessThanOrEqualTo(controls.left));
           }
-          // Inside the far edge's safe area.
-          final island = _island(size);
-          expect(search.left, greaterThanOrEqualTo(island.left));
-          expect(search.right, lessThanOrEqualTo(size.width - island.right));
+          // The far end 16 points from the screen's edge, past the safe
+          // area there.
+          expect(
+            left ? size.width - search.right : search.left,
+            closeTo(16, 0.5),
+          );
+          // The menu inside the search.
+          final menu = _rect(tester, find.byType(ProfileDropdown));
+          expect(search.intersect(menu), menu);
           for (final (a, b) in [
             (sheet, search),
-            (sheet, dropdown),
             (sheet, controls),
             (rail, search),
-            (rail, dropdown),
             (rail, controls),
             (search, controls),
-            (dropdown, controls),
-            (search, dropdown),
           ]) {
             expect(a.overlaps(b), isFalse, reason: '$a over $b');
           }
@@ -335,7 +345,9 @@ void main() {
     });
   }
 
-  testWidgets('the profile menu picks a profile', (tester) async {
+  testWidgets('the profile menu in the search field picks a profile', (
+    tester,
+  ) async {
     await _screen(tester, _sideways);
     await pumpRecordingApp(
       tester,
@@ -347,9 +359,13 @@ void main() {
     final container = ProviderScope.containerOf(
       tester.element(find.byType(ProfileDropdown)),
     );
-    // At rest the menu lies under the sheet; docked it is in reach.
-    await _dockSheet(tester, _sideways, left: _railOnLeft(tester, _sideways));
-    await tester.tap(find.byType(ProfileDropdown));
+    // In the search field, in reach with the sheet at rest.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(SearchField),
+        matching: find.byType(ProfileDropdown),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text(profileLabel(l10n, RouteProfile.fastbike)).last);
     await tester.pumpAndSettle();
@@ -357,6 +373,66 @@ void main() {
       container.read(plannerControllerProvider).options.profile,
       RouteProfile.fastbike,
     );
+    await unmountApp(tester);
+  });
+
+  testWidgets('on the smallest phone the field is compact: the menu stays in '
+      'it, smaller, the short hint and no magnifier, and the menu steps '
+      'aside while the rider types', (tester) async {
+    await _screen(tester, _smallSideways);
+    await pumpRecordingApp(
+      tester,
+      initialLocation: plannerRoute,
+      surfaceSize: _smallSideways,
+      expectTextFits: false,
+    );
+    await tester.pumpAndSettle();
+    final inField = find.descendant(
+      of: find.byType(SearchField),
+      matching: find.byType(ProfileDropdown),
+    );
+    expect(inField, findsOneWidget);
+    expect(tester.widget<ProfileDropdown>(inField).compact, isTrue);
+    final search = _rect(tester, find.byType(SearchField));
+    final menu = _rect(tester, inField);
+    expect(search.intersect(menu), menu);
+    expect(menu.height, greaterThanOrEqualTo(40));
+    final decoration = tester
+        .widget<TextField>(find.byType(TextField))
+        .decoration!;
+    expect(decoration.hintText, l10n.searchHintShort);
+    expect(decoration.prefixIcon, isNull);
+    // At rest beside the sheet, whole.
+    expect(search.overlaps(_sheet(tester)), isFalse);
+
+    await tester.tap(find.byType(TextField));
+    await tester.pumpAndSettle();
+    expect(inField, findsNothing);
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    expect(inField, findsOneWidget);
+    await unmountApp(tester);
+  });
+
+  testWidgets('upright, the profiles stay a row of chips under the search, '
+      'and the controls a column', (tester) async {
+    await _screen(tester, _upright);
+    await pumpRecordingApp(
+      tester,
+      initialLocation: plannerRoute,
+      surfaceSize: _upright,
+      expectTextFits: false,
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(ProfileDropdown), findsNothing);
+    final search = _rect(tester, find.byType(SearchField));
+    final chips = _rect(tester, find.byType(ProfileChipRow));
+    expect(chips.top, closeTo(search.bottom + 10, 0.5));
+    expect(chips.height, 44);
+    expect(chips.width, closeTo(search.width, 0.5));
+    final controls = _rect(tester, find.byType(MapControls));
+    expect(controls.height, greaterThan(controls.width));
+    expect(controls.width, mapControlButtonSize + 6);
     await unmountApp(tester);
   });
 

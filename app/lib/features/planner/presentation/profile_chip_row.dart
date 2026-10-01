@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../shared/presentation/stat_tile.dart';
 import '../domain/route_profile.dart';
 import 'route_format.dart';
 
@@ -99,21 +98,18 @@ class ProfileChipRow extends StatelessWidget {
   }
 }
 
-/// The routing profile as one button beside the search field, for a phone
-/// turned sideways: the chips' row would take a height the map cannot spare
-/// there. It shows the profile that is on and opens the five as a menu.
+/// The routing profile as one button at the end of the search field, for a
+/// phone turned sideways: the chips' row would take a height the map cannot
+/// spare there. It shows the profile that is on and opens the five as a
+/// menu. The field draws the glass; this is only the button in it.
 class ProfileDropdown extends StatelessWidget {
   /// Creates the button.
   const ProfileDropdown({
     required this.selected,
     required this.onSelected,
-    this.dense = false,
+    this.compact = false,
     super.key,
   });
-
-  /// Lower than the search field: for a row of its own under it, where its
-  /// height is the chrome's.
-  final bool dense;
 
   /// The profile that is on.
   final RouteProfile selected;
@@ -121,13 +117,17 @@ class ProfileDropdown extends StatelessWidget {
   /// Called with the profile the rider picked.
   final ValueChanged<RouteProfile> onSelected;
 
+  /// Smaller, for a field that leaves the text little room beside it: an
+  /// iPhone SE's sideways. Still a tap target over 40 points high.
+  final bool compact;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     return MenuAnchor(
-      alignmentOffset: const Offset(0, 6),
+      alignmentOffset: const Offset(0, 14),
       menuChildren: [
         for (final profile in RouteProfile.values)
           MenuItemButton(
@@ -139,29 +139,42 @@ class ProfileDropdown extends StatelessWidget {
             child: Text(profileLabel(l10n, profile)),
           ),
       ],
-      builder: (context, menu, _) => GlassPanel(
-        radius: 28,
+      builder: (context, menu, _) => Padding(
+        // The field's rounded end keeps the same air around the button on
+        // its three sides.
+        padding: EdgeInsetsDirectional.only(end: compact ? 4 : 6),
         child: Material(
           type: MaterialType.transparency,
           child: InkWell(
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(22),
             onTap: () => menu.isOpen ? menu.close() : menu.open(),
             child: Padding(
-              padding: dense
-                  ? const EdgeInsets.fromLTRB(16, 8, 10, 8)
-                  : const EdgeInsets.fromLTRB(20, 16, 14, 16),
+              padding: compact
+                  ? const EdgeInsetsDirectional.fromSTEB(6, 12, 2, 12)
+                  : const EdgeInsetsDirectional.fromSTEB(12, 12, 10, 12),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    profileLabel(l10n, selected),
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: scheme.primary,
+                  // A field narrower than the label, which only a frame of
+                  // a turn is, ends it in an ellipsis rather than overflow.
+                  Flexible(
+                    child: Text(
+                      profileLabel(l10n, selected),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontSize: compact ? 13 : null,
+                        fontWeight: FontWeight.w700,
+                        color: scheme.primary,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  Icon(Icons.expand_more_rounded, color: scheme.primary),
+                  SizedBox(width: compact ? 0 : 2),
+                  Icon(
+                    Icons.expand_more_rounded,
+                    size: compact ? 18 : 24,
+                    color: scheme.primary,
+                  ),
                 ],
               ),
             ),

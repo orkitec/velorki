@@ -465,23 +465,29 @@ double sidewaysSheetCover(
 }
 
 /// How far below the safe area's top the map's top row stands on a phone
-/// turned sideways: the search, the profile menu and the map's controls.
+/// turned sideways: the search, with the profile menu in it, and the map's
+/// controls.
 const double sidewaysTopRowTop = 8;
 
-/// The height of that row: the search field's, which the controls and the
-/// profile menu are centred on.
+/// The height of that row: the search field's, which the controls' row is
+/// as tall as.
 const double sidewaysTopRowHeight = 56;
 
-/// The air the row keeps from the docked sheet and from the far edge's
-/// safe area.
+/// The air the row keeps from the docked sheet.
 const double sidewaysTopRowGap = 12;
+
+/// How far from the screen's far edge, away from the rail, the row's far
+/// end (the search) stops: that edge's safe area left out, since the
+/// camera's island sits in the middle of that edge, below the row, and the
+/// field's rounded end stays inside the screen's rounded corner.
+const double sidewaysTopRowFarEdge = 16;
 
 /// Where the map's top row starts on a sideways screen described by [media],
 /// from the rail's edge: beside the docked sheet, rail and handle strip,
 /// with [sidewaysTopRowGap] of air. During a ride the figures bar takes the
 /// rail's place with the rail's width, so the row starts there too. What
-/// the row puts at this end, the controls and the profile menu, lies under
-/// the sheet at rest; only the search reaches beyond it.
+/// the row puts at this end, the controls, lies under the sheet at rest;
+/// only the search reaches beyond it.
 double sidewaysTopRowStart(MediaQueryData media, ShellLayout layout) =>
     sidewaysSheetCover(media, layout, docked: true) + sidewaysTopRowGap;
 

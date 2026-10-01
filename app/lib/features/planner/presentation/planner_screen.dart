@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show OverflowBoxFit;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -82,47 +81,37 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   final GlobalKey _chromeKey = GlobalKey();
   double _chromeHeight = 8 + 56 + 10 + 44;
 
-  /// The profile menu in the row at the top sideways, measured too, so the
-  /// search in that row takes exactly what the menu leaves.
-  final GlobalKey _profileKey = GlobalKey();
-  double _profileWidth = 120;
-
   void _measureChrome() {
     final height = _chromeKey.currentContext?.size?.height;
-    final profile = _profileKey.currentContext?.size?.width;
-    final taller = height != null && (height - _chromeHeight).abs() >= 0.5;
-    final wider = profile != null && (profile - _profileWidth).abs() >= 0.5;
-    if (!taller && !wider) return;
-    setState(() {
-      if (taller) _chromeHeight = height;
-      if (wider) _profileWidth = profile;
-    });
+    if (height == null || (height - _chromeHeight).abs() < 0.5) return;
+    setState(() => _chromeHeight = height);
   }
 
   /// The air between the things in the row at the top sideways.
   static const double _rowGap = 8;
 
   /// The chrome on a phone turned sideways: one row at the top of the map,
-  /// the shell's controls beside the docked sheet, then [profile], then
-  /// [search] running on to the far edge; under the row, beside the resting
-  /// sheet, the rows [below] that come and go.
+  /// the shell's controls beside the docked sheet, then [search], with the
+  /// profile menu at its end, running on to the far edge; under the row,
+  /// beside the resting sheet, the rows [below] that come and go.
   ///
-  /// At rest the sheet lies over the controls and the menu, which the rider
-  /// reaches by docking it. The search is what stays in reach: it takes
-  /// what the menu and the controls leave of the row, and never less than
-  /// the strip the resting sheet leaves, the menu giving way under the
-  /// sheet where the row is too short for both.
+  /// At rest the sheet lies over the controls, which the rider reaches by
+  /// docking it. The search is what stays in reach: as wide as the strip
+  /// the resting sheet leaves, menu and all, and narrower only where the
+  /// docked row would not have room for the controls beside it.
   Widget _sidewaysChrome(
     BuildContext context, {
     required Widget search,
-    required Widget profile,
     required List<Widget> below,
   }) {
     final layout = ShellLayout.of(context);
     final media = MediaQuery.of(context);
     final left = layout.side == RailSide.left;
     final width = media.size.width;
-    final far =
+    // The row reaches past the far edge's safe area, which the rows under
+    // it keep to.
+    const far = sidewaysTopRowFarEdge;
+    final farSafe =
         (left ? media.viewPadding.right : media.viewPadding.left) +
         sidewaysTopRowGap;
     final controls = ref.watch(mapControlsRowWidthProvider);
@@ -132,15 +121,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
         (controls > 0 ? controls + _rowGap : 0);
     final besideRest =
         sidewaysSheetCover(media, layout, docked: false) + sidewaysTopRowGap;
-    // The search is as wide as the map beside the resting sheet, never
-    // wider: it stays whole, magnifier and all, when the sheet is up, and
-    // the menu and the controls are what goes under the sheet. Narrower
-    // only where the docked row would not have room for the menu beside it.
-    final searchWidth = math.min(
-      width - besideRest - far,
-      width - near - far - _profileWidth - _rowGap,
-    );
-    final field = SizedBox(width: math.max(0, searchWidth), child: search);
+    final searchWidth = math.min(width - besideRest, width - near) - far;
     return Padding(
       padding: EdgeInsets.only(
         top: media.padding.top + sidewaysTopRowTop,
@@ -152,23 +133,16 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Held at the far edge; the menu runs on under the resting sheet.
-          OverflowBox(
-            fit: OverflowBoxFit.deferToChild,
-            minWidth: 0,
-            maxWidth: double.infinity,
+          // Held at the far edge.
+          Align(
             alignment: left ? Alignment.centerRight : Alignment.centerLeft,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: left
-                  ? [profile, const SizedBox(width: _rowGap), field]
-                  : [field, const SizedBox(width: _rowGap), profile],
-            ),
+            child: SizedBox(width: math.max(0, searchWidth), child: search),
           ),
           Padding(
-            padding: left
-                ? EdgeInsets.only(left: math.max(0, besideRest - near))
-                : EdgeInsets.only(right: math.max(0, besideRest - near)),
+            padding: EdgeInsets.only(
+              left: math.max(0, left ? besideRest - near : farSafe - far),
+              right: math.max(0, left ? farSafe - far : besideRest - near),
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -856,7 +830,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     final sideways = ShellLayout.of(context).sideRail;
     final setProfile = ref.read(plannerControllerProvider.notifier).setProfile;
     // Keyed, so a search under way survives the phone turning, which moves
-    // the field from its own row into the row with the profile.
+    // the field from its own row into the row with the controls. Sideways
+    // the profile menu is at its end, where upright the chips are a row.
     final search = SearchField(
       key: _searchKey,
       onSelected: _onPlaceSelected,
@@ -864,6 +839,13 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       onCleared: _clearSearchedPlace,
       bias: () => _map?.center,
       onDownloadArea: _openOfflineData,
+      trailing: sideways
+          ? ({required compact}) => ProfileDropdown(
+              selected: state.options.profile,
+              onSelected: setProfile,
+              compact: compact,
+            )
+          : null,
     );
 
     // What the chrome shows under its first rows, now and then.
@@ -935,16 +917,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
             TabChromeSlide(
               active: active,
               child: sideways
-                  ? _sidewaysChrome(
-                      context,
-                      search: search,
-                      profile: ProfileDropdown(
-                        key: _profileKey,
-                        selected: state.options.profile,
-                        onSelected: setProfile,
-                      ),
-                      below: below,
-                    )
+                  ? _sidewaysChrome(context, search: search, below: below)
                   : SafeArea(
                       bottom: false,
                       child: Padding(

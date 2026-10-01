@@ -33,6 +33,11 @@ const double mapControlButtonSize = 44;
 
 const double compactMapControlButtonSize = 38;
 
+/// The size of a button in the row the controls make at the top of the map
+/// on a phone turned sideways: with the glass's padding as tall as the
+/// search field that row is level with, whatever the screen's height.
+const double sidewaysMapControlButtonSize = 50;
+
 /// Whether the screen at [context] is short enough for the compact column.
 bool compactMapControls(BuildContext context) =>
     MediaQuery.sizeOf(context).height < compactMapControlsHeight;
@@ -64,10 +69,11 @@ class MapControls extends ConsumerWidget {
     final headingUp = chrome?.headingUp ?? false;
     final onCompass = chrome?.onCompass;
     final compact = compactMapControls(context);
+    final row = axis == Axis.horizontal;
     // One glass column rather than five floating buttons: less chrome over
     // the map, and the group reads as one control.
-    final across = compact ? 3.0 : 5.0;
-    return GlassPanel(
+    final across = compact && !row ? 3.0 : 5.0;
+    final panel = GlassPanel(
       padding: axis == Axis.vertical
           ? EdgeInsets.symmetric(horizontal: 3, vertical: across)
           : EdgeInsets.symmetric(horizontal: across, vertical: 3),
@@ -137,6 +143,12 @@ class MapControls extends ConsumerWidget {
         ],
       ),
     );
+    // Sideways the row's buttons are larger than the column's, even on a
+    // short screen: there the row is the search field's height, not a
+    // column's length the resting sheet has to leave room for.
+    return row
+        ? _ControlSize(size: sidewaysMapControlButtonSize, child: panel)
+        : panel;
   }
 
   void _openOffline(BuildContext context) {
@@ -196,8 +208,7 @@ class _LocateButtonState extends ConsumerState<_LocateButton> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final chrome = MapChromeInsets.maybeOf(context);
-    final compact = compactMapControls(context);
-    final ring = compact ? 16.0 : 18.0;
+    final ring = _ControlSize.of(context) < mapControlButtonSize ? 16.0 : 18.0;
     return _ControlButton(
       icon: Icons.my_location,
       tooltip: l10n.mapLocateMe,
@@ -451,14 +462,17 @@ class _ControlButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final compact = compactMapControls(context);
-    final size = compact ? compactMapControlButtonSize : mapControlButtonSize;
+    final size = _ControlSize.of(context);
     return SizedBox(
       width: size,
       height: size,
       child: IconButton(
         icon: child ?? Transform.rotate(angle: iconTurns, child: Icon(icon)),
-        iconSize: compact ? 18 : 20,
+        iconSize: size < mapControlButtonSize
+            ? 18
+            : size > mapControlButtonSize
+            ? 22
+            : 20,
         padding: EdgeInsets.zero,
         tooltip: tooltip,
         style: IconButton.styleFrom(
@@ -472,6 +486,24 @@ class _ControlButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The size of the buttons below it, where the controls set one: the row
+/// at the top sideways does.
+class _ControlSize extends InheritedWidget {
+  const _ControlSize({required this.size, required super.child});
+
+  final double size;
+
+  /// The size set above [context], else the column's for the screen.
+  static double of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_ControlSize>()?.size ??
+      (compactMapControls(context)
+          ? compactMapControlButtonSize
+          : mapControlButtonSize);
+
+  @override
+  bool updateShouldNotify(_ControlSize oldWidget) => size != oldWidget.size;
 }
 
 /// A slot in the column whose height animates as its button comes and goes.
@@ -500,11 +532,11 @@ class _ControlDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final gap = compactMapControls(context) ? 2.0 : 3.0;
+    final gap = _ControlSize.of(context) < mapControlButtonSize ? 2.0 : 3.0;
     final vertical = axis == Axis.vertical;
     return Container(
       width: vertical ? 20 : 1,
-      height: vertical ? 1 : 20,
+      height: vertical ? 1 : 24,
       margin: vertical
           ? EdgeInsets.symmetric(vertical: gap)
           : EdgeInsets.symmetric(horizontal: gap),
