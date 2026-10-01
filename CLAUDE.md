@@ -123,6 +123,17 @@ changing structure.
   oracle tile; New York when `VELORKI_NYC_SEGMENTS_DIR` holds `W75_N40.rd5`.
   `integration_test/live_reroute_test.dart` rides each mode off the route and
   back on the iOS simulator.
+- Landscape: `test/app/landscape_test.dart` (three phone sizes) and
+  `integration_test/orientation_test.dart` (turns the phone with a ride
+  running). The test font draws every glyph a full em wide, so
+  `expectNoClippedText` fails at a phone's width sideways where the real font
+  fits (`pumpRecordingApp(expectTextFits: false)`): check text fit on a
+  simulator there. An integration test that turns the screen ends with
+  `setPreferredOrientations([portraitUp])`, never `[]`: unlocked, iOS turns
+  back to the simulated device's last orientation and the next file of the
+  one-process suite runs sideways. Over map tabs no `ColoredBox` (it takes
+  every touch, transparent or not), and the native (i) button's margin is
+  measured from the safe area on iOS.
 - CI: `app.yml` (every push; `check` is the static checks and the unit tests,
   `apk` builds the debug artifact beside it, and `gazetteer` builds the
   Liechtenstein extract and checks the `.gaz` fixtures), `integration.yml` and
