@@ -59,9 +59,16 @@ void _expectRailOnBottomSide(WidgetTester tester, ProviderContainer app) {
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  // The suite runs in one process on iOS: whatever this file does to the
-  // screen is undone for the files after it.
-  tearDown(() => SystemChrome.setPreferredOrientations(const []));
+  // The suite runs in one process on iOS: the files after this one expect
+  // the phone upright, so it is left locked upright. Not unlocked: allowed
+  // every way again, iOS turns the screen back to the way the simulated
+  // device was last turned, sideways, and the next file's dialog had no
+  // room above the keyboard.
+  tearDown(
+    () => SystemChrome.setPreferredOrientations(const [
+      DeviceOrientation.portraitUp,
+    ]),
+  );
 
   testWidgets('turned sideways the app has a rail and side panels, a ride '
       'runs through turning back and forth, and the map stays one map', (
