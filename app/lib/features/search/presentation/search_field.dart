@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -84,6 +85,11 @@ class _SearchFieldState extends ConsumerState<SearchField> {
   double _fieldWidth = 0;
   bool _dismissed = false;
 
+  /// Where the field's bottom edge was on the screen at the last frame, so
+  /// the list can end above the keyboard: a phone turned sideways with the
+  /// keyboard up leaves it little more than a row or two.
+  final ValueNotifier<double?> _fieldBottom = ValueNotifier<double?>(null);
+
   @override
   void initState() {
     super.initState();
@@ -94,6 +100,7 @@ class _SearchFieldState extends ConsumerState<SearchField> {
 
   @override
   void dispose() {
+    _fieldBottom.dispose();
     _controller.dispose();
     _focusNode
       ..removeListener(_onFocus)
@@ -105,6 +112,12 @@ class _SearchFieldState extends ConsumerState<SearchField> {
       !_dismissed && _controller.text.trim().length >= searchMinChars;
 
   void _syncResults() {
+    // The field moves when the phone turns, from one row to another, and
+    // the list's room below it goes with it.
+    final box = context.findRenderObject();
+    if (box is RenderBox && box.hasSize && box.attached) {
+      _fieldBottom.value = box.localToGlobal(Offset(0, box.size.height)).dy;
+    }
     if (_showResults) {
       if (!_results.isShowing) _results.show();
     } else if (_results.isShowing) {
@@ -185,12 +198,14 @@ class _SearchFieldState extends ConsumerState<SearchField> {
         centre != null &&
         !(store?.covers(centre) ?? false);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _syncResults();
-    });
     return LayoutBuilder(
       builder: (context, constraints) {
         _fieldWidth = constraints.maxWidth;
+        // Here rather than in build: a turn of the phone lays the field out
+        // anew without building this state again.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _syncResults();
+        });
         // Beside the side panel on a phone turned sideways the full hint
         // may not fit, in some languages more than in others: measured.
         final narrow = !_hintFits(
@@ -221,6 +236,7 @@ class _SearchFieldState extends ConsumerState<SearchField> {
               child: Material(
                 type: MaterialType.transparency,
                 child: _ResultsCard(
+                  fieldBottom: _fieldBottom,
                   results: results,
                   units: units,
                   canDownloadHere: canDownloadHere,
@@ -282,6 +298,7 @@ class _SearchFieldState extends ConsumerState<SearchField> {
 
 class _ResultsCard extends StatefulWidget {
   const _ResultsCard({
+    required this.fieldBottom,
     required this.results,
     required this.units,
     required this.canDownloadHere,
@@ -291,6 +308,8 @@ class _ResultsCard extends StatefulWidget {
     this.onDownloadArea,
   });
 
+  /// Where the field ends on the screen, `null` before it was laid out.
+  final ValueListenable<double?> fieldBottom;
   final AsyncValue<PlaceSearchState> results;
   final UnitSystem units;
 
@@ -321,7 +340,7 @@ class _ResultsCardState extends State<_ResultsCard> {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.only(top: _cardGap),
       // Opaque: it floats over the chips and the sheet, and a list read
       // through them is not a list.
       child: Material(
@@ -334,9 +353,14 @@ class _ResultsCardState extends State<_ResultsCard> {
           side: BorderSide(color: scheme.outlineVariant),
         ),
         clipBehavior: Clip.antiAlias,
-        child: ConstrainedBox(
-          // About five rows and the footer; more than that scrolls, visibly.
-          constraints: const BoxConstraints(maxHeight: 380),
+        child: ValueListenableBuilder<double?>(
+          valueListenable: widget.fieldBottom,
+          builder: (context, fieldBottom, child) => ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: _maxHeight(context, fieldBottom),
+            ),
+            child: child,
+          ),
           child: widget.results.when(
             loading: () => const Padding(
               padding: EdgeInsets.all(16),
@@ -373,6 +397,29 @@ class _ResultsCardState extends State<_ResultsCard> {
       ),
     );
   }
+
+  /// About five rows and the footer; more than that scrolls, visibly. Less
+  /// where the keyboard leaves less room under the field, as sideways it
+  /// does, but never less than the footer and a row: with the room any
+  /// smaller the list goes under the keyboard rather than to nothing.
+  static double _maxHeight(BuildContext context, double? fieldBottom) {
+    const most = 380.0;
+    const least = 96.0;
+    if (fieldBottom == null) return most;
+    final room =
+        MediaQuery.sizeOf(context).height -
+        MediaQuery.viewInsetsOf(context).bottom -
+        fieldBottom -
+        _cardGap -
+        _keyboardGap;
+    return room.clamp(least, most);
+  }
+
+  /// The air between the field and the card.
+  static const double _cardGap = 6;
+
+  /// The air between the card and the keyboard.
+  static const double _keyboardGap = 8;
 
   /// The rows: the results, and under them the one row that leads out of what
   /// is on screen — "Search online for …" below local results, "Show offline

@@ -188,6 +188,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   // Where the sheet was before the search field took it out of the way, or
   // null while it is where the rider left it.
   double? _sheetSizeBeforeSearch;
+  // Whether it was at rest then. A size is a share of the screen's length,
+  // which a turn of the phone changes: a sheet that was at rest comes back
+  // to rest, wherever that is now.
+  bool _sheetRestedBeforeSearch = false;
   // The sheet's collapsed and resting sizes, as computed by the last build.
   double _collapsedSheetSize = 0.1;
   double _restingSheetSize = 0.48;
@@ -330,6 +334,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   void _parkSheet() {
     if (!_sheet.isAttached || _sheetSizeBeforeSearch != null) return;
     _sheetSizeBeforeSearch = _sheet.size;
+    _sheetRestedBeforeSearch = (_sheet.size - _restingSheetSize).abs() < 0.005;
     unawaited(
       _sheet.animateTo(
         _collapsedSheetSize,
@@ -340,13 +345,13 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   }
 
   void _restoreSheet() {
-    final size = _sheetSizeBeforeSearch;
-    if (size == null) return;
+    final before = _sheetSizeBeforeSearch;
+    if (before == null) return;
     _sheetSizeBeforeSearch = null;
     if (!_sheet.isAttached) return;
     unawaited(
       _sheet.animateTo(
-        size,
+        _sheetRestedBeforeSearch ? _restingSheetSize : before,
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeOut,
       ),
