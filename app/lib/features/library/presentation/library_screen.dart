@@ -138,8 +138,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   void _onSheetExtent(double extent) {
     if (!_active) return;
     ref.read(tabHandoverProvider.notifier).setSheetExtent(extent);
-    // The rider's own drag of the list card is remembered for the session.
-    if (_armed && !_settling && !_detail) {
+    // The rider's own drag of the list card is remembered for the session;
+    // only upright, since sideways an extent is a width and the card rests
+    // there whatever was left.
+    if (_armed && !_settling && !_detail && !_sideways) {
       ref.read(libraryCardExtentProvider.notifier).set(extent);
     }
   }

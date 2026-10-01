@@ -116,6 +116,7 @@ class DockingSheet extends StatefulWidget {
     required this.child,
     this.onDocked,
     this.onExtent,
+    this.currentExtent,
     super.key,
   });
 
@@ -160,6 +161,12 @@ class DockingSheet extends StatefulWidget {
   /// sheet starts where this one is.
   final ValueChanged<double>? onExtent;
 
+  /// The sheet's size now, if it can be asked. A sheet whose stops change
+  /// (the phone turned, the bar went) can be clamped to them without a
+  /// notification; asked, the shell paints the size the sheet has, and the
+  /// bar is told whether it is docked once the stops have changed.
+  final ValueGetter<double?>? currentExtent;
+
   @override
   State<DockingSheet> createState() => _DockingSheetState();
 }
@@ -177,11 +184,39 @@ class _DockingSheetState extends State<DockingSheet> {
     });
   }
 
+  @override
+  void didUpdateWidget(DockingSheet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.collapsedExtent != widget.collapsedExtent ||
+        oldWidget.dockedRange != widget.dockedRange ||
+        oldWidget.docks != widget.docks) {
+      // After the frame: the owner may rebuild the bar for this.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _sync();
+      });
+    }
+  }
+
+  /// Takes the size the sheet has now and tells the owner what it means.
+  void _sync() {
+    final extent = widget.currentExtent?.call();
+    if (extent != null && extent != _extent) {
+      setState(() => _extent = extent);
+      widget.onExtent?.call(extent);
+    }
+    _reportDocked();
+  }
+
   bool _onNotification(DraggableScrollableNotification notification) {
     if (notification.extent != _extent) {
       setState(() => _extent = notification.extent);
       widget.onExtent?.call(_extent);
     }
+    _reportDocked();
+    return false;
+  }
+
+  void _reportDocked() {
     final docked =
         DockingSheetShell.dockedFraction(
           extent: _extent,
@@ -194,7 +229,6 @@ class _DockingSheetState extends State<DockingSheet> {
       _docked = docked;
       widget.onDocked?.call(docked);
     }
-    return false;
   }
 
   @override
@@ -204,7 +238,7 @@ class _DockingSheetState extends State<DockingSheet> {
         child: DockingSheetShell(
           controller: widget.controller,
           gripDp: widget.gripDp,
-          extent: _extent,
+          extent: widget.currentExtent?.call() ?? _extent,
           collapsedExtent: widget.collapsedExtent,
           dockedRange: widget.dockedRange,
           docks: widget.docks,

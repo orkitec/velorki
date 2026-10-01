@@ -186,15 +186,31 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   /// the phone, which moves it to another row.
   final GlobalKey _searchKey = GlobalKey();
   // Where the sheet was before the search field took it out of the way, or
-  // null while it is where the rider left it.
-  double? _sheetSizeBeforeSearch;
-  // Whether it was at rest then. A size is a share of the screen's length,
-  // which a turn of the phone changes: a sheet that was at rest comes back
-  // to rest, wherever that is now.
-  bool _sheetRestedBeforeSearch = false;
+  // null while the search has not: its size among the stops it had then. A
+  // size is a share of the screen's length, which a turn of the phone
+  // changes: a sheet that was at rest comes back to rest, one that was
+  // docked comes back docked, wherever that is now.
+  //
+  // Kept for as long as the field has focus, not only while the keyboard
+  // is up: the keyboard can go and come back without the field letting go
+  // (iOS puts it away for a turn of the phone and brings it back after),
+  // and the sheet then comes back, in the end, to where the rider left it,
+  // not to wherever it was when the keyboard came back.
+  (double, SheetStops)? _sheetBeforeSearch;
+  // Whether the sheet is parked under the keyboard now.
+  bool _sheetParked = false;
   // The sheet's collapsed and resting sizes, as computed by the last build.
   double _collapsedSheetSize = 0.1;
   double _restingSheetSize = 0.48;
+
+  /// How far the sheet opens.
+  static const double _maxSheetSize = 0.9;
+
+  SheetStops get _sheetStops => SheetStops(
+    collapsed: _collapsedSheetSize,
+    resting: _restingSheetSize,
+    max: _maxSheetSize,
+  );
 
   /// The sheet's snap points, kept as one instance for as long as the
   /// resting size holds. DraggableScrollableSheet compares the list by
@@ -332,9 +348,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   }
 
   void _parkSheet() {
-    if (!_sheet.isAttached || _sheetSizeBeforeSearch != null) return;
-    _sheetSizeBeforeSearch = _sheet.size;
-    _sheetRestedBeforeSearch = (_sheet.size - _restingSheetSize).abs() < 0.005;
+    if (!_sheet.isAttached) return;
+    _sheetBeforeSearch ??= (_sheet.size, _sheetStops);
+    _sheetParked = true;
     unawaited(
       _sheet.animateTo(
         _collapsedSheetSize,
@@ -344,18 +360,34 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     );
   }
 
+  /// Brings the sheet back to where it was before the search, and forgets
+  /// that place once the field has let go.
   void _restoreSheet() {
-    final before = _sheetSizeBeforeSearch;
+    final before = _sheetBeforeSearch;
     if (before == null) return;
-    _sheetSizeBeforeSearch = null;
-    if (!_sheet.isAttached) return;
-    unawaited(
-      _sheet.animateTo(
-        _sheetRestedBeforeSearch ? _restingSheetSize : before,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      ),
-    );
+    if (!_searchFocused) _sheetBeforeSearch = null;
+    // Back already, the keyboard gone before the field let go: the rider
+    // may have moved it since.
+    if (!_sheetParked) return;
+    _sheetParked = false;
+    // After the frame: the keyboard may go with a turn of the phone, and
+    // the stops are the new ones only once this screen has been built for
+    // it.
+    WidgetsBinding.instance
+      ..addPostFrameCallback((_) {
+        if (!mounted || !_sheet.isAttached) return;
+        // The keyboard came back in the meantime.
+        if (_keyboardUp && _searchFocused) return;
+        final (extent, stops) = before;
+        unawaited(
+          _sheet.animateTo(
+            mapSheetExtent(extent, from: stops, to: _sheetStops),
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOut,
+          ),
+        );
+      })
+      ..ensureVisualUpdate();
   }
 
   @override
@@ -943,7 +975,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
               // floating navigation bar on a 20:9 phone.
               initialExtent: restingSheetSize,
               collapsedExtent: collapsedSheetSize,
-              maxExtent: 0.9,
+              maxExtent: _maxSheetSize,
               // One resting height, not one per state: with two in the list
               // a pull down from the top settled on the higher one and a pull
               // up from the handle on the lower one, a chip row apart.

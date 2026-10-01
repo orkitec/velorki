@@ -174,6 +174,47 @@ class SheetGeometry {
       : sheetRestingExtent(length);
 }
 
+/// A sheet's three stops: docked, at rest and all the way open.
+@immutable
+class SheetStops {
+  /// Creates the stops.
+  const SheetStops({
+    required this.collapsed,
+    required this.resting,
+    required this.max,
+  });
+
+  /// Docked: [DraggableScrollableSheet.minChildSize].
+  final double collapsed;
+
+  /// At rest: the snap point.
+  final double resting;
+
+  /// All the way open: [DraggableScrollableSheet.maxChildSize].
+  final double max;
+}
+
+/// [extent], a sheet's size among the stops [from], moved to the same place
+/// among the stops [to]: a sheet docked, at rest or all the way open stays
+/// so, and one between two stops keeps its share of the way between them.
+double mapSheetExtent(
+  double extent, {
+  required SheetStops from,
+  required SheetStops to,
+}) {
+  // A hair off a stop is on it: a snap or a clamp leaves no more.
+  const near = 0.005;
+  if ((extent - from.resting).abs() < near) return to.resting;
+  if (extent <= from.collapsed + near) return to.collapsed;
+  if (extent >= from.max - near) return to.max;
+  double between(double a, double b, double c, double d) =>
+      b - a <= 0 ? c : c + (extent - a) / (b - a) * (d - c);
+  final mapped = extent < from.resting
+      ? between(from.collapsed, from.resting, to.collapsed, to.resting)
+      : between(from.resting, from.max, to.resting, to.max);
+  return mapped.clamp(to.collapsed, to.max);
+}
+
 /// A tab's sheet: the bottom sheet that docks in the bar, built as it always
 /// was; on a phone turned sideways the same sheet turned a quarter with the
 /// bar, coming out from the rail's side, its content turned back upright.
@@ -181,7 +222,13 @@ class SheetGeometry {
 /// Every argument is the sheet's own, sized from a [SheetGeometry], so the
 /// sheet behaves the same either way: it rests, snaps, docks into the bar
 /// (the rail, sideways) and reports its extent as it always has.
-class AdaptiveDockingSheet extends StatelessWidget {
+///
+/// A turn of the phone changes what an extent means, a share of the
+/// screen's height upright and of its width sideways, and every point the
+/// sheet snaps to with it. The sheet keeps where the rider left it instead:
+/// docked stays docked, at rest stays at rest, pulled open stays as far
+/// open; see [mapSheetExtent].
+class AdaptiveDockingSheet extends StatefulWidget {
   /// Creates the sheet.
   const AdaptiveDockingSheet({
     required this.controller,
@@ -250,17 +297,89 @@ class AdaptiveDockingSheet extends StatelessWidget {
   /// The content; it reads its scroll controller from [SheetContentScroll].
   final Widget child;
 
+  /// Where the sheet rests: its snap point, or where it starts without one.
+  double get restingExtent => snapSizes?.firstOrNull ?? initialExtent;
+
+  @override
+  State<AdaptiveDockingSheet> createState() => _AdaptiveDockingSheetState();
+}
+
+class _AdaptiveDockingSheetState extends State<AdaptiveDockingSheet> {
+  /// The screen, its safe areas and the turn the sheet was last built for,
+  /// with its stops. The safe areas move with a turn too, a frame or two
+  /// after the size; the keyboard moves neither. The phone's own, not the
+  /// screen's, which the bar coming and going with the keyboard changes.
+  Size? _screen;
+  EdgeInsets? _safe;
+  int? _turns;
+  SheetStops? _stops;
+
+  /// The phone has turned since the last build: the sheet is moved, after
+  /// this frame, to the same place among the new stops as it had among the
+  /// old ones.
+  ///
+  /// Left to itself, a [DraggableScrollableSheet] keeps the old share of
+  /// the screen and, once the rider has dragged it, snaps from there to the
+  /// nearest point after every build that brings it a new list of them. A
+  /// turn brings one each frame it animates through, and the snaps pile
+  /// up: their moves add up and overshoot, and the sheet climbed a step a
+  /// turn until it was all the way open. A jump puts it where it belongs
+  /// and, being no drag, stops the snapping until the rider drags again.
+  void _keepPlace(SheetStops from, SheetStops to) {
+    final controller = widget.controller;
+    if (!controller.isAttached) return;
+    // Read now, before the sheet below takes the new stops and clamps.
+    final target = mapSheetExtent(controller.size, from: from, to: to);
+    // Registered before the sheet's own snap, so it runs first.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !controller.isAttached) return;
+      controller.jumpTo(target);
+    });
+  }
+
+  @override
+  void didUpdateWidget(AdaptiveDockingSheet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A new sheet starts afresh; there is no place to keep.
+    if (oldWidget.controller != widget.controller ||
+        oldWidget.sheetKey != widget.sheetKey) {
+      _stops = null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final layout = ShellLayout.of(context);
     final turns = shellQuarterTurns(layout);
+    final screen = MediaQuery.sizeOf(context);
+    final view = View.of(context);
+    final safe = EdgeInsets.fromViewPadding(
+      view.viewPadding,
+      view.devicePixelRatio,
+    );
+    final stops = SheetStops(
+      collapsed: widget.collapsedExtent,
+      resting: widget.restingExtent,
+      max: widget.maxExtent,
+    );
+    final before = _stops;
+    if (before != null &&
+        (screen != _screen || safe != _safe || turns != _turns)) {
+      _keepPlace(before, stops);
+    }
+    _screen = screen;
+    _safe = safe;
+    _turns = turns;
+    _stops = stops;
     // Sideways the turned sheet's bottom lies under the rail: the content,
     // upright again, keeps clear of it there as a list upright keeps its
     // last row above the bar.
     // The same widgets upright, turned by nothing and padded by nothing, so
     // the content keeps its state through a turn of the phone.
     final sideways = turns != 0;
-    final end = sideways ? contentEndInset ?? dockedBottomInset : 0.0;
+    final end = sideways
+        ? widget.contentEndInset ?? widget.dockedBottomInset
+        : 0.0;
     final content = QuarterTurnedFrame(
       quarterTurns: 4 - turns,
       // Upright the handle strip lies above the content; turned, it lies
@@ -280,11 +399,11 @@ class AdaptiveDockingSheet extends StatelessWidget {
           // it only shortens it: the content keeps its width at rest and is
           // covered from the map's side, as upright it is from the top.
           child: !sideways
-              ? child
+              ? widget.child
               : LayoutBuilder(
                   builder: (context, constraints) {
                     if (constraints.maxWidth >= sidewaysSheetContentWidth) {
-                      return child;
+                      return widget.child;
                     }
                     return ClipRect(
                       child: OverflowBox(
@@ -293,7 +412,7 @@ class AdaptiveDockingSheet extends StatelessWidget {
                         alignment: layout.side == RailSide.left
                             ? Alignment.centerRight
                             : Alignment.centerLeft,
-                        child: child,
+                        child: widget.child,
                       ),
                     );
                   },
@@ -304,24 +423,26 @@ class AdaptiveDockingSheet extends StatelessWidget {
     return QuarterTurnedFrame(
       quarterTurns: turns,
       child: DraggableScrollableSheet(
-        key: sheetKey,
-        controller: controller,
-        initialChildSize: initialExtent,
-        minChildSize: collapsedExtent,
-        maxChildSize: maxExtent,
+        key: widget.sheetKey,
+        controller: widget.controller,
+        initialChildSize: widget.initialExtent,
+        minChildSize: widget.collapsedExtent,
+        maxChildSize: widget.maxExtent,
         snap: true,
-        snapSizes: snapSizes,
+        snapSizes: widget.snapSizes,
         builder: (context, scrollController) => DockingSheet(
-          key: boxKey,
+          key: widget.boxKey,
           controller: scrollController,
-          gripDp: gripDp,
-          initialExtent: initialExtent,
-          collapsedExtent: collapsedExtent,
-          dockedRange: dockedRange,
-          docks: docks,
-          dockedBottomInset: dockedBottomInset,
-          onDocked: onDocked,
-          onExtent: onExtent,
+          gripDp: widget.gripDp,
+          initialExtent: widget.initialExtent,
+          collapsedExtent: widget.collapsedExtent,
+          dockedRange: widget.dockedRange,
+          docks: widget.docks,
+          dockedBottomInset: widget.dockedBottomInset,
+          onDocked: widget.onDocked,
+          onExtent: widget.onExtent,
+          currentExtent: () =>
+              widget.controller.isAttached ? widget.controller.size : null,
           handle: const SheetHandle(),
           child: content,
         ),
