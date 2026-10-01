@@ -27,7 +27,13 @@ class MapChromeInsets extends InheritedWidget {
     this.routeShown = false,
     this.onToggleRoute,
     this.visiblePadding,
+    this.attributionInsets = EdgeInsets.zero,
   });
+
+  /// What covers the map's sides at the bottom, so the attribution chip and
+  /// the (i) button stay on the map beside it: the rail and the side panel
+  /// of a phone turned sideways. Nothing upright.
+  final EdgeInsets attributionInsets;
 
   /// What covers the map's edges right now, for the locate button's move:
   /// the tab's chrome, the sheet where it is, the column. The shell reads
@@ -95,5 +101,6 @@ class MapChromeInsets extends InheritedWidget {
       oldWidget.onCompass != onCompass ||
       oldWidget.routeShown != routeShown ||
       oldWidget.onToggleRoute != onToggleRoute ||
-      oldWidget.visiblePadding != visiblePadding;
+      oldWidget.visiblePadding != visiblePadding ||
+      oldWidget.attributionInsets != attributionInsets;
 }

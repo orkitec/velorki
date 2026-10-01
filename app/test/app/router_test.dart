@@ -300,6 +300,40 @@ void main() {
       expect(find.byType(NavigationRail), findsOneWidget);
     });
 
+    for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+      testWidgets('a tap on the map beside the panel and below the chrome '
+          'falls through to the shell\'s map, on Plan and on Record, '
+          'on $platform', (tester) async {
+        final maps = <FakeMapController>[];
+        final taps = <int>[];
+        await _pumpShell(
+          tester,
+          platform: platform,
+          overrides: [
+            mapViewBuilderProvider.overrideWithValue(
+              _collectingBuilder(maps, taps: taps),
+            ),
+          ],
+        );
+        await turnSideways(tester);
+        // Low on the map, away from the panel, the column and the chrome.
+        final rail = tester.getRect(find.byType(FloatingNavigationBar));
+        final railLeft = rail.center.dx < 874 / 2;
+        final spot = Offset(railLeft ? 874 - 120 : 120, 402 - 80);
+        await tester.tapAt(spot);
+        await tester.pump();
+        expect(taps, hasLength(1));
+
+        await tapRail(tester, l10n.tabRecord);
+        await tester.tapAt(spot);
+        await tester.pump();
+        expect(taps, hasLength(2));
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(milliseconds: 1));
+      });
+    }
+
     testWidgets('turning the phone keeps the one map', (tester) async {
       final maps = <FakeMapController>[];
       final builds = <int>[];

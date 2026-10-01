@@ -23,6 +23,7 @@ import '../../recording/presentation/rides_list.dart';
 import '../../settings/data/units.dart';
 import '../../shared/application/active_tab.dart';
 import '../../shared/application/nav_bar_docking.dart';
+import '../../shared/presentation/adaptive_docking_sheet.dart';
 import '../../shared/presentation/docking_sheet.dart';
 import '../../shared/presentation/placeholder_body.dart';
 import '../../shared/presentation/sheet_header.dart';
@@ -141,6 +142,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   /// Moves the sheet to [target] as this screen's own doing, and arms the
   /// drag memory once it is there.
   Future<void> _settleTo(double target) async {
+    // Turned sideways the card is a side panel, with no sheet to move.
+    if (!_sheet.isAttached) {
+      _arm();
+      return;
+    }
     _settling = true;
     try {
       await _sheet.animateTo(
@@ -421,39 +427,33 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         ref.read(rideHighlightProvider.notifier).set(null),
                   ),
                 ),
-              DraggableScrollableSheet(
+              AdaptiveDockingSheet(
                 controller: _sheet,
-                initialChildSize: initialSheetSize,
-                minChildSize: collapsedSheetSize,
-                maxChildSize: maxSheetSize,
-                snap: true,
+                initialExtent: initialSheetSize,
+                restingExtent: restingSheetSize,
+                collapsedExtent: collapsedSheetSize,
+                maxExtent: maxSheetSize,
                 snapSizes: _snapSizesFor(restingSheetSize),
-                builder: (context, scrollController) => DockingSheet(
-                  controller: scrollController,
-                  initialExtent: initialSheetSize,
-                  collapsedExtent: collapsedSheetSize,
-                  dockedRange: dockedRange,
-                  docks: true,
-                  dockedBottomInset: bottomInset,
-                  onDocked: _reportDocked,
-                  onExtent: _onSheetExtent,
-                  handle: const SheetHandle(),
-                  // A fresh scroll view per content, so a detail opened from
-                  // a scrolled list starts at its top.
-                  child: KeyedSubtree(
-                    key: ValueKey<String>(
-                      rideId != null
-                          ? 'ride:$rideId'
-                          : widget.routeId != null
-                          ? 'route:${widget.routeId}'
-                          : 'list',
-                    ),
-                    child: rideId != null
-                        ? RideDetailScreen(rideId: rideId)
+                dockedRange: dockedRange,
+                docks: true,
+                dockedBottomInset: bottomInset,
+                onDocked: _reportDocked,
+                onExtent: _onSheetExtent,
+                // A fresh scroll view per content, so a detail opened from
+                // a scrolled list starts at its top.
+                child: KeyedSubtree(
+                  key: ValueKey<String>(
+                    rideId != null
+                        ? 'ride:$rideId'
                         : widget.routeId != null
-                        ? RouteDetailScreen(routeId: widget.routeId!)
-                        : const _LibraryList(),
+                        ? 'route:${widget.routeId}'
+                        : 'list',
                   ),
+                  child: rideId != null
+                      ? RideDetailScreen(rideId: rideId)
+                      : widget.routeId != null
+                      ? RouteDetailScreen(routeId: widget.routeId!)
+                      : const _LibraryList(),
                 ),
               ),
             ],

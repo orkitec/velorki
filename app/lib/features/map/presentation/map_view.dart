@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:math' show Point;
+import 'dart:math' show Point, max;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -83,6 +83,19 @@ String mapStyleUrlFor(
 /// drives it from there. [onControllerReady] fires again after a style
 /// reload, because every layer we added is gone at that point and has to be
 /// re-applied by the owner.
+/// How far from the right edge the native (i) button has to move to stand
+/// beside [cover] there. iOS measures its margin from the safe area, which
+/// [cover] already counts from the screen's edge.
+double _infoButtonBeside(BuildContext context, double cover) {
+  if (cover <= 0) return 0;
+  if (defaultTargetPlatform != TargetPlatform.iOS) return cover;
+  return max(0, cover - MediaQuery.viewPaddingOf(context).right);
+}
+
+/// How far the native (i) button goes up, over the attribution chip's row,
+/// where the map beside the rail and the panel is too narrow for both.
+const double _infoButtonRaise = 34;
+
 class MapView extends ConsumerStatefulWidget {
   const MapView({
     required this.onControllerReady,
@@ -314,7 +327,16 @@ class _MapViewState extends ConsumerState<MapView> {
       // maplibre_gl 0.27 cannot hide the native attribution (i) button, so it
       // is parked bottom right, in the same band as our own chip.
       attributionButtonPosition: ml.AttributionButtonPosition.bottomRight,
-      attributionButtonMargins: Point<num>(8, attributionBottom),
+      // Beside the rail and the panel the map is too narrow for the (i) and
+      // the chip side by side: the (i) goes up over the chip's row, and the
+      // chip has the map's whole width.
+      attributionButtonMargins: Point<num>(
+        8 + _infoButtonBeside(context, chrome?.attributionInsets.right ?? 0),
+        attributionBottom +
+            ((chrome?.attributionInsets ?? EdgeInsets.zero) == EdgeInsets.zero
+                ? 0
+                : _infoButtonRaise),
+      ),
       rotateGesturesEnabled: true,
       tiltGesturesEnabled: false,
       // The map claims every touch that lands on it. Inside a scroll view
@@ -379,8 +401,12 @@ class _MapViewState extends ConsumerState<MapView> {
               ),
             if (widget.showAttribution)
               Positioned(
-                left: widget.attributionPadding.left,
-                right: widget.attributionPadding.right,
+                left:
+                    widget.attributionPadding.left +
+                    (chrome?.attributionInsets.left ?? 0),
+                right:
+                    widget.attributionPadding.right +
+                    (chrome?.attributionInsets.right ?? 0),
                 bottom: attributionBottom,
                 child: const Center(child: MapAttributionChip()),
               ),

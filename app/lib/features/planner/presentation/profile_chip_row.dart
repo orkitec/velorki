@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../shared/presentation/stat_tile.dart';
 import '../domain/route_profile.dart';
 import 'route_format.dart';
 
@@ -93,6 +94,79 @@ class ProfileChipRow extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// The routing profile as one button beside the search field, for a phone
+/// turned sideways: the chips' row would take a height the map cannot spare
+/// there. It shows the profile that is on and opens the five as a menu.
+class ProfileDropdown extends StatelessWidget {
+  /// Creates the button.
+  const ProfileDropdown({
+    required this.selected,
+    required this.onSelected,
+    this.dense = false,
+    super.key,
+  });
+
+  /// Lower than the search field: for a row of its own under it, where its
+  /// height is the chrome's.
+  final bool dense;
+
+  /// The profile that is on.
+  final RouteProfile selected;
+
+  /// Called with the profile the rider picked.
+  final ValueChanged<RouteProfile> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return MenuAnchor(
+      alignmentOffset: const Offset(0, 6),
+      menuChildren: [
+        for (final profile in RouteProfile.values)
+          MenuItemButton(
+            leadingIcon: Icon(
+              Icons.check_rounded,
+              color: profile == selected ? scheme.primary : Colors.transparent,
+            ),
+            onPressed: () => onSelected(profile),
+            child: Text(profileLabel(l10n, profile)),
+          ),
+      ],
+      builder: (context, menu, _) => GlassPanel(
+        radius: 28,
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(28),
+            onTap: () => menu.isOpen ? menu.close() : menu.open(),
+            child: Padding(
+              padding: dense
+                  ? const EdgeInsets.fromLTRB(16, 8, 10, 8)
+                  : const EdgeInsets.fromLTRB(20, 16, 14, 16),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    profileLabel(l10n, selected),
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: scheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(Icons.expand_more_rounded, color: scheme.primary),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

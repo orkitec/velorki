@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/shell_layout.dart';
+
 import '../../../app/theme.dart';
 import '../../../core/units/units.dart' as units;
 import '../../../l10n/generated/app_localizations.dart';
@@ -95,8 +97,13 @@ class FiguresBar extends StatelessWidget {
     required this.system,
     required this.onOpen,
     this.docked = true,
+    this.railSide,
     super.key,
   });
+
+  /// The side the bar stands on as a rail, a figure over the next, on a
+  /// phone turned sideways; `null` for the bar at the bottom.
+  final RailSide? railSide;
 
   /// The ride's figures, in order; the bar shows the first four.
   final List<LiveFigureReading> figures;
@@ -119,40 +126,53 @@ class FiguresBar extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final shown = figures.take(figuresBarCount).toList();
+    final rail = railSide;
+    final figureViews = [
+      for (final reading in shown)
+        Expanded(
+          child: _BarFigure(
+            label: liveFigureLabel(reading.figure, l10n),
+            value: liveFigureValue(context, reading, l10n, system),
+            muted: paused || reading.lost,
+          ),
+        ),
+    ];
     // The tab bar's own shell: the same place, the same shape, the same
     // open top under the sheet's strip, whose hairline is the seam.
     return FloatingBarShell(
-      docked: docked,
+      docked: rail == null && docked,
+      railSide: rail,
       child: Semantics(
         button: true,
         label: l10n.recordingFiguresBarOpen,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onOpen,
-          onVerticalDragEnd: (details) {
-            if ((details.primaryVelocity ?? 0) < 0) onOpen();
-          },
+          // Towards the map opens the sheet: up from the bar, sideways
+          // away from the rail.
+          onVerticalDragEnd: rail != null
+              ? null
+              : (details) {
+                  if ((details.primaryVelocity ?? 0) < 0) onOpen();
+                },
+          onHorizontalDragEnd: rail == null
+              ? null
+              : (details) {
+                  final v = details.primaryVelocity ?? 0;
+                  if (rail == RailSide.right ? v < 0 : v > 0) onOpen();
+                },
           child: SizedBox(
-            height: floatingBarHeight,
+            height: rail == null ? floatingBarHeight : null,
+            width: rail == null ? null : floatingRailWidth,
             child: Stack(
               children: [
-                Row(
-                  children: [
-                    for (final reading in shown)
-                      Expanded(
-                        child: _BarFigure(
-                          label: liveFigureLabel(reading.figure, l10n),
-                          value: liveFigureValue(
-                            context,
-                            reading,
-                            l10n,
-                            system,
-                          ),
-                          muted: paused || reading.lost,
-                        ),
-                      ),
-                  ],
-                ),
+                if (rail == null)
+                  Row(children: figureViews)
+                else
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Column(children: figureViews),
+                  ),
                 if (paused)
                   Positioned(
                     top: 10,

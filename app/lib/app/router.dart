@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../features/shared/presentation/adaptive_docking_sheet.dart';
 import '../features/shared/presentation/floating_bar.dart';
 import '../features/import_export/data/track_decoder.dart';
 import '../features/import_export/domain/imported_track.dart';
@@ -255,6 +256,11 @@ class HomeShell extends ConsumerWidget {
             context,
             chromeTop: ref.read(mapControlsTopProvider).target,
             sheetExtent: ref.read(tabHandoverProvider).sheetExtent,
+            // This context is above the layout the shell hands down.
+            layout: ShellLayout.resolve(
+              MediaQuery.sizeOf(context),
+              ref.read(railSideProvider),
+            ),
           )
         : EdgeInsets.zero;
     locate.cardOpen = () =>
@@ -265,6 +271,7 @@ class HomeShell extends ConsumerWidget {
         atTabRoot &&
         (chrome?.visible ?? true);
     final columnGlide = ref.watch(mapControlsTopProvider);
+    final panelFraction = ref.watch(sidePanelFractionProvider);
     // The layout the screen implies, handed down to the tabs: a bar at the
     // bottom upright, a rail at the side on a phone turned sideways.
     FloatingNavigationBar navigation(RailSide? railSide) =>
@@ -336,19 +343,42 @@ class HomeShell extends ConsumerWidget {
                 child: _besideRail(
                   context,
                   layout,
-                  railShown: !hideRail,
+                  // Sideways the rail's place is never empty: during a ride
+                  // on Record the ride's figures stand there.
+                  railShown: layout.sideRail || !hideRail,
                   child: SafeArea(
-                    child: AnimatedBuilder(
-                      animation: columnGlide.animation,
-                      builder: (context, child) => Padding(
-                        padding: EdgeInsets.only(
-                          top: columnGlide.animation.value,
-                          right: 12,
-                        ),
-                        child: child,
-                      ),
-                      child: Align(
-                        alignment: Alignment.topRight,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) => AnimatedBuilder(
+                        animation: Listenable.merge([
+                          columnGlide.animation,
+                          panelFraction,
+                        ]),
+                        // Upright at the right edge; sideways right beside
+                        // the side panel, moving with it as it folds.
+                        builder: (context, child) {
+                          final beside = layout.sideRail
+                              ? sidePanelVisibleWidth(
+                                      constraints.maxWidth,
+                                      panelFraction.value,
+                                    ) +
+                                    12
+                              : 12.0;
+                          final left =
+                              layout.sideRail && layout.side == RailSide.left;
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              top: columnGlide.animation.value,
+                              left: left ? beside : 0,
+                              right: left ? 0 : beside,
+                            ),
+                            child: Align(
+                              alignment: left
+                                  ? Alignment.topLeft
+                                  : Alignment.topRight,
+                              child: child,
+                            ),
+                          );
+                        },
                         child: MapChromeInsets(
                           showRoutingTiles: chrome?.showRoutingTiles ?? true,
                           following: chrome?.following ?? false,
@@ -383,7 +413,13 @@ class HomeShell extends ConsumerWidget {
             // Over the column: a sheet or card pulled up covers it, and a
             // touch beside a tab's chrome falls through to it and to the map,
             // since the map tabs' routes put no barrier under their content.
-            _besideRail(context, layout, railShown: !hideRail, child: shell),
+            _besideRail(
+              context,
+              layout,
+              railShown: !hideRail,
+              opaque: !(mapTabs.contains(shell.currentIndex) && atTabRoot),
+              child: shell,
+            ),
             if (layout.sideRail && !hideRail)
               Positioned(
                 top: 0,
@@ -407,30 +443,49 @@ class HomeShell extends ConsumerWidget {
 
 /// [child] laid out beside the rail rather than under it: narrower by
 /// what the rail takes, with the safe area on that side, which the rail
-/// already keeps clear of, taken off. The shared map stays under the rail,
-/// as it stays under the bar.
+/// already keeps clear of, taken off. The other side's safe area, the one
+/// the camera island is on, is kept clear of too, which upright pages never
+/// had to: sideways a list would run under the island. The shared map stays
+/// under both, as it stays under the bar.
+///
+/// Over an opaque page ([opaque]: the settings, a page pushed over a tab)
+/// the island's strip takes the page's colour, so the map does not show
+/// through beside the page; the map tabs leave it to the map.
 Widget _besideRail(
   BuildContext context,
   ShellLayout layout, {
   required bool railShown,
   required Widget child,
+  bool opaque = false,
 }) {
   if (!layout.sideRail || !railShown) return child;
-  final inset = floatingRailInset(
-    MediaQuery.viewPaddingOf(context),
-    layout.side,
-  );
+  final viewPadding = MediaQuery.viewPaddingOf(context);
+  final inset = floatingRailInset(viewPadding, layout.side);
   final left = layout.side == RailSide.left;
+  final island = left
+      ? EdgeInsets.only(right: viewPadding.right)
+      : EdgeInsets.only(left: viewPadding.left);
+  final beside = Padding(
+    padding: island,
+    child: MediaQuery.removePadding(
+      context: context,
+      removeLeft: true,
+      removeRight: true,
+      child: child,
+    ),
+  );
   return Padding(
     padding: left
         ? EdgeInsets.only(left: inset)
         : EdgeInsets.only(right: inset),
-    child: MediaQuery.removePadding(
-      context: context,
-      removeLeft: left,
-      removeRight: !left,
-      child: child,
-    ),
+    // Only there: a coloured box takes every touch, transparent or not, and
+    // a map tab's touches beside its chrome are the map's.
+    child: opaque
+        ? ColoredBox(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            child: beside,
+          )
+        : beside,
   );
 }
 

@@ -24,6 +24,8 @@ import '../../search/presentation/search_field.dart';
 import '../../settings/data/units.dart';
 import '../../shared/application/active_tab.dart';
 import '../../shared/application/nav_bar_docking.dart';
+import '../../../app/shell_layout.dart';
+import '../../shared/presentation/adaptive_docking_sheet.dart';
 import '../../shared/presentation/docking_sheet.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/tab_chrome_slide.dart';
@@ -47,6 +49,10 @@ import 'waypoint_edit_sheet.dart';
 /// The Plan tab: the search and profile controls at the top and the route
 /// details in a draggable sheet at the bottom, over the map the shell
 /// paints under the Plan and Record tabs.
+/// The least width the Plan chrome needs, sideways, for the search field
+/// and the profile menu in one row with the search hint in full.
+const double _searchRowMinWidth = 360;
+
 class PlannerScreen extends ConsumerStatefulWidget {
   /// Creates the planner.
   const PlannerScreen({super.key});
@@ -85,6 +91,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   }
 
   final DraggableScrollableController _sheet = DraggableScrollableController();
+
+  /// The search field's key: it keeps its text and focus across a turn of
+  /// the phone, which moves it to another row.
+  final GlobalKey _searchKey = GlobalKey();
   // Where the sheet was before the search field took it out of the way, or
   // null while it is where the rider left it.
   double? _sheetSizeBeforeSearch;
@@ -717,6 +727,19 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       if (mounted) _measureChrome();
     });
 
+    final sideways = ShellLayout.of(context).sideRail;
+    final setProfile = ref.read(plannerControllerProvider.notifier).setProfile;
+    // Keyed, so a search under way survives the phone turning, which moves
+    // the field from its own row into the row with the profile.
+    final search = SearchField(
+      key: _searchKey,
+      onSelected: _onPlaceSelected,
+      onFocusChanged: _onSearchFocus,
+      onCleared: _clearSearchedPlace,
+      bias: () => _map?.center,
+      onDownloadArea: _openOfflineData,
+    );
+
     // Not a Scaffold: a Scaffold's material absorbs every touch, and a tap
     // that lands on nothing of this screen has to fall through to the
     // shell's map. A transparent material is what the buttons need and
@@ -731,139 +754,166 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
               active: active,
               child: SafeArea(
                 bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                  child: Column(
-                    key: _chromeKey,
-                    // Only as tall as its rows, so its height is the chrome's.
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SearchField(
-                        onSelected: _onPlaceSelected,
-                        onFocusChanged: _onSearchFocus,
-                        onCleared: _clearSearchedPlace,
-                        bias: () => _map?.center,
-                        onDownloadArea: _openOfflineData,
-                      ),
-                      const SizedBox(height: 10),
-                      ProfileChipRow(
-                        glass: true,
-
-                        selected: state.options.profile,
-                        onSelected: ref
-                            .read(plannerControllerProvider.notifier)
-                            .setProfile,
-                      ),
-                      // Shown with the faint line of the file's route,
-                      // and gone with it.
-                      if (state.differsFromOriginal)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 10),
-                          child: Align(
-                            alignment: AlignmentDirectional.centerStart,
-                            child: OriginalRouteChip(
-                              onRestore: ref
-                                  .read(plannerControllerProvider.notifier)
-                                  .restoreOriginal,
+                // Sideways the chrome stands over the map beside the side
+                // panel, moving with it as it folds.
+                child: BesideSidePanel(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                    child: Column(
+                      key: _chromeKey,
+                      // Only as tall as its rows, so its height is the chrome's.
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (!sideways) ...[
+                          search,
+                          const SizedBox(height: 10),
+                          ProfileChipRow(
+                            glass: true,
+                            selected: state.options.profile,
+                            onSelected: setProfile,
+                          ),
+                        ] else
+                          // The chips' row is more than the map can spare on
+                          // a phone turned sideways: the profile is a menu,
+                          // in one row with the search where the map is wide
+                          // enough for both, under it where it is not.
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              if (constraints.maxWidth >= _searchRowMinWidth) {
+                                return Row(
+                                  children: [
+                                    Expanded(child: search),
+                                    const SizedBox(width: 8),
+                                    ProfileDropdown(
+                                      selected: state.options.profile,
+                                      onSelected: setProfile,
+                                    ),
+                                  ],
+                                );
+                              }
+                              final dropdown = ProfileDropdown(
+                                selected: state.options.profile,
+                                onSelected: setProfile,
+                                dense: true,
+                              );
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  search,
+                                  const SizedBox(height: 8),
+                                  Align(
+                                    alignment: AlignmentDirectional.centerEnd,
+                                    child: dropdown,
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        // Shown with the faint line of the file's route,
+                        // and gone with it.
+                        if (state.differsFromOriginal)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 10),
+                            child: Align(
+                              alignment: AlignmentDirectional.centerStart,
+                              child: OriginalRouteChip(
+                                onRestore: ref
+                                    .read(plannerControllerProvider.notifier)
+                                    .restoreOriginal,
+                              ),
                             ),
                           ),
-                        ),
-                      if (_placeToStartFrom != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 10),
-                          // One row, the two actions sharing the width. The X
-                          // in the search field is what forgets the place.
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: FilledButton.icon(
-                                  onPressed: () =>
-                                      unawaited(_rideFromPosition()),
-                                  icon: const Icon(Icons.near_me_rounded),
-                                  label: Text(
-                                    l10n.plannerRideFromPosition,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                        if (_placeToStartFrom != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 10),
+                            // One row, the two actions sharing the width. The X
+                            // in the search field is what forgets the place.
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: FilledButton.icon(
+                                    onPressed: () =>
+                                        unawaited(_rideFromPosition()),
+                                    icon: const Icon(Icons.near_me_rounded),
+                                    label: Text(
+                                      l10n.plannerRideFromPosition,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: FilledButton.tonalIcon(
-                                  onPressed: _setSearchedPlaceAsStart,
-                                  icon: const Icon(Icons.play_arrow_rounded),
-                                  label: Text(
-                                    l10n.plannerSetAsStart,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: FilledButton.tonalIcon(
+                                    onPressed: _setSearchedPlaceAsStart,
+                                    icon: const Icon(Icons.play_arrow_rounded),
+                                    label: Text(
+                                      l10n.plannerSetAsStart,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      if (!hasBackend)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 8),
-                          child: _NoRoutingServerBanner(),
-                        ),
-                    ],
+                        if (!hasBackend)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 8),
+                            child: _NoRoutingServerBanner(),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-            DraggableScrollableSheet(
+            AdaptiveDockingSheet(
               controller: _sheet,
               // Enough for the headline, the toolbar and Save above the
               // floating navigation bar on a 20:9 phone.
-              initialChildSize: restingSheetSize,
-              minChildSize: collapsedSheetSize,
-              maxChildSize: 0.9,
-              snap: true,
+              initialExtent: restingSheetSize,
+              restingExtent: restingSheetSize,
+              collapsedExtent: collapsedSheetSize,
+              maxExtent: 0.9,
               // One resting height, not one per state: with two in the list
               // a pull down from the top settled on the higher one and a pull
               // up from the handle on the lower one, a chip row apart.
               snapSizes: _snapSizesFor(restingSheetSize),
-              builder: (context, scrollController) => DockingSheet(
-                controller: scrollController,
-                gripDp: sheetGripWithTitleDp,
-                initialExtent: restingSheetSize,
-                collapsedExtent: collapsedSheetSize,
-                dockedRange: dockedRange,
-                docks: true,
-                dockedBottomInset: bottomInset,
-                onDocked: _reportDocked,
-                onExtent: _onSheetExtent,
-                handle: const SheetHandle(),
-                // Its own scrolling, at any height of the sheet; the
-                // sheet moves by its handle.
-                child: Builder(
-                  // Looked up from inside the shell, which hands the controller down.
-                  builder: (context) => ListView(
-                    controller: SheetContentScroll.maybeOf(context),
-                    padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 24),
-                    children: [
-                      _SheetHeader(state: state),
-                      const SizedBox(height: 14),
-                      // The variants right under the figures, where the sheet
-                      // grows to show them; then the actions, so Loop and Save
-                      // are visible at the sheet's resting height.
-                      if (hasVariants) ...[
-                        _AlternativeChips(state: state),
-                        const SizedBox(height: 12),
-                      ],
-                      _PlannerActions(
-                        state: state,
-                        onAlternatives: _loadAlternatives,
-                        onSmartLoop: _smartLoop,
-                        onAsk: _ask,
-                        onSave: _save,
-                      ),
-                      const SizedBox(height: 16),
-                      _SheetBody(state: state),
+              gripDp: sheetGripWithTitleDp,
+              dockedRange: dockedRange,
+              docks: true,
+              dockedBottomInset: bottomInset,
+              onDocked: _reportDocked,
+              onExtent: _onSheetExtent,
+              // Its own scrolling, at any height of the sheet; the
+              // sheet moves by its handle.
+              child: Builder(
+                // Looked up from inside the shell, which hands the controller down.
+                builder: (context) => ListView(
+                  controller: SheetContentScroll.maybeOf(context),
+                  padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 24),
+                  children: [
+                    _SheetHeader(state: state),
+                    const SizedBox(height: 14),
+                    // The variants right under the figures, where the sheet
+                    // grows to show them; then the actions, so Loop and Save
+                    // are visible at the sheet's resting height.
+                    if (hasVariants) ...[
+                      _AlternativeChips(state: state),
+                      const SizedBox(height: 12),
                     ],
-                  ),
+                    _PlannerActions(
+                      state: state,
+                      onAlternatives: _loadAlternatives,
+                      onSmartLoop: _smartLoop,
+                      onAsk: _ask,
+                      onSave: _save,
+                    ),
+                    const SizedBox(height: 16),
+                    _SheetBody(state: state),
+                  ],
                 ),
               ),
             ),

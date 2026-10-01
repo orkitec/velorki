@@ -43,6 +43,9 @@ import '../../sensors/application/sensor_hub.dart';
 import '../../settings/data/units.dart';
 import '../../shared/application/active_tab.dart';
 import '../../shared/application/nav_bar_docking.dart';
+import '../../../app/shell_layout.dart';
+import '../../map/presentation/visible_map_padding.dart';
+import '../../shared/presentation/adaptive_docking_sheet.dart';
 import '../../shared/presentation/docking_sheet.dart';
 import '../../shared/presentation/floating_bar.dart';
 import '../../shared/presentation/tab_chrome_slide.dart';
@@ -697,13 +700,24 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     // Above the sheet and below the banner or the status bar; low in that,
     // heading-up, so most of what shows is the road ahead.
     final size = MediaQuery.sizeOf(context);
+    // Turned sideways the panel stands beside the map, not under it: the
+    // rider is kept in the middle of the map between it and the far edge.
+    final layout = ShellLayout.of(context);
+    final screen = MediaQueryData.fromView(View.of(context));
+    final cover = sideCover(
+      screen,
+      layout,
+      ref.read(sidePanelFractionProvider).value,
+    );
+    final column = layout.sideRail ? mapControlsWidth(context) : 0.0;
     final padding = followPadding(
       size: size,
       top:
           MediaQuery.viewPaddingOf(context).top +
           (banner ? turnBannerHeight + _bannerGapPx : 0),
-      bottom: _sheetCover(size),
-
+      bottom: layout.sideRail ? screen.viewPadding.bottom : _sheetCover(size),
+      left: cover.left + (cover.left > 0 ? column : 0),
+      right: cover.right + (cover.right > 0 ? column : 0),
       headingUp: mode == FollowMode.headingUp,
     );
     // Where the camera itself comes to rest: the rider's placement moves it
@@ -1764,6 +1778,31 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       });
     }
 
+    // Sideways, during a ride, the shell takes its rail away and this tab
+    // puts the ride's figures in its place; the panel and the banner stand
+    // beside them as they stand beside the rail.
+    final shellLayout = ShellLayout.of(context);
+    final ridingSideways = shellLayout.sideRail && state.isRecording && !glance;
+    Widget besideFigures(Widget child) {
+      if (!ridingSideways) return child;
+      final inset = floatingRailInset(
+        MediaQuery.viewPaddingOf(context),
+        shellLayout.side,
+      );
+      final left = shellLayout.side == RailSide.left;
+      return Padding(
+        padding: left
+            ? EdgeInsets.only(left: inset)
+            : EdgeInsets.only(right: inset),
+        child: MediaQuery.removePadding(
+          context: context,
+          removeLeft: left,
+          removeRight: !left,
+          child: child,
+        ),
+      );
+    }
+
     return Listener(
       // Any touch anywhere postpones the glance view, and a touch on the
       // glance view itself brings the map back. Translucent: a touch that
@@ -1785,13 +1824,17 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                   top: 0,
                   left: 0,
                   right: 0,
-                  child: TabChromeSlide(
-                    active: active,
-                    child: SafeArea(
-                      bottom: false,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: TurnBanner(progress: navigation),
+                  child: besideFigures(
+                    TabChromeSlide(
+                      active: active,
+                      child: SafeArea(
+                        bottom: false,
+                        child: BesideSidePanel(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: TurnBanner(progress: navigation),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -1805,30 +1848,25 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                   ),
                 )
               else
-                DraggableScrollableSheet(
-                  // A fresh sheet per state, so the initial size applies again
-                  // when a ride starts or ends.
-                  key: ValueKey(sheetKey),
-                  controller: state.isRecording ? _liveSheet : _idleSheet,
-                  initialChildSize: state.isRecording
-                      ? initial
-                      : _arrivingExtent ?? initial,
-                  minChildSize: collapsed,
-                  maxChildSize: 0.85,
-                  snap: true,
-                  snapSizes: _snapSizesFor(initial),
-                  builder: (context, scrollController) => DockingSheet(
-                    key: state.isRecording
+                besideFigures(
+                  AdaptiveDockingSheet(
+                    // A fresh sheet per state, so the initial size applies again
+                    // when a ride starts or ends.
+                    sheetKey: ValueKey(sheetKey),
+                    boxKey: state.isRecording
                         ? _liveSheetBoxKey
                         : _idleSheetBoxKey,
-                    controller: scrollController,
-                    gripDp: sheetGripWithTitleDp,
-                    // Where the sheet really starts: for a screen built in
-                    // the middle of a change, where the other tab's sheet is.
+                    controller: state.isRecording ? _liveSheet : _idleSheet,
+                    // Where the sheet really starts: for a screen built in the
+                    // middle of a change, where the other tab's sheet is.
                     initialExtent: state.isRecording
                         ? initial
                         : _arrivingExtent ?? initial,
+                    restingExtent: initial,
                     collapsedExtent: collapsed,
+                    maxExtent: 0.85,
+                    snapSizes: _snapSizesFor(initial),
+                    gripDp: sheetGripWithTitleDp,
                     dockedRange: dockedRange,
                     docks: true,
                     dockedBottomInset: barInset,
@@ -1836,7 +1874,6 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                     // bar, not the navigation bar, which is away.
                     onDocked: state.isRecording ? null : _reportDocked,
                     onExtent: _onSheetExtent,
-                    handle: const SheetHandle(),
                     child: state.isRecording
                         ? _LivePanel(
                             state: state,
@@ -1876,7 +1913,24 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                           ),
                   ),
                 ),
-              if (state.isRecording && !glance)
+              // Sideways the figures stand in the rail's place for the whole
+              // ride, and the panel folds against them.
+              if (ridingSideways)
+                Positioned(
+                  top: 0,
+                  bottom: 0,
+                  left: shellLayout.side == RailSide.left ? 0 : null,
+                  right: shellLayout.side == RailSide.right ? 0 : null,
+                  child: FiguresBar(
+                    railSide: shellLayout.side,
+                    figures: figures,
+                    paused: state.isPaused,
+                    system: ref.watch(unitSystemProvider),
+                    onOpen: () =>
+                        ref.read(sidePanelOpenProvider.notifier).set(true),
+                  ),
+                ),
+              if (state.isRecording && !glance && !shellLayout.sideRail)
                 Positioned(
                   left: 0,
                   right: 0,

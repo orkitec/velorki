@@ -483,6 +483,10 @@
   "@searchHint": {
     "description": "Placeholder text of the planner search field"
   },
+  "searchHintShort": "Search",
+  "@searchHintShort": {
+    "description": "The search field's hint where the field is too narrow for searchHint: beside the side panel on a small phone turned sideways."
+  },
   "searchClear": "Clear search",
   "@searchClear": {
     "description": "Tooltip of the button that empties the search field"

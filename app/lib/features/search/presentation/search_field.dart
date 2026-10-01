@@ -18,6 +18,23 @@ import '../domain/search_result.dart';
 ///
 /// The widget only reports the chosen place; what happens with it — a new
 /// waypoint or a camera move — is the screen's decision.
+/// What the field takes of its width besides the hint: the search icon and
+/// the text padding on both sides.
+const double _hintChrome = 48 + 20 + 20;
+
+/// Whether [hint] fits [width] in one line of the field's text style.
+bool _hintFits(BuildContext context, String hint, double width) {
+  final painter = TextPainter(
+    text: TextSpan(text: hint, style: Theme.of(context).textTheme.bodyLarge),
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+    maxLines: 1,
+  )..layout();
+  final fits = painter.width <= width;
+  painter.dispose();
+  return fits;
+}
+
 class SearchField extends ConsumerStatefulWidget {
   /// Creates the search field.
   const SearchField({
@@ -171,6 +188,13 @@ class _SearchFieldState extends ConsumerState<SearchField> {
     return LayoutBuilder(
       builder: (context, constraints) {
         _fieldWidth = constraints.maxWidth;
+        // Beside the side panel on a phone turned sideways the full hint
+        // may not fit, in some languages more than in others: measured.
+        final narrow = !_hintFits(
+          context,
+          l10n.searchHint,
+          constraints.maxWidth - _hintChrome,
+        );
         return OverlayPortal(
           controller: _results,
           overlayChildBuilder: (context) => Positioned(
@@ -205,9 +229,11 @@ class _SearchFieldState extends ConsumerState<SearchField> {
                 enabled: canSearch,
                 style: Theme.of(context).textTheme.bodyLarge,
                 decoration: InputDecoration(
-                  hintText: canSearch
-                      ? l10n.searchHint
-                      : l10n.searchUnavailable,
+                  hintText: !canSearch
+                      ? l10n.searchUnavailable
+                      : narrow
+                      ? l10n.searchHintShort
+                      : l10n.searchHint,
                   // The "no server configured" hint is a sentence, and in
                   // German a longer one than the field is wide: let it wrap
                   // rather than end in an ellipsis.

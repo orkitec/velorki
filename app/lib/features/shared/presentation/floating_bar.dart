@@ -20,12 +20,17 @@ const double floatingBarSideMargin = 16;
 /// sideways: an icon over its label, like the bar's destinations.
 const double floatingRailWidth = 84;
 
+/// The air between the floating rail and what stands beside it.
+const double floatingRailInnerGap = 8;
+
 /// How much of the screen's [side] the floating rail takes, from the edge
-/// to its inner side: the safe area, the air and the rail itself.
+/// to where what stands beside it may start: the safe area, the air, the
+/// rail itself and the air on its inner side.
 double floatingRailInset(EdgeInsets viewPadding, RailSide side) =>
     (side == RailSide.left ? viewPadding.left : viewPadding.right) +
     floatingBarBottomGap +
-    floatingRailWidth;
+    floatingRailWidth +
+    floatingRailInnerGap;
 
 /// The glass pill a bar floats in at the bottom of the screen: the tab bar,
 /// and the figures bar Record's sheet folds into during a ride, so the two

@@ -31,6 +31,25 @@ EdgeInsets visibleMapInsets({
   sheetExtent.clamp(0.0, 1.0) * size.height + margin,
 );
 
+/// The insets of the visible part of a map on a phone turned sideways:
+/// [cover] is what the rail and the side panel take from one side, the
+/// control column standing right beside them; [topInset] and [chromeTop] as
+/// upright, and [bottomInset] the safe area at the bottom, since no sheet
+/// rises from there.
+EdgeInsets sidewaysVisibleMapInsets({
+  required double topInset,
+  required double chromeTop,
+  required double bottomInset,
+  required EdgeInsets cover,
+  required double columnWidth,
+  double margin = 24,
+}) => EdgeInsets.fromLTRB(
+  cover.left + (cover.left > 0 ? columnWidth : 0) + margin,
+  topInset + chromeTop + margin,
+  cover.right + (cover.right > 0 ? columnWidth : 0) + margin,
+  bottomInset + margin,
+);
+
 /// How far down the visible map a rider being followed heading-up sits, as
 /// a share of its height: most of what shows is the road ahead, as on a
 /// bike computer, and a strip behind is left to see where they came from.
@@ -49,11 +68,17 @@ const double followMinVisiblePx = 120;
 /// With less than [followMinVisiblePx] showing, the rider is centred in
 /// what is visible, and never above [top]: under the chrome nobody sees
 /// them.
+///
+/// On a phone turned sideways [left] and [right] are what the rail, the side
+/// panel and the column cover: the rider is then kept in the middle of the
+/// map between them rather than of the whole screen.
 EdgeInsets followPadding({
   required Size size,
   required double top,
   required double bottom,
   required bool headingUp,
+  double left = 0,
+  double right = 0,
 }) {
   final visible = size.height - top - bottom;
   final share = !headingUp || visible < followMinVisiblePx
@@ -63,9 +88,14 @@ EdgeInsets followPadding({
   // Where a padded move lands its target: the middle of what the padding
   // leaves. One side's padding is enough to put it at any height.
   final offset = 2 * y - size.height;
-  return offset >= 0
-      ? EdgeInsets.only(top: offset)
-      : EdgeInsets.only(bottom: -offset);
+  final x = left + math.max(size.width - left - right, 0) / 2;
+  final offsetX = 2 * x - size.width;
+  return EdgeInsets.only(
+    top: math.max(offset, 0),
+    bottom: math.max(-offset, 0),
+    left: math.max(offsetX, 0),
+    right: math.max(-offsetX, 0),
+  );
 }
 
 /// The camera centre that puts [target] in the middle of the part of a

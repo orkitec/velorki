@@ -4,7 +4,9 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../app/shell_layout.dart';
 import '../../planner/presentation/planner_map_host.dart';
+import '../../shared/presentation/adaptive_docking_sheet.dart';
 import '../application/locate_on_open.dart';
 import '../data/map_preferences.dart';
 import '../domain/map_controller.dart';
@@ -124,8 +126,20 @@ class _SharedMapHostState extends ConsumerState<SharedMapHost>
     }
     // The shell draws the one control column over this map, so the map
     // draws none of its own.
+    // Sideways the chip and the (i) sit on the map beside the rail and the
+    // panel; where the panel comes to rest, not every frame of its fold, so
+    // the native view is not updated sixty times a second.
+    final layout = ShellLayout.of(context);
+    final attributionInsets = layout.sideRail
+        ? sideCover(
+            MediaQueryData.fromView(View.of(context)),
+            layout,
+            ref.watch(sidePanelOpenProvider) ? 1 : 0,
+          )
+        : EdgeInsets.zero;
     return MapChromeInsets(
       hoistedControls: true,
+      attributionInsets: attributionInsets,
       child: PuckOwnership(
         owned: ref.watch(recorderOwnsPuckProvider),
         // Any touch on the map itself — a pan, a pinch, a tap — is the
