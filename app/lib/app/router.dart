@@ -337,80 +337,97 @@ class HomeShell extends ConsumerWidget {
       ),
     );
     return ShellLayoutHost(
-      builder: (context, layout) => Scaffold(
-        // The bar floats over the content; screens read the bottom padding
-        // from MediaQuery to keep their last rows above it.
-        extendBody: true,
-        // The keyboard inset is left to each tab's own scaffold: the map
-        // screens keep their full height under the keyboard, the settings
-        // screen resizes as usual.
-        resizeToAvoidBottomInset: false,
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            // The one map under the Plan, Record and Library tabs, which draw
-            // on it and are transparent over it. Never hidden and never moved
-            // in the stack: the platform view would start over and show black.
-            // The settings tab is an opaque page over it.
-            //
-            // Its bottom inset is pinned to nothing: the scaffold takes the
-            // bottom view padding off its body only while it has a bar, so
-            // with the bar hidden for a ride the map's credit and (i) would
-            // climb by the home indicator's height into the figures bar.
-            MediaQuery.removeViewPadding(
-              context: context,
-              removeBottom: true,
-              child: const SharedMapHost(key: ValueKey<String>('shared-map')),
-            ),
-            if (showColumn)
-              Positioned.fill(
-                child: layout.sideRail
-                    ? _sidewaysControlsRow(
-                        context,
-                        layout,
-                        onWidth: ref
-                            .read(mapControlsRowWidthProvider.notifier)
-                            .set,
-                        child: controls(layout),
-                      )
-                    : SafeArea(
-                        child: AnimatedBuilder(
-                          animation: columnGlide.animation,
-                          builder: (context, child) => Padding(
-                            padding: EdgeInsets.only(
-                              top: columnGlide.animation.value,
-                              right: 12,
-                            ),
-                            child: Align(
-                              alignment: Alignment.topRight,
-                              child: child,
+      builder: (context, layout) {
+        // A turn of the phone fades the chrome back in, so the cards, the
+        // bar and the controls do not jump from one layout to the other.
+        // Never the map: a native view under a fade shows black.
+        final fade = ShellLayoutHost.turnFadeOf(context);
+        return Scaffold(
+          // The bar floats over the content; screens read the bottom padding
+          // from MediaQuery to keep their last rows above it.
+          extendBody: true,
+          // The keyboard inset is left to each tab's own scaffold: the map
+          // screens keep their full height under the keyboard, the settings
+          // screen resizes as usual.
+          resizeToAvoidBottomInset: false,
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              // The one map under the Plan, Record and Library tabs, which draw
+              // on it and are transparent over it. Never hidden and never moved
+              // in the stack: the platform view would start over and show black.
+              // The settings tab is an opaque page over it.
+              //
+              // Its bottom inset is pinned to nothing: the scaffold takes the
+              // bottom view padding off its body only while it has a bar, so
+              // with the bar hidden for a ride the map's credit and (i) would
+              // climb by the home indicator's height into the figures bar.
+              MediaQuery.removeViewPadding(
+                context: context,
+                removeBottom: true,
+                child: const SharedMapHost(key: ValueKey<String>('shared-map')),
+              ),
+              if (showColumn)
+                Positioned.fill(
+                  child: FadeTransition(
+                    opacity: fade,
+                    child: layout.sideRail
+                        ? _sidewaysControlsRow(
+                            context,
+                            layout,
+                            onWidth: ref
+                                .read(mapControlsRowWidthProvider.notifier)
+                                .set,
+                            child: controls(layout),
+                          )
+                        : SafeArea(
+                            child: AnimatedBuilder(
+                              animation: columnGlide.animation,
+                              builder: (context, child) => Padding(
+                                padding: EdgeInsets.only(
+                                  top: columnGlide.animation.value,
+                                  right: 12,
+                                ),
+                                child: Align(
+                                  alignment: Alignment.topRight,
+                                  child: child,
+                                ),
+                              ),
+                              child: controls(layout),
                             ),
                           ),
-                          child: controls(layout),
-                        ),
-                      ),
+                  ),
+                ),
+              // Over the column: a sheet or card pulled up covers it, and a
+              // touch beside a tab's chrome falls through to it and to the map,
+              // since the map tabs' routes put no barrier under their content.
+              FadeTransition(
+                opacity: fade,
+                child: _besideRail(
+                  context,
+                  layout,
+                  railShown: !hideRail,
+                  opaque: !(mapTabs.contains(shell.currentIndex) && atTabRoot),
+                  child: shell,
+                ),
               ),
-            // Over the column: a sheet or card pulled up covers it, and a
-            // touch beside a tab's chrome falls through to it and to the map,
-            // since the map tabs' routes put no barrier under their content.
-            _besideRail(
-              context,
-              layout,
-              railShown: !hideRail,
-              opaque: !(mapTabs.contains(shell.currentIndex) && atTabRoot),
-              child: shell,
-            ),
-            if (layout.sideRail && !hideRail)
-              Positioned.fill(child: navigation(layout.side)),
-          ],
-        ),
-        // Upright the bar floats at the bottom, hidden under the keyboard;
-        // turned sideways it is a rail at the side, which the keyboard
-        // leaves alone.
-        bottomNavigationBar: layout.sideRail || hideBar
-            ? null
-            : navigation(null),
-      ),
+              if (layout.sideRail && !hideRail)
+                Positioned.fill(
+                  child: FadeTransition(
+                    opacity: fade,
+                    child: navigation(layout.side),
+                  ),
+                ),
+            ],
+          ),
+          // Upright the bar floats at the bottom, hidden under the keyboard;
+          // turned sideways it is a rail at the side, which the keyboard
+          // leaves alone.
+          bottomNavigationBar: layout.sideRail || hideBar
+              ? null
+              : FadeTransition(opacity: fade, child: navigation(null)),
+        );
+      },
     );
   }
 }

@@ -176,12 +176,42 @@ class ShellLayoutHost extends ConsumerStatefulWidget {
   /// The shell, for the layout.
   final Widget Function(BuildContext context, ShellLayout layout) builder;
 
+  /// How far the shell's chrome has faded back in since the layout last
+  /// changed, 0 to 1; always 1 outside a host. The shell fades its tabs,
+  /// bar and controls with it, so a turn of the phone does not jump from
+  /// one layout to the other; the map stays, as a native view it would
+  /// show black faded.
+  static Animation<double> turnFadeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_TurnFadeScope>()?.fade ??
+      kAlwaysCompleteAnimation;
+
   @override
   ConsumerState<ShellLayoutHost> createState() => _ShellLayoutHostState();
 }
 
-class _ShellLayoutHostState extends ConsumerState<ShellLayoutHost> {
+/// How long the shell's chrome takes to fade back in after a turn.
+const Duration shellTurnFadeDuration = Duration(milliseconds: 260);
+
+class _ShellLayoutHostState extends ConsumerState<ShellLayoutHost>
+    with SingleTickerProviderStateMixin {
   Orientation? _orientation;
+  ShellLayout? _layout;
+
+  late final AnimationController _fade = AnimationController(
+    vsync: this,
+    duration: shellTurnFadeDuration,
+    value: 1,
+  );
+  late final Animation<double> _fadeCurve = CurvedAnimation(
+    parent: _fade,
+    curve: Curves.easeOut,
+  );
+
+  @override
+  void dispose() {
+    _fade.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -197,9 +227,29 @@ class _ShellLayoutHostState extends ConsumerState<ShellLayoutHost> {
     }
     _orientation = orientation;
     final layout = ShellLayout.resolve(size, ref.watch(railSideProvider));
+    final before = _layout;
+    if (before != null && before != layout) {
+      // The new layout comes in faded and fades up. Only listeners that
+      // repaint hang on the animation, so starting it here is safe.
+      _fade.forward(from: 0);
+    }
+    _layout = layout;
     return ShellLayoutScope(
       layout: layout,
-      child: Builder(builder: (context) => widget.builder(context, layout)),
+      child: _TurnFadeScope(
+        fade: _fadeCurve,
+        child: Builder(builder: (context) => widget.builder(context, layout)),
+      ),
     );
   }
+}
+
+/// Hands the host's turn fade down.
+class _TurnFadeScope extends InheritedWidget {
+  const _TurnFadeScope({required this.fade, required super.child});
+
+  final Animation<double> fade;
+
+  @override
+  bool updateShouldNotify(_TurnFadeScope oldWidget) => oldWidget.fade != fade;
 }

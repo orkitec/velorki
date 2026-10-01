@@ -499,4 +499,38 @@ void main() {
     expect(container.read(recordingControllerProvider).isRecording, isTrue);
     await unmountApp(tester);
   });
+
+  testWidgets('a turn fades the chrome back in, never the map', (tester) async {
+    await _screen(tester, _upright);
+    await pumpRecordingApp(
+      tester,
+      initialLocation: plannerRoute,
+      surfaceSize: _upright,
+      expectTextFits: false,
+    );
+    await tester.pumpAndSettle();
+    double fade() =>
+        ShellLayoutHost.turnFadeOf(tester.element(find.byType(SearchField)))
+            .value;
+    // Nothing fades on the way in.
+    expect(fade(), 1);
+
+    // Turned: the new layout comes in faded and is whole again soon after.
+    await tester.binding.setSurfaceSize(_sideways);
+    tester.view.physicalSize = _sideways * 3;
+    await tester.pump();
+    expect(fade(), lessThan(0.5));
+    await tester.pump(shellTurnFadeDuration + const Duration(milliseconds: 20));
+    expect(fade(), 1);
+
+    // The map under the chrome is never faded: a native view would go black.
+    expect(
+      find.ancestor(
+        of: find.byType(SharedMapHost),
+        matching: find.byType(FadeTransition),
+      ),
+      findsNothing,
+    );
+    await unmountApp(tester);
+  });
 }
