@@ -500,7 +500,8 @@ void main() {
     await unmountApp(tester);
   });
 
-  testWidgets('a turn fades the chrome back in, never the map', (tester) async {
+  testWidgets('a turn fades the sheet\'s content back in, never the sheet, '
+      'the rail or the map', (tester) async {
     await _screen(tester, _upright);
     await pumpRecordingApp(
       tester,
@@ -520,8 +521,36 @@ void main() {
     tester.view.physicalSize = _sideways * 3;
     await tester.pump();
     expect(fade(), lessThan(0.5));
+    // The platform's word on the rail's side comes a moment later and moves
+    // the rail: the fade goes on rather than starting over.
+    await tester.pump(const Duration(milliseconds: 120));
+    final midway = fade();
+    await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .handlePlatformMessage(
+          ScreenSideChannel.channelName,
+          const StandardMethodCodec().encodeMethodCall(
+            MethodCall('sideChanged', 'left'),
+          ),
+          (_) {},
+        );
+    await tester.pump();
+    expect(fade(), greaterThanOrEqualTo(midway));
     await tester.pump(shellTurnFadeDuration + const Duration(milliseconds: 20));
     expect(fade(), 1);
+
+    // Only the content fades: the sheet's content does, the rail and the
+    // sheet itself stay in view and only move.
+    final turnFade = ShellLayoutHost.turnFadeOf(
+      tester.element(find.byType(SearchField)),
+    );
+    bool fadedByTurn(Finder of) => tester
+        .widgetList<FadeTransition>(
+          find.ancestor(of: of, matching: find.byType(FadeTransition)),
+        )
+        .any((f) => identical(f.opacity, turnFade));
+    expect(fadedByTurn(find.text(l10n.plannerEmptyState)), isTrue);
+    expect(fadedByTurn(find.byType(FloatingNavigationBar)), isFalse);
+    expect(fadedByTurn(find.byType(DockingSheetShell)), isFalse);
 
     // The map under the chrome is never faded: a native view would go black.
     expect(

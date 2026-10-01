@@ -338,9 +338,10 @@ class HomeShell extends ConsumerWidget {
     );
     return ShellLayoutHost(
       builder: (context, layout) {
-        // A turn of the phone fades the chrome back in, so the cards, the
-        // bar and the controls do not jump from one layout to the other.
-        // Never the map: a native view under a fade shows black.
+        // A turn of the phone fades the map controls back in; the sheets do
+        // the same with their content. The bar, the rail and the sheets
+        // themselves stay in view, and the map is never faded: a native
+        // view under a fade shows black.
         final fade = ShellLayoutHost.turnFadeOf(context);
         return Scaffold(
           // The bar floats over the content; screens read the bottom padding
@@ -401,23 +402,15 @@ class HomeShell extends ConsumerWidget {
               // Over the column: a sheet or card pulled up covers it, and a
               // touch beside a tab's chrome falls through to it and to the map,
               // since the map tabs' routes put no barrier under their content.
-              FadeTransition(
-                opacity: fade,
-                child: _besideRail(
-                  context,
-                  layout,
-                  railShown: !hideRail,
-                  opaque: !(mapTabs.contains(shell.currentIndex) && atTabRoot),
-                  child: shell,
-                ),
+              _besideRail(
+                context,
+                layout,
+                railShown: !hideRail,
+                opaque: !(mapTabs.contains(shell.currentIndex) && atTabRoot),
+                child: shell,
               ),
               if (layout.sideRail && !hideRail)
-                Positioned.fill(
-                  child: FadeTransition(
-                    opacity: fade,
-                    child: navigation(layout.side),
-                  ),
-                ),
+                Positioned.fill(child: navigation(layout.side)),
             ],
           ),
           // Upright the bar floats at the bottom, hidden under the keyboard;
@@ -425,7 +418,7 @@ class HomeShell extends ConsumerWidget {
           // leaves alone.
           bottomNavigationBar: layout.sideRail || hideBar
               ? null
-              : FadeTransition(opacity: fade, child: navigation(null)),
+              : navigation(null),
         );
       },
     );

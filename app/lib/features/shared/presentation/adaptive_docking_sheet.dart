@@ -391,32 +391,37 @@ class _AdaptiveDockingSheetState extends State<AdaptiveDockingSheet> {
                 right: end,
                 top: sideways ? sheetHandleDp / 2 : 0,
               ),
-        child: MediaQuery.removePadding(
-          context: context,
-          removeLeft: sideways,
-          removeRight: sideways,
-          // Sideways a sheet folding away narrows its content where upright
-          // it only shortens it: the content keeps its width at rest and is
-          // covered from the map's side, as upright it is from the top.
-          child: !sideways
-              ? widget.child
-              : LayoutBuilder(
-                  builder: (context, constraints) {
-                    if (constraints.maxWidth >= sidewaysSheetContentWidth) {
-                      return widget.child;
-                    }
-                    return ClipRect(
-                      child: OverflowBox(
-                        minWidth: sidewaysSheetContentWidth,
-                        maxWidth: sidewaysSheetContentWidth,
-                        alignment: layout.side == RailSide.left
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: widget.child,
-                      ),
-                    );
-                  },
-                ),
+        child: FadeTransition(
+          // After a turn the content fades back in inside the sheet, which
+          // itself stays in view: the same sheet, only turned.
+          opacity: ShellLayoutHost.turnFadeOf(context),
+          child: MediaQuery.removePadding(
+            context: context,
+            removeLeft: sideways,
+            removeRight: sideways,
+            // Sideways a sheet folding away narrows its content where upright
+            // it only shortens it: the content keeps its width at rest and is
+            // covered from the map's side, as upright it is from the top.
+            child: !sideways
+                ? widget.child
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      if (constraints.maxWidth >= sidewaysSheetContentWidth) {
+                        return widget.child;
+                      }
+                      return ClipRect(
+                        child: OverflowBox(
+                          minWidth: sidewaysSheetContentWidth,
+                          maxWidth: sidewaysSheetContentWidth,
+                          alignment: layout.side == RailSide.left
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                          child: widget.child,
+                        ),
+                      );
+                    },
+                  ),
+          ),
         ),
       ),
     );

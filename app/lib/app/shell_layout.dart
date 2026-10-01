@@ -176,11 +176,12 @@ class ShellLayoutHost extends ConsumerStatefulWidget {
   /// The shell, for the layout.
   final Widget Function(BuildContext context, ShellLayout layout) builder;
 
-  /// How far the shell's chrome has faded back in since the layout last
-  /// changed, 0 to 1; always 1 outside a host. The shell fades its tabs,
-  /// bar and controls with it, so a turn of the phone does not jump from
-  /// one layout to the other; the map stays, as a native view it would
-  /// show black faded.
+  /// How far the content has faded back in since the layout last changed,
+  /// 0 to 1; always 1 outside a host. The sheets fade their content with it
+  /// and the shell its map controls, so a turn of the phone does not jump
+  /// from one layout to the other. The sheets themselves, the bar and the
+  /// rail stay in view and only move; the map is never faded, as a native
+  /// view it would show black.
   static Animation<double> turnFadeOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<_TurnFadeScope>()?.fade ??
       kAlwaysCompleteAnimation;
@@ -228,9 +229,12 @@ class _ShellLayoutHostState extends ConsumerState<ShellLayoutHost>
     _orientation = orientation;
     final layout = ShellLayout.resolve(size, ref.watch(railSideProvider));
     final before = _layout;
-    if (before != null && before != layout) {
-      // The new layout comes in faded and fades up. Only listeners that
-      // repaint hang on the animation, so starting it here is safe.
+    if (before != null && before != layout && !_fade.isAnimating) {
+      // The new layout's content comes in faded and fades up. Once: the
+      // platform's word on the rail's side often comes a moment after the
+      // turn and changes the layout again, which must not start it over.
+      // Only listeners that repaint hang on the animation, so starting it
+      // here is safe.
       _fade.forward(from: 0);
     }
     _layout = layout;
