@@ -159,6 +159,9 @@ const Duration glanceAfter = Duration(seconds: 30);
 const double saverBrightness = 0.4;
 
 /// The Record tab: start a ride, watch the numbers, finish it.
+/// The highest the Record sheet goes, as a share of the screen's length.
+const double _recordMaxSheetSize = 0.85;
+
 class RecordingScreen extends ConsumerStatefulWidget {
   /// Creates the screen.
   const RecordingScreen({super.key});
@@ -1704,9 +1707,14 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     final extraRows = math.max(0, (figures.length + 2) ~/ 3 - 2);
     // Sideways the sheet is as tall as the screen whatever it holds: it
     // rests as wide as the other tabs' sheets.
-    final initial = state.isRecording && !geometry.sideways
-        ? fraction(292.0 + 76 * extraRows)
-        : geometry.resting;
+    // Never above the sheet's own top, which a short phone with many
+    // figures would otherwise ask for.
+    final initial = math.min(
+      state.isRecording && !geometry.sideways
+          ? fraction(292.0 + 76 * extraRows)
+          : geometry.resting,
+      _recordMaxSheetSize,
+    );
     if (state.isRecording) _liveRestingSize = initial;
     _restingSheetSize = geometry.resting;
     final sheetKey = state.isRecording ? 'live' : 'idle';
@@ -1855,9 +1863,14 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                   // middle of a change, where the other tab's sheet is.
                   initialExtent: state.isRecording
                       ? initial
-                      : _arrivingExtent ?? initial,
+                      // Taken over from the last tab's sheet, but within this
+                      // one's own reach: the Library's card goes higher.
+                      : (_arrivingExtent ?? initial).clamp(
+                          collapsed,
+                          _recordMaxSheetSize,
+                        ),
                   collapsedExtent: collapsed,
-                  maxExtent: 0.85,
+                  maxExtent: _recordMaxSheetSize,
                   snapSizes: _snapSizesFor(initial),
                   gripDp: sheetGripWithTitleDp,
                   dockedRange: dockedRange,
