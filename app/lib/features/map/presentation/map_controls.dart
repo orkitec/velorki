@@ -30,6 +30,11 @@ const double compactMapControlsHeight = 700;
 
 /// The size of a column button, full and compact.
 const double mapControlButtonSize = 44;
+
+/// How far the controls' row sits above the map's bottom safe area on a
+/// phone turned sideways: over the map's credit, two lines of it on a narrow
+/// map.
+const double mapControlsRowBottom = 48;
 const double compactMapControlButtonSize = 38;
 
 /// Whether the screen at [context] is short enough for the compact column.
@@ -42,9 +47,17 @@ bool compactMapControls(BuildContext context) =>
 /// The column is inert until [controller] is non-null, which is the case
 /// until the map style has finished loading.
 class MapControls extends ConsumerWidget {
-  const MapControls({required this.controller, super.key});
+  const MapControls({
+    required this.controller,
+    this.axis = Axis.vertical,
+    super.key,
+  });
 
   final MapController? controller;
+
+  /// A column at the map's side, or, on a phone turned sideways, a row
+  /// along its bottom.
+  final Axis axis;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -57,9 +70,13 @@ class MapControls extends ConsumerWidget {
     final compact = compactMapControls(context);
     // One glass column rather than five floating buttons: less chrome over
     // the map, and the group reads as one control.
+    final across = compact ? 3.0 : 5.0;
     return GlassPanel(
-      padding: EdgeInsets.symmetric(horizontal: 3, vertical: compact ? 3 : 5),
-      child: Column(
+      padding: axis == Axis.vertical
+          ? EdgeInsets.symmetric(horizontal: 3, vertical: across)
+          : EdgeInsets.symmetric(horizontal: across, vertical: 3),
+      child: Flex(
+        direction: axis,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           // A ride that followed a route: the route and its points of
@@ -78,9 +95,11 @@ class MapControls extends ConsumerWidget {
           // column grows and shrinks for it rather than jumping: one column
           // serves the Plan and Record tabs.
           _Resizing(
+            axis: axis,
             child: onCompass == null
                 ? const SizedBox.shrink()
                 : _CompassButton(
+                    axis: axis,
                     headingUp: headingUp,
                     bearingDeg: chrome?.bearingDeg ?? 0,
                     onPressed: enabled ? onCompass : null,
@@ -99,6 +118,7 @@ class MapControls extends ConsumerWidget {
           // resting sheet, and the same download is one tap away in the
           // search field and under Settings.
           _Resizing(
+            axis: axis,
             child: (chrome?.showRoutingTiles ?? true) && !compact
                 ? _ControlButton(
                     icon: Icons.download_for_offline_outlined,
@@ -107,7 +127,7 @@ class MapControls extends ConsumerWidget {
                   )
                 : const SizedBox.shrink(),
           ),
-          const _ControlDivider(),
+          _ControlDivider(axis: axis),
           _ControlButton(
             icon: Icons.add,
             tooltip: l10n.mapZoomIn,
@@ -301,11 +321,14 @@ class _LocateButtonState extends ConsumerState<_LocateButton> {
 /// added to the map.
 class _CompassButton extends StatefulWidget {
   const _CompassButton({
+    required this.axis,
     required this.headingUp,
     required this.bearingDeg,
     required this.onPressed,
   });
 
+  /// The way the controls run: the hint shows beside a column, above a row.
+  final Axis axis;
   final bool headingUp;
   final double bearingDeg;
   final VoidCallback? onPressed;
@@ -360,9 +383,15 @@ class _CompassButtonState extends State<_CompassButton> {
           alignment: Alignment.topLeft,
           child: CompositedTransformFollower(
             link: _link,
-            targetAnchor: Alignment.centerLeft,
-            followerAnchor: Alignment.centerRight,
-            offset: const Offset(-8, 0),
+            targetAnchor: widget.axis == Axis.vertical
+                ? Alignment.centerLeft
+                : Alignment.topCenter,
+            followerAnchor: widget.axis == Axis.vertical
+                ? Alignment.centerRight
+                : Alignment.bottomCenter,
+            offset: widget.axis == Axis.vertical
+                ? const Offset(-8, 0)
+                : const Offset(0, -8),
             child: IgnorePointer(
               // The same glass as the control column it sits next to, so
               // it reads as part of the map chrome rather than a system
@@ -451,28 +480,39 @@ class _ControlButton extends StatelessWidget {
 
 /// A slot in the column whose height animates as its button comes and goes.
 class _Resizing extends StatelessWidget {
-  const _Resizing({required this.child});
+  const _Resizing({required this.axis, required this.child});
 
+  final Axis axis;
   final Widget child;
 
   @override
   Widget build(BuildContext context) => AnimatedSize(
     duration: mapControlsResizeDuration,
     curve: Curves.easeOutCubic,
-    alignment: Alignment.topCenter,
+    alignment: axis == Axis.vertical
+        ? Alignment.topCenter
+        : Alignment.centerLeft,
     child: child,
   );
 }
 
 /// The hairline between the map layers and the zoom pair.
 class _ControlDivider extends StatelessWidget {
-  const _ControlDivider();
+  const _ControlDivider({required this.axis});
+
+  final Axis axis;
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: 20,
-    height: 1,
-    margin: EdgeInsets.symmetric(vertical: compactMapControls(context) ? 2 : 3),
-    color: Theme.of(context).velorki.glassBorder,
-  );
+  Widget build(BuildContext context) {
+    final gap = compactMapControls(context) ? 2.0 : 3.0;
+    final vertical = axis == Axis.vertical;
+    return Container(
+      width: vertical ? 20 : 1,
+      height: vertical ? 1 : 20,
+      margin: vertical
+          ? EdgeInsets.symmetric(vertical: gap)
+          : EdgeInsets.symmetric(horizontal: gap),
+      color: Theme.of(context).velorki.glassBorder,
+    );
+  }
 }

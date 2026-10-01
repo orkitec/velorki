@@ -92,9 +92,9 @@ double _infoButtonBeside(BuildContext context, double cover) {
   return max(0, cover - MediaQuery.viewPaddingOf(context).right);
 }
 
-/// How far the native (i) button goes up, over the attribution chip's row,
-/// where the map beside the rail and the panel is too narrow for both.
-const double _infoButtonRaise = 34;
+/// The room the native (i) button takes at the map's bottom right, kept
+/// free of the attribution chip where the map is narrow.
+const double _infoButtonRoom = 40;
 
 class MapView extends ConsumerStatefulWidget {
   const MapView({
@@ -327,15 +327,9 @@ class _MapViewState extends ConsumerState<MapView> {
       // maplibre_gl 0.27 cannot hide the native attribution (i) button, so it
       // is parked bottom right, in the same band as our own chip.
       attributionButtonPosition: ml.AttributionButtonPosition.bottomRight,
-      // Beside the rail and the panel the map is too narrow for the (i) and
-      // the chip side by side: the (i) goes up over the chip's row, and the
-      // chip has the map's whole width.
       attributionButtonMargins: Point<num>(
         8 + _infoButtonBeside(context, chrome?.attributionInsets.right ?? 0),
-        attributionBottom +
-            ((chrome?.attributionInsets ?? EdgeInsets.zero) == EdgeInsets.zero
-                ? 0
-                : _infoButtonRaise),
+        attributionBottom,
       ),
       rotateGesturesEnabled: true,
       tiltGesturesEnabled: false,
@@ -404,9 +398,15 @@ class _MapViewState extends ConsumerState<MapView> {
                 left:
                     widget.attributionPadding.left +
                     (chrome?.attributionInsets.left ?? 0),
+                // Beside the rail and the sheet the map is narrow: the chip
+                // is centred in what the (i) at its right leaves.
                 right:
                     widget.attributionPadding.right +
-                    (chrome?.attributionInsets.right ?? 0),
+                    (chrome?.attributionInsets.right ?? 0) +
+                    ((chrome?.attributionInsets ?? EdgeInsets.zero) ==
+                            EdgeInsets.zero
+                        ? 0
+                        : _infoButtonRoom),
                 bottom: attributionBottom,
                 child: const Center(child: MapAttributionChip()),
               ),

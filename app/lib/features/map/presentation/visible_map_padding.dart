@@ -1,5 +1,4 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/shell_layout.dart';
 import '../../shared/presentation/adaptive_docking_sheet.dart';
@@ -35,16 +34,23 @@ EdgeInsets visibleMapPadding(
     // The screen's own metrics: [context] may be inside a part laid out
     // beside the rail, with that side's safe area already spent.
     final screen = MediaQueryData.fromView(View.of(context));
-    final open = ProviderScope.containerOf(
-      context,
-      listen: false,
-    ).read(sidePanelFractionProvider).value;
+    // The sheet comes out from the screen's edge behind the rail, so its
+    // extent is what it covers of the width.
+    final cover = sheetExtent != null
+        ? sheetExtent.clamp(0.0, 1.0) * screen.size.width
+        : sidewaysSheetCover(screen, shell, docked: false);
     return sidewaysVisibleMapInsets(
       topInset: screen.viewPadding.top,
       chromeTop: chromeTop,
-      bottomInset: screen.viewPadding.bottom,
-      cover: sideCover(screen, shell, open),
-      columnWidth: mapControlsWidth(context),
+      // The controls' row along the bottom.
+      bottomInset:
+          screen.viewPadding.bottom +
+          mapControlsRowBottom +
+          mapControlButtonSize,
+      cover: shell.side == RailSide.left
+          ? EdgeInsets.only(left: cover)
+          : EdgeInsets.only(right: cover),
+      columnWidth: 0,
     );
   }
   final size = MediaQuery.sizeOf(context);

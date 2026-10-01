@@ -126,6 +126,17 @@ Future<void> _pumpShell(
   await tester.pumpAndSettle();
 }
 
+/// The rail as it shows: its glass, not the turned frame it finds its
+/// place in, which is the whole screen.
+Rect _railGlass(WidgetTester tester) => tester.getRect(
+  find
+      .descendant(
+        of: find.byType(FloatingNavigationBar),
+        matching: find.byType(ClipRRect),
+      )
+      .first,
+);
+
 /// Turns the test screen back upright at [size], as [_pumpShell] has it.
 Future<void> _pumpShellSize(WidgetTester tester, Size size) async {
   await tester.binding.setSurfaceSize(size);
@@ -262,7 +273,7 @@ void main() {
 
       await _pumpShell(tester);
       await turnSideways(tester);
-      final rail = tester.getRect(find.byType(FloatingNavigationBar));
+      final rail = _railGlass(tester);
       expect(rail.left, lessThan(874 / 4));
 
       await messenger.handlePlatformMessage(
@@ -273,10 +284,7 @@ void main() {
         (_) {},
       );
       await tester.pumpAndSettle();
-      expect(
-        tester.getRect(find.byType(FloatingNavigationBar)).right,
-        greaterThan(874 * 3 / 4),
-      );
+      expect(_railGlass(tester).right, greaterThan(874 * 3 / 4));
     });
 
     testWidgets('a tab\'s page lies beside the rail, not under it', (
@@ -285,7 +293,7 @@ void main() {
       await _pumpShell(tester);
       await turnSideways(tester);
       await tapRail(tester, l10n.tabSettings);
-      final rail = tester.getRect(find.byType(FloatingNavigationBar));
+      final rail = _railGlass(tester);
       final page = tester.getRect(find.byType(SettingsScreen));
       expect(page.overlaps(rail), isFalse);
       expect(page.width, greaterThan(874 / 2));
@@ -301,7 +309,7 @@ void main() {
     });
 
     for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
-      testWidgets('a tap on the map beside the panel and below the chrome '
+      testWidgets('a tap on the map beside the sheet and below the chrome '
           'falls through to the shell\'s map, on Plan and on Record, '
           'on $platform', (tester) async {
         final maps = <FakeMapController>[];
@@ -316,10 +324,11 @@ void main() {
           ],
         );
         await turnSideways(tester);
-        // Low on the map, away from the panel, the column and the chrome.
-        final rail = tester.getRect(find.byType(FloatingNavigationBar));
+        // On the map beside the sheet, below the chrome and above the
+        // controls' row along the bottom.
+        final rail = _railGlass(tester);
         final railLeft = rail.center.dx < 874 / 2;
-        final spot = Offset(railLeft ? 874 - 120 : 120, 402 - 80);
+        final spot = Offset(railLeft ? 874 - 120 : 120, 402 / 2 + 30);
         await tester.tapAt(spot);
         await tester.pump();
         expect(taps, hasLength(1));

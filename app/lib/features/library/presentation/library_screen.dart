@@ -61,6 +61,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   /// The sheet's resting size, as computed by the last build.
   double _restingSheetSize = 0.48;
 
+  /// Whether the card is turned sideways, beside the rail.
+  bool _sideways = false;
+
   /// The sheet's greatest size, as computed by the last build.
   double _maxSheetSize = 0.9;
 
@@ -88,7 +91,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   /// the rider left it at this session, else the top for a list longer
   /// than two rows, else the resting height. A detail rests.
   double get _preferredExtent {
-    if (_detail) return _restingSheetSize;
+    // Sideways the card is as tall as the screen whatever it holds, and an
+    // extent left upright is a height, not a width.
+    if (_detail || _sideways) return _restingSheetSize;
     final left = ref.read(libraryCardExtentProvider);
     if (left != null) return left;
     final rows = _rows;
@@ -355,26 +360,28 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       });
     }
 
-    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    // Upright the card rises over the screen's height and the bar covers
+    // its end; sideways it is the same card turned, out from the rail.
+    final geometry = SheetGeometry.of(context);
+    _sideways = geometry.sideways;
+    final bottomInset = geometry.endInset;
     final topInset = MediaQuery.paddingOf(context).top;
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    // Collapsed, only the handle strip is left above the floating navigation
-    // bar, which the bottom padding already covers under `extendBody`: the
-    // sheet is docked in the bar and the map is free.
-    final collapsedSheetSize = screenHeight <= 0
-        ? 0.1
-        : ((bottomInset + sheetHandleDp) / screenHeight).clamp(0.01, 0.25);
-    final dockedRange = screenHeight <= 0
-        ? 0.15
-        : sheetDockingRangeDp / screenHeight;
+    final screenHeight = geometry.length;
+    // Collapsed, only the handle strip is left beside the floating
+    // navigation bar, which the padding already covers under `extendBody`:
+    // the sheet is docked in the bar and the map is free.
+    final collapsedSheetSize = geometry.collapsed;
+    final dockedRange = geometry.dockedRange;
     // One resting height, shared with the Plan and Record tabs.
-    final restingSheetSize = sheetRestingExtent(screenHeight);
+    final restingSheetSize = geometry.resting;
     _restingSheetSize = restingSheetSize;
     // Pulled up, the card may reach nearly the top: the charts, the splits
     // and the cue sheet want the room. The status bar and a little air
-    // stay clear.
+    // stay clear; sideways, some of the map.
     final maxSheetSize = screenHeight <= 0
         ? 0.9
+        : geometry.sideways
+        ? 0.85
         : ((screenHeight - topInset - 24) / screenHeight).clamp(0.6, 0.95);
     _maxSheetSize = maxSheetSize;
     // The list on screen, for the card's height on arrival: routes or
@@ -430,7 +437,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               AdaptiveDockingSheet(
                 controller: _sheet,
                 initialExtent: initialSheetSize,
-                restingExtent: restingSheetSize,
                 collapsedExtent: collapsedSheetSize,
                 maxExtent: maxSheetSize,
                 snapSizes: _snapSizesFor(restingSheetSize),

@@ -6,6 +6,7 @@ import '../../../app/theme.dart';
 import '../../../core/units/units.dart' as units;
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/presentation/route_format.dart';
+import '../../shared/presentation/adaptive_docking_sheet.dart';
 import '../../shared/presentation/floating_bar.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../domain/live_figures.dart';
@@ -101,8 +102,9 @@ class FiguresBar extends StatelessWidget {
     super.key,
   });
 
-  /// The side the bar stands on as a rail, a figure over the next, on a
-  /// phone turned sideways; `null` for the bar at the bottom.
+  /// The side the bar stands on as a rail, turned a quarter with a figure
+  /// over the next, on a phone turned sideways; `null` for the bar at the
+  /// bottom.
   final RailSide? railSide;
 
   /// The ride's figures, in order; the bar shows the first four.
@@ -137,41 +139,39 @@ class FiguresBar extends StatelessWidget {
           ),
         ),
     ];
+    // Sideways the bar turns a quarter with the rail, and the figures inside
+    // turn back upright, one over the next.
+    final turns = rail == null
+        ? 0
+        : shellQuarterTurns(ShellLayout(sideRail: true, side: rail));
     // The tab bar's own shell: the same place, the same shape, the same
     // open top under the sheet's strip, whose hairline is the seam.
-    return FloatingBarShell(
-      docked: rail == null && docked,
-      railSide: rail,
+    final bar = FloatingBarShell(
+      docked: docked,
       child: Semantics(
         button: true,
         label: l10n.recordingFiguresBarOpen,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onOpen,
-          // Towards the map opens the sheet: up from the bar, sideways
-          // away from the rail.
-          onVerticalDragEnd: rail != null
-              ? null
-              : (details) {
-                  if ((details.primaryVelocity ?? 0) < 0) onOpen();
-                },
-          onHorizontalDragEnd: rail == null
-              ? null
-              : (details) {
-                  final v = details.primaryVelocity ?? 0;
-                  if (rail == RailSide.right ? v < 0 : v > 0) onOpen();
-                },
+          // Up from the bar, towards the map, opens the sheet; sideways the
+          // turned frame makes that a drag away from the rail.
+          onVerticalDragEnd: (details) {
+            if ((details.primaryVelocity ?? 0) < 0) onOpen();
+          },
           child: SizedBox(
-            height: rail == null ? floatingBarHeight : null,
-            width: rail == null ? null : floatingRailWidth,
+            height: floatingBarHeight,
             child: Stack(
               children: [
-                if (rail == null)
+                if (turns == 0)
                   Row(children: figureViews)
                 else
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Column(children: figureViews),
+                  QuarterTurnedFrame(
+                    quarterTurns: 4 - turns,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Column(children: figureViews),
+                    ),
                   ),
                 if (paused)
                   Positioned(
@@ -192,6 +192,11 @@ class FiguresBar extends StatelessWidget {
           ),
         ),
       ),
+    );
+    if (turns == 0) return bar;
+    return QuarterTurnedFrame(
+      quarterTurns: turns,
+      child: Align(alignment: Alignment.bottomCenter, child: bar),
     );
   }
 }

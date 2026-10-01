@@ -19,8 +19,7 @@ import 'package:velorki/features/recording/data/recording_gateways.dart';
 import 'package:velorki/features/recording/data/recording_recovery.dart';
 import 'package:velorki/features/recording/data/recording_service.dart';
 import 'package:velorki/features/recording/data/ride_repository.dart';
-import 'package:velorki/features/recording/presentation/live_figures_view.dart';
-import 'package:velorki/features/shared/presentation/adaptive_docking_sheet.dart';
+import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import 'support/fakes.dart';
@@ -46,13 +45,34 @@ Future<void> _turn(
 
 /// Where the rail is, and where the platform says the bottom edge went.
 void _expectRailOnBottomSide(WidgetTester tester, ProviderContainer app) {
-  final rail = tester.getRect(find.byType(FloatingNavigationBar));
+  // The rail's glass: the rail is the bar turned in a frame as large as the
+  // screen.
+  final rail = tester.getRect(
+    find
+        .descendant(
+          of: find.byType(FloatingNavigationBar),
+          matching: find.byType(ClipRRect),
+        )
+        .first,
+  );
   final width = tester.view.physicalSize.width / tester.view.devicePixelRatio;
   final side = app.read(railSideProvider);
   if (side == RailSide.left) {
     expect(rail.center.dx, lessThan(width / 2));
   } else {
     expect(rail.center.dx, greaterThan(width / 2));
+  }
+}
+
+/// The tab's sheet, which sideways is the upright one turned a quarter: as
+/// tall as the screen then, as wide as it upright.
+void _expectSheetTurned(WidgetTester tester, {required bool sideways}) {
+  final sheet = tester.getRect(find.byType(DockingSheetShell));
+  final size = tester.view.physicalSize / tester.view.devicePixelRatio;
+  if (sideways) {
+    expect(sheet.height, closeTo(size.height, 1));
+  } else {
+    expect(sheet.width, closeTo(size.width, 1));
   }
 }
 
@@ -117,7 +137,7 @@ void main() {
     await _turn(tester, DeviceOrientation.landscapeLeft, sideways: true);
     expect(find.byType(NavigationRail), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
-    expect(find.byType(SidePanel), findsOneWidget);
+    _expectSheetTurned(tester, sideways: true);
     _expectRailOnBottomSide(tester, app);
 
     // The other way round: the rail crosses over with the bottom edge.
@@ -158,21 +178,20 @@ void main() {
       describe: 'the distance to start counting',
     );
     await pumpFor(tester, const Duration(seconds: 1));
-    // The ride's figures stand in the rail's place.
+    // The ride takes the rail away, as it takes the bar upright; docked,
+    // the sheet would show the ride's figures in its place.
     expect(find.byType(NavigationRail), findsNothing);
-    final figures = tester.widget<FiguresBar>(find.byType(FiguresBar));
-    expect(figures.railSide, app.read(railSideProvider));
+    _expectSheetTurned(tester, sideways: true);
     debugPrint('VELORKI_ORIENT riding sideways');
     await pumpFor(tester, const Duration(seconds: 3));
 
     // ---------------------------------------------------- upright and back
     await _turn(tester, DeviceOrientation.portraitUp, sideways: false);
-    expect(find.byType(SidePanel), findsNothing);
-    expect(find.byType(DraggableScrollableSheet), findsOneWidget);
+    _expectSheetTurned(tester, sideways: false);
     expect(app.read(recordingControllerProvider).isRecording, isTrue);
 
     await _turn(tester, DeviceOrientation.landscapeLeft, sideways: true);
-    expect(find.byType(SidePanel), findsOneWidget);
+    _expectSheetTurned(tester, sideways: true);
     expect(app.read(recordingControllerProvider).isRecording, isTrue);
     // The one map all along: a map widget that was rebuilt would show black.
     expect(tester.element(find.byType(SharedMapHost)), same(map));

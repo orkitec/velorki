@@ -663,22 +663,21 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       ref.read(plannerControllerProvider.notifier).clearError();
     });
 
-    final bottomInset = MediaQuery.paddingOf(context).bottom;
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    // Collapsed, only the handle strip is left above the floating navigation
-    // bar, which the bottom padding already covers under `extendBody`: the
-    // sheet is docked in the bar, the map is free, and one pull brings the
-    // plan back.
-    final collapsedSheetSize = screenHeight <= 0
-        ? 0.1
-        : ((bottomInset + sheetHandleDp) / screenHeight).clamp(0.01, 0.25);
+    // Upright the sheet rises over the screen's height and the bar covers
+    // its end; sideways it is the same sheet turned, coming out from the
+    // rail's side over the screen's width.
+    final geometry = SheetGeometry.of(context);
+    final bottomInset = geometry.endInset;
+    // Collapsed, only the handle strip is left beside the floating
+    // navigation bar, which the padding already covers under `extendBody`:
+    // the sheet is docked in the bar, the map is free, and one pull brings
+    // the plan back.
+    final collapsedSheetSize = geometry.collapsed;
     _collapsedSheetSize = collapsedSheetSize;
-    final dockedRange = screenHeight <= 0
-        ? 0.15
-        : sheetDockingRangeDp / screenHeight;
+    final dockedRange = geometry.dockedRange;
     // One resting height whatever the sheet holds, shared with the Record
     // tab: room for the variant chips is always there.
-    final restingSheetSize = sheetRestingExtent(screenHeight);
+    final restingSheetSize = geometry.resting;
     _restingSheetSize = restingSheetSize;
     final hasVariants = state.alternatives.length > 1;
 
@@ -756,7 +755,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                 bottom: false,
                 // Sideways the chrome stands over the map beside the side
                 // panel, moving with it as it folds.
-                child: BesideSidePanel(
+                child: BesideSheet(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
                     child: Column(
@@ -874,7 +873,6 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
               // Enough for the headline, the toolbar and Save above the
               // floating navigation bar on a 20:9 phone.
               initialExtent: restingSheetSize,
-              restingExtent: restingSheetSize,
               collapsedExtent: collapsedSheetSize,
               maxExtent: 0.9,
               // One resting height, not one per state: with two in the list
@@ -893,7 +891,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                 // Looked up from inside the shell, which hands the controller down.
                 builder: (context) => ListView(
                   controller: SheetContentScroll.maybeOf(context),
-                  padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset + 24),
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    0,
+                    20,
+                    MediaQuery.paddingOf(context).bottom + 24,
+                  ),
                   children: [
                     _SheetHeader(state: state),
                     const SizedBox(height: 14),

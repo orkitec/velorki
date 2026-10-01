@@ -9,12 +9,13 @@ import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/presentation/profile_chip_row.dart';
 import 'package:velorki/features/planner/presentation/route_format.dart';
-import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/features/recording/application/recording_controller.dart';
+import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/features/recording/presentation/live_figures_view.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
-import 'package:velorki/features/shared/presentation/adaptive_docking_sheet.dart';
+import 'package:velorki/features/shared/application/nav_bar_docking.dart';
+import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../features/recording/support/pump.dart';
@@ -70,13 +71,36 @@ RecordingSnapshot _snapshot() => RecordingSnapshot(
 
 Rect _rect(WidgetTester tester, Finder finder) => tester.getRect(finder);
 
-/// The side panel's box as it shows, which folded away is its grip.
-Rect _panel(WidgetTester tester) {
-  final panel = find.byType(SidePanel);
-  final decorated = find
-      .descendant(of: panel, matching: find.byType(DecoratedBox))
-      .first;
-  return _rect(tester, decorated);
+/// The sheet's box as it shows on screen, turned or not.
+Rect _sheet(WidgetTester tester) =>
+    _rect(tester, find.byType(DockingSheetShell));
+
+/// The rail as it shows: its glass, not the turned frame it finds its
+/// place in, which is the whole screen.
+Rect _rail(WidgetTester tester) => _rect(
+  tester,
+  find
+      .descendant(
+        of: find.byType(FloatingNavigationBar),
+        matching: find.byType(ClipRRect),
+      )
+      .first,
+);
+
+bool _railOnLeft(WidgetTester tester, Size size) =>
+    _rail(tester).center.dx < size.width / 2;
+
+/// Drags the sheet by its handle towards the rail, all the way.
+Future<void> _dockSheet(
+  WidgetTester tester,
+  Size size, {
+  required bool left,
+}) async {
+  await tester.dragFrom(
+    tester.getCenter(find.byType(SheetHandle)),
+    Offset((left ? -1 : 1) * size.width, 0),
+  );
+  await tester.pumpAndSettle();
 }
 
 Future<void> _tapRail(WidgetTester tester, String label) async {
@@ -108,8 +132,9 @@ void main() {
 
   for (final size in [_wideSideways, _sideways, _smallSideways]) {
     group('sideways at $size', () {
-      testWidgets('Plan: the sheet is a panel beside the rail, the search '
-          'and the profile menu over the map beside it', (tester) async {
+      testWidgets('Plan: the sheet is the upright one turned, out from the '
+          'rail\'s side and as tall as the screen, with its content upright, '
+          'and the chrome over the map beside it', (tester) async {
         await _screen(tester, size);
         await pumpRecordingApp(
           tester,
@@ -119,62 +144,86 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.byType(DraggableScrollableSheet), findsNothing);
-        expect(find.byType(SidePanel), findsOneWidget);
+        expect(find.byType(NavigationRail), findsOneWidget);
+        expect(find.byType(DraggableScrollableSheet), findsOneWidget);
+        expect(
+          find.ancestor(
+            of: find.byType(DraggableScrollableSheet),
+            matching: find.byType(RotatedBox),
+          ),
+          findsWidgets,
+        );
+        final sheet = _sheet(tester);
+        final rail = _rail(tester);
+        final left = _railOnLeft(tester, size);
+        // As tall as the screen, from the rail's edge of it, under the rail.
+        expect(sheet.height, closeTo(size.height, 1));
+        if (left) {
+          expect(sheet.left, closeTo(0, 1));
+        } else {
+          expect(sheet.right, closeTo(size.width, 1));
+        }
+        expect(sheet.contains(rail.center), isTrue);
+        // The content reads across, as upright: its title is wider than tall.
+        final title = _rect(tester, find.text(l10n.plannerEmptyState));
+        expect(title.width, greaterThan(title.height));
+
         expect(find.byType(ProfileChipRow), findsNothing);
         expect(find.byType(ProfileDropdown), findsOneWidget);
-
-        final rail = _rect(tester, find.byType(FloatingNavigationBar));
-        final panel = _panel(tester);
         final search = _rect(tester, find.byType(SearchField));
         final dropdown = _rect(tester, find.byType(ProfileDropdown));
         final controls = _rect(tester, find.byType(MapControls));
-        // Rail, panel, then the map with its chrome, left to right or right
-        // to left, none over another.
+        // The controls run along the bottom, a row.
+        expect(controls.width, greaterThan(controls.height));
+        expect(controls.bottom, greaterThan(size.height * 0.6));
         for (final (a, b) in [
-          (rail, panel),
-          (panel, search),
-          (panel, controls),
-          (rail, controls),
+          (sheet, search),
+          (sheet, dropdown),
+          (sheet, controls),
+          (search, controls),
+          (dropdown, controls),
           (search, dropdown),
         ]) {
           expect(a.overlaps(b), isFalse, reason: '$a over $b');
         }
-        // Beside the open panel the map is too narrow for both in one row,
-        // on every phone: the menu is under the search, at the end of its
-        // row.
-        expect(dropdown.top, greaterThan(search.bottom));
-        expect(
-          (dropdown.right - search.right).abs() <= 1 ||
-              (dropdown.left - search.left).abs() <= 1,
-          isTrue,
-        );
-        // The column stands right beside the panel.
-        final gap = panel.center.dx < controls.center.dx
-            ? controls.left - panel.right
-            : panel.left - controls.right;
-        expect(gap, lessThan(20));
         await unmountApp(tester);
       });
 
-      testWidgets('Record and the Library have their panels too, and a ride '
-          'puts its figures in the rail\'s place', (tester) async {
+      testWidgets('Record: a ride hides the rail, and the sheet docked shows '
+          'the ride\'s figures in the rail\'s place', (tester) async {
         await _screen(tester, size);
-        final h = await pumpRecordingApp(tester, surfaceSize: size);
+        final h = await pumpRecordingApp(
+          tester,
+          surfaceSize: size,
+          expectTextFits: false,
+        );
         await tester.pumpAndSettle();
-        expect(find.byType(SidePanel), findsOneWidget);
         expect(find.byType(NavigationRail), findsOneWidget);
+        final left = _railOnLeft(tester, size);
 
         await emitSnapshot(tester, h, _snapshot());
         await tester.pumpAndSettle();
         expect(find.byType(NavigationRail), findsNothing);
-        final figures = tester.widget<FiguresBar>(find.byType(FiguresBar));
-        expect(figures.railSide, isNotNull);
-        expect(find.byType(FiguresBar), findsOneWidget);
-        expect(
-          _panel(tester).overlaps(_rect(tester, find.byType(FiguresBar))),
-          isFalse,
+        expect(find.byType(FiguresBar), findsNothing);
+
+        await _dockSheet(tester, size, left: left);
+        // The bar's glass, not the turned frame it finds its place in.
+        final figures = _rect(
+          tester,
+          find
+              .descendant(
+                of: find.byType(FiguresBar),
+                matching: find.byType(ClipRRect),
+              )
+              .first,
         );
+        expect(
+          tester.widget<FiguresBar>(find.byType(FiguresBar)).railSide,
+          isNotNull,
+        );
+        // Turned with the rail: tall, on the rail's side.
+        expect(figures.height, greaterThan(figures.width));
+        expect(figures.center.dx < size.width / 2, left);
         await unmountApp(tester);
       });
 
@@ -190,7 +239,7 @@ void main() {
         await emitSnapshot(tester, h, _snapshot());
         await tester.pump(glanceAfter + const Duration(seconds: 1));
         // An overflow would have failed the test already.
-        expect(find.byType(SidePanel), findsNothing);
+        expect(find.byType(DraggableScrollableSheet), findsNothing);
         await unmountApp(tester);
       });
     });
@@ -219,8 +268,8 @@ void main() {
     await unmountApp(tester);
   });
 
-  testWidgets('a drag towards the rail folds the panel down to its grip, the '
-      'column follows, the other tabs agree, and a tap on the grip opens it', (
+  testWidgets('a drag towards the rail docks the sheet into it, as into the '
+      'bar upright, and the next tab\'s sheet comes back to rest', (
     tester,
   ) async {
     await _screen(tester, _sideways);
@@ -231,46 +280,27 @@ void main() {
       expectTextFits: false,
     );
     await tester.pumpAndSettle();
-    final open = _panel(tester);
-    final controlsOpen = _rect(tester, find.byType(MapControls));
-    final rail = _rect(tester, find.byType(FloatingNavigationBar));
-    final towardsRail = rail.center.dx < open.center.dx ? -1.0 : 1.0;
-
-    await tester.dragFrom(open.center, Offset(towardsRail * 400, 0));
-    await tester.pumpAndSettle();
-    final folded = _panel(tester);
     final container = ProviderScope.containerOf(
-      tester.element(find.byType(SidePanel)),
+      tester.element(find.byType(SharedMapHost)),
     );
-    expect(container.read(sidePanelOpenProvider), isFalse);
-    // Only the grip shows beside the rail.
-    final shown = towardsRail < 0
-        ? folded.right - rail.right
-        : rail.left - folded.left;
-    expect(shown, lessThan(sidePanelGripWidth + 20));
-    // Folded, the map beside it is wide enough for the search and the menu
-    // in one row.
-    expect(
-      _rect(tester, find.byType(SearchField)).center.dy,
-      closeTo(_rect(tester, find.byType(ProfileDropdown)).center.dy, 1),
-    );
-    final controlsFolded = _rect(tester, find.byType(MapControls));
-    expect(
-      (controlsFolded.center.dx - rail.center.dx).abs(),
-      lessThan((controlsOpen.center.dx - rail.center.dx).abs()),
-    );
+    final open = _sheet(tester);
 
+    await _dockSheet(tester, _sideways, left: _railOnLeft(tester, _sideways));
+    expect(container.read(navBarDockingProvider), {plannerRoute});
+    expect(
+      tester
+          .widget<FloatingNavigationBar>(find.byType(FloatingNavigationBar))
+          .docked,
+      isTrue,
+    );
+    // Only the handle strip is left beside the rail.
+    expect(_sheet(tester).width, lessThan(open.width / 2));
+
+    // As upright, the next tab's sheet starts where this one is and comes
+    // back up to rest.
     await _tapRail(tester, l10n.tabRecord);
-    expect(container.read(sidePanelOpenProvider), isFalse);
-
-    // The grip is what shows of the folded panel: its edge on the map side.
-    final folds = _panel(tester);
-    final grip = towardsRail < 0
-        ? Offset(folds.right - sidePanelGripWidth / 2, folds.center.dy)
-        : Offset(folds.left + sidePanelGripWidth / 2, folds.center.dy);
-    await tester.tapAt(grip);
-    await tester.pumpAndSettle();
-    expect(container.read(sidePanelOpenProvider), isTrue);
+    expect(container.read(navBarDockingProvider), isEmpty);
+    expect(_sheet(tester).width, closeTo(open.width, 1));
     await unmountApp(tester);
   });
 
@@ -278,7 +308,11 @@ void main() {
     tester,
   ) async {
     await _screen(tester, _upright);
-    final h = await pumpRecordingApp(tester, surfaceSize: _upright);
+    final h = await pumpRecordingApp(
+      tester,
+      surfaceSize: _upright,
+      expectTextFits: false,
+    );
     await tester.pump();
     await emitSnapshot(tester, h, _snapshot());
     await tester.pumpAndSettle();
@@ -286,15 +320,12 @@ void main() {
     expect(find.byType(DraggableScrollableSheet), findsOneWidget);
 
     await _screen(tester, _sideways);
-    expect(find.byType(SidePanel), findsOneWidget);
-    expect(
-      tester.widget<FiguresBar>(find.byType(FiguresBar)).railSide,
-      isNotNull,
-    );
+    expect(find.byType(DraggableScrollableSheet), findsOneWidget);
+    expect(_sheet(tester).height, closeTo(_sideways.height, 1));
 
     await _screen(tester, _upright);
     expect(find.byType(DraggableScrollableSheet), findsOneWidget);
-    expect(find.byType(SidePanel), findsNothing);
+    expect(_sheet(tester).width, closeTo(_upright.width, 1));
     expect(tester.element(find.byType(SharedMapHost)), same(map));
     final container = ProviderScope.containerOf(map);
     expect(container.read(recordingControllerProvider).isRecording, isTrue);
