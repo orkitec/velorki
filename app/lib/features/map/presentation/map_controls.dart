@@ -31,10 +31,6 @@ const double compactMapControlsHeight = 700;
 /// The size of a column button, full and compact.
 const double mapControlButtonSize = 44;
 
-/// How far the controls' row sits above the map's bottom safe area on a
-/// phone turned sideways: over the map's credit, two lines of it on a narrow
-/// map.
-const double mapControlsRowBottom = 48;
 const double compactMapControlButtonSize = 38;
 
 /// Whether the screen at [context] is short enough for the compact column.
@@ -56,7 +52,7 @@ class MapControls extends ConsumerWidget {
   final MapController? controller;
 
   /// A column at the map's side, or, on a phone turned sideways, a row
-  /// along its bottom.
+  /// at its top beside the docked sheet.
   final Axis axis;
 
   @override

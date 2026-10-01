@@ -44,7 +44,6 @@ import '../../settings/data/units.dart';
 import '../../shared/application/active_tab.dart';
 import '../../shared/application/nav_bar_docking.dart';
 import '../../../app/shell_layout.dart';
-import '../../map/presentation/map_controls.dart';
 import '../../shared/presentation/adaptive_docking_sheet.dart';
 import '../../shared/presentation/docking_sheet.dart';
 import '../../shared/presentation/tab_chrome_slide.dart';
@@ -712,7 +711,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     final size = MediaQuery.sizeOf(context);
     // Turned sideways the sheet comes out from the rail's side, beside the
     // map: the rider is kept in the middle of the map between it and the far
-    // edge, over the controls' row along the bottom.
+    // edge, below the row at the top.
     final layout = ShellLayout.of(context);
     final screen = MediaQueryData.fromView(View.of(context));
     final sheet = layout.sideRail ? _sheetRect() : null;
@@ -727,16 +726,17 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
         : layout.side == RailSide.right
         ? (size.width - sheet.left).clamp(0.0, size.width)
         : screen.viewPadding.right;
+    final bannerCover = banner ? turnBannerHeight + _bannerGapPx : 0.0;
     final padding = followPadding(
       size: size,
+      // Sideways the controls' row stands at the top too, beside the docked
+      // sheet, level with the banner.
       top:
           MediaQuery.viewPaddingOf(context).top +
-          (banner ? turnBannerHeight + _bannerGapPx : 0),
-      bottom: layout.sideRail
-          ? screen.viewPadding.bottom +
-                mapControlsRowBottom +
-                mapControlButtonSize
-          : _sheetCover(size),
+          (layout.sideRail
+              ? math.max(bannerCover, sidewaysTopRowTop + sidewaysTopRowHeight)
+              : bannerCover),
+      bottom: layout.sideRail ? screen.viewPadding.bottom : _sheetCover(size),
       left: left,
       right: right,
       headingUp: mode == FollowMode.headingUp,

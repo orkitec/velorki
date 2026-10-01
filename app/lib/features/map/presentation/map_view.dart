@@ -76,9 +76,9 @@ String mapStyleUrlFor(
 }
 
 /// How far down the native (i) button sits on a phone turned sideways: in
-/// the top corner of the map away from the rail, below the search and the
-/// profile menu, so the attribution chip has the narrow map's whole width at
-/// the bottom.
+/// the top corner of the map away from the rail, below the row at the top
+/// (whose far end is the search) and the turn banner, so the attribution
+/// chip has the narrow map's whole width at the bottom.
 const double _infoButtonTopSideways = 124;
 
 /// The map itself: a `MapLibreMap` platform view plus the adapter that turns

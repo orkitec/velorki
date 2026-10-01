@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show OverflowBoxFit;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -49,9 +50,6 @@ import 'waypoint_edit_sheet.dart';
 /// The Plan tab: the search and profile controls at the top and the route
 /// details in a draggable sheet at the bottom, over the map the shell
 /// paints under the Plan and Record tabs.
-/// The least width the Plan chrome needs, sideways, for the search field
-/// and the profile menu in one row with the search hint in full.
-const double _searchRowMinWidth = 360;
 
 class PlannerScreen extends ConsumerStatefulWidget {
   /// Creates the planner.
@@ -84,10 +82,102 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   final GlobalKey _chromeKey = GlobalKey();
   double _chromeHeight = 8 + 56 + 10 + 44;
 
+  /// The profile menu in the row at the top sideways, measured too, so the
+  /// search in that row takes exactly what the menu leaves.
+  final GlobalKey _profileKey = GlobalKey();
+  double _profileWidth = 120;
+
   void _measureChrome() {
     final height = _chromeKey.currentContext?.size?.height;
-    if (height == null || (height - _chromeHeight).abs() < 0.5) return;
-    setState(() => _chromeHeight = height);
+    final profile = _profileKey.currentContext?.size?.width;
+    final taller = height != null && (height - _chromeHeight).abs() >= 0.5;
+    final wider = profile != null && (profile - _profileWidth).abs() >= 0.5;
+    if (!taller && !wider) return;
+    setState(() {
+      if (taller) _chromeHeight = height;
+      if (wider) _profileWidth = profile;
+    });
+  }
+
+  /// The air between the things in the row at the top sideways.
+  static const double _rowGap = 8;
+
+  /// The chrome on a phone turned sideways: one row at the top of the map,
+  /// the shell's controls beside the docked sheet, then [profile], then
+  /// [search] running on to the far edge; under the row, beside the resting
+  /// sheet, the rows [below] that come and go.
+  ///
+  /// At rest the sheet lies over the controls and the menu, which the rider
+  /// reaches by docking it. The search is what stays in reach: it takes
+  /// what the menu and the controls leave of the row, and never less than
+  /// the strip the resting sheet leaves, the menu giving way under the
+  /// sheet where the row is too short for both.
+  Widget _sidewaysChrome(
+    BuildContext context, {
+    required Widget search,
+    required Widget profile,
+    required List<Widget> below,
+  }) {
+    final layout = ShellLayout.of(context);
+    final media = MediaQuery.of(context);
+    final left = layout.side == RailSide.left;
+    final width = media.size.width;
+    final far =
+        (left ? media.viewPadding.right : media.viewPadding.left) +
+        sidewaysTopRowGap;
+    final controls = ref.watch(mapControlsRowWidthProvider);
+    // From the rail's edge: the docked sheet, the shell's controls, air.
+    final near =
+        sidewaysTopRowStart(media, layout) +
+        (controls > 0 ? controls + _rowGap : 0);
+    final besideRest =
+        sidewaysSheetCover(media, layout, docked: false) + sidewaysTopRowGap;
+    // The search is as wide as the map beside the resting sheet, never
+    // wider: it stays whole, magnifier and all, when the sheet is up, and
+    // the menu and the controls are what goes under the sheet. Narrower
+    // only where the docked row would not have room for the menu beside it.
+    final searchWidth = math.min(
+      width - besideRest - far,
+      width - near - far - _profileWidth - _rowGap,
+    );
+    final field = SizedBox(width: math.max(0, searchWidth), child: search);
+    return Padding(
+      padding: EdgeInsets.only(
+        top: media.padding.top + sidewaysTopRowTop,
+        left: left ? near : far,
+        right: left ? far : near,
+      ),
+      child: Column(
+        key: _chromeKey,
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Held at the far edge; the menu runs on under the resting sheet.
+          OverflowBox(
+            fit: OverflowBoxFit.deferToChild,
+            minWidth: 0,
+            maxWidth: double.infinity,
+            alignment: left ? Alignment.centerRight : Alignment.centerLeft,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: left
+                  ? [profile, const SizedBox(width: _rowGap), field]
+                  : [field, const SizedBox(width: _rowGap), profile],
+            ),
+          ),
+          Padding(
+            padding: left
+                ? EdgeInsets.only(left: math.max(0, besideRest - near))
+                : EdgeInsets.only(right: math.max(0, besideRest - near)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: below,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   final DraggableScrollableController _sheet = DraggableScrollableController();
@@ -739,6 +829,62 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       onDownloadArea: _openOfflineData,
     );
 
+    // What the chrome shows under its first rows, now and then.
+    final below = <Widget>[
+      // Shown with the faint line of the file's route,
+      // and gone with it.
+      if (state.differsFromOriginal)
+        Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: OriginalRouteChip(
+              onRestore: ref
+                  .read(plannerControllerProvider.notifier)
+                  .restoreOriginal,
+            ),
+          ),
+        ),
+      if (_placeToStartFrom != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 10),
+          // One row, the two actions sharing the width. The X
+          // in the search field is what forgets the place.
+          child: Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () => unawaited(_rideFromPosition()),
+                  icon: const Icon(Icons.near_me_rounded),
+                  label: Text(
+                    l10n.plannerRideFromPosition,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton.tonalIcon(
+                  onPressed: _setSearchedPlaceAsStart,
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  label: Text(
+                    l10n.plannerSetAsStart,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      if (!hasBackend)
+        const Padding(
+          padding: EdgeInsets.only(top: 8),
+          child: _NoRoutingServerBanner(),
+        ),
+    ];
+
     // Not a Scaffold: a Scaffold's material absorbs every touch, and a tap
     // that lands on nothing of this screen has to fall through to the
     // shell's map. A transparent material is what the buttons need and
@@ -751,122 +897,40 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
           children: [
             TabChromeSlide(
               active: active,
-              child: SafeArea(
-                bottom: false,
-                // Sideways the chrome stands over the map beside the side
-                // panel, moving with it as it folds.
-                child: BesideSheet(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                    child: Column(
-                      key: _chromeKey,
-                      // Only as tall as its rows, so its height is the chrome's.
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (!sideways) ...[
-                          search,
-                          const SizedBox(height: 10),
-                          ProfileChipRow(
-                            glass: true,
-                            selected: state.options.profile,
-                            onSelected: setProfile,
-                          ),
-                        ] else
-                          // The chips' row is more than the map can spare on
-                          // a phone turned sideways: the profile is a menu,
-                          // in one row with the search where the map is wide
-                          // enough for both, under it where it is not.
-                          LayoutBuilder(
-                            builder: (context, constraints) {
-                              if (constraints.maxWidth >= _searchRowMinWidth) {
-                                return Row(
-                                  children: [
-                                    Expanded(child: search),
-                                    const SizedBox(width: 8),
-                                    ProfileDropdown(
-                                      selected: state.options.profile,
-                                      onSelected: setProfile,
-                                    ),
-                                  ],
-                                );
-                              }
-                              final dropdown = ProfileDropdown(
-                                selected: state.options.profile,
-                                onSelected: setProfile,
-                                dense: true,
-                              );
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  search,
-                                  const SizedBox(height: 8),
-                                  Align(
-                                    alignment: AlignmentDirectional.centerEnd,
-                                    child: dropdown,
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-                        // Shown with the faint line of the file's route,
-                        // and gone with it.
-                        if (state.differsFromOriginal)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 10),
-                            child: Align(
-                              alignment: AlignmentDirectional.centerStart,
-                              child: OriginalRouteChip(
-                                onRestore: ref
-                                    .read(plannerControllerProvider.notifier)
-                                    .restoreOriginal,
-                              ),
+              child: sideways
+                  ? _sidewaysChrome(
+                      context,
+                      search: search,
+                      profile: ProfileDropdown(
+                        key: _profileKey,
+                        selected: state.options.profile,
+                        onSelected: setProfile,
+                      ),
+                      below: below,
+                    )
+                  : SafeArea(
+                      bottom: false,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                        child: Column(
+                          key: _chromeKey,
+                          // Only as tall as its rows, so its height is the
+                          // chrome's.
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            search,
+                            const SizedBox(height: 10),
+                            ProfileChipRow(
+                              glass: true,
+                              selected: state.options.profile,
+                              onSelected: setProfile,
                             ),
-                          ),
-                        if (_placeToStartFrom != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 10),
-                            // One row, the two actions sharing the width. The X
-                            // in the search field is what forgets the place.
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: FilledButton.icon(
-                                    onPressed: () =>
-                                        unawaited(_rideFromPosition()),
-                                    icon: const Icon(Icons.near_me_rounded),
-                                    label: Text(
-                                      l10n.plannerRideFromPosition,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: FilledButton.tonalIcon(
-                                    onPressed: _setSearchedPlaceAsStart,
-                                    icon: const Icon(Icons.play_arrow_rounded),
-                                    label: Text(
-                                      l10n.plannerSetAsStart,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        if (!hasBackend)
-                          const Padding(
-                            padding: EdgeInsets.only(top: 8),
-                            child: _NoRoutingServerBanner(),
-                          ),
-                      ],
+                            ...below,
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ),
             ),
             AdaptiveDockingSheet(
               controller: _sheet,

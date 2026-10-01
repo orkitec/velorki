@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -311,6 +312,30 @@ class HomeShell extends ConsumerWidget {
             ),
           ],
         );
+    Widget controls(ShellLayout layout) => MapChromeInsets(
+      showRoutingTiles: chrome?.showRoutingTiles ?? true,
+      following: chrome?.following ?? false,
+      headingUp: chrome?.headingUp ?? false,
+      bearingDeg: chrome?.bearingDeg ?? 0,
+      onLocate: chrome?.onLocate,
+      onCompass: chrome?.onCompass,
+      routeShown: chrome?.routeShown ?? false,
+      onToggleRoute: chrome?.onToggleRoute,
+      // Read at the tap: the sheet moves without a rebuild of the column.
+      // Read after the fix is awaited, so the shell may be gone by then.
+      visiblePadding: () => context.mounted
+          ? visibleMapPadding(
+              context,
+              chromeTop: columnGlide.target,
+              sheetExtent: ref.read(tabHandoverProvider).sheetExtent,
+              layout: layout,
+            )
+          : EdgeInsets.zero,
+      child: MapControls(
+        controller: ref.watch(sharedMapControllerProvider),
+        axis: layout.sideRail ? Axis.horizontal : Axis.vertical,
+      ),
+    );
     return ShellLayoutHost(
       builder: (context, layout) => Scaffold(
         // The bar floats over the content; screens read the bottom padding
@@ -339,69 +364,31 @@ class HomeShell extends ConsumerWidget {
             ),
             if (showColumn)
               Positioned.fill(
-                child: SafeArea(
-                  child: AnimatedBuilder(
-                    animation: columnGlide.animation,
-                    builder: (context, child) {
-                      if (!layout.sideRail) {
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            top: columnGlide.animation.value,
-                            right: 12,
+                child: layout.sideRail
+                    ? _sidewaysControlsRow(
+                        context,
+                        layout,
+                        onWidth: ref
+                            .read(mapControlsRowWidthProvider.notifier)
+                            .set,
+                        child: controls(layout),
+                      )
+                    : SafeArea(
+                        child: AnimatedBuilder(
+                          animation: columnGlide.animation,
+                          builder: (context, child) => Padding(
+                            padding: EdgeInsets.only(
+                              top: columnGlide.animation.value,
+                              right: 12,
+                            ),
+                            child: Align(
+                              alignment: Alignment.topRight,
+                              child: child,
+                            ),
                           ),
-                          child: Align(
-                            alignment: Alignment.topRight,
-                            child: child,
-                          ),
-                        );
-                      }
-                      // Sideways a row along the bottom of the map, at the
-                      // far end from the rail and the sheet, over the map's
-                      // credit: clear of the search and the profile menu.
-                      return Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          12,
-                          0,
-                          12,
-                          mapControlsRowBottom,
+                          child: controls(layout),
                         ),
-                        child: Align(
-                          alignment: layout.side == RailSide.left
-                              ? Alignment.bottomRight
-                              : Alignment.bottomLeft,
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: MapChromeInsets(
-                      showRoutingTiles: chrome?.showRoutingTiles ?? true,
-                      following: chrome?.following ?? false,
-                      headingUp: chrome?.headingUp ?? false,
-                      bearingDeg: chrome?.bearingDeg ?? 0,
-                      onLocate: chrome?.onLocate,
-                      onCompass: chrome?.onCompass,
-                      routeShown: chrome?.routeShown ?? false,
-                      onToggleRoute: chrome?.onToggleRoute,
-                      // Read at the tap: the sheet moves without a rebuild
-                      // of the column.
-                      // Read after the fix is awaited, so the shell may be
-                      // gone by then.
-                      visiblePadding: () => context.mounted
-                          ? visibleMapPadding(
-                              context,
-                              chromeTop: columnGlide.target,
-                              sheetExtent: ref
-                                  .read(tabHandoverProvider)
-                                  .sheetExtent,
-                            )
-                          : EdgeInsets.zero,
-                      child: MapControls(
-                        controller: ref.watch(sharedMapControllerProvider),
-                        axis: layout.sideRail ? Axis.horizontal : Axis.vertical,
                       ),
-                    ),
-                  ),
-                ),
               ),
             // Over the column: a sheet or card pulled up covers it, and a
             // touch beside a tab's chrome falls through to it and to the map,
@@ -425,6 +412,77 @@ class HomeShell extends ConsumerWidget {
             : navigation(null),
       ),
     );
+  }
+}
+
+/// The map's controls on a phone turned sideways: a row at the top of the
+/// map, beside the docked sheet (or the figures bar that takes the rail's
+/// place during a ride), centred on the Plan tab's search, which runs on
+/// from it to the far edge. At rest the sheet lies over the row, which the
+/// rider pulls the sheet in to reach. [onWidth] hears the row's width after
+/// each layout that changes it, for the search to leave it that room.
+Widget _sidewaysControlsRow(
+  BuildContext context,
+  ShellLayout layout, {
+  required ValueChanged<double> onWidth,
+  required Widget child,
+}) {
+  final media = MediaQuery.of(context);
+  final start = sidewaysTopRowStart(media, layout);
+  final left = layout.side == RailSide.left;
+  return Padding(
+    padding: EdgeInsets.only(
+      top: media.viewPadding.top + sidewaysTopRowTop,
+      left: left ? start : 0,
+      right: left ? 0 : start,
+    ),
+    child: Align(
+      alignment: left ? Alignment.topLeft : Alignment.topRight,
+      child: SizedBox(
+        height: sidewaysTopRowHeight,
+        child: Center(
+          widthFactor: 1,
+          child: _WidthReporter(onWidth: onWidth, child: child),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Tells [onWidth] the width [child] was laid out at, after the frame,
+/// whenever it changed.
+class _WidthReporter extends SingleChildRenderObjectWidget {
+  const _WidthReporter({required this.onWidth, required super.child});
+
+  final ValueChanged<double> onWidth;
+
+  @override
+  _RenderWidthReporter createRenderObject(BuildContext context) =>
+      _RenderWidthReporter(onWidth);
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    _RenderWidthReporter renderObject,
+  ) => renderObject.onWidth = onWidth;
+}
+
+class _RenderWidthReporter extends RenderProxyBox {
+  _RenderWidthReporter(this.onWidth);
+
+  ValueChanged<double> onWidth;
+  double? _reported;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    final width = size.width;
+    if (width == _reported) return;
+    _reported = width;
+    // After the frame: a layout may not change what a build depends on.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (attached && _reported == width) onWidth(width);
+    });
   }
 }
 

@@ -1,12 +1,15 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../../app/shell_layout.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/presentation/route_format.dart' as format;
 import '../../settings/data/units.dart';
+import '../../shared/presentation/adaptive_docking_sheet.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../application/place_search_controller.dart';
 import '../data/gazetteer_store.dart';
@@ -195,14 +198,25 @@ class _SearchFieldState extends ConsumerState<SearchField> {
           l10n.searchHint,
           constraints.maxWidth - _hintChrome,
         );
+        // Sideways the field may be narrower than the list needs: the list
+        // is as wide as on a phone held upright, from the field's far-side
+        // edge towards the sheet, over which it may lie.
+        final layout = ShellLayout.of(context);
+        final fromRight = layout.sideRail && layout.side == RailSide.left;
         return OverlayPortal(
           controller: _results,
           overlayChildBuilder: (context) => Positioned(
-            width: _fieldWidth,
+            width: layout.sideRail
+                ? math.max(_fieldWidth, sidewaysSheetContentWidth)
+                : _fieldWidth,
             child: CompositedTransformFollower(
               link: _link,
-              targetAnchor: Alignment.bottomLeft,
-              followerAnchor: Alignment.topLeft,
+              targetAnchor: fromRight
+                  ? Alignment.bottomRight
+                  : Alignment.bottomLeft,
+              followerAnchor: fromRight
+                  ? Alignment.topRight
+                  : Alignment.topLeft,
               showWhenUnlinked: false,
               child: Material(
                 type: MaterialType.transparency,

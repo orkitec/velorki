@@ -324,8 +324,7 @@ void main() {
           ],
         );
         await turnSideways(tester);
-        // On the map beside the sheet, below the chrome and above the
-        // controls' row along the bottom.
+        // On the map beside the sheet, below the row at the top.
         final rail = _railGlass(tester);
         final railLeft = rail.center.dx < 874 / 2;
         final spot = Offset(railLeft ? 874 - 120 : 120, 402 / 2 + 30);

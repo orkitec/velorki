@@ -1,8 +1,9 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 
 import '../../../app/shell_layout.dart';
 import '../../shared/presentation/adaptive_docking_sheet.dart';
-
 import '../../shared/presentation/docking_sheet.dart';
 import '../domain/visible_map.dart';
 import 'map_controls.dart';
@@ -22,7 +23,7 @@ double mapControlsWidth(BuildContext context) =>
 ///
 /// On a phone turned sideways ([layout], the one handed down by default)
 /// the side panel takes the sheet's place: the visible map is what the rail,
-/// the panel as far as it is open and the column beside it leave.
+/// the panel as far as it is open and the row at the top leave.
 EdgeInsets visibleMapPadding(
   BuildContext context, {
   required double chromeTop,
@@ -41,12 +42,12 @@ EdgeInsets visibleMapPadding(
         : sidewaysSheetCover(screen, shell, docked: false);
     return sidewaysVisibleMapInsets(
       topInset: screen.viewPadding.top,
-      chromeTop: chromeTop,
-      // The controls' row along the bottom.
-      bottomInset:
-          screen.viewPadding.bottom +
-          mapControlsRowBottom +
-          mapControlButtonSize,
+      // At least the row at the top: the search, the profile menu and the
+      // controls, which stand beside the sheet when it is docked.
+      chromeTop: math.max(chromeTop, sidewaysTopRowTop + sidewaysTopRowHeight),
+      // Nothing but the map's credit along the bottom, which the margin
+      // keeps clear of.
+      bottomInset: screen.viewPadding.bottom,
       cover: shell.side == RailSide.left
           ? EdgeInsets.only(left: cover)
           : EdgeInsets.only(right: cover),

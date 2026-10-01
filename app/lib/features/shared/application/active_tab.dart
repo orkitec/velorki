@@ -58,6 +58,24 @@ class _FreeTicker implements TickerProvider {
   Ticker createTicker(TickerCallback onTick) => Ticker(onTick);
 }
 
+/// How wide the shell's row of map controls is on a phone turned sideways,
+/// as last laid out, in dp; 0 before it has been, and upright.
+///
+/// Measured rather than reckoned: the row grows and shrinks, animated, with
+/// the buttons a tab wants, and the Plan tab's search and profile menu in
+/// the same row leave it exactly the room it takes.
+@Riverpod(keepAlive: true)
+class MapControlsRowWidth extends _$MapControlsRowWidth {
+  @override
+  double build() => 0;
+
+  /// Records the row's width.
+  void set(double width) {
+    if (!ref.mounted || (state - width).abs() < 0.5) return;
+    state = width;
+  }
+}
+
 /// What the tab on screen has done with the sheet the Plan and Record tabs
 /// share over their maps, so the next tab can pick it up where it is and
 /// animate to its own arrangement rather than swap in with a jump.

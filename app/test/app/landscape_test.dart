@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/router.dart';
@@ -49,6 +52,24 @@ Future<void> _screen(WidgetTester tester, Size size) async {
   );
   tester.view.padding = tester.view.viewPadding;
   await tester.pumpAndSettle();
+}
+
+/// The camera island's safe area at each side of a [size] screen, as
+/// [_screen] sets it.
+EdgeInsets _island(Size size) {
+  final inset = size.height > 380 ? 62.0 : 0.0;
+  return EdgeInsets.only(left: inset, right: inset);
+}
+
+/// Tells the app the phone's bottom edge went to [side].
+void _railOn(WidgetTester tester, RailSide side) {
+  const channel = MethodChannel(ScreenSideChannel.channelName);
+  final messenger = tester.binding.defaultBinaryMessenger;
+  messenger.setMockMethodCallHandler(
+    channel,
+    (call) async => call.method == 'side' ? side.name : null,
+  );
+  addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
 }
 
 RecordingSnapshot _snapshot() => RecordingSnapshot(
@@ -170,24 +191,81 @@ void main() {
 
         expect(find.byType(ProfileChipRow), findsNothing);
         expect(find.byType(ProfileDropdown), findsOneWidget);
+        // At rest the search stands beside the sheet, the one thing of the
+        // row at the top in reach: no narrower than the strip the sheet
+        // leaves, less the air at its ends.
+        final island = left ? _island(size).right : _island(size).left;
+        final strip = left
+            ? size.width - island - sheet.right
+            : sheet.left - island;
         final search = _rect(tester, find.byType(SearchField));
-        final dropdown = _rect(tester, find.byType(ProfileDropdown));
-        final controls = _rect(tester, find.byType(MapControls));
-        // The controls run along the bottom, a row.
-        expect(controls.width, greaterThan(controls.height));
-        expect(controls.bottom, greaterThan(size.height * 0.6));
-        for (final (a, b) in [
-          (sheet, search),
-          (sheet, dropdown),
-          (sheet, controls),
-          (search, controls),
-          (dropdown, controls),
-          (search, dropdown),
-        ]) {
-          expect(a.overlaps(b), isFalse, reason: '$a over $b');
-        }
+        final visible = left
+            ? search.right - math.max(search.left, sheet.right)
+            : math.min(search.right, sheet.left) - search.left;
+        expect(visible, greaterThanOrEqualTo(strip - 2 * 12 - 1));
+        expect(search.top, lessThan(size.height * 0.3));
         await unmountApp(tester);
       });
+
+      for (final side in RailSide.values) {
+        testWidgets('Plan docked, rail on the ${side.name}: search, profile '
+            'menu and controls in one row at the top, the search at the far '
+            'end', (tester) async {
+          _railOn(tester, side);
+          await _screen(tester, size);
+          await pumpRecordingApp(
+            tester,
+            initialLocation: plannerRoute,
+            surfaceSize: size,
+            expectTextFits: false,
+          );
+          await tester.pumpAndSettle();
+          final left = side == RailSide.left;
+          expect(_railOnLeft(tester, size), left);
+
+          await _dockSheet(tester, size, left: left);
+          final sheet = _sheet(tester);
+          final rail = _rail(tester);
+          final search = _rect(tester, find.byType(SearchField));
+          final dropdown = _rect(tester, find.byType(ProfileDropdown));
+          final controls = _rect(tester, find.byType(MapControls));
+          expect(controls.width, greaterThan(controls.height));
+          // One row: the three centred on one line, at the top.
+          for (final r in [dropdown, controls]) {
+            expect(r.center.dy, closeTo(search.center.dy, 3));
+          }
+          expect(search.top, lessThan(size.height * 0.3));
+          // In the mirrored order, from the far edge to the rail.
+          final inOrder = left
+              ? [controls, dropdown, search]
+              : [search, dropdown, controls];
+          for (var i = 0; i + 1 < inOrder.length; i++) {
+            expect(
+              inOrder[i].right,
+              lessThanOrEqualTo(inOrder[i + 1].left),
+              reason: '${inOrder[i]} before ${inOrder[i + 1]}',
+            );
+          }
+          // Inside the far edge's safe area.
+          final island = _island(size);
+          expect(search.left, greaterThanOrEqualTo(island.left));
+          expect(search.right, lessThanOrEqualTo(size.width - island.right));
+          for (final (a, b) in [
+            (sheet, search),
+            (sheet, dropdown),
+            (sheet, controls),
+            (rail, search),
+            (rail, dropdown),
+            (rail, controls),
+            (search, controls),
+            (dropdown, controls),
+            (search, dropdown),
+          ]) {
+            expect(a.overlaps(b), isFalse, reason: '$a over $b');
+          }
+          await unmountApp(tester);
+        });
+      }
 
       testWidgets('Record: a ride hides the rail, and the sheet docked shows '
           'the ride\'s figures in the rail\'s place', (tester) async {
@@ -224,6 +302,18 @@ void main() {
         // Turned with the rail: tall, on the rail's side.
         expect(figures.height, greaterThan(figures.width));
         expect(figures.center.dx < size.width / 2, left);
+        // The map's controls stand at the top beside the docked sheet, as
+        // beside the rail before the ride.
+        final controls = _rect(tester, find.byType(MapControls));
+        final sheet = _sheet(tester);
+        expect(controls.width, greaterThan(controls.height));
+        expect(controls.top, lessThan(size.height * 0.3));
+        expect(controls.overlaps(figures), isFalse);
+        expect(controls.overlaps(sheet), isFalse);
+        expect(
+          left ? controls.left - sheet.right : sheet.left - controls.right,
+          closeTo(12, 1),
+        );
         await unmountApp(tester);
       });
 
@@ -257,6 +347,8 @@ void main() {
     final container = ProviderScope.containerOf(
       tester.element(find.byType(ProfileDropdown)),
     );
+    // At rest the menu lies under the sheet; docked it is in reach.
+    await _dockSheet(tester, _sideways, left: _railOnLeft(tester, _sideways));
     await tester.tap(find.byType(ProfileDropdown));
     await tester.pumpAndSettle();
     await tester.tap(find.text(profileLabel(l10n, RouteProfile.fastbike)).last);
