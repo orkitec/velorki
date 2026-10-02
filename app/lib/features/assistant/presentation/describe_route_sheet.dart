@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/domain/saved_route.dart';
+import '../../shared/presentation/ai_mark.dart';
 import '../../subscription/application/plus_access.dart';
 import '../application/route_description_controller.dart';
 import '../data/ai_consent_controller.dart';
@@ -120,7 +121,10 @@ class _DescribeRouteSheetState extends ConsumerState<DescribeRouteSheet> {
               // set in the reading size rather than as a caption.
               Flexible(
                 child: SingleChildScrollView(
-                  child: Text(state.text, style: theme.textTheme.bodyLarge),
+                  // Marked as the AI's, as the assistant's answers are.
+                  child: AiAnswer(
+                    child: Text(state.text, style: theme.textTheme.bodyLarge),
+                  ),
                 ),
               ),
             ],
@@ -191,7 +195,8 @@ class DescribeRouteButton extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     return OutlinedButton.icon(
       onPressed: () => unawaited(_open(context, ref)),
-      icon: const Icon(Icons.auto_awesome),
+      // The AI's sparkle, in the AI's colours: the button asks the AI.
+      icon: const AiSparkle(),
       label: Text(l10n.describeAction),
     );
   }

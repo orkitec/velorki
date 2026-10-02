@@ -180,7 +180,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   double _restingSheetSize = 0.48;
 
   /// How far the sheet opens.
-  static const double _maxSheetSize = 0.9;
+  static const double _maxSheetSize = sheetMaxExtent;
 
   SheetStops get _sheetStops => SheetStops(
     collapsed: _collapsedSheetSize,
@@ -1300,6 +1300,7 @@ class _PlannerActions extends ConsumerWidget {
         LabeledIconButton(
           icon: Icons.auto_awesome_rounded,
           label: l10n.assistantAction,
+          ai: true,
           onPressed: () => unawaited(onAsk()),
         ),
     ];

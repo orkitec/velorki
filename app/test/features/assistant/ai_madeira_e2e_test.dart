@@ -28,6 +28,7 @@ import 'package:velorki/features/planner/domain/routing_options.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/planner/presentation/route_format.dart';
+import 'package:velorki/features/shared/presentation/ai_mark.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki/features/smart_loop/application/smart_loop_controller.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
@@ -423,6 +424,14 @@ void main() {
     await _ask(tester, c);
     final answer = c.read(routeAdviceControllerProvider).advice!.answer;
     expect(inSheet(find.text(answer)), findsOne);
+    // Marked as the AI's.
+    expect(
+      find.ancestor(
+        of: inSheet(find.text(answer)),
+        matching: find.byType(AiAnswer),
+      ),
+      findsOne,
+    );
 
     await tester.tapAt(const Offset(500, 40));
     await tester.pumpAndSettle();

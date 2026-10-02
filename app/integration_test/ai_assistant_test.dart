@@ -39,6 +39,7 @@ import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/planner/presentation/route_format.dart';
 import 'package:velorki/features/search/data/gazetteer_store.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
+import 'package:velorki/features/shared/presentation/ai_mark.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki/features/smart_loop/application/smart_loop_controller.dart';
 import 'package:velorki/features/subscription/application/plus_access.dart';
@@ -281,6 +282,15 @@ void main() {
       describe: 'the answer',
       onTimeout: () => '${c.read(routeAdviceControllerProvider).problem}',
     );
+    // The answer is marked as the AI's and scrolled into the card's view.
+    await pumpFor(tester, const Duration(milliseconds: 600));
+    final answer = _inSheet(
+      find.text(c.read(routeAdviceControllerProvider).advice!.answer),
+    );
+    final mark = find.ancestor(of: answer, matching: find.byType(AiAnswer));
+    expect(mark, findsOneWidget);
+    final sheet = tester.getRect(find.byKey(assistantSheetSurfaceKey));
+    expect(sheet.contains(tester.getRect(mark).topLeft), isTrue);
     final sent = relay.requests.single;
     expect(sent.step, 'route');
     expect(sent.body.containsKey('context'), isFalse);
@@ -539,6 +549,13 @@ void main() {
       findsOneWidget,
     );
     await waitForWidget(tester, find.text(parts.join()));
+    expect(
+      find.ancestor(
+        of: find.text(parts.join()),
+        matching: find.byType(AiAnswer),
+      ),
+      findsOneWidget,
+    );
     await waitForWidget(
       tester,
       find.widgetWithText(FilledButton, l10n.describeSave),

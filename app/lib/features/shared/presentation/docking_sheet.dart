@@ -42,6 +42,11 @@ const double sheetDockedOverlapDp = 1;
 double sheetRestingExtent(double screenHeight) =>
     screenHeight <= 0 ? 0.48 : (0.42 + 56 / screenHeight).clamp(0.42, 0.6);
 
+/// How far the Plan tab's sheet opens, as a share of the screen's length
+/// (its height upright, its width sideways): the stop above its resting
+/// height, which the assistant's card shares.
+const double sheetMaxExtent = 0.9;
+
 /// The scroll controller a sheet's content list uses, handed down by the
 /// [DockingSheetShell] so the shell's scrollbar follows the list. A list
 /// built outside a shell finds none and scrolls by itself.

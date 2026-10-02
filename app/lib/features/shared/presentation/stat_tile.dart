@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme.dart';
+import 'ai_mark.dart';
 
 /// How big the figure of a [StatTile] is.
 enum StatSize {
@@ -180,6 +181,7 @@ class LabeledIconButton extends StatelessWidget {
     super.key,
     this.filled = false,
     this.busy = false,
+    this.ai = false,
   });
 
   /// The icon.
@@ -196,6 +198,10 @@ class LabeledIconButton extends StatelessWidget {
 
   /// Shows a spinner instead of the icon.
   final bool busy;
+
+  /// Asks the AI: enabled, [icon] is painted in the AI's gradient
+  /// ([VelorkiColors.aiGradient]); disabled, it fades as any other.
+  final bool ai;
 
   @override
   Widget build(BuildContext context) {
@@ -234,6 +240,8 @@ class LabeledIconButton extends StatelessWidget {
                           color: foreground,
                         ),
                       )
+                    : ai && enabled && !filled
+                    ? AiSparkle(icon: icon, size: 22)
                     : Icon(icon, size: 22, color: foreground),
               ),
             ),

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/router.dart';
 import 'package:velorki/app/shell_layout.dart';
+import 'package:velorki/app/theme.dart';
 import 'package:velorki/core/db/tables/routes.dart' show RouteSource;
 import 'package:velorki/core/plus/plus_gate.dart';
 import 'package:velorki/features/assistant/application/route_digest_service.dart';
@@ -19,6 +20,7 @@ import 'package:velorki/features/planner/domain/routing_options.dart';
 import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
+import 'package:velorki/features/shared/presentation/ai_mark.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki_api/velorki_api.dart';
@@ -220,14 +222,16 @@ void main() {
     );
     expect(button.bottom, lessThanOrEqualTo(_upright.height - 21));
 
-    // Pulled up by its handle, it reaches the safe area at the top.
+    // Pulled up by its handle, it opens as far as the planner's card does.
     await tester.drag(
       find.descendant(of: _surface, matching: find.byType(SheetHandle)),
       const Offset(0, -600),
     );
     await tester.pumpAndSettle();
-    expect(tester.getRect(_surface).top, lessThan(62 + 20));
-    expect(tester.getRect(_surface).top, greaterThanOrEqualTo(62));
+    expect(
+      tester.getRect(_surface).top,
+      closeTo(_upright.height * (1 - sheetMaxExtent), 0.5),
+    );
     await tester.scrollUntilVisible(
       _inSheet(find.text(l10n.assistantFixAddStop)),
       100,
@@ -310,17 +314,21 @@ void main() {
     expect(contentOffset(tester), greaterThan(before + 100));
 
     // Down again, past the top: the list stops, the sheet stays.
-    await tester.drag(content(), const Offset(0, 400));
+    await tester.drag(content(), const Offset(0, 800));
     await tester.pumpAndSettle();
     expect(tester.getRect(_surface), rest);
     expect(contentOffset(tester), 0);
 
+    // Pulled past halfway to the top, it snaps all the way open.
     await tester.drag(
       find.descendant(of: _surface, matching: find.byType(SheetHandle)),
       const Offset(0, -200),
     );
     await tester.pumpAndSettle();
-    expect(tester.getRect(_surface).top, closeTo(rest.top - 200, 2));
+    expect(
+      tester.getRect(_surface).top,
+      closeTo(_upright.height * (1 - sheetMaxExtent), 0.5),
+    );
     // The Start over and Ask row stays at the bottom, in reach.
     final button = tester.getRect(
       _inSheet(find.widgetWithText(FilledButton, l10n.assistantSend)),
@@ -485,4 +493,223 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.getRect(_surface).top, closeTo(rest.top, 1));
   });
+
+  /// How far the sheet reaches out from its end of the screen, along its
+  /// travel: up from the bottom upright, out from the rail's side sideways.
+  double travel(WidgetTester tester, Size size, RailSide? side) {
+    final sheet = tester.getRect(_surface);
+    return switch (side) {
+      null => size.height - sheet.top,
+      RailSide.right => size.width - sheet.left,
+      RailSide.left => sheet.right,
+    };
+  }
+
+  for (final side in <RailSide?>[null, RailSide.right, RailSide.left]) {
+    final size = side == null ? _upright : _sideways;
+    final name = side == null ? 'upright' : 'sideways, rail ${side.name}';
+    testWidgets('$name: let go anywhere, the card settles exactly at the '
+        'planner card\'s resting or full height, and only a swipe away '
+        'closes it', (tester) async {
+      if (side != null) _railOn(tester, side);
+      await _app(tester, size);
+      // The planner's own card, resting.
+      final card = tester.getRect(find.byType(DockingSheetShell));
+      final planRest = switch (side) {
+        null => size.height - card.top,
+        RailSide.right => size.width - card.left,
+        RailSide.left => card.right,
+      };
+      await _open(tester);
+      await _ask(tester, l10n.assistantRouteExampleCoffee);
+      final length = side == null ? size.height : size.width;
+      final full = length * sheetMaxExtent;
+      final rest = travel(tester, size, side);
+      expect(rest, closeTo(planRest, 0.5));
+      // Out, along the sheet's travel.
+      final out = switch (side) {
+        null => const Offset(0, -1),
+        RailSide.right => const Offset(-1, 0),
+        RailSide.left => const Offset(1, 0),
+      };
+      final handle = find.descendant(
+        of: _surface,
+        matching: find.byType(SheetHandle),
+      );
+
+      Future<void> expectAtStop(String what, {double? at}) async {
+        await tester.pumpAndSettle();
+        expect(find.byType(AssistantSheet), findsOneWidget, reason: what);
+        final now = travel(tester, size, side);
+        if (at != null) {
+          expect(now, closeTo(at, 0.5), reason: what);
+        } else {
+          expect(
+            (now - rest).abs() < 0.5 || (now - full).abs() < 0.5,
+            isTrue,
+            reason: '$what: $now is neither rest $rest nor full $full',
+          );
+        }
+      }
+
+      // Slowly a little way out, a long way out, quickly some way, and
+      // back in from wherever it settled.
+      await tester.timedDrag(handle, out * 40, const Duration(seconds: 1));
+      await expectAtStop('a little out', at: rest);
+      await tester.timedDrag(handle, out * 37, const Duration(seconds: 2));
+      await expectAtStop('a little out, slowly');
+      await tester.drag(handle, out * 230);
+      await expectAtStop('far out', at: full);
+      await tester.timedDrag(handle, -out * 90, const Duration(seconds: 1));
+      await expectAtStop('a little in from the top');
+      await tester.drag(handle, out * 400);
+      await expectAtStop('all the way out', at: full);
+      // Flung in from the top, it stops at rest rather than going away.
+      await tester.fling(handle, -out * 200, 1500);
+      await expectAtStop('flung in from the top', at: rest);
+      // A little in from rest, and let go: back to rest.
+      await tester.timedDrag(handle, -out * 50, const Duration(seconds: 1));
+      await expectAtStop('a little in from rest', at: rest);
+
+      await _dismiss(tester, towards: -out);
+    });
+  }
+
+  for (final side in <RailSide?>[null, RailSide.right]) {
+    final size = side == null ? _upright : _sideways;
+    final name = side == null ? 'upright' : 'sideways';
+    testWidgets('$name: the answer arrives marked with the AI\'s sparkle, is '
+        'scrolled to the top of what the card shows, and the scrollbar shows '
+        'there is more', (tester) async {
+      if (side != null) _railOn(tester, side);
+      await _app(tester, size);
+      await _open(tester);
+      // Before the answer the scrollbar is there but not shown.
+      final scrollbar = _inSheet(find.byType(Scrollbar));
+      expect(scrollbar, findsOneWidget);
+
+      await tester.enterText(
+        _inSheet(find.byType(TextField)),
+        l10n.assistantRouteExampleCoffee,
+      );
+      await tester.tap(
+        _inSheet(find.widgetWithText(FilledButton, l10n.assistantSend)),
+      );
+      await tester.pump();
+      await tester.pump();
+      // Scrolled, not jumped.
+      final first = contentOffset(tester);
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(contentOffset(tester), greaterThan(first));
+      await tester.pumpAndSettle();
+
+      final answer = _inSheet(find.text(_advice.answer));
+      final mark = find.ancestor(of: answer, matching: find.byType(AiAnswer));
+      expect(mark, findsOneWidget);
+      expect(
+        find.descendant(of: mark, matching: find.byType(AiSparkle)),
+        findsOneWidget,
+      );
+      final viewport = tester.getRect(content());
+      expect(tester.getRect(mark).top, closeTo(viewport.top + 12, 1));
+      // The sparkle sits beside the answer's first line, before it.
+      final sparkle = tester.getRect(
+        find.descendant(of: mark, matching: find.byType(AiSparkle)),
+      );
+      expect(sparkle.right, lessThan(tester.getRect(answer).left));
+
+      // More below: the scrollbar shows for a moment, then fades.
+      final position = tester.state<ScrollableState>(content()).position;
+      expect(position.maxScrollExtent, greaterThan(position.pixels));
+      expect(tester.widget<Scrollbar>(scrollbar).thumbVisibility, isTrue);
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+      expect(tester.widget<Scrollbar>(scrollbar).thumbVisibility, isNot(true));
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('an error that arrives is scrolled into view too', (
+    tester,
+  ) async {
+    final relay = await _app(tester, _upright);
+    relay.planFailure = const RelayException(
+      RelayError(
+        code: RelayErrorCode.rateLimited,
+        message: 'too many requests',
+        retryAfterS: 90,
+      ),
+      statusCode: 429,
+    );
+    await _open(tester);
+    await tester.enterText(
+      _inSheet(find.byType(TextField)),
+      l10n.assistantRouteExampleCoffee,
+    );
+    await tester.tap(
+      _inSheet(find.widgetWithText(FilledButton, l10n.assistantSend)),
+    );
+    await tester.pumpAndSettle();
+    final problem = _inSheet(
+      find.textContaining(l10n.assistantRateLimited(90)),
+    );
+    expect(problem, findsOneWidget);
+    final viewport = tester.getRect(
+      find
+          .ancestor(
+            of: _inSheet(find.byType(TextField)),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    final row = tester.getRect(problem);
+    expect(row.top, greaterThanOrEqualTo(viewport.top));
+    expect(row.bottom, lessThanOrEqualTo(viewport.bottom));
+  });
+
+  for (final dark in [false, true]) {
+    testWidgets('${dark ? 'dark' : 'light'}: the card\'s top edge is drawn in '
+        'the AI\'s colours, whatever the accent', (tester) async {
+      await _screen(tester, _upright);
+      await pumpRecordingApp(
+        tester,
+        initialLocation: plannerRoute,
+        surfaceSize: _upright,
+        expectTextFits: false,
+        theme: dark
+            ? buildDarkTheme(AccentPreset.berry)
+            : buildLightTheme(AccentPreset.berry),
+        extraOverrides: [
+          relayClientProvider.overrideWithValue(FakeRelayClient()),
+        ],
+      );
+      await tester.pumpAndSettle();
+      // The planner's button that opens it has the AI's sparkle.
+      expect(
+        find.descendant(
+          of: find.widgetWithText(LabeledIconButton, l10n.assistantAction),
+          matching: find.byType(AiSparkle),
+        ),
+        findsOneWidget,
+      );
+      await _open(tester);
+      final edge = tester.widget<CustomPaint>(
+        find.byKey(assistantSheetEdgeKey),
+      );
+      final painter = edge.foregroundPainter! as AiEdgePainter;
+      expect(painter.gradient.colors, [
+        dark ? velorkiAiDark : velorkiAiLight,
+        dark ? velorkiAiEndDark : velorkiAiEndLight,
+      ]);
+      final theme = Theme.of(tester.element(_surface));
+      expect(theme.brightness, dark ? Brightness.dark : Brightness.light);
+      expect(painter.gradient.colors, isNot(contains(theme.velorki.accent)));
+      // The edge lies along the card's top, inside its rounded corners.
+      expect(
+        tester.getRect(find.byKey(assistantSheetEdgeKey)).top,
+        closeTo(tester.getRect(_surface).top, 0.5),
+      );
+    });
+  }
 }

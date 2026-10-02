@@ -96,6 +96,8 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
   /// Creates the extension.
   const VelorkiColors({
     required this.accent,
+    required this.ai,
+    required this.aiEnd,
     required this.routeMain,
     required this.routeMainCasing,
     required this.routeAlternative,
@@ -118,6 +120,19 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
 
   /// The vivid accent, for figures and indicators.
   final Color accent;
+
+  /// What marks the AI's work: its sparkle, its answer, its card. A violet
+  /// none of the [AccentPreset]s comes near, so it reads as the AI whatever
+  /// accent the rider picked; flat where it has to stay legible (a line, a
+  /// hairline), and the start of [aiGradient] elsewhere.
+  final Color ai;
+
+  /// The far end of [aiGradient]: a bluish magenta, clear of the berry
+  /// accent's pink.
+  final Color aiEnd;
+
+  /// The AI's sparkle and its card's edge, from [ai] to [aiEnd].
+  LinearGradient get aiGradient => LinearGradient(colors: <Color>[ai, aiEnd]);
 
   /// The main route line.
   final Color routeMain;
@@ -182,6 +197,8 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
   @override
   VelorkiColors copyWith({
     Color? accent,
+    Color? ai,
+    Color? aiEnd,
     Color? routeMain,
     Color? routeMainCasing,
     Color? routeAlternative,
@@ -202,6 +219,8 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
     Color? chartFill,
   }) => VelorkiColors(
     accent: accent ?? this.accent,
+    ai: ai ?? this.ai,
+    aiEnd: aiEnd ?? this.aiEnd,
     routeMain: routeMain ?? this.routeMain,
     routeMainCasing: routeMainCasing ?? this.routeMainCasing,
     routeAlternative: routeAlternative ?? this.routeAlternative,
@@ -228,6 +247,8 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
     Color mix(Color a, Color b) => Color.lerp(a, b, t)!;
     return VelorkiColors(
       accent: mix(accent, other.accent),
+      ai: mix(ai, other.ai),
+      aiEnd: mix(aiEnd, other.aiEnd),
       routeMain: mix(routeMain, other.routeMain),
       routeMainCasing: mix(routeMainCasing, other.routeMainCasing),
       routeAlternative: mix(routeAlternative, other.routeAlternative),
@@ -408,8 +429,22 @@ ColorScheme _lightScheme(AccentPreset p) => ColorScheme(
 
 const Color _ink = _inkLight;
 
+/// [VelorkiColors.ai] on light surfaces: at least 4.5:1 on every one.
+const Color velorkiAiLight = Color(0xFF6A4CE0);
+
+/// [VelorkiColors.aiEnd] on light surfaces: at least 3:1 on every one.
+const Color velorkiAiEndLight = Color(0xFFB03CD8);
+
+/// [VelorkiColors.ai] on dark surfaces.
+const Color velorkiAiDark = Color(0xFFB6A4FF);
+
+/// [VelorkiColors.aiEnd] on dark surfaces.
+const Color velorkiAiEndDark = Color(0xFFE59BFF);
+
 VelorkiColors _darkColors(AccentPreset p, ColorScheme scheme) => VelorkiColors(
   accent: p.dark,
+  ai: velorkiAiDark,
+  aiEnd: velorkiAiEndDark,
   routeMain: p.route,
   routeMainCasing: _inkDark,
   routeAlternative: const Color(0xFF7C8794),
@@ -436,6 +471,8 @@ VelorkiColors _darkColors(AccentPreset p, ColorScheme scheme) => VelorkiColors(
 
 VelorkiColors _lightColors(AccentPreset p, ColorScheme scheme) => VelorkiColors(
   accent: p.light,
+  ai: velorkiAiLight,
+  aiEnd: velorkiAiEndLight,
   // The deep variant: the bright one washes out on pale roads and parks.
   routeMain: p.routeOnLight,
   routeMainCasing: _inkLight,

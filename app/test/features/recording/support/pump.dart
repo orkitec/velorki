@@ -232,6 +232,7 @@ Future<RecordingHarness> pumpRecordingApp(
   List<Override> extraOverrides = const <Override>[],
   Size surfaceSize = const Size(1000, 2000),
   bool expectTextFits = true,
+  ThemeData? theme,
 }) async {
   final h = harness ?? RecordingHarness();
   await tester.binding.setSurfaceSize(surfaceSize);
@@ -244,6 +245,7 @@ Future<RecordingHarness> pumpRecordingApp(
     ProviderScope(
       overrides: [...h.overrides(await _prefs(preferences)), ...extraOverrides],
       child: testRouterApp(
+        theme: theme,
         routerConfig: createRouter(initialLocation: initialLocation),
       ),
     ),

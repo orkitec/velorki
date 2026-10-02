@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:velorki_api/velorki_api.dart';
@@ -9,6 +11,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/router.dart';
 import '../../../app/shell_layout.dart';
+import '../../../app/theme.dart';
 import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/domain/map_controller.dart';
@@ -19,6 +22,7 @@ import '../../planner/domain/route_profile.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../settings/data/units.dart';
 import '../../shared/presentation/adaptive_docking_sheet.dart';
+import '../../shared/presentation/ai_mark.dart';
 import '../../shared/presentation/docking_sheet.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../subscription/application/plus_access.dart';
@@ -82,6 +86,12 @@ class AssistantSheet extends ConsumerStatefulWidget {
 /// The key of the assistant sheet's surface, for tests that measure it.
 const Key assistantSheetSurfaceKey = ValueKey<String>('assistant-sheet');
 
+/// The key of the paint that draws the AI card's edge, for tests.
+const Key assistantSheetEdgeKey = ValueKey<String>('assistant-sheet-edge');
+
+/// The corner radius of the assistant card, the planner card's at rest.
+const double _cornerRadius = 28;
+
 class _AssistantSheetState extends ConsumerState<AssistantSheet> {
   final TextEditingController _prompt = TextEditingController();
   final TextEditingController _question = TextEditingController();
@@ -97,6 +107,29 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
 
   /// The text field, to bring it into view when a chip fills it.
   final GlobalKey _fieldKey = GlobalKey();
+
+  /// The answer (or what the model asked for) and the error under the
+  /// field, to scroll to when they arrive.
+  final GlobalKey _answerKey = GlobalKey();
+  final GlobalKey _problemKey = GlobalKey();
+
+  /// The drag on the handle under way, fed to the sheet's own position so
+  /// that the sheet snaps on release as the planner's card does.
+  Drag? _drag;
+
+  /// The sheet's stops of the last build, and the list of the one it snaps
+  /// to between them, kept while it holds: a new list makes the sheet snap
+  /// again.
+  SheetStops? _stops;
+  List<double> _snapSizes = const [];
+
+  /// Whether the scrollbar shows by itself for a moment: the content has
+  /// grown past what the card shows, and the rider should see there is more.
+  bool _flashScrollbar = false;
+  Timer? _flashTimer;
+
+  /// How far the content could scroll at the last look.
+  double _contentExtent = 0;
 
   /// The room the sheet had at its last build, to keep its height through
   /// the keyboard coming and going.
@@ -209,6 +242,8 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
     _question
       ..removeListener(_promptChanged)
       ..dispose();
+    _drag?.cancel();
+    _flashTimer?.cancel();
     _sheet.dispose();
     _contentScroll.dispose();
     super.dispose();
@@ -386,19 +421,116 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
     }
   }
 
-  /// The handle's drag: along the sheet's travel, which is the screen's
-  /// width sideways; let go low, it closes.
-  void _dragHandle(DragUpdateDetails details, double room) {
-    if (!_sheet.isAttached || room <= 0) return;
-    _sheet.jumpTo((_sheet.size - details.primaryDelta! / room).clamp(0.0, 1.0));
+  /// The handle's drag, fed to the sheet's own scroll position: the sheet
+  /// follows it and, let go, snaps to the nearest of its stops, or the next
+  /// one the way it was flung, exactly as the planner's card does. Along the
+  /// sheet's travel, which sideways is across the screen.
+  Map<Type, GestureRecognizerFactory> _handleDrag(ScrollController sheet) =>
+      <Type, GestureRecognizerFactory>{
+        VerticalDragGestureRecognizer:
+            GestureRecognizerFactoryWithHandlers<VerticalDragGestureRecognizer>(
+              VerticalDragGestureRecognizer.new,
+              (recognizer) {
+                recognizer
+                  ..onStart = (details) {
+                    if (!sheet.hasClients) return;
+                    _drag?.cancel();
+                    _drag = sheet.position.drag(details, () => _drag = null);
+                  }
+                  ..onUpdate = (details) {
+                    _drag?.update(details);
+                  }
+                  ..onEnd = _release
+                  ..onCancel = () {
+                    _drag?.cancel();
+                    _drag = null;
+                  };
+              },
+            ),
+      };
+
+  /// Lets go of the handle. Where the planner's card docks below its
+  /// resting height, this one goes: flung away, or let go nearer its lowest
+  /// stop than its resting one. Let go lower but not away, it goes back to
+  /// rest; anywhere else it snaps as the planner's card does.
+  void _release(DragEndDetails details) {
+    final drag = _drag;
+    _drag = null;
+    final stops = _stops;
+    if (drag == null) return;
+    if (stops == null || !_sheet.isAttached) {
+      drag.end(details);
+      return;
+    }
+    final size = _sheet.size;
+    // Towards the sheet's end, which closes it.
+    final fling = details.primaryVelocity ?? 0;
+    final below = size < stops.resting - 0.001;
+    if (below &&
+        (fling > 700 || size < (stops.collapsed + stops.resting) / 2)) {
+      drag.cancel();
+      unawaited(Navigator.of(context).maybePop());
+      return;
+    }
+    drag.end(
+      below && fling > 0
+          ? DragEndDetails(primaryVelocity: 0, velocity: Velocity.zero)
+          : details,
+    );
   }
 
-  void _dragHandleEnd(DragEndDetails details, double rest) {
-    if (!_sheet.isAttached) return;
-    final fling = details.primaryVelocity ?? 0;
-    if (fling > 700 || _sheet.size < rest * 0.7) {
-      unawaited(Navigator.of(context).maybePop());
+  /// The one point the sheet snaps to between its lowest and highest stop:
+  /// the same list while it holds, see [_snapSizes].
+  List<double> _snapSizesFor(double resting) {
+    if (_snapSizes.length != 1 || _snapSizes.first != resting) {
+      _snapSizes = <double>[resting];
     }
+    return _snapSizes;
+  }
+
+  /// Shows the scrollbar for a moment when the content grows past what the
+  /// card shows: an answer arriving under the fold.
+  bool _contentMetrics(ScrollMetricsNotification notification) {
+    final metrics = notification.metrics;
+    if (metrics.axis != Axis.vertical) return false;
+    final extent = metrics.maxScrollExtent;
+    final grew = extent > _contentExtent + 1;
+    _contentExtent = extent;
+    if (grew && extent > 0) {
+      _flashTimer?.cancel();
+      if (!_flashScrollbar) setState(() => _flashScrollbar = true);
+      _flashTimer = Timer(const Duration(milliseconds: 1500), () {
+        if (mounted) setState(() => _flashScrollbar = false);
+      });
+    }
+    return false;
+  }
+
+  /// Scrolls the content, smoothly, so that what [key] marks starts near
+  /// the top of what the card shows: an answer or an error that just came.
+  void _reveal(GlobalKey key) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final target = key.currentContext?.findRenderObject();
+      if (!mounted || target == null || !_contentScroll.hasClients) return;
+      final position = _contentScroll.position;
+      final offset = RenderAbstractViewport.of(target)
+          .getOffsetToReveal(target, 0)
+          .offset;
+      // A little of what came before stays in view, so it reads as the
+      // answer to it.
+      final to = (offset - 12).clamp(
+        position.minScrollExtent,
+        position.maxScrollExtent,
+      );
+      if ((to - position.pixels).abs() < 1) return;
+      unawaited(
+        position.animateTo(
+          to,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+        ),
+      );
+    });
   }
 
   /// How tall the rider left the sheet, in dp, once they moved it; `null`
@@ -443,6 +575,26 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
       assistantControllerProvider.select((s) => _notEntitled(s.problem)),
       _revealProblem,
     );
+    // An answer or an error that came: scrolled to, wherever the rider had
+    // scrolled the content. Not having Plus is shown above, see above.
+    ref.listen(assistantControllerProvider, (before, now) {
+      if (_mode != AssistantMode.newRoute || before?.busy != true) return;
+      if (now.busy || now.phase == AssistantPhase.ready) return;
+      if (now.problem != null && !_notEntitled(now.problem)) {
+        _reveal(_problemKey);
+      } else if (now.request != null) {
+        _reveal(_answerKey);
+      }
+    });
+    ref.listen(routeAdviceControllerProvider, (before, now) {
+      if (_mode != AssistantMode.thisRoute || before?.busy != true) return;
+      if (now.busy) return;
+      if (now.problem != null && !_notEntitled(now.problem)) {
+        _reveal(_problemKey);
+      } else if (now.advice != null) {
+        _reveal(_answerKey);
+      }
+    });
     ref.listen(
       routeAdviceControllerProvider.select((s) => _notEntitled(s.problem)),
       _revealProblem,
@@ -486,13 +638,20 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
             EdgeInsets.fromViewPadding(view.viewPadding, view.devicePixelRatio),
             turns,
           ).top;
-          // Up to the safe area at the far end, and no further.
-          final max = room <= 0
+          // As far open as the planner's card, and never past the safe
+          // area at the far end.
+          final safe = room <= 0
               ? 1.0
               : ((room - far - 8) / room).clamp(0.3, 1.0);
+          final max = room <= 0
+              ? 1.0
+              : math.min(geometry.length * sheetMaxExtent / room, safe);
+          // At rest as the planner's card rests.
           final rest = room <= 0
               ? 0.5
               : (geometry.restingDp / room).clamp(0.2, max);
+          // Where the planner's card docks, this one goes; see [_release].
+          _stops = SheetStops(collapsed: rest * 0.5, resting: rest, max: max);
           _keepHeight(room, max);
           return NotificationListener<DraggableScrollableNotification>(
             onNotification: _sheetMoved,
@@ -502,27 +661,37 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
               minChildSize: rest * 0.5,
               maxChildSize: max,
               snap: true,
-              snapSizes: [rest],
+              snapSizes: _snapSizesFor(rest),
               builder: (context, scrollController) => Material(
                 key: _sheetKey,
                 color: theme.colorScheme.surface,
                 elevation: 3,
                 shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(_cornerRadius),
+                  ),
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: KeyedSubtree(
-                  key: assistantSheetSurfaceKey,
-                  child: Column(
-                    children: [
-                      if (turns == 0)
-                        GestureDetector(
+                child: CustomPaint(
+                  key: assistantSheetEdgeKey,
+                  // The AI's card: its top edge in the AI's colours, along
+                  // the turned edge sideways.
+                  foregroundPainter: AiEdgePainter(
+                    gradient: theme.velorki.aiGradient,
+                    radius: _cornerRadius,
+                  ),
+                  child: KeyedSubtree(
+                    key: assistantSheetSurfaceKey,
+                    child: Column(
+                      children: [
+                        // The handle alone moves the sheet, either way
+                        // up: the content scrolls by itself at any height.
+                        RawGestureDetector(
                           behavior: HitTestBehavior.opaque,
-                          onVerticalDragUpdate: (d) => _dragHandle(d, room),
-                          onVerticalDragEnd: (d) => _dragHandleEnd(d, rest),
+                          gestures: _handleDrag(scrollController),
                           // The sheet's own controller has to sit on a
-                          // scrollable for the sheet to be moved; here it
-                          // takes no drags itself.
+                          // scrollable for the sheet to be moved; the drags
+                          // come from the detector around it.
                           child: SingleChildScrollView(
                             controller: scrollController,
                             physics: const NeverScrollableScrollPhysics(),
@@ -532,37 +701,22 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
                               child: SheetHandle(),
                             ),
                           ),
-                        )
-                      else
-                        // Sideways the content scrolls across the sheet's
-                        // travel, so the handle alone carries the sheet's own
-                        // drag: pulled out, snapped back, pushed away.
-                        SizedBox(
-                          height: sheetHandleDp,
-                          child: SingleChildScrollView(
-                            controller: scrollController,
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            child: const SizedBox(
-                              height: sheetHandleDp,
-                              width: double.infinity,
-                              child: SheetHandle(),
-                            ),
+                        ),
+                        Expanded(
+                          child: QuarterTurnedFrame(
+                            quarterTurns: 4 - turns,
+                            // A drag on the content scrolls it, whatever the
+                            // sheet's height: the handle moves the sheet.
+                            child: turns == 0
+                                ? _content(context, sideways: false)
+                                : _keptWide(
+                                    _content(context, sideways: true),
+                                    railOnLeft: turns == 1,
+                                  ),
                           ),
                         ),
-                      Expanded(
-                        child: QuarterTurnedFrame(
-                          quarterTurns: 4 - turns,
-                          // A drag on the content scrolls it, whatever the
-                          // sheet's height: the handle moves the sheet.
-                          child: turns == 0
-                              ? _content(context, sideways: false)
-                              : _keptWide(
-                                  _content(context, sideways: true),
-                                  railOnLeft: turns == 1,
-                                ),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -674,49 +828,59 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(
-          // Not a lazy list: a few rows, and an answer scrolled out of view
-          // must still be there to scroll back to.
-          child: SingleChildScrollView(
-            controller: _contentScroll,
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                header,
-                // Not having Plus is said first, where it is seen, rather
-                // than under the answer it stands in for.
-                if (notEntitled != null) ...[
-                  KeyedSubtree(
-                    key: _notEntitledKey,
-                    child: _ProblemRow(problem: notEntitled),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                KeyedSubtree(
-                  key: _fieldKey,
-                  child: TextField(
-                    // Keyed by mode, so each keeps its own text and undo.
-                    key: ValueKey(_mode),
-                    controller: _field,
-                    readOnly: locked,
-                    minLines: aboutRoute ? 1 : 2,
-                    maxLines: 4,
-                    maxLength: 1000,
-                    textInputAction: TextInputAction.send,
-                    style: theme.textTheme.bodyLarge,
-                    decoration: InputDecoration(
-                      hintText: aboutRoute
-                          ? l10n.assistantRouteHint
-                          : l10n.assistantHint,
+          // The platform's scrollbar, while the content scrolls and for a
+          // moment when it grows past what the card shows, so an answer
+          // under the fold is seen to be there.
+          child: NotificationListener<ScrollMetricsNotification>(
+            onNotification: _contentMetrics,
+            child: Scrollbar(
+              controller: _contentScroll,
+              thumbVisibility: _flashScrollbar ? true : null,
+              // Not a lazy list: a few rows, and an answer scrolled out of
+              // view must still be there to scroll back to.
+              child: SingleChildScrollView(
+                controller: _contentScroll,
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    header,
+                    // Not having Plus is said first, where it is seen, rather
+                    // than under the answer it stands in for.
+                    if (notEntitled != null) ...[
+                      KeyedSubtree(
+                        key: _notEntitledKey,
+                        child: _ProblemRow(problem: notEntitled),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    KeyedSubtree(
+                      key: _fieldKey,
+                      child: TextField(
+                        // Keyed by mode, so each keeps its own text and undo.
+                        key: ValueKey(_mode),
+                        controller: _field,
+                        readOnly: locked,
+                        minLines: aboutRoute ? 1 : 2,
+                        maxLines: 4,
+                        maxLength: 1000,
+                        textInputAction: TextInputAction.send,
+                        style: theme.textTheme.bodyLarge,
+                        decoration: InputDecoration(
+                          hintText: aboutRoute
+                              ? l10n.assistantRouteHint
+                              : l10n.assistantHint,
+                        ),
+                        onSubmitted: locked ? null : (_) => unawaited(_send()),
+                      ),
                     ),
-                    onSubmitted: locked ? null : (_) => unawaited(_send()),
-                  ),
+                    if (aboutRoute)
+                      ..._routeChildren(l10n, theme, advice, locked: locked)
+                    else
+                      ..._newRouteChildren(l10n, state, locked: locked),
+                  ],
                 ),
-                if (aboutRoute)
-                  ..._routeChildren(l10n, theme, advice, locked: locked)
-                else
-                  ..._newRouteChildren(l10n, state, locked: locked),
-              ],
+              ),
             ),
           ),
         ),
@@ -810,7 +974,10 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
       ),
       if (state.request != null && !state.busy) ...[
         const SizedBox(height: 16),
-        _RequestSummary(state: state),
+        AiAnswer(
+          key: _answerKey,
+          child: _RequestSummary(state: state),
+        ),
       ],
       if (state.phase == AssistantPhase.needsChoice)
         for (final choice in state.choices)
@@ -823,6 +990,7 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
       if (state.problem != null && !_notEntitled(state.problem)) ...[
         const SizedBox(height: 16),
         _ProblemRow(
+          key: _problemKey,
           problem: state.problem!,
           onRetry: ref.read(assistantControllerProvider.notifier).clearProblem,
         ),
@@ -853,7 +1021,11 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
         const SizedBox(height: 8),
         // What the model wrote is the content here, so it is set in the
         // reading size rather than as a caption.
-        Text(answer.answer, style: theme.textTheme.bodyLarge),
+        // Marked as the AI's.
+        AiAnswer(
+          key: _answerKey,
+          child: Text(answer.answer, style: theme.textTheme.bodyLarge),
+        ),
         if (answer.findings.isNotEmpty) ...[
           const SizedBox(height: 16),
           SectionCaption(l10n.assistantRouteFindings),
@@ -898,6 +1070,7 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
       if (advice.problem != null && !_notEntitled(advice.problem)) ...[
         const SizedBox(height: 16),
         _ProblemRow(
+          key: _problemKey,
           problem: advice.problem!,
           onRetry: ref
               .read(routeAdviceControllerProvider.notifier)
@@ -1218,7 +1391,7 @@ class _ChoiceRow extends StatelessWidget {
 
 /// The error, with the one action that can help.
 class _ProblemRow extends StatelessWidget {
-  const _ProblemRow({required this.problem, this.onRetry});
+  const _ProblemRow({required this.problem, this.onRetry, super.key});
 
   final AssistantProblem problem;
 
