@@ -12,7 +12,7 @@ describe('system prompts', () => {
   it('loads both prompts without their SPDX header', () => {
     const prompts = loadPrompts();
     expect(prompts.plan).toContain('propose_route');
-    expect(prompts.describe).toContain('60 to 90 words');
+    expect(prompts.describe).toContain('3 to 5 sentences');
     expect(prompts.plan.startsWith('<!--')).toBe(false);
     expect(prompts.describe.startsWith('<!--')).toBe(false);
     expect(prompts.plan).not.toContain('SPDX-License-Identifier');

@@ -45,12 +45,95 @@ const surfaceMixSchema = z.object({
   unpaved: z.number().min(0).max(1).optional(),
 });
 
+/*
+ * The route digest the app builds on the phone for `step=describe`: what the
+ * route runs over, where it climbs, the settlements it passes and the places
+ * to stop beside it. Optional, so app versions that never send one keep
+ * working. Distances are kilometres along the route, gradients percent.
+ *
+ * The coordinates are validated but never rendered into the prompt: the model
+ * reads names and kilometres, not the track.
+ */
+
+/** A kilometre mark along the route. */
+const kmSchema = z.number().min(0).max(10_000);
+/** A gradient in percent, signed; steeper than 60 % is not a road. */
+const gradeSchema = z.number().min(-60).max(60);
+/** A short OSM tag value such as `cycleway` or `asphalt`. */
+const tagValueSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(32)
+  .regex(/^[a-z0-9_:;.-]+$/, 'must be an OSM tag value');
+const pointSchema = z.object({ lat: latSchema, lon: lonSchema });
+
+const stretchSchema = z.object({
+  from_km: kmSchema,
+  to_km: kmSchema,
+  road: tagValueSchema,
+  surface: tagValueSchema,
+  avg_grade: gradeSchema,
+  max_grade: gradeSchema,
+  start: pointSchema,
+  end: pointSchema,
+});
+
+const climbSchema = z.object({
+  start_km: kmSchema,
+  length_km: z.number().min(0).max(1_000),
+  gain_m: z.number().min(0).max(10_000),
+  avg_grade: gradeSchema,
+  max_grade: gradeSchema,
+});
+
+const townSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  kind: z.enum(['city', 'town', 'village']),
+  km: kmSchema,
+  lat: latSchema,
+  lon: lonSchema,
+});
+
+const placeSchema = z.object({
+  id: z.string().regex(/^p[0-9]{1,3}$/, 'must look like p12'),
+  kind: z.enum([
+    'cafe',
+    'bakery',
+    'drinking_water',
+    'toilets',
+    'viewpoint',
+    'water',
+    'beach',
+    'bicycle_shop',
+    'bicycle_repair_station',
+    'station',
+  ]),
+  name: z.string().trim().max(120).optional(),
+  km: kmSchema,
+  off_m: z.number().min(0).max(1_000),
+  lat: latSchema,
+  lon: lonSchema,
+});
+
+export const routeDigestSchema = z.object({
+  profile: z.string().trim().max(20).optional(),
+  loop: z.boolean(),
+  stretches: z.array(stretchSchema).max(60).default([]),
+  climbs: z.array(climbSchema).max(20).default([]),
+  towns: z.array(townSchema).max(30).default([]),
+  places: z.array(placeSchema).max(40).default([]),
+});
+
+export type RouteDigest = z.infer<typeof routeDigestSchema>;
+
 const routeSummarySchema = z.object({
   distance_km: z.number().min(0).max(10_000),
   ascent_m: z.number().min(0).max(100_000),
   surface: surfaceMixSchema,
   waypoints: z.array(z.string().trim().max(120)).max(50).optional(),
   highlights: z.array(z.string().trim().max(200)).max(20).optional(),
+  digest: routeDigestSchema.optional(),
 });
 
 export const planRequestSchema = z

@@ -28,7 +28,7 @@ Drei Antworten:
 - **Erlauben, nur Text** schickt deinen Text und sonst nichts.
 - **Jetzt nicht** schickt nichts und schaltet den Assistenten aus.
 
-Was tatsächlich reist: dein Text, auf Wunsch die gerundete Position, deine Sprach- und Einheiteneinstellung, damit die Antwort passt, und bei einer Routenbeschreibung eine kurze Zusammenfassung der Route. In die Anfrage kommt keine Kennung von dir oder deinem Handy, und das Modell sieht deinen Track nie.
+Was tatsächlich reist: dein Text, auf Wunsch die gerundete Position, deine Sprach- und Einheiteneinstellung, damit die Antwort passt, und bei einer Routenbeschreibung eine Übersicht der Route (siehe unten). In die Anfrage kommt keine Kennung von dir oder deinem Handy.
 
 Du kannst es jederzeit unter **Einstellungen → KI-Assistent → Was gesendet wird** ändern; der Untertitel dort sagt immer, in welchem der vier Zustände du bist, mit einer Schaltfläche **Ändern** daneben.
 
@@ -66,7 +66,7 @@ Er kann sich auch irren. Sagt er etwas, was du nicht gemeint hast, formulier es 
 
 Das andere, was der Assistent kann, ist einen Absatz über eine Route zu schreiben, die du schon hast. Öffne eine Route in der Bibliothek und tippe auf **Diese Route beschreiben**; das Fenster fängt sofort an zu schreiben, und **Als Beschreibung speichern** legt den Text zur Route. **Neu schreiben** fragt einen weiteren Versuch an.
 
-Nach oben gehen nur die Zahlen: Distanz, Anstieg, die befestigten und unbefestigten Anteile und die Namen der Wegpunkte. Die Geometrie bleibt auf dem Handy.
+Bevor er fragt, gleicht das Handy die Route mit seinen Routing-Kacheln und seiner Offline-Ortssuche ab und stellt eine Übersicht zusammen: Distanz, Anstieg, die befestigten und unbefestigten Anteile, die Namen der Wegpunkte, die Abschnitte der Route mit Straßenart, Belag und Steigung, ihre Anstiege, die Städte und Dörfer, durch die sie führt, und Cafés, Bäckereien, Trinkwasserstellen, Toiletten, Aussichtspunkte und Radläden bis 300 m neben ihr, jeweils mit dem Kilometer entlang der Route und ihrer Position. Ohne heruntergeladene Kacheln für die Gegend gehen nur die Zahlen. Das Modell bekommt auch die Positionen, auf etwa 10 m genau, damit es weiß, wo die Tour liegt; beginnt die Route vor deiner Tür, zeigt sie, wo deine Tür ist. Jeder Ort, den die Beschreibung nennt, stammt aus der Übersicht, so kann sie „das Café in Caniço bei km 9“ sagen und ein Café meinen, das es gibt. Geschrieben wird in der Sprache und den Einheiten, auf die die App eingestellt ist.
 
 Für eine aus Strava importierte Route wird die Schaltfläche nicht angeboten, weil die Bedingungen von Strava nicht erlauben, ihre Daten an einen KI-Anbieter zu geben.
 

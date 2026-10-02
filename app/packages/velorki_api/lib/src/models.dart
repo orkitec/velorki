@@ -1,5 +1,7 @@
 import 'errors.dart';
 
+part 'route_digest.dart';
+
 /* -------------------------------------------------------------- json help */
 
 /// Reads [key] from [json] as a `String`, or throws [RelayFormatException].
@@ -634,6 +636,7 @@ class RouteSummary {
     this.surface = const SurfaceMix(),
     this.waypoints,
     this.highlights,
+    this.digest,
   });
 
   /// Total length in kilometres.
@@ -651,9 +654,14 @@ class RouteSummary {
   /// Up to 20 short notes about what makes the route interesting.
   final List<String>? highlights;
 
+  /// What the route runs over, climbs and passes, built on the phone; absent
+  /// when it could not be built, and from app versions that never sent one.
+  final RouteDigest? digest;
+
   /// Parses a `route_summary` object.
   factory RouteSummary.fromJson(Map<String, Object?> json) {
     final surface = _optObject(json, 'surface');
+    final digest = _optObject(json, 'digest');
     return RouteSummary(
       distanceKm: _reqDouble(json, 'distance_km'),
       ascentM: _reqDouble(json, 'ascent_m'),
@@ -662,6 +670,7 @@ class RouteSummary {
           : SurfaceMix.fromJson(surface),
       waypoints: _optStringList(json, 'waypoints'),
       highlights: _optStringList(json, 'highlights'),
+      digest: digest == null ? null : RouteDigest.fromJson(digest),
     );
   }
 
@@ -672,6 +681,7 @@ class RouteSummary {
     'surface': surface.toJson(),
     if (waypoints != null) 'waypoints': waypoints,
     if (highlights != null) 'highlights': highlights,
+    if (digest != null) 'digest': digest!.toJson(),
   };
 
   @override
@@ -681,7 +691,8 @@ class RouteSummary {
       other.ascentM == ascentM &&
       other.surface == surface &&
       _listEquals(other.waypoints, waypoints) &&
-      _listEquals(other.highlights, highlights);
+      _listEquals(other.highlights, highlights) &&
+      other.digest == digest;
 
   @override
   int get hashCode => Object.hash(
@@ -690,13 +701,14 @@ class RouteSummary {
     surface,
     waypoints == null ? null : Object.hashAll(waypoints!),
     highlights == null ? null : Object.hashAll(highlights!),
+    digest,
   );
 
   @override
   String toString() =>
       'RouteSummary(distanceKm: $distanceKm, '
       'ascentM: $ascentM, surface: $surface, waypoints: $waypoints, '
-      'highlights: $highlights)';
+      'highlights: $highlights, digest: $digest)';
 }
 
 /// Token usage reported by the relay in the `done` event of `/ai/plan`.

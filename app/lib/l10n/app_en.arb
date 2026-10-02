@@ -2522,7 +2522,7 @@
   "@aiConsentTitle": {
     "description": "Title of the one-time AI consent dialog"
   },
-  "aiConsentBody": "What you type is sent to the Velorki server, which forwards it to our AI provider. Nothing else goes with it: no name, no account, no route history.",
+  "aiConsentBody": "What you type, and a route you ask about, is sent to the Velorki server, which forwards it to our AI provider. Nothing else goes with it: no name, no account, no route history.",
   "@aiConsentBody": {
     "description": "First paragraph of the AI consent dialog"
   },

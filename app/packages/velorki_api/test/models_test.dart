@@ -390,6 +390,94 @@ void main() {
       expect(RouteSummary.fromJson(bare.toJson()), bare);
     });
 
+    test('RouteSummary carries a digest and reads one back', () {
+      const digest = RouteDigest(
+        profile: 'trekking',
+        loop: true,
+        stretches: <DigestStretch>[
+          DigestStretch(
+            fromKm: 0,
+            toKm: 2.4,
+            road: 'cycleway',
+            surface: 'asphalt',
+            avgGrade: 1.2,
+            maxGrade: 4,
+            start: DigestPoint(lat: 32.64512, lon: -16.90876),
+            end: DigestPoint(lat: 32.65, lon: -16.92),
+          ),
+        ],
+        climbs: <DigestClimb>[
+          DigestClimb(
+            startKm: 3.1,
+            lengthKm: 2.5,
+            gainM: 180,
+            avgGrade: 7.2,
+            maxGrade: 11.5,
+          ),
+        ],
+        towns: <DigestTown>[
+          DigestTown(
+            name: 'Funchal',
+            kind: 'city',
+            km: 0,
+            at: DigestPoint(lat: 32.65, lon: -16.91),
+          ),
+        ],
+        places: <DigestPlace>[
+          DigestPlace(
+            id: 'p1',
+            kind: 'drinking_water',
+            km: 1.2,
+            offM: 40,
+            at: DigestPoint(lat: 32.646, lon: -16.91),
+          ),
+          DigestPlace(
+            id: 'p2',
+            kind: 'cafe',
+            name: 'Café do Largo',
+            km: 4,
+            offM: 120,
+            at: DigestPoint(lat: 32.66, lon: -16.93),
+          ),
+        ],
+      );
+      const summary = RouteSummary(
+        distanceKm: 12,
+        ascentM: 300,
+        digest: digest,
+      );
+      final json = summary.toJson();
+      final wire = json['digest']! as Map<String, Object?>;
+      expect(wire['loop'], isTrue);
+      expect((wire['places']! as List).first, <String, Object?>{
+        'id': 'p1',
+        'kind': 'drinking_water',
+        'km': 1.2,
+        'off_m': 40.0,
+        'lat': 32.646,
+        'lon': -16.91,
+      });
+      expect(
+        ((wire['stretches']! as List).first as Map)['start'],
+        <String, Object?>{'lat': 32.64512, 'lon': -16.90876},
+      );
+      expect(RouteSummary.fromJson(json), summary);
+      expect(RouteSummary.fromJson(json).digest, digest);
+
+      // A digest with nothing in it still says whether it is a loop.
+      expect(
+        RouteDigest.fromJson(const <String, Object?>{'loop': false}),
+        const RouteDigest(loop: false),
+      );
+      expect(
+        () => RouteDigest.fromJson(const <String, Object?>{
+          'loop': false,
+          'places': <Object?>['p1'],
+        }),
+        throwsA(isA<RelayFormatException>()),
+      );
+    });
+
     test('PlanUsage maps the short wire keys', () {
       final usage = PlanUsage.fromJson(const <String, Object?>{
         'in': 1200,

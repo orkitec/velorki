@@ -115,8 +115,12 @@ provider:
 - the text you typed,
 - optionally, a starting position **rounded to roughly one kilometre**,
 - the language and unit settings, so the answer fits,
-- if you ask for a route description, a short summary of the route (distance,
-  ascent, surface shares).
+- if you ask for a route description, a digest of the route built on your
+  phone: distance, ascent, surface shares, the stretches it runs over with
+  their road, surface and gradient, its climbs, the towns it passes and the
+  places to stop near it, each with its distance along the route and its
+  position (to about 10 m). The AI provider receives them as well; a route
+  that starts at your home therefore shows where your home is.
 
 No identifier of you or your phone is put into the prompt. The model returns a
 structured request: a distance, a shape, place names, preferences. The actual

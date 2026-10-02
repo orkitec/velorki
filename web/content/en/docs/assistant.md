@@ -28,7 +28,7 @@ Three answers:
 - **Allow, text only** sends your text and nothing else.
 - **Not now** sends nothing and switches the assistant off.
 
-What actually travels: your text, optionally the rounded position, your language and unit settings so the answer fits, and, for a route description, a short summary of the route. No identifier of you or your phone is put into the prompt, and the model never sees your track.
+What actually travels: your text, optionally the rounded position, your language and unit settings so the answer fits, and, for a route description, a digest of the route (see below). No identifier of you or your phone is put into the prompt.
 
 Change your mind at any time under **Settings → AI assistant → What is sent**, whose subtitle always says which of the four states you are in, with a **Change** button beside it.
 
@@ -66,7 +66,7 @@ It can also be wrong. If it says something you did not mean, rephrase with a cle
 
 The other thing the assistant does is write a paragraph about a route you already have. Open a route in the library and tap **Describe this route**; the sheet starts writing at once, and **Save as description** stores the text with the route. **Write again** asks for another go.
 
-Only the figures go up: the distance, the ascent, the paved and unpaved shares and the waypoint names. The geometry stays on the phone.
+Before it asks, the phone matches the route against its routing tiles and its offline place search and builds a digest: the distance, the ascent, the paved and unpaved shares, the waypoint names, the stretches of the route with their kind of road, surface and gradient, its climbs, the towns and villages it passes, and cafés, bakeries, water taps, toilets, viewpoints and bike shops within 300 m of it, each with its distance along the route and its position. Without downloaded tiles for the area only the figures go. The model gets the positions too, to about 10 m, so it knows where the ride is; a route that starts at your door shows where your door is. Every place the description names comes from the digest, so it can say "the café in Caniço at km 9" and mean a café that exists. It writes in the language and the units the app is set to.
 
 The button is not offered for a route imported from Strava, because Strava's terms do not allow their data to be given to an AI provider.
 

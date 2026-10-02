@@ -2,11 +2,15 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart' as geo;
+import 'package:velorki/core/geo/track_surface.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
+import 'package:velorki/features/assistant/application/route_digest_service.dart';
 import 'package:velorki/features/assistant/domain/intent_resolver.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
+import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
 import 'package:velorki_api/velorki_api.dart';
+import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../integrations/support/fakes.dart';
@@ -166,6 +170,7 @@ class ManualRelayClient extends FakeRelayClient {
         step: step,
         prompt: prompt,
         locale: locale,
+        units: units,
         context: context,
         routeSummary: routeSummary,
       ),
@@ -176,5 +181,32 @@ class ManualRelayClient extends FakeRelayClient {
       if (!controller.isClosed) await controller.close();
     });
     return controller.stream;
+  }
+}
+
+/// Answers every route with [digest], or fails with [error].
+class FakeRouteDigestService extends RouteDigestService {
+  FakeRouteDigestService({this.digest, this.error})
+    : super(
+        surfaces: TrackSurfaceService(
+          local: null,
+          decide: (_) => const RoutingDecision(
+            source: null,
+            requiredTiles: <TileName>[],
+            missingTiles: <TileName>[],
+          ),
+        ),
+        gazetteer: () async => null,
+      );
+
+  final RouteDigest? digest;
+  final Object? error;
+  final List<String> asked = <String>[];
+
+  @override
+  Future<RouteDigest?> digestOf(SavedRoute route) async {
+    asked.add(route.id);
+    if (error != null) throw error!;
+    return digest;
   }
 }

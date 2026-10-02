@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 import { POST as aiPlan } from '@/app/(api)/ai/plan/route';
+import { planRequestSchema } from '@/ai/schema';
 import {
   CONSENT,
   jsonRequest,
@@ -33,6 +34,9 @@ interface OpenApi {
   paths: {
     '/ai/plan': {
       post: {
+        requestBody: {
+          content: { 'application/json': { examples: Record<string, { value: unknown }> } };
+        };
         responses: {
           '200': {
             content: {
@@ -130,5 +134,18 @@ describe('the documented SSE streams', () => {
         mockToolCallModel({ ...PROPOSED_ROUTE, distance_km: 2 }, usage(412, 96), MODEL_ID),
     });
     expect(stream).toBe(onTheWire('failure'));
+  });
+});
+
+describe('the documented request bodies', () => {
+  const requests = spec.paths['/ai/plan'].post.requestBody.content['application/json'].examples;
+
+  it('documents a describe body with a route digest', () => {
+    expect(Object.keys(requests)).toContain('describe_with_digest');
+  });
+
+  it.each(Object.keys(requests))('accepts the %s example as documented', (name) => {
+    const result = planRequestSchema.safeParse(requests[name]?.value);
+    expect(result.success, JSON.stringify(result.error?.issues)).toBe(true);
   });
 });

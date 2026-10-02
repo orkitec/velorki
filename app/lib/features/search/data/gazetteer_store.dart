@@ -177,6 +177,32 @@ class GazetteerStore {
     return best;
   }
 
+  /// Every place of [placeKinds] and every POI of [poiKinds] inside [box],
+  /// at most [limit] of each per open file, in no particular order.
+  ///
+  /// The raw rows a route is matched against: a place carries
+  /// [SearchKind.place], a POI [SearchKind.poi], both with their kind in
+  /// [SearchResult.detail]. One indexed bounding-box query per table and
+  /// file, on `idx_places_pos` and `idx_pois_pos`; a file that cannot answer
+  /// is left out rather than failing the rest.
+  Future<List<SearchResult>> inBox(
+    BoundingBox box, {
+    List<String> placeKinds = const <String>[],
+    List<String> poiKinds = const <String>[],
+    int limit = _kindFetchLimit,
+  }) async {
+    if (_closed || _open.isEmpty) return const <SearchResult>[];
+    final found = <SearchResult>[];
+    for (final file in _open.values) {
+      try {
+        found.addAll(file.inBox(box, placeKinds, poiKinds, limit));
+      } on Object catch (e) {
+        debugPrint('velorki: gazetteer ${file.tile} has no position index: $e');
+      }
+    }
+    return found;
+  }
+
   /// Whether [row] is the better name for a ride than [other]: a bigger kind
   /// first, the nearer of two of the same standing second.
   static bool _outranks(SearchResult row, SearchResult other) {
@@ -754,6 +780,50 @@ class _GazetteerFile {
     return found.length > kindSearchLimit
         ? found.sublist(0, kindSearchLimit)
         : found;
+  }
+
+  /// The rows of [placeKinds] in `places` and of [poiKinds] in `pois` inside
+  /// [box], at most [limit] from each table.
+  List<SearchResult> inBox(
+    BoundingBox box,
+    List<String> placeKinds,
+    List<String> poiKinds,
+    int limit,
+  ) {
+    final bounds = <Object?>[
+      (box.south * 1e7).round(),
+      (box.north * 1e7).round(),
+      (box.west * 1e7).round(),
+      (box.east * 1e7).round(),
+    ];
+    final found = <SearchResult>[];
+    void query(String table, SearchKind kind, List<String> kinds) {
+      if (kinds.isEmpty) return;
+      final placeholders = List<String>.filled(kinds.length, '?').join(', ');
+      final rows = _db.select(
+        'SELECT name, kind, lat, lon FROM $table '
+        'WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? '
+        'AND kind IN ($placeholders) LIMIT ?',
+        <Object?>[...bounds, ...kinds, limit],
+      );
+      for (final row in rows) {
+        final position = _position(row);
+        if (position == null) continue;
+        found.add(
+          SearchResult(
+            name: row['name']?.toString() ?? '',
+            position: position,
+            source: SearchSource.local,
+            kind: kind,
+            detail: row['kind']?.toString(),
+          ),
+        );
+      }
+    }
+
+    query('places', SearchKind.place, placeKinds);
+    if (_poi != null) query('pois', SearchKind.poi, poiKinds);
+    return found;
   }
 
   /// The settlement of this file that names a ride starting at [near], or

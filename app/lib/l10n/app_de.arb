@@ -483,7 +483,7 @@
   "assistantStartUnknown": "Der Start ist unbekannt. Standort einschalten oder einen Startort nennen.",
   "assistantRetry": "Erneut versuchen",
   "aiConsentTitle": "Bevor der Assistent fragt",
-  "aiConsentBody": "Was du eingibst, geht an den Velorki-Server und von dort an unseren KI-Anbieter. Mehr geht nicht mit: kein Name, kein Konto, keine Routenhistorie.",
+  "aiConsentBody": "Was du eingibst, und eine Route, nach der du fragst, geht an den Velorki-Server und von dort an unseren KI-Anbieter. Mehr geht nicht mit: kein Name, kein Konto, keine Routenhistorie.",
   "aiConsentLocationBody": "Wenn du es erlaubst, geht auch deine Position mit, auf etwa einen Kilometer gerundet. Ohne sie weiß der Assistent nicht, wo du bist, und seine Vorschläge werden ungenauer.",
   "aiConsentAllowWithLocation": "Erlauben, mit grober Position",
   "aiConsentAllowTextOnly": "Erlauben, nur Text",

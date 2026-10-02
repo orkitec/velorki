@@ -127,8 +127,12 @@ KI-Anbieter:
 - der Text, den du eingegeben hast,
 - auf Wunsch eine Startposition, **auf etwa einen Kilometer gerundet**,
 - die Sprach- und Einheiteneinstellung, damit die Antwort passt,
-- bei einer Routenbeschreibung eine kurze Zusammenfassung der Route (Distanz,
-  Anstieg, Belagsanteile).
+- bei einer Routenbeschreibung eine auf deinem Handy erstellte Übersicht der
+  Route: Distanz, Anstieg, Belagsanteile, die Abschnitte mit Straßenart, Belag
+  und Steigung, ihre Anstiege, die Orte, durch die sie führt, und
+  Einkehrmöglichkeiten in ihrer Nähe, jeweils mit dem Kilometer entlang der
+  Route und ihrer Position (auf etwa 10 m). Auch die Positionen erhält der
+  KI-Anbieter; beginnt die Route bei dir zu Hause, zeigt sie also, wo du wohnst.
 
 In die Anfrage kommt keine Kennung von dir oder deinem Handy. Das Modell
 liefert eine strukturierte Anfrage zurück: eine Distanz, eine Form, Ortsnamen,

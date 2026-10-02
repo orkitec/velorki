@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' as ui;
 
 import 'package:logging/logging.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -17,6 +16,7 @@ import '../data/place_geocoder.dart';
 import '../domain/ai_consent.dart';
 import '../domain/assistant_state.dart';
 import '../domain/intent_resolver.dart';
+import 'ai_request_settings.dart';
 
 part 'assistant_controller.g.dart';
 
@@ -146,7 +146,8 @@ class AssistantController extends _$AssistantController {
     await for (final event in relay.planStream(
       step: planStep,
       prompt: prompt,
-      locale: locale ?? ui.PlatformDispatcher.instance.locale.toLanguageTag(),
+      locale: locale ?? ref.read(aiLocaleTagProvider),
+      units: ref.read(aiUnitsProvider),
       context: contextFor(consent: consent, position: position),
     )) {
       switch (event) {

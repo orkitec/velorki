@@ -1,9 +1,11 @@
+import 'package:flutter/widgets.dart' show Locale;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/core/plus/plus_gate.dart';
+import 'package:velorki/features/assistant/application/ai_request_settings.dart';
 import 'package:velorki/features/assistant/application/assistant_controller.dart';
 import 'package:velorki/features/assistant/data/place_geocoder.dart';
 import 'package:velorki/features/assistant/domain/ai_consent.dart';
@@ -12,6 +14,7 @@ import 'package:velorki/features/assistant/domain/intent_resolver.dart';
 import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/data/routing_backend_provider.dart';
+import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/features/smart_loop/application/smart_loop_controller.dart';
 import 'package:velorki_api/velorki_api.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -29,14 +32,16 @@ Future<ProviderContainer> _container({
   bool entitled = true,
   bool withRelay = true,
   List<Override> extraOverrides = const <Override>[],
+  Map<String, Object> prefs = const <String, Object>{},
 }) async {
   SharedPreferences.setMockInitialValues(<String, Object>{
     if (consent != null) aiConsentPrefsKey: consent.name,
+    ...prefs,
   });
-  final prefs = await SharedPreferences.getInstance();
+  final preferences = await SharedPreferences.getInstance();
   final container = ProviderContainer(
     overrides: [
-      sharedPreferencesProvider.overrideWithValue(prefs),
+      sharedPreferencesProvider.overrideWithValue(preferences),
       relayClientProvider.overrideWithValue(withRelay ? relay : null),
       intentResolverProvider.overrideWithValue(
         IntentResolver(geocoder: geocoder ?? FakeGeocoder()),
@@ -51,6 +56,75 @@ Future<ProviderContainer> _container({
 }
 
 void main() {
+  group('language and units', () {
+    Future<PlanCall> ask({
+      required List<Locale> phone,
+      Map<String, Object> prefs = const <String, Object>{},
+      String country = 'DE',
+    }) async {
+      final relay = FakeRelayClient(
+        planEvents: <PlanEvent>[
+          RouteRequestEvent(routeRequest(distanceKm: 30)),
+          const DoneEvent(),
+        ],
+      );
+      final container = await _container(
+        relay: relay,
+        prefs: prefs,
+        extraOverrides: [
+          systemLocalesProvider.overrideWithValue(phone),
+          localeCountryProvider.overrideWithValue(country),
+        ],
+      );
+      await container
+          .read(assistantControllerProvider.notifier)
+          .submit('a flat 30 km loop', position: _here);
+      return relay.planCalls.single;
+    }
+
+    test('the app in English on a German phone asks in English', () async {
+      final call = await ask(
+        phone: const [Locale('de', 'DE')],
+        prefs: const <String, Object>{'language.locale': 'en'},
+      );
+      expect(call.locale, 'en');
+    });
+
+    test('the app in German on an English phone asks in German', () async {
+      final call = await ask(
+        phone: const [Locale('en', 'US')],
+        prefs: const <String, Object>{'language.locale': 'de'},
+      );
+      expect(call.locale, 'de');
+    });
+
+    test('an app that follows the phone asks in the language it shows, '
+        "with the phone's region", () async {
+      expect((await ask(phone: const [Locale('de', 'CH')])).locale, 'de-CH');
+      // Not translated into French: the app is in English, and so is the
+      // answer.
+      expect((await ask(phone: const [Locale('fr', 'FR')])).locale, 'en');
+    });
+
+    test('the units are the ones Settings shows', () async {
+      expect(
+        (await ask(phone: const [Locale('en', 'GB')])).units,
+        PlanUnits.metric,
+      );
+      expect(
+        (await ask(
+          phone: const [Locale('en', 'GB')],
+          prefs: const <String, Object>{'units.system': 'imperial'},
+        )).units,
+        PlanUnits.imperial,
+      );
+      expect(
+        (await ask(phone: const [Locale('en', 'US')], country: 'US')).units,
+        PlanUnits.imperial,
+      );
+    });
+  });
+
   group('submit', () {
     test('a loop request starts a loop search', () async {
       final relay = FakeRelayClient(

@@ -5,6 +5,7 @@ import 'package:velorki/core/db/database.dart';
 import 'package:velorki/core/plus/plus_gate.dart';
 import 'package:velorki/features/assistant/data/ai_consent_controller.dart';
 import 'package:velorki/features/assistant/domain/ai_consent.dart';
+import 'package:velorki/features/assistant/application/route_digest_service.dart';
 import 'package:velorki/features/assistant/presentation/describe_route_sheet.dart';
 import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
@@ -86,6 +87,7 @@ Future<_Opened> _openSheet(
     _Host(subject),
     extraOverrides: [
       relayClientProvider.overrideWithValue(withRelay ? relay : null),
+      routeDigestServiceProvider.overrideWithValue(FakeRouteDigestService()),
     ],
   );
   final container = ProviderScope.containerOf(

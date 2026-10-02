@@ -69,6 +69,25 @@ class TrackSurface {
       'TrackSurface(${state.name}${stats == null ? '' : ', $stats'})';
 }
 
+/// The ways a track lies on, as [TrackSurfaceService.matchWays] found them.
+class TrackWays {
+  const TrackWays._(
+    this.state, {
+    this.messages = const <SegmentMessage>[],
+    this.lengthM = 0,
+  });
+
+  /// What happened; [messages] are only there for
+  /// [TrackSurfaceState.matched].
+  final TrackSurfaceState state;
+
+  /// The router's messages along the track, in order, every tag kept.
+  final List<SegmentMessage> messages;
+
+  /// The length the router measured, in metres.
+  final double lengthM;
+}
+
 /// Told to a profile so its messages carry every tag of a way, not only the
 /// ones it reads: `surface` for one, which `shortest` never looks at.
 const Map<String, String> keepAllTags = <String, String>{
@@ -135,16 +154,42 @@ class TrackSurfaceService {
     required List<TrackPoint> points,
     required double distanceM,
   }) async {
+    final ways = await matchWays(points: points, distanceM: distanceM);
+    switch (ways.state) {
+      case TrackSurfaceState.noRouting:
+        return TrackSurface.noRouting;
+      case TrackSurfaceState.noTiles:
+        return TrackSurface.noTiles;
+      case TrackSurfaceState.unmatched:
+        return TrackSurface.unmatched;
+      case TrackSurfaceState.matched:
+        final stats = SurfaceStats.fromMessages(ways.messages, ways.lengthM);
+        if (stats.totalLengthM <= 0) return TrackSurface.unmatched;
+        return TrackSurface.matched(stats);
+    }
+  }
+
+  /// The ways the track of [points], [distanceM] long, lies on: the router's
+  /// messages, every tag kept, in track order. What [match] reads the surface
+  /// off, for anyone who needs more than the shares.
+  Future<TrackWays> matchWays({
+    required List<TrackPoint> points,
+    required double distanceM,
+  }) async {
     final backend = local;
-    if (backend == null) return TrackSurface.noRouting;
+    if (backend == null) return const TrackWays._(TrackSurfaceState.noRouting);
     if (points.length < 2 || distanceM < minDistanceM) {
-      return TrackSurface.unmatched;
+      return const TrackWays._(TrackSurfaceState.unmatched);
     }
 
     final waypoints = thinTrack(points);
-    if (waypoints.length < 2) return TrackSurface.unmatched;
+    if (waypoints.length < 2) {
+      return const TrackWays._(TrackSurfaceState.unmatched);
+    }
     final coverage = decide(RouteQuery(points: waypoints, profile: profile));
-    if (!coverage.hasLocalCoverage) return TrackSurface.noTiles;
+    if (!coverage.hasLocalCoverage) {
+      return const TrackWays._(TrackSurfaceState.noTiles);
+    }
 
     var lengthM = 0.0;
     final messages = <SegmentMessage>[];
@@ -164,18 +209,20 @@ class TrackSurfaceService {
           ),
         );
       } on RoutingException {
-        return TrackSurface.unmatched;
+        return const TrackWays._(TrackSurfaceState.unmatched);
       }
       lengthM += result.lengthM;
       messages.addAll(result.messages);
     }
 
     if ((lengthM - distanceM).abs() > tolerance * distanceM) {
-      return TrackSurface.unmatched;
+      return const TrackWays._(TrackSurfaceState.unmatched);
     }
-    final stats = SurfaceStats.fromMessages(messages, lengthM);
-    if (stats.totalLengthM <= 0) return TrackSurface.unmatched;
-    return TrackSurface.matched(stats);
+    return TrackWays._(
+      TrackSurfaceState.matched,
+      messages: messages,
+      lengthM: lengthM,
+    );
   }
 
   /// Consecutive runs of at most [maxPointsPerQuery] waypoints, each starting
