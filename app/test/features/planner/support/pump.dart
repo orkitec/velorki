@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:dio/dio.dart';
+import 'package:flutter/gestures.dart' show kTouchSlop;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -52,9 +55,32 @@ class _TestMapViewState extends State<TestMapView> {
     widget.onReady(widget.controller);
   }
 
+  /// Where each pointer on the map went down.
+  final Map<int, Offset> _down = <int, Offset>{};
+
   @override
-  Widget build(BuildContext context) =>
-      const ColoredBox(color: Color(0xFFDDDDDD));
+  Widget build(BuildContext context) {
+    final map = widget.controller;
+    // Only listens: whatever the map view gets, it gets as the native view
+    // would, and nothing it gets is taken from anything else.
+    return Listener(
+      onPointerDown: (event) {
+        _down[event.pointer] = event.localPosition;
+        map.touches++;
+        map.mostFingers = math.max(map.mostFingers, _down.length);
+      },
+      onPointerMove: (event) => map.dragged += event.delta,
+      onPointerUp: (event) {
+        final down = _down.remove(event.pointer);
+        if (down == null || !map.tapsAreTaps) return;
+        if ((event.localPosition - down).distance < kTouchSlop) {
+          map.onTap?.call(map.positionAt(event.localPosition));
+        }
+      },
+      onPointerCancel: (event) => _down.remove(event.pointer),
+      child: const ColoredBox(color: Color(0xFFDDDDDD)),
+    );
+  }
 }
 
 /// A [MapViewBuilder] that always produces [controller].

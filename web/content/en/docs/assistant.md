@@ -10,7 +10,7 @@ The assistant is part of [Velorki Plus](./velorki-plus).
 
 ## Open it
 
-Tap **Ask** in the toolbar of the route sheet on the **Plan** tab. The sheet is titled **Ask for a route**: "Describe the ride you have in mind. Velorki turns it into a request and plans the route on your phone."
+Tap **Ask** in the toolbar of the route sheet on the **Plan** tab. The assistant's card takes the route sheet's place, titled **Ask for a route**: "Describe the ride you have in mind. Velorki turns it into a request and plans the route on your phone." The map above it stays the map: move it, zoom it and tap it as with the route sheet up. Swipe the card down, or go back, and the route sheet is there again as you left it; what you typed and the answers stay for the next time.
 
 With a route on the map the sheet opens on **This route** instead, a question about that route (see [Ask about this route](#ask-about-this-route)); **New route** above it switches back.
 
@@ -52,7 +52,7 @@ If a name matches more than one place far apart, Velorki asks **Which Freiburg?*
 
 The sheet closes itself and the planner takes over:
 
-- **A loop with no particular place to pass** opens the [loop sheet](./loops) with the search already running.
+- **A loop with no particular place to pass** opens the [loop sheet](./loops) with the search already running. Once the search is done the loop sheet closes and the assistant comes back on **This route**, with what you asked for above the question, so you can ask about the loop straight away. If the search found no loop, it comes back on **New route** and says so. Close the loop sheet or do anything in it while it searches, and the search is yours: the assistant stays away.
 - **A loop through named places** becomes waypoints with the loop closed, and Velorki says "The route is on the map."
 - **A point-to-point route** becomes waypoints with the bike profile set, and again "The route is on the map."
 

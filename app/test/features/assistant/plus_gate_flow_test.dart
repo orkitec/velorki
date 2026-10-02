@@ -215,6 +215,10 @@ void main() {
         findsNothing,
       );
       // The field and the examples work.
+      await tester.ensureVisible(
+        _inSheet(find.text(l10n.assistantExampleFlatLoop)),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(_inSheet(find.text(l10n.assistantExampleFlatLoop)));
       await tester.pumpAndSettle();
       final field = _inSheet(find.byType(TextField));

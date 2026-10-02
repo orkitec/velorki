@@ -50,8 +50,12 @@ void main() {
       test('$name: the AI colours are their own and read on every surface', () {
         expect(colors.ai, dark ? velorkiAiDark : velorkiAiLight);
         expect(colors.aiEnd, dark ? velorkiAiEndDark : velorkiAiEndLight);
-        expect(colors.aiGradient.colors, [colors.ai, colors.aiEnd]);
-        for (final ai in [colors.ai, colors.aiEnd]) {
+        expect(colors.aiGradient.colors, [
+          colors.ai,
+          colors.aiMid,
+          colors.aiEnd,
+        ]);
+        for (final ai in [colors.ai, colors.aiMid, colors.aiEnd]) {
           expect(_distance(ai, colors.accent), greaterThan(0.2));
           expect(_distance(ai, theme.colorScheme.primary), greaterThan(0.2));
         }
@@ -64,7 +68,7 @@ void main() {
           scheme.surfaceContainerHigh,
           scheme.surfaceContainerHighest,
         ]) {
-          for (final ai in [colors.ai, colors.aiEnd]) {
+          for (final ai in [colors.ai, colors.aiMid, colors.aiEnd]) {
             expect(
               contrastRatio(ai, surface),
               greaterThanOrEqualTo(3),
@@ -103,14 +107,18 @@ void main() {
         );
         expect(find.byType(AiSparkle), findsOneWidget);
         final painted = await _painted(tester);
-        expect(painted.any((c) => _near(c, colors.ai)), isTrue);
-        // The glyph stops short of its box's far side, so the gradient's
-        // last colour need not be painted; it must clearly turn towards it.
+        // The glyph does not fill its box, so neither end of the gradient
+        // need be painted exactly; the sparkle must clearly show both halves.
+        final opaque = painted.where((c) => c.a > 0.98);
         expect(
-          painted.any(
-            (c) =>
-                c.a > 0.98 &&
-                _distance(c, colors.aiEnd) < _distance(c, colors.ai) / 2,
+          opaque.any(
+            (c) => _distance(c, colors.ai) < _distance(c, colors.aiEnd) / 2,
+          ),
+          isTrue,
+        );
+        expect(
+          opaque.any(
+            (c) => _distance(c, colors.aiEnd) < _distance(c, colors.ai) / 2,
           ),
           isTrue,
         );

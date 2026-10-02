@@ -15,6 +15,8 @@
 // many seconds, for `xcrun simctl io <udid> screenshot` from outside: the
 // in-test screenshot cannot see the map.
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
@@ -32,6 +34,7 @@ import 'package:velorki/features/assistant/presentation/assistant_sheet.dart';
 import 'package:velorki/features/assistant/presentation/describe_route_sheet.dart';
 import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
+import 'package:velorki/features/map/presentation/shared_map_host.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
@@ -40,8 +43,10 @@ import 'package:velorki/features/planner/presentation/route_format.dart';
 import 'package:velorki/features/search/data/gazetteer_store.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
 import 'package:velorki/features/shared/presentation/ai_mark.dart';
+import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki/features/smart_loop/application/smart_loop_controller.dart';
+import 'package:velorki/features/smart_loop/presentation/smart_loop_sheet.dart';
 import 'package:velorki/features/subscription/application/plus_access.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -167,11 +172,39 @@ Future<void> _send(WidgetTester tester) => tapAndPump(
   _inSheet(find.widgetWithText(FilledButton, _l10n(tester).assistantSend)),
 );
 
+/// Swipes the AI card away by its handle: there is no barrier to tap, the
+/// map above it is the map.
 Future<void> _closeSheet(WidgetTester tester) async {
-  await tester.tapAt(const Offset(40, 120));
+  await tester.fling(
+    find.descendant(
+      of: find.byKey(assistantSheetSurfaceKey),
+      matching: find.byType(SheetHandle),
+    ),
+    const Offset(0, 600),
+    2000,
+    warnIfMissed: false,
+  );
   await pumpFor(tester, const Duration(milliseconds: 800));
   expect(find.byType(AssistantSheet), findsNothing);
 }
+
+/// Says a pose worth a photograph is on screen and holds it, for
+/// `xcrun simctl io <udid> screenshot` from outside.
+Future<void> _pose(WidgetTester tester, String name) async {
+  debugPrint('VELORKI_POSE $name');
+  await pumpFor(tester, _hold);
+}
+
+/// Whether a touch at [at] reaches the native map view.
+bool _reachesMap(WidgetTester tester, Offset at) => tester
+    .hitTestOnBinding(at)
+    .path
+    .any(
+      (e) =>
+          e.target is RenderUiKitView ||
+          e.target is PlatformViewRenderBox ||
+          e.target is RenderAndroidView,
+    );
 
 /// The first café, else any place, of the digest [request] carries.
 Map<String, Object?> _stopOf(RecordedPlanRequest request) {
@@ -388,22 +421,29 @@ void main() {
     await _openAssistant(tester);
     await _type(tester, 'A 12 km loop from here');
     await _send(tester);
+    // The card makes way for the loop sheet, which goes by itself once the
+    // search is done, and the card comes back on the loop.
+    var searched = false;
     await waitUntil(
       tester,
-      () =>
-          find.byType(AssistantSheet).evaluate().isEmpty &&
-          !c.read(smartLoopControllerProvider).running,
-      describe: 'the loop search',
+      () {
+        if (find.byType(SmartLoopSheet).evaluate().isNotEmpty) searched = true;
+        return searched &&
+            find.byType(AssistantSheet).evaluate().isNotEmpty &&
+            !c.read(smartLoopControllerProvider).running;
+      },
+      describe: 'the loop search, and the AI card back',
       timeout: const Duration(seconds: 120),
     );
     await _waitRouted(tester, c, 'the loop');
-    // The loop sheet over the planner goes; the loop stays.
-    await tester.tapAt(const Offset(40, 120));
     await pumpFor(tester, const Duration(milliseconds: 800));
+    expect(find.byType(SmartLoopSheet), findsNothing);
     expect(c.read(plannerControllerProvider).isRoutable, isFalse);
-
-    await _openAssistant(tester);
     expect(_inSheet(find.text(l10n.assistantRouteTitle)), findsOneWidget);
+    expect(_inSheet(find.text(l10n.assistantLoopOnMap)), findsOneWidget);
+    await _pose(tester, 'ai-loop-back');
+    await screenshot(tester, 'ai-loop-back');
+
     await _type(tester, 'Coffee? Traffic?');
     await _send(tester);
     await waitUntil(
@@ -468,6 +508,101 @@ void main() {
     await screenshot(tester, 'ai-chip-field');
 
     await _closeSheet(tester);
+    c.read(plannerControllerProvider.notifier).clear();
+    await unmountApp(tester);
+  });
+
+  testWidgets('9 · with the AI card up the map stays the map, upright and '
+      'sideways: nothing over it, the camera moves beside the card, the card '
+      'turns with the phone, and back closes it onto the planner\'s card', (
+    tester,
+  ) async {
+    addTearDown(
+      () => SystemChrome.setPreferredOrientations(const [
+        DeviceOrientation.portraitUp,
+      ]),
+    );
+    final relay = MockRelay();
+    final c = await _boot(tester, relay);
+    await _planRoute(tester, c);
+    final card = tester.getRect(find.byType(DockingSheetShell));
+    await _openAssistant(tester);
+    expect(find.byType(DockingSheetShell), findsNothing);
+    final map = c.read(sharedMapControllerProvider)!;
+
+    /// Beside the card, the map takes the touch, and the camera moves
+    /// there while the card stays up.
+    Future<void> moveBeside(String pose) async {
+      final sheet = tester.getRect(find.byKey(assistantSheetSurfaceKey));
+      final size = tester.view.physicalSize / tester.view.devicePixelRatio;
+      final sideways = size.width > size.height;
+      final at = !sideways
+          ? Offset(size.width / 3, sheet.top - 120)
+          : sheet.center.dx > size.width / 2
+          ? Offset(sheet.left - 150, size.height / 2 + 40)
+          : Offset(sheet.right + 150, size.height / 2 + 40);
+      expect(_reachesMap(tester, at), isTrue, reason: '$pose: the map at $at');
+      // The route in view beside the card, then the camera pans across
+      // while the card stays: a frame of it every few seconds from outside.
+      final route = c.read(plannerControllerProvider).result!;
+      await map.fitBounds(
+        BoundingBox.fromPoints(route.positions),
+        padding: !sideways
+            ? EdgeInsets.fromLTRB(40, 170, 90, size.height - sheet.top + 30)
+            : sheet.center.dx > size.width / 2
+            ? EdgeInsets.fromLTRB(60, 90, size.width - sheet.left + 40, 40)
+            : EdgeInsets.fromLTRB(sheet.right + 40, 90, 60, 40),
+      );
+      await pumpFor(tester, const Duration(seconds: 2));
+      final before = map.center!;
+      final zoom = map.zoom ?? 13;
+      debugPrint('VELORKI_POSE $pose');
+      for (var step = 1; step <= 12; step++) {
+        await map.moveTo(
+          LatLng(before.lat - 0.0012 * step, before.lon + 0.002 * step),
+          zoom: zoom,
+          duration: const Duration(milliseconds: 600),
+        );
+        await pumpFor(tester, const Duration(milliseconds: 900));
+      }
+      await pumpFor(tester, const Duration(seconds: 1));
+      expect(map.center!.lat, isNot(closeTo(before.lat, 0.001)));
+      expect(find.byType(AssistantSheet), findsOneWidget);
+      expect(tester.getRect(find.byKey(assistantSheetSurfaceKey)), sheet);
+    }
+
+    await moveBeside('ai-map-upright');
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+    ]);
+    await waitUntil(tester, () {
+      final size = tester.view.physicalSize;
+      return size.width > size.height;
+    }, describe: 'the screen to turn');
+    await pumpFor(tester, const Duration(seconds: 2));
+    // Turned with the phone, beside the rail, as the planner's card.
+    final sideways = tester.getRect(find.byKey(assistantSheetSurfaceKey));
+    final height =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    expect(sideways.height, closeTo(height, 1));
+    await moveBeside('ai-map-sideways');
+
+    await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    await waitUntil(tester, () {
+      final size = tester.view.physicalSize;
+      return size.width < size.height;
+    }, describe: 'the screen to turn back');
+    await pumpFor(tester, const Duration(seconds: 2));
+    expect(find.byType(AssistantSheet), findsOneWidget);
+
+    // Back closes it, onto the planner's card as it was.
+    await tester.binding.handlePopRoute();
+    await pumpFor(tester, const Duration(seconds: 1));
+    expect(find.byType(AssistantSheet), findsNothing);
+    expect(
+      tester.getRect(find.byType(DockingSheetShell)).top,
+      closeTo(card.top, 1),
+    );
     c.read(plannerControllerProvider.notifier).clear();
     await unmountApp(tester);
   });

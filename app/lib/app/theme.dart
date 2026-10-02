@@ -97,6 +97,7 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
   const VelorkiColors({
     required this.accent,
     required this.ai,
+    required this.aiMid,
     required this.aiEnd,
     required this.routeMain,
     required this.routeMainCasing,
@@ -121,18 +122,22 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
   /// The vivid accent, for figures and indicators.
   final Color accent;
 
-  /// What marks the AI's work: its sparkle, its answer, its card. A violet
-  /// none of the [AccentPreset]s comes near, so it reads as the AI whatever
-  /// accent the rider picked; flat where it has to stay legible (a line, a
-  /// hairline), and the start of [aiGradient] elsewhere.
+  /// What marks the AI's work: its sparkle, its answer, its card. Blue,
+  /// through [aiMid] violet to [aiEnd] fuchsia, a run none of the
+  /// [AccentPreset]s comes near, so it reads as the AI whatever accent the
+  /// rider picked; flat where it has to stay legible, the start of
+  /// [aiGradient] elsewhere.
   final Color ai;
 
-  /// The far end of [aiGradient]: a bluish magenta, clear of the berry
-  /// accent's pink.
+  /// The middle of [aiGradient]: violet.
+  final Color aiMid;
+
+  /// The far end of [aiGradient]: fuchsia, clear of the berry accent's pink.
   final Color aiEnd;
 
-  /// The AI's sparkle and its card's edge, from [ai] to [aiEnd].
-  LinearGradient get aiGradient => LinearGradient(colors: <Color>[ai, aiEnd]);
+  /// The AI's sparkle and its card's edge: [ai], [aiMid], [aiEnd].
+  LinearGradient get aiGradient =>
+      LinearGradient(colors: <Color>[ai, aiMid, aiEnd]);
 
   /// The main route line.
   final Color routeMain;
@@ -198,6 +203,7 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
   VelorkiColors copyWith({
     Color? accent,
     Color? ai,
+    Color? aiMid,
     Color? aiEnd,
     Color? routeMain,
     Color? routeMainCasing,
@@ -220,6 +226,7 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
   }) => VelorkiColors(
     accent: accent ?? this.accent,
     ai: ai ?? this.ai,
+    aiMid: aiMid ?? this.aiMid,
     aiEnd: aiEnd ?? this.aiEnd,
     routeMain: routeMain ?? this.routeMain,
     routeMainCasing: routeMainCasing ?? this.routeMainCasing,
@@ -248,6 +255,7 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
     return VelorkiColors(
       accent: mix(accent, other.accent),
       ai: mix(ai, other.ai),
+      aiMid: mix(aiMid, other.aiMid),
       aiEnd: mix(aiEnd, other.aiEnd),
       routeMain: mix(routeMain, other.routeMain),
       routeMainCasing: mix(routeMainCasing, other.routeMainCasing),
@@ -430,20 +438,27 @@ ColorScheme _lightScheme(AccentPreset p) => ColorScheme(
 const Color _ink = _inkLight;
 
 /// [VelorkiColors.ai] on light surfaces: at least 4.5:1 on every one.
-const Color velorkiAiLight = Color(0xFF4F46E5);
+const Color velorkiAiLight = Color(0xFF2563EB);
+
+/// [VelorkiColors.aiMid] on light surfaces.
+const Color velorkiAiMidLight = Color(0xFF7C3AED);
 
 /// [VelorkiColors.aiEnd] on light surfaces: at least 3:1 on every one.
-const Color velorkiAiEndLight = Color(0xFFC2259E);
+const Color velorkiAiEndLight = Color(0xFFC026D3);
 
 /// [VelorkiColors.ai] on dark surfaces.
-const Color velorkiAiDark = Color(0xFF9EA6FF);
+const Color velorkiAiDark = Color(0xFF818CF8);
+
+/// [VelorkiColors.aiMid] on dark surfaces.
+const Color velorkiAiMidDark = Color(0xFFC084FC);
 
 /// [VelorkiColors.aiEnd] on dark surfaces.
-const Color velorkiAiEndDark = Color(0xFFF58CE6);
+const Color velorkiAiEndDark = Color(0xFFF0ABFC);
 
 VelorkiColors _darkColors(AccentPreset p, ColorScheme scheme) => VelorkiColors(
   accent: p.dark,
   ai: velorkiAiDark,
+  aiMid: velorkiAiMidDark,
   aiEnd: velorkiAiEndDark,
   routeMain: p.route,
   routeMainCasing: _inkDark,
@@ -472,6 +487,7 @@ VelorkiColors _darkColors(AccentPreset p, ColorScheme scheme) => VelorkiColors(
 VelorkiColors _lightColors(AccentPreset p, ColorScheme scheme) => VelorkiColors(
   accent: p.light,
   ai: velorkiAiLight,
+  aiMid: velorkiAiMidLight,
   aiEnd: velorkiAiEndLight,
   // The deep variant: the bright one washes out on pale roads and parks.
   routeMain: p.routeOnLight,

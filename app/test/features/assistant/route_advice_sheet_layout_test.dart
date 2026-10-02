@@ -1,5 +1,6 @@
 // The assistant sheet in the app's shell: where it opens, upright and
 // sideways, how it is pulled up and away, and what it keeps when it goes.
+import 'package:flutter/gestures.dart' show HitTestTarget;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +15,8 @@ import 'package:velorki/features/assistant/data/ai_consent_controller.dart';
 import 'package:velorki/features/assistant/domain/ai_consent.dart';
 import 'package:velorki/features/assistant/presentation/assistant_sheet.dart';
 import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
+import 'package:velorki/features/map/presentation/map_controls.dart';
+import 'package:velorki/features/map/presentation/shared_map_host.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/domain/routing_options.dart';
@@ -21,13 +24,17 @@ import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/shared/presentation/ai_mark.dart';
+import 'package:velorki/features/search/presentation/search_field.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
+import 'package:velorki/features/shared/presentation/floating_bar.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki_api/velorki_api.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
 import '../integrations/support/fakes.dart';
+import '../planner/support/fakes.dart' show TestMapController;
+import '../planner/support/pump.dart' show TestMapView;
 import '../recording/support/pump.dart';
 import 'support/fakes.dart';
 
@@ -99,6 +106,18 @@ Finder _inSheet(Finder finder) =>
     find.descendant(of: find.byType(AssistantSheet), matching: finder);
 
 Finder get _surface => find.byKey(assistantSheetSurfaceKey);
+
+/// What the floating bar covers at the screen's bottom upright.
+const double _barInset = 21 + floatingBarBottomGap + floatingBarHeight;
+
+/// Whether [target] is a render object under [ancestor].
+bool _inside(HitTestTarget target, RenderObject ancestor) {
+  if (target is! RenderObject) return false;
+  for (RenderObject? node = target; node != null; node = node.parent) {
+    if (node == ancestor) return true;
+  }
+  return false;
+}
 
 ProviderContainer _container(WidgetTester tester) =>
     ProviderScope.containerOf(tester.element(find.byType(PlannerScreen)));
@@ -220,7 +239,9 @@ void main() {
     final button = tester.getRect(
       _inSheet(find.widgetWithText(FilledButton, l10n.assistantSend)),
     );
-    expect(button.bottom, lessThanOrEqualTo(_upright.height - 21));
+    // Above the floating bar, which lies over the card's end as over the
+    // planner's card.
+    expect(button.bottom, lessThanOrEqualTo(_upright.height - _barInset));
 
     // Pulled up by its handle, it opens as far as the planner's card does.
     await tester.drag(
@@ -333,7 +354,7 @@ void main() {
     final button = tester.getRect(
       _inSheet(find.widgetWithText(FilledButton, l10n.assistantSend)),
     );
-    expect(button.bottom, lessThanOrEqualTo(_upright.height - 21));
+    expect(button.bottom, lessThanOrEqualTo(_upright.height - _barInset));
   });
 
   testWidgets('sideways, a drag on the content scrolls it and leaves the '
@@ -443,6 +464,9 @@ void main() {
     await _open(tester);
     expect(_inSheet(find.text(l10n.assistantTitle)), findsOneWidget);
     expect(_fieldText(tester), 'A flat loop');
+    // The field is in view at rest; the modes are above it.
+    await tester.ensureVisible(find.text(l10n.assistantModeRoute));
+    await tester.pumpAndSettle();
     await tester.tap(find.text(l10n.assistantModeRoute));
     await tester.pumpAndSettle();
     expect(_inSheet(find.text(_advice.answer)), findsOneWidget);
@@ -457,6 +481,8 @@ void main() {
         .loadSavedRoute(_route());
     await tester.pumpAndSettle();
     await _open(tester);
+    await tester.ensureVisible(find.text(l10n.assistantModeRoute));
+    await tester.pumpAndSettle();
     await tester.tap(find.text(l10n.assistantModeRoute));
     await tester.pumpAndSettle();
     expect(_inSheet(find.text(_advice.answer)), findsNothing);
@@ -470,6 +496,8 @@ void main() {
     await _app(tester, _upright);
     await _open(tester);
     final rest = tester.getRect(_surface);
+    await tester.tap(_inSheet(find.byType(TextField)));
+    await tester.pump();
 
     // The keyboard comes up over a few frames, and goes again.
     for (final inset in [100.0, 200.0, 300.0, 336.0]) {
@@ -493,6 +521,105 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.getRect(_surface).top, closeTo(rest.top, 1));
   });
+
+  testWidgets('the keyboard of the planner\'s search, above the card, leaves '
+      'the card where it is, under the keyboard', (tester) async {
+    await _app(tester, _upright);
+    await _open(tester);
+    final rest = tester.getRect(_surface);
+    final search = find.descendant(
+      of: find.byType(SearchField),
+      matching: find.byType(TextField),
+    );
+    await tester.tap(search);
+    await tester.pump();
+    tester.view.viewInsets = const FakeViewPadding(bottom: 336.0 * 3);
+    await tester.pumpAndSettle();
+    expect(tester.getRect(_surface), rest);
+    expect(find.byType(AssistantSheet), findsOneWidget);
+    tester.view.resetViewInsets();
+    await tester.pumpAndSettle();
+    expect(tester.getRect(_surface), rest);
+  });
+
+  for (final side in <RailSide?>[null, RailSide.right]) {
+    final size = side == null ? _upright : _sideways;
+    final name = side == null ? 'upright' : 'sideways';
+    testWidgets('$name: with the AI card up the map beside it is the map: '
+        'no barrier, a drag and a pinch reach the map, a tap puts a waypoint '
+        'there as with the planner\'s card, and back closes the card onto '
+        'the planner\'s card as it was', (tester) async {
+      if (side != null) _railOn(tester, side);
+      await _app(tester, size);
+      final container = _container(tester);
+      final map =
+          container.read(sharedMapControllerProvider)! as TestMapController;
+      final card = tester.getRect(find.byType(DockingSheetShell));
+
+      await _open(tester);
+      final sheet = tester.getRect(_surface);
+      expect(find.byType(DockingSheetShell), findsNothing);
+      expect(find.byType(BottomSheet), findsNothing);
+      // A point of the map clear of the card, the chrome and the column.
+      final at = side == null
+          ? Offset(size.width / 3, sheet.top - 120)
+          : Offset(sheet.left - 150, size.height / 2 + 40);
+      final view = tester.renderObject(find.byType(TestMapView));
+      bool reachesMap(Offset point) =>
+          tester.hitTestOnBinding(point).path.any((e) => e.target == view);
+      expect(reachesMap(at), isTrue, reason: 'nothing over the map');
+
+      // A drag pans, two fingers pinch.
+      await tester.dragFrom(at, const Offset(0, 80));
+      await tester.pumpAndSettle();
+      expect(map.dragged.dy, greaterThan(70));
+      final a = await tester.startGesture(at - const Offset(30, 0));
+      final b = await tester.startGesture(at + const Offset(30, 0));
+      await a.moveBy(const Offset(-40, 0));
+      await b.moveBy(const Offset(40, 0));
+      await a.up();
+      await b.up();
+      await tester.pumpAndSettle();
+      expect(map.mostFingers, 2);
+      expect(tester.getRect(_surface), sheet);
+
+      // A tap puts a waypoint, the card stays.
+      map.tapsAreTaps = true;
+      await tester.tapAt(at);
+      await tester.pumpAndSettle();
+      expect(container.read(plannerControllerProvider).waypoints, hasLength(3));
+      expect(find.byType(AssistantSheet), findsOneWidget);
+      expect(tester.getRect(_surface), sheet);
+
+      // Upright the control column stands above the card, and takes its
+      // taps; sideways it lies under the card at rest, as under the
+      // planner's.
+      if (side == null) {
+        final column = tester.getRect(find.byType(MapControls));
+        expect(column.bottom, lessThan(sheet.top));
+        final button = tester.renderObject(find.byType(MapControls));
+        expect(
+          tester
+              .hitTestOnBinding(column.center)
+              .path
+              .any((e) => e.target == button || _inside(e.target, button)),
+          isTrue,
+        );
+      }
+
+      // Back closes it, onto the planner's card as it was.
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byType(AssistantSheet), findsNothing);
+      expect(tester.getRect(find.byType(DockingSheetShell)), card);
+      // And the next back is the app's again.
+      expect(
+        Navigator.of(tester.element(find.byType(PlannerScreen))).canPop(),
+        isFalse,
+      );
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   /// How far the sheet reaches out from its end of the screen, along its
   /// travel: up from the bottom upright, out from the rail's side sideways.
@@ -700,6 +827,7 @@ void main() {
       final painter = edge.foregroundPainter! as AiEdgePainter;
       expect(painter.gradient.colors, [
         dark ? velorkiAiDark : velorkiAiLight,
+        dark ? velorkiAiMidDark : velorkiAiMidLight,
         dark ? velorkiAiEndDark : velorkiAiEndLight,
       ]);
       final theme = Theme.of(tester.element(_surface));

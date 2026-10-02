@@ -9,6 +9,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 import '../../../app/router.dart';
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../assistant/application/assistant_sheet_memory.dart';
 import '../../assistant/application/route_advice_controller.dart';
 import '../../assistant/domain/intent_resolver.dart';
 import '../../assistant/presentation/assistant_sheet.dart';
@@ -30,6 +31,7 @@ import '../../shared/presentation/adaptive_docking_sheet.dart';
 import '../../shared/presentation/docking_sheet.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/tab_chrome_slide.dart';
+import '../../smart_loop/application/smart_loop_controller.dart';
 import '../../smart_loop/presentation/smart_loop_sheet.dart';
 import '../application/planner_controller.dart';
 import '../application/planner_map_binding.dart';
@@ -668,13 +670,21 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   /// fallback start. A loop the sheet made, closed or re-routed is fitted
   /// into the visible map once the sheet is gone: the start may have been
   /// off screen, and the sheet itself covered most of the map until now.
-  Future<void> _smartLoop() async {
+  ///
+  /// With [returnWhenDone], for a search the assistant started, the sheet
+  /// closes by itself once that search is done; answers whether it did.
+  Future<bool> _smartLoop({bool returnWhenDone = false}) async {
     final before = ref.read(plannerControllerProvider).result;
-    await showSmartLoopSheet(context, map: _map, chromeTop: _ownControlsTop);
-    if (!mounted) return;
+    final done = await showSmartLoopSheet(
+      context,
+      map: _map,
+      chromeTop: _ownControlsTop,
+      returnWhenDone: returnWhenDone,
+    );
+    if (!mounted) return false;
     final result = ref.read(plannerControllerProvider).result;
-    if (result == null || identical(result, before)) return;
-    _fitRoute(result);
+    if (result != null && !identical(result, before)) _fitRoute(result);
+    return done;
   }
 
   /// Fits [result] into the map between this tab's chrome and its sheet.
@@ -689,35 +699,97 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     );
   }
 
-  /// Opens the assistant, then shows whatever it produced.
+  /// Whether the assistant's card stands in the sheet's place: the plan's
+  /// card waits, hidden, where it was, and comes back so when the AI's
+  /// card goes.
+  bool _assistantOpen = false;
+
+  /// The entry that makes the system's back close the assistant's card,
+  /// while it is open.
+  LocalHistoryEntry? _assistantBack;
+
+  /// Opens the assistant in the sheet's place.
   ///
-  /// A loop with no place to ride past is already running as a loop search
-  /// when the sheet closes, so the loop sheet opens on top of it and shows
-  /// the result as it arrives. Everything else — a loop through places, a
-  /// point-to-point route — is already on the map.
-  ///
-  /// A rider known to be without Plus gets the sheet all the same, to look
+  /// A rider known to be without Plus gets the card all the same, to look
   /// around in, with Subscribe where Ask would be.
-  Future<void> _ask() async {
-    final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    final intent = await showAssistantSheet(context, map: _map);
-    if (!mounted || intent == null) return;
-    if (intent is LoopIntent) {
-      if (intent.via.isEmpty) {
-        await _smartLoop();
-      } else {
-        messenger.showSnackBar(
-          SnackBar(content: Text(l10n.assistantRouteHandedOver)),
-        );
-      }
+  Future<void> _ask() async => _openAssistant();
+
+  void _openAssistant() {
+    if (_assistantOpen || !mounted) return;
+    setState(() => _assistantOpen = true);
+    // Not docked: the AI's card is up, at the plan's card's resting height.
+    _reportDocked(false);
+    _onSheetExtent(_restingSheetSize);
+    late final LocalHistoryEntry entry;
+    entry = LocalHistoryEntry(
+      onRemove: () {
+        // Back: the entry went by itself.
+        if (!identical(_assistantBack, entry)) return;
+        _assistantBack = null;
+        _assistantClosed(null);
+      },
+    );
+    _assistantBack = entry;
+    ModalRoute.of(context)?.addLocalHistoryEntry(entry);
+  }
+
+  /// The assistant's card asked to go, with what it handed over.
+  void _closeAssistant(ResolvedIntent? intent) {
+    final entry = _assistantBack;
+    _assistantBack = null;
+    entry?.remove();
+    _assistantClosed(intent);
+  }
+
+  /// The assistant's card has gone: the plan's card is back as it was, and
+  /// whatever the assistant produced is shown.
+  ///
+  /// A loop with no place to ride past is running as a loop search, so the
+  /// loop sheet opens on it and the card comes back once it is done. Anything
+  /// else — a loop through places, a point-to-point route — is on the map.
+  void _assistantClosed(ResolvedIntent? intent) {
+    if (!_assistantOpen || !mounted) return;
+    setState(() => _assistantOpen = false);
+    if (_sheet.isAttached) _onSheetExtent(_sheet.size);
+    if (intent == null) return;
+    if (intent is LoopIntent && intent.via.isEmpty) {
+      unawaited(_loopForAssistant(intent));
       return;
     }
-    if (intent is RouteIntent) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.assistantRouteHandedOver)),
+    if (intent is LoopIntent || intent is RouteIntent) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).assistantRouteHandedOver),
+        ),
       );
     }
+  }
+
+  /// Shows the loop search the assistant started for [intent] and, once it
+  /// is done, brings the assistant back: asking about the loop when one is
+  /// on the map, saying so when none was found. A rider who closed the loop
+  /// sheet or took the search over meanwhile is left where they are.
+  Future<void> _loopForAssistant(LoopIntent intent) async {
+    // The card goes as the intent is ready, a moment before the search it
+    // starts is under way.
+    await Future<void>.value();
+    if (!mounted) return;
+    final running = ref.read(smartLoopControllerProvider).running;
+    // Done before the sheet could open: nothing to watch.
+    final done = running ? await _smartLoop(returnWhenDone: true) : true;
+    if (!mounted || !done || _assistantOpen) return;
+    final planner = ref.read(plannerControllerProvider);
+    final loop = ref.read(smartLoopControllerProvider);
+    final found = loop.current != null && canAskAboutRoute(planner);
+    if (!running && planner.result != null) _fitRoute(planner.result!);
+    ref.read(assistantSheetMemoryProvider)
+      ..loop = LoopHandover(
+        intent: intent,
+        found: found,
+        ends: found ? planEnds(planner) : null,
+      )
+      ..mode = found ? AssistantMode.thisRoute : AssistantMode.newRoute;
+    _openAssistant();
   }
 
   Future<void> _save() async {
@@ -972,58 +1044,72 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                       ),
                     ),
             ),
-            AdaptiveDockingSheet(
-              controller: _sheet,
-              // Enough for the headline, the toolbar and Save above the
-              // floating navigation bar on a 20:9 phone.
-              initialExtent: restingSheetSize,
-              collapsedExtent: collapsedSheetSize,
-              maxExtent: _maxSheetSize,
-              // One resting height, not one per state: with two in the list
-              // a pull down from the top settled on the higher one and a pull
-              // up from the handle on the lower one, a chip row apart.
-              snapSizes: _snapSizesFor(restingSheetSize),
-              gripDp: sheetGripWithTitleDp,
-              dockedRange: dockedRange,
-              docks: true,
-              dockedBottomInset: bottomInset,
-              onDocked: _reportDocked,
-              onExtent: _onSheetExtent,
-              // Its own scrolling, at any height of the sheet; the
-              // sheet moves by its handle.
-              child: Builder(
-                // Looked up from inside the shell, which hands the controller down.
-                builder: (context) => ListView(
-                  controller: SheetContentScroll.maybeOf(context),
-                  padding: EdgeInsets.fromLTRB(
-                    20,
-                    0,
-                    20,
-                    MediaQuery.paddingOf(context).bottom + 24,
-                  ),
-                  children: [
-                    _SheetHeader(state: state),
-                    const SizedBox(height: 14),
-                    // The variants right under the figures, where the sheet
-                    // grows to show them; then the actions, so Loop and Save
-                    // are visible at the sheet's resting height.
-                    if (hasVariants) ...[
-                      _AlternativeChips(state: state),
-                      const SizedBox(height: 12),
-                    ],
-                    _PlannerActions(
-                      state: state,
-                      onAlternatives: _loadAlternatives,
-                      onSmartLoop: _smartLoop,
-                      onAsk: _ask,
-                      onSave: _save,
+            Offstage(
+              offstage: _assistantOpen,
+              child: AdaptiveDockingSheet(
+                controller: _sheet,
+                // Enough for the headline, the toolbar and Save above the
+                // floating navigation bar on a 20:9 phone.
+                initialExtent: restingSheetSize,
+                collapsedExtent: collapsedSheetSize,
+                maxExtent: _maxSheetSize,
+                // One resting height, not one per state: with two in the list
+                // a pull down from the top settled on the higher one and a pull
+                // up from the handle on the lower one, a chip row apart.
+                snapSizes: _snapSizesFor(restingSheetSize),
+                gripDp: sheetGripWithTitleDp,
+                dockedRange: dockedRange,
+                docks: true,
+                dockedBottomInset: bottomInset,
+                onDocked: _reportDocked,
+                onExtent: _onSheetExtent,
+                // Its own scrolling, at any height of the sheet; the
+                // sheet moves by its handle.
+                child: Builder(
+                  // Looked up from inside the shell, which hands the controller down.
+                  builder: (context) => ListView(
+                    controller: SheetContentScroll.maybeOf(context),
+                    padding: EdgeInsets.fromLTRB(
+                      20,
+                      0,
+                      20,
+                      MediaQuery.paddingOf(context).bottom + 24,
                     ),
-                    const SizedBox(height: 16),
-                    _SheetBody(state: state),
-                  ],
+                    children: [
+                      _SheetHeader(state: state),
+                      const SizedBox(height: 14),
+                      // The variants right under the figures, where the sheet
+                      // grows to show them; then the actions, so Loop and Save
+                      // are visible at the sheet's resting height.
+                      if (hasVariants) ...[
+                        _AlternativeChips(state: state),
+                        const SizedBox(height: 12),
+                      ],
+                      _PlannerActions(
+                        state: state,
+                        onAlternatives: _loadAlternatives,
+                        onSmartLoop: _smartLoop,
+                        onAsk: _ask,
+                        onSave: _save,
+                      ),
+                      const SizedBox(height: 16),
+                      _SheetBody(state: state),
+                    ],
+                  ),
                 ),
               ),
             ),
+            // The AI's card, in the sheet's place: no barrier, so the map
+            // above it is the planner's map as ever.
+            if (_assistantOpen)
+              Positioned.fill(
+                child: AssistantSheet(
+                  map: _map,
+                  chromeTop: _ownControlsTop,
+                  onClose: _closeAssistant,
+                  onExtent: _onSheetExtent,
+                ),
+              ),
           ],
         ),
       ),

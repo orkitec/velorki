@@ -53,7 +53,7 @@ class AiEdgePainter extends CustomPainter {
   const AiEdgePainter({
     required this.gradient,
     required this.radius,
-    this.width = 2,
+    this.width = 3,
   });
 
   /// The line's colours, across the card.
@@ -84,7 +84,14 @@ class AiEdgePainter extends CustomPainter {
     canvas.drawPath(
       path,
       Paint()
-        ..shader = gradient.createShader(Offset.zero & size)
+        // Swept round the card's bottom middle, so the colour changes all
+        // the way along the line: up one side, over the top, down the other.
+        ..shader = SweepGradient(
+          center: Alignment.bottomCenter,
+          startAngle: math.pi,
+          endAngle: 2 * math.pi,
+          colors: gradient.colors,
+        ).createShader(Offset.zero & size)
         ..style = PaintingStyle.stroke
         ..strokeWidth = width
         ..strokeCap = StrokeCap.round,

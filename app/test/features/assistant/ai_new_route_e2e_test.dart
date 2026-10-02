@@ -22,11 +22,15 @@ import 'package:velorki/features/map/data/position_provider.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
+import 'package:velorki/features/shared/presentation/ai_mark.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
+import 'package:velorki/features/smart_loop/application/smart_loop_controller.dart';
+import 'package:velorki/features/smart_loop/presentation/smart_loop_sheet.dart';
 import 'package:velorki/features/subscription/data/subscription_service.dart';
 import 'package:velorki/features/subscription/domain/plus_subscription.dart';
 import 'package:velorki/features/subscription/presentation/paywall_screen.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
+import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
@@ -483,10 +487,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(_problem(l10n.assistantRateLimited(6)), findsOneWidget);
 
-      // Swiped away by a tap on the map above it.
-      await tester.tapAt(const Offset(500, 40));
-      await tester.pumpAndSettle();
-      expect(find.byType(AssistantSheet), findsNothing);
+      // Swiped away.
+      await closeAssistant(tester);
 
       await _tapAsk(tester);
       expect(sheetField(tester).controller!.text, _prompt);
@@ -498,6 +500,109 @@ void main() {
       expect(_problem(l10n.assistantRateLimited(6)), findsNothing);
       expect(c.read(assistantControllerProvider), const AssistantState());
       expect(inSheet(find.text(l10n.assistantStartOver)), findsNothing);
+    });
+  });
+
+  group('10 · a loop the assistant hands to the loop search', () {
+    /// A loop from here with no place to ride past: the loop search's.
+    RelayReply loop() => RelayReply.stream([
+      SseFrame.routeRequest({
+        'distance_km': 12,
+        'loop': true,
+        'via': <String>[],
+        'stops': <String>[],
+      }),
+      SseFrame.done(),
+    ]);
+
+    /// Sends the loop, and waits for the loop sheet to take over.
+    Future<void> handOver(WidgetTester tester) async {
+      await _send(tester, prompt: 'A 12 km loop from here');
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(find.byType(SmartLoopSheet), findsOneWidget);
+      expect(find.byType(AssistantSheet), findsNothing);
+    }
+
+    /// Pumps through the search, its progress bar never settling.
+    Future<void> search(WidgetTester tester, ProviderContainer c) async {
+      for (var i = 0; i < 300; i++) {
+        await tester.pump(const Duration(milliseconds: 200));
+        if (!c.read(smartLoopControllerProvider).running) break;
+      }
+      expect(c.read(smartLoopControllerProvider).running, isFalse);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('that finds none brings the card back by itself, on New '
+        'route, with what was asked for and that no loop was found', (
+      tester,
+    ) async {
+      final relay = MockRelay(schemas: spec.check)..reply(loop());
+      final (harness, c) = await _openSheet(tester, relay);
+      harness.backend
+        ..delay = const Duration(milliseconds: 300)
+        ..error = const RoutingException(
+          kind: RoutingErrorKind.noRoute,
+          message: 'no way out',
+        );
+      await handOver(tester);
+      await search(tester, c);
+
+      expect(find.byType(SmartLoopSheet), findsNothing);
+      expect(find.byType(AssistantSheet), findsOneWidget);
+      expect(inSheet(find.text(l10n.assistantTitle)), findsOneWidget);
+      final missed = inSheet(find.text(l10n.assistantLoopNotFound));
+      expect(missed, findsOneWidget);
+      expect(
+        find.ancestor(of: missed, matching: find.byType(AiAnswer)),
+        findsOneWidget,
+      );
+      expect(sheetField(tester).controller!.text, 'A 12 km loop from here');
+      expect(sheetUnlocked(tester), isTrue);
+      // Nothing on the map to ask about.
+      expect(inSheet(find.text(l10n.assistantModeRoute)), findsNothing);
+
+      // Start over: the news goes with the request.
+      await tapInSheet(tester, find.text(l10n.assistantStartOver));
+      expect(inSheet(find.text(l10n.assistantLoopNotFound)), findsNothing);
+    });
+
+    testWidgets('closed by the rider while it searches, the loop sheet does '
+        'not bring the card back', (tester) async {
+      final relay = MockRelay(schemas: spec.check)..reply(loop());
+      final (harness, c) = await _openSheet(tester, relay);
+      harness.backend.delay = const Duration(seconds: 2);
+      await handOver(tester);
+
+      Navigator.of(tester.element(find.byType(SmartLoopSheet))).pop();
+      await search(tester, c);
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 200));
+      }
+      expect(find.byType(SmartLoopSheet), findsNothing);
+      expect(find.byType(AssistantSheet), findsNothing);
+    });
+
+    testWidgets('stopped by the rider in the loop sheet, the search is '
+        'theirs: the loop sheet stays and the card does not come back', (
+      tester,
+    ) async {
+      final relay = MockRelay(schemas: spec.check)..reply(loop());
+      final (harness, c) = await _openSheet(tester, relay);
+      harness.backend.delay = const Duration(seconds: 2);
+      await handOver(tester);
+
+      final stop = find.widgetWithText(TextButton, l10n.loopStop);
+      await tester.ensureVisible(stop);
+      await tester.tap(stop);
+      await search(tester, c);
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 200));
+      }
+      expect(find.byType(SmartLoopSheet), findsOneWidget);
+      expect(find.byType(AssistantSheet), findsNothing);
     });
   });
 }

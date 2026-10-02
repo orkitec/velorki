@@ -15,6 +15,7 @@ import 'package:velorki/features/assistant/presentation/assistant_sheet.dart';
 import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
 import 'package:velorki/features/search/data/gazetteer_store.dart';
 import 'package:velorki/features/settings/data/language_controller.dart';
+import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -107,9 +108,12 @@ class Madeira {
   /// The digest service over both.
   final RouteDigestService digests;
 
-  /// The overrides that put them in the app.
+  /// The overrides that put them in the app: the gazetteer too, which the
+  /// app would otherwise look for in the app support directory, a plugin
+  /// call no test answers.
   List<Override> get overrides => [
     routeDigestServiceProvider.overrideWithValue(digests),
+    gazetteerStoreProvider.overrideWith((ref) async => gazetteer),
   ];
 
   /// Closes the files.
@@ -120,17 +124,20 @@ class Madeira {
 }
 
 /// Pumps until [done], letting real files and isolates run between frames,
-/// which pumping alone does not.
+/// which pumping alone does not. Each round moves the test's clock by
+/// [step]: work with a deadline of its own in that clock (the loop search)
+/// wants small steps, so that it has the real time it needs.
 Future<void> settle(
   WidgetTester tester,
   bool Function() done, {
   String? what,
+  Duration step = const Duration(milliseconds: 200),
 }) async {
   // Routing on the tile happens in real time, and a CI runner is several
   // times slower than a laptop: bounded by the clock, not by a count.
   final clock = Stopwatch()..start();
   while (!done() && clock.elapsed < const Duration(seconds: 90)) {
-    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pump(step);
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 50)),
     );
@@ -158,4 +165,20 @@ Future<void> tapInSheet(WidgetTester tester, Finder finder) async {
   await tester.pumpAndSettle();
   await tester.tap(target);
   await tester.pumpAndSettle();
+}
+
+/// Swipes the AI card away by its handle, as the rider does: there is no
+/// barrier to tap, the map above it is the map.
+Future<void> closeAssistant(WidgetTester tester) async {
+  await tester.fling(
+    find.descendant(
+      of: find.byKey(assistantSheetSurfaceKey),
+      matching: find.byType(SheetHandle),
+    ),
+    const Offset(0, 600),
+    2000,
+    warnIfMissed: false,
+  );
+  await tester.pumpAndSettle();
+  expect(find.byType(AssistantSheet), findsNothing);
 }

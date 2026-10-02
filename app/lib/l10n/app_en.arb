@@ -2460,6 +2460,14 @@
   "@assistantRouteHandedOver": {
     "description": "Snack bar when the waypoints were handed to the planner"
   },
+  "assistantLoopOnMap": "The loop is on the map. Ask about it below.",
+  "@assistantLoopOnMap": {
+    "description": "Under the summary of a loop the assistant asked the loop search for, when the AI card comes back with the loop on the map"
+  },
+  "assistantLoopNotFound": "The loop search found no loop for this. Try another distance or start.",
+  "@assistantLoopNotFound": {
+    "description": "Under the summary of a loop the assistant asked the loop search for, when the search found none"
+  },
   "assistantPlusRequired": "This feature requires Velorki Plus.",
   "@assistantPlusRequired": {
     "description": "Where the Ask or Describe button would be, for a rider without Velorki Plus, beside a Subscribe button."

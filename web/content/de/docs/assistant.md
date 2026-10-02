@@ -10,7 +10,7 @@ Der Assistent gehört zu [Velorki Plus](./velorki-plus).
 
 ## Öffnen
 
-Tippe in der Leiste der Routenübersicht im Tab **Planen** auf **Fragen**. Das Fenster heißt **Nach einer Route fragen**: "Beschreibe die geplante Fahrt. Velorki macht daraus eine Anfrage und plant die Route auf dem Handy."
+Tippe in der Leiste der Routenübersicht im Tab **Planen** auf **Fragen**. Die Karte des Assistenten tritt an die Stelle der Routenübersicht und heißt **Nach einer Route fragen**: "Beschreibe die geplante Fahrt. Velorki macht daraus eine Anfrage und plant die Route auf dem Handy." Die Karte darüber bleibt die Karte: verschieben, zoomen und antippen wie bei offener Routenübersicht. Wisch die Karte nach unten oder geh zurück, und die Routenübersicht ist wieder da, wie du sie verlassen hast; was du eingetippt hast und die Antworten bleiben für das nächste Mal.
 
 Liegt eine Route auf der Karte, öffnet das Fenster stattdessen auf **Diese Route**, mit einer Frage zu dieser Route (siehe [Nach dieser Route fragen](#nach-dieser-route-fragen)); **Neue Route** darüber schaltet zurück.
 
@@ -52,7 +52,7 @@ Passt ein Name auf mehrere weit auseinanderliegende Orte, fragt Velorki **Freibu
 
 Das Fenster schließt sich von selbst und der Planer übernimmt:
 
-- **Eine Runde ohne bestimmten Ort zum Vorbeifahren** öffnet das [Rundenfenster](./loops) mit bereits laufender Suche.
+- **Eine Runde ohne bestimmten Ort zum Vorbeifahren** öffnet das [Rundenfenster](./loops) mit bereits laufender Suche. Ist die Suche fertig, schließt sich das Rundenfenster und der Assistent kommt auf **Diese Route** zurück, mit deiner Anfrage über der Frage, damit du gleich nach der Runde fragen kannst. Hat die Suche keine Runde gefunden, kommt er auf **Neue Route** zurück und sagt das. Schließt du das Rundenfenster oder tust darin etwas, während es sucht, gehört die Suche dir: der Assistent bleibt weg.
 - **Eine Runde über benannte Orte** wird zu Wegpunkten mit geschlossener Runde, und Velorki sagt "Die Route liegt auf der Karte."
 - **Eine Route von A nach B** wird zu Wegpunkten mit gesetztem Radprofil, und wieder "Die Route liegt auf der Karte."
 

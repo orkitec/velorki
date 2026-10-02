@@ -359,7 +359,10 @@ those is retried with the bearing rotated 18° and the round-trip radius
 corrected by how far the answer missed the target; a strategy that has produced
 nothing keeps rotating up to three times.
 
-**Assistant.** A bottom sheet over the planner, reading `PlannerState`. On first
+**Assistant.** A card in the Plan tab's sheet slot in place of the planner's
+card (no modal: the map beside it stays the map), reading `PlannerState`. A
+loop it hands to the loop search brings the card back, on that loop, once the
+search is done. On first
 open a consent dialog stores `aiConsent: denied | textOnly | withLocation`. The
 relay returns a structured `RouteIntent` (loop, point-to-point, or a
 modification of the current plan); the pure-Dart `IntentResolver` geocodes its

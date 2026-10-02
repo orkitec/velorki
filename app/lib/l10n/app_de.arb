@@ -472,6 +472,8 @@
   "assistantChoose": "{name} – welcher Ort?",
   "assistantLoopStarted": "Suche nach Runden…",
   "assistantRouteHandedOver": "Die Route liegt auf der Karte.",
+  "assistantLoopOnMap": "Die Runde liegt auf der Karte. Frag unten dazu.",
+  "assistantLoopNotFound": "Die Rundensuche hat dafür keine Runde gefunden. Versuch eine andere Distanz oder einen anderen Start.",
   "assistantPlusRequired": "Für diese Funktion brauchst du Velorki Plus.",
   "assistantNotEntitled": "Der KI-Assistent gehört zu Velorki Plus.",
   "assistantConsentNeeded": "Der Assistent braucht deine Zustimmung, bevor er etwas senden kann.",

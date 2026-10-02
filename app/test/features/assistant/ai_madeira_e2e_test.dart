@@ -28,9 +28,11 @@ import 'package:velorki/features/planner/domain/routing_options.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/planner/presentation/route_format.dart';
+import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/features/shared/presentation/ai_mark.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki/features/smart_loop/application/smart_loop_controller.dart';
+import 'package:velorki/features/smart_loop/presentation/smart_loop_sheet.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -181,9 +183,10 @@ double _kept(RouteResult before, RouteResult after) {
 Future<void> _stopAndAvoid(
   WidgetTester tester,
   ProviderContainer c,
-  MockRelay relay,
-) async {
-  await _openAssistant(tester);
+  MockRelay relay, {
+  bool open = true,
+}) async {
+  if (open) await _openAssistant(tester);
   await _ask(tester, c);
   final cafe = _cafe(relay.last);
   for (final label in [l10n.assistantFixAddStop, l10n.assistantFixAvoid]) {
@@ -333,9 +336,7 @@ void main() {
     expect(inSheet(find.text(l10n.assistantFixApplied)), findsNWidgets(3));
 
     // Undo, on the planner, takes the three back one by one.
-    await tester.tapAt(const Offset(500, 40));
-    await tester.pumpAndSettle();
-    expect(find.byType(AssistantSheet), findsNothing);
+    await closeAssistant(tester);
     final undo = find.widgetWithText(LabeledIconButton, l10n.plannerUndo);
     for (var i = 0; i < 3; i++) {
       await tester.ensureVisible(undo);
@@ -433,8 +434,7 @@ void main() {
       findsOne,
     );
 
-    await tester.tapAt(const Offset(500, 40));
-    await tester.pumpAndSettle();
+    await closeAssistant(tester);
     await _openAssistant(tester);
     expect(inSheet(find.text(answer)), findsOne);
     expect(sheetField(tester).controller!.text, _question);
@@ -534,8 +534,9 @@ void main() {
     });
 
     testWidgets('a loop the assistant made: New route asks for a loop, the '
-        'loop search puts it on the map, This route asks about it, and Add '
-        'as stop, Avoid and Undo all work on it', (tester) async {
+        'loop search puts it on the map, the AI card comes back by itself '
+        'on This route with what was asked for, and Add as stop, Avoid and '
+        'Undo all work on the loop', (tester) async {
       await openMadeira(tester);
       final relay = MockRelay(schemas: spec.check)
         ..reply(
@@ -566,17 +567,49 @@ void main() {
       await tester.tap(
         inSheet(find.widgetWithText(FilledButton, l10n.assistantSend)),
       );
+      // The card makes way for the loop sheet while the search runs.
+      var searched = false;
       await settle(
         tester,
-        () =>
-            find.byType(AssistantSheet).evaluate().isEmpty &&
-            _routed(c) &&
-            !c.read(smartLoopControllerProvider).running,
-        what: 'the loop on the map',
+        () {
+          if (find.byType(SmartLoopSheet).evaluate().isNotEmpty &&
+              find.byType(AssistantSheet).evaluate().isEmpty &&
+              c.read(smartLoopControllerProvider).running) {
+            searched = true;
+          }
+          return searched &&
+              find.byType(AssistantSheet).evaluate().isNotEmpty &&
+              _routed(c) &&
+              !c.read(smartLoopControllerProvider).running;
+        },
+        what: 'the loop on the map and the AI card back',
+        // The loop search gives up after its own 25 s deadline, a timer in
+        // the test's fake time: 200 ms a round left it some 125 rounds of
+        // real routing, too few on a busy or slow runner (CI), where it then
+        // found nothing. Small steps leave it the real time it needs.
+        step: const Duration(milliseconds: 20),
       );
-      // The loop sheet over the planner goes, the loop stays.
-      await tester.tapAt(const Offset(500, 40));
       await tester.pumpAndSettle();
+      // The loop sheet went by itself, the loop stays, and the card is back
+      // on This route with what was asked for above the question.
+      expect(find.byType(SmartLoopSheet), findsNothing);
+      expect(inSheet(find.text(l10n.assistantRouteTitle)), findsOne);
+      final made = inSheet(find.text(l10n.assistantLoopOnMap));
+      expect(made, findsOne);
+      expect(
+        find.ancestor(of: made, matching: find.byType(AiAnswer)),
+        findsOne,
+      );
+      expect(
+        inSheet(
+          find.text(
+            l10n.assistantSummaryLoop(
+              formatDistance(l10n, UnitSystem.metric, 12000),
+            ),
+          ),
+        ),
+        findsOne,
+      );
       final loop = c.read(plannerControllerProvider).result!;
       expect(
         c.read(plannerControllerProvider).isRoutable,
@@ -584,7 +617,7 @@ void main() {
         reason: 'a round trip comes with its start alone',
       );
 
-      await _stopAndAvoid(tester, c, relay);
+      await _stopAndAvoid(tester, c, relay, open: false);
       expect(relay.requests.last.step, 'route');
       final after = c.read(plannerControllerProvider).result!;
       expect(
@@ -592,9 +625,11 @@ void main() {
         lessThan(300),
       );
       expect(_kept(loop, after), greaterThan(0.4));
+      // The stop changed where the loop starts and ends no more than the
+      // loop: still that loop, still said so.
+      expect(inSheet(find.text(l10n.assistantLoopOnMap)), findsOne);
 
-      await tester.tapAt(const Offset(500, 40));
-      await tester.pumpAndSettle();
+      await closeAssistant(tester);
       final undo = find.widgetWithText(LabeledIconButton, l10n.plannerUndo);
       for (var i = 0; i < 2; i++) {
         await tester.ensureVisible(undo);

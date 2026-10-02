@@ -28,10 +28,16 @@ import '../domain/loops.dart';
 /// [map] is the planner's own map controller, used as the fallback start when
 /// there is no plan and no position. The sheet draws nothing itself: the loop
 /// it makes goes straight into the planner, which already draws its route.
-Future<void> showSmartLoopSheet(
+///
+/// With [returnWhenDone] the sheet closes by itself once the search running
+/// as it opens is done, unless the rider took the search over meanwhile;
+/// answers whether it did. The assistant, which started that search, then
+/// comes back.
+Future<bool> showSmartLoopSheet(
   BuildContext context, {
   MapController? map,
   double chromeTop = defaultMapControlsTop,
+  bool returnWhenDone = false,
 }) async {
   final container = ProviderScope.containerOf(context, listen: false);
   // A search the assistant has just started keeps running; anything older is
@@ -39,16 +45,21 @@ Future<void> showSmartLoopSheet(
   if (!container.read(smartLoopControllerProvider).running) {
     container.read(smartLoopControllerProvider.notifier).reset();
   }
-  await showModalBottomSheet<void>(
+  final done = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
     // The shell's floating navigation bar belongs to the branch navigator, so
     // a sheet opened there would sit under it.
     useRootNavigator: true,
-    builder: (context) => SmartLoopSheet(map: map, chromeTop: chromeTop),
+    builder: (context) => SmartLoopSheet(
+      map: map,
+      chromeTop: chromeTop,
+      returnWhenDone: returnWhenDone,
+    ),
   );
   container.read(smartLoopControllerProvider.notifier).cancel();
+  return done ?? false;
 }
 
 /// One sheet, two jobs: close the planned route into a loop, or make a loop
@@ -64,6 +75,7 @@ class SmartLoopSheet extends ConsumerStatefulWidget {
     super.key,
     this.map,
     this.chromeTop = defaultMapControlsTop,
+    this.returnWhenDone = false,
   });
 
   /// The planner's map, for the map-centre fallback and the fit of a loop
@@ -73,6 +85,12 @@ class SmartLoopSheet extends ConsumerStatefulWidget {
   /// How far the planner's chrome reaches below the safe area, so that fit
   /// keeps clear of it.
   final double chromeTop;
+
+  /// Whether the sheet closes by itself, with `true`, once the search
+  /// running as it opens is done: the assistant started it and takes over
+  /// again. Anything the rider does in the sheet meanwhile makes the search
+  /// theirs, and the sheet stays.
+  final bool returnWhenDone;
 
   @override
   ConsumerState<SmartLoopSheet> createState() => _SmartLoopSheetState();
@@ -95,6 +113,13 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
   bool _closed = false;
   bool _fromMapCentre = false;
   String? _problem;
+
+  /// Whether the rider has done something in the sheet, so the search is
+  /// theirs: see [SmartLoopSheet.returnWhenDone].
+  bool _riderTookOver = false;
+
+  /// The rider did something in the sheet.
+  void _takeOver() => _riderTookOver = true;
 
   @override
   void initState() {
@@ -144,6 +169,7 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
   }
 
   Future<void> _make() async {
+    _takeOver();
     final l10n = AppLocalizations.of(context);
     final profile = ref.read(plannerControllerProvider).options.profile;
     final previous = ref.read(smartLoopControllerProvider).request;
@@ -218,6 +244,20 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
     ) {
       if (next != null && !identical(next, previous)) _fitAboveSheet(next);
     });
+    if (widget.returnWhenDone) {
+      ref.listen(smartLoopControllerProvider.select((s) => s.running), (
+        was,
+        running,
+      ) {
+        if (was != true || running || _riderTookOver) return;
+        _riderTookOver = true;
+        // After the frame: the loop goes into the planner right after the
+        // search says it is done.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) Navigator.of(context).pop(true);
+        });
+      });
+    }
 
     return ConstrainedBox(
       constraints: BoxConstraints(
@@ -311,7 +351,10 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
     const SizedBox(height: 8),
     ProfileChipRow(
       selected: ref.watch(plannerControllerProvider).options.profile,
-      onSelected: ref.read(plannerControllerProvider.notifier).setProfile,
+      onSelected: (profile) {
+        _takeOver();
+        ref.read(plannerControllerProvider.notifier).setProfile(profile);
+      },
     ),
   ];
 
@@ -372,7 +415,10 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
         Align(
           alignment: Alignment.centerRight,
           child: TextButton(
-            onPressed: ref.read(smartLoopControllerProvider.notifier).cancel,
+            onPressed: () {
+              _takeOver();
+              ref.read(smartLoopControllerProvider.notifier).cancel();
+            },
             child: Text(l10n.loopStop),
           ),
         ),
@@ -441,6 +487,7 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
     subtitle: Text(l10n.loopDifferentWayBackHint),
     value: _differentWayBack,
     onChanged: (v) {
+      _takeOver();
       setState(() => _differentWayBack = v);
       // A loop that is already on the map is redrawn on the spot; one that is
       // not yet made only remembers the choice.

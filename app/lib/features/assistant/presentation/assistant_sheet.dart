@@ -16,8 +16,11 @@ import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/device_position_request.dart';
+import '../../map/presentation/map_chrome.dart';
+import '../../map/presentation/visible_map_padding.dart';
 import '../../planner/application/planner_controller.dart';
 import '../../planner/domain/avoid_area.dart';
+import '../../planner/domain/planner_state.dart';
 import '../../planner/domain/route_profile.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../settings/data/units.dart';
@@ -38,46 +41,44 @@ import 'assistant_strings.dart';
 
 export '../application/assistant_sheet_memory.dart' show AssistantMode;
 
-/// Opens the assistant over the planner.
-///
-/// Answers with the intent that was handed over — a [LoopIntent] means a loop
-/// search is already running and the caller should show the loop sheet, a
-/// [RouteIntent] means the waypoints are on the map — or `null` when the
-/// rider closed the sheet without a result.
-///
-/// The sheet opens as high as the planner's own sheet rests, so the route
-/// stays in view above it, and is pulled up to read a long answer. Sideways
-/// it is turned with the shell, out from the rail's side as the planner's
-/// sheet is. Swiped away it keeps what it showed: see [AssistantSheetMemory]
-/// and [RouteAdviceController].
-Future<ResolvedIntent?> showAssistantSheet(
-  BuildContext context, {
-  MapController? map,
-}) => showModalBottomSheet<ResolvedIntent>(
-  context: context,
-  isScrollControlled: true,
-  // Over the shell's floating navigation bar, not under it.
-  useRootNavigator: true,
-  // The sheet draws its own surface, where the planner's sheet would be:
-  // the route above it stays in view, undimmed but for a touch.
-  backgroundColor: Colors.transparent,
-  elevation: 0,
-  barrierColor: Colors.black12,
-  constraints: const BoxConstraints(),
-  // Dragged by its handle and its content, either way up.
-  enableDrag: false,
-  builder: (context) => AssistantSheet(map: map),
-);
-
 /// "A hilly 60 km loop from here past the lake", as a text field; or, with a
 /// route on the map, a question about it.
+///
+/// The AI's card, in the Plan tab's sheet slot in place of the planner's
+/// card: it rests as high as the planner's card rests, under the same bar
+/// and beside the same rail, turned with the shell sideways, and is pulled up
+/// to read a long answer. It is no modal: the map above it is the planner's
+/// map as ever, panned, zoomed and tapped as with the planner's card up.
+///
+/// It goes with [onClose]: swiped away (`null`), or with the intent that was
+/// handed over — a [LoopIntent] means a loop search is already running and
+/// the planner should show the loop sheet, a [RouteIntent] means the
+/// waypoints are on the map. Gone, it keeps what it showed: see
+/// [AssistantSheetMemory] and [RouteAdviceController].
 class AssistantSheet extends ConsumerStatefulWidget {
   /// Creates the sheet.
-  const AssistantSheet({super.key, this.map});
+  const AssistantSheet({
+    required this.onClose,
+    super.key,
+    this.map,
+    this.chromeTop = defaultMapControlsTop,
+    this.onExtent,
+  });
 
   /// The planner's map, used to bias the geocoder towards what is on screen
   /// and to show what an answer about the route points at.
   final MapController? map;
+
+  /// Called once the card is to go, with what it handed over, if anything.
+  final ValueChanged<ResolvedIntent?> onClose;
+
+  /// How far the planner's chrome reaches below the safe area, which a
+  /// place or a stretch shown on the map keeps clear of.
+  final double chromeTop;
+
+  /// Called with the share of the screen's length the card covers, as the
+  /// planner's sheet reports its extent, for the tab that comes next.
+  final ValueChanged<double>? onExtent;
 
   @override
   ConsumerState<AssistantSheet> createState() => _AssistantSheetState();
@@ -137,11 +138,24 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
 
   late final AssistantSheetMemory _memory;
 
-  /// Whether the route on the map may be asked about, decided when the
-  /// sheet opens: a fix being applied re-routes the plan, and the choice of
-  /// modes must not flicker while it does.
-  late final bool _routeAvailable;
+  /// Whether the route on the map may be asked about: decided when the
+  /// sheet opens, and changed only once the plan has a route or is cleared,
+  /// since a fix being applied re-routes the plan and the choice of
+  /// modes must not flicker while it does. See [_planChanged].
+  late bool _routeAvailable;
   late AssistantMode _mode;
+
+  /// Whether the focus is in the card: only then does it rise over the
+  /// keyboard. The planner's search field, above it, opens the keyboard
+  /// too, and the card then stays under it as the planner's card does.
+  bool _focused = false;
+
+  /// The quarter turns and the stops of the last build: a turn of the phone
+  /// keeps the card where the rider left it among the new stops.
+  int? _turns;
+
+  /// The screen's length along the card's travel, at the last build.
+  double _length = 0;
 
   @override
   void initState() {
@@ -159,6 +173,23 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
     // The chips under the field follow what is in it.
     _prompt.addListener(_promptChanged);
     _question.addListener(_promptChanged);
+    _showField();
+  }
+
+  /// At rest under the bar the card shows the head of its content; the
+  /// field is what the rider came for, so it is in view from the start and
+  /// after a turn of the phone, the head scrolled up as far as that takes.
+  void _showField() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final field = _fieldKey.currentContext;
+      if (!mounted || field == null || !field.mounted) return;
+      unawaited(
+        Scrollable.ensureVisible(
+          field,
+          alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+        ),
+      );
+    });
   }
 
   bool _empty = true;
@@ -184,8 +215,10 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
   }
 
   /// Clears the question, the answer and its findings of the mode on
-  /// screen; the mode stays.
+  /// screen; the mode stays, and the loop the assistant made is no longer
+  /// news.
   void _startOver() {
+    _memory.loop = null;
     if (_mode == AssistantMode.thisRoute) {
       ref.read(routeAdviceControllerProvider.notifier).reset();
       _question.clear();
@@ -334,9 +367,9 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
     });
   }
 
-  /// What of the map is not under this sheet, as padding for the camera:
-  /// the sheet rises from the bottom upright and comes out from a side
-  /// sideways.
+  /// What of the map is neither under this card nor under the planner's
+  /// chrome and control column, as padding for the camera: the card rises
+  /// from the bottom upright and comes out from a side sideways.
   EdgeInsets _uncovered() {
     final media = MediaQuery.of(context);
     final size = media.size;
@@ -347,12 +380,13 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
             box.getTransformTo(null),
             Offset.zero & box.size,
           );
-    var left = 32.0;
-    var right = 32.0;
-    var bottom = 32.0;
-    final top = media.padding.top + 32;
-    // A sheet that leaves next to nothing still gets a sliver to aim at.
+    var left = 24.0;
+    var right = 24.0 + mapControlsWidth(context);
+    var bottom = 24.0;
+    final top = media.viewPadding.top + widget.chromeTop + 24;
+    // A card that leaves next to nothing still gets a sliver to aim at.
     if (sheet.height >= size.height - 1 && sheet.width < size.width - 1) {
+      right = 24;
       final covered = math.min(sheet.width + 24, size.width - 160);
       if (sheet.center.dx < size.width / 2) {
         left = covered;
@@ -360,9 +394,9 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
         right = covered;
       }
     } else {
-      bottom = math.min(size.height - sheet.top + 24, size.height - 160);
+      bottom = math.min(size.height - sheet.top + 24, size.height - top - 120);
     }
-    return EdgeInsets.fromLTRB(left, top, right, bottom);
+    return EdgeInsets.fromLTRB(left, top, right, math.max(bottom, 24));
   }
 
   /// Moves the map to what finding [finding] is about: its place, which the
@@ -469,7 +503,7 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
     if (below &&
         (fling > 700 || size < (stops.collapsed + stops.resting) / 2)) {
       drag.cancel();
-      unawaited(Navigator.of(context).maybePop());
+      widget.onClose(null);
       return;
     }
     drag.end(
@@ -554,23 +588,68 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
 
   bool _sheetMoved(DraggableScrollableNotification notification) {
     final room = _room;
-    if (room != null) _heightDp = notification.extent * room;
+    if (room != null) {
+      _heightDp = notification.extent * room;
+      _reportExtent(notification.extent * room);
+    }
     return false;
+  }
+
+  /// Tells the planner how much of the screen's length the card covers,
+  /// [dp] of it.
+  void _reportExtent(double dp) {
+    if (_length > 0) widget.onExtent?.call((dp / _length).clamp(0.0, 1.0));
+  }
+
+  /// The phone turned since the last build: the card is moved, after this
+  /// frame, to the same place among the new stops as it had among the old
+  /// ones, as the planner's card is ([AdaptiveDockingSheet]). Its height in
+  /// dp means nothing the other way up.
+  void _keepPlace(int turns, SheetStops? from, SheetStops to) {
+    final before = _turns;
+    _turns = turns;
+    if (before == null || before == turns || from == null) return;
+    _heightDp = null;
+    if (!_sheet.isAttached) return;
+    final target = mapSheetExtent(_sheet.size, from: from, to: to);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _sheet.isAttached) _sheet.jumpTo(target);
+      _showField();
+    });
+  }
+
+  /// The plan changed under the card: a route that came makes "This route"
+  /// a choice, and a plan with no route left takes it away.
+  void _planChanged(PlannerState? before, PlannerState now) {
+    final can = canAskAboutRoute(now);
+    if (can == _routeAvailable) return;
+    // Routed again, by a fix or a waypoint the rider moved, or failing to
+    // be: the choice stays for as long as there is a plan.
+    if (!can && now.hasPoints) return;
+    setState(() {
+      _routeAvailable = can;
+      if (!can) _mode = AssistantMode.newRoute;
+      _empty = _field.text.trim().isEmpty;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final media = MediaQuery.of(context);
-    final layout = ShellLayout.resolve(media.size, ref.watch(railSideProvider));
-    final geometry = SheetGeometry.overShell(media, layout);
+    // The tab's own: its padding counts the bar, or the rail sideways,
+    // as the planner's card's does.
+    final layout = ShellLayout.of(context);
+    final geometry = SheetGeometry.of(context);
     final turns = shellQuarterTurns(layout);
+    _length = geometry.length;
 
     ref.listen(assistantControllerProvider, (previous, next) {
       if (next.phase != AssistantPhase.ready || !mounted) return;
+      if (previous?.phase == AssistantPhase.ready) return;
       // Everything that could be done has been done: a loop search is running
       // or the waypoints are on the map. The planner takes it from here.
-      Navigator.of(context).pop(next.intent);
+      widget.onClose(next.intent);
     });
+    ref.listen(plannerControllerProvider, _planChanged);
     ref.listen(
       assistantControllerProvider.select((s) => _notEntitled(s.problem)),
       _revealProblem,
@@ -600,39 +679,40 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
       _revealProblem,
     );
 
-    return SizedBox.expand(
-      child: Stack(
-        children: [
-          // The modal's barrier, which the full-screen frame below covers.
-          Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => unawaited(Navigator.of(context).maybePop()),
-            ),
-          ),
-          QuarterTurnedFrame(
-            quarterTurns: turns,
-            child: Builder(
-              builder: (context) => _turnedSheet(context, geometry, turns),
-            ),
-          ),
-        ],
+    // No barrier: outside the card, every touch is the map's, or the
+    // planner chrome's over it. The sheet below takes only its own.
+    return Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      onFocusChange: (focused) {
+        if (focused != _focused) setState(() => _focused = focused);
+      },
+      child: QuarterTurnedFrame(
+        quarterTurns: turns,
+        child: Builder(
+          builder: (context) => _turnedSheet(context, geometry, turns),
+        ),
       ),
     );
   }
 
   /// The sheet in the frame turned with the shell: rising from the frame's
-  /// bottom over the keyboard, its content turned back upright.
+  /// bottom, over the keyboard while the focus is in it, its content turned
+  /// back upright.
   Widget _turnedSheet(BuildContext context, SheetGeometry geometry, int turns) {
     final media = MediaQuery.of(context);
     final theme = Theme.of(context);
+    final layout = ShellLayout.of(context);
+    final sideways = turns != 0;
+    // Sideways the turned sheet's end lies under the rail: the content,
+    // upright again, keeps clear of it there, as the planner's does.
+    final end = sideways ? geometry.endInset : 0.0;
     return Padding(
-      padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
+      padding: EdgeInsets.only(bottom: _focused ? media.viewInsets.bottom : 0),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final room = constraints.maxHeight;
-          // The modal takes the top safe area out of its media: the
-          // phone's own, turned with the frame.
+          // The phone's own safe area at the far end, turned with the frame.
           final view = View.of(context);
           final far = turnInsets(
             EdgeInsets.fromViewPadding(view.viewPadding, view.devicePixelRatio),
@@ -651,7 +731,9 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
               ? 0.5
               : (geometry.restingDp / room).clamp(0.2, max);
           // Where the planner's card docks, this one goes; see [_release].
+          final before = _stops;
           _stops = SheetStops(collapsed: rest * 0.5, resting: rest, max: max);
+          _keepPlace(turns, before, _stops!);
           _keepHeight(room, max);
           return NotificationListener<DraggableScrollableNotification>(
             onNotification: _sheetMoved,
@@ -707,11 +789,21 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
                             quarterTurns: 4 - turns,
                             // A drag on the content scrolls it, whatever the
                             // sheet's height: the handle moves the sheet.
-                            child: turns == 0
+                            child: !sideways
                                 ? _content(context, sideways: false)
-                                : _keptWide(
-                                    _content(context, sideways: true),
-                                    railOnLeft: turns == 1,
+                                : Padding(
+                                    padding: layout.side == RailSide.left
+                                        ? EdgeInsets.only(left: end)
+                                        : EdgeInsets.only(right: end),
+                                    child: MediaQuery.removePadding(
+                                      context: context,
+                                      removeLeft: true,
+                                      removeRight: true,
+                                      child: _keptWide(
+                                        _content(context, sideways: true),
+                                        railOnLeft: turns == 1,
+                                      ),
+                                    ),
                                   ),
                           ),
                         ),
@@ -768,13 +860,31 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
         ? !advice.isEmpty || _question.text.isNotEmpty
         : state != const AssistantState() || _prompt.text.isNotEmpty;
     final media = MediaQuery.of(context);
-    final keyboard = MediaQuery.viewInsetsOf(context).bottom > 0;
-    // Sideways the safe area at the rail's end lies under the turned
-    // sheet's bottom, not under its content's.
-    final bottomSafe = keyboard || sideways ? 0.0 : media.viewPadding.bottom;
+    // Over the keyboard, nothing of the bar or the safe area is in the way;
+    // under the keyboard (the planner's search has it) nothing shows anyway.
+    final keyboard = media.viewInsets.bottom > 0;
+    // Upright the bar floats over the card's end, as over the planner's
+    // card; sideways the rail is beside the content, and the home
+    // indicator under it.
+    final bottomSafe = keyboard ? 0.0 : media.padding.bottom;
+    // Sideways the keyboard comes up across the card, not under it: the
+    // content keeps above it.
+    final lift = sideways && _focused ? media.viewInsets.bottom : 0.0;
     final plusMissing =
         ref.watch(plusAccessProvider(PlusFeature.aiAssistant)) ==
         PlusAccess.missing;
+    // The loop the assistant asked the loop search for, now on the map: what
+    // was asked for stays in view above the question about it, for as long
+    // as the plan is that loop.
+    final handover = _memory.loop;
+    final ends = ref.watch(plannerControllerProvider.select(planEnds));
+    final loopMade =
+        aboutRoute &&
+        handover != null &&
+        handover.found &&
+        identical(state.intent, handover.intent) &&
+        state.request != null &&
+        ends == handover.ends;
 
     final header = Padding(
       padding: const EdgeInsets.fromLTRB(0, 4, 0, 12),
@@ -824,7 +934,7 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
       ),
     );
 
-    return Column(
+    final column = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(
@@ -845,6 +955,15 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     header,
+                    if (loopMade) ...[
+                      AiAnswer(
+                        child: _RequestSummary(
+                          state: state,
+                          note: l10n.assistantLoopOnMap,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     // Not having Plus is said first, where it is seen, rather
                     // than under the answer it stands in for.
                     if (notEntitled != null) ...[
@@ -931,6 +1050,37 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
         ),
       ],
     );
+    final body = lift > 0
+        ? Padding(
+            padding: EdgeInsets.only(bottom: lift),
+            child: column,
+          )
+        : column;
+    // Pulled down on its way out, the card's end goes under the bar and the
+    // screen's edge, as the planner's card's does, rather than squeezing the
+    // button row.
+    final least = 140 + bottomSafe + lift;
+    return LayoutBuilder(
+      builder: (context, constraints) => constraints.maxHeight >= least
+          ? body
+          : ClipRect(
+              child: OverflowBox(
+                alignment: Alignment.topCenter,
+                minHeight: least,
+                maxHeight: least,
+                child: body,
+              ),
+            ),
+    );
+  }
+
+  /// Whether [state] is the request the assistant handed to the loop
+  /// search, which found no loop for it.
+  bool _loopMissed(AssistantState state) {
+    final handover = _memory.loop;
+    return handover != null &&
+        !handover.found &&
+        identical(state.intent, handover.intent);
   }
 
   /// Under the field, asking for a new route: examples or wishes, then what
@@ -976,7 +1126,12 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
         const SizedBox(height: 16),
         AiAnswer(
           key: _answerKey,
-          child: _RequestSummary(state: state),
+          child: _RequestSummary(
+            state: state,
+            // The loop search it was handed to came back with nothing.
+            note: _loopMissed(state) ? l10n.assistantLoopNotFound : null,
+            noteIsProblem: true,
+          ),
         ),
       ],
       if (state.phase == AssistantPhase.needsChoice)
@@ -1285,9 +1440,19 @@ class ButtonProgress extends StatelessWidget {
 
 /// What the model asked for, once it is resolved enough to show.
 class _RequestSummary extends ConsumerWidget {
-  const _RequestSummary({required this.state});
+  const _RequestSummary({
+    required this.state,
+    this.note,
+    this.noteIsProblem = false,
+  });
 
   final AssistantState state;
+
+  /// A line under it: what became of it.
+  final String? note;
+
+  /// Whether [note] says that something did not work.
+  final bool noteIsProblem;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1339,6 +1504,23 @@ class _RequestSummary extends ConsumerWidget {
                   avatar: const Icon(Icons.place_outlined, size: 18),
                   label: Text(place.label),
                 ),
+            ],
+          ),
+        ],
+        if (note != null) ...[
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                noteIsProblem ? Icons.error_outline : Icons.loop_rounded,
+                size: 20,
+                color: noteIsProblem
+                    ? theme.colorScheme.error
+                    : theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 8),
+              Expanded(child: Text(note!, style: theme.textTheme.bodyMedium)),
             ],
           ),
         ],
