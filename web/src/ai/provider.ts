@@ -55,6 +55,7 @@ export function withReasoningEffort(
 export interface Prompts {
   plan: string;
   describe: string;
+  route: string;
 }
 
 /**
@@ -78,6 +79,7 @@ export function loadPrompts(dir: string = PROMPT_DIR): Prompts {
   return {
     plan: stripLicenseHeader(readFileSync(join(dir, 'plan.v1.md'), 'utf8')),
     describe: stripLicenseHeader(readFileSync(join(dir, 'describe.v1.md'), 'utf8')),
+    route: stripLicenseHeader(readFileSync(join(dir, 'route.v1.md'), 'utf8')),
   };
 }
 

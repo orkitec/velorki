@@ -3,7 +3,8 @@ import { streamText, type LanguageModel } from 'ai';
 import type { PlanRequest, RouteDigest } from './schema';
 import { modelId, type LlmUsage } from './plan';
 
-type Units = PlanRequest['units'];
+export type Units = PlanRequest['units'];
+type RouteSummary = NonNullable<PlanRequest['route_summary']>;
 
 const MI_PER_KM = 0.621371;
 const FT_PER_M = 3.28084;
@@ -87,28 +88,34 @@ function describeDigest(digest: RouteDigest, units: Units): string[] {
 
 /** Build the user turn for the description step from the computed route. */
 export function buildDescribePrompt(body: PlanRequest): string {
-  const summary = body.route_summary;
-  const units = body.units;
-  const lines = [`Rider request: ${body.prompt}`, `Units: ${units}`, `Locale: ${body.locale}`];
-
-  if (summary !== undefined) {
-    lines.push(
-      `Distance: ${distance(summary.distance_km, units)}`,
-      `Total ascent: ${height(summary.ascent_m, units)}`,
-      `Surface mix: ${describeSurface(summary.surface)}`,
-    );
-    if (summary.waypoints && summary.waypoints.length > 0) {
-      lines.push(`Waypoints: ${summary.waypoints.map(oneLine).join(', ')}`);
-    }
-    if (summary.highlights && summary.highlights.length > 0) {
-      lines.push(`Highlights: ${summary.highlights.map(oneLine).join(', ')}`);
-    }
-    if (summary.digest !== undefined) {
-      lines.push(...describeDigest(summary.digest, units));
-    }
+  const lines = [`Rider request: ${body.prompt}`, `Units: ${body.units}`, `Locale: ${body.locale}`];
+  if (body.route_summary !== undefined) {
+    lines.push(...describeSummary(body.route_summary, body.units));
   }
-
   return lines.join('\n');
+}
+
+/**
+ * The route summary as prompt lines: the totals, the waypoint names and the
+ * digest, every figure in the rider's units. Shared by every step that is
+ * about a computed route.
+ */
+export function describeSummary(summary: RouteSummary, units: Units): string[] {
+  const lines = [
+    `Distance: ${distance(summary.distance_km, units)}`,
+    `Total ascent: ${height(summary.ascent_m, units)}`,
+    `Surface mix: ${describeSurface(summary.surface)}`,
+  ];
+  if (summary.waypoints && summary.waypoints.length > 0) {
+    lines.push(`Waypoints: ${summary.waypoints.map(oneLine).join(', ')}`);
+  }
+  if (summary.highlights && summary.highlights.length > 0) {
+    lines.push(`Highlights: ${summary.highlights.map(oneLine).join(', ')}`);
+  }
+  if (summary.digest !== undefined) {
+    lines.push(...describeDigest(summary.digest, units));
+  }
+  return lines;
 }
 
 function describeSurface(surface: { paved?: number; gravel?: number; unpaved?: number }): string {

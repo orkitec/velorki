@@ -38,6 +38,7 @@ import '../domain/elevation_profile.dart';
 import '../domain/planner_state.dart';
 import '../domain/routing_options.dart';
 import 'elevation_profile_chart.dart';
+import 'avoided_stretches_chip.dart';
 import 'original_route_chip.dart';
 import 'profile_chip_row.dart';
 import 'route_format.dart';
@@ -861,6 +862,20 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
               onRestore: ref
                   .read(plannerControllerProvider.notifier)
                   .restoreOriginal,
+            ),
+          ),
+        ),
+      // Shown with the dashed lines of the stretches the router keeps off.
+      if (state.avoid.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: AvoidedStretchesChip(
+              count: state.avoid.length,
+              onClear: ref
+                  .read(plannerControllerProvider.notifier)
+                  .clearAvoided,
             ),
           ),
         ),

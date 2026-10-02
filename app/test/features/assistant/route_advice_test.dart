@@ -1,0 +1,434 @@
+import 'package:flutter/widgets.dart' show Locale;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:velorki/app/app_config.dart';
+import 'package:velorki/features/settings/data/units.dart';
+import 'package:velorki/core/db/tables/routes.dart' show RouteSource;
+import 'package:velorki/core/plus/plus_gate.dart';
+import 'package:velorki/features/assistant/application/ai_request_settings.dart';
+import 'package:velorki/features/assistant/application/assistant_controller.dart';
+import 'package:velorki/features/assistant/application/route_advice_controller.dart';
+import 'package:velorki/features/assistant/application/route_digest_service.dart';
+import 'package:velorki/features/assistant/domain/ai_consent.dart';
+import 'package:velorki/features/assistant/domain/assistant_state.dart';
+import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
+import 'package:velorki/features/planner/application/planner_controller.dart';
+import 'package:velorki/features/planner/data/routing_backend_provider.dart';
+import 'package:velorki/features/planner/domain/planner_state.dart';
+import 'package:velorki/features/planner/domain/route_poi.dart';
+import 'package:velorki/features/planner/domain/route_profile.dart';
+import 'package:velorki_api/velorki_api.dart';
+import 'package:velorki_brouter/velorki_brouter.dart';
+import 'package:velorki_geo/velorki_geo.dart';
+
+import '../integrations/support/fakes.dart';
+import 'support/fakes.dart';
+
+/// Three points along one parallel, about 7.45 km apart.
+const LatLng _a = LatLng(48.0, 11.0);
+const LatLng _b = LatLng(48.0, 11.1);
+const LatLng _c = LatLng(48.0, 11.2);
+
+/// A router that rides straight from one point of a query to the next, so
+/// a test knows how far along the route anything is.
+class _LineBackend implements RoutingBackend {
+  final List<RouteQuery> queries = <RouteQuery>[];
+
+  @override
+  Future<RouteResult> route(RouteQuery q, {CancelToken? cancel}) async {
+    queries.add(q);
+    final from = q.points.first;
+    final to = q.points.last;
+    final geometry = <TrackPoint>[
+      for (var i = 0; i <= 10; i++)
+        TrackPoint(
+          LatLng(
+            from.lat + (to.lat - from.lat) * i / 10,
+            from.lon + (to.lon - from.lon) * i / 10,
+          ),
+          ele: 500,
+        ),
+    ];
+    final length = haversineMeters(from, to);
+    return RouteResult(
+      geometry: geometry,
+      lengthM: length,
+      ascentM: 0,
+      descentM: 0,
+      messages: <SegmentMessage>[
+        SegmentMessage(
+          position: to,
+          elevationM: 500,
+          distanceM: length,
+          costPerKm: 1000,
+          elevCost: 0,
+          turnCost: 0,
+          nodeCost: 0,
+          initialCost: 0,
+          wayTags: SegmentMessage.parseTags('highway=primary surface=asphalt'),
+          nodeTags: const <String, String>{},
+          timeS: length / 5,
+          energyJ: 0,
+        ),
+      ],
+      raw: const <String, dynamic>{},
+    );
+  }
+}
+
+/// The digest the fake service answers with: a café on the second leg and
+/// water on the first, both a little off the line.
+const RouteDigest _digest = RouteDigest(
+  loop: false,
+  profile: 'trekking',
+  places: <DigestPlace>[
+    DigestPlace(
+      id: 'p1',
+      kind: 'drinking_water',
+      km: 3,
+      offM: 40,
+      at: DigestPoint(lat: 48.0003, lon: 11.0403),
+    ),
+    DigestPlace(
+      id: 'p2',
+      kind: 'cafe',
+      name: 'Café am Weg',
+      km: 10,
+      offM: 30,
+      at: DigestPoint(lat: 48.0002, lon: 11.1343),
+    ),
+  ],
+);
+
+RouteAdvice _advice(List<RouteFinding> findings) =>
+    RouteAdvice(answer: 'There is a café at 10 km.', findings: findings);
+
+const RouteFinding _coffee = RouteFinding(
+  kind: FindingKind.food,
+  text: 'Café am Weg, 30 m off the route.',
+  placeId: 'p2',
+  fix: AddStopFix('p2'),
+);
+
+const RouteFinding _water = RouteFinding(
+  kind: FindingKind.water,
+  text: 'A tap at 3 km.',
+  placeId: 'p1',
+  fix: AddStopFix('p1'),
+);
+
+const RouteFinding _mainRoad = RouteFinding(
+  kind: FindingKind.traffic,
+  text: 'A main road from 2 to 4 km.',
+  fromKm: 2,
+  toKm: 4,
+  fix: AvoidFix(fromKm: 2, toKm: 4),
+);
+
+const RouteFinding _gravel = RouteFinding(
+  kind: FindingKind.profile,
+  text: 'A gravel bike suits it.',
+  fix: ProfileFix(ProfileHint.gravel),
+);
+
+class _Setup {
+  _Setup(this.container, this.relay, this.backend, this.digests);
+
+  final ProviderContainer container;
+  final FakeRelayClient relay;
+  final _LineBackend backend;
+  final FakeRouteDigestService digests;
+
+  PlannerController get planner =>
+      container.read(plannerControllerProvider.notifier);
+  PlannerState get plan => container.read(plannerControllerProvider);
+  RouteAdviceController get advice =>
+      container.read(routeAdviceControllerProvider.notifier);
+  RouteAdviceState get state => container.read(routeAdviceControllerProvider);
+}
+
+/// A planner with A-B-C routed and a relay answering with [findings].
+Future<_Setup> _setup(
+  WidgetTester tester, {
+  List<RouteFinding> findings = const <RouteFinding>[_coffee],
+  bool entitled = true,
+  AiConsent? consent = AiConsent.textOnly,
+  Map<String, Object> prefs = const <String, Object>{},
+  Object? digestError,
+}) async {
+  SharedPreferences.setMockInitialValues(<String, Object>{
+    if (consent != null) aiConsentPrefsKey: consent.name,
+    ...prefs,
+  });
+  final preferences = await SharedPreferences.getInstance();
+  final relay = FakeRelayClient(
+    planEvents: <PlanEvent>[
+      RouteAdviceEvent(_advice(findings)),
+      const DoneEvent(),
+    ],
+  );
+  final backend = _LineBackend();
+  final digests = FakeRouteDigestService(
+    digest: digestError == null ? _digest : null,
+    error: digestError,
+  );
+  final container = ProviderContainer(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(preferences),
+      relayClientProvider.overrideWithValue(relay),
+      routingBackendProvider.overrideWithValue(backend),
+      routeDigestServiceProvider.overrideWithValue(digests),
+      systemLocalesProvider.overrideWithValue(const [Locale('de', 'DE')]),
+      localeCountryProvider.overrideWithValue(null),
+    ],
+  );
+  addTearDown(container.dispose);
+  container.read(plusEntitledProvider.notifier).value = entitled;
+  // Kept alive for the test, as the sheet does by watching it.
+  container.listen(routeAdviceControllerProvider, (_, _) {});
+  container.read(plannerControllerProvider.notifier)
+    ..addWaypoint(_a)
+    ..addWaypoint(_b)
+    ..addWaypoint(_c);
+  await tester.pump(plannerDebounce);
+  await tester.pump();
+  expect(container.read(plannerControllerProvider).result, isNotNull);
+  return _Setup(container, relay, backend, digests);
+}
+
+Future<void> _settle(WidgetTester tester) async {
+  await tester.pump(plannerDebounce);
+  await tester.pump();
+}
+
+void main() {
+  group('asking about the route on the map', () {
+    testWidgets('sends the question with the digest of the planned route, '
+        'in the app language and units, without a position', (tester) async {
+      final s = await _setup(tester, prefs: {'units.system': 'imperial'});
+
+      await s.advice.ask('  Where can I get coffee?  ');
+
+      final call = s.relay.planCalls.single;
+      expect(call.step, routeStep);
+      expect(call.prompt, 'Where can I get coffee?');
+      expect(call.locale, 'de-DE');
+      expect(call.units, PlanUnits.imperial);
+      expect(call.context, isNull);
+      expect(call.routeSummary!.digest, _digest);
+      expect(call.routeSummary!.distanceKm, closeTo(14.9, 0.1));
+      // The planner's route came from the router, so its own messages are
+      // the digest's ways: nothing is matched again.
+      final (line, messages) = s.digests.tracks.single;
+      expect(line, same(s.plan.result!.geometry));
+      expect(messages, isNotEmpty);
+
+      expect(s.state.phase, RouteAdvicePhase.answered);
+      expect(s.state.advice!.answer, 'There is a café at 10 km.');
+      expect(s.state.advice!.findings.single.fix, const AddStopFix('p2'));
+    });
+
+    testWidgets('a digest the phone cannot build still lets the question go, '
+        'on the figures', (tester) async {
+      final s = await _setup(tester, digestError: StateError('no tiles'));
+      await s.advice.ask('Check this route');
+      final digest = s.relay.planCalls.single.routeSummary!.digest!;
+      expect(digest.places, isEmpty);
+      expect(digest.profile, 'trekking');
+      expect(digest.loop, isFalse);
+    });
+
+    testWidgets('an error event is the problem shown', (tester) async {
+      final s = await _setup(tester);
+      s.relay.planEvents = const <PlanEvent>[
+        ErrorEvent(
+          RelayError(code: RelayErrorCode.invalidRequest, message: 'nope'),
+        ),
+      ];
+      await s.advice.ask('Check this route');
+      expect(s.state.phase, RouteAdvicePhase.failed);
+      expect(s.state.problem!.failure, AssistantFailure.relay);
+      expect(s.state.problem!.message, 'nope');
+
+      s.advice.clearProblem();
+      expect(s.state.problem, isNull);
+      expect(s.state.question, 'Check this route');
+    });
+
+    testWidgets('without Velorki Plus nothing is sent', (tester) async {
+      final s = await _setup(tester, entitled: false);
+      await s.advice.ask('Check this route');
+      expect(s.relay.planCalls, isEmpty);
+      expect(s.state.problem!.failure, AssistantFailure.notEntitled);
+    });
+
+    testWidgets('without consent nothing is sent', (tester) async {
+      final s = await _setup(tester, consent: AiConsent.denied);
+      await s.advice.ask('Check this route');
+      expect(s.relay.planCalls, isEmpty);
+      expect(s.state.problem!.failure, AssistantFailure.consentRequired);
+    });
+
+    testWidgets('a stop the digest does not have loses its fix', (
+      tester,
+    ) async {
+      final s = await _setup(
+        tester,
+        findings: const [
+          RouteFinding(
+            kind: FindingKind.food,
+            text: 'A café.',
+            fix: AddStopFix('p9'),
+          ),
+        ],
+      );
+      await s.advice.ask('Coffee?');
+      expect(s.state.advice!.findings.single.fix, isNull);
+      expect(s.state.advice!.findings.single.text, 'A café.');
+    });
+  });
+
+  group('a route from Strava', () {
+    test('is never offered to the assistant', () {
+      final route = AsyncData<RouteResult?>(
+        RouteResult(
+          geometry: const [TrackPoint(_a), TrackPoint(_b)],
+          lengthM: 7450,
+          ascentM: 0,
+          descentM: 0,
+          messages: const <SegmentMessage>[],
+          raw: const <String, dynamic>{},
+        ),
+      );
+      expect(canAskAboutRoute(PlannerState(route: route)), isTrue);
+      expect(
+        canAskAboutRoute(
+          PlannerState(route: route, savedRouteSource: RouteSource.strava),
+        ),
+        isFalse,
+      );
+      expect(
+        canAskAboutRoute(
+          PlannerState(route: route, savedRouteSource: RouteSource.rwgps),
+        ),
+        isTrue,
+      );
+      expect(canAskAboutRoute(const PlannerState()), isFalse);
+    });
+  });
+
+  group('applying a fix', () {
+    testWidgets('a stop goes into the leg the route passes it on, with its '
+        'name and kind, and Undo takes it out', (tester) async {
+      final s = await _setup(tester, findings: const [_water, _coffee]);
+      await s.advice.ask('Coffee and water?');
+
+      s.advice.apply(1);
+      expect(s.plan.waypoints.map((w) => w.pos), <LatLng>[
+        _a,
+        _b,
+        const LatLng(48.0002, 11.1343),
+        _c,
+      ]);
+      final stop = s.plan.waypoints[2];
+      expect(stop.name, 'Café am Weg');
+      expect(stop.poiKind, PoiKind.food);
+      expect(s.state.applied, {1});
+      await _settle(tester);
+
+      // The route changed, so the next stop goes where the new route
+      // passes it.
+      s.advice.apply(0);
+      expect(s.plan.waypoints[1].pos, const LatLng(48.0003, 11.0403));
+      expect(s.plan.waypoints[1].poiKind, PoiKind.water);
+      expect(s.plan.waypoints[1].name, isNull);
+      expect(s.state.applied, {0, 1});
+
+      s.planner.undo();
+      s.planner.undo();
+      expect(s.plan.positions, <LatLng>[_a, _b, _c]);
+    });
+
+    testWidgets('a fix is applied once', (tester) async {
+      final s = await _setup(tester);
+      await s.advice.ask('Coffee?');
+      s.advice
+        ..apply(0)
+        ..apply(0);
+      expect(s.plan.waypoints, hasLength(4));
+      expect(s.plan.undoStack, hasLength(4));
+      await _settle(tester);
+    });
+
+    testWidgets('a profile fix switches the bike, undoably', (tester) async {
+      final s = await _setup(tester, findings: const [_gravel]);
+      await s.advice.ask('Is this ok for gravel?');
+
+      s.advice.apply(0);
+      expect(s.plan.options.profile, RouteProfile.gravel);
+      await _settle(tester);
+      expect(s.backend.queries.last.profile, RouteProfile.gravel.engineName);
+
+      s.planner.undo();
+      expect(s.plan.options.profile, RouteProfile.trekking);
+    });
+
+    testWidgets('an avoid fix keeps every leg off the stretch, draws it, and '
+        'Undo lets the router back on', (tester) async {
+      final s = await _setup(tester, findings: const [_mainRoad]);
+      await s.advice.ask('Avoid the main road');
+      final before = s.backend.queries.length;
+
+      s.advice.apply(0);
+      expect(s.plan.avoid, hasLength(1));
+      final area = s.plan.avoid.single;
+      expect(area.fromKm, 2);
+      expect(area.toKm, 4);
+      expect(
+        haversineMeters(area.line.first, area.line.last),
+        closeTo(2000, 30),
+      );
+      expect(area.nogos, isNotEmpty);
+      expect(area.nogos.every((n) => n.weight != null), isTrue);
+      await _settle(tester);
+
+      // Only the first leg runs over the stretch, so only it is routed
+      // again, around it.
+      final rerouted = s.backend.queries.sublist(before);
+      expect(rerouted, hasLength(1));
+      expect(rerouted.single.points, <LatLng>[_a, _b]);
+      expect(rerouted.single.nogos, area.nogos);
+
+      // Every leg routed from now on keeps off it too.
+      s.planner.moveWaypoint(2, const LatLng(48.0, 11.25));
+      await _settle(tester);
+      expect(s.backend.queries.last.nogos, area.nogos);
+
+      s.planner
+        ..undo()
+        ..undo();
+      expect(s.plan.avoid, isEmpty);
+    });
+
+    testWidgets('clearing the avoided stretches routes every leg again', (
+      tester,
+    ) async {
+      final s = await _setup(tester, findings: const [_mainRoad]);
+      await s.advice.ask('Avoid the main road');
+      s.advice.apply(0);
+      await _settle(tester);
+      final before = s.backend.queries.length;
+
+      s.planner.clearAvoided();
+      expect(s.plan.avoid, isEmpty);
+      await _settle(tester);
+      final again = s.backend.queries.sublist(before);
+      expect(again, hasLength(2));
+      expect(again.every((q) => q.nogos.isEmpty), isTrue);
+
+      s.planner.undo();
+      expect(s.plan.avoid, hasLength(1));
+    });
+  });
+}

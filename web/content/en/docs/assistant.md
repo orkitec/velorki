@@ -12,6 +12,8 @@ The assistant is part of [Velorki Plus](./velorki-plus).
 
 Tap **Ask** in the toolbar of the route sheet on the **Plan** tab. The sheet is titled **Ask for a route**: "Describe the ride you have in mind. Velorki turns it into a request and plans the route on your phone."
 
+With a route on the map the sheet opens on **This route** instead, a question about that route (see [Ask about this route](#ask-about-this-route)); **New route** above it switches back.
+
 If the **Ask** button is not there, this build of Velorki has no server address at all, which is the case for a self-built copy with no relay of its own.
 
 ## Consent, and what leaves the phone
@@ -28,7 +30,7 @@ Three answers:
 - **Allow, text only** sends your text and nothing else.
 - **Not now** sends nothing and switches the assistant off.
 
-What actually travels: your text, optionally the rounded position, your language and unit settings so the answer fits, and, for a route description, a digest of the route (see below). No identifier of you or your phone is put into the prompt.
+What actually travels: your text, optionally the rounded position, your language and unit settings so the answer fits, and, for a route description or a question about a route, a digest of the route (see below). No identifier of you or your phone is put into the prompt.
 
 Change your mind at any time under **Settings → AI assistant → What is sent**, whose subtitle always says which of the four states you are in, with a **Change** button beside it.
 
@@ -61,6 +63,22 @@ From there it is an ordinary plan: edit it, ask for variants, save it.
 The model never returns coordinates and never computes a route. It returns a structured request, a distance, a shape, some place names and a preference or two, and everything after that happens on your phone. That is why the assistant works as a way to express what you want, and not as a source of facts about roads.
 
 It can also be wrong. If it says something you did not mean, rephrase with a clear distance and a clear place.
+
+## Ask about this route
+
+With a route on the planner's map, **Ask** opens on **This route**: "Ask anything about the route on the map." Examples to tap: **Check this route**, **Where can I get coffee around halfway?**, **Where can I refill my water?**, **Avoid the main road**, **Is this ok for a road bike?**
+
+What goes: your question and the digest of the route described under [Describe this route](#describe-this-route), positions included. Your own position does not go in this mode.
+
+The answer is a few sentences and up to six findings along the route, each with where it is. **Show** moves the map there. A finding the planner can act on has a button:
+
+- **Add as stop** routes through a café, a tap or another place from the digest, inserted where the route passes it.
+- **Avoid** keeps the router off that stretch. It is drawn dashed on the map, and the chip **Keeping off 1 stretch** over the map has **Allow again**.
+- **Use Gravel** (or another bike) plans the route again with that profile.
+
+Each one is a single step that **Undo** takes back, and the sheet stays open and marks it **Applied**. The model only suggests places from the digest; it never makes up a stop or a coordinate.
+
+**This route** is not offered for a route imported from Strava.
 
 ## Describe this route
 

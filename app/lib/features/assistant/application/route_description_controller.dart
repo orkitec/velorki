@@ -122,6 +122,7 @@ class RouteDescriptionController extends _$RouteDescriptionController {
             _fail(problemFor(RelayException(error, statusCode: 200)));
             return;
           case RouteRequestEvent():
+          case RouteAdviceEvent():
           case DoneEvent():
             break;
         }

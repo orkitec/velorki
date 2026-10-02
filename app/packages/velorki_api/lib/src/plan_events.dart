@@ -12,6 +12,7 @@ import 'sse.dart';
 /// await for (final event in client.planStream(...)) {
 ///   switch (event) {
 ///     case RouteRequestEvent(:final request): router.plan(request);
+///     case RouteAdviceEvent(:final advice): show(advice);
 ///     case TextEvent(:final delta): buffer.write(delta);
 ///     case DoneEvent(): break;
 ///     case ErrorEvent(:final error): show(error.message);
@@ -43,6 +44,28 @@ final class RouteRequestEvent extends PlanEvent {
 
   @override
   String toString() => 'RouteRequestEvent($request)';
+}
+
+/// The answer to a question about a route: the `route_advice` event.
+///
+/// Sent once by the `route` step, carrying the arguments of the relay's
+/// `advise_route` tool call.
+final class RouteAdviceEvent extends PlanEvent {
+  /// Creates a route-advice event.
+  const RouteAdviceEvent(this.advice);
+
+  /// The answer and its findings.
+  final RouteAdvice advice;
+
+  @override
+  bool operator ==(Object other) =>
+      other is RouteAdviceEvent && other.advice == advice;
+
+  @override
+  int get hashCode => advice.hashCode;
+
+  @override
+  String toString() => 'RouteAdviceEvent($advice)';
 }
 
 /// A chunk of streamed prose: the `text` event.
@@ -130,6 +153,12 @@ PlanEvent? planEventFromSse(SseEvent event) {
       return RouteRequestEvent(
         RouteRequest.fromJson(
           decodeJsonObject(event.data, what: 'route_request data'),
+        ),
+      );
+    case 'route_advice':
+      return RouteAdviceEvent(
+        RouteAdvice.fromJson(
+          decodeJsonObject(event.data, what: 'route_advice data'),
         ),
       );
     case 'text':

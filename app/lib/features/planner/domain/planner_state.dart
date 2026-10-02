@@ -3,7 +3,9 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../../core/db/tables/routes.dart' show RouteSource;
 import '../../../core/geo/track_surface.dart';
+import 'avoid_area.dart';
 import 'route_legs.dart';
 import 'route_poi.dart';
 import 'route_profile.dart';
@@ -45,6 +47,8 @@ class PlannerEdit {
     required this.savedRouteName,
     required this.differentWayBack,
     required this.returnVariant,
+    this.avoid = const <AvoidArea>[],
+    this.savedRouteSource,
     this.original,
     this.profile,
   });
@@ -62,6 +66,8 @@ class PlannerEdit {
         savedRouteName: state.savedRouteName,
         differentWayBack: state.options.differentWayBack,
         returnVariant: state.options.returnVariant,
+        avoid: state.avoid,
+        savedRouteSource: state.savedRouteSource,
         original: state.original,
         profile: profile,
       );
@@ -105,6 +111,12 @@ class PlannerEdit {
   /// [RoutingOptions.returnVariant] as it was.
   final int returnVariant;
 
+  /// [PlannerState.avoid] as it was.
+  final List<AvoidArea> avoid;
+
+  /// [PlannerState.savedRouteSource] as it was.
+  final RouteSource? savedRouteSource;
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -119,6 +131,8 @@ class PlannerEdit {
           other.savedRouteName == savedRouteName &&
           other.differentWayBack == differentWayBack &&
           other.returnVariant == returnVariant &&
+          other.avoid == avoid &&
+          other.savedRouteSource == savedRouteSource &&
           identical(other.original, original) &&
           other.profile == profile;
 
@@ -134,6 +148,8 @@ class PlannerEdit {
     savedRouteName,
     differentWayBack,
     returnVariant,
+    avoid,
+    savedRouteSource,
     identityHashCode(original),
     profile,
   );
@@ -182,6 +198,16 @@ abstract class PlannerState with _$PlannerState {
 
     /// Name of that saved route, used as the default in the save dialog.
     String? savedRouteName,
+
+    /// Where that saved route came from, kept as long as [savedRouteId] is:
+    /// a route that came from Strava is never sent to the assistant, whose
+    /// terms forbid it.
+    RouteSource? savedRouteSource,
+
+    /// The stretches the rider asked the router to keep off, in the order
+    /// they were added. Every leg is routed with their circles as weighted
+    /// no-go areas until they are taken away again.
+    @Default(<AvoidArea>[]) List<AvoidArea> avoid,
 
     /// Whether the route shown is the one stored under [savedRouteId], as
     /// loaded or as just saved. Cleared by anything that routes again, so
@@ -250,6 +276,9 @@ abstract class PlannerState with _$PlannerState {
         ? e.missingTiles
         : const <TileName>[];
   }
+
+  /// The no-go circles of every avoided stretch, for a routing query.
+  List<NoGo> get nogos => [for (final a in avoid) ...a.nogos];
 
   /// Whether a route request is in flight.
   bool get isRouting => route.isLoading;

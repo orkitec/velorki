@@ -179,6 +179,20 @@
   "@plannerRestoreOriginal": {
     "description": "Action on the chip that puts the file's own route back"
   },
+  "plannerAvoiding": "{count, plural, =1{Keeping off 1 stretch} other{Keeping off {count} stretches}}",
+  "@plannerAvoiding": {
+    "description": "Chip over the planner's map while the router avoids stretches the rider asked it to keep off",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "plannerAvoidClear": "Allow again",
+  "@plannerAvoidClear": {
+    "description": "Action on the chip that lets the router back onto the avoided stretches"
+  },
   "plannerOnePointHint": "Tap the map again to add a destination.",
   "@plannerOnePointHint": {
     "description": "Hint shown once a start point is set but no destination"
@@ -2517,6 +2531,112 @@
   "assistantRetry": "Try again",
   "@assistantRetry": {
     "description": "Button that clears the assistant error and lets the rider edit the prompt"
+  },
+  "assistantModeNew": "New route",
+  "@assistantModeNew": {
+    "description": "Segment of the assistant sheet that asks for a new route"
+  },
+  "assistantModeRoute": "This route",
+  "@assistantModeRoute": {
+    "description": "Segment of the assistant sheet that asks about the route on the map"
+  },
+  "assistantRouteTitle": "Ask about this route",
+  "@assistantRouteTitle": {
+    "description": "Title of the assistant sheet when asking about the route on the map"
+  },
+  "assistantRouteIntro": "Ask anything about the route on the map. Its roads, climbs and the places along it are sent, your position is not.",
+  "@assistantRouteIntro": {
+    "description": "Subtitle of the assistant sheet when asking about the route on the map"
+  },
+  "assistantRouteHint": "Anything steep on the way?",
+  "@assistantRouteHint": {
+    "description": "Hint text of the field for a question about the route"
+  },
+  "assistantRouteExampleCheck": "Check this route",
+  "@assistantRouteExampleCheck": {
+    "description": "Example question about the route on the map"
+  },
+  "assistantRouteExampleCoffee": "Where can I get coffee around halfway?",
+  "@assistantRouteExampleCoffee": {
+    "description": "Example question about the route on the map"
+  },
+  "assistantRouteExampleWater": "Where can I refill my water?",
+  "@assistantRouteExampleWater": {
+    "description": "Example question about the route on the map"
+  },
+  "assistantRouteExampleAvoid": "Avoid the main road",
+  "@assistantRouteExampleAvoid": {
+    "description": "Example question about the route on the map"
+  },
+  "assistantRouteExampleRoadBike": "Is this ok for a road bike?",
+  "@assistantRouteExampleRoadBike": {
+    "description": "Example question about the route on the map"
+  },
+  "assistantRouteFollowUps": "Ask next",
+  "@assistantRouteFollowUps": {
+    "description": "Heading above further questions once an answer about the route is shown"
+  },
+  "assistantRouteReading": "Reading the route…",
+  "@assistantRouteReading": {
+    "description": "Label of the locked button while the phone builds the route's digest"
+  },
+  "assistantRouteFindings": "Along the route",
+  "@assistantRouteFindings": {
+    "description": "Heading above the findings of an answer about the route"
+  },
+  "assistantRouteNone": "There is no route on the map to ask about.",
+  "@assistantRouteNone": {
+    "description": "Error when a question about the route is asked without a route"
+  },
+  "assistantFindingAt": "At {distance}",
+  "@assistantFindingAt": {
+    "description": "Where along the route a finding is",
+    "placeholders": {
+      "distance": {
+        "type": "String",
+        "example": "14.2 km"
+      }
+    }
+  },
+  "assistantFindingBetween": "{from} to {to}",
+  "@assistantFindingBetween": {
+    "description": "The stretch of the route a finding is about",
+    "placeholders": {
+      "from": {
+        "type": "String",
+        "example": "12.3 km"
+      },
+      "to": {
+        "type": "String",
+        "example": "15.0 km"
+      }
+    }
+  },
+  "assistantFindingShow": "Show",
+  "@assistantFindingShow": {
+    "description": "Button that moves the map to a finding"
+  },
+  "assistantFixAddStop": "Add as stop",
+  "@assistantFixAddStop": {
+    "description": "Button that routes through the place a finding names"
+  },
+  "assistantFixAvoid": "Avoid",
+  "@assistantFixAvoid": {
+    "description": "Button that makes the router keep off the stretch a finding names"
+  },
+  "assistantFixProfile": "Use {profile}",
+  "@assistantFixProfile": {
+    "description": "Button that switches the routing profile a finding suggests",
+    "placeholders": {
+      "profile": {
+        "type": "String",
+        "example": "Gravel"
+      }
+    }
+  },
+  "assistantFixApplied": "Applied",
+  "@assistantFixApplied": {
+    "description": "Shown in place of a finding's button once its fix was applied"
   },
   "aiConsentTitle": "Before the assistant asks",
   "@aiConsentTitle": {

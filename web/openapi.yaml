@@ -406,7 +406,7 @@ paths:
     post:
       tags: [ai]
       operationId: aiPlan
-      summary: Plan or describe a route, as a Server-Sent Events stream.
+      summary: Plan, describe or ask about a route, as a Server-Sent Events stream.
       description: |
         Requires `X-AI-Consent: 1` on every request; there is no server-side
         memory of consent. Without it the request is rejected with 403
@@ -416,6 +416,14 @@ paths:
         with one `propose_route` tool call, whose validated arguments are
         emitted as the `route_request` event. `step=describe` streams a 60-90
         word description of an already computed route as `text` events.
+        `step=route` answers the rider's question (`prompt`) about the route
+        on their map: a single non-streaming call forced to answer with one
+        `advise_route` tool call, emitted as the `route_advice` event. It
+        requires `route_summary.digest`. Every `place_id` in the answer must be
+        a place of that digest and every kilometre mark must lie between 0 and
+        `route_summary.distance_km`; an answer that breaks either is asked for
+        once more and then reported as an `error` event, like a missed tool
+        call.
 
         The prompt never contains the `app_user_id`. `context.start` is rounded
         to two decimals server-side.
@@ -493,6 +501,33 @@ paths:
                         - { name: Caniço, kind: city, km: 9.5, lat: 32.65231, lon: -16.85127 }
                       places:
                         - { id: p1, kind: cafe, name: Americana, km: 1.5, off_m: 6, lat: 32.64881, lon: -16.89567 }
+              route:
+                summary: step=route, a question about the route on the map
+                value:
+                  step: route
+                  locale: en
+                  units: metric
+                  prompt: Where can I get a coffee around halfway?
+                  route_summary:
+                    distance_km: 29.24
+                    ascent_m: 1046
+                    surface: { paved: 0.9, unpaved: 0.1 }
+                    digest:
+                      profile: trekking
+                      loop: false
+                      stretches:
+                        - from_km: 0
+                          to_km: 2.6
+                          road: tertiary
+                          surface: asphalt
+                          avg_grade: 6.1
+                          max_grade: 14.8
+                          start: { lat: 32.64751, lon: -16.90872 }
+                          end: { lat: 32.65012, lon: -16.88431 }
+                      towns:
+                        - { name: Caniço, kind: city, km: 9.5, lat: 32.65231, lon: -16.85127 }
+                      places:
+                        - { id: p1, kind: cafe, name: Americana, km: 14.2, off_m: 6, lat: 32.64881, lon: -16.89567 }
       responses:
         '200':
           description: |
@@ -502,6 +537,7 @@ paths:
             | --- | --- | --- |
             | `route_request` | the validated `propose_route` arguments | once, `step=plan` |
             | `text` | `{ "delta": "..." }` | repeatedly, `step=describe` |
+            | `route_advice` | the validated `advise_route` arguments (`RouteAdvice`) | once, `step=route` |
             | `done` | `{ "usage": { "in": 0, "out": 0 }, "model": "..." }` | last event on success |
             | `error` | an error body | instead of `done` on failure |
 
@@ -535,6 +571,17 @@ paths:
 
                     event: done
                     data: {"usage":{"in":300,"out":110},"model":"some-model"}
+
+                route:
+                  summary: step=route
+                  value: |
+                    : open
+
+                    event: route_advice
+                    data: {"answer":"Americana, a café right by the road at 14.2 km, is about halfway.","findings":[{"kind":"food","place_id":"p1","text":"Americana, a café 6 m off the route.","fix":{"type":"add_stop","place_id":"p1"}}]}
+
+                    event: done
+                    data: {"usage":{"in":980,"out":120},"model":"some-model"}
 
                 failure:
                   summary: the model produced unusable arguments
@@ -915,7 +962,7 @@ components:
       properties:
         step:
           type: string
-          enum: [plan, describe]
+          enum: [plan, describe, route]
         locale:
           type: string
           default: en
@@ -950,6 +997,74 @@ components:
             required: [step]
           then:
             required: [route_summary]
+        - if:
+            properties:
+              step: { const: route }
+            required: [step]
+          then:
+            required: [route_summary]
+            properties:
+              route_summary:
+                required: [digest]
+
+    RouteAdvice:
+      type: object
+      description: |
+        The `data` payload of the `route_advice` SSE event: the validated
+        arguments of the model's single `advise_route` tool call. Kilometres
+        count from the route's start whatever `units` the request had; the
+        texts are in the request's locale and units.
+      required: [answer, findings]
+      additionalProperties: false
+      properties:
+        answer:
+          type: string
+          minLength: 1
+          maxLength: 400
+        findings:
+          type: array
+          maxItems: 6
+          items:
+            type: object
+            required: [kind, text]
+            additionalProperties: false
+            properties:
+              kind:
+                type: string
+                enum: [traffic, steep, surface, water, food, detour, profile, other]
+              from_km: { type: number, minimum: 0 }
+              to_km: { type: number, minimum: 0 }
+              place_id:
+                type: string
+                pattern: '^p[0-9]+$'
+                description: A place of the request's digest.
+              text:
+                type: string
+                minLength: 1
+                maxLength: 200
+              fix:
+                oneOf:
+                  - type: object
+                    required: [type, place_id]
+                    additionalProperties: false
+                    properties:
+                      type: { const: add_stop }
+                      place_id: { type: string, pattern: '^p[0-9]+$' }
+                  - type: object
+                    required: [type, from_km, to_km]
+                    additionalProperties: false
+                    properties:
+                      type: { const: avoid }
+                      from_km: { type: number, minimum: 0 }
+                      to_km: { type: number, minimum: 0 }
+                  - type: object
+                    required: [type, profile]
+                    additionalProperties: false
+                    properties:
+                      type: { const: profile }
+                      profile:
+                        type: string
+                        enum: [trekking, fastbike, mtb, gravel]
 
     ProposeRoute:
       type: object

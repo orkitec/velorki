@@ -203,9 +203,11 @@ class RelayClient {
   /// Runs one `POST /ai/plan` request and streams its events.
   ///
   /// [step] is `plan` (the model proposes a route, answered with a single
-  /// [RouteRequestEvent]) or `describe` (the model narrates an existing route,
-  /// answered with a series of [TextEvent]s). `describe` requires
-  /// [routeSummary].
+  /// [RouteRequestEvent]), `describe` (the model narrates an existing route,
+  /// answered with a series of [TextEvent]s) or `route` (the model answers
+  /// [prompt], a question about an existing route, with a single
+  /// [RouteAdviceEvent]). `describe` requires [routeSummary], `route` a
+  /// summary with its [RouteSummary.digest].
   ///
   /// [prompt] is the rider's free text, at most 1000 characters. [locale] is a
   /// BCP47 tag and decides the language of the answer. [context] gives the

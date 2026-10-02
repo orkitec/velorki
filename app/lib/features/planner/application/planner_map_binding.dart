@@ -26,6 +26,9 @@ String alternativeLineId(int index) => 'alt-$index';
 /// Id of the faint line a route read from a file had before it was edited.
 const String originalLineId = 'original';
 
+/// Id of avoided stretch [index] on the map.
+String avoidedLineId(int index) => 'avoid-$index';
+
 /// How close to the route line a tap has to land, in logical pixels, to put
 /// a point on the line rather than at the end of the route.
 const double lineTapPx = 20;
@@ -196,6 +199,19 @@ class PlannerMapBinding {
         originalLineId,
         original.positions,
         style: RouteLineStyle.original,
+      );
+      if (gone()) return;
+    }
+    // The stretches the router keeps off, dashed, so the rider sees why the
+    // route goes the way it does.
+    for (var i = 0; i < state.avoid.length; i++) {
+      final id = avoidedLineId(i);
+      wanted.add(id);
+      _lineIds.add(id);
+      await map.setRouteLine(
+        id,
+        state.avoid[i].line,
+        style: RouteLineStyle.avoided,
       );
       if (gone()) return;
     }

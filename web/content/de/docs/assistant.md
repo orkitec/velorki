@@ -12,6 +12,8 @@ Der Assistent gehört zu [Velorki Plus](./velorki-plus).
 
 Tippe in der Leiste der Routenübersicht im Tab **Planen** auf **Fragen**. Das Fenster heißt **Nach einer Route fragen**: "Beschreibe die geplante Fahrt. Velorki macht daraus eine Anfrage und plant die Route auf dem Handy."
 
+Liegt eine Route auf der Karte, öffnet das Fenster stattdessen auf **Diese Route**, mit einer Frage zu dieser Route (siehe [Nach dieser Route fragen](#nach-dieser-route-fragen)); **Neue Route** darüber schaltet zurück.
+
 Fehlt die Schaltfläche **Fragen**, hat dieser Velorki-Build gar keine Serveradresse, was bei einer selbst gebauten Kopie ohne eigenen Relay so ist.
 
 ## Zustimmung und was das Handy verlässt
@@ -28,7 +30,7 @@ Drei Antworten:
 - **Erlauben, nur Text** schickt deinen Text und sonst nichts.
 - **Jetzt nicht** schickt nichts und schaltet den Assistenten aus.
 
-Was tatsächlich reist: dein Text, auf Wunsch die gerundete Position, deine Sprach- und Einheiteneinstellung, damit die Antwort passt, und bei einer Routenbeschreibung eine Übersicht der Route (siehe unten). In die Anfrage kommt keine Kennung von dir oder deinem Handy.
+Was tatsächlich reist: dein Text, auf Wunsch die gerundete Position, deine Sprach- und Einheiteneinstellung, damit die Antwort passt, und bei einer Routenbeschreibung oder einer Frage zu einer Route eine Übersicht der Route (siehe unten). In die Anfrage kommt keine Kennung von dir oder deinem Handy.
 
 Du kannst es jederzeit unter **Einstellungen → KI-Assistent → Was gesendet wird** ändern; der Untertitel dort sagt immer, in welchem der vier Zustände du bist, mit einer Schaltfläche **Ändern** daneben.
 
@@ -61,6 +63,22 @@ Ab da ist es eine gewöhnliche Planung: bearbeiten, Varianten anfragen, speicher
 Das Modell liefert nie Koordinaten und berechnet nie eine Route. Es liefert eine strukturierte Anfrage, eine Distanz, eine Form, ein paar Ortsnamen und die eine oder andere Vorliebe, und alles danach passiert auf deinem Handy. Deshalb taugt der Assistent dazu, auszudrücken, was du willst, und nicht als Quelle für Tatsachen über Straßen.
 
 Er kann sich auch irren. Sagt er etwas, was du nicht gemeint hast, formulier es neu, mit klarer Distanz und klarem Ort.
+
+## Nach dieser Route fragen
+
+Liegt eine Route auf der Karte des Planers, öffnet **Fragen** auf **Diese Route**: "Frag alles zur Route auf der Karte." Beispiele zum Antippen: **Prüf diese Route**, **Wo gibt es etwa auf halber Strecke Kaffee?**, **Wo kann ich Wasser auffüllen?**, **Meide die Hauptstraße**, **Geht das mit dem Rennrad?**
+
+Was mitgeht: deine Frage und die Übersicht der Route, wie sie unter [Diese Route beschreiben](#diese-route-beschreiben) steht, mit den Positionen. Deine eigene Position geht in diesem Modus nicht mit.
+
+Die Antwort sind ein paar Sätze und bis zu sechs Hinweise entlang der Route, jeweils mit der Stelle. **Zeigen** bewegt die Karte dorthin. Ein Hinweis, mit dem der Planer etwas anfangen kann, hat eine Schaltfläche:
+
+- **Als Stopp einfügen** führt die Route über ein Café, eine Trinkwasserstelle oder einen anderen Ort aus der Übersicht, eingefügt dort, wo die Route daran vorbeikommt.
+- **Meiden** hält den Router von diesem Abschnitt fern. Er wird gestrichelt auf der Karte gezeichnet, und der Chip **1 Abschnitt wird gemieden** über der Karte hat **Wieder erlauben**.
+- **Gravel verwenden** (oder ein anderes Rad) plant die Route mit diesem Profil neu.
+
+Jede davon ist ein einzelner Schritt, den **Rückgängig** zurücknimmt; das Fenster bleibt offen und markiert sie als **Übernommen**. Das Modell schlägt nur Orte aus der Übersicht vor; es erfindet nie einen Stopp oder eine Koordinate.
+
+Für eine aus Strava importierte Route wird **Diese Route** nicht angeboten.
 
 ## Diese Route beschreiben
 

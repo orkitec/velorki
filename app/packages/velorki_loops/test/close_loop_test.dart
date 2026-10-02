@@ -276,6 +276,29 @@ void main() {
       },
     );
 
+    test(
+      'the way home keeps the no-gos it was given, and adds its own',
+      () async {
+        final backend = FakeRoutingBackend();
+        const avoid = NoGo(
+          center: LatLng(48.02, 11.01),
+          radiusM: 50,
+          weight: 5,
+        );
+        await routeWayBack(
+          backend,
+          outbound: _line(3000),
+          back: const RouteQuery(
+            points: <LatLng>[_far, _start],
+            nogos: <NoGo>[avoid],
+          ),
+        );
+        final back = backend.seen.single;
+        expect(back.nogos.first, avoid);
+        expect(back.nogos.length, greaterThan(1));
+      },
+    );
+
     test('the retry without no-gos keeps the return variant', () async {
       final backend = FakeRoutingBackend(failWhen: (q) => q.nogos.isNotEmpty);
       await CloseLoopRouter(backend).route(closed(), returnAlternativeIdx: 2);

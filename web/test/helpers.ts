@@ -156,13 +156,14 @@ export function usage(input: number, output: number): LanguageModelV4Usage {
 }
 
 /**
- * A mock model that answers every generate call with one `propose_route` tool
+ * A mock model that answers every generate call with one `toolName` tool
  * call carrying `input`.
  */
 export function mockToolCallModel(
   input: unknown,
   tokens = usage(120, 40),
   modelId = 'mock-plan-model',
+  toolName = 'propose_route',
 ): MockLanguageModelV4 {
   return new MockLanguageModelV4({
     modelId,
@@ -171,7 +172,7 @@ export function mockToolCallModel(
         {
           type: 'tool-call' as const,
           toolCallId: 'call-1',
-          toolName: 'propose_route',
+          toolName,
           input: JSON.stringify(input),
         },
       ],

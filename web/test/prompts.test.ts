@@ -9,10 +9,12 @@ describe('system prompts', () => {
     expect(existsSync(PROMPT_DIR)).toBe(true);
   });
 
-  it('loads both prompts without their SPDX header', () => {
+  it('loads the prompts without their SPDX header', () => {
     const prompts = loadPrompts();
     expect(prompts.plan).toContain('propose_route');
     expect(prompts.describe).toContain('3 to 5 sentences');
+    expect(prompts.route).toContain('advise_route');
+    expect(prompts.route.startsWith('<!--')).toBe(false);
     expect(prompts.plan.startsWith('<!--')).toBe(false);
     expect(prompts.describe.startsWith('<!--')).toBe(false);
     expect(prompts.plan).not.toContain('SPDX-License-Identifier');

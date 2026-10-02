@@ -128,6 +128,30 @@ describe('the documented SSE streams', () => {
     expect(stream).toBe(onTheWire('describe'));
   });
 
+  it('replays the step=route example byte for byte', async () => {
+    const requests = spec.paths['/ai/plan'].post.requestBody.content['application/json'].examples;
+    const stream = await streamOf(requests.route?.value, {
+      getModel: () =>
+        mockToolCallModel(
+          {
+            answer: 'Americana, a café right by the road at 14.2 km, is about halfway.',
+            findings: [
+              {
+                kind: 'food',
+                place_id: 'p1',
+                text: 'Americana, a café 6 m off the route.',
+                fix: { type: 'add_stop', place_id: 'p1' },
+              },
+            ],
+          },
+          usage(980, 120),
+          MODEL_ID,
+          'advise_route',
+        ),
+    });
+    expect(stream).toBe(onTheWire('route'));
+  });
+
   it('replays the failure example byte for byte', async () => {
     const stream = await streamOf(PLAN_BODY, {
       getModel: () =>

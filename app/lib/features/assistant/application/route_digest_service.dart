@@ -14,8 +14,8 @@ import '../../search/data/gazetteer_store.dart';
 import '../../search/domain/search_result.dart';
 import '../domain/route_digest_builder.dart';
 
-/// Builds the digest of a saved route on the phone, for "Describe this
-/// route".
+/// Builds the digest of a route on the phone, for "Describe this route"
+/// and for a question about the route on the planner's map.
 ///
 /// A saved route keeps its line and its surface shares, not the router's
 /// per-way messages, so the line is matched against the routing tiles again
@@ -35,17 +35,38 @@ class RouteDigestService {
 
   /// The digest of [route], or `null` when there is nothing to tell: no tile
   /// to match it on, no heights and nothing from the gazetteer.
-  Future<RouteDigest?> digestOf(SavedRoute route) async {
-    final geometry = route.geometry;
+  Future<RouteDigest?> digestOf(SavedRoute route) => digestOfTrack(
+    geometry: route.geometry,
+    distanceM: route.distanceM,
+    profile: route.profile.brouterName,
+  );
+
+  /// The digest of the line [geometry], [distanceM] long, planned with
+  /// [profile].
+  ///
+  /// [messages] are the router's own messages along the line, when it drew
+  /// all of it — the planner's route as it came back. With them nothing is
+  /// matched again; without them the line is matched against the tiles.
+  ///
+  /// `null` when there is nothing to tell, unless [keepEmpty] asks for the
+  /// bare digest (the loop flag and the profile) even then.
+  Future<RouteDigest?> digestOfTrack({
+    required List<TrackPoint> geometry,
+    required double distanceM,
+    String? profile,
+    List<SegmentMessage> messages = const <SegmentMessage>[],
+    bool keepEmpty = false,
+  }) async {
     if (geometry.length < 2) return null;
 
-    final ways = await surfaces.matchWays(
-      points: geometry,
-      distanceM: route.distanceM,
-    );
-    final messages = ways.state == TrackSurfaceState.matched
-        ? ways.messages
-        : const <SegmentMessage>[];
+    var ways = messages;
+    if (ways.isEmpty) {
+      final matched = await surfaces.matchWays(
+        points: geometry,
+        distanceM: distanceM,
+      );
+      if (matched.state == TrackSurfaceState.matched) ways = matched.messages;
+    }
 
     var candidates = const <DigestCandidate>[];
     try {
@@ -55,13 +76,12 @@ class RouteDigestService {
       debugPrint('velorki: no gazetteer for the route digest: $e');
     }
 
-    final profile = route.profile.brouterName;
     // A long route is a few thousand samples and as many gazetteer rows;
     // measuring them is kept off the frame.
     final digest = await Isolate.run(
       () => buildRouteDigest(
         geometry: geometry,
-        messages: messages,
+        messages: ways,
         candidates: candidates,
         profile: profile,
       ),
@@ -71,7 +91,7 @@ class RouteDigestService {
         digest.climbs.isEmpty &&
         digest.towns.isEmpty &&
         digest.places.isEmpty;
-    return empty ? null : digest;
+    return empty && !keepEmpty ? null : digest;
   }
 }
 

@@ -17,6 +17,7 @@ import {
 import { planRequestSchema } from '@/ai/schema';
 import { PlanToolError, runPlan } from '@/ai/plan';
 import { runDescribe } from '@/ai/describe';
+import { runAdvise } from '@/ai/advise';
 
 export const CONSENT_HEADER = 'x-ai-consent';
 
@@ -84,6 +85,17 @@ export const POST = withApi(async (request, ctx) => {
           });
           // The app turns these arguments into a BRouter query.
           sse.send('route_request', result.route);
+          await budget.record(result.usage.in, result.usage.out);
+          sse.send('done', { usage: result.usage, model: result.model });
+        } else if (body.step === 'route') {
+          const result = await runAdvise({
+            model,
+            system: prompts.route,
+            body,
+            abortSignal,
+          });
+          // The app shows the answer and applies the fixes through its planner.
+          sse.send('route_advice', result.advice);
           await budget.record(result.usage.in, result.usage.out);
           sse.send('done', { usage: result.usage, model: result.model });
         } else {

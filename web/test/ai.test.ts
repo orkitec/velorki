@@ -7,9 +7,10 @@ import { injectSingletons } from '@/server/singletons';
 import { POST as aiPlan } from '@/app/(api)/ai/plan/route';
 import { buildPlanPrompt, PLAN_ATTEMPTS } from '@/ai/plan';
 import { buildDescribePrompt } from '@/ai/describe';
+import { buildAdvisePrompt } from '@/ai/advise';
 import { withReasoningEffort } from '@/ai/provider';
 import { loadConfig } from '@/config';
-import { planRequestSchema } from '@/ai/schema';
+import { adviseRouteSchema, planRequestSchema } from '@/ai/schema';
 import {
   AUTH,
   CONSENT,
@@ -19,6 +20,7 @@ import {
   mockTextStreamModel,
   mockToolCallModel,
   parseSse,
+  usage,
   withEnv,
   type TestOptions,
 } from './helpers';
@@ -548,6 +550,186 @@ describe('the route digest', () => {
       const events = parseSse(await res.text());
       expect(events.map((e) => e.event)).toEqual(['text', 'done']);
       expect(JSON.stringify(model.doStreamCalls[0]?.prompt)).toContain('Americana');
+    });
+  });
+});
+
+/** A question about the Madeira ride, with its digest. */
+function routeBody(extra: Record<string, unknown> = {}) {
+  return {
+    ...describeBody({ digest: digest() }),
+    step: 'route',
+    prompt: 'Where can I get a coffee around halfway?',
+    ...extra,
+  };
+}
+
+const VALID_ADVICE = {
+  answer: 'The café Americana sits right by the route at 1.5 km.',
+  findings: [
+    {
+      kind: 'food',
+      place_id: 'p1',
+      text: 'Americana, a café 6 m off the route.',
+      fix: { type: 'add_stop', place_id: 'p1' },
+    },
+    {
+      kind: 'surface',
+      from_km: 2.6,
+      to_km: 4.1,
+      text: 'A gravel track downhill.',
+      fix: { type: 'avoid', from_km: 2.6, to_km: 4.1 },
+    },
+    {
+      kind: 'profile',
+      text: 'A gravel bike suits the track better.',
+      fix: { type: 'profile', profile: 'gravel' },
+    },
+  ],
+};
+
+function adviceModel(input: unknown = VALID_ADVICE) {
+  return mockToolCallModel(input, usage(150, 60), 'mock-route-model', 'advise_route');
+}
+
+/** A model that answers with [first] and then with [VALID_ADVICE]. */
+function flakyAdviceModel(first: unknown) {
+  const bad = adviceModel(first);
+  const good = adviceModel();
+  let calls = 0;
+  const model = new MockLanguageModelV4({
+    modelId: 'mock-route-model',
+    doGenerate: async (options) => {
+      calls += 1;
+      return calls === 1 ? bad.doGenerate(options) : good.doGenerate(options);
+    },
+  });
+  return { model, calls: () => calls };
+}
+
+describe('POST /ai/plan: step=route', () => {
+  it('needs a route summary with a digest', () => {
+    expect(planRequestSchema.safeParse(routeBody()).success).toBe(true);
+    expect(planRequestSchema.safeParse({ ...routeBody(), route_summary: undefined }).success).toBe(
+      false,
+    );
+    const noDigest = describeBody();
+    expect(planRequestSchema.safeParse({ ...noDigest, step: 'route' }).success).toBe(false);
+  });
+
+  it('emits route_advice from the forced advise_route call and ends with done', async () => {
+    const model = adviceModel();
+    await withLlm({}, { getModel: () => model }, async () => {
+      const res = await call(routeBody());
+      expect(res.status).toBe(200);
+      const events = parseSse(await res.text());
+      expect(events.map((e) => e.event)).toEqual(['route_advice', 'done']);
+      expect(events[0]?.data).toEqual(VALID_ADVICE);
+      expect(events.at(-1)).toEqual({
+        event: 'done',
+        data: { usage: { in: 150, out: 60 }, model: 'mock-route-model' },
+      });
+
+      const generateCall = model.doGenerateCalls[0];
+      expect(generateCall?.toolChoice).toEqual({ type: 'required' });
+      expect(generateCall?.tools?.map((t) => t.name)).toEqual(['advise_route']);
+    });
+  });
+
+  it('puts the question, the digest and its positions into the prompt', async () => {
+    const model = adviceModel();
+    await withLlm({}, { getModel: () => model }, async () => {
+      await (await call(routeBody())).text();
+      const prompt = JSON.stringify(model.doGenerateCalls[0]?.prompt);
+      expect(prompt).toContain('Rider question: Where can I get a coffee around halfway?');
+      expect(prompt).toContain('- p1 at 1.5 km: cafe, Americana, 6 m off');
+      expect(prompt).toContain('Caniço (city); 32.6523, -16.8513');
+      expect(prompt).toContain('the route is 29.24 km long');
+      expect(prompt).toContain('advise_route');
+    });
+  });
+
+  it("speaks the rider's units and locale, and counts the tool in kilometres", () => {
+    const prompt = buildAdvisePrompt(
+      planRequestSchema.parse(routeBody({ units: 'imperial', locale: 'en-US' })),
+    );
+    expect(prompt).toContain('Units: imperial');
+    expect(prompt).toContain('Locale: en-US');
+    expect(prompt).toContain('Distance: 18.2 mi');
+    expect(prompt).toContain('- p2 at 3.2 mi: drinking_water, unnamed, 131 ft off');
+    expect(prompt).toContain('For the tool: the route is 29.24 km long');
+  });
+
+  it('keeps the tool schema tight', () => {
+    const finding = VALID_ADVICE.findings[0]!;
+    for (const [why, bad] of [
+      ['an answer too long', { ...VALID_ADVICE, answer: 'x'.repeat(401) }],
+      ['7 findings', { ...VALID_ADVICE, findings: Array.from({ length: 7 }, () => finding) }],
+      ['a text too long', { ...VALID_ADVICE, findings: [{ ...finding, text: 'x'.repeat(201) }] }],
+      ['an unknown kind', { ...VALID_ADVICE, findings: [{ ...finding, kind: 'weather' }] }],
+      ['an id that is no place id', { ...VALID_ADVICE, findings: [{ ...finding, place_id: 'cafe' }] }],
+      [
+        'an unknown fix',
+        { ...VALID_ADVICE, findings: [{ ...finding, fix: { type: 'teleport' } }] },
+      ],
+      [
+        'an unknown profile',
+        { ...VALID_ADVICE, findings: [{ ...finding, fix: { type: 'profile', profile: 'ebike' } }] },
+      ],
+      [
+        'an avoid fix without its end',
+        { ...VALID_ADVICE, findings: [{ ...finding, fix: { type: 'avoid', from_km: 1 } }] },
+      ],
+    ] as const) {
+      expect(adviseRouteSchema.safeParse(bad).success, why).toBe(false);
+    }
+    expect(adviseRouteSchema.parse({ answer: 'Fine as it is.' })).toEqual({
+      answer: 'Fine as it is.',
+      findings: [],
+    });
+  });
+
+  it('asks again when a place id is not in the digest', async () => {
+    const flaky = flakyAdviceModel({
+      ...VALID_ADVICE,
+      findings: [{ kind: 'food', text: 'A café.', fix: { type: 'add_stop', place_id: 'p9' } }],
+    });
+    await withLlm({}, { getModel: () => flaky.model }, async () => {
+      const events = parseSse(await (await call(routeBody())).text());
+      expect(flaky.calls()).toBe(2);
+      expect(events.map((e) => e.event)).toEqual(['route_advice', 'done']);
+      // Both attempts are paid for.
+      expect(events.at(-1)?.data).toMatchObject({ usage: { in: 300, out: 120 } });
+    });
+  });
+
+  it('asks again when a kilometre is off the route', async () => {
+    for (const findings of [
+      [{ kind: 'traffic', from_km: 12, to_km: 40, text: 'A busy road.' }],
+      [{ kind: 'traffic', text: 'A busy road.', fix: { type: 'avoid', from_km: 3, to_km: 31 } }],
+      [{ kind: 'traffic', text: 'A busy road.', fix: { type: 'avoid', from_km: 5, to_km: 4 } }],
+    ]) {
+      const flaky = flakyAdviceModel({ ...VALID_ADVICE, findings });
+      await withLlm({}, { getModel: () => flaky.model }, async () => {
+        const events = parseSse(await (await call(routeBody())).text());
+        expect(flaky.calls(), JSON.stringify(findings)).toBe(2);
+        expect(events.map((e) => e.event)).toEqual(['route_advice', 'done']);
+      });
+    }
+  });
+
+  it('reports an error after the second unusable answer', async () => {
+    const model = adviceModel({
+      ...VALID_ADVICE,
+      findings: [{ kind: 'food', place_id: 'p7', text: 'A café.' }],
+    });
+    await withLlm({}, { getModel: () => model }, async () => {
+      const events = parseSse(await (await call(routeBody())).text());
+      expect(model.doGenerateCalls).toHaveLength(PLAN_ATTEMPTS);
+      expect(events.map((e) => e.event)).toEqual(['error']);
+      const error = (events[0]?.data as { error: { code: string; message: string } }).error;
+      expect(error.code).toBe('invalid_request');
+      expect(error.message).toContain('p7 is not a place of the digest');
     });
   });
 });

@@ -203,9 +203,27 @@ class FakeRouteDigestService extends RouteDigestService {
   final Object? error;
   final List<String> asked = <String>[];
 
+  /// The lines a digest was asked of with [digestOfTrack], with the
+  /// messages that came along.
+  final List<(List<TrackPoint>, List<SegmentMessage>)> tracks =
+      <(List<TrackPoint>, List<SegmentMessage>)>[];
+
   @override
   Future<RouteDigest?> digestOf(SavedRoute route) async {
     asked.add(route.id);
+    if (error != null) throw error!;
+    return digest;
+  }
+
+  @override
+  Future<RouteDigest?> digestOfTrack({
+    required List<TrackPoint> geometry,
+    required double distanceM,
+    String? profile,
+    List<SegmentMessage> messages = const <SegmentMessage>[],
+    bool keepEmpty = false,
+  }) async {
+    tracks.add((geometry, messages));
     if (error != null) throw error!;
     return digest;
   }

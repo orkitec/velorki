@@ -28,6 +28,9 @@ const String planStep = 'plan';
 /// The `step` value of a description request.
 const String describeStep = 'describe';
 
+/// The `step` value of a question about the route on the map.
+const String routeStep = 'route';
+
 /// The assistant's state machine.
 ///
 /// One request at a time, and four gates before anything leaves the phone:
@@ -156,6 +159,7 @@ class AssistantController extends _$AssistantController {
         case ErrorEvent(:final error):
           throw RelayException(error, statusCode: 200);
         case TextEvent():
+        case RouteAdviceEvent():
         case DoneEvent():
           break;
       }
