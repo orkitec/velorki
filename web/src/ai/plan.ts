@@ -1,5 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { generateText, tool, type LanguageModel } from 'ai';
+import {
+  generateText,
+  InvalidToolInputError,
+  NoSuchToolError,
+  tool,
+  ToolChoiceViolationError,
+  type LanguageModel,
+} from 'ai';
 import type { PlanRequest } from './schema';
 import { proposeRouteSchema, type ProposeRoute } from './schema';
 
@@ -45,12 +52,26 @@ export class PlanToolError extends Error {
   }
 }
 
+/** How many times a planning call is made before its failure is reported. */
+export const PLAN_ATTEMPTS = 2;
+
+/** Whether [err] is a model answering beside the tool, which is worth a retry. */
+function isMissedAnswer(err: unknown): boolean {
+  return (
+    err instanceof PlanToolError ||
+    ToolChoiceViolationError.isInstance(err) ||
+    InvalidToolInputError.isInstance(err) ||
+    NoSuchToolError.isInstance(err)
+  );
+}
+
 /**
- * Run the planning step: one non-streaming call that is forced to answer with
- * a single `propose_route` tool call.
+ * Run the planning step: a non-streaming call that is forced to answer with a
+ * single `propose_route` tool call.
  *
- * The tool has no `execute`: the AI SDK therefore stops after the call and
- * hands us the arguments, which is exactly what the app needs.
+ * Cheap models now and then answer in prose or with arguments the schema
+ * rejects despite the forced tool choice, so such an answer is asked for once
+ * more before the rider sees an error. The usage of every attempt is counted.
  */
 export async function runPlan(opts: {
   model: LanguageModel;
@@ -58,6 +79,33 @@ export async function runPlan(opts: {
   body: PlanRequest;
   abortSignal?: AbortSignal;
 }): Promise<PlanResult> {
+  const spent: LlmUsage = { in: 0, out: 0 };
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const result = await attemptPlan(opts, spent);
+      return { ...result, usage: { ...spent } };
+    } catch (err) {
+      const retry =
+        isMissedAnswer(err) && attempt < PLAN_ATTEMPTS && opts.abortSignal?.aborted !== true;
+      if (!retry) throw err;
+    }
+  }
+}
+
+/**
+ * One planning call. The tool has no `execute`: the AI SDK therefore stops
+ * after the call and hands us the arguments, which is exactly what the app
+ * needs. Adds what the call cost to `spent` when it answered at all.
+ */
+async function attemptPlan(
+  opts: {
+    model: LanguageModel;
+    system: string;
+    body: PlanRequest;
+    abortSignal?: AbortSignal;
+  },
+  spent: LlmUsage,
+): Promise<Omit<PlanResult, 'usage'>> {
   const result = await generateText({
     model: opts.model,
     system: opts.system,
@@ -72,6 +120,8 @@ export async function runPlan(opts: {
     },
     ...(opts.abortSignal === undefined ? {} : { abortSignal: opts.abortSignal }),
   });
+  spent.in += result.totalUsage.inputTokens ?? 0;
+  spent.out += result.totalUsage.outputTokens ?? 0;
 
   const call = result.toolCalls.find((c) => c.toolName === 'propose_route');
   if (call === undefined) {
@@ -90,12 +140,5 @@ export async function runPlan(opts: {
     );
   }
 
-  return {
-    route: parsed.data,
-    usage: {
-      in: result.totalUsage.inputTokens ?? 0,
-      out: result.totalUsage.outputTokens ?? 0,
-    },
-    model: modelId(opts.model),
-  };
+  return { route: parsed.data, model: modelId(opts.model) };
 }

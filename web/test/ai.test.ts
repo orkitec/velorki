@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { describe, expect, it } from 'vitest';
 import { pino } from 'pino';
+import { generateText } from 'ai';
 import { MockLanguageModelV4 } from 'ai/test';
 import { injectSingletons } from '@/server/singletons';
 import { POST as aiPlan } from '@/app/(api)/ai/plan/route';
-import { buildPlanPrompt } from '@/ai/plan';
+import { buildPlanPrompt, PLAN_ATTEMPTS } from '@/ai/plan';
+import { withReasoningEffort } from '@/ai/provider';
+import { loadConfig } from '@/config';
 import { planRequestSchema } from '@/ai/schema';
 import {
   AUTH,
@@ -406,5 +409,74 @@ describe('prompt building', () => {
     const prompt = buildPlanPrompt(body);
     expect(prompt).toContain('47.38, 8.54');
     expect(prompt).not.toContain('376887');
+  });
+});
+
+describe('POST /ai/plan: a missed answer is asked for once more', () => {
+  it('retries an answer without the tool call and counts both attempts', async () => {
+    const good = mockToolCallModel(VALID_ROUTE);
+    const bad = mockFailingModel();
+    let calls = 0;
+    const flaky = new MockLanguageModelV4({
+      modelId: 'mock-plan-model',
+      doGenerate: async (options) => {
+        calls += 1;
+        return calls === 1 ? bad.doGenerate(options) : good.doGenerate(options);
+      },
+    });
+    await withLlm({}, { getModel: () => flaky }, async () => {
+      const events = parseSse(await (await call(planBody())).text());
+      expect(calls).toBe(2);
+      expect(events.map((e) => e.event)).toEqual(['route_request', 'done']);
+    });
+  });
+
+  it('retries unusable arguments and counts what both attempts cost', async () => {
+    const bad = mockToolCallModel({ ...VALID_ROUTE, distance_km: 2 });
+    const good = mockToolCallModel(VALID_ROUTE);
+    let calls = 0;
+    const flaky = new MockLanguageModelV4({
+      modelId: 'mock-plan-model',
+      doGenerate: async (options) => {
+        calls += 1;
+        return calls === 1 ? bad.doGenerate(options) : good.doGenerate(options);
+      },
+    });
+    await withLlm({}, { getModel: () => flaky }, async () => {
+      const events = parseSse(await (await call(planBody())).text());
+      expect(events.map((e) => e.event)).toEqual(['route_request', 'done']);
+      expect(events.at(-1)?.data).toMatchObject({ usage: { in: 240, out: 80 } });
+    });
+  });
+
+  it('gives up after the second miss', async () => {
+    const model = mockFailingModel();
+    await withLlm({}, { getModel: () => model }, async () => {
+      const events = parseSse(await (await call(planBody())).text());
+      expect(model.doGenerateCalls).toHaveLength(PLAN_ATTEMPTS);
+      expect(events.at(-1)?.event).toBe('error');
+    });
+  });
+});
+
+describe('reasoning effort', () => {
+  it('is sent as the provider option when configured', async () => {
+    const model = mockToolCallModel(VALID_ROUTE);
+    await generateText({ model: withReasoningEffort(model, 'low'), prompt: 'hi' });
+    expect(model.doGenerateCalls[0]?.providerOptions).toEqual({
+      llm: { reasoningEffort: 'low' },
+    });
+  });
+
+  it('is not sent when unset', async () => {
+    const model = mockToolCallModel(VALID_ROUTE);
+    await generateText({ model: withReasoningEffort(model, undefined), prompt: 'hi' });
+    expect(model.doGenerateCalls[0]?.providerOptions).toBeUndefined();
+  });
+
+  it('is read from the environment, blank meaning unset', () => {
+    expect(loadConfig({ ...llmEnv, LLM_REASONING_EFFORT: 'low' }).LLM_REASONING_EFFORT).toBe('low');
+    expect(loadConfig({ ...llmEnv, LLM_REASONING_EFFORT: '' }).LLM_REASONING_EFFORT).toBeUndefined();
+    expect(() => loadConfig({ ...llmEnv, LLM_REASONING_EFFORT: 'lots' })).toThrow();
   });
 });

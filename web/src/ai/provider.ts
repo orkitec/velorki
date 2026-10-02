@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import type { LanguageModel } from 'ai';
+import { defaultSettingsMiddleware, wrapLanguageModel, type LanguageModel } from 'ai';
 import type { Config } from '@/config';
 import { ApiError } from '@/server/errors';
 import type { Counters } from '@/server/counters';
@@ -25,8 +25,27 @@ export function createModelFactory(config: Config): ModelFactory {
       // Self-hosted servers often accept any key; only send one if configured.
       ...(config.LLM_API_KEY === undefined ? {} : { apiKey: config.LLM_API_KEY }),
     });
-    return provider(config.LLM_MODEL);
+    return withReasoningEffort(provider(config.LLM_MODEL), config.LLM_REASONING_EFFORT);
   };
+}
+
+/**
+ * Asks the model for `effort` of reasoning on every call, as the endpoint's
+ * `reasoning_effort`. Nothing is sent without one: plenty of OpenAI-compatible
+ * servers reject parameters they do not know.
+ */
+export function withReasoningEffort(
+  model: LanguageModel,
+  effort: string | undefined,
+): LanguageModel {
+  if (effort === undefined || typeof model === 'string') return model;
+  return wrapLanguageModel({
+    model,
+    middleware: defaultSettingsMiddleware({
+      // `llm` is the provider name createOpenAICompatible is given above.
+      settings: { providerOptions: { llm: { reasoningEffort: effort } } },
+    }),
+  });
 }
 
 /* -------------------------------------------------------------------------- */
