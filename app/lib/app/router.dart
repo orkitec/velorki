@@ -90,6 +90,11 @@ GoRouter createRouter({String initialLocation = plannerRoute}) {
   return GoRouter(
     navigatorKey: GlobalKey<NavigatorState>(debugLabel: 'root'),
     initialLocation: initialLocation,
+    // Links are read by app_links (OAuth returns, shared routes, files), and
+    // the platforms are told not to hand them to the router. Should one get
+    // here all the same, the rider stays where they were rather than on an
+    // error page with no way back.
+    onException: (context, state, router) {},
     routes: [
       GoRoute(
         path: paywallRoute,
