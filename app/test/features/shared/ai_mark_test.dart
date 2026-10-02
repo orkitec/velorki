@@ -104,7 +104,16 @@ void main() {
         expect(find.byType(AiSparkle), findsOneWidget);
         final painted = await _painted(tester);
         expect(painted.any((c) => _near(c, colors.ai)), isTrue);
-        expect(painted.any((c) => _near(c, colors.aiEnd)), isTrue);
+        // The glyph stops short of its box's far side, so the gradient's
+        // last colour need not be painted; it must clearly turn towards it.
+        expect(
+          painted.any(
+            (c) =>
+                c.a > 0.98 &&
+                _distance(c, colors.aiEnd) < _distance(c, colors.ai) / 2,
+          ),
+          isTrue,
+        );
         expect(painted.any((c) => _near(c, colors.accent)), isFalse);
 
         await tester.pumpWidget(
@@ -159,4 +168,35 @@ void main() {
       });
     }
   }
+
+  testWidgets('the edge runs up both sides as well as along the top', (
+    tester,
+  ) async {
+    const size = Size(200, 300);
+    await tester.pumpWidget(
+      Center(
+        child: RepaintBoundary(
+          key: _boundary,
+          child: CustomPaint(
+            size: size,
+            painter: AiEdgePainter(
+              gradient: const LinearGradient(
+                colors: <Color>[velorkiAiLight, velorkiAiEndLight],
+              ),
+              radius: 28,
+            ),
+          ),
+        ),
+      ),
+    );
+    final painted = await _painted(tester);
+    Color at(int x, int y) => painted[y * size.width.toInt() + x];
+
+    // Low down on each side, well below the corners, and mid-top.
+    expect(at(1, 280).a, greaterThan(0.5));
+    expect(at(198, 280).a, greaterThan(0.5));
+    expect(at(100, 1).a, greaterThan(0.5));
+    // Nothing inside the card.
+    expect(at(100, 150).a, 0);
+  });
 }

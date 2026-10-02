@@ -430,16 +430,16 @@ ColorScheme _lightScheme(AccentPreset p) => ColorScheme(
 const Color _ink = _inkLight;
 
 /// [VelorkiColors.ai] on light surfaces: at least 4.5:1 on every one.
-const Color velorkiAiLight = Color(0xFF6A4CE0);
+const Color velorkiAiLight = Color(0xFF4F46E5);
 
 /// [VelorkiColors.aiEnd] on light surfaces: at least 3:1 on every one.
-const Color velorkiAiEndLight = Color(0xFFB03CD8);
+const Color velorkiAiEndLight = Color(0xFFC2259E);
 
 /// [VelorkiColors.ai] on dark surfaces.
-const Color velorkiAiDark = Color(0xFFB6A4FF);
+const Color velorkiAiDark = Color(0xFF9EA6FF);
 
 /// [VelorkiColors.aiEnd] on dark surfaces.
-const Color velorkiAiEndDark = Color(0xFFE59BFF);
+const Color velorkiAiEndDark = Color(0xFFF58CE6);
 
 VelorkiColors _darkColors(AccentPreset p, ColorScheme scheme) => VelorkiColors(
   accent: p.dark,

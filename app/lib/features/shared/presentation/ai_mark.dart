@@ -44,10 +44,10 @@ class AiSparkle extends StatelessWidget {
   }
 }
 
-/// The AI card's edge: a line in [gradient] along the top of a card whose
-/// top corners are rounded by [radius], round those corners and down to
-/// where they end. In the card's own frame, so a card turned sideways has
-/// it along its turned top.
+/// The AI card's edge: a line in [gradient] up one side of a card whose top
+/// corners are rounded by [radius], round those corners, along the top and
+/// down the other side. In the card's own frame, so a card turned sideways
+/// has it along its turned edges.
 class AiEdgePainter extends CustomPainter {
   /// Creates the painter.
   const AiEdgePainter({
@@ -72,13 +72,15 @@ class AiEdgePainter extends CustomPainter {
     final radius = math.min(this.radius, size.height);
     final r = radius - inset;
     final path = Path()
-      ..moveTo(inset, radius)
+      ..moveTo(inset, size.height)
+      ..lineTo(inset, radius)
       ..arcToPoint(Offset(radius, inset), radius: Radius.circular(r))
       ..lineTo(size.width - radius, inset)
       ..arcToPoint(
         Offset(size.width - inset, radius),
         radius: Radius.circular(r),
-      );
+      )
+      ..lineTo(size.width - inset, size.height);
     canvas.drawPath(
       path,
       Paint()
