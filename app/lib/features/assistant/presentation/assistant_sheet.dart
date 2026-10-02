@@ -56,12 +56,47 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
   void initState() {
     super.initState();
     _prompt.text = ref.read(assistantControllerProvider).prompt;
+    _empty = _prompt.text.trim().isEmpty;
+    // The chips under the field follow what is in it.
+    _prompt.addListener(_promptChanged);
+  }
+
+  bool _empty = true;
+
+  void _promptChanged() {
+    final empty = _prompt.text.trim().isEmpty;
+    if (empty != _empty) setState(() => _empty = empty);
+  }
+
+  /// Appends [wish] to what the rider typed.
+  void _add(String wish) {
+    final text = _prompt.text.trimRight();
+    final sep = text.isEmpty || text.endsWith(',') ? ' ' : ', ';
+    _prompt.value = TextEditingValue(
+      text: '$text$sep$wish',
+      selection: TextSelection.collapsed(offset: '$text$sep$wish'.length),
+    );
+    setState(() {});
   }
 
   @override
   void dispose() {
-    _prompt.dispose();
+    _prompt
+      ..removeListener(_promptChanged)
+      ..dispose();
     super.dispose();
+  }
+
+  /// The wishes the planner acts on that the prompt does not mention yet.
+  List<String> _wishes(AppLocalizations l10n) {
+    final said = _prompt.text.toLowerCase();
+    return <String>[
+      l10n.assistantRefineFlat,
+      l10n.assistantRefineHilly,
+      l10n.assistantRefineGravel,
+      l10n.assistantRefineQuiet,
+      l10n.assistantRefineLoop,
+    ].where((w) => !said.contains(w.toLowerCase())).toList(growable: false);
   }
 
   /// Makes sure there is a consent, asking for one exactly once.
@@ -160,44 +195,36 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
                     decoration: InputDecoration(hintText: l10n.assistantHint),
                     onSubmitted: (_) => unawaited(_send()),
                   ),
-                  SectionCaption(l10n.assistantExamples),
+                  // An empty field gets whole examples; a typed one the
+                  // wishes the planner acts on, minus those already said.
+                  if (_empty)
+                    SectionCaption(l10n.assistantExamples)
+                  else if (_wishes(l10n).isNotEmpty)
+                    SectionCaption(l10n.assistantRefinements),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 4,
                     children: [
-                      for (final example in <String>[
-                        l10n.assistantExampleFlatLoop,
-                        l10n.assistantExampleQuietRide,
-                        l10n.assistantExampleGravel,
-                      ])
-                        ActionChip(
-                          label: Text(example),
-                          onPressed: () => setState(() {
-                            _prompt.text = example;
-                          }),
-                        ),
+                      if (_empty)
+                        for (final example in <String>[
+                          l10n.assistantExampleFlatLoop,
+                          l10n.assistantExampleQuietRide,
+                          l10n.assistantExampleGravel,
+                        ])
+                          ActionChip(
+                            label: Text(example),
+                            onPressed: () => _prompt.text = example,
+                          )
+                      else
+                        for (final wish in _wishes(l10n))
+                          ActionChip(
+                            avatar: const Icon(Icons.add_rounded, size: 18),
+                            label: Text(wish),
+                            onPressed: state.busy ? null : () => _add(wish),
+                          ),
                     ],
                   ),
-                  if (state.busy) ...[
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          state.phase == AssistantPhase.asking
-                              ? l10n.assistantThinking
-                              : l10n.assistantResolving,
-                          style: theme.textTheme.bodyMedium,
-                        ),
-                      ],
-                    ),
-                  ],
                   if (state.request != null && !state.busy) ...[
                     const SizedBox(height: 16),
                     _RequestSummary(state: state),
@@ -224,10 +251,20 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
                 20,
                 MediaQuery.viewPaddingOf(context).bottom + 16,
               ),
+              // The button is locked while it works, so it says what is
+              // going on: a line above it would be under the keyboard.
               child: FilledButton.icon(
                 onPressed: state.busy ? null : () => unawaited(_send()),
-                icon: const Icon(Icons.auto_awesome_rounded),
-                label: Text(l10n.assistantSend),
+                icon: state.busy
+                    ? const ButtonProgress()
+                    : const Icon(Icons.auto_awesome_rounded),
+                label: Text(
+                  !state.busy
+                      ? l10n.assistantSend
+                      : state.phase == AssistantPhase.asking
+                      ? l10n.assistantThinking
+                      : l10n.assistantResolving,
+                ),
               ),
             ),
           ],
@@ -235,6 +272,21 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
       ),
     );
   }
+}
+
+/// A spinner the size of a button's icon, for a button that is working.
+class ButtonProgress extends StatelessWidget {
+  /// Creates the spinner.
+  const ButtonProgress({super.key});
+
+  @override
+  Widget build(BuildContext context) => SizedBox.square(
+    dimension: 18,
+    child: CircularProgressIndicator(
+      strokeWidth: 2,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    ),
+  );
 }
 
 /// What the model asked for, once it is resolved enough to show.

@@ -109,6 +109,19 @@ FilledButton _saveButton(WidgetTester tester) => tester.widget<FilledButton>(
   find.widgetWithText(FilledButton, l10n.describeSave),
 );
 
+/// The sheet's button while the model writes: locked, with the spinner.
+FilledButton _busyButton(WidgetTester tester) {
+  final button = find.widgetWithText(FilledButton, l10n.describeRunning);
+  expect(
+    find.descendant(
+      of: button,
+      matching: find.byType(CircularProgressIndicator),
+    ),
+    findsOneWidget,
+  );
+  return tester.widget<FilledButton>(button);
+}
+
 /// Streams [parts] into the open request and closes it, as the relay does.
 Future<void> _stream(
   WidgetTester tester,
@@ -135,7 +148,7 @@ void main() {
     expect(find.text(l10n.describeTitle), findsOneWidget);
     expect(find.text(l10n.describeRunning), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    expect(_saveButton(tester).onPressed, isNull);
+    expect(_busyButton(tester).onPressed, isNull);
 
     opened.relay.emit(const TextEvent('A gentle loop '));
     await tester.pump();
@@ -143,7 +156,7 @@ void main() {
     expect(find.text('A gentle loop '), findsOneWidget);
     expect(find.text(l10n.describeRunning), findsOneWidget);
     // Nothing to keep while the model is still writing.
-    expect(_saveButton(tester).onPressed, isNull);
+    expect(_busyButton(tester).onPressed, isNull);
 
     opened.relay.emit(const TextEvent('along the Isar.'));
     await tester.pump();

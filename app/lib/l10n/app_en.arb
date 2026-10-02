@@ -2338,7 +2338,7 @@
   "@assistantIntro": {
     "description": "Subtitle of the assistant sheet"
   },
-  "assistantHint": "A hilly 60 km loop from here past the lake",
+  "assistantHint": "A hilly 60 km loop from here",
   "@assistantHint": {
     "description": "Hint text of the assistant's text field"
   },
@@ -2350,13 +2350,37 @@
   "@assistantExampleFlatLoop": {
     "description": "Example prompt"
   },
-  "assistantExampleQuietRide": "60 km to Freiburg on quiet roads",
+  "assistantExampleQuietRide": "A 50 km loop on quiet roads",
   "@assistantExampleQuietRide": {
     "description": "Example prompt"
   },
-  "assistantExampleGravel": "A gravel loop of about 80 km with a café stop",
+  "assistantExampleGravel": "A gravel loop of about 80 km",
   "@assistantExampleGravel": {
     "description": "Example prompt"
+  },
+  "assistantRefinements": "Add",
+  "@assistantRefinements": {
+    "description": "Heading above the chips that add a wish to a typed prompt"
+  },
+  "assistantRefineFlat": "flat",
+  "@assistantRefineFlat": {
+    "description": "Chip that appends a wish to the prompt: as few climbs as possible"
+  },
+  "assistantRefineHilly": "hilly",
+  "@assistantRefineHilly": {
+    "description": "Chip that appends a wish to the prompt: look for climbs"
+  },
+  "assistantRefineGravel": "on gravel",
+  "@assistantRefineGravel": {
+    "description": "Chip that appends a wish to the prompt: unpaved roads"
+  },
+  "assistantRefineQuiet": "on quiet roads",
+  "@assistantRefineQuiet": {
+    "description": "Chip that appends a wish to the prompt: little motor traffic"
+  },
+  "assistantRefineLoop": "back to the start",
+  "@assistantRefineLoop": {
+    "description": "Chip that appends a wish to the prompt: make the ride a loop"
   },
   "assistantSend": "Ask",
   "@assistantSend": {
@@ -2502,7 +2526,7 @@
   "@aiConsentBody": {
     "description": "First paragraph of the AI consent dialog"
   },
-  "aiConsentLocationBody": "If you allow it, your position is sent as well, rounded to about one kilometre, so “from here” means something.",
+  "aiConsentLocationBody": "If you allow it, your position is sent as well, rounded to about one kilometre. Without it the assistant does not know where you are, and its suggestions will be less accurate.",
   "@aiConsentLocationBody": {
     "description": "Second paragraph of the AI consent dialog"
   },
@@ -2538,7 +2562,7 @@
   "@settingsAiConsentDenied": {
     "description": "AI consent state: denied"
   },
-  "settingsAiConsentTextOnly": "Your text only.",
+  "settingsAiConsentTextOnly": "Your text only. Without your position the suggestions are less accurate.",
   "@settingsAiConsentTextOnly": {
     "description": "AI consent state: text only"
   },
