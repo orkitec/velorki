@@ -60,7 +60,10 @@ void main() {
 
     expect(h.photonAdapter.requests, hasLength(1));
     expect(h.photonAdapter.lastUri.queryParameters['q'], 'munich');
-    expect(h.photonAdapter.lastUri.queryParameters['lang'], testLocaleName);
+    expect(
+      h.photonAdapter.lastUri.queryParameters['lang'],
+      testLocale.languageCode,
+    );
     expect(find.text('Munich'), findsOneWidget);
     expect(find.text('Cafe Kosmos'), findsOneWidget);
 
