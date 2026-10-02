@@ -353,7 +353,96 @@ void main() {
     });
   });
 
+  group('planStream route advice', () {
+    test('maps a route stream onto its advice', () async {
+      String? sentBody;
+      final client = RelayClient(
+        base,
+        client: sseClient(<String>[
+          ': open\n\n',
+          'event: route_advice\ndata: {"answer":"Americana is about halfway.",',
+          '"findings":[{"kind":"food","place_id":"p1","text":"A café.",',
+          '"fix":{"type":"add_stop","place_id":"p1"}},',
+          '{"kind":"traffic","from_km":2.6,"to_km":4.1,"text":"A main road.",',
+          '"fix":{"type":"avoid","from_km":2.6,"to_km":4.1}},',
+          '{"kind":"profile","text":"Gravel suits it.",',
+          '"fix":{"type":"profile","profile":"gravel"}}]}\n\n',
+          'event: done\ndata: {}\n\n',
+        ], onRequest: (_, body) => sentBody = body),
+        appUserId: 'rc_user_42',
+      );
+      addTearDown(client.close);
+
+      final events = await client
+          .planStream(
+            step: 'route',
+            prompt: 'Where can I get a coffee?',
+            routeSummary: const RouteSummary(
+              distanceKm: 29.24,
+              ascentM: 1046,
+              surface: SurfaceMix(paved: 0.9),
+              digest: RouteDigest(loop: false),
+            ),
+          )
+          .toList();
+
+      final body = jsonDecode(sentBody!) as Map<String, Object?>;
+      expect(body['step'], 'route');
+      expect(
+        (body['route_summary']! as Map<String, Object?>)['digest'],
+        isNotNull,
+      );
+      expect(events, hasLength(2));
+      final advice = (events.first as RouteAdviceEvent).advice;
+      expect(advice.answer, 'Americana is about halfway.');
+      expect(advice.findings.map((f) => f.fix), <RouteFix>[
+        const AddStopFix('p1'),
+        const AvoidFix(fromKm: 2.6, toKm: 4.1),
+        const ProfileFix(ProfileHint.gravel),
+      ]);
+      expect(advice.findings[0].placeId, 'p1');
+      expect(advice.findings[1].kind, FindingKind.traffic);
+      expect(advice.findings[1].fromKm, 2.6);
+    });
+  });
+
   group('planEventFromSse', () {
+    test('parses route advice and round-trips it', () {
+      const data =
+          '{"answer":"Fine.","findings":[{"kind":"steep","from_km":1.5,'
+          '"to_km":2.5,"text":"A steep ramp."}]}';
+      final event =
+          planEventFromSse(const SseEvent(name: 'route_advice', data: data))!
+              as RouteAdviceEvent;
+      expect(event.advice.findings.single.fix, isNull);
+      expect(jsonEncode(event.advice.toJson()), data);
+      expect(RouteAdvice.fromJson(event.advice.toJson()), event.advice);
+    });
+
+    test('route advice from a newer relay keeps what it can', () {
+      final advice = RouteAdvice.fromJson(<String, Object?>{
+        'answer': 'Fine.',
+        'findings': <Object?>[
+          <String, Object?>{
+            'kind': 'weather',
+            'text': 'Windy.',
+            'fix': <String, Object?>{'type': 'teleport'},
+          },
+        ],
+      });
+      expect(advice.findings.single.kind, FindingKind.other);
+      expect(advice.findings.single.fix, isNull);
+    });
+
+    test('route advice without an answer is a format error', () {
+      expect(
+        () => planEventFromSse(
+          const SseEvent(name: 'route_advice', data: '{"findings":[]}'),
+        ),
+        throwsA(isA<RelayFormatException>()),
+      );
+    });
+
     test('accepts raw non-JSON text as a delta', () {
       expect(
         planEventFromSse(const SseEvent(name: 'text', data: 'plain chunk')),

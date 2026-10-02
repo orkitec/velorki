@@ -56,6 +56,29 @@ void main() {
     );
   });
 
+  testWidgets('an avoided stretch is drawn dashed until it is let back on', (
+    tester,
+  ) async {
+    container.read(plannerControllerProvider.notifier)
+      ..addWaypoint(_a)
+      ..addWaypoint(_b);
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump();
+
+    container.read(plannerControllerProvider.notifier).avoidStretch(100, 600);
+    await tester.pump();
+    expect(map.styles[avoidedLineId(0)], RouteLineStyle.avoided);
+    expect(
+      map.lines[avoidedLineId(0)],
+      container.read(plannerControllerProvider).avoid.single.line,
+    );
+
+    container.read(plannerControllerProvider.notifier).clearAvoided();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump();
+    expect(map.lines.containsKey(avoidedLineId(0)), isFalse);
+  });
+
   testWidgets('map gestures reach the planner', (tester) async {
     map.onTap!(_a);
     map.onTap!(_b);

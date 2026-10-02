@@ -43,8 +43,9 @@ import '../../sensors/application/sensor_hub.dart';
 import '../../settings/data/units.dart';
 import '../../shared/application/active_tab.dart';
 import '../../shared/application/nav_bar_docking.dart';
+import '../../../app/shell_layout.dart';
+import '../../shared/presentation/adaptive_docking_sheet.dart';
 import '../../shared/presentation/docking_sheet.dart';
-import '../../shared/presentation/floating_bar.dart';
 import '../../shared/presentation/tab_chrome_slide.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/swipe_pages.dart';
@@ -158,6 +159,9 @@ const Duration glanceAfter = Duration(seconds: 30);
 const double saverBrightness = 0.4;
 
 /// The Record tab: start a ride, watch the numbers, finish it.
+/// The highest the Record sheet goes, as a share of the screen's length.
+const double _recordMaxSheetSize = 0.85;
+
 class RecordingScreen extends ConsumerStatefulWidget {
   /// Creates the screen.
   const RecordingScreen({super.key});
@@ -316,6 +320,17 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
 
   /// Whether the sheet on screen is the live one.
   bool _liveSheetShown = false;
+
+  /// Where the sheet on screen is, as last laid out: sideways, turned with
+  /// the rail, it covers the screen from that side.
+  Rect? _sheetRect() {
+    final box = _sheetBoxKey.currentContext?.findRenderObject();
+    if (box is! RenderBox || !box.hasSize || !box.attached) return null;
+    return MatrixUtils.transformRect(
+      box.getTransformTo(null),
+      Offset.zero & box.size,
+    );
+  }
 
   /// How far the sheet reaches up from the bottom of a [size] screen.
   double _sheetCover(Size size) {
@@ -697,13 +712,36 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     // Above the sheet and below the banner or the status bar; low in that,
     // heading-up, so most of what shows is the road ahead.
     final size = MediaQuery.sizeOf(context);
+    // Turned sideways the sheet comes out from the rail's side, beside the
+    // map: the rider is kept in the middle of the map between it and the far
+    // edge, below the row at the top.
+    final layout = ShellLayout.of(context);
+    final screen = MediaQueryData.fromView(View.of(context));
+    final sheet = layout.sideRail ? _sheetRect() : null;
+    // The far side keeps clear of the camera island's safe area.
+    final left = sheet == null
+        ? 0.0
+        : layout.side == RailSide.left
+        ? sheet.right.clamp(0.0, size.width)
+        : screen.viewPadding.left;
+    final right = sheet == null
+        ? 0.0
+        : layout.side == RailSide.right
+        ? (size.width - sheet.left).clamp(0.0, size.width)
+        : screen.viewPadding.right;
+    final bannerCover = banner ? turnBannerHeight + _bannerGapPx : 0.0;
     final padding = followPadding(
       size: size,
+      // Sideways the controls' row stands at the top too, beside the docked
+      // sheet, level with the banner.
       top:
           MediaQuery.viewPaddingOf(context).top +
-          (banner ? turnBannerHeight + _bannerGapPx : 0),
-      bottom: _sheetCover(size),
-
+          (layout.sideRail
+              ? math.max(bannerCover, sidewaysTopRowTop + sidewaysTopRowHeight)
+              : bannerCover),
+      bottom: layout.sideRail ? screen.viewPadding.bottom : _sheetCover(size),
+      left: left,
+      right: right,
       headingUp: mode == FollowMode.headingUp,
     );
     // Where the camera itself comes to rest: the rider's placement moves it
@@ -1636,25 +1674,19 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     // none yet and the normal screen stays.
     final glance = saver && _glance && snapshot != null;
 
-    final bottomInset = MediaQuery.paddingOf(context).bottom;
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    double fraction(double dp) => screenHeight <= 0
-        ? 0.3
-        : ((bottomInset + dp) / screenHeight).clamp(0.01, 0.9);
+    // Upright the sheet rises over the screen's height and the bar covers
+    // its end; sideways it is the same sheet turned, out from the rail.
+    final geometry = SheetGeometry.of(context);
+    final bottomInset = geometry.endInset;
+    double fraction(double dp) => geometry.fraction(dp);
     // Collapsed: the handle alone, docked in a bar. Before a ride that is
     // the navigation bar, which the bottom padding covers under
     // `extendBody`. The navigation bar goes while a ride is recorded on this
     // tab, and the figures bar takes its place and shape: the sheet docks
     // into that, and the ride's first figures stay in view over most of
     // the map.
-    final barInset = state.isRecording
-        ? MediaQuery.viewPaddingOf(context).bottom +
-              floatingBarBottomGap +
-              floatingBarHeight
-        : bottomInset;
-    final collapsed = screenHeight <= 0
-        ? 0.1
-        : ((barInset + sheetHandleDp) / screenHeight).clamp(0.01, 0.9);
+    final barInset = state.isRecording ? geometry.figuresBarInset : bottomInset;
+    final collapsed = geometry.collapsedFor(barInset);
     // Idle, the sheet rests where the Plan sheet rests, so the tabs agree;
     // the start button and the chooser scroll where they need more.
     // Live: the status row and the two rows of key figures, plus a row per
@@ -1673,11 +1705,18 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
           )
         : const <LiveFigureReading>[];
     final extraRows = math.max(0, (figures.length + 2) ~/ 3 - 2);
-    final initial = state.isRecording
-        ? fraction(292.0 + 76 * extraRows)
-        : sheetRestingExtent(screenHeight);
+    // Sideways the sheet is as tall as the screen whatever it holds: it
+    // rests as wide as the other tabs' sheets.
+    // Never above the sheet's own top, which a short phone with many
+    // figures would otherwise ask for.
+    final initial = math.min(
+      state.isRecording && !geometry.sideways
+          ? fraction(292.0 + 76 * extraRows)
+          : geometry.resting,
+      _recordMaxSheetSize,
+    );
     if (state.isRecording) _liveRestingSize = initial;
-    _restingSheetSize = sheetRestingExtent(screenHeight);
+    _restingSheetSize = geometry.resting;
     final sheetKey = state.isRecording ? 'live' : 'idle';
     _liveSheetShown = state.isRecording;
 
@@ -1743,16 +1782,18 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     // The live sheet at rest sits lower than the idle one, and above a bar
     // that is taller than the handle: its morph ends short of its resting
     // height, so a sheet at rest is a sheet, not half a bar.
-    final fullRange = screenHeight <= 0
-        ? 0.15
-        : sheetDockingRangeDp / screenHeight;
+    final fullRange = geometry.dockedRange;
     // Reckoned from the lowest the live sheet ever rests, before any sensor
     // or route adds a row, so a sheet that rests lower for a moment while
     // its figures arrive does not start to fold.
     final dockedRange = state.isRecording
         ? math.min(
             fullRange,
-            math.max(0.0, (fraction(292.0) - collapsed) * 0.8),
+            math.max(
+              0.0,
+              ((geometry.sideways ? initial : fraction(292.0)) - collapsed) *
+                  0.8,
+            ),
           )
         : fullRange;
     if (state.isRecording && _docked) {
@@ -1763,6 +1804,9 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
         if (mounted) _reportDocked(false);
       });
     }
+
+    // Sideways the bar and the sheet are turned a quarter with the rail.
+    final shellLayout = ShellLayout.of(context);
 
     return Listener(
       // Any touch anywhere postpones the glance view, and a touch on the
@@ -1789,9 +1833,11 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                     active: active,
                     child: SafeArea(
                       bottom: false,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: TurnBanner(progress: navigation),
+                      child: BesideSheet(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: TurnBanner(progress: navigation),
+                        ),
                       ),
                     ),
                   ),
@@ -1805,81 +1851,83 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                   ),
                 )
               else
-                DraggableScrollableSheet(
+                AdaptiveDockingSheet(
                   // A fresh sheet per state, so the initial size applies again
                   // when a ride starts or ends.
-                  key: ValueKey(sheetKey),
+                  sheetKey: ValueKey(sheetKey),
+                  boxKey: state.isRecording
+                      ? _liveSheetBoxKey
+                      : _idleSheetBoxKey,
                   controller: state.isRecording ? _liveSheet : _idleSheet,
-                  initialChildSize: state.isRecording
+                  // Where the sheet really starts: for a screen built in the
+                  // middle of a change, where the other tab's sheet is.
+                  initialExtent: state.isRecording
                       ? initial
-                      : _arrivingExtent ?? initial,
-                  minChildSize: collapsed,
-                  maxChildSize: 0.85,
-                  snap: true,
+                      // Taken over from the last tab's sheet, but within this
+                      // one's own reach: the Library's card goes higher.
+                      : (_arrivingExtent ?? initial).clamp(
+                          collapsed,
+                          _recordMaxSheetSize,
+                        ),
+                  collapsedExtent: collapsed,
+                  maxExtent: _recordMaxSheetSize,
                   snapSizes: _snapSizesFor(initial),
-                  builder: (context, scrollController) => DockingSheet(
-                    key: state.isRecording
-                        ? _liveSheetBoxKey
-                        : _idleSheetBoxKey,
-                    controller: scrollController,
-                    gripDp: sheetGripWithTitleDp,
-                    // Where the sheet really starts: for a screen built in
-                    // the middle of a change, where the other tab's sheet is.
-                    initialExtent: state.isRecording
-                        ? initial
-                        : _arrivingExtent ?? initial,
-                    collapsedExtent: collapsed,
-                    dockedRange: dockedRange,
-                    docks: true,
-                    dockedBottomInset: barInset,
-                    // Docked during a ride, the sheet rests on the figures
-                    // bar, not the navigation bar, which is away.
-                    onDocked: state.isRecording ? null : _reportDocked,
-                    onExtent: _onSheetExtent,
-                    handle: const SheetHandle(),
-                    child: state.isRecording
-                        ? _LivePanel(
-                            state: state,
-                            figures: figures,
-                            bottomInset: bottomInset,
-                            page: _sheetPage,
-                            onPage: _setSheetPage,
-                            keepScreenOn: keepScreenOn,
-                            onKeepScreenOn: (v) => unawaited(
-                              ref
-                                  .read(recordingSettingsProvider.notifier)
-                                  .setKeepScreenOn(v),
-                            ),
-                            onPause: () => unawaited(
-                              ref
-                                  .read(recordingControllerProvider.notifier)
-                                  .pause(),
-                            ),
-                            onResume: () => unawaited(
-                              ref
-                                  .read(recordingControllerProvider.notifier)
-                                  .resume(),
-                            ),
-                            onStop: () => unawaited(_stop()),
-                          )
-                        : _IdlePanel(
-                            state: state,
-                            hintIndex: _hintIndex,
-                            bottomInset: bottomInset,
-                            keepScreenOn: keepScreenOn,
-                            onKeepScreenOn: (v) => unawaited(
-                              ref
-                                  .read(recordingSettingsProvider.notifier)
-                                  .setKeepScreenOn(v),
-                            ),
-                            onStart: () => unawaited(_start()),
+                  gripDp: sheetGripWithTitleDp,
+                  dockedRange: dockedRange,
+                  docks: true,
+                  dockedBottomInset: barInset,
+                  // Open, the content keeps clear of what is at the
+                  // sheet's end now; the figures bar only shows docked.
+                  contentEndInset: bottomInset,
+                  // Docked during a ride, the sheet rests on the figures
+                  // bar, not the navigation bar, which is away.
+                  onDocked: state.isRecording ? null : _reportDocked,
+                  onExtent: _onSheetExtent,
+                  child: state.isRecording
+                      ? _LivePanel(
+                          state: state,
+                          figures: figures,
+                          bottomInset: bottomInset,
+                          page: _sheetPage,
+                          onPage: _setSheetPage,
+                          keepScreenOn: keepScreenOn,
+                          onKeepScreenOn: (v) => unawaited(
+                            ref
+                                .read(recordingSettingsProvider.notifier)
+                                .setKeepScreenOn(v),
                           ),
-                  ),
+                          onPause: () => unawaited(
+                            ref
+                                .read(recordingControllerProvider.notifier)
+                                .pause(),
+                          ),
+                          onResume: () => unawaited(
+                            ref
+                                .read(recordingControllerProvider.notifier)
+                                .resume(),
+                          ),
+                          onStop: () => unawaited(_stop()),
+                        )
+                      : _IdlePanel(
+                          state: state,
+                          hintIndex: _hintIndex,
+                          bottomInset: bottomInset,
+                          keepScreenOn: keepScreenOn,
+                          onKeepScreenOn: (v) => unawaited(
+                            ref
+                                .read(recordingSettingsProvider.notifier)
+                                .setKeepScreenOn(v),
+                          ),
+                          onStart: () => unawaited(_start()),
+                        ),
                 ),
               if (state.isRecording && !glance)
                 Positioned(
+                  // Sideways the bar turns with the rail and finds its own
+                  // place on the rail's side.
                   left: 0,
                   right: 0,
+                  top: shellLayout.sideRail ? 0 : null,
                   bottom: 0,
                   child: ValueListenableBuilder<double>(
                     valueListenable: _liveExtent,
@@ -1899,6 +1947,9 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                         child: Opacity(
                           opacity: t,
                           child: FiguresBar(
+                            railSide: shellLayout.sideRail
+                                ? shellLayout.side
+                                : null,
                             figures: figures,
                             paused: state.isPaused,
                             system: ref.watch(unitSystemProvider),

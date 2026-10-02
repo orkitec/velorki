@@ -23,6 +23,7 @@ import '../../recording/presentation/rides_list.dart';
 import '../../settings/data/units.dart';
 import '../../shared/application/active_tab.dart';
 import '../../shared/application/nav_bar_docking.dart';
+import '../../shared/presentation/adaptive_docking_sheet.dart';
 import '../../shared/presentation/docking_sheet.dart';
 import '../../shared/presentation/placeholder_body.dart';
 import '../../shared/presentation/sheet_header.dart';
@@ -60,6 +61,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   /// The sheet's resting size, as computed by the last build.
   double _restingSheetSize = 0.48;
 
+  /// Whether the card is turned sideways, beside the rail.
+  bool _sideways = false;
+
   /// The sheet's greatest size, as computed by the last build.
   double _maxSheetSize = 0.9;
 
@@ -87,7 +91,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   /// the rider left it at this session, else the top for a list longer
   /// than two rows, else the resting height. A detail rests.
   double get _preferredExtent {
-    if (_detail) return _restingSheetSize;
+    // Sideways the card is as tall as the screen whatever it holds, and an
+    // extent left upright is a height, not a width.
+    if (_detail || _sideways) return _restingSheetSize;
     final left = ref.read(libraryCardExtentProvider);
     if (left != null) return left;
     final rows = _rows;
@@ -132,8 +138,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   void _onSheetExtent(double extent) {
     if (!_active) return;
     ref.read(tabHandoverProvider.notifier).setSheetExtent(extent);
-    // The rider's own drag of the list card is remembered for the session.
-    if (_armed && !_settling && !_detail) {
+    // The rider's own drag of the list card is remembered for the session;
+    // only upright, since sideways an extent is a width and the card rests
+    // there whatever was left.
+    if (_armed && !_settling && !_detail && !_sideways) {
       ref.read(libraryCardExtentProvider.notifier).set(extent);
     }
   }
@@ -141,6 +149,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   /// Moves the sheet to [target] as this screen's own doing, and arms the
   /// drag memory once it is there.
   Future<void> _settleTo(double target) async {
+    // Turned sideways the card is a side panel, with no sheet to move.
+    if (!_sheet.isAttached) {
+      _arm();
+      return;
+    }
     _settling = true;
     try {
       await _sheet.animateTo(
@@ -349,26 +362,28 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       });
     }
 
-    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    // Upright the card rises over the screen's height and the bar covers
+    // its end; sideways it is the same card turned, out from the rail.
+    final geometry = SheetGeometry.of(context);
+    _sideways = geometry.sideways;
+    final bottomInset = geometry.endInset;
     final topInset = MediaQuery.paddingOf(context).top;
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    // Collapsed, only the handle strip is left above the floating navigation
-    // bar, which the bottom padding already covers under `extendBody`: the
-    // sheet is docked in the bar and the map is free.
-    final collapsedSheetSize = screenHeight <= 0
-        ? 0.1
-        : ((bottomInset + sheetHandleDp) / screenHeight).clamp(0.01, 0.25);
-    final dockedRange = screenHeight <= 0
-        ? 0.15
-        : sheetDockingRangeDp / screenHeight;
+    final screenHeight = geometry.length;
+    // Collapsed, only the handle strip is left beside the floating
+    // navigation bar, which the padding already covers under `extendBody`:
+    // the sheet is docked in the bar and the map is free.
+    final collapsedSheetSize = geometry.collapsed;
+    final dockedRange = geometry.dockedRange;
     // One resting height, shared with the Plan and Record tabs.
-    final restingSheetSize = sheetRestingExtent(screenHeight);
+    final restingSheetSize = geometry.resting;
     _restingSheetSize = restingSheetSize;
     // Pulled up, the card may reach nearly the top: the charts, the splits
     // and the cue sheet want the room. The status bar and a little air
-    // stay clear.
+    // stay clear; sideways, some of the map.
     final maxSheetSize = screenHeight <= 0
         ? 0.9
+        : geometry.sideways
+        ? 0.85
         : ((screenHeight - topInset - 24) / screenHeight).clamp(0.6, 0.95);
     _maxSheetSize = maxSheetSize;
     // The list on screen, for the card's height on arrival: routes or
@@ -421,39 +436,32 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         ref.read(rideHighlightProvider.notifier).set(null),
                   ),
                 ),
-              DraggableScrollableSheet(
+              AdaptiveDockingSheet(
                 controller: _sheet,
-                initialChildSize: initialSheetSize,
-                minChildSize: collapsedSheetSize,
-                maxChildSize: maxSheetSize,
-                snap: true,
+                initialExtent: initialSheetSize,
+                collapsedExtent: collapsedSheetSize,
+                maxExtent: maxSheetSize,
                 snapSizes: _snapSizesFor(restingSheetSize),
-                builder: (context, scrollController) => DockingSheet(
-                  controller: scrollController,
-                  initialExtent: initialSheetSize,
-                  collapsedExtent: collapsedSheetSize,
-                  dockedRange: dockedRange,
-                  docks: true,
-                  dockedBottomInset: bottomInset,
-                  onDocked: _reportDocked,
-                  onExtent: _onSheetExtent,
-                  handle: const SheetHandle(),
-                  // A fresh scroll view per content, so a detail opened from
-                  // a scrolled list starts at its top.
-                  child: KeyedSubtree(
-                    key: ValueKey<String>(
-                      rideId != null
-                          ? 'ride:$rideId'
-                          : widget.routeId != null
-                          ? 'route:${widget.routeId}'
-                          : 'list',
-                    ),
-                    child: rideId != null
-                        ? RideDetailScreen(rideId: rideId)
+                dockedRange: dockedRange,
+                docks: true,
+                dockedBottomInset: bottomInset,
+                onDocked: _reportDocked,
+                onExtent: _onSheetExtent,
+                // A fresh scroll view per content, so a detail opened from
+                // a scrolled list starts at its top.
+                child: KeyedSubtree(
+                  key: ValueKey<String>(
+                    rideId != null
+                        ? 'ride:$rideId'
                         : widget.routeId != null
-                        ? RouteDetailScreen(routeId: widget.routeId!)
-                        : const _LibraryList(),
+                        ? 'route:${widget.routeId}'
+                        : 'list',
                   ),
+                  child: rideId != null
+                      ? RideDetailScreen(rideId: rideId)
+                      : widget.routeId != null
+                      ? RouteDetailScreen(routeId: widget.routeId!)
+                      : const _LibraryList(),
                 ),
               ),
             ],

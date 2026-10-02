@@ -11,6 +11,7 @@ import '../../../core/geo/track_surface.dart';
 import '../../routing_tiles/application/tile_update_check.dart';
 import '../data/route_repository.dart';
 import '../data/routing_backend_provider.dart';
+import '../domain/avoid_area.dart';
 import '../domain/planner_state.dart';
 import '../domain/route_legs.dart';
 import '../domain/route_poi.dart';
@@ -132,13 +133,103 @@ class PlannerController extends _$PlannerController {
   /// Puts a new waypoint at [pos] between the waypoints at [index] - 1 and
   /// [index]: the leg between them is split in two, and only those two are
   /// routed (the map's gesture on the route line).
-  void insertWaypoint(int index, LatLng pos) {
+  void insertWaypoint(
+    int index,
+    LatLng pos, {
+    String? name,
+    PoiKind poiKind = PoiKind.generic,
+  }) {
     if (index < 1 || index >= state.waypoints.length) return;
     _pushUndo();
     _setWaypoints(
-      [...state.waypoints]..insert(index, Waypoint(pos: pos)),
+      [...state.waypoints]
+        ..insert(index, Waypoint(pos: pos, name: name, poiKind: poiKind)),
       [...state.planLegs]..replaceRange(index - 1, index, [null, null]),
     );
+  }
+
+  /// Puts a stop at [pos], beside the route, into the leg the route passes
+  /// it on: [alongM] metres from the start of the route on the map, or, when
+  /// that is not known, wherever the route comes closest to [pos]. The route
+  /// then rides there; one undo step, like any inserted point.
+  void insertStop(
+    LatLng pos, {
+    double? alongM,
+    String? name,
+    PoiKind poiKind = PoiKind.generic,
+  }) {
+    final route = state.result;
+    if (route == null || !state.isRoutable || route.geometry.length < 2) {
+      return;
+    }
+    final track = route.positions;
+    final cumulative = cumulativeDistancesMeters(track);
+    var on = projectOnTrack(track, pos, cumulative: cumulative);
+    if (alongM != null) {
+      final along = alongM.clamp(0, cumulative.last).toDouble();
+      var i = 1;
+      while (i < cumulative.length - 1 && cumulative[i] < along) {
+        i++;
+      }
+      on = TrackProjection(on.distanceM, along, track[i]);
+    }
+    insertWaypoint(
+      _legAlong(route, track, cumulative, on),
+      pos,
+      name: name,
+      poiKind: poiKind,
+    );
+  }
+
+  /// Keeps the router off the stretch of the route on the map from [fromM]
+  /// to [toM] metres along it: the stretch becomes an [AvoidArea], every
+  /// leg that runs over it is routed again around it, and every leg routed
+  /// from now on keeps off it too. One undo step.
+  void avoidStretch(double fromM, double toM) {
+    final route = state.result;
+    if (route == null || !state.isRoutable) return;
+    final line = AvoidArea.cut(route.positions, fromM, toM);
+    if (line.length < 2) return;
+    _pushUndo();
+    final area = AvoidArea(line: line, fromKm: fromM / 1000, toKm: toM / 1000);
+    state = state.copyWith(
+      avoid: [...state.avoid, area],
+      alternatives: const <RouteResult>[],
+      legs: _legsOver(route, fromM, toM),
+    );
+    _scheduleRoute();
+  }
+
+  /// Lets the router back onto every avoided stretch, routing each leg
+  /// again. One undo step.
+  void clearAvoided() {
+    if (state.avoid.isEmpty) return;
+    _pushUndo();
+    state = state.copyWith(
+      avoid: const <AvoidArea>[],
+      alternatives: const <RouteResult>[],
+      legs: List<RouteLeg?>.filled(state.planLegs.length, null),
+    );
+    _scheduleRoute();
+  }
+
+  /// [PlannerState.planLegs] with every leg of [route] that runs between
+  /// [fromM] and [toM] marked to be routed again; all of them when the
+  /// route's legs are not known.
+  List<RouteLeg?> _legsOver(RouteResult route, double fromM, double toM) {
+    final legs = [...state.planLegs];
+    if (route is! PlannedRoute || route.legStarts.length != legs.length) {
+      return List<RouteLeg?>.filled(legs.length, null);
+    }
+    final cumulative = cumulativeDistancesMeters(route.positions);
+    for (var i = 0; i < legs.length; i++) {
+      final start = cumulative[route.legStarts[i]];
+      final end = i + 1 < legs.length
+          ? cumulative[route.legStarts[i + 1]]
+          : cumulative.last;
+      if (end >= fromM && start <= toM) legs[i] = null;
+    }
+    return legs;
   }
 
   /// Moves the waypoint at [index] (the map's drag gesture).
@@ -530,6 +621,8 @@ class PlannerController extends _$PlannerController {
       routeIsSaved: previous.routeIsSaved,
       savedRouteId: previous.savedRouteId,
       savedRouteName: previous.savedRouteName,
+      savedRouteSource: previous.savedRouteSource,
+      avoid: previous.avoid,
     );
     // The one case with something left to do: a step recorded while its own
     // route was still on its way, so there is a plan but nothing to show
@@ -742,6 +835,7 @@ class PlannerController extends _$PlannerController {
           : null,
       savedRouteId: saved.id,
       savedRouteName: saved.name,
+      savedRouteSource: saved.source,
       routeIsSaved: true,
     );
     if (!saved.surfaceUnavailable) _matchSurface();
@@ -851,6 +945,9 @@ class PlannerController extends _$PlannerController {
       alternatives: const <RouteResult>[],
       savedRouteId: empty ? null : state.savedRouteId,
       savedRouteName: empty ? null : state.savedRouteName,
+      savedRouteSource: empty ? null : state.savedRouteSource,
+      // Nothing left to keep off.
+      avoid: empty ? const <AvoidArea>[] : state.avoid,
     );
     _scheduleRoute();
   }
@@ -1098,11 +1195,13 @@ class PlannerController extends _$PlannerController {
     final wayBack = state.ridesBackAnotherWay;
     final returnVariant = state.options.returnVariant;
     final profile = state.options.profile.engineName;
+    final nogos = state.nogos;
     final last = legs.length - 1;
     RouteQuery query(int i, int alternative) => RouteQuery(
       points: [waypoints[i].pos, waypoints[i + 1].pos],
       profile: profile,
       alternativeIdx: alternative,
+      nogos: nogos,
     );
 
     final todo = <int>[

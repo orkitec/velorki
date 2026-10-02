@@ -155,9 +155,10 @@ class TrackSegment {
 
 /// How a route line is drawn: the route, a variant beside it, a preview
 /// of a route to follow, the faint original a route read from a file had
-/// before it was edited, or the route as it was before an edit, dimmed
-/// while the new one is being routed.
-enum RouteLineStyle { main, alternative, preview, original, stale }
+/// before it was edited, the route as it was before an edit, dimmed
+/// while the new one is being routed, or a stretch the router is told to
+/// keep off.
+enum RouteLineStyle { main, alternative, preview, original, stale, avoided }
 
 enum MapWaypointKind { start, via, end }
 

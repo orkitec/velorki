@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:velorki/app/shell_layout.dart';
 import 'package:velorki/features/search/data/gazetteer_store.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
+import 'package:velorki/features/shared/presentation/adaptive_docking_sheet.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
@@ -68,6 +70,83 @@ void main() {
     expect(selected.single.name, 'Cafe Kosmos');
     // The list collapses once a place was chosen.
     expect(find.text('Munich'), findsNothing);
+  });
+
+  for (final side in RailSide.values) {
+    testWidgets('sideways, rail on the ${side.name}, the list is as wide as '
+        'upright from the field\'s far edge, however narrow the field', (
+      tester,
+    ) async {
+      debugShellLayoutOverride = ShellLayout(sideRail: true, side: side);
+      final left = side == RailSide.left;
+      await pumpScreen(
+        tester,
+        Scaffold(
+          body: Align(
+            // The far side, away from the rail.
+            alignment: left ? Alignment.topRight : Alignment.topLeft,
+            child: SizedBox(width: 200, child: SearchField(onSelected: (_) {})),
+          ),
+        ),
+        surfaceSize: const Size(874, 402),
+      );
+
+      await tester.enterText(find.byType(TextField), 'munich');
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+      expect(find.text('Munich'), findsOneWidget);
+
+      final field = tester.getRect(find.byType(SearchField));
+      final list = tester.getRect(
+        find
+            .descendant(
+              of: find.byType(CompositedTransformFollower),
+              matching: find.byType(Material),
+            )
+            .first,
+      );
+      expect(list.width, greaterThanOrEqualTo(sidewaysSheetContentWidth));
+      expect(list.top, closeTo(field.bottom, 1));
+      // The field reaches the screen's edge; the list keeps 12 inside the
+      // safe area there, where the camera's island is.
+      final padding = MediaQuery.viewPaddingOf(
+        tester.element(find.byType(SearchField)),
+      );
+      final safe = left ? padding.right : padding.left;
+      if (left) {
+        expect(list.right, closeTo(field.right - safe - 12, 1));
+      } else {
+        expect(list.left, closeTo(field.left + safe + 12, 1));
+      }
+    });
+  }
+
+  testWidgets('upright the list is as wide as the field', (tester) async {
+    await pumpScreen(
+      tester,
+      Scaffold(
+        body: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(width: 300, child: SearchField(onSelected: (_) {})),
+        ),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField), 'munich');
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+
+    final field = tester.getRect(find.byType(SearchField));
+    final list = tester.getRect(
+      find
+          .descendant(
+            of: find.byType(CompositedTransformFollower),
+            matching: find.byType(Material),
+          )
+          .first,
+    );
+    expect(list.width, closeTo(field.width, 1));
+    expect(list.left, closeTo(field.left, 1));
   });
 
   testWidgets('an empty answer says so and clearing resets the field', (

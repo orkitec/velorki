@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 import { POST as aiPlan } from '@/app/(api)/ai/plan/route';
+import { planRequestSchema } from '@/ai/schema';
 import {
   CONSENT,
   jsonRequest,
@@ -33,6 +34,9 @@ interface OpenApi {
   paths: {
     '/ai/plan': {
       post: {
+        requestBody: {
+          content: { 'application/json': { examples: Record<string, { value: unknown }> } };
+        };
         responses: {
           '200': {
             content: {
@@ -124,11 +128,48 @@ describe('the documented SSE streams', () => {
     expect(stream).toBe(onTheWire('describe'));
   });
 
+  it('replays the step=route example byte for byte', async () => {
+    const requests = spec.paths['/ai/plan'].post.requestBody.content['application/json'].examples;
+    const stream = await streamOf(requests.route?.value, {
+      getModel: () =>
+        mockToolCallModel(
+          {
+            answer: 'Americana, a café right by the road at 14.2 km, is about halfway.',
+            findings: [
+              {
+                kind: 'food',
+                place_id: 'p1',
+                text: 'Americana, a café 6 m off the route.',
+                fix: { type: 'add_stop', place_id: 'p1' },
+              },
+            ],
+          },
+          usage(980, 120),
+          MODEL_ID,
+          'advise_route',
+        ),
+    });
+    expect(stream).toBe(onTheWire('route'));
+  });
+
   it('replays the failure example byte for byte', async () => {
     const stream = await streamOf(PLAN_BODY, {
       getModel: () =>
         mockToolCallModel({ ...PROPOSED_ROUTE, distance_km: 2 }, usage(412, 96), MODEL_ID),
     });
     expect(stream).toBe(onTheWire('failure'));
+  });
+});
+
+describe('the documented request bodies', () => {
+  const requests = spec.paths['/ai/plan'].post.requestBody.content['application/json'].examples;
+
+  it('documents a describe body with a route digest', () => {
+    expect(Object.keys(requests)).toContain('describe_with_digest');
+  });
+
+  it.each(Object.keys(requests))('accepts the %s example as documented', (name) => {
+    const result = planRequestSchema.safeParse(requests[name]?.value);
+    expect(result.success, JSON.stringify(result.error?.issues)).toBe(true);
   });
 });

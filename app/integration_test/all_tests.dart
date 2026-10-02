@@ -51,6 +51,7 @@ import 'live_watch_test.dart' as live_watch;
 import 'navigate_route_test.dart' as navigate_route;
 import 'offline_search_test.dart' as offline_search;
 import 'on_device_route_test.dart' as on_device_route;
+import 'orientation_test.dart' as orientation;
 import 'record_ride_test.dart' as record_ride;
 import 'save_library_detail_test.dart' as save_library_detail;
 import 'search_to_destination_test.dart' as search_to_destination;
@@ -73,6 +74,7 @@ void main() {
   group('navigate_route_test.dart', navigate_route.main);
   group('offline_search_test.dart', offline_search.main);
   group('on_device_route_test.dart', on_device_route.main);
+  group('orientation_test.dart', orientation.main);
   group('record_ride_test.dart', record_ride.main);
   group('save_library_detail_test.dart', save_library_detail.main);
   group('search_to_destination_test.dart', search_to_destination.main);

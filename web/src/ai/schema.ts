@@ -45,17 +45,100 @@ const surfaceMixSchema = z.object({
   unpaved: z.number().min(0).max(1).optional(),
 });
 
+/*
+ * The route digest the app builds on the phone for `step=describe`: what the
+ * route runs over, where it climbs, the settlements it passes and the places
+ * to stop beside it. Optional, so app versions that never send one keep
+ * working. Distances are kilometres along the route, gradients percent.
+ *
+ * The coordinates are validated but never rendered into the prompt: the model
+ * reads names and kilometres, not the track.
+ */
+
+/** A kilometre mark along the route. */
+const kmSchema = z.number().min(0).max(10_000);
+/** A gradient in percent, signed; steeper than 60 % is not a road. */
+const gradeSchema = z.number().min(-60).max(60);
+/** A short OSM tag value such as `cycleway` or `asphalt`. */
+const tagValueSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(32)
+  .regex(/^[a-z0-9_:;.-]+$/, 'must be an OSM tag value');
+const pointSchema = z.object({ lat: latSchema, lon: lonSchema });
+
+const stretchSchema = z.object({
+  from_km: kmSchema,
+  to_km: kmSchema,
+  road: tagValueSchema,
+  surface: tagValueSchema,
+  avg_grade: gradeSchema,
+  max_grade: gradeSchema,
+  start: pointSchema,
+  end: pointSchema,
+});
+
+const climbSchema = z.object({
+  start_km: kmSchema,
+  length_km: z.number().min(0).max(1_000),
+  gain_m: z.number().min(0).max(10_000),
+  avg_grade: gradeSchema,
+  max_grade: gradeSchema,
+});
+
+const townSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  kind: z.enum(['city', 'town', 'village']),
+  km: kmSchema,
+  lat: latSchema,
+  lon: lonSchema,
+});
+
+const placeSchema = z.object({
+  id: z.string().regex(/^p[0-9]{1,3}$/, 'must look like p12'),
+  kind: z.enum([
+    'cafe',
+    'bakery',
+    'drinking_water',
+    'toilets',
+    'viewpoint',
+    'water',
+    'beach',
+    'bicycle_shop',
+    'bicycle_repair_station',
+    'station',
+  ]),
+  name: z.string().trim().max(120).optional(),
+  km: kmSchema,
+  off_m: z.number().min(0).max(1_000),
+  lat: latSchema,
+  lon: lonSchema,
+});
+
+export const routeDigestSchema = z.object({
+  profile: z.string().trim().max(20).optional(),
+  loop: z.boolean(),
+  stretches: z.array(stretchSchema).max(60).default([]),
+  climbs: z.array(climbSchema).max(20).default([]),
+  towns: z.array(townSchema).max(30).default([]),
+  places: z.array(placeSchema).max(40).default([]),
+});
+
+export type RouteDigest = z.infer<typeof routeDigestSchema>;
+
 const routeSummarySchema = z.object({
   distance_km: z.number().min(0).max(10_000),
   ascent_m: z.number().min(0).max(100_000),
   surface: surfaceMixSchema,
   waypoints: z.array(z.string().trim().max(120)).max(50).optional(),
   highlights: z.array(z.string().trim().max(200)).max(20).optional(),
+  digest: routeDigestSchema.optional(),
 });
 
 export const planRequestSchema = z
   .object({
-    step: z.enum(['plan', 'describe']),
+    step: z.enum(['plan', 'describe', 'route']),
     locale: localeSchema,
     units: z.enum(['metric', 'imperial']).default('metric'),
     prompt: z.string().trim().min(1).max(1000),
@@ -69,6 +152,14 @@ export const planRequestSchema = z
         code: 'custom',
         path: ['route_summary'],
         message: 'route_summary is required when step is "describe"',
+      });
+    }
+    // A question about a route is answered from its digest and nothing else.
+    if (value.step === 'route' && value.route_summary?.digest === undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['route_summary', 'digest'],
+        message: 'route_summary.digest is required when step is "route"',
       });
     }
   });
@@ -132,3 +223,84 @@ export const proposeRouteSchema = z.object({
 });
 
 export type ProposeRoute = z.infer<typeof proposeRouteSchema>;
+
+/* -------------------------------------------------------------------------- */
+/* step=route: a question about the route on the map                          */
+/* -------------------------------------------------------------------------- */
+
+const profileHintSchema = z.enum(['trekking', 'fastbike', 'mtb', 'gravel']);
+
+/** A place of the request's digest, `p1` … `p999`. */
+const placeIdSchema = z
+  .string()
+  .regex(/^p\d+$/, 'must be the id of a place in the digest, like p3')
+  .describe('The id of a place in the digest, like "p3".');
+
+const adviceKmSchema = z.number().min(0).max(10_000);
+
+/**
+ * One change the app can make to the route for a finding. The app applies
+ * it through the planner, so every variant is machine-usable: a place by its
+ * digest id, a stretch by kilometres along the route, a profile by name.
+ */
+const routeFixSchema = z.discriminatedUnion('type', [
+  z
+    .object({
+      type: z.literal('add_stop'),
+      place_id: placeIdSchema,
+    })
+    .describe('Route through a place of the digest as an extra stop.'),
+  z
+    .object({
+      type: z.literal('avoid'),
+      from_km: adviceKmSchema.describe('Start of the stretch to avoid, in kilometres.'),
+      to_km: adviceKmSchema.describe('End of the stretch to avoid, in kilometres.'),
+    })
+    .describe('Route around a stretch of the route.'),
+  z
+    .object({
+      type: z.literal('profile'),
+      profile: profileHintSchema,
+    })
+    .describe('Plan the route again with another bike profile.'),
+]);
+
+const findingSchema = z.object({
+  kind: z
+    .enum(['traffic', 'steep', 'surface', 'water', 'food', 'detour', 'profile', 'other'])
+    .describe('What the finding is about.'),
+  from_km: adviceKmSchema
+    .optional()
+    .describe('Where along the route it starts, in kilometres.'),
+  to_km: adviceKmSchema.optional().describe('Where along the route it ends, in kilometres.'),
+  place_id: placeIdSchema.optional(),
+  text: z
+    .string()
+    .trim()
+    .min(1)
+    .max(200)
+    .describe("One sentence for the rider, in the rider's locale and units."),
+  fix: routeFixSchema.optional(),
+});
+
+/**
+ * The single tool the `route` step may call: an answer to the rider's
+ * question about the route on the map, and a few concrete findings, each
+ * with a change the app can make.
+ */
+export const adviseRouteSchema = z.object({
+  answer: z
+    .string()
+    .trim()
+    .min(1)
+    .max(400)
+    .describe("A short answer to the rider's question, in the rider's locale and units."),
+  findings: z
+    .array(findingSchema)
+    .max(6)
+    .default([])
+    .describe('Up to 6 concrete findings along the route, in route order.'),
+});
+
+export type AdviseRoute = z.infer<typeof adviseRouteSchema>;
+export type RouteFinding = z.infer<typeof findingSchema>;

@@ -179,6 +179,20 @@
   "@plannerRestoreOriginal": {
     "description": "Action on the chip that puts the file's own route back"
   },
+  "plannerAvoiding": "{count, plural, =1{Keeping off 1 stretch} other{Keeping off {count} stretches}}",
+  "@plannerAvoiding": {
+    "description": "Chip over the planner's map while the router avoids stretches the rider asked it to keep off",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "plannerAvoidClear": "Allow again",
+  "@plannerAvoidClear": {
+    "description": "Action on the chip that lets the router back onto the avoided stretches"
+  },
   "plannerOnePointHint": "Tap the map again to add a destination.",
   "@plannerOnePointHint": {
     "description": "Hint shown once a start point is set but no destination"
@@ -482,6 +496,10 @@
   "searchHint": "Search for a place",
   "@searchHint": {
     "description": "Placeholder text of the planner search field"
+  },
+  "searchHintShort": "Search",
+  "@searchHintShort": {
+    "description": "The search field's hint where the field is too narrow for searchHint: beside the side panel on a small phone turned sideways."
   },
   "searchClear": "Clear search",
   "@searchClear": {
@@ -2334,7 +2352,7 @@
   "@assistantIntro": {
     "description": "Subtitle of the assistant sheet"
   },
-  "assistantHint": "A hilly 60 km loop from here past the lake",
+  "assistantHint": "A hilly 60 km loop from here",
   "@assistantHint": {
     "description": "Hint text of the assistant's text field"
   },
@@ -2346,13 +2364,37 @@
   "@assistantExampleFlatLoop": {
     "description": "Example prompt"
   },
-  "assistantExampleQuietRide": "60 km to Freiburg on quiet roads",
+  "assistantExampleQuietRide": "A 50 km loop on quiet roads",
   "@assistantExampleQuietRide": {
     "description": "Example prompt"
   },
-  "assistantExampleGravel": "A gravel loop of about 80 km with a café stop",
+  "assistantExampleGravel": "A gravel loop of about 80 km",
   "@assistantExampleGravel": {
     "description": "Example prompt"
+  },
+  "assistantRefinements": "Add",
+  "@assistantRefinements": {
+    "description": "Heading above the chips that add a wish to a typed prompt"
+  },
+  "assistantRefineFlat": "flat",
+  "@assistantRefineFlat": {
+    "description": "Chip that appends a wish to the prompt: as few climbs as possible"
+  },
+  "assistantRefineHilly": "hilly",
+  "@assistantRefineHilly": {
+    "description": "Chip that appends a wish to the prompt: look for climbs"
+  },
+  "assistantRefineGravel": "on gravel",
+  "@assistantRefineGravel": {
+    "description": "Chip that appends a wish to the prompt: unpaved roads"
+  },
+  "assistantRefineQuiet": "on quiet roads",
+  "@assistantRefineQuiet": {
+    "description": "Chip that appends a wish to the prompt: little motor traffic"
+  },
+  "assistantRefineLoop": "back to the start",
+  "@assistantRefineLoop": {
+    "description": "Chip that appends a wish to the prompt: make the ride a loop"
   },
   "assistantSend": "Ask",
   "@assistantSend": {
@@ -2490,15 +2532,121 @@
   "@assistantRetry": {
     "description": "Button that clears the assistant error and lets the rider edit the prompt"
   },
+  "assistantModeNew": "New route",
+  "@assistantModeNew": {
+    "description": "Segment of the assistant sheet that asks for a new route"
+  },
+  "assistantModeRoute": "This route",
+  "@assistantModeRoute": {
+    "description": "Segment of the assistant sheet that asks about the route on the map"
+  },
+  "assistantRouteTitle": "Ask about this route",
+  "@assistantRouteTitle": {
+    "description": "Title of the assistant sheet when asking about the route on the map"
+  },
+  "assistantRouteIntro": "Ask anything about the route on the map. Its roads, climbs and the places along it are sent, your position is not.",
+  "@assistantRouteIntro": {
+    "description": "Subtitle of the assistant sheet when asking about the route on the map"
+  },
+  "assistantRouteHint": "Anything steep on the way?",
+  "@assistantRouteHint": {
+    "description": "Hint text of the field for a question about the route"
+  },
+  "assistantRouteExampleCheck": "Check this route",
+  "@assistantRouteExampleCheck": {
+    "description": "Example question about the route on the map"
+  },
+  "assistantRouteExampleCoffee": "Where can I get coffee around halfway?",
+  "@assistantRouteExampleCoffee": {
+    "description": "Example question about the route on the map"
+  },
+  "assistantRouteExampleWater": "Where can I refill my water?",
+  "@assistantRouteExampleWater": {
+    "description": "Example question about the route on the map"
+  },
+  "assistantRouteExampleAvoid": "Avoid the main road",
+  "@assistantRouteExampleAvoid": {
+    "description": "Example question about the route on the map"
+  },
+  "assistantRouteExampleRoadBike": "Is this ok for a road bike?",
+  "@assistantRouteExampleRoadBike": {
+    "description": "Example question about the route on the map"
+  },
+  "assistantRouteFollowUps": "Ask next",
+  "@assistantRouteFollowUps": {
+    "description": "Heading above further questions once an answer about the route is shown"
+  },
+  "assistantRouteReading": "Reading the route…",
+  "@assistantRouteReading": {
+    "description": "Label of the locked button while the phone builds the route's digest"
+  },
+  "assistantRouteFindings": "Along the route",
+  "@assistantRouteFindings": {
+    "description": "Heading above the findings of an answer about the route"
+  },
+  "assistantRouteNone": "There is no route on the map to ask about.",
+  "@assistantRouteNone": {
+    "description": "Error when a question about the route is asked without a route"
+  },
+  "assistantFindingAt": "At {distance}",
+  "@assistantFindingAt": {
+    "description": "Where along the route a finding is",
+    "placeholders": {
+      "distance": {
+        "type": "String",
+        "example": "14.2 km"
+      }
+    }
+  },
+  "assistantFindingBetween": "{from} to {to}",
+  "@assistantFindingBetween": {
+    "description": "The stretch of the route a finding is about",
+    "placeholders": {
+      "from": {
+        "type": "String",
+        "example": "12.3 km"
+      },
+      "to": {
+        "type": "String",
+        "example": "15.0 km"
+      }
+    }
+  },
+  "assistantFindingShow": "Show",
+  "@assistantFindingShow": {
+    "description": "Button that moves the map to a finding"
+  },
+  "assistantFixAddStop": "Add as stop",
+  "@assistantFixAddStop": {
+    "description": "Button that routes through the place a finding names"
+  },
+  "assistantFixAvoid": "Avoid",
+  "@assistantFixAvoid": {
+    "description": "Button that makes the router keep off the stretch a finding names"
+  },
+  "assistantFixProfile": "Use {profile}",
+  "@assistantFixProfile": {
+    "description": "Button that switches the routing profile a finding suggests",
+    "placeholders": {
+      "profile": {
+        "type": "String",
+        "example": "Gravel"
+      }
+    }
+  },
+  "assistantFixApplied": "Applied",
+  "@assistantFixApplied": {
+    "description": "Shown in place of a finding's button once its fix was applied"
+  },
   "aiConsentTitle": "Before the assistant asks",
   "@aiConsentTitle": {
     "description": "Title of the one-time AI consent dialog"
   },
-  "aiConsentBody": "What you type is sent to the Velorki server, which forwards it to our AI provider. Nothing else goes with it: no name, no account, no route history.",
+  "aiConsentBody": "What you type, and a route you ask about, is sent to the Velorki server, which forwards it to our AI provider. Nothing else goes with it: no name, no account, no route history.",
   "@aiConsentBody": {
     "description": "First paragraph of the AI consent dialog"
   },
-  "aiConsentLocationBody": "If you allow it, your position is sent as well, rounded to about one kilometre, so “from here” means something.",
+  "aiConsentLocationBody": "If you allow it, your position is sent as well, rounded to about one kilometre. Without it the assistant does not know where you are, and its suggestions will be less accurate.",
   "@aiConsentLocationBody": {
     "description": "Second paragraph of the AI consent dialog"
   },
@@ -2534,7 +2682,7 @@
   "@settingsAiConsentDenied": {
     "description": "AI consent state: denied"
   },
-  "settingsAiConsentTextOnly": "Your text only.",
+  "settingsAiConsentTextOnly": "Your text only. Without your position the suggestions are less accurate.",
   "@settingsAiConsentTextOnly": {
     "description": "AI consent state: text only"
   },

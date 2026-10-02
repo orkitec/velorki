@@ -2,6 +2,7 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
+import '../../../app/shell_layout.dart';
 import '../../../app/theme.dart';
 import 'docking_sheet.dart' show dockedPillRadius;
 
@@ -15,6 +16,18 @@ const double floatingBarBottomGap = 12;
 /// The side margin of the floating bar.
 const double floatingBarSideMargin = 16;
 
+/// The width of the rail the bar becomes on a phone turned sideways: the
+/// bar itself, turned a quarter.
+const double floatingRailWidth = floatingBarHeight;
+
+/// How much of the screen's [side] the rail takes, from the edge to its
+/// inner side: the safe area, the air and the rail itself, as the bar takes
+/// the safe area, the air and itself at the bottom.
+double floatingRailInset(EdgeInsets viewPadding, RailSide side) =>
+    (side == RailSide.left ? viewPadding.left : viewPadding.right) +
+    floatingBarBottomGap +
+    floatingRailWidth;
+
 /// The glass pill a bar floats in at the bottom of the screen: the tab bar,
 /// and the figures bar Record's sheet folds into during a ride, so the two
 /// sit in exactly the same place with exactly the same shape.
@@ -24,6 +37,10 @@ const double floatingBarSideMargin = 16;
 /// rests on its top edge: the top goes square and open, the seam being the
 /// strip's own hairline, and the shadow and blur go (see below). [child] is
 /// [floatingBarHeight] tall.
+///
+/// On a phone turned sideways the shell is built inside a
+/// `QuarterTurnedFrame`, so the same pill stands as a rail on the side the
+/// phone's bottom edge went to.
 class FloatingBarShell extends StatelessWidget {
   /// Creates the shell.
   const FloatingBarShell({required this.child, this.docked = false, super.key});

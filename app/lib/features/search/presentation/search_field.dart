@@ -1,12 +1,16 @@
 import 'dart:async';
+import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../../app/shell_layout.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/presentation/route_format.dart' as format;
 import '../../settings/data/units.dart';
+import '../../shared/presentation/adaptive_docking_sheet.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../application/place_search_controller.dart';
 import '../data/gazetteer_store.dart';
@@ -18,6 +22,32 @@ import '../domain/search_result.dart';
 ///
 /// The widget only reports the chosen place; what happens with it — a new
 /// waypoint or a camera move — is the screen's decision.
+/// What the field takes of its width besides the hint: the search icon and
+/// the text padding on both sides.
+const double _hintChrome = 48 + 20 + 20;
+
+/// The same in a compact field: no magnifier, and less padding.
+const double _hintChromeCompact = 14 + 4;
+
+/// A field with a trailing button narrower than this is compact.
+const double _compactFieldWidth = 240;
+
+/// A field narrower than this has no room for a trailing button at all.
+const double _leastFieldWidthWithTrailing = 140;
+
+/// Whether [hint] fits [width] in one line of the field's text style.
+bool _hintFits(BuildContext context, String hint, double width) {
+  final painter = TextPainter(
+    text: TextSpan(text: hint, style: Theme.of(context).textTheme.bodyLarge),
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+    maxLines: 1,
+  )..layout();
+  final fits = painter.width <= width;
+  painter.dispose();
+  return fits;
+}
+
 class SearchField extends ConsumerStatefulWidget {
   /// Creates the search field.
   const SearchField({
@@ -26,8 +56,15 @@ class SearchField extends ConsumerStatefulWidget {
     this.onCleared,
     this.onFocusChanged,
     this.onDownloadArea,
+    this.trailing,
     super.key,
   });
+
+  /// Builds what is drawn in the field's glass after the text and its clear
+  /// button: the profile menu, on a phone turned sideways. The hint gets
+  /// what it leaves. `compact` asks for the smaller version a narrow field
+  /// has room for.
+  final Widget Function({required bool compact})? trailing;
 
   /// Called when the field takes or gives up focus, before the keyboard
   /// moves: the screen can make room for it.
@@ -64,16 +101,48 @@ class _SearchFieldState extends ConsumerState<SearchField> {
   double _fieldWidth = 0;
   bool _dismissed = false;
 
+  /// Where the field's bottom edge was on the screen at the last frame, so
+  /// the list can end above the keyboard: a phone turned sideways with the
+  /// keyboard up leaves it little more than a row or two.
+  final ValueNotifier<double?> _fieldBottom = ValueNotifier<double?>(null);
+
+  /// How far the list moves in from the field's far edge. Sideways the
+  /// field reaches past that edge's safe area, which the list, rows of
+  /// text that the camera's island would hide, keeps to.
+  final ValueNotifier<double> _farShift = ValueNotifier<double>(0);
+
+  double _shiftFromFarEdge(RenderBox box) {
+    final layout = ShellLayout.of(context);
+    if (!layout.sideRail) return 0;
+    // Measured in the overlay the list is drawn in, the screen.
+    final overlay = Overlay.maybeOf(context)?.context.findRenderObject();
+    if (overlay is! RenderBox || !overlay.hasSize) return 0;
+    final padding = MediaQuery.viewPaddingOf(context);
+    final right = layout.side == RailSide.left;
+    final gap = right
+        ? overlay.size.width -
+              box.localToGlobal(Offset(box.size.width, 0), ancestor: overlay).dx
+        : box.localToGlobal(Offset.zero, ancestor: overlay).dx;
+    final safe = right ? padding.right : padding.left;
+    return math.max(0, safe + sidewaysTopRowGap - gap);
+  }
+
   @override
   void initState() {
     super.initState();
     _focusNode.addListener(_onFocus);
   }
 
-  void _onFocus() => widget.onFocusChanged?.call(_focusNode.hasFocus);
+  void _onFocus() {
+    widget.onFocusChanged?.call(_focusNode.hasFocus);
+    // A narrow field puts its trailing button away while the rider types.
+    if (widget.trailing != null) setState(() {});
+  }
 
   @override
   void dispose() {
+    _fieldBottom.dispose();
+    _farShift.dispose();
     _controller.dispose();
     _focusNode
       ..removeListener(_onFocus)
@@ -85,6 +154,13 @@ class _SearchFieldState extends ConsumerState<SearchField> {
       !_dismissed && _controller.text.trim().length >= searchMinChars;
 
   void _syncResults() {
+    // The field moves when the phone turns, from one row to another, and
+    // the list's room below it goes with it.
+    final box = context.findRenderObject();
+    if (box is RenderBox && box.hasSize && box.attached) {
+      _fieldBottom.value = box.localToGlobal(Offset(0, box.size.height)).dy;
+      _farShift.value = _shiftFromFarEdge(box);
+    }
     if (_showResults) {
       if (!_results.isShowing) _results.show();
     } else if (_results.isShowing) {
@@ -165,24 +241,53 @@ class _SearchFieldState extends ConsumerState<SearchField> {
         centre != null &&
         !(store?.covers(centre) ?? false);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _syncResults();
-    });
     return LayoutBuilder(
       builder: (context, constraints) {
         _fieldWidth = constraints.maxWidth;
+        // Here rather than in build: a turn of the phone lays the field out
+        // anew without building this state again.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _syncResults();
+        });
+        // Sideways the field may be narrower than the list needs: the list
+        // is as wide as on a phone held upright, from the field's far-side
+        // edge towards the sheet, over which it may lie.
+        final layout = ShellLayout.of(context);
+        final fromRight = layout.sideRail && layout.side == RailSide.left;
+        // A narrow field, an iPhone SE's sideways, leaves the text little
+        // room beside the trailing button: the magnifier goes and the button
+        // is smaller, and while the rider types it steps aside. Narrower
+        // still, which only a frame of a turn is, it is not there at all.
+        final compact = constraints.maxWidth < _compactFieldWidth;
+        final trailing =
+            constraints.maxWidth < _leastFieldWidthWithTrailing ||
+                (compact && _focusNode.hasFocus)
+            ? null
+            : widget.trailing?.call(compact: compact);
         return OverlayPortal(
           controller: _results,
           overlayChildBuilder: (context) => Positioned(
-            width: _fieldWidth,
-            child: CompositedTransformFollower(
-              link: _link,
-              targetAnchor: Alignment.bottomLeft,
-              followerAnchor: Alignment.topLeft,
-              showWhenUnlinked: false,
+            width: layout.sideRail
+                ? math.max(_fieldWidth, sidewaysSheetContentWidth)
+                : _fieldWidth,
+            child: ValueListenableBuilder<double>(
+              valueListenable: _farShift,
+              builder: (context, shift, child) => CompositedTransformFollower(
+                link: _link,
+                offset: Offset(fromRight ? -shift : shift, 0),
+                targetAnchor: fromRight
+                    ? Alignment.bottomRight
+                    : Alignment.bottomLeft,
+                followerAnchor: fromRight
+                    ? Alignment.topRight
+                    : Alignment.topLeft,
+                showWhenUnlinked: false,
+                child: child,
+              ),
               child: Material(
                 type: MaterialType.transparency,
                 child: _ResultsCard(
+                  fieldBottom: _fieldBottom,
                   results: results,
                   units: units,
                   canDownloadHere: canDownloadHere,
@@ -198,39 +303,35 @@ class _SearchFieldState extends ConsumerState<SearchField> {
             link: _link,
             child: GlassPanel(
               radius: 28,
-              child: TextField(
-                controller: _controller,
-                focusNode: _focusNode,
-                textInputAction: TextInputAction.search,
-                enabled: canSearch,
-                style: Theme.of(context).textTheme.bodyLarge,
-                decoration: InputDecoration(
-                  hintText: canSearch
-                      ? l10n.searchHint
-                      : l10n.searchUnavailable,
-                  // The "no server configured" hint is a sentence, and in
-                  // German a longer one than the field is wide: let it wrap
-                  // rather than end in an ellipsis.
-                  hintMaxLines: canSearch ? 1 : 2,
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  filled: false,
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  disabledBorder: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 16,
-                  ),
-                  suffixIcon: _controller.text.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip: l10n.searchClear,
-                          icon: const Icon(Icons.close),
-                          onPressed: _clear,
+              child: Row(
+                children: [
+                  Expanded(
+                    // Beside the side panel on a phone turned sideways the
+                    // full hint may not fit, in some languages more than in
+                    // others: measured against what the text has of the
+                    // field, after the menu at its end.
+                    child: LayoutBuilder(
+                      builder: (context, text) => _textField(
+                        context,
+                        canSearch: canSearch,
+                        magnifier: !compact,
+                        narrow: !_hintFits(
+                          context,
+                          l10n.searchHint,
+                          text.maxWidth -
+                              (compact ? _hintChromeCompact : _hintChrome),
                         ),
-                ),
-                onChanged: _onChanged,
+                      ),
+                    ),
+                  ),
+                  if (trailing != null)
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: constraints.maxWidth * 0.6,
+                      ),
+                      child: trailing,
+                    ),
+                ],
               ),
             ),
           ),
@@ -238,10 +339,55 @@ class _SearchFieldState extends ConsumerState<SearchField> {
       },
     );
   }
+
+  Widget _textField(
+    BuildContext context, {
+    required bool canSearch,
+    required bool narrow,
+    required bool magnifier,
+  }) {
+    final l10n = AppLocalizations.of(context);
+    return TextField(
+      controller: _controller,
+      focusNode: _focusNode,
+      textInputAction: TextInputAction.search,
+      enabled: canSearch,
+      style: Theme.of(context).textTheme.bodyLarge,
+      decoration: InputDecoration(
+        hintText: !canSearch
+            ? l10n.searchUnavailable
+            : narrow
+            ? l10n.searchHintShort
+            : l10n.searchHint,
+        // The "no server configured" hint is a sentence, and in
+        // German a longer one than the field is wide: let it wrap
+        // rather than end in an ellipsis.
+        hintMaxLines: canSearch ? 1 : 2,
+        prefixIcon: magnifier ? const Icon(Icons.search_rounded) : null,
+        filled: false,
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        disabledBorder: InputBorder.none,
+        contentPadding: magnifier
+            ? const EdgeInsets.symmetric(horizontal: 20, vertical: 16)
+            : const EdgeInsets.fromLTRB(14, 16, 4, 16),
+        suffixIcon: _controller.text.isEmpty
+            ? null
+            : IconButton(
+                tooltip: l10n.searchClear,
+                icon: const Icon(Icons.close),
+                onPressed: _clear,
+              ),
+      ),
+      onChanged: _onChanged,
+    );
+  }
 }
 
 class _ResultsCard extends StatefulWidget {
   const _ResultsCard({
+    required this.fieldBottom,
     required this.results,
     required this.units,
     required this.canDownloadHere,
@@ -251,6 +397,8 @@ class _ResultsCard extends StatefulWidget {
     this.onDownloadArea,
   });
 
+  /// Where the field ends on the screen, `null` before it was laid out.
+  final ValueListenable<double?> fieldBottom;
   final AsyncValue<PlaceSearchState> results;
   final UnitSystem units;
 
@@ -281,7 +429,7 @@ class _ResultsCardState extends State<_ResultsCard> {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.only(top: _cardGap),
       // Opaque: it floats over the chips and the sheet, and a list read
       // through them is not a list.
       child: Material(
@@ -294,9 +442,14 @@ class _ResultsCardState extends State<_ResultsCard> {
           side: BorderSide(color: scheme.outlineVariant),
         ),
         clipBehavior: Clip.antiAlias,
-        child: ConstrainedBox(
-          // About five rows and the footer; more than that scrolls, visibly.
-          constraints: const BoxConstraints(maxHeight: 380),
+        child: ValueListenableBuilder<double?>(
+          valueListenable: widget.fieldBottom,
+          builder: (context, fieldBottom, child) => ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: _maxHeight(context, fieldBottom),
+            ),
+            child: child,
+          ),
           child: widget.results.when(
             loading: () => const Padding(
               padding: EdgeInsets.all(16),
@@ -333,6 +486,29 @@ class _ResultsCardState extends State<_ResultsCard> {
       ),
     );
   }
+
+  /// About five rows and the footer; more than that scrolls, visibly. Less
+  /// where the keyboard leaves less room under the field, as sideways it
+  /// does, but never less than the footer and a row: with the room any
+  /// smaller the list goes under the keyboard rather than to nothing.
+  static double _maxHeight(BuildContext context, double? fieldBottom) {
+    const most = 380.0;
+    const least = 96.0;
+    if (fieldBottom == null) return most;
+    final room =
+        MediaQuery.sizeOf(context).height -
+        MediaQuery.viewInsetsOf(context).bottom -
+        fieldBottom -
+        _cardGap -
+        _keyboardGap;
+    return room.clamp(least, most);
+  }
+
+  /// The air between the field and the card.
+  static const double _cardGap = 6;
+
+  /// The air between the card and the keyboard.
+  static const double _keyboardGap = 8;
 
   /// The rows: the results, and under them the one row that leads out of what
   /// is on screen — "Search online for …" below local results, "Show offline

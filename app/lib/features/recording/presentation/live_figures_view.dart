@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/shell_layout.dart';
+
 import '../../../app/theme.dart';
 import '../../../core/units/units.dart' as units;
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/presentation/route_format.dart';
+import '../../shared/presentation/adaptive_docking_sheet.dart';
 import '../../shared/presentation/floating_bar.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../domain/live_figures.dart';
@@ -95,8 +98,14 @@ class FiguresBar extends StatelessWidget {
     required this.system,
     required this.onOpen,
     this.docked = true,
+    this.railSide,
     super.key,
   });
+
+  /// The side the bar stands on as a rail, turned a quarter with a figure
+  /// over the next, on a phone turned sideways; `null` for the bar at the
+  /// bottom.
+  final RailSide? railSide;
 
   /// The ride's figures, in order; the bar shows the first four.
   final List<LiveFigureReading> figures;
@@ -119,9 +128,25 @@ class FiguresBar extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final shown = figures.take(figuresBarCount).toList();
+    final rail = railSide;
+    final figureViews = [
+      for (final reading in shown)
+        Expanded(
+          child: _BarFigure(
+            label: liveFigureLabel(reading.figure, l10n),
+            value: liveFigureValue(context, reading, l10n, system),
+            muted: paused || reading.lost,
+          ),
+        ),
+    ];
+    // Sideways the bar turns a quarter with the rail, and the figures inside
+    // turn back upright, one over the next.
+    final turns = rail == null
+        ? 0
+        : shellQuarterTurns(ShellLayout(sideRail: true, side: rail));
     // The tab bar's own shell: the same place, the same shape, the same
     // open top under the sheet's strip, whose hairline is the seam.
-    return FloatingBarShell(
+    final bar = FloatingBarShell(
       docked: docked,
       child: Semantics(
         button: true,
@@ -129,6 +154,8 @@ class FiguresBar extends StatelessWidget {
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onOpen,
+          // Up from the bar, towards the map, opens the sheet; sideways the
+          // turned frame makes that a drag away from the rail.
           onVerticalDragEnd: (details) {
             if ((details.primaryVelocity ?? 0) < 0) onOpen();
           },
@@ -136,23 +163,16 @@ class FiguresBar extends StatelessWidget {
             height: floatingBarHeight,
             child: Stack(
               children: [
-                Row(
-                  children: [
-                    for (final reading in shown)
-                      Expanded(
-                        child: _BarFigure(
-                          label: liveFigureLabel(reading.figure, l10n),
-                          value: liveFigureValue(
-                            context,
-                            reading,
-                            l10n,
-                            system,
-                          ),
-                          muted: paused || reading.lost,
-                        ),
-                      ),
-                  ],
-                ),
+                if (turns == 0)
+                  Row(children: figureViews)
+                else
+                  QuarterTurnedFrame(
+                    quarterTurns: 4 - turns,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Column(children: figureViews),
+                    ),
+                  ),
                 if (paused)
                   Positioned(
                     top: 10,
@@ -172,6 +192,11 @@ class FiguresBar extends StatelessWidget {
           ),
         ),
       ),
+    );
+    if (turns == 0) return bar;
+    return QuarterTurnedFrame(
+      quarterTurns: turns,
+      child: Align(alignment: Alignment.bottomCenter, child: bar),
     );
   }
 }

@@ -57,6 +57,9 @@ enum AssistantFailure {
 
   /// A point-to-point request named no destination.
   destinationUnknown,
+
+  /// There is no route on the map to ask about.
+  noRoute,
 }
 
 /// One thing that went wrong, in the terms the sheet renders.

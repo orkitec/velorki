@@ -12,6 +12,7 @@ import UserNotifications
 
   /// Mirrored in `lib/features/sensors/data/watch_gateway.dart`.
   private static let watchChannelName = "velorki/watch"
+  private static let orientationChannelName = "velorki/orientation"
   private static let launchWorkoutMethod = "launchWorkout"
   private static let notifyRideStartedMethod = "notifyRideStarted"
   private static let rideStartedNotificationId = "velorki-watch-ride"
@@ -41,6 +42,11 @@ import UserNotifications
   private var backupChannel: FlutterMethodChannel?
   private var audioChannel: FlutterMethodChannel?
   private var watchChannel: FlutterMethodChannel?
+  private var orientationChannel: FlutterMethodChannel?
+
+  /// Watches the scene's geometry, so a turn from one landscape straight to
+  /// the other, which changes no size Flutter sees, still reaches Dart.
+  private var geometryObservation: NSKeyValueObservation?
 
   /// The silence played just before a spoken turn cue.
   private let leadIn = LeadInPlayer()
@@ -99,6 +105,72 @@ import UserNotifications
       AppDelegate.handleWatchCall(call, result: result)
     }
     watchChannel = watch
+
+    let orientation = FlutterMethodChannel(
+      name: AppDelegate.orientationChannelName,
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
+    )
+    orientation.setMethodCallHandler { [weak self] call, result in
+      guard call.method == "side" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      self?.observeGeometry()
+      result(AppDelegate.bottomEdgeSide())
+    }
+    orientationChannel = orientation
+  }
+
+  /// The scene the app draws in; there is only one.
+  private static var windowScene: UIWindowScene? {
+    UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+  }
+
+  /// Which side of the screen the phone's bottom edge is on: `left` or
+  /// `right` in landscape, `nil` upright. Mirrored in
+  /// `lib/app/shell_layout.dart`.
+  private static func bottomEdgeSide() -> String? {
+    let orientation: UIInterfaceOrientation?
+    if #available(iOS 16.0, *) {
+      orientation = windowScene?.effectiveGeometry.interfaceOrientation
+    } else {
+      orientation = windowScene?.interfaceOrientation
+    }
+    switch orientation {
+    // The interface's landscape left has the home button, the bottom edge,
+    // on the left.
+    case .landscapeLeft: return "left"
+    case .landscapeRight: return "right"
+    default: return nil
+    }
+  }
+
+  /// Starts telling Dart about turns, once there is a scene to watch: Dart
+  /// asks for the side after its first frame, when the scene is there.
+  private func observeGeometry() {
+    guard !observingGeometry, let scene = AppDelegate.windowScene else { return }
+    observingGeometry = true
+    if #available(iOS 16.0, *) {
+      geometryObservation = scene.observe(\.effectiveGeometry) { [weak self] _, _ in
+        DispatchQueue.main.async { self?.sendSide() }
+      }
+    } else {
+      // Before iOS 16 the scene's geometry cannot be watched; the device
+      // turning is the nearest signal, and the interface follows it a
+      // moment later.
+      UIDevice.current.beginGeneratingDeviceOrientationNotifications()
+      NotificationCenter.default.addObserver(
+        forName: UIDevice.orientationDidChangeNotification, object: nil, queue: .main
+      ) { [weak self] _ in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self?.sendSide() }
+      }
+    }
+  }
+
+  private var observingGeometry = false
+
+  private func sendSide() {
+    orientationChannel?.invokeMethod("sideChanged", arguments: AppDelegate.bottomEdgeSide())
   }
 
   /// Launches the watch app into a cycling workout, the way HealthKit offers

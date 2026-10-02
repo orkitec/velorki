@@ -32,6 +32,7 @@ String assistantProblemText(AppLocalizations l10n, AssistantProblem problem) =>
       ),
       AssistantFailure.startUnknown => l10n.assistantStartUnknown,
       AssistantFailure.destinationUnknown => l10n.assistantLowConfidenceNoNotes,
+      AssistantFailure.noRoute => l10n.assistantRouteNone,
     };
 
 /// How the settings screen describes [consent].

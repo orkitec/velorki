@@ -5,6 +5,7 @@ import 'package:velorki/core/db/database.dart';
 import 'package:velorki/core/plus/plus_gate.dart';
 import 'package:velorki/features/assistant/data/ai_consent_controller.dart';
 import 'package:velorki/features/assistant/domain/ai_consent.dart';
+import 'package:velorki/features/assistant/application/route_digest_service.dart';
 import 'package:velorki/features/assistant/presentation/describe_route_sheet.dart';
 import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
@@ -86,6 +87,7 @@ Future<_Opened> _openSheet(
     _Host(subject),
     extraOverrides: [
       relayClientProvider.overrideWithValue(withRelay ? relay : null),
+      routeDigestServiceProvider.overrideWithValue(FakeRouteDigestService()),
     ],
   );
   final container = ProviderScope.containerOf(
@@ -108,6 +110,19 @@ Future<_Opened> _openSheet(
 FilledButton _saveButton(WidgetTester tester) => tester.widget<FilledButton>(
   find.widgetWithText(FilledButton, l10n.describeSave),
 );
+
+/// The sheet's button while the model writes: locked, with the spinner.
+FilledButton _busyButton(WidgetTester tester) {
+  final button = find.widgetWithText(FilledButton, l10n.describeRunning);
+  expect(
+    find.descendant(
+      of: button,
+      matching: find.byType(CircularProgressIndicator),
+    ),
+    findsOneWidget,
+  );
+  return tester.widget<FilledButton>(button);
+}
 
 /// Streams [parts] into the open request and closes it, as the relay does.
 Future<void> _stream(
@@ -135,7 +150,7 @@ void main() {
     expect(find.text(l10n.describeTitle), findsOneWidget);
     expect(find.text(l10n.describeRunning), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    expect(_saveButton(tester).onPressed, isNull);
+    expect(_busyButton(tester).onPressed, isNull);
 
     opened.relay.emit(const TextEvent('A gentle loop '));
     await tester.pump();
@@ -143,7 +158,7 @@ void main() {
     expect(find.text('A gentle loop '), findsOneWidget);
     expect(find.text(l10n.describeRunning), findsOneWidget);
     // Nothing to keep while the model is still writing.
-    expect(_saveButton(tester).onPressed, isNull);
+    expect(_busyButton(tester).onPressed, isNull);
 
     opened.relay.emit(const TextEvent('along the Isar.'));
     await tester.pump();

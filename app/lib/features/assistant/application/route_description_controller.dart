@@ -1,5 +1,6 @@
-import 'dart:ui' as ui;
+import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:velorki_api/velorki_api.dart';
 
@@ -10,7 +11,9 @@ import '../../planner/data/route_repository.dart';
 import '../../planner/domain/saved_route.dart';
 import '../data/ai_consent_controller.dart';
 import '../domain/assistant_state.dart';
+import 'ai_request_settings.dart';
 import 'assistant_controller.dart';
+import 'route_digest_service.dart';
 
 part 'route_description_controller.g.dart';
 
@@ -60,11 +63,18 @@ class RouteDescriptionState {
   );
 }
 
+/// How long the digest may take before the description goes ahead without
+/// it.
+const Duration routeDigestTimeout = Duration(seconds: 30);
+
 /// "Describe this route": one `step=describe` call, streamed into the sheet.
 ///
-/// The model is given numbers, not geometry: distance, climbing, the surface
-/// shares and the waypoint names. That keeps the prompt small and means no
-/// track ever leaves the phone.
+/// The model is given the figures — distance, climbing, the surface shares
+/// and the waypoint names — and, when the phone can build one, the route's
+/// digest: its stretches, climbs, the settlements it passes and the places
+/// to stop beside it (see [RouteDigestService]). The relay renders the digest
+/// without its coordinates, so the model reads names and kilometres, never
+/// the track.
 @riverpod
 class RouteDescriptionController extends _$RouteDescriptionController {
   @override
@@ -90,6 +100,9 @@ class RouteDescriptionController extends _$RouteDescriptionController {
       return;
     }
 
+    final digest = await _digest(route);
+    if (!ref.mounted) return;
+
     final buffer = StringBuffer();
     try {
       await for (final event in relay.planStream(
@@ -97,8 +110,9 @@ class RouteDescriptionController extends _$RouteDescriptionController {
         // The description step needs no prompt of its own: the summary is the
         // input, and the relay's own system prompt says what to do with it.
         prompt: route.name,
-        locale: locale ?? ui.PlatformDispatcher.instance.locale.toLanguageTag(),
-        routeSummary: summaryOf(route),
+        locale: locale ?? ref.read(aiLocaleTagProvider),
+        units: ref.read(aiUnitsProvider),
+        routeSummary: summaryOf(route, digest: digest),
       )) {
         switch (event) {
           case TextEvent(:final delta):
@@ -108,6 +122,7 @@ class RouteDescriptionController extends _$RouteDescriptionController {
             _fail(problemFor(RelayException(error, statusCode: 200)));
             return;
           case RouteRequestEvent():
+          case RouteAdviceEvent():
           case DoneEvent():
             break;
         }
@@ -132,12 +147,27 @@ class RouteDescriptionController extends _$RouteDescriptionController {
     state = state.copyWith(saved: true);
   }
 
+  /// The digest of [route], or `null` when it cannot be built in time; the
+  /// description then goes ahead on the figures alone.
+  Future<RouteDigest?> _digest(SavedRoute route) async {
+    try {
+      return await ref
+          .read(routeDigestServiceProvider)
+          .digestOf(route)
+          .timeout(routeDigestTimeout);
+    } on Object catch (e) {
+      debugPrint('velorki: no digest for route ${route.id}: $e');
+      return null;
+    }
+  }
+
   void _fail(AssistantProblem problem) =>
       state = state.copyWith(running: false, problem: problem);
 }
 
-/// The compact summary the `describe` step is given.
-RouteSummary summaryOf(SavedRoute route) {
+/// The compact summary the `describe` step is given, with [digest] when
+/// there is one.
+RouteSummary summaryOf(SavedRoute route, {RouteDigest? digest}) {
   final stats = route.surfaceStats;
   return RouteSummary(
     distanceKm: route.distanceM / 1000,
@@ -149,5 +179,6 @@ RouteSummary summaryOf(SavedRoute route) {
         .map((w) => w.name)
         .whereType<String>()
         .toList(growable: false),
+    digest: digest,
   );
 }

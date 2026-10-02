@@ -75,6 +75,12 @@ String mapStyleUrlFor(
   };
 }
 
+/// How far down the native (i) button sits on a phone turned sideways: in
+/// the top corner of the map away from the rail, below the row at the top
+/// (whose far end is the search) and the turn banner, so the attribution
+/// chip has the narrow map's whole width at the bottom.
+const double _infoButtonTopSideways = 124;
+
 /// The map itself: a `MapLibreMap` platform view plus the adapter that turns
 /// it into a [MapController].
 ///
@@ -295,6 +301,9 @@ class _MapViewState extends ConsumerState<MapView> {
     final chromeTop = chrome?.controlsTop;
     // The bottom of the view, whatever an owner removed from the padding:
     // the chip and the (i) button sit in the band under the bar.
+    // Turned sideways the map beside the rail and the sheet is narrow.
+    final sideways =
+        (chrome?.attributionInsets ?? EdgeInsets.zero) != EdgeInsets.zero;
     final attributionBottom = mapAttributionBottom(
       context,
       gap: widget.attributionPadding.bottom,
@@ -312,9 +321,18 @@ class _MapViewState extends ConsumerState<MapView> {
       compassEnabled: false,
       logoEnabled: false,
       // maplibre_gl 0.27 cannot hide the native attribution (i) button, so it
-      // is parked bottom right, in the same band as our own chip.
-      attributionButtonPosition: ml.AttributionButtonPosition.bottomRight,
-      attributionButtonMargins: Point<num>(8, attributionBottom),
+      // is parked bottom right, in the same band as our own chip; sideways in
+      // the top corner away from the rail, where the narrow map leaves it
+      // room the chip's band does not.
+      attributionButtonPosition: !sideways
+          ? ml.AttributionButtonPosition.bottomRight
+          : (chrome?.attributionInsets.left ?? 0) > 0
+          ? ml.AttributionButtonPosition.topRight
+          : ml.AttributionButtonPosition.topLeft,
+      attributionButtonMargins: Point<num>(
+        8,
+        sideways ? _infoButtonTopSideways : attributionBottom,
+      ),
       rotateGesturesEnabled: true,
       tiltGesturesEnabled: false,
       // The map claims every touch that lands on it. Inside a scroll view
@@ -379,8 +397,12 @@ class _MapViewState extends ConsumerState<MapView> {
               ),
             if (widget.showAttribution)
               Positioned(
-                left: widget.attributionPadding.left,
-                right: widget.attributionPadding.right,
+                left:
+                    widget.attributionPadding.left +
+                    (chrome?.attributionInsets.left ?? 0),
+                right:
+                    widget.attributionPadding.right +
+                    (chrome?.attributionInsets.right ?? 0),
                 bottom: attributionBottom,
                 child: const Center(child: MapAttributionChip()),
               ),

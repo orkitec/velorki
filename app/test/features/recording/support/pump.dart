@@ -199,6 +199,7 @@ Future<RecordingHarness> pumpRecordingScreen(
   Map<String, Object> preferences = const <String, Object>{},
   List<Override> extraOverrides = const <Override>[],
   Size surfaceSize = const Size(1000, 2000),
+  bool expectTextFits = true,
 }) async {
   final h = harness ?? RecordingHarness();
   await tester.binding.setSurfaceSize(surfaceSize);
@@ -217,7 +218,7 @@ Future<RecordingHarness> pumpRecordingScreen(
     ),
   );
   await tester.pump();
-  expectNoClippedText(tester);
+  if (expectTextFits) expectNoClippedText(tester);
   return h;
 }
 
@@ -230,6 +231,7 @@ Future<RecordingHarness> pumpRecordingApp(
   Map<String, Object> preferences = const <String, Object>{},
   List<Override> extraOverrides = const <Override>[],
   Size surfaceSize = const Size(1000, 2000),
+  bool expectTextFits = true,
 }) async {
   final h = harness ?? RecordingHarness();
   await tester.binding.setSurfaceSize(surfaceSize);
@@ -247,6 +249,6 @@ Future<RecordingHarness> pumpRecordingApp(
     ),
   );
   await tester.pump();
-  expectNoClippedText(tester);
+  if (expectTextFits) expectNoClippedText(tester);
   return h;
 }

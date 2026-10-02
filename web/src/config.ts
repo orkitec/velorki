@@ -25,6 +25,9 @@ const optionalStr = z
   .optional()
   .transform((v) => (v === undefined || v.trim() === '' ? undefined : v.trim()));
 
+/** The values `reasoning_effort` takes across OpenAI-compatible endpoints. */
+const REASONING_EFFORTS = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'];
+
 const optionalUrl = optionalStr.refine(
   (v) => v === undefined || /^https?:\/\//.test(v),
   { message: 'must be an http(s) URL' },
@@ -116,6 +119,10 @@ const envSchema = z
     LLM_BASE_URL: optionalUrl,
     LLM_API_KEY: optionalStr,
     LLM_MODEL: optionalStr,
+    LLM_REASONING_EFFORT: optionalStr.refine(
+      (v) => v === undefined || REASONING_EFFORTS.includes(v),
+      { message: `must be one of ${REASONING_EFFORTS.join(', ')}` },
+    ),
     LLM_DAILY_BUDGET_USD: z
       .string()
       .optional()

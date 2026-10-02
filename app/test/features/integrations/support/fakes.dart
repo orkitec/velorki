@@ -159,6 +159,7 @@ class FakeRelayClient extends RelayClient {
         step: step,
         prompt: prompt,
         locale: locale,
+        units: units,
         context: context,
         routeSummary: routeSummary,
       ),
@@ -219,6 +220,7 @@ class PlanCall {
     required this.step,
     required this.prompt,
     required this.locale,
+    this.units = PlanUnits.metric,
     this.context,
     this.routeSummary,
   });
@@ -231,6 +233,9 @@ class PlanCall {
 
   /// The BCP47 tag the answer was asked for in.
   final String locale;
+
+  /// The units the answer was asked for in.
+  final PlanUnits units;
 
   /// The rough position, when consent allowed one.
   final PlanContext? context;

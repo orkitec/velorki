@@ -121,7 +121,11 @@ Future<RouteResult> routeWayBack(
     maxNogos: maxNogos,
   );
   try {
-    return await backend.route(back.copyWith(nogos: nogos), cancel: cancel);
+    // Added to any the caller already keeps the leg off, not instead.
+    return await backend.route(
+      back.copyWith(nogos: <NoGo>[...back.nogos, ...nogos]),
+      cancel: cancel,
+    );
   } on RoutingException catch (e) {
     if (e.kind == RoutingErrorKind.cancelled || nogos.isEmpty) rethrow;
     // The no-gos made the way home unroutable — an island, a single track

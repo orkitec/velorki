@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../features/shared/presentation/adaptive_docking_sheet.dart';
 import '../features/shared/presentation/floating_bar.dart';
 import '../features/import_export/data/track_decoder.dart';
 import '../features/import_export/domain/imported_track.dart';
@@ -24,6 +26,7 @@ import '../features/shared/application/nav_bar_docking.dart';
 import '../features/subscription/presentation/paywall_screen.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'map_tab_page.dart';
+import 'shell_layout.dart';
 import 'tab_fade.dart';
 
 part 'router.g.dart';
@@ -213,7 +216,8 @@ class HomeShell extends ConsumerWidget {
     // takes the room the search results need. This context sits above the
     // scaffold, so it still sees the inset the scaffold resizes for.
     final keyboardUp = MediaQuery.viewInsetsOf(context).bottom > 0;
-    final hideBar = (recording && shell.currentIndex == 1) || keyboardUp;
+    final hideRail = recording && shell.currentIndex == 1;
+    final hideBar = hideRail || keyboardUp;
     // A sheet pulled all the way down docks in the bar: the bar then squares
     // its top corners so the handle strip above it and the tabs read as one
     // pill. Only the showing tab's sheet counts.
@@ -253,6 +257,11 @@ class HomeShell extends ConsumerWidget {
             context,
             chromeTop: ref.read(mapControlsTopProvider).target,
             sheetExtent: ref.read(tabHandoverProvider).sheetExtent,
+            // This context is above the layout the shell hands down.
+            layout: ShellLayout.resolve(
+              MediaQuery.sizeOf(context),
+              ref.read(railSideProvider),
+            ),
           )
         : EdgeInsets.zero;
     locate.cardOpen = () =>
@@ -263,121 +272,284 @@ class HomeShell extends ConsumerWidget {
         atTabRoot &&
         (chrome?.visible ?? true);
     final columnGlide = ref.watch(mapControlsTopProvider);
-    return Scaffold(
-      // The bar floats over the content; screens read the bottom padding
-      // from MediaQuery to keep their last rows above it.
-      extendBody: true,
-      // The keyboard inset is left to each tab's own scaffold: the map
-      // screens keep their full height under the keyboard, the settings
-      // screen resizes as usual.
-      resizeToAvoidBottomInset: false,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // The one map under the Plan, Record and Library tabs, which draw
-          // on it and are transparent over it. Never hidden and never moved
-          // in the stack: the platform view would start over and show black.
-          // The settings tab is an opaque page over it.
-          //
-          // Its bottom inset is pinned to nothing: the scaffold takes the
-          // bottom view padding off its body only while it has a bar, so
-          // with the bar hidden for a ride the map's credit and (i) would
-          // climb by the home indicator's height into the figures bar.
-          MediaQuery.removeViewPadding(
-            context: context,
-            removeBottom: true,
-            child: const SharedMapHost(key: ValueKey<String>('shared-map')),
-          ),
-          if (showColumn)
-            Positioned.fill(
-              child: SafeArea(
-                child: AnimatedBuilder(
-                  animation: columnGlide.animation,
-                  builder: (context, child) => Padding(
-                    padding: EdgeInsets.only(
-                      top: columnGlide.animation.value,
-                      right: 12,
-                    ),
-                    child: child,
-                  ),
-                  child: Align(
-                    alignment: Alignment.topRight,
-                    child: MapChromeInsets(
-                      showRoutingTiles: chrome?.showRoutingTiles ?? true,
-                      following: chrome?.following ?? false,
-                      headingUp: chrome?.headingUp ?? false,
-                      bearingDeg: chrome?.bearingDeg ?? 0,
-                      onLocate: chrome?.onLocate,
-                      onCompass: chrome?.onCompass,
-                      routeShown: chrome?.routeShown ?? false,
-                      onToggleRoute: chrome?.onToggleRoute,
-                      // Read at the tap: the sheet moves without a rebuild
-                      // of the column.
-                      // Read after the fix is awaited, so the shell may be
-                      // gone by then.
-                      visiblePadding: () => context.mounted
-                          ? visibleMapPadding(
-                              context,
-                              chromeTop: columnGlide.target,
-                              sheetExtent: ref
-                                  .read(tabHandoverProvider)
-                                  .sheetExtent,
-                            )
-                          : EdgeInsets.zero,
-                      child: MapControls(
-                        controller: ref.watch(sharedMapControllerProvider),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+    // The layout the screen implies, handed down to the tabs: a bar at the
+    // bottom upright, a rail at the side on a phone turned sideways.
+    FloatingNavigationBar navigation(RailSide? railSide) =>
+        FloatingNavigationBar(
+          railSide: railSide,
+          docked: docked,
+          selectedIndex: shell.currentIndex,
+          onDestinationSelected: (index) {
+            // Told first, so the screens arrange themselves before the
+            // branch shows.
+            ref.read(activeTabProvider.notifier).show(tabRoutes[index]);
+            shell.goBranch(
+              index,
+              // Tapping the active tab pops back to that branch's root.
+              initialLocation: index == shell.currentIndex,
+            );
+          },
+          destinations: [
+            NavigationDestination(
+              icon: const Icon(Icons.route_outlined),
+              selectedIcon: const Icon(Icons.route),
+              label: l10n.tabPlan,
             ),
-          // Over the column: a sheet or card pulled up covers it, and a
-          // touch beside a tab's chrome falls through to it and to the map,
-          // since the map tabs' routes put no barrier under their content.
-          shell,
-        ],
+            NavigationDestination(
+              icon: const Icon(Icons.radio_button_unchecked),
+              selectedIcon: const Icon(Icons.radio_button_checked),
+              label: l10n.tabRecord,
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.bookmarks_outlined),
+              selectedIcon: const Icon(Icons.bookmarks),
+              label: l10n.tabLibrary,
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.tune_outlined),
+              selectedIcon: const Icon(Icons.tune),
+              label: l10n.tabSettings,
+            ),
+          ],
+        );
+    Widget controls(ShellLayout layout) => MapChromeInsets(
+      showRoutingTiles: chrome?.showRoutingTiles ?? true,
+      following: chrome?.following ?? false,
+      headingUp: chrome?.headingUp ?? false,
+      bearingDeg: chrome?.bearingDeg ?? 0,
+      onLocate: chrome?.onLocate,
+      onCompass: chrome?.onCompass,
+      routeShown: chrome?.routeShown ?? false,
+      onToggleRoute: chrome?.onToggleRoute,
+      // Read at the tap: the sheet moves without a rebuild of the column.
+      // Read after the fix is awaited, so the shell may be gone by then.
+      visiblePadding: () => context.mounted
+          ? visibleMapPadding(
+              context,
+              chromeTop: columnGlide.target,
+              sheetExtent: ref.read(tabHandoverProvider).sheetExtent,
+              layout: layout,
+            )
+          : EdgeInsets.zero,
+      child: MapControls(
+        controller: ref.watch(sharedMapControllerProvider),
+        axis: layout.sideRail ? Axis.horizontal : Axis.vertical,
       ),
-      bottomNavigationBar: hideBar
-          ? null
-          : FloatingNavigationBar(
-              docked: docked,
-              selectedIndex: shell.currentIndex,
-              onDestinationSelected: (index) {
-                // Told first, so the screens arrange themselves before the
-                // branch shows.
-                ref.read(activeTabProvider.notifier).show(tabRoutes[index]);
-                shell.goBranch(
-                  index,
-                  // Tapping the active tab pops back to that branch's root.
-                  initialLocation: index == shell.currentIndex,
-                );
-              },
-              destinations: [
-                NavigationDestination(
-                  icon: const Icon(Icons.route_outlined),
-                  selectedIcon: const Icon(Icons.route),
-                  label: l10n.tabPlan,
+    );
+    return ShellLayoutHost(
+      builder: (context, layout) {
+        // A turn of the phone fades the map controls back in; the sheets do
+        // the same with their content. The bar, the rail and the sheets
+        // themselves stay in view, and the map is never faded: a native
+        // view under a fade shows black.
+        final fade = ShellLayoutHost.turnFadeOf(context);
+        return Scaffold(
+          // The bar floats over the content; screens read the bottom padding
+          // from MediaQuery to keep their last rows above it.
+          extendBody: true,
+          // The keyboard inset is left to each tab's own scaffold: the map
+          // screens keep their full height under the keyboard, the settings
+          // screen resizes as usual.
+          resizeToAvoidBottomInset: false,
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              // The one map under the Plan, Record and Library tabs, which draw
+              // on it and are transparent over it. Never hidden and never moved
+              // in the stack: the platform view would start over and show black.
+              // The settings tab is an opaque page over it.
+              //
+              // Its bottom inset is pinned to nothing: the scaffold takes the
+              // bottom view padding off its body only while it has a bar, so
+              // with the bar hidden for a ride the map's credit and (i) would
+              // climb by the home indicator's height into the figures bar.
+              MediaQuery.removeViewPadding(
+                context: context,
+                removeBottom: true,
+                child: const SharedMapHost(key: ValueKey<String>('shared-map')),
+              ),
+              if (showColumn)
+                Positioned.fill(
+                  child: FadeTransition(
+                    opacity: fade,
+                    child: layout.sideRail
+                        ? _sidewaysControlsRow(
+                            context,
+                            layout,
+                            onWidth: ref
+                                .read(mapControlsRowWidthProvider.notifier)
+                                .set,
+                            child: controls(layout),
+                          )
+                        : SafeArea(
+                            child: AnimatedBuilder(
+                              animation: columnGlide.animation,
+                              builder: (context, child) => Padding(
+                                padding: EdgeInsets.only(
+                                  top: columnGlide.animation.value,
+                                  right: 12,
+                                ),
+                                child: Align(
+                                  alignment: Alignment.topRight,
+                                  child: child,
+                                ),
+                              ),
+                              child: controls(layout),
+                            ),
+                          ),
+                  ),
                 ),
-                NavigationDestination(
-                  icon: const Icon(Icons.radio_button_unchecked),
-                  selectedIcon: const Icon(Icons.radio_button_checked),
-                  label: l10n.tabRecord,
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.bookmarks_outlined),
-                  selectedIcon: const Icon(Icons.bookmarks),
-                  label: l10n.tabLibrary,
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.tune_outlined),
-                  selectedIcon: const Icon(Icons.tune),
-                  label: l10n.tabSettings,
-                ),
-              ],
-            ),
+              // Over the column: a sheet or card pulled up covers it, and a
+              // touch beside a tab's chrome falls through to it and to the map,
+              // since the map tabs' routes put no barrier under their content.
+              _besideRail(
+                context,
+                layout,
+                railShown: !hideRail,
+                opaque: !(mapTabs.contains(shell.currentIndex) && atTabRoot),
+                child: shell,
+              ),
+              if (layout.sideRail && !hideRail)
+                Positioned.fill(child: navigation(layout.side)),
+            ],
+          ),
+          // Upright the bar floats at the bottom, hidden under the keyboard;
+          // turned sideways it is a rail at the side, which the keyboard
+          // leaves alone.
+          bottomNavigationBar: layout.sideRail || hideBar
+              ? null
+              : navigation(null),
+        );
+      },
     );
   }
+}
+
+/// The map's controls on a phone turned sideways: a row at the top of the
+/// map, beside the docked sheet (or the figures bar that takes the rail's
+/// place during a ride), centred on the Plan tab's search, which runs on
+/// from it to the far edge. At rest the sheet lies over the row, which the
+/// rider pulls the sheet in to reach. [onWidth] hears the row's width after
+/// each layout that changes it, for the search to leave it that room.
+Widget _sidewaysControlsRow(
+  BuildContext context,
+  ShellLayout layout, {
+  required ValueChanged<double> onWidth,
+  required Widget child,
+}) {
+  final media = MediaQuery.of(context);
+  final start = sidewaysTopRowStart(media, layout);
+  final left = layout.side == RailSide.left;
+  return Padding(
+    padding: EdgeInsets.only(
+      top: media.viewPadding.top + sidewaysTopRowTop,
+      left: left ? start : 0,
+      right: left ? 0 : start,
+    ),
+    child: Align(
+      alignment: left ? Alignment.topLeft : Alignment.topRight,
+      child: SizedBox(
+        height: sidewaysTopRowHeight,
+        child: Center(
+          widthFactor: 1,
+          child: _WidthReporter(onWidth: onWidth, child: child),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Tells [onWidth] the width [child] was laid out at, after the frame,
+/// whenever it changed.
+class _WidthReporter extends SingleChildRenderObjectWidget {
+  const _WidthReporter({required this.onWidth, required super.child});
+
+  final ValueChanged<double> onWidth;
+
+  @override
+  _RenderWidthReporter createRenderObject(BuildContext context) =>
+      _RenderWidthReporter(onWidth);
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    _RenderWidthReporter renderObject,
+  ) => renderObject.onWidth = onWidth;
+}
+
+class _RenderWidthReporter extends RenderProxyBox {
+  _RenderWidthReporter(this.onWidth);
+
+  ValueChanged<double> onWidth;
+  double? _reported;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    final width = size.width;
+    if (width == _reported) return;
+    _reported = width;
+    // After the frame: a layout may not change what a build depends on.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (attached && _reported == width) onWidth(width);
+    });
+  }
+}
+
+/// The tabs' share of a sideways screen with the rail on it.
+///
+/// A map tab runs under the rail as it runs under the bar upright, its
+/// sheet coming out from the screen's edge behind the rail: the rail is
+/// padding to it, the way the scaffold makes the bar padding at the bottom.
+/// A page that is not a map ([opaque]: the settings, a page pushed over a
+/// tab) lies beside the rail instead, and keeps clear of the camera
+/// island's side too, which an upright list never had to; the island's
+/// strip takes the page's colour.
+Widget _besideRail(
+  BuildContext context,
+  ShellLayout layout, {
+  required bool railShown,
+  required Widget child,
+  bool opaque = false,
+}) {
+  if (!layout.sideRail) return child;
+  final media = MediaQuery.of(context);
+  final viewPadding = media.viewPadding;
+  final left = layout.side == RailSide.left;
+  final inset = railShown
+      ? floatingRailInset(viewPadding, layout.side)
+      : (left ? viewPadding.left : viewPadding.right);
+  if (!opaque) {
+    final padding = left
+        ? media.padding.copyWith(left: inset)
+        : media.padding.copyWith(right: inset);
+    return MediaQuery(
+      data: media.copyWith(padding: padding),
+      child: child,
+    );
+  }
+  final island = left
+      ? EdgeInsets.only(right: viewPadding.right)
+      : EdgeInsets.only(left: viewPadding.left);
+  return Padding(
+    padding: left
+        ? EdgeInsets.only(left: inset)
+        : EdgeInsets.only(right: inset),
+    // A coloured box takes every touch, transparent or not: only here,
+    // never over a map tab, whose touches beside its chrome are the map's.
+    child: ColoredBox(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: Padding(
+        padding: island,
+        child: MediaQuery.removePadding(
+          context: context,
+          removeLeft: true,
+          removeRight: true,
+          child: child,
+        ),
+      ),
+    ),
+  );
 }
 
 /// A [NavigationBar] in a floating glass pill, blurred over the map.
@@ -386,14 +558,21 @@ class HomeShell extends ConsumerWidget {
 /// label behaviour; only its chrome is replaced. [docked] is the look under
 /// a sheet folded into the bar: square top corners, no top edge and no
 /// shadow, so the sheet's handle strip and the tabs are one pill.
+///
+/// With a [railSide] it is a [NavigationRail] in the same glass, standing on
+/// that side of a phone turned sideways, the icons and labels upright.
 class FloatingNavigationBar extends StatelessWidget {
   const FloatingNavigationBar({
     required this.selectedIndex,
     required this.onDestinationSelected,
     required this.destinations,
     this.docked = false,
+    this.railSide,
     super.key,
   });
+
+  /// The side the rail stands on; `null` for the bar at the bottom.
+  final RailSide? railSide;
 
   final int selectedIndex;
   final ValueChanged<int> onDestinationSelected;
@@ -405,6 +584,67 @@ class FloatingNavigationBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final rail = railSide;
+    if (rail != null) {
+      // The bar itself, turned a quarter with its docked look and all, and
+      // the destinations inside turned back upright, one over the next.
+      final turns = shellQuarterTurns(ShellLayout(sideRail: true, side: rail));
+      return QuarterTurnedFrame(
+        quarterTurns: turns,
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: FloatingBarShell(
+            docked: docked,
+            // The bar's own height, as the navigation bar upright has it:
+            // turned back, the rail inside would take all the room it got.
+            child: SizedBox(
+              height: floatingBarHeight,
+              child: QuarterTurnedFrame(
+                quarterTurns: 4 - turns,
+                child: MediaQuery.removePadding(
+                  context: context,
+                  removeTop: true,
+                  removeBottom: true,
+                  removeLeft: true,
+                  removeRight: true,
+                  child: NavigationRail(
+                    minWidth: floatingRailWidth,
+                    backgroundColor: Colors.transparent,
+                    indicatorColor: theme.colorScheme.primary,
+                    indicatorShape: const StadiumBorder(),
+                    labelType: NavigationRailLabelType.all,
+                    groupAlignment: 0,
+                    selectedIndex: selectedIndex,
+                    onDestinationSelected: onDestinationSelected,
+                    destinations: [
+                      for (final d in destinations)
+                        NavigationRailDestination(
+                          icon: d.icon,
+                          selectedIcon: IconTheme.merge(
+                            data: IconThemeData(
+                              color: theme.colorScheme.onPrimary,
+                            ),
+                            child: d.selectedIcon ?? d.icon,
+                          ),
+                          // One line, shrunk to the rail's width where a
+                          // language's word is longer than it.
+                          label: SizedBox(
+                            width: floatingRailWidth - 12,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(d.label, maxLines: 1),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     return FloatingBarShell(
       docked: docked,
       child: MediaQuery.removePadding(

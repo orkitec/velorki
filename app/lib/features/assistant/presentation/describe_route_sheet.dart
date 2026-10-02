@@ -8,6 +8,7 @@ import '../../planner/domain/saved_route.dart';
 import '../application/route_description_controller.dart';
 import '../data/ai_consent_controller.dart';
 import 'ai_consent_dialog.dart';
+import 'assistant_sheet.dart' show ButtonProgress;
 import 'assistant_strings.dart';
 
 /// Opens "Describe this route" for [route].
@@ -93,18 +94,6 @@ class _DescribeRouteSheetState extends ConsumerState<DescribeRouteSheet> {
           children: [
             Text(l10n.describeTitle, style: theme.textTheme.headlineSmall),
             const SizedBox(height: 14),
-            if (state.running)
-              Row(
-                children: [
-                  const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(l10n.describeRunning, style: theme.textTheme.bodySmall),
-                ],
-              ),
             if (state.text.isNotEmpty) ...[
               const SizedBox(height: 10),
               // What the model wrote is the content of this sheet, so it is
@@ -132,11 +121,21 @@ class _DescribeRouteSheetState extends ConsumerState<DescribeRouteSheet> {
                   child: Text(l10n.describeAgain),
                 ),
                 const SizedBox(width: 12),
+                // Locked while the model writes, so it is where the sheet
+                // says that it does.
                 Expanded(
-                  child: FilledButton(
-                    onPressed: state.canSave ? () => unawaited(_save()) : null,
-                    child: Text(l10n.describeSave),
-                  ),
+                  child: state.running
+                      ? FilledButton.icon(
+                          onPressed: null,
+                          icon: const ButtonProgress(),
+                          label: Text(l10n.describeRunning),
+                        )
+                      : FilledButton(
+                          onPressed: state.canSave
+                              ? () => unawaited(_save())
+                              : null,
+                          child: Text(l10n.describeSave),
+                        ),
                 ),
               ],
             ),

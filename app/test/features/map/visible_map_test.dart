@@ -245,4 +245,25 @@ void main() {
       );
     });
   });
+
+  test('sideways the visible map is between the sheet and the camera '
+      'island\'s safe area, below the chrome and above what covers the '
+      'bottom', () {
+    final insets = sidewaysVisibleMapInsets(
+      topInset: 0,
+      chromeTop: 100,
+      bottomInset: 90,
+      cover: const EdgeInsets.only(left: 534),
+      safeArea: const EdgeInsets.symmetric(horizontal: 62),
+    );
+    expect(insets, const EdgeInsets.fromLTRB(558, 124, 86, 114));
+    final mirrored = sidewaysVisibleMapInsets(
+      topInset: 0,
+      chromeTop: 100,
+      bottomInset: 90,
+      cover: const EdgeInsets.only(right: 534),
+      safeArea: const EdgeInsets.symmetric(horizontal: 62),
+    );
+    expect(mirrored, const EdgeInsets.fromLTRB(86, 124, 558, 114));
+  });
 }

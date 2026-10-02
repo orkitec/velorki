@@ -30,7 +30,13 @@ const double compactMapControlsHeight = 700;
 
 /// The size of a column button, full and compact.
 const double mapControlButtonSize = 44;
+
 const double compactMapControlButtonSize = 38;
+
+/// The size of a button in the row the controls make at the top of the map
+/// on a phone turned sideways: with the glass's padding as tall as the
+/// search field that row is level with, whatever the screen's height.
+const double sidewaysMapControlButtonSize = 50;
 
 /// Whether the screen at [context] is short enough for the compact column.
 bool compactMapControls(BuildContext context) =>
@@ -42,9 +48,17 @@ bool compactMapControls(BuildContext context) =>
 /// The column is inert until [controller] is non-null, which is the case
 /// until the map style has finished loading.
 class MapControls extends ConsumerWidget {
-  const MapControls({required this.controller, super.key});
+  const MapControls({
+    required this.controller,
+    this.axis = Axis.vertical,
+    super.key,
+  });
 
   final MapController? controller;
+
+  /// A column at the map's side, or, on a phone turned sideways, a row
+  /// at its top beside the docked sheet.
+  final Axis axis;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -55,11 +69,16 @@ class MapControls extends ConsumerWidget {
     final headingUp = chrome?.headingUp ?? false;
     final onCompass = chrome?.onCompass;
     final compact = compactMapControls(context);
+    final row = axis == Axis.horizontal;
     // One glass column rather than five floating buttons: less chrome over
     // the map, and the group reads as one control.
-    return GlassPanel(
-      padding: EdgeInsets.symmetric(horizontal: 3, vertical: compact ? 3 : 5),
-      child: Column(
+    final across = compact && !row ? 3.0 : 5.0;
+    final panel = GlassPanel(
+      padding: axis == Axis.vertical
+          ? EdgeInsets.symmetric(horizontal: 3, vertical: across)
+          : EdgeInsets.symmetric(horizontal: across, vertical: 3),
+      child: Flex(
+        direction: axis,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           // A ride that followed a route: the route and its points of
@@ -78,9 +97,11 @@ class MapControls extends ConsumerWidget {
           // column grows and shrinks for it rather than jumping: one column
           // serves the Plan and Record tabs.
           _Resizing(
+            axis: axis,
             child: onCompass == null
                 ? const SizedBox.shrink()
                 : _CompassButton(
+                    axis: axis,
                     headingUp: headingUp,
                     bearingDeg: chrome?.bearingDeg ?? 0,
                     onPressed: enabled ? onCompass : null,
@@ -99,6 +120,7 @@ class MapControls extends ConsumerWidget {
           // resting sheet, and the same download is one tap away in the
           // search field and under Settings.
           _Resizing(
+            axis: axis,
             child: (chrome?.showRoutingTiles ?? true) && !compact
                 ? _ControlButton(
                     icon: Icons.download_for_offline_outlined,
@@ -107,7 +129,7 @@ class MapControls extends ConsumerWidget {
                   )
                 : const SizedBox.shrink(),
           ),
-          const _ControlDivider(),
+          _ControlDivider(axis: axis),
           _ControlButton(
             icon: Icons.add,
             tooltip: l10n.mapZoomIn,
@@ -121,6 +143,12 @@ class MapControls extends ConsumerWidget {
         ],
       ),
     );
+    // Sideways the row's buttons are larger than the column's, even on a
+    // short screen: there the row is the search field's height, not a
+    // column's length the resting sheet has to leave room for.
+    return row
+        ? _ControlSize(size: sidewaysMapControlButtonSize, child: panel)
+        : panel;
   }
 
   void _openOffline(BuildContext context) {
@@ -180,8 +208,7 @@ class _LocateButtonState extends ConsumerState<_LocateButton> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final chrome = MapChromeInsets.maybeOf(context);
-    final compact = compactMapControls(context);
-    final ring = compact ? 16.0 : 18.0;
+    final ring = _ControlSize.of(context) < mapControlButtonSize ? 16.0 : 18.0;
     return _ControlButton(
       icon: Icons.my_location,
       tooltip: l10n.mapLocateMe,
@@ -301,11 +328,14 @@ class _LocateButtonState extends ConsumerState<_LocateButton> {
 /// added to the map.
 class _CompassButton extends StatefulWidget {
   const _CompassButton({
+    required this.axis,
     required this.headingUp,
     required this.bearingDeg,
     required this.onPressed,
   });
 
+  /// The way the controls run: the hint shows beside a column, above a row.
+  final Axis axis;
   final bool headingUp;
   final double bearingDeg;
   final VoidCallback? onPressed;
@@ -360,9 +390,15 @@ class _CompassButtonState extends State<_CompassButton> {
           alignment: Alignment.topLeft,
           child: CompositedTransformFollower(
             link: _link,
-            targetAnchor: Alignment.centerLeft,
-            followerAnchor: Alignment.centerRight,
-            offset: const Offset(-8, 0),
+            targetAnchor: widget.axis == Axis.vertical
+                ? Alignment.centerLeft
+                : Alignment.topCenter,
+            followerAnchor: widget.axis == Axis.vertical
+                ? Alignment.centerRight
+                : Alignment.bottomCenter,
+            offset: widget.axis == Axis.vertical
+                ? const Offset(-8, 0)
+                : const Offset(0, -8),
             child: IgnorePointer(
               // The same glass as the control column it sits next to, so
               // it reads as part of the map chrome rather than a system
@@ -426,14 +462,17 @@ class _ControlButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final compact = compactMapControls(context);
-    final size = compact ? compactMapControlButtonSize : mapControlButtonSize;
+    final size = _ControlSize.of(context);
     return SizedBox(
       width: size,
       height: size,
       child: IconButton(
         icon: child ?? Transform.rotate(angle: iconTurns, child: Icon(icon)),
-        iconSize: compact ? 18 : 20,
+        iconSize: size < mapControlButtonSize
+            ? 18
+            : size > mapControlButtonSize
+            ? 22
+            : 20,
         padding: EdgeInsets.zero,
         tooltip: tooltip,
         style: IconButton.styleFrom(
@@ -449,30 +488,59 @@ class _ControlButton extends StatelessWidget {
   }
 }
 
+/// The size of the buttons below it, where the controls set one: the row
+/// at the top sideways does.
+class _ControlSize extends InheritedWidget {
+  const _ControlSize({required this.size, required super.child});
+
+  final double size;
+
+  /// The size set above [context], else the column's for the screen.
+  static double of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_ControlSize>()?.size ??
+      (compactMapControls(context)
+          ? compactMapControlButtonSize
+          : mapControlButtonSize);
+
+  @override
+  bool updateShouldNotify(_ControlSize oldWidget) => size != oldWidget.size;
+}
+
 /// A slot in the column whose height animates as its button comes and goes.
 class _Resizing extends StatelessWidget {
-  const _Resizing({required this.child});
+  const _Resizing({required this.axis, required this.child});
 
+  final Axis axis;
   final Widget child;
 
   @override
   Widget build(BuildContext context) => AnimatedSize(
     duration: mapControlsResizeDuration,
     curve: Curves.easeOutCubic,
-    alignment: Alignment.topCenter,
+    alignment: axis == Axis.vertical
+        ? Alignment.topCenter
+        : Alignment.centerLeft,
     child: child,
   );
 }
 
 /// The hairline between the map layers and the zoom pair.
 class _ControlDivider extends StatelessWidget {
-  const _ControlDivider();
+  const _ControlDivider({required this.axis});
+
+  final Axis axis;
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: 20,
-    height: 1,
-    margin: EdgeInsets.symmetric(vertical: compactMapControls(context) ? 2 : 3),
-    color: Theme.of(context).velorki.glassBorder,
-  );
+  Widget build(BuildContext context) {
+    final gap = _ControlSize.of(context) < mapControlButtonSize ? 2.0 : 3.0;
+    final vertical = axis == Axis.vertical;
+    return Container(
+      width: vertical ? 20 : 1,
+      height: vertical ? 1 : 24,
+      margin: vertical
+          ? EdgeInsets.symmetric(vertical: gap)
+          : EdgeInsets.symmetric(horizontal: gap),
+      color: Theme.of(context).velorki.glassBorder,
+    );
+  }
 }

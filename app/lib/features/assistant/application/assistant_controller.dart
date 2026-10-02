@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' as ui;
 
 import 'package:logging/logging.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -17,6 +16,7 @@ import '../data/place_geocoder.dart';
 import '../domain/ai_consent.dart';
 import '../domain/assistant_state.dart';
 import '../domain/intent_resolver.dart';
+import 'ai_request_settings.dart';
 
 part 'assistant_controller.g.dart';
 
@@ -27,6 +27,9 @@ const String planStep = 'plan';
 
 /// The `step` value of a description request.
 const String describeStep = 'describe';
+
+/// The `step` value of a question about the route on the map.
+const String routeStep = 'route';
 
 /// The assistant's state machine.
 ///
@@ -146,7 +149,8 @@ class AssistantController extends _$AssistantController {
     await for (final event in relay.planStream(
       step: planStep,
       prompt: prompt,
-      locale: locale ?? ui.PlatformDispatcher.instance.locale.toLanguageTag(),
+      locale: locale ?? ref.read(aiLocaleTagProvider),
+      units: ref.read(aiUnitsProvider),
       context: contextFor(consent: consent, position: position),
     )) {
       switch (event) {
@@ -155,6 +159,7 @@ class AssistantController extends _$AssistantController {
         case ErrorEvent(:final error):
           throw RelayException(error, statusCode: 200);
         case TextEvent():
+        case RouteAdviceEvent():
         case DoneEvent():
           break;
       }

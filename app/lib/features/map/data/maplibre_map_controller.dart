@@ -1221,6 +1221,15 @@ class MaplibreMapControllerAdapter implements MapController {
           lineCap: 'round',
           lineJoin: 'round',
         ),
+        // A hazard's colour, dashed: a road the route keeps off.
+        RouteLineStyle.avoided => ml.LineLayerProperties(
+          lineColor: palette.poiDanger,
+          lineWidth: 4.0,
+          lineOpacity: 0.9,
+          lineCap: 'butt',
+          lineJoin: 'round',
+          lineDasharray: <double>[1.5, 1.5],
+        ),
         // The route's own colour, dimmed: still the route, just not current.
         RouteLineStyle.stale => ml.LineLayerProperties(
           lineColor: id == null || !_isVariantId(id)
@@ -1275,6 +1284,14 @@ class MaplibreMapControllerAdapter implements MapController {
           lineWidth: 6.0,
           lineOpacity: 0.0,
           lineCap: 'round',
+          lineJoin: 'round',
+        ),
+        // Dashes of another width would not line up: no casing.
+        RouteLineStyle.avoided => ml.LineLayerProperties(
+          lineColor: palette.routeMainCasing,
+          lineWidth: 4.0,
+          lineOpacity: 0.0,
+          lineCap: 'butt',
           lineJoin: 'round',
         ),
         RouteLineStyle.stale => ml.LineLayerProperties(

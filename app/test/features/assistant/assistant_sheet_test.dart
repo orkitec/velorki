@@ -80,6 +80,87 @@ void main() {
     expect(_inSheet(find.text(l10n.assistantExampleFlatLoop)), findsOneWidget);
   });
 
+  testWidgets('once something is typed, the examples give way to wishes '
+      'that add to it', (tester) async {
+    await _openSheet(
+      tester,
+      relay: FakeRelayClient(),
+      consent: AiConsent.textOnly,
+    );
+
+    await tester.enterText(_inSheet(find.byType(TextField)), 'a 40 km loop');
+    await tester.pump();
+
+    expect(_inSheet(find.text(l10n.assistantExampleFlatLoop)), findsNothing);
+    expect(
+      _inSheet(find.text(l10n.assistantRefinements.toUpperCase())),
+      findsOneWidget,
+    );
+
+    await tester.tap(_inSheet(find.text(l10n.assistantRefineQuiet)));
+    await tester.pump();
+
+    final field = tester.widget<TextField>(_inSheet(find.byType(TextField)));
+    expect(
+      field.controller!.text,
+      'a 40 km loop, ${l10n.assistantRefineQuiet}',
+    );
+    // Said once, not offered again.
+    expect(_inSheet(find.text(l10n.assistantRefineQuiet)), findsNothing);
+    expect(_inSheet(find.text(l10n.assistantRefineFlat)), findsOneWidget);
+
+    // Emptied, the field gets its examples back.
+    await tester.enterText(_inSheet(find.byType(TextField)), '');
+    await tester.pump();
+    expect(_inSheet(find.text(l10n.assistantExampleFlatLoop)), findsOneWidget);
+    expect(_inSheet(find.text(l10n.assistantRefineFlat)), findsNothing);
+  });
+
+  testWidgets('while the model thinks, the locked button says so', (
+    tester,
+  ) async {
+    final relay = ManualRelayClient();
+    await _openSheet(tester, relay: relay, consent: AiConsent.textOnly);
+
+    await tester.enterText(_inSheet(find.byType(TextField)), 'a 30 km loop');
+    await tester.tap(
+      _inSheet(find.widgetWithText(FilledButton, l10n.assistantSend)),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final busy = _inSheet(
+      find.widgetWithText(FilledButton, l10n.assistantThinking),
+    );
+    expect(busy, findsOneWidget);
+    expect(tester.widget<FilledButton>(busy).onPressed, isNull);
+    expect(
+      find.descendant(
+        of: busy,
+        matching: find.byType(CircularProgressIndicator),
+      ),
+      findsOneWidget,
+    );
+    // Only there: nothing else in the sheet spins.
+    expect(_inSheet(find.byType(CircularProgressIndicator)), findsOneWidget);
+
+    relay.emit(
+      const ErrorEvent(
+        RelayError(code: RelayErrorCode.upstreamError, message: 'down'),
+      ),
+    );
+    // The request is still finishing outside the fake clock.
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
+    await tester.pump();
+    expect(_inSheet(find.byType(CircularProgressIndicator)), findsNothing);
+    expect(
+      _inSheet(find.widgetWithText(FilledButton, l10n.assistantSend)),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('the first request asks for consent and says what is sent', (
     tester,
   ) async {
