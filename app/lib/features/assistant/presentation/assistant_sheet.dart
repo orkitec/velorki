@@ -8,6 +8,7 @@ import 'package:velorki_api/velorki_api.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/router.dart';
+import '../../../app/shell_layout.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/device_position_request.dart';
@@ -16,8 +17,11 @@ import '../../planner/domain/avoid_area.dart';
 import '../../planner/domain/route_profile.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../settings/data/units.dart';
+import '../../shared/presentation/adaptive_docking_sheet.dart';
+import '../../shared/presentation/docking_sheet.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../application/assistant_controller.dart';
+import '../application/assistant_sheet_memory.dart';
 import '../application/route_advice_controller.dart';
 import '../data/ai_consent_controller.dart';
 import '../domain/ai_consent.dart';
@@ -26,32 +30,38 @@ import '../domain/intent_resolver.dart';
 import 'ai_consent_dialog.dart';
 import 'assistant_strings.dart';
 
+export '../application/assistant_sheet_memory.dart' show AssistantMode;
+
 /// Opens the assistant over the planner.
 ///
 /// Answers with the intent that was handed over — a [LoopIntent] means a loop
 /// search is already running and the caller should show the loop sheet, a
 /// [RouteIntent] means the waypoints are on the map — or `null` when the
 /// rider closed the sheet without a result.
+///
+/// The sheet opens as high as the planner's own sheet rests, so the route
+/// stays in view above it, and is pulled up to read a long answer. Sideways
+/// it is turned with the shell, out from the rail's side as the planner's
+/// sheet is. Swiped away it keeps what it showed: see [AssistantSheetMemory]
+/// and [RouteAdviceController].
 Future<ResolvedIntent?> showAssistantSheet(
   BuildContext context, {
   MapController? map,
 }) => showModalBottomSheet<ResolvedIntent>(
   context: context,
   isScrollControlled: true,
-  useSafeArea: true,
   // Over the shell's floating navigation bar, not under it.
   useRootNavigator: true,
+  // The sheet draws its own surface, where the planner's sheet would be:
+  // the route above it stays in view, undimmed but for a touch.
+  backgroundColor: Colors.transparent,
+  elevation: 0,
+  barrierColor: Colors.black12,
+  constraints: const BoxConstraints(),
+  // Dragged by its handle and its content, either way up.
+  enableDrag: false,
   builder: (context) => AssistantSheet(map: map),
 );
-
-/// What the assistant sheet is asked about.
-enum AssistantMode {
-  /// A new route, from a sentence: what the sheet always did.
-  newRoute,
-
-  /// The route on the planner's map.
-  thisRoute,
-}
 
 /// "A hilly 60 km loop from here past the lake", as a text field; or, with a
 /// route on the map, a question about it.
@@ -67,10 +77,24 @@ class AssistantSheet extends ConsumerStatefulWidget {
   ConsumerState<AssistantSheet> createState() => _AssistantSheetState();
 }
 
+/// The key of the assistant sheet's surface, for tests that measure it.
+const Key assistantSheetSurfaceKey = ValueKey<String>('assistant-sheet');
+
 class _AssistantSheetState extends ConsumerState<AssistantSheet> {
   final TextEditingController _prompt = TextEditingController();
   final TextEditingController _question = TextEditingController();
   final GlobalKey _sheetKey = GlobalKey();
+  final DraggableScrollableController _sheet = DraggableScrollableController();
+
+  /// The list's own controller sideways, where a scroll of the content runs
+  /// across the sheet's travel rather than along it.
+  final ScrollController _sidewaysScroll = ScrollController();
+
+  /// The room the sheet had at its last build, to keep its height through
+  /// the keyboard coming and going.
+  double? _room;
+
+  late final AssistantSheetMemory _memory;
 
   /// Whether the route on the map may be asked about, decided when the
   /// sheet opens: a fix being applied re-routes the plan, and the choice of
@@ -81,9 +105,15 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
   @override
   void initState() {
     super.initState();
-    _prompt.text = ref.read(assistantControllerProvider).prompt;
+    _memory = ref.read(assistantSheetMemoryProvider);
+    _prompt.text = _memory.prompt.isNotEmpty
+        ? _memory.prompt
+        : ref.read(assistantControllerProvider).prompt;
+    _question.text = _memory.question;
     _routeAvailable = canAskAboutRoute(ref.read(plannerControllerProvider));
-    _mode = _routeAvailable ? AssistantMode.thisRoute : AssistantMode.newRoute;
+    _mode = _routeAvailable
+        ? _memory.mode ?? AssistantMode.thisRoute
+        : AssistantMode.newRoute;
     _empty = _field.text.trim().isEmpty;
     // The chips under the field follow what is in it.
     _prompt.addListener(_promptChanged);
@@ -96,16 +126,32 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
       _mode == AssistantMode.thisRoute ? _question : _prompt;
 
   void _promptChanged() {
+    _memory
+      ..prompt = _prompt.text
+      ..question = _question.text;
     final empty = _field.text.trim().isEmpty;
     if (empty != _empty) setState(() => _empty = empty);
   }
 
   void _setMode(AssistantMode mode) {
     if (mode == _mode) return;
+    _memory.mode = mode;
     setState(() {
       _mode = mode;
       _empty = _field.text.trim().isEmpty;
     });
+  }
+
+  /// Clears the question, the answer and its findings of the mode on
+  /// screen; the mode stays.
+  void _startOver() {
+    if (_mode == AssistantMode.thisRoute) {
+      ref.read(routeAdviceControllerProvider.notifier).reset();
+      _question.clear();
+    } else {
+      ref.read(assistantControllerProvider.notifier).reset();
+      _prompt.clear();
+    }
   }
 
   /// Appends [wish] to what the rider typed.
@@ -127,6 +173,8 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
     _question
       ..removeListener(_promptChanged)
       ..dispose();
+    _sheet.dispose();
+    _sidewaysScroll.dispose();
     super.dispose();
   }
 
@@ -198,15 +246,35 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
         .choose(query, place, position: position, bias: widget.map?.center);
   }
 
-  /// What of the map is not under this sheet, as padding for the camera.
+  /// What of the map is not under this sheet, as padding for the camera:
+  /// the sheet rises from the bottom upright and comes out from a side
+  /// sideways.
   EdgeInsets _uncovered() {
     final media = MediaQuery.of(context);
+    final size = media.size;
     final box = _sheetKey.currentContext?.findRenderObject() as RenderBox?;
-    final covered = box == null || !box.hasSize ? 0.0 : box.size.height;
-    final room = media.size.height - covered;
+    final sheet = box == null || !box.hasSize
+        ? Rect.fromLTWH(0, size.height, size.width, 0)
+        : MatrixUtils.transformRect(
+            box.getTransformTo(null),
+            Offset.zero & box.size,
+          );
+    var left = 32.0;
+    var right = 32.0;
+    var bottom = 32.0;
+    final top = media.padding.top + 32;
     // A sheet that leaves next to nothing still gets a sliver to aim at.
-    final bottom = room < 160 ? media.size.height - 160 : covered + 24;
-    return EdgeInsets.fromLTRB(32, media.padding.top + 32, 32, bottom);
+    if (sheet.height >= size.height - 1 && sheet.width < size.width - 1) {
+      final covered = math.min(sheet.width + 24, size.width - 160);
+      if (sheet.center.dx < size.width / 2) {
+        left = covered;
+      } else {
+        right = covered;
+      }
+    } else {
+      bottom = math.min(size.height - sheet.top + 24, size.height - 160);
+    }
+    return EdgeInsets.fromLTRB(left, top, right, bottom);
   }
 
   /// Moves the map to what finding [finding] is about: its place, or its
@@ -243,14 +311,63 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
     }
   }
 
+  /// Applies the fix of finding [index] and, when it went in, shows on the
+  /// map where it changed the route: a stop next to the line changes the
+  /// line by a few metres at most, so the new stop is what there is to see.
+  void _apply(int index, RouteAdviceState advice) {
+    final finding = advice.advice!.findings[index];
+    final applied = ref
+        .read(routeAdviceControllerProvider.notifier)
+        .apply(index);
+    if (applied && finding.fix is! ProfileFix) _show(finding, advice);
+  }
+
+  /// The handle's drag: along the sheet's travel, which is the screen's
+  /// width sideways; let go low, it closes.
+  void _dragHandle(DragUpdateDetails details, double room) {
+    if (!_sheet.isAttached || room <= 0) return;
+    _sheet.jumpTo((_sheet.size - details.primaryDelta! / room).clamp(0.0, 1.0));
+  }
+
+  void _dragHandleEnd(DragEndDetails details, double rest) {
+    if (!_sheet.isAttached) return;
+    final fling = details.primaryVelocity ?? 0;
+    if (fling > 700 || _sheet.size < rest * 0.7) {
+      unawaited(Navigator.of(context).maybePop());
+    }
+  }
+
+  /// How tall the rider left the sheet, in dp, once they moved it; `null`
+  /// while it rests where it opened.
+  double? _heightDp;
+
+  /// Keeps the sheet as many dp tall when its [room] changes, which is the
+  /// keyboard coming or going: a share of the room would shrink it to a
+  /// sliver over the keyboard. A sheet left where it opened follows its
+  /// resting height by itself, which is in dp already.
+  void _keepHeight(double room, double max) {
+    final before = _room;
+    _room = room;
+    final height = _heightDp;
+    if (before == null || before == room || height == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_sheet.isAttached || room <= 0) return;
+      _sheet.jumpTo((height / room).clamp(0.0, max));
+    });
+  }
+
+  bool _sheetMoved(DraggableScrollableNotification notification) {
+    final room = _room;
+    if (room != null) _heightDp = notification.extent * room;
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final state = ref.watch(assistantControllerProvider);
-    final advice = ref.watch(routeAdviceControllerProvider);
-    final aboutRoute = _mode == AssistantMode.thisRoute;
-    final busy = aboutRoute ? advice.busy : state.busy;
+    final media = MediaQuery.of(context);
+    final layout = ShellLayout.resolve(media.size, ref.watch(railSideProvider));
+    final geometry = SheetGeometry.overShell(media, layout);
+    final turns = shellQuarterTurns(layout);
 
     ref.listen(assistantControllerProvider, (previous, next) {
       if (next.phase != AssistantPhase.ready || !mounted) return;
@@ -259,11 +376,175 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
       Navigator.of(context).pop(next.intent);
     });
 
-    // On a short screen — a phone held sideways — the heading scrolls with
-    // the rest, so the answer is not left a sliver under it.
-    final short = MediaQuery.sizeOf(context).height < 520;
+    return SizedBox.expand(
+      child: Stack(
+        children: [
+          // The modal's barrier, which the full-screen frame below covers.
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => unawaited(Navigator.of(context).maybePop()),
+            ),
+          ),
+          QuarterTurnedFrame(
+            quarterTurns: turns,
+            child: Builder(
+              builder: (context) => _turnedSheet(context, geometry, turns),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The sheet in the frame turned with the shell: rising from the frame's
+  /// bottom over the keyboard, its content turned back upright.
+  Widget _turnedSheet(BuildContext context, SheetGeometry geometry, int turns) {
+    final media = MediaQuery.of(context);
+    final theme = Theme.of(context);
+    return Padding(
+      padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final room = constraints.maxHeight;
+          // The modal takes the top safe area out of its media: the
+          // phone's own, turned with the frame.
+          final view = View.of(context);
+          final far = turnInsets(
+            EdgeInsets.fromViewPadding(view.viewPadding, view.devicePixelRatio),
+            turns,
+          ).top;
+          // Up to the safe area at the far end, and no further.
+          final max = room <= 0
+              ? 1.0
+              : ((room - far - 8) / room).clamp(0.3, 1.0);
+          final rest = room <= 0
+              ? 0.5
+              : (geometry.restingDp / room).clamp(0.2, max);
+          _keepHeight(room, max);
+          return NotificationListener<DraggableScrollableNotification>(
+            onNotification: _sheetMoved,
+            child: DraggableScrollableSheet(
+              controller: _sheet,
+              initialChildSize: rest,
+              minChildSize: rest * 0.5,
+              maxChildSize: max,
+              snap: true,
+              snapSizes: [rest],
+              builder: (context, scrollController) => Material(
+                key: _sheetKey,
+                color: theme.colorScheme.surface,
+                elevation: 3,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: KeyedSubtree(
+                  key: assistantSheetSurfaceKey,
+                  child: Column(
+                    children: [
+                      if (turns == 0)
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onVerticalDragUpdate: (d) => _dragHandle(d, room),
+                          onVerticalDragEnd: (d) => _dragHandleEnd(d, rest),
+                          child: const SizedBox(
+                            height: sheetHandleDp,
+                            width: double.infinity,
+                            child: SheetHandle(),
+                          ),
+                        )
+                      else
+                        // Sideways the content scrolls across the sheet's
+                        // travel, so the handle alone carries the sheet's own
+                        // drag: pulled out, snapped back, pushed away.
+                        SizedBox(
+                          height: sheetHandleDp,
+                          child: SingleChildScrollView(
+                            controller: scrollController,
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            child: const SizedBox(
+                              height: sheetHandleDp,
+                              width: double.infinity,
+                              child: SheetHandle(),
+                            ),
+                          ),
+                        ),
+                      Expanded(
+                        child: QuarterTurnedFrame(
+                          quarterTurns: 4 - turns,
+                          child: turns == 0
+                              // Upright a drag on the content moves the sheet
+                              // first; sideways it runs across the sheet's
+                              // travel, so the content only scrolls.
+                              ? _content(
+                                  context,
+                                  scrollController,
+                                  sideways: false,
+                                )
+                              : _keptWide(
+                                  _content(
+                                    context,
+                                    _sidewaysScroll,
+                                    sideways: true,
+                                  ),
+                                  railOnLeft: turns == 1,
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// [content] kept as wide as a sideways sheet's content at rest while
+  /// the sheet is pushed away towards the rail, going under the screen's
+  /// edge there as the tabs' sheets do: narrowing it would break its rows.
+  Widget _keptWide(Widget content, {required bool railOnLeft}) => LayoutBuilder(
+    builder: (context, constraints) {
+      if (constraints.maxWidth >= sidewaysSheetContentWidth) {
+        return content;
+      }
+      return ClipRect(
+        child: OverflowBox(
+          minWidth: sidewaysSheetContentWidth,
+          maxWidth: sidewaysSheetContentWidth,
+          alignment: railOnLeft ? Alignment.centerRight : Alignment.centerLeft,
+          child: content,
+        ),
+      );
+    },
+  );
+
+  /// What the sheet holds, upright: the list, then the button.
+  Widget _content(
+    BuildContext context,
+    ScrollController scroll, {
+    required bool sideways,
+  }) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final state = ref.watch(assistantControllerProvider);
+    final advice = ref.watch(routeAdviceControllerProvider);
+    final aboutRoute = _mode == AssistantMode.thisRoute;
+    final busy = aboutRoute ? advice.busy : state.busy;
+    final canStartOver = aboutRoute
+        ? !advice.isEmpty || _question.text.isNotEmpty
+        : state != const AssistantState() || _prompt.text.isNotEmpty;
+    final media = MediaQuery.of(context);
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom > 0;
+    // Sideways the safe area at the rail's end lies under the turned
+    // sheet's bottom, not under its content's.
+    final bottomSafe = keyboard || sideways ? 0.0 : media.viewPadding.bottom;
+
     final header = Padding(
-      padding: EdgeInsets.fromLTRB(short ? 0 : 20, 4, short ? 0 : 20, 12),
+      padding: const EdgeInsets.fromLTRB(0, 4, 0, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -310,80 +591,82 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
       ),
     );
 
-    return ConstrainedBox(
-      key: _sheetKey,
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.sizeOf(context).height * 0.9,
-      ),
-      child: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(context).bottom,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (!short) header,
-            Flexible(
-              child: ListView(
-                shrinkWrap: true,
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                children: [
-                  if (short) header,
-                  TextField(
-                    // Keyed by mode, so each keeps its own text and undo.
-                    key: ValueKey(_mode),
-                    controller: _field,
-                    minLines: aboutRoute ? 1 : 2,
-                    maxLines: 4,
-                    maxLength: 1000,
-                    textInputAction: TextInputAction.send,
-                    style: theme.textTheme.bodyLarge,
-                    decoration: InputDecoration(
-                      hintText: aboutRoute
-                          ? l10n.assistantRouteHint
-                          : l10n.assistantHint,
-                    ),
-                    onSubmitted: (_) => unawaited(_send()),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          // Not a lazy list: a few rows, and an answer scrolled out of view
+          // must still be there to scroll back to.
+          child: SingleChildScrollView(
+            controller: scroll,
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                header,
+                TextField(
+                  // Keyed by mode, so each keeps its own text and undo.
+                  key: ValueKey(_mode),
+                  controller: _field,
+                  minLines: aboutRoute ? 1 : 2,
+                  maxLines: 4,
+                  maxLength: 1000,
+                  textInputAction: TextInputAction.send,
+                  style: theme.textTheme.bodyLarge,
+                  decoration: InputDecoration(
+                    hintText: aboutRoute
+                        ? l10n.assistantRouteHint
+                        : l10n.assistantHint,
                   ),
-                  if (aboutRoute)
-                    ..._routeChildren(l10n, theme, advice)
-                  else
-                    ..._newRouteChildren(l10n, state),
-                ],
-              ),
+                  onSubmitted: (_) => unawaited(_send()),
+                ),
+                if (aboutRoute)
+                  ..._routeChildren(l10n, theme, advice)
+                else
+                  ..._newRouteChildren(l10n, state),
+              ],
             ),
-            const Divider(height: 1),
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                12,
-                20,
-                MediaQuery.viewPaddingOf(context).bottom + 16,
-              ),
-              // The button is locked while it works, so it says what is
-              // going on: a line above it would be under the keyboard.
-              child: FilledButton.icon(
-                onPressed: busy ? null : () => unawaited(_send()),
-                icon: busy
-                    ? const ButtonProgress()
-                    : const Icon(Icons.auto_awesome_rounded),
-                label: Text(
-                  !busy
-                      ? l10n.assistantSend
-                      : aboutRoute
-                      ? (advice.phase == RouteAdvicePhase.reading
-                            ? l10n.assistantRouteReading
-                            : l10n.assistantThinking)
-                      : state.phase == AssistantPhase.asking
-                      ? l10n.assistantThinking
-                      : l10n.assistantResolving,
+          ),
+        ),
+        const Divider(height: 1),
+        Padding(
+          padding: EdgeInsets.fromLTRB(20, 12, 20, bottomSafe + 16),
+          child: Row(
+            children: [
+              if (canStartOver) ...[
+                TextButton.icon(
+                  onPressed: busy ? null : _startOver,
+                  icon: const Icon(Icons.restart_alt_rounded),
+                  label: Text(l10n.assistantStartOver),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Expanded(
+                // The button is locked while it works, so it says what is
+                // going on: a line above it would be under the keyboard.
+                child: FilledButton.icon(
+                  onPressed: busy ? null : () => unawaited(_send()),
+                  icon: busy
+                      ? const ButtonProgress()
+                      : const Icon(Icons.auto_awesome_rounded),
+                  label: Text(
+                    !busy
+                        ? l10n.assistantSend
+                        : aboutRoute
+                        ? (advice.phase == RouteAdvicePhase.reading
+                              ? l10n.assistantRouteReading
+                              : l10n.assistantThinking)
+                        : state.phase == AssistantPhase.asking
+                        ? l10n.assistantThinking
+                        : l10n.assistantResolving,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -478,14 +761,14 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
                 answer.findings[i].placeId ?? _stopOf(answer.findings[i]),
               ),
               applied: advice.applied.contains(i),
+              failure: advice.failures[i],
               // A fix applied meanwhile is still being routed; the next
               // one waits for the route it applies to.
               canApply: !routing,
               onShow: widget.map == null
                   ? null
                   : () => _show(answer.findings[i], advice),
-              onApply: () =>
-                  ref.read(routeAdviceControllerProvider.notifier).apply(i),
+              onApply: () => _apply(i, advice),
             ),
         ],
       ],
@@ -553,6 +836,7 @@ class _FindingRow extends ConsumerWidget {
     required this.finding,
     required this.place,
     required this.applied,
+    required this.failure,
     required this.canApply,
     required this.onShow,
     required this.onApply,
@@ -563,6 +847,9 @@ class _FindingRow extends ConsumerWidget {
   /// The digest place it is about, when it names one.
   final DigestPlace? place;
   final bool applied;
+
+  /// Why its fix could not be applied, when it could not.
+  final FixFailure? failure;
   final bool canApply;
   final VoidCallback? onShow;
   final VoidCallback onApply;
@@ -647,6 +934,22 @@ class _FindingRow extends ConsumerWidget {
                           child: Text(_fixLabel(l10n, fix)),
                         ),
                     ],
+                  ),
+                if (failure != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      switch (failure!) {
+                        FixFailure.noRoute => l10n.assistantFixNoRoute,
+                        FixFailure.notApplicable =>
+                          l10n.assistantFixNotApplicable,
+                        FixFailure.routingFailed =>
+                          l10n.assistantFixRoutingFailed,
+                      },
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.error,
+                      ),
+                    ),
                   ),
               ],
             ),

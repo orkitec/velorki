@@ -2638,6 +2638,22 @@
   "@assistantFixApplied": {
     "description": "Shown in place of a finding's button once its fix was applied"
   },
+  "assistantFixNoRoute": "There is no route on the map to change.",
+  "@assistantFixNoRoute": {
+    "description": "Under a finding whose fix could not be applied because the planner has no route"
+  },
+  "assistantFixNotApplicable": "This no longer fits the route on the map. Ask again.",
+  "@assistantFixNotApplicable": {
+    "description": "Under a finding whose fix could not be applied to the route now on the map"
+  },
+  "assistantFixRoutingFailed": "No route could be found with this change, so the route stays as it was.",
+  "@assistantFixRoutingFailed": {
+    "description": "Under a finding whose fix was taken back because the route could not be computed with it"
+  },
+  "assistantStartOver": "Start over",
+  "@assistantStartOver": {
+    "description": "Button in the assistant sheet that clears the question, the answer and its findings"
+  },
   "aiConsentTitle": "Before the assistant asks",
   "@aiConsentTitle": {
     "description": "Title of the one-time AI consent dialog"

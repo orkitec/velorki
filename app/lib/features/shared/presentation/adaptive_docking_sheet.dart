@@ -127,8 +127,34 @@ class SheetGeometry {
     );
   }
 
+  /// The geometry a tab's sheet has under the shell's bar or rail, for a
+  /// sheet in a route over the shell (a modal sheet on the root navigator),
+  /// whose [media] does not count the bar or the rail: so such a sheet can
+  /// rest where the tab's sheet rests.
+  factory SheetGeometry.overShell(MediaQueryData media, ShellLayout layout) {
+    final viewPadding = media.viewPadding;
+    if (!layout.sideRail) {
+      return SheetGeometry._(
+        layout: layout,
+        length: media.size.height,
+        endInset: viewPadding.bottom + floatingBarBottomGap + floatingBarHeight,
+        viewEndInset: viewPadding.bottom,
+      );
+    }
+    final left = layout.side == RailSide.left;
+    return SheetGeometry._(
+      layout: layout,
+      length: media.size.width,
+      endInset: floatingRailInset(viewPadding, layout.side),
+      viewEndInset: left ? viewPadding.left : viewPadding.right,
+    );
+  }
+
   /// The layout the sheet is in.
   final ShellLayout layout;
+
+  /// How far the sheet reaches from its end of the screen at rest, in dp.
+  double get restingDp => resting * length;
 
   /// Whether the sheet is turned sideways.
   bool get sideways => layout.sideRail;

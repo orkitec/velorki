@@ -152,7 +152,9 @@ class PlannerController extends _$PlannerController {
   /// it on: [alongM] metres from the start of the route on the map, or, when
   /// that is not known, wherever the route comes closest to [pos]. The route
   /// then rides there; one undo step, like any inserted point.
-  void insertStop(
+  ///
+  /// `false` when there is no route to put it on, and nothing changed.
+  bool insertStop(
     LatLng pos, {
     double? alongM,
     String? name,
@@ -160,7 +162,7 @@ class PlannerController extends _$PlannerController {
   }) {
     final route = state.result;
     if (route == null || !state.isRoutable || route.geometry.length < 2) {
-      return;
+      return false;
     }
     final track = route.positions;
     final cumulative = cumulativeDistancesMeters(track);
@@ -173,23 +175,27 @@ class PlannerController extends _$PlannerController {
       }
       on = TrackProjection(on.distanceM, along, track[i]);
     }
+    final before = state.waypoints.length;
     insertWaypoint(
       _legAlong(route, track, cumulative, on),
       pos,
       name: name,
       poiKind: poiKind,
     );
+    return state.waypoints.length > before;
   }
 
   /// Keeps the router off the stretch of the route on the map from [fromM]
   /// to [toM] metres along it: the stretch becomes an [AvoidArea], every
   /// leg that runs over it is routed again around it, and every leg routed
   /// from now on keeps off it too. One undo step.
-  void avoidStretch(double fromM, double toM) {
+  ///
+  /// `false` when there is no such stretch to keep off, and nothing changed.
+  bool avoidStretch(double fromM, double toM) {
     final route = state.result;
-    if (route == null || !state.isRoutable) return;
+    if (route == null || !state.isRoutable) return false;
     final line = AvoidArea.cut(route.positions, fromM, toM);
-    if (line.length < 2) return;
+    if (line.length < 2) return false;
     _pushUndo();
     final area = AvoidArea(line: line, fromKm: fromM / 1000, toKm: toM / 1000);
     state = state.copyWith(
@@ -198,6 +204,7 @@ class PlannerController extends _$PlannerController {
       legs: _legsOver(route, fromM, toM),
     );
     _scheduleRoute();
+    return true;
   }
 
   /// Lets the router back onto every avoided stretch, routing each leg

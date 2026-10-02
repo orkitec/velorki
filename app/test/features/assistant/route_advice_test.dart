@@ -430,5 +430,68 @@ void main() {
       s.planner.undo();
       expect(s.plan.avoid, hasLength(1));
     });
+
+    testWidgets('a stretch the route does not have cannot be avoided, and '
+        'the finding says why', (tester) async {
+      final s = await _setup(
+        tester,
+        findings: const [
+          RouteFinding(
+            kind: FindingKind.traffic,
+            text: 'Past the end.',
+            fix: AvoidFix(fromKm: 40, toKm: 45),
+          ),
+        ],
+      );
+      await s.advice.ask('Avoid the main road');
+      expect(s.advice.apply(0), isFalse);
+      expect(s.state.failures, {0: FixFailure.notApplicable});
+      expect(s.state.applied, isEmpty);
+      expect(s.plan.avoid, isEmpty);
+      expect(s.plan.undoStack, hasLength(3));
+    });
+  });
+
+  group('the conversation', () {
+    testWidgets('lasts while the plan has the same ends, fixes and all', (
+      tester,
+    ) async {
+      final s = await _setup(tester);
+      await s.advice.ask('Coffee?');
+      s.advice.apply(0);
+      await _settle(tester);
+      expect(s.state.applied, {0});
+      expect(s.state.advice, isNotNull);
+
+      s.planner.setProfile(RouteProfile.fastbike);
+      await _settle(tester);
+      expect(s.state.advice, isNotNull);
+      expect(s.state.question, 'Coffee?');
+    });
+
+    testWidgets('starts afresh when the plan is cleared or has other ends', (
+      tester,
+    ) async {
+      final s = await _setup(tester);
+      await s.advice.ask('Coffee?');
+      s.planner.moveWaypoint(0, const LatLng(48.01, 11.0));
+      expect(s.state.isEmpty, isTrue);
+
+      await _settle(tester);
+      await s.advice.ask('Coffee?');
+      expect(s.state.advice, isNotNull);
+      s.planner.clear();
+      expect(s.state.isEmpty, isTrue);
+    });
+
+    testWidgets('Start over forgets the question and the answer', (
+      tester,
+    ) async {
+      final s = await _setup(tester);
+      await s.advice.ask('Coffee?');
+      s.advice.reset();
+      expect(s.state.isEmpty, isTrue);
+      expect(s.state.applied, isEmpty);
+    });
   });
 }

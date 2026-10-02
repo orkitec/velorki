@@ -1100,7 +1100,13 @@ class _SheetHeader extends ConsumerWidget {
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
           const SizedBox(width: 12),
-          Text(l10n.plannerRouting, style: theme.textTheme.titleMedium),
+          // The sheet's content is as narrow as 320 sideways.
+          Flexible(
+            child: Text(
+              l10n.plannerRouting,
+              style: theme.textTheme.titleMedium,
+            ),
+          ),
         ],
       );
     }
