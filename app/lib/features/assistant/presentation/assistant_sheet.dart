@@ -106,7 +106,8 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
   /// The "part of Velorki Plus" row, to bring it into view when it comes.
   final GlobalKey _notEntitledKey = GlobalKey();
 
-  /// The text field, to bring it into view when a chip fills it.
+  /// The text field with Ask under it, to bring them into view when a chip
+  /// fills the field and when the keyboard comes up.
   final GlobalKey _fieldKey = GlobalKey();
 
   /// The answer (or what the model asked for) and the error under the
@@ -179,17 +180,29 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
   /// At rest under the bar the card shows the head of its content; the
   /// field is what the rider came for, so it is in view from the start and
   /// after a turn of the phone, the head scrolled up as far as that takes.
-  void _showField() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final field = _fieldKey.currentContext;
-      if (!mounted || field == null || !field.mounted) return;
-      unawaited(
-        Scrollable.ensureVisible(
-          field,
-          alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
-        ),
-      );
-    });
+  void _showField() =>
+      WidgetsBinding.instance.addPostFrameCallback((_) => _fieldAboveEnd());
+
+  /// What lies over the content's end at the last build: the floating bar
+  /// and the safe area upright, nothing over the keyboard.
+  double _coveredEnd = 0;
+
+  /// Scrolls the content, if it has to, so that the field and Ask under it
+  /// end above what covers the content's end.
+  void _fieldAboveEnd() {
+    final target = _fieldKey.currentContext?.findRenderObject();
+    if (!mounted ||
+        target == null ||
+        !target.attached ||
+        !_contentScroll.hasClients) {
+      return;
+    }
+    final position = _contentScroll.position;
+    final end =
+        RenderAbstractViewport.of(target).getOffsetToReveal(target, 1).offset +
+        _coveredEnd;
+    final to = end.clamp(position.minScrollExtent, position.maxScrollExtent);
+    if (to > position.pixels + 0.5) position.jumpTo(to);
   }
 
   bool _empty = true;
@@ -265,6 +278,19 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
         ),
       );
     });
+  }
+
+  /// How high the keyboard stood under the card at the last build, while
+  /// the focus was in it.
+  double _keyboard = 0;
+
+  /// The keyboard is coming up under the card: the field and Ask under it
+  /// are kept in view over it, not only the line being typed in.
+  void _keepFieldOverKeyboard(double keyboard) {
+    final before = _keyboard;
+    _keyboard = keyboard;
+    if (keyboard <= before) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _fieldAboveEnd());
   }
 
   @override
@@ -838,7 +864,7 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
     },
   );
 
-  /// What the sheet holds, upright: the list, then the button.
+  /// What the sheet holds, upright: one list, Ask in it under the field.
   Widget _content(BuildContext context, {required bool sideways}) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
@@ -863,10 +889,12 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
     // Over the keyboard, nothing of the bar or the safe area is in the way;
     // under the keyboard (the planner's search has it) nothing shows anyway.
     final keyboard = media.viewInsets.bottom > 0;
+    _keepFieldOverKeyboard(_focused ? media.viewInsets.bottom : 0);
     // Upright the bar floats over the card's end, as over the planner's
     // card; sideways the rail is beside the content, and the home
     // indicator under it.
     final bottomSafe = keyboard ? 0.0 : media.padding.bottom;
+    _coveredEnd = bottomSafe;
     // Sideways the keyboard comes up across the card, not under it: the
     // content keeps above it.
     final lift = sideways && _focused ? media.viewInsets.bottom : 0.0;
@@ -934,6 +962,48 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
       ),
     );
 
+    // Known to be without Plus, the sheet is there to look around in,
+    // and where Ask would be it says what Ask needs. While the store
+    // has not answered, Ask is offered and the relay decides.
+    final actions = plusMissing
+        ? const PlusRequiredBanner()
+        : Row(
+            children: [
+              if (canStartOver) ...[
+                TextButton.icon(
+                  onPressed: locked ? null : _startOver,
+                  icon: const Icon(Icons.restart_alt_rounded),
+                  label: Text(l10n.assistantStartOver),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Expanded(
+                // The button is locked while it works, so it says what is
+                // going on: a line above it would be under the keyboard.
+                child: FilledButton.icon(
+                  onPressed: locked ? null : () => unawaited(_send()),
+                  icon: locked
+                      ? const ButtonProgress()
+                      : const Icon(Icons.auto_awesome_rounded),
+                  label: Text(
+                    !locked
+                        ? l10n.assistantSend
+                        : !busy
+                        ? l10n.plannerRouting
+                        : aboutRoute
+                        ? (advice.phase == RouteAdvicePhase.reading
+                              ? l10n.assistantRouteReading
+                              : l10n.assistantThinking)
+                        : state.phase == AssistantPhase.asking
+                        ? l10n.assistantThinking
+                        : l10n.assistantResolving,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+            ],
+          );
+
     final column = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -950,7 +1020,9 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
               // view must still be there to scroll back to.
               child: SingleChildScrollView(
                 controller: _contentScroll,
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                // Its end clear of the floating bar upright, as the
+                // planner's card's list is.
+                padding: EdgeInsets.fromLTRB(20, 0, 20, bottomSafe + 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -973,36 +1045,49 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
                       ),
                       const SizedBox(height: 12),
                     ],
+                    // The field and Ask right under it, scrolling with the
+                    // rest as the planner's card's buttons do.
                     KeyedSubtree(
                       key: _fieldKey,
-                      child: TextField(
-                        // Keyed by mode, so each keeps its own text and undo.
-                        key: ValueKey(_mode),
-                        controller: _field,
-                        readOnly: locked,
-                        // Full width, two lines at least and up to four.
-                        minLines: 2,
-                        maxLines: 4,
-                        maxLength: 1000,
-                        // The count only once it matters: it took a line of
-                        // its own.
-                        buildCounter:
-                            (
-                              context, {
-                              required currentLength,
-                              required isFocused,
-                              required maxLength,
-                            }) => currentLength > 900
-                            ? Text('$currentLength/$maxLength')
-                            : null,
-                        textInputAction: TextInputAction.send,
-                        style: theme.textTheme.bodyLarge,
-                        decoration: InputDecoration(
-                          hintText: aboutRoute
-                              ? l10n.assistantRouteHint
-                              : l10n.assistantHint,
-                        ),
-                        onSubmitted: locked ? null : (_) => unawaited(_send()),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          TextField(
+                            // Keyed by mode, so each keeps its own text and undo.
+                            key: ValueKey(_mode),
+                            controller: _field,
+                            readOnly: locked,
+                            // Full width, two lines at least and up to four.
+                            minLines: 2,
+                            maxLines: 4,
+                            maxLength: 1000,
+                            // The count only once it matters: it took a line of
+                            // its own.
+                            buildCounter:
+                                (
+                                  context, {
+                                  required currentLength,
+                                  required isFocused,
+                                  required maxLength,
+                                }) => currentLength > 900
+                                ? Text('$currentLength/$maxLength')
+                                : null,
+                            textInputAction: TextInputAction.send,
+                            style: theme.textTheme.bodyLarge,
+                            decoration: InputDecoration(
+                              hintText: aboutRoute
+                                  ? l10n.assistantRouteHint
+                                  : l10n.assistantHint,
+                            ),
+                            onSubmitted: locked
+                                ? null
+                                : (_) => unawaited(_send()),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: actions,
+                          ),
+                        ],
                       ),
                     ),
                     if (aboutRoute)
@@ -1015,51 +1100,6 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
             ),
           ),
         ),
-        const Divider(height: 1),
-        Padding(
-          padding: EdgeInsets.fromLTRB(20, 12, 20, bottomSafe + 16),
-          // Known to be without Plus, the sheet is there to look around in,
-          // and where Ask would be it says what Ask needs. While the store
-          // has not answered, Ask is offered and the relay decides.
-          child: plusMissing
-              ? const PlusRequiredBanner()
-              : Row(
-                  children: [
-                    if (canStartOver) ...[
-                      TextButton.icon(
-                        onPressed: locked ? null : _startOver,
-                        icon: const Icon(Icons.restart_alt_rounded),
-                        label: Text(l10n.assistantStartOver),
-                      ),
-                      const SizedBox(width: 8),
-                    ],
-                    Expanded(
-                      // The button is locked while it works, so it says what is
-                      // going on: a line above it would be under the keyboard.
-                      child: FilledButton.icon(
-                        onPressed: locked ? null : () => unawaited(_send()),
-                        icon: locked
-                            ? const ButtonProgress()
-                            : const Icon(Icons.auto_awesome_rounded),
-                        label: Text(
-                          !locked
-                              ? l10n.assistantSend
-                              : !busy
-                              ? l10n.plannerRouting
-                              : aboutRoute
-                              ? (advice.phase == RouteAdvicePhase.reading
-                                    ? l10n.assistantRouteReading
-                                    : l10n.assistantThinking)
-                              : state.phase == AssistantPhase.asking
-                              ? l10n.assistantThinking
-                              : l10n.assistantResolving,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-        ),
       ],
     );
     final body = lift > 0
@@ -1070,7 +1110,7 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
         : column;
     // Pulled down on its way out, the card's end goes under the bar and the
     // screen's edge, as the planner's card's does, rather than squeezing the
-    // button row.
+    // content.
     final least = 140 + bottomSafe + lift;
     return LayoutBuilder(
       builder: (context, constraints) => constraints.maxHeight >= least

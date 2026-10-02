@@ -700,15 +700,15 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     );
   }
 
-  /// Whether the assistant's card stands in the sheet's place: the plan's
-  /// card waits, hidden, where it was, and comes back so when the AI's
+  /// Whether the assistant's card is over the sheet: the plan's card stays
+  /// where it was, as it was, under it, and is there again when the AI's
   /// card goes.
   bool _assistantOpen = false;
 
-  /// The swap between the two cards: 0 the plan's card in view, 1 the AI's.
-  /// Opening, the plan's card slides out and the AI's slides in, along the
-  /// sheets' travel, in the time and curve a tab's sheet settles in;
-  /// closing the other way, the AI's card from wherever it is.
+  /// The AI's card coming over the plan's: 0 out of view, 1 in. Opening, it
+  /// slides in along the sheets' travel, in the time and curve a tab's
+  /// sheet settles in; closing, back out from wherever it is. The plan's
+  /// card does not move.
   late final AnimationController _assistantSlide =
       AnimationController(vsync: this, duration: tabSheetSettleDuration)
         ..addStatusListener((_) {
@@ -1079,15 +1079,14 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                       ),
                     ),
             ),
-            Offstage(
-              // Out of view, once the AI's card is all the way in.
-              offstage: _assistantSlide.isCompleted,
-              child: SheetSlide(
-                hidden: _assistantIn,
-                distance: () =>
-                    (_sheet.isAttached ? _sheet.size : _restingSheetSize) *
-                        _sheetLength +
-                    24,
+            // Where it is, as it is, while the AI's card is over it, but
+            // neither touched nor read out meanwhile: nothing of it is moved
+            // or pressed from under that card, and the map around them stays
+            // the map.
+            IgnorePointer(
+              ignoring: _assistantOpen,
+              child: ExcludeSemantics(
+                excluding: _assistantOpen,
                 child: AdaptiveDockingSheet(
                   controller: _sheet,
                   // Enough for the headline, the toolbar and Save above the
@@ -1104,7 +1103,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                   docks: true,
                   dockedBottomInset: bottomInset,
                   onDocked: _reportDocked,
-                  onExtent: _onSheetExtent,
+                  // Under the AI's card, the map is fitted to that card.
+                  onExtent: (extent) {
+                    if (!_assistantOpen) _onSheetExtent(extent);
+                  },
                   // Its own scrolling, at any height of the sheet; the
                   // sheet moves by its handle.
                   child: Builder(
@@ -1142,7 +1144,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                 ),
               ),
             ),
-            // The AI's card, in the sheet's place: no barrier, so the map
+            // The AI's card, over the planner's: no barrier, so the map
             // above it is the planner's map as ever. Kept while it slides out.
             if (_assistantOpen || !_assistantSlide.isDismissed)
               Positioned.fill(

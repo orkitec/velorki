@@ -547,7 +547,7 @@ class BesideSheet extends StatelessWidget {
   }
 }
 
-/// [child], a tab's sheet or the AI's card in its place, slid [hidden] of
+/// [child], a tab's sheet or the AI's card over it, slid [hidden] of
 /// the way out of view along its travel: down past the screen's bottom
 /// upright, out past the rail's edge sideways. [distance] is how far out of
 /// view is, in dp: as far as the sheet reaches now, so a card let go half

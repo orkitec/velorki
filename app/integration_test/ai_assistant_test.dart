@@ -534,7 +534,8 @@ void main() {
     // The card slides in over the planner's: worth a recording.
     await _pose(tester, 'ai-slide-in');
     await _openAssistant(tester);
-    expect(find.byType(DockingSheetShell), findsNothing);
+    // Under the AI's card the planner's stays where it was.
+    expect(tester.getRect(find.byType(DockingSheetShell)), card);
     final map = c.read(sharedMapControllerProvider)!;
 
     /// Beside the card, the map takes the touch, and the camera moves
