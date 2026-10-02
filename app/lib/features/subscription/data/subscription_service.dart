@@ -24,8 +24,10 @@ abstract interface class SubscriptionService {
   /// The latest known customer info, without waiting.
   PlusCustomerInfo get latest;
 
-  /// The customer info, starting with [latest] and then every update the
-  /// store SDK reports (a purchase, a restore, an expiry, a refund).
+  /// The customer info, starting with [latest] once the store has answered
+  /// and then every update the store SDK reports (a purchase, a restore, an
+  /// expiry, a refund). Nothing comes before the store's first answer, so a
+  /// listener can tell "not known yet" from "nothing owned".
   Stream<PlusCustomerInfo> get customerInfo;
 
   /// Starts the store SDK. Called once from `bootstrap()`.
@@ -131,7 +133,8 @@ final subscriptionServiceProvider = Provider<SubscriptionService>((ref) {
   return service;
 });
 
-/// The customer info as a stream, for the paywall and the settings tile.
+/// The customer info as a stream, for the paywall, the settings tile and
+/// `plusAccessProvider`. Loading until the store has answered.
 final plusCustomerInfoProvider = StreamProvider<PlusCustomerInfo>(
   (ref) => ref.watch(subscriptionServiceProvider).customerInfo,
 );

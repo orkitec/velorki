@@ -285,6 +285,75 @@ void main() {
     });
   }
 
+  /// The list the answer is in: the sheet's content.
+  Finder content() => find
+      .ancestor(
+        of: _inSheet(find.text(_advice.answer)),
+        matching: find.byType(Scrollable),
+      )
+      .first;
+
+  double contentOffset(WidgetTester tester) =>
+      tester.state<ScrollableState>(content()).position.pixels;
+
+  testWidgets('upright, a drag on the content scrolls it at the height the '
+      'sheet rests at, and only the handle moves the sheet', (tester) async {
+    await _app(tester, _upright);
+    await _open(tester);
+    await _ask(tester, l10n.assistantRouteExampleCoffee);
+    final rest = tester.getRect(_surface);
+    final before = contentOffset(tester);
+
+    await tester.drag(content(), const Offset(0, -150));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(_surface), rest);
+    expect(contentOffset(tester), greaterThan(before + 100));
+
+    // Down again, past the top: the list stops, the sheet stays.
+    await tester.drag(content(), const Offset(0, 400));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(_surface), rest);
+    expect(contentOffset(tester), 0);
+
+    await tester.drag(
+      find.descendant(of: _surface, matching: find.byType(SheetHandle)),
+      const Offset(0, -200),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.getRect(_surface).top, closeTo(rest.top - 200, 2));
+    // The Start over and Ask row stays at the bottom, in reach.
+    final button = tester.getRect(
+      _inSheet(find.widgetWithText(FilledButton, l10n.assistantSend)),
+    );
+    expect(button.bottom, lessThanOrEqualTo(_upright.height - 21));
+  });
+
+  testWidgets('sideways, a drag on the content scrolls it and leaves the '
+      'sheet where it is; the handle moves it', (tester) async {
+    _railOn(tester, RailSide.right);
+    await _app(tester, _sideways);
+    await _open(tester);
+    await _ask(tester, l10n.assistantRouteExampleCoffee);
+    final rest = tester.getRect(_surface);
+    final before = contentOffset(tester);
+
+    await tester.drag(content(), const Offset(0, -150));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(_surface), rest);
+    expect(contentOffset(tester), greaterThan(before + 100));
+    final button = tester.getRect(
+      _inSheet(find.widgetWithText(FilledButton, l10n.assistantSend)),
+    );
+    expect(rest.contains(button.center), isTrue);
+
+    await tester.drag(
+      find.descendant(of: _surface, matching: find.byType(SheetHandle)),
+      const Offset(-150, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.getRect(_surface).left, lessThan(rest.left - 50));
+  });
+
   testWidgets('swiped away and opened again, the sheet shows the same '
       'question, answer and applied fixes; Start over clears them and keeps '
       'the mode', (tester) async {
@@ -320,6 +389,10 @@ void main() {
     await _app(tester, _upright);
     await _open(tester);
     await _ask(tester, l10n.assistantRouteExampleCoffee);
+    // The field was scrolled into view in the card at rest; the modes are
+    // above it.
+    await tester.ensureVisible(find.text(l10n.assistantModeNew));
+    await tester.pumpAndSettle();
     await tester.tap(find.text(l10n.assistantModeNew));
     await tester.pumpAndSettle();
     await tester.enterText(_inSheet(find.byType(TextField)), 'A flat loop');

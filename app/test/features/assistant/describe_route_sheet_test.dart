@@ -111,6 +111,11 @@ FilledButton _saveButton(WidgetTester tester) => tester.widget<FilledButton>(
   find.widgetWithText(FilledButton, l10n.describeSave),
 );
 
+/// The sheet's "Write again" button.
+TextButton _againButton(WidgetTester tester) => tester.widget<TextButton>(
+  find.widgetWithText(TextButton, l10n.describeAgain),
+);
+
 /// The sheet's button while the model writes: locked, with the spinner.
 FilledButton _busyButton(WidgetTester tester) {
   final button = find.widgetWithText(FilledButton, l10n.describeRunning);
@@ -157,8 +162,10 @@ void main() {
 
     expect(find.text('A gentle loop '), findsOneWidget);
     expect(find.text(l10n.describeRunning), findsOneWidget);
-    // Nothing to keep while the model is still writing.
+    // Nothing to keep while the model is still writing, and nothing to
+    // start again.
     expect(_busyButton(tester).onPressed, isNull);
+    expect(_againButton(tester).onPressed, isNull);
 
     opened.relay.emit(const TextEvent('along the Isar.'));
     await tester.pump();
@@ -173,6 +180,7 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsNothing);
     expect(find.text('A gentle loop along the Isar.'), findsOneWidget);
     expect(_saveButton(tester).onPressed, isNotNull);
+    expect(_againButton(tester).onPressed, isNotNull);
   });
 
   testWidgets('saving writes the description to the route and says so', (

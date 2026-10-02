@@ -8,6 +8,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/router.dart';
 import '../../../app/theme.dart';
+import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../assistant/domain/intent_resolver.dart';
 import '../../assistant/presentation/assistant_sheet.dart';
@@ -30,6 +31,7 @@ import '../../shared/presentation/docking_sheet.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/tab_chrome_slide.dart';
 import '../../smart_loop/presentation/smart_loop_sheet.dart';
+import '../../subscription/presentation/plus_gate_flow.dart';
 import '../application/planner_controller.dart';
 import '../application/planner_map_binding.dart';
 import '../data/route_repository.dart';
@@ -688,7 +690,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   /// when the sheet closes, so the loop sheet opens on top of it and shows
   /// the result as it arrives. Everything else — a loop through places, a
   /// point-to-point route — is already on the map.
+  ///
+  /// A rider known to be without Plus sees the paywall first, before typing
+  /// anything, and the sheet only once they come back subscribed.
   Future<void> _ask() async {
+    final unlocked = await passPlusGate(context, ref, PlusFeature.aiAssistant);
+    if (!unlocked || !mounted) return;
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final intent = await showAssistantSheet(context, map: _map);

@@ -41,7 +41,16 @@ const String routeStep = 'route';
 @Riverpod(keepAlive: true)
 class AssistantController extends _$AssistantController {
   @override
-  AssistantState build() => const AssistantState();
+  AssistantState build() {
+    // Bought meanwhile: a "part of Velorki Plus" error is not true any more,
+    // and what was typed stays.
+    ref.listen(plusFeatureProvider(PlusFeature.aiAssistant), (_, entitled) {
+      if (entitled && state.problem?.failure == AssistantFailure.notEntitled) {
+        clearProblem();
+      }
+    });
+    return const AssistantState();
+  }
 
   /// Asks the model for a route and hands the answer to the planner.
   ///

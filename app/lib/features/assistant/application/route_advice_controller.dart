@@ -11,6 +11,7 @@ import '../../../core/db/tables/routes.dart' show RouteSource;
 import '../../../core/plus/plus_gate.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
 import '../../planner/application/planner_controller.dart';
+import '../../planner/domain/avoid_area.dart';
 import '../../planner/domain/planner_state.dart';
 import '../../planner/domain/route_poi.dart';
 import '../../planner/domain/route_profile.dart';
@@ -79,6 +80,7 @@ class RouteAdviceState {
     this.advice,
     this.applied = const <int>{},
     this.failures = const <int, FixFailure>{},
+    this.avoids = const <int, AvoidArea>{},
     this.problem,
   });
 
@@ -108,6 +110,11 @@ class RouteAdviceState {
   /// The findings whose fix could not be applied, with why.
   final Map<int, FixFailure> failures;
 
+  /// The stretch each avoid fix keeps off, by finding, cut from [route]
+  /// when the answer came: kilometres on a route changed since (a stop
+  /// added, another bike) would name another stretch.
+  final Map<int, AvoidArea> avoids;
+
   /// Why it failed, when it did.
   final AssistantProblem? problem;
 
@@ -135,6 +142,7 @@ class RouteAdviceState {
     RouteAdvice? advice,
     Set<int>? applied,
     Map<int, FixFailure>? failures,
+    Map<int, AvoidArea>? avoids,
     AssistantProblem? problem,
   }) => RouteAdviceState(
     phase: phase ?? this.phase,
@@ -145,6 +153,7 @@ class RouteAdviceState {
     advice: advice ?? this.advice,
     applied: applied ?? this.applied,
     failures: failures ?? this.failures,
+    avoids: avoids ?? this.avoids,
     problem: problem ?? this.problem,
   );
 }
@@ -178,6 +187,13 @@ class RouteAdviceController extends _$RouteAdviceController {
   @override
   RouteAdviceState build() {
     ref.listen(plannerControllerProvider, (_, next) => _planChanged(next));
+    // Bought meanwhile: a "part of Velorki Plus" error is not true any more,
+    // and what was typed stays.
+    ref.listen(plusFeatureProvider(PlusFeature.aiAssistant), (_, entitled) {
+      if (entitled && state.problem?.failure == AssistantFailure.notEntitled) {
+        clearProblem();
+      }
+    });
     return const RouteAdviceState();
   }
 
@@ -283,9 +299,16 @@ class RouteAdviceController extends _$RouteAdviceController {
       _fail(const AssistantProblem(AssistantFailure.relay));
       return;
     }
+    // Each avoid is cut now, from the route that was asked about.
+    final areas = <int, AvoidArea>{
+      for (final (i, finding) in advice.findings.indexed)
+        if (finding.fix case AvoidFix(:final fromKm, :final toKm))
+          i: ?AvoidArea.along(route.positions, fromKm * 1000, toKm * 1000),
+    };
     state = state.copyWith(
       phase: RouteAdvicePhase.answered,
-      advice: _withKnownPlaces(advice, digest),
+      advice: _withKnownFixes(advice, digest, areas),
+      avoids: areas,
     );
   }
 
@@ -297,7 +320,9 @@ class RouteAdviceController extends _$RouteAdviceController {
   /// A stop goes in where the route passes the place: at the place's
   /// distance along the route that was asked about while that route is
   /// still the one on the map, else wherever the current route comes
-  /// closest to it.
+  /// closest to it. An avoid keeps off the stretch cut from the route that
+  /// was asked about ([RouteAdviceState.avoids]), however the route on the
+  /// map has changed since.
   ///
   /// `true` when the fix went to the planner.
   bool apply(int index) {
@@ -320,10 +345,11 @@ class RouteAdviceController extends _$RouteAdviceController {
           poiKind: poiKindOfPlace(place.kind),
         ),
       },
-      AvoidFix(:final fromKm, :final toKm) => planner.avoidStretch(
-        fromKm * 1000,
-        toKm * 1000,
-      ),
+      AvoidFix(:final fromKm, :final toKm) => switch (state.avoids[index] ??
+          AvoidArea.along(current.positions, fromKm * 1000, toKm * 1000)) {
+        null => false,
+        final area => planner.avoidArea(area),
+      },
       ProfileFix(:final profile) => () {
         planner.setProfile(RouteProfile.fromName(profile.json));
         return true;
@@ -379,30 +405,41 @@ class RouteAdviceController extends _$RouteAdviceController {
       state = state.copyWith(phase: RouteAdvicePhase.failed, problem: problem);
 }
 
-/// [advice] without the fixes that name a place [digest] does not have.
+/// [advice] without the fixes that name a place [digest] does not have, or
+/// a stretch that is not on the route asked about (no entry in [areas]).
 ///
-/// The relay already refuses such an answer; this keeps a relay that does
-/// not from putting a stop nowhere.
-RouteAdvice _withKnownPlaces(RouteAdvice advice, RouteDigest digest) {
+/// The relay already refuses an unknown place; this keeps a relay that does
+/// not from putting a stop nowhere, and a stretch past the route's end from
+/// offering an Avoid that could only fail.
+RouteAdvice _withKnownFixes(
+  RouteAdvice advice,
+  RouteDigest digest,
+  Map<int, AvoidArea> areas,
+) {
   final ids = {for (final p in digest.places) p.id};
   return RouteAdvice(
     answer: advice.answer,
     findings: [
-      for (final f in advice.findings)
+      for (final (i, f) in advice.findings.indexed)
         switch (f.fix) {
-          AddStopFix(:final placeId) when !ids.contains(placeId) =>
-            RouteFinding(
-              kind: f.kind,
-              text: f.text,
-              fromKm: f.fromKm,
-              toKm: f.toKm,
-              placeId: f.placeId,
-            ),
+          AddStopFix(:final placeId) when !ids.contains(placeId) => _withoutFix(
+            f,
+          ),
+          AvoidFix() when !areas.containsKey(i) => _withoutFix(f),
           _ => f,
         },
     ],
   );
 }
+
+/// [f] with nothing to apply.
+RouteFinding _withoutFix(RouteFinding f) => RouteFinding(
+  kind: f.kind,
+  text: f.text,
+  fromKm: f.fromKm,
+  toKm: f.toKm,
+  placeId: f.placeId,
+);
 
 /// The summary a question about the planner's [route] is sent with.
 ///

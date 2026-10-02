@@ -86,9 +86,12 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
   final GlobalKey _sheetKey = GlobalKey();
   final DraggableScrollableController _sheet = DraggableScrollableController();
 
-  /// The list's own controller sideways, where a scroll of the content runs
-  /// across the sheet's travel rather than along it.
-  final ScrollController _sidewaysScroll = ScrollController();
+  /// The content's own controller: a drag on the content scrolls it at
+  /// whatever height the sheet has, and only the handle moves the sheet.
+  final ScrollController _contentScroll = ScrollController();
+
+  /// The "part of Velorki Plus" row, to bring it into view when it comes.
+  final GlobalKey _notEntitledKey = GlobalKey();
 
   /// The room the sheet had at its last build, to keep its height through
   /// the keyboard coming and going.
@@ -174,7 +177,7 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
       ..removeListener(_promptChanged)
       ..dispose();
     _sheet.dispose();
-    _sidewaysScroll.dispose();
+    _contentScroll.dispose();
     super.dispose();
   }
 
@@ -244,6 +247,23 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
     await ref
         .read(assistantControllerProvider.notifier)
         .choose(query, place, position: position, bias: widget.map?.center);
+  }
+
+  /// Brings the "part of Velorki Plus" row into view once it appears; the
+  /// rider may have scrolled the content since the sheet opened.
+  void _revealProblem(bool? before, bool now) {
+    if (!now || before == true) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final row = _notEntitledKey.currentContext;
+      if (!mounted || row == null || !row.mounted) return;
+      unawaited(
+        Scrollable.ensureVisible(
+          row,
+          alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart,
+          duration: const Duration(milliseconds: 200),
+        ),
+      );
+    });
   }
 
   /// What of the map is not under this sheet, as padding for the camera:
@@ -375,6 +395,14 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
       // or the waypoints are on the map. The planner takes it from here.
       Navigator.of(context).pop(next.intent);
     });
+    ref.listen(
+      assistantControllerProvider.select((s) => _notEntitled(s.problem)),
+      _revealProblem,
+    );
+    ref.listen(
+      routeAdviceControllerProvider.select((s) => _notEntitled(s.problem)),
+      _revealProblem,
+    );
 
     return SizedBox.expand(
       child: Stack(
@@ -448,10 +476,17 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
                           behavior: HitTestBehavior.opaque,
                           onVerticalDragUpdate: (d) => _dragHandle(d, room),
                           onVerticalDragEnd: (d) => _dragHandleEnd(d, rest),
-                          child: const SizedBox(
-                            height: sheetHandleDp,
-                            width: double.infinity,
-                            child: SheetHandle(),
+                          // The sheet's own controller has to sit on a
+                          // scrollable for the sheet to be moved; here it
+                          // takes no drags itself.
+                          child: SingleChildScrollView(
+                            controller: scrollController,
+                            physics: const NeverScrollableScrollPhysics(),
+                            child: const SizedBox(
+                              height: sheetHandleDp,
+                              width: double.infinity,
+                              child: SheetHandle(),
+                            ),
                           ),
                         )
                       else
@@ -473,21 +508,12 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
                       Expanded(
                         child: QuarterTurnedFrame(
                           quarterTurns: 4 - turns,
+                          // A drag on the content scrolls it, whatever the
+                          // sheet's height: the handle moves the sheet.
                           child: turns == 0
-                              // Upright a drag on the content moves the sheet
-                              // first; sideways it runs across the sheet's
-                              // travel, so the content only scrolls.
-                              ? _content(
-                                  context,
-                                  scrollController,
-                                  sideways: false,
-                                )
+                              ? _content(context, sideways: false)
                               : _keptWide(
-                                  _content(
-                                    context,
-                                    _sidewaysScroll,
-                                    sideways: true,
-                                  ),
+                                  _content(context, sideways: true),
                                   railOnLeft: turns == 1,
                                 ),
                         ),
@@ -523,17 +549,23 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
   );
 
   /// What the sheet holds, upright: the list, then the button.
-  Widget _content(
-    BuildContext context,
-    ScrollController scroll, {
-    required bool sideways,
-  }) {
+  Widget _content(BuildContext context, {required bool sideways}) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final state = ref.watch(assistantControllerProvider);
     final advice = ref.watch(routeAdviceControllerProvider);
     final aboutRoute = _mode == AssistantMode.thisRoute;
     final busy = aboutRoute ? advice.busy : state.busy;
+    // A fix being routed counts too: the next question is about the route
+    // it makes.
+    final routing =
+        aboutRoute &&
+        ref.watch(plannerControllerProvider.select((s) => s.isRouting));
+    // While anything runs, nothing in the sheet takes input; the text stays
+    // readable. Show on the map stays, it changes nothing.
+    final locked = busy || routing;
+    final problem = aboutRoute ? advice.problem : state.problem;
+    final notEntitled = _notEntitled(problem) ? problem : null;
     final canStartOver = aboutRoute
         ? !advice.isEmpty || _question.text.isNotEmpty
         : state != const AssistantState() || _prompt.text.isNotEmpty;
@@ -567,7 +599,7 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
                 ],
                 selected: {_mode},
                 showSelectedIcon: false,
-                onSelectionChanged: busy
+                onSelectionChanged: locked
                     ? null
                     : (selected) => _setMode(selected.single),
               ),
@@ -598,16 +630,26 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
           // Not a lazy list: a few rows, and an answer scrolled out of view
           // must still be there to scroll back to.
           child: SingleChildScrollView(
-            controller: scroll,
+            controller: _contentScroll,
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 header,
+                // Not having Plus is said first, where it is seen, rather
+                // than under the answer it stands in for.
+                if (notEntitled != null) ...[
+                  KeyedSubtree(
+                    key: _notEntitledKey,
+                    child: _ProblemRow(problem: notEntitled),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 TextField(
                   // Keyed by mode, so each keeps its own text and undo.
                   key: ValueKey(_mode),
                   controller: _field,
+                  readOnly: locked,
                   minLines: aboutRoute ? 1 : 2,
                   maxLines: 4,
                   maxLength: 1000,
@@ -618,12 +660,12 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
                         ? l10n.assistantRouteHint
                         : l10n.assistantHint,
                   ),
-                  onSubmitted: (_) => unawaited(_send()),
+                  onSubmitted: locked ? null : (_) => unawaited(_send()),
                 ),
                 if (aboutRoute)
-                  ..._routeChildren(l10n, theme, advice)
+                  ..._routeChildren(l10n, theme, advice, locked: locked)
                 else
-                  ..._newRouteChildren(l10n, state),
+                  ..._newRouteChildren(l10n, state, locked: locked),
               ],
             ),
           ),
@@ -635,7 +677,7 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
             children: [
               if (canStartOver) ...[
                 TextButton.icon(
-                  onPressed: busy ? null : _startOver,
+                  onPressed: locked ? null : _startOver,
                   icon: const Icon(Icons.restart_alt_rounded),
                   label: Text(l10n.assistantStartOver),
                 ),
@@ -645,13 +687,15 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
                 // The button is locked while it works, so it says what is
                 // going on: a line above it would be under the keyboard.
                 child: FilledButton.icon(
-                  onPressed: busy ? null : () => unawaited(_send()),
-                  icon: busy
+                  onPressed: locked ? null : () => unawaited(_send()),
+                  icon: locked
                       ? const ButtonProgress()
                       : const Icon(Icons.auto_awesome_rounded),
                   label: Text(
-                    !busy
+                    !locked
                         ? l10n.assistantSend
+                        : !busy
+                        ? l10n.plannerRouting
                         : aboutRoute
                         ? (advice.phase == RouteAdvicePhase.reading
                               ? l10n.assistantRouteReading
@@ -672,7 +716,11 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
 
   /// Under the field, asking for a new route: examples or wishes, then what
   /// the model understood, the choices to make and the error.
-  List<Widget> _newRouteChildren(AppLocalizations l10n, AssistantState state) {
+  List<Widget> _newRouteChildren(
+    AppLocalizations l10n,
+    AssistantState state, {
+    required bool locked,
+  }) {
     final wishes = _wishes(l10n);
     return [
       // An empty field gets whole examples; a typed one the wishes the
@@ -694,14 +742,14 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
             ])
               ActionChip(
                 label: Text(example),
-                onPressed: () => _prompt.text = example,
+                onPressed: locked ? null : () => _prompt.text = example,
               )
           else
             for (final wish in wishes)
               ActionChip(
                 avatar: const Icon(Icons.add_rounded, size: 18),
                 label: Text(wish),
-                onPressed: state.busy ? null : () => _add(wish),
+                onPressed: locked ? null : () => _add(wish),
               ),
         ],
       ),
@@ -713,9 +761,11 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
         for (final choice in state.choices)
           _ChoiceRow(
             choice: choice,
-            onSelected: (place) => unawaited(_choose(choice.query, place)),
+            onSelected: locked
+                ? null
+                : (place) => unawaited(_choose(choice.query, place)),
           ),
-      if (state.problem != null) ...[
+      if (state.problem != null && !_notEntitled(state.problem)) ...[
         const SizedBox(height: 16),
         _ProblemRow(
           problem: state.problem!,
@@ -731,8 +781,9 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
   List<Widget> _routeChildren(
     AppLocalizations l10n,
     ThemeData theme,
-    RouteAdviceState advice,
-  ) {
+    RouteAdviceState advice, {
+    required bool locked,
+  }) {
     final answer = advice.advice;
     final asked = advice.question.toLowerCase();
     final next = _routeExamples(l10n)
@@ -741,9 +792,6 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
     final offered = answer != null
         ? next
         : (_empty ? _routeExamples(l10n) : null);
-    final routing = ref.watch(
-      plannerControllerProvider.select((s) => s.isRouting),
-    );
     return [
       // The answer first, right under the question, where the eye is.
       if (answer != null && !advice.busy) ...[
@@ -764,7 +812,7 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
               failure: advice.failures[i],
               // A fix applied meanwhile is still being routed; the next
               // one waits for the route it applies to.
-              canApply: !routing,
+              canApply: !locked,
               onShow: widget.map == null
                   ? null
                   : () => _show(answer.findings[i], advice),
@@ -787,7 +835,7 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
             for (final question in offered)
               ActionChip(
                 label: Text(question),
-                onPressed: advice.busy
+                onPressed: locked
                     ? null
                     : () => _question.value = TextEditingValue(
                         text: question,
@@ -799,7 +847,7 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
           ],
         ),
       ],
-      if (advice.problem != null) ...[
+      if (advice.problem != null && !_notEntitled(advice.problem)) ...[
         const SizedBox(height: 16),
         _ProblemRow(
           problem: advice.problem!,
@@ -811,6 +859,10 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
     ];
   }
 }
+
+/// Whether [problem] is the rider not having Velorki Plus.
+bool _notEntitled(AssistantProblem? problem) =>
+    problem?.failure == AssistantFailure.notEntitled;
 
 /// The place an add-stop fix of [finding] names, if it has one.
 String? _stopOf(RouteFinding finding) => switch (finding.fix) {
@@ -1044,7 +1096,9 @@ class _ChoiceRow extends StatelessWidget {
   const _ChoiceRow({required this.choice, required this.onSelected});
 
   final PlaceChoice choice;
-  final ValueChanged<ResolvedPlace> onSelected;
+
+  /// `null` while the sheet is busy.
+  final ValueChanged<ResolvedPlace>? onSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -1067,7 +1121,9 @@ class _ChoiceRow extends StatelessWidget {
               for (final option in choice.options)
                 ActionChip(
                   label: Text(option.label),
-                  onPressed: () => onSelected(option),
+                  onPressed: onSelected == null
+                      ? null
+                      : () => onSelected!(option),
                 ),
             ],
           ),
@@ -1079,12 +1135,13 @@ class _ChoiceRow extends StatelessWidget {
 
 /// The error, with the one action that can help.
 class _ProblemRow extends StatelessWidget {
-  const _ProblemRow({required this.problem, required this.onRetry});
+  const _ProblemRow({required this.problem, this.onRetry});
 
   final AssistantProblem problem;
 
-  /// Clears the error, keeping what was typed.
-  final VoidCallback onRetry;
+  /// Clears the error, keeping what was typed; not offered without Plus,
+  /// where the paywall is the one thing that helps.
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -1104,14 +1161,13 @@ class _ProblemRow extends StatelessWidget {
                 style: theme.textTheme.bodyMedium,
               ),
               if (problem.failure == AssistantFailure.notEntitled)
+                // Over the sheet: the rider comes back to what they typed,
+                // and the error goes by itself once Plus is active.
                 TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    context.push(paywallRoute);
-                  },
+                  onPressed: () => unawaited(context.push<void>(paywallRoute)),
                   child: Text(l10n.plusSeeDetails),
                 )
-              else
+              else if (onRetry != null)
                 TextButton(
                   onPressed: onRetry,
                   child: Text(l10n.assistantRetry),

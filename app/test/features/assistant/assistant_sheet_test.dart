@@ -143,6 +143,28 @@ void main() {
     );
     // Only there: nothing else in the sheet spins.
     expect(_inSheet(find.byType(CircularProgressIndicator)), findsOneWidget);
+    // Nothing else takes input meanwhile; the question stays readable.
+    final field = tester.widget<TextField>(_inSheet(find.byType(TextField)));
+    expect(field.readOnly, isTrue);
+    expect(field.controller!.text, 'a 30 km loop');
+    expect(
+      tester
+          .widget<ActionChip>(
+            _inSheet(
+              find.widgetWithText(ActionChip, l10n.assistantRefineQuiet),
+            ),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<TextButton>(
+            _inSheet(find.widgetWithText(TextButton, l10n.assistantStartOver)),
+          )
+          .onPressed,
+      isNull,
+    );
 
     relay.emit(
       const ErrorEvent(
@@ -158,6 +180,19 @@ void main() {
     expect(
       _inSheet(find.widgetWithText(FilledButton, l10n.assistantSend)),
       findsOneWidget,
+    );
+    // The error ends it: everything takes input again.
+    expect(
+      tester.widget<TextField>(_inSheet(find.byType(TextField))).readOnly,
+      isFalse,
+    );
+    expect(
+      tester
+          .widget<TextButton>(
+            _inSheet(find.widgetWithText(TextButton, l10n.assistantStartOver)),
+          )
+          .onPressed,
+      isNotNull,
     );
   });
 

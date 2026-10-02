@@ -78,7 +78,15 @@ const Duration routeDigestTimeout = Duration(seconds: 30);
 @riverpod
 class RouteDescriptionController extends _$RouteDescriptionController {
   @override
-  RouteDescriptionState build() => const RouteDescriptionState();
+  RouteDescriptionState build() {
+    // Bought meanwhile: a "part of Velorki Plus" error is not true any more.
+    ref.listen(plusFeatureProvider(PlusFeature.aiAssistant), (_, entitled) {
+      if (entitled && state.problem?.failure == AssistantFailure.notEntitled) {
+        state = state.copyWith(clearProblem: true);
+      }
+    });
+    return const RouteDescriptionState();
+  }
 
   /// Asks the model to describe [route] and streams the answer into the state.
   Future<void> describe(SavedRoute route, {String? locale}) async {

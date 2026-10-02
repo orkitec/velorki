@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/domain/saved_route.dart';
+import '../../subscription/presentation/plus_gate_flow.dart';
 import '../application/route_description_controller.dart';
 import '../data/ai_consent_controller.dart';
 import 'ai_consent_dialog.dart';
@@ -149,8 +151,9 @@ class _DescribeRouteSheetState extends ConsumerState<DescribeRouteSheet> {
 /// The route detail's "Describe this route" button.
 ///
 /// Hidden for a route that came from Strava — their API terms do not allow
-/// their data to be used for AI — and for a rider without Velorki Plus the
-/// sheet says so rather than the button disappearing.
+/// their data to be used for AI. For a rider known to be without Velorki Plus
+/// it opens the paywall rather than disappearing, and the sheet follows when
+/// they come back subscribed.
 class DescribeRouteButton extends ConsumerWidget {
   /// Creates the button for [route].
   const DescribeRouteButton({required this.route, super.key});
@@ -158,12 +161,18 @@ class DescribeRouteButton extends ConsumerWidget {
   /// The route to describe.
   final SavedRoute route;
 
+  Future<void> _open(BuildContext context, WidgetRef ref) async {
+    final unlocked = await passPlusGate(context, ref, PlusFeature.aiAssistant);
+    if (!unlocked || !context.mounted) return;
+    await showDescribeRouteSheet(context, route);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (!canDescribe(route)) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context);
     return OutlinedButton.icon(
-      onPressed: () => unawaited(showDescribeRouteSheet(context, route)),
+      onPressed: () => unawaited(_open(context, ref)),
       icon: const Icon(Icons.auto_awesome),
       label: Text(l10n.describeAction),
     );

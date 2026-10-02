@@ -123,6 +123,11 @@ class RevenueCatSubscriptionService implements SubscriptionService {
       StreamController<PlusCustomerInfo>.broadcast();
 
   PlusCustomerInfo _latest = PlusCustomerInfo.none;
+
+  /// Whether the store has said anything yet. Until it has, [_latest] is a
+  /// placeholder and [customerInfo] does not pass it on: "nothing owned" and
+  /// "not asked yet" must not look the same to the gates.
+  bool _answered = false;
   rc.CustomerInfoUpdateListener? _listener;
   bool _configured = false;
 
@@ -134,7 +139,7 @@ class RevenueCatSubscriptionService implements SubscriptionService {
 
   @override
   Stream<PlusCustomerInfo> get customerInfo async* {
-    yield _latest;
+    if (_answered) yield _latest;
     yield* _updates.stream;
   }
 
@@ -244,6 +249,7 @@ class RevenueCatSubscriptionService implements SubscriptionService {
 
   void _emit(PlusCustomerInfo info) {
     _latest = info;
+    _answered = true;
     if (!_updates.isClosed) _updates.add(info);
   }
 

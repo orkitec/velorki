@@ -246,11 +246,123 @@ void main() {
     );
     expect(relay.planCalls.single.step, 'route');
     expect(relay.planCalls.single.context, isNull);
+    // Nothing else takes input meanwhile; the question stays readable.
+    final field = tester.widget<TextField>(_inSheet(find.byType(TextField)));
+    expect(field.readOnly, isTrue);
+    expect(field.controller!.text, 'Coffee?');
+    expect(
+      tester
+          .widget<SegmentedButton<AssistantMode>>(
+            _inSheet(find.byType(SegmentedButton<AssistantMode>)),
+          )
+          .onSelectionChanged,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<TextButton>(
+            _inSheet(find.widgetWithText(TextButton, l10n.assistantStartOver)),
+          )
+          .onPressed,
+      isNull,
+    );
 
     relay.emit(const RouteAdviceEvent(_advice));
     await relay.finish();
     await tester.pumpAndSettle();
     expect(_inSheet(find.text(l10n.assistantSend)), findsOneWidget);
+    expect(
+      tester.widget<TextField>(_inSheet(find.byType(TextField))).readOnly,
+      isFalse,
+    );
+    expect(
+      tester
+          .widget<ActionChip>(
+            _inSheet(
+              find.widgetWithText(ActionChip, l10n.assistantRouteExampleCheck),
+            ),
+          )
+          .onPressed,
+      isNotNull,
+    );
+  });
+
+  testWidgets('while a fix is routed, the sheet takes no input but Show', (
+    tester,
+  ) async {
+    await _openSheet(tester, relay: _answering(), route: _route());
+    await _ask(tester, l10n.assistantRouteExampleCoffee);
+
+    await tester.ensureVisible(_inSheet(find.text(l10n.assistantFixAddStop)));
+    await tester.tap(_inSheet(find.text(l10n.assistantFixAddStop)));
+    await tester.pump();
+    expect(
+      _container(tester).read(plannerControllerProvider).isRouting,
+      isTrue,
+    );
+
+    final busy = _inSheet(
+      find.widgetWithText(FilledButton, l10n.plannerRouting),
+    );
+    expect(busy, findsOneWidget);
+    expect(tester.widget<FilledButton>(busy).onPressed, isNull);
+    expect(
+      tester.widget<TextField>(_inSheet(find.byType(TextField))).readOnly,
+      isTrue,
+    );
+    expect(
+      tester
+          .widget<SegmentedButton<AssistantMode>>(
+            _inSheet(find.byType(SegmentedButton<AssistantMode>)),
+          )
+          .onSelectionChanged,
+      isNull,
+    );
+    final gravel = l10n.assistantFixProfile(
+      profileLabel(l10n, RouteProfile.gravel),
+    );
+    expect(
+      tester
+          .widget<FilledButton>(
+            _inSheet(find.widgetWithText(FilledButton, gravel)),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<ActionChip>(
+            _inSheet(
+              find.widgetWithText(ActionChip, l10n.assistantRouteExampleCheck),
+            ),
+          )
+          .onPressed,
+      isNull,
+    );
+    // Show only moves the map, so it stays.
+    expect(
+      tester
+          .widget<TextButton>(
+            _inSheet(find.widgetWithText(TextButton, l10n.assistantFindingShow))
+                .first,
+          )
+          .onPressed,
+      isNotNull,
+    );
+
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextField>(_inSheet(find.byType(TextField))).readOnly,
+      isFalse,
+    );
+    expect(
+      tester
+          .widget<FilledButton>(
+            _inSheet(find.widgetWithText(FilledButton, gravel)),
+          )
+          .onPressed,
+      isNotNull,
+    );
   });
 
   testWidgets('the answer lists its findings, with Show and Apply, and the '

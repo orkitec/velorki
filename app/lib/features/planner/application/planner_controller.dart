@@ -207,6 +207,26 @@ class PlannerController extends _$PlannerController {
     return true;
   }
 
+  /// Keeps the router off [area], a stretch cut from a route that may no
+  /// longer be the one on the map (a stop added since, another bike): the
+  /// area stays as it was cut, every leg of the route on the map that comes
+  /// near it is routed again around it, and every leg routed from now on
+  /// keeps off it too. One undo step.
+  ///
+  /// `false` when there is no route on the map, and nothing changed.
+  bool avoidArea(AvoidArea area) {
+    final route = state.result;
+    if (route == null || !state.isRoutable) return false;
+    _pushUndo();
+    state = state.copyWith(
+      avoid: [...state.avoid, area],
+      alternatives: const <RouteResult>[],
+      legs: _legsNear(route, area),
+    );
+    _scheduleRoute();
+    return true;
+  }
+
   /// Lets the router back onto every avoided stretch, routing each leg
   /// again. One undo step.
   void clearAvoided() {
@@ -218,6 +238,36 @@ class PlannerController extends _$PlannerController {
       legs: List<RouteLeg?>.filled(state.planLegs.length, null),
     );
     _scheduleRoute();
+  }
+
+  /// [PlannerState.planLegs] with every leg of [route] that comes within
+  /// reach of one of [area]'s circles marked to be routed again; all of
+  /// them when the route's legs are not known.
+  List<RouteLeg?> _legsNear(RouteResult route, AvoidArea area) {
+    final legs = [...state.planLegs];
+    if (route is! PlannedRoute || route.legStarts.length != legs.length) {
+      return List<RouteLeg?>.filled(legs.length, null);
+    }
+    final track = route.positions;
+    for (var i = 0; i < legs.length; i++) {
+      final end = i + 1 < legs.length
+          ? route.legStarts[i + 1]
+          : track.length - 1;
+      final leg = track.sublist(route.legStarts[i], end + 1);
+      if (leg.length < 2) continue;
+      final cumulative = cumulativeDistancesMeters(leg);
+      final near = area.nogos.any(
+        (nogo) =>
+            projectOnTrack(
+              leg,
+              nogo.center,
+              cumulative: cumulative,
+            ).distanceM <=
+            nogo.radiusM + avoidRadiusM,
+      );
+      if (near) legs[i] = null;
+    }
+    return legs;
   }
 
   /// [PlannerState.planLegs] with every leg of [route] that runs between

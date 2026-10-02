@@ -15,6 +15,7 @@ import 'package:velorki/features/assistant/domain/assistant_state.dart';
 import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/data/routing_backend_provider.dart';
+import 'package:velorki/features/planner/domain/avoid_area.dart';
 import 'package:velorki/features/planner/domain/planner_state.dart';
 import 'package:velorki/features/planner/domain/route_poi.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
@@ -31,7 +32,9 @@ const LatLng _b = LatLng(48.0, 11.1);
 const LatLng _c = LatLng(48.0, 11.2);
 
 /// A router that rides straight from one point of a query to the next, so
-/// a test knows how far along the route anything is.
+/// a test knows how far along the route anything is; on a gravel bike it
+/// bends each leg a kilometre north in its middle, so the same kilometres
+/// name other places.
 class _LineBackend implements RoutingBackend {
   final List<RouteQuery> queries = <RouteQuery>[];
 
@@ -40,17 +43,21 @@ class _LineBackend implements RoutingBackend {
     queries.add(q);
     final from = q.points.first;
     final to = q.points.last;
+    final bend = q.profile == RouteProfile.gravel.engineName ? 0.009 : 0.0;
     final geometry = <TrackPoint>[
       for (var i = 0; i <= 10; i++)
         TrackPoint(
           LatLng(
-            from.lat + (to.lat - from.lat) * i / 10,
+            from.lat +
+                (to.lat - from.lat) * i / 10 +
+                bend * (5 - (i - 5).abs()) / 5,
             from.lon + (to.lon - from.lon) * i / 10,
           ),
           ele: 500,
         ),
     ];
-    final length = haversineMeters(from, to);
+    final length = cumulativeDistancesMeters([for (final p in geometry) p.pos])
+        .last;
     return RouteResult(
       geometry: geometry,
       lengthM: length,
@@ -263,6 +270,18 @@ void main() {
       expect(s.state.problem!.failure, AssistantFailure.notEntitled);
     });
 
+    testWidgets('a "part of Plus" error goes once Plus is active, and the '
+        'question stays', (tester) async {
+      final s = await _setup(tester, entitled: false);
+      await s.advice.ask('Check this route');
+      expect(s.state.problem!.failure, AssistantFailure.notEntitled);
+
+      s.container.read(plusEntitledProvider.notifier).value = true;
+      await tester.pump(const Duration(milliseconds: 1));
+      expect(s.state.problem, isNull);
+      expect(s.state.question, 'Check this route');
+    });
+
     testWidgets('without consent nothing is sent', (tester) async {
       final s = await _setup(tester, consent: AiConsent.denied);
       await s.advice.ask('Check this route');
@@ -431,8 +450,8 @@ void main() {
       expect(s.plan.avoid, hasLength(1));
     });
 
-    testWidgets('a stretch the route does not have cannot be avoided, and '
-        'the finding says why', (tester) async {
+    testWidgets('a stretch the route does not have is not offered to be '
+        'avoided', (tester) async {
       final s = await _setup(
         tester,
         findings: const [
@@ -444,11 +463,99 @@ void main() {
         ],
       );
       await s.advice.ask('Avoid the main road');
+      expect(s.state.advice!.findings.single.fix, isNull);
+      expect(s.state.advice!.findings.single.text, 'Past the end.');
       expect(s.advice.apply(0), isFalse);
-      expect(s.state.failures, {0: FixFailure.notApplicable});
-      expect(s.state.applied, isEmpty);
+      expect(s.state.failures, isEmpty);
       expect(s.plan.avoid, isEmpty);
       expect(s.plan.undoStack, hasLength(3));
+    });
+
+    /// Asks about [fix] and applies it; the area it put on the plan.
+    Future<AvoidArea> avoid(WidgetTester tester, AvoidFix fix) async {
+      final s = await _setup(
+        tester,
+        findings: [
+          RouteFinding(kind: FindingKind.traffic, text: 'A road.', fix: fix),
+        ],
+      );
+      await s.advice.ask('Avoid the main road');
+      expect(s.advice.apply(0), isTrue);
+      expect(s.state.failures, isEmpty);
+      expect(s.state.applied, {0});
+      await _settle(tester);
+      return s.plan.avoid.single;
+    }
+
+    double lengthOf(AvoidArea area) =>
+        cumulativeDistancesMeters(area.line).last;
+
+    testWidgets('a point to avoid is widened to a stretch around it', (
+      tester,
+    ) async {
+      final area = await avoid(tester, const AvoidFix(fromKm: 5, toKm: 5));
+      expect(lengthOf(area), closeTo(avoidMinStretchM, 1));
+      expect(area.fromKm, closeTo(4.85, 0.001));
+      expect(area.toKm, closeTo(5.15, 0.001));
+    });
+
+    testWidgets('a stretch running past the end stops at the end', (
+      tester,
+    ) async {
+      final area = await avoid(tester, const AvoidFix(fromKm: 14, toKm: 20));
+      expect(area.fromKm, 14);
+      expect(area.line.last, _c);
+    });
+
+    testWidgets('a stretch starting where the route ends is its last metres', (
+      tester,
+    ) async {
+      final area = await avoid(
+        tester,
+        const AvoidFix(fromKm: 15.0, toKm: 15.5),
+      );
+      expect(area.line.last, _c);
+      expect(lengthOf(area), closeTo(avoidMinStretchM, 1));
+    });
+
+    testWidgets('an avoid applied after a stop changed the route keeps off '
+        'the stretch the answer was about', (tester) async {
+      final s = await _setup(tester, findings: const [_water, _mainRoad]);
+      await s.advice.ask('Water, and the main road?');
+      final asked = s.plan.result!.positions;
+
+      // The stop at 3 km lies inside the stretch and bends the route.
+      expect(s.advice.apply(0), isTrue);
+      await _settle(tester);
+      expect(s.plan.result!.positions, isNot(asked));
+
+      expect(s.advice.apply(1), isTrue);
+      expect(s.state.failures, isEmpty);
+      expect(s.plan.avoid.single.line, AvoidArea.cut(asked, 2000, 4000));
+      await _settle(tester);
+      // The leg the stretch lies on, now split by the stop, is routed
+      // around it; the last leg is not.
+      expect(s.backend.queries.last.nogos, s.plan.avoid.single.nogos);
+    });
+
+    testWidgets('an avoid applied after the bike changed keeps off the '
+        'stretch the answer was about', (tester) async {
+      final s = await _setup(tester, findings: const [_gravel, _mainRoad]);
+      await s.advice.ask('Gravel, and the main road?');
+      final asked = s.plan.result!.positions;
+
+      expect(s.advice.apply(0), isTrue);
+      await _settle(tester);
+      // On the gravel bike the same kilometres are somewhere else.
+      final now = s.plan.result!.positions;
+      expect(
+        AvoidArea.cut(now, 2000, 4000),
+        isNot(AvoidArea.cut(asked, 2000, 4000)),
+      );
+
+      expect(s.advice.apply(1), isTrue);
+      expect(s.state.failures, isEmpty);
+      expect(s.plan.avoid.single.line, AvoidArea.cut(asked, 2000, 4000));
     });
   });
 
