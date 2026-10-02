@@ -116,6 +116,12 @@ changing structure.
   from — the oracle rd5 plus its `.gaz` fixture — on port 8000.
 - BRouter parity: `tools/brouter-oracle` with the two committed tiles in
   `tools/brouter-oracle/tiles/`; the corpus is bound to those exact bytes.
+- AI features: `test/support/mock_relay.dart` mocks the relay at the HTTP
+  layer in-process (the real `RelayClient`, SSE parsing and timeouts above
+  it); its answers are copies of the `web/openapi.yaml` examples, held to the
+  yaml by `test/features/assistant/relay_contract_test.dart`, and requests
+  and scripted replies are validated against the yaml's schemas.
+  `integration_test/ai_assistant_test.dart` runs the main flows on a device.
 - `app/test/perf`: timings against a real gazetteer, skipped unless
   `GAZETTEER_PERF_FILE` names a `.gaz` (`--dart-define` or the environment).
 - `app/test/features/navigation/routing_scenarios_test.dart`: rides replayed

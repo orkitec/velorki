@@ -6,7 +6,9 @@
 /// `../test/...` import, which drags that whole harness (an in-memory drift
 /// database, dio fixtures, a fake map view) into an on-device build where the
 /// real ones are wanted. So the few doubles that are needed here are copied,
-/// kept to the minimum, and nothing else is shared.
+/// kept to the minimum. The one exception is `test/support/mock_relay.dart`
+/// (with its `relay_contract.dart`): plain Dart, no harness behind it, and
+/// the relay's contract is better kept in one place.
 library;
 
 import 'dart:async';

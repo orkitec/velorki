@@ -36,6 +36,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
+import 'ai_assistant_test.dart' as ai_assistant;
 import 'appearance_test.dart' as appearance;
 import 'close_loop_test.dart' as close_loop;
 import 'import_gpx_test.dart' as import_gpx;
@@ -59,6 +60,7 @@ import 'search_to_destination_test.dart' as search_to_destination;
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
+  group('ai_assistant_test.dart', ai_assistant.main);
   group('appearance_test.dart', appearance.main);
   group('close_loop_test.dart', close_loop.main);
   group('import_gpx_test.dart', import_gpx.main);

@@ -184,6 +184,10 @@ class RouteAdviceController extends _$RouteAdviceController {
   /// stack was with it on top.
   ({int index, int undoDepth})? _routing;
 
+  /// How deep the planner's undo stack was with each applied fix on top:
+  /// an Undo that takes the stack below it took the fix back.
+  final Map<int, int> _appliedDepth = <int, int>{};
+
   @override
   RouteAdviceState build() {
     ref.listen(plannerControllerProvider, (_, next) => _planChanged(next));
@@ -202,10 +206,12 @@ class RouteAdviceController extends _$RouteAdviceController {
     if (asked != null && planEnds(plan) != asked && !state.busy) {
       // Another route: what was asked and typed about the last one goes.
       _routing = null;
+      _appliedDepth.clear();
       ref.read(assistantSheetMemoryProvider).question = '';
       state = const RouteAdviceState();
       return;
     }
+    _takeBackUndone(plan);
     final routing = _routing;
     if (routing == null || plan.isRouting) return;
     _routing = null;
@@ -215,16 +221,32 @@ class RouteAdviceController extends _$RouteAdviceController {
     if (plan.undoStack.length == routing.undoDepth) {
       ref.read(plannerControllerProvider.notifier).undo();
     }
+    _appliedDepth.remove(routing.index);
     state = state.copyWith(
       applied: {...state.applied}..remove(routing.index),
       failures: {...state.failures, routing.index: FixFailure.routingFailed},
     );
   }
 
+  /// Marks the fixes the rider took back with the planner's Undo as not
+  /// applied, so they are offered again.
+  void _takeBackUndone(PlannerState plan) {
+    final undone = [
+      for (final i in state.applied)
+        if ((_appliedDepth[i] ?? 0) > plan.undoStack.length) i,
+    ];
+    if (undone.isEmpty) return;
+    for (final i in undone) {
+      _appliedDepth.remove(i);
+    }
+    state = state.copyWith(applied: {...state.applied}..removeAll(undone));
+  }
+
   /// Forgets the question, the answer and its fixes.
   void reset() {
     if (state.busy) return;
     _routing = null;
+    _appliedDepth.clear();
     state = const RouteAdviceState();
   }
 
@@ -235,6 +257,7 @@ class RouteAdviceController extends _$RouteAdviceController {
     final planner = ref.read(plannerControllerProvider);
     final route = planner.result;
     _routing = null;
+    _appliedDepth.clear();
     state = RouteAdviceState(
       phase: RouteAdvicePhase.reading,
       question: text,
@@ -360,6 +383,7 @@ class RouteAdviceController extends _$RouteAdviceController {
     if (plan.isRouting) {
       _routing = (index: index, undoDepth: plan.undoStack.length);
     }
+    _appliedDepth[index] = plan.undoStack.length;
     state = state.copyWith(
       applied: <int>{...state.applied, index},
       failures: {...state.failures}..remove(index),

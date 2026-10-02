@@ -12,12 +12,14 @@ on:
     branches: [main]
     paths:
       - "app/**"
+      - "web/openapi.yaml"
       - "tools/gazetteer/**"
       - "mise.toml"
       - ".github/workflows/app.yml"
   pull_request:
     paths:
       - "app/**"
+      - "web/openapi.yaml"
       - "tools/gazetteer/**"
       - "mise.toml"
       - ".github/workflows/app.yml"

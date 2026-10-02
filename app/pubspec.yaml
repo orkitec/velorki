@@ -66,11 +66,15 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   freezed: ^4.0.1
+  # The in-process relay of the AI tests answers through http's MockClient
+  # and checks itself against web/openapi.yaml.
+  http: ^1.6.0
   integration_test:
     sdk: flutter
   json_serializable: ^6.14.1
   mocktail: ^1.0.5
   riverpod_generator: ^4.0.9
+  yaml: ^3.1.4
   # riverpod_lint is not a dev_dependency: since 3.1 it is an
   # analysis_server_plugin, declared under `plugins:` in analysis_options.yaml.
 

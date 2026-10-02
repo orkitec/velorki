@@ -393,6 +393,26 @@ void main() {
       expect(s.plan.options.profile, RouteProfile.trekking);
     });
 
+    testWidgets('a fix taken back with Undo is offered again, and only that '
+        'one', (tester) async {
+      final s = await _setup(tester, findings: const [_water, _coffee]);
+      await s.advice.ask('Coffee and water?');
+      s.advice.apply(1);
+      await _settle(tester);
+      s.advice.apply(0);
+      await _settle(tester);
+      expect(s.state.applied, {0, 1});
+
+      s.planner.undo();
+      expect(s.state.applied, {1});
+      s.planner.undo();
+      expect(s.state.applied, isEmpty);
+
+      expect(s.advice.apply(1), isTrue);
+      expect(s.state.applied, {1});
+      await _settle(tester);
+    });
+
     testWidgets('an avoid fix keeps every leg off the stretch, draws it, and '
         'Undo lets the router back on', (tester) async {
       final s = await _setup(tester, findings: const [_mainRoad]);
