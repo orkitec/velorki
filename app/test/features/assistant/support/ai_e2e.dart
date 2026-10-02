@@ -126,7 +126,10 @@ Future<void> settle(
   bool Function() done, {
   String? what,
 }) async {
-  for (var i = 0; i < 150 && !done(); i++) {
+  // Routing on the tile happens in real time, and a CI runner is several
+  // times slower than a laptop: bounded by the clock, not by a count.
+  final clock = Stopwatch()..start();
+  while (!done() && clock.elapsed < const Duration(seconds: 90)) {
     await tester.pump(const Duration(milliseconds: 200));
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 50)),
