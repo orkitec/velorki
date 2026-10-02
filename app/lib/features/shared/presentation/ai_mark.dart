@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
@@ -33,16 +34,31 @@ class AiSparkle extends StatelessWidget {
     final gradient = Theme.of(context).velorki.aiGradient;
     return ShaderMask(
       // Diagonal across the icon, so both ends show in its small square.
+      // Its two ends only: see [twoStopRuns].
       shaderCallback: (bounds) => LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: gradient.colors,
+        colors: <Color>[gradient.colors.first, gradient.colors.last],
       ).createShader(bounds),
       blendMode: BlendMode.srcIn,
       child: Icon(icon, size: size, color: Colors.white),
     );
   }
 }
+
+/// [colors] as the two-colour runs between neighbours: first to second,
+/// second to third, and so on.
+///
+/// The AI's marks are only ever drawn with two-stop gradients. A gradient of
+/// three stops, painted once a test had turned the surface into an image
+/// for a screenshot, killed the CI's x86 Android emulator (SwiftShader,
+/// Impeller on OpenGLES) outright; two stops take the renderer's simple
+/// path.
+List<(Color, Color)> twoStopRuns(List<Color> colors) => colors.length < 2
+    ? <(Color, Color)>[(colors.first, colors.first)]
+    : <(Color, Color)>[
+        for (var i = 0; i + 1 < colors.length; i++) (colors[i], colors[i + 1]),
+      ];
 
 /// The AI card's edge: a line in [gradient] up one side of a card whose top
 /// corners are rounded by [radius], round those corners, along the top and
@@ -71,6 +87,8 @@ class AiEdgePainter extends CustomPainter {
     final inset = width / 2;
     final radius = math.min(this.radius, size.height);
     final r = radius - inset;
+    // Up one side, round the corner, along the top, round the other corner
+    // and down the other side.
     final path = Path()
       ..moveTo(inset, size.height)
       ..lineTo(inset, radius)
@@ -81,21 +99,41 @@ class AiEdgePainter extends CustomPainter {
         radius: Radius.circular(r),
       )
       ..lineTo(size.width - inset, size.height);
-    canvas.drawPath(
-      path,
-      Paint()
-        // Swept round the card's bottom middle, so the colour changes all
-        // the way along the line: up one side, over the top, down the other.
-        ..shader = SweepGradient(
-          center: Alignment.bottomCenter,
-          startAngle: math.pi,
-          endAngle: 2 * math.pi,
-          colors: gradient.colors,
-        ).createShader(Offset.zero & size)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = width
-        ..strokeCap = StrokeCap.round,
-    );
+    // One gradient across the card's width, its colours evenly spaced, so
+    // the top shows all of them and each side its end's. Drawn as one
+    // two-colour run per band of the width, which is the same gradient
+    // pixel for pixel: a gradient of more than two stops, painted after an
+    // integration test turned the surface into an image, took the CI's x86
+    // Android emulator (SwiftShader) down with it. See [twoStopRuns].
+    final runs = twoStopRuns(gradient.colors);
+    final band = size.width / runs.length;
+    for (final (i, (from, to)) in runs.indexed) {
+      final x0 = i * band;
+      final x1 = i == runs.length - 1 ? size.width : (i + 1) * band;
+      canvas
+        ..save()
+        ..clipRect(
+          Rect.fromLTRB(
+            i == 0 ? -width : x0,
+            -width,
+            i == runs.length - 1 ? size.width + width : x1,
+            size.height + width,
+          ),
+          doAntiAlias: false,
+        )
+        ..drawPath(
+          path,
+          Paint()
+            ..shader = ui.Gradient.linear(Offset(x0, 0), Offset(x1, 0), <Color>[
+              from,
+              to,
+            ])
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = width
+            ..strokeCap = StrokeCap.round,
+        )
+        ..restore();
+    }
   }
 
   @override

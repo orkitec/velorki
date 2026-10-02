@@ -122,22 +122,24 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
   /// The vivid accent, for figures and indicators.
   final Color accent;
 
-  /// What marks the AI's work: its sparkle, its answer, its card. Blue,
-  /// through [aiMid] violet to [aiEnd] fuchsia, a run none of the
+  /// What marks the AI's work: its sparkle, its answer, its card. Dark
+  /// purple, through [aiMid] to [aiEnd] neon pink, a run none of the
   /// [AccentPreset]s comes near, so it reads as the AI whatever accent the
   /// rider picked; flat where it has to stay legible, the start of
   /// [aiGradient] elsewhere.
   final Color ai;
 
-  /// The middle of [aiGradient]: violet.
+  /// The middle of [aiGradient]: magenta.
   final Color aiMid;
 
-  /// The far end of [aiGradient]: fuchsia, clear of the berry accent's pink.
+  /// The light end of [aiGradient]: a very light neon pink. Decoration
+  /// only, beside [ai], which carries the contrast; never used flat.
   final Color aiEnd;
 
-  /// The AI's sparkle and its card's edge: [ai], [aiMid], [aiEnd].
+  /// The AI's sparkle and its card's edge: from [aiEnd]'s light neon pink
+  /// through [aiMid] to [ai]'s dark purple.
   LinearGradient get aiGradient =>
-      LinearGradient(colors: <Color>[ai, aiMid, aiEnd]);
+      LinearGradient(colors: <Color>[aiEnd, aiMid, ai]);
 
   /// The main route line.
   final Color routeMain;
@@ -438,22 +440,23 @@ ColorScheme _lightScheme(AccentPreset p) => ColorScheme(
 const Color _ink = _inkLight;
 
 /// [VelorkiColors.ai] on light surfaces: at least 4.5:1 on every one.
-const Color velorkiAiLight = Color(0xFF2563EB);
+const Color velorkiAiLight = Color(0xFF4C1D95);
 
 /// [VelorkiColors.aiMid] on light surfaces.
-const Color velorkiAiMidLight = Color(0xFF7C3AED);
+const Color velorkiAiMidLight = Color(0xFFC026D3);
 
-/// [VelorkiColors.aiEnd] on light surfaces: at least 3:1 on every one.
-const Color velorkiAiEndLight = Color(0xFFC026D3);
+/// [VelorkiColors.aiEnd] on light surfaces: a very light neon pink, decoration
+/// beside the purple.
+const Color velorkiAiEndLight = Color(0xFFFFB8EC);
 
 /// [VelorkiColors.ai] on dark surfaces.
-const Color velorkiAiDark = Color(0xFF818CF8);
+const Color velorkiAiDark = Color(0xFF9F7AFA);
 
 /// [VelorkiColors.aiMid] on dark surfaces.
-const Color velorkiAiMidDark = Color(0xFFC084FC);
+const Color velorkiAiMidDark = Color(0xFFE040FB);
 
 /// [VelorkiColors.aiEnd] on dark surfaces.
-const Color velorkiAiEndDark = Color(0xFFF0ABFC);
+const Color velorkiAiEndDark = Color(0xFFFFC2F2);
 
 VelorkiColors _darkColors(AccentPreset p, ColorScheme scheme) => VelorkiColors(
   accent: p.dark,

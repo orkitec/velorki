@@ -384,34 +384,64 @@ void main() {
   });
 
   for (final sideways in [false, true]) {
-    testWidgets('${sideways ? 'sideways' : 'upright'}, a chip far down the '
-        'list fills the field and scrolls it back into view', (tester) async {
+    final size = sideways ? _sideways : _upright;
+    testWidgets('${sideways ? 'sideways' : 'upright'}: at rest the field is '
+        'the content\'s full width and two lines tall, above Ask and clear of '
+        'the bar; it grows to four lines, and a chip far down the list fills '
+        'it in view', (tester) async {
       if (sideways) _railOn(tester, RailSide.right);
-      await _app(tester, sideways ? _sideways : _upright);
+      await _app(tester, size);
       await _open(tester);
+      final sheet = tester.getRect(_surface);
+      Rect field() => tester.getRect(_inSheet(find.byType(TextField)));
+      double lines() =>
+          tester.getSize(_inSheet(find.byType(EditableText))).height;
+      final ask = tester.getRect(
+        _inSheet(find.widgetWithText(FilledButton, l10n.assistantSend)),
+      );
+      // Two lines of the reading size, across the content.
+      const line = 16 * 1.4;
+      expect(lines(), greaterThanOrEqualTo(2 * line - 1));
+      expect(
+        field().width,
+        greaterThanOrEqualTo((sideways ? 360 : size.width) - 40 - 1),
+      );
+      expect(field().bottom, lessThanOrEqualTo(ask.top));
+      expect(sheet.contains(field().topLeft), isTrue);
+      if (!sideways) {
+        expect(ask.bottom, lessThanOrEqualTo(size.height - _barInset));
+      }
+
+      // Four lines, no more.
+      await tester.enterText(
+        _inSheet(find.byType(TextField)),
+        List.filled(12, 'Is this ok for a road bike?').join(' '),
+      );
+      await tester.pumpAndSettle();
+      expect(lines(), greaterThanOrEqualTo(4 * line - 1));
+      expect(lines(), lessThan(5 * line));
+      expect(
+        tester
+            .getRect(
+              _inSheet(find.widgetWithText(FilledButton, l10n.assistantSend)),
+            )
+            .top,
+        greaterThanOrEqualTo(field().bottom),
+      );
+      await tester.enterText(_inSheet(find.byType(TextField)), '');
+      await tester.pumpAndSettle();
+
       await _ask(tester, l10n.assistantRouteExampleCoffee);
       final chip = _inSheet(
         find.widgetWithText(ActionChip, l10n.assistantRouteExampleRoadBike),
       );
       await tester.scrollUntilVisible(chip, 100, scrollable: content());
       await tester.pumpAndSettle();
-      final viewport = tester.getRect(content());
-      Rect field() => tester.getRect(_inSheet(find.byType(TextField)));
-      expect(
-        field().bottom,
-        lessThan(viewport.top),
-        reason: 'the field is out of view above the chip',
-      );
-
       await tester.tap(chip);
-      await tester.pump();
-      // Scrolled, not jumped.
-      await tester.pump(const Duration(milliseconds: 100));
-      expect(field().bottom, lessThan(viewport.top + field().height));
       await tester.pumpAndSettle();
       expect(_fieldText(tester), l10n.assistantRouteExampleRoadBike);
-      expect(field().top, greaterThanOrEqualTo(viewport.top - 0.5));
-      expect(field().bottom, lessThanOrEqualTo(viewport.bottom + 0.5));
+      expect(sheet.contains(field().center), isTrue);
+      expect(lines(), greaterThanOrEqualTo(2 * line - 1));
       expect(tester.takeException(), isNull);
     });
   }
@@ -783,12 +813,7 @@ void main() {
     );
     expect(problem, findsOneWidget);
     final viewport = tester.getRect(
-      find
-          .ancestor(
-            of: _inSheet(find.byType(TextField)),
-            matching: find.byType(Scrollable),
-          )
-          .first,
+      find.ancestor(of: problem, matching: find.byType(Scrollable)).first,
     );
     final row = tester.getRect(problem);
     expect(row.top, greaterThanOrEqualTo(viewport.top));
@@ -826,9 +851,9 @@ void main() {
       );
       final painter = edge.foregroundPainter! as AiEdgePainter;
       expect(painter.gradient.colors, [
-        dark ? velorkiAiDark : velorkiAiLight,
-        dark ? velorkiAiMidDark : velorkiAiMidLight,
         dark ? velorkiAiEndDark : velorkiAiEndLight,
+        dark ? velorkiAiMidDark : velorkiAiMidLight,
+        dark ? velorkiAiDark : velorkiAiLight,
       ]);
       final theme = Theme.of(tester.element(_surface));
       expect(theme.brightness, dark ? Brightness.dark : Brightness.light);
@@ -838,6 +863,100 @@ void main() {
         tester.getRect(find.byKey(assistantSheetEdgeKey)).top,
         closeTo(tester.getRect(_surface).top, 0.5),
       );
+    });
+  }
+
+  for (final side in <RailSide?>[null, RailSide.right, RailSide.left]) {
+    final size = side == null ? _upright : _sideways;
+    final name = side == null ? 'upright' : 'sideways, rail ${side.name}';
+    testWidgets('$name: the AI card slides in as the planner\'s card slides '
+        'out, and back out the other way; let go on its way down it goes on '
+        'from there; the map stays the map all the while', (tester) async {
+      if (side != null) _railOn(tester, side);
+      await _app(tester, size);
+      final view = tester.renderObject(find.byType(TestMapView));
+      // How far a box reaches out from the sheets' end of the screen.
+      double reach(Rect r) => switch (side) {
+        null => size.height - r.top,
+        RailSide.right => size.width - r.left,
+        RailSide.left => r.right,
+      };
+      final planRect = tester.getRect(find.byType(DockingSheetShell));
+      final plan = reach(planRect);
+      final mapAt = side == null
+          ? Offset(size.width / 3, planRect.top - 150)
+          : side == RailSide.right
+          ? Offset(planRect.left - 150, size.height / 2 + 40)
+          : Offset(planRect.right + 150, size.height / 2 + 40);
+      bool reachesMap() =>
+          tester.hitTestOnBinding(mapAt).path.any((e) => e.target == view);
+
+      await tester.tap(
+        find.widgetWithText(LabeledIconButton, l10n.assistantAction),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 120));
+      // Half way: the AI card on its way in, the planner's on its way out.
+      final aiMid = reach(tester.getRect(_surface));
+      final planMid = reach(tester.getRect(find.byType(DockingSheetShell)));
+      expect(aiMid, inExclusiveRange(1, plan - 1));
+      expect(planMid, inExclusiveRange(-60, plan - 1));
+      expect(reachesMap(), isTrue);
+      await tester.pumpAndSettle();
+      final rest = reach(tester.getRect(_surface));
+      expect(rest, closeTo(plan, 0.5));
+      expect(find.byType(DockingSheetShell), findsNothing);
+
+      // Back: out the other way, the planner's card back where it was.
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 120));
+      expect(reach(tester.getRect(_surface)), inExclusiveRange(-60, rest - 1));
+      expect(
+        reach(tester.getRect(find.byType(DockingSheetShell))),
+        inExclusiveRange(1, plan - 1),
+      );
+      expect(reachesMap(), isTrue);
+      await tester.pumpAndSettle();
+      expect(find.byType(AssistantSheet), findsNothing);
+      expect(tester.getRect(find.byType(DockingSheetShell)), planRect);
+
+      // Pulled down by the handle and let go, it goes on from where the
+      // finger left it, never back up first.
+      await tester.tap(
+        find.widgetWithText(LabeledIconButton, l10n.assistantAction),
+      );
+      await tester.pumpAndSettle();
+      final handle = find.descendant(
+        of: _surface,
+        matching: find.byType(SheetHandle),
+      );
+      final inward = switch (side) {
+        null => const Offset(0, 1),
+        RailSide.right => const Offset(1, 0),
+        RailSide.left => const Offset(-1, 0),
+      };
+      final gesture = await tester.startGesture(tester.getCenter(handle));
+      for (var i = 0; i < 10; i++) {
+        await gesture.moveBy(inward * 16);
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      final letGo = reach(tester.getRect(_surface));
+      expect(letGo, lessThan(rest - 100));
+      await gesture.up();
+      var last = letGo;
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 20));
+        if (find.byType(AssistantSheet).evaluate().isEmpty) break;
+        final now = reach(tester.getRect(_surface));
+        expect(now, lessThanOrEqualTo(last + 0.5), reason: 'frame $i');
+        last = now;
+      }
+      expect(last, lessThan(letGo));
+      await tester.pumpAndSettle();
+      expect(find.byType(AssistantSheet), findsNothing);
+      expect(tester.getRect(find.byType(DockingSheetShell)), planRect);
+      expect(tester.takeException(), isNull);
     });
   }
 }

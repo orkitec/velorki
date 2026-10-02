@@ -309,6 +309,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(_inSheet(find.text(l10n.assistantNotEntitled)), findsOneWidget);
 
+      await tester.ensureVisible(_inSheet(find.text(l10n.plusSeeDetails)));
+      await tester.pumpAndSettle();
       await tester.tap(_inSheet(find.text(l10n.plusSeeDetails)));
       await tester.pumpAndSettle();
       expect(find.byType(PaywallScreen), findsOneWidget);

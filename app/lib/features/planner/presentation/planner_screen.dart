@@ -63,7 +63,7 @@ class PlannerScreen extends ConsumerStatefulWidget {
 }
 
 class _PlannerScreenState extends ConsumerState<PlannerScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   /// The shared map, while it can be driven.
   MapController? _map;
 
@@ -373,6 +373,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     WidgetsBinding.instance.removeObserver(this);
     _binding?.detach();
     _sheet.dispose();
+    _assistantSlide.dispose();
     if (_docked) {
       // Deferred: the tree is locked while a widget goes, and the shell
       // would rebuild for this.
@@ -704,6 +705,33 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   /// card goes.
   bool _assistantOpen = false;
 
+  /// The swap between the two cards: 0 the plan's card in view, 1 the AI's.
+  /// Opening, the plan's card slides out and the AI's slides in, along the
+  /// sheets' travel, in the time and curve a tab's sheet settles in;
+  /// closing the other way, the AI's card from wherever it is.
+  late final AnimationController _assistantSlide =
+      AnimationController(vsync: this, duration: tabSheetSettleDuration)
+        ..addStatusListener((_) {
+          if (mounted) setState(() {});
+        });
+  late final Animation<double> _assistantIn = CurvedAnimation(
+    parent: _assistantSlide,
+    curve: tabChromeSlideCurve,
+    reverseCurve: tabChromeSlideCurve.flipped,
+  );
+  late final Animation<double> _assistantOut = ReverseAnimation(_assistantIn);
+
+  /// Which opening of the AI's card this is: each one is a card of its own,
+  /// set up from what the assistant remembers, even one that comes back
+  /// while the last is still sliding out.
+  int _assistantSession = 0;
+
+  /// How much of the screen's length the AI's card covers, as it reports.
+  double _assistantExtent = 0.5;
+
+  /// The screen's length along the sheets' travel, at the last build.
+  double _sheetLength = 0;
+
   /// The entry that makes the system's back close the assistant's card,
   /// while it is open.
   LocalHistoryEntry? _assistantBack;
@@ -716,9 +744,14 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
 
   void _openAssistant() {
     if (_assistantOpen || !mounted) return;
-    setState(() => _assistantOpen = true);
+    setState(() {
+      _assistantOpen = true;
+      _assistantSession++;
+    });
+    unawaited(_assistantSlide.forward());
     // Not docked: the AI's card is up, at the plan's card's resting height.
     _reportDocked(false);
+    _assistantExtent = _restingSheetSize;
     _onSheetExtent(_restingSheetSize);
     late final LocalHistoryEntry entry;
     entry = LocalHistoryEntry(
@@ -750,6 +783,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   void _assistantClosed(ResolvedIntent? intent) {
     if (!_assistantOpen || !mounted) return;
     setState(() => _assistantOpen = false);
+    unawaited(_assistantSlide.reverse());
     if (_sheet.isAttached) _onSheetExtent(_sheet.size);
     if (intent == null) return;
     if (intent is LoopIntent && intent.via.isEmpty) {
@@ -856,6 +890,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     // its end; sideways it is the same sheet turned, coming out from the
     // rail's side over the screen's width.
     final geometry = SheetGeometry.of(context);
+    _sheetLength = geometry.length;
     final bottomInset = geometry.endInset;
     // Collapsed, only the handle strip is left beside the floating
     // navigation bar, which the padding already covers under `extendBody`:
@@ -1045,69 +1080,89 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                     ),
             ),
             Offstage(
-              offstage: _assistantOpen,
-              child: AdaptiveDockingSheet(
-                controller: _sheet,
-                // Enough for the headline, the toolbar and Save above the
-                // floating navigation bar on a 20:9 phone.
-                initialExtent: restingSheetSize,
-                collapsedExtent: collapsedSheetSize,
-                maxExtent: _maxSheetSize,
-                // One resting height, not one per state: with two in the list
-                // a pull down from the top settled on the higher one and a pull
-                // up from the handle on the lower one, a chip row apart.
-                snapSizes: _snapSizesFor(restingSheetSize),
-                gripDp: sheetGripWithTitleDp,
-                dockedRange: dockedRange,
-                docks: true,
-                dockedBottomInset: bottomInset,
-                onDocked: _reportDocked,
-                onExtent: _onSheetExtent,
-                // Its own scrolling, at any height of the sheet; the
-                // sheet moves by its handle.
-                child: Builder(
-                  // Looked up from inside the shell, which hands the controller down.
-                  builder: (context) => ListView(
-                    controller: SheetContentScroll.maybeOf(context),
-                    padding: EdgeInsets.fromLTRB(
-                      20,
-                      0,
-                      20,
-                      MediaQuery.paddingOf(context).bottom + 24,
-                    ),
-                    children: [
-                      _SheetHeader(state: state),
-                      const SizedBox(height: 14),
-                      // The variants right under the figures, where the sheet
-                      // grows to show them; then the actions, so Loop and Save
-                      // are visible at the sheet's resting height.
-                      if (hasVariants) ...[
-                        _AlternativeChips(state: state),
-                        const SizedBox(height: 12),
-                      ],
-                      _PlannerActions(
-                        state: state,
-                        onAlternatives: _loadAlternatives,
-                        onSmartLoop: _smartLoop,
-                        onAsk: _ask,
-                        onSave: _save,
+              // Out of view, once the AI's card is all the way in.
+              offstage: _assistantSlide.isCompleted,
+              child: SheetSlide(
+                hidden: _assistantIn,
+                distance: () =>
+                    (_sheet.isAttached ? _sheet.size : _restingSheetSize) *
+                        _sheetLength +
+                    24,
+                child: AdaptiveDockingSheet(
+                  controller: _sheet,
+                  // Enough for the headline, the toolbar and Save above the
+                  // floating navigation bar on a 20:9 phone.
+                  initialExtent: restingSheetSize,
+                  collapsedExtent: collapsedSheetSize,
+                  maxExtent: _maxSheetSize,
+                  // One resting height, not one per state: with two in the list
+                  // a pull down from the top settled on the higher one and a pull
+                  // up from the handle on the lower one, a chip row apart.
+                  snapSizes: _snapSizesFor(restingSheetSize),
+                  gripDp: sheetGripWithTitleDp,
+                  dockedRange: dockedRange,
+                  docks: true,
+                  dockedBottomInset: bottomInset,
+                  onDocked: _reportDocked,
+                  onExtent: _onSheetExtent,
+                  // Its own scrolling, at any height of the sheet; the
+                  // sheet moves by its handle.
+                  child: Builder(
+                    // Looked up from inside the shell, which hands the controller down.
+                    builder: (context) => ListView(
+                      controller: SheetContentScroll.maybeOf(context),
+                      padding: EdgeInsets.fromLTRB(
+                        20,
+                        0,
+                        20,
+                        MediaQuery.paddingOf(context).bottom + 24,
                       ),
-                      const SizedBox(height: 16),
-                      _SheetBody(state: state),
-                    ],
+                      children: [
+                        _SheetHeader(state: state),
+                        const SizedBox(height: 14),
+                        // The variants right under the figures, where the sheet
+                        // grows to show them; then the actions, so Loop and Save
+                        // are visible at the sheet's resting height.
+                        if (hasVariants) ...[
+                          _AlternativeChips(state: state),
+                          const SizedBox(height: 12),
+                        ],
+                        _PlannerActions(
+                          state: state,
+                          onAlternatives: _loadAlternatives,
+                          onSmartLoop: _smartLoop,
+                          onAsk: _ask,
+                          onSave: _save,
+                        ),
+                        const SizedBox(height: 16),
+                        _SheetBody(state: state),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
             // The AI's card, in the sheet's place: no barrier, so the map
-            // above it is the planner's map as ever.
-            if (_assistantOpen)
+            // above it is the planner's map as ever. Kept while it slides out.
+            if (_assistantOpen || !_assistantSlide.isDismissed)
               Positioned.fill(
-                child: AssistantSheet(
-                  map: _map,
-                  chromeTop: _ownControlsTop,
-                  onClose: _closeAssistant,
-                  onExtent: _onSheetExtent,
+                child: SheetSlide(
+                  hidden: _assistantOut,
+                  distance: () => _assistantExtent * _sheetLength + 24,
+                  child: IgnorePointer(
+                    // On its way out it takes no more touches.
+                    ignoring: !_assistantOpen,
+                    child: AssistantSheet(
+                      key: ValueKey<int>(_assistantSession),
+                      map: _map,
+                      chromeTop: _ownControlsTop,
+                      onClose: _closeAssistant,
+                      onExtent: (extent) {
+                        _assistantExtent = extent;
+                        _onSheetExtent(extent);
+                      },
+                    ),
+                  ),
                 ),
               ),
           ],

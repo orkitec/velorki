@@ -546,3 +546,51 @@ class BesideSheet extends StatelessWidget {
     );
   }
 }
+
+/// [child], a tab's sheet or the AI's card in its place, slid [hidden] of
+/// the way out of view along its travel: down past the screen's bottom
+/// upright, out past the rail's edge sideways. [distance] is how far out of
+/// view is, in dp: as far as the sheet reaches now, so a card let go half
+/// way down by the rider goes on from there.
+///
+/// Only moved, never resized or barred: what the sheet leaves free is the
+/// map's all the way through, and the sheet keeps its size and place to
+/// come back to.
+class SheetSlide extends StatelessWidget {
+  /// Creates the slide.
+  const SheetSlide({
+    required this.hidden,
+    required this.distance,
+    required this.child,
+    super.key,
+  });
+
+  /// 0 in view, 1 out of view.
+  final Animation<double> hidden;
+
+  /// How far out of view is, in dp, read every frame.
+  final ValueGetter<double> distance;
+
+  /// The sheet.
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final turns = shellQuarterTurns(ShellLayout.of(context));
+    return AnimatedBuilder(
+      animation: hidden,
+      child: child,
+      builder: (context, child) {
+        final away = hidden.value * distance();
+        return Transform.translate(
+          offset: switch (turns) {
+            1 => Offset(-away, 0),
+            3 => Offset(away, 0),
+            _ => Offset(0, away),
+          },
+          child: child,
+        );
+      },
+    );
+  }
+}

@@ -95,6 +95,7 @@
   "elevationUnavailable": "Keine Höhendaten für diese Route.",
   "elevationPoint": "{distance} · {elevation}",
   "searchHint": "Ort suchen",
+  "searchHintShort": "Suchen",
   "searchClear": "Suche leeren",
   "searchNoResults": "Nichts gefunden.",
   "searchFailed": "Suche fehlgeschlagen.",

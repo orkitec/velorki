@@ -1,5 +1,7 @@
 // The AI's own colours: the same violet-to-magenta whatever accent the rider
 // picked, light and dark, readable on every surface the AI's marks sit on.
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -51,9 +53,9 @@ void main() {
         expect(colors.ai, dark ? velorkiAiDark : velorkiAiLight);
         expect(colors.aiEnd, dark ? velorkiAiEndDark : velorkiAiEndLight);
         expect(colors.aiGradient.colors, [
-          colors.ai,
-          colors.aiMid,
           colors.aiEnd,
+          colors.aiMid,
+          colors.ai,
         ]);
         for (final ai in [colors.ai, colors.aiMid, colors.aiEnd]) {
           expect(_distance(ai, colors.accent), greaterThan(0.2));
@@ -68,7 +70,9 @@ void main() {
           scheme.surfaceContainerHigh,
           scheme.surfaceContainerHighest,
         ]) {
-          for (final ai in [colors.ai, colors.aiMid, colors.aiEnd]) {
+          // The light neon pink end is decoration beside the purple, which
+          // carries the contrast; it is only held to it on dark surfaces.
+          for (final ai in [colors.ai, colors.aiMid, if (dark) colors.aiEnd]) {
             expect(
               contrastRatio(ai, surface),
               greaterThanOrEqualTo(3),
@@ -207,4 +211,77 @@ void main() {
     // Nothing inside the card.
     expect(at(100, 150).a, 0);
   });
+
+  test('the AI\'s gradients are drawn two stops at a time', () {
+    const a = Color(0xFF000001);
+    const b = Color(0xFF000002);
+    const c = Color(0xFF000003);
+    expect(twoStopRuns(const [a, b, c]), [(a, b), (b, c)]);
+    expect(twoStopRuns(const [a, b]), [(a, b)]);
+  });
+
+  test('no gradient in the app is built from more than two of the AI\'s '
+      'colours at once', () {
+    // A gradient of three stops, painted once an integration test had
+    // turned the surface into an image for a screenshot, took the CI's x86
+    // Android emulator (SwiftShader, Impeller on OpenGLES) down with it. The
+    // AI's colours go to a shader through [twoStopRuns] or by their two
+    // ends, never as the whole list.
+    final wholesale = RegExp(
+      r'colors:\s*[\w.]*(gradient|aiGradient)\.colors\b',
+    );
+    final offenders = [
+      for (final file in Directory('lib').listSync(recursive: true))
+        if (file is File &&
+            file.path.endsWith('.dart') &&
+            wholesale.hasMatch(file.readAsStringSync()))
+          file.path,
+    ];
+    expect(offenders, isEmpty);
+  });
+
+  for (final dark in [false, true]) {
+    testWidgets('${dark ? 'dark' : 'light'}: the edge is one smooth gradient '
+        'across the card\'s width, every colour along the top, each side its '
+        'end\'s', (tester) async {
+      final theme = dark
+          ? buildDarkTheme(AccentPreset.values.first)
+          : buildLightTheme(AccentPreset.values.first);
+      final colors = theme.velorki;
+      final [first, middle, last] = colors.aiGradient.colors;
+      const size = Size(300, 120);
+      await tester.pumpWidget(
+        Center(
+          child: RepaintBoundary(
+            key: _boundary,
+            child: CustomPaint(
+              size: size,
+              painter: AiEdgePainter(gradient: colors.aiGradient, radius: 28),
+            ),
+          ),
+        ),
+      );
+      final painted = await _painted(tester);
+      Color at(int x, int y) => painted[y * size.width.toInt() + x];
+
+      // Along the top: a tenth in, the middle, a tenth from the end.
+      final a = at(30, 1);
+      final b = at(150, 1);
+      final c = at(270, 1);
+      expect(_distance(a, first), lessThan(_distance(a, middle)));
+      expect(_near(b, middle), isTrue, reason: '$b vs $middle');
+      expect(_distance(c, last), lessThan(_distance(c, middle)));
+      // No step anywhere along it: one gradient, not segments.
+      for (var x = 31; x < 270; x++) {
+        expect(
+          _distance(at(x, 1), at(x - 1, 1)),
+          lessThan(0.03),
+          reason: 'at $x',
+        );
+      }
+      // Each side its end's colour.
+      expect(_near(at(1, 100), first), isTrue);
+      expect(_near(at(298, 100), last), isTrue);
+    });
+  }
 }

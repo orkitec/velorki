@@ -170,26 +170,9 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
         ? _memory.mode ?? AssistantMode.thisRoute
         : AssistantMode.newRoute;
     _empty = _field.text.trim().isEmpty;
-    // The chips under the field follow what is in it.
+    // The chips above the field follow what is in it.
     _prompt.addListener(_promptChanged);
     _question.addListener(_promptChanged);
-    _showField();
-  }
-
-  /// At rest under the bar the card shows the head of its content; the
-  /// field is what the rider came for, so it is in view from the start and
-  /// after a turn of the phone, the head scrolled up as far as that takes.
-  void _showField() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final field = _fieldKey.currentContext;
-      if (!mounted || field == null || !field.mounted) return;
-      unawaited(
-        Scrollable.ensureVisible(
-          field,
-          alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
-        ),
-      );
-    });
   }
 
   bool _empty = true;
@@ -237,34 +220,15 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
       selection: TextSelection.collapsed(offset: '$text$sep$wish'.length),
     );
     setState(() {});
-    _revealField();
   }
 
-  /// Puts [text] in the field, as a chip under it does.
+  /// Puts [text] in the field, as a chip above it does; the field, under
+  /// the list, is always in view.
   void _fill(TextEditingController field, String text) {
     field.value = TextEditingValue(
       text: text,
       selection: TextSelection.collapsed(offset: text.length),
     );
-    _revealField();
-  }
-
-  /// Scrolls the field back into view after a chip filled it: a chip far
-  /// down the list, under an answer, would leave the rider looking at
-  /// chips while the question changed out of sight.
-  void _revealField() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final field = _fieldKey.currentContext;
-      if (!mounted || field == null || !field.mounted) return;
-      unawaited(
-        Scrollable.ensureVisible(
-          field,
-          alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOutCubic,
-        ),
-      );
-    });
   }
 
   @override
@@ -614,7 +578,6 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
     final target = mapSheetExtent(_sheet.size, from: from, to: to);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _sheet.isAttached) _sheet.jumpTo(target);
-      _showField();
     });
   }
 
@@ -973,26 +936,6 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
                       ),
                       const SizedBox(height: 12),
                     ],
-                    KeyedSubtree(
-                      key: _fieldKey,
-                      child: TextField(
-                        // Keyed by mode, so each keeps its own text and undo.
-                        key: ValueKey(_mode),
-                        controller: _field,
-                        readOnly: locked,
-                        minLines: aboutRoute ? 1 : 2,
-                        maxLines: 4,
-                        maxLength: 1000,
-                        textInputAction: TextInputAction.send,
-                        style: theme.textTheme.bodyLarge,
-                        decoration: InputDecoration(
-                          hintText: aboutRoute
-                              ? l10n.assistantRouteHint
-                              : l10n.assistantHint,
-                        ),
-                        onSubmitted: locked ? null : (_) => unawaited(_send()),
-                      ),
-                    ),
                     if (aboutRoute)
                       ..._routeChildren(l10n, theme, advice, locked: locked)
                     else
@@ -1003,7 +946,44 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
             ),
           ),
         ),
+        // The field stays where it is, full width, two lines at least and
+        // up to four, between what scrolls above it and the buttons under
+        // it: at the card's resting height the head scrolls away, never the
+        // field.
         const Divider(height: 1),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+          child: KeyedSubtree(
+            key: _fieldKey,
+            child: TextField(
+              // Keyed by mode, so each keeps its own text and undo.
+              key: ValueKey(_mode),
+              controller: _field,
+              readOnly: locked,
+              minLines: 2,
+              maxLines: 4,
+              maxLength: 1000,
+              // The count only once it matters: it took a line of its own.
+              buildCounter:
+                  (
+                    context, {
+                    required currentLength,
+                    required isFocused,
+                    required maxLength,
+                  }) => currentLength > 900
+                  ? Text('$currentLength/$maxLength')
+                  : null,
+              textInputAction: TextInputAction.send,
+              style: theme.textTheme.bodyLarge,
+              decoration: InputDecoration(
+                hintText: aboutRoute
+                    ? l10n.assistantRouteHint
+                    : l10n.assistantHint,
+              ),
+              onSubmitted: locked ? null : (_) => unawaited(_send()),
+            ),
+          ),
+        ),
         Padding(
           padding: EdgeInsets.fromLTRB(20, 12, 20, bottomSafe + 16),
           // Known to be without Plus, the sheet is there to look around in,
@@ -1059,7 +1039,7 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
     // Pulled down on its way out, the card's end goes under the bar and the
     // screen's edge, as the planner's card's does, rather than squeezing the
     // button row.
-    final least = 140 + bottomSafe + lift;
+    final least = 210 + bottomSafe + lift;
     return LayoutBuilder(
       builder: (context, constraints) => constraints.maxHeight >= least
           ? body
@@ -1083,7 +1063,7 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
         identical(state.intent, handover.intent);
   }
 
-  /// Under the field, asking for a new route: examples or wishes, then what
+  /// Above the field, asking for a new route: examples or wishes, then what
   /// the model understood, the choices to make and the error.
   List<Widget> _newRouteChildren(
     AppLocalizations l10n,
@@ -1153,7 +1133,7 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
     ];
   }
 
-  /// Under the field, asking about the route on the map: example questions,
+  /// Above the field, asking about the route on the map: example questions,
   /// or once there is an answer the others to ask next, then the answer,
   /// its findings and the error.
   List<Widget> _routeChildren(

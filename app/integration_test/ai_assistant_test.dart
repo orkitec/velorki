@@ -486,7 +486,8 @@ void main() {
       lessThan(300),
     );
 
-    // A chip far down fills the field, which comes back into view.
+    // A chip far down fills the field, which is in view under the list,
+    // two lines tall, above Ask.
     final chip = _inSheet(
       find.widgetWithText(ActionChip, l10n.assistantRouteExampleRoadBike),
     );
@@ -498,12 +499,23 @@ void main() {
       tester.widget<TextField>(field).controller!.text,
       l10n.assistantRouteExampleRoadBike,
     );
-    final viewport = tester.getRect(
-      find.ancestor(of: field, matching: find.byType(Scrollable)).first,
-    );
+    final card = tester.getRect(find.byKey(assistantSheetSurfaceKey));
     final at = tester.getRect(field);
-    expect(at.top, greaterThanOrEqualTo(viewport.top - 1));
-    expect(at.bottom, lessThanOrEqualTo(viewport.bottom + 1));
+    expect(card.contains(at.topLeft) && card.contains(at.bottomRight), isTrue);
+    expect(
+      tester.getSize(_inSheet(find.byType(EditableText))).height,
+      greaterThanOrEqualTo(2 * 16 * 1.4 - 1),
+    );
+    expect(
+      at.bottom,
+      lessThanOrEqualTo(
+        tester
+            .getRect(
+              _inSheet(find.widgetWithText(FilledButton, l10n.assistantSend)),
+            )
+            .top,
+      ),
+    );
     await pumpFor(tester, _hold);
     await screenshot(tester, 'ai-chip-field');
 
@@ -526,6 +538,8 @@ void main() {
     final c = await _boot(tester, relay);
     await _planRoute(tester, c);
     final card = tester.getRect(find.byType(DockingSheetShell));
+    // The card slides in over the planner's: worth a recording.
+    await _pose(tester, 'ai-slide-in');
     await _openAssistant(tester);
     expect(find.byType(DockingSheetShell), findsNothing);
     final map = c.read(sharedMapControllerProvider)!;
@@ -596,7 +610,9 @@ void main() {
     expect(find.byType(AssistantSheet), findsOneWidget);
 
     // Back closes it, onto the planner's card as it was.
+    await _pose(tester, 'ai-slide-out');
     await tester.binding.handlePopRoute();
+    await pumpFor(tester, _hold);
     await pumpFor(tester, const Duration(seconds: 1));
     expect(find.byType(AssistantSheet), findsNothing);
     expect(
