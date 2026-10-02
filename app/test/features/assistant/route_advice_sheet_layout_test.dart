@@ -385,20 +385,28 @@ void main() {
 
   for (final sideways in [false, true]) {
     final size = sideways ? _sideways : _upright;
-    testWidgets('${sideways ? 'sideways' : 'upright'}: at rest the field is '
-        'the content\'s full width and two lines tall, above Ask and clear of '
-        'the bar; it grows to four lines, and a chip far down the list fills '
-        'it in view', (tester) async {
+    testWidgets('${sideways ? 'sideways' : 'upright'}: the field scrolls with '
+        'the content, the content\'s full width and two to four lines tall, '
+        'with most of the card left to scroll in; a chip far down the list '
+        'fills it and scrolls it back into view', (tester) async {
       if (sideways) _railOn(tester, RailSide.right);
       await _app(tester, size);
       await _open(tester);
-      final sheet = tester.getRect(_surface);
       Rect field() => tester.getRect(_inSheet(find.byType(TextField)));
       double lines() =>
           tester.getSize(_inSheet(find.byType(EditableText))).height;
-      final ask = tester.getRect(
+      Finder list() => find
+          .ancestor(
+            of: _inSheet(find.byType(TextField)),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      Rect ask() => tester.getRect(
         _inSheet(find.widgetWithText(FilledButton, l10n.assistantSend)),
       );
+      // In the list, not pinned under it.
+      final viewport = tester.getRect(list());
+      expect(viewport.contains(field().center), isTrue);
       // Two lines of the reading size, across the content.
       const line = 16 * 1.4;
       expect(lines(), greaterThanOrEqualTo(2 * line - 1));
@@ -406,10 +414,13 @@ void main() {
         field().width,
         greaterThanOrEqualTo((sideways ? 360 : size.width) - 40 - 1),
       );
-      expect(field().bottom, lessThanOrEqualTo(ask.top));
-      expect(sheet.contains(field().topLeft), isTrue);
+      // Only the Start over and Ask row is pinned under the list, which
+      // keeps most of what the card shows: with the field pinned too it
+      // was left about 120 dp upright and 85 sideways.
+      expect(ask().top, greaterThanOrEqualTo(viewport.bottom));
+      expect(viewport.height, greaterThan(sideways ? 160 : 200));
       if (!sideways) {
-        expect(ask.bottom, lessThanOrEqualTo(size.height - _barInset));
+        expect(ask().bottom, lessThanOrEqualTo(size.height - _barInset));
       }
 
       // Four lines, no more.
@@ -420,14 +431,6 @@ void main() {
       await tester.pumpAndSettle();
       expect(lines(), greaterThanOrEqualTo(4 * line - 1));
       expect(lines(), lessThan(5 * line));
-      expect(
-        tester
-            .getRect(
-              _inSheet(find.widgetWithText(FilledButton, l10n.assistantSend)),
-            )
-            .top,
-        greaterThanOrEqualTo(field().bottom),
-      );
       await tester.enterText(_inSheet(find.byType(TextField)), '');
       await tester.pumpAndSettle();
 
@@ -437,10 +440,21 @@ void main() {
       );
       await tester.scrollUntilVisible(chip, 100, scrollable: content());
       await tester.pumpAndSettle();
+      expect(
+        field().bottom,
+        lessThan(viewport.top),
+        reason: 'the field is out of view above the chip',
+      );
+
       await tester.tap(chip);
+      await tester.pump();
+      // Scrolled, not jumped.
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(field().bottom, lessThan(viewport.top + field().height));
       await tester.pumpAndSettle();
       expect(_fieldText(tester), l10n.assistantRouteExampleRoadBike);
-      expect(sheet.contains(field().center), isTrue);
+      expect(field().top, greaterThanOrEqualTo(viewport.top - 0.5));
+      expect(field().bottom, lessThanOrEqualTo(viewport.bottom + 0.5));
       expect(lines(), greaterThanOrEqualTo(2 * line - 1));
       expect(tester.takeException(), isNull);
     });

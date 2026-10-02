@@ -486,8 +486,8 @@ void main() {
       lessThan(300),
     );
 
-    // A chip far down fills the field, which is in view under the list,
-    // two lines tall, above Ask.
+    // A chip far down fills the field, which comes back into view, two
+    // lines tall.
     final chip = _inSheet(
       find.widgetWithText(ActionChip, l10n.assistantRouteExampleRoadBike),
     );
@@ -499,22 +499,15 @@ void main() {
       tester.widget<TextField>(field).controller!.text,
       l10n.assistantRouteExampleRoadBike,
     );
-    final card = tester.getRect(find.byKey(assistantSheetSurfaceKey));
+    final viewport = tester.getRect(
+      find.ancestor(of: field, matching: find.byType(Scrollable)).first,
+    );
     final at = tester.getRect(field);
-    expect(card.contains(at.topLeft) && card.contains(at.bottomRight), isTrue);
+    expect(at.top, greaterThanOrEqualTo(viewport.top - 1));
+    expect(at.bottom, lessThanOrEqualTo(viewport.bottom + 1));
     expect(
       tester.getSize(_inSheet(find.byType(EditableText))).height,
       greaterThanOrEqualTo(2 * 16 * 1.4 - 1),
-    );
-    expect(
-      at.bottom,
-      lessThanOrEqualTo(
-        tester
-            .getRect(
-              _inSheet(find.widgetWithText(FilledButton, l10n.assistantSend)),
-            )
-            .top,
-      ),
     );
     await pumpFor(tester, _hold);
     await screenshot(tester, 'ai-chip-field');
