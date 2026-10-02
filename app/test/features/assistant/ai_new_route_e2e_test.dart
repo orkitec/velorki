@@ -157,8 +157,10 @@ void main() {
   });
 
   group('4 · without Plus', () {
-    testWidgets('known missing, Ask opens the paywall first; subscribed, the '
-        'sheet follows and the request goes with the bearer', (tester) async {
+    testWidgets('known missing, Ask opens the sheet with Subscribe in its '
+        'place; subscribed, Ask sends and the request goes with the bearer', (
+      tester,
+    ) async {
       final relay = MockRelay(schemas: spec.check);
       await pumpApp(
         tester,
@@ -181,12 +183,17 @@ void main() {
           .set(AiConsent.textOnly);
 
       await _tapAsk(tester);
+      expect(find.byType(PaywallScreen), findsNothing);
+      expect(find.byType(AssistantSheet), findsOneWidget);
+      expect(inSheet(find.text(l10n.assistantPlusRequired)), findsOne);
+      await tester.tap(inSheet(find.text(l10n.plusSubscribe)));
+      await tester.pumpAndSettle();
       expect(find.byType(PaywallScreen), findsOneWidget);
-      expect(find.byType(AssistantSheet), findsNothing);
       c.read(plusEntitledProvider.notifier).value = true;
       await tester.pumpAndSettle();
       await tapBack(tester);
       expect(find.byType(AssistantSheet), findsOneWidget);
+      expect(relay.requests, isEmpty);
 
       await _send(tester);
       await tester.pumpAndSettle();

@@ -8,6 +8,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../map/domain/map_controller.dart';
 import '../domain/planner_state.dart';
+import '../domain/route_poi.dart';
 import '../presentation/poi_markers.dart';
 import 'planner_controller.dart';
 
@@ -94,8 +95,20 @@ class PlannerMapBinding {
     map.onLongPress = (pos) => onLongPress?.call(pos);
     map.onWaypointDragged = planner.moveWaypoint;
     map.onWaypointTapped = (index) => onWaypointTap?.call(index);
-    map.onPoiTapped = (index) => onPoiTap?.call(index);
+    // A place only shown is not one of the plan's to edit.
+    map.onPoiTapped = (index) {
+      if (index < _poiCount) onPoiTap?.call(index);
+    };
   }
+
+  /// A place to mark beside the plan's own for the moment — what the
+  /// assistant was asked to show — drawn with its kind's icon, selected.
+  /// Not a point of the plan: nothing is routed by it, nothing saves it.
+  /// Read at every [sync].
+  RoutePoi? Function()? shownPlace;
+
+  /// How many of the markers drawn are the plan's own places.
+  int _poiCount = 0;
 
   /// What the screen does when a marker is tapped; `null` does nothing.
   void Function(int index)? onWaypointTap;
@@ -159,7 +172,15 @@ class PlannerMapBinding {
     if (gone()) return;
     // The plan's places, each with its kind's icon: not points the route is
     // routed through, so they are drawn as themselves.
-    await map.setPois(poiMarkers(state.pois));
+    // And a place the assistant was asked to show, marked as chosen.
+    final marked = shownPlace?.call();
+    _poiCount = state.pois.length;
+    await map.setPois(
+      poiMarkers([
+        ...state.pois,
+        ?marked,
+      ], selected: marked == null ? null : state.pois.length),
+    );
     if (gone()) return;
 
     final result = state.result;

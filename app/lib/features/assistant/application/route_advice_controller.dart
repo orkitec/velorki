@@ -7,6 +7,8 @@ import 'package:velorki_api/velorki_api.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../planner/domain/route_waypoints.dart' show projectOnTrack;
+
 import '../../../core/db/tables/routes.dart' show RouteSource;
 import '../../../core/plus/plus_gate.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
@@ -82,6 +84,7 @@ class RouteAdviceState {
     this.failures = const <int, FixFailure>{},
     this.avoids = const <int, AvoidArea>{},
     this.problem,
+    this.shown,
   });
 
   /// Where it has got to.
@@ -118,6 +121,11 @@ class RouteAdviceState {
   /// Why it failed, when it did.
   final AssistantProblem? problem;
 
+  /// The place of the digest the rider asked to be shown, which the map
+  /// marks for as long as this conversation lasts, until it is added as a
+  /// stop or another place is shown.
+  final DigestPlace? shown;
+
   /// Whether a question is being worked on.
   bool get busy =>
       phase == RouteAdvicePhase.reading || phase == RouteAdvicePhase.asking;
@@ -144,6 +152,7 @@ class RouteAdviceState {
     Map<int, FixFailure>? failures,
     Map<int, AvoidArea>? avoids,
     AssistantProblem? problem,
+    Object? shown = _keep,
   }) => RouteAdviceState(
     phase: phase ?? this.phase,
     question: question,
@@ -155,12 +164,30 @@ class RouteAdviceState {
     failures: failures ?? this.failures,
     avoids: avoids ?? this.avoids,
     problem: problem ?? this.problem,
+    shown: identical(shown, _keep) ? this.shown : shown as DigestPlace?,
   );
 }
 
-/// Where [planner]'s plan starts and ends, or `null` without one.
+/// [RouteAdviceState.copyWith]'s "as it was", where `null` is a value.
+const Object _keep = Object();
+
+/// The point of interest the map marks for a [DigestPlace] shown: its name
+/// and its kind's icon. Not a point of the plan: nothing is routed by it.
+RoutePoi shownPoi(DigestPlace place) => RoutePoi(
+  pos: LatLng(place.at.lat, place.at.lon),
+  name: place.name ?? '',
+  kind: poiKindOfPlace(place.kind),
+);
+
+/// Where [planner]'s plan starts and ends, or `null` without one. A round
+/// trip that came with only its start ends there, as it will once a fix
+/// anchors it to its line ([anchorWaypoints]).
 (LatLng, LatLng)? planEnds(PlannerState planner) {
-  final points = planner.waypoints;
+  var points = planner.waypoints;
+  final route = planner.result;
+  if (points.length < 2 && route != null && route.geometry.length >= 2) {
+    points = anchorWaypoints(points, route);
+  }
   if (points.length < 2) return null;
   return (points.first.pos, points.last.pos);
 }
@@ -240,6 +267,12 @@ class RouteAdviceController extends _$RouteAdviceController {
       _appliedDepth.remove(i);
     }
     state = state.copyWith(applied: {...state.applied}..removeAll(undone));
+  }
+
+  /// Marks [place] on the map, or nothing with `null`.
+  void show(DigestPlace? place) {
+    if (state.shown == place) return;
+    state = state.copyWith(shown: place);
   }
 
   /// Forgets the question, the answer and its fixes.
@@ -357,7 +390,8 @@ class RouteAdviceController extends _$RouteAdviceController {
     final planner = ref.read(plannerControllerProvider.notifier);
     final current = ref.read(plannerControllerProvider).result;
     if (current == null) return _failed(index, FixFailure.noRoute);
-    final unchanged = identical(current, state.route);
+    final asked = state.route;
+    final unchanged = asked != null && sameCourse(current, asked);
     final done = switch (fix) {
       AddStopFix(:final placeId) => switch (state.placeOf(placeId)) {
         null => false,
@@ -384,9 +418,12 @@ class RouteAdviceController extends _$RouteAdviceController {
       _routing = (index: index, undoDepth: plan.undoStack.length);
     }
     _appliedDepth[index] = plan.undoStack.length;
+    // The stop's marker takes the place of the one that showed it.
+    final stop = fix is AddStopFix ? fix.placeId : null;
     state = state.copyWith(
       applied: <int>{...state.applied, index},
       failures: {...state.failures}..remove(index),
+      shown: stop != null && stop == state.shown?.id ? null : state.shown,
     );
     return true;
   }
@@ -430,11 +467,15 @@ class RouteAdviceController extends _$RouteAdviceController {
 }
 
 /// [advice] without the fixes that name a place [digest] does not have, or
-/// a stretch that is not on the route asked about (no entry in [areas]).
+/// a stretch that is not on the route asked about (no entry in [areas]);
+/// and with a stop at the place a finding names when it came without a fix
+/// of its own.
 ///
 /// The relay already refuses an unknown place; this keeps a relay that does
 /// not from putting a stop nowhere, and a stretch past the route's end from
-/// offering an Avoid that could only fail.
+/// offering an Avoid that could only fail. A model often names the café it
+/// found without saying it can be added: every place of the digest is a
+/// place to stop at, so the stop is offered all the same.
 RouteAdvice _withKnownFixes(
   RouteAdvice advice,
   RouteDigest digest,
@@ -450,6 +491,14 @@ RouteAdvice _withKnownFixes(
             f,
           ),
           AvoidFix() when !areas.containsKey(i) => _withoutFix(f),
+          null when ids.contains(f.placeId) => RouteFinding(
+            kind: f.kind,
+            text: f.text,
+            fromKm: f.fromKm,
+            toKm: f.toKm,
+            placeId: f.placeId,
+            fix: AddStopFix(f.placeId!),
+          ),
           _ => f,
         },
     ],
@@ -494,6 +543,35 @@ RouteSummary summaryOfPlan(
         .toList(growable: false),
     digest: digest,
   );
+}
+
+/// Whether [a] and [b] are the same line on the map, whatever objects they
+/// are: the planner hands out a new result for the same course (a line
+/// anchored to its ends, a step undone), and a stop's distance along the
+/// route asked about holds on either.
+///
+/// Near enough: the lengths agree within 0.2 % (5 m at least) and a sample
+/// of the points of each lies within 10 m of the other.
+bool sameCourse(RouteResult a, RouteResult b) {
+  if (identical(a, b)) return true;
+  final x = a.positions;
+  final y = b.positions;
+  if (x.length < 2 || y.length < 2) return false;
+  final cx = cumulativeDistancesMeters(x);
+  final cy = cumulativeDistancesMeters(y);
+  final slack = math.max(5, cx.last * 0.002);
+  if ((cx.last - cy.last).abs() > slack) return false;
+  bool near(List<LatLng> from, List<LatLng> onto, List<double> along) {
+    final step = math.max(1, from.length ~/ 40);
+    for (var i = 0; i < from.length; i += step) {
+      if (projectOnTrack(onto, from[i], cumulative: along).distanceM > 10) {
+        return false;
+      }
+    }
+    return projectOnTrack(onto, from.last, cumulative: along).distanceM <= 10;
+  }
+
+  return near(x, y, cy) && near(y, x, cx);
 }
 
 /// The marker a stop at a digest place of [kind] gets.

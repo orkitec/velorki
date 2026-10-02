@@ -2460,6 +2460,10 @@
   "@assistantRouteHandedOver": {
     "description": "Snack bar when the waypoints were handed to the planner"
   },
+  "assistantPlusRequired": "This feature requires Velorki Plus.",
+  "@assistantPlusRequired": {
+    "description": "Where the Ask or Describe button would be, for a rider without Velorki Plus, beside a Subscribe button."
+  },
   "assistantNotEntitled": "The AI assistant is part of Velorki Plus.",
   "@assistantNotEntitled": {
     "description": "Shown in the sheet when the rider is not entitled"

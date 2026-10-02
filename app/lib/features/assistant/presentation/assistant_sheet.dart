@@ -9,6 +9,7 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/router.dart';
 import '../../../app/shell_layout.dart';
+import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/device_position_request.dart';
@@ -20,6 +21,7 @@ import '../../settings/data/units.dart';
 import '../../shared/presentation/adaptive_docking_sheet.dart';
 import '../../shared/presentation/docking_sheet.dart';
 import '../../shared/presentation/stat_tile.dart';
+import '../../subscription/application/plus_access.dart';
 import '../application/assistant_controller.dart';
 import '../application/assistant_sheet_memory.dart';
 import '../application/route_advice_controller.dart';
@@ -92,6 +94,9 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
 
   /// The "part of Velorki Plus" row, to bring it into view when it comes.
   final GlobalKey _notEntitledKey = GlobalKey();
+
+  /// The text field, to bring it into view when a chip fills it.
+  final GlobalKey _fieldKey = GlobalKey();
 
   /// The room the sheet had at its last build, to keep its height through
   /// the keyboard coming and going.
@@ -166,6 +171,34 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
       selection: TextSelection.collapsed(offset: '$text$sep$wish'.length),
     );
     setState(() {});
+    _revealField();
+  }
+
+  /// Puts [text] in the field, as a chip under it does.
+  void _fill(TextEditingController field, String text) {
+    field.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+    _revealField();
+  }
+
+  /// Scrolls the field back into view after a chip filled it: a chip far
+  /// down the list, under an answer, would leave the rider looking at
+  /// chips while the question changed out of sight.
+  void _revealField() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final field = _fieldKey.currentContext;
+      if (!mounted || field == null || !field.mounted) return;
+      unawaited(
+        Scrollable.ensureVisible(
+          field,
+          alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+        ),
+      );
+    });
   }
 
   @override
@@ -297,14 +330,23 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
     return EdgeInsets.fromLTRB(left, top, right, bottom);
   }
 
-  /// Moves the map to what finding [finding] is about: its place, or its
-  /// stretch of the route on the map.
-  void _show(RouteFinding finding, RouteAdviceState advice) {
+  /// Moves the map to what finding [finding] is about: its place, which the
+  /// map then marks with its name and its kind's icon (see
+  /// [RouteAdviceState.shown]), or its stretch of the route on the map.
+  ///
+  /// Without [mark] the place is only moved to: a stop just added has its
+  /// waypoint there.
+  void _show(
+    RouteFinding finding,
+    RouteAdviceState advice, {
+    bool mark = true,
+  }) {
     final map = widget.map;
     if (map == null) return;
     final place = advice.placeOf(finding.placeId ?? _stopOf(finding));
     final padding = _uncovered();
     if (place != null) {
+      if (mark) ref.read(routeAdviceControllerProvider.notifier).show(place);
       unawaited(
         map.moveTo(
           LatLng(place.at.lat, place.at.lon),
@@ -339,7 +381,9 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
     final applied = ref
         .read(routeAdviceControllerProvider.notifier)
         .apply(index);
-    if (applied && finding.fix is! ProfileFix) _show(finding, advice);
+    if (applied && finding.fix is! ProfileFix) {
+      _show(finding, advice, mark: false);
+    }
   }
 
   /// The handle's drag: along the sheet's travel, which is the screen's
@@ -574,6 +618,9 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
     // Sideways the safe area at the rail's end lies under the turned
     // sheet's bottom, not under its content's.
     final bottomSafe = keyboard || sideways ? 0.0 : media.viewPadding.bottom;
+    final plusMissing =
+        ref.watch(plusAccessProvider(PlusFeature.aiAssistant)) ==
+        PlusAccess.missing;
 
     final header = Padding(
       padding: const EdgeInsets.fromLTRB(0, 4, 0, 12),
@@ -645,22 +692,25 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
                   ),
                   const SizedBox(height: 12),
                 ],
-                TextField(
-                  // Keyed by mode, so each keeps its own text and undo.
-                  key: ValueKey(_mode),
-                  controller: _field,
-                  readOnly: locked,
-                  minLines: aboutRoute ? 1 : 2,
-                  maxLines: 4,
-                  maxLength: 1000,
-                  textInputAction: TextInputAction.send,
-                  style: theme.textTheme.bodyLarge,
-                  decoration: InputDecoration(
-                    hintText: aboutRoute
-                        ? l10n.assistantRouteHint
-                        : l10n.assistantHint,
+                KeyedSubtree(
+                  key: _fieldKey,
+                  child: TextField(
+                    // Keyed by mode, so each keeps its own text and undo.
+                    key: ValueKey(_mode),
+                    controller: _field,
+                    readOnly: locked,
+                    minLines: aboutRoute ? 1 : 2,
+                    maxLines: 4,
+                    maxLength: 1000,
+                    textInputAction: TextInputAction.send,
+                    style: theme.textTheme.bodyLarge,
+                    decoration: InputDecoration(
+                      hintText: aboutRoute
+                          ? l10n.assistantRouteHint
+                          : l10n.assistantHint,
+                    ),
+                    onSubmitted: locked ? null : (_) => unawaited(_send()),
                   ),
-                  onSubmitted: locked ? null : (_) => unawaited(_send()),
                 ),
                 if (aboutRoute)
                   ..._routeChildren(l10n, theme, advice, locked: locked)
@@ -673,42 +723,47 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
         const Divider(height: 1),
         Padding(
           padding: EdgeInsets.fromLTRB(20, 12, 20, bottomSafe + 16),
-          child: Row(
-            children: [
-              if (canStartOver) ...[
-                TextButton.icon(
-                  onPressed: locked ? null : _startOver,
-                  icon: const Icon(Icons.restart_alt_rounded),
-                  label: Text(l10n.assistantStartOver),
+          // Known to be without Plus, the sheet is there to look around in,
+          // and where Ask would be it says what Ask needs. While the store
+          // has not answered, Ask is offered and the relay decides.
+          child: plusMissing
+              ? const PlusRequiredBanner()
+              : Row(
+                  children: [
+                    if (canStartOver) ...[
+                      TextButton.icon(
+                        onPressed: locked ? null : _startOver,
+                        icon: const Icon(Icons.restart_alt_rounded),
+                        label: Text(l10n.assistantStartOver),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    Expanded(
+                      // The button is locked while it works, so it says what is
+                      // going on: a line above it would be under the keyboard.
+                      child: FilledButton.icon(
+                        onPressed: locked ? null : () => unawaited(_send()),
+                        icon: locked
+                            ? const ButtonProgress()
+                            : const Icon(Icons.auto_awesome_rounded),
+                        label: Text(
+                          !locked
+                              ? l10n.assistantSend
+                              : !busy
+                              ? l10n.plannerRouting
+                              : aboutRoute
+                              ? (advice.phase == RouteAdvicePhase.reading
+                                    ? l10n.assistantRouteReading
+                                    : l10n.assistantThinking)
+                              : state.phase == AssistantPhase.asking
+                              ? l10n.assistantThinking
+                              : l10n.assistantResolving,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-              ],
-              Expanded(
-                // The button is locked while it works, so it says what is
-                // going on: a line above it would be under the keyboard.
-                child: FilledButton.icon(
-                  onPressed: locked ? null : () => unawaited(_send()),
-                  icon: locked
-                      ? const ButtonProgress()
-                      : const Icon(Icons.auto_awesome_rounded),
-                  label: Text(
-                    !locked
-                        ? l10n.assistantSend
-                        : !busy
-                        ? l10n.plannerRouting
-                        : aboutRoute
-                        ? (advice.phase == RouteAdvicePhase.reading
-                              ? l10n.assistantRouteReading
-                              : l10n.assistantThinking)
-                        : state.phase == AssistantPhase.asking
-                        ? l10n.assistantThinking
-                        : l10n.assistantResolving,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
       ],
     );
@@ -742,7 +797,7 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
             ])
               ActionChip(
                 label: Text(example),
-                onPressed: locked ? null : () => _prompt.text = example,
+                onPressed: locked ? null : () => _fill(_prompt, example),
               )
           else
             for (final wish in wishes)
@@ -835,14 +890,7 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
             for (final question in offered)
               ActionChip(
                 label: Text(question),
-                onPressed: locked
-                    ? null
-                    : () => _question.value = TextEditingValue(
-                        text: question,
-                        selection: TextSelection.collapsed(
-                          offset: question.length,
-                        ),
-                      ),
+                onPressed: locked ? null : () => _fill(_question, question),
               ),
           ],
         ),
@@ -1008,6 +1056,41 @@ class _FindingRow extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Where a Plus feature's button would be, for a rider known to be without
+/// Velorki Plus: what the feature needs, and Subscribe, which opens the
+/// paywall over the sheet. Back subscribed, the button is there again and
+/// whatever was typed with it.
+class PlusRequiredBanner extends StatelessWidget {
+  /// Creates the banner.
+  const PlusRequiredBanner({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Icon(
+          Icons.workspace_premium_outlined,
+          color: theme.colorScheme.primary,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            l10n.assistantPlusRequired,
+            style: theme.textTheme.bodyMedium,
+          ),
+        ),
+        const SizedBox(width: 12),
+        FilledButton(
+          onPressed: () => unawaited(context.push<void>(paywallRoute)),
+          child: Text(l10n.plusSubscribe),
+        ),
+      ],
     );
   }
 }

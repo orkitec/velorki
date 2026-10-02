@@ -1,8 +1,9 @@
-// A rider without Velorki Plus learns it before typing: the Plan tab's Ask
-// and the route detail's Describe open the paywall first when the store has
-// said so, and the sheet once they come back subscribed. Not known yet, the
-// sheet opens and the relay decides; a "part of Plus" error the sheet shows
-// is said at the top and goes once Plus is active.
+// A rider without Velorki Plus still gets the sheet: the Plan tab's Ask and
+// the route detail's Describe open it with Subscribe where their button
+// would be when the store has said so, and the button is back once they
+// return subscribed. Not known yet, the sheet opens as usual and the relay
+// decides; a "part of Plus" error the sheet shows is said at the top and
+// goes once Plus is active.
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -193,32 +194,64 @@ Future<ProviderContainer> _describe(
 
 void main() {
   group('the Plan tab\'s Ask', () {
-    testWidgets('without Plus opens the paywall, not the sheet, and stays on '
-        'the planner when the paywall closes unbought', (tester) async {
-      await _planner(tester, store: _Store.saysNo);
-
-      await _tapAsk(tester);
-      expect(find.byType(PaywallScreen), findsOneWidget);
-      expect(find.byType(AssistantSheet), findsNothing);
-
-      await _closePaywall(tester);
-      expect(find.byType(PaywallScreen), findsNothing);
-      expect(find.byType(AssistantSheet), findsNothing);
-    });
-
-    testWidgets('opens the sheet once the paywall closes subscribed', (
+    testWidgets('without Plus opens the sheet to look around in, with '
+        'Subscribe where Ask would be; Subscribe opens the paywall over the '
+        'sheet, and back subscribed Ask is there with what was typed', (
       tester,
     ) async {
-      final container = await _planner(tester, store: _Store.saysNo);
+      final relay = FakeRelayClient();
+      final container = await _planner(
+        tester,
+        store: _Store.saysNo,
+        relay: relay,
+      );
 
       await _tapAsk(tester);
-      expect(find.byType(PaywallScreen), findsOneWidget);
-      container.read(plusEntitledProvider.notifier).value = true;
-      await tester.pumpAndSettle();
-
-      await _closePaywall(tester);
       expect(find.byType(PaywallScreen), findsNothing);
       expect(find.byType(AssistantSheet), findsOneWidget);
+      expect(_inSheet(find.text(l10n.assistantPlusRequired)), findsOneWidget);
+      expect(
+        _inSheet(find.widgetWithText(FilledButton, l10n.assistantSend)),
+        findsNothing,
+      );
+      // The field and the examples work.
+      await tester.tap(_inSheet(find.text(l10n.assistantExampleFlatLoop)));
+      await tester.pumpAndSettle();
+      final field = _inSheet(find.byType(TextField));
+      expect(
+        tester.widget<TextField>(field).controller!.text,
+        l10n.assistantExampleFlatLoop,
+      );
+      expect(tester.widget<TextField>(field).readOnly, isFalse);
+
+      // Subscribe, and back without buying: still the banner.
+      await tester.tap(_inSheet(find.text(l10n.plusSubscribe)));
+      await tester.pumpAndSettle();
+      expect(find.byType(PaywallScreen), findsOneWidget);
+      await _closePaywall(tester);
+      expect(find.byType(AssistantSheet), findsOneWidget);
+      expect(_inSheet(find.text(l10n.assistantPlusRequired)), findsOneWidget);
+
+      // Subscribe, bought: Ask, and what was typed is still there.
+      await tester.tap(_inSheet(find.text(l10n.plusSubscribe)));
+      await tester.pumpAndSettle();
+      container.read(plusEntitledProvider.notifier).value = true;
+      await tester.pumpAndSettle();
+      await _closePaywall(tester);
+      expect(find.byType(AssistantSheet), findsOneWidget);
+      expect(_inSheet(find.text(l10n.assistantPlusRequired)), findsNothing);
+      expect(
+        _inSheet(find.widgetWithText(FilledButton, l10n.assistantSend)),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<TextField>(_inSheet(find.byType(TextField)))
+            .controller!
+            .text,
+        l10n.assistantExampleFlatLoop,
+      );
+      expect(relay.planCalls, isEmpty);
     });
 
     testWidgets('opens the sheet while the store has not answered, and the '
@@ -289,31 +322,27 @@ void main() {
   });
 
   group('the route detail\'s Describe', () {
-    testWidgets('without Plus opens the paywall, not the sheet', (
-      tester,
-    ) async {
-      await _describe(tester, store: _Store.saysNo);
-
-      await tester.tap(find.text(l10n.describeAction));
-      await tester.pumpAndSettle();
-      expect(find.byType(PaywallScreen), findsOneWidget);
-      expect(find.byType(DescribeRouteSheet), findsNothing);
-
-      await _closePaywall(tester);
-      expect(find.byType(DescribeRouteSheet), findsNothing);
-    });
-
-    testWidgets('opens the sheet once the paywall closes subscribed', (
-      tester,
-    ) async {
+    testWidgets('without Plus opens the sheet with Subscribe instead of '
+        'writing; back subscribed, it writes', (tester) async {
       final container = await _describe(tester, store: _Store.saysNo);
 
       await tester.tap(find.text(l10n.describeAction));
       await tester.pumpAndSettle();
+      expect(find.byType(PaywallScreen), findsNothing);
+      expect(find.byType(DescribeRouteSheet), findsOneWidget);
+      expect(find.text(l10n.assistantPlusRequired), findsOneWidget);
+      expect(find.text('A gentle loop.'), findsNothing);
+      expect(find.text(l10n.describeSave), findsNothing);
+
+      await tester.tap(find.text(l10n.plusSubscribe));
+      await tester.pumpAndSettle();
+      expect(find.byType(PaywallScreen), findsOneWidget);
       container.read(plusEntitledProvider.notifier).value = true;
+      await tester.pumpAndSettle();
       await _closePaywall(tester);
 
       expect(find.byType(DescribeRouteSheet), findsOneWidget);
+      expect(find.text(l10n.assistantPlusRequired), findsNothing);
       expect(find.text('A gentle loop.'), findsOneWidget);
     });
 

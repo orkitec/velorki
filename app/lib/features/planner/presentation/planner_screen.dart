@@ -8,8 +8,8 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/router.dart';
 import '../../../app/theme.dart';
-import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../assistant/application/route_advice_controller.dart';
 import '../../assistant/domain/intent_resolver.dart';
 import '../../assistant/presentation/assistant_sheet.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
@@ -31,7 +31,6 @@ import '../../shared/presentation/docking_sheet.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/tab_chrome_slide.dart';
 import '../../smart_loop/presentation/smart_loop_sheet.dart';
-import '../../subscription/presentation/plus_gate_flow.dart';
 import '../application/planner_controller.dart';
 import '../application/planner_map_binding.dart';
 import '../data/route_repository.dart';
@@ -563,6 +562,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       binding.onLongPress = (pos) {
         unawaited(_addPoiAt(pos));
       };
+      // What the assistant was asked to show about the route.
+      binding.shownPlace = () =>
+          switch (ref.read(routeAdviceControllerProvider).shown) {
+            null => null,
+            final place => shownPoi(place),
+          };
       _binding = binding;
     }
     binding.attach();
@@ -691,11 +696,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   /// the result as it arrives. Everything else — a loop through places, a
   /// point-to-point route — is already on the map.
   ///
-  /// A rider known to be without Plus sees the paywall first, before typing
-  /// anything, and the sheet only once they come back subscribed.
+  /// A rider known to be without Plus gets the sheet all the same, to look
+  /// around in, with Subscribe where Ask would be.
   Future<void> _ask() async {
-    final unlocked = await passPlusGate(context, ref, PlusFeature.aiAssistant);
-    if (!unlocked || !mounted) return;
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final intent = await showAssistantSheet(context, map: _map);
@@ -756,6 +759,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     final hasBackend = ref.watch(routingBackendProvider) != null;
 
     ref.listen(sharedMapControllerProvider, (_, next) => _onMapChanged(next));
+    ref.listen(routeAdviceControllerProvider.select((s) => s.shown), (_, _) {
+      if (_drawing) {
+        unawaited(_binding?.sync(ref.read(plannerControllerProvider)));
+      }
+    });
     ref.listen(plannerControllerProvider, (previous, next) {
       // Only while this tab's layers are on the map; a plan that changes
       // while the tab is away is drawn whole when it comes back.

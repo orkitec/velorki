@@ -354,6 +354,39 @@ void main() {
     expect(tester.getRect(_surface).left, lessThan(rest.left - 50));
   });
 
+  for (final sideways in [false, true]) {
+    testWidgets('${sideways ? 'sideways' : 'upright'}, a chip far down the '
+        'list fills the field and scrolls it back into view', (tester) async {
+      if (sideways) _railOn(tester, RailSide.right);
+      await _app(tester, sideways ? _sideways : _upright);
+      await _open(tester);
+      await _ask(tester, l10n.assistantRouteExampleCoffee);
+      final chip = _inSheet(
+        find.widgetWithText(ActionChip, l10n.assistantRouteExampleRoadBike),
+      );
+      await tester.scrollUntilVisible(chip, 100, scrollable: content());
+      await tester.pumpAndSettle();
+      final viewport = tester.getRect(content());
+      Rect field() => tester.getRect(_inSheet(find.byType(TextField)));
+      expect(
+        field().bottom,
+        lessThan(viewport.top),
+        reason: 'the field is out of view above the chip',
+      );
+
+      await tester.tap(chip);
+      await tester.pump();
+      // Scrolled, not jumped.
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(field().bottom, lessThan(viewport.top + field().height));
+      await tester.pumpAndSettle();
+      expect(_fieldText(tester), l10n.assistantRouteExampleRoadBike);
+      expect(field().top, greaterThanOrEqualTo(viewport.top - 0.5));
+      expect(field().bottom, lessThanOrEqualTo(viewport.bottom + 0.5));
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('swiped away and opened again, the sheet shows the same '
       'question, answer and applied fixes; Start over clears them and keeps '
       'the mode', (tester) async {

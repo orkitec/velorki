@@ -11,6 +11,9 @@
 //     --dart-define=VELORKI_API_URL= --dart-define=VELORKI_ITEST_REGION=madeira
 //
 // VELORKI_API_URL may stay empty: the relay client is overridden either way.
+// --dart-define=VELORKI_ITEST_HOLD=12 holds each pose worth a photograph that
+// many seconds, for `xcrun simctl io <udid> screenshot` from outside: the
+// in-test screenshot cannot see the map.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -37,6 +40,8 @@ import 'package:velorki/features/planner/presentation/route_format.dart';
 import 'package:velorki/features/search/data/gazetteer_store.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
+import 'package:velorki/features/smart_loop/application/smart_loop_controller.dart';
+import 'package:velorki/features/subscription/application/plus_access.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -51,6 +56,11 @@ import 'support/tiles.dart';
 /// How long the device's relay client waits on a silent stream: the app's
 /// 45 s, cut so a test can sit through it.
 const Duration _idle = Duration(seconds: 3);
+
+/// How long a pose worth a photograph is held; nothing by default.
+const Duration _hold = Duration(
+  seconds: int.fromEnvironment('VELORKI_ITEST_HOLD'),
+);
 
 /// A place of the region's gazetteer away from the start, for the model to
 /// ride past.
@@ -321,6 +331,172 @@ void main() {
       findsOneWidget,
     );
     await _closeSheet(tester);
+    await unmountApp(tester);
+  });
+
+  testWidgets('8 · a loop the assistant made is asked about: Show marks the '
+      'place, Add as stop and Avoid change the loop, and a chip far down '
+      'brings the field back into view', (tester) async {
+    final relay = MockRelay()
+      ..reply(
+        RelayReply.stream([
+          SseFrame.routeRequest({
+            'distance_km': 12,
+            'loop': true,
+            'via': <String>[],
+            'stops': <String>[],
+          }),
+          SseFrame.done(),
+        ]),
+      )
+      ..reply(
+        RelayReply.answering((request) {
+          final stop = _stopOf(request);
+          final length = request.routeSummary!['distance_km']! as num;
+          final from = (length * 0.6).toDouble();
+          final to = (length * 0.7).toDouble();
+          return RelayReply.stream([
+            SseFrame.routeAdvice({
+              'answer': '${stop['name'] ?? 'A place'} is by the road.',
+              'findings': [
+                {'kind': 'food', 'place_id': stop['id'], 'text': 'Stop here.'},
+                {
+                  'kind': 'traffic',
+                  'from_km': from,
+                  'to_km': to,
+                  'text': 'A busy road.',
+                  'fix': {'type': 'avoid', 'from_km': from, 'to_km': to},
+                },
+              ],
+            }),
+            SseFrame.done(),
+          ]);
+        }),
+      );
+    final c = await _boot(tester, relay);
+    final l10n = _l10n(tester);
+    await _openAssistant(tester);
+    await _type(tester, 'A 12 km loop from here');
+    await _send(tester);
+    await waitUntil(
+      tester,
+      () =>
+          find.byType(AssistantSheet).evaluate().isEmpty &&
+          !c.read(smartLoopControllerProvider).running,
+      describe: 'the loop search',
+      timeout: const Duration(seconds: 120),
+    );
+    await _waitRouted(tester, c, 'the loop');
+    // The loop sheet over the planner goes; the loop stays.
+    await tester.tapAt(const Offset(40, 120));
+    await pumpFor(tester, const Duration(milliseconds: 800));
+    expect(c.read(plannerControllerProvider).isRoutable, isFalse);
+
+    await _openAssistant(tester);
+    expect(_inSheet(find.text(l10n.assistantRouteTitle)), findsOneWidget);
+    await _type(tester, 'Coffee? Traffic?');
+    await _send(tester);
+    await waitUntil(
+      tester,
+      () =>
+          c.read(routeAdviceControllerProvider).phase ==
+          RouteAdvicePhase.answered,
+      describe: 'the answer',
+      onTimeout: () => '${c.read(routeAdviceControllerProvider).problem}',
+    );
+
+    await tapAndPump(
+      tester,
+      _inSheet(find.widgetWithText(TextButton, l10n.assistantFindingShow))
+          .first,
+    );
+    expect(c.read(routeAdviceControllerProvider).shown, isNotNull);
+    expect(c.read(plannerControllerProvider).pois, isEmpty);
+    await pumpFor(tester, _hold);
+    await screenshot(tester, 'ai-show-place');
+
+    for (final label in [l10n.assistantFixAddStop, l10n.assistantFixAvoid]) {
+      await tapAndPump(
+        tester,
+        _inSheet(find.widgetWithText(FilledButton, label)),
+      );
+      await _waitRouted(tester, c, 'the loop with "$label"');
+      await pumpFor(tester, const Duration(milliseconds: 500));
+    }
+    expect(c.read(routeAdviceControllerProvider).failures, isEmpty);
+    expect(c.read(routeAdviceControllerProvider).applied, {0, 1});
+    expect(c.read(routeAdviceControllerProvider).shown, isNull);
+    final plan = c.read(plannerControllerProvider);
+    expect(plan.avoid, hasLength(1));
+    expect(
+      haversineMeters(
+        plan.result!.positions.first,
+        plan.result!.positions.last,
+      ),
+      lessThan(300),
+    );
+
+    // A chip far down fills the field, which comes back into view.
+    final chip = _inSheet(
+      find.widgetWithText(ActionChip, l10n.assistantRouteExampleRoadBike),
+    );
+    await tester.ensureVisible(chip);
+    await pumpFor(tester, const Duration(milliseconds: 500));
+    await tapAndPump(tester, chip, settle: const Duration(seconds: 1));
+    final field = _inSheet(find.byType(TextField));
+    expect(
+      tester.widget<TextField>(field).controller!.text,
+      l10n.assistantRouteExampleRoadBike,
+    );
+    final viewport = tester.getRect(
+      find.ancestor(of: field, matching: find.byType(Scrollable)).first,
+    );
+    final at = tester.getRect(field);
+    expect(at.top, greaterThanOrEqualTo(viewport.top - 1));
+    expect(at.bottom, lessThanOrEqualTo(viewport.bottom + 1));
+    await pumpFor(tester, _hold);
+    await screenshot(tester, 'ai-chip-field');
+
+    await _closeSheet(tester);
+    c.read(plannerControllerProvider.notifier).clear();
+    await unmountApp(tester);
+  });
+
+  testWidgets('5 · known to be without Plus, the sheet opens with Subscribe '
+      'where Ask would be, and the field still takes a question', (
+    tester,
+  ) async {
+    final relay = MockRelay();
+    final c = await pumpApp(
+      tester,
+      overrides: [
+        ..._overrides(relay),
+        plusAccessProvider.overrideWith((ref, _) => PlusAccess.missing),
+      ],
+    );
+    final l10n = _l10n(tester);
+    await _openAssistant(tester);
+    expect(_inSheet(find.text(l10n.assistantPlusRequired)), findsOneWidget);
+    expect(
+      _inSheet(find.widgetWithText(FilledButton, l10n.assistantSend)),
+      findsNothing,
+    );
+    await _type(tester, 'A flat loop');
+    expect(
+      tester
+          .widget<TextField>(_inSheet(find.byType(TextField)))
+          .controller!
+          .text,
+      'A flat loop',
+    );
+    await pumpFor(tester, _hold);
+    await screenshot(tester, 'ai-plus-banner');
+    expect(relay.requests, isEmpty);
+    await _closeSheet(tester);
+    expect(
+      c.read(plusAccessProvider(PlusFeature.aiAssistant)),
+      PlusAccess.missing,
+    );
     await unmountApp(tester);
   });
 

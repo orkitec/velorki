@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/router.dart';
+import 'package:velorki/core/db/tables/routes.dart' show RouteSource;
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/core/plus/plus_gate.dart';
 import 'package:velorki/features/assistant/application/route_advice_controller.dart';
@@ -17,6 +18,9 @@ import 'package:velorki/features/assistant/presentation/assistant_sheet.dart';
 import 'package:velorki/features/assistant/presentation/describe_route_sheet.dart';
 import 'package:velorki/features/library/presentation/route_detail_screen.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
+import 'package:velorki/features/navigation/presentation/turn_phrases.dart';
+import 'package:velorki/features/planner/domain/route_poi.dart';
+import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
@@ -25,6 +29,7 @@ import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/planner/presentation/route_format.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
+import 'package:velorki/features/smart_loop/application/smart_loop_controller.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -96,12 +101,13 @@ RelayReply _advice({bool stopOnly = false}) => RelayReply.answering((request) {
 });
 
 /// The Plan tab with a route from Funchal to Machico on the map, Plus and
-/// consent in place.
+/// consent in place; or, with [load], whatever it puts on the planner.
 Future<(PlannerHarness, ProviderContainer)> _plannedRoute(
   WidgetTester tester,
   Madeira madeira,
-  MockRelay relay,
-) async {
+  MockRelay relay, {
+  Future<void> Function(PlannerHarness h, ProviderContainer c)? load,
+}) async {
   final harness = await pumpScreen(
     tester,
     const PlannerScreen(),
@@ -122,11 +128,79 @@ Future<(PlannerHarness, ProviderContainer)> _plannedRoute(
   );
   c.read(plusEntitledProvider.notifier).value = true;
   await c.read(aiConsentControllerProvider.notifier).set(AiConsent.textOnly);
+  if (load != null) {
+    await load(harness, c);
+    await tester.pumpAndSettle();
+    if (c.read(plannerControllerProvider).hasPoints) {
+      await settle(tester, () => _routed(c), what: 'the route loaded');
+    }
+    return (harness, c);
+  }
   c.read(plannerControllerProvider.notifier)
     ..addWaypoint(Madeira.funchal)
     ..addWaypoint(Madeira.machico);
   await settle(tester, () => _routed(c), what: 'the route to Machico');
   return (harness, c);
+}
+
+/// A round trip from Funchal as the smart loop's round-trip search draws
+/// it: one query point, the start.
+Future<RouteResult> _roundTrip(WidgetTester tester, Madeira madeira) async =>
+    (await tester.runAsync(
+      () => madeira.local.route(
+        const RouteQuery(
+          points: [Madeira.funchal],
+          profile: 'velorki-trekking',
+          roundTrip: true,
+          roundTripDistanceM: 6000,
+          roundTripDirectionDeg: 60,
+        ),
+      ),
+    ))!;
+
+/// The route from Funchal to Machico as the router draws it.
+Future<RouteResult> _toMachico(WidgetTester tester, Madeira madeira) async =>
+    (await tester.runAsync(
+      () => madeira.local.route(
+        const RouteQuery(
+          points: [Madeira.funchal, Madeira.machico],
+          profile: 'velorki-trekking',
+        ),
+      ),
+    ))!;
+
+/// The share of [before]'s points that are still points of [after].
+double _kept(RouteResult before, RouteResult after) {
+  final now = {for (final p in after.positions) p};
+  return before.positions.where(now.contains).length / before.positions.length;
+}
+
+/// Asks [_advice] about whatever is on the map, then applies Add as stop
+/// and Avoid, each of which must go through and leave a route.
+Future<void> _stopAndAvoid(
+  WidgetTester tester,
+  ProviderContainer c,
+  MockRelay relay,
+) async {
+  await _openAssistant(tester);
+  await _ask(tester, c);
+  final cafe = _cafe(relay.last);
+  for (final label in [l10n.assistantFixAddStop, l10n.assistantFixAvoid]) {
+    await _applyFix(tester, c, label);
+    final plan = c.read(plannerControllerProvider);
+    expect(
+      c.read(routeAdviceControllerProvider).failures,
+      isEmpty,
+      reason: label,
+    );
+    expect(inSheet(find.text(l10n.assistantFixNotApplicable)), findsNothing);
+    expect(plan.error, isNull, reason: label);
+    expect(plan.result, isNotNull, reason: label);
+  }
+  final plan = c.read(plannerControllerProvider);
+  expect(plan.waypoints.map((w) => w.name), contains(cafe['name']));
+  expect(plan.avoid, hasLength(1));
+  expect(inSheet(find.text(l10n.assistantFixApplied)), findsNWidgets(2));
 }
 
 bool _routed(ProviderContainer c) {
@@ -286,6 +360,59 @@ void main() {
     );
   });
 
+  testWidgets('9 · Show marks the place on the map with its name and icon, '
+      'without touching the plan; Add as stop puts the waypoint in its place, '
+      'and Start over takes a mark away', (tester) async {
+    await openMadeira(tester);
+    final relay = MockRelay(schemas: spec.check)..reply(_advice());
+    final (harness, c) = await _plannedRoute(tester, madeira, relay);
+    final before = c.read(plannerControllerProvider);
+    await _openAssistant(tester);
+    await _ask(tester, c);
+    final cafe = _cafe(relay.last);
+    final at = LatLng(
+      (cafe['lat']! as num).toDouble(),
+      (cafe['lon']! as num).toDouble(),
+    );
+    final marker = MapPoi(
+      position: at,
+      name: cafe['name']! as String,
+      kind: MapPoiKind.food,
+      icon: poiIcon(PoiKind.food),
+      selected: true,
+    );
+    // tapInSheet looks inside the sheet itself.
+    Finder show() => find.widgetWithText(TextButton, l10n.assistantFindingShow);
+
+    expect(harness.map.pois, isNot(contains(marker)));
+    await tapInSheet(tester, show().first);
+    expect(harness.map.movedTo, at);
+    expect(harness.map.pois, contains(marker));
+    final plan = c.read(plannerControllerProvider);
+    expect(plan.waypoints, before.waypoints);
+    expect(plan.pois, isEmpty);
+    expect(plan.undoStack, hasLength(before.undoStack.length));
+    expect(plan.isRouting, isFalse);
+
+    // The stretch: fitted, the mark stays.
+    harness.map.fittedBounds = null;
+    await tapInSheet(tester, show().at(1));
+    expect(harness.map.fittedBounds, isNotNull);
+    expect(harness.map.pois, contains(marker));
+
+    await _applyFix(tester, c, l10n.assistantFixAddStop);
+    expect(harness.map.pois, isNot(contains(marker)));
+    expect(harness.map.waypoints.map((w) => w.position), contains(at));
+
+    // Shown again after Undo, then cleared by Start over.
+    c.read(plannerControllerProvider.notifier).undo();
+    await settle(tester, () => _routed(c), what: 'undo');
+    await tapInSheet(tester, show().first);
+    expect(harness.map.pois, contains(marker));
+    await tapInSheet(tester, find.text(l10n.assistantStartOver));
+    expect(harness.map.pois, isNot(contains(marker)));
+  });
+
   testWidgets('7 · closed and opened again the sheet keeps the question and '
       'the answer about the route; Start over clears both', (tester) async {
     await openMadeira(tester);
@@ -351,6 +478,216 @@ void main() {
     );
     expect(relay.requests, hasLength(2));
     expect(relay.requests.last.placeIds, relay.requests.first.placeIds);
+  });
+
+  group('8 · Add as stop and Avoid work on every kind of route on the map', () {
+    testWidgets('a round trip from Make a loop, which has only its start', (
+      tester,
+    ) async {
+      await openMadeira(tester);
+      final relay = MockRelay(schemas: spec.check)..reply(_advice());
+      final loop = await _roundTrip(tester, madeira);
+      final (_, c) = await _plannedRoute(
+        tester,
+        madeira,
+        relay,
+        load: (_, c) async => c
+            .read(plannerControllerProvider.notifier)
+            .loadComputedRoute(
+              result: loop,
+              waypoints: const [Waypoint(pos: Madeira.funchal)],
+              options: const RoutingOptions(),
+            ),
+      );
+      expect(c.read(plannerControllerProvider).waypoints, hasLength(1));
+      await _stopAndAvoid(tester, c, relay);
+
+      // Still the loop, back where it started: only the stretches around
+      // the stop and the avoided road were routed again.
+      final after = c.read(plannerControllerProvider).result!;
+      expect(
+        haversineMeters(after.positions.first, after.positions.last),
+        lessThan(300),
+      );
+      expect(after.lengthM, greaterThan(loop.lengthM * 0.6));
+      expect(_kept(loop, after), greaterThan(0.4));
+
+      // One Undo each, back to the round trip as it came.
+      for (var i = 0; i < 2; i++) {
+        c.read(plannerControllerProvider.notifier).undo();
+        await settle(tester, () => _routed(c), what: 'undo ${i + 1}');
+      }
+      expect(c.read(plannerControllerProvider).waypoints, hasLength(1));
+      expect(
+        c.read(plannerControllerProvider).result!.lengthM,
+        closeTo(loop.lengthM, 1),
+      );
+    });
+
+    testWidgets('a loop the assistant made: New route asks for a loop, the '
+        'loop search puts it on the map, This route asks about it, and Add '
+        'as stop, Avoid and Undo all work on it', (tester) async {
+      await openMadeira(tester);
+      final relay = MockRelay(schemas: spec.check)
+        ..reply(
+          RelayReply.stream([
+            SseFrame.routeRequest({
+              'distance_km': 12,
+              'loop': true,
+              'via': <String>[],
+              'stops': <String>[],
+              'notes': 'A loop from here.',
+            }),
+            SseFrame.done(),
+          ]),
+        )
+        ..reply(_advice());
+      final (_, c) = await _plannedRoute(
+        tester,
+        madeira,
+        relay,
+        load: (_, c) async {},
+      );
+      await _openAssistant(tester);
+      expect(inSheet(find.text(l10n.assistantTitle)), findsOne);
+      await tester.enterText(
+        inSheet(find.byType(TextField)),
+        'A 12 km loop from here',
+      );
+      await tester.tap(
+        inSheet(find.widgetWithText(FilledButton, l10n.assistantSend)),
+      );
+      await settle(
+        tester,
+        () =>
+            find.byType(AssistantSheet).evaluate().isEmpty &&
+            _routed(c) &&
+            !c.read(smartLoopControllerProvider).running,
+        what: 'the loop on the map',
+      );
+      // The loop sheet over the planner goes, the loop stays.
+      await tester.tapAt(const Offset(500, 40));
+      await tester.pumpAndSettle();
+      final loop = c.read(plannerControllerProvider).result!;
+      expect(
+        c.read(plannerControllerProvider).isRoutable,
+        isFalse,
+        reason: 'a round trip comes with its start alone',
+      );
+
+      await _stopAndAvoid(tester, c, relay);
+      expect(relay.requests.last.step, 'route');
+      final after = c.read(plannerControllerProvider).result!;
+      expect(
+        haversineMeters(after.positions.first, after.positions.last),
+        lessThan(300),
+      );
+      expect(_kept(loop, after), greaterThan(0.4));
+
+      await tester.tapAt(const Offset(500, 40));
+      await tester.pumpAndSettle();
+      final undo = find.widgetWithText(LabeledIconButton, l10n.plannerUndo);
+      for (var i = 0; i < 2; i++) {
+        await tester.ensureVisible(undo);
+        await tester.tap(undo);
+        await settle(tester, () => _routed(c), what: 'undo ${i + 1}');
+      }
+      final plan = c.read(plannerControllerProvider);
+      expect(plan.avoid, isEmpty);
+      expect(plan.result!.lengthM, closeTo(loop.lengthM, 1));
+      expect(plan.result!.positions, loop.positions);
+    });
+
+    testWidgets('a round trip saved to the Library and opened again', (
+      tester,
+    ) async {
+      await openMadeira(tester);
+      final relay = MockRelay(schemas: spec.check)..reply(_advice());
+      final loop = await _roundTrip(tester, madeira);
+      final (_, c) = await _plannedRoute(
+        tester,
+        madeira,
+        relay,
+        load: (h, c) async {
+          final repo = RouteRepository(h.db.routesDao);
+          final saved = await repo.savePlannedRoute(
+            name: 'Round Funchal',
+            route: loop,
+            waypoints: const [Waypoint(pos: Madeira.funchal)],
+            options: const RoutingOptions(),
+            source: RouteSource.loop,
+          );
+          c
+              .read(plannerControllerProvider.notifier)
+              .loadSavedRoute((await repo.routeById(saved.id))!);
+        },
+      );
+      expect(c.read(plannerControllerProvider).isRoutable, isFalse);
+      await _stopAndAvoid(tester, c, relay);
+      final after = c.read(plannerControllerProvider).result!;
+      expect(_kept(loop, after), greaterThan(0.4));
+    });
+
+    testWidgets('a planned route saved to the Library and opened again', (
+      tester,
+    ) async {
+      await openMadeira(tester);
+      final relay = MockRelay(schemas: spec.check)..reply(_advice());
+      final route = await _toMachico(tester, madeira);
+      final (_, c) = await _plannedRoute(
+        tester,
+        madeira,
+        relay,
+        load: (h, c) async {
+          final repo = RouteRepository(h.db.routesDao);
+          final saved = await repo.savePlannedRoute(
+            name: 'Funchal to Machico',
+            route: route,
+            waypoints: const [
+              Waypoint(pos: Madeira.funchal),
+              Waypoint(pos: Madeira.machico),
+            ],
+            options: const RoutingOptions(),
+          );
+          c
+              .read(plannerControllerProvider.notifier)
+              .loadSavedRoute((await repo.routeById(saved.id))!);
+        },
+      );
+      await _stopAndAvoid(tester, c, relay);
+    });
+
+    testWidgets('a GPX track imported to the Library keeps its course but '
+        'around the stop and the avoided road', (tester) async {
+      await openMadeira(tester);
+      final relay = MockRelay(schemas: spec.check)..reply(_advice());
+      final track = await _toMachico(tester, madeira);
+      final (_, c) = await _plannedRoute(
+        tester,
+        madeira,
+        relay,
+        load: (h, c) async {
+          final repo = RouteRepository(h.db.routesDao);
+          final saved = await repo.saveImportedRoute(
+            name: 'Coast ride',
+            points: track.geometry,
+            source: RouteSource.importedGpx,
+          );
+          c
+              .read(plannerControllerProvider.notifier)
+              .loadSavedRoute((await repo.routeById(saved.id))!);
+        },
+      );
+      expect(
+        c.read(plannerControllerProvider).planLegs.every((l) => l!.kept),
+        isTrue,
+      );
+      await _stopAndAvoid(tester, c, relay);
+      expect(
+        _kept(track, c.read(plannerControllerProvider).result!),
+        greaterThan(0.4),
+      );
+    });
   });
 
   group('3 · Describe this route', () {

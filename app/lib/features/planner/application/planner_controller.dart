@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
@@ -33,6 +34,41 @@ const String noRoutingBackendError = 'no routing server configured';
 /// Where the profile the rider picked last is kept, by [RouteProfile.name],
 /// so it is the one on the chips at the next start. Absent for the default.
 const String _prefsProfile = 'planner.profile';
+
+/// How far before and after a change to a line the router did not draw the
+/// line is routed again, in metres: enough to reach a road around a stop
+/// or a stretch, little enough to keep the course.
+const double keptWindowM = 1000;
+
+/// The shortest piece of such a line left kept at either end of the
+/// stretch routed again, in metres; a shorter one is routed with it.
+const double keptWindowMinPieceM = 200;
+
+/// Whether a stop can be put on the route of [plan], or a stretch of it kept
+/// off: there is a route on the map. One the plan cannot route leg by leg
+/// (a round trip that came with its start alone) is anchored to its own
+/// line first.
+bool canChangeAlongRoute(PlannerState plan) =>
+    (plan.result?.geometry.length ?? 0) >= 2;
+
+/// The two ends a plan of fewer than two [waypoints] is anchored to, for
+/// [route], its line: its start where the plan has one, else where the line
+/// starts; its end where the line ends — or at the start, for a round trip
+/// whose line comes back to it.
+List<Waypoint> anchorWaypoints(List<Waypoint> waypoints, RouteResult route) {
+  final first = route.geometry.first.pos;
+  final last = route.geometry.last.pos;
+  final start = waypoints.isNotEmpty ? waypoints.first : Waypoint(pos: first);
+  final back = haversineMeters(start.pos, last) <= anchorRoundTripM;
+  return [
+    start,
+    Waypoint(pos: back ? start.pos : last, name: back ? start.name : null),
+  ];
+}
+
+/// How near its start a line must end to be taken for a round trip, in
+/// metres.
+const double anchorRoundTripM = 200;
 
 /// How many legs are asked of the router at once.
 const int _legsAtOnce = 4;
@@ -153,6 +189,13 @@ class PlannerController extends _$PlannerController {
   /// that is not known, wherever the route comes closest to [pos]. The route
   /// then rides there; one undo step, like any inserted point.
   ///
+  /// A route the plan cannot route leg by leg — a round trip that has only
+  /// its start — is first anchored to its own line ([_anchorToLine]). In a
+  /// line the router did not draw (a file's, or such a round trip) only the
+  /// stretch around the stop is routed again ([_openWindow]): routing the
+  /// whole leg anew would lose the course, and a round trip's one leg runs
+  /// from its start back to it.
+  ///
   /// `false` when there is no route to put it on, and nothing changed.
   bool insertStop(
     LatLng pos, {
@@ -160,10 +203,10 @@ class PlannerController extends _$PlannerController {
     String? name,
     PoiKind poiKind = PoiKind.generic,
   }) {
-    final route = state.result;
-    if (route == null || !state.isRoutable || route.geometry.length < 2) {
-      return false;
-    }
+    if (!canChangeAlongRoute(state)) return false;
+    _pushUndo();
+    _anchorToLine();
+    final route = state.result!;
     final track = route.positions;
     final cumulative = cumulativeDistancesMeters(track);
     var on = projectOnTrack(track, pos, cumulative: cumulative);
@@ -175,14 +218,88 @@ class PlannerController extends _$PlannerController {
       }
       on = TrackProjection(on.distanceM, along, track[i]);
     }
-    final before = state.waypoints.length;
-    insertWaypoint(
-      _legAlong(route, track, cumulative, on),
-      pos,
-      name: name,
-      poiKind: poiKind,
+    final waypoints = [...state.waypoints];
+    final legs = [...state.planLegs];
+    var leg = _legAlong(route, track, cumulative, on) - 1;
+    final kept = legs[leg];
+    if (kept != null && kept.kept && route is PlannedRoute) {
+      final inLeg = on.alongM - cumulative[route.legStarts[leg]];
+      leg = _openWindow(waypoints, legs, leg, inLeg, inLeg);
+    }
+    waypoints.insert(leg + 1, Waypoint(pos: pos, name: name, poiKind: poiKind));
+    legs.replaceRange(leg, leg + 1, [null, null]);
+    _setWaypoints(waypoints, legs);
+    return true;
+  }
+
+  /// Turns a route the plan cannot route leg by leg into one it can,
+  /// without changing the line: a round trip that came with only its start
+  /// gets an end there too, and its line as one kept leg between them.
+  /// Not an undo step of its own: the change it is made for is.
+  void _anchorToLine() {
+    final route = state.result;
+    if (state.isRoutable || route == null || route.geometry.length < 2) {
+      return;
+    }
+    final waypoints = anchorWaypoints(state.waypoints, route);
+    final legs = keptLegs(route.geometry, const [0], turns: route.turns);
+    state = state.copyWith(
+      waypoints: normalizeWaypointKinds(waypoints),
+      legs: legs,
+      route: AsyncData<RouteResult?>(
+        PlannedRoute.join(
+          legs,
+          name: route.name,
+          lengthM: route.lengthM,
+          ascentM: route.ascentM,
+          descentM: route.descentM,
+          turns: route.turns,
+        ),
+      ),
     );
-    return state.waypoints.length > before;
+  }
+
+  /// Cuts the kept leg [leg] of [waypoints] and [legs] so that only the
+  /// stretch from [fromM] to [toM] metres along it, [keptWindowM] wider on
+  /// either side, is routed again: a point goes on the line where that
+  /// stretch starts and one where it ends, unless it reaches the leg's end
+  /// anyway, and the rest of the line stays as it is. Answers the index of
+  /// the leg left to route, which the caller marks so.
+  int _openWindow(
+    List<Waypoint> waypoints,
+    List<RouteLeg?> legs,
+    int leg,
+    double fromM,
+    double toM,
+  ) {
+    final line = legs[leg]!;
+    final geometry = line.geometry;
+    final along = cumulativeDistancesMeters([for (final p in geometry) p.pos]);
+    final last = geometry.length - 1;
+    var a = 0;
+    if (fromM - keptWindowM > keptWindowMinPieceM) {
+      while (a < last && along[a] < fromM - keptWindowM) {
+        a++;
+      }
+    }
+    var b = last;
+    if (along.last - (toM + keptWindowM) > keptWindowMinPieceM) {
+      while (b > 0 && along[b] > toM + keptWindowM) {
+        b--;
+      }
+    }
+    if (b <= a) return leg;
+    final starts = <int>[0, if (a > 0) a, if (b < last) b];
+    final pieces = keptLegs(geometry, starts, turns: line.result.turns);
+    final window = a > 0 ? 1 : 0;
+    legs.replaceRange(leg, leg + 1, [
+      for (var i = 0; i < pieces.length; i++) i == window ? null : pieces[i],
+    ]);
+    waypoints.insertAll(leg + 1, [
+      if (a > 0) Waypoint(pos: geometry[a].pos),
+      if (b < last) Waypoint(pos: geometry[b].pos),
+    ]);
+    return leg + window;
   }
 
   /// Keeps the router off the stretch of the route on the map from [fromM]
@@ -213,15 +330,36 @@ class PlannerController extends _$PlannerController {
   /// near it is routed again around it, and every leg routed from now on
   /// keeps off it too. One undo step.
   ///
+  /// In a line the router did not draw only the stretch around the area is
+  /// routed again ([_openWindow]); a round trip with only its start is
+  /// anchored to its line first ([_anchorToLine]).
+  ///
   /// `false` when there is no route on the map, and nothing changed.
   bool avoidArea(AvoidArea area) {
-    final route = state.result;
-    if (route == null || !state.isRoutable) return false;
+    if (!canChangeAlongRoute(state)) return false;
     _pushUndo();
+    _anchorToLine();
+    final route = state.result!;
+    final waypoints = [...state.waypoints];
+    final legs = [...state.planLegs];
+    final near = _nearArea(route, legs.length, area);
+    // From the last leg back, so a leg cut in pieces moves none still to do.
+    for (var i = legs.length - 1; i >= 0; i--) {
+      final reach = near[i];
+      if (reach == null) continue;
+      final leg = legs[i];
+      if (leg != null && leg.kept) {
+        final open = _openWindow(waypoints, legs, i, reach.$1, reach.$2);
+        legs[open] = null;
+      } else {
+        legs[i] = null;
+      }
+    }
     state = state.copyWith(
       avoid: [...state.avoid, area],
       alternatives: const <RouteResult>[],
-      legs: _legsNear(route, area),
+      waypoints: normalizeWaypointKinds(waypoints),
+      legs: legs,
     );
     _scheduleRoute();
     return true;
@@ -240,34 +378,39 @@ class PlannerController extends _$PlannerController {
     _scheduleRoute();
   }
 
-  /// [PlannerState.planLegs] with every leg of [route] that comes within
-  /// reach of one of [area]'s circles marked to be routed again; all of
-  /// them when the route's legs are not known.
-  List<RouteLeg?> _legsNear(RouteResult route, AvoidArea area) {
-    final legs = [...state.planLegs];
-    if (route is! PlannedRoute || route.legStarts.length != legs.length) {
-      return List<RouteLeg?>.filled(legs.length, null);
+  /// For each of the [count] legs of [route], where along it (from, to, in
+  /// metres) it comes within reach of one of [area]'s circles, or `null`
+  /// where it does not; every leg whole when the route's legs are not known.
+  List<(double, double)?> _nearArea(
+    RouteResult route,
+    int count,
+    AvoidArea area,
+  ) {
+    if (route is! PlannedRoute || route.legStarts.length != count) {
+      return List<(double, double)?>.filled(count, (0, double.infinity));
     }
     final track = route.positions;
-    for (var i = 0; i < legs.length; i++) {
-      final end = i + 1 < legs.length
-          ? route.legStarts[i + 1]
-          : track.length - 1;
-      final leg = track.sublist(route.legStarts[i], end + 1);
-      if (leg.length < 2) continue;
-      final cumulative = cumulativeDistancesMeters(leg);
-      final near = area.nogos.any(
-        (nogo) =>
-            projectOnTrack(
-              leg,
-              nogo.center,
-              cumulative: cumulative,
-            ).distanceM <=
-            nogo.radiusM + avoidRadiusM,
-      );
-      if (near) legs[i] = null;
-    }
-    return legs;
+    return [
+      for (var i = 0; i < count; i++)
+        () {
+          final end = i + 1 < count ? route.legStarts[i + 1] : track.length - 1;
+          final leg = track.sublist(route.legStarts[i], end + 1);
+          if (leg.length < 2) return null;
+          final cumulative = cumulativeDistancesMeters(leg);
+          (double, double)? reach;
+          for (final nogo in area.nogos) {
+            final on = projectOnTrack(leg, nogo.center, cumulative: cumulative);
+            if (on.distanceM > nogo.radiusM + avoidRadiusM) continue;
+            reach = reach == null
+                ? (on.alongM, on.alongM)
+                : (
+                    math.min(reach.$1, on.alongM),
+                    math.max(reach.$2, on.alongM),
+                  );
+          }
+          return reach;
+        }(),
+    ];
   }
 
   /// [PlannerState.planLegs] with every leg of [route] that runs between

@@ -163,6 +163,7 @@ Future<_Setup> _setup(
   AiConsent? consent = AiConsent.textOnly,
   Map<String, Object> prefs = const <String, Object>{},
   Object? digestError,
+  RouteDigest digest = _digest,
 }) async {
   SharedPreferences.setMockInitialValues(<String, Object>{
     if (consent != null) aiConsentPrefsKey: consent.name,
@@ -177,7 +178,7 @@ Future<_Setup> _setup(
   );
   final backend = _LineBackend();
   final digests = FakeRouteDigestService(
-    digest: digestError == null ? _digest : null,
+    digest: digestError == null ? digest : null,
     error: digestError,
   );
   final container = ProviderContainer(
@@ -367,6 +368,93 @@ void main() {
       s.planner.undo();
       s.planner.undo();
       expect(s.plan.positions, <LatLng>[_a, _b, _c]);
+    });
+
+    testWidgets('a finding that names a place but came without a fix still '
+        'offers the stop there', (tester) async {
+      final s = await _setup(
+        tester,
+        findings: const [
+          RouteFinding(
+            kind: FindingKind.food,
+            text: 'Café am Weg, 30 m off the route.',
+            placeId: 'p2',
+          ),
+        ],
+      );
+      await s.advice.ask('Coffee?');
+      expect(s.state.advice!.findings.single.fix, const AddStopFix('p2'));
+      expect(s.advice.apply(0), isTrue);
+      expect(s.plan.waypoints[2].name, 'Café am Weg');
+      await _settle(tester);
+    });
+
+    testWidgets('the same course handed out as a new result still puts a '
+        'stop at its distance along the route asked about', (tester) async {
+      // Where the route passes it, 10 km in, is not where it lies nearest
+      // the line, by the tap at 3 km.
+      const digest = RouteDigest(
+        loop: false,
+        places: [
+          DigestPlace(
+            id: 'p1',
+            kind: 'cafe',
+            name: 'Kiosk',
+            km: 10,
+            offM: 30,
+            at: DigestPoint(lat: 48.0003, lon: 11.0403),
+          ),
+        ],
+      );
+      final s = await _setup(
+        tester,
+        digest: digest,
+        findings: const [
+          RouteFinding(
+            kind: FindingKind.food,
+            text: 'A kiosk.',
+            placeId: 'p1',
+            fix: AddStopFix('p1'),
+          ),
+        ],
+      );
+      await s.advice.ask('Coffee?');
+      final asked = s.plan.result!;
+      s.planner.loadComputedRoute(
+        result: RouteResult(
+          geometry: [...asked.geometry],
+          lengthM: asked.lengthM,
+          ascentM: asked.ascentM,
+          descentM: asked.descentM,
+          messages: const [],
+          raw: const <String, dynamic>{},
+        ),
+        waypoints: s.plan.waypoints,
+        options: s.plan.options,
+      );
+      expect(s.state.advice, isNotNull, reason: 'the same plan');
+      expect(s.advice.apply(0), isTrue);
+      expect(s.plan.waypoints[2].name, 'Kiosk');
+      await _settle(tester);
+    });
+
+    test('the same course is the same line, whatever object', () {
+      RouteResult line(List<LatLng> points) => RouteResult(
+        geometry: [for (final p in points) TrackPoint(p)],
+        lengthM: cumulativeDistancesMeters(points).last,
+        ascentM: 0,
+        descentM: 0,
+        messages: const [],
+        raw: const <String, dynamic>{},
+      );
+      final ab = line(const [_a, _b]);
+      expect(sameCourse(ab, line(const [_a, _b])), isTrue);
+      expect(sameCourse(ab, line(const [_a, LatLng(48, 11.05), _b])), isTrue);
+      expect(
+        sameCourse(ab, line(const [_a, LatLng(48.01, 11.05), _b])),
+        isFalse,
+      );
+      expect(sameCourse(ab, line(const [_a, _c])), isFalse);
     });
 
     testWidgets('a fix is applied once', (tester) async {
