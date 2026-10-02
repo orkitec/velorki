@@ -91,6 +91,7 @@ production shape):
 | `OAUTH_REDIRECT_ALLOWLIST` | the exact redirect URIs your build uses |
 | `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` | any OpenAI-compatible endpoint, for the assistant |
 | `LLM_REASONING_EFFORT` | optional `reasoning_effort` for every call (`low` for a model that reasons at its maximum by default) |
+| `LLM_TIMEOUT_S` | how long one AI request may take, retries included (default 90); past it the app is told the AI took too long |
 | `REVENUECAT_SECRET_KEY` | entitlement checks; `REVENUECAT_MODE=stub` leaves the endpoints open, which is the right setting for a fork |
 | `SHARE_DB_PATH` | the share-link SQLite file. It must be on a persistent volume outside the release tree, or every deploy breaks the links already handed out |
 | `COUNTERS` | `orkify` for the shared cross-worker cache, `memory` for a single process |

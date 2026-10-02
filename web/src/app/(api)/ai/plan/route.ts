@@ -74,7 +74,11 @@ export const POST = withApi(async (request, ctx) => {
   return sseResponse({
     requestId: ctx.requestId,
     signal: request.signal,
-    run: async (sse, abortSignal) => {
+    run: async (sse, clientGone) => {
+      // A model that never answers must not leave the rider watching a
+      // spinner: past the deadline the call is cancelled and reported.
+      const deadline = AbortSignal.timeout(config.LLM_TIMEOUT_S * 1000);
+      const abortSignal = AbortSignal.any([clientGone, deadline]);
       try {
         if (body.step === 'plan') {
           const result = await runPlan({
@@ -116,8 +120,19 @@ export const POST = withApi(async (request, ctx) => {
         // as an AbortError. That is the intended shutdown path, not an
         // incident: nobody is left to read an `error` event, and logging it at
         // error level with a stack would bury the real failures.
-        if (abortSignal.aborted) {
+        if (clientGone.aborted) {
           ctx.log.debug({ step: body.step }, 'ai/plan aborted by the client');
+          return;
+        }
+        if (deadline.aborted) {
+          ctx.log.warn(
+            { step: body.step, timeoutS: config.LLM_TIMEOUT_S },
+            'ai/plan ran out of time',
+          );
+          sse.send(
+            'error',
+            new ApiError('upstream_error', 'The AI took too long to answer.').toBody(),
+          );
           return;
         }
         // Once the stream is open the status code is already 200, so failures

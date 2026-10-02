@@ -827,3 +827,29 @@ describe('reasoning effort', () => {
     expect(() => loadConfig({ ...llmEnv, LLM_REASONING_EFFORT: 'lots' })).toThrow();
   });
 });
+
+describe('POST /ai/plan: a model that never answers', () => {
+  it('is cancelled at the deadline and the app is told so', async () => {
+    let cancelled = false;
+    const hanging = new MockLanguageModelV4({
+      modelId: 'mock-hanging-model',
+      doGenerate: async ({ abortSignal }) =>
+        new Promise((_resolve, reject) => {
+          const fail = (): void => {
+            cancelled = true;
+            reject(new DOMException('This operation was aborted', 'AbortError'));
+          };
+          if (abortSignal?.aborted === true) fail();
+          else abortSignal?.addEventListener('abort', fail, { once: true });
+        }),
+    });
+    await withLlm({ LLM_TIMEOUT_S: '0.05' }, { getModel: () => hanging }, async () => {
+      const events = parseSse(await (await call(planBody())).text());
+      expect(cancelled).toBe(true);
+      expect(events.map((e) => e.event)).toEqual(['error']);
+      expect(events[0]?.data).toMatchObject({
+        error: { code: 'upstream_error', message: 'The AI took too long to answer.' },
+      });
+    });
+  });
+});

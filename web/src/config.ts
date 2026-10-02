@@ -123,6 +123,9 @@ const envSchema = z
       (v) => v === undefined || REASONING_EFFORTS.includes(v),
       { message: `must be one of ${REASONING_EFFORTS.join(', ')}` },
     ),
+    LLM_TIMEOUT_S: numberWithDefault(90).refine((v) => v > 0, {
+      message: 'must be greater than 0',
+    }),
     LLM_DAILY_BUDGET_USD: z
       .string()
       .optional()

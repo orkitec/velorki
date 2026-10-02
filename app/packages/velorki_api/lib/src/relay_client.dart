@@ -63,6 +63,7 @@ class RelayClient {
     http.Client? client,
     String? clientId,
     this.appUserId,
+    this.planIdleTimeout = const Duration(seconds: 45),
   }) : _base = _normalizeBase(baseUrl),
        _client = client ?? http.Client(),
        clientId = clientId ?? 'dart/$packageVersion';
@@ -72,6 +73,13 @@ class RelayClient {
 
   /// The RevenueCat app user id sent as a bearer token, when set.
   final String? appUserId;
+
+  /// How long a `/ai/plan` stream may stay silent before it is given up.
+  ///
+  /// The relay writes a keep-alive comment every 20 s and ends a model call
+  /// at its own deadline, so this long without a byte means the connection
+  /// is gone, not that the model is thinking.
+  final Duration planIdleTimeout;
 
   final String _base;
   final http.Client _client;
@@ -257,7 +265,9 @@ class RelayClient {
 
     final http.StreamedResponse response;
     try {
-      response = await _client.send(request);
+      response = await _client.send(request).timeout(planIdleTimeout);
+    } on TimeoutException {
+      throw _silent();
     } on Object catch (e) {
       throw _transportException(e);
     }
@@ -269,7 +279,13 @@ class RelayClient {
       throw _httpException(response.statusCode, text, response.headers);
     }
 
-    await for (final event in parseSse(response.stream)) {
+    final bytes = response.stream.timeout(
+      planIdleTimeout,
+      onTimeout: (sink) => sink
+        ..addError(_silent())
+        ..close(),
+    );
+    await for (final event in parseSse(bytes)) {
       final planEvent = planEventFromSse(event);
       if (planEvent != null) yield planEvent;
     }
@@ -309,6 +325,14 @@ class RelayClient {
   /// `dart:io` would make this package unusable on the web, and an
   /// `http.ClientException` is not the only thing a platform client can throw.
   /// Whatever it is, the caller gets an `unavailable` error instead.
+  /// The relay went quiet for longer than [planIdleTimeout].
+  static RelayException _silent() => const RelayException(
+    RelayError(
+      code: RelayErrorCode.unavailable,
+      message: 'The Velorki relay stopped answering.',
+    ),
+  );
+
   static RelayException _transportException(Object cause) {
     if (cause is RelayException) return cause;
     final detail = cause is http.ClientException ? cause.message : '$cause';
