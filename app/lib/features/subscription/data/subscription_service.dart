@@ -120,10 +120,12 @@ String revenueCatKeyFor(AppConfig config, {required String platform}) =>
 /// a fake and never touch a platform channel.
 final subscriptionServiceProvider = Provider<SubscriptionService>((ref) {
   final config = ref.watch(appConfigProvider);
-  final key = revenueCatKeyFor(config, platform: currentStorePlatform());
+  final platform = currentStorePlatform();
+  final key = revenueCatKeyFor(config, platform: platform);
   if (key.isEmpty) return const NoopSubscriptionService();
   final service = RevenueCatSubscriptionService(
     apiKey: key,
+    platform: platform,
     // The same id the relay authenticates against, so RevenueCat's customer
     // and the `Authorization: Bearer <app_user_id>` the app sends are one
     // and the same subscriber.

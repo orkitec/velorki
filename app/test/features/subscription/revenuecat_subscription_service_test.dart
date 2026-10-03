@@ -6,10 +6,14 @@ import 'package:velorki/features/subscription/domain/plus_subscription.dart';
 
 import 'support/fake_purchases_api.dart';
 
-RevenueCatSubscriptionService _service(FakePurchasesApi api) {
+RevenueCatSubscriptionService _service(
+  FakePurchasesApi api, {
+  String platform = 'android',
+}) {
   final service = RevenueCatSubscriptionService(
     apiKey: 'goog_key',
     appUserId: 'rider-42',
+    platform: platform,
     purchases: api,
   );
   addTearDown(service.dispose);
@@ -25,6 +29,15 @@ Future<SubscriptionException> _failureOf(Future<void> Function() body) async {
   }
   fail('expected a SubscriptionException');
 }
+
+const rc.IntroductoryPrice _weekFree = rc.IntroductoryPrice(
+  0,
+  '€0.00',
+  'P1W',
+  1,
+  rc.PeriodUnit.day,
+  7,
+);
 
 void main() {
   group('fromCustomerInfo', () {
@@ -184,6 +197,48 @@ void main() {
       expect(package.hasFreeTrial, isFalse);
     });
 
+    test('an eligible subscriber keeps the introductory offer', () {
+      final package = fromPackage(
+        packageInfo(introductoryPrice: _weekFree),
+        introEligibility:
+            rc.IntroEligibilityStatus.introEligibilityStatusEligible,
+      );
+
+      expect(package.hasFreeTrial, isTrue);
+    });
+
+    test('an ineligible subscriber sees the plain price', () {
+      final package = fromPackage(
+        packageInfo(introductoryPrice: _weekFree),
+        introEligibility:
+            rc.IntroEligibilityStatus.introEligibilityStatusIneligible,
+      );
+
+      expect(package.introOffer, isNull);
+      expect(package.hasFreeTrial, isFalse);
+      expect(package.priceString, '€2.99');
+    });
+
+    test('an unknown eligibility promises no trial either', () {
+      final package = fromPackage(
+        packageInfo(introductoryPrice: _weekFree),
+        introEligibility:
+            rc.IntroEligibilityStatus.introEligibilityStatusUnknown,
+      );
+
+      expect(package.introOffer, isNull);
+    });
+
+    test('a product without an offer stays without one', () {
+      for (final status in [null, ...rc.IntroEligibilityStatus.values]) {
+        expect(
+          fromPackage(packageInfo(), introEligibility: status).introOffer,
+          isNull,
+          reason: '${status?.name}',
+        );
+      }
+    });
+
     test('the SDK package is carried along so it can be bought again', () {
       final native = packageInfo();
 
@@ -337,6 +392,100 @@ void main() {
       expect(result.packages, hasLength(2));
       expect(result.packages.first.period, PlusPeriod.monthly);
       expect(result.packages.last.priceString, '€24.99');
+    });
+
+    test('Android shows the offers Play returned, without asking', () async {
+      final offering = offeringInfo([
+        packageInfo(introductoryPrice: _weekFree),
+      ]);
+      final api = FakePurchasesApi(
+        offeringsResult: rc.Offerings({'default': offering}, current: offering),
+      );
+
+      final result = await _service(api).offerings();
+
+      expect(api.introEligibilityChecks, isEmpty);
+      expect(result!.packages.single.hasFreeTrial, isTrue);
+    });
+
+    test('iOS keeps only the offers this subscriber can still have', () async {
+      final offering = offeringInfo([
+        packageInfo(productIdentifier: 'plus_monthly'),
+        packageInfo(
+          identifier: r'$rc_annual',
+          productIdentifier: 'plus_annual',
+          packageType: rc.PackageType.annual,
+          introductoryPrice: _weekFree,
+        ),
+        packageInfo(
+          identifier: 'six',
+          productIdentifier: 'plus_six',
+          packageType: rc.PackageType.sixMonth,
+          introductoryPrice: _weekFree,
+        ),
+        packageInfo(
+          identifier: 'three',
+          productIdentifier: 'plus_three',
+          packageType: rc.PackageType.threeMonth,
+          introductoryPrice: _weekFree,
+        ),
+      ]);
+      final api =
+          FakePurchasesApi(
+              offeringsResult: rc.Offerings({
+                'default': offering,
+              }, current: offering),
+            )
+            ..introEligibility = {
+              'plus_annual':
+                  rc.IntroEligibilityStatus.introEligibilityStatusEligible,
+              'plus_six':
+                  rc.IntroEligibilityStatus.introEligibilityStatusIneligible,
+              // plus_three: left out of the answer, which is unknown.
+            };
+
+      final result = await _service(api, platform: 'ios').offerings();
+
+      expect(api.introEligibilityChecks.single, [
+        'plus_annual',
+        'plus_six',
+        'plus_three',
+      ]);
+      final trials = {
+        for (final package in result!.packages)
+          package.id: package.hasFreeTrial,
+      };
+      expect(trials, {
+        r'$rc_monthly': false,
+        r'$rc_annual': true,
+        'six': false,
+        'three': false,
+      });
+    });
+
+    test('iOS does not ask when no package has an offer', () async {
+      final offering = offeringInfo([packageInfo()]);
+      final api = FakePurchasesApi(
+        offeringsResult: rc.Offerings({'default': offering}, current: offering),
+      );
+
+      await _service(api, platform: 'ios').offerings();
+
+      expect(api.introEligibilityChecks, isEmpty);
+    });
+
+    test('a failed eligibility check still shows prices, no trial', () async {
+      final offering = offeringInfo([
+        packageInfo(introductoryPrice: _weekFree),
+      ]);
+      final api = FakePurchasesApi(
+        offeringsResult: rc.Offerings({'default': offering}, current: offering),
+      )..introEligibilityError = PlatformException(code: '10');
+
+      final result = await _service(api, platform: 'ios').offerings();
+
+      expect(result!.packages.single.priceString, '€2.99');
+      expect(result.packages.single.introOffer, isNull);
     });
 
     test('a store without a current offering has nothing to sell', () async {
