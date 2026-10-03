@@ -97,12 +97,15 @@ The same test on an Android emulator, for the screens the Play set uses.
 Start one first: a Pixel 6 profile (1080 × 2400) on a `google_apis` image,
 e.g. an AVD made with `avdmanager create avd -n Velorki_Shots_Android -d
 pixel_6 -k "system-images;android-35;google_apis;arm64-v8a"` and started with
-`emulator -avd Velorki_Shots_Android -gpu swiftshader_indirect`.
+`emulator -avd Velorki_Shots_Android -gpu swangle_indirect` (on Linux,
+`swiftshader_indirect` is the old renderer, under which the map draws no
+labels, icons or dashed lines).
 `VELORKI_STORE_EMULATOR` names its adb serial when more than one runs. Per
 language the script sets the emulator's locale (`adb root`, then a reboot
 when it changes), switches on the hole-punch cutout and gesture navigation,
-and sets SystemUI's demo mode: 9:41, full wifi, a full battery, no
-notifications, and no network at all for the offline shot. The demo mode's
+and the shutter sets SystemUI's demo mode before every shot, checked with
+`dumpsys`: 9:41, full wifi, a full battery, no notification icons, and no
+network at all for the offline shot. The demo mode's
 mobile icon is left out: on API 35 it keeps a stale "3G" and the wrong tint.
 `tool/store_shutter.py --android` answers the test through `adb shell run-as`
 (the request lies in the app's `files/itest/`) and takes the pictures with
@@ -238,7 +241,8 @@ against it, to see which converts better.
 holds `slides/set/` (both sizes, every language, the contact sheets),
 `watch/` and `preview/<locale>/preview.mp4` with its poster. The `ios` and
 `android` inputs choose the sets; `android` runs `--platform android` on an
-API 35 emulator on Ubuntu (integration.yml's setup and caches) into the
+API 35 emulator on Ubuntu (integration.yml's setup and caches, the
+`swangle_indirect` renderer) into the
 artifact `store-assets-android` (`android/slides/set/`). The runner's
 simulator has no GPU and drops frames of the moving map (a third in the
 navigation scene), so the preview for the store is recorded on a Mac with

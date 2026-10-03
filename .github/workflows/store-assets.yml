@@ -342,9 +342,15 @@ jobs:
           profile: pixel_6
           working-directory: app
           force-avd-creation: false
+          # swangle_indirect, not swiftshader_indirect: on Linux the latter is
+          # the old SwiftShader GLES translator, under which the map draws no
+          # labels, icons or dashed lines (everything MapLibre takes from a
+          # texture atlas). On a Mac swiftshader_indirect already means
+          # swangle. -no-snapshot: integration.yml's snapshot was made under
+          # the other renderer.
           emulator-options: >-
-            -no-window -no-snapshot-save -no-audio -no-boot-anim
-            -gpu swiftshader_indirect -camera-back none -camera-front none
+            -no-window -no-snapshot -no-audio -no-boot-anim
+            -gpu swangle_indirect -camera-back none -camera-front none
           disable-animations: true
           # One line: the action runs the script line by line.
           script: tool/store_screenshots.sh --platform android --locales "$LOCALES"

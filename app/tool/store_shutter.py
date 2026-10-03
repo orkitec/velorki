@@ -24,9 +24,11 @@ go on.
 With --android the same handshake runs on an Android emulator: the request
 lies in the app's `files/itest/` (what getApplicationSupportDirectory is
 there), read and answered through `adb shell run-as`, the picture comes from
-`adb exec-out screencap`, and the status bar is SystemUI's demo mode, which
-tool/store_screenshots.sh enters. There is no recording on Android. The script runs until it is killed; tool/store_screenshots.sh starts
-and stops it around each run.
+`adb exec-out screencap`, and the status bar is SystemUI's demo mode, set
+and checked before every picture. There is no recording on Android.
+
+The script runs until it is killed; tool/store_screenshots.sh starts and
+stops it around each run.
 """
 import os
 import re
@@ -138,27 +140,48 @@ class Android:
 
 
 def android_status_bar(serial: str, online: bool) -> None:
-    """SystemUI's demo mode: 9:41, a full battery, no notifications, and full
-    wifi, or no network at all when not [online]. No mobile icon: on the
+    """SystemUI's demo mode: 9:41, a full battery, no notification icons, and
+    full wifi, or no network at all when not [online]. No mobile icon: on the
     images tried (API 35) the demo's mobile icon keeps a stale "3G", misses
-    the bar's tint and ignores a change of level. Each state is set from a
-    fresh demo mode with every value given."""
-    def demo(command: str, *extras: str) -> None:
-        subprocess.run(["adb", "-s", serial, "shell", "am", "broadcast", "-a",
-                        "com.android.systemui.demo", "-e", "command", command, *extras],
-                       check=True, capture_output=True)
+    the bar's tint and ignores a change of level.
 
-    demo("exit")
-    demo("enter")
-    demo("clock", "-e", "hhmm", "0941")
-    demo("battery", "-e", "level", "100", "-e", "plugged", "false")
-    demo("notifications", "-e", "visible", "false")
-    demo("network", "-e", "mobile", "hide")
-    if online:
-        demo("network", "-e", "wifi", "show", "-e", "level", "4", "-e", "fully", "true")
-    else:
-        demo("network", "-e", "wifi", "hide")
-    time.sleep(2.5)
+    Set from a fresh demo mode with every value given, before every picture,
+    and checked with dumpsys: on a CI emulator the demo mode set after boot
+    was gone by the first picture (SystemUI not yet listening, or restarted),
+    and the bar showed the real clock and notifications."""
+    def adb(*args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(["adb", "-s", serial, "shell", *args],
+                              capture_output=True, text=True)
+
+    def demo(command: str, *extras: str) -> None:
+        adb("am", "broadcast", "-a", "com.android.systemui.demo", "-e", "command",
+            command, *extras)
+
+    def in_demo_mode() -> bool:
+        state = adb("dumpsys", "activity", "service", "com.android.systemui").stdout
+        return "isInDemoMode=true" in state
+
+    for attempt in range(1, 6):
+        adb("settings", "put", "global", "sysui_demo_allowed", "1")
+        demo("exit")
+        demo("enter")
+        demo("clock", "-e", "hhmm", "0941")
+        demo("battery", "-e", "level", "100", "-e", "plugged", "false")
+        demo("notifications", "-e", "visible", "false")
+        demo("network", "-e", "mobile", "hide")
+        if online:
+            demo("network", "-e", "wifi", "show", "-e", "level", "4", "-e", "fully", "true")
+        else:
+            demo("network", "-e", "wifi", "hide")
+        # The bar animates the change; a picture taken sooner catches the
+        # icons half way.
+        time.sleep(2.5)
+        if in_demo_mode():
+            return
+        print(f"store_shutter: demo mode not in effect on {serial} (try {attempt})",
+              file=sys.stderr, flush=True)
+        time.sleep(3)
+    raise RuntimeError(f"SystemUI on {serial} never entered demo mode")
 
 
 def main_android(serial: str, out: str) -> int:
@@ -191,14 +214,8 @@ def main_android(serial: str, out: str) -> int:
         elif action in ("record-start", "record-stop"):
             print(f"store_shutter: no recording on Android, skipping {name}", file=sys.stderr)
         else:
-            offline = fields.get("status") == "offline"
-            if offline:
-                device.status_bar(online=False)
-            try:
-                device.screenshot(target + ".png")
-            finally:
-                if offline:
-                    device.status_bar(online=True)
+            device.status_bar(online=fields.get("status") != "offline")
+            device.screenshot(target + ".png")
             print(f"store_shutter: {target}.png", flush=True)
         device.ack(token)
         last = token
