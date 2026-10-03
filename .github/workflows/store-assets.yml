@@ -342,20 +342,20 @@ jobs:
           profile: pixel_6
           working-directory: app
           force-avd-creation: false
-          # swangle_indirect, not swiftshader_indirect: on Linux the latter is
-          # the old SwiftShader GLES translator, under which the map draws no
-          # labels, icons or dashed lines (everything MapLibre takes from a
-          # texture atlas). On a Mac swiftshader_indirect already means
-          # swangle. -no-snapshot: integration.yml's snapshot was made under
-          # the other renderer.
+          # guest: Android renders in software itself. On the runner,
+          # swiftshader_indirect is the old GLES translator, under which the
+          # map draws no labels, icons or dashed lines (everything MapLibre
+          # takes from a texture atlas), and swangle_indirect kills the
+          # emulator half a minute into the capture. -no-snapshot:
+          # integration.yml's snapshot was made under another renderer.
           emulator-options: >-
             -no-window -no-snapshot -no-audio -no-boot-anim
-            -gpu swangle_indirect -feature -Vulkan -camera-back none -camera-front none
+            -gpu guest -camera-back none -camera-front none
           disable-animations: true
           # One line: the action runs the script line by line.
           # The device log is kept for a failed run: the emulator is gone
           # once this step ends.
-          script: tool/store_screenshots.sh --platform android --locales "$LOCALES" || { adb -s emulator-5554 logcat -d > build/logcat.txt; exit 1; }
+          script: tool/store_screenshots.sh --platform android --locales "$LOCALES" || { timeout 60 adb -s emulator-5554 logcat -d > build/logcat.txt; exit 1; }
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
