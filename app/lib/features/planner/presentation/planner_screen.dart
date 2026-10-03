@@ -726,6 +726,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   /// while the last is still sliding out.
   int _assistantSession = 0;
 
+  /// Whether the AI's card of this opening opens all the way.
+  bool _assistantFull = false;
+
   /// How much of the screen's length the AI's card covers, as it reports.
   double _assistantExtent = 0.5;
 
@@ -744,15 +747,21 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
 
   void _openAssistant() {
     if (_assistantOpen || !mounted) return;
+    // Over a plan's card pulled up past its rest the AI's card opens all
+    // the way, its next stop, so that none of the plan's card shows above
+    // it; otherwise at the plan's card's resting height.
+    final full = _sheet.isAttached && _sheet.size > _restingSheetSize + 0.005;
     setState(() {
       _assistantOpen = true;
+      _assistantFull = full;
       _assistantSession++;
     });
     unawaited(_assistantSlide.forward());
-    // Not docked: the AI's card is up, at the plan's card's resting height.
+    // Not docked: the AI's card is up.
     _reportDocked(false);
-    _assistantExtent = _restingSheetSize;
-    _onSheetExtent(_restingSheetSize);
+    final extent = full ? _maxSheetSize : _restingSheetSize;
+    _assistantExtent = extent;
+    _onSheetExtent(extent);
     late final LocalHistoryEntry entry;
     entry = LocalHistoryEntry(
       onRemove: () {
@@ -1159,6 +1168,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                       map: _map,
                       chromeTop: _ownControlsTop,
                       onClose: _closeAssistant,
+                      openFull: _assistantFull,
                       onExtent: (extent) {
                         _assistantExtent = extent;
                         _onSheetExtent(extent);

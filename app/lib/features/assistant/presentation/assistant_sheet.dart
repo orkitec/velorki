@@ -63,6 +63,7 @@ class AssistantSheet extends ConsumerStatefulWidget {
     this.map,
     this.chromeTop = defaultMapControlsTop,
     this.onExtent,
+    this.openFull = false,
   });
 
   /// The planner's map, used to bias the geocoder towards what is on screen
@@ -79,6 +80,11 @@ class AssistantSheet extends ConsumerStatefulWidget {
   /// Called with the share of the screen's length the card covers, as the
   /// planner's sheet reports its extent, for the tab that comes next.
   final ValueChanged<double>? onExtent;
+
+  /// Whether the card opens all the way rather than at rest: over a
+  /// planner's card pulled up past its rest, which would otherwise show
+  /// above it.
+  final bool openFull;
 
   @override
   ConsumerState<AssistantSheet> createState() => _AssistantSheetState();
@@ -765,7 +771,7 @@ class _AssistantSheetState extends ConsumerState<AssistantSheet> {
             onNotification: _sheetMoved,
             child: DraggableScrollableSheet(
               controller: _sheet,
-              initialChildSize: rest,
+              initialChildSize: widget.openFull ? max : rest,
               minChildSize: rest * 0.5,
               maxChildSize: max,
               snap: true,

@@ -1028,4 +1028,73 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  for (final side in <RailSide?>[null, RailSide.right]) {
+    final size = side == null ? _upright : _sideways;
+    final name = side == null ? 'upright' : 'sideways';
+    for (final at in ['rest', 'between', 'full']) {
+      testWidgets('$name, the planner\'s card at $at: the AI card opens over '
+          'all of it, at one of its own stops, and closing leaves the '
+          'planner\'s card where it was', (tester) async {
+        if (side != null) _railOn(tester, side);
+        await _app(tester, size);
+        // How far a box reaches out from the sheets' end of the screen.
+        double reach(Rect r) => switch (side) {
+          null => size.height - r.top,
+          RailSide.right => size.width - r.left,
+          RailSide.left => r.right,
+        };
+        final planSheet = tester.widget<DraggableScrollableSheet>(
+          find.descendant(
+            of: find.byType(PlannerScreen),
+            matching: find.byType(DraggableScrollableSheet),
+          ),
+        );
+        final plan = planSheet.controller!;
+        final rest = plan.size;
+        final length = side == null ? size.height : size.width;
+        if (at != 'rest') {
+          plan.jumpTo(
+            at == 'full' ? sheetMaxExtent : (rest + sheetMaxExtent) / 2,
+          );
+          await tester.pumpAndSettle();
+        }
+        final planRect = tester.getRect(find.byType(DockingSheetShell));
+
+        await _open(tester);
+        final ai = reach(tester.getRect(_surface));
+        // Never a strip of the planner's card above the AI's.
+        expect(ai, greaterThanOrEqualTo(reach(planRect) - 0.5));
+        // At one of its stops: rest, as the planner's card rests, or full.
+        expect(
+          ai,
+          closeTo(at == 'rest' ? rest * length : sheetMaxExtent * length, 0.5),
+        );
+        expect(tester.getRect(find.byType(DockingSheetShell)), planRect);
+        // Nothing of the planner's card is left to tap just beyond the AI
+        // card's top edge: the map is there over a card at rest.
+        final view = tester.renderObject(find.byType(TestMapView));
+        final beyond = switch (side) {
+          null => Offset(size.width / 3, size.height - ai - 4),
+          RailSide.right => Offset(size.width - ai - 4, size.height / 2 + 40),
+          RailSide.left => Offset(ai + 4, size.height / 2 + 40),
+        };
+        final path = tester.hitTestOnBinding(beyond).path;
+        final card = tester.renderObject(find.byType(DockingSheetShell));
+        expect(
+          path.any((e) => e.target == card || _inside(e.target, card)),
+          isFalse,
+        );
+        if (at == 'rest') {
+          expect(path.any((e) => e.target == view), isTrue);
+        }
+
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+        expect(find.byType(AssistantSheet), findsNothing);
+        expect(tester.getRect(find.byType(DockingSheetShell)), planRect);
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
 }
