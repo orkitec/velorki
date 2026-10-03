@@ -87,6 +87,52 @@ Output, git-ignored, under `app/build/store_screenshots/`:
 - `slides/set/<size>/<locale>/NN-<slide>.png`, the set to upload
 - `slides/set/contact-<locale>.png`, the set side by side
 
+## Google Play
+
+```
+app/tool/store_screenshots.sh --platform android [--locales en,de] [--themes light,dark]
+```
+
+The same test on an Android emulator, for the screens the Play set uses.
+Start one first: a Pixel 6 profile (1080 × 2400) on a `google_apis` image,
+e.g. an AVD made with `avdmanager create avd -n Velorki_Shots_Android -d
+pixel_6 -k "system-images;android-35;google_apis;arm64-v8a"` and started with
+`emulator -avd Velorki_Shots_Android -gpu swiftshader_indirect`.
+`VELORKI_STORE_EMULATOR` names its adb serial when more than one runs. Per
+language the script sets the emulator's locale (`adb root`, then a reboot
+when it changes), switches on the hole-punch cutout and gesture navigation,
+and sets SystemUI's demo mode: 9:41, full wifi, a full battery, no
+notifications, and no network at all for the offline shot. The demo mode's
+mobile icon is left out: on API 35 it keeps a stale "3G" and the wrong tint.
+`tool/store_shutter.py --android` answers the test through `adb shell run-as`
+(the request lies in the app's `files/itest/`) and takes the pictures with
+`adb exec-out screencap`. The mirror is reached as `10.0.2.2`. No watch, Lock
+Screen or preview.
+
+`app/tool/store_slides.py --platform android` lays the slides out at
+1242 × 2484, the phone frame taking the capture's shape. The set is
+`app/store/slide_set_android.json` (eight slides, no watch or Lock Screen); a
+slide's `android` object in `slides_<lang>.json` overrides its copy there
+(the plan's subline names no phone). Beside the set it makes the 1024 × 500
+feature graphic (the brand line and `feature.headline` over the dark plan)
+and a 512 × 512 icon from the app icon, and fails on a PNG Play would refuse.
+
+What Play wants: 2 to 8 phone screenshots per language, PNG or JPEG without
+alpha, each side 320 to 3840 px, the long side at most twice the short one,
+up to 8 MB each; a 1024 × 500 feature graphic; a 512 × 512 icon.
+
+Output, git-ignored, under `app/build/store_screenshots/android/`:
+
+- `raw/<theme>/<locale>/<screen>.png`, 1080 × 2400
+- `slides/<style>/android/<locale>/<slide>.png`, every slide in both styles
+- `slides/set/<locale>/NN-<slide>.png` and `feature-graphic.png`, to upload
+- `slides/set/contact-<locale>.png` and `slides/set/icon-512.png`
+
+Uploading is by hand for now, in the Play Console under the store listing,
+per language: the set as phone screenshots in file order, the feature
+graphic and the icon. An upload from CI (fastlane `supply`) comes once the
+app has a Play account.
+
 ## Preview video
 
 ```
@@ -190,7 +236,10 @@ against it, to see which converts better.
 → Run workflow), runs `store_screenshots.sh` for the `locales` given, and with
 `preview` the preview too, on a macOS runner. The artifact `store-assets`
 holds `slides/set/` (both sizes, every language, the contact sheets),
-`watch/` and `preview/<locale>/preview.mp4` with its poster. The runner's
+`watch/` and `preview/<locale>/preview.mp4` with its poster. The `ios` and
+`android` inputs choose the sets; `android` runs `--platform android` on an
+API 35 emulator on Ubuntu (integration.yml's setup and caches) into the
+artifact `store-assets-android` (`android/slides/set/`). The runner's
 simulator has no GPU and drops frames of the moving map (a third in the
 navigation scene), so the preview for the store is recorded on a Mac with
 `--preview`; `preview` stays off unless asked for.

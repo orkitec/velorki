@@ -3,6 +3,7 @@
 
     tool/store_slides.py [--locales en,de] [--sizes 6.9,6.5]
                          [--shots same|light|dark] [--watch DIR]
+    tool/store_slides.py --platform android [--locales en,de]
 
 Each slide is an HTML page at the target resolution, laid out in vw so one
 page serves every size, and photographed by headless Chrome. The look is the
@@ -35,6 +36,19 @@ Input:  build/store_screenshots/raw/<theme>/<locale>/<screen>.png (and
 Output: build/store_screenshots/slides/<style>/<size>/<locale>/<slide>.png
         build/store_screenshots/slides/set/<size>/<locale>/NN-<slide>.png
         build/store_screenshots/slides/set/contact-<locale>.png
+
+--platform android makes the Google Play set from the Android captures, at
+1242x2484 (Play wants the long side at most twice the short one, and PNGs
+without alpha): the set is store/slide_set_android.json, a slide's
+`android` object in slides_<locale>.json overrides its copy there, and
+beside the set go the 1024x500 feature graphic (the `feature` headline over
+the plan) and the 512x512 icon.
+Input:  build/store_screenshots/android/raw/<theme>/<locale>/<screen>.png
+Output: build/store_screenshots/android/slides/<style>/android/<locale>/<slide>.png
+        build/store_screenshots/android/slides/set/<locale>/NN-<slide>.png
+        build/store_screenshots/android/slides/set/<locale>/feature-graphic.png
+        build/store_screenshots/android/slides/set/contact-<locale>.png
+        build/store_screenshots/android/slides/set/icon-512.png
 """
 import argparse
 import datetime
@@ -59,6 +73,7 @@ CHROME = os.environ.get(
 )
 
 SIZES = {"6.9": (1320, 2868), "6.5": (1284, 2778)}
+ANDROID_SIZES = {"android": (1242, 2484)}
 
 # The website's tokens (web/src/app/globals.css), per style.
 STYLES = {
@@ -236,8 +251,10 @@ def turn_symbol(name: str) -> str:
     return SYMBOLS["straight"] if name else SYMBOLS["bicycle"]
 
 
-def contours() -> str:
-    """Nested, slightly irregular closed curves, like a height map."""
+def contours(height: float = 217) -> str:
+    """Nested, slightly irregular closed curves, like a height map, on a
+    ground [height] per cent as high as it is wide."""
+    squash = 0.46 if height == 217 else 0.46 * 217 / height
     paths = []
     for cx, cy, rings in [(0.15, 0.12, 9), (0.92, 0.38, 8), (0.3, 0.95, 10)]:
         for r in range(1, rings + 1):
@@ -246,11 +263,11 @@ def contours() -> str:
                 a = i / 72 * 2 * math.pi
                 wobble = 1 + 0.08 * math.sin(3 * a + r) + 0.05 * math.cos(5 * a - r)
                 rad = r * 0.055 * wobble
-                pts.append((cx + rad * math.cos(a), cy + rad * math.sin(a) * 0.46))
-            d = "M" + " L".join(f"{x * 100:.2f} {y * 217:.2f}" for x, y in pts) + " Z"
+                pts.append((cx + rad * math.cos(a), cy + rad * math.sin(a) * squash))
+            d = "M" + " L".join(f"{x * 100:.2f} {y * height:.2f}" for x, y in pts) + " Z"
             paths.append(f'<path d="{d}"/>')
     return (
-        '<svg class="topo" viewBox="0 0 100 217" preserveAspectRatio="none">'
+        f'<svg class="topo" viewBox="0 0 100 {height:g}" preserveAspectRatio="none">'
         + "".join(paths)
         + "</svg>"
     )
@@ -266,6 +283,25 @@ def rich(text: str) -> str:
 
 def url(path: str) -> str:
     return "file://" + os.path.abspath(path)
+
+
+def png_size(path: str) -> tuple[int, int] | None:
+    """Width and height from a PNG's header."""
+    try:
+        with open(path, "rb") as f:
+            head = f.read(24)
+    except OSError:
+        return None
+    if head[:8] != b"\x89PNG\r\n\x1a\n":
+        return None
+    return int.from_bytes(head[16:20], "big"), int.from_bytes(head[20:24], "big")
+
+
+def png_has_alpha(path: str) -> bool:
+    """Whether the PNG's colour type carries alpha (grey or RGB with alpha)."""
+    with open(path, "rb") as f:
+        head = f.read(26)
+    return head[25] in (4, 6)
 
 
 def image_or_missing(path: str) -> str:
@@ -338,8 +374,13 @@ def layer(style: str, text: dict, stage: str, extra_class: str = "", clip: str =
     )
 
 
-def page(w: int, h: int, body: str) -> str:
+def page(w: int, h: int, body: str, shots: list[str] = ()) -> str:
+    """The page around [body]; the phone's screen takes the shape of the
+    first of [shots] there is, the iPhone's when none is."""
     css = (CSS + LOCK_CSS).replace("FONTS", "file://" + FONTS).replace("Wpx", f"{w}px").replace("Hpx", f"{h}px")
+    size = next((png_size(shot) for shot in shots if png_size(shot)), None)
+    if size:
+        css = css.replace("aspect-ratio: 1320 / 2868", f"aspect-ratio: {size[0]} / {size[1]}")
     js = FIT_JS.replace("W *", f"{w} *").replace("H -", f"{h} -")
     return (f'<!doctype html><html><head><meta charset="utf-8"><style>{css}</style></head>'
             f"<body>{body}<script>{js}</script></body></html>")
@@ -368,7 +409,7 @@ def slide_html(layout: str, style: str, text: dict, raw: str, screen: str, theme
                         "split-dark")
                 + f'<svg class="seam" viewBox="0 0 {w} {h}"><line id="seam" x1="{w}" y1="0" x2="0" y2="{h}" '
                   f'stroke="#ffffff" stroke-opacity="0.85" stroke-width="{w * 0.003}"/></svg>')
-        return page(w, h, body), needs
+        return page(w, h, body, needs), needs
     if layout == "lock":
         data = os.path.join(raw, theme, locale, f"{screen}.json")
         needs = [data]
@@ -392,8 +433,8 @@ def slide_html(layout: str, style: str, text: dict, raw: str, screen: str, theme
         # the watch shows the phone's 9:41 the way the phone does.
         clock = '<div class="clock">9:41</div>' if os.path.isfile(face) else ""
         stage = phone + f'<div class="watch"><div class="face">{image_or_missing(face)}{clock}</div></div>'
-        return page(w, h, layer(style, text, stage, "watch-slide")), needs
-    return page(w, h, layer(style, text, phone, brand=brand)), needs
+        return page(w, h, layer(style, text, stage, "watch-slide"), needs), needs
+    return page(w, h, layer(style, text, phone, brand=brand), needs), needs
 
 
 def photograph(page_file: str, target: str, w: int, h: int, work: str,
@@ -454,17 +495,87 @@ def load_json(path: str):
         return json.load(f)
 
 
+# The Play feature graphic, 1024x500: the brand line and the headline on the
+# left, the plan in the phone frame on the right, running off the bottom edge.
+FEATURE_CSS = """
+.feature .fcopy { position: absolute; left: 6.5vw; top: 0; bottom: 0; width: 54vw; display: flex;
+  flex-direction: column; justify-content: center; }
+.feature .brand { gap: 1.6vw; margin-bottom: 2.6vw; }
+.feature .brand img { width: 4.8vw; height: 4.8vw; }
+.feature .brand span { font-size: 4.6vw; }
+.feature h1 { font-size: 7.6vw; margin: 0; }
+.feature .phone { left: auto; right: 7vw; top: 5.5vw; width: 25vw; translate: none; padding: 0.75vw;
+  border-radius: 4vw; box-shadow: 0 0 0 0.12vw rgb(255 255 255 / 0.10), 0 3vw 6vw -2vw rgb(0 0 0 / 0.7),
+  0 0 8vw -3vw var(--glow); }
+.feature .screen { border-radius: 3.2vw; }
+"""
+
+FEATURE_JS = """
+document.fonts.ready.then(() => {
+  const h = document.querySelector('h1');
+  let size = parseFloat(getComputedStyle(h).fontSize);
+  while (h.scrollHeight > parseFloat(getComputedStyle(h).lineHeight) * 2 + 1 && size > W * 0.05) {
+    size -= 1;
+    h.style.fontSize = size + 'px';
+  }
+});
+"""
+
+
+def feature_html(headline: str, shot: str, w: int, h: int) -> str:
+    """The feature graphic: always the dark style, with the dark plan."""
+    tokens = ";".join(f"--{k}:{v}" for k, v in STYLES["dark"].items())
+    size = png_size(shot) or (1080, 2400)
+    css = (CSS + FEATURE_CSS).replace("FONTS", "file://" + FONTS).replace("Wpx", f"{w}px") \
+        .replace("Hpx", f"{h}px").replace("aspect-ratio: 1320 / 2868", f"aspect-ratio: {size[0]} / {size[1]}")
+    body = (
+        f'<div class="layer feature" style="{tokens}"><div class="aurora"></div>'
+        f"{contours(100 * h / w)}"
+        f'<div class="fcopy">{brand_line()}<h1>{rich(headline)}</h1></div>'
+        f'<div class="phone"><div class="screen">{image_or_missing(shot)}</div></div></div>'
+    )
+    return (f'<!doctype html><html><head><meta charset="utf-8"><style>{css}</style></head>'
+            f'<body>{body}<script>{FEATURE_JS.replace("W *", f"{w} *")}</script></body></html>')
+
+
+def icon_html(size: int) -> str:
+    """The app icon, square: the store rounds it."""
+    return ('<!doctype html><html><head><style>html,body{margin:0;width:100%;height:100%;'
+            f'overflow:hidden}}img{{display:block;width:{size}px;height:{size}px}}</style></head>'
+            f'<body><img src="file://{APP_ICON}"></body></html>')
+
+
+def check_play_png(path: str, w: int, h: int) -> list[str]:
+    """What Google Play would refuse in [path]: another size, an alpha
+    channel, or more than 8 MB."""
+    problems = []
+    if png_size(path) != (w, h):
+        problems.append(f"{path}: {png_size(path)}, not {w}x{h}")
+    if png_has_alpha(path):
+        problems.append(f"{path}: has an alpha channel")
+    if os.path.getsize(path) >= 8 * 1024 * 1024:
+        problems.append(f"{path}: 8 MB or more")
+    return problems
+
+
 def main() -> int:
+    global TOPO
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument("--platform", default="ios", choices=["ios", "android"])
     parser.add_argument("--locales", help="comma-separated; default: every slides_*.json")
-    parser.add_argument("--sizes", default=",".join(SIZES))
+    parser.add_argument("--sizes", help="default: every size of the platform")
     parser.add_argument("--shots", default="same", choices=["same", "light", "dark"],
                         help="which app theme each style shows")
-    parser.add_argument("--raw", default=os.path.join(BUILD, "raw"))
+    parser.add_argument("--raw")
     parser.add_argument("--watch", default=os.path.join(BUILD, "watch"),
                         help="the watch screenshots, <theme>/<locale>/riding.png")
-    parser.add_argument("--out", default=os.path.join(BUILD, "slides"))
+    parser.add_argument("--out")
     args = parser.parse_args()
+    android = args.platform == "android"
+    build = os.path.join(BUILD, "android") if android else BUILD
+    raw = args.raw or os.path.join(build, "raw")
+    out = args.out or os.path.join(build, "slides")
+    known = ANDROID_SIZES if android else SIZES
 
     if not os.access(CHROME, os.X_OK):
         print(f"store_slides: no Chrome at {CHROME}; install Google Chrome or set CHROME "
@@ -476,71 +587,104 @@ def main() -> int:
         locales = sorted(
             m.group(1) for m in (re.match(r"slides_(.+)\.json$", n) for n in os.listdir(STORE)) if m
         )
-    sizes = args.sizes.split(",")
+    sizes = (args.sizes or ",".join(known)).split(",")
     for name in sizes:
-        if name not in SIZES:
+        if name not in known:
             print(f"store_slides: unknown size {name!r}", file=sys.stderr)
             return 2
+    if android:
+        w, h = known[sizes[0]]
+        TOPO = contours(100 * h / w)
+
+    def set_folder(size: str, locale: str) -> str:
+        # Play has one phone size, so its set goes by language alone.
+        return os.path.join(out, "set", locale) if android else os.path.join(out, "set", size, locale)
+
+    def copy_of(copy: dict, slide: str):
+        text = copy.get(slide)
+        if text is not None and android:
+            text = {**text, **text.get("android", {})}
+        return text
 
     english = load_json(os.path.join(STORE, "slides_en.json"))
-    chosen = load_json(os.path.join(STORE, "slide_set.json"))
+    chosen = load_json(os.path.join(STORE, "slide_set_android.json" if android else "slide_set.json"))
     missing = set()
+    problems = []
     made = 0
     with tempfile.TemporaryDirectory() as work:
         for locale in locales:
             copy = load_json(os.path.join(STORE, f"slides_{locale}.json"))
             for entry in chosen:
                 slide = entry["slide"]
-                text = copy.get(slide)
+                text = copy_of(copy, slide)
                 if text is None:
                     print(f"store_slides: warning: {locale} has no {slide}; using English")
-                    text = english[slide]
+                    text = copy_of(english, slide)
                 styles = ["split"] if entry["layout"] == "split" else ["dark", "light"]
                 for style in styles:
                     theme = style if args.shots == "same" else args.shots
                     for size in sizes:
-                        w, h = SIZES[size]
-                        markup, needs = slide_html(entry["layout"], style, text, args.raw,
+                        w, h = known[size]
+                        markup, needs = slide_html(entry["layout"], style, text, raw,
                                                    entry["screen"], theme, locale, args.watch, w, h,
                                                    brand=entry.get("brand", False))
                         absent = [n for n in needs if not os.path.isfile(n)]
                         if absent:
                             missing.update(absent)
                             continue
-                        render(markup, os.path.join(args.out, style, size, locale, f"{slide}.png"),
-                               w, h, work)
+                        target = os.path.join(out, style, size, locale, f"{slide}.png")
+                        render(markup, target, w, h, work)
+                        if android:
+                            problems += check_play_png(target, w, h)
                         made += 1
 
             # The set: the chosen style of each slide, numbered in order.
             for size in sizes:
-                folder = os.path.join(args.out, "set", size, locale)
+                folder = set_folder(size, locale)
                 if os.path.isdir(folder):
                     shutil.rmtree(folder)
                 os.makedirs(folder)
                 for n, entry in enumerate(chosen, 1):
-                    source = os.path.join(args.out, entry["style"], size, locale, f"{entry['slide']}.png")
+                    source = os.path.join(out, entry["style"], size, locale, f"{entry['slide']}.png")
                     if os.path.isfile(source):
                         shutil.copyfile(source, os.path.join(folder, f"{n:02d}-{entry['slide']}.png"))
-            # The contact sheet: the 6.9" set small, side by side.
-            folder = os.path.join(args.out, "set", sizes[0], locale)
-            images = "".join(
-                f'<img src="{url(os.path.join(folder, n))}">' for n in sorted(os.listdir(folder))
-            )
+            # The contact sheet: the first size's set small, side by side.
+            folder = set_folder(sizes[0], locale)
+            shots = sorted(n for n in os.listdir(folder) if re.match(r"\d\d-", n))
+            images = "".join(f'<img src="{url(os.path.join(folder, n))}">' for n in shots)
             sheet = (
                 '<!doctype html><html><head><style>html,body{margin:0;background:#6b7078}'
                 'body{display:flex;gap:16px;padding:24px;width:max-content}'
                 'img{width:300px;border-radius:14px;display:block}</style></head>'
                 f"<body>{images}</body></html>"
             )
-            count = len(os.listdir(folder))
-            render(sheet, os.path.join(args.out, "set", f"contact-{locale}.png"),
-                   48 + count * 300 + max(0, count - 1) * 16, 48 + 652, work)
+            count = len(shots)
+            w, h = known[sizes[0]]
+            render(sheet, os.path.join(out, "set", f"contact-{locale}.png"),
+                   48 + count * 300 + max(0, count - 1) * 16, 48 + round(300 * h / w), work)
+
+            if android:
+                feature = copy.get("feature") or english["feature"]
+                plan = os.path.join(raw, "dark", locale, "plan.png")
+                if not os.path.isfile(plan):
+                    missing.add(plan)
+                else:
+                    target = os.path.join(folder, "feature-graphic.png")
+                    render(feature_html(feature["headline"], plan, 1024, 500), target, 1024, 500, work)
+                    problems += check_play_png(target, 1024, 500)
+        if android:
+            render(icon_html(512), os.path.join(out, "set", "icon-512.png"), 512, 512, work)
     if missing:
         print("store_slides: missing input, those slides were skipped:", file=sys.stderr)
         for path in sorted(missing):
             print(f"  {path}", file=sys.stderr)
         return 1
-    print(f"store_slides: {made} slides in {args.out}")
+    if problems:
+        print("store_slides: Google Play would refuse:", file=sys.stderr)
+        for problem in problems:
+            print(f"  {problem}", file=sys.stderr)
+        return 1
+    print(f"store_slides: {made} slides in {out}")
     return 0
 
 

@@ -2,8 +2,9 @@ name: store assets
 
 # The App Store screenshots, the watch shots and the preview videos, made by
 # app/tool/store_screenshots.sh on an iOS simulator exactly as on the Mac, and
-# on request uploaded to an App Store version. Started by hand only; see
-# docs/STORE_ASSETS.md.
+# on request uploaded to an App Store version; and the Google Play set (`android`),
+# made by the same script on an Android emulator, as an artifact only. Started
+# by hand only; see docs/STORE_ASSETS.md.
 #
 # `assets` needs no secrets and runs from any ref. `upload` runs in the
 # `release` environment, which admits only `v*` tags and waits for the
@@ -17,6 +18,14 @@ on:
         description: Languages, comma-separated
         type: string
         default: en,de
+      ios:
+        description: The App Store set (iOS simulator)
+        type: boolean
+        default: true
+      android:
+        description: The Google Play set (Android emulator)
+        type: boolean
+        default: true
       # The runner's simulator has no GPU and drops frames of the moving map;
       # the preview for the store is recorded on a Mac (docs/STORE_ASSETS.md).
       preview:
@@ -48,6 +57,7 @@ env:
 
 jobs:
   assets:
+    if: ${{ inputs.ios }}
     runs-on: macos-15
     # Each language is its own capture with a simulator reboot, and the
     # preview records every language again.
@@ -177,7 +187,7 @@ jobs:
 
   upload:
     needs: assets
-    if: ${{ inputs.upload && startsWith(github.ref, 'refs/tags/v') }}
+    if: ${{ inputs.ios && inputs.upload && startsWith(github.ref, 'refs/tags/v') }}
     # macOS for sips, which the staging script uses.
     runs-on: macos-15
     timeout-minutes: 45
@@ -225,3 +235,127 @@ jobs:
       - name: Remove the key
         if: ${{ always() }}
         run: rm -f "$RUNNER_TEMP"/AuthKey_*.p8
+
+  # The Google Play set on the emulator integration.yml runs (API 35, Pixel 6
+  # profile), with its system image step and, read only, its Gradle and AVD
+  # caches. No upload yet: the set is taken from the artifact by hand.
+  android:
+    if: ${{ inputs.android }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      API_LEVEL: "35"
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      # store_slides.py drives headless Chrome, which the image ships. Ubuntu
+      # keeps unprivileged user namespaces from AppArmor-confined programs,
+      # which Chrome's sandbox needs.
+      - name: Chrome
+        run: |
+          chrome="$(command -v google-chrome)"
+          [ -n "$chrome" ] || { echo "::error::no google-chrome on the runner"; exit 1; }
+          "$chrome" --version
+          echo "CHROME=$chrome" >> "$GITHUB_ENV"
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+
+      - name: Restore the Gradle caches
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: >-
+            gradle-itest-${{ env.API_LEVEL }}-${{
+            hashFiles('app/android/**/*.gradle*', 'app/pubspec.lock') }}
+          restore-keys: |
+            gradle-itest-${{ env.API_LEVEL }}-
+
+      - name: Prepare the app package
+        working-directory: app
+        run: |
+          flutter pub get
+          dart run build_runner build
+          flutter gen-l10n
+
+      # As in integration.yml: installed and checked here, so the emulator
+      # action finds it in place.
+      - name: Install the system image
+        id: sysimg
+        run: |
+          sdk="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          pkg="system-images;android-$API_LEVEL;google_apis;x86_64"
+          dir="$sdk/system-images/android-$API_LEVEL/google_apis/x86_64"
+          for try in 1 2 3; do
+            printf 'y\n%.0s' {1..30} \
+              | "$sdk/cmdline-tools/latest/bin/sdkmanager" --install "$pkg" || true
+            if [ -s "$dir/system.img" ] && [ -f "$dir/package.xml" ]; then
+              revision=$(sed -n 's/.*<major>\([0-9]*\)<\/major>.*/\1/p' "$dir/package.xml" | head -n 1)
+              echo "revision=${revision:-0}" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "==> $pkg did not install cleanly (try $try of 3); fetching it again"
+            rm -rf "$dir" "$sdk/.temp"
+            sleep 20
+          done
+          echo "::error::$pkg could not be installed"
+          exit 1
+
+      # integration.yml's AVD and snapshot, under its key; on a miss the
+      # emulator action creates the AVD and boots it cold.
+      - name: Restore the AVD
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ env.API_LEVEL }}-x86_64-google_apis-pixel_6-r${{ steps.sysimg.outputs.revision }}
+
+      - name: Screenshots and slides
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        env:
+          LOCALES: ${{ inputs.locales }}
+          VELORKI_STORE_START_TIMEOUT: "1500"
+        with:
+          api-level: ${{ env.API_LEVEL }}
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          working-directory: app
+          force-avd-creation: false
+          emulator-options: >-
+            -no-window -no-snapshot-save -no-audio -no-boot-anim
+            -gpu swiftshader_indirect -camera-back none -camera-front none
+          disable-animations: true
+          # One line: the action runs the script line by line.
+          script: tool/store_screenshots.sh --platform android --locales "$LOCALES"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: store-assets-android
+          path: app/build/store_screenshots/android/slides/set
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Mirror log
+        if: failure()
+        run: cat mirror.log || true

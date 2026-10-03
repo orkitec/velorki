@@ -2,7 +2,10 @@
   "plan": {
     "eyebrow": "Kostenlos & quelloffen",
     "headline": "Fahr dort, wo der **Empfang endet**",
-    "subline": "Planen, routen und navigieren auf dem iPhone, auch offline."
+    "subline": "Planen, routen und navigieren auf dem iPhone, auch offline.",
+    "android": {
+      "subline": "Planen, routen und navigieren auf dem Smartphone, auch offline."
+    }
   },
   "variants": {
     "eyebrow": "Routenplanung",
@@ -48,5 +51,8 @@
     "eyebrow": "Dateien",
     "headline": "Jede Route **kommt mit**",
     "subline": "GPX, FIT und TCX von überall öffnen. Als GPX oder FIT exportieren."
+  },
+  "feature": {
+    "headline": "Fahr dort, wo der **Empfang endet**"
   }
 }

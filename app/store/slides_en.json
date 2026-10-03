@@ -2,7 +2,10 @@
   "plan": {
     "eyebrow": "Free & open source",
     "headline": "Ride where the **signal ends**",
-    "subline": "Plan, route and navigate on your iPhone, even offline."
+    "subline": "Plan, route and navigate on your iPhone, even offline.",
+    "android": {
+      "subline": "Plan, route and navigate on your phone, even offline."
+    }
   },
   "variants": {
     "eyebrow": "Route planning",
@@ -48,5 +51,8 @@
     "eyebrow": "Files",
     "headline": "Bring **any route** along",
     "subline": "Open GPX, FIT and TCX from anywhere. Export to GPX or FIT."
+  },
+  "feature": {
+    "headline": "Ride where the **signal ends**"
   }
 }

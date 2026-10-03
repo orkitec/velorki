@@ -19,6 +19,7 @@
 // through the planner; the plan shot loads a saved route because only a whole
 // route appearing at once makes the planner fit the camera to it.
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -300,17 +301,20 @@ void main() {
       await rideOn(1);
       await takeStoreShot(tester, '$shot/live', hold: Duration.zero);
       // What the Live Activity and the watch show right now, for the slides
-      // that draw them: the same snapshot the live card was built from.
-      await sendStoreData(
-        tester,
-        '$shot/activity',
-        rideActivityData(
-          l10n,
-          UnitSystem.metric,
-          container.read(recordingControllerProvider).snapshot!,
-          bannerProgress(tester),
-        ),
-      );
+      // that draw them: the same snapshot the live card was built from. The
+      // Play set has neither.
+      if (Platform.isIOS) {
+        await sendStoreData(
+          tester,
+          '$shot/activity',
+          rideActivityData(
+            l10n,
+            UnitSystem.metric,
+            container.read(recordingControllerProvider).snapshot!,
+            bannerProgress(tester),
+          ),
+        );
+      }
       // Folded down, the live sheet docks into the figures bar.
       await tester.dragFrom(
         tester.getCenter(

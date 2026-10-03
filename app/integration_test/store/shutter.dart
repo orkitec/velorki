@@ -2,10 +2,11 @@
 ///
 /// A store screenshot has to show the whole screen as a rider sees it: the
 /// status bar, and the map, which is a platform view the in-test screenshot
-/// cannot capture. So the host takes it with `xcrun simctl io screenshot`.
-/// `tool/store_shutter.py` watches the app's container for
-/// `Library/Application Support/itest/shot.txt`, does what it asks, and writes
-/// the request's token to `shot.ack` beside it.
+/// cannot capture. So the host takes it with `xcrun simctl io screenshot`
+/// (on Android `adb exec-out screencap`). `tool/store_shutter.py` watches the
+/// app's support directory for `itest/shot.txt` (`Library/Application
+/// Support/` on iOS, `files/` on Android), does what it asks, and writes the
+/// request's token to `shot.ack` beside it.
 library;
 
 import 'dart:convert';
@@ -24,13 +25,16 @@ import '../support/harness.dart';
 ///
 /// [offline] shows the status bar with no signal at all, for the one picture
 /// that is about riding without one.
+///
+/// [hold] is 4 s by default, 8 s on Android: the emulator draws the map in
+/// software and redraws a changed route line seconds later.
 Future<void> takeStoreShot(
   WidgetTester tester,
   String name, {
-  Duration hold = const Duration(seconds: 4),
+  Duration? hold,
   bool offline = false,
 }) async {
-  await pumpFor(tester, hold);
+  await pumpFor(tester, hold ?? Duration(seconds: Platform.isAndroid ? 8 : 4));
   await _ask(tester, name, <String>[
     'action=shot',
     if (offline) 'status=offline',
