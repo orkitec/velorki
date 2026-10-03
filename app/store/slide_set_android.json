@@ -3,8 +3,8 @@
   { "slide": "variants", "layout": "phone", "screen": "variants", "style": "light" },
   { "slide": "navigation", "layout": "whole", "screen": "navigation", "style": "dark" },
   { "slide": "loops", "layout": "phone", "screen": "loop", "style": "light" },
+  { "slide": "ai", "layout": "whole", "screen": "ai", "style": "light" },
   { "slide": "ride", "layout": "phone", "screen": "ride", "style": "dark" },
-  { "slide": "offline", "layout": "phone", "screen": "offline", "style": "light" },
-  { "slide": "themes", "layout": "split", "screen": "plan", "style": "split" },
+  { "slide": "offline-themes", "layout": "split", "screen": "offline", "style": "split" },
   { "slide": "import", "layout": "phone", "screen": "import", "style": "dark" }
 ]

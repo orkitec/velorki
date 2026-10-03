@@ -23,10 +23,14 @@ app/tool/store_screenshots.sh [--locales en,de] [--themes light,dark] [--shots s
    Max, created on the first run), once per language: the simulator's
    language and region are set, the status bar reads 9:41, and
    `app/integration_test/store/store_screenshots_test.dart` takes every screen
-   the slides use, in each theme: the plan (in the dark theme also in another
-   accent), its variants, a loop, a GPX import, a ride's charts, the library, a
-   route under a status bar with no signal, and a ride under way, once with
-   the live card and once navigating with the figures bar. Everything is on
+   the slides use, in each theme: the plan, its variants, a loop, the AI card
+   with the loop it asked for, a GPX import, a ride's charts, the library, a
+   route under a status bar with no signal (in the dark theme also in another
+   accent), and a ride under way, once with the live card and once navigating
+   with the figures bar. The AI card talks to the relay mocked in the test
+   process (`app/test/support/mock_relay.dart`), with Plus and consent
+   granted and the answer fixed in `demo_data.dart`, so nothing leaves the
+   device. Everything is on
    Madeira and computed on the device from the tile `app/tool/itest_mirror.sh`
    serves. The demo ride is laid along a route the device plans, with a speed
    from the gradient and a heart rate from the effort; the ride under way is
@@ -56,7 +60,7 @@ riding screen; `lock`, the Lock Screen with the ride's Live Activity and the
 expanded Dynamic Island, drawn after `app/ios/VelorkiLiveActivity/` with the
 figures the test saved (the simulator cannot show a Live Activity on its Lock
 Screen); `split`, the same screen light and dark, cut diagonally below the copy, the
-dark half in another accent.
+dark half in another accent (`<screen>-accent.png`, when the capture has one).
 
 watchOS keeps its own clock whatever the simulator's status bar is told, so
 the watch slide paints 9:41 over it, as the phone shows.
@@ -66,15 +70,18 @@ Copy and order live in `app/store/`:
 - `slides_en.json`: per slide an `eyebrow`, a `headline` with the accent
   phrase in `**`, and a `subline`. Other languages are `slides_<lang>.json`
   from Crowdin; a slide missing there falls back to English. A headline that
-  runs past three lines, or a subline past two, shrinks to fit.
+  runs past three lines, or a subline past two, shrinks to fit. A slide
+  showing a Plus feature says so in its copy (`ai`): both stores want paid
+  features marked.
 - `slide_set.json`: the set that is uploaded, in order, and per slide its
-  layout, the screen it shows and its style; `brand` puts the app's icon and
+  layout, the screen it shows and its style (plan, variants, navigation,
+  loops, ai, ride, offline-themes, import, lock-screen, watch); `brand` puts the app's icon and
   name above the eyebrow (slide 01 only). The preview's first caption card
   carries them too. Changing the mix is an edit
   there and `--skip-capture`.
 
 `--until plan` or `--until variants` captures only the screens up to that
-one (the test takes them in the order plan, variants, loop, import, ride,
+one (the test takes them in the order plan, variants, loop, ai, import, ride,
 library, offline, live) and keeps the rest of the last capture.
 
 Output, git-ignored, under `app/build/store_screenshots/`:
@@ -116,7 +123,7 @@ Screen or preview.
 
 `app/tool/store_slides.py --platform android` lays the slides out at
 1242 × 2484, the phone frame taking the capture's shape. The set is
-`app/store/slide_set_android.json` (eight slides, no watch or Lock Screen); a
+`app/store/slide_set_android.json` (the first eight, no Lock Screen or watch); a
 slide's `android` object in `slides_<lang>.json` overrides its copy there
 (the plan's subline names no phone). Beside the set it makes the 1024 × 500
 feature graphic (the brand line and `feature.headline` over the dark plan)

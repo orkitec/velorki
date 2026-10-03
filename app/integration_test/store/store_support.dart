@@ -11,6 +11,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/theme.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
+import 'package:velorki/core/plus/plus_gate.dart';
+import 'package:velorki/features/assistant/data/ai_consent_controller.dart';
+import 'package:velorki/features/assistant/data/place_geocoder.dart';
+import 'package:velorki/features/assistant/domain/ai_consent.dart';
+import 'package:velorki/features/assistant/domain/intent_resolver.dart';
+import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
 import 'package:velorki/features/import_export/application/incoming_import_listener.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
@@ -36,10 +42,14 @@ import 'package:velorki/features/settings/data/appearance_controller.dart';
 import 'package:velorki/features/settings/data/language_controller.dart';
 import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
+import 'package:velorki/features/search/data/gazetteer_store.dart';
+import 'package:velorki/features/search/domain/search_result.dart';
 import 'package:velorki/features/sensors/domain/sensor_snapshot.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+// No Flutter in it: the relay the widget suite mocks, shared with the device.
+import '../../test/support/mock_relay.dart';
 import '../support/fakes.dart';
 import '../support/harness.dart';
 import '../support/tiles.dart';
@@ -50,7 +60,7 @@ const double storeLoopKm = 25;
 
 /// The app as a test left it for the pictures.
 class StoreSession {
-  StoreSession(this.container, this.positions, this.clock);
+  StoreSession(this.container, this.positions, this.clock, this.relay);
 
   /// The app's providers.
   final ProviderContainer container;
@@ -60,6 +70,10 @@ class StoreSession {
 
   /// The recorder's clock and heart rate.
   final RideClock clock;
+
+  /// The relay the app talks to: mocked in the test process, so the AI
+  /// answers the same on every run and nothing leaves the device.
+  final MockRelay relay;
 }
 
 /// Boots the app for the store pictures in [locale] and [mode], with the
@@ -87,9 +101,12 @@ Future<StoreSession> startStoreApp(
   // hour of riding fits in a minute of test and every figure on the live
   // card, the Live Activity and the watch agrees with the others.
   final ride = RideClock();
+  final relay = MockRelay();
   // The loop sheet opens at the distance last asked for.
   final prefs = await SharedPreferences.getInstance();
   await prefs.setDouble('loop.distance_km', storeLoopKm);
+  // The planner opens on the bike last chosen; the pictures want the default.
+  await prefs.remove('planner.profile');
   final container = await pumpApp(
     tester,
     overrides: [
@@ -106,6 +123,19 @@ Future<StoreSession> startStoreApp(
       screenWakeProvider.overrideWithValue(RecordingScreenWake()),
       turnSpeakerProvider.overrideWithValue(FakeTurnSpeaker()),
       recordingRecoveryProvider.overrideWith((ref) async => const NoRecovery()),
+      relayClientProvider.overrideWith((ref) {
+        final client = relay.client();
+        ref.onDispose(client.close);
+        return client;
+      }),
+      // Place names resolve off the region's gazetteer on the device.
+      intentResolverProvider.overrideWith(
+        (ref) => IntentResolver(
+          geocoder: _GazetteerGeocoder(
+            () => ref.read(gazetteerStoreProvider.future),
+          ),
+        ),
+      ),
       recordingServiceProvider.overrideWith((ref) {
         final service = MainIsolateRecordingService(
           store: ref.watch(recordingStoreProvider),
@@ -134,7 +164,34 @@ Future<StoreSession> startStoreApp(
   await navigation.setRerouteMode(RerouteMode.guideBack);
   await container.read(followModeProvider.notifier).select(FollowMode.northUp);
   await pumpFor(tester, const Duration(seconds: 2));
-  return StoreSession(container, positions, ride);
+  return StoreSession(container, positions, ride, relay);
+}
+
+/// Opens the assistant to the rider: Velorki Plus held, consent given, and
+/// the gazetteer that came with the region's tile read.
+Future<void> grantAssistant(
+  WidgetTester tester,
+  ProviderContainer container,
+) async {
+  await (await container.read(gazetteerStoreProvider.future)).refresh();
+  container.read(plusEntitledProvider.notifier).value = true;
+  await container
+      .read(aiConsentControllerProvider.notifier)
+      .set(AiConsent.textOnly);
+  await pumpFor(tester, const Duration(milliseconds: 300));
+}
+
+/// Names resolved by the region's offline gazetteer.
+class _GazetteerGeocoder implements PlaceGeocoder {
+  _GazetteerGeocoder(this.store);
+  final Future<GazetteerStore> Function() store;
+
+  @override
+  Future<List<SearchResult>> lookup(
+    String query, {
+    LatLng? bias,
+    int limit = 5,
+  }) async => (await store()).search(query, near: bias, limit: limit);
 }
 
 /// Empties the library and fills it with the demo routes, the featured one
@@ -257,23 +314,28 @@ Future<void> seedOfflineMap(
 /// Fits [line] between the planner's chrome with room to spare: the planner
 /// fits a loaded route to the edge of what is visible, which leaves the
 /// place names beside its end markers cut off by the screen's edge.
+///
+/// [handle] is the handle of the card the route has to stay above, the
+/// planner's by default.
 Future<void> frameRoute(
   WidgetTester tester,
   ProviderContainer container,
-  List<TrackPoint> line,
-) async {
+  List<TrackPoint> line, {
+  Finder? handle,
+}) async {
   // The planner's own fit goes first; this one lands after it.
   await pumpFor(tester, const Duration(seconds: 2));
   final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
   final chips = tester.getRect(find.byType(ProfileChipRow).first);
   final controls = tester.getRect(find.byType(MapControls).first);
   final sheet = tester.getRect(
-    find
-        .descendant(
-          of: find.byType(PlannerScreen),
-          matching: find.byType(SheetHandle),
-        )
-        .first,
+    handle ??
+        find
+            .descendant(
+              of: find.byType(PlannerScreen),
+              matching: find.byType(SheetHandle),
+            )
+            .first,
   );
   await container
       .read(sharedMapControllerProvider)

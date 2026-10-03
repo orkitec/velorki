@@ -70,6 +70,31 @@ const Map<String, String> rideNames = {
   'de': 'Hinauf nach Camacha',
 };
 
+/// What the rider asks the assistant for on the AI slide, per language.
+const Map<String, String> assistantPrompts = {
+  'en': 'A 40 km gravel loop with a café stop halfway',
+  'de': 'Eine 40-km-Gravel-Runde mit Café-Stopp auf halber Strecke',
+};
+
+/// What the mocked model answers [assistantPrompts] with: a loop from the
+/// rider's position up to Santo António da Serra in the hills east of
+/// Funchal, and back another way, by the coast. `propose_route` as the relay
+/// sends it; the app resolves the name with the region's gazetteer and plans
+/// the loop on the device.
+const Map<String, Object?> assistantAnswer = {
+  'distance_km': 40,
+  'loop': true,
+  'start': {'use_current': true},
+  'via': ['Santo António da Serra'],
+  'surface': 'gravel',
+  'hills': 'neutral',
+  'traffic_tolerance': 'low',
+  'stops': ['cafe'],
+  'profile_hint': 'gravel',
+  'notes': 'Up to a café in Santo António da Serra, back by the coast.',
+  'confidence': 0.9,
+};
+
 /// When the demo ride started: half past nine on the phone's clock, whatever
 /// its time zone.
 final DateTime rideStart = DateTime(2026, 9, 20, 9, 30);
