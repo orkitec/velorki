@@ -22,10 +22,13 @@ on:
         description: The App Store set (iOS simulator)
         type: boolean
         default: true
+      # Off by default: on the runner's software renderer the map draws no
+      # labels, icons or dashed lines, so the Play set for the store is made
+      # on a Mac (docs/STORE_ASSETS.md).
       android:
-        description: The Google Play set (Android emulator)
+        description: The Google Play set (map labels missing on the runner)
         type: boolean
-        default: true
+        default: false
       # The runner's simulator has no GPU and drops frames of the moving map;
       # the preview for the store is recorded on a Mac (docs/STORE_ASSETS.md).
       preview:
