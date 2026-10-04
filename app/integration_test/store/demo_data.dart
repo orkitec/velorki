@@ -26,21 +26,24 @@ class DemoRoute {
   final List<LatLng> waypoints;
 }
 
-/// Velorki Plus as the stores sell it: €34.99 a year with a free week
-/// first, €3.99 a month without one, each price in the format the store
-/// shows in [locale] ("€34.99", "34,99 €").
+/// Velorki Plus as the stores sell it: 34.99 a year with a free week first,
+/// 3.99 a month without one, in the currency of the region the capture runs
+/// in (store_screenshots.sh: en is the United States, so "$34.99"; de is
+/// Germany, so "34,99 €").
 PlusOffering plusOffering(String locale) {
-  final euros = NumberFormat.currency(locale: locale, name: 'EUR', symbol: '€');
+  final money = locale == 'en'
+      ? NumberFormat.currency(locale: 'en_US', name: 'USD', symbol: r'$')
+      : NumberFormat.currency(locale: locale, name: 'EUR', symbol: '€');
   return PlusOffering(
     id: 'default',
     packages: [
       PlusPackage(
         id: r'$rc_annual',
         title: 'Velorki Plus',
-        priceString: euros.format(34.99),
+        priceString: money.format(34.99),
         period: PlusPeriod.annual,
         introOffer: PlusIntroOffer(
-          priceString: euros.format(0),
+          priceString: money.format(0),
           periodUnit: 'day',
           periodCount: 7,
           isFree: true,
@@ -49,7 +52,7 @@ PlusOffering plusOffering(String locale) {
       PlusPackage(
         id: r'$rc_monthly',
         title: 'Velorki Plus',
-        priceString: euros.format(3.99),
+        priceString: money.format(3.99),
         period: PlusPeriod.monthly,
       ),
     ],
