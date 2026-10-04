@@ -35,7 +35,7 @@ with another service:
 • The assistant: describe the ride you want in a sentence and get a route.
 • Share links for routes and rides.
 
-Velorki Plus is offered with a free trial and renews until you cancel it in
+Velorki Plus is offered with a free trial on the yearly plan and renews until you cancel it in
 Google Play. Terms: https://velorki.com/terms
 
 PRIVACY

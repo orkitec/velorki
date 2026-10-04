@@ -143,7 +143,7 @@ mobile icon is left out: on API 35 it keeps a stale "3G" and the wrong tint.
 Screen or preview.
 
 `app/tool/store_slides.py --platform android` lays the slides out at
-1242 × 2484, the phone frame taking the capture's shape. The set is
+1242 × 2208 (9:16), the phone frame taking the capture's shape. The set is
 `app/store/slide_set_android.json` (the first eight, no Lock Screen or watch); a
 slide's `android` object in `slides_<lang>.json` overrides its copy there
 (the plan's subline names no phone). Beside the set it makes the 1024 × 500
@@ -151,7 +151,7 @@ feature graphic (the brand line and `feature.headline` over the dark plan)
 and a 512 × 512 icon from the app icon, and fails on a PNG Play would refuse.
 
 What Play wants: 2 to 8 phone screenshots per language, PNG or JPEG without
-alpha, each side 320 to 3840 px, the long side at most twice the short one,
+alpha, each side 320 to 3840 px, 9:16 portrait,
 up to 8 MB each; a 1024 × 500 feature graphic; a 512 × 512 icon.
 
 Output, git-ignored, under `app/build/store_screenshots/android/`:

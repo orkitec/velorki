@@ -38,7 +38,7 @@ Output: build/store_screenshots/slides/<style>/<size>/<locale>/<slide>.png
         build/store_screenshots/slides/set/contact-<locale>.png
 
 --platform android makes the Google Play set from the Android captures, at
-1242x2484 (Play wants the long side at most twice the short one, and PNGs
+1242x2208 (Play wants 9:16 portrait, each side 320-3840 px, and PNGs
 without alpha): the set is store/slide_set_android.json, a slide's
 `android` object in slides_<locale>.json overrides its copy there, and
 beside the set go the 1024x500 feature graphic (the `feature` headline over
@@ -73,7 +73,7 @@ CHROME = os.environ.get(
 )
 
 SIZES = {"6.9": (1320, 2868), "6.5": (1284, 2778)}
-ANDROID_SIZES = {"android": (1242, 2484)}
+ANDROID_SIZES = {"android": (1242, 2208)}
 
 # The website's tokens (web/src/app/globals.css), per style.
 STYLES = {
