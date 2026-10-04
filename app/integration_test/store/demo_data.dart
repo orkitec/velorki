@@ -9,6 +9,8 @@ library;
 
 import 'dart:math' as math;
 
+import 'package:intl/intl.dart';
+import 'package:velorki/features/subscription/domain/plus_subscription.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -22,6 +24,36 @@ class DemoRoute {
 
   /// Where it is routed through, start first.
   final List<LatLng> waypoints;
+}
+
+/// Velorki Plus as the stores sell it: €34.99 a year with a free week
+/// first, €3.99 a month without one, each price in the format the store
+/// shows in [locale] ("€34.99", "34,99 €").
+PlusOffering plusOffering(String locale) {
+  final euros = NumberFormat.currency(locale: locale, name: 'EUR', symbol: '€');
+  return PlusOffering(
+    id: 'default',
+    packages: [
+      PlusPackage(
+        id: r'$rc_annual',
+        title: 'Velorki Plus',
+        priceString: euros.format(34.99),
+        period: PlusPeriod.annual,
+        introOffer: PlusIntroOffer(
+          priceString: euros.format(0),
+          periodUnit: 'day',
+          periodCount: 7,
+          isFree: true,
+        ),
+      ),
+      PlusPackage(
+        id: r'$rc_monthly',
+        title: 'Velorki Plus',
+        priceString: euros.format(3.99),
+        period: PlusPeriod.monthly,
+      ),
+    ],
+  );
 }
 
 /// Avenida do Mar in Funchal: where the rider stands, and where the plan and

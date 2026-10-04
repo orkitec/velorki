@@ -18,6 +18,7 @@
 // Map taps never reach the native map view from a test, so waypoints go in
 // through the planner; the plan shot loads a saved route because only a whole
 // route appearing at once makes the planner fit the camera to it.
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -25,7 +26,9 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:velorki/app/router.dart';
 import 'package:velorki/app/theme.dart';
+import 'package:velorki/core/plus/plus_gate.dart';
 import 'package:velorki/features/assistant/application/assistant_controller.dart';
 import 'package:velorki/features/assistant/presentation/assistant_sheet.dart';
 import 'package:velorki/features/import_export/data/incoming_file_service.dart';
@@ -42,6 +45,7 @@ import 'package:velorki/features/recording/presentation/ride_charts.dart';
 import 'package:velorki/features/settings/data/appearance_controller.dart';
 import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
+import 'package:velorki/features/subscription/presentation/paywall_screen.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki_gpx/velorki_gpx.dart';
 
@@ -279,6 +283,33 @@ void main() {
         ..setProfile(RouteProfile.trekking);
 
       if (await stopAfter('ai')) return;
+
+      // ---------------------------------------------------------- paywall
+      // Velorki Plus to someone without it, at the stores' prices (see
+      // plusOffering): the top of the page, then its end, with the plans,
+      // Subscribe and the terms.
+      container.read(plusEntitledProvider.notifier).value = false;
+      unawaited(container.read(routerProvider).push(paywallRoute));
+      await waitForWidget(tester, find.byType(PaywallScreen));
+      await pumpFor(tester, const Duration(seconds: 1));
+      await takeStoreShot(tester, '$shot/paywall-top');
+      final paywall = find
+          .descendant(
+            of: find.byType(PaywallScreen),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      // A lazy list knows its end only once it has built it.
+      for (var i = 0; i < 3; i++) {
+        final scroll = tester.state<ScrollableState>(paywall).position;
+        scroll.jumpTo(scroll.maxScrollExtent);
+        await pumpFor(tester, const Duration(milliseconds: 300));
+      }
+      await takeStoreShot(tester, '$shot/paywall-bottom');
+      container.read(routerProvider).pop();
+      await pumpFor(tester, const Duration(seconds: 1));
+
+      if (await stopAfter('paywall')) return;
 
       // ---------------------------------------------------------- import
       final rideRoute = await planRoute(tester, container, rideWaypoints);

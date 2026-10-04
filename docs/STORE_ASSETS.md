@@ -24,13 +24,16 @@ app/tool/store_screenshots.sh [--locales en,de] [--themes light,dark] [--shots s
    language and region are set, the status bar reads 9:41, and
    `app/integration_test/store/store_screenshots_test.dart` takes every screen
    the slides use, in each theme: the plan, its variants, a loop, the AI card
-   with the loop it asked for, a GPX import, a ride's charts, the library, a
+   with the loop it asked for, the paywall at the stores' prices (top and
+   bottom), a GPX import, a ride's charts, the library, a
    route under a status bar with no signal (in the dark theme also in another
    accent), and a ride under way, once with the live card and once navigating
    with the figures bar. The AI card talks to the relay mocked in the test
    process (`app/test/support/mock_relay.dart`), with Plus and consent
    granted and the answer fixed in `demo_data.dart`, so nothing leaves the
-   device. Everything is on
+   device. The paywall's offering is a fake of the stores' (`plusOffering`
+   in `demo_data.dart`: €34.99 a year with a 7-day free trial, €3.99 a month
+   without one, priced in the language's format). Everything is on
    Madeira and computed on the device from the tile `app/tool/itest_mirror.sh`
    serves. The demo ride is laid along a route the device plans, with a speed
    from the gradient and a heart rate from the effort; the ride under way is
@@ -81,8 +84,8 @@ Copy and order live in `app/store/`:
   there and `--skip-capture`.
 
 `--until plan` or `--until variants` captures only the screens up to that
-one (the test takes them in the order plan, variants, loop, ai, import, ride,
-library, offline, live) and keeps the rest of the last capture.
+one (the test takes them in the order plan, variants, loop, ai, paywall,
+import, ride, library, offline, live) and keeps the rest of the last capture.
 
 Output, git-ignored, under `app/build/store_screenshots/`:
 
@@ -93,6 +96,22 @@ Output, git-ignored, under `app/build/store_screenshots/`:
 - `slides/<style>/<size>/<locale>/<slide>.png`, every slide in both styles
 - `slides/set/<size>/<locale>/NN-<slide>.png`, the set to upload
 - `slides/set/contact-<locale>.png`, the set side by side
+
+## Gallery
+
+```
+app/tool/store_gallery.py [--locales en]
+```
+
+Seven landscape images, 2400 × 1600, for pages that want wide pictures (a
+hackathon or press page): the slides' look turned sideways, the copy on the
+left and two phones, the phone with the watch, or a grid of figures on the
+right. The copy is `app/store/gallery_<lang>.json`, which screens each image
+shows is `GALLERY` in the script. It reads the last capture (the paywall
+shots and the watch's `store/1-riding-turn.png` included) and writes
+`app/build/store_screenshots/gallery/<locale>/NN-<name>.{png,jpg}` (JPEG at
+quality 88) and `contact.png`. The figures on `07-built-with-ai` are
+counted by hand; check them before using it again.
 
 ## Google Play
 

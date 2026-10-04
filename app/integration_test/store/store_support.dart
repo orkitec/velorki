@@ -33,6 +33,8 @@ import 'package:velorki/features/navigation/testing/fake_turn_speaker.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
+import 'package:velorki/features/subscription/application/offered_plus_features.dart';
+import 'package:velorki/features/subscription/data/subscription_service.dart';
 import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/recording/data/recording_gateways.dart';
 import 'package:velorki/features/recording/data/recording_recovery.dart';
@@ -49,6 +51,7 @@ import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 // No Flutter in it: the relay the widget suite mocks, shared with the device.
+import '../../test/features/subscription/support/fake_subscription_service.dart';
 import '../../test/support/mock_relay.dart';
 import '../support/fakes.dart';
 import '../support/harness.dart';
@@ -77,7 +80,7 @@ class StoreSession {
 }
 
 /// Boots the app for the store pictures in [locale] and [mode], with the
-/// rider at [origin]: every permission granted, the voice silent, the
+/// rider at [origin]: every permission granted, the store's offering, the voice silent, the
 /// recorder on [RideClock], the region's tile on the device, and every
 /// setting the pictures depend on set, because the device keeps them
 /// between runs.
@@ -129,6 +132,16 @@ Future<StoreSession> startStoreApp(
         return client;
       }),
       // Place names resolve off the region's gazetteer on the device.
+      // The paywall sells what the stores sell, at their prices, and lists
+      // every feature a release build delivers (this one has no partner
+      // client ids).
+      subscriptionServiceProvider.overrideWithValue(
+        FakeSubscriptionService(offering: plusOffering(locale)),
+      ),
+      offeredPlusFeaturesProvider.overrideWithValue([
+        for (final feature in PlusFeature.values)
+          if (gatedFeatures.contains(feature)) feature,
+      ]),
       intentResolverProvider.overrideWith(
         (ref) => IntentResolver(
           geocoder: _GazetteerGeocoder(
