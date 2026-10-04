@@ -112,6 +112,8 @@ shots and the watch's `store/1-riding-turn.png` included) and writes
 `app/build/store_screenshots/gallery/<locale>/NN-<name>.{png,jpg}` (JPEG at
 quality 88) and `contact.png`. The figures on `07-built-with-ai` are
 counted by hand; check them before using it again.
+The README's `docs/images/cover.jpg` is `01-cover` scaled to 1600 px wide
+(`sips -Z 1600`).
 
 ## Google Play
 
