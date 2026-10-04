@@ -197,12 +197,14 @@ routes to our share store.
       `plusPeriodLabel`, the trial line and the auto-renewal wording).
 - [x] Links to the terms of use and the privacy policy are on the paywall. —
       `paywall_screen.dart`, from `lib/core/links/velorki_urls.dart`.
-- [ ] **(iOS)** The 7-day free trial on the yearly plan only (monthly has none):
-      the yearly subscription's introductory offer in App Store Connect.
-- [ ] **(Play)** The 7-day free trial on the yearly plan only: offer
-      `free-trial` on base plan `yearly`, active, then visible in RevenueCat.
-- [ ] Sandbox purchase, renewal, cancellation and restore-after-reinstall are
-      all tested on both platforms.
+- [x] The 7-day free trial is on the yearly plan only; monthly has none. —
+      App Store Connect: the yearly subscription's introductory offer; Play
+      Console: offer `free-trial` on base plan `yearly`.
+- [x] **(iOS)** Sandbox purchase tested. — on the phone, with a sandbox
+      account.
+- [ ] **(Play)** Purchase through internal testing with a licence tester,
+      and on both platforms renewal, cancellation and restore after a
+      reinstall.
 - [x] Every gated feature unlocks through in-app purchase only; there is no
       external payment link. — `lib/core/plus/plus_gate.dart` is the single
       list of gated features, and nothing in the app links to a payment page.
@@ -378,12 +380,6 @@ for 1.0.
 ## What is left, and where to do it
 
 Everything above that is still open, grouped by where the work happens.
-
-### In App Store Connect
-
-| What | Where |
-|---|---|
-| The 7-day free trial on the yearly plan | **Monetization → Subscriptions** → the yearly subscription → Introductory Offers: free, one week; monthly has none |
 
 ### In the Play Console
 
