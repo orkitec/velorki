@@ -1195,13 +1195,13 @@
   "@recordingBatteryTitle": {
     "description": "Title of the dialog that explains the battery optimisation exemption"
   },
-  "recordingBatteryBody": "Android may stop the recording while the phone sleeps. Letting Velorki ignore battery optimisation keeps the track complete. You are asked only once.",
+  "recordingBatteryBody": "Android may stop the recording while the phone sleeps. In the battery settings that open, pick Velorki and allow unrestricted battery use (on some phones: not optimised), and the track stays complete. You are asked only once.",
   "@recordingBatteryBody": {
-    "description": "Body of the battery optimisation dialog, shown before the system prompt"
+    "description": "Body of the battery optimisation dialog, shown before the system battery optimisation settings open"
   },
-  "recordingBatteryAllow": "Allow",
+  "recordingBatteryAllow": "Open settings",
   "@recordingBatteryAllow": {
-    "description": "Button that opens the system battery optimisation prompt"
+    "description": "Button that opens the system battery optimisation settings"
   },
   "recordingBatteryLater": "Not now",
   "@recordingBatteryLater": {
