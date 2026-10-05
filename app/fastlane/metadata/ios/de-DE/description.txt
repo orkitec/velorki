@@ -1,4 +1,4 @@
-Velorki plant Radrouten, führt dich darauf entlang und zeichnet deine Fahrten auf. Es nutzt OpenStreetMap-Daten mit einem Routing, das für Räder gemacht ist, die Routen rechnet dein iPhone selbst, und die ganze App ist Open Source.
+Velorki plant Radrouten, führt dich darauf entlang und zeichnet deine Fahrten auf. Das Routing ist für Räder gemacht und läuft auf deinem iPhone, und die ganze App ist Open Source.
 
 PLANEN
 • Tippe Wegpunkte auf die Karte und bekomme eine Route für das Rad, auf dem du sitzt: Tour, Rennrad, Gravel, Mountainbike oder der direkte Weg.

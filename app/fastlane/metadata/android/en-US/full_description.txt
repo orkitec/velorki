@@ -1,6 +1,5 @@
-Velorki plans bike routes, builds loops and records your rides. It runs on
-OpenStreetMap data with bike-specific routing, and the whole app is open
-source.
+Velorki plans bike routes, builds loops and records your rides. Its routing
+is made for bikes and runs on your phone, and the whole app is open source.
 
 PLANNING
 • Tap waypoints on the map and get a route for the bike you are on: trekking,

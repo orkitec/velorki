@@ -1,4 +1,4 @@
-Velorki plans bike routes, guides you along them and records your rides. It runs on OpenStreetMap data with routing made for bikes, the routing itself runs on your iPhone, and the whole app is open source.
+Velorki plans bike routes, guides you along them and records your rides. Its routing is made for bikes and runs on your iPhone, and the whole app is open source.
 
 PLANNING
 • Tap waypoints on the map and get a route for the bike you are on: touring, road, gravel, mountain bike, or the direct way.
