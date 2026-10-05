@@ -28,11 +28,11 @@ KOSTENLOS, UND VELORKI PLUS
 Alles, was auf dem Handy läuft, ist kostenlos: Planen, Rundtouren, Navigation, Aufzeichnen, die Bibliothek, Offline-Regionen, Sensoren sowie Import und Export von Dateien.
 
 Velorki Plus ist ein Abo für die Teile, die einen Server brauchen:
-• Der Assistent: Beschreibe in einem Satz, welche Fahrt du willst, und bekomme eine Route.
+• Der Assistent: Beschreibe in einem Satz, welche Fahrt du willst, und bekomme eine Route. Frag ihn zur Route auf der Karte, lass dir die Fahrt beschreiben oder lass ihn einen Café-Stopp einbauen oder einen Abschnitt meiden.
 • Links teilen: Aus einer Route oder Fahrt wird ein Link, den jeder im Browser öffnen kann.
 • Verbindungen zu zwei beliebten Routen- und Fahrtenplattformen, um Fahrten hochzuladen und Routen zu holen.
 
-Velorki Plus gibt es als monatliches und als jährliches, sich automatisch verlängerndes Abo, mit kostenloser Testphase. Die Zahlung wird bei Bestätigung des Kaufs über deinen Apple Account abgerechnet. Das Abo verlängert sich automatisch, sofern es nicht mindestens 24 Stunden vor Ende der laufenden Periode deaktiviert wird, und lässt sich in den Einstellungen deines Apple Accounts verwalten und kündigen. Ein ungenutzter Teil einer kostenlosen Testphase verfällt mit dem Kauf eines Abos.
+Velorki Plus gibt es als monatliches und als jährliches, sich automatisch verlängerndes Abo; das jährliche beginnt mit einer kostenlosen Testphase. Die Zahlung wird bei Bestätigung des Kaufs über deinen Apple Account abgerechnet. Das Abo verlängert sich automatisch, sofern es nicht mindestens 24 Stunden vor Ende der laufenden Periode deaktiviert wird, und lässt sich in den Einstellungen deines Apple Accounts verwalten und kündigen. Ein ungenutzter Teil einer kostenlosen Testphase verfällt mit dem Kauf eines Abos.
 
 Nutzungsbedingungen: https://velorki.com/de/terms
 Datenschutzerklärung: https://velorki.com/de/privacy
