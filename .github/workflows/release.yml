@@ -144,7 +144,8 @@ jobs:
 
       # Play only refuses a repeated version code at upload, after the build;
       # this asks first, so a wrong number stops the run before anything is
-      # built. The image's Ruby; the Gemfile pins fastlane to 2.x.
+      # built. The Ubuntu image has no Bundler on the PATH, so it is installed
+      # (with Ruby, if that is missing too); the Gemfile pins fastlane to 2.x.
       - name: Check the version code against Play
         if: ${{ env.HAVE_SECRETS == 'true' && env.HAVE_PLAY == 'true' }}
         env:
@@ -153,6 +154,14 @@ jobs:
           FASTLANE_SKIP_UPDATE_CHECK: "1"
           FASTLANE_OPT_OUT_USAGE: "YES"
         run: |
+          if ! command -v bundle > /dev/null; then
+            if ! command -v ruby > /dev/null; then
+              sudo apt-get update -qq
+              sudo apt-get install -y -qq ruby-full
+            fi
+            sudo gem install bundler --no-document
+          fi
+          ruby -v
           bundle install
           export PLAY_SERVICE_ACCOUNT_JSON_PATH="$RUNNER_TEMP/play.json"
           export LATEST_VERSION_CODE_FILE="$RUNNER_TEMP/latest-version-code"
