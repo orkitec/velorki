@@ -62,11 +62,17 @@ jobs:
           KP
           echo "$APP_ENV_PROD_JSON" > env/prod.json
 
+      # Play refuses a version code it has already seen; 1 to 4 were uploaded
+      # by hand, so the run number is offset past them.
       - name: Build release (signed)
         if: ${{ env.HAVE_SECRETS == 'true' }}
+        env:
+          RUN_NUMBER: ${{ github.run_number }}
         run: |
-          flutter build appbundle --release --dart-define-from-file=env/prod.json --build-number=${{ github.run_number }}
-          flutter build apk --release --dart-define-from-file=env/prod.json --build-number=${{ github.run_number }}
+          build_number=$((RUN_NUMBER + 10))
+          echo "::notice::Version code $build_number"
+          flutter build appbundle --release --dart-define-from-file=env/prod.json --build-number="$build_number"
+          flutter build apk --release --dart-define-from-file=env/prod.json --build-number="$build_number"
 
       - name: Build debug (no secrets)
         if: ${{ env.HAVE_SECRETS != 'true' }}
