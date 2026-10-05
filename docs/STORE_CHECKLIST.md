@@ -350,7 +350,7 @@ routes to our share store.
 - [x] App signing is configured (Play App Signing; iOS automatic signing with
       the cloud-managed distribution certificate). — Play App Signing is on in
       the Play Console and the upload keystore is in the `release`
-      environment's secrets for `release.yml`; iOS signs in `ios-release.yml`,
+      environment's secrets for `release.yml`, which also signs iOS,
       set up per [RELEASE_IOS.md](RELEASE_IOS.md).
 - [x] Store listing copy exists. —
       `app/fastlane/metadata/android/en-US/{title,short_description,full_description}.txt`

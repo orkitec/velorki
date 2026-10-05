@@ -165,11 +165,13 @@ changing structure.
   be added to the patterns under Settings → Actions → General first, or
   the run ends in `startup_failure` with no log. (GitHub's "require SHA
   pinning" setting stays off: it also rejects the unpinned actions that
-  composite actions such as flutter-action call internally); a `v*` tag push runs `release.yml` (Android)
-  and `ios-release.yml` (xcodebuild with cloud signing, TestFlight; one-time setup in
-  `docs/RELEASE_IOS.md`) in the `release` environment, so both wait for the
-  maintainer's approval in the Actions UI before anything is signed or
-  published. A push to the `production`
+  composite actions such as flutter-action call internally); a `v*` tag push runs `release.yml`: a
+  `version` job checks the tag against the pubspec and computes one build
+  number (`run_number + 10`) for both platform jobs, Android (Play internal,
+  GitHub Release) and iOS (xcodebuild with cloud signing, TestFlight; one-time
+  setup in `docs/RELEASE_IOS.md`), each checking it against its store first and
+  waiting in the `release` environment for the maintainer's approval in the
+  Actions UI before anything is signed or published. A push to the `production`
   branch (main merged in, which is how a release happens) runs
   `web-deploy.yml` in the `web-production` environment: it re-runs `web.yml`'s gate
   and then `npx orkify deploy upload .` from `web/`, with `ORKIFY_API_KEY` as

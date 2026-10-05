@@ -1,34 +1,114 @@
 name: release
 
-# Tag `vX.Y.Z` → signed Android AAB + APK, GitHub Release, Play internal track.
-# A tag with a suffix (`v1.0.1-rc1`) is a trial: it goes to Play but makes no
-# GitHub Release.
-# Every publishing step is skipped when the secrets are absent, so forks get a
-# green run that just builds an unsigned debug APK.
+# Tag `vX.Y.Z` → Android (signed AAB + APK, GitHub Release, Play internal track)
+# and iOS (signed build → TestFlight), both with the same version name and
+# build number, computed once by the `version` job. A tag with a suffix
+# (`v1.0.1-rc1`) is a trial: it reaches Play and TestFlight but makes no GitHub
+# Release. The .ipa is never attached: it is signed for the App Store and
+# installs nowhere else.
 #
-# The job runs in the `release` environment, which has the maintainer as a
-# required reviewer: a tag push now waits for approval in the Actions UI, and
-# only after that does anything reach GitHub Releases or Play.
+# Both platform jobs run in the `release` environment, which has the maintainer
+# as a required reviewer: nothing is signed or uploaded until the run is
+# approved in the Actions UI. Without the secrets (a fork, or before the setup
+# in app/fastlane/README.md and docs/RELEASE_IOS.md) every publishing step is
+# skipped and the run finishes green with an unsigned debug APK and an unsigned
+# iOS build.
+#
+# iOS signing is Xcode's automatic signing, authenticated with an App Store
+# Connect API key instead of an Xcode account, in two steps:
+#
+#   1. Archive. `xcodebuild archive` signs with an Apple Development identity
+#      whose private key must be in a keychain; Apple keeps no copy of it, so
+#      the identity comes from a secret (.p12). Xcode fetches the development
+#      profiles for the four targets with the API key. The archive cannot be
+#      left unsigned: the export takes each target's entitlements (App Groups,
+#      HealthKit, push) from the archive's signature.
+#   2. Export. `xcodebuild -exportArchive` re-signs with Apple's cloud-managed
+#      distribution certificate and the App Store profiles, and uploads to App
+#      Store Connect. Nothing is submitted for review.
+
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
-  # Read-only by default; the `android` job asks for the GitHub Release itself.
   contents: read
+
+concurrency:
+  # One run per tag; never cancel a half-finished upload.
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 defaults:
   run:
     working-directory: app
 
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      version_name: ${{ steps.version.outputs.version_name }}
+      build_number: ${{ steps.version.outputs.build_number }}
+      is_trial: ${{ steps.version.outputs.is_trial }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      # The build number is this workflow's run number plus 10. Both stores
+      # refuse a number they have already seen, and numbers were taken before
+      # this workflow existed: iOS builds 1 and 2 in App Store Connect, Android
+      # version codes 1 to 4 uploaded by hand. The run number only grows (a
+      # re-run of failed jobs keeps it, which is fine: only what failed runs
+      # again), so every release gets a fresh number on both platforms.
+      - name: Version name and build number
+        id: version
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          TAG: ${{ github.ref_name }}
+          RUN_NUMBER: ${{ github.run_number }}
+          OFFSET: 10
+        run: |
+          if [ "$REF_TYPE" != tag ]; then
+            echo "::error::A release runs on a v* tag, not on $REF_TYPE '$TAG'."
+            exit 1
+          fi
+          version_name="$(sed -nE 's/^version:[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+)(\+[0-9]+)?[[:space:]]*$/\1/p' pubspec.yaml)"
+          if [ -z "$version_name" ]; then
+            echo "::error::No 'version: X.Y.Z+N' line in app/pubspec.yaml."
+            exit 1
+          fi
+          if [[ ! "$TAG" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Tag '$TAG' is not vX.Y.Z or vX.Y.Z-suffix."
+            exit 1
+          fi
+          if [ "${BASH_REMATCH[1]}" != "$version_name" ]; then
+            echo "::error::Tag '$TAG' is version ${BASH_REMATCH[1]}, app/pubspec.yaml says $version_name. Bump the pubspec or fix the tag."
+            exit 1
+          fi
+          if [ -n "${BASH_REMATCH[2]}" ]; then is_trial=true; else is_trial=false; fi
+          build_number=$((RUN_NUMBER + OFFSET))
+          echo "::notice::Version $version_name ($build_number), trial: $is_trial"
+          {
+            echo "version_name=$version_name"
+            echo "build_number=$build_number"
+            echo "is_trial=$is_trial"
+          } >> "$GITHUB_OUTPUT"
+
   android:
+    needs: version
     runs-on: ubuntu-latest
     # Gated: waits for an approval before it can use the signing secrets.
     environment: release
     permissions:
       # The GitHub Release, and nothing more.
       contents: write
+    env:
+      HAVE_SECRETS: ${{ secrets.ANDROID_KEYSTORE_B64 != '' && 'true' || 'false' }}
+      HAVE_PLAY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' && 'true' || 'false' }}
+      VERSION_NAME: ${{ needs.version.outputs.version_name }}
+      BUILD_NUMBER: ${{ needs.version.outputs.build_number }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
@@ -62,24 +142,51 @@ jobs:
           KP
           echo "$APP_ENV_PROD_JSON" > env/prod.json
 
-      # Play refuses a version code it has already seen; 1 to 4 were uploaded
-      # by hand, so the run number is offset past them.
+      # Play only refuses a repeated version code at upload, after the build;
+      # this asks first, so a wrong number stops the run before anything is
+      # built. The image's Ruby; the Gemfile pins fastlane to 2.x.
+      - name: Check the version code against Play
+        if: ${{ env.HAVE_SECRETS == 'true' && env.HAVE_PLAY == 'true' }}
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          BUNDLE_PATH: ${{ runner.temp }}/bundle
+          FASTLANE_SKIP_UPDATE_CHECK: "1"
+          FASTLANE_OPT_OUT_USAGE: "YES"
+        run: |
+          bundle install
+          export PLAY_SERVICE_ACCOUNT_JSON_PATH="$RUNNER_TEMP/play.json"
+          export LATEST_VERSION_CODE_FILE="$RUNNER_TEMP/latest-version-code"
+          echo "$PLAY_SERVICE_ACCOUNT_JSON" > "$PLAY_SERVICE_ACCOUNT_JSON_PATH"
+          status=0
+          bundle exec fastlane android latest_version_code || status=$?
+          rm -f "$PLAY_SERVICE_ACCOUNT_JSON_PATH"
+          if [ "$status" -ne 0 ] || [ ! -s "$LATEST_VERSION_CODE_FILE" ]; then
+            echo "::error::Could not read the version codes from Google Play (see the fastlane output above; an API error may be transient, re-run the job)."
+            exit 1
+          fi
+          latest="$(cat "$LATEST_VERSION_CODE_FILE")"
+          if [ "$BUILD_NUMBER" -le "$latest" ]; then
+            echo "::error::Version code $BUILD_NUMBER is not above $latest, the highest on Google Play. Raise OFFSET in the version job."
+            exit 1
+          fi
+          echo "::notice::Version code $BUILD_NUMBER (Play's highest so far: $latest)"
+
       - name: Build release (signed)
         if: ${{ env.HAVE_SECRETS == 'true' }}
-        env:
-          RUN_NUMBER: ${{ github.run_number }}
         run: |
-          build_number=$((RUN_NUMBER + 10))
-          echo "::notice::Version code $build_number"
-          flutter build appbundle --release --dart-define-from-file=env/prod.json --build-number="$build_number"
-          flutter build apk --release --dart-define-from-file=env/prod.json --build-number="$build_number"
+          flutter build appbundle --release --dart-define-from-file=env/prod.json \
+            --build-name="$VERSION_NAME" --build-number="$BUILD_NUMBER"
+          flutter build apk --release --dart-define-from-file=env/prod.json \
+            --build-name="$VERSION_NAME" --build-number="$BUILD_NUMBER"
 
       - name: Build debug (no secrets)
         if: ${{ env.HAVE_SECRETS != 'true' }}
-        run: flutter build apk --debug --dart-define-from-file=env/ci.json
+        run: |
+          flutter build apk --debug --dart-define-from-file=env/ci.json \
+            --build-name="$VERSION_NAME" --build-number="$BUILD_NUMBER"
 
       - name: GitHub Release
-        if: ${{ !contains(github.ref_name, '-') }}
+        if: ${{ needs.version.outputs.is_trial != 'true' }}
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           generate_release_notes: true
@@ -97,6 +204,148 @@ jobs:
           releaseFiles: app/build/app/outputs/bundle/release/app-release.aab
           track: internal
           status: completed
+
+  ios:
+    needs: version
+    runs-on: macos-15
+    timeout-minutes: 90
+    # Required reviewer: the approval gate for signing and uploading.
+    environment: release
+    permissions:
+      contents: read
     env:
-      HAVE_SECRETS: ${{ secrets.ANDROID_KEYSTORE_B64 != '' && 'true' || 'false' }}
-      HAVE_PLAY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' && 'true' || 'false' }}
+      HAVE_SIGNING: ${{ secrets.ASC_KEY_ID != '' && secrets.ASC_ISSUER_ID != '' && secrets.ASC_KEY_P8_BASE64 != '' && secrets.IOS_DEV_CERT_P12_BASE64 != '' && secrets.APP_ENV_PROD_JSON != '' && 'true' || 'false' }}
+      VERSION_NAME: ${{ needs.version.outputs.version_name }}
+      BUILD_NUMBER: ${{ needs.version.outputs.build_number }}
+      ARCHIVE_PATH: build/ios/archive/Runner.xcarchive
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      # The image's default Xcode 16.4 cannot compile device_info_plus (an
+      # iOS 17 NSProcessInfo selector); the app is built with Xcode 26 on the
+      # Mac, so pick the newest 26 on the runner.
+      - name: Select Xcode 26
+        run: |
+          xcode="$(ls -d /Applications/Xcode_26.*.app | sort -V | tail -1)"
+          sudo xcode-select -s "$xcode"
+          xcodebuild -version
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: 3.47.4  # keep in sync with mise.toml and app/.fvmrc
+          cache: true
+
+      - run: flutter pub get
+      - run: dart run build_runner build
+      - run: flutter gen-l10n
+
+      - name: Build unsigned (no secrets)
+        if: ${{ env.HAVE_SIGNING != 'true' }}
+        run: |
+          echo "::notice::iOS signing secrets are not configured — building unsigned and skipping TestFlight. See docs/RELEASE_IOS.md."
+          flutter build ios --release --no-codesign --dart-define-from-file=env/ci.json \
+            --build-name="$VERSION_NAME" --build-number="$BUILD_NUMBER"
+
+      - name: Install the API key and the development identity
+        if: ${{ env.HAVE_SIGNING == 'true' }}
+        env:
+          APP_ENV_PROD_JSON: ${{ secrets.APP_ENV_PROD_JSON }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+          IOS_DEV_CERT_P12_BASE64: ${{ secrets.IOS_DEV_CERT_P12_BASE64 }}
+          IOS_DEV_CERT_PASSWORD: ${{ secrets.IOS_DEV_CERT_PASSWORD }}
+        run: |
+          echo "$APP_ENV_PROD_JSON" > env/prod.json
+
+          key="$RUNNER_TEMP/AuthKey_$ASC_KEY_ID.p8"
+          echo "$ASC_KEY_P8_BASE64" | base64 --decode > "$key"
+          echo "ASC_KEY_PATH=$key" >> "$GITHUB_ENV"
+
+          # A throwaway keychain for the development identity, first in the
+          # search list so codesign finds it without prompting.
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          keychain_password="$(openssl rand -hex 24)"
+          p12="$RUNNER_TEMP/dev.p12"
+          echo "$IOS_DEV_CERT_P12_BASE64" | base64 --decode > "$p12"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security import "$p12" -k "$keychain" -f pkcs12 -P "$IOS_DEV_CERT_PASSWORD" \
+            -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple: -k "$keychain_password" "$keychain" > /dev/null
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          rm -f "$p12"
+          echo "KEYCHAIN_PATH=$keychain" >> "$GITHUB_ENV"
+
+      # App Store Connect only refuses a repeated build number at upload, after
+      # a long archive; this asks first. The image's Ruby; the Gemfile pins
+      # fastlane to 2.x.
+      - name: Check the build number against App Store Connect
+        if: ${{ env.HAVE_SIGNING == 'true' }}
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          BUNDLE_PATH: ${{ runner.temp }}/bundle
+          FASTLANE_SKIP_UPDATE_CHECK: "1"
+          FASTLANE_OPT_OUT_USAGE: "YES"
+        run: |
+          bundle install
+          export LATEST_BUILD_NUMBER_FILE="$RUNNER_TEMP/latest-build-number"
+          if ! bundle exec fastlane ios latest_build_number || [ ! -s "$LATEST_BUILD_NUMBER_FILE" ]; then
+            echo "::error::Could not read the latest build number from App Store Connect (see the fastlane output above; an API error may be transient, re-run the job)."
+            exit 1
+          fi
+          latest="$(cat "$LATEST_BUILD_NUMBER_FILE")"
+          if [ "$BUILD_NUMBER" -le "$latest" ]; then
+            echo "::error::Build number $BUILD_NUMBER is not above $latest, the latest on App Store Connect. Raise OFFSET in the version job."
+            exit 1
+          fi
+          echo "::notice::Build number $BUILD_NUMBER (App Store Connect's latest so far: $latest)"
+
+      - name: Archive
+        if: ${{ env.HAVE_SIGNING == 'true' }}
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          # `flutter build ipa` cannot pass the API key to xcodebuild, so
+          # Flutter only writes its configuration (dart-defines, version, build
+          # number, pods) and xcodebuild archives; the Flutter build phase
+          # compiles the Dart inside the archive.
+          flutter build ios --config-only --release \
+            --dart-define-from-file=env/prod.json \
+            --build-name="$VERSION_NAME" --build-number="$BUILD_NUMBER"
+          xcodebuild archive \
+            -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release \
+            -destination generic/platform=iOS -archivePath "$ARCHIVE_PATH" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      - name: Upload to App Store Connect
+        if: ${{ env.HAVE_SIGNING == 'true' }}
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          # ExportOptions.plist with destination `upload`: signed and sent to
+          # App Store Connect in one go, leaving no .ipa behind.
+          plutil -replace destination -string upload \
+            -o "$RUNNER_TEMP/ExportUpload.plist" ios/ExportOptions.plist
+          xcodebuild -exportArchive -archivePath "$ARCHIVE_PATH" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportUpload.plist" \
+            -exportPath "$RUNNER_TEMP/upload" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      - name: Remove the key and the keychain
+        if: ${{ always() }}
+        run: |
+          rm -f "$RUNNER_TEMP"/AuthKey_*.p8 "$RUNNER_TEMP/dev.p12" env/prod.json
+          if [ -n "${KEYCHAIN_PATH:-}" ]; then
+            security delete-keychain "$KEYCHAIN_PATH" || true
+          fi

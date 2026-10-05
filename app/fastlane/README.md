@@ -28,13 +28,15 @@ bundle exec fastlane android internal
 |---|---|
 | `android internal` | Gradle `bundleRelease` (the Flutter Gradle plugin builds the Dart side), then `supply` to the Play **internal testing** track. |
 | `android promote_closed` | Promotes the newest internal build to the closed test track without rebuilding. |
+| `android latest_version_code` | Writes the highest version code on the internal, alpha, beta and production tracks to `LATEST_VERSION_CODE_FILE`. Run by `.github/workflows/release.yml` before it builds. |
+| `ios latest_build_number` | Writes the newest App Store Connect build number (any version, 0 for none) to `LATEST_BUILD_NUMBER_FILE`, with `ASC_KEY_ID`, `ASC_ISSUER_ID` and `ASC_KEY_PATH`. Run by `.github/workflows/release.yml` before it archives. |
 | `ios store_assets` | `deliver`: the screenshots in `SCREENSHOTS_PATH` (laid out by `tool/store_stage_deliver.sh`) onto App Store version `APP_VERSION`, replacing those of each language uploaded, and with `UPLOAD_METADATA=true` `metadata/ios`. Run by `.github/workflows/store-assets.yml` with `ASC_KEY_ID`, `ASC_ISSUER_ID` and `ASC_KEY_PATH`; see `docs/STORE_ASSETS.md`. |
 
 ## Environment
 
 | Variable | Used by | What it is |
 |---|---|---|
-| `PLAY_SERVICE_ACCOUNT_JSON_PATH` | `android internal` | path to the Play service account JSON key |
+| `PLAY_SERVICE_ACCOUNT_JSON_PATH` | `android internal`, `android latest_version_code` | path to the Play service account JSON key |
 | `VELORKI_ENV_FILE` | `android internal` | dart-define file, default `app/env/prod.json` |
 | `BUILD_NUMBER` | `android internal` | version code; Play refuses a repeat |
 
