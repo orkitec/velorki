@@ -4,10 +4,13 @@
 # creates accounts or store entries — see fastlane/README.md for what has to be
 # set up by hand first.
 #
-# All paths are derived from this file's location, so a lane behaves the same
-# whatever directory it is invoked from.
+# All paths are absolute, made while fastlane parses this file. It parses it
+# from inside the fastlane folder under a relative name, so __dir__ is "."
+# there, and a relative path built on it pointed elsewhere once the lanes ran
+# from app/ (deliver then found no texts and uploaded none).
 
-APP_DIR      = File.expand_path("..", __dir__)            # app/
+FASTLANE_DIR = File.expand_path(__dir__)                           # app/fastlane
+APP_DIR      = File.expand_path("..", FASTLANE_DIR)                # app/
 ANDROID_DIR  = File.join(APP_DIR, "android")
 AAB_PATH     = File.join(APP_DIR, "build/app/outputs/bundle/release/app-release.aab")
 # dart-defines for the release build. `env/prod.json` is not committed; it is
@@ -146,7 +149,7 @@ platform :ios do
       app_identifier: ENV["IOS_BUNDLE_ID"] || "com.orkitec.velorki",
       app_version: ENV["APP_VERSION"],
       screenshots_path: ENV["SCREENSHOTS_PATH"],
-      metadata_path: File.join(__dir__, "metadata/ios"),
+      metadata_path: File.join(FASTLANE_DIR, "metadata/ios"),
       skip_metadata: ENV["UPLOAD_METADATA"] != "true",
       skip_binary_upload: true,
       overwrite_screenshots: true,
