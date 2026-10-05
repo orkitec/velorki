@@ -31,6 +31,14 @@ abstract class SmartLoopState with _$SmartLoopState {
     /// routing server, the first loop in a new area needs its tiles
     /// downloaded, which is not the same as "try another distance".
     @Default(<TileName>[]) List<TileName> missingTiles,
+
+    /// Whether the search ran out of its time budget (`smartLoopTimeout`)
+    /// before it had tried every direction. With nothing found that is "this
+    /// took too long", not "there is no loop here".
+    @Default(false) bool timedOut,
+
+    /// Whether the rider stopped the search, or closed the sheet over it.
+    @Default(false) bool stopped,
   }) = _SmartLoopState;
 
   const SmartLoopState._();
@@ -44,9 +52,23 @@ abstract class SmartLoopState with _$SmartLoopState {
 
   /// Whether the finished search found nothing, which is the "try another
   /// distance" state rather than an error.
+  ///
+  /// A search cut short — by its time budget or by the rider — has not
+  /// shown that there is nothing, so it is not this state.
   bool get foundNothing =>
       hasSearched &&
       !running &&
+      error == null &&
+      missingTiles.isEmpty &&
+      !timedOut &&
+      !stopped &&
+      candidates.isEmpty;
+
+  /// Whether the search ran out of time without a single loop to show.
+  bool get tookTooLong =>
+      hasSearched &&
+      !running &&
+      timedOut &&
       error == null &&
       missingTiles.isEmpty &&
       candidates.isEmpty;

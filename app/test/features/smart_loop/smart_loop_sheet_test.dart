@@ -571,6 +571,49 @@ void main() {
       expect(find.text(l10n.loopNoneFound), findsOneWidget);
     });
 
+    testWidgets('a search that ran out of time says so, not "try another '
+        'distance"', (tester) async {
+      await _openSheet(
+        tester,
+        harness: PlannerHarness(
+          backend: FakeRoutingBackend(delay: smartLoopTimeout * 2),
+        ),
+      );
+
+      await tester.tap(
+        _inSheet(find.widgetWithText(FilledButton, l10n.loopMakeTitle)),
+      );
+      await tester.pump();
+      await tester.pump(smartLoopTimeout * 2);
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.loopTookTooLong), findsOneWidget);
+      expect(find.text(l10n.loopNoneFound), findsNothing);
+    });
+
+    testWidgets('stopping a search says nothing about the distance', (
+      tester,
+    ) async {
+      await _openSheet(
+        tester,
+        harness: PlannerHarness(
+          backend: FakeRoutingBackend(delay: const Duration(seconds: 5)),
+        ),
+      );
+
+      await tester.tap(
+        _inSheet(find.widgetWithText(FilledButton, l10n.loopMakeTitle)),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.tap(_inSheet(find.text(l10n.loopStop)));
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.loopNoneFound), findsNothing);
+      expect(find.text(l10n.loopTookTooLong), findsNothing);
+    });
+
     testWidgets('a region not downloaded yet offers the download, not '
         '"try another distance"', (tester) async {
       final backend = FakeRoutingBackend()

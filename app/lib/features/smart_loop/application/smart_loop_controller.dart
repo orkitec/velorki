@@ -28,8 +28,17 @@ const int smartLoopConcurrency = 3;
 /// would only fight over it.
 const int smartLoopOnDeviceConcurrency = 1;
 
-/// Deadline for one whole loop search.
-const Duration smartLoopTimeout = Duration(seconds: 25);
+/// Deadline for one whole loop search: a safety net against a runaway search,
+/// never the limit an ordinary one runs into.
+///
+/// The search is bounded anyway — eight directions plus the planner's few
+/// retries, with the rider able to stop it while the bar fills. Measured on
+/// the on-device engine from Midtown Manhattan (`test/perf/loop_search_perf_test.dart`,
+/// an M-series Mac): 24 km takes 54 s, 80 km 97 s, the slider's 200 km
+/// 187 s. A six-year-old Android phone is up to eight times slower, so 200 km
+/// takes it about 25 minutes; the net sits above that. 25 seconds, which it
+/// used to be, ran out before a Pixel 3 XL had routed its first loop of 24 km.
+const Duration smartLoopTimeout = Duration(minutes: 30);
 
 /// How many directions one search heads off in.
 const int smartLoopDirections = 8;
@@ -149,6 +158,7 @@ class SmartLoopController extends _$SmartLoopController {
       missingTiles: state.candidates.isEmpty
           ? run.missingTiles.toList()
           : const <TileName>[],
+      timedOut: run.timedOut,
     );
     adopt();
   }
@@ -179,7 +189,7 @@ class SmartLoopController extends _$SmartLoopController {
     if (_run == null) return;
     _stopRun();
     if (_disposed) return;
-    if (state.running) state = state.copyWith(running: false);
+    if (state.running) state = state.copyWith(running: false, stopped: true);
     adopt();
   }
 
@@ -263,6 +273,9 @@ class _LoopRun {
   /// The tiles the on-device engine lacked, with no server to fall back to.
   final Set<TileName> missingTiles = <TileName>{};
 
+  /// Whether the planner's deadline cut a request short.
+  bool timedOut = false;
+
   double get progress => planned == 0 ? 1 : math.min(1, done / planned);
 
   /// Notes one more request going out, growing [planned] when the planner
@@ -343,6 +356,9 @@ class _CountingBackend implements RoutingBackend {
       _run.lastFailure = e.toString();
       rethrow;
     } finally {
+      // The planner cancels what is still running when its deadline is up;
+      // the token says so, which is how "too slow" is told from "no loop".
+      if (cancel?.reason == LoopPlanner.timeoutReason) _run.timedOut = true;
       _run.done++;
       _run.onProgress?.call();
     }

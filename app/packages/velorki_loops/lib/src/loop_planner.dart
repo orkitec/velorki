@@ -96,8 +96,14 @@ class LoopPlanner {
   /// How many routing requests may be in flight at once.
   final int concurrency;
 
-  /// Deadline for the whole planning run; queries still running are cancelled.
+  /// Deadline for the whole planning run; queries still running are cancelled
+  /// with [timeoutReason].
   final Duration timeout;
+
+  /// The [CancelToken.reason] the planner cancels its requests with when
+  /// [timeout] runs out, so a caller can tell a search cut short by the
+  /// deadline from one that simply found nothing.
+  static const String timeoutReason = 'planning timed out';
 
   /// Upper bound on the number of queries taken from the strategies.
   final int maxCandidates;
@@ -166,7 +172,7 @@ class LoopPlanner {
     }
 
     final cancel = CancelToken();
-    final deadline = Timer(timeout, () => cancel.cancel('planning timed out'));
+    final deadline = Timer(timeout, () => cancel.cancel(timeoutReason));
     var next = 0;
 
     final accepted = <String, int>{};

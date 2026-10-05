@@ -363,6 +363,20 @@ void main() {
       );
       expect(await planner.plan(request), isEmpty);
     }, timeout: const Timeout(Duration(seconds: 20)));
+
+    test('cancels with timeoutReason, so a caller can tell why', () async {
+      final backend = _TokenRecorder(
+        FakeRoutingBackend(delay: const Duration(seconds: 5)),
+      );
+      final planner = LoopPlanner(
+        backend: backend,
+        timeout: const Duration(milliseconds: 30),
+        concurrency: 1,
+      );
+      await planner.plan(request);
+      expect(backend.tokens, isNotEmpty);
+      expect(backend.tokens.first.reason, LoopPlanner.timeoutReason);
+    }, timeout: const Timeout(Duration(seconds: 20)));
   });
 
   group('planStream', () {
@@ -439,4 +453,18 @@ class _ExplodingBackend implements RoutingBackend {
   @override
   Future<RouteResult> route(RouteQuery q, {CancelToken? cancel}) async =>
       throw StateError('boom');
+}
+
+/// Keeps the tokens the planner hands to [_inner].
+class _TokenRecorder implements RoutingBackend {
+  _TokenRecorder(this._inner);
+
+  final RoutingBackend _inner;
+  final List<CancelToken> tokens = <CancelToken>[];
+
+  @override
+  Future<RouteResult> route(RouteQuery q, {CancelToken? cancel}) {
+    if (cancel != null) tokens.add(cancel);
+    return _inner.route(q, cancel: cancel);
+  }
 }

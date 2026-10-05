@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -238,6 +241,22 @@ void main() {
       expect(container.read(smartLoopControllerProvider).candidates, isEmpty);
     }, timeout: const Timeout(Duration(seconds: 20)));
 
+    test('a search the rider stopped is not "no loop here"', () async {
+      final backend = FakeLoopBackend(delay: const Duration(seconds: 5));
+      final container = _container(backend);
+      final controller = container.read(smartLoopControllerProvider.notifier);
+
+      final run = controller.search(_request);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      controller.cancel();
+      await run;
+
+      final state = container.read(smartLoopControllerProvider);
+      expect(state.stopped, isTrue);
+      expect(state.foundNothing, isFalse);
+      expect(state.tookTooLong, isFalse);
+    }, timeout: const Timeout(Duration(seconds: 20)));
+
     test('cancelling when nothing runs is a no-op', () {
       final container = _container(FakeLoopBackend());
       container.read(smartLoopControllerProvider.notifier).cancel();
@@ -258,6 +277,57 @@ void main() {
         container.read(smartLoopControllerProvider),
         const SmartLoopState(),
       );
+    });
+  });
+
+  group('time budget', () {
+    test('running out of time with nothing found says so, and is not "no '
+        'loop here"', () {
+      fakeAsync((async) {
+        final backend = FakeLoopBackend(delay: smartLoopTimeout * 2);
+        final container = _container(backend);
+        var done = false;
+        unawaited(
+          container
+              .read(smartLoopControllerProvider.notifier)
+              .search(_request)
+              .then((_) => done = true),
+        );
+
+        async.elapse(smartLoopTimeout - const Duration(seconds: 1));
+        expect(container.read(smartLoopControllerProvider).running, isTrue);
+
+        async.elapse(const Duration(seconds: 2));
+        expect(done, isTrue);
+        final state = container.read(smartLoopControllerProvider);
+        expect(state.running, isFalse);
+        expect(state.candidates, isEmpty);
+        expect(state.timedOut, isTrue);
+        expect(state.tookTooLong, isTrue);
+        expect(state.foundNothing, isFalse);
+        expect(state.error, isNull);
+      });
+    });
+
+    test('loops found before the time ran out are offered', () {
+      fakeAsync((async) {
+        // Only the first direction answers; the rest are still routing when
+        // the deadline hits.
+        final backend = _OnlyFirstDirection();
+        final container = _container(backend);
+        unawaited(
+          container.read(smartLoopControllerProvider.notifier).search(_request),
+        );
+
+        async.elapse(smartLoopTimeout + const Duration(seconds: 1));
+        final state = container.read(smartLoopControllerProvider);
+        expect(state.running, isFalse);
+        expect(state.timedOut, isTrue);
+        expect(state.candidates, hasLength(1));
+        expect(state.tookTooLong, isFalse);
+        expect(state.foundNothing, isFalse);
+        expect(container.read(plannerControllerProvider).result, isNotNull);
+      });
     });
   });
 
@@ -316,4 +386,15 @@ void main() {
       expect(container.read(plannerControllerProvider).waypoints, isEmpty);
     });
   });
+}
+
+/// Answers the query heading north at once and keeps every other one routing
+/// until it is cancelled.
+class _OnlyFirstDirection extends FakeLoopBackend {
+  @override
+  Future<RouteResult> route(RouteQuery q, {CancelToken? cancel}) async {
+    if (q.roundTripDirectionDeg == 0) return super.route(q, cancel: cancel);
+    await cancel?.whenCancelled;
+    throw cancel!.toException();
+  }
 }

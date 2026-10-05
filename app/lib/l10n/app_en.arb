@@ -1666,6 +1666,10 @@
   "@loopNoneFound": {
     "description": "Shown when the loop search finished without a single routable candidate"
   },
+  "loopTookTooLong": "Finding a loop took too long on this phone. Try a shorter distance.",
+  "@loopTookTooLong": {
+    "description": "Shown when the loop search ran out of its time limit before it found a single loop"
+  },
   "loopNoPosition": "Turn on location or tap the map to set a start.",
   "@loopNoPosition": {
     "description": "Shown when neither a position nor a map centre could start a loop"

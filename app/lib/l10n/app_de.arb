@@ -329,6 +329,7 @@
   "loopDone": "Fertig",
   "loopResult": "{distance} · {ascent} Anstieg",
   "loopNoneFound": "Hier keine Runde gefunden, andere Distanz versuchen.",
+  "loopTookTooLong": "Die Rundensuche hat auf diesem Gerät zu lange gedauert. Kürzere Distanz versuchen.",
   "loopNoPosition": "Standort einschalten oder Karte antippen, um den Start zu setzen.",
   "loopFailed": "Rundensuche fehlgeschlagen: {message}",
   "settingsConnections": "Verbindungen",

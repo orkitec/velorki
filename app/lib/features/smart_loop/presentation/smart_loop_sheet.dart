@@ -461,6 +461,7 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
         ),
       if (state.foundNothing && !state.running)
         _Problem(text: l10n.loopNoneFound),
+      if (state.tookTooLong) _Problem(text: l10n.loopTookTooLong),
       if (state.missingTiles.isNotEmpty && !state.running)
         MissingTilesBanner(tiles: state.missingTiles),
       if (state.error != null) _Problem(text: l10n.loopFailed(state.error!)),
