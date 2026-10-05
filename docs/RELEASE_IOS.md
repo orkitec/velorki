@@ -53,19 +53,26 @@ One upload carries four bundle ids, all under team `8Z44M8DMKK`:
 
 ## What a tag or a dispatch does
 
-`git tag v1.2.3 && git push origin v1.2.3`, or *Actions* → *release* →
-*Run workflow* on a tag (`gh workflow run release.yml --ref v1.2.3`); on a
-branch the `version` job fails. A trial run uses a tag such as `v1.0.1-rc1`.
+`git tag v1.2.3 && git push origin v1.2.3`. An existing tag is released again
+from *Actions* → *release* → *Run workflow* on `main`
+(`gh workflow run release.yml --ref main -f tag=v1.2.3`): the workflow comes
+from `main`, the code from the tag. `platforms` picks `ios` or `android` alone,
+`build_number` reuses the number the other store already has (empty computes
+one), and `dry_run` archives and signs but uploads nothing. A trial run uses a
+tag such as `v1.0.1-rc1`. Only the logins in the repository variable
+`RELEASE_ACTORS` (comma-separated) may start or re-run a release.
 
 1. The `version` job checks that the tag's `X.Y.Z` is the pubspec's version
-   and computes the build number both platforms use: `run_number + 10`
-   (iOS builds 1 and 2 and Android version codes 1 to 4 came before).
+   at that tag and computes the build number both platforms use:
+   `run_number + 10` (iOS builds 1 and 2 and Android version codes 1 to 4
+   came before), unless `build_number` is given.
 2. The `ios` job waits for approval in the `release` environment.
 3. It writes `env/prod.json`, decodes the key into the runner's temp directory
    and imports the development identity into a throwaway keychain.
 4. `fastlane ios latest_build_number` reads the newest build number on App
-   Store Connect; the job fails if its own is not above it, or if the API
-   cannot be reached.
+   Store Connect; the job fails if its own is below it, or if the API cannot
+   be reached. If it is the same number, an earlier run uploaded it: the job
+   skips the archive and the upload and finishes green.
 5. `flutter build ios --config-only` writes the Flutter configuration with
    that version and build number.
 6. `xcodebuild archive` signs for development, fetching the profiles with the

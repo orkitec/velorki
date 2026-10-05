@@ -1,5 +1,3 @@
-name: release
-
 # Tag `vX.Y.Z` → Android (signed AAB + APK, GitHub Release, Play internal track)
 # and iOS (signed build → TestFlight), both with the same version name and
 # build number, computed once by the `version` job. A tag with a suffix
@@ -7,10 +5,22 @@ name: release
 # Release. The .ipa is never attached: it is signed for the App Store and
 # installs nowhere else.
 #
-# Both platform jobs run in the `release` environment, which has the maintainer
-# as a required reviewer: nothing is signed or uploaded until the run is
-# approved in the Actions UI. Without the secrets (a fork, or before the setup
-# in app/fastlane/README.md and docs/RELEASE_IOS.md) every publishing step is
+# An existing tag can be released again from GitHub alone: *Run workflow* on
+# `main` with the tag (`gh workflow run release.yml --ref main -f tag=v1.2.3`).
+# The run uses this file from `main` but builds the tag's code. `platforms`
+# picks one store, `build_number` reuses the number the other store already
+# has, and `dry_run` builds and signs everything but uploads nothing. Each
+# platform job is idempotent: if its store already has the build number, it
+# reports that and uploads nothing; the GitHub Release is only made if it does
+# not exist yet.
+#
+# Two gates: the `version` job fails unless whoever started the run (the tag
+# pusher, the dispatcher, or whoever re-runs it) is listed in the repository
+# variable RELEASE_ACTORS (comma-separated logins), and both platform jobs run
+# in the `release` environment, which has the maintainer as a required
+# reviewer: nothing is signed or uploaded until the run is approved in the
+# Actions UI. Without the secrets (a fork, or before the setup in
+# app/fastlane/README.md and docs/RELEASE_IOS.md) every publishing step is
 # skipped and the run finishes green with an unsigned debug APK and an unsigned
 # iOS build.
 #
@@ -31,13 +41,34 @@ on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to release, e.g. v1.0.2 (its code is built; this file comes from the branch the run is started on)"
+        required: true
+        type: string
+      platforms:
+        description: "Stores to release to"
+        type: choice
+        options: [both, android, ios]
+        default: both
+      dry_run:
+        description: "Build and sign, but upload nothing and make no GitHub Release"
+        type: boolean
+        default: false
+      build_number:
+        description: "Build number to use instead of run number + 10 (e.g. the one the other store already has); empty computes it"
+        type: string
+        required: false
+
+run-name: >-
+  release ${{ inputs.tag || github.ref_name }}${{ inputs.dry_run && ' (dry run)' || '' }}${{ inputs.platforms && inputs.platforms != 'both' && format(' ({0} only)', inputs.platforms) || '' }}
 
 permissions:
   contents: read
 
 concurrency:
-  # One run per tag; never cancel a half-finished upload.
-  group: release-${{ github.ref }}
+  # One run per tag, pushed or dispatched; never cancel a half-finished upload.
+  group: release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 defaults:
@@ -51,46 +82,121 @@ jobs:
     permissions:
       contents: read
     outputs:
+      tag: ${{ steps.request.outputs.tag }}
+      sha: ${{ steps.version.outputs.sha }}
       version_name: ${{ steps.version.outputs.version_name }}
       build_number: ${{ steps.version.outputs.build_number }}
       is_trial: ${{ steps.version.outputs.is_trial }}
+      platforms: ${{ steps.request.outputs.platforms }}
+      dry_run: ${{ steps.request.outputs.dry_run }}
     steps:
+      # Runs before any checkout, so the tag is validated before it is used.
+      - name: Who, which tag, what
+        id: request
+        working-directory: .
+        env:
+          EVENT: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          ACTOR: ${{ github.triggering_actor }}
+          RELEASE_ACTORS: ${{ vars.RELEASE_ACTORS }}
+          INPUT_TAG: ${{ inputs.tag }}
+          INPUT_PLATFORMS: ${{ inputs.platforms }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          if [ -z "${RELEASE_ACTORS//[[:space:],]/}" ]; then
+            echo "::error::The repository variable RELEASE_ACTORS is not set. Set it (Settings → Secrets and variables → Actions → Variables) to the comma-separated GitHub logins allowed to release."
+            exit 1
+          fi
+          allowed=false
+          IFS=, read -r -a actors <<< "$RELEASE_ACTORS"
+          for a in "${actors[@]}"; do
+            a="$(echo "$a" | tr -d '[:space:]')"
+            if [ -n "$a" ] && [ "$(echo "$a" | tr '[:upper:]' '[:lower:]')" = "$(echo "$ACTOR" | tr '[:upper:]' '[:lower:]')" ]; then
+              allowed=true
+            fi
+          done
+          if [ "$allowed" != true ]; then
+            echo "::error::'$ACTOR' started this run but is not in RELEASE_ACTORS; only those logins may release."
+            exit 1
+          fi
+
+          if [ "$EVENT" = workflow_dispatch ]; then
+            tag="$INPUT_TAG"
+            platforms="${INPUT_PLATFORMS:-both}"
+            dry_run="${INPUT_DRY_RUN:-false}"
+          elif [ "$REF_TYPE" = tag ]; then
+            tag="$REF_NAME"
+            platforms=both
+            dry_run=false
+          else
+            echo "::error::A release runs on a v* tag or by dispatch with a tag, not on $EVENT of $REF_TYPE '$REF_NAME'."
+            exit 1
+          fi
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Tag '$tag' is not vX.Y.Z or vX.Y.Z-suffix."
+            exit 1
+          fi
+          case "$platforms" in both|android|ios) ;; *)
+            echo "::error::platforms must be both, android or ios, not '$platforms'."
+            exit 1;;
+          esac
+          case "$dry_run" in true|false) ;; *)
+            echo "::error::dry_run must be true or false, not '$dry_run'."
+            exit 1;;
+          esac
+          echo "::notice::$ACTOR releases $tag to $platforms$([ "$dry_run" = true ] && echo ' (dry run: nothing is uploaded)')"
+          {
+            echo "tag=$tag"
+            echo "platforms=$platforms"
+            echo "dry_run=$dry_run"
+          } >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      # The build number is this workflow's run number plus 10. Both stores
-      # refuse a number they have already seen, and numbers were taken before
-      # this workflow existed: iOS builds 1 and 2 in App Store Connect, Android
-      # version codes 1 to 4 uploaded by hand. The run number only grows (a
-      # re-run of failed jobs keeps it, which is fine: only what failed runs
-      # again), so every release gets a fresh number on both platforms.
+        with:
+          ref: refs/tags/${{ steps.request.outputs.tag }}
+
+      # The build number is this workflow's run number plus 10, unless a
+      # dispatch names one. Both stores refuse a number they have already seen,
+      # and numbers were taken before this workflow existed: iOS builds 1 and 2
+      # in App Store Connect, Android version codes 1 to 4 uploaded by hand.
+      # The run number only grows (a re-run of failed jobs keeps it, which is
+      # fine: only what failed runs again), so every release gets a fresh
+      # number on both platforms. A dispatch that releases one store for a tag
+      # the other store already has passes that store's number, so both carry
+      # the same one.
       - name: Version name and build number
         id: version
         env:
-          REF_TYPE: ${{ github.ref_type }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ steps.request.outputs.tag }}
+          INPUT_BUILD_NUMBER: ${{ inputs.build_number }}
           RUN_NUMBER: ${{ github.run_number }}
           OFFSET: 10
         run: |
-          if [ "$REF_TYPE" != tag ]; then
-            echo "::error::A release runs on a v* tag, not on $REF_TYPE '$TAG'."
-            exit 1
-          fi
           version_name="$(sed -nE 's/^version:[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+)(\+[0-9]+)?[[:space:]]*$/\1/p' pubspec.yaml)"
           if [ -z "$version_name" ]; then
-            echo "::error::No 'version: X.Y.Z+N' line in app/pubspec.yaml."
+            echo "::error::No 'version: X.Y.Z+N' line in app/pubspec.yaml at $TAG."
             exit 1
           fi
-          if [[ ! "$TAG" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)(-[0-9A-Za-z.-]+)?$ ]]; then
-            echo "::error::Tag '$TAG' is not vX.Y.Z or vX.Y.Z-suffix."
-            exit 1
-          fi
+          [[ "$TAG" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)(-[0-9A-Za-z.-]+)?$ ]]
           if [ "${BASH_REMATCH[1]}" != "$version_name" ]; then
-            echo "::error::Tag '$TAG' is version ${BASH_REMATCH[1]}, app/pubspec.yaml says $version_name. Bump the pubspec or fix the tag."
+            echo "::error::Tag '$TAG' is version ${BASH_REMATCH[1]}, app/pubspec.yaml at that tag says $version_name. Bump the pubspec or fix the tag."
             exit 1
           fi
           if [ -n "${BASH_REMATCH[2]}" ]; then is_trial=true; else is_trial=false; fi
-          build_number=$((RUN_NUMBER + OFFSET))
-          echo "::notice::Version $version_name ($build_number), trial: $is_trial"
+          if [ -n "$INPUT_BUILD_NUMBER" ]; then
+            if [[ ! "$INPUT_BUILD_NUMBER" =~ ^[1-9][0-9]{0,8}$ ]]; then
+              echo "::error::build_number '$INPUT_BUILD_NUMBER' is not a positive whole number."
+              exit 1
+            fi
+            build_number="$INPUT_BUILD_NUMBER"
+          else
+            build_number=$((RUN_NUMBER + OFFSET))
+          fi
+          sha="$(git rev-parse HEAD)"
+          echo "::notice::Version $version_name ($build_number) from $TAG at $sha, trial: $is_trial"
           {
+            echo "sha=$sha"
             echo "version_name=$version_name"
             echo "build_number=$build_number"
             echo "is_trial=$is_trial"
@@ -98,6 +204,7 @@ jobs:
 
   android:
     needs: version
+    if: ${{ needs.version.outputs.platforms != 'ios' }}
     runs-on: ubuntu-latest
     # Gated: waits for an approval before it can use the signing secrets.
     environment: release
@@ -107,10 +214,15 @@ jobs:
     env:
       HAVE_SECRETS: ${{ secrets.ANDROID_KEYSTORE_B64 != '' && 'true' || 'false' }}
       HAVE_PLAY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' && 'true' || 'false' }}
+      TAG: ${{ needs.version.outputs.tag }}
       VERSION_NAME: ${{ needs.version.outputs.version_name }}
       BUILD_NUMBER: ${{ needs.version.outputs.build_number }}
+      DRY_RUN: ${{ needs.version.outputs.dry_run }}
     steps:
+      # The commit the version job checked, even if the tag moved since.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ needs.version.outputs.sha }}
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
@@ -144,9 +256,12 @@ jobs:
 
       # Play only refuses a repeated version code at upload, after the build;
       # this asks first, so a wrong number stops the run before anything is
-      # built. The Ubuntu image has no Bundler on the PATH, so it is installed
-      # (with Ruby, if that is missing too); the Gemfile pins fastlane to 2.x.
+      # built. If Play already has this very code, an earlier run uploaded it:
+      # the job skips the upload and succeeds (a dry run only reports it). The
+      # Ubuntu image has no Bundler on the PATH, so it is installed (with Ruby,
+      # if that is missing too); the Gemfile pins fastlane to 2.x.
       - name: Check the version code against Play
+        id: play
         if: ${{ env.HAVE_SECRETS == 'true' && env.HAVE_PLAY == 'true' }}
         env:
           PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
@@ -174,14 +289,49 @@ jobs:
             exit 1
           fi
           latest="$(cat "$LATEST_VERSION_CODE_FILE")"
-          if [ "$BUILD_NUMBER" -le "$latest" ]; then
-            echo "::error::Version code $BUILD_NUMBER is not above $latest, the highest on Google Play. Raise OFFSET in the version job."
+          if [ "$BUILD_NUMBER" -lt "$latest" ]; then
+            echo "::error::Version code $BUILD_NUMBER is below $latest, the highest on Google Play. Raise OFFSET in the version job, or dispatch with a higher build_number."
             exit 1
           fi
-          echo "::notice::Version code $BUILD_NUMBER (Play's highest so far: $latest)"
+          if [ "$BUILD_NUMBER" -eq "$latest" ]; then
+            if [ "$DRY_RUN" = true ]; then
+              echo "::notice::Dry run: version code $BUILD_NUMBER is already on Google Play; a real run would skip the Play upload."
+            else
+              echo "::notice::Version code $BUILD_NUMBER is already on Google Play: already uploaded, skipping the Play upload."
+            fi
+            echo "uploaded=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Version code $BUILD_NUMBER (Play's highest so far: $latest)"
+            echo "uploaded=false" >> "$GITHUB_OUTPUT"
+          fi
 
+      # The GitHub Release is made once: not for a trial or a dry run, and not
+      # again if a run before this one made it.
+      - name: Does the GitHub Release exist
+        id: ghrelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IS_TRIAL: ${{ needs.version.outputs.is_trial }}
+        run: |
+          if [ "$IS_TRIAL" = true ]; then
+            echo "create=false" >> "$GITHUB_OUTPUT"
+          elif [ "$DRY_RUN" = true ]; then
+            echo "::notice::Dry run: no GitHub Release."
+            echo "create=false" >> "$GITHUB_OUTPUT"
+          elif out="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json tagName 2>&1)"; then
+            echo "::notice::The GitHub Release $TAG exists already; leaving it as it is."
+            echo "create=false" >> "$GITHUB_OUTPUT"
+          elif [[ "$out" == *"release not found"* ]]; then
+            echo "create=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Could not look up the GitHub Release $TAG: $out"
+            exit 1
+          fi
+
+      # Skipped when Play has the build and the GitHub Release needs no files,
+      # except in a dry run, whose point is to build and sign.
       - name: Build release (signed)
-        if: ${{ env.HAVE_SECRETS == 'true' }}
+        if: ${{ env.HAVE_SECRETS == 'true' && (env.DRY_RUN == 'true' || steps.play.outputs.uploaded != 'true' || steps.ghrelease.outputs.create == 'true') }}
         run: |
           flutter build appbundle --release --dart-define-from-file=env/prod.json \
             --build-name="$VERSION_NAME" --build-number="$BUILD_NUMBER"
@@ -195,9 +345,11 @@ jobs:
             --build-name="$VERSION_NAME" --build-number="$BUILD_NUMBER"
 
       - name: GitHub Release
-        if: ${{ needs.version.outputs.is_trial != 'true' }}
+        if: ${{ steps.ghrelease.outputs.create == 'true' }}
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
+          # A dispatch runs on a branch, so the tag is named explicitly.
+          tag_name: ${{ env.TAG }}
           generate_release_notes: true
           files: |
             app/build/app/outputs/flutter-apk/app-release.apk
@@ -205,7 +357,7 @@ jobs:
             app/build/app/outputs/bundle/release/app-release.aab
 
       - name: Upload to Play internal testing
-        if: ${{ env.HAVE_SECRETS == 'true' && env.HAVE_PLAY == 'true' }}
+        if: ${{ env.HAVE_SECRETS == 'true' && env.HAVE_PLAY == 'true' && env.DRY_RUN != 'true' && steps.play.outputs.uploaded != 'true' }}
         uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
@@ -214,8 +366,13 @@ jobs:
           track: internal
           status: completed
 
+      - name: Dry run
+        if: ${{ env.DRY_RUN == 'true' }}
+        run: echo "::notice::Dry run of $TAG ($VERSION_NAME, $BUILD_NUMBER) for Android finished; nothing was uploaded."
+
   ios:
     needs: version
+    if: ${{ needs.version.outputs.platforms != 'android' }}
     runs-on: macos-15
     timeout-minutes: 90
     # Required reviewer: the approval gate for signing and uploading.
@@ -224,12 +381,16 @@ jobs:
       contents: read
     env:
       HAVE_SIGNING: ${{ secrets.ASC_KEY_ID != '' && secrets.ASC_ISSUER_ID != '' && secrets.ASC_KEY_P8_BASE64 != '' && secrets.IOS_DEV_CERT_P12_BASE64 != '' && secrets.APP_ENV_PROD_JSON != '' && 'true' || 'false' }}
+      TAG: ${{ needs.version.outputs.tag }}
       VERSION_NAME: ${{ needs.version.outputs.version_name }}
       BUILD_NUMBER: ${{ needs.version.outputs.build_number }}
+      DRY_RUN: ${{ needs.version.outputs.dry_run }}
       ARCHIVE_PATH: build/ios/archive/Runner.xcarchive
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ needs.version.outputs.sha }}
       # The image's default Xcode 16.4 cannot compile device_info_plus (an
       # iOS 17 NSProcessInfo selector); the app is built with Xcode 26 on the
       # Mac, so pick the newest 26 on the runner.
@@ -283,14 +444,21 @@ jobs:
           security import "$p12" -k "$keychain" -f pkcs12 -P "$IOS_DEV_CERT_PASSWORD" \
             -T /usr/bin/codesign -T /usr/bin/security
           security set-key-partition-list -S apple-tool:,apple: -k "$keychain_password" "$keychain" > /dev/null
-          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          search_list=()
+          while read -r k; do
+            if [ -n "$k" ]; then search_list+=("$k"); fi
+          done < <(security list-keychains -d user | tr -d '"')
+          security list-keychains -d user -s "$keychain" "${search_list[@]}"
           rm -f "$p12"
           echo "KEYCHAIN_PATH=$keychain" >> "$GITHUB_ENV"
 
       # App Store Connect only refuses a repeated build number at upload, after
-      # a long archive; this asks first. The image's Ruby; the Gemfile pins
-      # fastlane to 2.x.
+      # a long archive; this asks first. If its newest build is this very
+      # number, an earlier run uploaded it: the job skips the archive and the
+      # upload and succeeds (a dry run only reports it, and archives anyway).
+      # The image's Ruby; the Gemfile pins fastlane to 2.x.
       - name: Check the build number against App Store Connect
+        id: asc
         if: ${{ env.HAVE_SIGNING == 'true' }}
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
@@ -306,14 +474,24 @@ jobs:
             exit 1
           fi
           latest="$(cat "$LATEST_BUILD_NUMBER_FILE")"
-          if [ "$BUILD_NUMBER" -le "$latest" ]; then
-            echo "::error::Build number $BUILD_NUMBER is not above $latest, the latest on App Store Connect. Raise OFFSET in the version job."
+          if [ "$BUILD_NUMBER" -lt "$latest" ]; then
+            echo "::error::Build number $BUILD_NUMBER is below $latest, the latest on App Store Connect. Raise OFFSET in the version job, or dispatch with a higher build_number."
             exit 1
           fi
-          echo "::notice::Build number $BUILD_NUMBER (App Store Connect's latest so far: $latest)"
+          if [ "$BUILD_NUMBER" -eq "$latest" ]; then
+            if [ "$DRY_RUN" = true ]; then
+              echo "::notice::Dry run: build $BUILD_NUMBER is already on App Store Connect; a real run would skip the archive and the upload."
+            else
+              echo "::notice::Build $BUILD_NUMBER is already on App Store Connect: already uploaded, skipping the archive and the upload."
+            fi
+            echo "uploaded=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Build number $BUILD_NUMBER (App Store Connect's latest so far: $latest)"
+            echo "uploaded=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Archive
-        if: ${{ env.HAVE_SIGNING == 'true' }}
+        if: ${{ env.HAVE_SIGNING == 'true' && (env.DRY_RUN == 'true' || steps.asc.outputs.uploaded != 'true') }}
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -334,7 +512,7 @@ jobs:
             -authenticationKeyIssuerID "$ASC_ISSUER_ID"
 
       - name: Upload to App Store Connect
-        if: ${{ env.HAVE_SIGNING == 'true' }}
+        if: ${{ env.HAVE_SIGNING == 'true' && env.DRY_RUN != 'true' && steps.asc.outputs.uploaded != 'true' }}
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -350,6 +528,10 @@ jobs:
             -authenticationKeyPath "$ASC_KEY_PATH" \
             -authenticationKeyID "$ASC_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      - name: Dry run
+        if: ${{ env.DRY_RUN == 'true' }}
+        run: echo "::notice::Dry run of $TAG ($VERSION_NAME, $BUILD_NUMBER) for iOS finished; nothing was uploaded."
 
       - name: Remove the key and the keychain
         if: ${{ always() }}
