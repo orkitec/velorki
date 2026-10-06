@@ -1,12 +1,16 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/features/search/data/gazetteer_store.dart';
 import 'package:velorki/features/search/domain/search_group.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
+import 'package:velorki/features/search/domain/street_numbers.dart';
+import 'package:sqlite3/sqlite3.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import 'support/gazetteer_fixture.dart';
+import 'support/street_numbers_encoder.dart';
 
 /// The fixture the parallel builder writes; the one test that uses it is
 /// skipped while it is not there.
@@ -716,6 +720,43 @@ void main() {
       );
     });
 
+    test('a file with street sides places the number on its side', () async {
+      buildGazetteer(
+        dir,
+        'W20_N30',
+        streets: const <GazStreet>[
+          GazStreet(10, 'West 42nd Street', 40.7570, -73.9900),
+        ],
+        // Written by a builder from 2026-10 on: no anchors, the two sides.
+        streetNumbers: <int, Uint8List>{
+          10: encodeStreetNumbers(
+            <(int, double, double)>[
+              (401, 40.7601, -74.0001),
+              (421, 40.7621, -74.0201),
+            ],
+            <(int, double, double)>[
+              (400, 40.7600, -74.0000),
+              (420, 40.7620, -74.0200),
+            ],
+          ),
+        },
+      );
+      final store = await openStore();
+
+      final hit = (await store.search('410 w 42nd')).single;
+      expect(hit.houseNumber, '410');
+      expect(hit.approximate, isFalse, reason: 'within 20 m on its own side');
+      expect(hit.position.lat, closeTo(40.7610, 1e-7));
+      expect(hit.position.lon, closeTo(-74.0100, 1e-7));
+
+      final odd = (await store.search('411 w 42nd')).single;
+      expect(odd.position.lat, closeTo(40.7611, 1e-7));
+
+      final past = (await store.search('900 w 42nd')).single;
+      expect(past.approximate, isTrue);
+      expect(past.position.lat, closeTo(40.7620, 1e-7));
+    });
+
     test('a file from the first builder still answers', () async {
       buildGazetteer(
         dir,
@@ -1233,6 +1274,34 @@ void main() {
       );
       final street = await store.search('im muhl');
       expect(street.map((r) => r.name), contains('Im Mühleholz'));
+      // The Python builder's street_numbers blobs, read by the Dart decoder:
+      // street 185 is Landstrasse, its odd side starts at 115.
+      final db = sqlite3.open(realFixture.path, mode: OpenMode.readOnly);
+      addTearDown(db.close);
+      var blobs = 0;
+      for (final row in db.select(
+        'SELECT street_id, data FROM street_numbers',
+      )) {
+        final sides = decodeStreetNumbers(row['data'] as Uint8List);
+        expect(sides, isNotNull, reason: 'street ${row['street_id']}');
+        expect(sides!.odd.every((p) => p.number.isOdd), isTrue);
+        expect(sides.even.every((p) => p.number.isEven), isTrue);
+        blobs++;
+      }
+      expect(blobs, greaterThan(900));
+      final landstrasse = decodeStreetNumbers(
+        db
+                .select('SELECT data FROM street_numbers WHERE street_id = 185')
+                .single['data']
+            as Uint8List,
+      )!;
+      expect(landstrasse.odd.first.number, 115);
+      expect(landstrasse.odd.first.position.lat, closeTo(47.11491, 1e-9));
+      expect(landstrasse.odd.first.position.lon, closeTo(9.52398, 1e-9));
+      final address = (await store.search('landstrasse 115'))
+          .firstWhere((r) => r.kind == SearchKind.street);
+      expect(address.houseNumber, '115');
+
       final vaduz = (await store.search('vaduz'))
           .firstWhere((r) => r.kind == SearchKind.place);
       expect(vaduz.detail, isNotNull);

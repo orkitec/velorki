@@ -39,6 +39,10 @@ import sys
 import unicodedata
 from typing import Callable, Iterator, NamedTuple
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from street_numbers import POINT_SCALE, decode  # noqa: E402
+
 COORD_SCALE = 1e7
 
 # How far `near` is from the row: a rider who has just set off, or is looking
@@ -471,8 +475,9 @@ CORRUPTIONS: list[Corruption] = [
     Corruption("partial_prefix", prefix_applies, prefix),
 ]
 
-# Address cases are built from a street and one of its anchors, not from the
-# name alone, so they are a second list with their own shape.
+# Address cases are built from a street and one of its house-number points
+# (or an older file's anchors), not from the name alone, so they are a second
+# list with their own shape.
 ADDRESS_KINDS = (
     "address_after",
     "address_before",
@@ -539,7 +544,23 @@ def load_rows(db: sqlite3.Connection) -> dict[str, list[Row]]:
 
 
 def load_anchors(db: sqlite3.Connection) -> dict[int, list[Anchor]]:
+    """Every stored house number and its position, per street.
+
+    `street_numbers` points (odd side, then even) where the file has them,
+    else an older file's `house_numbers` anchors, else nothing.
+    """
     anchors: dict[int, list[Anchor]] = {}
+    try:
+        blobs = db.execute("SELECT street_id, data FROM street_numbers ORDER BY street_id").fetchall()
+    except sqlite3.OperationalError:
+        blobs = None
+    if blobs is not None:
+        for street_id, data in blobs:
+            odd, even = decode(data)
+            anchors[street_id] = [
+                Anchor(number, lat / POINT_SCALE, lon / POINT_SCALE) for number, lat, lon in odd + even
+            ]
+        return anchors
     try:
         rows = db.execute("SELECT street_id, number, lat, lon FROM house_numbers ORDER BY street_id, number")
     except sqlite3.OperationalError:

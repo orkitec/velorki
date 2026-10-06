@@ -8,6 +8,7 @@
 library;
 
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:sqlite3/sqlite3.dart';
 
@@ -131,7 +132,8 @@ class GazHouseNumber {
 /// file from a future builder that this app must refuse. [legacy] leaves out
 /// `aliases` and `house_numbers` altogether, the way the first builder wrote
 /// its files; the app has to answer from those too. [vocab] adds the
-/// `vocab` table a builder from 2026-10 on writes.
+/// `vocab` table a builder from 2026-10 on writes, [streetNumbers] its
+/// `street_numbers` rows (street id → blob, see `street_numbers_encoder.dart`).
 File buildGazetteer(
   Directory dir,
   String tile, {
@@ -143,6 +145,7 @@ File buildGazetteer(
   List<GazPoi> pois = const <GazPoi>[],
   List<GazAlias> aliases = const <GazAlias>[],
   List<GazHouseNumber> houseNumbers = const <GazHouseNumber>[],
+  Map<int, Uint8List> streetNumbers = const <int, Uint8List>{},
 }) {
   dir.createSync(recursive: true);
   final file = File('${dir.path}/$tile.gaz');
@@ -293,6 +296,18 @@ CREATE TABLE house_numbers (
       );
     }
     index.close();
+    if (streetNumbers.isNotEmpty) {
+      db.execute(
+        'CREATE TABLE street_numbers '
+        '(street_id INTEGER PRIMARY KEY, data BLOB NOT NULL);',
+      );
+      for (final entry in streetNumbers.entries) {
+        db.execute(
+          'INSERT INTO street_numbers (street_id, data) VALUES (?, ?);',
+          <Object?>[entry.key, entry.value],
+        );
+      }
+    }
     if (vocab) {
       db
         ..execute(

@@ -39,6 +39,10 @@ from typing import Iterable, NamedTuple
 import osmium
 import osmium.filter as osmium_filter
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from street_numbers import thinned_blob  # noqa: E402
+
 SCHEMA_VERSION = 1
 
 TILE_SIZE_DEG = 5
@@ -864,40 +868,22 @@ class StreetNameGrid:
         return best
 
 
-def thin_anchors(entries: list[tuple[int, int, int]]) -> list[tuple[int, int, int]]:
-    """Lowest, highest and every twentieth number in between, at most MAX_ANCHORS."""
-    count = len(entries)
-    if count <= 2:
-        return entries
-    picked = sorted({0, count - 1} | set(range(ANCHOR_STEP, count - 1, ANCHOR_STEP)))
-    if len(picked) > MAX_ANCHORS:
-        inner = picked[1:-1]
-        keep = MAX_ANCHORS - 2
-        picked = (
-            [picked[0]]
-            + [inner[(index * len(inner)) // keep] for index in range(keep)]
-            + [picked[-1]]
-        )
-    return [entries[index] for index in picked]
-
-
-def house_numbers(
+def addresses_by_street(
     columns: tuple[array, array, array, array],
     names: list[str],
     streets: list[StreetRow],
-) -> list[tuple[int, int, int, int]]:
-    """`(street_id, number, lat, lon)` anchors for one tile's addresses.
+) -> dict[int, array]:
+    """The row indexes of one tile's addresses, per street id they matched.
 
-    The addresses stay in their `array` columns throughout; they are grouped by
-    the street they matched with one `array` of row indexes per street, so the
-    only Python objects ever alive are those of the single street being thinned.
+    An address belongs to the nearest street of the same name within
+    ADDRESS_RADIUS_M. The addresses stay in their `array` columns; a street
+    gets one `array` of row indexes, so no address becomes a Python object.
     """
     name_index, numbers, lats, lons = columns
-    if not numbers or not streets:
-        return []
-
-    grid = StreetNameGrid(streets)
     by_street: dict[int, array] = {}
+    if not numbers or not streets:
+        return by_street
+    grid = StreetNameGrid(streets)
     for row in range(len(numbers)):
         street = grid.nearest(
             names[name_index[row]], lats[row] / COORD_SCALE, lons[row] / COORD_SCALE
@@ -908,8 +894,22 @@ def house_numbers(
         if bucket is None:
             bucket = by_street[street.id] = array("i")
         bucket.append(row)
+    return by_street
 
-    out: list[tuple[int, int, int, int]] = []
+
+def street_numbers(
+    columns: tuple[array, array, array, array],
+    names: list[str],
+    streets: list[StreetRow],
+) -> list[tuple[int, bytes]]:
+    """`(street_id, data)` rows of `street_numbers` for one tile's addresses.
+
+    Only the addresses of the single street being encoded are ever Python
+    objects. See street_numbers.py for the blob and the thinning.
+    """
+    _, numbers, lats, lons = columns
+    by_street = addresses_by_street(columns, names, streets)
+    out: list[tuple[int, bytes]] = []
     for street_id in sorted(by_street):
         seen: set[int] = set()
         entries: list[tuple[int, int, int]] = []
@@ -921,21 +921,13 @@ def house_numbers(
                 continue
             seen.add(number)
             entries.append((number, lats[row], lons[row]))
-        out += [
-            (street_id, number, lat, lon)
-            for number, lat, lon in thin_anchors(entries)
-        ]
+        out.append((street_id, thinned_blob(entries, COORD_SCALE)))
     return out
 
 
 # --------------------------------------------------------------------------
 # writing one tile
 # --------------------------------------------------------------------------
-
-# Every 20th number in between: half as many anchors, still accurate to a block.
-ANCHOR_STEP = 20
-# Hard cap per street, so one long road cannot bloat a tile; ~380 numbers reach it.
-MAX_ANCHORS = 20
 
 SCHEMA = """
 CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -995,18 +987,16 @@ CREATE TABLE aliases (
     name   TEXT NOT NULL
 );
 
--- Anchor points along a street: the lowest house number, the highest, and
--- every twentieth in between (see ANCHOR_STEP / MAX_ANCHORS above). A lookup
--- interpolates between the two anchors that bracket the number asked for.
--- WITHOUT ROWID because (street_id, number) is the whole row's key and the
--- table is nothing but that key plus a point.
-CREATE TABLE house_numbers (
-    street_id INTEGER NOT NULL,
-    number    INTEGER NOT NULL,
-    lat       INTEGER NOT NULL,
-    lon       INTEGER NOT NULL,
-    PRIMARY KEY (street_id, number)
-) WITHOUT ROWID;
+-- A street's house numbers, odd and even side, thinned to the points that
+-- keep interpolation by number within 20 m, delta-coded into one blob per
+-- street (street_numbers.py, README.md "Schema"). No row: no addresses.
+CREATE TABLE street_numbers (street_id INTEGER PRIMARY KEY, data BLOB NOT NULL);
+
+-- Every term of the FTS index with the number of rows it occurs in, written
+-- last from fts5vocab: fts5vocab walks a term's whole doclist to count it,
+-- which is slow for a common word, and the app range-scans terms for typos
+-- and prefixes.
+CREATE TABLE vocab (term TEXT PRIMARY KEY, docs INTEGER NOT NULL) WITHOUT ROWID;
 
 CREATE VIRTUAL TABLE search USING fts5(
     name,
@@ -1031,6 +1021,17 @@ CREATE INDEX idx_aliases_ref ON aliases(ref_id);
 """
 
 
+def finish_index(db: sqlite3.Connection) -> None:
+    """Optimize the FTS index, copy its vocabulary into `vocab`, VACUUM."""
+    db.execute("INSERT INTO search(search) VALUES ('optimize')")
+    db.commit()
+    db.execute("CREATE VIRTUAL TABLE temp.v USING fts5vocab(main, 'search', 'row')")
+    db.execute("INSERT INTO vocab (term, docs) SELECT term, doc FROM temp.v")
+    db.execute("DROP TABLE temp.v")
+    db.commit()
+    db.execute("VACUUM")
+
+
 class TileStats(NamedTuple):
     tile: str
     path: str
@@ -1049,7 +1050,7 @@ def write_tile(
     streets: list[StreetRow],
     pois: list[tuple[int, str | None, str, float, float, int | None, str, int]],
     aliases: list[tuple[int, int, str]],
-    numbers: list[tuple[int, int, int, int]],
+    numbers: list[tuple[int, bytes]],
     source: str,
     has_streets: bool,
     built_at: str,
@@ -1100,10 +1101,7 @@ def write_tile(
     )
 
     db.executemany("INSERT INTO aliases (id, ref_id, name) VALUES (?,?,?)", aliases)
-    db.executemany(
-        "INSERT INTO house_numbers (street_id, number, lat, lon) VALUES (?,?,?,?)",
-        numbers,
-    )
+    db.executemany("INSERT INTO street_numbers (street_id, data) VALUES (?,?)", numbers)
 
     # An unnamed utility row has nothing to match, so it stays out of the index.
     db.executemany(
@@ -1126,9 +1124,7 @@ def write_tile(
         ],
     )
     db.commit()
-    db.execute("INSERT INTO search(search) VALUES ('optimize')")
-    db.commit()
-    db.execute("VACUUM")
+    finish_index(db)
     db.close()
 
     return TileStats(
@@ -1207,7 +1203,7 @@ def build_tile(
             next_id += 1
 
     numbers = (
-        house_numbers(addresses.of(tile), addresses.names, streets)
+        street_numbers(addresses.of(tile), addresses.names, streets)
         if has_streets
         else []
     )
@@ -1280,7 +1276,7 @@ def main() -> int:
     for poi in extract.pois:
         tiles[tile_name(poi.lat, poi.lon)][2].append(poi)
     # A tile can hold addresses and nothing else, and then it gets no file:
-    # an anchor without a street row is worthless.
+    # house numbers without a street row are worthless.
 
     results: list[TileStats] = []
     for tile in sorted(tiles):
@@ -1304,7 +1300,7 @@ def main() -> int:
     elapsed = time.monotonic() - started
     print(
         f"\n{'tile':<12} {'places':>8} {'streets':>9} {'pois':>8} "
-        f"{'aliases':>8} {'numbers':>8} {'size':>10}"
+        f"{'aliases':>8} {'numbered':>8} {'size':>10}"
     )
     for row in results:
         print(

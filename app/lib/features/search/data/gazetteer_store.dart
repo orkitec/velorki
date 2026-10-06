@@ -17,6 +17,7 @@ import '../domain/search_group.dart';
 import '../domain/search_kinds.dart';
 import '../domain/search_result.dart';
 import '../domain/search_text.dart';
+import '../domain/street_numbers.dart';
 import 'photon_client.dart';
 
 part 'gazetteer_store.g.dart';
@@ -32,7 +33,7 @@ const int gazetteerMinChars = 3;
 
 /// Up to this many matches of one expression in one file are all read and
 /// scored; the ranking, not the index, decides which are shown.
-const int _fetchAll = 2000;
+const int _fetchAll = 1000;
 
 /// Up to this many matches the rows nearest to the map centre are picked in
 /// SQLite instead; above it a word is too common to be worth measuring.
@@ -131,10 +132,10 @@ const double _metersPerDegree = 111320;
 /// on the phone and rebuilt from scratch by the builder, so nothing here ever
 /// writes.
 ///
-/// The SQLite work runs synchronously — a prefix query over a few hundred
-/// thousand rows is a couple of milliseconds, far cheaper than shipping the
-/// query to an isolate — but the API is async so the caller cannot tell and a
-/// future move off the main thread stays invisible.
+/// The SQLite work runs synchronously — a typical query on a dense tile is a
+/// few milliseconds on a laptop, a second look tens — but the API is async so
+/// the caller cannot tell and a future move off the main thread stays
+/// invisible.
 class GazetteerStore {
   /// Creates a store over [directory].
   ///
@@ -1010,6 +1011,10 @@ class _GazetteerFile {
         _db,
         'SELECT number, lat, lon FROM house_numbers WHERE street_id = ? '
         'ORDER BY number',
+      ),
+      _streetNumbers = _prepareOrNull(
+        _db,
+        'SELECT data FROM street_numbers WHERE street_id = ?',
       );
 
   /// The tile this file covers, e.g. `E5_N45`.
@@ -1023,6 +1028,7 @@ class _GazetteerFile {
   final PreparedStatement? _pois;
   final PreparedStatement? _aliases;
   final PreparedStatement? _houseNumbers;
+  final PreparedStatement? _streetNumbers;
 
   PreparedStatement? _vocabRange;
   PreparedStatement? _vocabTerm;
@@ -1035,8 +1041,7 @@ class _GazetteerFile {
   ///
   /// Up to [_fetchAll] matches are all read, with one batched query per
   /// table: the ranking, not the index, decides which of them are shown, so
-  /// the "Hauptstraße" around the corner is not lost among the two thousand
-  /// others. Between that and [_scanLimit] the [_nearestLimit] rows of each
+  /// the "Hauptstraße" around the corner is not lost among the others. Between that and [_scanLimit] the [_nearestLimit] rows of each
   /// table nearest to [near] are read instead; beyond it — a word as common
   /// as "street" — the first [_fetchAll].
   ///
@@ -1452,6 +1457,7 @@ class _GazetteerFile {
     _pois?.close();
     _aliases?.close();
     _houseNumbers?.close();
+    _streetNumbers?.close();
     _vocabRange?.close();
     _vocabTerm?.close();
     _db.close();
@@ -1495,17 +1501,32 @@ class _GazetteerFile {
 
   /// Where number [number] of street [streetId] is.
   ///
-  /// The builder keeps anchors, not every address: the lowest number, the
-  /// highest and every tenth in between. An anchor for the number itself is
-  /// the exact spot; between two anchors the position is interpolated by
-  /// number; beyond either end it is the end anchor; with no anchors at all it
-  /// is [fallback], the street itself. Everything but a hit on an anchor is
-  /// approximate, and the row says so.
+  /// A file from 2026-10 on keeps each side of the street in
+  /// `street_numbers`, thinned to 20 m ([locateOnStreet]). An older one keeps
+  /// anchors in `house_numbers`: the lowest number, the highest and every
+  /// twentieth in between. An anchor for the number itself is the exact
+  /// spot; between two anchors the position is interpolated by number;
+  /// beyond either end it is the end anchor. With nothing stored it is
+  /// [fallback], the street itself. Whatever is not known to within a few
+  /// metres is approximate, and the row says so.
   ({LatLng position, bool approximate}) _locate(
     int streetId,
     int number,
     LatLng fallback,
   ) {
+    final sides = _streetNumbers;
+    if (sides != null) {
+      final rows = sides.select(<Object?>[streetId]);
+      final data = rows.isEmpty ? null : rows.first['data'];
+      if (data is Uint8List) {
+        final decoded = decodeStreetNumbers(data);
+        final located = decoded == null
+            ? null
+            : locateOnStreet(decoded, number);
+        if (located != null) return located;
+      }
+      return (position: fallback, approximate: true);
+    }
     final statement = _houseNumbers;
     if (statement == null) return (position: fallback, approximate: true);
     final anchors = <({int number, LatLng position})>[];

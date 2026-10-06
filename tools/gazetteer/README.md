@@ -16,6 +16,7 @@ at `<appSupport>/brouter/gazetteer/<TILE>.gaz`, read-only.
 | `merge.py` | merges the partial tiles of several extracts into one file per tile |
 | `query.py` | runs the app's two queries from the command line |
 | `check.py` | validates one `.gaz` and prints a one-line summary |
+| `street_numbers.py` | the `street_numbers` blob: thinning, encoding, decoding, the lookup |
 | `manifest.py` | adds the `gazetteer` object to a mirror's `manifest.json` |
 | `testset.py` | samples a `.gaz` into mistyped query/expected pairs for the search-quality scorer |
 | `test_gazetteer.py` | the tests, run against a Liechtenstein build |
@@ -30,8 +31,9 @@ at `<appSupport>/brouter/gazetteer/<TILE>.gaz`, read-only.
 | `pois` | one per feature and kind | what a rider needs on the road and what a rider searches for as a destination: the 38 kinds below, named — or unnamed for the eight utility kinds |
 | `streets` | one per street name per place | every named `highway=*` way, the many ways of one street merged into one row |
 | `aliases` | one per extra name | `name:en`, `int_name`, `alt_name`, `old_name`, `official_name`, `short_name` of a row above |
-| `house_numbers` | at most 20 per street | anchor points along a street: the lowest number, the highest, every twentieth in between |
+| `street_numbers` | one per street with addresses | its house numbers, odd and even side, thinned to the points that keep interpolation within 20 m, in one blob |
 | `search` | one per place, street, **named** poi and alias | the FTS5 index the search box queries |
+| `vocab` | one per word of `search` | the word and how many rows hold it, copied from the index |
 | `meta` | six | schema version, tile, build time, source, what is in the file |
 
 Streets are built by default and are most of the file; `--no-streets` leaves
@@ -152,18 +154,20 @@ CREATE TABLE aliases (
     name   TEXT NOT NULL
 );
 
-CREATE TABLE house_numbers (
-    street_id INTEGER NOT NULL,   -- streets.id
-    number    INTEGER NOT NULL,   -- leading integer of addr:housenumber
-    lat       INTEGER NOT NULL,
-    lon       INTEGER NOT NULL,
-    PRIMARY KEY (street_id, number)
-) WITHOUT ROWID;
+CREATE TABLE street_numbers (
+    street_id INTEGER PRIMARY KEY,  -- streets.id; no row: no addresses
+    data      BLOB NOT NULL         -- see "street_numbers.data" below
+);
 
 CREATE VIRTUAL TABLE search USING fts5(
     name, content='', columnsize=0,
     tokenize='unicode61 remove_diacritics 2'
 );
+
+CREATE TABLE vocab (
+    term TEXT PRIMARY KEY,          -- a term of the search index
+    docs INTEGER NOT NULL           -- how many rows hold it
+) WITHOUT ROWID;
 
 CREATE INDEX idx_places_pos  ON places(lat, lon);
 CREATE INDEX idx_pois_pos    ON pois(lat, lon);
@@ -171,6 +175,44 @@ CREATE INDEX idx_aliases_ref ON aliases(ref_id);
 ```
 
 Page size 4096, journal mode DELETE (the phone opens it read-only), `VACUUM`ed.
+
+`vocab` is written last, after the FTS `optimize`, from
+`fts5vocab(main, 'search', 'row')`: exactly the index's terms with their
+document counts. `fts5vocab` works the counts out by walking each term's whole
+list of rows, which is slow for a common word; the app range-scans `vocab`
+(`term >= ? AND term < ?`) and looks single terms up in it instead.
+
+Older files may have a `house_numbers` table instead of `street_numbers`
+(`street_id`, `number`, `lat`, `lon` in 1e-7 degrees, primary key
+`(street_id, number)`: anchors at the lowest, the highest and every twentieth
+number) and no `vocab`. Every tool and the app read both; a file has one or
+neither, never both.
+
+### `street_numbers.data`
+
+An address belongs to the street row of the same name nearest within 2 km;
+per street the unique numbers (the first address of a repeated number wins)
+are split by parity and each side is thinned on its own: the first and the
+last point stay, and between two kept points the skipped point furthest from
+where interpolation by number between them puts it is kept when that is more
+than 20 m (`HOUSE_TOLERANCE_M`), then both halves are looked at again
+(Douglas-Peucker over the number axis). The blob, version 1:
+
+```
+byte 0     1, the blob format version
+odd run    varint(count), then count points
+even run   varint(count), then count points
+point      varint(number - previous number)    previous is 0 at the start of each run;
+                                               numbers strictly ascend within a run
+           zigzag_varint(lat_q - cursor lat)   the cursor starts at (0, 0) at the start
+           zigzag_varint(lon_q - cursor lon)   of the blob, is not reset between runs,
+                                               and is always the previous point written
+```
+
+`lat_q` / `lon_q` are degrees in units of 1e-5 (`round(lat_e7 / 100)`).
+`varint` is unsigned LEB128: seven bits a byte, least significant group first,
+the high bit set when more bytes follow. `zigzag(n) = (n << 1) ^ (n >> 63)` on
+64-bit `n` (0, -1, 1, -2, 2 → 0, 1, 2, 3, 4). Either run may be empty.
 
 Five decisions are load-bearing:
 
@@ -227,10 +269,10 @@ first look, for poking at a file.
    spellings of `ß`/`ss`; a word in more than 15 000 rows (`de`, `rue`,
    `street`) or of two letters is matched exactly, a lone letter left to the
    scoring — prefixes that short merge thousands of term lists.
-3. **Read the rows**: up to 2 000 matches are all read in one batched query
+3. **Read the rows**: up to 1 000 matches are all read in one batched query
    per table (`id IN (SELECT value FROM json_each(?))`), up to 20 000 the 300
    per table nearest to the map centre (ordered in SQL), beyond that the
-   first 2 000. A rowid in `aliases` stands for its `ref_id` row, shown under
+   first 1 000. A rowid in `aliases` stands for its `ref_id` row, shown under
    the primary name.
 4. **Score in Dart**: per word equal, prefix, abbreviation (its letters in
    order, either way: `rd`/`road`, `st`/`saint`), one or two edits
@@ -263,22 +305,27 @@ Do not query below 3 characters.
 
 ### House numbers
 
-The number is resolved against the anchors of each street hit:
+The number is resolved against the `street_numbers` points of each street
+hit, on the side of its parity:
 
 | | position | |
 |---|---|---|
-| the number is an anchor | the anchor | exact |
-| two anchors bracket it | interpolated by number between them | approximate |
-| past either end | the nearer end anchor | approximate |
-| the street has no anchors | the street's own point | approximate |
+| between the first and the last point of its side | interpolated by number between the two points that bracket it (a point itself when it is one) | exact: within 20 m |
+| past either end of its side | the nearer end point of its side | approximate |
+| its side has no points | the nearer end point of the other side | approximate |
+| the street has no row | the street's own point | approximate |
+
+An older file's `house_numbers` anchors keep their own rule: an anchor is
+exact; between two anchors (either parity) interpolated, past either end the
+nearer end anchor, no anchors the street's point, all approximate.
 
 An approximate position is marked `≈` (`SearchResult.approximate` in the app).
 
 ```sh
 ./query.py fixtures/E5_N45.gaz muhleholz
 ./query.py fixtures/E5_N45.gaz vad --near 47.141,9.521
-./query.py fixtures/E5_N45.gaz "114 landstrasse"      # exact anchor
-./query.py fixtures/E5_N45.gaz "landstrasse 120"      # ≈ interpolated
+./query.py fixtures/E5_N45.gaz "114 landstrasse"      # within its side: exact
+./query.py fixtures/E5_N45.gaz "landstrasse 5000"     # ≈ past the end
 ./query.py fixtures/E5_N45.gaz --near 47.141,9.521 --kind drinking_water
 ./query.py --reverse fixtures/E5_N45.gaz 47.1410 9.5215
 ```
@@ -313,13 +360,10 @@ never become Python objects: a state's millions of them live in four `array`
 columns per tile, 16 bytes an address, plus one interned street name each. An
 address belongs to the street row of the same name (case-insensitively;
 diacritics are kept) nearest within 2 km, and is dropped when there is none or
-when the number has no leading integer. Per street the numbers are then sorted,
-the first address of a repeated number wins, and the list is thinned to the
-lowest, the highest and every twentieth in between — at most 20, which only a
-street with more than ~380 numbers ever reaches. Both numbers are
-`ANCHOR_STEP` and `MAX_ANCHORS`, next to the schema in `build.py`; `check.py`
-still accepts up to 40 so a file built before the trim passes, and reports the
-busiest street's count in its summary.
+when the number has no leading integer. Per street the numbers are then
+thinned and encoded as in "`street_numbers.data`" above (`street_numbers.py`,
+shared with `merge.py`); `check.py` decodes every blob, and still accepts an
+older file's `house_numbers` with up to 40 anchors a street.
 
 Areas cost a second pass over the file: osmium indexes the multipolygon and
 boundary relations first, then assembles each one while the ways stream past.
@@ -354,13 +398,16 @@ tile it
   aliases, as `build.py` does, and remaps `admin_id` / `place_id` onto the
   surviving rows (a dropped duplicate's references go to its survivor),
 * carries the aliases over with `ref_id` remapped, one row per (surviving row,
-  name), and the anchors with `street_id` remapped, one per (street, number),
-  thinned back under 20 when a merged street holds more. The "every twentieth"
-  step is **not** re-applied: its input is the addresses, which merge.py never
-  sees, so re-running it would throw away nineteen anchors in twenty on every
-  merge and merging a file with a copy of itself would not be a no-op,
-* merges a file that predates either table fine — it simply contributes none,
-* rebuilds the FTS index, writes `meta` (`source` is the comma-joined distinct
+  name), and the house numbers with `street_id` remapped: each input's
+  `street_numbers` points (or an older input's `house_numbers` anchors, one
+  point each) are joined per surviving street, the first input winning a
+  number both have. Where one input already holds all of them — a street only
+  one extract saw, or two copies of one file — they are written as they are;
+  only a real union of different stretches is split and thinned again, with
+  the points as the truth. So merging a file with a copy of itself is a no-op,
+* merges a file that predates `aliases` or the house numbers fine — it simply
+  contributes none,
+* rebuilds the FTS index and `vocab`, writes `meta` (`source` is the comma-joined distinct
   sources of the inputs, `has_streets` / `has_pois` are set when any input has
   them) and `VACUUM`s.
 
@@ -374,12 +421,12 @@ pyosmium.
 
 | File | Built from | Content | Size |
 |---|---|---|---:|
-| `E5_N45.gaz` | `liechtenstein.osm.pbf` | 98 places, 1,313 streets, 922 pois (302 unnamed), 46 aliases, 2,058 anchors | 249,856 B |
-| `W20_N30.gaz` | `portugal-latest.osm.pbf`, `--tiles W20_N30` | 1,774 places, 8,435 streets, 6,501 pois, 3,234 anchors | 1,490,944 B |
+| `E5_N45.gaz` | `liechtenstein.osm.pbf` | 99 places, 1,315 streets, 926 pois (301 unnamed), 46 aliases, 986 `street_numbers` rows (6,578 points of 12,226 addresses), 1,904 `vocab` terms | 286,720 B |
+| `W20_N30.gaz` | `portugal-latest.osm.pbf`, `--tiles W20_N30` | 1,774 places, 8,435 streets, 6,501 pois, 3,234 `house_numbers` anchors, no `vocab` | 1,490,944 B |
 
-`E5_N45.gaz` by page share: `pois` 21%, `streets` 20%, `house_numbers` 18%, the
-FTS index 15%, `idx_pois_pos` 8%, `places` 5%, everything else (including
-`aliases` and its index) one page each.
+`E5_N45.gaz` by page share: `pois` 19%, `streets` 17%, `street_numbers` 16%,
+the FTS index 13%, `vocab` 13%, `idx_pois_pos` 7%, `places` 4%, everything
+else (including `aliases` and its index) one page each.
 
 ```sh
 ./build.py liechtenstein.osm.pbf --out fixtures
@@ -394,20 +441,17 @@ It also covers the landmarks: `Rathaus Vaduz` is a `building`, `Kathedrale St.
 Florin` a `place_of_worship`, `Schloss Vaduz` a `historic` built from a
 multipolygon relation. `Liechtensteinisches Landesmuseum Vaduz` carries the
 `name:en` the alias test looks for, and `Landstrasse` in Triesen is the street
-with the most anchors. It also covers the unnamed rows: 97 nameless water
-stops, 78 shelters, 63 bike stands, 42 toilets, 19 picnic sites, 2 charging
+with the most house-number points (78). It also covers the unnamed rows: 97
+nameless water stops, 77 shelters, 63 bike stands, 42 toilets, 19 picnic sites, 2 charging
 stations and 1 repair station, node 12899110144 a `drinking_water=no` spring
 that is dropped, node 4759689350 a toilet with a tap that is two rows.
-Landmarks took the file from 155,648 B to 204,800 B, Addendum 2 (the seven
-kinds, the aliases, the anchors) to 266,240 B and Addendum 3 (327 more POI
-rows, most of them unnamed) to 286,720 B; Addendum 4 (no `idx_streets_pos`, an
-anchor every twentieth number) took it back to 249,856 B, 12.9% off, and
-`--no-streets` from 155,648 B to 151,552 B.
+`--no-streets` is 172,032 B.
 Madeira is `W20_N30`, the tile the integration tests already mirror, and holds
 `Funchal`; Portugal is the only Geofabrik extract that covers it, so the
 mainland tiles are discarded with `--tiles`. `W20_N30.gaz` was built before
-`idx_streets_pos` was dropped and the anchor cap halved, and is kept that way
-on purpose: it is what proves the tools still read an older file.
+`idx_streets_pos` was dropped, `street_numbers` replaced `house_numbers` and
+`vocab` was added, and is kept that way on purpose: it is what proves the tools
+still read an older file.
 
 Run the tests from the repo root:
 
@@ -416,7 +460,7 @@ GAZ_EXTRACT=/path/to/liechtenstein.osm.pbf \
   python -m unittest tools/gazetteer/test_gazetteer.py
 ```
 
-91 tests, about five seconds (the `TestsetTest` ones run off the committed fixture and need no extract). `.github/workflows/app.yml`'s `gazetteer` job
+103 tests, about five seconds (the `TestsetTest` ones run off the committed fixture and need no extract). `.github/workflows/app.yml`'s `gazetteer` job
 runs exactly that on every push — it fetches the extract from Geofabrik as
 `liechtenstein.osm.pbf` (the name ends up in `meta.source`, which the tests
 assert on) — then `check.py` and `sha256sum -c fixtures.sha256` over the
@@ -481,6 +525,31 @@ still the whole size question: without them the densest tile measured here is 1.
 `W75_N40`; a complete build of that tile from `us-northeast` was ~78 MB under
 the old schema and lands near 40 MB under this one, all of it streets.
 
+### House numbers and `vocab`
+
+Geofabrik extracts of 2026-10-04, the builder before and after `street_numbers`
+replaced `house_numbers` and `vocab` was added (bytes are `dbstat` pages):
+
+| Extract | Tile | Addresses on a street | File before → after | `house_numbers` | `street_numbers` | `vocab` |
+|---|---|---:|---:|---:|---:|---:|
+| liechtenstein | `E5_N45` | 12,226 | 249,856 → 286,720 B | 45,056 B | 45,056 B (986 rows) | 36,864 B |
+| luxembourg | `E5_N45` | 163,879 | 2,199,552 → 2,338,816 B | 397,312 B | 356,352 B (9,020 rows) | 180,224 B |
+| luxembourg | `E5_N50` | 6,752 | 217,088 → 245,760 B | 28,672 B | 28,672 B (616 rows) | 28,672 B |
+| berlin | `E10_N50` | 451,698 | 6,946,816 → 7,532,544 B | 753,664 B | 847,872 B (15,632 rows) | 491,520 B |
+
+`street_numbers` is 1.9–2.2 B an address on the two big tiles; most of the
+growth is `vocab`. Distance from each address (first of its number) to where
+the file puts its number:
+
+| Extract | | median | p90 | p99 | max |
+|---|---|---:|---:|---:|---:|
+| liechtenstein | anchors | 29.4 m | 82.4 m | 221.6 m | 1,934 m |
+| | `street_numbers` | 0.5 m | 13.9 m | 19.2 m | 20.0 m |
+| luxembourg | anchors | 24.7 m | 91.1 m | 249.9 m | 1,335 m |
+| | `street_numbers` | 2.8 m | 12.3 m | 18.6 m | 20.0 m |
+| berlin | anchors | 30.3 m | 123.9 m | 338.8 m | 1,774 m |
+| | `street_numbers` | 1.1 m | 13.0 m | 19.0 m | 20.0 m |
+
 ## Search quality
 
 How well the app's search finds what was typed is measured, not guessed:
@@ -528,8 +597,9 @@ the test. The tiles come off the mirror (`latest.json` → shard `manifest.json`
 
 Photon is a full geocoder; this is a search box that works on a plane.
 
-* **Exact house numbers.** Only anchors are stored, so a number that is not one
-  of them is interpolated along the street and marked approximate.
+* **Exact house numbers.** Only the points that keep every mapped number within
+  20 m are stored; the letter is dropped (`12a` is `12`, first address wins),
+  and a number past the mapped ones is the nearest end, marked approximate.
 * **Fuzzy matching beyond the letters.** Typos, abbreviations and compounds
   are read from the index's own words (see the query contract); sounds-alike
   spellings and transliteration (Latin letters for a Cyrillic name) are not.

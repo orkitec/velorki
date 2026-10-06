@@ -8,12 +8,12 @@ FTS index actually answers a query, and reports the row counts. A POI may have
 a NULL name only when its kind is one of the unnamed utility kinds, and an
 unnamed row must not be in the FTS index, so the indexed count is the named
 rows plus the aliases. No two POI rows share an (osm_type, osm_id, kind). The
-optional `osm_type`/`osm_id` columns and the optional `aliases` /
-`house_numbers` tables are accepted whether or not a file has them; when a file
-does have them, every `ref_id` and `street_id` must resolve and no street may
-carry more than 40 anchors — build.py writes at most 20 today, but a file built
-before that cap still has to pass. The summary reports the real maximum. The
-positional index on `streets` is likewise optional: older files have it, files
+optional `osm_type`/`osm_id` columns and the optional `aliases`,
+`street_numbers`, `vocab` and (older files) `house_numbers` tables are accepted
+whether or not a file has them; when a file does have them, every `ref_id` and
+`street_id` must resolve, every `street_numbers` blob must decode completely,
+`vocab` must be exactly the FTS index's vocabulary, and no street may carry
+more than 40 `house_numbers` anchors. The positional index on `streets` is likewise optional: older files have it, files
 built today do not. Used by manifest.py before it writes a gazetteer entry, and
 by the tests.
 """
@@ -23,14 +23,19 @@ from __future__ import annotations
 import argparse
 import os
 import sqlite3
+import sys
 from typing import NamedTuple
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from street_numbers import decode  # noqa: E402
 
 SCHEMA_VERSION = "1"
 
 TABLES = ("meta", "places", "streets", "pois", "search")
 
-# What a file may carry, not what build.py writes: build.py's cap is 20 today
-# and was 40 before, and a file built then is still a valid file.
+# What an older file's `house_numbers` may carry: its builder wrote at most 20
+# anchors a street, and at most 40 before that.
 MAX_ANCHORS = 40
 
 # Must match build.py's UNNAMED_KINDS: the only kinds a POI may carry with no
@@ -63,6 +68,9 @@ class Report(NamedTuple):
     house_numbers: int = 0
     unnamed_pois: int = 0
     max_anchors: int = 0
+    street_numbers: int = 0
+    number_points: int = 0
+    vocab: int = 0
 
     def summary(self) -> str:
         kinds = ["places", "pois"] if self.has_pois else ["places"]
@@ -72,9 +80,21 @@ class Report(NamedTuple):
             f"{os.path.basename(self.path)}  {self.tile}  "
             f"{self.places} places, {self.streets} streets, "
             f"{self.pois} pois ({self.unnamed_pois} unnamed), "
-            f"{self.aliases} aliases, {self.house_numbers} house numbers "
-            f"(max {self.max_anchors}/street), "
-            f"{self.search} indexed  {self.bytes / 1e6:.2f} MB  "
+            f"{self.aliases} aliases, "
+            + (
+                f"{self.street_numbers} numbered streets "
+                f"({self.number_points} points), "
+                if self.street_numbers
+                else ""
+            )
+            + (
+                f"{self.house_numbers} house numbers "
+                f"(max {self.max_anchors}/street), "
+                if self.house_numbers
+                else ""
+            )
+            + (f"{self.vocab} terms, " if self.vocab else "")
+            + f"{self.search} indexed  {self.bytes / 1e6:.2f} MB  "
             f"[{'+'.join(kinds)}]  built {self.built_at}  from {self.source}"
         )
 
@@ -144,6 +164,9 @@ def check(path: str) -> Report:
         counts.update(extra)
         _check_unnamed_are_not_indexed(db, path)
         _check_query(db, path)
+        # Last, so a broken index is reported as what it is, not as a stale vocab.
+        if _has_table(db, "vocab"):
+            counts["vocab"] = _check_vocab(db, path)
     finally:
         db.close()
 
@@ -163,6 +186,9 @@ def check(path: str) -> Report:
         house_numbers=counts["house_numbers"],
         unnamed_pois=counts["unnamed_pois"],
         max_anchors=counts["max_anchors"],
+        street_numbers=counts["street_numbers"],
+        number_points=counts["number_points"],
+        vocab=counts["vocab"],
     )
 
 
@@ -233,13 +259,21 @@ def _has_table(db: sqlite3.Connection, table: str) -> bool:
 
 
 def _check_extra_tables(db: sqlite3.Connection, path: str) -> dict[str, int]:
-    """`aliases` and `house_numbers` are optional, but not optionally correct.
+    """The optional tables are optional, but not optionally correct.
 
-    An alias has to point at a real row of one of the three tables, an anchor at
-    a real street, and no street may carry more than MAX_ANCHORS anchors. Also
-    returns the busiest street's anchor count, for the summary line.
+    An alias has to point at a real row of one of the three tables, a
+    `street_numbers` row or an anchor at a real street, every blob must decode,
+    no street may carry more than MAX_ANCHORS anchors, and `vocab` must be the
+    FTS vocabulary. Also returns the counts for the summary line.
     """
-    counts = {"aliases": 0, "house_numbers": 0, "max_anchors": 0}
+    counts = {
+        "aliases": 0,
+        "house_numbers": 0,
+        "max_anchors": 0,
+        "street_numbers": 0,
+        "number_points": 0,
+        "vocab": 0,
+    }
 
     if _has_table(db, "aliases"):
         counts["aliases"] = db.execute("SELECT count(*) FROM aliases").fetchone()[0]
@@ -277,7 +311,59 @@ def _check_extra_tables(db: sqlite3.Connection, path: str) -> dict[str, int]:
                     f"more than {MAX_ANCHORS}"
                 )
 
+    if _has_table(db, "street_numbers"):
+        counts["street_numbers"] = db.execute(
+            "SELECT count(*) FROM street_numbers"
+        ).fetchone()[0]
+        dangling = db.execute(
+            "SELECT street_id FROM street_numbers "
+            "WHERE street_id NOT IN (SELECT id FROM streets) LIMIT 1"
+        ).fetchone()
+        if dangling is not None:
+            raise GazetteerError(
+                f"{path}: street_numbers.street_id {dangling[0]} is not a street"
+            )
+        for street_id, data in db.execute("SELECT street_id, data FROM street_numbers"):
+            if not isinstance(data, bytes):
+                raise GazetteerError(
+                    f"{path}: street_numbers of street {street_id} is not a blob"
+                )
+            try:
+                odd, even = decode(data)
+            except ValueError as error:
+                raise GazetteerError(
+                    f"{path}: street_numbers of street {street_id}: {error}"
+                ) from error
+            counts["number_points"] += len(odd) + len(even)
+
     return counts
+
+
+def _check_vocab(db: sqlite3.Connection, path: str) -> int:
+    """`vocab` holds exactly the FTS index's terms and their document counts."""
+    try:
+        db.execute(
+            "CREATE VIRTUAL TABLE temp.gaz_vocab USING fts5vocab(main,'search','row')"
+        )
+    except sqlite3.Error:
+        # An SQLite too old for fts5vocab can only count.
+        return db.execute("SELECT count(*) FROM vocab").fetchone()[0]
+    try:
+        for left, right, where in (
+            ("SELECT term, docs FROM vocab", "SELECT term, doc FROM temp.gaz_vocab", "vocab"),
+            ("SELECT term, doc FROM temp.gaz_vocab", "SELECT term, docs FROM vocab", "the FTS index"),
+        ):
+            stray = db.execute(
+                f"SELECT term FROM ({left} EXCEPT {right}) LIMIT 1"
+            ).fetchone()
+            if stray is not None:
+                raise GazetteerError(
+                    f"{path}: vocab does not match the FTS index"
+                    f" (term {stray[0]!r} as it is in {where})"
+                )
+        return db.execute("SELECT count(*) FROM vocab").fetchone()[0]
+    finally:
+        db.execute("DROP TABLE temp.gaz_vocab")
 
 
 def _check_unnamed_are_not_indexed(db: sqlite3.Connection, path: str) -> None:

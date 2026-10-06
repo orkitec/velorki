@@ -20,6 +20,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -29,6 +30,7 @@ import check  # noqa: E402
 import manifest  # noqa: E402
 import merge  # noqa: E402
 import query  # noqa: E402
+import street_numbers  # noqa: E402
 import testset  # noqa: E402
 
 EXTRACT_NAME = "liechtenstein.osm.pbf"
@@ -185,21 +187,27 @@ class GazetteerTest(unittest.TestCase):
         )
         self.assertEqual(
             [
-                (row[1], row[2], row[5])
-                for row in db.execute("PRAGMA table_info(house_numbers)")
+                (row[1], row[2], row[3], row[5])
+                for row in db.execute("PRAGMA table_info(street_numbers)")
             ],
+            [("street_id", "INTEGER", 0, 1), ("data", "BLOB", 1, 0)],
+        )
+        self.assertEqual(
             [
-                ("street_id", "INTEGER", 1),
-                ("number", "INTEGER", 2),
-                ("lat", "INTEGER", 0),
-                ("lon", "INTEGER", 0),
+                (row[1], row[2], row[3], row[5])
+                for row in db.execute("PRAGMA table_info(vocab)")
             ],
+            [("term", "TEXT", 1, 1), ("docs", "INTEGER", 1, 0)],
         )
         self.assertIn(
             "WITHOUT ROWID",
+            db.execute("SELECT sql FROM sqlite_master WHERE name = 'vocab'").fetchone()[0],
+        )
+        # The anchors of older files are gone from a file built today.
+        self.assertIsNone(
             db.execute(
-                "SELECT sql FROM sqlite_master WHERE name = 'house_numbers'"
-            ).fetchone()[0],
+                "SELECT 1 FROM sqlite_master WHERE name = 'house_numbers'"
+            ).fetchone()
         )
         sql = db.execute(
             "SELECT sql FROM sqlite_master WHERE name = 'search'"
@@ -251,14 +259,14 @@ class GazetteerTest(unittest.TestCase):
         db = self.open()
         self.assertGreater(db.execute("SELECT count(*) FROM streets").fetchone()[0], 0)
         self.assertGreater(
-            db.execute("SELECT count(*) FROM house_numbers").fetchone()[0], 0
+            db.execute("SELECT count(*) FROM street_numbers").fetchone()[0], 0
         )
 
     def test_no_streets_leaves_out_streets_and_house_numbers(self) -> None:
         db = self.open(streets=False)
         self.assertEqual(db.execute("SELECT count(*) FROM streets").fetchone()[0], 0)
         self.assertEqual(
-            db.execute("SELECT count(*) FROM house_numbers").fetchone()[0], 0
+            db.execute("SELECT count(*) FROM street_numbers").fetchone()[0], 0
         )
         self.assertGreater(db.execute("SELECT count(*) FROM pois").fetchone()[0], 0)
         self.assertGreater(db.execute("SELECT count(*) FROM aliases").fetchone()[0], 0)
@@ -749,63 +757,182 @@ class GazetteerTest(unittest.TestCase):
 
     # ----------------------------------------------------- house numbers ---
 
-    def test_thin_anchors_keeps_the_ends(self) -> None:
-        self.assertEqual((build.ANCHOR_STEP, build.MAX_ANCHORS), (20, 20))
-        entries = [(number, number, 0) for number in range(1, 61)]
-        thinned = build.thin_anchors(entries)
-        self.assertEqual(thinned[0], entries[0])
-        self.assertEqual(thinned[-1], entries[-1])
-        self.assertLessEqual(len(thinned), build.MAX_ANCHORS)
-        self.assertEqual([e[0] for e in thinned], sorted(e[0] for e in thinned))
-        # Every twentieth in between, so 1, 21, 41 plus the last.
-        self.assertEqual([e[0] for e in thinned], [1, 21, 41, 60])
-        # Even 5,000 numbers stay under the cap, and the ends survive.
-        many = build.thin_anchors([(n, n, 0) for n in range(1, 5001)])
-        self.assertLessEqual(len(many), build.MAX_ANCHORS)
-        self.assertEqual((many[0][0], many[-1][0]), (1, 5000))
-        # Past the cap the inner anchors are sampled evenly, not bunched up: the
-        # first step is ANCHOR_STEP, every step after it is within a fifth of
-        # the others.
-        gaps = [b[0] - a[0] for a, b in zip(many, many[1:])]
-        self.assertEqual(gaps[0], build.ANCHOR_STEP)
-        self.assertLess(max(gaps[1:]), 1.2 * min(gaps[1:]))
+    def test_varints_and_zigzag_round_trip(self) -> None:
+        self.assertEqual(
+            [street_numbers.zigzag(n) for n in (0, -1, 1, -2, 2)], [0, 1, 2, 3, 4]
+        )
+        for value in (0, 1, -1, 63, -64, 64, 1000, -1000, 2**31, -(2**31), 2**62, -(2**63)):
+            self.assertEqual(street_numbers.unzigzag(street_numbers.zigzag(value)), value)
+        for value in (0, 1, 127, 128, 300, 16383, 16384, 2**32, 2**63 - 1, 2**64 - 1):
+            out = bytearray()
+            street_numbers.write_varint(out, value)
+            self.assertEqual(street_numbers.read_varint(bytes(out), 0), (value, len(out)))
+        out = bytearray()
+        street_numbers.write_varint(out, 300)
+        self.assertEqual(bytes(out), b"\xac\x02")
+        with self.assertRaises(ValueError):
+            street_numbers.read_varint(b"\x80", 0)
+
+    def test_a_street_blob_round_trips(self) -> None:
+        odd = [(1, 4714000, 952000), (7, 4713990, 952010), (101, 4700000, 950000)]
+        even = [(0, 4714005, 951990), (2, -100, -200), (40, 9000000, -18000000)]
+        blob = street_numbers.encode(odd, even)
+        self.assertEqual(blob[0], 1)
+        self.assertEqual(street_numbers.decode(blob), (odd, even))
+        # The cursor runs on from the odd run into the even one: the first even
+        # point is coded against the last odd point, not against (0, 0).
+        self.assertEqual(street_numbers.decode(street_numbers.encode([], [])), ([], []))
+        self.assertEqual(street_numbers.encode([], []), b"\x01\x00\x00")
+        self.assertEqual(
+            street_numbers.encode([(1, 10, 20)], [(2, 9, 21)]),
+            # version, 1 odd: +1, zz(10), zz(20); 1 even: +2, zz(-1), zz(1)
+            bytes([1, 1, 1, 20, 40, 1, 2, 1, 2]),
+        )
+        for bad, why in (
+            (b"", "version"),
+            (b"\x02\x00\x00", "version"),
+            (blob + b"\x00", "trailing"),
+            (blob[:-1], "ends inside"),
+            (street_numbers.encode([], [(2, 0, 0)]).replace(b"\x02", b"\x03", 1), "run"),
+            (bytes([1, 2, 1, 0, 0, 0, 0, 0, 0]), "repeated"),
+        ):
+            with self.assertRaises(ValueError, msg=repr(bad)) as caught:
+                street_numbers.decode(bad)
+            self.assertIn(why, str(caught.exception))
+
+    def test_parity_split(self) -> None:
+        odd, even = street_numbers.split([(4, 0, 0), (1, 0, 0), (3, 0, 0), (0, 0, 0), (2, 0, 0)])
+        self.assertEqual([p[0] for p in odd], [1, 3])
+        self.assertEqual([p[0] for p in even], [0, 2, 4])
+
+    def test_a_straight_evenly_numbered_side_keeps_its_ends(self) -> None:
+        side = [(n, 4714000 + n * 10, 952000) for n in range(1, 200, 2)]
+        self.assertEqual(street_numbers.thin(side), [side[0], side[-1]])
+        self.assertEqual(street_numbers.thin(side[:2]), side[:2])
+        self.assertEqual(street_numbers.thin(side[:1]), side[:1])
+
+    def test_a_bent_street_keeps_the_corner(self) -> None:
+        # North for 50 numbers, then east: 2.5 m between neighbours.
+        side = [(n, 4714000 + n * 2, 952000) for n in range(0, 101, 2)]
+        corner = side[-1]
+        side += [(n, corner[1], corner[2] + (n - 100) * 3) for n in range(102, 201, 2)]
+        thinned = street_numbers.thin(side)
+        self.assertEqual(thinned, [side[0], corner, side[-1]])
+        # Thinning what was already thinned keeps it as it is.
+        self.assertEqual(street_numbers.thin(thinned), thinned)
+
+    def test_thinning_keeps_every_number_within_the_tolerance(self) -> None:
+        import random
+
+        rng = random.Random(5)
+        for _ in range(50):
+            side, lat, lon, number = [], 4714000, 952000, 1
+            for _ in range(rng.randint(3, 300)):
+                number += 2 * rng.randint(1, 3)
+                lat += rng.randint(-3, 6)
+                lon += rng.randint(-6, 3)
+                side.append((number, lat, lon))
+            thinned = street_numbers.thin(side)
+            self.assertEqual((thinned[0], thinned[-1]), (side[0], side[-1]))
+            for n, la, lo in side:
+                got = street_numbers.locate(thinned, [], n)
+                self.assertTrue(got[2])
+                self.assertLessEqual(
+                    street_numbers.meters_between(la / 1e5, lo / 1e5, got[0], got[1]),
+                    street_numbers.HOUSE_TOLERANCE_M,
+                )
+
+    def test_locate_follows_the_side_of_the_number(self) -> None:
+        odd = [(1, 100, 100), (9, 180, 100)]
+        even = [(2, 100, 200), (6, 140, 200)]
+        self.assertEqual(street_numbers.locate(odd, even, 5), (140 / 1e5, 100 / 1e5, True))
+        self.assertEqual(street_numbers.locate(odd, even, 4), (120 / 1e5, 200 / 1e5, True))
+        self.assertEqual(street_numbers.locate(odd, even, 9), (180 / 1e5, 100 / 1e5, True))
+        # Past an end of its own side: that end, approximate.
+        self.assertEqual(street_numbers.locate(odd, even, 8), (140 / 1e5, 200 / 1e5, False))
+        self.assertEqual(street_numbers.locate(odd, even, 0), (100 / 1e5, 200 / 1e5, False))
+        # An empty side: the nearest end of the other one.
+        self.assertEqual(street_numbers.locate(odd, [], 8), (180 / 1e5, 100 / 1e5, False))
+        self.assertIsNone(street_numbers.locate([], [], 8))
 
     def test_a_street_with_sixty_addresses_is_thinned(self) -> None:
-        """The whole path: addresses in, anchors out, on one synthetic street."""
+        """The whole path: addresses in, one blob out, on one synthetic street."""
         street = build.StreetRow(7, "Teststrasse", 47.14, 9.52, None, ())
         book = build.AddressBook()
         for number in range(60, 0, -1):  # out of order on purpose
             book.add("teststrasse", number, 47.14 + number * 1e-5, 9.52)
         book.add("Teststrasse", 1, 47.145, 9.52)  # number 1 again, further off
         book.add("Teststrasse", 2, 48.90, 9.52)  # 200 km away: no street near
-        anchors = build.house_numbers(book.of("E5_N45"), book.names, [street])
-        numbers = [row[1] for row in anchors]
-        self.assertTrue(all(row[0] == 7 for row in anchors))
-        self.assertLessEqual(len(anchors), build.MAX_ANCHORS)
-        self.assertEqual(numbers, sorted(numbers))
-        self.assertEqual((numbers[0], numbers[-1]), (1, 60))
-        self.assertEqual(numbers, [1, 21, 41, 60])
-        # The first address of a repeated number wins, so number 1 keeps the
+        rows = build.street_numbers(book.of("E5_N45"), book.names, [street])
+        self.assertEqual([row[0] for row in rows], [7])
+        odd, even = street_numbers.decode(rows[0][1])
+        # A straight, evenly numbered street: each side is its two ends. The
+        # first address of a repeated number wins, so number 1 keeps the
         # position it was first seen at, not the one added later.
-        first = next(row for row in anchors if row[1] == 1)
-        self.assertAlmostEqual(first[2] / 1e7, 47.14 + 1e-5, places=6)
+        self.assertEqual(odd, [(1, 4714001, 952000), (59, 4714059, 952000)])
+        self.assertEqual(even, [(2, 4714002, 952000), (60, 4714060, 952000)])
 
-    def test_house_numbers_in_the_built_file(self) -> None:
+    def test_street_numbers_in_the_built_file(self) -> None:
         db = self.open()
         street_ids = {row[0] for row in db.execute("SELECT id FROM streets")}
-        rows = db.execute(
-            "SELECT street_id, count(*), min(number), max(number) FROM house_numbers"
-            " GROUP BY street_id"
-        ).fetchall()
+        rows = db.execute("SELECT street_id, data FROM street_numbers").fetchall()
         self.assertGreater(len(rows), 100)
-        for street_id, count, lowest, highest in rows:
+        for street_id, data in rows:
             self.assertIn(street_id, street_ids)
-            self.assertLessEqual(count, build.MAX_ANCHORS)
-            self.assertLessEqual(lowest, highest)
-        self.assertEqual(
-            db.execute("SELECT count(*) FROM house_numbers WHERE number < 1").fetchone()[0],
-            0,
-        )
+            odd, even = street_numbers.decode(data)
+            self.assertTrue(odd or even)
+            for side in (odd, even):
+                self.assertEqual(side, sorted(side))
+
+    def test_every_address_lands_within_the_tolerance(self) -> None:
+        """Rebuilt in-process to see the addresses each street was given."""
+        extract = build.read_pbf(find_extract(), True, "flex_mem")
+        seen: dict[int, list[tuple[int, int, int]]] = {}
+        real = build.addresses_by_street
+
+        def recording(columns, names, streets):
+            by_street = real(columns, names, streets)
+            _, numbers, lats, lons = columns
+            for street_id, rows in by_street.items():
+                seen[street_id] = [(numbers[r], lats[r], lons[r]) for r in rows]
+            return by_street
+
+        def here(item) -> bool:
+            return build.tile_name(item.lat, item.lon) == TILE
+
+        out = tempfile.mkdtemp(prefix="gaz-every-", dir=self.tmp)
+        self.addCleanup(shutil.rmtree, out, ignore_errors=True)
+        with mock.patch.object(build, "addresses_by_street", recording):
+            build.build_tile(
+                out,
+                TILE,
+                [p for p in extract.places if here(p)],
+                [s for s in extract.street_ways if here(s)],
+                [p for p in extract.pois if here(p)],
+                extract.addresses,
+                EXTRACT_NAME,
+                True,
+                "2026-01-01T00:00:00Z",
+            )
+        db = sqlite3.connect(os.path.join(out, f"{TILE}.gaz"))
+        self.addCleanup(db.close)
+        blobs = dict(db.execute("SELECT street_id, data FROM street_numbers"))
+        self.assertEqual(set(blobs), set(seen))
+        checked = 0
+        for street_id, addresses in seen.items():
+            odd, even = street_numbers.decode(blobs[street_id])
+            first: dict[int, tuple[int, int]] = {}
+            for number, lat, lon in addresses:  # file order: the first one wins
+                first.setdefault(number, (lat, lon))
+            for number, (lat, lon) in first.items():
+                found = street_numbers.locate(odd, even, number)
+                self.assertTrue(found[2], (street_id, number))
+                distance = street_numbers.meters_between(lat / 1e7, lon / 1e7, found[0], found[1])
+                self.assertLessEqual(
+                    distance, street_numbers.HOUSE_TOLERANCE_M, (street_id, number)
+                )
+                checked += 1
+        self.assertGreater(checked, 5000)
 
     def test_leading_number(self) -> None:
         self.assertEqual(build.leading_number("12a"), 12)
@@ -851,73 +978,58 @@ class GazetteerTest(unittest.TestCase):
         self.assertEqual(query.split_house_number("400"), ("400", None))
         self.assertEqual(query.split_house_number("w 12 st"), ("w 12 st", None))
 
-    def busiest_street(self) -> tuple[int, str, list[int]]:
+    def busiest_street(self) -> tuple[int, str, list[street_numbers.Point]]:
+        """The street with the most odd-side points, and those points."""
         db = self.open()
-        street_id, name = db.execute(
-            "SELECT s.id, s.name FROM streets s JOIN house_numbers h"
-            " ON h.street_id = s.id GROUP BY s.id"
-            " ORDER BY count(*) DESC, s.id LIMIT 1"
-        ).fetchone()
-        numbers = [
-            row[0]
-            for row in db.execute(
-                "SELECT number FROM house_numbers WHERE street_id = ? ORDER BY number",
-                (street_id,),
-            )
-        ]
-        return street_id, name, numbers
+        best = None
+        for street_id, data in db.execute(
+            "SELECT street_id, data FROM street_numbers ORDER BY street_id"
+        ):
+            odd, _ = street_numbers.decode(data)
+            if best is None or len(odd) > len(best[1]):
+                best = (street_id, odd)
+        street_id, odd = best
+        name = db.execute("SELECT name FROM streets WHERE id = ?", (street_id,)).fetchone()[0]
+        return street_id, name, odd
 
-    def test_query_finds_an_exact_anchor(self) -> None:
+    def test_query_finds_a_stored_number(self) -> None:
         db = self.open()
-        street_id, name, numbers = self.busiest_street()
-        hits = query.search(db, f"{numbers[0]} {name}", 30)
+        street_id, name, points = self.busiest_street()
+        number, lat, lon = points[0]
+        hits = query.search(db, f"{number} {name}", 30)
         hit = next(h for h in hits if h.id == street_id)
-        self.assertEqual(hit.house_number, str(numbers[0]))
+        self.assertEqual(hit.house_number, str(number))
         self.assertFalse(hit.approximate)
-        lat, lon = db.execute(
-            "SELECT lat, lon FROM house_numbers WHERE street_id = ? AND number = ?",
-            (street_id, numbers[0]),
-        ).fetchone()
-        self.assertAlmostEqual(hit.lat, lat / 1e7, places=6)
-        self.assertAlmostEqual(hit.lon, lon / 1e7, places=6)
+        self.assertAlmostEqual(hit.lat, lat / 1e5, places=6)
+        self.assertAlmostEqual(hit.lon, lon / 1e5, places=6)
 
-    def test_query_interpolates_between_two_anchors(self) -> None:
+    def test_query_interpolates_within_a_side_as_exact(self) -> None:
         db = self.open()
-        street_id, name, numbers = self.busiest_street()
-        low, high = next(
-            (a, b) for a, b in zip(numbers, numbers[1:]) if b - a > 1
-        )
-        between = low + 1
+        street_id, name, points = self.busiest_street()
+        low, high = next((a, b) for a, b in zip(points, points[1:]) if b[0] - a[0] > 2)
+        between = low[0] + 2
         hits = query.search(db, f"{name} {between}", 30)
         hit = next(h for h in hits if h.id == street_id)
         self.assertEqual(hit.house_number, str(between))
-        self.assertTrue(hit.approximate)
-        ends = db.execute(
-            "SELECT lat, lon FROM house_numbers WHERE street_id = ? AND number IN (?, ?)",
-            (street_id, low, high),
-        ).fetchall()
-        self.assertEqual(len(ends), 2)
-        self.assertGreaterEqual(hit.lat, min(e[0] for e in ends) / 1e7 - 1e-9)
-        self.assertLessEqual(hit.lat, max(e[0] for e in ends) / 1e7 + 1e-9)
+        # Between two points of its own side a number is within 20 m: exact.
+        self.assertFalse(hit.approximate)
+        self.assertGreaterEqual(hit.lat, min(low[1], high[1]) / 1e5 - 1e-9)
+        self.assertLessEqual(hit.lat, max(low[1], high[1]) / 1e5 + 1e-9)
 
     def test_query_falls_back_past_the_ends_and_to_the_street(self) -> None:
         db = self.open()
-        street_id, name, numbers = self.busiest_street()
+        street_id, name, points = self.busiest_street()
         hit = next(
-            h for h in query.search(db, f"{numbers[-1] + 5000} {name}", 30)
+            h for h in query.search(db, f"{points[-1][0] + 5000} {name}", 30)
             if h.id == street_id
         )
         self.assertTrue(hit.approximate)
-        last = db.execute(
-            "SELECT lat, lon FROM house_numbers WHERE street_id = ? AND number = ?",
-            (street_id, numbers[-1]),
-        ).fetchone()
-        self.assertAlmostEqual(hit.lat, last[0] / 1e7, places=6)
+        self.assertAlmostEqual(hit.lat, points[-1][1] / 1e5, places=6)
 
-        # A street with no anchors at all answers with its own position.
+        # A street with no house numbers at all answers with its own position.
         row = db.execute(
             "SELECT id, name, lat, lon FROM streets WHERE id NOT IN"
-            " (SELECT street_id FROM house_numbers) LIMIT 1"
+            " (SELECT street_id FROM street_numbers) LIMIT 1"
         ).fetchone()
         hit = next(
             (h for h in query.search(db, f"{row[1]} 9", 60) if h.id == row[0]), None
@@ -925,6 +1037,19 @@ class GazetteerTest(unittest.TestCase):
         if hit is not None:
             self.assertTrue(hit.approximate)
             self.assertAlmostEqual(hit.lat, row[2] / 1e7, places=6)
+
+    def test_query_reads_the_anchors_of_an_older_file(self) -> None:
+        db = sqlite3.connect(f"file:{self.legacy()}?mode=ro", uri=True)
+        self.addCleanup(db.close)
+        street_id, name, number, lat = db.execute(
+            "SELECT s.id, s.name, h.number, h.lat FROM house_numbers h"
+            " JOIN streets s ON s.id = h.street_id ORDER BY h.street_id, h.number LIMIT 1"
+        ).fetchone()
+        hit = next(h for h in query.search(db, f"{number} {name}", 30) if h.id == street_id)
+        self.assertFalse(hit.approximate)
+        self.assertAlmostEqual(hit.lat, lat / 1e7, places=6)
+        hit = next(h for h in query.search(db, f"{number + 1} {name}", 30) if h.id == street_id)
+        self.assertTrue(hit.approximate)
 
     def test_reverse_lookup(self) -> None:
         db = self.open()
@@ -990,6 +1115,10 @@ class GazetteerTest(unittest.TestCase):
         db.executemany(
             "INSERT INTO search(rowid, name) VALUES (?, ?)",
             [(r[0], r[1]) for r in rows],
+        )
+        db.executescript(
+            "CREATE VIRTUAL TABLE temp.v USING fts5vocab(main, 'search', 'row');"
+            "DELETE FROM vocab; INSERT INTO vocab SELECT term, doc FROM temp.v;"
         )
         db.commit()
         db.close()
@@ -1191,7 +1320,7 @@ class GazetteerTest(unittest.TestCase):
         merged = self.run_merge(*self.copies(self.path(), self.path()))
         self.assertEqual(self.counts(merged), self.counts(self.path()))
 
-    def test_merge_of_two_copies_keeps_the_anchors_and_the_aliases(self) -> None:
+    def test_merge_of_two_copies_keeps_the_house_numbers_and_the_aliases(self) -> None:
         merged = self.run_merge(*self.copies(self.path(), self.path()))
         before = sqlite3.connect(f"file:{self.path()}?mode=ro", uri=True)
         after = sqlite3.connect(f"file:{merged}?mode=ro", uri=True)
@@ -1201,14 +1330,19 @@ class GazetteerTest(unittest.TestCase):
         def rows(db: sqlite3.Connection, sql: str) -> list:
             return db.execute(sql).fetchall()
 
-        # Ids are handed out again, so the anchors and aliases are compared
-        # through the names of the rows they hang off.
-        anchors = (
-            "SELECT s.name, h.number, h.lat, h.lon FROM house_numbers h "
-            "JOIN streets s ON s.id = h.street_id ORDER BY s.name, h.number"
+        # Ids are handed out again, so the house numbers and aliases are
+        # compared through the names of the rows they hang off. Merging a file
+        # with itself leaves every blob as it was, byte for byte.
+        numbers = (
+            "SELECT s.name, s.lat, s.lon, n.data FROM street_numbers n "
+            "JOIN streets s ON s.id = n.street_id ORDER BY 1, 2, 3"
         )
-        self.assertEqual(rows(after, anchors), rows(before, anchors))
-        self.assertGreater(len(rows(after, anchors)), 100)
+        self.assertEqual(rows(after, numbers), rows(before, numbers))
+        self.assertGreater(len(rows(after, numbers)), 100)
+
+        vocab = "SELECT term, docs FROM vocab ORDER BY term"
+        self.assertEqual(rows(after, vocab), rows(before, vocab))
+        self.assertGreater(len(rows(after, vocab)), 1000)
 
         aliases = (
             "SELECT a.name, (SELECT name FROM places WHERE id = a.ref_id),"
@@ -1224,14 +1358,16 @@ class GazetteerTest(unittest.TestCase):
         inputs = self.copies(self.path(), self.path(streets=False))
         legacy = os.path.join(inputs[1], f"{TILE}.gaz")
         db = sqlite3.connect(legacy)
-        db.executescript("DROP TABLE aliases; DROP TABLE house_numbers;")
+        db.executescript(
+            "DROP TABLE aliases; DROP TABLE street_numbers; DROP TABLE vocab;"
+        )
         db.commit()
         db.close()
         merged = self.run_merge(*inputs)
         out = sqlite3.connect(f"file:{merged}?mode=ro", uri=True)
         self.addCleanup(out.close)
         self.assertGreater(
-            out.execute("SELECT count(*) FROM house_numbers").fetchone()[0], 100
+            out.execute("SELECT count(*) FROM street_numbers").fetchone()[0], 100
         )
         self.assertGreater(out.execute("SELECT count(*) FROM aliases").fetchone()[0], 10)
         check.check(merged)
@@ -1249,6 +1385,83 @@ class GazetteerTest(unittest.TestCase):
         db.close()
         return broken
 
+    def legacy(self) -> str:
+        """A copy of the built file as an older builder wrote it: the
+        street_numbers points as house_numbers anchors, and no vocab. A street
+        with more points than an older file may hold anchors is left out."""
+        path = self.break_file(
+            "CREATE TABLE house_numbers (street_id INTEGER NOT NULL,"
+            " number INTEGER NOT NULL, lat INTEGER NOT NULL, lon INTEGER NOT NULL,"
+            " PRIMARY KEY (street_id, number)) WITHOUT ROWID"
+        )
+        db = sqlite3.connect(path)
+        anchors = []
+        for street_id, data in db.execute("SELECT street_id, data FROM street_numbers"):
+            points = sum(street_numbers.decode(data), [])
+            if len(points) <= check.MAX_ANCHORS:
+                anchors += [(street_id, n, lat * 100, lon * 100) for n, lat, lon in points]
+        db.executemany("INSERT INTO house_numbers VALUES (?,?,?,?)", anchors)
+        db.executescript("DROP TABLE street_numbers; DROP TABLE vocab;")
+        db.commit()
+        db.close()
+        return path
+
+    def test_merge_of_an_older_file_with_a_new_one(self) -> None:
+        """house_numbers anchors are read as points and come out as blobs."""
+        inputs = self.copies(self.legacy(), self.path(streets=False))
+        report = check.check(os.path.join(inputs[0], f"{TILE}.gaz"))
+        self.assertGreater(report.house_numbers, 1000)
+        self.assertEqual(report.street_numbers, 0)
+        merged = self.run_merge(*inputs)
+        merged_report = check.check(merged)
+        self.assertEqual(merged_report.house_numbers, 0)
+        self.assertEqual(merged_report.number_points, report.house_numbers)
+        self.assertGreater(merged_report.vocab, 1000)
+
+        def numbers(path: str) -> list:
+            db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+            try:
+                return db.execute(
+                    "SELECT s.name, s.lat, s.lon, n.data FROM street_numbers n "
+                    "JOIN streets s ON s.id = n.street_id ORDER BY 1, 2, 3"
+                ).fetchall()
+            finally:
+                db.close()
+
+        # The anchors were this build's points, so the blobs come back unchanged.
+        self.assertEqual(
+            numbers(merged),
+            [
+                row
+                for row in numbers(self.path())
+                if sum(map(len, street_numbers.decode(row[3]))) <= check.MAX_ANCHORS
+            ],
+        )
+
+        # Two different stretches of a street are joined and thinned again.
+        inputs = self.copies(self.legacy(), self.path())
+        first = os.path.join(inputs[0], f"{TILE}.gaz")
+        db = sqlite3.connect(first)
+        street_id = db.execute(
+            "SELECT street_id FROM house_numbers GROUP BY street_id"
+            " ORDER BY count(*) DESC LIMIT 1"
+        ).fetchone()[0]
+        db.execute(
+            "DELETE FROM house_numbers WHERE street_id = ? AND number % 2 = 1", (street_id,)
+        )
+        db.execute(
+            "INSERT INTO house_numbers VALUES (?, 100001, 471400000, 95200000)", (street_id,)
+        )
+        db.commit()
+        db.close()
+        merged = self.run_merge(*inputs)
+        check.check(merged)
+        joined = numbers(merged)
+        self.assertEqual(len(joined), len(numbers(self.path())))
+        self.assertTrue(
+            any(100001 in [p[0] for p in street_numbers.decode(row[3])[0]] for row in joined)
+        )
+
     def test_check_accepts_a_file_that_still_has_the_street_index(self) -> None:
         """Files built before the trim keep idx_streets_pos and stay valid."""
         older = self.break_file("CREATE INDEX idx_streets_pos ON streets(lat, lon)")
@@ -1264,29 +1477,96 @@ class GazetteerTest(unittest.TestCase):
             check.check(broken)
         self.assertIn("ref_id", str(caught.exception))
 
-    def test_check_rejects_a_dangling_anchor(self) -> None:
+    def test_check_accepts_new_and_older_files(self) -> None:
+        report = check.check(self.path())
+        self.assertGreater(report.street_numbers, 100)
+        self.assertGreater(report.number_points, report.street_numbers)
+        self.assertGreater(report.vocab, 1000)
+        self.assertEqual(report.house_numbers, 0)
+        self.assertIn("numbered streets", report.summary())
+        older = check.check(self.legacy())
+        self.assertEqual((older.street_numbers, older.vocab), (0, 0))
+        self.assertGreater(older.house_numbers, 1000)
+        neither = self.break_file("DROP TABLE street_numbers", "DROP TABLE vocab")
+        self.assertEqual(check.check(neither).street_numbers, 0)
+
+    def test_check_rejects_a_corrupt_street_numbers_blob(self) -> None:
+        street_id, data = self.open().execute(
+            "SELECT street_id, data FROM street_numbers LIMIT 1"
+        ).fetchone()
+        for bad, why in (
+            (data + b"\x00", "trailing"),
+            (data[:-1], "ends inside"),
+            (b"\x02" + data[1:], "version"),
+            (b"\x01\x01\x02\x00\x00\x00", "odd run"),
+        ):
+            broken = self.break_file(
+                f"UPDATE street_numbers SET data = x'{bad.hex()}' WHERE street_id = {street_id}"
+            )
+            with self.assertRaises(check.GazetteerError, msg=why) as caught:
+                check.check(broken)
+            self.assertIn(why, str(caught.exception))
+            self.assertIn(f"street {street_id}", str(caught.exception))
+
+    def test_check_rejects_dangling_house_numbers(self) -> None:
         broken = self.break_file(
-            "INSERT INTO house_numbers (street_id, number, lat, lon)"
-            " VALUES (9999998, 1, 471400000, 95200000)"
+            "INSERT INTO street_numbers (street_id, data) VALUES (9999998, x'010000')"
         )
         with self.assertRaises(check.GazetteerError) as caught:
             check.check(broken)
-        self.assertIn("street_id", str(caught.exception))
+        self.assertIn("street_numbers.street_id", str(caught.exception))
+
+        older = self.legacy()
+        db = sqlite3.connect(older)
+        db.execute(
+            "INSERT INTO house_numbers (street_id, number, lat, lon)"
+            " VALUES (9999998, 1, 471400000, 95200000)"
+        )
+        db.commit()
+        db.close()
+        with self.assertRaises(check.GazetteerError) as caught:
+            check.check(older)
+        self.assertIn("house_numbers.street_id", str(caught.exception))
+
+    def test_vocab_is_the_fts_vocabulary(self) -> None:
+        db = self.open()
+        db.execute("CREATE VIRTUAL TABLE temp.v USING fts5vocab(main, 'search', 'row')")
+        self.assertEqual(
+            db.execute("SELECT term, docs FROM vocab ORDER BY term").fetchall(),
+            db.execute("SELECT term, doc FROM temp.v ORDER BY term").fetchall(),
+        )
+        self.assertEqual(
+            db.execute("SELECT docs FROM vocab WHERE term = 'vaduz'").fetchone()[0],
+            db.execute("SELECT count(*) FROM search WHERE search MATCH 'vaduz'").fetchone()[0],
+        )
+        for statement, why in (
+            ("UPDATE vocab SET docs = docs + 1 WHERE term = 'vaduz'", "'vaduz'"),
+            ("DELETE FROM vocab WHERE term = 'vaduz'", "'vaduz'"),
+            ("INSERT INTO vocab VALUES ('zzzznotaterm', 1)", "'zzzznotaterm'"),
+        ):
+            with self.assertRaises(check.GazetteerError, msg=statement) as caught:
+                check.check(self.break_file(statement))
+            self.assertIn("vocab", str(caught.exception))
+            self.assertIn(why, str(caught.exception))
 
     def test_check_rejects_a_street_over_the_anchor_cap(self) -> None:
-        """check.py's cap is 40 — what any file may hold, not what build.py writes."""
-        self.assertEqual((check.MAX_ANCHORS, build.MAX_ANCHORS), (40, 20))
+        """An older file's anchors: at most 40 a street."""
+        self.assertEqual(check.MAX_ANCHORS, 40)
         street_id = self.open().execute("SELECT id FROM streets LIMIT 1").fetchone()[0]
 
         def crowd(anchors: int) -> str:
-            return self.break_file(
-                f"DELETE FROM house_numbers WHERE street_id = {street_id}",
+            path = self.legacy()
+            db = sqlite3.connect(path)
+            db.executescript(
+                f"DELETE FROM house_numbers WHERE street_id = {street_id};"
                 "INSERT INTO house_numbers (street_id, number, lat, lon)"
                 f" SELECT {street_id}, value, 471400000, 95200000"
                 f" FROM (WITH RECURSIVE n(value) AS (SELECT 1 UNION ALL"
                 f"   SELECT value + 1 FROM n WHERE value < {anchors})"
-                " SELECT value FROM n)"
+                " SELECT value FROM n);"
             )
+            db.close()
+            return path
 
         # A file built before today carries up to 40 and is still valid.
         report = check.check(crowd(check.MAX_ANCHORS))
@@ -1436,7 +1716,22 @@ class GazetteerTest(unittest.TestCase):
                 imported |= {alias.name.split(".")[0] for alias in node.names}
             elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
                 imported.add(node.module.split(".")[0])
-        self.assertLessEqual(imported, sys.stdlib_module_names | {"check"})
+        self.assertLessEqual(
+            imported, sys.stdlib_module_names | {"check", "street_numbers"}
+        )
+        with open(os.path.join(HERE, "street_numbers.py"), encoding="utf-8") as handle:
+            tree = ast.parse(handle.read())
+        imported = {
+            alias.name.split(".")[0]
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Import)
+            for alias in node.names
+        } | {
+            node.module.split(".")[0]
+            for node in ast.walk(tree)
+            if isinstance(node, ast.ImportFrom) and node.module
+        }
+        self.assertLessEqual(imported, sys.stdlib_module_names)
 
     # ------------------------------------------------------------- misc ----
 
@@ -1486,10 +1781,11 @@ class TestsetTest(unittest.TestCase):
                 for table in ("places", "streets", "pois")
             }
             cls.anchors = {}
-            for street_id, number, lat, lon in db.execute(
-                "SELECT street_id, number, lat, lon FROM house_numbers"
+            for street_id, data in db.execute(
+                "SELECT street_id, data FROM street_numbers"
             ):
-                cls.anchors.setdefault(street_id, {})[number] = (lat, lon)
+                odd, even = street_numbers.decode(data)
+                cls.anchors[street_id] = {n: (lat, lon) for n, lat, lon in odd + even}
             cls.aliases = {
                 (name, ref_id)
                 for name, ref_id in db.execute("SELECT name, ref_id FROM aliases")
@@ -1680,9 +1976,9 @@ class TestsetTest(unittest.TestCase):
                 else:
                     self.assertEqual(street, e["name"])
                 anchor = self.anchors[e["id"]].get(number)
-                self.assertIsNotNone(anchor, f"{number} is not an anchor of {e['name']}")
-                self.assertAlmostEqual(anchor[0] / 1e7, e["lat"], places=6)
-                self.assertAlmostEqual(anchor[1] / 1e7, e["lon"], places=6)
+                self.assertIsNotNone(anchor, f"{number} is not a point of {e['name']}")
+                self.assertAlmostEqual(anchor[0] / 1e5, e["lat"], places=6)
+                self.assertAlmostEqual(anchor[1] / 1e5, e["lon"], places=6)
         for c in self.cases("address_place"):
             e = c["expected"]
             self.assertIsNotNone(e["place"])

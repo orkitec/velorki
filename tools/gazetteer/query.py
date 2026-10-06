@@ -12,8 +12,9 @@ primary-key lookups per hit, then the ranking in Python (bm25, name length, popu
 distance to `--near`). A hit that is none of the three is an alias, and is
 resolved through `aliases.ref_id` to the row whose primary name is shown. A
 digits-only token at the start or the end of a multi-token query is a house
-number: it is taken out of the match and resolved against the street's anchors,
-which prints `≈` when the position is interpolated rather than mapped.
+number: it is taken out of the match and resolved against the street's
+`street_numbers` points (an older file's `house_numbers` anchors), which prints
+`≈` when the position is approximate.
 
 `--kind` with `--near` skips the search box altogether and lists the rows of
 one POI kind nearest to the point, named or not: that is how the app answers
@@ -29,9 +30,15 @@ from __future__ import annotations
 
 import argparse
 import math
+import os
 import sqlite3
+import sys
 import time
 from typing import NamedTuple
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from street_numbers import decode, locate as locate_number  # noqa: E402
 
 COORD_SCALE = 1e7
 METERS_PER_DEG_LAT = 111320.0
@@ -132,11 +139,28 @@ def anchor_position(
 ) -> tuple[float, float, bool]:
     """Where house `number` is on street `street_id`, and whether that is a guess.
 
-    An exact anchor is the real position. Otherwise the two anchors that
+    A file with `street_numbers` answers with street_numbers.locate: between
+    the first and the last point of the number's own side it is interpolated
+    and exact, otherwise the nearest end point and approximate; a street with
+    no row answers with its own position. An older file's anchors: an exact
+    anchor is the real position. Otherwise the two anchors that
     bracket the number are interpolated by number; past either end the nearest
     end anchor is used; with no anchors at all the street's own centre is the
     answer. Everything but an exact anchor is approximate.
     """
+    try:
+        blob = db.execute(
+            "SELECT data FROM street_numbers WHERE street_id = ?", (street_id,)
+        ).fetchone()
+    except sqlite3.OperationalError:
+        pass  # a file built before street_numbers: its house_numbers anchors
+    else:
+        found = locate_number(*decode(blob[0]), number) if blob else None
+        if found is None:
+            return lat, lon, True
+        found_lat, found_lon, exact = found
+        return found_lat, found_lon, not exact
+
     exact = db.execute(
         "SELECT lat, lon FROM house_numbers WHERE street_id = ? AND number = ?",
         (street_id, number),
