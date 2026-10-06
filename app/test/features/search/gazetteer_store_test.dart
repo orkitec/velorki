@@ -1197,6 +1197,29 @@ void main() {
       );
     });
 
+    test('a town before the street says which street too', () async {
+      buildGazetteer(
+        dir,
+        'E15_N45',
+        places: const <GazPlace>[
+          GazPlace(1, 'Budapest', 'city', 47.50, 19.04, population: 1700000),
+          GazPlace(2, 'Győr', 'city', 47.69, 17.63, population: 130000),
+        ],
+        streets: const <GazStreet>[
+          GazStreet(10, 'Fő utca', 47.69, 17.64, placeId: 2),
+          GazStreet(11, 'Fő utca', 47.49, 19.05, placeId: 1),
+        ],
+      );
+      final store = await openStore();
+
+      final found = await store.search(
+        'Budapest, Fő utca 12',
+        near: const LatLng(47.69, 17.63),
+      );
+      expect(found.first.city, 'Budapest');
+      expect(found.first.houseNumber, '12');
+    });
+
     test('a street named after a town stays that street', () async {
       buildGazetteer(
         dir,

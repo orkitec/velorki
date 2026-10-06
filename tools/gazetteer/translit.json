@@ -1,5 +1,20 @@
 {
- "about": "Letters of non-Latin scripts and the Latin a rider types for them. Applied to lower-cased text, letter by letter, on both sides: the builder indexes names in this form (meta search_script = latin) and the app reads queries and names the same way. One table per script, no language lists; where languages differ the commonest rider spelling wins (Bulgarian shch = sht, hard sign = a).",
+ "about": "Letters of non-Latin scripts and the Latin a rider types for them. Applied to lower-cased text on both sides: the builder indexes names in this form (meta search_script = latin) and the app reads queries and names the same way. `starts` are replaced at the start of a word, then `digraphs` anywhere, then `letters` one by one. One table per script, no language lists; where languages differ the commonest rider spelling wins (Bulgarian shch = sht, hard sign = a).",
+ "starts": {
+  "μπ": "b",
+  "ντ": "d",
+  "γκ": "g"
+ },
+ "digraphs": {
+  "ου": "ou",
+  "ού": "ou",
+  "αυ": "av",
+  "αύ": "av",
+  "ευ": "ev",
+  "εύ": "ev",
+  "ηυ": "iv",
+  "ηύ": "iv"
+ },
  "letters": {
   "а": "a",
   "б": "b",

@@ -71,12 +71,12 @@ const int maxQueryWords = 8;
 /// [text] split into the words to look for and the house number, if any.
 ///
 /// A house number is the first token that is a number, with or without a
-/// letter or a "bis" after it ("12", "12a", "12bis", "12 bis", "12/3",
-/// "12-14", "92-10"), anywhere in the query, as long as there is a word to go
-/// with it: a query that is only a number is that number. An ordinal ("42nd",
-/// "1.", "2º", "5e") is a name. A number of five or more digits in a query
-/// that has words is a postcode and is dropped: no name in the index carries
-/// one.
+/// letter of any script or a "bis" after it ("12", "12a", "12а", "12bis",
+/// "12 bis", "12/3", "12/A", "12-14", "92-10"), anywhere in the query, as
+/// long as there is a word to go with it: a query that is only a number is
+/// that number. An ordinal ("42nd", "1.", "2º", "5e") is a name. A postcode
+/// — five or more digits, or four digits and two letters — in a query that
+/// has words is dropped: no name in the index carries one.
 ParsedQuery parseQuery(String text) {
   final tokens = <String>[
     for (final t in text.trim().split(_tokenSeparator))
@@ -93,11 +93,21 @@ ParsedQuery parseQuery(String text) {
   }
 
   final hasWord = tokens.any(_isWord);
+  // "1012 AB": four digits and two letters are a Dutch postcode, not a
+  // house number and a word.
+  final postcodes = <int>{};
+  for (var i = 0; i + 1 < tokens.length; i++) {
+    if (_fourDigits.hasMatch(tokens[i]) &&
+        _twoLetters.hasMatch(tokens[i + 1])) {
+      postcodes.addAll(<int>[i, i + 1]);
+    }
+  }
   String? houseNumber;
   int? number;
   final words = <String>[];
   for (var i = 0; i < tokens.length; i++) {
     final token = tokens[i];
+    if (hasWord && postcodes.contains(i)) continue;
     if (hasWord && houseNumber == null && !_isOrdinal(token)) {
       final m = _houseNumber.firstMatch(token);
       if (m != null) {
@@ -129,11 +139,17 @@ ParsedQuery parseQuery(String text) {
 final RegExp _tokenSeparator = RegExp(r'[\s,;]+');
 final RegExp _numberCompass = RegExp(r'^(\d+)([nsewNSEW])$');
 final RegExp _letter = RegExp(r'\p{L}', unicode: true);
+
+/// "12", "12a", "12а" (any script), "12bis", "12/3", "12/A", "40-42",
+/// "12a-14", "92-10".
 final RegExp _houseNumber = RegExp(
-  r'^(\d{1,4})(?:([a-zA-Z]|bis|ter|quater)|([/\-]\d{1,4}[a-zA-Z]?))?$',
+  r'^(\d{1,4})(\p{L}|bis|ter|quater)?(?:[/\-](\d{1,4}\p{L}?|\p{L}))?$',
+  unicode: true,
 );
-final RegExp _numberSuffix = RegExp(r'^(?:[a-dA-D]|bis|ter|quater)$');
+final RegExp _numberSuffix = RegExp(r'^(?:[a-dA-Dа-гА-Г]|bis|ter|quater)$');
 final RegExp _postcode = RegExp(r'^\d{5,}$');
+final RegExp _fourDigits = RegExp(r'^\d{4}$');
+final RegExp _twoLetters = RegExp(r'^[A-Za-z]{2}$');
 final RegExp _ordinal = RegExp(
   r'^\d+(?:st|nd|rd|th|e|er|re|eme|ème|º|ª|°|\.|a\.|o\.)$',
   caseSensitive: false,

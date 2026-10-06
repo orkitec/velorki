@@ -189,9 +189,11 @@ duplicate across merged extracts) the highest wins. Streets have none; a file
 without the column reads as all NULL.
 
 **The index holds `translit(name)`**, not the name: lower-cased (Python
-`str.lower()`), then every character found in `translit.json`'s `letters`
-replaced by its Latin value (`Александър` → `aleksandar`, `Θεσσαλονίκη` →
-`thessaloniki`, `Ђурђевдан` → `djurdjevdan`), everything else left as it is —
+`str.lower()`), then `translit.json` applied — `starts` at the start of a
+word (Greek `μπ` → `b`), `digraphs` anywhere (`ου` → `ou`, `αυ`/`ευ` →
+`av`/`ev`), then every `letters` character by its Latin value (`Александър`
+→ `aleksandar`, `Ναύπλιο` → `navplio`, `Ђурђевдан` → `djurdjevdan`),
+everything else left as it is —
 Latin diacritics are the tokenizer's job. The tables keep the names as
 written; `vocab` holds the Latin words. A file built this way has
 `meta.search_script = 'latin'`; for a Latin-only tile the index is the same as
@@ -287,8 +289,9 @@ first look, for poking at a file.
    and transliterated with the same table (`Софи` → `sofi`), so it matches
    a `latin` file and an older one alike; the words the tokenizer would cut
    (`C/ Mayor` → `c mayor`), a house number taken out wherever it stands
-   (`12`, `12a`, `12 bis`, `12/3`, `40-42`, `92-10`; an ordinal such as `42nd`
-   or `2º` is a name), a five-digit number dropped as a postcode.
+   (`12`, `12a`, `12а`, `12 bis`, `12/3`, `12/A`, `40-42`, `12a-14`, `92-10`;
+   an ordinal such as `42nd` or `2º` is a name), a postcode dropped (five
+   digits, or four digits and two letters).
 2. **First look**: every word a quoted prefix (`"w"* AND "42nd"*`), both
    spellings of `ß`/`ss`; a word in more than 15 000 rows (`de`, `rue`,
    `street`) or of two letters is matched exactly, a lone letter left to the
@@ -309,10 +312,11 @@ first look, for poking at a file.
    per doubling of the kilometres), more for a bigger place, more for a street
    when there is a house number, and the rider's group order when they set
    one.
-5. **Trailing place**: when the last one to three words are exactly a
+5. **Named place**: when the last one to three words are exactly a
    settlement's name (or alias) and no row holds every typed word, or a comma
-   sets them apart, those words are searched around that settlement and rows
-   in it are measured from there.
+   sets them apart — or the first ones are, before a comma (`Budapest, Fő
+   utca`) — the other words are searched around that settlement and rows in
+   it are measured from there.
 6. **Second look**, only when no row within 30 km answers well: each word
    unknown to the index gets its alternatives from the index's own words —
    typos (same first letter, ≤ 1 edit up to five letters, ≤ 2 above), short

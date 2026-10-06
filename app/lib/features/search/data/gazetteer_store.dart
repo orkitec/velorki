@@ -437,10 +437,12 @@ class GazetteerStore {
           .join(' AND ');
       _collect(pool, <String>[firstLook(words)], near);
 
-      final place = _trailingPlace(query.tokens, text, pool, near);
+      final place = _namedPlace(query.tokens, text, pool, near);
       if (place != null) {
         pool.namedPlace = place.position;
-        final rest = words.where((w) => w.index < place.from);
+        final rest = words.where(
+          (w) => w.index < place.from || w.index >= place.to,
+        );
         if (rest.isNotEmpty) {
           _collect(pool, <String>[firstLook(rest)], place.position);
         }
@@ -514,17 +516,19 @@ class GazetteerStore {
     return best;
   }
 
-  /// The settlement the last words of [typed] name, when the rider added
-  /// one to say where: "hauptstrasse berlin", "soho, new york".
+  /// The settlement the first or the last words of [typed] name, when the
+  /// rider added one to say where: "hauptstrasse berlin", "soho, new york",
+  /// "Budapest, Andrássy út".
   ///
-  /// The last three, two or one words are looked for as a city, a town, a
-  /// village or a part of one whose name is exactly those words (or whose
-  /// alternative name is), the one nearest to [near] when there are several.
-  /// They only count as a place when the words are set apart by a comma, or
-  /// when no row holds every word of the query as it was typed: "Rue de
-  /// Paris" is a street in every town, and a rider who typed it means that
-  /// street, not one in Paris. `from` is where the place's words begin.
-  ({int from, LatLng position})? _trailingPlace(
+  /// Up to three words at the end, then at the start, are looked for as a
+  /// city, a town, a village or a part of one whose name is exactly those
+  /// words (or whose alternative name is), the one nearest to [near] when
+  /// there are several. At the end they only count as a place when a comma
+  /// sets them apart, or when no row holds every word of the query as it was
+  /// typed: "Rue de Paris" is a street in every town, and a rider who typed
+  /// it means that street, not one in Paris. At the start only a comma
+  /// counts. `from` and `to` bound the place's words.
+  ({int from, int to, LatLng position})? _namedPlace(
     List<String> typed,
     String text,
     _Pool pool,
@@ -532,41 +536,59 @@ class GazetteerStore {
   ) {
     final n = typed.length;
     if (n < 2) return null;
-    final comma = text.lastIndexOf(',');
-    final afterComma = comma < 0
+    int lettered(String part) =>
+        indexWords(part).where(_letterRun.hasMatch).length;
+    final lastComma = text.lastIndexOf(',');
+    final firstComma = text.indexOf(',');
+    final afterComma = lastComma < 0
         ? 0
-        : indexWords(text.substring(comma + 1))
-              .where(_letterRun.hasMatch)
-              .length;
+        : lettered(text.substring(lastComma + 1));
+    final beforeComma = firstComma < 0
+        ? 0
+        : lettered(text.substring(0, firstComma));
     final complete = pool.hasComplete;
-    for (var k = math.min(3, n - 1); k >= 1; k--) {
-      if (complete && k != afterComma) continue;
-      final run = typed.sublist(n - k);
-      final folded = run.map(foldForMatch).toList();
-      final expression = run
-          .map((w) => _firstLookTerm(foldSearchTerm(w), exact: true))
-          .join(' AND ');
-      ({LatLng position, double rank})? best;
-      for (final file in _open.values) {
-        try {
-          for (final place in file.settlements(expression)) {
-            final words = indexWords(place.name).map(foldForMatch).toList();
-            if (!listEquals(words, folded)) continue;
-            // Nearest first; without a map centre the biggest.
-            final rank = near == null
-                ? -place.population.toDouble()
-                : haversineMeters(near, place.position);
-            if (best == null || rank < best.rank) {
-              best = (position: place.position, rank: rank);
-            }
-          }
-        } on Object catch (e) {
-          debugPrint('velorki: gazetteer ${file.tile} could not answer: $e');
+    for (final atEnd in <bool>[true, false]) {
+      for (var k = math.min(3, n - 1); k >= 1; k--) {
+        // At the end the words count as a place when nothing holds every
+        // typed word; at the start only a comma says so ("Budapest, Fő
+        // utca"): "Grosvenor Square London" starts with a locality's name
+        // and is still the street.
+        if (atEnd ? complete && k != afterComma : k != beforeComma) continue;
+        final from = atEnd ? n - k : 0;
+        final position = _settlement(typed.sublist(from, from + k), near);
+        if (position != null) {
+          return (from: from, to: from + k, position: position);
         }
       }
-      if (best != null) return (from: n - k, position: best.position);
     }
     return null;
+  }
+
+  /// Where the settlement named exactly [run] is, the nearest to [near] (the
+  /// biggest without one), or `null` when no open file has one.
+  LatLng? _settlement(List<String> run, LatLng? near) {
+    final folded = run.map(foldForMatch).toList();
+    final expression = run
+        .map((w) => _firstLookTerm(foldSearchTerm(w), exact: true))
+        .join(' AND ');
+    ({LatLng position, double rank})? best;
+    for (final file in _open.values) {
+      try {
+        for (final place in file.settlements(expression)) {
+          final words = indexWords(place.name).map(foldForMatch).toList();
+          if (!listEquals(words, folded)) continue;
+          final rank = near == null
+              ? -place.population.toDouble()
+              : haversineMeters(near, place.position);
+          if (best == null || rank < best.rank) {
+            best = (position: place.position, rank: rank);
+          }
+        }
+      } on Object catch (e) {
+        debugPrint('velorki: gazetteer ${file.tile} could not answer: $e');
+      }
+    }
+    return best?.position;
   }
 
   /// The match expressions of the second look at [query]: every word with

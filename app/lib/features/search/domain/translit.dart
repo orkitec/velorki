@@ -6,6 +6,27 @@
 /// spell a letter differently, the commonest rider spelling wins.
 library;
 
+/// Two letters that start a word → their Latin spelling: Greek "μπ" is "b"
+/// at the start of a word ("Μπάρι"), "mp" inside one.
+const Map<String, String> transliterationStarts = <String, String>{
+  'μπ': 'b',
+  'ντ': 'd',
+  'γκ': 'g',
+};
+
+/// Two letters that are not the sum of their parts: Greek "ου" is "ou",
+/// "αυ" and "ευ" are "av" and "ev".
+const Map<String, String> transliterationDigraphs = <String, String>{
+  'ου': 'ou',
+  'ού': 'ou',
+  'αυ': 'av',
+  'αύ': 'av',
+  'ευ': 'ev',
+  'εύ': 'ev',
+  'ηυ': 'iv',
+  'ηύ': 'iv',
+};
+
 /// Lower-case letter → its Latin spelling.
 const Map<String, String> transliteration = <String, String>{
   'а': 'a',
@@ -93,18 +114,34 @@ const Map<String, String> transliteration = <String, String>{
   'ΰ': 'y',
 };
 
-/// [lowerCased] with every letter of [transliteration] spelled in Latin and
-/// everything else left as it is.
+/// [lowerCased] with its word starts, digraphs and letters spelled in Latin
+/// and everything else left as it is.
 String transliterate(String lowerCased) {
+  var text = lowerCased;
+  if (_starts.hasMatch(text)) {
+    text = text.replaceAllMapped(_starts, (m) => transliterationStarts[m[1]]!);
+  }
+  if (_digraphs.hasMatch(text)) {
+    text = text.replaceAllMapped(
+      _digraphs,
+      (m) => transliterationDigraphs[m[0]]!,
+    );
+  }
   StringBuffer? out;
-  for (var i = 0; i < lowerCased.length; i++) {
-    final latin = transliteration[lowerCased[i]];
+  for (var i = 0; i < text.length; i++) {
+    final latin = transliteration[text[i]];
     if (latin == null) {
-      out?.write(lowerCased[i]);
+      out?.write(text[i]);
       continue;
     }
-    out ??= StringBuffer(lowerCased.substring(0, i));
+    out ??= StringBuffer(text.substring(0, i));
     out.write(latin);
   }
-  return out?.toString() ?? lowerCased;
+  return out?.toString() ?? text;
 }
+
+final RegExp _starts = RegExp(
+  '(?<!\\p{L})(${transliterationStarts.keys.join('|')})',
+  unicode: true,
+);
+final RegExp _digraphs = RegExp(transliterationDigraphs.keys.join('|'));

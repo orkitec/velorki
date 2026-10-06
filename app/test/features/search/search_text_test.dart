@@ -10,6 +10,7 @@ void main() {
       expect(foldForMatch('Champs-Élysées'), 'champs-elysees');
       expect(foldForMatch('Æbeltoft'), 'aebeltoft');
       expect(foldForMatch('Œuvre'), 'oeuvre');
+      expect(foldForMatch('București Constanța'), 'bucuresti constanta');
     });
   });
 
@@ -33,6 +34,9 @@ void main() {
         ('Via Roma 12/3', '12/3'),
         ('Middlewich Road 40-42', '40-42'),
         ('92-10 Roosevelt Avenue', '92-10'),
+        ('Via Roma 12/A', '12/A'),
+        ('ул. Витоша 12а', '12а'),
+        ('Hauptstr. 12a-14', '12a-14'),
       ]) {
         final parsed = parseQuery(text);
         expect(parsed.houseNumber, number, reason: text);
@@ -51,6 +55,12 @@ void main() {
       expect(parseQuery('2º').houseNumber, isNull);
       expect(parseQuery('400').houseNumber, isNull);
       expect(parseQuery('400').words, <String>['400']);
+    });
+
+    test('a Dutch postcode is dropped with its letters', () {
+      final parsed = parseQuery('1012 AB Amsterdam Damrak 1');
+      expect(parsed.houseNumber, '1');
+      expect(parsed.words, <String>['Amsterdam', 'Damrak']);
     });
 
     test('a postcode is dropped, the first number wins', () {

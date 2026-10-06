@@ -7,16 +7,22 @@ import 'package:velorki/features/search/domain/translit.dart';
 
 void main() {
   test('the app spells letters exactly as the builder indexes them', () {
-    final table =
-        (jsonDecode(File('../tools/gazetteer/translit.json').readAsStringSync())
-                as Map<String, Object?>)['letters']!
-            as Map<String, Object?>;
-    expect(transliteration, table);
+    final table = jsonDecode(
+      File('../tools/gazetteer/translit.json').readAsStringSync(),
+    ) as Map<String, Object?>;
+    expect(transliteration, table['letters']);
+    expect(transliterationStarts, table['starts']);
+    expect(transliterationDigraphs, table['digraphs']);
   });
 
   test('Cyrillic and Greek read as a rider types them', () {
     expect(foldForMatch('Александър Невски'), 'aleksandar nevski');
     expect(foldForMatch('Θεσσαλονίκη'), 'thessaloniki');
+    expect(foldForMatch('Ναύπλιο'), 'navplio');
+    expect(foldForMatch('Λευκωσία'), 'levkosia');
+    expect(foldForMatch('Λουτράκι'), 'loutraki');
+    expect(foldForMatch('Μπάρι Ντόρα'), 'bari dora');
+    expect(foldForMatch('Λάμπρος'), 'lampros', reason: 'μπ inside a word');
     expect(foldForMatch('Ђурђевдан'), 'djurdjevdan');
     expect(foldForMatch('бул. Витоша'), 'bul. vitosha');
     expect(transliterate('vaduz'), 'vaduz', reason: 'Latin is left alone');

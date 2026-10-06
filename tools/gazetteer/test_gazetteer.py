@@ -966,6 +966,11 @@ class GazetteerTest(unittest.TestCase):
             ("Θεσσαλονίκη", "thessaloniki"),
             ("ΑΘΗΝΑ", "athina"),
             ("Ψυχικό", "psychiko"),
+            ("Ναύπλιο", "navplio"),
+            ("Λευκωσία", "levkosia"),
+            ("Λουτράκι", "loutraki"),
+            ("Μπάρι Ντόρα", "bari dora"),
+            ("Λάμπρος", "lampros"),
             ("Mühleholz St. Florin", "mühleholz st. florin"),
         ):
             self.assertEqual(translit.translit(name), latin, name)

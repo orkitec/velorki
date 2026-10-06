@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 
 TABLE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "translit.json")
 
@@ -20,11 +21,22 @@ TABLE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "translit.
 SEARCH_SCRIPT = "latin"
 
 with open(TABLE_PATH, encoding="utf-8") as _handle:
-    LETTERS: dict[str, str] = json.load(_handle)["letters"]
+    _TABLE = json.load(_handle)
+LETTERS: dict[str, str] = _TABLE["letters"]
+# Greek "μπ" is "b" at the start of a word ("Μπάρι"), "mp" inside one.
+STARTS: dict[str, str] = _TABLE["starts"]
+# Greek "ου" is "ou", "αυ"/"ευ" are "av"/"ev": not the sum of their letters.
+DIGRAPHS: dict[str, str] = _TABLE["digraphs"]
 
 _TRANSLATE = {ord(letter): latin for letter, latin in LETTERS.items()}
+_STARTS = re.compile(r"(?<![^\W\d_])(" + "|".join(map(re.escape, STARTS)) + ")")
+_DIGRAPHS = re.compile("|".join(map(re.escape, DIGRAPHS)))
 
 
 def translit(name: str) -> str:
-    """`name` as the index holds it: lower-cased, then letter by letter."""
-    return name.lower().translate(_TRANSLATE)
+    """`name` as the index holds it: lower-cased, word starts, digraphs, then
+    letter by letter."""
+    text = name.lower()
+    text = _STARTS.sub(lambda m: STARTS[m.group(1)], text)
+    text = _DIGRAPHS.sub(lambda m: DIGRAPHS[m.group(0)], text)
+    return text.translate(_TRANSLATE)
