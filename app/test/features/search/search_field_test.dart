@@ -276,6 +276,28 @@ void main() {
       expect(find.text(l10n.searchKindTown), findsOneWidget);
     });
 
+    testWidgets('typing on keeps the rows under a thin bar until the next '
+        'answer', (tester) async {
+      await pumpField(tester);
+      expect(find.text('Vaduz'), findsOneWidget);
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+
+      await tester.enterText(find.byType(TextField), 'muhleholz');
+      await tester.pump();
+      expect(
+        find.text('Vaduz'),
+        findsOneWidget,
+        reason: 'the last answer stays while the next one is looked for',
+      );
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pumpAndSettle();
+      expect(find.text('Vaduz'), findsNothing);
+      expect(find.text('Mühleholz'), findsWidgets);
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+    });
+
     testWidgets('a village names its town, a POI its kind', (tester) async {
       await pumpField(tester, text: 'muhleholz');
 

@@ -33,6 +33,7 @@ class PlaceSearchState {
     this.canSearchOnline = false,
     this.offlineAvailableHere = false,
     this.correctedQuery,
+    this.searching = false,
   });
 
   /// The results, already ranked.
@@ -61,12 +62,29 @@ class PlaceSearchState {
   /// The list says so in a line above the results.
   final String? correctedQuery;
 
+  /// Whether a newer search is running and these results still answer the
+  /// text before it: the list keeps them on screen under a thin progress bar
+  /// instead of blanking on every keystroke.
+  final bool searching;
+
+  /// The same results, marked as waiting for a newer search.
+  PlaceSearchState whileSearching() => PlaceSearchState(
+    results: results,
+    query: query,
+    source: source,
+    canSearchOnline: canSearchOnline,
+    offlineAvailableHere: offlineAvailableHere,
+    correctedQuery: correctedQuery,
+    searching: true,
+  );
+
   @override
   String toString() =>
       'PlaceSearchState(${results.length} ${source.name} results for '
       '"$query"${correctedQuery == null ? '' : ' (corrected to '
                 '"$correctedQuery")'}, online available: $canSearchOnline, '
-      'offline available here: $offlineAvailableHere)';
+      'offline available here: $offlineAvailableHere'
+      '${searching ? ', searching' : ''})';
 }
 
 /// The place search behind the planner's search field.
@@ -133,7 +151,7 @@ class PlaceSearch extends _$PlaceSearch {
       state = AsyncData<PlaceSearchState>(_emptyState(query: trimmed));
       return;
     }
-    state = const AsyncLoading<PlaceSearchState>();
+    _showSearching();
     _debounce = Timer(
       _coveredHere ? searchLocalDebounce : searchDebounce,
       () => unawaited(
@@ -153,7 +171,7 @@ class PlaceSearch extends _$PlaceSearch {
     _debounce?.cancel();
     _pending?.cancel('superseded');
     _pending = null;
-    state = const AsyncLoading<PlaceSearchState>();
+    _showSearching();
     await _searchOnline(text, lang: lang, bias: bias);
   }
 
@@ -174,8 +192,18 @@ class PlaceSearch extends _$PlaceSearch {
     _pending?.cancel('superseded');
     _pending = null;
     _coveredHere = true;
-    state = const AsyncLoading<PlaceSearchState>();
+    _showSearching();
     await _searchLocal(store, text, near: bias, keywords: keywords);
+  }
+
+  /// Marks the list as waiting for a search: the results on screen stay,
+  /// under a progress bar, until the new ones replace them; with none to keep
+  /// (the first search, or after an error) the list is only the bar.
+  void _showSearching() {
+    final shown = state.value;
+    state = shown != null && shown.results.isNotEmpty && !state.hasError
+        ? AsyncData<PlaceSearchState>(shown.whileSearching())
+        : const AsyncLoading<PlaceSearchState>();
   }
 
   /// Empties the result list and drops any pending request.

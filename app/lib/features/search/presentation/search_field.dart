@@ -565,10 +565,13 @@ class _ResultsCardState extends State<_ResultsCard> {
             onTap: widget.onSearchOffline,
           )
         : _downloadRow(context);
-    if (footer == null && corrected == null) return list;
+    if (footer == null && corrected == null && !state.searching) return list;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // A newer search is running: the rows above answer the text before
+        // it and stay until it is done.
+        if (state.searching) const LinearProgressIndicator(minHeight: 2),
         // What the index was actually asked, when it was not what was typed.
         if (corrected != null)
           Padding(

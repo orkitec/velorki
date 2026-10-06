@@ -82,7 +82,8 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 300));
     if (container == null) return;
     for (var i = 0; i < 100; i++) {
-      if (!container.read(placeSearchProvider).isLoading) return;
+      final now = container.read(placeSearchProvider);
+      if (!now.isLoading && !(now.value?.searching ?? false)) return;
       await Future<void>.delayed(const Duration(milliseconds: 20));
     }
   }
@@ -105,6 +106,44 @@ void main() {
     expect(state.results.every((r) => r.source == SearchSource.local), isTrue);
     expect(adapter.requests, isEmpty, reason: 'nothing went to the network');
   });
+
+  test(
+    'the next search keeps the last results on screen until it answers',
+    () async {
+      final container = await containerFor();
+      final search = container.read(placeSearchProvider.notifier);
+
+      search.query('vad', bias: inTheTile);
+      expect(
+        container.read(placeSearchProvider).isLoading,
+        isTrue,
+        reason: 'nothing to keep yet: the list is only the bar',
+      );
+      await settle(container);
+      final first = container.read(placeSearchProvider).value!;
+      expect(first.results, isNotEmpty);
+      expect(first.searching, isFalse);
+
+      search.query('vaduz', bias: inTheTile);
+      final waiting = container.read(placeSearchProvider);
+      expect(waiting.isLoading, isFalse);
+      expect(waiting.value!.searching, isTrue);
+      expect(waiting.value!.results, first.results);
+      expect(waiting.value!.query, 'vad', reason: 'they answer the old text');
+
+      await settle(container);
+      final second = container.read(placeSearchProvider).value!;
+      expect(second.searching, isFalse);
+      expect(second.query, 'vaduz');
+
+      search.query('va', bias: inTheTile);
+      expect(
+        container.read(placeSearchProvider).value!.results,
+        isEmpty,
+        reason: 'below three characters the list empties at once',
+      );
+    },
+  );
 
   test('a centre outside the downloaded tile searches online', () async {
     final adapter = FakeHttpAdapter(body: photonFixture);
