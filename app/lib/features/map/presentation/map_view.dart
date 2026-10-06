@@ -44,6 +44,20 @@ const String fallbackMapStyleUrlDark =
 /// OpenFreeMap's black style, the "Black" map look.
 const String blackMapStyleUrl = 'https://tiles.openfreemap.org/styles/dark';
 
+/// The background colour of the style [look] draws: what the map looks like
+/// where it has nothing else to draw (OpenFreeMap's `background` layers).
+///
+/// Painted under the map's native view, so that while the phone turns —
+/// iOS moves and resizes the native view a few frames after the rest of the
+/// app — the part of the map's place the view has not reached yet looks
+/// like map instead of a dark card. A configured style of another look
+/// gets the colour of the look it stands in for.
+Color mapBaseColorFor(MapLook look) => switch (look) {
+  MapLook.night => const Color(0xFF45516E),
+  MapLook.black => const Color(0xFF0C0C0C),
+  MapLook.light || MapLook.auto => const Color(0xFFF8F4F0),
+};
+
 /// [look] with [MapLook.auto] turned into the look it actually is under
 /// [brightness], so everything that depends on which map is on screen — the
 /// style URL, the tone of the CyclOSM overlay — agrees on one answer.
@@ -309,52 +323,57 @@ class _MapViewState extends ConsumerState<MapView> {
       gap: widget.attributionPadding.bottom,
     );
 
-    final map = ml.MapLibreMap(
-      styleString: styleUrl,
-      initialCameraPosition: ml.CameraPosition(
-        target: ml.LatLng(camera.center.lat, camera.center.lon),
-        zoom: camera.zoom,
-        bearing: camera.bearing,
+    // Under the native view, never over it: a box over the map would take
+    // its touches; as its parent the map still gets every one first.
+    final map = ColoredBox(
+      color: mapBaseColorFor(resolveMapLook(look, brightness)),
+      child: ml.MapLibreMap(
+        styleString: styleUrl,
+        initialCameraPosition: ml.CameraPosition(
+          target: ml.LatLng(camera.center.lat, camera.center.lon),
+          zoom: camera.zoom,
+          bearing: camera.bearing,
+        ),
+        // The adapter reads `cameraPosition` for `center`/`zoom`.
+        trackCameraPosition: true,
+        compassEnabled: false,
+        logoEnabled: false,
+        // maplibre_gl 0.27 cannot hide the native attribution (i) button, so it
+        // is parked bottom right, in the same band as our own chip; sideways in
+        // the top corner away from the rail, where the narrow map leaves it
+        // room the chip's band does not.
+        attributionButtonPosition: !sideways
+            ? ml.AttributionButtonPosition.bottomRight
+            : (chrome?.attributionInsets.left ?? 0) > 0
+            ? ml.AttributionButtonPosition.topRight
+            : ml.AttributionButtonPosition.topLeft,
+        attributionButtonMargins: Point<num>(
+          8,
+          sideways ? _infoButtonTopSideways : attributionBottom,
+        ),
+        rotateGesturesEnabled: true,
+        tiltGesturesEnabled: false,
+        // The map claims every touch that lands on it. Inside a scroll view
+        // (the ride page) the list would otherwise win every vertical drag
+        // and the map could neither pan nor zoom.
+        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+          Factory<OneSequenceGestureRecognizer>(EagerGestureRecognizer.new),
+        },
+        // The puck is drawn by our own layers from `devicePositionProvider`;
+        // the native location component would ask for permission by itself.
+        myLocationEnabled: false,
+        // Everything on the map is a GeoJSON source with style layers; the
+        // plugin's annotation managers would only add four layers nobody uses,
+        // and their asynchronous set-up is what throws when the activity is
+        // recreated under a map (MAP_NOT_READY from inside the plugin).
+        annotationOrder: const <ml.AnnotationType>[],
+        onMapCreated: _onMapCreated,
+        onStyleLoadedCallback: () => unawaited(_onStyleLoaded()),
+        onMapClick: (_, coordinates) => _adapter?.handleMapClick(coordinates),
+        onMapLongClick: (_, coordinates) =>
+            _adapter?.handleMapLongClick(coordinates),
+        onCameraIdle: _onCameraIdle,
       ),
-      // The adapter reads `cameraPosition` for `center`/`zoom`.
-      trackCameraPosition: true,
-      compassEnabled: false,
-      logoEnabled: false,
-      // maplibre_gl 0.27 cannot hide the native attribution (i) button, so it
-      // is parked bottom right, in the same band as our own chip; sideways in
-      // the top corner away from the rail, where the narrow map leaves it
-      // room the chip's band does not.
-      attributionButtonPosition: !sideways
-          ? ml.AttributionButtonPosition.bottomRight
-          : (chrome?.attributionInsets.left ?? 0) > 0
-          ? ml.AttributionButtonPosition.topRight
-          : ml.AttributionButtonPosition.topLeft,
-      attributionButtonMargins: Point<num>(
-        8,
-        sideways ? _infoButtonTopSideways : attributionBottom,
-      ),
-      rotateGesturesEnabled: true,
-      tiltGesturesEnabled: false,
-      // The map claims every touch that lands on it. Inside a scroll view
-      // (the ride page) the list would otherwise win every vertical drag
-      // and the map could neither pan nor zoom.
-      gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-        Factory<OneSequenceGestureRecognizer>(EagerGestureRecognizer.new),
-      },
-      // The puck is drawn by our own layers from `devicePositionProvider`;
-      // the native location component would ask for permission by itself.
-      myLocationEnabled: false,
-      // Everything on the map is a GeoJSON source with style layers; the
-      // plugin's annotation managers would only add four layers nobody uses,
-      // and their asynchronous set-up is what throws when the activity is
-      // recreated under a map (MAP_NOT_READY from inside the plugin).
-      annotationOrder: const <ml.AnnotationType>[],
-      onMapCreated: _onMapCreated,
-      onStyleLoadedCallback: () => unawaited(_onStyleLoaded()),
-      onMapClick: (_, coordinates) => _adapter?.handleMapClick(coordinates),
-      onMapLongClick: (_, coordinates) =>
-          _adapter?.handleMapLongClick(coordinates),
-      onCameraIdle: _onCameraIdle,
     );
 
     // The shell's one column over the tab maps takes the place of the
