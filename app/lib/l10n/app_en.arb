@@ -295,6 +295,10 @@
   "@plannerRideFromPosition": {
     "description": "Button that plans a route from the rider's current position to the searched place"
   },
+  "placeLinkNeedsBrowser": "This map link only opens in a browser. Open it there, then share the place from the map page.",
+  "@placeLinkNeedsBrowser": {
+    "description": "Shown when another app sent a short map link (maps.app.goo.gl, osm.org/go) whose place cannot be read without opening it in a browser"
+  },
   "plannerPositionUnavailable": "Your position is not available yet.",
   "@plannerPositionUnavailable": {
     "description": "Snack bar when planning from the current position but no fix is known"

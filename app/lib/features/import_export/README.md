@@ -5,10 +5,11 @@ Everything that turns a GPX or FIT file into a route or a ride, and back.
 ## Intake
 
 `IncomingFileService` (`data/incoming_file_service.dart`) unifies the three
-ways a file can reach the app. It exposes two streams — `imports` for decoded
-files and `deepLinks` for links that are not files (`velorki://oauth/...`,
-`velorki://s/<id>`; those belong to later milestones) — and the providers
-`incomingImportsProvider` and `incomingDeepLinksProvider`.
+ways a file can reach the app. It exposes `imports` for decoded files,
+`locations` for places (see Places below) and `deepLinks` for other links
+(`velorki://oauth/...`, `velorki://share/<id>`), with the providers
+`incomingImportsProvider`, `incomingLocationsProvider` and
+`incomingDeepLinksProvider`.
 
 | Source | Plugin | Platforms |
 |---|---|---|
@@ -50,10 +51,11 @@ as it does for the live activity.
 * Bundle id `com.orkitec.velorki.share`, display name "Velorki", deployment
   target 15.0 — the Runner's. The `.share` suffix is not decoration: the plugin
   works out the host app's bundle id by dropping the last component.
-* The activation rule takes files (up to ten) and one web URL and nothing else.
-  Offering Velorki in the share sheet for a photo or a paragraph of text would
-  be a lie, and the extension redirects straight into the app rather than
-  showing a compose sheet there is nothing to compose in.
+* The activation rule takes files (up to ten), one web URL and text (a place
+  shared from a map app or a messenger), not photos, and the extension
+  redirects straight into the app rather than showing a compose sheet there
+  is nothing to compose in. Text goes over as text, an Apple Maps vCard as its
+  text only when no URL came with it (the URL names the same place).
 * **App Group `group.com.orkitec.velorki`** — the one the live activity
   already uses. It is in both entitlements files and is the user-defined build
   setting `CUSTOM_GROUP_ID` on both targets, which the `AppGroupId` key in both
@@ -68,8 +70,8 @@ as it does for the live activity.
   editing `relativePath` in `project.pbxproj` to match, or Xcode stops finding
   the package.
 
-No Dart code changes: `IncomingFileService` already listens to
-`receive_sharing_intent` on both platforms. `ios/Runner/AppDelegate.swift`
+`IncomingFileService` listens to `receive_sharing_intent` on both
+platforms. `ios/Runner/AppDelegate.swift`
 still handles **"Open in Velorki"** from Files, Mail and Safari — it starts
 security-scoped access, copies the file into `tmp/incoming/` (the scoped URL is
 only readable until `application(_:open:options:)` returns) and invokes
@@ -83,6 +85,26 @@ Xcode signs Runner and VelorkiShare with the orkitec team; until then a device
 or App Store build fails to provision. CI only builds for the simulator, which
 does not sign, so a green `integration-ios` run proves the target compiles and
 embeds, not that the group is registered.
+
+## Places
+
+Not every share is a file. `IncomingFileService.locations` carries a place
+read by `parseLocationLink` (`lib/core/links/location_link.dart`, pure Dart,
+offline): a `geo:` intent (Android "Open with", manifest filter on the `geo`
+scheme), `velorki://navigate?lat=&lon=[&name=]` or `?q=`, a Google, Apple or
+OpenStreetMap link, or shared text with coordinates or an address in it. One
+share's text and links are read together, so "Name\n<short link>" is one
+place; a link that names no place still goes to `deepLinks`. A text the plugin
+reports that is really a file path (Android, `text/*` files) is left to the
+file path. The same place twice within three seconds is one place: Android
+hands a `geo:` or `velorki://` intent to both plugins.
+
+`listenForIncomingLocations` (`features/planner/application/incoming_place.dart`)
+opens the Plan tab and parks the place in `incomingPlaceProvider` until the
+planner can take it: coordinates go through `SearchField.select`, the path a
+tapped search result takes; an address or a name goes into the field as typed
+(`SearchField.searchFor`); a short link (`maps.app.goo.gl`, `osm.org/go`) only
+a browser can open gets the message `placeLinkNeedsBrowser`.
 
 ## Preview and saving
 

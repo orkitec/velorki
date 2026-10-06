@@ -22,6 +22,23 @@ Eine Datei, die sich nicht importieren lässt, öffnet denselben Bildschirm mit 
 
 Velorki erkennt am Anfang der Datei, was sie ist, und vertraut weder ihrem Namen noch ihrem Typ, eine `.gpx`, die in Wahrheit eine FIT-Datei ist, wird also trotzdem importiert. Eine TCX-Datei wird an ihrem Wurzelelement erkannt.
 
+## Ein Ort aus einer anderen App
+
+Velorki nimmt auch einen einzelnen Ort entgegen, zu dem du fahren willst, und öffnet ihn im Tab **Planen** so, wie sich ein Suchergebnis öffnet: auf der Karte angeheftet, mit seinem Namen, mit **Hier starten** und **Von meiner Position**.
+
+- **Teilen-Menü.** Teile einen Ort aus Google Maps, Apple Karten, OpenStreetMap, einem Browser oder einem Messenger und wähle Velorki. Ein Kartenlink, Koordinaten wie `52.5200, 13.4050` oder `52°31'12"N 13°24'18"E` oder eine Adresse funktionieren; eine Adresse landet im Suchfeld, das sie findet.
+- **Öffnen mit** (Android). Ein Ort, den eine andere App öffnet (ein `geo:`-Link), bietet Velorki in der Auswahl an.
+- **Kurzlinks** wie `maps.app.goo.gl/…` oder `osm.org/go/…` verraten erst beim Öffnen, wohin sie zeigen. Velorki sagt das: Öffne den Link zuerst im Browser und teile den Ort von dort.
+
+**Für App-Entwickler** öffnet Velorki diese Links:
+
+| Link | Öffnet |
+|---|---|
+| `velorki://navigate?lat=52.52&lon=13.405&name=Brandenburger%20Tor` | den Ort an diesen Koordinaten, beschriftet mit `name` (optional) |
+| `velorki://navigate?q=Pariser%20Platz%201%2C%20Berlin` | eine Suche nach der Adresse oder dem Ortsnamen |
+
+Koordinaten sind Dezimalgrad (WGS 84); jeder Wert ist URL-kodiert. Auf Android funktioniert auch ein `geo:`-Intent (`geo:LAT,LON`, `geo:0,0?q=LAT,LON(Name)`, `geo:0,0?q=Adresse`).
+
 ## Der Importbildschirm
 
 Er heißt **Import** und zeigt:

@@ -88,10 +88,11 @@ class SearchField extends ConsumerStatefulWidget {
   final VoidCallback? onDownloadArea;
 
   @override
-  ConsumerState<SearchField> createState() => _SearchFieldState();
+  ConsumerState<SearchField> createState() => SearchFieldState();
 }
 
-class _SearchFieldState extends ConsumerState<SearchField> {
+/// The field's state; [searchFor] fills it from outside.
+class SearchFieldState extends ConsumerState<SearchField> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   // The results float in the app's overlay, anchored under the field, so
@@ -182,6 +183,17 @@ class _SearchFieldState extends ConsumerState<SearchField> {
           keywords: localisedKindKeywords(AppLocalizations.of(context)),
         );
   }
+
+  /// Puts [text] into the field and searches for it, as if the rider had
+  /// typed it: a place another app sent by its address or name.
+  void searchFor(String text) {
+    _controller.text = text;
+    _onChanged(text);
+  }
+
+  /// Picks [result] as if the rider had tapped it in the list: a place
+  /// another app sent with its coordinates.
+  void select(SearchResult result) => _select(result);
 
   void _clear() {
     _controller.clear();

@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
+import 'package:velorki_geo/velorki_geo.dart';
+import 'package:velorki/core/links/location_link.dart';
 import 'package:velorki/features/import_export/data/incoming_file_service.dart';
 import 'package:velorki/features/import_export/data/track_decoder.dart';
 import 'package:velorki/features/import_export/domain/imported_track.dart';
@@ -223,9 +225,11 @@ void main() {
     expect(imports, isEmpty);
   });
 
-  test('shared plain text is ignored without a read attempt', () async {
+  test('shared plain text is no file and no read attempt', () async {
     final sources = _FakeSources();
-    final (_, imports, _) = await start(sources);
+    final (service, imports, deepLinks) = await start(sources);
+    final locations = <LocationLink>[];
+    service.locations.listen(locations.add);
 
     sources.media.add([
       SharedMediaFile(path: 'just some text', type: SharedMediaType.text),
@@ -234,6 +238,167 @@ void main() {
 
     expect(sources.readPaths, isEmpty);
     expect(imports, isEmpty);
+    expect(deepLinks, isEmpty);
+    // Short text may be a place's name: the search gets it.
+    expect(locations.single.query, 'just some text');
+  });
+
+  group('places', () {
+    Future<(_FakeSources, List<LocationLink>, List<Uri>)> startPlaces() async {
+      final sources = _FakeSources();
+      final (service, _, deepLinks) = await start(sources);
+      final locations = <LocationLink>[];
+      service.locations.listen(locations.add);
+      return (sources, locations, deepLinks);
+    }
+
+    test('a geo: intent is a place, not a deep link', () async {
+      final (sources, locations, deepLinks) = await startPlaces();
+
+      sources.links.add(Uri.parse('geo:52.52,13.405?z=17'));
+      await pumpEventQueue();
+
+      expect(deepLinks, isEmpty);
+      expect(locations.single.position, const LatLng(52.52, 13.405));
+    });
+
+    test('a velorki://navigate link is a place', () async {
+      final (sources, locations, deepLinks) = await startPlaces();
+
+      sources.links.add(
+        Uri.parse('velorki://navigate?lat=52.52&lon=13.405&name=Tor'),
+      );
+      await pumpEventQueue();
+
+      expect(deepLinks, isEmpty);
+      expect(locations.single.name, 'Tor');
+    });
+
+    test('a place at launch is not lost', () async {
+      final sources = _FakeSources(
+        launchLink: Uri.parse('velorki://navigate?q=Berlin'),
+      );
+      final service = IncomingFileService(sources);
+      final locations = <LocationLink>[];
+      service.locations.listen(locations.add);
+      addTearDown(() async {
+        await service.dispose();
+        await sources.close();
+      });
+      await service.start();
+
+      expect(locations.single.query, 'Berlin');
+    });
+
+    test('one intent reported by both plugins is one place', () async {
+      final (sources, locations, _) = await startPlaces();
+
+      sources.media.add([
+        SharedMediaFile(path: 'geo:52.52,13.405', type: SharedMediaType.url),
+      ]);
+      sources.links.add(Uri.parse('geo:52.52,13.405'));
+      await pumpEventQueue();
+
+      expect(locations, hasLength(1));
+    });
+
+    test('a shared map link is a place', () async {
+      final (sources, locations, deepLinks) = await startPlaces();
+
+      sources.media.add([
+        SharedMediaFile(
+          path: 'https://www.openstreetmap.org/#map=17/52.52/13.405',
+          type: SharedMediaType.url,
+        ),
+      ]);
+      await pumpEventQueue();
+
+      expect(deepLinks, isEmpty);
+      expect(locations.single.position, const LatLng(52.52, 13.405));
+    });
+
+    test('text and a short link in one share are one place', () async {
+      final (sources, locations, deepLinks) = await startPlaces();
+
+      sources.media.add([
+        SharedMediaFile(
+          path: 'Brandenburger Tor\nPariser Platz, Berlin',
+          type: SharedMediaType.text,
+        ),
+        SharedMediaFile(
+          path: 'https://maps.app.goo.gl/AbC',
+          type: SharedMediaType.url,
+        ),
+      ]);
+      await pumpEventQueue();
+
+      expect(deepLinks, isEmpty);
+      expect(locations, hasLength(1));
+      expect(
+        locations.single.query,
+        'Brandenburger Tor, Pariser Platz, Berlin',
+      );
+    });
+
+    test('a short link alone says it needs a browser', () async {
+      final (sources, locations, _) = await startPlaces();
+
+      sources.media.add([
+        SharedMediaFile(
+          path: 'https://maps.app.goo.gl/AbC',
+          type: SharedMediaType.url,
+        ),
+      ]);
+      await pumpEventQueue();
+
+      expect(locations.single.isUnresolvable, isTrue);
+    });
+
+    test('a share link shared with text still goes to deepLinks', () async {
+      final (sources, locations, deepLinks) = await startPlaces();
+
+      sources.media.add([
+        SharedMediaFile(
+          path: 'Look at this route of mine, it is a long one along the river',
+          type: SharedMediaType.text,
+        ),
+        SharedMediaFile(
+          path: 'https://velorki.com/s/7Kq2mZ0aTb',
+          type: SharedMediaType.url,
+        ),
+      ]);
+      await pumpEventQueue();
+
+      expect(locations, isEmpty);
+      expect(deepLinks.single.toString(), 'https://velorki.com/s/7Kq2mZ0aTb');
+    });
+
+    test('a text file the plugin reports as text is no place', () async {
+      final (sources, locations, deepLinks) = await startPlaces();
+
+      sources.media.add([
+        SharedMediaFile(
+          path: '/data/user/0/com.orkitec.velorki/cache/tour.gpx',
+          type: SharedMediaType.text,
+        ),
+      ]);
+      await pumpEventQueue();
+
+      expect(locations, isEmpty);
+      expect(deepLinks, isEmpty);
+      expect(sources.readPaths, isEmpty);
+    });
+
+    test('a long message is no place', () async {
+      final (sources, locations, _) = await startPlaces();
+
+      sources.media.add([
+        SharedMediaFile(path: 'blah ' * 80, type: SharedMediaType.text),
+      ]);
+      await pumpEventQueue();
+
+      expect(locations, isEmpty);
+    });
   });
 
   test('bytes handed in directly skip the platform entirely', () async {

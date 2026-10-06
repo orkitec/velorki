@@ -22,6 +22,23 @@ A file that cannot be imported opens the same screen with the reason: not a GPX,
 
 Velorki works out what the file is by reading its first bytes, not by trusting its name or its type, so a `.gpx` that is really a FIT file still imports. A TCX file is recognised by its root element.
 
+## A place from another app
+
+Velorki also takes a single place to ride to, and opens it on the **Plan** tab the way a search result opens: pinned on the map with its name, with **Start here** and **From my position**.
+
+- **Share sheet.** Share a place from Google Maps, Apple Maps, OpenStreetMap, a browser or a messenger and pick Velorki. A map link, coordinates such as `52.5200, 13.4050` or `52°31'12"N 13°24'18"E`, or an address all work; an address goes into the search field, which finds it.
+- **Open with** (Android). A location another app opens (a `geo:` link) offers Velorki in the chooser.
+- **Short links** such as `maps.app.goo.gl/…` or `osm.org/go/…` only say where they point when opened. Velorki says so: open the link in a browser first, then share the place from there.
+
+**For app developers**, Velorki opens these links:
+
+| Link | Opens |
+|---|---|
+| `velorki://navigate?lat=52.52&lon=13.405&name=Brandenburger%20Tor` | the place at those coordinates, labelled with `name` (optional) |
+| `velorki://navigate?q=Pariser%20Platz%201%2C%20Berlin` | a search for the address or place name |
+
+Coordinates are decimal degrees (WGS 84); every value is URL-encoded. On Android, a `geo:` intent (`geo:LAT,LON`, `geo:0,0?q=LAT,LON(Label)`, `geo:0,0?q=address`) works as well.
+
 ## The import screen
 
 Titled **Import**, it shows:

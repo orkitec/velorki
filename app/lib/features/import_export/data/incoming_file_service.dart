@@ -3,10 +3,12 @@ import 'dart:io';
 
 import 'package:app_links/app_links.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' show StreamProvider;
 import 'package:logging/logging.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/links/location_link.dart';
 import '../domain/imported_track.dart';
 import 'track_decoder.dart';
 
@@ -167,10 +169,11 @@ class PlatformIncomingSources implements IncomingSources {
 ///   arrives through the Share Extension and `receive_sharing_intent`.
 ///
 /// Whatever arrives is read into bytes, sniffed (never trusting the MIME type
-/// the sender claimed) and decoded; the result appears on [imports]. Links
-/// that are not files — `velorki://oauth/...`, `velorki://s/<id>` — are not
-/// this feature's business and are passed through on [deepLinks] for the
-/// integrations and share-link features to pick up later.
+/// the sender claimed) and decoded; the result appears on [imports]. A place
+/// (a `geo:` intent, `velorki://navigate`, a map link or shared text) appears
+/// on [locations]. Other links that are not files (`velorki://oauth/...`,
+/// `velorki://share/<id>`) are not this feature's business and are passed
+/// through on [deepLinks] for the integrations and share-link features.
 ///
 /// Files that cannot be read or decoded are logged and dropped rather than
 /// thrown: a broken file the user did not even mean to open must not take the
@@ -185,6 +188,13 @@ class IncomingFileService {
   final StreamController<ImportException> _rejections =
       StreamController<ImportException>.broadcast();
   final StreamController<Uri> _deepLinks = StreamController<Uri>.broadcast();
+  final StreamController<LocationLink> _locations =
+      StreamController<LocationLink>.broadcast();
+
+  /// The last place emitted and when, so the same place reported twice for
+  /// one intent is shown once: on Android a `geo:` or `velorki://navigate`
+  /// intent reaches both `app_links` and `receive_sharing_intent`.
+  (LocationLink, DateTime)? _lastLocation;
   final List<StreamSubscription<Object?>> _subscriptions =
       <StreamSubscription<Object?>>[];
   bool _started = false;
@@ -199,6 +209,10 @@ class IncomingFileService {
 
   /// Incoming links that are not files, for features that own them.
   Stream<Uri> get deepLinks => _deepLinks.stream;
+
+  /// Places sent from other apps: a `geo:` intent, `velorki://navigate`, a
+  /// map link or text shared into the app. See `parseLocationLink`.
+  Stream<LocationLink> get locations => _locations.stream;
 
   /// Subscribes to all three sources and drains what the app was launched
   /// with. Calling it twice does nothing.
@@ -243,8 +257,9 @@ class IncomingFileService {
 
   /// Handles one incoming [uri].
   ///
-  /// `file://` and `content://` are read and decoded; anything else is a deep
-  /// link and goes to [deepLinks] untouched.
+  /// `file://` and `content://` are read and decoded; a link to a place goes
+  /// to [locations]; anything else is a deep link and goes to [deepLinks]
+  /// untouched.
   Future<void> handleUri(Uri uri, {String? sourceHint}) async {
     switch (uri.scheme) {
       case 'file':
@@ -256,8 +271,36 @@ class IncomingFileService {
           sourceHint: sourceHint,
         );
       default:
-        _deepLinks.add(uri);
+        final location = parseLocationLink(uri.toString());
+        if (location != null) {
+          _emitLocation(location);
+        } else {
+          _deepLinks.add(uri);
+        }
     }
+  }
+
+  /// Reads a place out of text shared into the app and emits it on
+  /// [locations]; answers whether there was one.
+  bool handleText(String text) {
+    final location = parseLocationLink(text);
+    if (location == null) return false;
+    _emitLocation(location);
+    return true;
+  }
+
+  void _emitLocation(LocationLink location) {
+    if (_locations.isClosed) return;
+    final now = DateTime.now();
+    final last = _lastLocation;
+    if (last != null &&
+        last.$1 == location &&
+        now.difference(last.$2) < const Duration(seconds: 3)) {
+      return;
+    }
+    _lastLocation = (location, now);
+    _log.info('a place arrived from ${location.source.name}');
+    _locations.add(location);
   }
 
   /// Reads the file at [path], decodes it and emits it on [imports].
@@ -303,17 +346,36 @@ class IncomingFileService {
     await _imports.close();
     await _rejections.close();
     await _deepLinks.close();
+    await _locations.close();
   }
 
   Future<void> _handleSharedMedia(
     List<SharedMediaFile> files,
     String sourceHint,
   ) async {
+    // Text shared into the app (a place from a map app or a messenger)
+    // comes with any links of the same share: "Brandenburger Tor" and
+    // "https://maps.app.goo.gl/…" are one place, not two. When the whole
+    // names a place, that is what the share was.
+    final texts = [
+      for (final file in files)
+        if (file.type == SharedMediaType.text && !_looksLikeFilePath(file.path))
+          file.path,
+    ];
+    if (texts.isNotEmpty) {
+      final links = [
+        for (final file in files)
+          if (file.type == SharedMediaType.url) file.path,
+      ];
+      if (handleText([...texts, ...links].join('\n'))) return;
+    }
     for (final file in files) {
       // The plugin also reports shared text and URLs; a URL that points at a
       // file still has to go through the URI path.
       switch (file.type) {
         case SharedMediaType.text:
+          // A text file opened through an intent's data comes as a path,
+          // which the link path reads; text that named no place is dropped.
           continue;
         case SharedMediaType.url:
           final uri = Uri.tryParse(file.path);
@@ -349,6 +411,15 @@ class IncomingFileService {
       _log.info('$fileName was not imported: ${e.failure.name}', e.cause);
       _rejections.add(e);
     }
+  }
+
+  /// Whether a shared "text" is really a file the plugin resolved to a path:
+  /// Android reports a `text/*` intent's file as text.
+  bool _looksLikeFilePath(String value) {
+    final trimmed = value.trim();
+    return trimmed.startsWith('/') ||
+        trimmed.startsWith('file:') ||
+        trimmed.startsWith('content:');
   }
 
   String _fileNameOf(Uri uri) {
@@ -391,3 +462,8 @@ Stream<ImportException> incomingImportRejections(Ref ref) =>
 @Riverpod(keepAlive: true)
 Stream<Uri> incomingDeepLinks(Ref ref) =>
     ref.watch(incomingFileServiceProvider).deepLinks;
+
+/// Places sent from other apps, for the planner to show.
+final incomingLocationsProvider = StreamProvider<LocationLink>(
+  (ref) => ref.watch(incomingFileServiceProvider).locations,
+);

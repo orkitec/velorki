@@ -14,6 +14,7 @@ import '../../assistant/application/route_advice_controller.dart';
 import '../../assistant/domain/intent_resolver.dart';
 import '../../assistant/presentation/assistant_sheet.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
+import '../../map/application/locate_on_open.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/device_position_request.dart';
 import '../../map/presentation/map_chrome.dart';
@@ -33,6 +34,7 @@ import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/tab_chrome_slide.dart';
 import '../../smart_loop/application/smart_loop_controller.dart';
 import '../../smart_loop/presentation/smart_loop_sheet.dart';
+import '../application/incoming_place.dart';
 import '../application/planner_controller.dart';
 import '../application/planner_map_binding.dart';
 import '../data/route_repository.dart';
@@ -580,6 +582,52 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     if (place != null) {
       unawaited(map.setSearchPin(place.position, label: place.name));
     }
+    // A place another app sent while the map was not up yet.
+    _takeIncomingPlace();
+  }
+
+  /// Shows a place another app sent ([incomingPlaceProvider]) once this tab
+  /// is on screen and can: one with coordinates goes the way a tapped
+  /// search result goes, an address or a name into the search field as
+  /// typed, and a link only a browser can open gets a short message.
+  void _takeIncomingPlace() {
+    final place = ref.read(incomingPlaceProvider);
+    if (place == null || !mounted || !_active) return;
+    final search = _searchKey.currentState;
+    if (search is! SearchFieldState) return;
+    final link = place.link;
+    final position = link.position;
+    final query = link.query;
+    if (position != null) {
+      // The pin and the camera need the map; on a cold start it comes later,
+      // and the draw that follows it brings the place back here.
+      if (_map == null || !_drawing) return;
+      ref.read(incomingPlaceProvider.notifier).taken(place);
+      // The place is where the rider asked the map to go, as surely as a
+      // hand on it: the move to the rider's position that an opening of the
+      // app starts (a cold start through this very link) must not take the
+      // map back once its fix comes in.
+      ref.read(locateOnOpenProvider).touched();
+      search.select(
+        SearchResult(
+          name:
+              link.name ??
+              '${position.lat.toStringAsFixed(5)}, '
+                  '${position.lon.toStringAsFixed(5)}',
+          position: position,
+        ),
+      );
+    } else if (query != null) {
+      ref.read(incomingPlaceProvider.notifier).taken(place);
+      search.searchFor(query);
+    } else {
+      ref.read(incomingPlaceProvider.notifier).taken(place);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).placeLinkNeedsBrowser),
+        ),
+      );
+    }
   }
 
   void _onPlaceSelected(SearchResult result) {
@@ -874,6 +922,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     final hasBackend = ref.watch(routingBackendProvider) != null;
 
     ref.listen(sharedMapControllerProvider, (_, next) => _onMapChanged(next));
+    // A place another app sent: taken after this frame, when the search
+    // field and the tab's state are settled.
+    if (ref.watch(incomingPlaceProvider) != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _takeIncomingPlace());
+    }
     ref.listen(routeAdviceControllerProvider.select((s) => s.shown), (_, _) {
       if (_drawing) {
         unawaited(_binding?.sync(ref.read(plannerControllerProvider)));
