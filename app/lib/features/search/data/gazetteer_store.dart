@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:collection';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -132,19 +134,28 @@ const double _metersPerDegree = 111320;
 /// on the phone and rebuilt from scratch by the builder, so nothing here ever
 /// writes.
 ///
-/// The SQLite work runs synchronously — a typical query on a dense tile is a
-/// few milliseconds on a laptop, a second look tens — but the API is async so
-/// the caller cannot tell and a future move off the main thread stays
-/// invisible.
+/// The SQLite work is synchronous — a typical query on a dense tile is a few
+/// milliseconds on a laptop, a second look tens, and a phone is several times
+/// slower. With [background] the searches run on a worker isolate with its
+/// own read-only connections, so a slow one never holds up a frame while the
+/// rider types; [covers], [hasTiles] and [tiles] stay here, they only look
+/// at which files are open.
 class GazetteerStore {
   /// Creates a store over [directory].
   ///
   /// A `null` directory (the app could not find its support directory) is a
   /// store with no files: [hasTiles] stays false and search falls back online.
-  GazetteerStore(this.directory);
+  GazetteerStore(this.directory, {this.background = false});
 
   /// Where the `.gaz` files live.
   final Directory? directory;
+
+  /// Whether [lookup], [inBox] and [nearestSettlement] run on a worker
+  /// isolate. It is started with the first of them that has a file to read,
+  /// and a store whose worker fails answers on the calling isolate instead.
+  final bool background;
+
+  Future<_GazetteerWorker?>? _worker;
 
   final Map<String, _GazetteerFile> _open = <String, _GazetteerFile>{};
   final Set<String> _skipped = <String>{};
@@ -194,6 +205,16 @@ class GazetteerStore {
     double maxKm = 3,
   }) async {
     if (_closed || _open.isEmpty) return null;
+    final worker = await _workerOrNull();
+    if (worker != null) {
+      final answer = await worker.ask(_Ask.nearestSettlement, (point, maxKm));
+      if (answer case _Answered(:final SearchResult? value)) return value;
+    }
+    return _nearestSettlementHere(point, maxKm);
+  }
+
+  SearchResult? _nearestSettlementHere(LatLng point, double maxKm) {
+    if (_closed || _open.isEmpty) return null;
     SearchResult? best;
     for (final file in _open.values) {
       try {
@@ -222,6 +243,26 @@ class GazetteerStore {
     int limit = _kindFetchLimit,
   }) async {
     if (_closed || _open.isEmpty) return const <SearchResult>[];
+    final worker = await _workerOrNull();
+    if (worker != null) {
+      final answer = await worker.ask(_Ask.inBox, (
+        box,
+        placeKinds,
+        poiKinds,
+        limit,
+      ));
+      if (answer case _Answered(:final List<SearchResult> value)) return value;
+    }
+    return _inBoxHere(box, placeKinds, poiKinds, limit);
+  }
+
+  List<SearchResult> _inBoxHere(
+    BoundingBox box,
+    List<String> placeKinds,
+    List<String> poiKinds,
+    int limit,
+  ) {
+    if (_closed || _open.isEmpty) return const <SearchResult>[];
     final found = <SearchResult>[];
     for (final file in _open.values) {
       try {
@@ -248,6 +289,13 @@ class GazetteerStore {
   /// deleted) and on demand. Cheap enough to call often: a file that is
   /// already open is left alone.
   Future<void> refresh() async {
+    if (_closed) return;
+    await _refreshHere();
+    final worker = _worker == null ? null : await _worker;
+    await worker?.ask(_Ask.refresh, null);
+  }
+
+  Future<void> _refreshHere() async {
     if (_closed) return;
     final dir = directory;
     final found = <String, String>{};
@@ -336,6 +384,42 @@ class GazetteerStore {
     SearchPreferences preferences = SearchPreferences.defaults,
     Map<String, String> keywords = const <String, String>{},
   }) async {
+    if (_closed || _open.isEmpty) return GazetteerSearch.empty;
+    final worker = await _workerOrNull();
+    if (worker != null) {
+      final answer = await worker.ask(_Ask.lookup, (
+        text,
+        near,
+        limit,
+        preferences,
+        keywords,
+      ));
+      switch (answer) {
+        case _Answered(:final GazetteerSearch value):
+          return value;
+        case _Superseded():
+          // The rider has typed on; whoever asked has moved on as well.
+          return GazetteerSearch.empty;
+        default:
+          break;
+      }
+    }
+    return _lookupHere(
+      text,
+      near: near,
+      limit: limit,
+      preferences: preferences,
+      keywords: keywords,
+    );
+  }
+
+  GazetteerSearch _lookupHere(
+    String text, {
+    required LatLng? near,
+    required int limit,
+    required SearchPreferences preferences,
+    required Map<String, String> keywords,
+  }) {
     if (_closed || _open.isEmpty) return GazetteerSearch.empty;
     final cap = math.max(0, limit);
     final kindResults = near == null
@@ -831,9 +915,31 @@ class GazetteerStore {
       '${result.name}@${result.position.lat.toStringAsFixed(6)},'
       '${result.position.lon.toStringAsFixed(6)}';
 
-  /// Closes every open file. The store answers nothing afterwards.
+  /// Whether a worker isolate has been started, for tests.
+  @visibleForTesting
+  bool get workerStarted => _worker != null;
+
+  /// The worker, started on first use; `null` without [background], without
+  /// a directory, or when it could not be started.
+  Future<_GazetteerWorker?> _workerOrNull() {
+    final dir = directory;
+    if (!background || dir == null || _closed) return Future.value();
+    return _worker ??= _GazetteerWorker.spawn(dir).then<_GazetteerWorker?>(
+      (worker) => worker,
+      onError: (Object e) {
+        debugPrint('velorki: gazetteer worker did not start: $e');
+        return null;
+      },
+    );
+  }
+
+  /// Closes every open file and the worker. The store answers nothing
+  /// afterwards.
   void close() {
     _closed = true;
+    final worker = _worker;
+    _worker = null;
+    if (worker != null) unawaited(worker.then((w) => w?.close()));
     for (final file in _open.values) {
       file.close();
     }
@@ -1582,12 +1688,21 @@ class _GazetteerFile {
   }
 
   static PreparedStatement? _prepareOrNull(Database db, String sql) {
+    // A file from an older builder has no aliases and house_numbers instead
+    // of street_numbers, a newer one the other way round: a table that is
+    // simply not there is no news. One that is there and still cannot be
+    // read must not take the places with it.
+    final table = RegExp(r'\bFROM (\w+)').firstMatch(sql)?[1];
+    if (table != null &&
+        db.select(
+          "SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = ?",
+          <Object?>[table],
+        ).isEmpty) {
+      return null;
+    }
     try {
       return db.prepare(sql);
     } on Object catch (e) {
-      // A gazetteer built without streets or POIs still has the tables, but a
-      // file from an older builder has no aliases and no house numbers at all;
-      // one missing table must not take the places with it.
       debugPrint('velorki: gazetteer statement unavailable: $e');
       return null;
     }
@@ -1883,6 +1998,194 @@ const Map<String, double> _placeWeight = <String, double>{
 const double _populationWeight = 0.015;
 const double _populationCap = 0.1;
 
+/// How long a closed worker has to close its files before it is killed.
+const Duration _workerExitGrace = Duration(seconds: 2);
+
+/// What the calling isolate asks the worker.
+enum _Ask { lookup, inBox, nearestSettlement, refresh, close }
+
+/// How the worker answered.
+sealed class _Answer {
+  const _Answer();
+}
+
+/// The answer, whatever it is.
+final class _Answered extends _Answer {
+  const _Answered(this.value);
+
+  final Object? value;
+}
+
+/// A lookup the worker skipped because a newer one was already waiting.
+final class _Superseded extends _Answer {
+  const _Superseded();
+}
+
+/// A question the worker could not answer; the caller answers it itself.
+final class _Failed extends _Answer {
+  const _Failed(this.error);
+
+  final String error;
+}
+
+/// A [GazetteerStore] on its own isolate, asked through ports.
+///
+/// The worker answers in the order it is asked, with one exception: a lookup
+/// with a newer lookup already waiting behind it is skipped, so a rider who
+/// types faster than a slow phone searches never waits for the words in
+/// between.
+class _GazetteerWorker {
+  _GazetteerWorker._(this._isolate, this._send, this._replies);
+
+  /// Starts the worker over [directory] and waits for its port.
+  ///
+  /// One [ReceivePort] carries everything the worker sends: its own port
+  /// first, then the answers, each matched to its question by id.
+  static Future<_GazetteerWorker> spawn(Directory directory) async {
+    final replies = ReceivePort();
+    final port = Completer<SendPort>();
+    late final _GazetteerWorker worker;
+    replies.listen((message) {
+      if (!port.isCompleted) {
+        if (message is SendPort) port.complete(message);
+        return;
+      }
+      worker._onReply(message);
+    });
+    final Isolate isolate;
+    try {
+      isolate = await Isolate.spawn(_run, (
+        replies.sendPort,
+        directory.path,
+      ), debugName: 'gazetteer');
+    } on Object {
+      replies.close();
+      rethrow;
+    }
+    final send = await port.future;
+    return worker = _GazetteerWorker._(isolate, send, replies);
+  }
+
+  final Isolate _isolate;
+  final SendPort _send;
+  final ReceivePort _replies;
+  bool _closed = false;
+  final Map<int, Completer<_Answer>> _waiting = <int, Completer<_Answer>>{};
+  int _next = 0;
+
+  Future<_Answer> ask(_Ask what, Object? args) {
+    if (_closed) return Future.value(const _Failed('closed'));
+    final id = _next++;
+    final answer = Completer<_Answer>();
+    _waiting[id] = answer;
+    _send.send((id, what, args));
+    return answer.future;
+  }
+
+  void _onReply(Object? message) {
+    if (message is! (int, _Answer)) return;
+    final (id, answer) = message;
+    _waiting.remove(id)?.complete(answer);
+    if (answer is _Failed) {
+      debugPrint('velorki: gazetteer worker failed: ${answer.error}');
+    }
+  }
+
+  void close() {
+    if (_closed) return;
+    _closed = true;
+    _send.send((-1, _Ask.close, null));
+    for (final waiting in _waiting.values) {
+      waiting.complete(const _Failed('closed'));
+    }
+    _waiting.clear();
+    _replies.close();
+    // The worker closes its files and exits; this is only for a worker that
+    // is stuck in a query.
+    Timer(_workerExitGrace, _isolate.kill);
+  }
+
+  /// The worker isolate: a store of its own over the same directory.
+  static Future<void> _run((SendPort, String) start) async {
+    final (reply, path) = start;
+    final inbox = ReceivePort();
+    reply.send(inbox.sendPort);
+    final store = GazetteerStore(Directory(path));
+    await store.refresh();
+
+    final queue = Queue<(int, _Ask, Object?)>();
+    var draining = false;
+    Future<void> drain() async {
+      draining = true;
+      while (queue.isNotEmpty) {
+        final (id, what, args) = queue.removeFirst();
+        if (what == _Ask.close) {
+          store.close();
+          inbox.close();
+          Isolate.exit();
+        }
+        if (what == _Ask.lookup &&
+            queue.any((waiting) => waiting.$2 == _Ask.lookup)) {
+          reply.send((id, const _Superseded()));
+          continue;
+        }
+        try {
+          reply.send((id, _Answered(await _answer(store, what, args))));
+        } on Object catch (e) {
+          reply.send((id, _Failed('$e')));
+        }
+        // Let the questions that came in meanwhile reach the queue, so the
+        // next lookup can see whether a newer one is behind it.
+        await Future<void>.delayed(Duration.zero);
+      }
+      draining = false;
+    }
+
+    await for (final message in inbox) {
+      if (message is! (int, _Ask, Object?)) continue;
+      queue.add(message);
+      if (!draining) unawaited(drain());
+    }
+  }
+
+  static Future<Object?> _answer(
+    GazetteerStore store,
+    _Ask what,
+    Object? args,
+  ) async {
+    switch (what) {
+      case _Ask.lookup:
+        final (
+          text,
+          near,
+          limit,
+          preferences,
+          keywords,
+        ) = args!
+            as (String, LatLng?, int, SearchPreferences, Map<String, String>);
+        return store._lookupHere(
+          text,
+          near: near,
+          limit: limit,
+          preferences: preferences,
+          keywords: keywords,
+        );
+      case _Ask.inBox:
+        final (box, placeKinds, poiKinds, limit) =
+            args! as (BoundingBox, List<String>, List<String>, int);
+        return store._inBoxHere(box, placeKinds, poiKinds, limit);
+      case _Ask.nearestSettlement:
+        final (point, maxKm) = args! as (LatLng, double);
+        return store._nearestSettlementHere(point, maxKm);
+      case _Ask.refresh:
+        await store.refresh();
+        return null;
+      case _Ask.close:
+        return null;
+    }
+  }
+}
+
 /// The app's [GazetteerStore], re-scanned whenever the routing tiles change.
 @Riverpod(keepAlive: true)
 Future<GazetteerStore> gazetteerStore(Ref ref) async {
@@ -1894,7 +2197,7 @@ Future<GazetteerStore> gazetteerStore(Ref ref) async {
     // down device): the rider simply searches online.
     debugPrint('velorki: no gazetteer directory: $e');
   }
-  final store = GazetteerStore(directory);
+  final store = GazetteerStore(directory, background: true);
   ref.onDispose(store.close);
   await store.refresh();
   if (directory != null) {

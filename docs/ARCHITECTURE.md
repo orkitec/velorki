@@ -422,7 +422,10 @@ typo, compound), how much of the name was asked for, the way to the map
 centre and the size of a place; a town typed after the street ("hauptstrasse
 berlin") is matched against each row's place. A query that answers nothing
 well gets a second look with the index's own words as alternatives and words
-left out; `tools/gazetteer/README.md` has the contract. A street
+left out; `tools/gazetteer/README.md` has the contract. The app's store
+searches on a worker isolate with its own read-only connections, skipping a
+lookup that newer typing has already replaced, so a slow one never costs the
+UI a frame. A street
 whose house numbers the file anchors answers a typed number at the number's
 own position, interpolated between the two nearest anchors when it is not one
 of them and marked "≈" then; alternative names (`name:en`, `alt_name`, …) are

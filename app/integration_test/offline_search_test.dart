@@ -23,6 +23,7 @@ import 'package:velorki/features/search/data/gazetteer_store.dart';
 import 'package:velorki/features/search/data/photon_client.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
+import 'package:velorki_geo/velorki_geo.dart';
 
 import 'support/fakes.dart';
 import 'support/harness.dart';
@@ -88,6 +89,29 @@ void main() {
       contains(name),
       reason: '"$swapped" on the device',
     );
+
+    // The app's store searches on a worker isolate: a burst of keystrokes
+    // all settle and the last one is answered, a ride is named and a route
+    // is matched against places in between, all off the UI isolate.
+    expect(store.workerStarted, isTrue, reason: 'the app searches off-thread');
+    final typing = <Future<GazetteerSearch>>[
+      for (var i = 3; i <= name.length; i++)
+        store.lookup(name.substring(0, i), near: region.start),
+    ];
+    final named = store.nearestSettlement(region.start, maxKm: 20);
+    final around = store.inBox(
+      BoundingBox(
+        south: region.start.lat - 0.1,
+        west: region.start.lon - 0.1,
+        north: region.start.lat + 0.1,
+        east: region.start.lon + 0.1,
+      ),
+      placeKinds: const <String>['city', 'town', 'village', 'suburb'],
+    );
+    final typed = await Future.wait(typing);
+    expect(typed.last.results.map((r) => r.name), contains(name));
+    expect(await named, isNotNull, reason: 'a ride from here gets a name');
+    expect(await around, isNotEmpty, reason: 'places around the start');
 
     // Type into the real field; the debounce and the store do the rest.
     final field = find.descendant(
