@@ -29,6 +29,7 @@ import check  # noqa: E402
 import manifest  # noqa: E402
 import merge  # noqa: E402
 import query  # noqa: E402
+import testset  # noqa: E402
 
 EXTRACT_NAME = "liechtenstein.osm.pbf"
 
@@ -1452,6 +1453,269 @@ class GazetteerTest(unittest.TestCase):
         report = check.check(fixture)
         self.assertTrue(report.has_streets)
         self.assertTrue(report.has_pois)
+
+
+def haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    import math
+
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    d_phi = phi2 - phi1
+    d_lambda = math.radians(lon2 - lon1)
+    a = math.sin(d_phi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(d_lambda / 2) ** 2
+    return 2 * 6371000 * math.asin(math.sqrt(a))
+
+
+class TestsetTest(unittest.TestCase):
+    """testset.py against the committed E5_N45 fixture: no extract needed."""
+
+    fixture = os.path.join(HERE, "fixtures", f"{TILE}.gaz")
+    generated: dict
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        if not os.path.isfile(cls.fixture):
+            raise unittest.SkipTest("fixture not present")
+        cls.generated = testset.generate(cls.fixture, seed=1, per_kind=15)
+        db = sqlite3.connect(f"file:{cls.fixture}?mode=ro", uri=True)
+        try:
+            cls.rows = {
+                table: {
+                    row[0]: row[1:]
+                    for row in db.execute(f"SELECT id, name, lat, lon FROM {table}")
+                }
+                for table in ("places", "streets", "pois")
+            }
+            cls.anchors = {}
+            for street_id, number, lat, lon in db.execute(
+                "SELECT street_id, number, lat, lon FROM house_numbers"
+            ):
+                cls.anchors.setdefault(street_id, {})[number] = (lat, lon)
+            cls.aliases = {
+                (name, ref_id)
+                for name, ref_id in db.execute("SELECT name, ref_id FROM aliases")
+            }
+        finally:
+            db.close()
+
+    def cases(self, kind: str) -> list[dict]:
+        found = [c for c in self.generated["cases"] if c["kind"] == kind]
+        self.assertTrue(found, f"no {kind} cases")
+        return found
+
+    # ---------------------------------------------------------- the file ---
+
+    def test_is_deterministic(self) -> None:
+        again = testset.generate(self.fixture, seed=1, per_kind=15)
+        self.assertEqual(json.dumps(again, sort_keys=True), json.dumps(self.generated, sort_keys=True))
+        other = testset.generate(self.fixture, seed=2, per_kind=15)
+        self.assertNotEqual(
+            [c["query"] for c in other["cases"]],
+            [c["query"] for c in self.generated["cases"]],
+        )
+
+    def test_every_kind_is_present_and_tagged(self) -> None:
+        kinds = {c["kind"] for c in self.generated["cases"]}
+        self.assertEqual(kinds, set(testset.ALL_KINDS))
+        self.assertEqual(self.generated["tile"], TILE)
+        self.assertGreater(len(self.generated["cases"]), 300)
+        for c in self.generated["cases"]:
+            self.assertEqual(c["tile"], TILE)
+            self.assertEqual(set(c), {"query", "kind", "expected", "tile", "near"})
+            self.assertEqual(set(c["expected"]), {"table", "id", "name", "lat", "lon", "place"})
+
+    def test_expected_rows_exist(self) -> None:
+        for c in self.generated["cases"]:
+            e = c["expected"]
+            row = self.rows[e["table"]].get(e["id"])
+            self.assertIsNotNone(row, f"{e} is not in the file")
+            self.assertEqual(row[0], e["name"])
+            if not c["kind"].startswith("address_"):
+                self.assertAlmostEqual(row[1] / 1e7, e["lat"], places=6)
+                self.assertAlmostEqual(row[2] / 1e7, e["lon"], places=6)
+
+    def test_near_is_a_few_km_away(self) -> None:
+        for c in self.generated["cases"]:
+            e, near = c["expected"], c["near"]
+            km = haversine_m(e["lat"], e["lon"], near["lat"], near["lon"]) / 1000
+            self.assertTrue(0.4 < km < 3.2, f"{c['query']}: near is {km:.1f} km away")
+
+    def test_no_case_is_repeated_within_a_kind(self) -> None:
+        seen = set()
+        for c in self.generated["cases"]:
+            key = (c["kind"], c["query"].lower())
+            self.assertNotIn(key, seen)
+            seen.add(key)
+
+    def test_writes_one_case_per_line(self) -> None:
+        tmp = tempfile.mkdtemp(prefix="gaz-testset-")
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        subprocess.run(
+            [sys.executable, os.path.join(HERE, "testset.py"), self.fixture, "--out", tmp, "--per-kind", "3"],
+            check=True,
+            capture_output=True,
+        )
+        path = os.path.join(tmp, f"{TILE}.json")
+        with open(path, encoding="utf-8") as f:
+            text = f.read()
+        parsed = json.loads(text)
+        self.assertEqual(parsed["per_kind"], 3)
+        self.assertEqual(len([l for l in text.splitlines() if l.startswith("  {")]), len(parsed["cases"]))
+
+    # ------------------------------------------------ what each kind claims ---
+
+    def test_exact_is_the_name(self) -> None:
+        for c in self.cases("exact"):
+            self.assertEqual(c["query"], c["expected"]["name"])
+
+    def test_typos_are_one_edit_away(self) -> None:
+        for kind in ("typo_swap", "typo_missing", "typo_double", "typo_neighbour", "typo_wrong"):
+            for c in self.cases(kind):
+                name, q = c["expected"]["name"], c["query"]
+                self.assertNotEqual(q, name)
+                self.assertEqual(testset.edit_distance(q, name), 1, f"{kind}: {q!r} vs {name!r}")
+                self.assertEqual(q[0], name[0], f"{kind} touched the first letter: {q!r}")
+
+    def test_typo_kinds_do_what_they_say(self) -> None:
+        for c in self.cases("typo_swap"):
+            name, q = c["expected"]["name"], c["query"]
+            self.assertEqual(sorted(q), sorted(name))
+            self.assertEqual(len(q), len(name))
+        for c in self.cases("typo_missing"):
+            self.assertEqual(len(c["query"]), len(c["expected"]["name"]) - 1)
+        for c in self.cases("typo_double"):
+            self.assertEqual(len(c["query"]), len(c["expected"]["name"]) + 1)
+        for c in self.cases("typo_neighbour"):
+            name, q = c["expected"]["name"], c["query"]
+            self.assertEqual(len(q), len(name))
+            (i,) = [i for i in range(len(q)) if q[i] != name[i]]
+            self.assertIn(q[i].lower(), testset.KEY_NEIGHBOURS[name[i].lower()])
+        for c in self.cases("typo_wrong"):
+            name, q = c["expected"]["name"], c["query"]
+            self.assertEqual(len(q), len(name))
+            self.assertEqual(sum(1 for a, b in zip(q, name) if a != b), 1)
+
+    def test_accents_sz_and_case(self) -> None:
+        for c in self.cases("accent_drop"):
+            name, q = c["expected"]["name"], c["query"]
+            self.assertNotEqual(q, name)
+            self.assertEqual(q, testset.strip_accents(name))
+            self.assertTrue(q.isascii() or any(ord(ch) > 127 for ch in q))
+        for c in self.cases("sz_to_ss"):
+            self.assertNotIn("ß", c["query"])
+            self.assertEqual(c["query"], c["expected"]["name"].replace("ß", "ss"))
+        for c in self.cases("ss_to_sz"):
+            self.assertIn("ß", c["query"])
+            self.assertEqual(c["query"].replace("ß", "ss"), c["expected"]["name"])
+        for c in self.cases("case"):
+            name, q = c["expected"]["name"], c["query"]
+            self.assertNotEqual(q, name)
+            self.assertEqual(q.lower(), name.lower())
+
+    def test_abbreviations_come_from_the_table(self) -> None:
+        shorts = {s.lower() for _, options in testset.ABBREVIATIONS for s in options}
+        for c in self.cases("abbrev"):
+            name, q = c["expected"]["name"], c["query"]
+            self.assertNotEqual(q, name)
+            self.assertLess(len(q), len(name))
+            self.assertTrue(
+                any(s in q.lower() for s in shorts), f"{q!r} holds no abbreviation"
+            )
+        self.assertIn(testset.abbreviate("Hauptstraße", testset.random.Random(0)), ("Hauptstr.", "Hauptstr"))
+        self.assertEqual(testset.abbreviate("Rua da Carreira", testset.random.Random(0)), "R. da Carreira")
+        self.assertEqual(testset.abbreviation_sites("Via Roma"), [(0, 3, "via")])
+        self.assertEqual(testset.abbreviation_sites("Viale Roma"), [(0, 5, "viale")])
+
+    def test_compounds(self) -> None:
+        for c in self.cases("compound_split"):
+            name, q = c["expected"]["name"], c["query"]
+            self.assertEqual(len(q.split()), len(name.split()) + 1)
+            self.assertEqual(q.replace(" ", ""), name.replace(" ", ""))
+        for c in self.cases("compound_join"):
+            name, q = c["expected"]["name"], c["query"]
+            self.assertEqual(len(q.split()), len(name.split()) - 1)
+            self.assertEqual(q.replace(" ", "").lower(), name.replace(" ", "").lower())
+        self.assertEqual(testset.split_point("Bahnhofstraße"), len("Bahnhof"))
+        self.assertEqual(testset.split_point("Lockwood"), len("Lock"))
+        self.assertIsNone(testset.split_point("aaaaaaaaaa"))
+
+    def test_partials(self) -> None:
+        for c in self.cases("partial_first"):
+            name, q = c["expected"]["name"], c["query"]
+            self.assertEqual(q, name.split()[0])
+            self.assertNotIn(q.lower(), testset.GENERIC_WORDS)
+        for c in self.cases("partial_last"):
+            name, q = c["expected"]["name"], c["query"]
+            self.assertEqual(q, name.split()[-1])
+            self.assertNotIn(q.lower(), testset.GENERIC_WORDS)
+        for c in self.cases("partial_prefix"):
+            name, q = c["expected"]["name"], c["query"]
+            self.assertTrue(name.startswith(q))
+            self.assertTrue(4 <= len(q) < len(name))
+            self.assertFalse(q.endswith(" "))
+
+    def test_addresses_use_a_real_anchor(self) -> None:
+        import re
+
+        patterns = {
+            "address_after": r"^(.+) (\d+)$",
+            "address_before": r"^(\d+) (.+)$",
+            "address_suffix": r"^(.+) (\d+)[abc]$",
+            "address_range": r"^(.+) (\d+)-\d+$",
+            "address_abbrev": r"^(.+) (\d+)$",
+        }
+        shorts = {s.lower() for _, options in testset.ABBREVIATIONS for s in options}
+        for kind, pattern in patterns.items():
+            for c in self.cases(kind):
+                e = c["expected"]
+                self.assertEqual(e["table"], "streets")
+                m = re.match(pattern, c["query"])
+                self.assertIsNotNone(m, f"{kind}: {c['query']!r}")
+                if kind == "address_before":
+                    street, number = m.group(2), int(m.group(1))
+                else:
+                    street, number = m.group(1), int(m.group(2))
+                if kind == "address_abbrev":
+                    self.assertNotEqual(street, e["name"])
+                    self.assertTrue(any(s in street.lower() for s in shorts))
+                else:
+                    self.assertEqual(street, e["name"])
+                anchor = self.anchors[e["id"]].get(number)
+                self.assertIsNotNone(anchor, f"{number} is not an anchor of {e['name']}")
+                self.assertAlmostEqual(anchor[0] / 1e7, e["lat"], places=6)
+                self.assertAlmostEqual(anchor[1] / 1e7, e["lon"], places=6)
+        for c in self.cases("address_place"):
+            e = c["expected"]
+            self.assertIsNotNone(e["place"])
+            self.assertIn(e["name"], c["query"])
+            self.assertIn(e["place"], c["query"])
+            self.assertTrue(re.search(r"\d+", c["query"]))
+
+    def test_aliases_point_at_their_row(self) -> None:
+        for c in self.cases("alias"):
+            e = c["expected"]
+            self.assertIn((c["query"], e["id"]), self.aliases)
+            self.assertNotEqual(c["query"], e["name"])
+
+    # ------------------------------------------------------- the helpers ---
+
+    def test_helpers(self) -> None:
+        rng = testset.random.Random(3)
+        self.assertEqual(testset.edit_distance("ab", "ba"), 1)
+        self.assertEqual(testset.edit_distance("Vaduz", "Vadus"), 1)
+        self.assertEqual(testset.edit_distance("Vaduz", "Vaduz"), 0)
+        self.assertEqual(testset.strip_accents("São João Ødegård Łódź"), "Sao Joao Odegard Lodz")
+        swapped = testset.swap_adjacent("Schaan", rng)
+        self.assertEqual(swapped[0], "S")
+        self.assertEqual(sorted(swapped), sorted("Schaan"))
+        self.assertEqual(testset.drop_letter("Vaduz", rng)[0], "V")
+        self.assertEqual(len(testset.double_letter("Vaduz", rng)), 6)
+        self.assertEqual(testset.to_ss("Straße", rng), "Strasse")
+        self.assertEqual(testset.to_sz("Strasse", rng), "Straße")
+        self.assertEqual(testset.join_compound("Vorder Prufatscheng", rng), "Vorderprufatscheng")
+        self.assertEqual(testset.first_word("Äussere Wiesen", rng), "Äussere")
+        self.assertIsNone(testset.partial_word("Rua da Carreira", 0))
+        self.assertEqual(testset.partial_word("Rua da Carreira", -1), "Carreira")
+        self.assertTrue(testset.words_of("  a  b ") == ["a", "b"])
 
 
 if __name__ == "__main__":

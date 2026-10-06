@@ -17,8 +17,10 @@ at `<appSupport>/brouter/gazetteer/<TILE>.gaz`, read-only.
 | `query.py` | runs the app's two queries from the command line |
 | `check.py` | validates one `.gaz` and prints a one-line summary |
 | `manifest.py` | adds the `gazetteer` object to a mirror's `manifest.json` |
+| `testset.py` | samples a `.gaz` into mistyped query/expected pairs for the search-quality scorer |
 | `test_gazetteer.py` | the tests, run against a Liechtenstein build |
 | `fixtures/` | two committed `.gaz` files and their hashes |
+| `testset/` | the search-quality test set: generated, hand-written and adopted cases |
 
 ## What a file holds
 
@@ -389,7 +391,7 @@ GAZ_EXTRACT=/path/to/liechtenstein.osm.pbf \
   python -m unittest tools/gazetteer/test_gazetteer.py
 ```
 
-75 tests, about five seconds. `.github/workflows/app.yml`'s `gazetteer` job
+91 tests, about five seconds (the `TestsetTest` ones run off the committed fixture and need no extract). `.github/workflows/app.yml`'s `gazetteer` job
 runs exactly that on every push — it fetches the extract from Geofabrik as
 `liechtenstein.osm.pbf` (the name ends up in `meta.source`, which the tests
 assert on) — then `check.py` and `sha256sum -c fixtures.sha256` over the
@@ -453,6 +455,49 @@ still the whole size question: without them the densest tile measured here is 1.
 119 MB `.rd5`, with them 11.4 MB. The New York extract covers less than half of
 `W75_N40`; a complete build of that tile from `us-northeast` was ~78 MB under
 the old schema and lands near 40 MB under this one, all of it streets.
+
+## Search quality
+
+How well the app's search finds what was typed is measured, not guessed:
+`testset/` holds the queries and `app/test/search_quality/` scores them
+against real tiles, per tile and per kind of mistake. A change to the query
+building, the spelling pass, the ranking or the file format is judged by the
+difference it makes to that table.
+
+`testset/generated/<TILE>.json` is `testset.py`'s output for eleven tiles:
+real rows sampled from the file and corrupted one way each — a swapped,
+missing, doubled, neighbouring-key or wrong letter, dropped accents, ß↔ss,
+case, an abbreviation (`Straße`→`Str.`, `Street`→`St`, `Rua`→`R.`, …, a table
+applied only where the word occurs), a compound split or two words joined, the
+first or last word only, a prefix, an address with the number before or after
+the street, with a letter, as a range, with the place name or with the street
+abbreviated, an alias, and the untouched name as the control. Each case is
+tagged with its kind and carries `near`, the row's position moved a few
+kilometres, so distance ranking is scored too. Letter-based and seeded: the
+same file and seed give the same file back.
+
+```sh
+./testset.py fixtures/E5_N45.gaz ~/.cache/velorki-tiles/gaz/W75_N40.gaz --out testset/generated
+```
+
+`testset/handwritten.json` is one or two addresses and landmarks per country
+and address format (12/3, 12 bis, 2º, 175-II, 92-10, directionals, Cyrillic,
+landmark typos); `testset/public.json` the few cases adopted from other
+geocoders' suites, with `testset/SOURCES.md` saying what and under which
+licence. Both give the expected row as name and position; the scorer matches
+by folded name within 300 m (3 km for a street, one row per place it crosses),
+never by id, so they survive a rebuilt tile.
+
+```sh
+cd app && flutter test test/search_quality --dart-define=VELORKI_GAZ_DIR=$HOME/.cache/velorki-tiles/gaz
+```
+
+Skipped without `VELORKI_GAZ_DIR`. Every `<TILE>.gaz` in the directory is
+scored alone over its own cases; the table (`SEARCHQ |` lines: top 1, top 3,
+top 10 and mean rank per kind) goes to stdout and the full result with every
+case's rank to `app/build/search_quality/<TILE>.json`. A low score never fails
+the test. The tiles come off the mirror (`latest.json` → shard `manifest.json`
+→ `<TILE>.gaz`); `W20_N30` and `E5_N45` are the fixtures.
 
 ## What is missing versus Photon
 
