@@ -344,6 +344,11 @@ void _report(String tile, int bytes, List<_Outcome> outcomes) {
     elapsed += o.took;
   }
 
+  final times = <int>[for (final o in outcomes) o.took.inMicroseconds]..sort();
+  String at(double share) => times.isEmpty
+      ? '-'
+      : (times[((times.length - 1) * share).round()] / 1000).toStringAsFixed(1);
+
   String pct(int part, int whole) =>
       whole == 0 ? '   -' : '${(100 * part / whole).round()}%'.padLeft(4);
   String row(String label, _Score s) =>
@@ -353,7 +358,8 @@ void _report(String tile, int bytes, List<_Outcome> outcomes) {
 
   final lines = <String>[
     'SEARCHQ | $tile | ${(bytes / 1e6).toStringAsFixed(1)} MB, '
-        '${outcomes.length} cases in ${elapsed.inMilliseconds} ms',
+        '${outcomes.length} cases in ${elapsed.inMilliseconds} ms '
+        '(median ${at(0.5)} ms, p90 ${at(0.9)} ms, max ${at(1)} ms)',
     'SEARCHQ | tile    | kind             |    n | top1 | top3 | top10 | rank',
     for (final kind in byKind.keys.toList()..sort()) row(kind, byKind[kind]!),
     for (final group in byGroup.keys.toList()..sort())

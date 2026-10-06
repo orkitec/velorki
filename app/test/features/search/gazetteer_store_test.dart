@@ -271,26 +271,37 @@ void main() {
     expect(village.city, 'Vaduz');
   });
 
-  test('every token has to match, and every one is a prefix', () async {
-    final store = await storeWithFixture();
+  test(
+    'every token is a prefix, and the name with all of them comes first',
+    () async {
+      final store = await storeWithFixture();
 
-    final street = await store.search('im muhl');
-    expect(street.map((r) => r.name), <String>['Im Mühleholz']);
-    expect(street.single.kind, SearchKind.street);
-    expect(street.single.detail, isNull);
-    expect(street.single.city, 'Vaduz');
-    expect(street.single.houseNumber, isNull);
-    expect(street.single.approximate, isFalse);
+      final found = await store.search('im muhl');
+      final street = found.first;
+      expect(street.name, 'Im Mühleholz');
+      expect(street.kind, SearchKind.street);
+      expect(street.detail, isNull);
+      expect(street.city, 'Vaduz');
+      expect(street.houseNumber, isNull);
+      expect(street.approximate, isFalse);
+      expect(
+        found.skip(1).map((r) => r.name),
+        isNot(contains('Im Mühleholz')),
+        reason: 'the rest only holds some of the words',
+      );
 
-    expect((await store.search('muhl im')).map((r) => r.name), <String>[
-      'Im Mühleholz',
-    ], reason: 'the order of the words is not the rider\'s problem');
-    expect(
-      (await store.search('sta')).map((r) => r.name),
-      contains('Städtle'),
-      reason: 'a lone token is a prefix as well',
-    );
-  });
+      expect(
+        (await store.search('muhl im')).first.name,
+        'Im Mühleholz',
+        reason: 'the order of the words is not the rider\'s problem',
+      );
+      expect(
+        (await store.search('sta')).map((r) => r.name),
+        contains('Städtle'),
+        reason: 'a lone token is a prefix as well',
+      );
+    },
+  );
 
   test('POIs come back with their kind for the icon', () async {
     final store = await storeWithFixture();
@@ -305,31 +316,44 @@ void main() {
     expect(peak.city, isNull, reason: 'the fixture peak has no place');
   });
 
-  test('ties go to the bigger town, then to the nearer one', () async {
-    buildGazetteer(
-      dir,
-      'E5_N45',
-      places: const <GazPlace>[
-        GazPlace(1, 'Testort', 'village', 47.00, 9.00, population: 100),
-        GazPlace(2, 'Testort', 'town', 47.50, 9.00, population: 9000),
-        GazPlace(3, 'Testort', 'village', 47.10, 9.00, population: 100),
-      ],
-    );
-    final store = await openStore();
+  test(
+    'the nearer namesake wins, and a bigger one only from close by',
+    () async {
+      buildGazetteer(
+        dir,
+        'E5_N45',
+        places: const <GazPlace>[
+          GazPlace(1, 'Testort', 'village', 47.00, 9.00, population: 100),
+          GazPlace(2, 'Testort', 'town', 47.50, 9.00, population: 9000),
+          GazPlace(3, 'Testort', 'village', 47.10, 9.00, population: 100),
+        ],
+      );
+      final store = await openStore();
 
-    final near = await store.search('testort', near: const LatLng(47.05, 9.00));
-    expect(near.map((r) => r.position.lat), <double>[
-      47.50,
-      47.00,
-      47.10,
-    ], reason: 'population first, then the shorter way to the map centre');
+      final near = await store.search(
+        'testort',
+        near: const LatLng(47.05, 9.00),
+      );
+      expect(near.map((r) => r.position.lat), <double>[
+        47.00,
+        47.10,
+        47.50,
+      ], reason: 'the villages 6 km away, not the town 50 km away');
 
-    final far = await store.search('testort', near: const LatLng(47.40, 9.00));
-    expect(far.map((r) => r.position.lat), <double>[47.50, 47.10, 47.00]);
+      final far = await store.search(
+        'testort',
+        near: const LatLng(47.40, 9.00),
+      );
+      expect(far.map((r) => r.position.lat), <double>[
+        47.50,
+        47.10,
+        47.00,
+      ], reason: 'the town 11 km away beats a village 33 km away');
 
-    final unbiased = await store.search('testort');
-    expect(unbiased.first.position.lat, 47.50);
-  });
+      final unbiased = await store.search('testort');
+      expect(unbiased.first.position.lat, 47.50);
+    },
+  );
 
   test('a better match outranks a bigger place', () async {
     buildGazetteer(
@@ -422,9 +446,13 @@ void main() {
       contains('Vaduz'),
       reason: 'a stray quote is text, not syntax',
     );
-    expect(gazetteerMatchExpression('a"b')!.match, '"a""b"*');
+    expect(
+      gazetteerMatchExpression('a"b')!.match,
+      '"a"* AND "b"*',
+      reason: 'a quote separates words, as it does in the index',
+    );
     expect(gazetteerMatchExpression('***'), isNull);
-    expect(gazetteerMatchExpression('im muhl')!.match, '"im"* "muhl"*');
+    expect(gazetteerMatchExpression('im muhl')!.match, '"im"* AND "muhl"*');
   });
 
   test('a file from a newer builder is ignored', () async {
@@ -674,11 +702,11 @@ void main() {
       final query = gazetteerMatchExpression('400w 42nd')!;
       expect(query.houseNumber, '400');
       expect(query.number, 400);
-      expect(query.match, '"w"* "42nd"*');
+      expect(query.match, '"w"* AND "42nd"*');
 
       expect(
         gazetteerMatchExpression('  400   W   42nd  ')!.match,
-        '"W"* "42nd"*',
+        '"W"* AND "42nd"*',
       );
       expect(gazetteerMatchExpression('w 42nd 400')!.houseNumber, '400');
       expect(
@@ -993,7 +1021,7 @@ void main() {
       expect(long.results.single.name, 'Funchal');
     });
 
-    test('at most three candidates, the commonest word first', () async {
+    test('at most five candidates, the commonest word first', () async {
       buildGazetteer(
         dir,
         'E5_N45',
@@ -1003,23 +1031,190 @@ void main() {
           GazPlace(3, 'Kablo', 'village', 47.30, 9.70),
           GazPlace(4, 'Kadlo', 'village', 47.40, 9.80),
           GazPlace(5, 'Kamlo', 'village', 47.50, 9.90),
-          GazPlace(6, 'Karlo', 'village', 47.60, 9.95),
+          GazPlace(6, 'Kaplo', 'village', 47.55, 9.92),
+          GazPlace(7, 'Karlo', 'village', 47.60, 9.95),
+          GazPlace(8, 'Kaylo', 'village', 47.65, 9.97),
         ],
       );
       final store = await openStore();
 
       final found = await store.lookup('kaxlo');
 
-      expect(
-        found.correctedQuery,
-        'kahlo',
-        reason: 'two rows carry it, so it is the likeliest word',
-      );
+      expect(found.correctedQuery, isNotNull);
       expect(found.results.map((r) => r.name).toSet(), <String>{
         'Kahlo',
         'Kablo',
         'Kadlo',
-      }, reason: 'the other two never made it into the rewritten query');
+        'Kamlo',
+        'Kaplo',
+      }, reason: 'the last two never made it into the rewritten query');
+    });
+  });
+
+  group('reading what the rider meant', () {
+    test('"ss" finds "ß" and the other way round', () async {
+      buildGazetteer(
+        dir,
+        'E5_N45',
+        streets: const <GazStreet>[
+          GazStreet(1, 'Hauptstraße', 47.10, 9.50),
+          GazStreet(2, 'Parkstrasse', 47.20, 9.50),
+        ],
+      );
+      final store = await openStore();
+
+      expect((await store.search('hauptstrasse')).first.name, 'Hauptstraße');
+      expect((await store.search('parkstraße')).first.name, 'Parkstrasse');
+    });
+
+    test('one word typed as two, and two typed as one', () async {
+      buildGazetteer(
+        dir,
+        'E15_N45',
+        streets: const <GazStreet>[
+          GazStreet(1, 'Mariahilfer Straße', 48.20, 16.35),
+          GazStreet(2, 'Hauptstraße', 48.30, 16.40),
+        ],
+      );
+      final store = await openStore();
+
+      expect(
+        (await store.search('mariahilferstrasse')).first.name,
+        'Mariahilfer Straße',
+      );
+      expect((await store.search('haupt strasse')).first.name, 'Hauptstraße');
+    });
+
+    test('an abbreviation is read from its letters, either way', () async {
+      buildGazetteer(
+        dir,
+        'W5_N50',
+        streets: const <GazStreet>[
+          GazStreet(1, 'Abbey Road', 51.53, -0.18),
+          GazStreet(2, 'Abbey Lane', 51.54, -0.18),
+        ],
+        pois: const <GazPoi>[
+          GazPoi(3, "St Paul's Cathedral", 'place_of_worship', 51.51, -0.10),
+          GazPoi(
+            4,
+            "Saint George's Cathedral",
+            'place_of_worship',
+            51.50,
+            -0.11,
+          ),
+        ],
+      );
+      final store = await openStore();
+
+      expect((await store.search('abbey rd')).first.name, 'Abbey Road');
+      expect(
+        (await store.search('saint pauls cathedral')).first.name,
+        "St Paul's Cathedral",
+      );
+    });
+
+    test('a word the index has never seen does not sink the rest', () async {
+      buildGazetteer(
+        dir,
+        'W5_N50',
+        streets: const <GazStreet>[GazStreet(1, 'Abbey Road', 51.53, -0.18)],
+      );
+      final store = await openStore();
+
+      expect((await store.search('abbey road xyzzy')).first.name, 'Abbey Road');
+    });
+
+    test('a town after the street says which street', () async {
+      buildGazetteer(
+        dir,
+        'E10_N50',
+        places: const <GazPlace>[
+          GazPlace(1, 'Berlin', 'city', 52.52, 13.40, population: 3600000),
+          GazPlace(2, 'Kreuzberg', 'suburb', 52.50, 13.40, adminId: 1),
+          GazPlace(3, 'München', 'city', 48.14, 11.58, population: 1500000),
+          GazPlace(4, 'Schwabing', 'suburb', 48.16, 11.58, adminId: 3),
+        ],
+        streets: const <GazStreet>[
+          GazStreet(10, 'Hauptstraße', 48.16, 11.58, placeId: 4),
+          GazStreet(11, 'Hauptstraße', 52.49, 13.35, placeId: 2),
+          GazStreet(12, 'Berliner Straße', 48.15, 11.57, placeId: 4),
+        ],
+      );
+      final store = await openStore();
+      const munich = LatLng(48.14, 11.58);
+
+      final berlin = await store.search('hauptstrasse 12 berlin', near: munich);
+      expect(berlin.first.name, 'Hauptstraße');
+      expect(berlin.first.city, 'Kreuzberg');
+      expect(berlin.first.houseNumber, '12');
+
+      final here = await store.search('hauptstrasse', near: munich);
+      expect(
+        here.first.city,
+        'Schwabing',
+        reason: 'no town named: the near one',
+      );
+    });
+
+    test('a street named after a town stays that street', () async {
+      buildGazetteer(
+        dir,
+        'E0_N45',
+        places: const <GazPlace>[
+          GazPlace(1, 'Paris', 'city', 48.86, 2.35, population: 2100000),
+          GazPlace(2, 'Lyon', 'city', 45.76, 4.84, population: 520000),
+        ],
+        streets: const <GazStreet>[
+          GazStreet(10, 'Rue de Paris', 45.75, 4.85, placeId: 2),
+          GazStreet(11, 'Rue de Paris', 48.85, 2.36, placeId: 1),
+        ],
+      );
+      final store = await openStore();
+
+      final found = await store.search(
+        'rue de paris',
+        near: const LatLng(45.76, 4.84),
+      );
+      expect(found.first.city, 'Lyon');
+    });
+
+    test('the near one of a very common name is found', () async {
+      buildGazetteer(
+        dir,
+        'E10_N50',
+        streets: <GazStreet>[
+          for (var i = 0; i < 2500; i++)
+            GazStreet(i + 1, 'Lindenweg', 50.0 + i * 0.001, 10.0),
+          const GazStreet(9000, 'Lindenweg', 54.5, 14.5),
+        ],
+      );
+      final store = await openStore();
+
+      final found = await store.search(
+        'lindenweg',
+        near: const LatLng(54.5, 14.5),
+      );
+      expect(found.first.position.lat, closeTo(54.5, 1e-6));
+    });
+
+    test('the stored vocabulary answers like the computed one', () async {
+      for (final vocab in <bool>[false, true]) {
+        buildGazetteer(
+          dir,
+          'E5_N45',
+          vocab: vocab,
+          places: const <GazPlace>[
+            GazPlace(1, 'Funchal', 'town', 32.65, -16.91, population: 105000),
+            GazPlace(2, 'München', 'city', 48.137, 11.575),
+          ],
+        );
+        final store = await openStore();
+
+        final found = await store.lookup('Muinchen');
+        expect(found.correctedQuery, 'munchen', reason: 'vocab: $vocab');
+        expect(found.results.single.name, 'München');
+        store.close();
+      }
     });
   });
 

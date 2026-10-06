@@ -76,6 +76,19 @@ void main() {
     await store.refresh();
     expect(store.hasTiles, isTrue, reason: 'the gazetteer has to be readable');
 
+    // The device's own SQLite runs the second look too: the place with two
+    // letters swapped is still found, through the index's vocabulary.
+    final name = region.localSearchPlace;
+    final swapped =
+        '${name.substring(0, 4)}${name[5]}${name[4]}'
+        '${name.substring(6)}';
+    final mistyped = await store.lookup(swapped, near: region.start);
+    expect(
+      mistyped.results.map((r) => r.name),
+      contains(name),
+      reason: '"$swapped" on the device',
+    );
+
     // Type into the real field; the debounce and the store do the rest.
     final field = find.descendant(
       of: find.byType(SearchField),

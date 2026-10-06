@@ -415,8 +415,14 @@ SQLite file per tile (`<TILE>.gaz`, places, streets and named POIs in one FTS5
 index), fetched from the mirror next to the `.rd5` and stored under
 `<appSupport>/brouter/gazetteer/`. `GazetteerStore`
 (`app/lib/features/search/data/gazetteer_store.dart`) opens every file
-read-only and answers the search field first — instant and without a signal —
-ranked by bm25, then population, then distance to the map centre. A street
+read-only and answers the search field first — instant and without a signal.
+Every matching row is scored in Dart (`domain/search_text.dart`): how well
+each typed word stands for a word of the name (equal, prefix, abbreviation,
+typo, compound), how much of the name was asked for, the way to the map
+centre and the size of a place; a town typed after the street ("hauptstrasse
+berlin") is matched against each row's place. A query that answers nothing
+well gets a second look with the index's own words as alternatives and words
+left out; `tools/gazetteer/README.md` has the contract. A street
 whose house numbers the file anchors answers a typed number at the number's
 own position, interpolated between the two nearest anchors when it is not one
 of them and marked "≈" then; alternative names (`name:en`, `alt_name`, …) are
@@ -427,10 +433,9 @@ in a box grown from 5 to 50 km around the map centre and shown with their
 distance; those rows may be unnamed, and are then titled by their kind.
 Settings → Search orders and switches off eight groups (places, streets,
 landmarks, cycling stops, overnight, nature, transport, services), which
-filters the local results and breaks bm25 ties before name length does. A query
-that matches nothing is run once more against the index vocabulary
-(`fts5vocab` in the connection's `temp` schema, Damerau-Levenshtein), and the
-list says what it searched for instead. What answers depends on the area, not
+filters the local results and, once reordered, lifts one group above another.
+When the best row only matched through a guessed word, the list says what it
+searched for instead. What answers depends on the area, not
 on the device: only a map centre inside a tile whose gazetteer is open
 (`GazetteerStore.covers`, BRouter's 5° × 5° tile naming) is searched locally,
 with Photon the last row of the list ("Search online for …") and "Show offline

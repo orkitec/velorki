@@ -216,29 +216,54 @@ Reverse lookup needs no extra table: the positional indexes on `places` and
 
 ## Query contract
 
-What the app runs, and what `query.py` runs:
+What the app runs (`GazetteerStore.lookup`); `query.py` runs only the plain
+first look, for poking at a file.
 
-1. Tokenise on whitespace, drop empties, quote each token (`"` doubled inside),
-   append `*` to the **last** token only: `west 125` → `"west" "125"*`.
-2. `SELECT rowid, bm25(search) AS rank FROM search WHERE search MATCH ? ORDER BY rank LIMIT 60`.
-3. Hydrate each rowid by primary key from `places`, `streets`, `pois` — one
-   prepared statement each, first hit wins. A rowid none of them holds is an
-   `aliases.id`: resolve it through `ref_id` and show the row's **primary**
-   name. Two hits resolving to the same row are one result, at the better rank.
-4. Rank: bm25 ascending, ties by the shorter name (the index keeps no column
-   sizes, so bm25 cannot tell `Monte` from `Monte Tea House`), then population
-   descending, then distance to the map centre when there is one. Return at
-   most 10.
+1. **Read the query** (`search_text.dart`): the words the tokenizer would cut
+   (`C/ Mayor` → `c mayor`), a house number taken out wherever it stands
+   (`12`, `12a`, `12 bis`, `12/3`, `40-42`, `92-10`; an ordinal such as `42nd`
+   or `2º` is a name), a five-digit number dropped as a postcode.
+2. **First look**: every word a quoted prefix (`"w"* AND "42nd"*`), both
+   spellings of `ß`/`ss`; a word in more than 15 000 rows (`de`, `rue`,
+   `street`) or of two letters is matched exactly, a lone letter left to the
+   scoring — prefixes that short merge thousands of term lists.
+3. **Read the rows**: up to 2 000 matches are all read in one batched query
+   per table (`id IN (SELECT value FROM json_each(?))`), up to 20 000 the 300
+   per table nearest to the map centre (ordered in SQL), beyond that the
+   first 2 000. A rowid in `aliases` stands for its `ref_id` row, shown under
+   the primary name.
+4. **Score in Dart**: per word equal, prefix, abbreviation (its letters in
+   order, either way: `rd`/`road`, `st`/`saint`), one or two edits
+   (Damerau-Levenshtein), two words written as one or one as two; weighted by
+   length, times how much of the name was asked for, plus a bonus for the very
+   same name. A word the row's place or that place's parent answers counts
+   too (`hauptstrasse berlin`). Then less for the way to the map centre (0.06
+   per doubling of the kilometres), more for a bigger place, more for a street
+   when there is a house number, and the rider's group order when they set
+   one.
+5. **Trailing place**: when the last one to three words are exactly a
+   settlement's name (or alias) and no row holds every typed word, or a comma
+   sets them apart, those words are searched around that settlement and rows
+   in it are measured from there.
+6. **Second look**, only when no row within 30 km answers well: each word
+   unknown to the index gets its alternatives from the index's own words —
+   typos (same first letter, ≤ 1 edit up to five letters, ≤ 2 above), short
+   words a long one may be stored as and long words a short one may stand
+   for, splits into a stored word and the start of another; neighbouring words
+   are tried joined. If that still answers nothing decently, words are left
+   out: each in turn up to four words, then from the end, then from the start,
+   stopping at the first that answers. The words a guessed row was read as
+   come back as the corrected query.
 
-Do not query below 3 characters; two-letter prefixes match tens of thousands of
-rows and cost 10–70 ms on a dense tile.
+The words come from `vocab` (term, row count) when the file has it, and from
+an `fts5vocab` table in the connection's `temp` schema otherwise, which gives
+the same answers but walks every word's list of rows to count it.
+
+Do not query below 3 characters.
 
 ### House numbers
 
-A digits-only token at the **start or the end** of a multi-token query is the
-house number: `400 w 42nd` and `hauptstr 12`, but not `w 42nd st` (`42nd` is not
-digits only) and not a query that is nothing but digits. It comes out of the FTS
-match and is resolved against the anchors of each street hit:
+The number is resolved against the anchors of each street hit:
 
 | | position | |
 |---|---|---|
@@ -505,10 +530,9 @@ Photon is a full geocoder; this is a search box that works on a plane.
 
 * **Exact house numbers.** Only anchors are stored, so a number that is not one
   of them is interpolated along the street and marked approximate.
-* **Fuzzy matching.** FTS5 does prefix matching and nothing else. Diacritics
-  fold in the tokenizer, so "Munchen" finds "München", but a real typo is only
-  caught by the app's own second pass over the index vocabulary (`fts5vocab`,
-  Damerau-Levenshtein); the file offers nothing for it.
+* **Fuzzy matching beyond the letters.** Typos, abbreviations and compounds
+  are read from the index's own words (see the query contract); sounds-alike
+  spellings and transliteration (Latin letters for a Cyrillic name) are not.
 * **Admin hierarchy.** `admin_id` and `place_id` are geometry, not boundaries,
   and stop at the tile edge. No country, state or district, so Springfield,
   Massachusetts cannot be told from Springfield, Illinois.

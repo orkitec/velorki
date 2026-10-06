@@ -130,12 +130,14 @@ class GazHouseNumber {
 /// [schemaVersion] is written into `meta` as given, so a test can produce a
 /// file from a future builder that this app must refuse. [legacy] leaves out
 /// `aliases` and `house_numbers` altogether, the way the first builder wrote
-/// its files; the app has to answer from those too.
+/// its files; the app has to answer from those too. [vocab] adds the
+/// `vocab` table a builder from 2026-10 on writes.
 File buildGazetteer(
   Directory dir,
   String tile, {
   String schemaVersion = '1',
   bool legacy = false,
+  bool vocab = false,
   List<GazPlace> places = const <GazPlace>[],
   List<GazStreet> streets = const <GazStreet>[],
   List<GazPoi> pois = const <GazPoi>[],
@@ -291,6 +293,17 @@ CREATE TABLE house_numbers (
       );
     }
     index.close();
+    if (vocab) {
+      db
+        ..execute(
+          "CREATE VIRTUAL TABLE temp.v USING fts5vocab(main, 'search', 'row');",
+        )
+        ..execute(
+          'CREATE TABLE vocab (term TEXT PRIMARY KEY, docs INTEGER NOT NULL) '
+          'WITHOUT ROWID;',
+        )
+        ..execute('INSERT INTO vocab SELECT term, doc FROM temp.v;');
+    }
     db.execute('VACUUM;');
   } finally {
     db.close();
