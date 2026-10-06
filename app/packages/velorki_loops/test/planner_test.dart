@@ -309,6 +309,41 @@ void main() {
     });
   });
 
+  group('a strategy that throws', () {
+    test('is skipped like a query that does not route, and the stream '
+        'still closes', () async {
+      final backend = FakeRoutingBackend();
+      final planner = LoopPlanner(
+        backend: backend,
+        strategies: [
+          const _ThrowingStrategy(proposeFirst: 2),
+          const RoundtripStrategy(directions: 2),
+        ],
+      );
+
+      final found = await planner
+          .planStream(request)
+          .toList()
+          .timeout(const Duration(seconds: 5));
+
+      // What it proposed before it failed is still tried, and so is the
+      // strategy after it.
+      expect(backend.seen, hasLength(4));
+      expect(found.map((c) => c.strategy).toSet(), {'throwing', 'roundtrip'});
+    });
+
+    test('with nothing else to try ends the search empty', () async {
+      final planner = LoopPlanner(
+        backend: FakeRoutingBackend(),
+        strategies: const [_ThrowingStrategy()],
+      );
+      expect(
+        await planner.plan(request).timeout(const Duration(seconds: 5)),
+        isEmpty,
+      );
+    });
+  });
+
   group('candidate budget', () {
     test('maxCandidates caps the number of routing calls', () async {
       final backend = FakeRoutingBackend();
@@ -466,5 +501,21 @@ class _TokenRecorder implements RoutingBackend {
   Future<RouteResult> route(RouteQuery q, {CancelToken? cancel}) {
     if (cancel != null) tokens.add(cancel);
     return _inner.route(q, cancel: cancel);
+  }
+}
+
+/// Proposes [proposeFirst] round trips and then fails.
+class _ThrowingStrategy implements CandidateStrategy {
+  const _ThrowingStrategy({this.proposeFirst = 0});
+
+  final int proposeFirst;
+
+  @override
+  String get name => 'throwing';
+
+  @override
+  Stream<RouteQuery> queries(LoopRequest request) async* {
+    yield* const RoundtripStrategy().queries(request).take(proposeFirst);
+    throw StateError('this strategy cannot propose');
   }
 }

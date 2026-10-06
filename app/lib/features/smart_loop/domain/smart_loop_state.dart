@@ -18,6 +18,17 @@ abstract class SmartLoopState with _$SmartLoopState {
     /// Which of [candidates] is on the map; "Another" moves it on.
     @Default(0) int index,
 
+    /// Whether the rider chose the loop at [index] ("Another", "Done") while
+    /// the search was still running. Loops arriving after that are ranked
+    /// round it, and [index] follows it; until then it stays on the best so
+    /// far.
+    @Default(false) bool pinned,
+
+    /// Whether the rider took the loop on show with "Done" while the search
+    /// was still running: the search goes on with the sheet closed, and
+    /// nothing it finds later replaces that loop in the planner.
+    @Default(false) bool handedOver,
+
     /// Whether a search is in flight.
     @Default(false) bool running,
 

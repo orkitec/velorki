@@ -164,6 +164,20 @@ class LoopPlanner {
     LoopRequest request,
     StreamController<LoopCandidate> out,
   ) async {
+    try {
+      await _search(request, out);
+    } catch (_) {
+      // Whatever went wrong, the caller is waiting for the stream to end:
+      // it gets what was found so far rather than a search that never ends.
+    } finally {
+      if (!out.isClosed) await out.close();
+    }
+  }
+
+  Future<void> _search(
+    LoopRequest request,
+    StreamController<LoopCandidate> out,
+  ) async {
     final scorer = this.scorer ?? RouteScorer(request.prefs);
     final pending = await _collectQueries(request);
     if (pending.isEmpty) {
@@ -188,7 +202,12 @@ class LoopPlanner {
       // Everything gets one rotation; only a strategy with nothing to show
       // keeps going, since by then its own queries have all been answered.
       if (entry.attempt >= 1 && (accepted[entry.strategy] ?? 0) > 0) return;
-      final again = retryQuery(request, entry.query, result: result);
+      final RouteQuery? again;
+      try {
+        again = retryQuery(request, entry.query, result: result);
+      } catch (_) {
+        return;
+      }
       if (again == null) return;
       pending.add(
         _PendingQuery(again, entry.strategy, attempt: entry.attempt + 1),
@@ -199,8 +218,9 @@ class LoopPlanner {
       while (!cancel.isCancelled) {
         final i = next++;
         if (i >= pending.length) return;
-        final entry = pending[i];
+        late final _PendingQuery entry;
         try {
+          entry = pending[i];
           final result = await backend.route(entry.query, cancel: cancel);
           if (out.isClosed) return;
           final quality = LoopQuality.of(
@@ -253,7 +273,11 @@ class LoopPlanner {
     }
 
     final workers = math.max(1, math.min(concurrency, pending.length));
-    await Future.wait(List.generate(workers, (_) => worker()));
+    try {
+      await Future.wait(List.generate(workers, (_) => worker()));
+    } finally {
+      deadline.cancel();
+    }
 
     // Every retry is spent and nothing came back at the distance that was
     // asked for, so the held loops are all there is. Show them, best first:
@@ -275,9 +299,15 @@ class LoopPlanner {
     final out = <_PendingQuery>[];
     for (final strategy in strategies) {
       if (out.length >= maxCandidates) break;
-      await for (final query in strategy.queries(request)) {
-        out.add(_PendingQuery(query, strategy.name));
-        if (out.length >= maxCandidates) break;
+      try {
+        await for (final query in strategy.queries(request)) {
+          out.add(_PendingQuery(query, strategy.name));
+          if (out.length >= maxCandidates) break;
+        }
+      } catch (_) {
+        // A strategy that cannot propose is a strategy with no candidates,
+        // like a query that does not route; what it proposed before it
+        // failed is still tried, and so are the other strategies.
       }
     }
     return out;

@@ -5,7 +5,9 @@
 /// deadline) from Midtown Manhattan at a few slider distances and prints
 /// every routing request, what came of it and the total, so the search's
 /// safety net (`smartLoopTimeout`) can be sized against a slow phone, which
-/// runs the engine several times slower than a desktop.
+/// runs the engine several times slower than a desktop. Each distance ends
+/// on a one-line SUMMARY: time to the first loop, the whole search, the
+/// routings and the best loop's distance off the target.
 ///
 ///     VELORKI_NYC_SEGMENTS_DIR=/dir/with/W75_N40.rd5 \
 ///       flutter test test/perf/loop_search_perf_test.dart
@@ -67,7 +69,11 @@ void main() {
           topN: queries.length,
         );
         final found = <String>[];
+        Duration? first;
+        LoopCandidate? best;
         await for (final c in planner.planStream(request)) {
+          first ??= clock.elapsed;
+          if (best == null || c.score.total < best.score.total) best = c;
           found.add(
             '${_s(clock.elapsed)} candidate '
             '${(c.result.lengthM / 1000).toStringAsFixed(1)} km'
@@ -86,6 +92,11 @@ void main() {
           ..writeln(
             '  total ${_s(total)}, routing ${_s(routing)}, '
             'first candidate at ${found.isEmpty ? '-' : found.first}',
+          )
+          ..writeln(
+            '  SUMMARY ${km.round()} km: '
+            'first ${first == null ? '-' : _s(first)}, total ${_s(total)}, '
+            '${timed.log.length} routings, best ${_best(best, request)}',
           );
         // ignore: avoid_print
         print(buf);
@@ -94,6 +105,14 @@ void main() {
       timeout: const Timeout(Duration(minutes: 30)),
     );
   }
+}
+
+/// The best loop's length and how far it is off the target.
+String _best(LoopCandidate? best, LoopRequest request) {
+  if (best == null) return '-';
+  final km = best.result.lengthM / 1000;
+  final off = (best.result.lengthM - request.targetM) / request.targetM * 100;
+  return '${km.toStringAsFixed(1)} km (${off.toStringAsFixed(1)} %)';
 }
 
 String _s(Duration d) => '${(d.inMilliseconds / 1000).toStringAsFixed(1)} s';

@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
+import 'package:velorki/core/units/units.dart' show UnitSystem;
+import 'package:velorki/features/planner/presentation/route_format.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
@@ -677,6 +681,107 @@ void main() {
     });
   });
 
+  group('while the search runs', () {
+    /// Taps "Make a loop" and lets the search start, every answer held.
+    Future<_GatedBackend> start(WidgetTester tester) async {
+      final backend = _GatedBackend();
+      await _openSheet(tester, harness: PlannerHarness(backend: backend));
+      await tester.tap(
+        _inSheet(find.widgetWithText(FilledButton, l10n.loopMakeTitle)),
+      );
+      await tester.pump();
+      await tester.pump();
+      return backend;
+    }
+
+    Finder another() =>
+        _inSheet(find.widgetWithText(OutlinedButton, l10n.loopAnother));
+    Finder done() => _inSheet(find.widgetWithText(FilledButton, l10n.loopDone));
+    bool enabled(WidgetTester tester, Finder button) =>
+        tester.widget<ButtonStyleButton>(button).onPressed != null;
+
+    testWidgets('the best so far shows once there is one, with "Another" '
+        'only when there is a next one', (tester) async {
+      final backend = await start(tester);
+
+      expect(_inSheet(find.text(l10n.loopStop)), findsOneWidget);
+      expect(another(), findsNothing);
+      expect(done(), findsNothing);
+
+      backend.releaseNext();
+      await tester.pump();
+      await tester.pump();
+      final state = _container(tester).read(smartLoopControllerProvider);
+      expect(state.running, isTrue);
+      expect(state.candidates, hasLength(1));
+      expect(
+        _inSheet(
+          find.text(
+            l10n.loopResult(
+              formatDistance(l10n, UnitSystem.metric, 33000),
+              formatHeight(l10n, UnitSystem.metric, 120),
+            ),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(_inSheet(find.text(l10n.loopStop)), findsOneWidget);
+      expect(_inSheet(find.byType(LinearProgressIndicator)), findsOneWidget);
+      expect(enabled(tester, another()), isFalse);
+      expect(enabled(tester, done()), isTrue);
+
+      backend.releaseNext();
+      await tester.pump();
+      await tester.pump();
+      expect(enabled(tester, another()), isTrue);
+
+      await tester.tap(another());
+      await tester.pump();
+      final after = _container(tester).read(smartLoopControllerProvider);
+      expect(after.index, 1);
+      expect(after.running, isTrue);
+      expect(enabled(tester, another()), isFalse);
+
+      backend.open = true;
+      backend.releaseAll();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('"Done" hands the loop over and leaves the search running', (
+      tester,
+    ) async {
+      final backend = await start(tester);
+      backend.releaseNext();
+      await tester.pump();
+      await tester.pump();
+      final shown = _container(tester)
+          .read(smartLoopControllerProvider)
+          .current!;
+
+      await tester.tap(done());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SmartLoopSheet), findsNothing);
+      final container = _container(tester);
+      expect(container.read(smartLoopControllerProvider).running, isTrue);
+      expect(
+        container.read(plannerControllerProvider).result,
+        same(shown.result),
+      );
+
+      backend.open = true;
+      backend.releaseAll();
+      await tester.pumpAndSettle();
+      final state = container.read(smartLoopControllerProvider);
+      expect(state.running, isFalse);
+      expect(state.candidates.length, greaterThan(1));
+      expect(
+        container.read(plannerControllerProvider).result,
+        same(shown.result),
+      );
+    });
+  });
+
   group('imperial', () {
     testWidgets('the distance slider runs in whole miles', (tester) async {
       await _openSheet(tester, extraOverrides: [imperialUnits]);
@@ -694,4 +799,45 @@ void main() {
       expect(state.request!.targetM, closeTo(3 * 1609.344, 0.5));
     });
   });
+}
+
+/// Holds every loop answer until the test lets it through, oldest first.
+/// Each direction comes back nearer the 30 km asked for than the one before.
+class _GatedBackend extends FakeRoutingBackend {
+  final List<Completer<void>> _gates = <Completer<void>>[];
+
+  /// Whether answers go through without waiting.
+  bool open = false;
+
+  @override
+  Future<RouteResult> route(RouteQuery q, {CancelToken? cancel}) async {
+    queries.add(q);
+    if (!open) {
+      final gate = Completer<void>();
+      _gates.add(gate);
+      await Future.any<void>([gate.future, ?cancel?.whenCancelled]);
+    }
+    if (cancel != null && cancel.isCancelled) throw cancel.toException();
+    return syntheticRoute(
+      lengthM: 33000 - (q.roundTripDirectionDeg ?? 0) * 10,
+      ascentM: 120,
+    );
+  }
+
+  /// Lets the oldest held answer through.
+  void releaseNext() {
+    for (final gate in _gates) {
+      if (!gate.isCompleted) {
+        gate.complete();
+        return;
+      }
+    }
+  }
+
+  /// Lets every held answer through.
+  void releaseAll() {
+    for (final gate in _gates) {
+      if (!gate.isCompleted) gate.complete();
+    }
+  }
 }

@@ -58,7 +58,11 @@ Future<bool> showSmartLoopSheet(
       returnWhenDone: returnWhenDone,
     ),
   );
-  container.read(smartLoopControllerProvider.notifier).cancel();
+  // A loop taken with "Done" while the search ran leaves it running, to
+  // finish its ranking with the sheet closed.
+  if (!container.read(smartLoopControllerProvider).handedOver) {
+    container.read(smartLoopControllerProvider.notifier).cancel();
+  }
   return done ?? false;
 }
 
@@ -422,35 +426,26 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
             child: Text(l10n.loopStop),
           ),
         ),
-      ] else if (result != null && !stale) ...[
-        Text(
-          l10n.loopResult(
-            formatDistance(l10n, system, result.lengthM),
-            formatHeight(l10n, system, result.ascentM),
+        // The best so far, to take or pass over while the rest still route.
+        if (result != null)
+          ..._resultBody(
+            l10n,
+            theme,
+            system,
+            result,
+            canAnother: state.index + 1 < state.candidates.length,
+            running: true,
           ),
-          style: theme.textTheme.titleMedium,
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => unawaited(
-                  ref.read(smartLoopControllerProvider.notifier).another(),
-                ),
-                child: Text(l10n.loopAnother),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: FilledButton(
-                onPressed: Navigator.of(context).pop,
-                child: Text(l10n.loopDone),
-              ),
-            ),
-          ],
-        ),
-      ] else
+      ] else if (result != null && !stale)
+        ..._resultBody(
+          l10n,
+          theme,
+          system,
+          result,
+          canAnother: true,
+          running: false,
+        )
+      else
         SizedBox(
           height: primaryButtonHeight,
           child: FilledButton.icon(
@@ -468,6 +463,58 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
       if (_problem != null) _Problem(text: _problem!),
     ];
   }
+
+  /// The loop on show in two figures, with "Another" and "Done".
+  ///
+  /// While the search is [running], "Another" only walks the ranking so far
+  /// and "Done" hands the loop over and leaves the search to finish.
+  List<Widget> _resultBody(
+    AppLocalizations l10n,
+    ThemeData theme,
+    UnitSystem system,
+    RouteResult result, {
+    required bool canAnother,
+    required bool running,
+  }) => [
+    Text(
+      l10n.loopResult(
+        formatDistance(l10n, system, result.lengthM),
+        formatHeight(l10n, system, result.ascentM),
+      ),
+      style: theme.textTheme.titleMedium,
+    ),
+    const SizedBox(height: 12),
+    Row(
+      children: [
+        Expanded(
+          child: OutlinedButton(
+            onPressed: canAnother
+                ? () {
+                    if (running) _takeOver();
+                    unawaited(
+                      ref.read(smartLoopControllerProvider.notifier).another(),
+                    );
+                  }
+                : null,
+            child: Text(l10n.loopAnother),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: FilledButton(
+            onPressed: () {
+              if (running) {
+                _takeOver();
+                ref.read(smartLoopControllerProvider.notifier).adopt();
+              }
+              Navigator.of(context).pop();
+            },
+            child: Text(l10n.loopDone),
+          ),
+        ),
+      ],
+    ),
+  ];
 
   /// The slider figure. It only ever moves in whole kilometres or miles, so
   /// the decimal the route statistics carry would be a permanent ".0" here.
