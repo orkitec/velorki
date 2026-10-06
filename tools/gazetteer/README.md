@@ -17,7 +17,7 @@ at `<appSupport>/brouter/gazetteer/<TILE>.gaz`, read-only.
 | `query.py` | runs the app's two queries from the command line |
 | `check.py` | validates one `.gaz` and prints a one-line summary |
 | `street_numbers.py` | the `street_numbers` blob: thinning, encoding, decoding, the lookup |
-| `translit.py`, `translit.json` | the text the index holds for a name: lower case, Cyrillic and Greek in Latin letters; the table is shared with the app |
+| `translit.py`, `translit.json` | the text the index holds for a name: lower case, Cyrillic and Greek in Latin letters, Cyrillic spelled two ways; the table is shared with the app |
 | `manifest.py` | adds the `gazetteer` object to a mirror's `manifest.json` |
 | `testset.py` | samples a `.gaz` into mistyped query/expected pairs for the search-quality scorer |
 | `test_gazetteer.py` | the tests, run against a Liechtenstein build |
@@ -31,7 +31,7 @@ at `<appSupport>/brouter/gazetteer/<TILE>.gaz`, read-only.
 | `places` | one per settlement | `place=city\|town\|village\|hamlet\|suburb\|neighbourhood\|locality\|island` nodes and areas, with population where OSM has it |
 | `pois` | one per feature and kind | what a rider needs on the road and what a rider searches for as a destination: the 38 kinds below, named — or unnamed for the eight utility kinds |
 | `streets` | one per street name per place | every named `highway=*` way, the many ways of one street merged into one row |
-| `aliases` | one per extra name | `name:en`, `int_name`, `alt_name`, `old_name`, `official_name`, `short_name` of a row above |
+| `aliases` | one per extra name | `name:en`, `int_name`, `alt_name`, `old_name`, `official_name`, `short_name` of a row above; for a place with `importance` and a POI with `importance` ≥ 10 also every `name:<lang>`, at most 80 |
 | `street_numbers` | one per street with addresses | its house numbers, odd and even side, thinned to the points that keep interpolation within 20 m, in one blob |
 | `search` | one per place, street, **named** poi and alias | the FTS5 index the search box queries, over the transliterated names |
 | `vocab` | one per word of `search` | the word and how many rows hold it, copied from the index |
@@ -155,7 +155,7 @@ CREATE TABLE pois (
 CREATE TABLE aliases (
     id     INTEGER PRIMARY KEY,   -- from the same counter as the three above
     ref_id INTEGER NOT NULL,      -- the places/streets/pois row this name belongs to
-    name   TEXT NOT NULL
+    name   TEXT NOT NULL          -- see "aliases" below
 );
 
 CREATE TABLE street_numbers (
@@ -188,17 +188,34 @@ at 0. Where one row comes from several objects (a closed way and its area, a
 duplicate across merged extracts) the highest wins. Streets have none; a file
 without the column reads as all NULL.
 
-**The index holds `translit(name)`**, not the name: lower-cased (Python
-`str.lower()`), then `translit.json` applied — `starts` at the start of a
-word (Greek `μπ` → `b`), `digraphs` anywhere (`ου` → `ou`, `αυ`/`ευ` →
-`av`/`ev`), then every `letters` character by its Latin value (`Александър`
-→ `aleksandar`, `Ναύπλιο` → `navplio`, `Ђурђевдан` → `djurdjevdan`),
-everything else left as it is —
-Latin diacritics are the tokenizer's job. The tables keep the names as
-written; `vocab` holds the Latin words. A file built this way has
-`meta.search_script = 'latin'`; for a Latin-only tile the index is the same as
-without it. `check.py` matches a name through the index transliterated and
-rejects a `latin` file with a term holding a letter of the table.
+**`aliases`** are, in this order and each name once: the values of
+`name:en`, `int_name`, `alt_name`, `old_name`, `official_name` and
+`short_name` (semicolon-separated values one name each, never the primary
+name); then, for a place whose `importance` is not NULL and a POI whose
+`importance` is at least 10, every `name:<lang>` value (the same key rule as
+`importance`) in tag order, dropping the primary name and any name already
+there compared lower-cased, at most 80 of them. Streets get only the six tags:
+on a national extract the language names are the primary name again.
+
+**The index holds `index_text(name)`**, not the name. `translit(name)` is the
+name lower-cased (Python `str.lower()`), then `translit.json` applied —
+`starts` at the start of a word (Greek `μπ` → `b`), `digraphs` anywhere (`ου`
+→ `ou`, `αυ`/`ευ` → `av`/`ev`), then every `letters` character by its Latin
+value (`Александър` → `aleksandar`, `Ναύπλιο` → `navplio`, `Ђурђевдан` →
+`djurdjevdan`), everything else left as it is — Latin diacritics are the
+tokenizer's job. A name with і, ї, є or ґ is indexed in both spellings; the
+Ukrainian system is the one riders meet on signs and in the official
+romanisation. The second, `translit_alt(name)`, is the name lower-cased,
+`starts_uk` at the start of a word, then `letters_uk` (`х` → `kh`, `и` → `y`,
+`г` → `h`, `ї` → `i`, `я` → `ia`; no digraphs), so `Київ` is `kiyiv kyiv` and
+`Кривий Ріг` `kriviy rig kryvyi rih`. Only the second spelling's words the
+first does not already hold are added, after a space. A Bulgarian, Russian or
+Serbian name, and a Ukrainian one without those letters (`Хмельницький`), is
+`translit(name)` alone. The tables keep the names as written; `vocab` holds
+the Latin words. A file built this way has `meta.search_script = 'latin'`;
+for a tile without Cyrillic or Greek the index is the same as without it. `check.py` matches a name through
+the index transliterated and rejects a `latin` file with a term holding a
+letter of either table.
 
 `vocab` is written last, after the FTS `optimize`, from
 `fts5vocab(main, 'search', 'row')`: exactly the index's terms with their
@@ -454,11 +471,11 @@ pyosmium.
 
 | File | Built from | Content | Size |
 |---|---|---|---:|
-| `E5_N45.gaz` | `liechtenstein.osm.pbf` | 99 places (30 with `importance`), 1,315 streets, 926 pois (301 unnamed, 156 with `importance`), 46 aliases, 986 `street_numbers` rows (6,578 points of 12,226 addresses), 1,904 `vocab` terms, `search_script` `latin` | 286,720 B |
+| `E5_N45.gaz` | `liechtenstein.osm.pbf` | 99 places (30 with `importance`), 1,315 streets, 926 pois (301 unnamed, 156 with `importance`), 139 aliases, 986 `street_numbers` rows (6,578 points of 12,226 addresses), 2,003 `vocab` terms, `search_script` `latin` | 290,816 B |
 | `W20_N30.gaz` | `portugal-latest.osm.pbf`, `--tiles W20_N30` | 1,774 places, 8,435 streets, 6,501 pois, 3,234 `house_numbers` anchors, no `vocab` | 1,490,944 B |
 
-`E5_N45.gaz` by page share: `pois` 19%, `streets` 17%, `street_numbers` 16%,
-the FTS index 13%, `vocab` 13%, `idx_pois_pos` 7%, `places` 4%, everything
+`E5_N45.gaz` by page share: `pois` 18%, `streets` 17%, `street_numbers` 16%,
+the FTS index 14%, `vocab` 13%, `idx_pois_pos` 7%, `places` 4%, everything
 else (including `aliases` and its index) one page each.
 
 ```sh
@@ -494,7 +511,7 @@ GAZ_EXTRACT=/path/to/liechtenstein.osm.pbf \
   python -m unittest tools/gazetteer/test_gazetteer.py
 ```
 
-113 tests, about six seconds (the `TestsetTest` ones run off the committed fixture and need no extract). `.github/workflows/app.yml`'s `gazetteer` job
+119 tests, about eight seconds (the `TestsetTest` ones run off the committed fixture and need no extract). `.github/workflows/app.yml`'s `gazetteer` job
 runs exactly that on every push — it fetches the extract from Geofabrik as
 `liechtenstein.osm.pbf` (the name ends up in `meta.source`, which the tests
 assert on) — then `check.py` and `sha256sum -c fixtures.sha256` over the
@@ -584,6 +601,22 @@ the file puts its number:
 | berlin | anchors | 30.3 m | 123.9 m | 338.8 m | 1,774 m |
 | | `street_numbers` | 1.1 m | 13.0 m | 19.0 m | 20.0 m |
 
+### Second Cyrillic spelling and language aliases
+
+Geofabrik extracts of 2026-10-06, the builder before and after both (bytes
+are `dbstat` pages; `aliases` includes its index):
+
+| Extract | Tile | File | `search_data` | `vocab` | `aliases` | alias rows | terms |
+|---|---|---:|---:|---:|---:|---:|---:|
+| bulgaria | `E20_N40` | 6,537,216 → 6,623,232 B | 798,720 → 815,104 B | 352,256 → 368,640 B | 1,081,344 → 1,134,592 B | 29,193 → 30,637 | 24,843 → 26,151 |
+| bulgaria | `E25_N40` | 4,743,168 → 4,837,376 B | 577,536 → 598,016 B | 258,048 → 274,432 B | 712,704 → 770,048 B | 19,843 → 21,353 | 18,163 → 19,476 |
+| ile-de-france | `E0_N45` | 20,606,976 → 20,893,696 B | 3,031,040 → 3,096,576 B | 651,264 → 712,704 B | 348,160 → 507,904 B | 7,450 → 11,107 | 47,752 → 51,687 |
+
+The growth is the language names. On `E20_N40` 20 of 86,853 names get the
+second spelling: 10 language aliases and 10 Bulgarian names that write a Roman
+numeral with Cyrillic `І` (`Цар Борис ІІІ`). Paris gets 81 aliases (one old,
+80 language names), Sofia 52.
+
 ## Search quality
 
 How well the app's search finds what was typed is measured, not guessed:
@@ -637,18 +670,20 @@ Photon is a full geocoder; this is a search box that works on a plane.
 * **Fuzzy matching beyond the letters.** Typos, abbreviations and compounds
   are read from the index's own words (see the query contract); sounds-alike
   spellings are not.
-* **Transliteration beyond Cyrillic and Greek.** One table, letter by letter,
-  one spelling per letter (`щ` is `sht`, the Bulgarian way, so the Russian
-  `shch` is a typo away); Han, Kana, Hangul, Arabic, Hebrew, Georgian,
-  Armenian and the Indic scripts are indexed as written.
+* **Transliteration beyond Cyrillic and Greek.** Letter by letter, Greek and
+  most Cyrillic in one spelling, Ukrainian (і, ї, є, ґ) in two; any other romanisation is left to the
+  typo pass. Han, Kana, Hangul, Arabic, Hebrew, Georgian, Armenian and the
+  Indic scripts are indexed as written, so they match only typed in their
+  own script.
 * **Admin hierarchy.** `admin_id` and `place_id` are geometry, not boundaries,
   and stop at the tile edge. No country, state or district, so Springfield,
   Massachusetts cannot be told from Springfield, Illinois.
 * **Anything outside places, streets and the 38 POI kinds** — squares, rivers,
   general shops, individual addresses.
-* **Language variants.** `name:en` and the five other alternative-name tags are
-  indexed; the rest of `name:<lang>` is not, because on a national extract that
-  is the primary name again on every object.
+* **Language variants of ordinary rows.** `name:en` and the five other
+  alternative-name tags are indexed everywhere; the rest of `name:<lang>` only
+  on places with `importance` and POIs with at least 10, because on a national
+  extract it is the primary name again on every object.
 
 ## Planet builds
 

@@ -1340,6 +1340,30 @@ void main() {
       }
     });
 
+    test('a Ukrainian name is found by either Latin spelling', () async {
+      buildGazetteer(
+        dir,
+        'E30_N50',
+        latinIndex: true,
+        places: const <GazPlace>[
+          GazPlace(1, 'Київ', 'city', 50.45, 30.52, population: 2900000),
+          GazPlace(2, 'Кривий Ріг', 'city', 47.91, 33.39, population: 600000),
+        ],
+      );
+      final store = await openStore();
+
+      for (final typed in <String>['kyiv', 'kiyiv', 'Київ']) {
+        final found = await store.lookup(typed);
+        expect(found.results.first.name, 'Київ', reason: typed);
+        expect(
+          found.correctedQuery,
+          isNull,
+          reason: '"$typed" is a spelling, not a typo',
+        );
+      }
+      expect((await store.search('kryvyi rih')).first.name, 'Кривий Ріг');
+    });
+
     test('the stored vocabulary answers like the computed one', () async {
       for (final vocab in <bool>[false, true]) {
         buildGazetteer(

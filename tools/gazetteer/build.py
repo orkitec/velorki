@@ -43,7 +43,7 @@ import osmium.filter as osmium_filter
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from street_numbers import thinned_blob  # noqa: E402
-from translit import SEARCH_SCRIPT, translit  # noqa: E402
+from translit import SEARCH_SCRIPT, index_text  # noqa: E402
 
 SCHEMA_VERSION = 1
 
@@ -115,8 +115,9 @@ WATER_NATURAL = frozenset("water bay strait lagoon".split())
 RESERVE_BOUNDARIES = frozenset("national_park protected_area".split())
 
 # The tags that carry a second name for the same object, in the order an alias
-# row is written. `name:de` and the rest of the language keys are deliberately
-# not here: on a German extract that is the primary name again on every object.
+# row is written. `name:de` and the rest of the language keys are not here: on
+# a German extract that is the primary name again on every object. Only a
+# well-known row gets those too (LANGUAGE_ALIAS_POI_IMPORTANCE).
 ALIAS_KEYS = (
     "name:en",
     "int_name",
@@ -130,6 +131,11 @@ ALIAS_KEYS = (
 # Not `name:etymology`, `name:prefix`, `name:left` and the rest of the
 # qualifiers, which the letter count leaves out.
 LANGUAGE_NAME_KEY = re.compile(r"^name:[a-z]{2,3}(-[A-Za-z]{2,8})?$")
+
+# Every `name:<lang>` becomes an alias of a place with any importance and of a
+# POI with at least this much, at most LANGUAGE_ALIAS_LIMIT of them a row.
+LANGUAGE_ALIAS_POI_IMPORTANCE = 10
+LANGUAGE_ALIAS_LIMIT = 80
 
 # What a `wikidata` or `wikipedia` tag adds to the language count.
 WIKI_BONUS = 5
@@ -224,6 +230,29 @@ def alias_names(tags, primary: str) -> tuple[str, ...]:
             if name and name != primary:
                 found[name] = None
     return tuple(found)
+
+
+def language_names(tags, primary: str, alts: tuple[str, ...]) -> tuple[str, ...]:
+    """`alts` and then the `name:<lang>` values of a well-known object.
+
+    In tag order, semicolon-separated values one name each, dropping any name
+    that is the primary or one already there when compared lower-cased; at most
+    LANGUAGE_ALIAS_LIMIT added.
+    """
+    seen = {primary.lower()} | {alt.lower() for alt in alts}
+    found: list[str] = []
+    for key in tag_keys(tags):
+        if not LANGUAGE_NAME_KEY.match(key):
+            continue
+        for part in (tags.get(key) or "").split(";"):
+            name = clean_name(part)
+            if name is None or name.lower() in seen:
+                continue
+            seen.add(name.lower())
+            found.append(name)
+            if len(found) == LANGUAGE_ALIAS_LIMIT:
+                return alts + tuple(found)
+    return alts + tuple(found)
 
 
 def importance(tags) -> int | None:
@@ -653,6 +682,17 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
         key = (osm_type, osm_id)
         alts = alias_names(tags, name) if name else ()
         score = importance(tags) if want_place or kinds else None
+        # A well-known place or POI is found under every language's name too.
+        place_alts = (
+            language_names(tags, name, alts) if want_place and score is not None else alts
+        )
+        poi_alts = (
+            language_names(tags, poi_name, alts)
+            if poi_name is not None
+            and score is not None
+            and score >= LANGUAGE_ALIAS_POI_IMPORTANCE
+            else alts
+        )
 
         # A closed way arrives as the way and as the area: the area wins, and
         # the row keeps the higher importance of the two.
@@ -671,7 +711,7 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
                 ),
                 osm_type,
                 osm_id,
-                alts,
+                place_alts,
                 more_important(score, seen.importance if seen else None),
             )
 
@@ -696,7 +736,7 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
                     lon,
                     osm_type,
                     osm_id,
-                    alts,
+                    poi_alts,
                     more_important(
                         score, seen_poi.importance if seen_poi else None
                     ),
@@ -1041,10 +1081,12 @@ CREATE TABLE pois (
 -- would be a fifth of the file. columnsize=0 drops bm25's length
 -- normalisation, which buys nothing when every document is one short name.
 -- No prefix= option: measured slower at every query length and 14 MB bigger
--- on a dense tile. The text indexed is translit(name), not the name: lower
--- case, Cyrillic and Greek in Latin letters (meta search_script = 'latin').
+-- on a dense tile. The text indexed is index_text(name), not the name: lower
+-- case, Cyrillic and Greek in Latin letters, a name with і, ї, є or ґ in a
+-- second, Ukrainian spelling beside the first (meta search_script = 'latin').
 -- A second name of a row above: name:en, int_name, alt_name, old_name,
--- official_name, short_name. It gets an id out of the same counter and its own
+-- official_name, short_name, and every name:<lang> of a place with importance
+-- or a POI with importance >= 10. It gets an id out of the same counter and its own
 -- FTS entry, so a hit that is not in the three tables is looked up here and
 -- resolved through ref_id to the row whose primary name is shown.
 CREATE TABLE aliases (
@@ -1176,10 +1218,10 @@ def write_tile(
     # The index holds every name transliterated; the tables keep it as it is.
     db.executemany(
         "INSERT INTO search(rowid, name) VALUES (?,?)",
-        [(p.id, translit(p.name)) for p in places]
-        + [(s.id, translit(s.name)) for s in streets]
-        + [(row[0], translit(row[1])) for row in pois if row[1] is not None]
-        + [(row[0], translit(row[2])) for row in aliases],
+        [(p.id, index_text(p.name)) for p in places]
+        + [(s.id, index_text(s.name)) for s in streets]
+        + [(row[0], index_text(row[1])) for row in pois if row[1] is not None]
+        + [(row[0], index_text(row[2])) for row in aliases],
     )
 
     db.executemany(

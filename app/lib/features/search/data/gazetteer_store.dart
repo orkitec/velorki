@@ -1912,20 +1912,30 @@ class _Pool {
 
   NameMatch _match(_Row row, {Set<String> context = const <String>{}}) {
     if (context.isEmpty && row.aliases.isEmpty) {
-      return _byName[row.name] ??= matchName(words, _nameWords(row.name));
+      return _byName[row.name] ??= _matchSpellings(row.name, context);
     }
-    var best = matchName(words, _nameWords(row.name), context: context);
+    var best = _matchSpellings(row.name, context);
     for (final alias in row.aliases) {
       // The row is shown under its own name: an alternative one that
       // matches is a little less of a match than the name on the screen.
-      final match = matchName(
-        words,
-        _nameWords(alias),
-        context: context,
-      ).scaled(_aliasShare);
+      final match = _matchSpellings(alias, context).scaled(_aliasShare);
       if (match.quality > best.quality) best = match;
     }
     return best;
+  }
+
+  /// [name] against the query in every spelling the index holds it in: a
+  /// name with a Ukrainian letter is indexed the Ukrainian way as well, so
+  /// "kyiv" is as good a match for "Київ" as "kiyiv".
+  NameMatch _matchSpellings(String name, Set<String> context) {
+    final match = matchName(words, _nameWords(name), context: context);
+    if (!hasUkrainianLetter(name)) return match;
+    final uk = matchName(
+      words,
+      indexWords(name).map(foldForMatchUk).toList(),
+      context: context,
+    );
+    return uk.quality > match.quality ? uk : match;
   }
 
   static List<String> _nameWords(String name) =>

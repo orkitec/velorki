@@ -736,6 +736,146 @@ class GazetteerTest(unittest.TestCase):
             0,
         )
 
+    def test_language_names_of_a_well_known_object(self) -> None:
+        tags = {
+            "name": "Wien",
+            "name:de": "Wien",
+            "name:en": "Vienna",
+            "name:fr": "Vienne",
+            "name:it": "VIENNA",
+            "name:ru": "Вена",
+            "name:uk": "Відень",
+            "name:etymology": "x",
+            "name:sr-Latn": "Beč;Vena",
+            "name:hr": "Beč",
+        }
+        alts = build.alias_names(tags, "Wien")
+        self.assertEqual(alts, ("Vienna",))
+        self.assertEqual(
+            build.language_names(tags, "Wien", alts),
+            ("Vienna", "Vienne", "Вена", "Відень", "Beč", "Vena"),
+        )
+        many = {f"name:{a}{b}": f"Name {a}{b}" for a in "abcdefghij" for b in "abcdefghij"}
+        names = build.language_names(many, "x", ())
+        self.assertEqual(len(names), build.LANGUAGE_ALIAS_LIMIT)
+        self.assertEqual(names, tuple(list(many.values())[: build.LANGUAGE_ALIAS_LIMIT]))
+
+    def language_alias_extract(self) -> build.Extract:
+        """A tiny OSM file: what earns `name:<lang>` aliases and what does not."""
+        many = "".join(
+            f'<tag k="name:{a}{b}" v="Bigtown {a}{b}"/>'
+            for a in "abcdefghij" for b in "abcdefghij"
+        )
+        xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="test">
+ <node id="1" lat="47.10" lon="9.50" version="1">
+  <tag k="place" v="town"/><tag k="name" v="Wien"/><tag k="name:de" v="Wien"/>
+  <tag k="name:en" v="Vienna"/><tag k="name:ru" v="Вена"/><tag k="name:fr" v="Vienne"/>
+  <tag k="alt_name" v="vienne"/><tag k="name:uk" v="Відень"/>
+ </node>
+ <node id="2" lat="47.11" lon="9.51" version="1">
+  <tag k="place" v="hamlet"/><tag k="name" v="Weiler"/><tag k="name_1" v="Hof"/>
+ </node>
+ <node id="3" lat="47.12" lon="9.52" version="1">
+  <tag k="place" v="city"/><tag k="name" v="Bigtown"/>{many}
+ </node>
+ <node id="4" lat="47.13" lon="9.53" version="1">
+  <tag k="tourism" v="museum"/><tag k="name" v="Kleinmuseum"/><tag k="wikidata" v="Q1"/>
+  <tag k="name:en" v="Small Museum"/><tag k="name:fr" v="Petit musée"/>
+  <tag k="name:it" v="Piccolo museo"/><tag k="name:es" v="Museo pequeño"/>
+ </node>
+ <node id="5" lat="47.14" lon="9.54" version="1">
+  <tag k="tourism" v="museum"/><tag k="name" v="Grossmuseum"/><tag k="wikidata" v="Q2"/>
+  <tag k="name:en" v="Big Museum"/><tag k="name:fr" v="Grand musée"/>
+  <tag k="name:it" v="Grande museo"/><tag k="name:es" v="Gran museo"/>
+  <tag k="name:ru" v="Большой музей"/>
+ </node>
+ <node id="11" lat="47.150" lon="9.550" version="1"/>
+ <node id="12" lat="47.151" lon="9.551" version="1"/>
+ <way id="20" version="1">
+  <nd ref="11"/><nd ref="12"/>
+  <tag k="highway" v="residential"/><tag k="name" v="Hauptstrasse"/>
+  <tag k="wikidata" v="Q3"/><tag k="name:en" v="Main Street"/>
+  <tag k="name:fr" v="Rue principale"/><tag k="name:it" v="Via principale"/>
+  <tag k="name:es" v="Calle mayor"/><tag k="name:ru" v="Главная улица"/>
+ </way>
+</osm>
+"""
+        out = tempfile.mkdtemp(prefix="gaz-lang-", dir=self.tmp)
+        self.addCleanup(shutil.rmtree, out, ignore_errors=True)
+        path = os.path.join(out, "lang.osm")
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(xml)
+        return build.read_pbf(path, True, "flex_mem")
+
+    def language_alias_file(self) -> str:
+        extract = self.language_alias_extract()
+        out = tempfile.mkdtemp(prefix="gaz-lang-out-", dir=self.tmp)
+        self.addCleanup(shutil.rmtree, out, ignore_errors=True)
+        build.build_tile(
+            out, TILE, extract.places, extract.street_ways, extract.pois,
+            extract.addresses, "lang.osm", True, "2026-10-06T00:00:00Z",
+        )
+        path = os.path.join(out, f"{TILE}.gaz")
+        check.check(path)
+        return path
+
+    @staticmethod
+    def aliases_by_row(path: str) -> dict[str, list[str]]:
+        db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        try:
+            found: dict[str, list[str]] = {}
+            for owner, alias in db.execute(
+                "SELECT coalesce(p.name, s.name, o.name), a.name FROM aliases a"
+                " LEFT JOIN places p ON p.id = a.ref_id"
+                " LEFT JOIN streets s ON s.id = a.ref_id"
+                " LEFT JOIN pois o ON o.id = a.ref_id ORDER BY a.id"
+            ):
+                found.setdefault(owner, []).append(alias)
+            return found
+        finally:
+            db.close()
+
+    def test_a_well_known_place_or_poi_gets_every_language_name(self) -> None:
+        path = self.language_alias_file()
+        found = self.aliases_by_row(path)
+        # The six tags first; then name:<lang> in tag order, without the
+        # primary name or a name already there, compared lower-cased.
+        self.assertEqual(found["Wien"], ["Vienna", "vienne", "Вена", "Відень"])
+        self.assertNotIn("Weiler", found, "no importance, no language aliases")
+        self.assertEqual(
+            found["Bigtown"],
+            [f"Bigtown {a}{b}" for a in "abcdefghij" for b in "abcdefghij"][
+                : build.LANGUAGE_ALIAS_LIMIT
+            ],
+        )
+        # importance 9: name:en only; importance 10: every language.
+        self.assertEqual(found["Kleinmuseum"], ["Small Museum"])
+        self.assertEqual(
+            found["Grossmuseum"],
+            ["Big Museum", "Grand musée", "Grande museo", "Gran museo", "Большой музей"],
+        )
+        # A street keeps the six tags only, whatever it carries.
+        self.assertEqual(found["Hauptstrasse"], ["Main Street"])
+        db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        self.addCleanup(db.close)
+        wien = db.execute("SELECT id FROM places WHERE name = 'Wien'").fetchone()[0]
+        for text in ('"viden"', '"vena"'):
+            rowid = db.execute(
+                "SELECT rowid FROM search WHERE search MATCH ?", (text,)
+            ).fetchone()
+            self.assertIsNotNone(rowid, text)
+            self.assertEqual(
+                db.execute("SELECT ref_id FROM aliases WHERE id = ?", rowid).fetchone()[0],
+                wien,
+            )
+        self.assertEqual([h.name for h in query.search(db, "Відень", 5)][:1], ["Wien"])
+
+    def test_merge_keeps_the_language_aliases(self) -> None:
+        path = self.language_alias_file()
+        merged = self.run_merge(*self.copies(path, path))
+        self.assertEqual(self.aliases_by_row(merged), self.aliases_by_row(path))
+
     def test_aliases_are_in_the_search_index(self) -> None:
         db = self.open()
         alias_id, ref_id = db.execute(
@@ -896,13 +1036,42 @@ class GazetteerTest(unittest.TestCase):
 
     # ----------------------------------------------------- transliteration ---
 
-    def test_a_latin_file_indexes_what_it_did_before(self) -> None:
-        """Transliteration changes nothing for a file with only Latin names.
+    def build_without_language_aliases(self) -> str:
+        """Liechtenstein built in-process as before `name:<lang>` aliases."""
+        with mock.patch.object(
+            build, "language_names", lambda tags, primary, alts: alts
+        ):
+            extract = build.read_pbf(find_extract(), True, "flex_mem")
 
-        The index is rebuilt here from the untouched names, as the builder did
-        before, and must give the very same vocab.
+        def here(item) -> bool:
+            return build.tile_name(item.lat, item.lon) == TILE
+
+        out = tempfile.mkdtemp(prefix="gaz-nolang-", dir=self.tmp)
+        self.addCleanup(shutil.rmtree, out, ignore_errors=True)
+        build.build_tile(
+            out,
+            TILE,
+            [p for p in extract.places if here(p)],
+            [s for s in extract.street_ways if here(s)],
+            [p for p in extract.pois if here(p)],
+            extract.addresses,
+            EXTRACT_NAME,
+            True,
+            "2026-01-01T00:00:00Z",
+        )
+        return os.path.join(out, f"{TILE}.gaz")
+
+    def test_a_latin_file_indexes_what_it_did_before(self) -> None:
+        """Transliteration, the second Cyrillic spelling included, changes
+        nothing for a file with only Latin names.
+
+        Liechtenstein has a Cyrillic or Greek name only among its `name:<lang>`
+        aliases, so it is built here without them; the index is rebuilt from
+        the untouched names, as the builder did before transliterating, and
+        must give the very same vocab.
         """
-        db = self.open()
+        db = sqlite3.connect(f"file:{self.build_without_language_aliases()}?mode=ro", uri=True)
+        self.addCleanup(db.close)
         names = [
             (rowid, name)
             for table, column in (
@@ -915,8 +1084,11 @@ class GazetteerTest(unittest.TestCase):
                 f"SELECT id, {column} FROM {table} WHERE {column} IS NOT NULL"
             )
         ]
-        letters = frozenset(translit.LETTERS)
+        letters = frozenset(translit.LETTERS) | frozenset(translit.LETTERS_UK)
         self.assertTrue(all(letters.isdisjoint(name.lower()) for _, name in names))
+        self.assertTrue(
+            all(translit.index_text(name) == name.lower() for _, name in names)
+        )
         plain = sqlite3.connect(":memory:")
         self.addCleanup(plain.close)
         plain.execute(
@@ -976,6 +1148,82 @@ class GazetteerTest(unittest.TestCase):
             self.assertEqual(translit.translit(name), latin, name)
         self.assertTrue(all(len(letter) == 1 for letter in translit.LETTERS))
         self.assertTrue(all(letter == letter.lower() for letter in translit.LETTERS))
+
+    def test_translit_alt_is_the_ukrainian_spelling(self) -> None:
+        for name, latin in (
+            ("Хмельницький", "khmelnytskyi"),
+            ("Кривий Ріг", "kryvyi rih"),
+            ("Київ", "kyiv"),
+            ("Єнакієве", "yenakiieve"),
+            ("Юрій", "yurii"),
+            # The Ukrainian rule over a Bulgarian name: и is y, я is ia.
+            ("София", "sofyia"),
+            ("Ђурђевдан", "djurdjevdan"),
+            ("Μπάρι", "bari"),
+            ("Vaduz", "vaduz"),
+        ):
+            self.assertEqual(translit.translit_alt(name), latin, name)
+        # Both tables map the same Cyrillic letters.
+        cyrillic = {letter for letter in translit.LETTERS if "Ѐ" <= letter <= "ӿ"}
+        self.assertEqual(set(translit.LETTERS_UK), cyrillic)
+        self.assertTrue(set(translit.STARTS_UK) <= cyrillic)
+
+    def test_index_text_holds_both_spellings_once(self) -> None:
+        """Only a name with і, ї, є or ґ gets the second spelling."""
+        self.assertEqual(translit.index_text("Кривий Ріг"), "kriviy rig kryvyi rih")
+        self.assertEqual(translit.index_text("Київ"), "kiyiv kyiv")
+        self.assertEqual(translit.index_text("Єнакієве"), "yenakiyeve yenakiieve")
+        self.assertEqual(translit.index_text("Юрій"), "yuriy yurii")
+        self.assertEqual(translit.index_text("ҐАНОК"), "ganok")
+        # A word both tables spell alike is not repeated.
+        self.assertEqual(
+            translit.index_text("Вулиця Шевченка Київ"), "vulitsya shevchenka kiyiv vulytsia kyiv"
+        )
+        for letter in "іїєґІЇЄҐ":
+            self.assertTrue(translit.has_ukrainian_letter(letter), letter)
+        # Хмельницький has none of those letters, so it gets the first
+        # spelling alone, like every Bulgarian, Russian or Serbian name.
+        for name in ("Хмельницький", "Иван Вазов", "Москва", "Ђурђевдан", "връх Мусала"):
+            self.assertFalse(translit.has_ukrainian_letter(name), name)
+            self.assertEqual(translit.index_text(name), translit.translit(name), name)
+        # Latin and Greek names are what translit gives.
+        for name in ("Mühleholz St. Florin", "Θεσσαλονίκη", "Vaduz"):
+            self.assertEqual(translit.index_text(name), translit.translit(name), name)
+
+    def test_a_cyrillic_name_is_found_by_its_ukrainian_spelling(self) -> None:
+        out = tempfile.mkdtemp(prefix="gaz-uk-", dir=self.tmp)
+        self.addCleanup(shutil.rmtree, out, ignore_errors=True)
+        path = os.path.join(out, f"{TILE}.gaz")
+        build.write_tile(
+            path, TILE,
+            [
+                build.PlaceRow(1, "Хмельницький", "city", 49.42, 26.98, None, None, "n", 1, 30),
+                build.PlaceRow(2, "Кривий Ріг", "city", 47.91, 33.39, None, None, "n", 2, None),
+                build.PlaceRow(3, "Kyiv", "city", 50.45, 30.52, None, None, "n", 3, None),
+            ],
+            [], [], [(4, 3, "Київ")], [], "test", False, "2026-10-06T00:00:00Z",
+        )
+        check.check(path)
+        db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        self.addCleanup(db.close)
+
+        def match(text: str) -> set[int]:
+            return {row[0] for row in db.execute(
+                "SELECT rowid FROM search WHERE search MATCH ?", (text,)
+            )}
+
+        # Хмельницький has no і, ї, є or ґ: the first spelling only.
+        self.assertEqual(match('"khmelnytskyi"'), set())
+        self.assertEqual(match('"hmelnitskiy"'), {1})
+        self.assertEqual(match('"kryvyi" "rih"'), {2})
+        self.assertEqual(match('"kriviy" "rig"'), {2})
+        self.assertEqual(match('"kyiv"'), {3, 4})
+        self.assertEqual(match('"kiyiv"'), {4})
+        self.assertEqual(
+            dict(db.execute("SELECT term, docs FROM vocab")),
+            {"hmelnitskiy": 1, "kriviy": 1, "rig": 1,
+             "kryvyi": 1, "rih": 1, "kyiv": 2, "kiyiv": 1},
+        )
 
     def test_a_cyrillic_name_is_found_by_its_latin_form(self) -> None:
         path = self.cyrillic_file()

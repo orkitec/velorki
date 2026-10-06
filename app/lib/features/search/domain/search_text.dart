@@ -25,6 +25,15 @@ String foldForMatch(String text) {
   return folded.replaceAllMapped(_twoWayLetters, (m) => _twoWay[m[0]] ?? m[0]!);
 }
 
+/// [text] folded like [foldForMatch] but with Cyrillic spelled the Ukrainian
+/// way ([transliterateUk]): the second spelling a name with a Ukrainian
+/// letter is indexed in.
+String foldForMatchUk(String text) {
+  final folded = transliterateUk(foldSearchTerm(text));
+  if (!_twoWayLetters.hasMatch(folded)) return folded;
+  return folded.replaceAllMapped(_twoWayLetters, (m) => _twoWay[m[0]] ?? m[0]!);
+}
+
 const Map<String, String> _twoWay = <String, String>{
   'ß': 'ss',
   'ẞ': 'ss',

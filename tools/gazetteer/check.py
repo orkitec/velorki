@@ -16,7 +16,7 @@ whether or not a file has them; when a file does have them, every `ref_id` and
 more than 40 `house_numbers` anchors. An `importance`, where a table has the
 column, is NULL or 1-255. A file whose `search_script` is `latin` indexes
 transliterated names (translit.py): the query check transliterates the name
-first, and no indexed term may hold a letter the table maps. The positional index on `streets` is likewise optional: older files have it, files
+first, and no indexed term may hold a letter either table maps. The positional index on `streets` is likewise optional: older files have it, files
 built today do not. Used by manifest.py before it writes a gazetteer entry, and
 by the tests.
 """
@@ -32,7 +32,7 @@ from typing import NamedTuple
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from street_numbers import decode  # noqa: E402
-from translit import LETTERS, SEARCH_SCRIPT, translit  # noqa: E402
+from translit import LETTERS, LETTERS_UK, SEARCH_SCRIPT, translit  # noqa: E402
 
 SCHEMA_VERSION = "1"
 
@@ -273,7 +273,7 @@ def _check_importance(db: sqlite3.Connection, path: str) -> None:
 
 
 def _check_transliterated(db: sqlite3.Connection, path: str) -> None:
-    """A `search_script` = `latin` file indexes no letter the table maps."""
+    """A `search_script` = `latin` file indexes no letter either table maps."""
     try:
         db.execute(
             "CREATE VIRTUAL TABLE temp.gaz_terms USING fts5vocab(main,'search','row')"
@@ -281,7 +281,7 @@ def _check_transliterated(db: sqlite3.Connection, path: str) -> None:
     except sqlite3.Error:
         return  # an SQLite too old for fts5vocab
     try:
-        letters = frozenset(LETTERS)
+        letters = frozenset(LETTERS) | frozenset(LETTERS_UK)
         for (term,) in db.execute("SELECT term FROM temp.gaz_terms"):
             if not letters.isdisjoint(term):
                 raise GazetteerError(

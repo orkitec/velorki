@@ -27,6 +27,67 @@ const Map<String, String> transliterationDigraphs = <String, String>{
   'ηύ': 'iv',
 };
 
+/// The Ukrainian national romanisation, the spelling on Ukrainian signs and
+/// in the official Latin names: word starts (є ye, ї yi, й y, ю yu, я ya).
+const Map<String, String> transliterationStartsUk = <String, String>{
+  'є': 'ye',
+  'ї': 'yi',
+  'й': 'y',
+  'ю': 'yu',
+  'я': 'ya',
+};
+
+/// The Ukrainian national romanisation, letter by letter (г h, х kh, и y).
+const Map<String, String> transliterationUk = <String, String>{
+  'а': 'a',
+  'б': 'b',
+  'в': 'v',
+  'г': 'h',
+  'ґ': 'g',
+  'д': 'd',
+  'е': 'e',
+  'є': 'ie',
+  'ж': 'zh',
+  'з': 'z',
+  'и': 'y',
+  'і': 'i',
+  'ї': 'i',
+  'й': 'i',
+  'к': 'k',
+  'л': 'l',
+  'м': 'm',
+  'н': 'n',
+  'о': 'o',
+  'п': 'p',
+  'р': 'r',
+  'с': 's',
+  'т': 't',
+  'у': 'u',
+  'ф': 'f',
+  'х': 'kh',
+  'ц': 'ts',
+  'ч': 'ch',
+  'ш': 'sh',
+  'щ': 'shch',
+  'ю': 'iu',
+  'я': 'ia',
+  'ь': '',
+  'ъ': '',
+  'ы': 'y',
+  'э': 'e',
+  'ё': 'yo',
+  'ў': 'u',
+  'ђ': 'dj',
+  'ј': 'j',
+  'љ': 'lj',
+  'њ': 'nj',
+  'ћ': 'c',
+  'џ': 'dz',
+  'ѓ': 'gj',
+  'ќ': 'kj',
+  'ѕ': 'dz',
+};
+
 /// Lower-case letter → its Latin spelling.
 const Map<String, String> transliteration = <String, String>{
   'а': 'a',
@@ -145,3 +206,32 @@ final RegExp _starts = RegExp(
   unicode: true,
 );
 final RegExp _digraphs = RegExp(transliterationDigraphs.keys.join('|'));
+
+/// Whether [text] has a letter only Ukrainian uses (і, ї, є, ґ): such a
+/// name is indexed in both spellings, and a Latin query is matched against
+/// both ([transliterateUk]).
+bool hasUkrainianLetter(String text) => _ukrainianLetter.hasMatch(text);
+
+final RegExp _ukrainianLetter = RegExp('[іїєґІЇЄҐ]');
+
+/// [lowerCased] spelled the Ukrainian way: word starts, then letter by
+/// letter, then everything else as [transliterate] spells it.
+String transliterateUk(String lowerCased) {
+  var text = lowerCased;
+  if (_startsUk.hasMatch(text)) {
+    text = text.replaceAllMapped(
+      _startsUk,
+      (m) => transliterationStartsUk[m[1]]!,
+    );
+  }
+  final out = StringBuffer();
+  for (var i = 0; i < text.length; i++) {
+    out.write(transliterationUk[text[i]] ?? text[i]);
+  }
+  return transliterate(out.toString());
+}
+
+final RegExp _startsUk = RegExp(
+  '(?<!\\p{L})(${transliterationStartsUk.keys.join('|')})',
+  unicode: true,
+);

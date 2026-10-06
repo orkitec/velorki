@@ -37,7 +37,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from check import GazetteerError, check  # noqa: E402
 from street_numbers import Point, decode, encode, split, thinned_blob  # noqa: E402
 from street_numbers import POINT_SCALE  # noqa: E402
-from translit import SEARCH_SCRIPT, translit  # noqa: E402
+from translit import SEARCH_SCRIPT, index_text  # noqa: E402
 
 SCHEMA_VERSION = "1"
 
@@ -489,12 +489,12 @@ def write_tile(path: str, tile: str, merged: Merged, meta: list[tuple[str, str]]
     db.executemany(
         "INSERT INTO search(rowid, name) VALUES (?,?)",
         [
-            (row[0], translit(row[1]))
+            (row[0], index_text(row[1]))
             for table in TABLES
             for row in merged.rows[table]
             if row[1] is not None
         ]
-        + [(row[0], translit(row[2])) for row in merged.aliases],
+        + [(row[0], index_text(row[2])) for row in merged.aliases],
     )
     db.executemany("INSERT INTO meta VALUES (?,?)", meta)
     db.commit()

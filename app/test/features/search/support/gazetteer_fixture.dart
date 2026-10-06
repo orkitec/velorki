@@ -244,7 +244,7 @@ CREATE TABLE house_numbers (
     final index = (
       execute: (List<Object?> row) => insert.execute(<Object?>[
         row[0],
-        latinIndex ? transliterate((row[1]! as String).toLowerCase()) : row[1],
+        latinIndex ? indexTextOf(row[1]! as String) : row[1],
       ]),
       close: insert.close,
     );
@@ -400,3 +400,18 @@ List<GazPoi> get fixturePois => const <GazPoi>[
 ];
 
 int _e7(double degrees) => (degrees * 1e7).round();
+
+/// What the builder's `index_text` puts into the FTS index for [name]: the
+/// Latin spelling, and for a name with a Ukrainian letter the Ukrainian
+/// spelling's words that differ, after it.
+String indexTextOf(String name) {
+  final lower = name.toLowerCase();
+  final primary = transliterate(lower);
+  if (!hasUkrainianLetter(name)) return primary;
+  final cut = RegExp(r'[^\p{L}\p{N}]+', unicode: true);
+  final have = primary.split(cut).toSet();
+  final extra = transliterateUk(lower)
+      .split(cut)
+      .where((w) => w.isNotEmpty && !have.contains(w));
+  return extra.isEmpty ? primary : '$primary ${extra.join(' ')}';
+}
