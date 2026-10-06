@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import math
 import os
+import re
 import sqlite3
 import sys
 import tempfile
@@ -42,6 +43,7 @@ import osmium.filter as osmium_filter
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from street_numbers import thinned_blob  # noqa: E402
+from translit import SEARCH_SCRIPT, translit  # noqa: E402
 
 SCHEMA_VERSION = 1
 
@@ -123,6 +125,17 @@ ALIAS_KEYS = (
     "official_name",
     "short_name",
 )
+
+# A language variant of the name: `name:en`, `name:zh-Hans`, `name:sr-Latn`.
+# Not `name:etymology`, `name:prefix`, `name:left` and the rest of the
+# qualifiers, which the letter count leaves out.
+LANGUAGE_NAME_KEY = re.compile(r"^name:[a-z]{2,3}(-[A-Za-z]{2,8})?$")
+
+# What a `wikidata` or `wikipedia` tag adds to the language count.
+WIKI_BONUS = 5
+
+# importance is stored in one byte's range.
+MAX_IMPORTANCE = 255
 
 # Street grouping: a street with no place to hang off gets grouped by a coarse
 # grid cell instead, so two "Main Street"s in villages 40 km apart do not
@@ -213,6 +226,34 @@ def alias_names(tags, primary: str) -> tuple[str, ...]:
     return tuple(found)
 
 
+def importance(tags) -> int | None:
+    """How famous an object is, without reading any language.
+
+    The number of `name:<lang>` variants it carries, plus WIKI_BONUS when it
+    has a `wikidata` or `wikipedia` tag; capped at MAX_IMPORTANCE, None at 0
+    so an ordinary row stores a NULL.
+    """
+    score = 0
+    wiki = False
+    for key in tag_keys(tags):
+        if LANGUAGE_NAME_KEY.match(key):
+            score += 1
+        elif key == "wikidata" or key == "wikipedia" or key.startswith("wikipedia:"):
+            wiki = True
+    if wiki:
+        score += WIKI_BONUS
+    return min(score, MAX_IMPORTANCE) or None
+
+
+def more_important(a: int | None, b: int | None) -> int | None:
+    """The larger of two nullable importances."""
+    if a is None:
+        return b
+    if b is None:
+        return a
+    return max(a, b)
+
+
 def leading_number(raw: str | None) -> int | None:
     """The integer an `addr:housenumber` starts with: '12a' -> 12, 'A3' -> None."""
     if not raw:
@@ -244,6 +285,7 @@ class RawPlace(NamedTuple):
     osm_type: str  # 'n', 'w' or 'r'
     osm_id: int
     alts: tuple[str, ...]
+    importance: int | None = None
 
 
 class RawStreet(NamedTuple):
@@ -262,6 +304,7 @@ class RawPoi(NamedTuple):
     osm_type: str
     osm_id: int
     alts: tuple[str, ...]
+    importance: int | None = None
 
 
 class AddressBook:
@@ -609,8 +652,12 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
             osm_id = obj.id
         key = (osm_type, osm_id)
         alts = alias_names(tags, name) if name else ()
+        score = importance(tags) if want_place or kinds else None
 
+        # A closed way arrives as the way and as the area: the area wins, and
+        # the row keeps the higher importance of the two.
         if want_place and (is_area or key not in places):
+            seen = places.get(key)
             places[key] = RawPlace(
                 name,
                 intern(place),
@@ -625,6 +672,7 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
                 osm_type,
                 osm_id,
                 alts,
+                more_important(score, seen.importance if seen else None),
             )
 
         # Streets come from ways only; a named highway node is a bus stop or a
@@ -640,8 +688,18 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
         for kind in kinds:
             poi_key = key + (kind,)
             if is_area or poi_key not in pois:
+                seen_poi = pois.get(poi_key)
                 pois[poi_key] = RawPoi(
-                    poi_name, kind, lat, lon, osm_type, osm_id, alts
+                    poi_name,
+                    kind,
+                    lat,
+                    lon,
+                    osm_type,
+                    osm_id,
+                    alts,
+                    more_important(
+                        score, seen_poi.importance if seen_poi else None
+                    ),
                 )
 
     return Extract(list(places.values()), street_ways, list(pois.values()), addresses)
@@ -662,6 +720,7 @@ class PlaceRow(NamedTuple):
     admin_id: int | None
     osm_type: str | None
     osm_id: int | None
+    importance: int | None = None
 
 
 class PlaceGrid:
@@ -714,6 +773,7 @@ def resolve_places(raw: list[RawPlace], first_id: int) -> list[PlaceRow]:
             None,
             p.osm_type,
             p.osm_id,
+            p.importance,
         )
         for index, p in enumerate(raw)
     ]
@@ -941,7 +1001,8 @@ CREATE TABLE places (
     population INTEGER,
     admin_id   INTEGER,
     osm_type   TEXT,
-    osm_id     INTEGER
+    osm_id     INTEGER,
+    importance INTEGER
 );
 
 CREATE TABLE streets (
@@ -957,15 +1018,19 @@ CREATE TABLE streets (
 -- `name` is nullable, but only for the unnamed utility kinds (UNNAMED_KINDS):
 -- a tap, a toilet or a bike stand is worth a row without a name because the
 -- app looks for the nearest one. Such a row is not in the FTS index.
+--
+-- importance on places and pois: the number of name:<lang> tags, plus 5 for a
+-- wikidata or wikipedia tag, at most 255; NULL at 0.
 CREATE TABLE pois (
-    id       INTEGER PRIMARY KEY,
-    name     TEXT,
-    kind     TEXT NOT NULL,
-    lat      INTEGER NOT NULL,
-    lon      INTEGER NOT NULL,
-    place_id INTEGER,
-    osm_type TEXT,
-    osm_id   INTEGER
+    id         INTEGER PRIMARY KEY,
+    name       TEXT,
+    kind       TEXT NOT NULL,
+    lat        INTEGER NOT NULL,
+    lon        INTEGER NOT NULL,
+    place_id   INTEGER,
+    osm_type   TEXT,
+    osm_id     INTEGER,
+    importance INTEGER
 );
 
 -- One id space across the three tables, so an FTS rowid names exactly one row
@@ -976,7 +1041,8 @@ CREATE TABLE pois (
 -- would be a fifth of the file. columnsize=0 drops bm25's length
 -- normalisation, which buys nothing when every document is one short name.
 -- No prefix= option: measured slower at every query length and 14 MB bigger
--- on a dense tile.
+-- on a dense tile. The text indexed is translit(name), not the name: lower
+-- case, Cyrillic and Greek in Latin letters (meta search_script = 'latin').
 -- A second name of a row above: name:en, int_name, alt_name, old_name,
 -- official_name, short_name. It gets an id out of the same counter and its own
 -- FTS entry, so a hit that is not in the three tables is looked up here and
@@ -1048,7 +1114,9 @@ def write_tile(
     tile: str,
     places: list[PlaceRow],
     streets: list[StreetRow],
-    pois: list[tuple[int, str | None, str, float, float, int | None, str, int]],
+    pois: list[
+        tuple[int, str | None, str, float, float, int | None, str, int, int | None]
+    ],
     aliases: list[tuple[int, int, str]],
     numbers: list[tuple[int, bytes]],
     source: str,
@@ -1068,7 +1136,7 @@ def write_tile(
 
     db.executemany(
         "INSERT INTO places (id, name, kind, lat, lon, population, admin_id,"
-        " osm_type, osm_id) VALUES (?,?,?,?,?,?,?,?,?)",
+        " osm_type, osm_id, importance) VALUES (?,?,?,?,?,?,?,?,?,?)",
         [
             (
                 p.id,
@@ -1080,6 +1148,7 @@ def write_tile(
                 p.admin_id,
                 p.osm_type,
                 p.osm_id,
+                p.importance,
             )
             for p in places
         ],
@@ -1092,11 +1161,11 @@ def write_tile(
         [(s.id, s.name, scaled(s.lat), scaled(s.lon), s.place_id) for s in streets],
     )
     db.executemany(
-        "INSERT INTO pois (id, name, kind, lat, lon, place_id, osm_type, osm_id)"
-        " VALUES (?,?,?,?,?,?,?,?)",
+        "INSERT INTO pois (id, name, kind, lat, lon, place_id, osm_type, osm_id,"
+        " importance) VALUES (?,?,?,?,?,?,?,?,?)",
         [
-            (pid, name, kind, scaled(lat), scaled(lon), place_id, osm_type, osm_id)
-            for pid, name, kind, lat, lon, place_id, osm_type, osm_id in pois
+            (pid, name, kind, scaled(lat), scaled(lon), place_id, osm_type, osm_id, score)
+            for pid, name, kind, lat, lon, place_id, osm_type, osm_id, score in pois
         ],
     )
 
@@ -1104,12 +1173,13 @@ def write_tile(
     db.executemany("INSERT INTO street_numbers (street_id, data) VALUES (?,?)", numbers)
 
     # An unnamed utility row has nothing to match, so it stays out of the index.
+    # The index holds every name transliterated; the tables keep it as it is.
     db.executemany(
         "INSERT INTO search(rowid, name) VALUES (?,?)",
-        [(p.id, p.name) for p in places]
-        + [(s.id, s.name) for s in streets]
-        + [(row[0], row[1]) for row in pois if row[1] is not None]
-        + [(row[0], row[2]) for row in aliases],
+        [(p.id, translit(p.name)) for p in places]
+        + [(s.id, translit(s.name)) for s in streets]
+        + [(row[0], translit(row[1])) for row in pois if row[1] is not None]
+        + [(row[0], translit(row[2])) for row in aliases],
     )
 
     db.executemany(
@@ -1121,6 +1191,7 @@ def write_tile(
             ("source", source),
             ("has_streets", "1" if has_streets else "0"),
             ("has_pois", "1"),
+            ("search_script", SEARCH_SCRIPT),
         ],
     )
     db.commit()
@@ -1185,6 +1256,7 @@ def build_tile(
             place_of(poi.lat, poi.lon, None, grid, by_name),
             poi.osm_type,
             poi.osm_id,
+            poi.importance,
         )
         for index, poi in enumerate(raw_pois)
     ]

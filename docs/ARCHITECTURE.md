@@ -419,7 +419,9 @@ read-only and answers the search field first — instant and without a signal.
 Every matching row is scored in Dart (`domain/search_text.dart`): how well
 each typed word stands for a word of the name (equal, prefix, abbreviation,
 typo, compound), how much of the name was asked for, the way to the map
-centre and the size of a place; a town typed after the street ("hauptstrasse
+centre, the size of a place and how widely known a row is (`importance`, the
+languages its name is given in); Cyrillic and Greek are read in Latin on both
+sides, so "aleksandar nevski" finds "Александър Невски"; a town typed after the street ("hauptstrasse
 berlin") is matched against each row's place. A query that answers nothing
 well gets a second look with the index's own words as alternatives and words
 left out; `tools/gazetteer/README.md` has the contract. The app's store

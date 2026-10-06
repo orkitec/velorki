@@ -13,7 +13,10 @@ optional `osm_type`/`osm_id` columns and the optional `aliases`,
 whether or not a file has them; when a file does have them, every `ref_id` and
 `street_id` must resolve, every `street_numbers` blob must decode completely,
 `vocab` must be exactly the FTS index's vocabulary, and no street may carry
-more than 40 `house_numbers` anchors. The positional index on `streets` is likewise optional: older files have it, files
+more than 40 `house_numbers` anchors. An `importance`, where a table has the
+column, is NULL or 1-255. A file whose `search_script` is `latin` indexes
+transliterated names (translit.py): the query check transliterates the name
+first, and no indexed term may hold a letter the table maps. The positional index on `streets` is likewise optional: older files have it, files
 built today do not. Used by manifest.py before it writes a gazetteer entry, and
 by the tests.
 """
@@ -29,6 +32,7 @@ from typing import NamedTuple
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from street_numbers import decode  # noqa: E402
+from translit import LETTERS, SEARCH_SCRIPT, translit  # noqa: E402
 
 SCHEMA_VERSION = "1"
 
@@ -159,14 +163,18 @@ def check(path: str) -> Report:
         )
 
         _check_osm_columns(db, path)
+        _check_importance(db, path)
         extra = _check_extra_tables(db, path)
         counts["search"] += extra["aliases"]
         counts.update(extra)
         _check_unnamed_are_not_indexed(db, path)
-        _check_query(db, path)
+        latin = meta.get("search_script") == SEARCH_SCRIPT
+        _check_query(db, path, latin)
         # Last, so a broken index is reported as what it is, not as a stale vocab.
         if _has_table(db, "vocab"):
             counts["vocab"] = _check_vocab(db, path)
+        if latin:
+            _check_transliterated(db, path)
     finally:
         db.close()
 
@@ -247,6 +255,41 @@ def _check_osm_columns(db: sqlite3.Connection, path: str) -> None:
             raise GazetteerError(
                 f"{path}: {table} holds {tuple(duplicate)} more than once"
             )
+
+
+def _check_importance(db: sqlite3.Connection, path: str) -> None:
+    """`importance` is optional; where a table has it, it is NULL or 1-255."""
+    for table in ("places", "pois"):
+        columns = {row[1] for row in db.execute(f"PRAGMA table_info({table})")}
+        if "importance" not in columns:
+            continue
+        bad = db.execute(
+            f"SELECT importance FROM {table} WHERE importance IS NOT NULL"
+            " AND (typeof(importance) != 'integer' OR importance NOT BETWEEN 1 AND 255)"
+            " LIMIT 1"
+        ).fetchone()
+        if bad is not None:
+            raise GazetteerError(f"{path}: {table}.importance is {bad[0]!r}")
+
+
+def _check_transliterated(db: sqlite3.Connection, path: str) -> None:
+    """A `search_script` = `latin` file indexes no letter the table maps."""
+    try:
+        db.execute(
+            "CREATE VIRTUAL TABLE temp.gaz_terms USING fts5vocab(main,'search','row')"
+        )
+    except sqlite3.Error:
+        return  # an SQLite too old for fts5vocab
+    try:
+        letters = frozenset(LETTERS)
+        for (term,) in db.execute("SELECT term FROM temp.gaz_terms"):
+            if not letters.isdisjoint(term):
+                raise GazetteerError(
+                    f"{path}: search_script is {SEARCH_SCRIPT!r} but the index"
+                    f" holds {term!r}"
+                )
+    finally:
+        db.execute("DROP TABLE temp.gaz_terms")
 
 
 def _has_table(db: sqlite3.Connection, table: str) -> bool:
@@ -393,8 +436,11 @@ def _check_unnamed_are_not_indexed(db: sqlite3.Connection, path: str) -> None:
         db.execute("DROP TABLE temp.gaz_index")
 
 
-def _check_query(db: sqlite3.Connection, path: str) -> None:
-    """Take a real name out of the tables and prove the FTS index finds it."""
+def _check_query(db: sqlite3.Connection, path: str, latin: bool = False) -> None:
+    """Take a real name out of the tables and prove the FTS index finds it.
+
+    A transliterated index is asked with the name transliterated.
+    """
     for table in ("places", "pois", "streets"):
         row = db.execute(
             f"SELECT id, name FROM {table} WHERE name IS NOT NULL LIMIT 1"
@@ -402,10 +448,11 @@ def _check_query(db: sqlite3.Connection, path: str) -> None:
         if row is None:
             continue
         rowid, name = row
+        text = translit(name) if latin else name
         # The whole name as a phrase, not a prefix of its first word: "B"* in
         # a tile the size of Mexico matches far more rows than any limit.
         phrase = " ".join(
-            f'"{token}"' for token in name.replace('"', '""').split()
+            f'"{token}"' for token in text.replace('"', '""').split()
         )
         if not phrase:
             continue

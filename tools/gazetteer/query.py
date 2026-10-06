@@ -39,6 +39,7 @@ from typing import NamedTuple
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from street_numbers import decode, locate as locate_number  # noqa: E402
+from translit import SEARCH_SCRIPT, translit  # noqa: E402
 
 COORD_SCALE = 1e7
 METERS_PER_DEG_LAT = 111320.0
@@ -206,6 +207,12 @@ def locate(db: sqlite3.Connection, hit: Hit, number: str) -> Hit:
     )
 
 
+def search_script(db: sqlite3.Connection) -> str | None:
+    """meta.search_script: 'latin' when the index holds transliterated names."""
+    row = db.execute("SELECT value FROM meta WHERE key = 'search_script'").fetchone()
+    return row[0] if row else None
+
+
 def search(
     db: sqlite3.Connection,
     text: str,
@@ -213,6 +220,9 @@ def search(
     near: tuple[float, float] | None = None,
 ) -> list[Hit]:
     match_text, number = split_house_number(text)
+    # The app reads the query the way the builder wrote the index.
+    if search_script(db) == SEARCH_SCRIPT:
+        match_text = translit(match_text)
     # An object and its aliases are separate FTS rows: two hits resolving to
     # the same row are one result, at the better of the two ranks.
     best: dict[int, Hit] = {}

@@ -20,6 +20,7 @@ import '../domain/search_kinds.dart';
 import '../domain/search_result.dart';
 import '../domain/search_text.dart';
 import '../domain/street_numbers.dart';
+import '../domain/translit.dart';
 import 'photon_client.dart';
 
 part 'gazetteer_store.g.dart';
@@ -709,39 +710,46 @@ class GazetteerStore {
     required bool narrowed,
   }) {
     final folded = foldSearchTerm(word);
+    // A short word the first look took exactly may be the start of the
+    // stored one ("pl" for "ploshtad"); the second look can afford the prefix
+    // unless the word is too common for it.
     final terms = <String>{
-      for (final spelling in _spellings(folded))
-        exact ? _exactTerm(spelling) : _prefixTerm(spelling),
+      for (final spelling in _spellings(folded)) ...<String>[
+        if (exact) _exactTerm(spelling),
+        if (!exact || !common) _prefixTerm(spelling),
+      ],
     };
     final known = _spellings(folded).any(_knownPrefix);
     final whole = known && _spellings(folded).any(_knownTerm);
-    var oneEdit = false;
-    if (folded.length >= gazetteerMinChars && !whole) {
-      final typos = _typoCandidates(folded);
-      oneEdit = typos.any(
-        (term) => damerauLevenshtein(folded, term, max: 1) <= 1,
-      );
-      for (final term in typos) {
-        terms.add(_exactTerm(term));
-      }
-      if (!whole) {
-        for (final split in _splits(folded)) {
+    // The index's words come in the script the file was built with: as
+    // written in an older file, in Latin in a newer one.
+    for (final form in <String>{folded, transliterate(folded)}) {
+      var oneEdit = false;
+      if (form.length >= gazetteerMinChars && !whole) {
+        final typos = _typoCandidates(form);
+        oneEdit = typos.any(
+          (term) => damerauLevenshtein(form, term, max: 1) <= 1,
+        );
+        for (final term in typos) {
+          terms.add(_exactTerm(term));
+        }
+        for (final split in _splits(form)) {
           terms.add('(${_exactTerm(split.$1)} AND ${_prefixTerm(split.$2)})');
         }
       }
-    }
-    if (folded.length >= 2 &&
-        folded.length <= 4 &&
-        !common &&
-        !oneEdit &&
-        (!last || !whole)) {
-      for (final term in _abbreviated(folded)) {
-        terms.add(_exactTerm(term));
+      if (form.length >= 2 &&
+          form.length <= 4 &&
+          !common &&
+          !oneEdit &&
+          (!last || !whole)) {
+        for (final term in _abbreviated(form)) {
+          terms.add(_exactTerm(term));
+        }
       }
-    }
-    if (narrowed && folded.length > _maxShortChars && !common && !last) {
-      for (final term in _abbreviations(folded)) {
-        terms.add(_exactTerm(term));
+      if (narrowed && form.length > _maxShortChars && !common && !last) {
+        for (final term in _abbreviations(form)) {
+          terms.add(_exactTerm(term));
+        }
       }
     }
     return terms.length == 1 ? terms.first : '(${terms.join(' OR ')})';
@@ -882,15 +890,7 @@ class GazetteerStore {
 
   /// [folded] and its other spelling: the index keeps "ß" as it is, so
   /// "strasse" is also looked for as "straße", and the other way round.
-  static List<String> _spellings(String folded) {
-    if (folded.contains('ß')) {
-      return <String>[folded, folded.replaceAll('ß', 'ss')];
-    }
-    if (folded.contains('ss')) {
-      return <String>[folded, folded.replaceAll('ss', 'ß')];
-    }
-    return <String>[folded];
-  }
+  static List<String> _spellings(String folded) => spellingsOf(folded);
 
   static bool _holdsInOrder(String long, String short) {
     var j = 0;
@@ -1065,12 +1065,28 @@ GazetteerQuery? gazetteerMatchExpression(String text) {
 /// in both spellings of "ß".
 String _firstLookTerm(String word, {bool exact = false}) {
   final term = exact ? _exactTerm : _prefixTerm;
-  final folded = foldSearchTerm(word);
-  if (!folded.contains('ß') && !folded.contains('ss')) return term(word);
-  final other = folded.contains('ß')
-      ? folded.replaceAll('ß', 'ss')
-      : folded.replaceAll('ss', 'ß');
-  return '(${term(word)} OR ${term(other)})';
+  final others = spellingsOf(foldSearchTerm(word)).skip(1);
+  if (others.isEmpty) return term(word);
+  return '(${<String>[term(word), ...others.map(term)].join(' OR ')})';
+}
+
+/// [folded] and the other ways the index may hold it: "ß" for "ss" and the
+/// other way round (the tokenizer keeps "ß"), and a Cyrillic or Greek word
+/// spelled in Latin, which is how a file with `meta.search_script` = `latin`
+/// indexes it; an older file indexes the word as written, so both are asked.
+@visibleForTesting
+List<String> spellingsOf(String folded) {
+  final found = <String>[folded];
+  void add(String spelling) {
+    if (!found.contains(spelling)) found.add(spelling);
+  }
+
+  for (final base in <String>[folded, transliterate(folded)]) {
+    add(base);
+    if (base.contains('ß')) add(base.replaceAll('ß', 'ss'));
+    if (base.contains('ss')) add(base.replaceAll('ss', 'ß'));
+  }
+  return found;
 }
 
 /// One word the index is asked for: its place in the query, and whether it
@@ -1095,7 +1111,8 @@ class _GazetteerFile {
         'FROM places WHERE id = ?',
       ),
       _places = _db.prepare(
-        'SELECT id, name, kind, lat, lon, population, admin_id FROM places '
+        'SELECT id, name, kind, lat, lon, population, admin_id, '
+        '${_fame(_db, 'places')} FROM places '
         'WHERE id IN (SELECT value FROM json_each(?))',
       ),
       _streets = _prepareOrNull(
@@ -1105,8 +1122,8 @@ class _GazetteerFile {
       ),
       _pois = _prepareOrNull(
         _db,
-        'SELECT id, name, kind, lat, lon, place_id FROM pois '
-        'WHERE id IN (SELECT value FROM json_each(?))',
+        'SELECT id, name, kind, lat, lon, place_id, ${_fame(_db, 'pois')} '
+        'FROM pois WHERE id IN (SELECT value FROM json_each(?))',
       ),
       _aliases = _prepareOrNull(
         _db,
@@ -1228,8 +1245,8 @@ class _GazetteerFile {
     }
 
     read(
-      'SELECT id, name, kind, lat, lon, population, admin_id FROM places '
-      'WHERE $matching $order',
+      'SELECT id, name, kind, lat, lon, population, admin_id, '
+      '${_fame(_db, 'places')} FROM places WHERE $matching $order',
       _Table.place,
     );
     read(
@@ -1237,8 +1254,8 @@ class _GazetteerFile {
       _Table.street,
     );
     read(
-      'SELECT id, name, kind, lat, lon, place_id FROM pois '
-      'WHERE $matching $order',
+      'SELECT id, name, kind, lat, lon, place_id, ${_fame(_db, 'pois')} '
+      'FROM pois WHERE $matching $order',
       _Table.poi,
     );
     return rows;
@@ -1258,6 +1275,7 @@ class _GazetteerFile {
       position: position,
       kind: table == _Table.street ? null : row['kind']?.toString(),
       population: table == _Table.place ? _asInt(row['population']) ?? 0 : 0,
+      importance: table == _Table.street ? 0 : _asInt(row['importance']) ?? 0,
       placeId: _asInt(
         table == _Table.place ? row['admin_id'] : row['place_id'],
       ),
@@ -1687,6 +1705,15 @@ class _GazetteerFile {
     return LatLng(lat / 1e7, lon / 1e7);
   }
 
+  /// The `importance` column of [table], or a 0 in its place for a file
+  /// built before it.
+  static String _fame(Database db, String table) {
+    final columns = db.select('PRAGMA table_info($table)');
+    return columns.any((c) => c['name'] == 'importance')
+        ? 'importance'
+        : '0 AS importance';
+  }
+
   static PreparedStatement? _prepareOrNull(Database db, String sql) {
     // A file from an older builder has no aliases and house_numbers instead
     // of street_numbers, a newer one the other way round: a table that is
@@ -1738,6 +1765,7 @@ class _Row {
     required this.position,
     required this.kind,
     required this.population,
+    required this.importance,
     required this.placeId,
   });
 
@@ -1749,6 +1777,11 @@ class _Row {
   /// The place or POI kind; `null` for a street.
   final String? kind;
   final int population;
+
+  /// How widely known the place or POI is: the languages its name is given
+  /// in, and 5 more for a Wikidata or Wikipedia link (`importance` in a file
+  /// from 2026-10 on; 0 otherwise).
+  final int importance;
 
   /// The place a street or a POI lies in, or the place a place belongs to.
   final int? placeId;
@@ -1896,6 +1929,10 @@ class _Pool {
             _populationWeight * math.log(1 + row.population) / math.ln10,
           );
     }
+    final fame = row.importance - _fameFloor;
+    if (fame > 0) {
+      score += math.min(_fameCap, _fameWeight * math.log(1 + fame) / math.ln2);
+    }
     if (row.table == _Table.street && query?.houseNumber != null) {
       score += _addressBonus;
     }
@@ -1993,6 +2030,15 @@ const Map<String, double> _placeWeight = <String, double>{
   'neighbourhood': 0.02,
   'hamlet': 0.01,
 };
+
+/// Importance up to this is no fame: a Wikidata link alone is worth 5, and
+/// around Paris every bike rental station and many hotels have one.
+const int _fameFloor = 5;
+
+/// What a row is worth per doubling of its importance above [_fameFloor], up
+/// to [_fameCap]: Notre-Dame de Paris (22) 0.17, the Eiffel Tower (56) 0.23.
+const double _fameWeight = 0.04;
+const double _fameCap = 0.25;
 
 /// What a place is worth per tenfold population, up to [_populationCap].
 const double _populationWeight = 0.015;

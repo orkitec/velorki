@@ -17,6 +17,7 @@ at `<appSupport>/brouter/gazetteer/<TILE>.gaz`, read-only.
 | `query.py` | runs the app's two queries from the command line |
 | `check.py` | validates one `.gaz` and prints a one-line summary |
 | `street_numbers.py` | the `street_numbers` blob: thinning, encoding, decoding, the lookup |
+| `translit.py`, `translit.json` | the text the index holds for a name: lower case, Cyrillic and Greek in Latin letters; the table is shared with the app |
 | `manifest.py` | adds the `gazetteer` object to a mirror's `manifest.json` |
 | `testset.py` | samples a `.gaz` into mistyped query/expected pairs for the search-quality scorer |
 | `test_gazetteer.py` | the tests, run against a Liechtenstein build |
@@ -32,9 +33,9 @@ at `<appSupport>/brouter/gazetteer/<TILE>.gaz`, read-only.
 | `streets` | one per street name per place | every named `highway=*` way, the many ways of one street merged into one row |
 | `aliases` | one per extra name | `name:en`, `int_name`, `alt_name`, `old_name`, `official_name`, `short_name` of a row above |
 | `street_numbers` | one per street with addresses | its house numbers, odd and even side, thinned to the points that keep interpolation within 20 m, in one blob |
-| `search` | one per place, street, **named** poi and alias | the FTS5 index the search box queries |
+| `search` | one per place, street, **named** poi and alias | the FTS5 index the search box queries, over the transliterated names |
 | `vocab` | one per word of `search` | the word and how many rows hold it, copied from the index |
-| `meta` | six | schema version, tile, build time, source, what is in the file |
+| `meta` | seven | schema version, tile, build time, source, what is in the file, the index's script |
 
 Streets are built by default and are most of the file; `--no-streets` leaves
 them and the house numbers out and takes a tile back to a few hundred KB. The
@@ -112,7 +113,8 @@ way arrives twice, as the way and as the area, and is counted once.
 
 ```sql
 CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
--- schema_version='1', tile, built_at (ISO-8601 UTC), source, has_streets, has_pois
+-- schema_version='1', tile, built_at (ISO-8601 UTC), source, has_streets, has_pois,
+-- search_script='latin' (the index holds translit(name); absent in older files)
 
 CREATE TABLE places (
     id         INTEGER PRIMARY KEY,
@@ -124,7 +126,8 @@ CREATE TABLE places (
     population INTEGER,          -- NULL when OSM has none
     admin_id   INTEGER,          -- places.id of the town/city this sits in
     osm_type   TEXT,             -- 'n', 'w', 'r'; NULL when unknown
-    osm_id     INTEGER
+    osm_id     INTEGER,
+    importance INTEGER           -- see "importance" below; NULL at 0
 );
 
 CREATE TABLE streets (
@@ -138,14 +141,15 @@ CREATE TABLE streets (
 );
 
 CREATE TABLE pois (
-    id       INTEGER PRIMARY KEY,
-    name     TEXT,              -- NULL only on the eight utility kinds
-    kind     TEXT NOT NULL,     -- one of the 38 kinds, see "POI kinds" above
-    lat      INTEGER NOT NULL,
-    lon      INTEGER NOT NULL,
-    place_id INTEGER,
-    osm_type TEXT,
-    osm_id   INTEGER
+    id         INTEGER PRIMARY KEY,
+    name       TEXT,            -- NULL only on the eight utility kinds
+    kind       TEXT NOT NULL,   -- one of the 38 kinds, see "POI kinds" above
+    lat        INTEGER NOT NULL,
+    lon        INTEGER NOT NULL,
+    place_id   INTEGER,
+    osm_type   TEXT,
+    osm_id     INTEGER,
+    importance INTEGER          -- as on places
 );
 
 CREATE TABLE aliases (
@@ -175,6 +179,24 @@ CREATE INDEX idx_aliases_ref ON aliases(ref_id);
 ```
 
 Page size 4096, journal mode DELETE (the phone opens it read-only), `VACUUM`ed.
+
+**`importance`** is fame without reading any language: the number of the
+object's tags matching `^name:[a-z]{2,3}(-[A-Za-z]{2,8})?$` (`name:en`,
+`name:zh-Hans`; not `name:etymology`, `name:left`, `name_1`), plus 5 when it
+has a `wikidata`, `wikipedia` or `wikipedia:<lang>` tag, at most 255 and NULL
+at 0. Where one row comes from several objects (a closed way and its area, a
+duplicate across merged extracts) the highest wins. Streets have none; a file
+without the column reads as all NULL.
+
+**The index holds `translit(name)`**, not the name: lower-cased (Python
+`str.lower()`), then every character found in `translit.json`'s `letters`
+replaced by its Latin value (`Александър` → `aleksandar`, `Θεσσαλονίκη` →
+`thessaloniki`, `Ђурђевдан` → `djurdjevdan`), everything else left as it is —
+Latin diacritics are the tokenizer's job. The tables keep the names as
+written; `vocab` holds the Latin words. A file built this way has
+`meta.search_script = 'latin'`; for a Latin-only tile the index is the same as
+without it. `check.py` matches a name through the index transliterated and
+rejects a `latin` file with a term holding a letter of the table.
 
 `vocab` is written last, after the FTS `optimize`, from
 `fts5vocab(main, 'search', 'row')`: exactly the index's terms with their
@@ -261,7 +283,9 @@ Reverse lookup needs no extra table: the positional indexes on `places` and
 What the app runs (`GazetteerStore.lookup`); `query.py` runs only the plain
 first look, for poking at a file.
 
-1. **Read the query** (`search_text.dart`): the words the tokenizer would cut
+1. **Read the query** (`search_text.dart`): every word is asked for as typed
+   and transliterated with the same table (`Софи` → `sofi`), so it matches
+   a `latin` file and an older one alike; the words the tokenizer would cut
    (`C/ Mayor` → `c mayor`), a house number taken out wherever it stands
    (`12`, `12a`, `12 bis`, `12/3`, `40-42`, `92-10`; an ordinal such as `42nd`
    or `2º` is a name), a five-digit number dropped as a postcode.
@@ -278,7 +302,9 @@ first look, for poking at a file.
    order, either way: `rd`/`road`, `st`/`saint`), one or two edits
    (Damerau-Levenshtein), two words written as one or one as two; weighted by
    length, times how much of the name was asked for, plus a bonus for the very
-   same name. A word the row's place or that place's parent answers counts
+   same name, and more for a well-known row (`importance` above 5, so a
+   Wikidata link alone does not count). A word the row's place or that
+   place's parent answers counts
    too (`hauptstrasse berlin`). Then less for the way to the map centre (0.06
    per doubling of the kilometres), more for a bigger place, more for a street
    when there is a house number, and the rider's group order when they set
@@ -407,9 +433,12 @@ tile it
   the points as the truth. So merging a file with a copy of itself is a no-op,
 * merges a file that predates `aliases` or the house numbers fine — it simply
   contributes none,
-* rebuilds the FTS index and `vocab`, writes `meta` (`source` is the comma-joined distinct
-  sources of the inputs, `has_streets` / `has_pois` are set when any input has
-  them) and `VACUUM`s.
+* keeps the higher `importance` of a row and its dropped duplicates (an input
+  without the column contributes NULL),
+* rebuilds the FTS index from the names, transliterated whether or not an
+  input's own index was, and `vocab`, writes `meta` (`source` is the
+  comma-joined distinct sources of the inputs, `has_streets` / `has_pois` are
+  set when any input has them, `search_script` is `latin`) and `VACUUM`s.
 
 A tile only one input holds goes through the same path, so the output is always
 canonical. `merge.py` uses the standard library only — the merge job needs no
@@ -421,7 +450,7 @@ pyosmium.
 
 | File | Built from | Content | Size |
 |---|---|---|---:|
-| `E5_N45.gaz` | `liechtenstein.osm.pbf` | 99 places, 1,315 streets, 926 pois (301 unnamed), 46 aliases, 986 `street_numbers` rows (6,578 points of 12,226 addresses), 1,904 `vocab` terms | 286,720 B |
+| `E5_N45.gaz` | `liechtenstein.osm.pbf` | 99 places (30 with `importance`), 1,315 streets, 926 pois (301 unnamed, 156 with `importance`), 46 aliases, 986 `street_numbers` rows (6,578 points of 12,226 addresses), 1,904 `vocab` terms, `search_script` `latin` | 286,720 B |
 | `W20_N30.gaz` | `portugal-latest.osm.pbf`, `--tiles W20_N30` | 1,774 places, 8,435 streets, 6,501 pois, 3,234 `house_numbers` anchors, no `vocab` | 1,490,944 B |
 
 `E5_N45.gaz` by page share: `pois` 19%, `streets` 17%, `street_numbers` 16%,
@@ -449,8 +478,9 @@ that is dropped, node 4759689350 a toilet with a tap that is two rows.
 Madeira is `W20_N30`, the tile the integration tests already mirror, and holds
 `Funchal`; Portugal is the only Geofabrik extract that covers it, so the
 mainland tiles are discarded with `--tiles`. `W20_N30.gaz` was built before
-`idx_streets_pos` was dropped, `street_numbers` replaced `house_numbers` and
-`vocab` was added, and is kept that way on purpose: it is what proves the tools
+`idx_streets_pos` was dropped, `street_numbers` replaced `house_numbers`,
+`vocab` was added and the index was transliterated (no `importance`, no
+`search_script`), and is kept that way on purpose: it is what proves the tools
 still read an older file.
 
 Run the tests from the repo root:
@@ -460,7 +490,7 @@ GAZ_EXTRACT=/path/to/liechtenstein.osm.pbf \
   python -m unittest tools/gazetteer/test_gazetteer.py
 ```
 
-103 tests, about five seconds (the `TestsetTest` ones run off the committed fixture and need no extract). `.github/workflows/app.yml`'s `gazetteer` job
+113 tests, about six seconds (the `TestsetTest` ones run off the committed fixture and need no extract). `.github/workflows/app.yml`'s `gazetteer` job
 runs exactly that on every push — it fetches the extract from Geofabrik as
 `liechtenstein.osm.pbf` (the name ends up in `meta.source`, which the tests
 assert on) — then `check.py` and `sha256sum -c fixtures.sha256` over the
@@ -602,7 +632,11 @@ Photon is a full geocoder; this is a search box that works on a plane.
   and a number past the mapped ones is the nearest end, marked approximate.
 * **Fuzzy matching beyond the letters.** Typos, abbreviations and compounds
   are read from the index's own words (see the query contract); sounds-alike
-  spellings and transliteration (Latin letters for a Cyrillic name) are not.
+  spellings are not.
+* **Transliteration beyond Cyrillic and Greek.** One table, letter by letter,
+  one spelling per letter (`щ` is `sht`, the Bulgarian way, so the Russian
+  `shch` is a typo away); Han, Kana, Hangul, Arabic, Hebrew, Georgian,
+  Armenian and the Indic scripts are indexed as written.
 * **Admin hierarchy.** `admin_id` and `place_id` are geometry, not boundaries,
   and stop at the tile edge. No country, state or district, so Springfield,
   Massachusetts cannot be told from Springfield, Illinois.

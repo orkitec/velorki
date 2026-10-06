@@ -32,6 +32,7 @@ import merge  # noqa: E402
 import query  # noqa: E402
 import street_numbers  # noqa: E402
 import testset  # noqa: E402
+import translit  # noqa: E402
 
 EXTRACT_NAME = "liechtenstein.osm.pbf"
 
@@ -146,6 +147,7 @@ class GazetteerTest(unittest.TestCase):
                 ("admin_id", "INTEGER"),
                 ("osm_type", "TEXT"),
                 ("osm_id", "INTEGER"),
+                ("importance", "INTEGER"),
             ],
         )
         self.assertEqual(
@@ -171,6 +173,7 @@ class GazetteerTest(unittest.TestCase):
                 ("place_id", "INTEGER"),
                 ("osm_type", "TEXT"),
                 ("osm_id", "INTEGER"),
+                ("importance", "INTEGER"),
             ],
         )
         # `pois.name` is the one nullable name; places and streets are not.
@@ -249,6 +252,7 @@ class GazetteerTest(unittest.TestCase):
         self.assertEqual(meta["has_streets"], "1")
         self.assertEqual(meta["has_pois"], "1")
         self.assertEqual(meta["source"], "liechtenstein.osm.pbf")
+        self.assertEqual(meta["search_script"], "latin")
         self.assertRegex(meta["built_at"], r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$")
 
         plain = dict(self.open(streets=False).execute("SELECT key, value FROM meta"))
@@ -754,6 +758,300 @@ class GazetteerTest(unittest.TestCase):
             names.count(("Liechtensteinisches Landesmuseum Vaduz", "museum")), 1
         )
         self.assertEqual(len({h.id for h in hits}), len(hits), "a row hit twice")
+
+    # -------------------------------------------------------- importance ---
+
+    def test_importance_counts_language_names_and_wiki(self) -> None:
+        score = build.importance
+        self.assertIsNone(score({"name": "Vaduz"}))
+        self.assertIsNone(
+            score(
+                {
+                    "name": "x",
+                    "name:etymology": "x",
+                    "name:left": "x",
+                    "name:prefix": "x",
+                    "name_1": "x",
+                    "old_name:en": "x",
+                    "name:e": "x",
+                    "name:engl": "x",
+                    "name:EN": "x",
+                    "name:zh-Hans-CN": "x",
+                    "name:de-": "x",
+                    "wikimedia_commons": "x",
+                }
+            )
+        )
+        self.assertEqual(score({"name:en": "x"}), 1)
+        self.assertEqual(
+            score({"name:en": "x", "name:zh-Hans": "x", "name:sr-Latn": "x", "name:ast": "x"}),
+            4,
+        )
+        self.assertEqual(score({"wikidata": "Q1"}), 5)
+        self.assertEqual(score({"wikipedia": "de:Vaduz"}), 5)
+        self.assertEqual(score({"wikipedia:de": "Vaduz"}), 5)
+        self.assertEqual(
+            score({"wikidata": "Q1", "wikipedia": "de:Vaduz", "name:de": "x"}), 6
+        )
+        many = {
+            f"name:{a}{b}{c}": "x"
+            for a in "abcdefgh"
+            for b in "abcdefgh"
+            for c in "abcdefgh"
+        }
+        self.assertEqual(len(many), 512)
+        self.assertEqual(score(many), 255)
+        self.assertEqual(build.more_important(None, None), None)
+        self.assertEqual(build.more_important(None, 3), 3)
+        self.assertEqual(build.more_important(7, 3), 7)
+
+    def test_importance_in_the_built_file(self) -> None:
+        db = self.open()
+        vaduz = db.execute(
+            "SELECT importance FROM places WHERE name = 'Vaduz' AND kind = 'town'"
+        ).fetchone()[0]
+        self.assertGreater(vaduz, build.WIKI_BONUS)
+        for table in ("places", "pois"):
+            ranked, unranked, low, high = db.execute(
+                f"SELECT count(importance), count(*) - count(importance),"
+                f" min(importance), max(importance) FROM {table}"
+            ).fetchone()
+            self.assertGreater(ranked, 0, table)
+            self.assertGreater(unranked, 0, f"{table}: an ordinary row is NULL")
+            self.assertGreaterEqual(low, 1)
+            self.assertLessEqual(high, build.MAX_IMPORTANCE)
+        # The most famous building of the country outranks a bus shelter.
+        castle = db.execute(
+            "SELECT importance FROM pois WHERE name = 'Schloss Vaduz'"
+        ).fetchone()[0]
+        self.assertGreaterEqual(castle, build.WIKI_BONUS)
+        columns = {row[1] for row in db.execute("PRAGMA table_info(streets)")}
+        self.assertNotIn("importance", columns)
+
+    def test_merge_keeps_the_higher_importance(self) -> None:
+        low = self.break_file(
+            "UPDATE places SET importance = NULL WHERE name = 'Vaduz'",
+            "UPDATE pois SET importance = 3 WHERE name = 'Schloss Vaduz'",
+        )
+        high = self.break_file(
+            "UPDATE places SET importance = 200 WHERE name = 'Vaduz'",
+            "UPDATE pois SET importance = NULL WHERE name = 'Schloss Vaduz'",
+        )
+        castle = self.open().execute(
+            "SELECT importance FROM pois WHERE name = 'Schloss Vaduz'"
+        ).fetchone()[0]
+        self.assertGreater(castle, 3)
+        for order in ((low, high), (high, low)):
+            merged = self.run_merge(*self.copies(*order))
+            db = sqlite3.connect(f"file:{merged}?mode=ro", uri=True)
+            self.addCleanup(db.close)
+            self.assertEqual(
+                db.execute(
+                    "SELECT importance FROM places WHERE name = 'Vaduz' AND kind = 'town'"
+                ).fetchone()[0],
+                200,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT importance FROM pois WHERE name = 'Schloss Vaduz'"
+                ).fetchone()[0],
+                3,
+            )
+
+    def test_merge_reads_no_importance_from_an_older_file(self) -> None:
+        older = self.break_file(
+            "ALTER TABLE places DROP COLUMN importance",
+            "ALTER TABLE pois DROP COLUMN importance",
+        )
+        check.check(older)
+        alone = self.run_merge(*self.copies(older))
+        db = sqlite3.connect(f"file:{alone}?mode=ro", uri=True)
+        self.addCleanup(db.close)
+        for table in ("places", "pois"):
+            self.assertEqual(
+                db.execute(f"SELECT count(importance) FROM {table}").fetchone()[0], 0
+            )
+        # Next to a new file, the new file's importance survives the dedup.
+        merged = self.run_merge(*self.copies(older, self.path()))
+        built = self.open()
+        out = sqlite3.connect(f"file:{merged}?mode=ro", uri=True)
+        self.addCleanup(out.close)
+        sql = (
+            "SELECT osm_type, osm_id, kind, importance FROM {} ORDER BY 1, 2, 3"
+        )
+        for table in ("places", "pois"):
+            self.assertEqual(
+                out.execute(sql.format(table)).fetchall(),
+                built.execute(sql.format(table)).fetchall(),
+            )
+
+    def test_check_rejects_an_importance_out_of_range(self) -> None:
+        for value in (0, 256, -1, "'x'"):
+            with self.assertRaises(check.GazetteerError, msg=value) as caught:
+                check.check(
+                    self.break_file(f"UPDATE pois SET importance = {value} WHERE id = "
+                                    "(SELECT min(id) FROM pois)")
+                )
+            self.assertIn("importance", str(caught.exception))
+
+    # ----------------------------------------------------- transliteration ---
+
+    def test_a_latin_file_indexes_what_it_did_before(self) -> None:
+        """Transliteration changes nothing for a file with only Latin names.
+
+        The index is rebuilt here from the untouched names, as the builder did
+        before, and must give the very same vocab.
+        """
+        db = self.open()
+        names = [
+            (rowid, name)
+            for table, column in (
+                ("places", "name"),
+                ("streets", "name"),
+                ("pois", "name"),
+                ("aliases", "name"),
+            )
+            for rowid, name in db.execute(
+                f"SELECT id, {column} FROM {table} WHERE {column} IS NOT NULL"
+            )
+        ]
+        letters = frozenset(translit.LETTERS)
+        self.assertTrue(all(letters.isdisjoint(name.lower()) for _, name in names))
+        plain = sqlite3.connect(":memory:")
+        self.addCleanup(plain.close)
+        plain.execute(
+            "CREATE VIRTUAL TABLE search USING fts5(name, content='', columnsize=0,"
+            " tokenize='unicode61 remove_diacritics 2')"
+        )
+        plain.executemany("INSERT INTO search(rowid, name) VALUES (?,?)", names)
+        plain.execute("CREATE VIRTUAL TABLE temp.v USING fts5vocab(main, 'search', 'row')")
+        self.assertEqual(
+            db.execute("SELECT term, docs FROM vocab ORDER BY term").fetchall(),
+            plain.execute("SELECT term, doc FROM temp.v ORDER BY term").fetchall(),
+        )
+
+    def cyrillic_file(self) -> str:
+        """A small tile of Bulgarian, Serbian, Russian and Greek names."""
+        out = tempfile.mkdtemp(prefix="gaz-cyrillic-", dir=self.tmp)
+        self.addCleanup(shutil.rmtree, out, ignore_errors=True)
+        places = [
+            build.PlaceRow(1, "София", "city", 42.69, 23.32, 1_200_000, None, "n", 1, 40),
+            build.PlaceRow(2, "Θεσσαλονίκη", "city", 40.64, 22.94, None, None, "n", 2, None),
+        ]
+        streets = [
+            build.StreetRow(3, "Александър Невски", 42.69, 23.33, 1, ()),
+            build.StreetRow(4, "Ђурђевданска", 42.70, 23.30, 1, ()),
+        ]
+        pois = [
+            (5, "Храм-паметник Св. Александър Невски", "place_of_worship",
+             42.696, 23.333, 1, "w", 5, 30),
+            (6, "Щастливеца", "cafe", 42.69, 23.32, 1, "n", 6, None),
+        ]
+        aliases = [(7, 6, "Счастливец")]
+        build.write_tile(
+            os.path.join(out, f"{TILE}.gaz"), TILE, places, streets, pois, aliases,
+            [], "test", True, "2026-10-06T00:00:00Z",
+        )
+        return os.path.join(out, f"{TILE}.gaz")
+
+    def test_translit_of_cyrillic_and_greek(self) -> None:
+        for name, latin in (
+            ("Александър Невски", "aleksandar nevski"),
+            ("София", "sofiya"),
+            ("Щастливеца", "shtastlivetsa"),
+            ("Ђурђевдан", "djurdjevdan"),
+            ("Љубљана", "ljubljana"),
+            ("Москва", "moskva"),
+            ("Пётр Ильич", "petr ilich"),
+            ("Θεσσαλονίκη", "thessaloniki"),
+            ("ΑΘΗΝΑ", "athina"),
+            ("Ψυχικό", "psychiko"),
+            ("Mühleholz St. Florin", "mühleholz st. florin"),
+        ):
+            self.assertEqual(translit.translit(name), latin, name)
+        self.assertTrue(all(len(letter) == 1 for letter in translit.LETTERS))
+        self.assertTrue(all(letter == letter.lower() for letter in translit.LETTERS))
+
+    def test_a_cyrillic_name_is_found_by_its_latin_form(self) -> None:
+        path = self.cyrillic_file()
+        report = check.check(path)
+        self.assertEqual(report.search, 7)
+        db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        self.addCleanup(db.close)
+        self.assertEqual(
+            dict(db.execute("SELECT key, value FROM meta"))["search_script"], "latin"
+        )
+
+        def match(text: str) -> set[int]:
+            return {row[0] for row in db.execute(
+                "SELECT rowid FROM search WHERE search MATCH ?", (text,)
+            )}
+
+        self.assertEqual(match('"aleksandar" "nevski"'), {3, 5})
+        self.assertEqual(match('"thessaloniki"'), {2})
+        self.assertEqual(match('"djurdjevdanska"'), {4})
+        self.assertEqual(match('"schastlivets"'), {7})
+        self.assertEqual(match('"софия"'), set())
+        # The tables keep the names as they are written.
+        self.assertEqual(
+            db.execute("SELECT name FROM places WHERE id = 1").fetchone()[0], "София"
+        )
+        terms = {row[0] for row in db.execute("SELECT term FROM vocab")}
+        self.assertIn("sofiya", terms)
+        self.assertTrue(all(term.isascii() for term in terms), terms)
+        # query.py reads a query in either script the way the app does.
+        self.assertEqual([h.name for h in query.search(db, "sofi", 5)][:1], ["София"])
+        self.assertEqual([h.name for h in query.search(db, "Софи", 5)][:1], ["София"])
+        self.assertEqual(
+            db.execute("SELECT importance FROM places WHERE id = 1").fetchone()[0], 40
+        )
+
+    def test_merge_transliterates_an_older_index(self) -> None:
+        """An input indexed as written, without search_script, comes out Latin."""
+        path = self.cyrillic_file()
+        db = sqlite3.connect(path)
+        db.executescript(
+            "DROP TABLE search; DELETE FROM vocab;"
+            " DELETE FROM meta WHERE key = 'search_script';"
+            "CREATE VIRTUAL TABLE search USING fts5(name, content='', columnsize=0,"
+            " tokenize='unicode61 remove_diacritics 2');"
+            "INSERT INTO search(rowid, name)"
+            " SELECT id, name FROM places UNION ALL SELECT id, name FROM streets"
+            " UNION ALL SELECT id, name FROM pois UNION ALL SELECT id, name FROM aliases;"
+            "CREATE VIRTUAL TABLE temp.v USING fts5vocab(main, 'search', 'row');"
+            "INSERT INTO vocab SELECT term, doc FROM temp.v;"
+        )
+        db.commit()
+        db.close()
+        check.check(path)
+        merged = self.run_merge(*self.copies(path))
+        check.check(merged)
+        out = sqlite3.connect(f"file:{merged}?mode=ro", uri=True)
+        self.addCleanup(out.close)
+        self.assertEqual(self.meta_of(merged)["search_script"], "latin")
+        terms = {row[0] for row in out.execute("SELECT term FROM vocab")}
+        self.assertIn("aleksandar", terms)
+        self.assertTrue(all(term.isascii() for term in terms), terms)
+        self.assertEqual(
+            out.execute("SELECT importance FROM pois WHERE name LIKE 'Храм%'").fetchone()[0],
+            30,
+        )
+
+    def test_check_rejects_an_untransliterated_term_in_a_latin_file(self) -> None:
+        path = self.cyrillic_file()
+        db = sqlite3.connect(path)
+        db.executescript(
+            "INSERT INTO search(rowid, name) VALUES (99, 'Щастливеца');"
+            "DELETE FROM vocab;"
+            "CREATE VIRTUAL TABLE temp.v USING fts5vocab(main, 'search', 'row');"
+            "INSERT INTO vocab SELECT term, doc FROM temp.v;"
+        )
+        db.commit()
+        db.close()
+        with self.assertRaises(check.GazetteerError) as caught:
+            check.check(path)
+        self.assertIn("search_script", str(caught.exception))
+        self.assertIn("щастливеца", str(caught.exception))
 
     # ----------------------------------------------------- house numbers ---
 
@@ -1662,6 +1960,7 @@ class GazetteerTest(unittest.TestCase):
         self.assertEqual(meta["source"], "liechtenstein.osm.pbf,austria.osm.pbf")
         self.assertEqual(meta["has_streets"], "1")
         self.assertEqual(meta["has_pois"], "1")
+        self.assertEqual(meta["search_script"], "latin")
         self.assertRegex(meta["built_at"], r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$")
 
     def test_merge_finds_inputs_in_nested_directories(self) -> None:
@@ -1717,21 +2016,22 @@ class GazetteerTest(unittest.TestCase):
             elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
                 imported.add(node.module.split(".")[0])
         self.assertLessEqual(
-            imported, sys.stdlib_module_names | {"check", "street_numbers"}
+            imported, sys.stdlib_module_names | {"check", "street_numbers", "translit"}
         )
-        with open(os.path.join(HERE, "street_numbers.py"), encoding="utf-8") as handle:
-            tree = ast.parse(handle.read())
-        imported = {
-            alias.name.split(".")[0]
-            for node in ast.walk(tree)
-            if isinstance(node, ast.Import)
-            for alias in node.names
-        } | {
-            node.module.split(".")[0]
-            for node in ast.walk(tree)
-            if isinstance(node, ast.ImportFrom) and node.module
-        }
-        self.assertLessEqual(imported, sys.stdlib_module_names)
+        for module in ("street_numbers.py", "translit.py"):
+            with open(os.path.join(HERE, module), encoding="utf-8") as handle:
+                tree = ast.parse(handle.read())
+            imported = {
+                alias.name.split(".")[0]
+                for node in ast.walk(tree)
+                if isinstance(node, ast.Import)
+                for alias in node.names
+            } | {
+                node.module.split(".")[0]
+                for node in ast.walk(tree)
+                if isinstance(node, ast.ImportFrom) and node.module
+            }
+            self.assertLessEqual(imported, sys.stdlib_module_names, module)
 
     # ------------------------------------------------------------- misc ----
 

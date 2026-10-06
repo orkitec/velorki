@@ -11,14 +11,16 @@ library;
 import 'dart:math' as math;
 
 import 'fuzzy.dart';
+import 'translit.dart';
 
-/// [text] folded for comparing two words: [foldSearchTerm] and then the
-/// letters that are written two ways ("ß" and "ss", "æ" and "ae").
+/// [text] folded for comparing two words: [foldSearchTerm], Cyrillic and
+/// Greek spelled in Latin ([transliterate]), and the letters that are
+/// written two ways ("ß" and "ss", "æ" and "ae").
 ///
 /// The index keeps "ß" as it is, so this is only ever used on the Dart side,
 /// on both the query and the name, never to build an FTS term.
 String foldForMatch(String text) {
-  final folded = foldSearchTerm(text);
+  final folded = transliterate(foldSearchTerm(text));
   if (!_twoWayLetters.hasMatch(folded)) return folded;
   return folded.replaceAllMapped(_twoWayLetters, (m) => _twoWay[m[0]] ?? m[0]!);
 }

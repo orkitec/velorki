@@ -1238,6 +1238,85 @@ void main() {
       expect(found.first.position.lat, closeTo(54.5, 1e-6));
     });
 
+    test(
+      'a famous landmark beats namesakes its name only partly fits',
+      () async {
+        buildGazetteer(
+          dir,
+          'E0_N45',
+          places: const <GazPlace>[
+            GazPlace(1, 'Notre-Dame', 'neighbourhood', 48.86, 2.30),
+            GazPlace(2, 'Notre-Dame', 'hamlet', 48.70, 2.10),
+          ],
+          pois: const <GazPoi>[
+            GazPoi(
+              3,
+              'Cathédrale Notre-Dame de Paris',
+              'place_of_worship',
+              48.853,
+              2.3499,
+              importance: 85,
+            ),
+            GazPoi(4, 'Notre-Dame', 'place_of_worship', 48.80, 2.20),
+          ],
+        );
+        final store = await openStore();
+
+        final found = await store.search(
+          'notre dame',
+          near: const LatLng(48.8566, 2.3522),
+        );
+        expect(found.first.name, 'Cathédrale Notre-Dame de Paris');
+        expect(found.map((r) => r.name), contains('Notre-Dame'));
+      },
+    );
+
+    test('Cyrillic and Latin find each other in both kinds of file', () async {
+      for (final latinIndex in <bool>[false, true]) {
+        buildGazetteer(
+          dir,
+          'E20_N40',
+          latinIndex: latinIndex,
+          pois: const <GazPoi>[
+            GazPoi(
+              1,
+              'Храм-паметник Св. Александър Невски',
+              'place_of_worship',
+              42.6958,
+              23.3328,
+            ),
+          ],
+          streets: const <GazStreet>[GazStreet(2, 'бул. Витоша', 42.69, 23.32)],
+        );
+        final store = await openStore();
+        final why = latinIndex ? 'indexed in Latin' : 'indexed as written';
+
+        expect(
+          (await store.search('александър невски')).first.kind,
+          SearchKind.poi,
+          reason: why,
+        );
+        expect(
+          (await store.search('витоша 15')).first.houseNumber,
+          '15',
+          reason: why,
+        );
+        if (latinIndex) {
+          expect(
+            (await store.search('aleksandar nevski')).first.name,
+            'Храм-паметник Св. Александър Невски',
+          );
+          expect((await store.search('vitosha')).first.name, 'бул. Витоша');
+          expect(
+            (await store.search('aleksander nevsky')).first.name,
+            'Храм-паметник Св. Александър Невски',
+            reason: 'a spelling of its own is a typo away',
+          );
+        }
+        store.close();
+      }
+    });
+
     test('the stored vocabulary answers like the computed one', () async {
       for (final vocab in <bool>[false, true]) {
         buildGazetteer(

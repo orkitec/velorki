@@ -37,6 +37,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from check import GazetteerError, check  # noqa: E402
 from street_numbers import Point, decode, encode, split, thinned_blob  # noqa: E402
 from street_numbers import POINT_SCALE  # noqa: E402
+from translit import SEARCH_SCRIPT, translit  # noqa: E402
 
 SCHEMA_VERSION = "1"
 
@@ -61,7 +62,8 @@ CREATE TABLE places (
     population INTEGER,
     admin_id   INTEGER,
     osm_type   TEXT,
-    osm_id     INTEGER
+    osm_id     INTEGER,
+    importance INTEGER
 );
 
 CREATE TABLE streets (
@@ -75,14 +77,15 @@ CREATE TABLE streets (
 );
 
 CREATE TABLE pois (
-    id       INTEGER PRIMARY KEY,
-    name     TEXT,
-    kind     TEXT NOT NULL,
-    lat      INTEGER NOT NULL,
-    lon      INTEGER NOT NULL,
-    place_id INTEGER,
-    osm_type TEXT,
-    osm_id   INTEGER
+    id         INTEGER PRIMARY KEY,
+    name       TEXT,
+    kind       TEXT NOT NULL,
+    lat        INTEGER NOT NULL,
+    lon        INTEGER NOT NULL,
+    place_id   INTEGER,
+    osm_type   TEXT,
+    osm_id     INTEGER,
+    importance INTEGER
 );
 
 CREATE TABLE aliases (
@@ -120,6 +123,10 @@ REFERENCE = {"places": "admin_id", "streets": "place_id", "pois": "place_id"}
 
 TABLES = ("places", "streets", "pois")
 
+# The tables with an `importance` column. An input built before it has none,
+# and its rows read as NULL.
+RANKED = ("places", "pois")
+
 
 class Row(NamedTuple):
     """One input row, still carrying the id and reference of its own file."""
@@ -129,6 +136,7 @@ class Row(NamedTuple):
     osm_type: str | None
     osm_id: int | None
     source_index: int  # which input file it came from
+    importance: int | None = None
 
     @property
     def id(self) -> int:
@@ -176,6 +184,19 @@ def find_inputs(directories: list[str]) -> list[str]:
 def has_osm_columns(db: sqlite3.Connection, table: str) -> bool:
     columns = {row[1] for row in db.execute(f"PRAGMA table_info({table})")}
     return "osm_type" in columns and "osm_id" in columns
+
+
+def has_column(db: sqlite3.Connection, table: str, column: str) -> bool:
+    return column in {row[1] for row in db.execute(f"PRAGMA table_info({table})")}
+
+
+def higher(a: int | None, b: int | None) -> int | None:
+    """The larger of two nullable importances."""
+    if a is None:
+        return b
+    if b is None:
+        return a
+    return max(a, b)
 
 
 def has_table(db: sqlite3.Connection, table: str) -> bool:
@@ -233,7 +254,12 @@ def read_file(path: str, index: int) -> tuple[dict[str, Any], Input]:
         for table in TABLES:
             base = BASE_COLUMNS[table]
             osm = has_osm_columns(db, table)
-            columns = ", ".join(base + (("osm_type", "osm_id") if osm else ()))
+            ranked = table in RANKED and has_column(db, table, "importance")
+            columns = ", ".join(
+                base
+                + (("osm_type", "osm_id") if osm else ())
+                + (("importance",) if ranked else ())
+            )
             rows[table] = [
                 Row(
                     table,
@@ -241,6 +267,7 @@ def read_file(path: str, index: int) -> tuple[dict[str, Any], Input]:
                     record[len(base)] if osm else None,
                     record[len(base) + 1] if osm else None,
                     index,
+                    record[-1] if ranked else None,
                 )
                 for record in db.execute(f"SELECT {columns} FROM {table} ORDER BY id")
             ]
@@ -335,6 +362,8 @@ def merge_rows(files: list[Input]) -> Merged:
     remap: dict[tuple[int, int], int] = {}
     winners: dict[tuple, int] = {}  # dedup key -> new id
     kept: dict[str, list[Row]] = {table: [] for table in TABLES}
+    # dedup key -> index of its survivor in kept[table], to raise importance.
+    kept_at: dict[tuple, int] = {}
 
     next_id = 1
     rows_in = 0
@@ -352,12 +381,19 @@ def merge_rows(files: list[Input]) -> Merged:
                     else None,
                 )
                 if key is not None and key in winners:
-                    # A dropped duplicate hands its references to its survivor.
+                    # A dropped duplicate hands its references to its survivor,
+                    # and its importance when that is the higher one.
                     remap[(row.source_index, row.id)] = winners[key]
+                    position = kept_at[key]
+                    survivor = kept[table][position]
+                    kept[table][position] = survivor._replace(
+                        importance=higher(survivor.importance, row.importance)
+                    )
                     continue
                 remap[(row.source_index, row.id)] = next_id
                 if key is not None:
                     winners[key] = next_id
+                    kept_at[key] = len(kept[table])
                 kept[table].append(row._replace(values=(next_id,) + row.values[1:]))
                 next_id += 1
 
@@ -371,7 +407,11 @@ def merge_rows(files: list[Input]) -> Merged:
             values[reference_index] = (
                 remap.get((row.source_index, old)) if old is not None else None
             )
-            final.append(tuple(values) + (row.osm_type, row.osm_id))
+            final.append(
+                tuple(values)
+                + (row.osm_type, row.osm_id)
+                + ((row.importance,) if table in RANKED else ())
+            )
         out[table] = final
 
     # Aliases come after the three tables, exactly as build.py hands them out.
@@ -427,7 +467,11 @@ def write_tile(path: str, tile: str, merged: Merged, meta: list[tuple[str, str]]
     db.executescript(SCHEMA)
 
     for table in TABLES:
-        columns = BASE_COLUMNS[table] + ("osm_type", "osm_id")
+        columns = (
+            BASE_COLUMNS[table]
+            + ("osm_type", "osm_id")
+            + (("importance",) if table in RANKED else ())
+        )
         placeholders = ",".join("?" * len(columns))
         db.executemany(
             f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({placeholders})",
@@ -440,15 +484,17 @@ def write_tile(path: str, tile: str, merged: Merged, meta: list[tuple[str, str]]
         "INSERT INTO street_numbers (street_id, data) VALUES (?,?)", merged.numbers
     )
     # An unnamed utility row has nothing to match, so it stays out of the index.
+    # The index is rebuilt from the names, so it is transliterated whatever the
+    # inputs' own indexes held.
     db.executemany(
         "INSERT INTO search(rowid, name) VALUES (?,?)",
         [
-            (row[0], row[1])
+            (row[0], translit(row[1]))
             for table in TABLES
             for row in merged.rows[table]
             if row[1] is not None
         ]
-        + [(row[0], row[2]) for row in merged.aliases],
+        + [(row[0], translit(row[2])) for row in merged.aliases],
     )
     db.executemany("INSERT INTO meta VALUES (?,?)", meta)
     db.commit()
@@ -477,6 +523,7 @@ def meta_rows(tile: str, metas: list[dict[str, Any]], built_at: str) -> list[tup
         ("source", ",".join(sources)),
         ("has_streets", "1" if any(m.get("has_streets") == "1" for m in metas) else "0"),
         ("has_pois", "1" if any(m.get("has_pois") == "1" for m in metas) else "0"),
+        ("search_script", SEARCH_SCRIPT),
     ]
 
 
