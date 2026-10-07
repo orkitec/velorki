@@ -127,9 +127,17 @@ class SmartLoopController extends _$SmartLoopController {
 
     final run = _LoopRun(queries.length);
     _run = run;
+    // The status line under the bar is there from the first frame, so it
+    // does not push the bar when the first direction comes back.
+    state = state.copyWith(planned: run.planned);
     run.onProgress = () {
       if (_disposed || !identical(_run, run)) return;
-      state = state.copyWith(progress: run.progress);
+      // Short of full until the search really ends: a retry can follow
+      // the last request, and a full bar over a running search looked done.
+      state = state.copyWith(
+        progress: math.min(run.progress, _runningProgressCap),
+        checked: run.done,
+      );
     };
     final planner = LoopPlanner(
       backend: _CountingBackend(backend, run),
@@ -279,6 +287,9 @@ class SmartLoopController extends _$SmartLoopController {
   static String _messageOf(Object error) =>
       error is RoutingException ? error.message : error.toString();
 }
+
+/// The most the bar shows while a search still runs.
+const double _runningProgressCap = 0.9;
 
 /// One loop search: its cancel token and its progress counters.
 class _LoopRun {

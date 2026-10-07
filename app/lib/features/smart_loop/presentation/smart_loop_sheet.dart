@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -414,8 +415,20 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
       if (state.running) ...[
         // Indeterminate until the first request has come back: a bar sitting
         // empty at 0 % while the first batch routes looked frozen.
-        _LoopProgress(value: state.progress > 0 ? state.progress : null),
+        _LoopProgress(
+          value: state.progress > 0 ? state.progress : null,
+          searching: true,
+        ),
         const SizedBox(height: 8),
+        // What the bar stands for, and why it goes on once a loop is shown:
+        // one step is one direction routed in full, which takes seconds.
+        if (state.planned > 0)
+          Text(
+            result == null
+                ? l10n.loopChecking(state.checked, state.planned)
+                : l10n.loopCheckingBetter(state.checked),
+            style: _quiet(theme),
+          ),
         Align(
           alignment: Alignment.centerRight,
           child: TextButton(
@@ -444,6 +457,7 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
           result,
           canAnother: true,
           running: false,
+          bestOf: state.index == 0 ? state.candidates.length : null,
         )
       else
         SizedBox(
@@ -475,6 +489,7 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
     RouteResult result, {
     required bool canAnother,
     required bool running,
+    int? bestOf,
   }) => [
     Text(
       l10n.loopResult(
@@ -483,6 +498,8 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
       ),
       style: theme.textTheme.titleMedium,
     ),
+    if (bestOf != null && bestOf > 0)
+      Text(l10n.loopBestOf(bestOf), style: _quiet(theme)),
     const SizedBox(height: 12),
     Row(
       children: [
@@ -555,22 +572,126 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
 /// The search's progress bar: animated while [value] is `null`, filled to
 /// [value] once there is one, the same height and track either way so the
 /// switch moves nothing.
-class _LoopProgress extends StatelessWidget {
-  const _LoopProgress({required this.value});
+///
+/// While [searching], a soft light also sweeps along the part still to fill,
+/// so the bar is seen to be at work between two steps, which can be seconds
+/// apart, and after a loop is already shown. It stands still when the system
+/// asks for less motion.
+class _LoopProgress extends StatefulWidget {
+  const _LoopProgress({required this.value, this.searching = false});
 
   final double? value;
+  final bool searching;
 
   @override
-  Widget build(BuildContext context) => ClipRRect(
-    borderRadius: BorderRadius.circular(4),
-    child: LinearProgressIndicator(
+  State<_LoopProgress> createState() => _LoopProgressState();
+}
+
+class _LoopProgressState extends State<_LoopProgress>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _sweep = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1600),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _update();
+  }
+
+  @override
+  void didUpdateWidget(_LoopProgress oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _update();
+  }
+
+  void _update() {
+    final moving =
+        widget.searching &&
+        widget.value != null &&
+        !MediaQuery.disableAnimationsOf(context);
+    if (moving && !_sweep.isAnimating) {
+      unawaited(_sweep.repeat());
+    } else if (!moving && _sweep.isAnimating) {
+      _sweep.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _sweep.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final value = widget.value;
+    final bar = LinearProgressIndicator(
       value: value,
       minHeight: 4,
       // A track the bar is visibly drawn on in both themes, rather than the
       // indicator's own faint default.
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-    ),
-  );
+      backgroundColor: scheme.surfaceContainerHighest,
+    );
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: value == null || !widget.searching
+          ? bar
+          : Stack(
+              children: [
+                bar,
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _SweepPainter(
+                      sweep: _sweep,
+                      from: value,
+                      color: scheme.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+}
+
+/// A band of the bar's colour, faded at both ends, running from [from] to the
+/// end of the track and starting over.
+class _SweepPainter extends CustomPainter {
+  _SweepPainter({required this.sweep, required this.from, required this.color})
+    : super(repaint: sweep);
+
+  final Animation<double> sweep;
+  final double from;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final start = size.width * from.clamp(0.0, 1.0);
+    final track = size.width - start;
+    if (track <= 0) return;
+    final band = math.max(24, track * 0.3).toDouble();
+    final left = start - band + (track + band) * sweep.value;
+    final rect = Rect.fromLTWH(left, 0, band, size.height);
+    final faint = color.withValues(alpha: 0);
+    final paint = Paint()
+      ..shader = LinearGradient(
+        colors: <Color>[faint, color.withValues(alpha: 0.45), faint],
+      ).createShader(rect);
+    canvas
+      ..save()
+      ..clipRect(Rect.fromLTWH(start, 0, track, size.height))
+      ..drawRect(rect, paint)
+      ..restore();
+  }
+
+  @override
+  bool shouldRepaint(_SweepPainter oldDelegate) =>
+      oldDelegate.from != from ||
+      oldDelegate.color != color ||
+      oldDelegate.sweep != sweep;
 }
 
 class _Problem extends StatelessWidget {

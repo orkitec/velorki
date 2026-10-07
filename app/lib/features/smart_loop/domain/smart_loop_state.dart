@@ -35,6 +35,12 @@ abstract class SmartLoopState with _$SmartLoopState {
     /// Routing requests finished divided by requests planned, `0`..`1`.
     @Default(0.0) double progress,
 
+    /// How many directions have been routed, successfully or not.
+    @Default(0) int checked,
+
+    /// How many directions this search set out to try; retries come on top.
+    @Default(0) int planned,
+
     /// Why the search failed, in the routing server's own words.
     String? error,
 
