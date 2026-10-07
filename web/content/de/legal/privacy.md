@@ -83,6 +83,9 @@ online geht), geht dein Text an Photon, einen Geocoding-Dienst, zusammen mit
 einer groben Position, damit nahe Ergebnisse zuerst stehen. Photon liefert
 Ortsvorschläge zurück.
 
+Tippst du auf der Ortskarte auf "Details", werden die Details des Orts
+(Öffnungszeiten, Website und Ähnliches) von OpenStreetMap abgerufen.
+
 ### Kartenkacheln
 
 Die Karte wird aus Kacheln gezeichnet, die von OpenFreeMap geholt werden, und
@@ -336,6 +339,8 @@ selbst verantwortlich sind**
   Kartenausschnitt, den du ansiehst, und deine IP-Adresse.
 - **komoot GmbH**, Potsdam, Deutschland — der Photon-Geocoder unter
   `photon.komoot.io`, und nur für eine von dir angeforderte Online-Suche.
+- **OpenStreetMap** (`api.openstreetmap.org`) — die Details eines Orts, wenn du
+  auf der Ortskarte auf "Details" tippst.
 - **Apple Inc.** und **Google Ireland Ltd** — der Verkauf von Velorki Plus. Sie
   sind die Verkäufer; deine Zahlungsdaten sehen wir nie.
 - **Strava, Inc.** und **Ride with GPS** — erst nachdem du das Konto verbunden
@@ -353,7 +358,8 @@ Klipy, Strava, Ride with GPS, Apple und Google sitzen in den USA oder
 Standardvertragsklauseln der Europäischen Kommission oder, wo der Anbieter
 zertifiziert ist, auf das EU-US Data Privacy Framework, zusammen mit den
 technischen Maßnahmen des Anbieters. Hetzner, komoot und die Kartendienste, auf
-die wir uns stützen, liegen in der EU. Alles, was die App für dich speichert,
+die wir uns stützen, liegen in der EU, OpenStreetMap im Vereinigten Königreich.
+Alles, was die App für dich speichert,
 bleibt auf deinem Handy und wird überhaupt nicht übermittelt.
 
 ## Sicherheit

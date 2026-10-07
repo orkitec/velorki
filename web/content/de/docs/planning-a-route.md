@@ -13,12 +13,12 @@ Der Tab Planen macht aus Tippern auf der Karte eine Radroute, berechnet auf dein
 3. **Tippe erneut** für den nächsten Punkt. Jeder Tipper hängt einen Punkt ans Ende der Route, und der letzte, das Ziel, trägt eine Flagge. Für einen Punkt mittendrin **tippe auf die Routenlinie**, wo er hin soll: Der Punkt landet dort auf der Linie, und du kannst ihn ziehen wie jeden anderen.
 4. Velorki wartet nach deiner letzten Änderung einen Moment und berechnet dann. Währenddessen dreht sich unten ein Ladekreis mit **Route wird berechnet…**, danach erscheinen die Zahlen.
 
-Du kannst auch von einem Ort aus starten statt mit einem Tipper. Tippe oben ins Suchfeld, wähle ein Ergebnis, und solange die Planung noch leer ist, erscheinen unter den Rad-Chips zwei Schaltflächen:
+Du kannst auch von einem Ort aus starten statt mit einem Tipper. Tippe oben ins Suchfeld und wähle ein Ergebnis, oder tippe auf der Karte auf einen Stopp; solange die Planung noch leer ist, bietet die Ortskarte:
 
-- **Von meiner Position** fährt von deinem Standort zum gesuchten Ort.
-- **Hier starten** macht den gesuchten Ort zum ersten Punkt der Route.
+- **Route hierher** fährt von deinem Standort zum Ort.
+- **Hier starten** macht den Ort zum ersten Punkt der Route.
 
-Sobald eine Route geplant wird, hängt ein Suchergebnis den Ort einfach als nächsten Wegpunkt an. Was das Suchfeld alles findet, steht unter [Suche](./search).
+Sobald eine Route geplant wird, bietet die Ortskarte **Als Stopp einfügen**, das den Ort dort in die Route setzt, wo er unterwegs liegt, und **Als Ziel**, das ihn ans Ende hängt. Was das Suchfeld alles findet, steht unter [Suche](./search).
 
 ## Einen Ort neben der Route markieren
 

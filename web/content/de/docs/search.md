@@ -12,12 +12,15 @@ Das Suchfeld oben im Tab Planen findet Städte, Straßen, Hausnummern und Ziele 
 2. Tippe mindestens drei Zeichen ein. Die Ergebnisse erscheinen während des Tippens in einer Karte unter dem Feld.
 3. Tippe auf ein Ergebnis.
 
-Was dann passiert, hängt von der Planung ab:
+Eine Ortskarte geht auf, mit dem Namen des Orts, was er ist, wie weit er von dir entfernt ist und, wenn es eine Route gibt, wie weit neben der Route. Die Karte fährt zum Ort und setzt eine Nadel. Was die Ortskarte anbietet, hängt von der Planung ab:
 
-- **Noch nichts geplant**: Die Karte fährt zum Ort und setzt eine Nadel, und unter den Rad-Chips erscheinen zwei Schaltflächen, **Von meiner Position** und **Hier starten**.
-- **Eine Route wird schon geplant**: Der Ort wird direkt als nächster Wegpunkt angehängt.
+- **Noch nichts geplant**: **Route hierher** fährt von deinem Standort zum Ort; **Hier starten** macht ihn zum ersten Punkt der Route.
+- **Nur ein Start**: **Als Ziel** macht ihn zum Ende der Route.
+- **Eine Route**: **Als Stopp einfügen** setzt ihn dort in die Route, wo er unterwegs liegt; **Als Ziel** hängt ihn ans Ende.
 
-Das **X** im Feld löscht den Text, die Nadel und die beiden Schaltflächen.
+Darunter holt **Details** die Öffnungszeiten des Orts (und ob gerade geöffnet ist), Website, Telefonnummer und Ähnliches von OpenStreetMap, nur wenn du darauf tippst; bei Straßen und Orten ohne OpenStreetMap-ID fehlt die Schaltfläche. **Öffnen in…** zeigt den Ort in einer anderen Karten-App oder auf openstreetmap.org, oder teilt ihn.
+
+Die Ortskarte zu schließen (das **X**, nach unten wischen oder auf die Karte tippen) ändert nichts und leert die Suche. Ein auf der Karte angetippter Stopp öffnet dieselbe Ortskarte.
 
 ## Offline oder online
 

@@ -24,7 +24,7 @@ Velorki erkennt am Anfang der Datei, was sie ist, und vertraut weder ihrem Namen
 
 ## Ein Ort aus einer anderen App
 
-Velorki nimmt auch einen einzelnen Ort entgegen, zu dem du fahren willst, und öffnet ihn im Tab **Planen** so, wie sich ein Suchergebnis öffnet: auf der Karte angeheftet, mit seinem Namen, mit **Hier starten** und **Von meiner Position**.
+Velorki nimmt auch einen einzelnen Ort entgegen, zu dem du fahren willst, und öffnet ihn im Tab **Planen** so, wie sich ein Suchergebnis öffnet: auf der Karte angeheftet, auf seiner Ortskarte mit **Route hierher** und **Hier starten**.
 
 - **Teilen-Menü.** Teile einen Ort aus Google Maps, Apple Karten, OpenStreetMap, einem Browser oder einem Messenger und wähle Velorki. Ein Kartenlink, Koordinaten wie `52.5200, 13.4050` oder `52°31'12"N 13°24'18"E` oder eine Adresse funktionieren; eine Adresse landet im Suchfeld, das sie findet.
 - **Öffnen mit** (Android). Ein Ort, den eine andere App öffnet (ein `geo:`-Link), bietet Velorki in der Auswahl an.
