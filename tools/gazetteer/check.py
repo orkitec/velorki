@@ -47,7 +47,7 @@ MAX_ANCHORS = 40
 UNNAMED_KINDS = frozenset(
     """
     drinking_water toilets bicycle_repair_station shelter bicycle_rental
-    charging_station picnic_site bicycle_parking
+    charging_station picnic_site bicycle_parking compressed_air fuel
     """.split()
 )
 

@@ -601,6 +601,18 @@
   "@searchKindFastFood": {
     "description": "Second line of an offline search result that is a fast-food place"
   },
+  "searchKindIceCream": "Ice cream",
+  "@searchKindIceCream": {
+    "description": "Second line of an offline search result that is an ice cream parlour"
+  },
+  "searchKindFuel": "Petrol station",
+  "@searchKindFuel": {
+    "description": "Second line of an offline search result that is a petrol (gas) station"
+  },
+  "searchKindAirPump": "Air pump",
+  "@searchKindAirPump": {
+    "description": "Second line of an offline search result that is a public air pump for tyres"
+  },
   "searchKindBikeRepair": "Bike repair station",
   "@searchKindBikeRepair": {
     "description": "Second line of an offline search result that is a public bike repair station"

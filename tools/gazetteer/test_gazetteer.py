@@ -60,8 +60,8 @@ TILE = "E5_N45"
 # Every kind `pois.kind` may hold: the rider's kit, then the landmarks.
 POI_KINDS = frozenset(
     """
-    drinking_water cafe restaurant fast_food bicycle_repair_station shelter
-    bicycle_shop station
+    drinking_water cafe restaurant fast_food ice_cream fuel compressed_air
+    bicycle_repair_station shelter bicycle_shop station
     viewpoint peak park
     toilets bicycle_rental charging_station pharmacy picnic_site
     bicycle_parking
@@ -76,7 +76,7 @@ POI_KINDS = frozenset(
 UNNAMED_KINDS = frozenset(
     """
     drinking_water toilets bicycle_repair_station shelter bicycle_rental
-    charging_station picnic_site bicycle_parking
+    charging_station picnic_site bicycle_parking compressed_air fuel
     """.split()
 )
 
@@ -450,6 +450,10 @@ class GazetteerTest(unittest.TestCase):
             ({"shop": "convenience"}, "supermarket"),
             ({"shop": "bakery"}, "bakery"),
             ({"amenity": "restaurant"}, "restaurant"),
+            ({"amenity": "ice_cream"}, "ice_cream"),
+            ({"shop": "ice_cream"}, "ice_cream"),
+            ({"amenity": "fuel"}, "fuel"),
+            ({"amenity": "compressed_air"}, "compressed_air"),
             ({"amenity": "fast_food"}, "fast_food"),
             # A bar or a pub is no riding stop; one serving food is tagged
             # a restaurant.

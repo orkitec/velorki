@@ -76,6 +76,9 @@ POI_AMENITIES = {
     "cafe": "cafe",
     "restaurant": "restaurant",
     "fast_food": "fast_food",
+    "ice_cream": "ice_cream",
+    "fuel": "fuel",
+    "compressed_air": "compressed_air",
     "bicycle_repair_station": "bicycle_repair_station",
     "shelter": "shelter",
     "toilets": "toilets",
@@ -88,7 +91,7 @@ POI_AMENITIES = {
 UNNAMED_KINDS = frozenset(
     """
     drinking_water toilets bicycle_repair_station shelter bicycle_rental
-    charging_station picnic_site bicycle_parking
+    charging_station picnic_site bicycle_parking compressed_air fuel
     """.split()
 )
 
@@ -474,6 +477,8 @@ def poi_kind(tags) -> str | None:
         return "alpine_hut"
     if shop in SUPERMARKET_SHOPS:
         return "supermarket"
+    if shop == "ice_cream":
+        return "ice_cream"
     if shop == "bakery":
         return "bakery"
 
@@ -634,6 +639,9 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
                 address_street = clean_name(tags.get("addr:street"))
 
         name = clean_name(tags.get("name"))
+        # A fuel station is known by its brand ("Shell") when it has no name.
+        if name is None and tags.get("amenity") == "fuel":
+            name = clean_name(tags.get("brand"))
         place = tags.get("place")
         want_place = bool(name) and place in PLACE_KINDS
         want_street = (
