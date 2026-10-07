@@ -48,11 +48,9 @@ abstract final class MapLayerIds {
   static const String poisLabelLayer = 'velorki-pois-label';
   static const String waypointsIconLayer = 'velorki-waypoints-icon';
   static const String stopsSource = 'velorki-stops';
-  static const String stopsCircleLayer = 'velorki-stops-circle';
-  static const String stopsIconLayer = 'velorki-stops-icon';
+  static const String stopsLayer = 'velorki-stops-marker';
   static const String stopsLabelLayer = 'velorki-stops-label';
   static const String stopsClusterLayer = 'velorki-stops-cluster';
-  static const String stopsClusterCountLayer = 'velorki-stops-cluster-count';
   static const String turnsSource = 'velorki-turns';
   static const String turnsLayer = 'velorki-turns-dot';
 
@@ -731,6 +729,7 @@ class MaplibreMapControllerAdapter implements MapController {
     // A fresh style holds none of our bitmaps; the replay registers the
     // ones the markers still need.
     _glyphImages.clear();
+    _stopImages.clear();
     // A fresh style draws the track in the plain colour until something asks
     // for the speed ramp again.
     _trackColoured = false;
@@ -779,15 +778,13 @@ class MaplibreMapControllerAdapter implements MapController {
         clusterMaxZoom: stopsClusterMaxZoom,
       ),
     );
+    // Stops and bubbles are symbols, disc and all, so they fade in and out
+    // with the map's placement instead of popping. Each stop's picture is
+    // registered as the stops arrive; the bubble's, one for all, here.
     await add(
       MapLayerIds.stopsSource,
-      MapLayerIds.stopsCircleLayer,
+      MapLayerIds.stopsLayer,
       enableInteraction: true,
-      filter: MarkerLayers.isNotCluster,
-    );
-    await add(
-      MapLayerIds.stopsSource,
-      MapLayerIds.stopsIconLayer,
       filter: MarkerLayers.isNotCluster,
     );
     await add(
@@ -795,15 +792,11 @@ class MaplibreMapControllerAdapter implements MapController {
       MapLayerIds.stopsLabelLayer,
       filter: MarkerLayers.isNotCluster,
     );
+    await _addStopClusterImage();
     await add(
       MapLayerIds.stopsSource,
       MapLayerIds.stopsClusterLayer,
       enableInteraction: true,
-      filter: MarkerLayers.isCluster,
-    );
-    await add(
-      MapLayerIds.stopsSource,
-      MapLayerIds.stopsClusterCountLayer,
       filter: MarkerLayers.isCluster,
     );
 
@@ -956,10 +949,95 @@ class MaplibreMapControllerAdapter implements MapController {
     final icons = <IconData>{
       for (final w in _waypoints) ?w.icon,
       for (final poi in _pois) ?poi.icon,
-      for (final stop in _stops) ?stop.icon,
     };
     _glyphImages.clear();
     await _addMarkerGlyphs(icons);
+  }
+
+  /// Names of the stop pictures registered with the style so far.
+  final Set<String> _stopImages = <String>{};
+
+  /// The colour of a stop of [kind], as the points of interest wear it.
+  String _poiColor(MapPoiKind kind) => switch (kind) {
+    MapPoiKind.danger => palette.poiDanger,
+    MapPoiKind.water => palette.poiWater,
+    MapPoiKind.food => palette.poiFood,
+    MapPoiKind.generic => palette.poiGeneric,
+  };
+
+  /// Registers the picture of every stop of [stops] the style has not got
+  /// yet: its disc in its kind's colour, or the chosen colour and size for
+  /// the chosen stop, with its glyph on it, named as
+  /// [MarkerLayers.stopImageName] names it.
+  ///
+  /// A picture that cannot be drawn is skipped and tried again with the
+  /// next write of the stops.
+  Future<void> _addStopImages(Iterable<MapPoi> stops) async {
+    for (final stop in stops) {
+      final icon = stop.icon;
+      final name = MarkerLayers.stopImageName(
+        stop.selected ? 'selected' : stop.kind.name,
+        icon == null ? null : markerGlyphName(icon),
+      );
+      if (!_stopImages.add(name)) continue;
+      try {
+        final bytes = await buildDiscMarkerImage(
+          icon: icon,
+          fill: colorFromMapHex(
+            stop.selected ? palette.routePreview : _poiColor(stop.kind),
+          ),
+          stroke: colorFromMapHex(palette.waypointStroke),
+          radiusPx: stop.selected
+              ? MarkerLayers.stopDiscSelectedRadiusPx
+              : MarkerLayers.stopDiscRadiusPx,
+          strokePx: MarkerLayers.stopStrokePx,
+          // The glyph a stop's own glyph layer drew: the chosen point's,
+          // scaled down with its outline for the rest.
+          glyphPx: stop.selected
+              ? markerGlyphOnDiscSizePx
+              : markerGlyphOnDiscSizePx * MarkerLayers.stopGlyphScale,
+          glyphHaloPx: stop.selected
+              ? markerGlyphHaloPx
+              : markerGlyphHaloPx * MarkerLayers.stopGlyphScale,
+          glyphColor: colorFromMapHex(palette.waypointStroke),
+          devicePixelRatio: devicePixelRatio,
+        );
+        if (_disposed) return;
+        await _ops.addImage(name, bytes);
+      } on Object catch (error) {
+        _stopImages.remove(name);
+        debugPrint('velorki: stop marker failed: $error');
+      }
+    }
+  }
+
+  /// Draws every registered stop picture again in the new palette's
+  /// colours.
+  Future<void> _redrawStopImages() async {
+    _stopImages.clear();
+    await _addStopImages(_stops);
+  }
+
+  /// Registers the bubble of a cluster of stops: the accent with the stop
+  /// discs' rim, at the widest radius, scaled down by the style for the
+  /// smaller ones. Again on every palette change; `addImage` under the same
+  /// name replaces the bitmap.
+  Future<void> _addStopClusterImage() async {
+    try {
+      final bytes = await buildDiscMarkerImage(
+        fill: colorFromMapHex(palette.stopCluster),
+        stroke: colorFromMapHex(palette.waypointStroke),
+        radiusPx: MarkerLayers.clusterRadiiPx.last,
+        strokePx: MarkerLayers.stopStrokePx,
+        devicePixelRatio: devicePixelRatio,
+      );
+      if (_disposed) return;
+      await _ops.addImage(MarkerLayers.clusterImageName, bytes);
+    } on Object catch (error) {
+      // Bubbles go missing until the next attach or palette change; the
+      // single stops still draw.
+      debugPrint('velorki: stop cluster bubble failed: $error');
+    }
   }
 
   /// Rasterises the heading cone in the palette's position colour and hands
@@ -1430,10 +1508,12 @@ class MaplibreMapControllerAdapter implements MapController {
     for (final entry in _baseLayerProperties().entries) {
       await _ops.setLayerProperties(entry.key, entry.value);
     }
-    // The cone and the marker glyphs are bitmaps, not style colours, so
-    // they have to be drawn again.
+    // The cone, the marker glyphs and the stops are bitmaps, not style
+    // colours, so they have to be drawn again.
+    await _addStopClusterImage();
     await _addHeadingConeImage();
     await _redrawMarkerGlyphs();
+    await _redrawStopImages();
     for (final entry in _routeLines.entries) {
       await _ops.setLayerProperties(
         MapLayerIds.routeCasingLayer(entry.key),
@@ -1510,20 +1590,12 @@ class MaplibreMapControllerAdapter implements MapController {
         strokeWidth: 2,
       ),
       MapLayerIds.poisIconLayer: markers.glyph(),
-      MapLayerIds.stopsCircleLayer: markers.disc(
-        color: _poiColorExpression(),
-        strokeWidth: 1.5,
-        radius: MarkerLayers.stopDiscRadius(),
-      ),
-      MapLayerIds.stopsIconLayer: markers.glyph(
-        scale: MarkerLayers.stopGlyphScaleExpression(),
-      ),
+      MapLayerIds.stopsLayer: markers.stop(),
       MapLayerIds.stopsLabelLayer: markers.name(
         field: 'name',
         chosenOnly: true,
       ),
       MapLayerIds.stopsClusterLayer: markers.clusterBubble(),
-      MapLayerIds.stopsClusterCountLayer: markers.clusterLabel(),
       MapLayerIds.poisLabelLayer: markers.name(field: 'name'),
       MapLayerIds.searchPinLayer: ml.CircleLayerProperties(
         circleRadius: 9.0,
@@ -1647,7 +1719,7 @@ class MaplibreMapControllerAdapter implements MapController {
       return;
     }
     if (call != _stopsCall) return;
-    await _addMarkerGlyphs(stops.map((stop) => stop.icon));
+    await _addStopImages(stops);
     if (call != _stopsCall) return;
     await _writeBaseSource(
       MapLayerIds.stopsSource,

@@ -82,21 +82,16 @@ const double markerGlyphSizePx = 13;
 /// to read a dark glyph against a dark wood or a motorway.
 const double markerGlyphHaloPx = 1.6;
 
-/// Paints [icon] and encodes it as PNG bytes.
-///
-/// The glyph is stroked in [haloColor] and filled with [color], so it is
-/// legible on any ground the map paints under it, and rendered at
-/// [devicePixelRatio] so it stays crisp on a phone.
-Future<Uint8List> buildMarkerGlyphImage({
+/// The glyph of [icon], stroked in [haloColor] and filled with [color], laid
+/// out at [sizePx] with an outline of [haloPx]: the halo first, then the
+/// fill.
+({TextPainter halo, TextPainter fill}) _glyphPainters({
   required IconData icon,
   required Color color,
   required Color haloColor,
-  required double devicePixelRatio,
-  double? sizePx,
-  double haloPx = markerGlyphHaloPx,
-}) async {
-  sizePx ??= markerGlyphSizePx;
-  final ratio = devicePixelRatio <= 0 ? 1.0 : devicePixelRatio;
+  required double sizePx,
+  required double haloPx,
+}) {
   final text = String.fromCharCode(icon.codePoint);
 
   TextPainter painter(Paint paint) => TextPainter(
@@ -112,22 +107,32 @@ Future<Uint8List> buildMarkerGlyphImage({
     textDirection: TextDirection.ltr,
   )..layout();
 
-  final halo = painter(
-    Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeJoin = StrokeJoin.round
-      ..strokeWidth = haloPx * 2
-      ..color = haloColor
-      ..isAntiAlias = true,
+  return (
+    halo: painter(
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeJoin = StrokeJoin.round
+        ..strokeWidth = haloPx * 2
+        ..color = haloColor
+        ..isAntiAlias = true,
+    ),
+    fill: painter(
+      Paint()
+        ..style = PaintingStyle.fill
+        ..color = color
+        ..isAntiAlias = true,
+    ),
   );
-  final fill = painter(
-    Paint()
-      ..style = PaintingStyle.fill
-      ..color = color
-      ..isAntiAlias = true,
-  );
+}
 
-  final logical = Size(halo.width + haloPx * 2, halo.height + haloPx * 2);
+/// Records what [paint] draws on a canvas of [logical] size and encodes it
+/// as a PNG at [devicePixelRatio].
+Future<Uint8List> _encodePng(
+  Size logical,
+  double devicePixelRatio,
+  void Function(Canvas canvas) paint,
+) async {
+  final ratio = devicePixelRatio <= 0 ? 1.0 : devicePixelRatio;
   final pixels = Size(
     math.max(1, (logical.width * ratio).round()).toDouble(),
     math.max(1, (logical.height * ratio).round()).toDouble(),
@@ -138,9 +143,7 @@ Future<Uint8List> buildMarkerGlyphImage({
     Rect.fromLTWH(0, 0, pixels.width, pixels.height),
   );
   canvas.scale(pixels.width / logical.width, pixels.height / logical.height);
-  const origin = Offset(markerGlyphHaloPx, markerGlyphHaloPx);
-  halo.paint(canvas, origin);
-  fill.paint(canvas, origin);
+  paint(canvas);
 
   final image = await recorder.endRecording().toImage(
     pixels.width.round(),
@@ -151,7 +154,114 @@ Future<Uint8List> buildMarkerGlyphImage({
     return data!.buffer.asUint8List();
   } finally {
     image.dispose();
-    halo.dispose();
-    fill.dispose();
+  }
+}
+
+/// Paints [icon] and encodes it as PNG bytes.
+///
+/// The glyph is stroked in [haloColor] and filled with [color], so it is
+/// legible on any ground the map paints under it, and rendered at
+/// [devicePixelRatio] so it stays crisp on a phone.
+Future<Uint8List> buildMarkerGlyphImage({
+  required IconData icon,
+  required Color color,
+  required Color haloColor,
+  required double devicePixelRatio,
+  double? sizePx,
+  double haloPx = markerGlyphHaloPx,
+}) async {
+  final glyph = _glyphPainters(
+    icon: icon,
+    color: color,
+    haloColor: haloColor,
+    sizePx: sizePx ?? markerGlyphSizePx,
+    haloPx: haloPx,
+  );
+  try {
+    final logical = Size(
+      glyph.halo.width + haloPx * 2,
+      glyph.halo.height + haloPx * 2,
+    );
+    return await _encodePng(logical, devicePixelRatio, (canvas) {
+      const origin = Offset(markerGlyphHaloPx, markerGlyphHaloPx);
+      glyph.halo.paint(canvas, origin);
+      glyph.fill.paint(canvas, origin);
+    });
+  } finally {
+    glyph.halo.dispose();
+    glyph.fill.dispose();
+  }
+}
+
+/// Air left round a disc's rim in its bitmap, in logical pixels, so the
+/// anti-aliased edge is not cut off.
+const double markerDiscBitmapPadPx = 1;
+
+/// Paints a whole marker as one picture — a disc of [radiusPx] in [fill]
+/// with a rim of [strokePx] in [stroke] outside it, as a style's circle
+/// draws one, and [icon], if any, centred on it — and encodes it as PNG
+/// bytes.
+///
+/// One picture rather than a circle layer under a glyph: a symbol fades in
+/// and out with the map's placement, a circle only pops.
+///
+/// The glyph is [glyphPx] high with an outline of [glyphHaloPx] in
+/// [glyphHaloColor], filled with [glyphColor], exactly as
+/// [buildMarkerGlyphImage] draws it.
+Future<Uint8List> buildDiscMarkerImage({
+  required Color fill,
+  required Color stroke,
+  required double radiusPx,
+  required double strokePx,
+  required double devicePixelRatio,
+  IconData? icon,
+  double glyphPx = markerGlyphOnDiscSizePx,
+  double glyphHaloPx = markerGlyphHaloPx,
+  Color glyphColor = const Color(0xFFFFFFFF),
+  Color glyphHaloColor = const Color(0x59000000),
+}) async {
+  final glyph = icon == null
+      ? null
+      : _glyphPainters(
+          icon: icon,
+          color: glyphColor,
+          haloColor: glyphHaloColor,
+          sizePx: glyphPx,
+          haloPx: glyphHaloPx,
+        );
+  try {
+    final side = (radiusPx + strokePx + markerDiscBitmapPadPx) * 2;
+    final center = Offset(side / 2, side / 2);
+    return await _encodePng(Size(side, side), devicePixelRatio, (canvas) {
+      canvas.drawCircle(
+        center,
+        radiusPx,
+        Paint()
+          ..style = PaintingStyle.fill
+          ..color = fill
+          ..isAntiAlias = true,
+      );
+      if (strokePx > 0) {
+        canvas.drawCircle(
+          center,
+          radiusPx + strokePx / 2,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = strokePx
+            ..color = stroke
+            ..isAntiAlias = true,
+        );
+      }
+      if (glyph != null) {
+        // Centred as the glyph's own bitmap is centred on its point.
+        final origin =
+            center - Offset(glyph.halo.width / 2, glyph.halo.height / 2);
+        glyph.halo.paint(canvas, origin);
+        glyph.fill.paint(canvas, origin);
+      }
+    });
+  } finally {
+    glyph?.halo.dispose();
+    glyph?.fill.dispose();
   }
 }

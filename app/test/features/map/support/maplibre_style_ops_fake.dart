@@ -187,8 +187,10 @@ class RecordingStyleOps implements MapLibreStyleOps {
   /// Thrown by the next [setLayerProperties] call, then cleared.
   Object? layerPropertiesError;
 
-  /// Thrown by the next [addImage] call, then cleared.
+  /// Thrown by the next [addImage] call, then cleared; by the next one for
+  /// [addImageErrorName] alone when that is set.
   Object? addImageError;
+  String? addImageErrorName;
 
   /// The style images that currently exist.
   final Set<String> images = <String>{};
@@ -346,7 +348,8 @@ class RecordingStyleOps implements MapLibreStyleOps {
   Future<void> addImage(String name, Uint8List bytes) async {
     await addImageGate?.future;
     final error = addImageError;
-    if (error != null) {
+    if (error != null &&
+        (addImageErrorName == null || addImageErrorName == name)) {
       addImageError = null;
       throw error;
     }

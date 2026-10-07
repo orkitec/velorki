@@ -28,6 +28,27 @@ void main() {
     expect(bytes, isNotEmpty);
   });
 
+  test('a whole marker, disc, rim and glyph, is one PNG as wide as the '
+      'disc and its rim', () async {
+    for (final icon in <IconData?>[Icons.water_drop_outlined, null]) {
+      final bytes = await buildDiscMarkerImage(
+        icon: icon,
+        fill: const Color(0xFF1E88E5),
+        stroke: const Color(0xFFFFFFFF),
+        radiusPx: 10,
+        strokePx: 1.5,
+        devicePixelRatio: 2,
+      );
+
+      expect(bytes.take(8), <int>[137, 80, 78, 71, 13, 10, 26, 10]);
+      // The width of the IHDR chunk, big-endian at bytes 16..19: the disc,
+      // its rim and a pixel of air each side, at the pixel ratio.
+      final width =
+          bytes[16] << 24 | bytes[17] << 16 | bytes[18] << 8 | bytes[19];
+      expect(width, ((10 + 1.5 + markerDiscBitmapPadPx) * 2 * 2).round());
+    }
+  });
+
   test('every icon is registered under a name of its own', () {
     const icons = <IconData>[
       Icons.water_drop_outlined,

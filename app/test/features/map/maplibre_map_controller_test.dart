@@ -13,6 +13,7 @@ import 'package:velorki/features/map/data/geojson.dart';
 import 'package:velorki/features/map/data/heading_cone.dart';
 import 'package:velorki/features/map/data/maplibre_map_controller.dart';
 import 'package:velorki/features/map/data/marker_glyph.dart';
+import 'package:velorki/features/map/data/marker_layers.dart';
 import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki/features/map/domain/visible_map.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -129,11 +130,9 @@ void main() {
           MapLayerIds.trackLayer,
           // The stops: under the puck and every point of the route.
           MapLayerIds.stopsSource,
-          MapLayerIds.stopsCircleLayer,
-          MapLayerIds.stopsIconLayer,
+          MapLayerIds.stopsLayer,
           MapLayerIds.stopsLabelLayer,
           MapLayerIds.stopsClusterLayer,
-          MapLayerIds.stopsClusterCountLayer,
           MapLayerIds.positionSource,
           // The ring is the bottom of the puck, the dot the top, so a route
           // line inserted below the ring stays under the whole puck.
@@ -214,7 +213,7 @@ void main() {
             const Point<double>(0, 0),
             ml.LatLng(48, 11),
             stopFeatureId(3),
-            MapLayerIds.stopsCircleLayer,
+            MapLayerIds.stopsLayer,
             null,
           );
         }
@@ -241,44 +240,44 @@ void main() {
         <Object>['has', 'point_count'],
       ];
       for (final layer in <String>[
-        MapLayerIds.stopsCircleLayer,
-        MapLayerIds.stopsIconLayer,
+        MapLayerIds.stopsLayer,
         MapLayerIds.stopsLabelLayer,
       ]) {
         expect(ops.addLayerOf(layer)!.filter, single, reason: layer);
       }
-      for (final layer in <String>[
-        MapLayerIds.stopsClusterLayer,
-        MapLayerIds.stopsClusterCountLayer,
-      ]) {
-        expect(ops.addLayerOf(layer)!.filter, bubble, reason: layer);
-      }
+      expect(ops.addLayerOf(MapLayerIds.stopsClusterLayer)!.filter, bubble);
       // No other layer of ours is filtered.
       expect(
         ops
             .callsNamed('addLayer')
             .where((c) => c.filter != null)
             .map((c) => c.layerId),
-        hasLength(5),
+        hasLength(3),
       );
 
-      final circle = ops.addLayerOf(MapLayerIds.stopsClusterLayer)!.properties!;
-      expect(circle['circle-color'], const MapPalette.classic().stopCluster);
-      expect(circle['circle-radius'], <Object>[
+      // The bubble and its count are one symbol, so they fade together.
+      final cluster = ops
+          .addLayerOf(MapLayerIds.stopsClusterLayer)!
+          .properties!;
+      expect(cluster['icon-image'], MarkerLayers.clusterImageName);
+      // One picture at the widest radius, scaled to the rim's outside edge
+      // of a 14, a 17 and a 20 px bubble.
+      expect(cluster['icon-size'], <Object>[
         'step',
         <Object>['get', 'point_count'],
-        14.0,
+        (14 + 1.5) / (20 + 1.5),
         10,
-        17.0,
+        (17 + 1.5) / (20 + 1.5),
         50,
-        20.0,
+        1.0,
       ]);
-      final count = ops
-          .addLayerOf(MapLayerIds.stopsClusterCountLayer)!
-          .properties!;
-      expect(count['text-font'], waypointLabelFont);
-      expect(count['text-color'], const MapPalette.classic().stopClusterLabel);
-      expect(count['text-field'], <Object>[
+      expect(cluster['text-font'], waypointLabelFont);
+      expect(cluster['text-size'], MarkerLayers.discTextPx);
+      expect(
+        cluster['text-color'],
+        const MapPalette.classic().stopClusterLabel,
+      );
+      expect(cluster['text-field'], <Object>[
         'case',
         <Object>[
           '>',
@@ -291,33 +290,146 @@ void main() {
           <Object>['get', 'point_count'],
         ],
       ]);
+
+      // A single stop is its picture, named from the feature.
+      final stop = ops.addLayerOf(MapLayerIds.stopsLayer)!.properties!;
+      expect(stop['icon-image'], <Object>[
+        'concat',
+        'velorki-stop-',
+        <Object>[
+          'case',
+          <Object>['get', 'selected'],
+          'selected',
+          <Object>['get', 'kind'],
+        ],
+        '-',
+        <Object>[
+          'coalesce',
+          <Object>['get', 'icon'],
+          'none',
+        ],
+      ]);
+
+      // Every stop and every bubble shows: none is hidden by a neighbour,
+      // and none hides one.
+      for (final properties in <Map<String, dynamic>>[cluster, stop]) {
+        expect(properties['icon-allow-overlap'], isTrue);
+        expect(properties['icon-ignore-placement'], isTrue);
+        expect(properties['icon-anchor'], 'center');
+      }
+      expect(cluster['text-allow-overlap'], isTrue);
+      expect(cluster['text-ignore-placement'], isTrue);
+      // No circles left for the stops: a circle pops, a symbol fades.
+      for (final properties in <Map<String, dynamic>>[cluster, stop]) {
+        expect(properties.keys.where((k) => k.startsWith('circle-')), isEmpty);
+      }
     });
 
-    test('the stop bubbles follow the palette', () async {
+    test('the bubble picture is registered before the layer that names it, '
+        'and drawn again in a new palette', () async {
       final ops = RecordingStyleOps();
       final adapter = _adapter(ops);
       await adapter.attachToStyle();
 
+      final image = ops.calls.indexWhere(
+        (c) => c.name == 'addImage' && c.id == MarkerLayers.clusterImageName,
+      );
+      final layer = ops.calls.indexWhere(
+        (c) =>
+            c.name == 'addLayer' && c.layerId == MapLayerIds.stopsClusterLayer,
+      );
+      expect(image, isNonNegative);
+      expect(image, lessThan(layer));
+      final before = ops.calls[image].imageBytes!;
+      ops.clearCalls();
+
       await adapter.setPalette(_repainted);
 
+      final after = ops
+          .callsNamed('addImage')
+          .where((c) => c.id == MarkerLayers.clusterImageName);
+      expect(after, hasLength(1));
+      expect(after.single.imageBytes, isNot(before));
       expect(
         ops
             .lastPropertiesOf(MapLayerIds.stopsClusterLayer)!
-            .properties!['circle-color'],
-        '#EEEEEE',
-      );
-      expect(
-        ops
-            .lastPropertiesOf(MapLayerIds.stopsClusterLayer)!
-            .properties!['circle-stroke-color'],
-        _repainted.waypointStroke,
-      );
-      expect(
-        ops
-            .lastPropertiesOf(MapLayerIds.stopsClusterCountLayer)!
             .properties!['text-color'],
         '#010101',
       );
+    });
+
+    test('each stop gets the picture of its kind and glyph, the chosen one '
+        'its own, and the pictures are drawn again in a new palette and '
+        'after a style reload', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      const water = Icons.water_drop_outlined;
+      final waterName = MarkerLayers.stopImageName(
+        'water',
+        markerGlyphName(water),
+      );
+      final chosenName = MarkerLayers.stopImageName(
+        'selected',
+        markerGlyphName(water),
+      );
+      final plainName = MarkerLayers.stopImageName('food', null);
+      ops.clearCalls();
+
+      await adapter.setStops(const <MapPoi>[
+        MapPoi(
+          position: LatLng(48, 11),
+          name: 'A',
+          kind: MapPoiKind.water,
+          icon: water,
+        ),
+        MapPoi(
+          position: LatLng(48.01, 11),
+          name: 'B',
+          kind: MapPoiKind.water,
+          icon: water,
+        ),
+        MapPoi(
+          position: LatLng(48.02, 11),
+          name: 'C',
+          kind: MapPoiKind.water,
+          icon: water,
+          selected: true,
+        ),
+        MapPoi(position: LatLng(48.03, 11), name: 'D', kind: MapPoiKind.food),
+      ]);
+
+      // One picture per look, not per stop; no bare glyph for a stop.
+      List<String> registered() =>
+          ops.callsNamed('addImage').map((c) => c.id!).toList();
+      expect(registered(), <String>[waterName, chosenName, plainName]);
+      expect(ops.lastCall('addImage')!.imageBytes, isNotEmpty);
+      final features = _featuresOf(ops, MapLayerIds.stopsSource);
+      expect(features.first['properties']['icon'], markerGlyphName(water));
+
+      // The same looks again: nothing to draw.
+      ops.clearCalls();
+      await adapter.setStops(const <MapPoi>[
+        MapPoi(
+          position: LatLng(48, 11),
+          name: 'A',
+          kind: MapPoiKind.water,
+          icon: water,
+        ),
+      ]);
+      expect(registered(), isEmpty);
+
+      ops.clearCalls();
+      await adapter.setPalette(_repainted);
+      expect(registered(), contains(waterName));
+
+      ops
+        ..reloadStyle()
+        ..clearCalls();
+      await adapter.attachToStyle();
+      expect(registered(), contains(waterName));
+      expect(ops.images, contains(waterName));
+      expect(ops.images, contains(MarkerLayers.clusterImageName));
     });
 
     group('a tap on a bubble of stops', () {
@@ -431,7 +543,7 @@ void main() {
             const Point<double>(0, 0),
             const ml.LatLng(48.1, 11),
             stopFeatureId(1),
-            MapLayerIds.stopsCircleLayer,
+            MapLayerIds.stopsLayer,
             null,
           );
         }
@@ -625,7 +737,7 @@ void main() {
           .map((c) => c.layerId)
           .toList();
       expect(interactive, <String>[
-        MapLayerIds.stopsCircleLayer,
+        MapLayerIds.stopsLayer,
         MapLayerIds.stopsClusterLayer,
         MapLayerIds.waypointsHitLayer,
         MapLayerIds.turnsLayer,
@@ -1672,7 +1784,8 @@ void main() {
     test('a bitmap the style did not take is registered again with the next '
         'fix that has a cone to draw', () async {
       final ops = RecordingStyleOps()
-        ..addImageError = PlatformException(code: 'error');
+        ..addImageError = PlatformException(code: 'error')
+        ..addImageErrorName = headingConeImageName;
       final adapter = _adapter(ops);
 
       await adapter.attachToStyle();

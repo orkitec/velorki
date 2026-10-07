@@ -92,15 +92,49 @@ class MarkerLayers {
   /// than a route's own places, which matter more than any tap nearby.
   static const double stopGlyphScale = 0.62;
 
-  /// A stop's disc, which is as wide as any chosen point's once chosen.
-  static List<Object> stopDiscRadius() => whenSelected(
-    markerDiscSelectedRadiusPx,
-    markerDiscRadiusFor(markerGlyphOnDiscSizePx * stopGlyphScale),
+  /// A stop's disc, and the chosen stop's, which is as wide as any chosen
+  /// point's.
+  static final double stopDiscRadiusPx = markerDiscRadiusFor(
+    markerGlyphOnDiscSizePx * stopGlyphScale,
   );
+  static final double stopDiscSelectedRadiusPx = markerDiscSelectedRadiusPx;
 
-  /// The glyph on a stop's disc.
-  static List<Object> stopGlyphScaleExpression() =>
-      whenSelected(1.0, stopGlyphScale);
+  /// The rim round a stop's disc and round a bubble of stops.
+  static const double stopStrokePx = 1.5;
+
+  /// What a stop's picture is called in the style: one per colour it is
+  /// drawn in — its kind's, or `selected` for the chosen stop — and glyph,
+  /// [glyphName] being the stop's `icon` property, `null` for none.
+  ///
+  /// [stopImage] asks each feature for the same name.
+  static String stopImageName(String state, String? glyphName) =>
+      'velorki-stop-$state-${glyphName ?? 'none'}';
+
+  /// The picture of a single stop, disc and glyph in one, named from the
+  /// feature's `selected`, `kind` and `icon` as [stopImageName] names it.
+  static List<Object> stopImage() => <Object>[
+    'concat',
+    'velorki-stop-',
+    whenSelected('selected', <Object>['get', 'kind']),
+    '-',
+    <Object>[
+      'coalesce',
+      <Object>['get', 'icon'],
+      'none',
+    ],
+  ];
+
+  /// A single stop: its disc with its glyph on it, as one symbol so it
+  /// fades in and out with the map's placement rather than popping.
+  ///
+  /// Forced, never placed: every stop shows, however close the next.
+  ml.SymbolLayerProperties stop() => ml.SymbolLayerProperties(
+    iconImage: stopImage(),
+    iconOpacity: opacity(),
+    iconAnchor: 'center',
+    iconAllowOverlap: true,
+    iconIgnorePlacement: true,
+  );
 
   /// Whether a feature of a clustered source is a bubble standing for
   /// several points, and the opposite: the stop layers draw the single
@@ -108,15 +142,30 @@ class MarkerLayers {
   static const List<Object> isCluster = <Object>['has', 'point_count'];
   static const List<Object> isNotCluster = <Object>['!', isCluster];
 
-  /// A cluster bubble's radius, stepping up with how many stops it holds.
-  static List<Object> clusterRadius() => <Object>[
+  /// The radius of the bubble of a cluster, stepping up with how many stops
+  /// it holds: under [clusterRadiusSteps]' first count, under its second,
+  /// and beyond.
+  static const List<double> clusterRadiiPx = <double>[14, 17, 20];
+  static const List<int> clusterRadiusSteps = <int>[10, 50];
+
+  /// What the bubble's picture is called in the style.
+  static const String clusterImageName = 'velorki-stop-cluster';
+
+  /// The bubble's picture is drawn once, at the widest radius, and scaled
+  /// down: to the rim's outside edge, so a bubble covers as much of the
+  /// map as a circle of the same radius and rim did.
+  static double clusterScale(double radiusPx) =>
+      (radiusPx + stopStrokePx) / (clusterRadiiPx.last + stopStrokePx);
+
+  /// A cluster bubble's size, stepping up with how many stops it holds.
+  static List<Object> clusterIconSize() => <Object>[
     'step',
     <Object>['get', 'point_count'],
-    14.0,
-    10,
-    17.0,
-    50,
-    20.0,
+    clusterScale(clusterRadiiPx[0]),
+    clusterRadiusSteps[0],
+    clusterScale(clusterRadiiPx[1]),
+    clusterRadiusSteps[1],
+    clusterScale(clusterRadiiPx[2]),
   ];
 
   /// What a cluster bubble says: how many stops it holds, "99+" beyond.
@@ -135,17 +184,16 @@ class MarkerLayers {
   ];
 
   /// The bubble of a cluster of stops, in the accent with the stop discs'
-  /// rim.
-  ml.CircleLayerProperties clusterBubble() => ml.CircleLayerProperties(
-    circleRadius: clusterRadius(),
-    circleColor: palette.stopCluster,
-    circleStrokeWidth: 1.5,
-    circleStrokeColor: palette.waypointStroke,
-  );
-
-  /// The count on a cluster's bubble. Forced, like a waypoint's number: it
-  /// is inside the bubble, where nothing else is.
-  ml.SymbolLayerProperties clusterLabel() => ml.SymbolLayerProperties(
+  /// rim, and the count on it: one symbol, so it fades in and out with the
+  /// map's placement and crossfades as the clusters change with the zoom.
+  /// Forced, like a waypoint's number: every bubble shows, and its count is
+  /// inside it, where nothing else is.
+  ml.SymbolLayerProperties clusterBubble() => ml.SymbolLayerProperties(
+    iconImage: clusterImageName,
+    iconSize: clusterIconSize(),
+    iconAnchor: 'center',
+    iconAllowOverlap: true,
+    iconIgnorePlacement: true,
     textField: clusterCount(),
     textFont: waypointLabelFont,
     textSize: discTextPx,
@@ -156,14 +204,12 @@ class MarkerLayers {
   );
 
   /// The disc itself. [color] is the colour of what the point is; the
-  /// chosen point takes the chosen colour instead. [radius] is a stop's
-  /// smaller disc where given.
+  /// chosen point takes the chosen colour instead.
   ml.CircleLayerProperties disc({
     required Object color,
     required double strokeWidth,
-    List<Object>? radius,
   }) => ml.CircleLayerProperties(
-    circleRadius: radius ?? discRadius(),
+    circleRadius: discRadius(),
     circleColor: whenSelected(palette.routePreview, color),
     circleStrokeWidth: strokeWidth,
     circleStrokeColor: palette.waypointStroke,
@@ -173,15 +219,14 @@ class MarkerLayers {
 
   /// The glyph on a marker's disc. A feature with no `icon` keeps the plain
   /// disc.
-  ml.SymbolLayerProperties glyph({List<Object>? scale}) =>
-      ml.SymbolLayerProperties(
-        iconImage: <Object>['get', 'icon'],
-        iconSize: scale ?? glyphScale(),
-        iconOpacity: opacity(),
-        iconAnchor: 'center',
-        iconAllowOverlap: true,
-        iconIgnorePlacement: true,
-      );
+  ml.SymbolLayerProperties glyph() => ml.SymbolLayerProperties(
+    iconImage: <Object>['get', 'icon'],
+    iconSize: glyphScale(),
+    iconOpacity: opacity(),
+    iconAnchor: 'center',
+    iconAllowOverlap: true,
+    iconIgnorePlacement: true,
+  );
 
   /// The number inside a marker's disc, for a point that carries no glyph.
   ///
