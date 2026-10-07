@@ -1,11 +1,15 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:velorki/app/app_config.dart';
 import 'package:velorki/core/links/link_opener.dart';
 import 'package:velorki/features/search/data/osm_details.dart';
-import 'package:velorki/features/search/domain/osm_place_details.dart';
+import 'package:velorki/features/search/data/osm_details_cache.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
 import 'package:velorki/features/search/presentation/place_card.dart';
 import 'package:velorki/features/search/presentation/place_details_view.dart';
@@ -36,7 +40,7 @@ const SearchResult _anonymous = SearchResult(
   detail: 'cafe',
 );
 
-final OsmPlaceDetails _full = OsmPlaceDetails.fromTags(const {
+const Map<String, String> _full = {
   'opening_hours': 'Mo-Fr 08:00-18:00; Sa 09:00-12:00',
   'website': 'https://www.cafe-wolf.example/',
   'phone': '+423 232 00 00',
@@ -44,18 +48,18 @@ final OsmPlaceDetails _full = OsmPlaceDetails.fromTags(const {
   'wheelchair': 'yes',
   'outdoor_seating': 'yes',
   'wikipedia': 'de:Café Wolf',
-});
+};
 
-/// Details answered by the test: [answer], or [error], once [gate] (when
-/// set) completes.
+/// Tags answered by the test: [answer], or [error], once [gate] (when set)
+/// completes.
 class _FakeDetails implements OsmDetailsSource {
-  OsmPlaceDetails answer = OsmPlaceDetails.empty;
+  Map<String, String> answer = const <String, String>{};
   Object? error;
   Completer<void>? gate;
   final List<String> asked = <String>[];
 
   @override
-  Future<OsmPlaceDetails> details(String type, int id) async {
+  Future<Map<String, String>> tags(String type, int id) async {
     asked.add('$type/$id');
     await gate?.future;
     final e = error;
@@ -70,7 +74,11 @@ void main() {
   late List<String> shared;
   late bool googleMapsInstalled;
 
+  /// Monday 10:00.
+  final monday10 = DateTime(2026, 10, 5, 10);
+
   setUp(() {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
     details = _FakeDetails();
     opened = <Uri>[];
     shared = <String>[];
@@ -83,14 +91,25 @@ void main() {
     SearchResult place, {
     List<PlaceAction> actions = const <PlaceAction>[],
     Size size = const Size(400, 900),
+    DateTime? now,
   }) async {
     await tester.binding.setSurfaceSize(size);
     addTearDown(() => tester.binding.setSurfaceSize(null));
+    final clock = now ?? monday10;
+    // Read from the device anew, as after a restart.
+    SharedPreferences.resetStatic();
+    final prefs = await SharedPreferences.getInstance();
     await tester.pumpWidget(
       ProviderScope(
+        // A new container each time.
+        key: UniqueKey(),
         overrides: [
           metricUnits,
+          sharedPreferencesProvider.overrideWithValue(prefs),
           osmDetailsSourceProvider.overrideWithValue(details),
+          osmDetailsCacheProvider.overrideWithValue(
+            OsmDetailsCache(prefs, now: () => clock),
+          ),
           linkOpenerProvider.overrideWithValue((url) async {
             opened.add(url);
             return true;
@@ -101,10 +120,7 @@ void main() {
           textSharerProvider.overrideWithValue((text, {subject}) async {
             shared.add(text);
           }),
-          // Monday 10:00.
-          placeDetailsClockProvider.overrideWithValue(
-            () => DateTime(2026, 10, 5, 10),
-          ),
+          placeDetailsClockProvider.overrideWithValue(() => clock),
         ],
         child: testApp(
           home: Scaffold(
@@ -135,9 +151,45 @@ void main() {
   Finder detailsButton() =>
       find.widgetWithText(OutlinedButton, l10n.placeCardDetails);
 
-  Future<void> openMenu(WidgetTester tester) async {
-    await tester.tap(find.byType(PopupMenuButton<PlaceOpenTarget>));
+  bool detailsEnabled(WidgetTester tester) =>
+      tester.widget<OutlinedButton>(detailsButton()).onPressed != null;
+
+  /// The labels of the Android sheet's rows, in order.
+  List<String> sheetRows(WidgetTester tester) => [
+    for (final tile in tester.widgetList<ListTile>(find.byType(ListTile)))
+      (tile.title! as Text).data!,
+  ];
+
+  /// The labels of the iOS action sheet's actions, cancel last.
+  List<String> sheetActions(WidgetTester tester) => [
+    for (final action in tester.widgetList<CupertinoActionSheetAction>(
+      find.byType(CupertinoActionSheetAction),
+    ))
+      (action.child as Text).data!,
+  ];
+
+  Future<void> openSheet(WidgetTester tester) async {
+    await tester.tap(find.text(l10n.placeCardOpenIn));
     await tester.pumpAndSettle();
+  }
+
+  /// The card's status line: open and closing, or closed and opening, at
+  /// [hour]:00 (on [day], when not today).
+  String opensOrCloses(
+    WidgetTester tester,
+    int hour, {
+    required bool open,
+    String? day,
+  }) {
+    final card = tester.element(find.byType(PlaceCard));
+    final time = MaterialLocalizations.of(card).formatTimeOfDay(
+      TimeOfDay(hour: hour, minute: 0),
+      alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(card),
+    );
+    final at = day == null ? time : '$day $time';
+    return open
+        ? l10n.placeDetailsOpenCloses(at)
+        : l10n.placeDetailsClosedOpens(at);
   }
 
   testWidgets('without an OpenStreetMap id there is no Details button', (
@@ -201,11 +253,9 @@ void main() {
       Uri.parse('https://de.wikipedia.org/wiki/Caf%C3%A9_Wolf'),
     ]);
 
-    // Tapped again, the rows fold away and come back without a new request.
-    await tester.tap(detailsButton());
-    await tester.pumpAndSettle();
-    expect(find.byType(PlaceDetailsView), findsNothing);
-    await tester.tap(detailsButton());
+    // Fetched, the rows stay and Details has nothing more to do.
+    expect(detailsEnabled(tester), isFalse);
+    await tester.tap(detailsButton(), warnIfMissed: false);
     await tester.pumpAndSettle();
     expect(find.byType(PlaceDetailsView), findsOneWidget);
     expect(details.asked, hasLength(1));
@@ -214,9 +264,7 @@ void main() {
   testWidgets('hours it cannot read are shown without a status', (
     tester,
   ) async {
-    details.answer = OsmPlaceDetails.fromTags(const {
-      'opening_hours': 'Mo-Fr sunrise-sunset',
-    });
+    details.answer = const {'opening_hours': 'Mo-Fr sunrise-sunset'};
     await pumpCard(tester, _cafe);
     await tester.tap(detailsButton());
     await tester.pumpAndSettle();
@@ -225,16 +273,33 @@ void main() {
     expect(find.textContaining(l10n.placeDetailsClosed), findsNothing);
   });
 
-  testWidgets('nothing on OpenStreetMap says so', (tester) async {
+  testWidgets('nothing on OpenStreetMap says so, and is not asked again', (
+    tester,
+  ) async {
     await pumpCard(tester, _cafe);
     await tester.tap(detailsButton());
     await tester.pumpAndSettle();
     expect(find.text(l10n.placeDetailsNone), findsOneWidget);
+    expect(detailsEnabled(tester), isFalse);
+
+    await pumpCard(tester, _cafe);
+    expect(find.text(l10n.placeDetailsNone), findsOneWidget);
+    expect(detailsEnabled(tester), isFalse);
+    expect(details.asked, hasLength(1));
   });
 
   testWidgets('a failed request offers a retry', (tester) async {
     details.error = const OsmDetailsException('offline');
     await pumpCard(tester, _cafe);
+    await tester.tap(detailsButton());
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.placeDetailsFailed), findsOneWidget);
+    expect(detailsEnabled(tester), isTrue);
+
+    // Not kept: a card opened again has to fetch.
+    await pumpCard(tester, _cafe);
+    expect(find.text(l10n.placeDetailsFailed), findsNothing);
+    expect(find.byType(PlaceDetailsView), findsNothing);
     await tester.tap(detailsButton());
     await tester.pumpAndSettle();
     expect(find.text(l10n.placeDetailsFailed), findsOneWidget);
@@ -246,6 +311,61 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(l10n.placeDetailsFailed), findsNothing);
     expect(find.byType(PlaceDetailsView), findsOneWidget);
+    expect(detailsEnabled(tester), isFalse);
+    expect(details.asked, hasLength(3));
+  });
+
+  testWidgets('after a failure, Details itself tries again', (tester) async {
+    details.error = const OsmDetailsException('offline');
+    await pumpCard(tester, _cafe);
+    await tester.tap(detailsButton());
+    await tester.pumpAndSettle();
+    details
+      ..error = null
+      ..answer = _full;
+    await tester.tap(detailsButton());
+    await tester.pumpAndSettle();
+    expect(find.byType(PlaceDetailsView), findsOneWidget);
+    expect(details.asked, hasLength(2));
+  });
+
+  testWidgets('details fetched lately show at once on the next card', (
+    tester,
+  ) async {
+    details.answer = _full;
+    await pumpCard(tester, _cafe);
+    await tester.tap(detailsButton());
+    await tester.pumpAndSettle();
+    expect(find.text(opensOrCloses(tester, 18, open: true)), findsOneWidget);
+
+    // The same container, the card closed and opened again.
+    await tester.tap(find.byTooltip(l10n.placeCardClose));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    expect(find.byType(PlaceDetailsView), findsOneWidget);
+    expect(detailsEnabled(tester), isFalse);
+
+    // After a restart, in the evening: told open or closed anew.
+    await pumpCard(tester, _cafe, now: DateTime(2026, 10, 5, 19));
+    expect(find.byType(PlaceDetailsView), findsOneWidget);
+    expect(detailsEnabled(tester), isFalse);
+    expect(find.text(opensOrCloses(tester, 18, open: true)), findsNothing);
+    final tuesday = DateFormat.E(l10n.localeName).format(DateTime(2026, 10, 6));
+    expect(
+      find.text(opensOrCloses(tester, 8, open: false, day: tuesday)),
+      findsOneWidget,
+    );
+    expect(details.asked, hasLength(1));
+
+    // A week and more later they are fetched again, on a tap.
+    await pumpCard(tester, _cafe, now: DateTime(2026, 10, 12, 10, 1));
+    expect(find.byType(PlaceDetailsView), findsNothing);
+    expect(detailsEnabled(tester), isTrue);
+    expect(details.asked, hasLength(1));
+    await tester.tap(detailsButton());
+    await tester.pumpAndSettle();
+    expect(find.byType(PlaceDetailsView), findsOneWidget);
     expect(details.asked, hasLength(2));
   });
 
@@ -253,24 +373,27 @@ void main() {
     tester,
   ) async {
     await pumpCard(tester, _cafe);
-    await openMenu(tester);
-    expect(find.text(l10n.placeCardOpenInMapApp), findsOneWidget);
-    expect(find.text(l10n.serviceOpenStreetMap), findsOneWidget);
-    expect(find.text(l10n.placeCardShare), findsOneWidget);
-    expect(find.text(l10n.serviceAppleMaps), findsNothing);
-    expect(find.text(l10n.serviceGoogleMaps), findsNothing);
+    await openSheet(tester);
+    expect(find.byType(CupertinoActionSheet), findsNothing);
+    expect(find.text(l10n.placeCardOpenInTitle), findsOneWidget);
+    expect(sheetRows(tester), <String>[
+      l10n.placeCardOpenInMapApp,
+      l10n.serviceOpenStreetMap,
+      l10n.placeCardShare,
+    ]);
+    expect(find.text(l10n.commonCancel), findsOneWidget);
 
     await tester.tap(find.text(l10n.placeCardOpenInMapApp));
     await tester.pumpAndSettle();
     expect(opened.single.scheme, 'geo');
     expect(opened.single.toString(), contains('(Caf%C3%A9%20Wolf)'));
 
-    await openMenu(tester);
+    await openSheet(tester);
     await tester.tap(find.text(l10n.serviceOpenStreetMap));
     await tester.pumpAndSettle();
     expect(opened.last, Uri.parse('https://www.openstreetmap.org/node/1234'));
 
-    await openMenu(tester);
+    await openSheet(tester);
     await tester.tap(find.text(l10n.placeCardShare));
     await tester.pumpAndSettle();
     expect(shared, <String>[
@@ -284,19 +407,22 @@ void main() {
     'Open in on iOS: Apple Maps, and Google Maps only when installed',
     (tester) async {
       await pumpCard(tester, _anonymous);
-      await openMenu(tester);
-      expect(find.text(l10n.serviceAppleMaps), findsOneWidget);
-      expect(find.text(l10n.serviceGoogleMaps), findsNothing);
-      expect(find.text(l10n.placeCardOpenInMapApp), findsNothing);
-      expect(find.text(l10n.serviceOpenStreetMap), findsOneWidget);
-      expect(find.text(l10n.placeCardShare), findsOneWidget);
+      await openSheet(tester);
+      expect(find.byType(CupertinoActionSheet), findsOneWidget);
+      expect(find.text(l10n.placeCardOpenInTitle), findsOneWidget);
+      expect(sheetActions(tester), <String>[
+        l10n.serviceAppleMaps,
+        l10n.serviceOpenStreetMap,
+        l10n.placeCardShare,
+        l10n.commonCancel,
+      ]);
 
       await tester.tap(find.text(l10n.serviceAppleMaps));
       await tester.pumpAndSettle();
       expect(opened.single.host, 'maps.apple.com');
 
       // Without an element, OpenStreetMap gets a marker at the place.
-      await openMenu(tester);
+      await openSheet(tester);
       await tester.tap(find.text(l10n.serviceOpenStreetMap));
       await tester.pumpAndSettle();
       expect(opened.last.queryParameters['mlat'], '47.140500');
@@ -307,12 +433,47 @@ void main() {
   testWidgets('Open in on iOS with Google Maps installed', (tester) async {
     googleMapsInstalled = true;
     await pumpCard(tester, _cafe);
-    await openMenu(tester);
-    expect(find.text(l10n.serviceGoogleMaps), findsOneWidget);
+    await openSheet(tester);
+    expect(sheetActions(tester), <String>[
+      l10n.serviceAppleMaps,
+      l10n.serviceGoogleMaps,
+      l10n.serviceOpenStreetMap,
+      l10n.placeCardShare,
+      l10n.commonCancel,
+    ]);
     await tester.tap(find.text(l10n.serviceGoogleMaps));
     await tester.pumpAndSettle();
     expect(opened.single.scheme, 'comgooglemaps');
   }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
+
+  testWidgets('Cancel closes the sheet and opens nothing', (tester) async {
+    await pumpCard(tester, _cafe);
+    await openSheet(tester);
+    await tester.tap(find.text(l10n.commonCancel));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.placeCardOpenInTitle), findsNothing);
+    expect(find.byType(PlaceCard), findsOneWidget);
+
+    // Nor does a tap beside it.
+    await openSheet(tester);
+    await tester.tapAt(const Offset(200, 20));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.placeCardOpenInTitle), findsNothing);
+    expect(find.byType(PlaceCard), findsOneWidget);
+    expect(opened, isEmpty);
+    expect(shared, isEmpty);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
+
+  testWidgets('Cancel on Android opens nothing either', (tester) async {
+    await pumpCard(tester, _cafe);
+    await openSheet(tester);
+    await tester.tap(find.text(l10n.commonCancel));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.placeCardOpenInTitle), findsNothing);
+    expect(find.byType(PlaceCard), findsOneWidget);
+    expect(opened, isEmpty);
+    expect(shared, isEmpty);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('everything fits on a small phone with the details open', (
     tester,

@@ -40,7 +40,7 @@ void main() {
   });
 
   test('asks the OSM API for the element', () async {
-    await client.details('node', 1234);
+    await client.tags('node', 1234);
     expect(
       adapter.lastUri.toString(),
       'https://api.openstreetmap.org/api/0.6/node/1234.json',
@@ -52,7 +52,7 @@ void main() {
   });
 
   test('reads the tags the card shows', () async {
-    final details = await client.details('node', 1234);
+    final details = OsmPlaceDetails.fromTags(await client.tags('node', 1234));
     expect(details.openingHours, 'Mo-Fr 08:00-18:00');
     expect(details.website, Uri.parse('https://www.cafe-wolf.example/'));
     expect(details.phone, '+423 232 00 00');
@@ -71,9 +71,12 @@ void main() {
   test('an element without those tags has nothing to show', () async {
     adapter.body =
         '{"elements":[{"type":"way","id":5,"tags":{"building":"yes"}}]}';
-    expect((await client.details('way', 5)).isEmpty, isTrue);
+    expect(
+      OsmPlaceDetails.fromTags(await client.tags('way', 5)).isEmpty,
+      isTrue,
+    );
     adapter.body = '{"elements":[{"type":"node","id":6}]}';
-    expect((await client.details('node', 6)).isEmpty, isTrue);
+    expect(await client.tags('node', 6), isEmpty);
   });
 
   test('a deleted or unknown element has nothing to show', () async {
@@ -81,29 +84,29 @@ void main() {
       adapter
         ..statusCode = status
         ..body = '';
-      expect((await client.details('node', status)).isEmpty, isTrue);
+      expect(await client.tags('node', status), isEmpty);
     }
   });
 
-  test('a failure throws and is not kept, so a retry asks again', () async {
+  test('a failure throws, and a retry asks again', () async {
     adapter.failure = DioException.connectionError(
       requestOptions: RequestOptions(),
       reason: 'offline',
     );
     await expectLater(
-      client.details('node', 1234),
+      client.tags('node', 1234),
       throwsA(isA<OsmDetailsException>()),
     );
     adapter.failure = null;
-    final details = await client.details('node', 1234);
-    expect(details.openingHours, isNotNull);
+    final tags = await client.tags('node', 1234);
+    expect(tags['opening_hours'], isNotNull);
     expect(adapter.requests, hasLength(2));
   });
 
   test('a server error throws', () async {
     adapter.statusCode = 503;
     await expectLater(
-      client.details('node', 1),
+      client.tags('node', 1),
       throwsA(isA<OsmDetailsException>()),
     );
   });
@@ -111,17 +114,9 @@ void main() {
   test('a garbled answer throws', () async {
     adapter.body = '<html>';
     await expectLater(
-      client.details('node', 1),
+      client.tags('node', 1),
       throwsA(isA<OsmDetailsException>()),
     );
-  });
-
-  test('an answer is kept for the session', () async {
-    await client.details('node', 1234);
-    await client.details('node', 1234);
-    expect(adapter.requests, hasLength(1));
-    await client.details('way', 1234);
-    expect(adapter.requests, hasLength(2));
   });
 
   group('OsmPlaceDetails.fromTags', () {

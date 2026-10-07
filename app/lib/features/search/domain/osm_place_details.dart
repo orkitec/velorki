@@ -55,6 +55,20 @@ class OsmPlaceDetails {
     );
   }
 
+  /// The tags [OsmPlaceDetails.fromTags] reads; the others need not be
+  /// kept.
+  static const Set<String> tagKeys = <String>{
+    'opening_hours',
+    'website',
+    'contact:website',
+    'phone',
+    'contact:phone',
+    'cuisine',
+    'wheelchair',
+    'outdoor_seating',
+    'wikipedia',
+  };
+
   /// Nothing to show.
   static const OsmPlaceDetails empty = OsmPlaceDetails();
 

@@ -5,6 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/http/user_agent.dart';
 import '../domain/osm_place_details.dart';
+import 'osm_details_cache.dart';
 
 part 'osm_details.g.dart';
 
@@ -25,15 +26,14 @@ class OsmDetailsException implements Exception {
 
 /// Where the place card gets the tags of an OpenStreetMap element.
 abstract interface class OsmDetailsSource {
-  /// The details of the element [type] (`node`, `way`, `relation`) [id].
+  /// The tags of the element [type] (`node`, `way`, `relation`) [id].
   ///
-  /// [OsmPlaceDetails.empty] when it has none or no longer exists; throws
+  /// Empty when it has none or no longer exists; throws
   /// [OsmDetailsException] when the API cannot be reached.
-  Future<OsmPlaceDetails> details(String type, int id);
+  Future<Map<String, String>> tags(String type, int id);
 }
 
-/// Reads an element's tags from the OpenStreetMap API, only when asked, and
-/// keeps each answer for as long as the app runs.
+/// Reads an element's tags from the OpenStreetMap API, only when asked.
 class OsmDetailsClient implements OsmDetailsSource {
   /// Creates a client; inject [dio] in tests.
   OsmDetailsClient({Dio? dio, this.baseUrl = defaultBaseUrl})
@@ -57,16 +57,12 @@ class OsmDetailsClient implements OsmDetailsSource {
   final String baseUrl;
 
   final Dio _dio;
-  final Map<String, OsmPlaceDetails> _cache = <String, OsmPlaceDetails>{};
 
   /// The URL [details] requests.
   Uri uri(String type, int id) => Uri.parse('$baseUrl/$type/$id.json');
 
   @override
-  Future<OsmPlaceDetails> details(String type, int id) async {
-    final key = '$type/$id';
-    final cached = _cache[key];
-    if (cached != null) return cached;
+  Future<Map<String, String>> tags(String type, int id) async {
     Response<String> response;
     try {
       response = await _dio.getUri<String>(
@@ -85,10 +81,9 @@ class OsmDetailsClient implements OsmDetailsSource {
       throw OsmDetailsException('cannot reach the OSM API', cause: e);
     }
     final status = response.statusCode ?? 0;
-    final found = status == 404 || status == 410
-        ? OsmPlaceDetails.empty
-        : OsmPlaceDetails.fromTags(parseOsmTags(response.data ?? ''));
-    return _cache[key] = found;
+    return status == 404 || status == 410
+        ? const <String, String>{}
+        : parseOsmTags(response.data ?? '');
   }
 
   /// Closes the client.
@@ -125,3 +120,37 @@ OsmDetailsSource osmDetailsSource(Ref ref) {
   ref.onDispose(client.close);
   return client;
 }
+
+/// The details of places: from the device when fetched lately, else from
+/// [OsmDetailsSource], kept on the device for next time.
+class OsmDetailsRepository {
+  /// Creates the repository.
+  const OsmDetailsRepository(this._source, this._cache);
+
+  final OsmDetailsSource _source;
+  final OsmDetailsCache _cache;
+
+  /// The details of [type] [id] when they were fetched lately, without
+  /// asking the network; `null` when they have to be fetched.
+  OsmPlaceDetails? cached(String type, int id) {
+    final tags = _cache.lookup(type, id);
+    return tags == null ? null : OsmPlaceDetails.fromTags(tags);
+  }
+
+  /// Fetches the details of [type] [id] and keeps their tags.
+  ///
+  /// Throws [OsmDetailsException] when they cannot be fetched; a failure is
+  /// not kept.
+  Future<OsmPlaceDetails> fetch(String type, int id) async {
+    final tags = await _source.tags(type, id);
+    await _cache.store(type, id, tags);
+    return OsmPlaceDetails.fromTags(tags);
+  }
+}
+
+/// Where the place card gets the details of a place.
+@Riverpod(keepAlive: true)
+OsmDetailsRepository osmDetailsRepository(Ref ref) => OsmDetailsRepository(
+  ref.watch(osmDetailsSourceProvider),
+  ref.watch(osmDetailsCacheProvider),
+);

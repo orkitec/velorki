@@ -323,7 +323,11 @@
   },
   "placeCardOpenIn": "Open in…",
   "@placeCardOpenIn": {
-    "description": "Button on the card of a picked place: opens a menu of other apps to show the place in, and sharing"
+    "description": "Button on the card of a picked place: opens a sheet of other apps to show the place in, and sharing"
+  },
+  "placeCardOpenInTitle": "Open in",
+  "@placeCardOpenInTitle": {
+    "description": "Title of the sheet that lists the other apps a picked place can be shown in, and sharing"
   },
   "placeCardOpenInMapApp": "Map app…",
   "@placeCardOpenInMapApp": {

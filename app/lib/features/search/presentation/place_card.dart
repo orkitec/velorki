@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,7 +11,6 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../map/data/position_provider.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../settings/data/units.dart';
-import '../../shared/presentation/button_menu.dart';
 import '../../sharing/data/share_service.dart';
 import '../data/osm_details.dart';
 import '../domain/osm_place_details.dart';
@@ -34,7 +34,7 @@ enum PlaceAction {
   destination,
 }
 
-/// Where the card's "Open in…" menu can take a place.
+/// Where the card's "Open in…" sheet can take a place.
 enum PlaceOpenTarget {
   /// Apple Maps (iOS).
   appleMaps,
@@ -53,7 +53,7 @@ enum PlaceOpenTarget {
 }
 
 /// How far the card has got with the place's OpenStreetMap details.
-enum _DetailsPhase { idle, loading, shown, hidden, failed }
+enum _DetailsPhase { idle, loading, shown, failed }
 
 /// Opens the card of a picked place (a search result, a stop on the map, a
 /// place another app sent) on the root navigator, over the navigation bar.
@@ -62,8 +62,8 @@ enum _DetailsPhase { idle, loading, shown, hidden, failed }
 /// ([riderPosition] when given, else the device's position) and, when
 /// [offRouteM] is given, from the route; [actions] are its buttons, the
 /// first one the primary. Under them, Details (only for a place whose
-/// OpenStreetMap element is known; nothing is fetched until it is tapped)
-/// and "Open in…". Answers the action tapped, or `null` when the card was
+/// OpenStreetMap element is known; nothing is fetched until it is tapped,
+/// and details fetched lately are shown at once) and "Open in…". Answers the action tapped, or `null` when the card was
 /// closed without one.
 ///
 /// [onCover] is told how much of the screen's height the card covers, once
@@ -138,6 +138,15 @@ class _PlaceCardState extends ConsumerState<PlaceCard> {
   @override
   void initState() {
     super.initState();
+    final type = widget.place.osmType;
+    final id = widget.place.osmId;
+    if (type != null && id != null) {
+      final cached = ref.read(osmDetailsRepositoryProvider).cached(type, id);
+      if (cached != null) {
+        _details = cached;
+        _phase = _DetailsPhase.shown;
+      }
+    }
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       unawaited(_probeGoogleMaps());
     }
@@ -156,8 +165,8 @@ class _PlaceCardState extends ConsumerState<PlaceCard> {
     setState(() => _phase = _DetailsPhase.loading);
     try {
       final details = await ref
-          .read(osmDetailsSourceProvider)
-          .details(type, id);
+          .read(osmDetailsRepositoryProvider)
+          .fetch(type, id);
       if (!mounted) return;
       setState(() {
         _details = details;
@@ -165,19 +174,6 @@ class _PlaceCardState extends ConsumerState<PlaceCard> {
       });
     } on Object {
       if (mounted) setState(() => _phase = _DetailsPhase.failed);
-    }
-  }
-
-  void _onDetails() {
-    switch (_phase) {
-      case _DetailsPhase.idle || _DetailsPhase.failed:
-        unawaited(_loadDetails());
-      case _DetailsPhase.shown:
-        setState(() => _phase = _DetailsPhase.hidden);
-      case _DetailsPhase.hidden:
-        setState(() => _phase = _DetailsPhase.shown);
-      case _DetailsPhase.loading:
-        break;
     }
   }
 
@@ -219,7 +215,7 @@ class _PlaceCardState extends ConsumerState<PlaceCard> {
     }
   }
 
-  /// The entries of the "Open in…" menu on this platform.
+  /// The entries of the "Open in…" sheet on this platform.
   List<PlaceOpenTarget> get _targets => <PlaceOpenTarget>[
     if (defaultTargetPlatform == TargetPlatform.iOS) ...[
       PlaceOpenTarget.appleMaps,
@@ -238,6 +234,82 @@ class _PlaceCardState extends ConsumerState<PlaceCard> {
         PlaceOpenTarget.openStreetMap => l10n.serviceOpenStreetMap,
         PlaceOpenTarget.share => l10n.placeCardShare,
       };
+
+  IconData _targetIcon(PlaceOpenTarget target) => switch (target) {
+    PlaceOpenTarget.appleMaps ||
+    PlaceOpenTarget.googleMaps ||
+    PlaceOpenTarget.mapApp => Icons.map_outlined,
+    PlaceOpenTarget.openStreetMap => Icons.public_rounded,
+    PlaceOpenTarget.share => Icons.share_outlined,
+  };
+
+  /// Asks where to open the place, in the system's action sheet on iOS
+  /// and a bottom sheet elsewhere, and opens it there; the card stays.
+  Future<void> _chooseOpenTarget() async {
+    final l10n = AppLocalizations.of(context);
+    final targets = _targets;
+    final target = defaultTargetPlatform == TargetPlatform.iOS
+        ? await showCupertinoModalPopup<PlaceOpenTarget>(
+            context: context,
+            builder: (sheet) => CupertinoActionSheet(
+              title: Text(l10n.placeCardOpenInTitle),
+              actions: [
+                for (final target in targets)
+                  CupertinoActionSheetAction(
+                    onPressed: () => Navigator.of(sheet).pop(target),
+                    child: Text(_targetLabel(l10n, target)),
+                  ),
+              ],
+              cancelButton: CupertinoActionSheetAction(
+                isDefaultAction: true,
+                onPressed: () => Navigator.of(sheet).pop(),
+                child: Text(l10n.commonCancel),
+              ),
+            ),
+          )
+        : await showModalBottomSheet<PlaceOpenTarget>(
+            context: context,
+            useRootNavigator: true,
+            useSafeArea: true,
+            isScrollControlled: true,
+            builder: (sheet) => SingleChildScrollView(
+              padding: EdgeInsets.only(
+                top: 20,
+                bottom: 8 + MediaQuery.paddingOf(sheet).bottom,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                    child: Text(
+                      l10n.placeCardOpenInTitle,
+                      style: Theme.of(sheet).textTheme.titleMedium,
+                    ),
+                  ),
+                  for (final target in targets)
+                    ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                      ),
+                      leading: Icon(_targetIcon(target)),
+                      title: Text(_targetLabel(l10n, target)),
+                      onTap: () => Navigator.of(sheet).pop(target),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: TextButton(
+                      onPressed: () => Navigator.of(sheet).pop(),
+                      child: Text(l10n.commonCancel),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+    if (target != null && mounted) _open(target);
+  }
 
   /// Details and "Open in…", side by side.
   Widget _moreRow(BuildContext context) {
@@ -260,7 +332,10 @@ class _PlaceCardState extends ConsumerState<PlaceCard> {
                       ),
                     )
                   : OutlinedButton.icon(
-                      onPressed: _onDetails,
+                      // Fetched details stay; only a failure is tried again.
+                      onPressed: _phase == _DetailsPhase.shown
+                          ? null
+                          : () => unawaited(_loadDetails()),
                       icon: const Icon(Icons.info_outline_rounded),
                       label: Text(l10n.placeCardDetails),
                     ),
@@ -268,17 +343,10 @@ class _PlaceCardState extends ConsumerState<PlaceCard> {
             const SizedBox(width: 8),
           ],
           Expanded(
-            child: ButtonMenu<PlaceOpenTarget>(
-              icon: Icons.open_in_new_rounded,
-              label: l10n.placeCardOpenIn,
-              onSelected: _open,
-              entries: [
-                for (final target in _targets)
-                  PopupMenuItem<PlaceOpenTarget>(
-                    value: target,
-                    child: Text(_targetLabel(l10n, target)),
-                  ),
-              ],
+            child: OutlinedButton.icon(
+              onPressed: () => unawaited(_chooseOpenTarget()),
+              icon: const Icon(Icons.open_in_new_rounded),
+              label: Text(l10n.placeCardOpenIn),
             ),
           ),
         ],
