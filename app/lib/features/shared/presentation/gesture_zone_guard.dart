@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
@@ -89,3 +90,15 @@ class GestureZonePassThrough extends SingleChildRenderObjectWidget {
 }
 
 class _RenderGestureZonePassThrough extends RenderProxyBox {}
+
+/// A [MaterialApp.builder] that guards the system gesture zone of the whole
+/// app, the root navigator's modal sheets included: they are routes above
+/// the shell, outside the guard it wraps its own body in.
+Widget gestureZoneAppBuilder(BuildContext context, Widget? child) =>
+    GestureZoneGuard(
+      zone: systemGestureZoneHeight(
+        MediaQuery.of(context),
+        defaultTargetPlatform,
+      ),
+      child: child,
+    );

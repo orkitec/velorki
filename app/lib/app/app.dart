@@ -6,6 +6,7 @@ import '../features/recording/data/battery_saver.dart';
 import '../features/settings/data/appearance_controller.dart';
 import '../features/settings/data/language_controller.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../features/shared/presentation/gesture_zone_guard.dart';
 import 'router.dart';
 import 'theme.dart';
 
@@ -34,6 +35,8 @@ class VelorkiApp extends ConsumerWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
+      // Modal sheets sit above the shell's own guard.
+      builder: gestureZoneAppBuilder,
       routerConfig: ref.watch(routerProvider),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/theme.dart';
+import 'package:velorki/features/shared/presentation/gesture_zone_guard.dart';
 import 'package:velorki/l10n/generated/app_localizations.dart';
 
 /// The language the widget suite runs in.
@@ -53,6 +54,7 @@ MaterialApp testApp({required Widget home, ThemeData? theme, Locale? locale}) =>
       locale: locale ?? testLocale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      builder: gestureZoneAppBuilder,
       home: home,
     );
 
@@ -67,6 +69,7 @@ MaterialApp testRouterApp({
   locale: locale ?? testLocale,
   localizationsDelegates: AppLocalizations.localizationsDelegates,
   supportedLocales: AppLocalizations.supportedLocales,
+  builder: gestureZoneAppBuilder,
   routerConfig: routerConfig,
 );
 
