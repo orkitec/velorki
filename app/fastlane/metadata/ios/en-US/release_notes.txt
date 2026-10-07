@@ -1,5 +1,6 @@
-• Stops on the map: water, cafés, bakeries, toilets, bike repair and more, in the area you are looking at, or along your route while you ride, with the next ones ahead.
-• Search finds much more offline: addresses with house numbers, typos and abbreviations, names written in another alphabet, well-known places in your language, and restaurants, ice cream, petrol stations and air pumps. Typing stays smooth while it searches.
-• Places from other apps: share a place or a map link to Velorki, open map links in Velorki, or paste coordinates into the search.
-• Loop search shows the best loop so far while it keeps looking.
-• Swiping up to the app switcher no longer opens the sheet, and turning the phone no longer flashes grey.
+• Stops on the map: water, cafés, bakeries, toilets, bike repair and more. Zoomed out they gather into bubbles with a count; while you ride, the stops along your route ahead and how far each one is.
+• Tap a place for its card: what it is, how far away, and Route here, Start here, Add as a stop or Destination. Details shows opening hours, website and phone from OpenStreetMap, and Open in hands the place to another map app.
+• Search finds much more offline: addresses with house numbers, typos and abbreviations, names in another alphabet, well-known places in your language, and restaurants, ice cream, petrol stations and air pumps.
+• Places from other apps: share a place or a map link to Velorki, or paste coordinates into the search.
+• Loop search shows the best loop so far and says what it is still checking.
+• Fixes: swiping up to the app switcher no longer moves a sheet, turning the phone no longer flashes grey, and the paused badge fits on small phones.
