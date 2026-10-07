@@ -441,6 +441,15 @@ void main() {
       l10n.placeCardShare,
       l10n.commonCancel,
     ]);
+    // In the system's label colour, not the app's accent.
+    final accent = Theme.of(tester.element(find.byType(PlaceCard)))
+        .colorScheme
+        .primary;
+    for (final label in [l10n.serviceAppleMaps, l10n.commonCancel]) {
+      final color = tester.widget<Text>(find.text(label)).style?.color;
+      expect(color, isNotNull, reason: label);
+      expect(color, isNot(accent), reason: label);
+    }
     await tester.tap(find.text(l10n.serviceGoogleMaps));
     await tester.pumpAndSettle();
     expect(opened.single.scheme, 'comgooglemaps');

@@ -257,13 +257,25 @@ class _PlaceCardState extends ConsumerState<PlaceCard> {
                 for (final target in targets)
                   CupertinoActionSheetAction(
                     onPressed: () => Navigator.of(sheet).pop(target),
-                    child: Text(_targetLabel(l10n, target)),
+                    // The system's label colour, not the app's tint, which
+                    // the sheet would otherwise put on every row.
+                    child: Text(
+                      _targetLabel(l10n, target),
+                      style: TextStyle(
+                        color: CupertinoColors.label.resolveFrom(sheet),
+                      ),
+                    ),
                   ),
               ],
               cancelButton: CupertinoActionSheetAction(
                 isDefaultAction: true,
                 onPressed: () => Navigator.of(sheet).pop(),
-                child: Text(l10n.commonCancel),
+                child: Text(
+                  l10n.commonCancel,
+                  style: TextStyle(
+                    color: CupertinoColors.label.resolveFrom(sheet),
+                  ),
+                ),
               ),
             ),
           )
