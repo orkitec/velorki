@@ -269,6 +269,13 @@ void main() {
       expect(kinds, isNot(contains('cafe')));
       expect(tester.widget<FilterChip>(campsite).selected, isTrue);
       expect(tester.widget<FilterChip>(cafe).selected, isFalse);
+      // A picked chip is the accent colour: its icon goes with its label.
+      Color? iconColor(Finder chip) => tester
+          .widget<Icon>(find.descendant(of: chip, matching: find.byType(Icon)))
+          .color;
+      final scheme = Theme.of(tester.element(campsite)).colorScheme;
+      expect(iconColor(campsite), scheme.onPrimary);
+      expect(iconColor(cafe), isNull);
 
       await tester.ensureVisible(find.text(l10n.mapLayersInArea));
       await tester.pumpAndSettle();

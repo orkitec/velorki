@@ -16,6 +16,7 @@ import '../../assistant/presentation/assistant_sheet.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
 import '../../map/application/locate_on_open.dart';
 import '../../map/application/map_stops_controller.dart';
+import '../../map/domain/visible_map.dart';
 import '../../map/presentation/stops_zoom_chip.dart';
 import '../../map/data/map_preferences.dart';
 import '../../map/domain/map_controller.dart';
@@ -293,8 +294,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     WidgetsBinding.instance.addObserver(this);
     _active = ref.read(activeTabProvider) == plannerRoute;
     _map = ref.read(sharedMapControllerProvider);
-    _stops = MapStopsController(find: ref.read(mapStopsFinderProvider))
-      ..onStopTapped = _onStopTapped;
+    _stops = MapStopsController(
+      find: ref.read(mapStopsFinderProvider),
+      visibleShare: () => mounted
+          ? visibleShareOf(_visiblePadding(), MediaQuery.sizeOf(context))
+          : null,
+    )..onStopTapped = _onStopTapped;
     _updateMapUse();
   }
 

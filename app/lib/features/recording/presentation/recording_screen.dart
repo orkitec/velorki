@@ -226,8 +226,19 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     super.initState();
     _active = ref.read(activeTabProvider) == recordingRoute;
     _map = ref.read(sharedMapControllerProvider);
-    _stops = MapStopsController(find: ref.read(mapStopsFinderProvider))
-      ..onStopTapped = _onStopTapped;
+    _stops = MapStopsController(
+      find: ref.read(mapStopsFinderProvider),
+      visibleShare: () => mounted
+          ? visibleShareOf(
+              visibleMapPadding(
+                context,
+                chromeTop: _ownControlsTop,
+                sheetExtent: _sheetExtent,
+              ),
+              MediaQuery.sizeOf(context),
+            )
+          : null,
+    )..onStopTapped = _onStopTapped;
     _updateMapUse();
     // Built in the middle of a change to this tab (its first visit, from
     // another tab): the listener in build sees no change, so the sheet is

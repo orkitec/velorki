@@ -57,7 +57,13 @@ void main() {
     await tester.pump(stopsDebounce * 2);
     await tester.pumpAndSettle();
 
-    expect(asked, <BoundingBox>[view]);
+    // Around what the rider sees: the sheet covers the lower part, so the
+    // box's middle sits higher than the whole map's.
+    expect(asked, hasLength(1));
+    expect(
+      (asked.single.north + asked.single.south) / 2,
+      greaterThan((view.north + view.south) / 2),
+    );
     expect(h.map.stops.single.name, 'Brunnen');
 
     h.map.onStopTapped!(0);
@@ -113,7 +119,9 @@ void main() {
     await tester.tap(find.text(l10n.mapStopsZoomIn));
     await tester.pump();
     expect(h.map.zoom, stopsMinZoom);
-    expect(h.map.center, const LatLng(48.05, 11.05));
+    // The middle of what is visible stays put: above the sheet, so the
+    // map's own middle moves up towards it.
+    expect(h.map.center!.lat, greaterThan(48.05));
 
     for (final listener in [...h.map.cameraIdleListeners]) {
       listener();

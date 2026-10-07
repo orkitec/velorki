@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:math' as math;
+import 'dart:ui' show Rect;
 
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -22,6 +24,40 @@ const double stopsMinZoom = 11;
 /// and the most drawn: the ones nearest the middle, so a limit drops the
 /// far ones.
 const int stopsAreaLimit = 500;
+
+/// How far beyond the visible part of the map the stops are asked for, as a
+/// share of its width and height on each side: stops come in and go out
+/// off screen while the map is panned, not in the middle of it.
+const double stopsAreaMargin = 0.5;
+
+/// The part of [bounds] that [share] of the map shows (the whole of it when
+/// `null` or empty): shares of the width from the west and of the height
+/// from the north, as a screen reads.
+@visibleForTesting
+BoundingBox visiblePart(BoundingBox bounds, Rect? share) {
+  if (share == null || share.width <= 0 || share.height <= 0) return bounds;
+  final width = bounds.east - bounds.west;
+  final height = bounds.north - bounds.south;
+  return BoundingBox(
+    south: bounds.north - share.bottom.clamp(0.0, 1.0) * height,
+    west: bounds.west + share.left.clamp(0.0, 1.0) * width,
+    north: bounds.north - share.top.clamp(0.0, 1.0) * height,
+    east: bounds.west + share.right.clamp(0.0, 1.0) * width,
+  );
+}
+
+/// [box] grown by [share] of its width and height on every side.
+@visibleForTesting
+BoundingBox grownBox(BoundingBox box, double share) {
+  final dLat = (box.north - box.south) * share;
+  final dLon = (box.east - box.west) * share;
+  return BoundingBox(
+    south: math.max(-85.0, box.south - dLat),
+    west: box.west - dLon,
+    north: math.min(85.0, box.north + dLat),
+    east: box.east + dLon,
+  );
+}
 
 /// The most stops one stretch of the route ahead asks for, per gazetteer.
 const int stopsChunkLimit = 200;
@@ -98,10 +134,19 @@ enum MapStopsMode {
 /// newer question was asked is dropped.
 class MapStopsController extends ChangeNotifier {
   /// Creates a controller that fetches through [find].
-  MapStopsController({required this.find, this.debounce = stopsDebounce});
+  MapStopsController({
+    required this.find,
+    this.debounce = stopsDebounce,
+    this.visibleShare,
+  });
 
   /// Where the stops come from.
   final StopsFinder find;
+
+  /// The part of the map the rider can see, as shares of its width and
+  /// height (the sheet, the search and the control column cover the rest);
+  /// the whole map when `null`. The stops are asked for around it.
+  final Rect? Function()? visibleShare;
 
   /// How long the camera rests before the area is asked about.
   final Duration debounce;
@@ -156,9 +201,28 @@ class MapStopsController extends ChangeNotifier {
   /// Zooms the map in to where the stops show, on the same middle.
   Future<void> zoomIn() async {
     final map = _map;
-    final center = map?.center;
+    final bounds = map?.visibleBounds;
+    final center = bounds == null
+        ? map?.center
+        : visiblePart(bounds, visibleShare?.call()).center;
     if (map == null || center == null) return;
-    await map.moveTo(center, zoom: stopsMinZoom);
+    // The middle of what can be seen stays where it is on the screen.
+    final share = visibleShare?.call();
+    if (share == null || bounds == null) {
+      await map.moveTo(center, zoom: stopsMinZoom);
+      return;
+    }
+    // Zoomed in, a distance on the ground takes 2^Δzoom as many pixels, so
+    // the map's middle moves that much closer to the visible middle.
+    final scale = math.pow(2, (map.zoom ?? stopsMinZoom) - stopsMinZoom);
+    final whole = map.center ?? bounds.center;
+    await map.moveTo(
+      LatLng(
+        center.lat + (whole.lat - center.lat) * scale,
+        center.lon + (whole.lon - center.lon) * scale,
+      ),
+      zoom: stopsMinZoom,
+    );
   }
 
   /// Notes whether [map] is zoomed out too far for the stops, telling the
@@ -364,16 +428,21 @@ class MapStopsController extends ChangeNotifier {
     }
     final bounds = map.visibleBounds;
     if (bounds == null) return;
+    final visible = visiblePart(bounds, visibleShare?.call());
     final List<SearchResult> found;
     try {
-      found = await find(bounds, _kinds.toList()..sort(), stopsAreaLimit);
+      found = await find(
+        grownBox(visible, stopsAreaMargin),
+        _kinds.toList()..sort(),
+        stopsAreaLimit,
+      );
     } on Object catch (e) {
       debugPrint('velorki: stops in the area failed: $e');
       return;
     }
     if (generation != _generation || !identical(map, _map)) return;
     if (mode != MapStopsMode.area) return;
-    final middle = map.center ?? bounds.center;
+    final middle = visible.center;
     final nearest = <SearchResult>[...found]
       ..sort(
         (a, b) => haversineMeters(

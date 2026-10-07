@@ -1,3 +1,5 @@
+import 'dart:ui' show Rect;
+
 import 'dart:async';
 
 import 'package:fake_async/fake_async.dart';
@@ -69,12 +71,12 @@ void main() {
         expect(store.asks, isEmpty);
         async.elapse(const Duration(milliseconds: 260));
         expect(store.asks, hasLength(1));
-        expect(store.asks.single.box, _view);
+        expect(store.asks.single.box, grownBox(_view, stopsAreaMargin));
         expect(store.asks.single.kinds, <String>['cafe', 'drinking_water']);
         expect(store.asks.single.limit, stopsAreaLimit);
 
         store.asks.single.answer.complete([
-          _stop('Tap', const LatLng(48.01, 11.01)),
+          _stop('Tap', const LatLng(48.01, 11.014)),
           _stop('Café', const LatLng(48.01, 11.02), kind: 'cafe'),
         ]);
         async.flushMicrotasks();
@@ -102,12 +104,59 @@ void main() {
         // more than the limit, as several gazetteers together can answer.
         store.asks.single.answer.complete([
           for (var i = stopsAreaLimit + 40; i > 0; i--)
-            _stop('Café $i', LatLng(48.0 + i * 1e-5, 11.0), kind: 'cafe'),
+            // Outward from the middle of what is visible.
+            _stop('Café $i', LatLng(48.01 + i * 1e-5, 11.015), kind: 'cafe'),
         ]);
         async.flushMicrotasks();
         expect(map.stops, hasLength(stopsAreaLimit));
         expect(stops.stops.first.name, 'Café 1');
         expect(stops.stops.last.name, 'Café $stopsAreaLimit');
+        stops.dispose();
+      });
+    });
+
+    test('the stops are asked for around the part of the map the rider '
+        'sees, with a margin, and ranked from its middle', () {
+      fakeAsync((async) {
+        final store = _FakeStore();
+        final map = FakeMapController()
+          ..zoom = 14
+          ..center = const LatLng(48.01, 11.015)
+          ..visibleBounds = _view;
+        // The sheet covers the lower half.
+        final stops =
+            MapStopsController(
+                find: store.find,
+                visibleShare: () => const Rect.fromLTRB(0, 0, 1, 0.5),
+              )
+              ..update(shown: true, kinds: const {'cafe'})
+              ..attach(map);
+        async.elapse(stopsDebounce * 2);
+        const upper = BoundingBox(
+          south: 48.01,
+          west: 11.0,
+          north: 48.02,
+          east: 11.03,
+        );
+        void same(BoundingBox actual, BoundingBox expected) {
+          expect(actual.south, closeTo(expected.south, 1e-9));
+          expect(actual.west, closeTo(expected.west, 1e-9));
+          expect(actual.north, closeTo(expected.north, 1e-9));
+          expect(actual.east, closeTo(expected.east, 1e-9));
+        }
+
+        same(visiblePart(_view, const Rect.fromLTRB(0, 0, 1, 0.5)), upper);
+        same(store.asks.single.box, grownBox(upper, stopsAreaMargin));
+
+        store.asks.single.answer.complete([
+          _stop('Under the sheet', const LatLng(48.002, 11.015), kind: 'cafe'),
+          _stop('In view', const LatLng(48.015, 11.016), kind: 'cafe'),
+        ]);
+        async.flushMicrotasks();
+        expect(stops.stops.map((s) => s.name), <String>[
+          'In view',
+          'Under the sheet',
+        ]);
         stops.dispose();
       });
     });
@@ -185,7 +234,7 @@ void main() {
           ..attach(map);
         async.elapse(stopsDebounce * 2);
         store.asks.single.answer.complete([
-          _stop('Tap', const LatLng(48.01, 11.01)),
+          _stop('Tap', const LatLng(48.01, 11.014)),
         ]);
         async.flushMicrotasks();
         expect(map.stops, hasLength(1));
@@ -213,7 +262,7 @@ void main() {
 
         stops.update(shown: false, kinds: const {'drinking_water'});
         store.asks.single.answer.complete([
-          _stop('Tap', const LatLng(48.01, 11.01)),
+          _stop('Tap', const LatLng(48.01, 11.014)),
         ]);
         async.flushMicrotasks();
 
@@ -235,7 +284,7 @@ void main() {
           ..attach(map);
         async.elapse(stopsDebounce * 2);
         store.asks.single.answer.complete([
-          _stop('Tap', const LatLng(48.01, 11.01)),
+          _stop('Tap', const LatLng(48.01, 11.014)),
         ]);
         async.flushMicrotasks();
         expect(map.onStopTapped, isNotNull);

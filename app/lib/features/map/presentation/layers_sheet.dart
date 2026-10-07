@@ -142,7 +142,16 @@ class LayersSheet extends ConsumerWidget {
                           children: [
                             for (final kind in kinds)
                               FilterChip(
-                                avatar: Icon(poiKindIcon(kind), size: 18),
+                                // A selected chip is the accent colour:
+                                // its icon goes with the label on it, not
+                                // with Material's default for the state.
+                                avatar: Icon(
+                                  poiKindIcon(kind),
+                                  size: 18,
+                                  color: stops.kinds.contains(kind)
+                                      ? Theme.of(context).colorScheme.onPrimary
+                                      : null,
+                                ),
                                 label: Text(gazetteerPoiKindLabel(l10n, kind)!),
                                 showCheckmark: false,
                                 selected: stops.kinds.contains(kind),
