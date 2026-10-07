@@ -63,6 +63,23 @@ void main() {
     expect(place.name, 'Brandenburger Tor');
   });
 
+  test("Apple's short link is followed to its place and name", () async {
+    final redirects = _Redirects(<(int, String?)>[
+      (
+        301,
+        'https://maps.apple.com/place?coordinate=40.717471,-73.948400'
+            '&name=Williamsburg&map=explore',
+      ),
+    ]);
+    final link = parseLocationLink('https://maps.apple/p/UxDQiqPqgcpEUo')!;
+    expect(link.isUnresolvable, isTrue);
+
+    final place = await resolveShortLink(link, _dio(redirects));
+    expect(place.position!.lat, closeTo(40.717471, 1e-6));
+    expect(place.position!.lon, closeTo(-73.9484, 1e-6));
+    expect(place.name, 'Williamsburg');
+  });
+
   test("Google's consent page is seen through", () async {
     final redirects = _Redirects(<(int, String?)>[
       (
