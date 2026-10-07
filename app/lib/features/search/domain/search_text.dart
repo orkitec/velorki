@@ -208,13 +208,6 @@ double wordMatch(String query, String name) {
       _isSubsequence(query, name)) {
     // "rd" for "road", "blvd" for "boulevard": the letters, in order.
     best = query.length <= 4 ? 0.72 : 0.6;
-  } else if (name.length >= 2 &&
-      name.length <= 4 &&
-      name.length < query.length &&
-      query.codeUnitAt(0) == name.codeUnitAt(0) &&
-      _isSubsequence(name, query)) {
-    // The name is the short one: "st" stored, "saint" typed.
-    best = 0.72;
   }
   final edits = allowedEdits(query);
   if (edits > 0) {
@@ -230,6 +223,22 @@ double wordMatch(String query, String name) {
   }
   return best;
 }
+
+/// Whether the stored word [name] is a short form of the typed [query]:
+/// "st" stored, "saint" typed. Two to four letters, the first one the same,
+/// all of them in [query] in order. Worth [shortNameMatch] only beside a
+/// query word that matched on its own ([matchName]): "pc" is a short form
+/// of "pecora" by the letters, and the rest of the query is what says
+/// whether that is meant.
+bool isShortNameOf(String name, String query) =>
+    name.length >= 2 &&
+    name.length <= 4 &&
+    name.length < query.length &&
+    query.codeUnitAt(0) == name.codeUnitAt(0) &&
+    _isSubsequence(name, query);
+
+/// What a stored short form of a typed word is worth.
+const double shortNameMatch = 0.72;
 
 bool _isSubsequence(String short, String long) {
   var j = 0;
@@ -374,6 +383,26 @@ NameMatch matchName(
         corrected[i] = bestSpan == 1
             ? name[bestWord]
             : name[bestWord] + name[bestWord + 1];
+      }
+    }
+  }
+
+  // A stored short form ("St Paul's" for "saint pauls") is credited only
+  // when another word of three letters or more matched by itself; on its
+  // own, two letters stand for too many words.
+  final supported = <int>[];
+  for (var i = 0; i < query.length; i++) {
+    if (query[i].length >= 3 && scores[i] >= 0.8) supported.add(i);
+  }
+  if (supported.isNotEmpty) {
+    for (var i = 0; i < query.length; i++) {
+      if (scores[i] >= _matchFloor) continue;
+      for (var j = 0; j < name.length; j++) {
+        if (used[j] || !isShortNameOf(name[j], query[i])) continue;
+        scores[i] = shortNameMatch;
+        used[j] = true;
+        corrected[i] = name[j];
+        break;
       }
     }
   }

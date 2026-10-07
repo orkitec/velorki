@@ -97,9 +97,11 @@ void main() {
       expect(wordMatch('blvd', 'boulevard'), closeTo(0.72, 1e-9));
       expect(
         wordMatch('saint', 'st'),
-        closeTo(0.72, 1e-9),
-        reason: 'the stored name may be the abbreviated one',
+        0,
+        reason: 'a stored short form counts only beside a matched word',
       );
+      expect(isShortNameOf('st', 'saint'), isTrue);
+      expect(isShortNameOf('pc', 'pecora'), isTrue, reason: 'by the letters');
       expect(wordMatch('brooklyyn', 'brooklyn'), closeTo(0.68, 1e-9));
       expect(wordMatch('funhaal', 'funchal'), closeTo(0.56, 1e-9));
       expect(wordMatch('vzduq', 'vaduz'), 0, reason: 'two edits, five letters');
@@ -129,6 +131,19 @@ void main() {
         matchName(_words('saint pauls'), _words("St Paul's")).quality,
         greaterThan(0.8),
       );
+    });
+
+    test('a stored short form needs a matched word beside it', () {
+      expect(
+        matchName(_words('saint pauls'), _words("St Paul's")).quality,
+        greaterThan(0.8),
+      );
+      final stretch = matchName(
+        _words('pecora b'),
+        _words('Best Medical Care, PC'),
+      );
+      expect(stretch.quality, lessThan(0.45), reason: '"pc" for "pecora"');
+      expect(stretch.unmatched, contains(0));
     });
 
     test('a word the place answers counts, and is reported', () {
