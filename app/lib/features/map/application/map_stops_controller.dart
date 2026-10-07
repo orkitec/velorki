@@ -77,15 +77,16 @@ const double stopsRefetchM = 1000;
 typedef StopsFinder = Future<List<SearchResult>> Function(
   BoundingBox box,
   List<String> kinds,
-  int limit,
-);
+  int limit, {
+  LatLng? near,
+});
 
 /// The stops come from the gazetteers on the device, on the store's worker
 /// isolate.
 @Riverpod(keepAlive: true)
-StopsFinder mapStopsFinder(Ref ref) => (box, kinds, limit) async {
+StopsFinder mapStopsFinder(Ref ref) => (box, kinds, limit, {near}) async {
   final store = await ref.read(gazetteerStoreProvider.future);
-  return store.inBox(box, poiKinds: kinds, limit: limit);
+  return store.inBox(box, poiKinds: kinds, limit: limit, near: near);
 };
 
 /// How a stop is coloured on the map, by its gazetteer kind.
@@ -345,6 +346,13 @@ class MapStopsController extends ChangeNotifier {
     _changed();
   }
 
+  /// The part of the map the rider sees changed without the camera moving
+  /// (the sheet was pulled up or down): the stops in the area are asked for
+  /// again once it rests, as after a pan.
+  void visibleAreaChanged() {
+    if (_map != null && mode == MapStopsMode.area) _scheduleArea();
+  }
+
   /// Marks [stop] as the one the rider picked; `null` picks none.
   void select(SearchResult? stop) {
     if (stop == _selected) return;
@@ -431,10 +439,13 @@ class MapStopsController extends ChangeNotifier {
     final visible = visiblePart(bounds, visibleShare?.call());
     final List<SearchResult> found;
     try {
+      // Nearest the visible middle first: what the limit keeps of a full
+      // box is what the rider sees, not the margin or what the sheet covers.
       found = await find(
         grownBox(visible, stopsAreaMargin),
         _kinds.toList()..sort(),
         stopsAreaLimit,
+        near: visible.center,
       );
     } on Object catch (e) {
       debugPrint('velorki: stops in the area failed: $e');

@@ -11,9 +11,10 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 /// One question the controller asked, held until the test answers it.
 class _Ask {
-  _Ask(this.box, this.kinds, this.limit);
+  _Ask(this.box, this.kinds, this.limit, {this.near});
 
   final BoundingBox box;
+  final LatLng? near;
   final List<String> kinds;
   final int limit;
   final Completer<List<SearchResult>> answer = Completer<List<SearchResult>>();
@@ -26,9 +27,10 @@ class _FakeStore {
   Future<List<SearchResult>> find(
     BoundingBox box,
     List<String> kinds,
-    int limit,
-  ) {
-    final ask = _Ask(box, kinds, limit);
+    int limit, {
+    LatLng? near,
+  }) {
+    final ask = _Ask(box, kinds, limit, near: near);
     asks.add(ask);
     return ask.answer.future;
   }
@@ -147,6 +149,8 @@ void main() {
 
         same(visiblePart(_view, const Rect.fromLTRB(0, 0, 1, 0.5)), upper);
         same(store.asks.single.box, grownBox(upper, stopsAreaMargin));
+        // The limit keeps what is nearest the visible middle.
+        expect(store.asks.single.near, upper.center);
 
         store.asks.single.answer.complete([
           _stop('Under the sheet', const LatLng(48.002, 11.015), kind: 'cafe'),
@@ -157,6 +161,39 @@ void main() {
           'In view',
           'Under the sheet',
         ]);
+        stops.dispose();
+      });
+    });
+
+    test('a sheet pulled up or down asks again once it rests, for what it '
+        'now leaves of the map', () {
+      fakeAsync((async) {
+        final store = _FakeStore();
+        final map = FakeMapController()
+          ..zoom = 14
+          ..center = const LatLng(48.01, 11.015)
+          ..visibleBounds = _view;
+        var covered = 0.5;
+        final stops =
+            MapStopsController(
+                find: store.find,
+                visibleShare: () => Rect.fromLTRB(0, 0, 1, 1 - covered),
+              )
+              ..update(shown: true, kinds: const {'cafe'})
+              ..attach(map);
+        async.elapse(stopsDebounce * 2);
+        store.asks.single.answer.complete(const <SearchResult>[]);
+        async.flushMicrotasks();
+
+        // Dragged down in steps: one question once it rests.
+        for (final share in [0.4, 0.3, 0.2]) {
+          covered = share;
+          stops.visibleAreaChanged();
+          async.elapse(const Duration(milliseconds: 50));
+        }
+        async.elapse(stopsDebounce * 2);
+        expect(store.asks, hasLength(2));
+        expect(store.asks.last.near!.lat, closeTo(48.012, 1e-9));
         stops.dispose();
       });
     });

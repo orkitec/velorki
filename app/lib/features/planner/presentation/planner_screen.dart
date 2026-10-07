@@ -231,6 +231,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   /// comes next.
   void _onSheetExtent(double extent) {
     if (_active) ref.read(tabHandoverProvider.notifier).setSheetExtent(extent);
+    // The stops follow what the sheet leaves of the map.
+    _stops.visibleAreaChanged();
   }
 
   /// What covers this tab's map: its chrome, the column, and the sheet at
@@ -296,8 +298,17 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     _map = ref.read(sharedMapControllerProvider);
     _stops = MapStopsController(
       find: ref.read(mapStopsFinderProvider),
+      // What the sheet leaves of the map now, pulled up or down, not at
+      // its resting height.
       visibleShare: () => mounted
-          ? visibleShareOf(_visiblePadding(), MediaQuery.sizeOf(context))
+          ? visibleShareOf(
+              visibleMapPadding(
+                context,
+                chromeTop: _ownControlsTop,
+                sheetExtent: _sheet.isAttached ? _sheet.size : null,
+              ),
+              MediaQuery.sizeOf(context),
+            )
           : null,
     )..onStopTapped = _onStopTapped;
     _updateMapUse();

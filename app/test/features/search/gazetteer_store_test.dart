@@ -398,6 +398,37 @@ void main() {
     expect(names[1], 'Monte Tea House');
   });
 
+  test('a full box keeps the rows nearest its middle, not its south', () async {
+    buildGazetteer(
+      dir,
+      'W20_N30',
+      pois: <GazPoi>[
+        for (var i = 0; i < 10; i++)
+          GazPoi(100 + i, 'Café $i', 'cafe', 32.60 + i * 0.01, -16.90),
+      ],
+    );
+    final store = await openStore();
+    const box = BoundingBox(
+      south: 32.59,
+      west: -16.95,
+      north: 32.70,
+      east: -16.85,
+    );
+
+    final middle = await store.inBox(box, poiKinds: const ['cafe'], limit: 2);
+    expect(
+      middle.map((r) => r.name),
+      unorderedEquals(<String>['Café 4', 'Café 5']),
+    );
+    final north = await store.inBox(
+      box,
+      poiKinds: const ['cafe'],
+      limit: 3,
+      near: const LatLng(32.69, -16.90),
+    );
+    expect(north.map((r) => r.name), <String>['Café 9', 'Café 8', 'Café 7']);
+  });
+
   test('the limit is honoured', () async {
     buildGazetteer(
       dir,

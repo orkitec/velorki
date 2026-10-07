@@ -345,6 +345,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     // must not show it for the frame before the live sheet first reports.
     _liveExtent.value = _liveSheetShown ? extent : 1;
     if (_active) ref.read(tabHandoverProvider.notifier).setSheetExtent(extent);
+    // The stops follow what the sheet leaves of the map.
+    _stops.visibleAreaChanged();
   }
 
   /// The sheet's extent as last reported; `null` before the first report.

@@ -242,6 +242,7 @@ class GazetteerStore {
     List<String> placeKinds = const <String>[],
     List<String> poiKinds = const <String>[],
     int limit = _kindFetchLimit,
+    LatLng? near,
   }) async {
     if (_closed || _open.isEmpty) return const <SearchResult>[];
     final worker = await _workerOrNull();
@@ -251,23 +252,25 @@ class GazetteerStore {
         placeKinds,
         poiKinds,
         limit,
+        near,
       ));
       if (answer case _Answered(:final List<SearchResult> value)) return value;
     }
-    return _inBoxHere(box, placeKinds, poiKinds, limit);
+    return _inBoxHere(box, placeKinds, poiKinds, limit, near);
   }
 
   List<SearchResult> _inBoxHere(
     BoundingBox box,
     List<String> placeKinds,
     List<String> poiKinds,
-    int limit,
-  ) {
+    int limit, [
+    LatLng? near,
+  ]) {
     if (_closed || _open.isEmpty) return const <SearchResult>[];
     final found = <SearchResult>[];
     for (final file in _open.values) {
       try {
-        found.addAll(file.inBox(box, placeKinds, poiKinds, limit));
+        found.addAll(file.inBox(box, placeKinds, poiKinds, limit, near: near));
       } on Object catch (e) {
         debugPrint('velorki: gazetteer ${file.tile} has no position index: $e');
       }
@@ -1456,6 +1459,19 @@ class _GazetteerFile {
     return (result: result, spot: located.spot);
   }
 
+  /// An `ORDER BY` putting the rows nearest [near] first, on the stored
+  /// 1e-7 degree integers, a degree of longitude shortened by the cosine of
+  /// the latitude; with the values it binds.
+  static ({String sql, List<Object?> args}) _nearestFirst(LatLng near) {
+    final lat = (near.lat * 1e7).round();
+    final lon = (near.lon * 1e7).round();
+    final squeeze = math.max(math.cos(near.lat * math.pi / 180).abs(), 0.01);
+    return (
+      sql: 'ORDER BY (lat - ?) * (lat - ?) + (lon - ?) * (lon - ?) * ?',
+      args: <Object?>[lat, lat, lon, lon, squeeze * squeeze],
+    );
+  }
+
   /// The rows of any of [kinds] inside a [radius]-metre box around [near],
   /// nearest first, each carrying its distance.
   ///
@@ -1475,16 +1491,20 @@ class _GazetteerFile {
         (_metersPerDegree *
             math.max(math.cos(near.lat * math.pi / 180).abs(), 0.01));
     final placeholders = List<String>.filled(kinds.length, '?').join(', ');
+    // Nearest first, so that a town with more of the kind than the limit
+    // keeps the ones nearby, not the southernmost.
+    final order = _nearestFirst(near);
     final rows = _db.select(
       'SELECT name, kind, lat, lon, place_id FROM pois '
       'WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? '
-      'AND kind IN ($placeholders) LIMIT ?',
+      'AND kind IN ($placeholders) ${order.sql} LIMIT ?',
       <Object?>[
         ((near.lat - dLat) * 1e7).round(),
         ((near.lat + dLat) * 1e7).round(),
         ((near.lon - dLon) * 1e7).round(),
         ((near.lon + dLon) * 1e7).round(),
         ...kinds,
+        ...order.args,
         _kindFetchLimit,
       ],
     );
@@ -1515,19 +1535,26 @@ class _GazetteerFile {
   }
 
   /// The rows of [placeKinds] in `places` and of [poiKinds] in `pois` inside
-  /// [box], at most [limit] from each table.
+  /// [box], at most [limit] from each table, the nearest to [near] (the
+  /// box's middle when `null`) first.
+  ///
+  /// The order is what the limit keeps: without it the position index hands
+  /// the rows back south to north, and a full box kept its southern part —
+  /// on a phone, the part under the sheet.
   List<SearchResult> inBox(
     BoundingBox box,
     List<String> placeKinds,
     List<String> poiKinds,
-    int limit,
-  ) {
+    int limit, {
+    LatLng? near,
+  }) {
     final bounds = <Object?>[
       (box.south * 1e7).round(),
       (box.north * 1e7).round(),
       (box.west * 1e7).round(),
       (box.east * 1e7).round(),
     ];
+    final order = _nearestFirst(near ?? box.center);
     final found = <SearchResult>[];
     void query(String table, SearchKind kind, List<String> kinds) {
       if (kinds.isEmpty) return;
@@ -1535,8 +1562,8 @@ class _GazetteerFile {
       final rows = _db.select(
         'SELECT name, kind, lat, lon FROM $table '
         'WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? '
-        'AND kind IN ($placeholders) LIMIT ?',
-        <Object?>[...bounds, ...kinds, limit],
+        'AND kind IN ($placeholders) ${order.sql} LIMIT ?',
+        <Object?>[...bounds, ...kinds, ...order.args, limit],
       );
       for (final row in rows) {
         final position = _position(row);
@@ -2361,9 +2388,9 @@ class _GazetteerWorker {
           keywords: keywords,
         );
       case _Ask.inBox:
-        final (box, placeKinds, poiKinds, limit) =
-            args! as (BoundingBox, List<String>, List<String>, int);
-        return store._inBoxHere(box, placeKinds, poiKinds, limit);
+        final (box, placeKinds, poiKinds, limit, near) =
+            args! as (BoundingBox, List<String>, List<String>, int, LatLng?);
+        return store._inBoxHere(box, placeKinds, poiKinds, limit, near);
       case _Ask.nearestSettlement:
         final (point, maxKm) = args! as (LatLng, double);
         return store._nearestSettlementHere(point, maxKm);

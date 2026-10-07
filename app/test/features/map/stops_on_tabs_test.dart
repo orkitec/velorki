@@ -38,7 +38,12 @@ void main() {
       tester,
       const PlannerScreen(),
       extraOverrides: [
-        mapStopsFinderProvider.overrideWithValue((box, kinds, limit) async {
+        mapStopsFinderProvider.overrideWithValue((
+          box,
+          kinds,
+          limit, {
+          near,
+        }) async {
           asked.add(box);
           return [fountain];
         }),
@@ -85,7 +90,7 @@ void main() {
       const PlannerScreen(),
       extraOverrides: [
         mapStopsFinderProvider.overrideWithValue(
-          (box, kinds, limit) async => const <SearchResult>[],
+          (box, kinds, limit, {near}) async => const <SearchResult>[],
         ),
       ],
     );
@@ -149,7 +154,7 @@ void main() {
           GuidedRoute(key: 'r1', line: line, turns: const []),
         ),
         mapStopsFinderProvider.overrideWithValue(
-          (box, kinds, limit) async => [
+          (box, kinds, limit, {near}) async => [
             for (final s in [tap, cafe])
               if (box.contains(s.position) && kinds.contains(s.detail)) s,
           ],
