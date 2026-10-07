@@ -38,8 +38,9 @@ changing structure.
   (no native addons, no install scripts — the rule that keeps a fork cheap to
   host), `npm run locales -- --check`. Run
   `npm run lint && npm run typecheck && npm test` before committing anything
-  under `web/`. After the first Crowdin sync, only `messages/en.json` and
-  `content/en/` are edited by hand.
+  under `web/`. A change to `messages/en.json` or `content/en/` carries its
+  translation into every other language in the same commit, as the app's
+  strings do; legal pages get a person's read before they go live.
 - **Delegation**: routine implementation goes to cheaper subagents with a
   precise brief; design decisions, verification and review stay with the
   main agent. Subagents must not commit.
@@ -55,8 +56,11 @@ changing structure.
   permission_handler needs compileSdk 37. Android SDK at `~/Android/Sdk`.
 - Codegen: `bash tool/gen.sh` (riverpod, freezed, drift, gen-l10n). build_runner
   here has no `--delete-conflicting-outputs`.
-- Strings live in `app/lib/l10n/app_en.arb` only (other locales come from
-  Crowdin); run `gen.sh` after editing it.
+- Strings are written in `app/lib/l10n/app_en.arb` and translated into every
+  other `app_*.arb` in the same commit (by the agent, matching the terms
+  already in that file); run `gen.sh` after editing. The push uploads them
+  to Crowdin as approved; people's fixes there come back as a pull request
+  on `l10n/crowdin`, which is merged before the next translation change.
 - Config is `--dart-define-from-file=env/<name>.json`. `env/local.json` and
   `env/phone.json` are git-ignored: local points the tile mirror at
   `http://10.0.2.2:8000` (emulator only, debug builds only — profile builds

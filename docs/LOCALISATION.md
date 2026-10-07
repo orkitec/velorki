@@ -1,12 +1,13 @@
 # Localisation
 
-English is the source language, German is the first target. Translation runs
-through [Crowdin](https://crowdin.com); `crowdin.yml` in the repository root
-says what is translated.
+English is the source language, German is the first target. Translations are
+written in the repository, in the commit that changes the English, by the
+coding agent; [Crowdin](https://crowdin.com) holds them so that people can
+improve them. `crowdin.yml` in the repository root says what is translated.
 
 ## How a string travels
 
-| Source, edited by hand | Target, written by Crowdin |
+| Source | Target, written with it, refined in Crowdin |
 |------------------------|----------------------------|
 | `app/lib/l10n/app_en.arb` | `app/lib/l10n/app_<lang>.arb` |
 | `web/messages/en.json` | `web/messages/<lang>.json` |
@@ -15,12 +16,16 @@ says what is translated.
 | `app/fastlane/metadata/android/en-US/*.txt` | `app/fastlane/metadata/android/<store locale>/*.txt` |
 | `app/store/slides_en.json` | `app/store/slides_<lang>.json` |
 
-`.github/workflows/crowdin.yml` uploads a source file to Crowdin when it
-changes on `main`, and every Monday morning downloads whatever is finished into
-the branch `l10n/crowdin` and opens a pull request titled "Update translations".
-Nothing reaches `main` without review. The download can also be started by hand
-from the Actions tab. A translation pull request can never touch a source file:
-Crowdin only ever writes a target language, and English is the source.
+`.github/workflows/crowdin.yml` uploads the sources and the translations to
+Crowdin when they change on `main`, the translations as approved, and every
+Monday morning downloads what people changed there into the branch
+`l10n/crowdin` and opens a pull request titled "Update translations" (the
+translated ARB files without the `@key` metadata Crowdin copies into them).
+While that pull request is open, a push uploads only the sources: the
+repository's older copy would overwrite the newer text. Merge it first. The
+download can also be started by hand from the Actions tab. A translation pull
+request can never touch a source file: Crowdin only ever writes a target
+language, and English is the source.
 
 The app's `supportedLocales` is generated from the ARB files present, so a
 merged `app_de.arb` enables German with no code change. The website lists its
@@ -29,11 +34,12 @@ a language".
 
 ## Rules
 
-- After the first Crowdin sync, never edit a non-English file by hand: German
-  is edited in Crowdin, not in the repository. The next download overwrites a
-  hand edit, and the change is invisible in Crowdin.
-- New strings go into the English source only. Give an ARB key a `@key`
-  description: it is the only context a translator gets.
+- A change to an English source carries its translation into every other
+  language in the same commit, matching the terms that language already uses.
+  Give an ARB key a `@key` description: it is the context a translator in
+  Crowdin gets.
+- Legal pages (imprint, privacy, terms) and the store texts get a person's
+  read in each language before they go live.
 - Placeholders are ICU, as in the ARB (`{count}`, `{distance}`). They must
   survive translation unchanged, in any order the language needs.
 - In Markdown, front matter keys stay as they are; only `title` and
@@ -123,10 +129,9 @@ is its unit test (`python3 -m unittest app/tool/store_text_check_test.py`).
 ## Adding a language
 
 1. Add the target language in Crowdin's project settings.
-2. Translate. The next Monday's pull request brings
-   `app/lib/l10n/app_<lang>.arb`, `web/messages/<lang>.json` and
-   `web/content/<lang>/...`; a language nobody has started yet brings no files
-   (`skip_untranslated_files`).
+2. Translate every source into it in the repository (`app_<lang>.arb`,
+   `web/messages/<lang>.json`, `web/content/<lang>/...`, the store texts) and
+   push; the upload makes them the approved translations in Crowdin.
 3. For the website, run `npm run locales` in `web/` on that branch and commit
    `src/i18n/locales.generated.ts` — the routing table is imported by client
    code and cannot read the directory itself.

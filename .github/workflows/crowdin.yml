@@ -1,7 +1,9 @@
 name: crowdin
 
-# English sources go up when they change on main; finished translations come
-# back once a week as a pull request on `l10n/crowdin`. Both need the
+# Translations are written in the repository, in the commit that changes the
+# English (see CLAUDE.md), and go up to Crowdin as approved with the sources on
+# every push to main; what people improve in Crowdin comes back once a week as
+# a pull request on `l10n/crowdin`. Both need the
 # CROWDIN_PROJECT_ID and CROWDIN_PERSONAL_TOKEN secrets; without them the jobs
 # are skipped rather than shown green for doing nothing. Forks never talk to
 # our project. What is translated is in `crowdin.yml`; the day-to-day is in
@@ -10,21 +12,21 @@ on:
   push:
     branches: [main]
     paths:
-      - "app/lib/l10n/app_en.arb"
-      - "web/messages/en.json"
-      - "web/content/en/**/*.md"
-      - "app/fastlane/metadata/ios/en-US/*.txt"
-      - "app/fastlane/metadata/android/en-US/*.txt"
-      - "app/store/slides_en.json"
+      - "app/lib/l10n/app_*.arb"
+      - "web/messages/*.json"
+      - "web/content/**/*.md"
+      - "app/fastlane/metadata/ios/*/*.txt"
+      - "app/fastlane/metadata/android/*/*.txt"
+      - "app/store/slides_*.json"
   schedule:
     - cron: "0 6 * * 1"
   workflow_dispatch:
     inputs:
       upload_translations:
         description: >-
-          Push the translations already in the repository to Crowdin and
-          approve them. Needed once, before the first download, so the
-          hand-made German is not overwritten by empty strings.
+          Push the translations in the repository to Crowdin and approve
+          them, also while a Crowdin pull request is open (its newer text is
+          then overwritten).
         type: boolean
         default: false
 
@@ -63,16 +65,38 @@ jobs:
     needs: token
     if: ${{ needs.token.outputs.present == 'true' && github.event_name != 'schedule' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      # The repository's translations become the approved ones in Crowdin on
+      # every push, and on a manual run with the box ticked. Not while a
+      # Crowdin pull request is open: it holds newer text from Crowdin, which
+      # the repository's older copy would overwrite. Merge it, and the next
+      # push uploads.
+      - id: mode
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event_name }}
+          ASKED: ${{ inputs.upload_translations || false }}
+        run: |
+          translations=false
+          if [ "$EVENT" = push ] || [ "$ASKED" = true ]; then
+            translations=true
+          fi
+          if [ "$translations" = true ] && [ "$EVENT" = push ] &&
+            [ -n "$(gh pr list --repo "$GITHUB_REPOSITORY" --head l10n/crowdin --state open --json number --jq '.[].number')" ]; then
+            echo "::warning::A Crowdin pull request is open; translations are not uploaded until it is merged."
+            translations=false
+          fi
+          echo "translations=$translations" >> "$GITHUB_OUTPUT"
       - uses: crowdin/github-action@9c23991700c0ec5256fd41089b9d9d7d540e424e # v3.3.0
         with:
           upload_sources: true
-          # Only on a manual run with the box ticked: the translations in the
-          # repository become the approved ones in Crowdin.
-          upload_translations: ${{ inputs.upload_translations || false }}
-          auto_approve_imported: ${{ inputs.upload_translations || false }}
-          import_eq_suggestions: ${{ inputs.upload_translations || false }}
+          upload_translations: ${{ steps.mode.outputs.translations }}
+          auto_approve_imported: ${{ steps.mode.outputs.translations }}
+          import_eq_suggestions: ${{ steps.mode.outputs.translations }}
           download_translations: false
         env:
           CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
