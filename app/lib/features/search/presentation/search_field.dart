@@ -225,10 +225,19 @@ class SearchFieldState extends ConsumerState<SearchField> {
   }
 
   void _select(SearchResult result) {
-    _controller.text = searchResultTitle(AppLocalizations.of(context), result);
+    // A street at a house number goes out under the address, number and
+    // all, so the pin and the waypoint say "400 West 42nd Street".
+    final title = searchResultTitle(
+      AppLocalizations.of(context),
+      result,
+      numberFirst: numberTypedFirst(_controller.text),
+    );
+    _controller.text = title;
     _focusNode.unfocus();
     setState(() => _dismissed = true);
-    widget.onSelected(result);
+    widget.onSelected(
+      result.houseNumber == null ? result : result.copyWith(name: title),
+    );
   }
 
   @override
@@ -555,7 +564,13 @@ class _ResultsCardState extends State<_ResultsCard> {
                 return ListTile(
                   dense: true,
                   leading: Icon(searchResultIcon(r)),
-                  title: Text(searchResultTitle(l10n, r)),
+                  title: Text(
+                    searchResultTitle(
+                      l10n,
+                      r,
+                      numberFirst: numberTypedFirst(state.query),
+                    ),
+                  ),
                   subtitle: subtitle.isEmpty ? null : Text(subtitle),
                   onTap: () => widget.onSelected(r),
                 );
@@ -704,20 +719,37 @@ IconData _poiIcon(String? detail) => switch (detail) {
 /// there is nothing to call them and nothing to find them by name \u2014 so a row
 /// with no name is titled with what it is. This is the one place that
 /// substitution happens: [SearchResult.name] stays empty everywhere else.
-String searchResultTitle(AppLocalizations l10n, SearchResult result) {
-  if (result.name.isNotEmpty) return result.name;
+String searchResultTitle(
+  AppLocalizations l10n,
+  SearchResult result, {
+  bool numberFirst = false,
+}) {
+  final number = result.houseNumber;
+  if (result.name.isNotEmpty) {
+    // The address the rider typed, with the number where they put it:
+    // "400 West 42nd Street", "Hauptstraße 12".
+    if (number == null || number.isEmpty) return result.name;
+    return numberFirst ? '$number ${result.name}' : '${result.name} $number';
+  }
   final label = searchKindLabel(l10n, result);
   return label.isEmpty ? l10n.searchKindPlace : label;
 }
+
+/// Whether [query] puts the house number before the street, as "400 w 42nd"
+/// does and "Hauptstraße 12" does not.
+bool numberTypedFirst(String query) => _startsWithDigit.hasMatch(query);
+
+final RegExp _startsWithDigit = RegExp(r'^\s*\d');
 
 /// The second line of a local row: what it is, how far away when it was found
 /// by its kind, the house number when the rider typed one, and where it is
 /// when the gazetteer knows.
 ///
-/// "Street \u00b7 400 \u00b7 Manhattan", and "Street \u00b7 \u2248 400 \u00b7 Manhattan" when the
+/// "Street \u00b7 Manhattan", and "Street \u00b7 \u2248 400 \u00b7 Manhattan" when the
 /// number sits between the ones the gazetteer knows rather than on one of
-/// them; "Drinking water \u00b7 350 m" for the nearest tap, in [units]. Every part
-/// is optional; the separator is put in once, here.
+/// them (the number itself is in the title); "Drinking water \u00b7 350 m" for
+/// the nearest tap, in [units]. Every part is optional; the separator is put
+/// in once, here.
 String localResultSubtitle(
   AppLocalizations l10n,
   SearchResult result, {
@@ -730,8 +762,9 @@ String localResultSubtitle(
     if (result.name.isNotEmpty) searchKindLabel(l10n, result),
     if (meters != null && units != null)
       format.formatDistance(l10n, units, meters),
-    if (number != null && number.isNotEmpty)
-      result.approximate ? l10n.searchApproximateNumber(number) : number,
+    // The number is in the title; the line only says when it is a guess.
+    if (number != null && number.isNotEmpty && result.approximate)
+      l10n.searchApproximateNumber(number),
     result.city ?? '',
   ].where((part) => part.isNotEmpty).join(' \u00b7 ');
 }

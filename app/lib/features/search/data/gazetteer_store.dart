@@ -461,11 +461,36 @@ class GazetteerStore {
 
     final results = <SearchResult>[...kindResults.take(cap)];
     final seen = <String>{for (final row in results) _identity(row)};
+    final addressed = query?.houseNumber != null;
+    final spots = <_NumberSpot>[];
+    var looked = 0;
     for (final hit in pool.ranked()) {
-      if (results.length >= cap) break;
-      final result = hit.file.result(hit.row, query);
+      if (results.length >= cap && !addressed) break;
+      if (looked++ >= cap * _addressLookFactor) break;
+      final (:result, :spot) = hit.file.result(hit.row, query);
       if (!seen.add(_identity(result))) continue;
+      if (addressed && result.kind == SearchKind.street) {
+        // A street is one row per place it runs through, and an address is
+        // one spot on it: the segments of the same name near the number are
+        // one row, the one that holds the number rather than one that only
+        // ends nearest to it.
+        final i = results.indexWhere(
+          (r) =>
+              r.kind == SearchKind.street &&
+              r.name == result.name &&
+              haversineMeters(r.position, result.position) <= _sameStreetMeters,
+        );
+        if (i >= 0) {
+          if (spot.index > spots[i].index) {
+            results[i] = result;
+            spots[i] = spot;
+          }
+          continue;
+        }
+      }
+      if (results.length >= cap) continue;
       results.add(result);
+      spots.add(spot);
     }
     return GazetteerSearch(results: results, correctedQuery: corrected);
   }
@@ -1363,12 +1388,15 @@ class _GazetteerFile {
 
   /// [row] as the list shows it: with the place it lies in, and a street at
   /// the house number [query] carried, when it carried one.
-  SearchResult result(_Row row, GazetteerQuery? query) {
+  ({SearchResult result, _NumberSpot spot}) result(
+    _Row row,
+    GazetteerQuery? query,
+  ) {
     final number = row.table == _Table.street ? query?.number : null;
     final located = number == null
-        ? (position: row.position, approximate: false)
+        ? (position: row.position, approximate: false, spot: _NumberSpot.none)
         : _locate(row.id, number, row.position);
-    return SearchResult(
+    final result = SearchResult(
       name: row.name,
       position: located.position,
       city: _contextName(row.placeId),
@@ -1378,6 +1406,7 @@ class _GazetteerFile {
       houseNumber: number == null ? null : query?.houseNumber,
       approximate: located.approximate,
     );
+    return (result: result, spot: located.spot);
   }
 
   /// The rows of any of [kinds] inside a [radius]-metre box around [near],
@@ -1655,7 +1684,7 @@ class _GazetteerFile {
   /// beyond either end it is the end anchor. With nothing stored it is
   /// [fallback], the street itself. Whatever is not known to within a few
   /// metres is approximate, and the row says so.
-  ({LatLng position, bool approximate}) _locate(
+  ({LatLng position, bool approximate, _NumberSpot spot}) _locate(
     int streetId,
     int number,
     LatLng fallback,
@@ -1669,12 +1698,20 @@ class _GazetteerFile {
         final located = decoded == null
             ? null
             : locateOnStreet(decoded, number);
-        if (located != null) return located;
+        if (located != null) {
+          return (
+            position: located.position,
+            approximate: located.approximate,
+            spot: located.approximate ? _NumberSpot.nearest : _NumberSpot.on,
+          );
+        }
       }
-      return (position: fallback, approximate: true);
+      return (position: fallback, approximate: true, spot: _NumberSpot.none);
     }
     final statement = _houseNumbers;
-    if (statement == null) return (position: fallback, approximate: true);
+    if (statement == null) {
+      return (position: fallback, approximate: true, spot: _NumberSpot.none);
+    }
     final anchors = <({int number, LatLng position})>[];
     for (final row in statement.select(<Object?>[streetId])) {
       final value = _asInt(row['number']);
@@ -1682,18 +1719,32 @@ class _GazetteerFile {
       if (value == null || position == null) continue;
       anchors.add((number: value, position: position));
     }
-    if (anchors.isEmpty) return (position: fallback, approximate: true);
+    if (anchors.isEmpty) {
+      return (position: fallback, approximate: true, spot: _NumberSpot.none);
+    }
 
     for (final anchor in anchors) {
       if (anchor.number == number) {
-        return (position: anchor.position, approximate: false);
+        return (
+          position: anchor.position,
+          approximate: false,
+          spot: _NumberSpot.on,
+        );
       }
     }
     if (number < anchors.first.number) {
-      return (position: anchors.first.position, approximate: true);
+      return (
+        position: anchors.first.position,
+        approximate: true,
+        spot: _NumberSpot.nearest,
+      );
     }
     if (number > anchors.last.number) {
-      return (position: anchors.last.position, approximate: true);
+      return (
+        position: anchors.last.position,
+        approximate: true,
+        spot: _NumberSpot.nearest,
+      );
     }
     for (var i = 0; i + 1 < anchors.length; i++) {
       final low = anchors[i];
@@ -1706,9 +1757,10 @@ class _GazetteerFile {
           low.position.lon + (high.position.lon - low.position.lon) * t,
         ),
         approximate: true,
+        spot: _NumberSpot.between,
       );
     }
-    return (position: fallback, approximate: true);
+    return (position: fallback, approximate: true, spot: _NumberSpot.none);
   }
 
   /// The name of the place a row hangs off, for the second line of the row.
@@ -2039,6 +2091,19 @@ const double _distanceWeight = 0.06;
 
 /// What a street is worth on top when the query carries a house number.
 const double _addressBonus = 0.25;
+
+/// How surely a street row's position is the house number asked for, worst
+/// first: no numbers known, the nearest end of what is known, between two
+/// known numbers, on a known one.
+enum _NumberSpot { none, nearest, between, on }
+
+/// Segments of one street this close to each other answer a house number as
+/// one row.
+const double _sameStreetMeters = 3000;
+
+/// With a house number, how many ranked rows beyond the limit are looked at
+/// for a segment that holds the number exactly.
+const int _addressLookFactor = 4;
 
 /// How far a good row may be from the origin and still end the first look.
 const double _nearbyKm = 30;

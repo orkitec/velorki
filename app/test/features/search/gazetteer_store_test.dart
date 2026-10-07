@@ -757,6 +757,49 @@ void main() {
       expect(past.position.lat, closeTo(40.7620, 1e-7));
     });
 
+    test(
+      'one street at one number is one row, the segment that holds it',
+      () async {
+        buildGazetteer(
+          dir,
+          'W20_N30',
+          places: const <GazPlace>[
+            GazPlace(1, 'Manhattan', 'suburb', 40.7580, -73.9855),
+          ],
+          // Three segments of the same street a few hundred metres apart;
+          // only the second has number 410 between its anchors.
+          streets: const <GazStreet>[
+            GazStreet(10, 'West 42nd Street', 40.7570, -73.9850, placeId: 1),
+            GazStreet(11, 'West 42nd Street', 40.7575, -73.9900, placeId: 1),
+            GazStreet(12, 'West 42nd Street', 40.7580, -73.9950, placeId: 1),
+            GazStreet(13, 'West 42nd Street', 40.9000, -74.2000, placeId: 1),
+          ],
+          houseNumbers: const <GazHouseNumber>[
+            GazHouseNumber(10, 100, 40.7570, -73.9850),
+            GazHouseNumber(10, 200, 40.7572, -73.9870),
+            GazHouseNumber(11, 400, 40.7574, -73.9890),
+            GazHouseNumber(11, 420, 40.7576, -73.9910),
+            GazHouseNumber(12, 500, 40.7580, -73.9950),
+          ],
+        );
+        final store = await openStore();
+
+        final found = await store.search(
+          '410 w 42nd',
+          near: const LatLng(40.7570, -73.9850),
+        );
+        final near = found.where((r) => r.position.lat < 40.8).toList();
+        expect(near, hasLength(1), reason: 'the three segments are one row');
+        expect(near.single.position.lat, closeTo(40.7575, 1e-6));
+        expect(near.single.approximate, isTrue, reason: 'interpolated');
+        expect(
+          found.where((r) => r.position.lat > 40.8),
+          hasLength(1),
+          reason: 'a segment 20 km away is another place',
+        );
+      },
+    );
+
     test('a file from the first builder still answers', () async {
       buildGazetteer(
         dir,
