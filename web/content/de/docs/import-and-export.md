@@ -28,7 +28,7 @@ Velorki nimmt auch einen einzelnen Ort entgegen, zu dem du fahren willst, und ö
 
 - **Teilen-Menü.** Teile einen Ort aus Google Maps, Apple Karten, OpenStreetMap, einem Browser oder einem Messenger und wähle Velorki. Ein Kartenlink, Koordinaten wie `52.5200, 13.4050` oder `52°31'12"N 13°24'18"E` oder eine Adresse funktionieren; eine Adresse landet im Suchfeld, das sie findet.
 - **Öffnen mit** (Android). Ein Ort, den eine andere App öffnet (ein `geo:`-Link), bietet Velorki in der Auswahl an.
-- **Kurzlinks** wie `maps.app.goo.gl/…` oder `osm.org/go/…` verraten erst beim Öffnen, wohin sie zeigen. Velorki sagt das: Öffne den Link zuerst im Browser und teile den Ort von dort.
+- **Kurzlinks** wie `maps.app.goo.gl/…`, `maps.apple/p/…` oder `osm.org/go/…` verraten erst beim Öffnen, wohin sie zeigen. Online öffnet Velorki sie (eine Anfrage an diesen Dienst, sonst nichts) und landet auf dem Ort; offline sagt es das: Öffne den Link zuerst im Browser und teile den Ort von dort.
 
 **Für App-Entwickler** öffnet Velorki diese Links:
 

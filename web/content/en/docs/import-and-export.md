@@ -28,7 +28,7 @@ Velorki also takes a single place to ride to, and opens it on the **Plan** tab t
 
 - **Share sheet.** Share a place from Google Maps, Apple Maps, OpenStreetMap, a browser or a messenger and pick Velorki. A map link, coordinates such as `52.5200, 13.4050` or `52°31'12"N 13°24'18"E`, or an address all work; an address goes into the search field, which finds it.
 - **Open with** (Android). A location another app opens (a `geo:` link) offers Velorki in the chooser.
-- **Short links** such as `maps.app.goo.gl/…` or `osm.org/go/…` only say where they point when opened. Velorki says so: open the link in a browser first, then share the place from there.
+- **Short links** such as `maps.app.goo.gl/…`, `maps.apple/p/…` or `osm.org/go/…` only say where they point when opened. Online, Velorki opens them (one request to that service, nothing else sent) and lands on the place; offline it says so: open the link in a browser first, then share the place from there.
 
 **For app developers**, Velorki opens these links:
 

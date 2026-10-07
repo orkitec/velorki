@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
 
 import '../../../app/router.dart';
+import '../../../core/http/user_agent.dart';
 import '../../../core/links/location_link.dart';
+import '../../../core/links/short_link_resolver.dart';
 import '../../import_export/data/incoming_file_service.dart';
 import '../../recording/data/recording_recovery.dart';
 
@@ -74,8 +76,13 @@ Future<void> _afterRecovery(
   } on Object catch (error) {
     _log.warning('recovery check failed; showing the place anyway', error);
   }
-  _log.info('showing a place from ${link.source.name}');
-  container.read(incomingPlaceProvider.notifier).send(link);
+  // A short link is followed first, when the phone is online: the place is
+  // in the link it points to.
+  final place = link.shortLink == null
+      ? link
+      : await resolveShortLink(link, velorkiDio());
+  _log.info('showing a place from ${place.source.name}');
+  container.read(incomingPlaceProvider.notifier).send(place);
   // The first frame may not be up yet on a cold start.
   WidgetsBinding.instance.addPostFrameCallback((_) {
     container.read(routerProvider).go(plannerRoute);

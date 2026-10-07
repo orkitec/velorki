@@ -44,6 +44,7 @@ class LocationLink {
     this.position,
     this.query,
     this.name,
+    this.shortLink,
   });
 
   /// The place, when the link carried coordinates.
@@ -57,6 +58,10 @@ class LocationLink {
 
   /// What the link was.
   final LocationLinkSource source;
+
+  /// The short link itself, kept for a [LocationLinkSource.shortLink] so it
+  /// can be followed when the phone is online (`short_link_resolver.dart`).
+  final Uri? shortLink;
 
   /// Whether the link names a place the app cannot find without a browser.
   bool get isUnresolvable => position == null && query == null;
@@ -121,7 +126,11 @@ LocationLink? _parse(String raw) {
     if (parsed.source == LocationLinkSource.shortLink) {
       return around == null
           ? parsed
-          : LocationLink(source: LocationLinkSource.shortLink, query: around);
+          : LocationLink(
+              source: LocationLinkSource.shortLink,
+              query: around,
+              shortLink: parsed.shortLink,
+            );
     }
     if (parsed.position != null && parsed.name == null && around != null) {
       return LocationLink(
@@ -291,7 +300,10 @@ LocationLink? _parseLink(String text) {
           (host == 'goo.gl' && link.path.startsWith('/maps')) ||
           (host == 'osm.org' && link.path.startsWith('/go/')) ||
           (host == 'openstreetmap.org' && link.path.startsWith('/go/'))) {
-        return const LocationLink(source: LocationLinkSource.shortLink);
+        return LocationLink(
+          source: LocationLinkSource.shortLink,
+          shortLink: Uri.tryParse(text.trim()),
+        );
       }
       if (_googleHost.hasMatch(host)) {
         if (host.startsWith('maps.') || link.path.startsWith('/maps')) {
@@ -300,7 +312,10 @@ LocationLink? _parseLink(String text) {
         return null;
       }
       if (host == 'maps.apple' && link.path.startsWith('/p/')) {
-        return const LocationLink(source: LocationLinkSource.shortLink);
+        return LocationLink(
+          source: LocationLinkSource.shortLink,
+          shortLink: Uri.tryParse(text.trim()),
+        );
       }
       if (host == 'maps.apple.com' || host == 'maps.apple') {
         return _parseApple(link);
