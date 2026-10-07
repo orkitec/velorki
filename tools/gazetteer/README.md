@@ -58,7 +58,7 @@ somebody types as a destination.
 | kind | tags |
 |---|---|
 | `drinking_water` | `amenity=drinking_water\|water_point`, `man_made=water_tap`, or any object with `drinking_water=yes`; never with `drinking_water=no` |
-| `cafe`, `bicycle_repair_station`, `shelter`, `toilets`, `bicycle_rental`, `bicycle_parking`, `pharmacy` | `amenity=` the same value |
+| `cafe`, `restaurant`, `fast_food`, `bicycle_repair_station`, `shelter`, `toilets`, `bicycle_rental`, `bicycle_parking`, `pharmacy` | `amenity=` the same value; restaurants and fast food only with a name |
 | `charging_station` | `amenity=charging_station` with `bicycle=yes`, `bicycle:charging=yes` or a `socket:*` key naming a bicycle |
 | `picnic_site` | `tourism=picnic_site` |
 | `bicycle_shop` | `shop=bicycle` |
@@ -143,7 +143,7 @@ CREATE TABLE streets (
 CREATE TABLE pois (
     id         INTEGER PRIMARY KEY,
     name       TEXT,            -- NULL only on the eight utility kinds
-    kind       TEXT NOT NULL,   -- one of the 38 kinds, see "POI kinds" above
+    kind       TEXT NOT NULL,   -- one of the 40 kinds, see "POI kinds" above
     lat        INTEGER NOT NULL,
     lon        INTEGER NOT NULL,
     place_id   INTEGER,
@@ -678,7 +678,7 @@ Photon is a full geocoder; this is a search box that works on a plane.
 * **Admin hierarchy.** `admin_id` and `place_id` are geometry, not boundaries,
   and stop at the tile edge. No country, state or district, so Springfield,
   Massachusetts cannot be told from Springfield, Illinois.
-* **Anything outside places, streets and the 38 POI kinds** — squares, rivers,
+* **Anything outside places, streets and the 40 POI kinds** — squares, rivers,
   general shops, individual addresses.
 * **Language variants of ordinary rows.** `name:en` and the five other
   alternative-name tags are indexed everywhere; the rest of `name:<lang>` only

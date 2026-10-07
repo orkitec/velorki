@@ -74,6 +74,8 @@ POI_AMENITIES = {
     "drinking_water": "drinking_water",
     "water_point": "drinking_water",
     "cafe": "cafe",
+    "restaurant": "restaurant",
+    "fast_food": "fast_food",
     "bicycle_repair_station": "bicycle_repair_station",
     "shelter": "shelter",
     "toilets": "toilets",

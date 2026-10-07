@@ -115,6 +115,8 @@
   "searchApproximateNumber": "≈ {number}",
   "searchKindDrinkingWater": "Trinkwasser",
   "searchKindCafe": "Café",
+  "searchKindRestaurant": "Restaurant",
+  "searchKindFastFood": "Imbiss",
   "searchKindBikeRepair": "Fahrrad-Reparaturstation",
   "searchKindShelter": "Schutzhütte",
   "searchKindBikeShop": "Fahrradladen",

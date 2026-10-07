@@ -60,7 +60,8 @@ TILE = "E5_N45"
 # Every kind `pois.kind` may hold: the rider's kit, then the landmarks.
 POI_KINDS = frozenset(
     """
-    drinking_water cafe bicycle_repair_station shelter bicycle_shop station
+    drinking_water cafe restaurant fast_food bicycle_repair_station shelter
+    bicycle_shop station
     viewpoint peak park
     toilets bicycle_rental charging_station pharmacy picnic_site
     bicycle_parking
@@ -448,6 +449,13 @@ class GazetteerTest(unittest.TestCase):
             ({"tourism": "wilderness_hut"}, "alpine_hut"),
             ({"shop": "convenience"}, "supermarket"),
             ({"shop": "bakery"}, "bakery"),
+            ({"amenity": "restaurant"}, "restaurant"),
+            ({"amenity": "fast_food"}, "fast_food"),
+            # A bar or a pub is no riding stop; one serving food is tagged
+            # a restaurant.
+            ({"amenity": "bar"}, None),
+            ({"amenity": "pub"}, None),
+            ({"amenity": "restaurant", "historic": "building"}, "restaurant"),
             # The rider's own kit still wins over the seven.
             ({"amenity": "cafe", "shop": "bakery"}, "cafe"),
             ({"shop": "bicycle", "shop:name": "x"}, "bicycle_shop"),

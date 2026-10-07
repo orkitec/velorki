@@ -593,6 +593,14 @@
   "@searchKindCafe": {
     "description": "Second line of an offline search result that is a cafe"
   },
+  "searchKindRestaurant": "Restaurant",
+  "@searchKindRestaurant": {
+    "description": "Second line of an offline search result that is a restaurant"
+  },
+  "searchKindFastFood": "Fast food",
+  "@searchKindFastFood": {
+    "description": "Second line of an offline search result that is a fast-food place"
+  },
   "searchKindBikeRepair": "Bike repair station",
   "@searchKindBikeRepair": {
     "description": "Second line of an offline search result that is a public bike repair station"

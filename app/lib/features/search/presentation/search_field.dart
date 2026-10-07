@@ -672,6 +672,8 @@ IconData _placeIcon(String? detail) => switch (detail) {
 
 IconData _poiIcon(String? detail) => switch (detail) {
   'drinking_water' => Icons.water_drop_outlined,
+  'restaurant' => Icons.restaurant_outlined,
+  'fast_food' => Icons.fastfood_outlined,
   'toilets' => Icons.wc_outlined,
   'bicycle_rental' => Icons.directions_bike_outlined,
   'charging_station' => Icons.ev_station_outlined,
@@ -818,6 +820,8 @@ String searchKindLabel(AppLocalizations l10n, SearchResult result) {
     'picnic_site' => l10n.searchKindPicnicSite,
     'bicycle_parking' => l10n.searchKindBikeParking,
     'cafe' => l10n.searchKindCafe,
+    'restaurant' => l10n.searchKindRestaurant,
+    'fast_food' => l10n.searchKindFastFood,
     'bicycle_repair_station' => l10n.searchKindBikeRepair,
     'shelter' => l10n.searchKindShelter,
     'bicycle_shop' => l10n.searchKindBikeShop,
