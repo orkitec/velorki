@@ -1344,6 +1344,37 @@ void main() {
     await unmountApp(tester);
   });
 
+  testWidgets('on a narrow phone auto-paused is short, beside a whole clock', (
+    tester,
+  ) async {
+    const size = Size(360, 800);
+    _phone(tester, size, statusBar: 24);
+    final h = await pumpRecordingScreen(
+      tester,
+      const RecordingScreen(),
+      surfaceSize: size,
+    );
+    await tester.pump();
+
+    await emitSnapshot(
+      tester,
+      h,
+      _snapshot(status: RecordingStatus.paused, autoPaused: true),
+    );
+
+    expect(
+      find.text(l10n.recordingStatusAutoPausedShort.toUpperCase()),
+      findsOneWidget,
+    );
+    expect(find.text('42:07'), findsOneWidget);
+    // The clock keeps clear of the play button.
+    final clock = tester.getRect(find.text('42:07'));
+    final play = tester.getRect(find.byTooltip(l10n.recordingResume));
+    expect(play.left - clock.right, greaterThanOrEqualTo(4));
+    expect(tester.takeException(), isNull);
+    await unmountApp(tester);
+  });
+
   testWidgets('finishing an empty ride says nothing was recorded', (
     tester,
   ) async {

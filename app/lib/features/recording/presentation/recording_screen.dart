@@ -2383,7 +2383,15 @@ class _LivePanel extends ConsumerWidget {
                   // there is not room for all of it: on a narrow phone in a
                   // language with a long word for it.
                   Flexible(
-                    child: _StatusPill(label: status, paused: state.isPaused),
+                    child: _StatusPill(
+                      label: status,
+                      // On a narrow phone "Auto-paused" leaves no room for
+                      // the clock; the pill's colour and mark say paused.
+                      shortLabel: snapshot.autoPaused && state.isPaused
+                          ? l10n.recordingStatusAutoPausedShort
+                          : null,
+                      paused: state.isPaused,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Text(
@@ -2393,6 +2401,8 @@ class _LivePanel extends ConsumerWidget {
                     ),
                     maxLines: 1,
                   ),
+                  // Clear of the play button even when the row is full.
+                  const SizedBox(width: 4),
                 ],
               ),
             ),
@@ -2579,10 +2589,17 @@ class _PausedFade extends StatelessWidget {
 /// Deliberately not animated: a repeating animation never lets a widget test
 /// settle, and a steady dot is calmer on the handlebar anyway.
 class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.label, required this.paused});
+  const _StatusPill({
+    required this.label,
+    required this.paused,
+    this.shortLabel,
+  });
 
   final String label;
   final bool paused;
+
+  /// Shown instead of [label] when that does not fit.
+  final String? shortLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -2621,16 +2638,46 @@ class _StatusPill extends StatelessWidget {
               ),
             const SizedBox(width: 8),
             Flexible(
-              child: Text(
-                label.toUpperCase(),
-                style: theme.textTheme.overline.copyWith(color: textColor),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final style = theme.textTheme.overline.copyWith(
+                    color: textColor,
+                  );
+                  var text = label.toUpperCase();
+                  final short = shortLabel;
+                  if (short != null &&
+                      !_fits(context, text, style, constraints.maxWidth)) {
+                    text = short.toUpperCase();
+                  }
+                  return Text(
+                    text,
+                    style: style,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  );
+                },
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  static bool _fits(
+    BuildContext context,
+    String text,
+    TextStyle style,
+    double width,
+  ) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      maxLines: 1,
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout();
+    final fits = painter.width <= width;
+    painter.dispose();
+    return fits;
   }
 }
