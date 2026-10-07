@@ -16,6 +16,7 @@ import '../data/map_preferences.dart';
 import '../data/maplibre_map_controller.dart';
 import '../data/position_provider.dart';
 import '../domain/map_controller.dart';
+import '../../shared/presentation/gesture_zone_guard.dart';
 import 'map_attribution.dart';
 import 'map_chrome.dart';
 import 'puck_ownership.dart';
@@ -423,7 +424,11 @@ class _MapViewState extends ConsumerState<MapView> {
                     widget.attributionPadding.right +
                     (chrome?.attributionInsets.right ?? 0),
                 bottom: attributionBottom,
-                child: const Center(child: MapAttributionChip()),
+                // Tapped in the band under the bar, which is the system's
+                // gesture zone the shell otherwise keeps to itself.
+                child: const Center(
+                  child: GestureZonePassThrough(child: MapAttributionChip()),
+                ),
               ),
           ],
         );
