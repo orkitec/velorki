@@ -149,6 +149,29 @@ class MapStopsController extends ChangeNotifier {
   /// The stop the rider picked, if any.
   SearchResult? get selected => _selected;
 
+  /// Whether stops are wanted in the area on screen but the map is zoomed
+  /// out too far to show them: the rider is told to zoom in.
+  bool get needsZoom => mode == MapStopsMode.area && _zoomedOut;
+  bool _zoomedOut = false;
+
+  /// Zooms the map in to where the stops show, on the same middle.
+  Future<void> zoomIn() async {
+    final map = _map;
+    final center = map?.center;
+    if (map == null || center == null) return;
+    await map.moveTo(center, zoom: stopsMinZoom);
+  }
+
+  /// Notes whether [map] is zoomed out too far for the stops, telling the
+  /// listeners when that changes.
+  void _noteZoom(MapController map) {
+    final zoom = map.zoom;
+    final out = zoom != null && zoom < stopsMinZoom;
+    if (out == _zoomedOut) return;
+    _zoomedOut = out;
+    _changed();
+  }
+
   /// Along a route: every stop beside the route still ahead, nearest first.
   List<StopAlongRoute<SearchResult>> get ahead {
     if (mode != MapStopsMode.alongRoute) {
@@ -228,6 +251,7 @@ class MapStopsController extends ChangeNotifier {
     if (identical(map, _map)) return;
     if (_map != null) detach();
     _map = map;
+    _noteZoom(map);
     map.addCameraIdleListener(_handleCameraIdle);
     map.onStopTapped = _handleStopTapped;
     switch (mode) {
@@ -253,6 +277,7 @@ class MapStopsController extends ChangeNotifier {
       unawaited(map.setStops(const <MapPoi>[]));
     }
     _map = null;
+    _zoomedOut = false;
     _forget();
     _changed();
   }
@@ -310,6 +335,8 @@ class MapStopsController extends ChangeNotifier {
   }
 
   void _handleCameraIdle() {
+    final map = _map;
+    if (map != null) _noteZoom(map);
     if (mode == MapStopsMode.area) _scheduleArea();
   }
 

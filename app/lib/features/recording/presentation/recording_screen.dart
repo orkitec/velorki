@@ -13,6 +13,7 @@ import '../../../core/permissions/location_permission.dart';
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/application/map_stops_controller.dart';
+import '../../map/presentation/stops_zoom_chip.dart';
 import '../../map/data/compass_heading.dart';
 import '../../map/data/map_preferences.dart';
 import '../../map/presentation/stops_ahead_line.dart';
@@ -1917,7 +1918,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                 ),
               // The next stop of each kind ahead: under the banner, beside
               // the control column (upright) or the sheet (sideways).
-              if (stopsAhead && !glance)
+              if ((stopsAhead || stopsWanted.shown) && !glance)
                 Positioned(
                   top: 0,
                   left: 0,
@@ -1948,10 +1949,17 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                             alignment: Alignment.topLeft,
                             child: ListenableBuilder(
                               listenable: _stops,
-                              builder: (context, _) => StopsAheadLine(
-                                entries: _stops.nextPerKind(),
-                                onTap: _onStopAheadTapped,
-                              ),
+                              // In the area on screen, zoomed out too far:
+                              // told to zoom in where the line would be.
+                              builder: (context, _) => _stops.needsZoom
+                                  ? StopsZoomChip(
+                                      onZoomIn: () =>
+                                          unawaited(_stops.zoomIn()),
+                                    )
+                                  : StopsAheadLine(
+                                      entries: _stops.nextPerKind(),
+                                      onTap: _onStopAheadTapped,
+                                    ),
                             ),
                           ),
                         ),

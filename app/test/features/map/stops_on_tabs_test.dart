@@ -72,6 +72,57 @@ void main() {
     expect(h.map.onStopTapped, isNull);
   });
 
+  testWidgets('Plan: zoomed out too far, a chip says to zoom in, and a tap '
+      'zooms in to where the stops show', (tester) async {
+    final h = await pumpScreen(
+      tester,
+      const PlannerScreen(),
+      extraOverrides: [
+        mapStopsFinderProvider.overrideWithValue(
+          (box, kinds, limit) async => const <SearchResult>[],
+        ),
+      ],
+    );
+    h.map
+      ..zoom = 11
+      ..center = const LatLng(48.05, 11.05)
+      ..visibleBounds = const BoundingBox(
+        south: 47.9,
+        west: 10.9,
+        north: 48.2,
+        east: 11.2,
+      );
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PlannerScreen)),
+    );
+    // Not while stops are off.
+    for (final listener in [...h.map.cameraIdleListeners]) {
+      listener();
+    }
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.mapStopsZoomIn), findsNothing);
+
+    await container.read(mapStopsPreferencesProvider.notifier).setShown(true);
+    for (final listener in [...h.map.cameraIdleListeners]) {
+      listener();
+    }
+    await tester.pump(stopsDebounce * 2);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.mapStopsZoomIn), findsOneWidget);
+
+    await tester.tap(find.text(l10n.mapStopsZoomIn));
+    await tester.pump();
+    expect(h.map.zoom, stopsMinZoom);
+    expect(h.map.center, const LatLng(48.05, 11.05));
+
+    for (final listener in [...h.map.cameraIdleListeners]) {
+      listener();
+    }
+    await tester.pump(stopsDebounce * 2);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.mapStopsZoomIn), findsNothing);
+  });
+
   testWidgets('Record: along a followed route the next stops ahead are '
       'listed, and a stop tapped on the map is named', (tester) async {
     const mPerLon = 111195 * 0.66913;
