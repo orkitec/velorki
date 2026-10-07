@@ -195,6 +195,10 @@ class SearchFieldState extends ConsumerState<SearchField> {
   /// another app sent with its coordinates.
   void select(SearchResult result) => _select(result);
 
+  /// Empties the field, as its clear button does: a picked place the rider
+  /// let go of.
+  void clear() => _clear();
+
   void _clear() {
     _controller.clear();
     ref.read(placeSearchProvider.notifier).clear();

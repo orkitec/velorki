@@ -12,12 +12,13 @@ The search field at the top of the Plan tab finds towns, streets, house numbers 
 2. Type at least three characters. Results appear in a card under the field as you type.
 3. Tap a result.
 
-What happens then depends on the plan:
+A card comes up with the place's name, what it is, how far it is from you and, with a route, how far off the route. The map moves to the place and pins it. What the card offers depends on the plan:
 
-- **Nothing planned yet**: the map moves to the place and drops a pin, and two buttons appear under the bike chips, **From my position** and **Start here**.
-- **A route already being planned**: the place is added as the next waypoint straight away.
+- **Nothing planned yet**: **Route here** rides from where you are to the place; **Start here** makes it the first point of the route.
+- **Only a start**: **Destination** makes it the end of the route.
+- **A route**: **Add as a stop** puts it into the route where it lies along the way; **Destination** adds it at the end.
 
-The **X** in the field clears the text, the pin and those two buttons.
+Closing the card (the **X**, a swipe down or a tap on the map) changes nothing and clears the search. A stop tapped on the map opens the same card.
 
 ## Offline or online
 

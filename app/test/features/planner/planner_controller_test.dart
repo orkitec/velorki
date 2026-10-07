@@ -8,6 +8,7 @@ import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/planner/data/route_repository.dart';
 import 'package:velorki/features/planner/data/routing_backend_provider.dart';
+import 'package:velorki/features/planner/domain/planner_state.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/domain/route_poi.dart';
 import 'package:velorki/features/planner/domain/routing_options.dart';
@@ -201,6 +202,48 @@ void main() {
       // Undoing an empty stack is a no-op, not an error.
       planner.undo();
       expect(container.read(plannerControllerProvider).waypoints, isEmpty);
+    });
+
+    testWidgets('a picked place goes into the leg the route passes it on, '
+        'and at the end while there is no route to measure against', (
+      tester,
+    ) async {
+      final container = _container(LineRoutingBackend());
+      final planner = container.read(plannerControllerProvider.notifier);
+      PlannerState state() => container.read(plannerControllerProvider);
+      Future<void> settle() async {
+        await tester.pump(const Duration(milliseconds: 400));
+        await tester.pump();
+      }
+
+      const a = LatLng(48.0, 11.0);
+      const b = LatLng(48.02, 11.0);
+      const c = LatLng(48.04, 11.0);
+      planner
+        ..addWaypoint(a)
+        ..addWaypointAlongRoute(b, name: 'B');
+      // Not routed yet: appended.
+      expect(state().positions, [a, b]);
+      expect(state().waypoints.last.name, 'B');
+      planner.addWaypoint(c);
+      await settle();
+      expect(state().result, isNotNull);
+
+      // Beside the first leg, not at the end, at the place itself.
+      const x = LatLng(48.01, 11.001);
+      planner.addWaypointAlongRoute(x, name: 'X');
+      expect(state().positions, [a, x, b, c]);
+      expect(state().waypoints[1].name, 'X');
+      await settle();
+
+      // Beside the last leg.
+      const y = LatLng(48.03, 10.999);
+      planner.addWaypointAlongRoute(y);
+      expect(state().positions, [a, x, b, y, c]);
+
+      // One undo step.
+      planner.undo();
+      expect(state().positions, [a, x, b, c]);
     });
   });
 

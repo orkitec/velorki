@@ -11,6 +11,7 @@ import 'package:velorki/features/import_export/data/incoming_file_service.dart';
 import 'package:velorki/features/map/application/locate_on_open.dart';
 import 'package:velorki/features/planner/application/incoming_place.dart';
 import 'package:velorki/features/recording/data/recording_recovery.dart';
+import 'package:velorki/features/search/presentation/place_card.dart';
 import 'package:velorki/features/shared/application/active_tab.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -100,10 +101,13 @@ void main() {
     sources.links.add(Uri.parse(link));
     await tester.pumpAndSettle();
     expect(h.map.searchPin, const LatLng(48.1374, 11.5755));
+    expect(find.byType(PlaceCard), findsOneWidget);
 
-    // The rider looks elsewhere, then shares the very same place again
+    // The rider closes the card, then shares the very same place again
     // (later than the three seconds the double-delivery guard spans).
-    h.map.searchPin = null;
+    await tester.tap(find.byTooltip(l10n.placeCardClose));
+    await tester.pumpAndSettle();
+    expect(h.map.searchPin, isNull);
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 3100)),
     );
@@ -131,7 +135,16 @@ void main() {
     expect(_activeTab(tester), plannerRoute);
     expect(h.map.movedTo, const LatLng(48.1374, 11.5755));
     expect(h.map.searchPin, const LatLng(48.1374, 11.5755));
-    expect(find.text(l10n.plannerRideFromPosition), findsOneWidget);
+    // The place's card, with what an empty plan can do with it.
+    expect(find.byType(PlaceCard), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(PlaceCard),
+        matching: find.text('Marienplatz'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text(l10n.placeCardRouteHere), findsOneWidget);
     expect(find.text(l10n.plannerSetAsStart), findsOneWidget);
     expect(find.widgetWithText(TextField, 'Marienplatz'), findsOneWidget);
 
@@ -148,7 +161,7 @@ void main() {
 
     expect(_activeTab(tester), plannerRoute);
     expect(h.map.searchPin, const LatLng(48.1374, 11.5755));
-    expect(find.text(l10n.plannerRideFromPosition), findsOneWidget);
+    expect(find.text(l10n.placeCardRouteHere), findsOneWidget);
     // The move to the rider that a cold start begins is called off: its fix
     // would otherwise take the map back from the place.
     final locate = ProviderScope.containerOf(

@@ -64,6 +64,23 @@ BoundingBox grownBox(BoundingBox box, double share) {
 /// zoom asked for all the same.
 bool _belowStopsZoom(double zoom) => zoom < stopsMinZoom - 0.01;
 
+/// [stops] with one row per place: the index keeps a row per kind, so a
+/// café that sells ice cream is two rows at one spot, and would be two pins
+/// on top of each other. The first of each place is kept, in [stops]' order.
+@visibleForTesting
+List<SearchResult> onePerPlace(List<SearchResult> stops) {
+  final seen = <(String, int, int)>{};
+  return <SearchResult>[
+    for (final stop in stops)
+      if (seen.add((
+        stop.name,
+        (stop.position.lat * 1e5).round(),
+        (stop.position.lon * 1e5).round(),
+      )))
+        stop,
+  ];
+}
+
 /// The most stops one stretch of the route ahead asks for, per gazetteer.
 const int stopsChunkLimit = 200;
 
@@ -466,7 +483,7 @@ class MapStopsController extends ChangeNotifier {
           middle,
         ).compareTo(haversineMeters(b.position, middle)),
       );
-    _area = nearest.take(stopsAreaLimit).toList();
+    _area = onePerPlace(nearest).take(stopsAreaLimit).toList();
     _draw(_area);
   }
 
@@ -512,7 +529,9 @@ class MapStopsController extends ChangeNotifier {
       return;
     }
     if (generation != _generation || !identical(map, _map)) return;
-    final candidates = <SearchResult>{for (final a in answers) ...a};
+    final candidates = onePerPlace(<SearchResult>[
+      for (final a in answers) ...a,
+    ]);
     _placed = stopsAlongRoute<SearchResult>(
       line: line,
       cumulative: cumulative,

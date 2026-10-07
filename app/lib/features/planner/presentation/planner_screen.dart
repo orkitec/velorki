@@ -27,6 +27,7 @@ import '../../map/presentation/shared_map_host.dart';
 import '../../offline/presentation/offline_screen.dart';
 import '../../routing_tiles/presentation/missing_tiles_banner.dart';
 import '../../search/domain/search_result.dart';
+import '../../search/presentation/place_card.dart';
 import '../../search/presentation/search_field.dart';
 import '../../settings/data/units.dart';
 import '../../shared/application/active_tab.dart';
@@ -45,6 +46,7 @@ import '../data/route_repository.dart';
 import '../data/routing_backend_provider.dart';
 import '../domain/elevation_profile.dart';
 import '../domain/planner_state.dart';
+import '../domain/route_waypoints.dart' show projectOnTrack;
 import '../domain/routing_options.dart';
 import 'elevation_profile_chart.dart';
 import 'avoided_stretches_chip.dart';
@@ -83,9 +85,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   /// Whether a draw is on its way, from the microtask it waits for.
   bool _drawPending = false;
 
-  SearchResult? _placeToStartFrom;
+  /// The place whose card is open: pinned on the map until the card closes.
+  SearchResult? _shownPlace;
 
-  /// The chrome over the map (search field, place actions, profile chips),
+  /// The chrome over the map (search field, chips),
   /// measured after each layout so the map's control column starts below
   /// it whatever the rows above happen to need.
   final GlobalKey _chromeKey = GlobalKey();
@@ -317,16 +320,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   /// The stops in the area on screen, from the Layers sheet.
   late final MapStopsController _stops;
 
-  /// A stop tapped on the map goes the way the same place picked from the
-  /// search goes: into the field, and from there to the plan.
-  void _onStopTapped(SearchResult stop) {
-    final search = _searchKey.currentState;
-    if (search is SearchFieldState) {
-      search.select(stop);
-    } else {
-      _onPlaceSelected(stop);
-    }
-  }
+  /// A stop tapped on the map: its card, the map kept at its zoom, since
+  /// the rider is looking at the stop already.
+  void _onStopTapped(SearchResult stop) => unawaited(_openPlace(stop));
 
   bool _searchFocused = false;
   bool _keyboardUp = false;
@@ -616,10 +612,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     binding.attach();
     unawaited(binding.sync(ref.read(plannerControllerProvider)));
     _stops.attach(map);
-    // A searched place the rider has not decided about is still theirs.
-    final place = _placeToStartFrom;
+    // A place whose card is open is still pinned.
+    final place = _shownPlace;
     if (place != null) {
-      unawaited(map.setSearchPin(place.position, label: place.name));
+      unawaited(map.setSearchPin(place.position, label: _placeLabel(place)));
     }
     // A place another app sent while the map was not up yet.
     _takeIncomingPlace();
@@ -631,7 +627,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   /// typed, and a link only a browser can open gets a short message.
   void _takeIncomingPlace() {
     final place = ref.read(incomingPlaceProvider);
-    if (place == null || !mounted || !_active) return;
+    // One card at a time: the next place waits for this one to close.
+    if (place == null || !mounted || !_active || _shownPlace != null) return;
     final search = _searchKey.currentState;
     if (search is! SearchFieldState) return;
     final link = place.link;
@@ -669,23 +666,91 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     }
   }
 
-  void _onPlaceSelected(SearchResult result) {
-    final planner = ref.read(plannerControllerProvider.notifier);
-    if (ref.read(plannerControllerProvider).isEmpty) {
-      unawaited(
-        _map?.moveTo(result.position, zoom: 13, padding: _visiblePadding()),
-      );
-      unawaited(_map?.setSearchPin(result.position, label: result.name));
-      setState(() => _placeToStartFrom = result);
-      return;
-    }
-    planner.addWaypoint(result.position, name: result.name);
+  /// A place picked in the search (or sent by another app, which goes the
+  /// same way): its card, the map zoomed in on it.
+  void _onPlaceSelected(SearchResult result) =>
+      unawaited(_openPlace(result, fromSearch: true, zoom: 13));
+
+  /// What the pin on the map says: the place's name, or what it is.
+  String _placeLabel(SearchResult place) => place.name.isNotEmpty
+      ? place.name
+      : searchResultTitle(AppLocalizations.of(context), place);
+
+  /// What the plan can do with a picked place: start from it or ride to it
+  /// while it is empty, end at it once it has a start, and with a route
+  /// also take it in on the way.
+  List<PlaceAction> _placeActions(PlannerState state) =>
+      switch (state.waypoints.length) {
+        0 => const [PlaceAction.routeHere, PlaceAction.startHere],
+        1 => const [PlaceAction.destination],
+        _ => const [PlaceAction.addStop, PlaceAction.destination],
+      };
+
+  /// The card of a picked [place]: pinned on the map and brought into view
+  /// above the card (at [zoom], or the map's own) while it is open, and
+  /// what the rider chose done once it closes. Closed without a choice, it
+  /// leaves the plan as it was; one picked in the search also empties the
+  /// field.
+  Future<void> _openPlace(
+    SearchResult place, {
+    bool fromSearch = false,
+    double? zoom,
+  }) async {
+    if (!mounted || _shownPlace != null) return;
+    final state = ref.read(plannerControllerProvider);
+    final route = state.result;
+    final offRouteM = route != null && route.geometry.length >= 2
+        ? projectOnTrack(route.positions, place.position).distanceM
+        : null;
+    _shownPlace = place;
+    unawaited(_map?.setSearchPin(place.position, label: _placeLabel(place)));
+    var moved = false;
+    final action = await showPlaceCard(
+      context,
+      place: place,
+      actions: _placeActions(state),
+      offRouteM: offRouteM,
+      onCover: (cover) {
+        if (moved || !mounted) return;
+        moved = true;
+        unawaited(
+          _map?.moveTo(
+            place.position,
+            zoom: zoom,
+            padding: _paddingAbove(cover),
+          ),
+        );
+      },
+    );
+    _shownPlace = null;
+    if (!mounted) return;
     unawaited(_map?.setSearchPin(null));
-    setState(() => _placeToStartFrom = null);
+    final planner = ref.read(plannerControllerProvider.notifier);
+    switch (action) {
+      case null:
+        final search = _searchKey.currentState;
+        if (fromSearch && search is SearchFieldState) search.clear();
+      case PlaceAction.routeHere:
+        await _rideFromPosition(place);
+      case PlaceAction.startHere || PlaceAction.destination:
+        planner.addWaypoint(place.position, name: place.name);
+      case PlaceAction.addStop:
+        planner.addWaypointAlongRoute(place.position, name: place.name);
+    }
+    // A place another app sent meanwhile is taken now.
+    if (mounted) setState(() {});
   }
 
-  /// Forgets a searched place that was never used: the pin goes, and so do
-  /// the two buttons offering it.
+  /// The padding that keeps a place in the map between this tab's chrome
+  /// and a card covering [cover] of the screen's bottom.
+  EdgeInsets _paddingAbove(double cover) {
+    final base = _visiblePadding();
+    final height = MediaQuery.sizeOf(context).height;
+    // Some map is left between the two, however tall the card.
+    final bottom = math.max(0.0, math.min(cover + 24, height - base.top - 48));
+    return base.copyWith(bottom: bottom);
+  }
+
   /// Opens the offline data screen for the area on screen, which is what the
   /// map's download button opens: "Download for the visible area" is then one
   /// tap away from a search that had nothing to answer with.
@@ -701,27 +766,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     );
   }
 
-  void _clearSearchedPlace() {
-    if (_placeToStartFrom == null) return;
-    unawaited(_map?.setSearchPin(null));
-    setState(() => _placeToStartFrom = null);
-  }
-
-  void _setSearchedPlaceAsStart() {
-    final place = _placeToStartFrom;
-    if (place == null) return;
-    ref
-        .read(plannerControllerProvider.notifier)
-        .addWaypoint(place.position, name: place.name);
-    unawaited(_map?.setSearchPin(null));
-    setState(() => _placeToStartFrom = null);
-  }
-
-  /// The searched place is the destination; the ride starts where the
-  /// rider is right now.
-  Future<void> _rideFromPosition() async {
-    final place = _placeToStartFrom;
-    if (place == null) return;
+  /// [place] is the destination; the ride starts where the rider is right
+  /// now.
+  Future<void> _rideFromPosition(SearchResult place) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     // Asks for the permission if it has never been asked, like the locate
@@ -738,8 +785,6 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     final planner = ref.read(plannerControllerProvider.notifier);
     planner.addWaypoint(start);
     planner.addWaypoint(place.position, name: place.name);
-    unawaited(_map?.setSearchPin(null));
-    setState(() => _placeToStartFrom = null);
   }
 
   Future<void> _loadAlternatives() async {
@@ -1064,7 +1109,6 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       key: _searchKey,
       onSelected: _onPlaceSelected,
       onFocusChanged: _onSearchFocus,
-      onCleared: _clearSearchedPlace,
       bias: () => _map?.center,
       onDownloadArea: _openOfflineData,
       trailing: sideways
@@ -1119,39 +1163,6 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                   .read(plannerControllerProvider.notifier)
                   .clearAvoided,
             ),
-          ),
-        ),
-      if (_placeToStartFrom != null)
-        Padding(
-          padding: const EdgeInsets.only(top: 10),
-          // One row, the two actions sharing the width. The X
-          // in the search field is what forgets the place.
-          child: Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: () => unawaited(_rideFromPosition()),
-                  icon: const Icon(Icons.near_me_rounded),
-                  label: Text(
-                    l10n.plannerRideFromPosition,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: FilledButton.tonalIcon(
-                  onPressed: _setSearchedPlaceAsStart,
-                  icon: const Icon(Icons.play_arrow_rounded),
-                  label: Text(
-                    l10n.plannerSetAsStart,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
-            ],
           ),
         ),
       if (!hasBackend)

@@ -247,9 +247,13 @@ class TestMapController implements MapController {
   /// The searched place shown, if any.
   LatLng? searchPin;
 
+  /// The label of [searchPin], if any.
+  String? searchPinLabel;
+
   @override
   Future<void> setSearchPin(LatLng? position, {String? label}) async {
     searchPin = position;
+    searchPinLabel = position == null ? null : label;
   }
 
   @override

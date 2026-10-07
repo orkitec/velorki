@@ -289,11 +289,33 @@
   },
   "plannerSetAsStart": "Start here",
   "@plannerSetAsStart": {
-    "description": "Button that turns the searched place into the start of a new route"
+    "description": "Button on the card of a picked place (search result, map stop) with an empty plan: the place becomes the start of a new route"
   },
-  "plannerRideFromPosition": "From my position",
-  "@plannerRideFromPosition": {
-    "description": "Button that plans a route from the rider's current position to the searched place"
+  "placeCardRouteHere": "Route here",
+  "@placeCardRouteHere": {
+    "description": "Button on the card of a picked place with an empty plan: plans a route from the rider's current position to the place"
+  },
+  "placeCardDestination": "Destination",
+  "@placeCardDestination": {
+    "description": "Button on the card of a picked place: appends it to the plan as the new end of the route"
+  },
+  "placeCardAddStop": "Add as a stop",
+  "@placeCardAddStop": {
+    "description": "Button on the card of a picked place: puts it into the route between the waypoints where it fits along the way"
+  },
+  "placeCardClose": "Close",
+  "@placeCardClose": {
+    "description": "Tooltip of the close button on the card of a picked place"
+  },
+  "placeCardFromYou": "{distance} from you",
+  "@placeCardFromYou": {
+    "description": "On the card of a picked place: the straight-line distance from the rider's position",
+    "placeholders": {"distance": {"type": "String", "example": "1.2 km"}}
+  },
+  "placeCardOffRoute": "{distance} off your route",
+  "@placeCardOffRoute": {
+    "description": "On the card of a picked place: how far it is from the nearest point of the planned route",
+    "placeholders": {"distance": {"type": "String", "example": "150 m"}}
   },
   "placeLinkNeedsBrowser": "This map link only opens in a browser. Open it there, then share the place from the map page.",
   "@placeLinkNeedsBrowser": {
@@ -4230,11 +4252,6 @@
   "@mapStopAhead": {
     "description": "One entry of the stops-ahead line over the ride map: the kind of stop and how far ahead on the route it is",
     "placeholders": {"kind": {"type": "String", "example": "Drinking water"}, "distance": {"type": "String", "example": "1.2 km"}}
-  },
-  "mapStopNamed": "{name} · {kind}",
-  "@mapStopNamed": {
-    "description": "Message shown when the rider taps a stop on the ride map: its name and what it is",
-    "placeholders": {"name": {"type": "String", "example": "Café Central"}, "kind": {"type": "String", "example": "Cafe"}}
   },
   "mapZoomIn": "Zoom in",
   "@mapZoomIn": {

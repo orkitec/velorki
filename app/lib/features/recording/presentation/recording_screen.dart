@@ -19,8 +19,7 @@ import '../../map/data/map_preferences.dart';
 import '../../map/presentation/stops_ahead_line.dart';
 import '../../map/presentation/visible_map_padding.dart';
 import '../../search/domain/search_result.dart';
-import '../../search/presentation/search_field.dart'
-    show gazetteerPoiKindLabel, searchResultTitle;
+import '../../search/presentation/place_card.dart';
 import '../../sensors/application/sensors_seen.dart';
 import 'ride_profile_view.dart';
 import 'ride_cue_sheet.dart';
@@ -238,7 +237,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
               MediaQuery.sizeOf(context),
             )
           : null,
-    )..onStopTapped = _onStopTapped;
+    )..onStopTapped = (stop) => unawaited(_onStopTapped(stop));
     _updateMapUse();
     // Built in the middle of a change to this tab (its first visit, from
     // another tab): the listener in build sees no change, so the sheet is
@@ -264,26 +263,21 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
   /// the area on screen.
   late final MapStopsController _stops;
 
-  /// A stop tapped on the map is picked out and named.
-  void _onStopTapped(SearchResult stop) {
+  /// A stop tapped on the map is picked out, and its card says what and
+  /// where it is for as long as it is open.
+  Future<void> _onStopTapped(SearchResult stop) async {
     if (!mounted) return;
     _stops.select(stop);
-    final l10n = AppLocalizations.of(context);
-    final kind = stop.detail == null
-        ? null
-        : gazetteerPoiKindLabel(l10n, stop.detail!);
-    final title = searchResultTitle(l10n, stop);
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(
-            stop.name.isEmpty || kind == null
-                ? title
-                : l10n.mapStopNamed(stop.name, kind),
-          ),
-        ),
-      );
+    await showPlaceCard(
+      context,
+      place: stop,
+      riderPosition: ref
+          .read(recordingControllerProvider)
+          .snapshot
+          ?.lastPosition,
+    );
+    // Unless another stop has been picked out since.
+    if (mounted && _stops.selected == stop) _stops.select(null);
   }
 
   /// An entry of the stops-ahead line: the stop is picked out on the map,

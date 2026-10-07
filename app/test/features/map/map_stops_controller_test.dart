@@ -217,6 +217,30 @@ void main() {
       });
     });
 
+    test('a place with two kinds is one pin', () {
+      fakeAsync((async) {
+        final store = _FakeStore();
+        final map = FakeMapController()
+          ..zoom = 15
+          ..center = const LatLng(48.01, 11.015)
+          ..visibleBounds = _view;
+        final stops = MapStopsController(find: store.find)
+          ..update(shown: true, kinds: const {'cafe', 'ice_cream'})
+          ..attach(map);
+        async.elapse(stopsDebounce * 2);
+        store.asks.single.answer.complete([
+          _stop('Mil Sabores', const LatLng(48.011, 11.015), kind: 'cafe'),
+          _stop('Mil Sabores', const LatLng(48.011, 11.015), kind: 'ice_cream'),
+          // The same name elsewhere is another place.
+          _stop('Mil Sabores', const LatLng(48.015, 11.02), kind: 'cafe'),
+        ]);
+        async.flushMicrotasks();
+        expect(map.stops, hasLength(2));
+        expect(stops.stops.first.detail, 'cafe');
+        stops.dispose();
+      });
+    });
+
     test('below the zoom where stops show nothing is asked and nothing '
         'drawn', () {
       fakeAsync((async) {

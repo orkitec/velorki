@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/router.dart';
@@ -8,6 +9,7 @@ import 'package:velorki/features/navigation/application/navigation_controller.da
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
+import 'package:velorki/features/search/presentation/place_card.dart';
 import 'package:velorki/features/search/presentation/search_field.dart'
     show gazetteerPoiKindLabel;
 import 'package:velorki/features/shared/application/active_tab.dart';
@@ -73,9 +75,13 @@ void main() {
 
     h.map.onStopTapped!(0);
     await tester.pumpAndSettle();
-    // Pinned and offered, as a place picked from the search is.
+    // Pinned and offered on its card, as a place picked from the search is.
     expect(h.map.searchPin, fountain.position);
+    expect(find.byType(PlaceCard), findsOneWidget);
     expect(find.text(l10n.plannerSetAsStart), findsOneWidget);
+    await tester.tap(find.byTooltip(l10n.placeCardClose));
+    await tester.pumpAndSettle();
+    expect(h.map.searchPin, isNull);
 
     container.read(activeTabProvider.notifier).show(recordingRoute);
     await tester.pumpAndSettle();
@@ -174,14 +180,53 @@ void main() {
       findsOneWidget,
     );
 
+    // Its card names it and says what it is, and offers nothing to do
+    // mid-ride; the stop stays picked out while the card is open.
     h.map.onStopTapped!(1);
     await tester.pumpAndSettle();
+    final card = find.byType(PlaceCard);
+    expect(card, findsOneWidget);
     expect(
-      find.text(
-        l10n.mapStopNamed('Café Rad', gazetteerPoiKindLabel(l10n, 'cafe')!),
+      find.descendant(of: card, matching: find.text('Café Rad')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: card,
+        matching: find.text(gazetteerPoiKindLabel(l10n, 'cafe')!),
       ),
       findsOneWidget,
     );
+    expect(
+      find.descendant(of: card, matching: find.byType(FilledButton)),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: card, matching: find.byType(OutlinedButton)),
+      findsNothing,
+    );
     expect(h.map.stops[1].selected, isTrue);
+
+    await tester.tap(find.byTooltip(l10n.placeCardClose));
+    await tester.pumpAndSettle();
+    expect(card, findsNothing);
+    expect(h.map.stops.any((s) => s.selected), isFalse);
+
+    // An unnamed stop is called what it is.
+    h.map.onStopTapped!(0);
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byType(PlaceCard),
+        matching: find.text(gazetteerPoiKindLabel(l10n, 'drinking_water')!),
+      ),
+      findsOneWidget,
+    );
+    expect(h.map.stops[0].selected, isTrue);
+    // Closed by a tap beside it, it lets go of the stop too.
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    expect(find.byType(PlaceCard), findsNothing);
+    expect(h.map.stops[0].selected, isFalse);
   });
 }

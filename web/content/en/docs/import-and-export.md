@@ -24,7 +24,7 @@ Velorki works out what the file is by reading its first bytes, not by trusting i
 
 ## A place from another app
 
-Velorki also takes a single place to ride to, and opens it on the **Plan** tab the way a search result opens: pinned on the map with its name, with **Start here** and **From my position**.
+Velorki also takes a single place to ride to, and opens it on the **Plan** tab the way a search result opens: pinned on the map, on its card with **Route here** and **Start here**.
 
 - **Share sheet.** Share a place from Google Maps, Apple Maps, OpenStreetMap, a browser or a messenger and pick Velorki. A map link, coordinates such as `52.5200, 13.4050` or `52°31'12"N 13°24'18"E`, or an address all work; an address goes into the search field, which finds it.
 - **Open with** (Android). A location another app opens (a `geo:` link) offers Velorki in the chooser.

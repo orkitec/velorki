@@ -17,6 +17,7 @@ import 'package:velorki/l10n/generated/app_localizations.dart';
 import 'package:velorki/features/planner/domain/route_poi.dart';
 import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/presentation/route_format.dart';
+import 'package:velorki/features/search/presentation/place_card.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
 import 'package:velorki/features/planner/presentation/surface_stats_bar.dart';
 import 'package:velorki/features/shared/application/active_tab.dart';
@@ -300,25 +301,28 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(h.map.movedTo, const LatLng(48.1374, 11.5755));
-    // Into the middle of the map between the chrome and the sheet at rest,
-    // where the sheet goes for the place, clear of the column at the right.
+    expect(h.map.zoom, 13);
+    // Into the middle of the map between the chrome and the place's card,
+    // clear of the column at the right.
     final element = tester.element(find.byType(PlannerScreen));
-    final height = MediaQuery.sizeOf(element).height;
+    final card = tester.getSize(find.byType(PlaceCard)).height;
     expect(
       h.map.movedPadding!.bottom,
-      closeTo(sheetRestingExtent(height) * height + 24, 1e-6),
+      closeTo(card + kMinInteractiveDimension + 24, 1e-6),
     );
     expect(h.map.movedPadding!.right, mapControlsWidth(element) + 24);
     expect(h.map.movedPadding!.top, greaterThan(100));
+    expect(find.text(l10n.placeCardRouteHere), findsOneWidget);
     expect(find.text(l10n.plannerSetAsStart), findsOneWidget);
     // The found place is pinned until the rider decides what it is.
     expect(h.map.searchPin, const LatLng(48.1374, 11.5755));
+    expect(h.map.searchPinLabel, 'Munich');
 
     await tester.tap(find.text(l10n.plannerSetAsStart));
     await tester.pumpAndSettle();
 
     expect(h.map.waypoints.single.position, const LatLng(48.1374, 11.5755));
-    expect(find.text(l10n.plannerSetAsStart), findsNothing);
+    expect(find.byType(PlaceCard), findsNothing);
     expect(h.map.searchPin, isNull, reason: 'it is a waypoint now');
   });
 
@@ -714,7 +718,7 @@ void main() {
     await tester.tap(find.text('Bavaria, Germany'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text(l10n.plannerRideFromPosition));
+    await tester.tap(find.text(l10n.placeCardRouteHere));
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
 
@@ -722,65 +726,50 @@ void main() {
     expect(h.map.waypoints.first.position, const LatLng(48.0, 11.0));
     expect(h.map.waypoints.last.position, const LatLng(48.1374, 11.5755));
     expect(h.map.waypoints.last.label, 'Munich');
-    expect(find.text(l10n.plannerRideFromPosition), findsNothing);
-  });
-
-  testWidgets('clearing the search forgets the searched place', (tester) async {
-    final h = await pumpScreen(tester, const PlannerScreen());
-
-    await tester.enterText(find.byType(TextField).first, 'munich');
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Bavaria, Germany'));
-    await tester.pumpAndSettle();
-    expect(h.map.searchPin, isNotNull);
-    expect(find.text(l10n.plannerRideFromPosition), findsOneWidget);
-
-    // The field's own clear button drops the place and its two actions.
-    await tester.tap(find.byTooltip(l10n.searchClear));
-    await tester.pumpAndSettle();
-    expect(h.map.searchPin, isNull);
-    expect(find.text(l10n.plannerRideFromPosition), findsNothing);
-    expect(find.text(l10n.plannerSetAsStart), findsNothing);
-
-    // Typing over a picked place forgets it too.
-    await tester.enterText(find.byType(TextField).first, 'munich');
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Bavaria, Germany'));
-    await tester.pumpAndSettle();
-    expect(h.map.searchPin, isNotNull);
-    await tester.enterText(find.byType(TextField).first, 'munic');
-    await tester.pump();
+    expect(find.byType(PlaceCard), findsNothing);
     expect(h.map.searchPin, isNull);
   });
 
-  testWidgets('the control column moves down under the place actions', (
+  testWidgets('a card closed without a choice forgets the searched place', (
     tester,
   ) async {
-    await pumpScreen(tester, const PlannerScreen());
-    // The measured chrome replaces the estimate with a short glide.
-    await tester.pumpAndSettle();
-    final container = ProviderScope.containerOf(
-      tester.element(find.byType(PlannerScreen)),
-    );
-    double controlsTop() =>
-        container.read(mapControlsTopProvider).animation.value;
-    final before = controlsTop();
+    final h = await pumpScreen(tester, const PlannerScreen());
+    TextField field() => tester.widget<TextField>(find.byType(TextField).first);
+    Future<void> pick() async {
+      await tester.enterText(find.byType(TextField).first, 'munich');
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Bavaria, Germany'));
+      await tester.pumpAndSettle();
+      expect(find.byType(PlaceCard), findsOneWidget);
+      expect(h.map.searchPin, isNotNull);
+    }
 
-    await tester.enterText(find.byType(TextField).first, 'munich');
-    await tester.pump(const Duration(milliseconds: 300));
+    // The card's close button: the pin goes, the field empties, and the
+    // plan stays as it was.
+    await pick();
+    await tester.tap(find.byTooltip(l10n.placeCardClose));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Bavaria, Germany'));
-    await tester.pumpAndSettle();
+    expect(find.byType(PlaceCard), findsNothing);
+    expect(h.map.searchPin, isNull);
+    expect(field().controller!.text, isEmpty);
+    expect(h.map.waypoints, isEmpty);
 
-    // The two action buttons add a row above the chips; the column must
-    // not sit on the chips because of it.
-    expect(controlsTop(), greaterThan(before + 30));
-
-    await tester.tap(find.byTooltip(l10n.searchClear));
+    // Swiped down.
+    await pick();
+    await tester.fling(find.byType(PlaceCard), const Offset(0, 600), 2000);
     await tester.pumpAndSettle();
-    expect(controlsTop(), closeTo(before, 0.5));
+    expect(find.byType(PlaceCard), findsNothing);
+    expect(h.map.searchPin, isNull);
+    expect(field().controller!.text, isEmpty);
+
+    // A tap on the map beside it.
+    await pick();
+    await tester.tapAt(const Offset(500, 300));
+    await tester.pumpAndSettle();
+    expect(find.byType(PlaceCard), findsNothing);
+    expect(h.map.searchPin, isNull);
+    expect(h.map.waypoints, isEmpty);
   });
 
   testWidgets(
@@ -962,6 +951,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bavaria, Germany'));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.placeCardAddStop), findsOneWidget);
+    await tester.tap(find.text(l10n.placeCardDestination));
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
 

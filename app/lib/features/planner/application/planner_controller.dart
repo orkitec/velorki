@@ -122,6 +122,26 @@ class PlannerController extends _$PlannerController {
     );
   }
 
+  /// Puts a picked place into the plan where it fits along the route: into
+  /// the leg the route passes it on, as [tapAt] does for a tap on the line
+  /// but at [pos] itself rather than on the line. With no route to measure
+  /// against yet (still being computed, or fewer than two waypoints) it is
+  /// appended, as [addWaypoint] does.
+  void addWaypointAlongRoute(LatLng pos, {String? name}) {
+    final route = state.result;
+    if (route != null &&
+        state.isRoutable &&
+        state.waypoints.length >= 2 &&
+        route.geometry.length >= 2) {
+      final track = route.positions;
+      final cumulative = cumulativeDistancesMeters(track);
+      final on = projectOnTrack(track, pos, cumulative: cumulative);
+      insertWaypoint(_legAlong(route, track, cumulative, on), pos, name: name);
+      return;
+    }
+    addWaypoint(pos, name: name);
+  }
+
   /// The map tapped at [pos]: a tap on the route line, within
   /// [lineToleranceM] of it, puts a new point on the line there, between
   /// the two waypoints of the leg it falls on; anywhere else adds a point

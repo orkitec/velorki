@@ -88,12 +88,10 @@ void main() {
     );
     await tapAndPump(tester, row);
 
-    // With an empty plan the screen offers to start from the rider instead of
-    // from the place, which is the two-waypoint case this test is after.
-    await tapAndPump(
-      tester,
-      find.widgetWithText(FilledButton, 'From my position'),
-    );
+    // With an empty plan the place's card offers to route there from the
+    // rider instead of starting at the place, which is the two-waypoint case
+    // this test is after.
+    await tapAndPump(tester, find.widgetWithText(FilledButton, 'Route here'));
 
     await waitUntil(
       tester,
