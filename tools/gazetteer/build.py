@@ -260,6 +260,14 @@ def language_names(tags, primary: str, alts: tuple[str, ...]) -> tuple[str, ...]
     return alts + tuple(found)
 
 
+# Named `highway` ways that are no street a rider looks for: a bus or train
+# platform ("S Südkreuz", thousands of them in a city) would otherwise rank as
+# a street above the station it serves; a road only planned does not exist.
+NOT_STREETS = frozenset(
+    {"platform", "bus_stop", "proposed", "corridor", "elevator", "services", "rest_area"}
+)
+
+
 def importance(tags) -> int | None:
     """How famous an object is, without reading any language.
 
@@ -650,6 +658,7 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
             and not is_node
             and not is_area
             and "highway" in tags
+            and tags.get("highway") not in NOT_STREETS
         )
         # A name with no letter in it is a house number somebody typed into the
         # name field: the POI keeps its position and loses the name, which only
