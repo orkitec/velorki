@@ -3,6 +3,15 @@ import 'package:velorki/core/links/location_link.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 void main() {
+  test('coordinates as Google Maps and Apple Maps copy them', () {
+    final google = parseLocationLink('40.71747105305585 -73.94839976190572')!;
+    expect(google.position!.lat, closeTo(40.717471, 1e-6));
+    expect(google.position!.lon, closeTo(-73.948400, 1e-6));
+    final apple = parseLocationLink('40,71747° N, 73,94840° W')!;
+    expect(apple.position!.lat, closeTo(40.71747, 1e-5));
+    expect(apple.position!.lon, closeTo(-73.94840, 1e-5));
+  });
+
   const berlin = LatLng(52.52, 13.405);
 
   void expectAt(
