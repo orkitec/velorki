@@ -687,6 +687,44 @@ void main() {
       );
     });
 
+    test('a number that is part of a name is read as the name', () async {
+      buildGazetteer(
+        dir,
+        'W20_N30',
+        places: const <GazPlace>[
+          GazPlace(1, 'Rosenthal', 'suburb', 52.6000, 13.3800),
+        ],
+        streets: const <GazStreet>[
+          GazStreet(10, 'Straße 70', 52.6010, 13.3810, placeId: 1),
+          GazStreet(11, 'Straße 71', 52.6020, 13.3820, placeId: 1),
+          GazStreet(12, 'Breite Straße', 52.6030, 13.3830, placeId: 1),
+          GazStreet(13, 'Route 66', 52.6040, 13.3840, placeId: 1),
+        ],
+        houseNumbers: const <GazHouseNumber>[
+          GazHouseNumber(12, 70, 52.6031, 13.3831),
+          GazHouseNumber(10, 12, 52.6011, 13.3811),
+        ],
+      );
+      final store = await openStore();
+
+      final named = await store.search('Straße 70');
+      expect(named.first.name, 'Straße 70');
+      expect(named.first.houseNumber, isNull);
+      expect((await store.search('route 66')).first.name, 'Route 66');
+
+      final address = await store.search('Straße 70 12');
+      expect(address.first.name, 'Straße 70');
+      expect(address.first.houseNumber, '12');
+
+      final breite = await store.search('Breite Straße 70');
+      expect(breite.first.name, 'Breite Straße');
+      expect(
+        breite.first.houseNumber,
+        '70',
+        reason: 'no name holds "70" beside "Breite"',
+      );
+    });
+
     test('a number alone is still what is searched for', () async {
       buildAddresses();
       final store = await openStore();

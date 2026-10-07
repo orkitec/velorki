@@ -57,6 +57,18 @@ void main() {
       expect(parseQuery('400').words, <String>['400']);
     });
 
+    test('read as a name, the first plain number is a word', () {
+      final named = parseQuery('Straße 70', numberAsName: true);
+      expect(named.words, <String>['Straße', '70']);
+      expect(named.houseNumber, isNull);
+
+      final address = parseQuery('Straße 70 12', numberAsName: true);
+      expect(address.words, <String>['Straße', '70']);
+      expect(address.houseNumber, '12');
+
+      expect(parseQuery('Straße 70').houseNumber, '70');
+    });
+
     test('a Dutch postcode is dropped with its letters', () {
       final parsed = parseQuery('1012 AB Amsterdam Damrak 1');
       expect(parsed.houseNumber, '1');

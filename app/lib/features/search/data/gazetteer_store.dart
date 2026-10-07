@@ -427,7 +427,7 @@ class GazetteerStore {
         ? const <SearchResult>[]
         : _nearestOfKind(text, keywords, near);
 
-    final query = gazetteerMatchExpression(text);
+    final query = _readNumber(text, near);
     final pool = _Pool(query: query, near: near, preferences: preferences);
     String? corrected;
     if (query != null) {
@@ -493,6 +493,50 @@ class GazetteerStore {
       spots.add(spot);
     }
     return GazetteerSearch(results: results, correctedQuery: corrected);
+  }
+
+  /// [text] as a query, its number read as part of a name ("Straße 70",
+  /// "Route 66") when a name holds that number with the words typed before
+  /// it, and as a house number otherwise.
+  GazetteerQuery? _readNumber(String text, LatLng? near) {
+    final address = gazetteerMatchExpression(text);
+    final number = address?.houseNumber;
+    if (number == null || !RegExp(r'^\d+$').hasMatch(number)) return address;
+    final named = gazetteerMatchExpression(text, numberAsName: true);
+    if (named == null) return address;
+    final at = named.tokens.indexOf(number);
+    if (at < 0) return address;
+    // A name ends with its number ("Straße 70", "Route 66"), so every word
+    // before the number has to be in it; the words after it may be a town.
+    // A number typed first is a house number ("15 Rue …").
+    if (at == 0) return address;
+    final probe = <String>[
+      ...named.tokens.sublist(0, at).map(_firstLookTerm),
+      _firstLookTerm(number, exact: true),
+    ].join(' AND ');
+    final typedBefore = foldForMatch(named.tokens[at - 1]);
+    // Only a street counts, with the number right after the word typed
+    // before it: a building or a stop named after its own address
+    // ("Hauptstraße 12") is the address, not a name.
+    bool numbered(_Row row) {
+      if (row.table != _Table.street) return false;
+      final words = indexWords(row.name).map(foldForMatch).toList();
+      for (var i = 1; i < words.length; i++) {
+        if (words[i] == number && words[i - 1].startsWith(typedBefore)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    for (final file in _open.values) {
+      try {
+        if (file.candidates(probe, near).any(numbered)) return named;
+      } on Object catch (e) {
+        debugPrint('velorki: gazetteer ${file.tile} could not answer: $e');
+      }
+    }
+    return address;
   }
 
   /// Every file's rows for each of [expressions], scored into [pool].
@@ -1090,12 +1134,15 @@ class GazetteerQuery {
 /// [gazetteerMinChars] characters long — the floor applies to the text that
 /// is actually matched, not to what the number made of it.
 @visibleForTesting
-GazetteerQuery? gazetteerMatchExpression(String text) {
+GazetteerQuery? gazetteerMatchExpression(
+  String text, {
+  bool numberAsName = false,
+}) {
   final normalized = PhotonClient.normalizeQuery(text);
   final capped = normalized.length > _maxQueryChars
       ? normalized.substring(0, _maxQueryChars)
       : normalized;
-  final parsed = parseQuery(capped);
+  final parsed = parseQuery(capped, numberAsName: numberAsName);
   final words = parsed.words;
   if (words.isEmpty) return null;
   if (words.join(' ').length < gazetteerMinChars) return null;
