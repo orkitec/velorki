@@ -92,6 +92,30 @@ String _activeTab(WidgetTester tester) =>
         .read(activeTabProvider);
 
 void main() {
+  testWidgets('the same place shared twice opens twice', (tester) async {
+    final sources = _Sources();
+    final h = await _pumpApp(tester, sources);
+    const link = 'velorki://navigate?lat=48.1374&lon=11.5755&name=Marienplatz';
+
+    sources.links.add(Uri.parse(link));
+    await tester.pumpAndSettle();
+    expect(h.map.searchPin, const LatLng(48.1374, 11.5755));
+
+    // The rider looks elsewhere, then shares the very same place again
+    // (later than the three seconds the double-delivery guard spans).
+    h.map.searchPin = null;
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 3100)),
+    );
+    sources.links.add(Uri.parse(link));
+    await tester.pumpAndSettle();
+    expect(
+      h.map.searchPin,
+      const LatLng(48.1374, 11.5755),
+      reason: 'the second share is not swallowed as a repeat',
+    );
+  });
+
   testWidgets('a place with coordinates opens like a tapped search result', (
     tester,
   ) async {

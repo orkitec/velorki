@@ -8,8 +8,10 @@ Everything that turns a GPX or FIT file into a route or a ride, and back.
 ways a file can reach the app. It exposes `imports` for decoded files,
 `locations` for places (see Places below) and `deepLinks` for other links
 (`velorki://oauth/...`, `velorki://share/<id>`), with the providers
-`incomingImportsProvider`, `incomingLocationsProvider` and
-`incomingDeepLinksProvider`.
+`incomingImportsProvider` and `incomingDeepLinksProvider`. Places are read off
+the service's stream directly (`listenForIncomingLocations`): a provider
+passes on only a value that differs from the last, and the same place shared
+twice is equal to itself.
 
 | Source | Plugin | Platforms |
 |---|---|---|

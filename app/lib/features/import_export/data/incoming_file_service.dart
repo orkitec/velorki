@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:app_links/app_links.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart' show StreamProvider;
 import 'package:logging/logging.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -462,8 +461,3 @@ Stream<ImportException> incomingImportRejections(Ref ref) =>
 @Riverpod(keepAlive: true)
 Stream<Uri> incomingDeepLinks(Ref ref) =>
     ref.watch(incomingFileServiceProvider).deepLinks;
-
-/// Places sent from other apps, for the planner to show.
-final incomingLocationsProvider = StreamProvider<LocationLink>(
-  (ref) => ref.watch(incomingFileServiceProvider).locations,
-);

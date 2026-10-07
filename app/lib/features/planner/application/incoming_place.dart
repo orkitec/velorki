@@ -53,16 +53,16 @@ class IncomingPlaceRequest extends Notifier<IncomingPlace?> {
 /// Called once from `bootstrap()`, next to the import listener, so a place
 /// the app was launched with is not lost. The service is started there.
 void listenForIncomingLocations(ProviderContainer container) {
-  container.listen<AsyncValue<LocationLink>>(
-    incomingLocationsProvider,
-    (previous, next) {
-      final link = next.value;
-      if (link == null || identical(link, previous?.value)) return;
-      unawaited(_afterRecovery(container, link));
-    },
-    fireImmediately: true,
-    onError: (error, _) => _log.warning('incoming place failed', error),
-  );
+  // The service's own stream, not a provider over it: a provider passes on
+  // only a value that differs from the last, and the same place shared a
+  // second time is equal to the first.
+  container
+      .read(incomingFileServiceProvider)
+      .locations
+      .listen(
+        (link) => unawaited(_afterRecovery(container, link)),
+        onError: (Object error) => _log.warning('incoming place failed', error),
+      );
 }
 
 /// Opens the planner with [link] once a ride left unfinished at launch has
