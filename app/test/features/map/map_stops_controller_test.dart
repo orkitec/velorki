@@ -198,6 +198,25 @@ void main() {
       });
     });
 
+    test('a map that settles a hair below the zoom asked for shows the '
+        'stops', () {
+      fakeAsync((async) {
+        final store = _FakeStore();
+        final map = FakeMapController()
+          // What iOS reported after a move to zoom 11.
+          ..zoom = stopsMinZoom - 0.0007
+          ..center = const LatLng(48.01, 11.015)
+          ..visibleBounds = _view;
+        final stops = MapStopsController(find: store.find)
+          ..update(shown: true, kinds: const {'cafe'})
+          ..attach(map);
+        async.elapse(stopsDebounce * 2);
+        expect(stops.needsZoom, isFalse);
+        expect(store.asks, hasLength(1));
+        stops.dispose();
+      });
+    });
+
     test('below the zoom where stops show nothing is asked and nothing '
         'drawn', () {
       fakeAsync((async) {

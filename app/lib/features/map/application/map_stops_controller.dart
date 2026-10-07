@@ -59,6 +59,11 @@ BoundingBox grownBox(BoundingBox box, double share) {
   );
 }
 
+/// Whether [zoom] is out too far for the stops in the area. A map asked for
+/// [stopsMinZoom] can settle a hair below it (10.9993 on iOS), which is the
+/// zoom asked for all the same.
+bool _belowStopsZoom(double zoom) => zoom < stopsMinZoom - 0.01;
+
 /// The most stops one stretch of the route ahead asks for, per gazetteer.
 const int stopsChunkLimit = 200;
 
@@ -230,7 +235,7 @@ class MapStopsController extends ChangeNotifier {
   /// listeners when that changes.
   void _noteZoom(MapController map) {
     final zoom = map.zoom;
-    final out = zoom != null && zoom < stopsMinZoom;
+    final out = zoom != null && _belowStopsZoom(zoom);
     if (out == _zoomedOut) return;
     _zoomedOut = out;
     _changed();
@@ -429,7 +434,7 @@ class MapStopsController extends ChangeNotifier {
     if (map == null || mode != MapStopsMode.area) return;
     final generation = ++_generation;
     final zoom = map.zoom;
-    if (zoom == null || zoom < stopsMinZoom) {
+    if (zoom == null || _belowStopsZoom(zoom)) {
       _area = const <SearchResult>[];
       _draw(_area);
       return;
