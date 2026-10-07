@@ -70,10 +70,22 @@ void main() {
       expect(parseQuery('400 w 42nd 12').words, <String>['w', '42nd', '12']);
     });
 
-    test('a number glued to a compass letter is two tokens', () {
+    test('a number glued to a compass letter or a word is two tokens', () {
       final parsed = parseQuery('400w 42nd');
       expect(parsed.houseNumber, '400');
       expect(parsed.words, <String>['w', '42nd']);
+
+      final word = parseQuery('400west 42nd');
+      expect(word.houseNumber, '400');
+      expect(word.words, <String>['west', '42nd']);
+
+      final german = parseQuery('12hauptstraße berlin');
+      expect(german.houseNumber, '12');
+      expect(german.words, <String>['hauptstraße', 'berlin']);
+
+      expect(parseQuery('42nd street').houseNumber, isNull);
+      expect(parseQuery('5th Avenue 350').houseNumber, '350');
+      expect(parseQuery('Rue du Lavoir 41b').houseNumber, '41b');
     });
   });
 

@@ -91,14 +91,16 @@ ParsedQuery parseQuery(String text) {
     for (final t in text.trim().split(_tokenSeparator))
       if (t.isNotEmpty) t,
   ];
-  // "400w 42nd": a number glued to a compass letter is two tokens.
-  if (tokens.isNotEmpty) {
-    final glued = _numberCompass.firstMatch(tokens.first);
-    if (glued != null) {
-      tokens
-        ..removeAt(0)
-        ..insertAll(0, <String>[glued[1]!, glued[2]!]);
-    }
+  // "400w 42nd", "400west 42nd": a number glued to a compass letter or to
+  // a whole word is two tokens; an ordinal ("42nd", "5th", "1er") and a
+  // number with a letter ("12a") stay one.
+  for (var i = 0; i < tokens.length; i++) {
+    final glued = _numberGlued.firstMatch(tokens[i]);
+    if (glued == null || _isOrdinal(tokens[i])) continue;
+    tokens
+      ..removeAt(i)
+      ..insertAll(i, <String>[glued[1]!, glued[2]!]);
+    i++;
   }
 
   final hasWord = tokens.any(_isWord);
@@ -146,7 +148,10 @@ ParsedQuery parseQuery(String text) {
 }
 
 final RegExp _tokenSeparator = RegExp(r'[\s,;]+');
-final RegExp _numberCompass = RegExp(r'^(\d+)([nsewNSEW])$');
+final RegExp _numberGlued = RegExp(
+  r'^(\d{1,4})([nsewNSEW]|\p{L}{2,})$',
+  unicode: true,
+);
 final RegExp _letter = RegExp(r'\p{L}', unicode: true);
 
 /// "12", "12a", "12а" (any script), "12bis", "12/3", "12/A", "40-42",
