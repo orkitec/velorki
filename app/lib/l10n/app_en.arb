@@ -1112,10 +1112,6 @@
   "@recordingStatusAutoPaused": {
     "description": "Status line while the recording paused itself because the bike stopped"
   },
-  "recordingStatusAutoPausedShort": "Auto",
-  "@recordingStatusAutoPausedShort": {
-    "description": "Short form of 'Auto-paused' in the status pill when the full word does not fit beside the ride's clock on a narrow phone; the pill's colour and pause mark already say paused. Keep it to one short word"
-  },
   "recordingFollowRoute": "Follow a route",
   "@recordingFollowRoute": {
     "description": "Label of the picker that puts a saved route on the map while recording"

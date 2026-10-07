@@ -2386,9 +2386,9 @@ class _LivePanel extends ConsumerWidget {
                     child: _StatusPill(
                       label: status,
                       // On a narrow phone "Auto-paused" leaves no room for
-                      // the clock; the pill's colour and mark say paused.
+                      // the clock: it is a pause all the same.
                       shortLabel: snapshot.autoPaused && state.isPaused
-                          ? l10n.recordingStatusAutoPausedShort
+                          ? l10n.recordingStatusPaused
                           : null,
                       paused: state.isPaused,
                     ),
