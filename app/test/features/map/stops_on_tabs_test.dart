@@ -201,9 +201,21 @@ void main() {
       find.descendant(of: card, matching: find.byType(FilledButton)),
       findsNothing,
     );
+    // No route actions; only Open in…, which every card has.
+    for (final label in [
+      l10n.placeCardRouteHere,
+      l10n.plannerSetAsStart,
+      l10n.placeCardAddStop,
+      l10n.placeCardDestination,
+    ]) {
+      expect(
+        find.descendant(of: card, matching: find.text(label)),
+        findsNothing,
+      );
+    }
     expect(
-      find.descendant(of: card, matching: find.byType(OutlinedButton)),
-      findsNothing,
+      find.descendant(of: card, matching: find.text(l10n.placeCardOpenIn)),
+      findsOneWidget,
     );
     expect(h.map.stops[1].selected, isTrue);
 

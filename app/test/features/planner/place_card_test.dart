@@ -218,7 +218,7 @@ void main() {
       _inCard(find.widgetWithText(FilledButton, l10n.placeCardDestination)),
       findsOneWidget,
     );
-    expect(_inCard(find.byType(OutlinedButton)), findsNothing);
+    expect(_inCard(find.text(l10n.placeCardAddStop)), findsNothing);
 
     await tester.tap(find.text(l10n.placeCardDestination));
     await tester.pump(const Duration(milliseconds: 400));

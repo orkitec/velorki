@@ -317,6 +317,86 @@
     "description": "On the card of a picked place: how far it is from the nearest point of the planned route",
     "placeholders": {"distance": {"type": "String", "example": "150 m"}}
   },
+  "placeCardDetails": "Details",
+  "@placeCardDetails": {
+    "description": "Button on the card of a picked place: fetches its opening hours, website and similar details from OpenStreetMap"
+  },
+  "placeCardOpenIn": "Open in…",
+  "@placeCardOpenIn": {
+    "description": "Button on the card of a picked place: opens a menu of other apps to show the place in, and sharing"
+  },
+  "placeCardOpenInMapApp": "Map app…",
+  "@placeCardOpenInMapApp": {
+    "description": "Entry of the place card's Open in menu on Android: hands the place to the system, which lists the installed map apps"
+  },
+  "placeCardShare": "Share…",
+  "@placeCardShare": {
+    "description": "Entry of the place card's Open in menu: shares the place's name and an OpenStreetMap link"
+  },
+  "serviceAppleMaps": "Apple Maps",
+  "@serviceAppleMaps": {
+    "description": "Name of the Apple Maps app. Do not translate."
+  },
+  "serviceGoogleMaps": "Google Maps",
+  "@serviceGoogleMaps": {
+    "description": "Name of the Google Maps app. Do not translate."
+  },
+  "serviceOpenStreetMap": "OpenStreetMap",
+  "@serviceOpenStreetMap": {
+    "description": "Name of the OpenStreetMap website. Do not translate."
+  },
+  "placeDetailsNone": "No further details on OpenStreetMap",
+  "@placeDetailsNone": {
+    "description": "On the card of a picked place, after Details was tapped: OpenStreetMap has no opening hours, website or similar for it"
+  },
+  "placeDetailsFailed": "Couldn't load details",
+  "@placeDetailsFailed": {
+    "description": "On the card of a picked place, after Details was tapped: the request failed (offline, timeout)"
+  },
+  "placeDetailsOpenNow": "Open now",
+  "@placeDetailsOpenNow": {
+    "description": "Opening status of a place that is open and does not close within a week"
+  },
+  "placeDetailsOpenCloses": "Open now · closes {time}",
+  "@placeDetailsOpenCloses": {
+    "description": "Opening status of a place that is open, with when it closes",
+    "placeholders": {"time": {"type": "String", "example": "18:00"}}
+  },
+  "placeDetailsClosed": "Closed",
+  "@placeDetailsClosed": {
+    "description": "Opening status of a place that is closed and does not open within a week"
+  },
+  "placeDetailsClosedOpens": "Closed · opens {time}",
+  "@placeDetailsClosedOpens": {
+    "description": "Opening status of a place that is closed, with when it opens; the time may carry a weekday",
+    "placeholders": {"time": {"type": "String", "example": "Mon 08:00"}}
+  },
+  "placeDetailsCuisine": "Cuisine: {cuisines}",
+  "@placeDetailsCuisine": {
+    "description": "On the card of a picked place: the kinds of food served, as OpenStreetMap names them (English)",
+    "placeholders": {"cuisines": {"type": "String", "example": "vietnamese, ice cream"}}
+  },
+  "placeDetailsWheelchairYes": "Wheelchair accessible",
+  "@placeDetailsWheelchairYes": {
+    "description": "On the card of a picked place: it can be reached in a wheelchair"
+  },
+  "placeDetailsWheelchairLimited": "Partly wheelchair accessible",
+  "@placeDetailsWheelchairLimited": {
+    "description": "On the card of a picked place: it can be reached in a wheelchair only in part"
+  },
+  "placeDetailsWheelchairNo": "Not wheelchair accessible",
+  "@placeDetailsWheelchairNo": {
+    "description": "On the card of a picked place: it cannot be reached in a wheelchair"
+  },
+  "placeDetailsOutdoorSeating": "Outdoor seating",
+  "@placeDetailsOutdoorSeating": {
+    "description": "On the card of a picked place: it has seats outside"
+  },
+  "placeDetailsWikipedia": "{title} on Wikipedia",
+  "@placeDetailsWikipedia": {
+    "description": "On the card of a picked place: a link to its Wikipedia article",
+    "placeholders": {"title": {"type": "String", "example": "Cologne Cathedral"}}
+  },
   "placeLinkNeedsBrowser": "This map link only opens in a browser. Open it there, then share the place from the map page.",
   "@placeLinkNeedsBrowser": {
     "description": "Shown when another app sent a short map link (maps.app.goo.gl, osm.org/go) whose place cannot be read without opening it in a browser"

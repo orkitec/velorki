@@ -38,6 +38,8 @@ Search is answered on the phone wherever the area's index is downloaded, and not
 
 It goes online when you tap **Search online for "…"**, or when you have no index for the area you are looking at. Then what you typed goes to Photon, together with a rough position so that nearby results come first.
 
+Tapping **Details** on a place's card fetches its details (opening hours, website and the like) from OpenStreetMap.
+
 A short map link you share into Velorki (`maps.app.goo.gl`, `maps.apple/p`, `osm.org/go`) is opened once with the service that made it, to learn where it points; that service sees the link and your IP address, as it would in a browser.
 
 ### While you record

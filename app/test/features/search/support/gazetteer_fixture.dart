@@ -25,6 +25,8 @@ class GazPlace {
     this.population,
     this.adminId,
     this.importance,
+    this.osmType,
+    this.osmId,
   });
 
   /// The row id, unique across places, streets and POIs.
@@ -48,6 +50,13 @@ class GazPlace {
   /// How widely known it is (`importance`); a file gets the column only when
   /// some row has one.
   final int? importance;
+
+  /// The OSM element (`n`, `w`, `r`) and its id; a file gets the columns only
+  /// when some row has them, as one from before them has none.
+  final String? osmType;
+
+  /// See [osmType].
+  final int? osmId;
 }
 
 /// A street row.
@@ -79,6 +88,8 @@ class GazPoi {
     this.lon, {
     this.placeId,
     this.importance,
+    this.osmType,
+    this.osmId,
   });
 
   /// Creates a POI with no name at all, the way the builder stores a tap or a
@@ -86,7 +97,9 @@ class GazPoi {
   /// there is nothing to match — so only a kind search ever finds it.
   const GazPoi.unnamed(this.id, this.kind, this.lat, this.lon, {this.placeId})
     : name = null,
-      importance = null;
+      importance = null,
+      osmType = null,
+      osmId = null;
 
   /// The row id, unique across all three tables.
   final int id;
@@ -105,6 +118,12 @@ class GazPoi {
 
   /// How widely known it is, see [GazPlace.importance].
   final int? importance;
+
+  /// The OSM element, see [GazPlace.osmType].
+  final String? osmType;
+
+  /// See [GazPlace.osmId].
+  final int? osmId;
 }
 
 /// An alternative name of a place, a street or a POI.
@@ -325,6 +344,26 @@ CREATE TABLE house_numbers (
           _e7(anchor.lon),
         ],
       );
+    }
+    if (places.any((p) => p.osmId != null) ||
+        pois.any((p) => p.osmId != null)) {
+      for (final table in <String>['places', 'pois']) {
+        db
+          ..execute('ALTER TABLE $table ADD COLUMN osm_type TEXT;')
+          ..execute('ALTER TABLE $table ADD COLUMN osm_id INTEGER;');
+      }
+      for (final (table, rows) in <(String, List<(int, String?, int?)>)>[
+        ('places', [for (final p in places) (p.id, p.osmType, p.osmId)]),
+        ('pois', [for (final p in pois) (p.id, p.osmType, p.osmId)]),
+      ]) {
+        for (final (id, type, osmId) in rows) {
+          if (osmId == null) continue;
+          db.execute(
+            'UPDATE $table SET osm_type = ?, osm_id = ? WHERE id = ?;',
+            <Object?>[type, osmId, id],
+          );
+        }
+      }
     }
     for (final place in places) {
       if (place.importance == null) continue;

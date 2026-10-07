@@ -18,6 +18,8 @@ A card comes up with the place's name, what it is, how far it is from you and, w
 - **Only a start**: **Destination** makes it the end of the route.
 - **A route**: **Add as a stop** puts it into the route where it lies along the way; **Destination** adds it at the end.
 
+Under these, **Details** fetches the place's opening hours (with whether it is open now), website, phone number and the like from OpenStreetMap, only when you tap it; it is missing for streets and places without an OpenStreetMap id. **Open in…** shows the place in another map app or on openstreetmap.org, or shares it.
+
 Closing the card (the **X**, a swipe down or a tap on the map) changes nothing and clears the search. A stop tapped on the map opens the same card.
 
 ## Offline or online

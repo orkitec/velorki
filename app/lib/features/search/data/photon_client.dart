@@ -170,6 +170,7 @@ List<SearchResult> parsePhotonResponse(String body) {
     if (name == null || name.isEmpty) continue;
     final osmKey = _asString(props['osm_key']);
     final osmValue = _asString(props['osm_value']);
+    final osmType = osmElementType(props['osm_type']);
     out.add(
       SearchResult(
         name: name,
@@ -181,6 +182,8 @@ List<SearchResult> parsePhotonResponse(String body) {
         osmValue: osmValue,
         kind: searchKindOfOsmKey(osmKey),
         detail: osmValue,
+        osmType: osmType,
+        osmId: osmType == null ? null : _asInt(props['osm_id']),
       ),
     );
   }
@@ -188,6 +191,14 @@ List<SearchResult> parsePhotonResponse(String body) {
 }
 
 double? _asDouble(Object? v) => v is num ? v.toDouble() : double.tryParse('$v');
+
+int? _asInt(Object? v) => v is int
+    ? v
+    : v is num
+    ? v.toInt()
+    : v == null
+    ? null
+    : int.tryParse(v.toString());
 
 String? _asString(Object? v) {
   if (v == null) return null;

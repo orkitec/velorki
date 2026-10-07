@@ -1209,7 +1209,7 @@ class _GazetteerFile {
       ),
       _places = _db.prepare(
         'SELECT id, name, kind, lat, lon, population, admin_id, '
-        '${_fame(_db, 'places')} FROM places '
+        '${_fame(_db, 'places')}, ${_osm(_db, 'places')} FROM places '
         'WHERE id IN (SELECT value FROM json_each(?))',
       ),
       _streets = _prepareOrNull(
@@ -1219,7 +1219,8 @@ class _GazetteerFile {
       ),
       _pois = _prepareOrNull(
         _db,
-        'SELECT id, name, kind, lat, lon, place_id, ${_fame(_db, 'pois')} '
+        'SELECT id, name, kind, lat, lon, place_id, ${_fame(_db, 'pois')}, '
+        '${_osm(_db, 'pois')} '
         'FROM pois WHERE id IN (SELECT value FROM json_each(?))',
       ),
       _aliases = _prepareOrNull(
@@ -1343,7 +1344,8 @@ class _GazetteerFile {
 
     read(
       'SELECT id, name, kind, lat, lon, population, admin_id, '
-      '${_fame(_db, 'places')} FROM places WHERE $matching $order',
+      '${_fame(_db, 'places')}, $_osmPlaces FROM places '
+      'WHERE $matching $order',
       _Table.place,
     );
     read(
@@ -1351,8 +1353,8 @@ class _GazetteerFile {
       _Table.street,
     );
     read(
-      'SELECT id, name, kind, lat, lon, place_id, ${_fame(_db, 'pois')} '
-      'FROM pois WHERE $matching $order',
+      'SELECT id, name, kind, lat, lon, place_id, ${_fame(_db, 'pois')}, '
+      '$_osmPois FROM pois WHERE $matching $order',
       _Table.poi,
     );
     return rows;
@@ -1376,6 +1378,8 @@ class _GazetteerFile {
       placeId: _asInt(
         table == _Table.place ? row['admin_id'] : row['place_id'],
       ),
+      osmType: table == _Table.street ? null : _osmTypeOf(row),
+      osmId: table == _Table.street ? null : _osmIdOf(row),
     );
   }
 
@@ -1455,6 +1459,8 @@ class _GazetteerFile {
       detail: row.kind,
       houseNumber: number == null ? null : query?.houseNumber,
       approximate: located.approximate,
+      osmType: row.osmType,
+      osmId: row.osmType == null ? null : row.osmId,
     );
     return (result: result, spot: located.spot);
   }
@@ -1495,7 +1501,7 @@ class _GazetteerFile {
     // keeps the ones nearby, not the southernmost.
     final order = _nearestFirst(near);
     final rows = _db.select(
-      'SELECT name, kind, lat, lon, place_id FROM pois '
+      'SELECT name, kind, lat, lon, place_id, $_osmPois FROM pois '
       'WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? '
       'AND kind IN ($placeholders) ${order.sql} LIMIT ?',
       <Object?>[
@@ -1523,6 +1529,8 @@ class _GazetteerFile {
           kind: SearchKind.poi,
           detail: row['kind']?.toString(),
           distanceMeters: meters,
+          osmType: _osmTypeOf(row),
+          osmId: _osmIdOf(row),
         ),
       );
     }
@@ -1559,8 +1567,9 @@ class _GazetteerFile {
     void query(String table, SearchKind kind, List<String> kinds) {
       if (kinds.isEmpty) return;
       final placeholders = List<String>.filled(kinds.length, '?').join(', ');
+      final osm = table == 'pois' ? _osmPois : _osmPlaces;
       final rows = _db.select(
-        'SELECT name, kind, lat, lon FROM $table '
+        'SELECT name, kind, lat, lon, $osm FROM $table '
         'WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? '
         'AND kind IN ($placeholders) ${order.sql} LIMIT ?',
         <Object?>[...bounds, ...kinds, ...order.args, limit],
@@ -1575,6 +1584,8 @@ class _GazetteerFile {
             source: SearchSource.local,
             kind: kind,
             detail: row['kind']?.toString(),
+            osmType: _osmTypeOf(row),
+            osmId: _osmIdOf(row),
           ),
         );
       }
@@ -1606,7 +1617,7 @@ class _GazetteerFile {
       '?',
     ).join(', ');
     final rows = _db.select(
-      'SELECT name, kind, lat, lon, admin_id FROM places '
+      'SELECT name, kind, lat, lon, admin_id, $_osmPlaces FROM places '
       'WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? '
       'AND kind IN ($placeholders) LIMIT ?',
       <Object?>[
@@ -1648,6 +1659,8 @@ class _GazetteerFile {
         kind: SearchKind.place,
         detail: kind,
         distanceMeters: meters,
+        osmType: _osmTypeOf(row),
+        osmId: _osmIdOf(row),
       );
     }
     return best;
@@ -1862,6 +1875,28 @@ class _GazetteerFile {
         : '0 AS importance';
   }
 
+  /// The `osm_type` and `osm_id` columns of [table], or NULLs in their place
+  /// for a file without them.
+  static String _osm(Database db, String table) {
+    final columns = db.select('PRAGMA table_info($table)');
+    bool has(String name) => columns.any((c) => c['name'] == name);
+    return has('osm_type') && has('osm_id')
+        ? 'osm_type, osm_id'
+        : 'NULL AS osm_type, NULL AS osm_id';
+  }
+
+  late final String _osmPlaces = _osm(_db, 'places');
+  late final String _osmPois = _osm(_db, 'pois');
+
+  /// The element type of [row], as the OpenStreetMap API spells it, when
+  /// its id is there too.
+  static String? _osmTypeOf(Row row) =>
+      _asInt(row['osm_id']) == null ? null : osmElementType(row['osm_type']);
+
+  /// The element id of [row], when its type is there too.
+  static int? _osmIdOf(Row row) =>
+      _osmTypeOf(row) == null ? null : _asInt(row['osm_id']);
+
   static PreparedStatement? _prepareOrNull(Database db, String sql) {
     // A file from an older builder has no aliases and house_numbers instead
     // of street_numbers, a newer one the other way round: a table that is
@@ -1915,6 +1950,8 @@ class _Row {
     required this.population,
     required this.importance,
     required this.placeId,
+    this.osmType,
+    this.osmId,
   });
 
   final int id;
@@ -1933,6 +1970,10 @@ class _Row {
 
   /// The place a street or a POI lies in, or the place a place belongs to.
   final int? placeId;
+
+  /// The OpenStreetMap element of a place or a POI, when the file has it.
+  final String? osmType;
+  final int? osmId;
 
   /// The alternative names that matched, for the scoring.
   final List<String> aliases = <String>[];

@@ -85,6 +85,7 @@
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>strava</string>
+		<string>comgooglemaps</string>
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
