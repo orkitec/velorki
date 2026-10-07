@@ -65,6 +65,12 @@ abstract class MapController {
   /// [onPoiTapped] with its index.
   Future<void> setPois(List<MapPoi> pois);
 
+  /// Places to stop at around the map or along the route ahead — taps,
+  /// cafes, toilets — drawn smaller than [setPois]' markers and under them
+  /// and the waypoints; an empty list takes them away. A tap on one reports
+  /// through [onStopTapped] with its index.
+  Future<void> setStops(List<MapPoi> stops);
+
   /// Small markers on the turns of a route, for a screen that reads the
   /// route rather than rides it; an empty list takes them away. A tap on one
   /// reports through [onTurnTapped] with its index.
@@ -122,7 +128,21 @@ abstract class MapController {
 
   /// A tap on a turn marker, with its index in the last [setTurnMarkers].
   set onTurnTapped(void Function(int index)? handler);
+
+  /// A tap on a stop, with its index in the last [setStops].
+  set onStopTapped(void Function(int index)? handler);
+
+  /// The owning screen's own camera idle handler: one slot, which the
+  /// screen sets and clears.
   set onCameraIdle(VoidCallback? handler);
+
+  /// Further camera idle listeners beside [onCameraIdle], for what draws on
+  /// a map without owning it (the stops). Called after [visibleBounds] has
+  /// caught up with the camera that came to rest.
+  void addCameraIdleListener(VoidCallback listener);
+
+  /// Removes a listener [addCameraIdleListener] added.
+  void removeCameraIdleListener(VoidCallback listener);
 
   /// Visible area, for offline downloads and search bias.
   BoundingBox? get visibleBounds;

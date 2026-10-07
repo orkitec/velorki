@@ -13,6 +13,7 @@ import '../../shared/presentation/stat_tile.dart';
 import '../data/map_preferences.dart';
 import '../data/position_provider.dart';
 import '../domain/map_controller.dart';
+import 'layers_sheet.dart';
 import 'location_rationale_dialog.dart';
 import 'map_chrome.dart';
 import 'visible_map_padding.dart';
@@ -42,8 +43,8 @@ const double sidewaysMapControlButtonSize = 50;
 bool compactMapControls(BuildContext context) =>
     MediaQuery.sizeOf(context).height < compactMapControlsHeight;
 
-/// Floating buttons over the map: locate me, the CyclOSM overlay toggle and
-/// zoom in/out.
+/// Floating buttons over the map: locate me, the layers (the CyclOSM overlay
+/// and the stops) and zoom in/out.
 ///
 /// The column is inert until [controller] is non-null, which is the case
 /// until the map style has finished loading.
@@ -63,11 +64,13 @@ class MapControls extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cyclosm = ref.watch(cyclosmOverlayProvider);
+    final stops = ref.watch(mapStopsPreferencesProvider.select((s) => s.shown));
     final l10n = AppLocalizations.of(context);
     final chrome = MapChromeInsets.maybeOf(context);
     final enabled = controller != null;
     final headingUp = chrome?.headingUp ?? false;
     final onCompass = chrome?.onCompass;
+    final stopsOffer = chrome?.stopsOffer ?? MapStopsOffer.none;
     final compact = compactMapControls(context);
     final row = axis == Axis.horizontal;
     // One glass column rather than five floating buttons: less chrome over
@@ -107,11 +110,15 @@ class MapControls extends ConsumerWidget {
                     onPressed: enabled ? onCompass : null,
                   ),
           ),
+          // What the map shows over its base: the cycle map, and on the
+          // shared map the stops.
           _ControlButton(
-            icon: Icons.directions_bike,
-            tooltip: l10n.mapToggleCyclosm,
-            selected: cyclosm,
-            onPressed: enabled ? () => unawaited(_toggleCyclosm(ref)) : null,
+            icon: Icons.layers_outlined,
+            tooltip: l10n.mapLayers,
+            selected: cyclosm || (stopsOffer != MapStopsOffer.none && stops),
+            onPressed: enabled
+                ? () => unawaited(showLayersSheet(context, offer: stopsOffer))
+                : null,
           ),
           // Where the rider downloads the map and the routing tiles for
           // exactly the area they are looking at; the screen needs a live map
@@ -162,12 +169,6 @@ class MapControls extends ConsumerWidget {
       ),
     );
   }
-
-  /// Flips the app-wide overlay setting and nothing else: every map alive
-  /// follows that setting through its `PlannerMapHost`, so the map under
-  /// these buttons is not a special case.
-  Future<void> _toggleCyclosm(WidgetRef ref) =>
-      ref.read(cyclosmOverlayProvider.notifier).toggle();
 
   Future<void> _zoomBy(double delta) async {
     final map = controller;

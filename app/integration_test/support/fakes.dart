@@ -482,6 +482,21 @@ class RecordingMapController implements MapController {
   set onCameraIdle(VoidCallback? handler) => inner.onCameraIdle = handler;
 
   @override
+  void addCameraIdleListener(VoidCallback listener) =>
+      inner.addCameraIdleListener(listener);
+
+  @override
+  void removeCameraIdleListener(VoidCallback listener) =>
+      inner.removeCameraIdleListener(listener);
+
+  @override
+  Future<void> setStops(List<MapPoi> stops) => inner.setStops(stops);
+
+  @override
+  set onStopTapped(void Function(int index)? handler) =>
+      inner.onStopTapped = handler;
+
+  @override
   Future<void> moveTo(
     LatLng center, {
     double? zoom,

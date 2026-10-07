@@ -1660,6 +1660,40 @@
   "@loopStop": {
     "description": "Button that cancels a running loop search"
   },
+  "loopChecking": "Trying {total} directions · {checked} checked so far",
+  "@loopChecking": {
+    "description": "Under the progress bar while a loop search runs and no loop is found yet. Each direction is one loop routed in full",
+    "placeholders": {
+      "checked": {
+        "type": "int",
+        "example": "3"
+      },
+      "total": {
+        "type": "int",
+        "example": "16"
+      }
+    }
+  },
+  "loopCheckingBetter": "Best loop so far. Still looking for a quieter, smoother loop · {checked, plural, one{1 route checked} other{{checked} routes checked}}",
+  "@loopCheckingBetter": {
+    "description": "Under the progress bar while a loop search runs and a loop is already shown; explains why the search goes on. A route is one direction tried, retries included",
+    "placeholders": {
+      "checked": {
+        "type": "int",
+        "example": "7"
+      }
+    }
+  },
+  "loopBestOf": "{count, plural, one{The only loop found} other{Best of {count} loops}}",
+  "@loopBestOf": {
+    "description": "Under the loop once the search is done: how many loops it was chosen from",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "9"
+      }
+    }
+  },
   "loopAnother": "Another",
   "@loopAnother": {
     "description": "Button that puts the next-best loop of the same search on the map"
@@ -4151,6 +4185,52 @@
   "mapToggleCyclosm": "Cycling map overlay",
   "@mapToggleCyclosm": {
     "description": "Tooltip of the map button that switches the CyclOSM overlay on and off"
+  },
+  "mapLayers": "Layers",
+  "@mapLayers": {
+    "description": "Tooltip of the map button that opens the layers sheet, and the title of that sheet"
+  },
+  "mapLayersCycleMap": "Cycle map",
+  "@mapLayersCycleMap": {
+    "description": "Switch in the layers sheet that puts the cycling map overlay over the map"
+  },
+  "mapLayersCycleMapSubtitle": "Cycle routes and bike infrastructure",
+  "@mapLayersCycleMapSubtitle": {
+    "description": "Line under the cycle map switch in the layers sheet"
+  },
+  "mapLayersStops": "Stops",
+  "@mapLayersStops": {
+    "description": "Switch in the layers sheet that shows places to stop at (taps, cafes, toilets) on the map"
+  },
+  "mapLayersStopsPlanHint": "Shown when zoomed in · tap one to plan to it",
+  "@mapLayersStopsPlanHint": {
+    "description": "Line under the stops switch on the Plan tab: stops show once the map is zoomed in far enough, and a tap on one plans the route to it"
+  },
+  "mapLayersStopsRideHint": "Tap one to see it on the map",
+  "@mapLayersStopsRideHint": {
+    "description": "Line under the stops switch on the Record tab: stops show once the map is zoomed in far enough, and a tap on one shows what it is"
+  },
+  "mapLayersAlongRoute": "Along the route",
+  "@mapLayersAlongRoute": {
+    "description": "Choice in the layers sheet during a guided ride: show the stops beside the route still ahead"
+  },
+  "mapLayersInArea": "In this area",
+  "@mapLayersInArea": {
+    "description": "Choice in the layers sheet during a guided ride: show the stops in the part of the map on screen"
+  },
+  "mapStopsAhead": "Stops ahead",
+  "@mapStopsAhead": {
+    "description": "Accessibility label of the line over the ride map that lists the next stop of each kind ahead on the route"
+  },
+  "mapStopAhead": "{kind} · {distance}",
+  "@mapStopAhead": {
+    "description": "One entry of the stops-ahead line over the ride map: the kind of stop and how far ahead on the route it is",
+    "placeholders": {"kind": {"type": "String", "example": "Drinking water"}, "distance": {"type": "String", "example": "1.2 km"}}
+  },
+  "mapStopNamed": "{name} · {kind}",
+  "@mapStopNamed": {
+    "description": "Message shown when the rider taps a stop on the ride map: its name and what it is",
+    "placeholders": {"name": {"type": "String", "example": "Café Central"}, "kind": {"type": "String", "example": "Cafe"}}
   },
   "mapZoomIn": "Zoom in",
   "@mapZoomIn": {

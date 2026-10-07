@@ -15,6 +15,8 @@ import '../../assistant/domain/intent_resolver.dart';
 import '../../assistant/presentation/assistant_sheet.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
 import '../../map/application/locate_on_open.dart';
+import '../../map/application/map_stops_controller.dart';
+import '../../map/data/map_preferences.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/device_position_request.dart';
 import '../../map/presentation/map_chrome.dart';
@@ -290,7 +292,23 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     WidgetsBinding.instance.addObserver(this);
     _active = ref.read(activeTabProvider) == plannerRoute;
     _map = ref.read(sharedMapControllerProvider);
+    _stops = MapStopsController(find: ref.read(mapStopsFinderProvider))
+      ..onStopTapped = _onStopTapped;
     _updateMapUse();
+  }
+
+  /// The stops in the area on screen, from the Layers sheet.
+  late final MapStopsController _stops;
+
+  /// A stop tapped on the map goes the way the same place picked from the
+  /// search goes: into the field, and from there to the plan.
+  void _onStopTapped(SearchResult stop) {
+    final search = _searchKey.currentState;
+    if (search is SearchFieldState) {
+      search.select(stop);
+    } else {
+      _onPlaceSelected(stop);
+    }
   }
 
   bool _searchFocused = false;
@@ -374,6 +392,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _binding?.detach();
+    _stops.dispose();
     _sheet.dispose();
     _assistantSlide.dispose();
     if (_docked) {
@@ -514,6 +533,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     if (identical(map, _map)) return;
     _binding?.detach();
     _binding = null;
+    _stops.detach(clear: false);
     _drawing = false;
     _map = map;
     _updateMapUse();
@@ -532,6 +552,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     if (!wanted) {
       if (!_drawing) return;
       _drawing = false;
+      _stops.detach();
       final binding = _binding;
       if (binding == null) return;
       binding.detach();
@@ -577,6 +598,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     }
     binding.attach();
     unawaited(binding.sync(ref.read(plannerControllerProvider)));
+    _stops.attach(map);
     // A searched place the rider has not decided about is still theirs.
     final place = _placeToStartFrom;
     if (place != null) {
@@ -989,7 +1011,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
         _reportDocked(false);
       }
     });
-    if (active) _shareChrome(const MapChromeData());
+    if (active) {
+      _shareChrome(const MapChromeData(stopsOffer: MapStopsOffer.plan));
+    }
+    final stopsWanted = ref.watch(mapStopsPreferencesProvider);
+    _stops.update(shown: stopsWanted.shown, kinds: stopsWanted.kinds);
     _ownControlsTop = _chromeHeight + 12;
     final controlsTop = ref.read(mapControlsTopProvider);
     if (active && (controlsTop.target - _ownControlsTop).abs() >= 0.5) {

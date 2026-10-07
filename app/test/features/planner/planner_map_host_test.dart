@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/app/theme.dart';
 import 'package:velorki/features/map/data/map_preferences.dart';
+import 'package:velorki/features/map/presentation/layers_sheet.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/map/presentation/puck_ownership.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
@@ -161,11 +162,30 @@ Future<Widget> _wrap(
   );
 }
 
-/// The CyclOSM button of the tab keyed [tab].
+/// The Layers button of the tab keyed [tab], drawn in the accent while the
+/// CyclOSM overlay is on.
 Finder _overlayButtonIn(Key tab) => find.descendant(
   of: find.byKey(tab),
-  matching: find.widgetWithIcon(IconButton, Icons.directions_bike),
+  matching: find.widgetWithIcon(IconButton, Icons.layers_outlined),
 );
+
+/// Flips the CyclOSM overlay the way the rider does: the Layers button,
+/// the cycle map switch in its sheet, and the sheet closed again.
+Future<void> _toggleOverlay(WidgetTester tester, Finder layers) async {
+  await tester.tap(layers);
+  await tester.pumpAndSettle();
+  await tester.tap(
+    find
+        .descendant(
+          of: find.byType(LayersSheet),
+          matching: find.byType(SwitchListTile),
+        )
+        .first,
+  );
+  await tester.pumpAndSettle();
+  Navigator.of(tester.element(find.byType(LayersSheet))).pop();
+  await tester.pumpAndSettle();
+}
 
 /// Whether the button is drawn in the accent, i.e. says the overlay is on.
 bool _isHighlighted(WidgetTester tester, Finder button) =>
@@ -273,7 +293,7 @@ void main() {
       final record = maps.last;
 
       // On, on the plan tab: both maps draw it.
-      await tester.tap(_overlayButtonIn(_Tabs.plan));
+      await _toggleOverlay(tester, _overlayButtonIn(_Tabs.plan));
       await tester.pumpAndSettle();
       expect(plan.cyclosmOverlay, isTrue);
       expect(record.cyclosmOverlay, isTrue);
@@ -282,7 +302,7 @@ void main() {
       await tester.tap(find.text('record'));
       await tester.pumpAndSettle();
       expect(_isHighlighted(tester, _overlayButtonIn(_Tabs.record)), isTrue);
-      await tester.tap(_overlayButtonIn(_Tabs.record));
+      await _toggleOverlay(tester, _overlayButtonIn(_Tabs.record));
       await tester.pumpAndSettle();
 
       // Back to the plan tab: the map that was never touched has dropped the
@@ -312,7 +332,7 @@ void main() {
 
       await tester.tap(find.text('record'));
       await tester.pumpAndSettle();
-      await tester.tap(_overlayButtonIn(_Tabs.record));
+      await _toggleOverlay(tester, _overlayButtonIn(_Tabs.record));
       await tester.pumpAndSettle();
       expect(record.cyclosmOverlay, isTrue);
       expect(plan.cyclosmOverlay, isTrue);
@@ -320,7 +340,7 @@ void main() {
       await tester.tap(find.text('plan'));
       await tester.pumpAndSettle();
       expect(_isHighlighted(tester, _overlayButtonIn(_Tabs.plan)), isTrue);
-      await tester.tap(_overlayButtonIn(_Tabs.plan));
+      await _toggleOverlay(tester, _overlayButtonIn(_Tabs.plan));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('record'));
@@ -345,7 +365,10 @@ void main() {
       await tester.pump();
       expect(maps, hasLength(1));
 
-      await tester.tap(find.widgetWithIcon(IconButton, Icons.directions_bike));
+      await _toggleOverlay(
+        tester,
+        find.widgetWithIcon(IconButton, Icons.layers_outlined),
+      );
       await tester.pumpAndSettle();
       expect(maps.single.cyclosmOverlay, isTrue);
 

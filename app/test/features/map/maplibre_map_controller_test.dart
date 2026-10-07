@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' show Point;
 
 import 'package:fake_async/fake_async.dart';
+import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter/widgets.dart' show IconData;
@@ -118,6 +119,11 @@ void main() {
         <String>[
           MapLayerIds.trackSource,
           MapLayerIds.trackLayer,
+          // The stops: under the puck and every point of the route.
+          MapLayerIds.stopsSource,
+          MapLayerIds.stopsCircleLayer,
+          MapLayerIds.stopsIconLayer,
+          MapLayerIds.stopsLabelLayer,
           MapLayerIds.positionSource,
           // The ring is the bottom of the puck, the dot the top, so a route
           // line inserted below the ring stays under the whole puck.
@@ -182,6 +188,55 @@ void main() {
       },
     );
 
+    test(
+      'a tap on a stop reports its index, not a point of interest\'s',
+      () async {
+        final ops = RecordingStyleOps();
+        final adapter = _adapter(ops);
+        await adapter.attachToStyle();
+        final stops = <int>[];
+        final pois = <int>[];
+        adapter.onStopTapped = stops.add;
+        adapter.onPoiTapped = pois.add;
+
+        for (final callback in List.of(ops.onFeatureTapped)) {
+          callback(
+            const Point<double>(0, 0),
+            ml.LatLng(48, 11),
+            stopFeatureId(3),
+            MapLayerIds.stopsCircleLayer,
+            null,
+          );
+        }
+
+        expect(stops, <int>[3]);
+        expect(pois, isEmpty);
+      },
+    );
+
+    test('stops are written into their own source under their own ids, and '
+        'replayed after a style reload', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      const stop = MapPoi(
+        position: LatLng(48, 11),
+        name: 'Tap',
+        kind: MapPoiKind.water,
+        icon: Icons.water_drop_outlined,
+      );
+
+      await adapter.setStops(const <MapPoi>[stop]);
+      final features = _featuresOf(ops, MapLayerIds.stopsSource);
+      expect(features, hasLength(1));
+      expect(features.single['id'], stopFeatureId(0));
+      expect(features.single['properties']['kind'], 'water');
+
+      ops.calls.clear();
+      await adapter.attachToStyle();
+      expect(_featuresOf(ops, MapLayerIds.stopsSource), hasLength(1));
+    });
+
     test('points of interest are written with their name and kind, and '
         'replayed after a style reload', () async {
       final ops = RecordingStyleOps();
@@ -220,14 +275,12 @@ void main() {
             position: LatLng(48, 11),
             name: 'Tap',
             kind: MapPoiKind.water,
-            icon: IconData(0xe798, fontFamily: 'MaterialIcons'),
+            icon: Icons.water_drop_outlined,
           ),
         ]);
         await adapter.setPois(const <MapPoi>[]);
         ops.addImageGate!.complete();
         await drawing;
-
-        expect(_featuresOf(ops, MapLayerIds.poisSource), isEmpty);
       });
 
       test(
@@ -344,6 +397,7 @@ void main() {
           .map((c) => c.layerId)
           .toList();
       expect(interactive, <String>[
+        MapLayerIds.stopsCircleLayer,
         MapLayerIds.waypointsHitLayer,
         MapLayerIds.turnsLayer,
         MapLayerIds.poisCircleLayer,
@@ -2438,6 +2492,38 @@ void main() {
         adapter.visibleBounds,
         const BoundingBox(south: 40.0, west: 1.0, north: 41.0, east: 2.0),
       );
+    });
+
+    test('the idle listeners hear once the bounds are the resting '
+        'camera\'s', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+      ops.visibleRegion = ml.LatLngBounds(
+        southwest: const ml.LatLng(40.0, 1.0),
+        northeast: const ml.LatLng(41.0, 2.0),
+      );
+      final seen = <BoundingBox?>[];
+      var owner = 0;
+      void listener() => seen.add(adapter.visibleBounds);
+      adapter
+        ..onCameraIdle = (() => owner++)
+        ..addCameraIdleListener(listener);
+
+      adapter.handleCameraIdle();
+      // The screen's own handler at once, as before.
+      expect(owner, 1);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(seen, <BoundingBox>[
+        const BoundingBox(south: 40.0, west: 1.0, north: 41.0, east: 2.0),
+      ]);
+
+      adapter.removeCameraIdleListener(listener);
+      adapter.handleCameraIdle();
+      await Future<void>.delayed(Duration.zero);
+      expect(seen, hasLength(1));
+      expect(owner, 2);
     });
 
     test(

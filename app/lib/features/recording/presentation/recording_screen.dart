@@ -12,7 +12,14 @@ import '../../../core/geo/ride_stats.dart';
 import '../../../core/permissions/location_permission.dart';
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../map/application/map_stops_controller.dart';
 import '../../map/data/compass_heading.dart';
+import '../../map/data/map_preferences.dart';
+import '../../map/presentation/stops_ahead_line.dart';
+import '../../map/presentation/visible_map_padding.dart';
+import '../../search/domain/search_result.dart';
+import '../../search/presentation/search_field.dart'
+    show gazetteerPoiKindLabel, searchResultTitle;
 import '../../sensors/application/sensors_seen.dart';
 import 'ride_profile_view.dart';
 import 'ride_cue_sheet.dart';
@@ -218,6 +225,8 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     super.initState();
     _active = ref.read(activeTabProvider) == recordingRoute;
     _map = ref.read(sharedMapControllerProvider);
+    _stops = MapStopsController(find: ref.read(mapStopsFinderProvider))
+      ..onStopTapped = _onStopTapped;
     _updateMapUse();
     // Built in the middle of a change to this tab (its first visit, from
     // another tab): the listener in build sees no change, so the sheet is
@@ -237,6 +246,52 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       _takeOverSheet();
       setState(() => _arrivingExtent = null);
     });
+  }
+
+  /// The stops from the Layers sheet: along the followed route ahead, or in
+  /// the area on screen.
+  late final MapStopsController _stops;
+
+  /// A stop tapped on the map is picked out and named.
+  void _onStopTapped(SearchResult stop) {
+    if (!mounted) return;
+    _stops.select(stop);
+    final l10n = AppLocalizations.of(context);
+    final kind = stop.detail == null
+        ? null
+        : gazetteerPoiKindLabel(l10n, stop.detail!);
+    final title = searchResultTitle(l10n, stop);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            stop.name.isEmpty || kind == null
+                ? title
+                : l10n.mapStopNamed(stop.name, kind),
+          ),
+        ),
+      );
+  }
+
+  /// An entry of the stops-ahead line: the stop is picked out on the map,
+  /// and shown there unless the camera is following the rider, which a
+  /// look ahead must not take away.
+  void _onStopAheadTapped(SearchResult stop) {
+    _stops.select(stop);
+    final following =
+        _following && ref.read(recordingControllerProvider).isRecording;
+    if (following) return;
+    unawaited(
+      _map?.moveTo(
+        stop.position,
+        padding: visibleMapPadding(
+          context,
+          chromeTop: _ownControlsTop,
+          sheetExtent: _sheetExtent,
+        ),
+      ),
+    );
   }
 
   /// What the shell's control column was last told about this tab.
@@ -485,6 +540,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     if (_dimmed) unawaited(_dimmer?.reset());
     _glanceTimer?.cancel();
     if (_drawing) _map?.onCameraIdle = null;
+    _stops.dispose();
     _idleSheet.dispose();
     _liveSheet.dispose();
     _liveExtent.dispose();
@@ -561,6 +617,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       _map?.onCameraIdle = null;
       _drawing = false;
     }
+    _stops.detach(clear: false);
     _map = map;
     _updateMapUse();
     if (_drawing && mounted) setState(() {});
@@ -579,9 +636,11 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
       if (map == null) return;
       map.onCameraIdle = null;
       _clearLayers(map);
+      _stops.detach();
       return;
     }
     map.onCameraIdle = _handleCameraIdle;
+    _stops.attach(map);
     // Nothing of this tab is on the map yet: the build that follows draws
     // it all, and a ride being followed takes the camera back to the rider
     // once, wherever the other tab left it.
@@ -1669,6 +1728,19 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
     );
 
     final guiding = navigation != null && state.isRecording;
+    // The stops of the Layers sheet: along the route still ahead while one
+    // is followed and the rider wants them so, else in the area on screen.
+    final stopsWanted = ref.watch(mapStopsPreferencesProvider);
+    final guided = ref.watch(activeGuidedRouteProvider);
+    final stopsAlong = guided != null && stopsWanted.alongRoute;
+    _stops.update(
+      shown: stopsWanted.shown,
+      kinds: stopsWanted.kinds,
+      routeKey: stopsAlong ? guided.key : null,
+      routeLine: stopsAlong ? guided.line : const <LatLng>[],
+      alongM: navigation?.alongM ?? 0,
+    );
+    final stopsAhead = stopsAlong && stopsWanted.shown;
     final snapshot = state.snapshot;
     // The glance view needs figures to show; without a snapshot there are
     // none yet and the normal screen stays.
@@ -1757,6 +1829,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
           bearingDeg: _bearing,
           onLocate: _handleLocate,
           onCompass: state.isRecording ? _handleCompass : null,
+          stopsOffer: MapStopsOffer.ride,
         ),
       );
     }
@@ -1837,6 +1910,50 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: TurnBanner(progress: navigation),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              // The next stop of each kind ahead: under the banner, beside
+              // the control column (upright) or the sheet (sideways).
+              if (stopsAhead && !glance)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: TabChromeSlide(
+                    active: active,
+                    child: SafeArea(
+                      bottom: false,
+                      child: BesideSheet(
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            left: 12,
+                            right: shellLayout.sideRail
+                                ? 12
+                                : mapControlsWidth(context) + 8,
+                            top: shellLayout.sideRail
+                                ? math.max(
+                                    guiding
+                                        ? turnBannerHeight + _bannerGapPx
+                                        : 0,
+                                    sidewaysTopRowTop + sidewaysTopRowHeight,
+                                  )
+                                : guiding
+                                ? turnBannerHeight + _bannerGapPx
+                                : defaultMapControlsTop,
+                          ),
+                          child: Align(
+                            alignment: Alignment.topLeft,
+                            child: ListenableBuilder(
+                              listenable: _stops,
+                              builder: (context, _) => StopsAheadLine(
+                                entries: _stops.nextPerKind(),
+                                onTap: _onStopAheadTapped,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),

@@ -12,6 +12,7 @@ import 'package:velorki/app/theme.dart';
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/features/map/data/map_preferences.dart';
 import 'package:velorki/features/map/data/position_provider.dart';
+import 'package:velorki/features/map/presentation/layers_sheet.dart';
 import 'package:velorki/features/map/presentation/map_attribution.dart';
 import 'package:velorki/features/map/presentation/map_chrome.dart';
 import 'package:velorki/features/map/presentation/map_controls.dart';
@@ -222,7 +223,7 @@ void main() {
       expect(controller.cameraMoves.single.zoom, 22);
     });
 
-    testWidgets('toggles the app-wide CyclOSM setting and remembers it', (
+    testWidgets('the Layers sheet toggles the app-wide CyclOSM setting', (
       tester,
     ) async {
       final controller = FakeMapController();
@@ -230,12 +231,21 @@ void main() {
       final element = tester.element(find.byType(MapControls));
       final container = ProviderScope.containerOf(element);
 
-      await tester.tap(find.widgetWithIcon(IconButton, Icons.directions_bike));
+      // The Layers button opens the sheet; its cycle map switch is the
+      // overlay.
+      await tester.tap(find.widgetWithIcon(IconButton, Icons.layers_outlined));
+      await tester.pumpAndSettle();
+      expect(find.byType(LayersSheet), findsOneWidget);
+      final cycleMap = find.widgetWithText(
+        SwitchListTile,
+        l10n.mapLayersCycleMap,
+      );
+      await tester.tap(cycleMap);
       await tester.pumpAndSettle();
 
       expect(container.read(cyclosmOverlayProvider), isTrue);
 
-      await tester.tap(find.widgetWithIcon(IconButton, Icons.directions_bike));
+      await tester.tap(cycleMap);
       await tester.pumpAndSettle();
 
       expect(container.read(cyclosmOverlayProvider), isFalse);
@@ -245,7 +255,7 @@ void main() {
       expect(controller.cyclosmOverlayCalls, isEmpty);
     });
 
-    testWidgets('draws the CyclOSM button in the accent while it is on', (
+    testWidgets('draws the Layers button in the accent while CyclOSM is on', (
       tester,
     ) async {
       final controller = FakeMapController();
@@ -255,7 +265,7 @@ void main() {
       await tester.pump();
 
       expect(
-        _buttonColor(tester, Icons.directions_bike),
+        _buttonColor(tester, Icons.layers_outlined),
         buildLightTheme().velorki.accent,
       );
     });

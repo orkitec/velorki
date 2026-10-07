@@ -224,4 +224,65 @@ void main() {
       expect(prefs.getBool(_cyclosmKey), isFalse);
     });
   });
+
+  group('MapStopsPreferences', () {
+    test('off, the five everyday kinds, along the route, until set', () async {
+      final (container, _) = await _container();
+
+      final stops = container.read(mapStopsPreferencesProvider);
+
+      expect(stops.shown, isFalse);
+      expect(stops.kinds, <String>{
+        'drinking_water',
+        'cafe',
+        'bakery',
+        'toilets',
+        'bicycle_repair_station',
+      });
+      expect(stops.alongRoute, isTrue);
+    });
+
+    test('every choice is stored and read back on the next launch', () async {
+      final (container, prefs) = await _container();
+      final notifier = container.read(mapStopsPreferencesProvider.notifier);
+
+      await notifier.setShown(true);
+      await notifier.setKind('cafe', shown: false);
+      await notifier.setKind('camp_site', shown: true);
+      await notifier.setAlongRoute(false);
+
+      expect(prefs.getBool('map.stops.shown'), isTrue);
+      expect(prefs.getBool('map.stops.alongRoute'), isFalse);
+      expect(
+        prefs.getStringList('map.stops.kinds'),
+        unorderedEquals(<String>[
+          'drinking_water',
+          'bakery',
+          'toilets',
+          'bicycle_repair_station',
+          'camp_site',
+        ]),
+      );
+
+      // A fresh container over the same storage is the next launch.
+      final next = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(next.dispose);
+      final stops = next.read(mapStopsPreferencesProvider);
+      expect(stops.shown, isTrue);
+      expect(stops.alongRoute, isFalse);
+      expect(stops.kinds, contains('camp_site'));
+      expect(stops.kinds, isNot(contains('cafe')));
+    });
+
+    test('a rider who switched every kind off keeps none', () async {
+      final (container, prefs) = await _container(<String, Object>{
+        'map.stops.kinds': <String>[],
+      });
+
+      expect(container.read(mapStopsPreferencesProvider).kinds, isEmpty);
+      expect(prefs.getStringList('map.stops.kinds'), isEmpty);
+    });
+  });
 }

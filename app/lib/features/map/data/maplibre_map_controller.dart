@@ -47,6 +47,10 @@ abstract final class MapLayerIds {
   static const String poisIconLayer = 'velorki-pois-icon';
   static const String poisLabelLayer = 'velorki-pois-label';
   static const String waypointsIconLayer = 'velorki-waypoints-icon';
+  static const String stopsSource = 'velorki-stops';
+  static const String stopsCircleLayer = 'velorki-stops-circle';
+  static const String stopsIconLayer = 'velorki-stops-icon';
+  static const String stopsLabelLayer = 'velorki-stops-label';
   static const String turnsSource = 'velorki-turns';
   static const String turnsLayer = 'velorki-turns-dot';
 
@@ -592,6 +596,7 @@ class MaplibreMapControllerAdapter implements MapController {
   List<MapWaypoint> _waypoints = const <MapWaypoint>[];
   List<MapPoi> _pois = const <MapPoi>[];
   List<MapTurnMarker> _turns = const <MapTurnMarker>[];
+  List<MapPoi> _stops = const <MapPoi>[];
 
   /// Counts the calls to [setWaypoints], [setPois] and [setTurnMarkers], so
   /// a call that finds a newer one made while it awaited the platform
@@ -601,6 +606,10 @@ class MaplibreMapControllerAdapter implements MapController {
   int _waypointsCall = 0;
   int _poisCall = 0;
   int _turnsCall = 0;
+  int _stopsCall = 0;
+
+  @override
+  void Function(int index)? onStopTapped;
 
   @override
   void Function(int index)? onPoiTapped;
@@ -648,6 +657,16 @@ class MaplibreMapControllerAdapter implements MapController {
 
   @override
   VoidCallback? onCameraIdle;
+
+  final List<VoidCallback> _cameraIdleListeners = <VoidCallback>[];
+
+  @override
+  void addCameraIdleListener(VoidCallback listener) =>
+      _cameraIdleListeners.add(listener);
+
+  @override
+  void removeCameraIdleListener(VoidCallback listener) =>
+      _cameraIdleListeners.remove(listener);
 
   /// Whether [attachToStyle] has run and the layers exist.
   bool get isAttached => _attached;
@@ -702,6 +721,20 @@ class MaplibreMapControllerAdapter implements MapController {
       emptyFeatureCollection(),
     );
     await add(MapLayerIds.trackSource, MapLayerIds.trackLayer);
+
+    // Stops around the map or along the route: under the puck, the route's
+    // own points and its places, which all matter more than a tap nearby.
+    await _ops.addGeoJsonSource(
+      MapLayerIds.stopsSource,
+      emptyFeatureCollection(),
+    );
+    await add(
+      MapLayerIds.stopsSource,
+      MapLayerIds.stopsCircleLayer,
+      enableInteraction: true,
+    );
+    await add(MapLayerIds.stopsSource, MapLayerIds.stopsIconLayer);
+    await add(MapLayerIds.stopsSource, MapLayerIds.stopsLabelLayer);
 
     await _ops.addGeoJsonSource(
       MapLayerIds.positionSource,
@@ -784,6 +817,7 @@ class MaplibreMapControllerAdapter implements MapController {
     if (_waypoints.isNotEmpty) await setWaypoints(_waypoints);
     if (_pois.isNotEmpty) await setPois(_pois);
     if (_turns.isNotEmpty) await setTurnMarkers(_turns);
+    if (_stops.isNotEmpty) await setStops(_stops);
     if (_searchPin != null) {
       await setSearchPin(_searchPin, label: _searchPinLabel);
     }
@@ -851,6 +885,7 @@ class MaplibreMapControllerAdapter implements MapController {
     final icons = <IconData>{
       for (final w in _waypoints) ?w.icon,
       for (final poi in _pois) ?poi.icon,
+      for (final stop in _stops) ?stop.icon,
     };
     _glyphImages.clear();
     await _addMarkerGlyphs(icons);
@@ -1404,6 +1439,18 @@ class MaplibreMapControllerAdapter implements MapController {
         strokeWidth: 2,
       ),
       MapLayerIds.poisIconLayer: markers.glyph(),
+      MapLayerIds.stopsCircleLayer: markers.disc(
+        color: _poiColorExpression(),
+        strokeWidth: 1.5,
+        radius: MarkerLayers.stopDiscRadius(),
+      ),
+      MapLayerIds.stopsIconLayer: markers.glyph(
+        scale: MarkerLayers.stopGlyphScaleExpression(),
+      ),
+      MapLayerIds.stopsLabelLayer: markers.name(
+        field: 'name',
+        chosenOnly: true,
+      ),
       MapLayerIds.poisLabelLayer: markers.name(field: 'name'),
       MapLayerIds.searchPinLayer: ml.CircleLayerProperties(
         circleRadius: 9.0,
@@ -1515,6 +1562,24 @@ class MaplibreMapControllerAdapter implements MapController {
     await _addMarkerGlyphs(pois.map((poi) => poi.icon));
     if (call != _poisCall) return;
     await _writeBaseSource(MapLayerIds.poisSource, poisFeatureCollection(pois));
+  }
+
+  @override
+  Future<void> setStops(List<MapPoi> stops) async {
+    _stops = List<MapPoi>.unmodifiable(stops);
+    final call = ++_stopsCall;
+    if (!_attached) return;
+    if (await _hasSource(MapLayerIds.stopsSource) == false) {
+      await attachToStyle();
+      return;
+    }
+    if (call != _stopsCall) return;
+    await _addMarkerGlyphs(stops.map((stop) => stop.icon));
+    if (call != _stopsCall) return;
+    await _writeBaseSource(
+      MapLayerIds.stopsSource,
+      poisFeatureCollection(stops, featureId: stopFeatureId),
+    );
   }
 
   /// Whether [attachToStyle] is running because a write found the style
@@ -1800,9 +1865,26 @@ class MaplibreMapControllerAdapter implements MapController {
   }
 
   /// Forwarded from `MapLibreMap.onCameraIdle`.
+  ///
+  /// The screen's own handler hears at once, as it always has: it only
+  /// reads the camera. The listeners hear once [visibleBounds] has been
+  /// asked of the platform, so a listener that reads the bounds reads the
+  /// ones of the camera that just came to rest, not of the one before.
   void handleCameraIdle() {
-    unawaited(_refreshVisibleBounds());
+    final bounds = _refreshVisibleBounds();
     onCameraIdle?.call();
+    if (_cameraIdleListeners.isEmpty) {
+      unawaited(bounds);
+      return;
+    }
+    unawaited(
+      bounds.then((_) {
+        if (_disposed) return;
+        for (final listener in List<VoidCallback>.of(_cameraIdleListeners)) {
+          listener();
+        }
+      }),
+    );
   }
 
   void _handleFeatureDrag(
@@ -1909,6 +1991,11 @@ class MaplibreMapControllerAdapter implements MapController {
       onPoiTapped?.call(poi);
       return;
     }
+    final stop = stopIndexFromFeatureId(id);
+    if (stop != null) {
+      onStopTapped?.call(stop);
+      return;
+    }
     final turn = turnIndexFromFeatureId(id);
     if (turn != null) onTurnTapped?.call(turn);
   }
@@ -1940,7 +2027,9 @@ class MaplibreMapControllerAdapter implements MapController {
     onLongPress = null;
     onWaypointDragged = null;
     onWaypointTapped = null;
+    onStopTapped = null;
     onCameraIdle = null;
+    _cameraIdleListeners.clear();
   }
 
   static ml.LatLng _toMl(LatLng p) => ml.LatLng(p.lat, p.lon);

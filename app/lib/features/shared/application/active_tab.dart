@@ -124,9 +124,13 @@ class MapChromeData {
     this.onCompass,
     this.routeShown = false,
     this.onToggleRoute,
+    this.stopsOffer = MapStopsOffer.none,
   });
 
   final bool visible;
+
+  /// What the Layers sheet offers about stops on this tab.
+  final MapStopsOffer stopsOffer;
   final bool showRoutingTiles;
   final bool following;
   final bool headingUp;
@@ -147,7 +151,8 @@ class MapChromeData {
       other.onLocate == onLocate &&
       other.onCompass == onCompass &&
       other.routeShown == routeShown &&
-      other.onToggleRoute == onToggleRoute;
+      other.onToggleRoute == onToggleRoute &&
+      other.stopsOffer == stopsOffer;
 
   @override
   int get hashCode => Object.hash(
@@ -160,6 +165,7 @@ class MapChromeData {
     onCompass,
     routeShown,
     onToggleRoute,
+    stopsOffer,
   );
 }
 

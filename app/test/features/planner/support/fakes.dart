@@ -111,6 +111,29 @@ class TestMapController implements MapController {
   @override
   VoidCallback? onCameraIdle;
 
+  /// The stops last pushed. Kept out of [calls]: the planner tests count
+  /// what the plan draws, and the stops are not the plan's.
+  List<MapPoi> stops = const <MapPoi>[];
+
+  @override
+  void Function(int index)? onStopTapped;
+
+  /// The listeners [addCameraIdleListener] added.
+  final List<VoidCallback> cameraIdleListeners = <VoidCallback>[];
+
+  @override
+  void addCameraIdleListener(VoidCallback listener) =>
+      cameraIdleListeners.add(listener);
+
+  @override
+  void removeCameraIdleListener(VoidCallback listener) =>
+      cameraIdleListeners.remove(listener);
+
+  @override
+  Future<void> setStops(List<MapPoi> stops) async {
+    this.stops = stops;
+  }
+
   @override
   Future<void> moveTo(
     LatLng center, {

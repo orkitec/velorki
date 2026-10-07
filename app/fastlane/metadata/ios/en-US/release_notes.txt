@@ -1,6 +1,5 @@
-• Route assistant (Velorki Plus): ask about the route on the map, add a café as a stop, avoid a stretch, or get a description of what the ride runs over.
-• Turn your iPhone sideways: the planner, recording and library get side panels next to the map.
-• Long loops no longer give up early.
-• Apple Watch: the ride screen fits on one page and speaks German.
-• Velorki Plus: the yearly plan starts with a 7-day free trial.
-• Many smaller fixes.
+• Stops on the map: water, cafés, bakeries, toilets, bike repair and more, in the area you are looking at, or along your route while you ride, with the next ones ahead.
+• Search finds much more offline: addresses with house numbers, typos and abbreviations, names written in another alphabet, well-known places in your language, and restaurants, ice cream, petrol stations and air pumps. Typing stays smooth while it searches.
+• Places from other apps: share a place or a map link to Velorki, open map links in Velorki, or paste coordinates into the search.
+• Loop search shows the best loop so far while it keeps looking.
+• Swiping up to the app switcher no longer opens the sheet, and turning the phone no longer flashes grey.

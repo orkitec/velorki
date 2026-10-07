@@ -88,13 +88,29 @@ class MarkerLayers {
   static List<Object> glyphScale() =>
       whenSelected(1.0, markerGlyphUnselectedScale);
 
+  /// How much smaller a stop's glyph is than the chosen point's: smaller
+  /// than a route's own places, which matter more than any tap nearby.
+  static const double stopGlyphScale = 0.62;
+
+  /// A stop's disc, which is as wide as any chosen point's once chosen.
+  static List<Object> stopDiscRadius() => whenSelected(
+    markerDiscSelectedRadiusPx,
+    markerDiscRadiusFor(markerGlyphOnDiscSizePx * stopGlyphScale),
+  );
+
+  /// The glyph on a stop's disc.
+  static List<Object> stopGlyphScaleExpression() =>
+      whenSelected(1.0, stopGlyphScale);
+
   /// The disc itself. [color] is the colour of what the point is; the
-  /// chosen point takes the chosen colour instead.
+  /// chosen point takes the chosen colour instead. [radius] is a stop's
+  /// smaller disc where given.
   ml.CircleLayerProperties disc({
     required Object color,
     required double strokeWidth,
+    List<Object>? radius,
   }) => ml.CircleLayerProperties(
-    circleRadius: discRadius(),
+    circleRadius: radius ?? discRadius(),
     circleColor: whenSelected(palette.routePreview, color),
     circleStrokeWidth: strokeWidth,
     circleStrokeColor: palette.waypointStroke,
@@ -104,14 +120,15 @@ class MarkerLayers {
 
   /// The glyph on a marker's disc. A feature with no `icon` keeps the plain
   /// disc.
-  ml.SymbolLayerProperties glyph() => ml.SymbolLayerProperties(
-    iconImage: <Object>['get', 'icon'],
-    iconSize: glyphScale(),
-    iconOpacity: opacity(),
-    iconAnchor: 'center',
-    iconAllowOverlap: true,
-    iconIgnorePlacement: true,
-  );
+  ml.SymbolLayerProperties glyph({List<Object>? scale}) =>
+      ml.SymbolLayerProperties(
+        iconImage: <Object>['get', 'icon'],
+        iconSize: scale ?? glyphScale(),
+        iconOpacity: opacity(),
+        iconAnchor: 'center',
+        iconAllowOverlap: true,
+        iconIgnorePlacement: true,
+      );
 
   /// The number inside a marker's disc, for a point that carries no glyph.
   ///
@@ -140,21 +157,28 @@ class MarkerLayers {
   /// Placed rather than forced: a plan with points on top of one another is
   /// better read with a name missing than with two over each other. The
   /// chosen point sorts first, so its name is the one that survives.
-  ml.SymbolLayerProperties name({required String field}) =>
-      ml.SymbolLayerProperties(
-        textField: <Object>['get', field],
-        textFont: waypointLabelFont,
-        textSize: nameTextSize(),
-        // On the map, not on a disc: the colour that reads against the
-        // style the rider is looking at, outlined in its opposite. The disc
-        // under it carries what the point is and whether it is chosen.
-        textColor: palette.mapLabel,
-        textHaloColor: palette.mapLabelHalo,
-        textHaloWidth: 1.2,
-        textOpacity: opacity(),
-        textAnchor: nameAnchor,
-        // Ems of the text's own size, so the gap grows with it.
-        textOffset: <Object>[0, nameOffsetEm],
-        symbolSortKey: whenSelected(0.0, 1.0),
-      );
+  ///
+  /// [chosenOnly] writes the name of the chosen point alone: the stops are
+  /// many and mostly unnamed, and a name for each would bury the map.
+  ml.SymbolLayerProperties name({
+    required String field,
+    bool chosenOnly = false,
+  }) => ml.SymbolLayerProperties(
+    textField: chosenOnly
+        ? whenSelected(<Object>['get', field], '')
+        : <Object>['get', field],
+    textFont: waypointLabelFont,
+    textSize: nameTextSize(),
+    // On the map, not on a disc: the colour that reads against the
+    // style the rider is looking at, outlined in its opposite. The disc
+    // under it carries what the point is and whether it is chosen.
+    textColor: palette.mapLabel,
+    textHaloColor: palette.mapLabelHalo,
+    textHaloWidth: 1.2,
+    textOpacity: opacity(),
+    textAnchor: nameAnchor,
+    // Ems of the text's own size, so the gap grows with it.
+    textOffset: <Object>[0, nameOffsetEm],
+    symbolSortKey: whenSelected(0.0, 1.0),
+  );
 }

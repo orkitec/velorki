@@ -871,7 +871,7 @@ void main() {
     );
     expect(find.byTooltip(l10n.offlineEntryTitle), findsNothing);
     expect(find.byTooltip(l10n.mapLocateMe), findsOneWidget);
-    expect(find.byTooltip(l10n.mapToggleCyclosm), findsOneWidget);
+    expect(find.byTooltip(l10n.mapLayers), findsOneWidget);
     expect(find.byTooltip(l10n.mapZoomOut), findsOneWidget);
 
     // Under Plan's chrome the four buttons end above the resting sheet, so

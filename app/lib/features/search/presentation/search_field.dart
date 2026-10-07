@@ -652,7 +652,7 @@ IconData searchResultIcon(SearchResult result) {
   return switch (result.kind) {
     SearchKind.place => _placeIcon(result.detail),
     SearchKind.street => Icons.signpost_outlined,
-    SearchKind.poi => _poiIcon(result.detail),
+    SearchKind.poi => poiKindIcon(result.detail),
     SearchKind.unknown => Icons.place_outlined,
   };
 }
@@ -670,7 +670,9 @@ IconData _placeIcon(String? detail) => switch (detail) {
   _ => Icons.location_city_outlined,
 };
 
-IconData _poiIcon(String? detail) => switch (detail) {
+/// The icon of a gazetteer POI kind (`cafe`, `drinking_water`): the one the
+/// search rows, the stops on the map and the stops ahead all wear.
+IconData poiKindIcon(String? detail) => switch (detail) {
   'drinking_water' => Icons.water_drop_outlined,
   'restaurant' => Icons.restaurant_outlined,
   'fast_food' => Icons.fastfood_outlined,
@@ -802,6 +804,22 @@ Map<String, String> localisedKindKeywords(AppLocalizations l10n) =>
 
 final Map<String, Map<String, String>> _keywordCache =
     <String, Map<String, String>>{};
+
+/// The localised name of a gazetteer POI kind, or `null` when this build has
+/// no label of its own for it.
+String? gazetteerPoiKindLabel(AppLocalizations l10n, String kind) {
+  final label = searchKindLabel(
+    l10n,
+    SearchResult(
+      name: '',
+      position: const LatLng(0, 0),
+      source: SearchSource.local,
+      kind: SearchKind.poi,
+      detail: kind,
+    ),
+  );
+  return label.isEmpty || label == l10n.searchKindPlace ? null : label;
+}
 
 /// The localised name of a local result's kind.
 String searchKindLabel(AppLocalizations l10n, SearchResult result) {

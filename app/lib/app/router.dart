@@ -328,6 +328,7 @@ class HomeShell extends ConsumerWidget {
       onCompass: chrome?.onCompass,
       routeShown: chrome?.routeShown ?? false,
       onToggleRoute: chrome?.onToggleRoute,
+      stopsOffer: chrome?.stopsOffer ?? MapStopsOffer.none,
       // Read at the tap: the sheet moves without a rebuild of the column.
       // Read after the fix is awaited, so the shell may be gone by then.
       visiblePadding: () => context.mounted

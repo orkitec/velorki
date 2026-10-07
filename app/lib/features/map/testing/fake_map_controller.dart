@@ -179,6 +179,12 @@ class FakeMapController implements MapController {
   /// Every [setPois] call, in order.
   final List<List<MapPoi>> poiCalls = <List<MapPoi>>[];
 
+  /// The stops of the last [setStops] call.
+  List<MapPoi> stops = const <MapPoi>[];
+
+  /// Every [setStops] call, in order.
+  final List<List<MapPoi>> stopCalls = <List<MapPoi>>[];
+
   /// The turn markers of the last [setTurnMarkers] call.
   List<MapTurnMarker> turnMarkers = const <MapTurnMarker>[];
 
@@ -237,7 +243,21 @@ class FakeMapController implements MapController {
   void Function(int index)? onTurnTapped;
 
   @override
+  void Function(int index)? onStopTapped;
+
+  @override
   VoidCallback? onCameraIdle;
+
+  /// The listeners [addCameraIdleListener] added and nothing removed since.
+  final List<VoidCallback> cameraIdleListeners = <VoidCallback>[];
+
+  @override
+  void addCameraIdleListener(VoidCallback listener) =>
+      cameraIdleListeners.add(listener);
+
+  @override
+  void removeCameraIdleListener(VoidCallback listener) =>
+      cameraIdleListeners.remove(listener);
 
   /// Forgets every recorded call; the handlers and the camera stay.
   void reset() {
@@ -251,6 +271,8 @@ class FakeMapController implements MapController {
     waypointCalls.clear();
     pois = const <MapPoi>[];
     poiCalls.clear();
+    stops = const <MapPoi>[];
+    stopCalls.clear();
     turnMarkers = const <MapTurnMarker>[];
     trackLine = const <LatLng>[];
     trackLineCalls.clear();
@@ -281,8 +303,17 @@ class FakeMapController implements MapController {
   /// Simulates a tap on the turn marker at [index].
   void emitTurnTapped(int index) => onTurnTapped?.call(index);
 
-  /// Pretends the camera came to rest.
-  void emitCameraIdle() => onCameraIdle?.call();
+  /// Simulates a tap on the stop at [index].
+  void emitStopTapped(int index) => onStopTapped?.call(index);
+
+  /// Pretends the camera came to rest: the screen's handler and every
+  /// listener.
+  void emitCameraIdle() {
+    onCameraIdle?.call();
+    for (final listener in List<VoidCallback>.of(cameraIdleListeners)) {
+      listener();
+    }
+  }
 
   // ------------------------------------------------------------- recording
 
@@ -359,6 +390,13 @@ class FakeMapController implements MapController {
     final copy = List<MapPoi>.unmodifiable(pois);
     this.pois = copy;
     poiCalls.add(copy);
+  }
+
+  @override
+  Future<void> setStops(List<MapPoi> stops) async {
+    final copy = List<MapPoi>.unmodifiable(stops);
+    this.stops = copy;
+    stopCalls.add(copy);
   }
 
   @override

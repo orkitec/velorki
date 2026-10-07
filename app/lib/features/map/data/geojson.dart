@@ -30,6 +30,13 @@ String poiFeatureId(int index) => 'velorki-poi-$index';
 int? poiIndexFromFeatureId(String? featureId) =>
     _indexAfter('velorki-poi-', featureId);
 
+/// Feature id of the stop at [index], and its inverse.
+String stopFeatureId(int index) => 'velorki-stop-$index';
+
+/// Inverse of [stopFeatureId]; `null` for anything else.
+int? stopIndexFromFeatureId(String? featureId) =>
+    _indexAfter('velorki-stop-', featureId);
+
 /// Feature id of the turn marker at [index], and its inverse.
 String turnFeatureId(int index) => 'velorki-turn-$index';
 
@@ -193,27 +200,30 @@ Map<String, dynamic> waypointsFeatureCollection(
 
 /// The points of interest as a FeatureCollection: one point each, with the
 /// name for the label, the kind for the colour and whether it is chosen.
-Map<String, dynamic> poisFeatureCollection(List<MapPoi> pois) =>
-    <String, dynamic>{
-      'type': 'FeatureCollection',
-      'features': <Map<String, dynamic>>[
-        for (var i = 0; i < pois.length; i++)
-          <String, dynamic>{
-            'type': 'Feature',
-            'id': poiFeatureId(i),
-            'properties': <String, dynamic>{
-              'name': pois[i].name,
-              'kind': pois[i].kind.name,
-              if (pois[i].icon != null) 'icon': markerGlyphName(pois[i].icon!),
-              'selected': pois[i].selected,
-            },
-            'geometry': <String, dynamic>{
-              'type': 'Point',
-              'coordinates': lngLat(pois[i].position),
-            },
-          },
-      ],
-    };
+/// The stops are written the same way, under their own [featureId]s.
+Map<String, dynamic> poisFeatureCollection(
+  List<MapPoi> pois, {
+  String Function(int index) featureId = poiFeatureId,
+}) => <String, dynamic>{
+  'type': 'FeatureCollection',
+  'features': <Map<String, dynamic>>[
+    for (var i = 0; i < pois.length; i++)
+      <String, dynamic>{
+        'type': 'Feature',
+        'id': featureId(i),
+        'properties': <String, dynamic>{
+          'name': pois[i].name,
+          'kind': pois[i].kind.name,
+          if (pois[i].icon != null) 'icon': markerGlyphName(pois[i].icon!),
+          'selected': pois[i].selected,
+        },
+        'geometry': <String, dynamic>{
+          'type': 'Point',
+          'coordinates': lngLat(pois[i].position),
+        },
+      },
+  ],
+};
 
 /// Below this ground speed a GNSS course is noise, not a direction.
 ///
