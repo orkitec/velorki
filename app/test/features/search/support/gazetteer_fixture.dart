@@ -8,8 +8,10 @@
 library;
 
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:sqlite3/sqlite3.dart';
+import 'package:velorki/features/search/domain/translit.dart';
 
 /// A settlement row.
 class GazPlace {
@@ -22,6 +24,7 @@ class GazPlace {
     this.lon, {
     this.population,
     this.adminId,
+    this.importance,
   });
 
   /// The row id, unique across places, streets and POIs.
@@ -41,6 +44,10 @@ class GazPlace {
 
   /// The place this one sits in.
   final int? adminId;
+
+  /// How widely known it is (`importance`); a file gets the column only when
+  /// some row has one.
+  final int? importance;
 }
 
 /// A street row.
@@ -71,13 +78,15 @@ class GazPoi {
     this.lat,
     this.lon, {
     this.placeId,
+    this.importance,
   });
 
   /// Creates a POI with no name at all, the way the builder stores a tap or a
   /// bike rack that OSM never gave one. It is not put into the FTS index —
   /// there is nothing to match — so only a kind search ever finds it.
   const GazPoi.unnamed(this.id, this.kind, this.lat, this.lon, {this.placeId})
-    : name = null;
+    : name = null,
+      importance = null;
 
   /// The row id, unique across all three tables.
   final int id;
@@ -93,6 +102,9 @@ class GazPoi {
 
   /// The place it belongs to.
   final int? placeId;
+
+  /// How widely known it is, see [GazPlace.importance].
+  final int? importance;
 }
 
 /// An alternative name of a place, a street or a POI.
@@ -130,17 +142,23 @@ class GazHouseNumber {
 /// [schemaVersion] is written into `meta` as given, so a test can produce a
 /// file from a future builder that this app must refuse. [legacy] leaves out
 /// `aliases` and `house_numbers` altogether, the way the first builder wrote
-/// its files; the app has to answer from those too.
+/// its files; the app has to answer from those too. [vocab] adds the
+/// `vocab` table a builder from 2026-10 on writes, [latinIndex] indexes the
+/// names in Latin the way it does (`meta.search_script` = `latin`), [streetNumbers] its
+/// `street_numbers` rows (street id → blob, see `street_numbers_encoder.dart`).
 File buildGazetteer(
   Directory dir,
   String tile, {
   String schemaVersion = '1',
   bool legacy = false,
+  bool vocab = false,
+  bool latinIndex = false,
   List<GazPlace> places = const <GazPlace>[],
   List<GazStreet> streets = const <GazStreet>[],
   List<GazPoi> pois = const <GazPoi>[],
   List<GazAlias> aliases = const <GazAlias>[],
   List<GazHouseNumber> houseNumbers = const <GazHouseNumber>[],
+  Map<int, Uint8List> streetNumbers = const <int, Uint8List>{},
 }) {
   dir.createSync(recursive: true);
   final file = File('${dir.path}/$tile.gaz');
@@ -222,7 +240,25 @@ CREATE TABLE house_numbers (
       db.execute('INSERT INTO meta (key, value) VALUES (?, ?);', row);
     }
 
-    final index = db.prepare('INSERT INTO search(rowid, name) VALUES (?, ?);');
+    final insert = db.prepare('INSERT INTO search(rowid, name) VALUES (?, ?);');
+    final index = (
+      execute: (List<Object?> row) => insert.execute(<Object?>[
+        row[0],
+        latinIndex ? indexTextOf(row[1]! as String) : row[1],
+      ]),
+      close: insert.close,
+    );
+    if (latinIndex) {
+      db.execute(
+        "INSERT INTO meta (key, value) VALUES ('search_script', 'latin');",
+      );
+    }
+    if (places.any((p) => p.importance != null) ||
+        pois.any((p) => p.importance != null)) {
+      db
+        ..execute('ALTER TABLE places ADD COLUMN importance INTEGER;')
+        ..execute('ALTER TABLE pois ADD COLUMN importance INTEGER;');
+    }
     for (final place in places) {
       db.execute(
         'INSERT INTO places (id, name, kind, lat, lon, population, admin_id) '
@@ -290,7 +326,44 @@ CREATE TABLE house_numbers (
         ],
       );
     }
+    for (final place in places) {
+      if (place.importance == null) continue;
+      db.execute('UPDATE places SET importance = ? WHERE id = ?;', <Object?>[
+        place.importance,
+        place.id,
+      ]);
+    }
+    for (final poi in pois) {
+      if (poi.importance == null) continue;
+      db.execute('UPDATE pois SET importance = ? WHERE id = ?;', <Object?>[
+        poi.importance,
+        poi.id,
+      ]);
+    }
     index.close();
+    if (streetNumbers.isNotEmpty) {
+      db.execute(
+        'CREATE TABLE street_numbers '
+        '(street_id INTEGER PRIMARY KEY, data BLOB NOT NULL);',
+      );
+      for (final entry in streetNumbers.entries) {
+        db.execute(
+          'INSERT INTO street_numbers (street_id, data) VALUES (?, ?);',
+          <Object?>[entry.key, entry.value],
+        );
+      }
+    }
+    if (vocab) {
+      db
+        ..execute(
+          "CREATE VIRTUAL TABLE temp.v USING fts5vocab(main, 'search', 'row');",
+        )
+        ..execute(
+          'CREATE TABLE vocab (term TEXT PRIMARY KEY, docs INTEGER NOT NULL) '
+          'WITHOUT ROWID;',
+        )
+        ..execute('INSERT INTO vocab SELECT term, doc FROM temp.v;');
+    }
     db.execute('VACUUM;');
   } finally {
     db.close();
@@ -327,3 +400,18 @@ List<GazPoi> get fixturePois => const <GazPoi>[
 ];
 
 int _e7(double degrees) => (degrees * 1e7).round();
+
+/// What the builder's `index_text` puts into the FTS index for [name]: the
+/// Latin spelling, and for a name with a Ukrainian letter the Ukrainian
+/// spelling's words that differ, after it.
+String indexTextOf(String name) {
+  final lower = name.toLowerCase();
+  final primary = transliterate(lower);
+  if (!hasUkrainianLetter(name)) return primary;
+  final cut = RegExp(r'[^\p{L}\p{N}]+', unicode: true);
+  final have = primary.split(cut).toSet();
+  final extra = transliterateUk(lower)
+      .split(cut)
+      .where((w) => w.isNotEmpty && !have.contains(w));
+  return extra.isEmpty ? primary : '$primary ${extra.join(' ')}';
+}

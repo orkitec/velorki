@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -22,6 +24,15 @@ const double avoidWeight = 5;
 /// The most circles one avoided stretch is drawn with; a longer stretch gets
 /// them further apart. They travel in a server query's URL.
 const int avoidMaxCircles = 60;
+
+/// The shortest stretch an avoid keeps off, in metres: a point, or a few
+/// metres of road, is widened to this much around it, which is a stretch
+/// the router can actually go around.
+const double avoidMinStretchM = 300;
+
+/// How far past the end of a route a stretch may start and still be taken
+/// as its last metres: the model rounds kilometres.
+const double avoidPastEndSlackM = 300;
 
 /// A stretch of a route the rider asked the router to keep off.
 ///
@@ -53,6 +64,32 @@ class AvoidArea {
 
   /// The circles the router is asked to keep off.
   final List<NoGo> nogos;
+
+  /// The area to keep off for "avoid [fromM] to [toM] metres along
+  /// [track]", as the model names it: the ends in either order, clamped to
+  /// the track, and a point or a stretch shorter than [avoidMinStretchM]
+  /// widened to that around its middle (shifted to fit at an end of the
+  /// track). `null` when there is no such stretch: a track with no length,
+  /// or a range that starts more than [avoidPastEndSlackM] past its end.
+  static AvoidArea? along(List<LatLng> track, double fromM, double toM) {
+    if (track.length < 2) return null;
+    final total = cumulativeDistancesMeters(track).last;
+    if (total <= 0) return null;
+    final lo = math.min(fromM, toM);
+    final hi = math.max(fromM, toM);
+    if (lo > total + avoidPastEndSlackM || hi < 0) return null;
+    var from = lo.clamp(0, total).toDouble();
+    var to = hi.clamp(0, total).toDouble();
+    if (to - from < avoidMinStretchM) {
+      final middle = (from + to) / 2;
+      final half = math.min(avoidMinStretchM, total) / 2;
+      from = (middle - half).clamp(0, total - 2 * half).toDouble();
+      to = from + 2 * half;
+    }
+    final line = cut(track, from, to);
+    if (line.length < 2) return null;
+    return AvoidArea(line: line, fromKm: from / 1000, toKm: to / 1000);
+  }
 
   /// The piece of [track] from [fromM] to [toM] metres along it, the ends
   /// interpolated; empty when the range does not lie on the track.

@@ -59,6 +59,11 @@ const Map<String, SearchGroup> searchGroupOfPoiKind = <String, SearchGroup>{
   'lighthouse': SearchGroup.landmarks,
   // Cycling stops.
   'cafe': SearchGroup.cyclingStops,
+  'restaurant': SearchGroup.cyclingStops,
+  'fast_food': SearchGroup.cyclingStops,
+  'ice_cream': SearchGroup.cyclingStops,
+  'fuel': SearchGroup.cyclingStops,
+  'compressed_air': SearchGroup.cyclingStops,
   'drinking_water': SearchGroup.cyclingStops,
   'bicycle_repair_station': SearchGroup.cyclingStops,
   'bicycle_shop': SearchGroup.cyclingStops,

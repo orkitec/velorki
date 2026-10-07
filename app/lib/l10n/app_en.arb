@@ -295,6 +295,10 @@
   "@plannerRideFromPosition": {
     "description": "Button that plans a route from the rider's current position to the searched place"
   },
+  "placeLinkNeedsBrowser": "This map link only opens in a browser. Open it there, then share the place from the map page.",
+  "@placeLinkNeedsBrowser": {
+    "description": "Shown when another app sent a short map link (maps.app.goo.gl, osm.org/go) whose place cannot be read without opening it in a browser"
+  },
   "plannerPositionUnavailable": "Your position is not available yet.",
   "@plannerPositionUnavailable": {
     "description": "Snack bar when planning from the current position but no fix is known"
@@ -588,6 +592,26 @@
   "searchKindCafe": "Cafe",
   "@searchKindCafe": {
     "description": "Second line of an offline search result that is a cafe"
+  },
+  "searchKindRestaurant": "Restaurant",
+  "@searchKindRestaurant": {
+    "description": "Second line of an offline search result that is a restaurant"
+  },
+  "searchKindFastFood": "Fast food",
+  "@searchKindFastFood": {
+    "description": "Second line of an offline search result that is a fast-food place"
+  },
+  "searchKindIceCream": "Ice cream",
+  "@searchKindIceCream": {
+    "description": "Second line of an offline search result that is an ice cream parlour"
+  },
+  "searchKindFuel": "Petrol station",
+  "@searchKindFuel": {
+    "description": "Second line of an offline search result that is a petrol (gas) station"
+  },
+  "searchKindAirPump": "Air pump",
+  "@searchKindAirPump": {
+    "description": "Second line of an offline search result that is a public air pump for tyres"
   },
   "searchKindBikeRepair": "Bike repair station",
   "@searchKindBikeRepair": {
@@ -1195,13 +1219,13 @@
   "@recordingBatteryTitle": {
     "description": "Title of the dialog that explains the battery optimisation exemption"
   },
-  "recordingBatteryBody": "Android may stop the recording while the phone sleeps. Letting Velorki ignore battery optimisation keeps the track complete. You are asked only once.",
+  "recordingBatteryBody": "Android may stop the recording while the phone sleeps. In the battery settings that open, pick Velorki and allow unrestricted battery use (on some phones: not optimised), and the track stays complete. You are asked only once.",
   "@recordingBatteryBody": {
-    "description": "Body of the battery optimisation dialog, shown before the system prompt"
+    "description": "Body of the battery optimisation dialog, shown before the system battery optimisation settings open"
   },
-  "recordingBatteryAllow": "Allow",
+  "recordingBatteryAllow": "Open settings",
   "@recordingBatteryAllow": {
-    "description": "Button that opens the system battery optimisation prompt"
+    "description": "Button that opens the system battery optimisation settings"
   },
   "recordingBatteryLater": "Not now",
   "@recordingBatteryLater": {
@@ -1665,6 +1689,10 @@
   "loopNoneFound": "No loop found here, try another distance.",
   "@loopNoneFound": {
     "description": "Shown when the loop search finished without a single routable candidate"
+  },
+  "loopTookTooLong": "Finding a loop took too long on this phone. Try a shorter distance.",
+  "@loopTookTooLong": {
+    "description": "Shown when the loop search ran out of its time limit before it found a single loop"
   },
   "loopNoPosition": "Turn on location or tap the map to set a start.",
   "@loopNoPosition": {
@@ -2460,6 +2488,18 @@
   "@assistantRouteHandedOver": {
     "description": "Snack bar when the waypoints were handed to the planner"
   },
+  "assistantLoopOnMap": "The loop is on the map. Ask about it below.",
+  "@assistantLoopOnMap": {
+    "description": "Under the summary of a loop the assistant asked the loop search for, when the AI card comes back with the loop on the map"
+  },
+  "assistantLoopNotFound": "The loop search found no loop for this. Try another distance or start.",
+  "@assistantLoopNotFound": {
+    "description": "Under the summary of a loop the assistant asked the loop search for, when the search found none"
+  },
+  "assistantPlusRequired": "This feature requires Velorki Plus.",
+  "@assistantPlusRequired": {
+    "description": "Where the Ask or Describe button would be, for a rider without Velorki Plus, beside a Subscribe button."
+  },
   "assistantNotEntitled": "The AI assistant is part of Velorki Plus.",
   "@assistantNotEntitled": {
     "description": "Shown in the sheet when the rider is not entitled"
@@ -2637,6 +2677,22 @@
   "assistantFixApplied": "Applied",
   "@assistantFixApplied": {
     "description": "Shown in place of a finding's button once its fix was applied"
+  },
+  "assistantFixNoRoute": "There is no route on the map to change.",
+  "@assistantFixNoRoute": {
+    "description": "Under a finding whose fix could not be applied because the planner has no route"
+  },
+  "assistantFixNotApplicable": "This no longer fits the route on the map. Ask again.",
+  "@assistantFixNotApplicable": {
+    "description": "Under a finding whose fix could not be applied to the route now on the map"
+  },
+  "assistantFixRoutingFailed": "No route could be found with this change, so the route stays as it was.",
+  "@assistantFixRoutingFailed": {
+    "description": "Under a finding whose fix was taken back because the route could not be computed with it"
+  },
+  "assistantStartOver": "Start over",
+  "@assistantStartOver": {
+    "description": "Button in the assistant sheet that clears the question, the answer and its findings"
   },
   "aiConsentTitle": "Before the assistant asks",
   "@aiConsentTitle": {

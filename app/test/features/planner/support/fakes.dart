@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/painting.dart' show EdgeInsets;
+import 'package:flutter/painting.dart' show EdgeInsets, Offset;
 import 'package:velorki/features/map/domain/map_controller.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
@@ -64,6 +64,25 @@ class TestMapController implements MapController {
 
   /// The last camera target.
   LatLng? movedTo;
+
+  /// How many fingers came down on the map view, all told.
+  int touches = 0;
+
+  /// The most fingers on the map view at once: two for a pinch.
+  int mostFingers = 0;
+
+  /// How far the fingers on the map view moved, all told: what the native
+  /// map would have panned or zoomed by.
+  Offset dragged = Offset.zero;
+
+  /// Whether a finger let go where it came down is a tap on the map, as
+  /// the native view reports one, at [positionAt].
+  bool tapsAreTaps = false;
+
+  /// Where on the earth a point of the map view lies, for a tap: a small
+  /// patch of Bavaria, a hundred-thousandth of a degree a point.
+  LatLng positionAt(Offset point) =>
+      LatLng(48.05 - point.dy * 1e-5, 11 + point.dx * 1e-5);
 
   @override
   LatLng? center;

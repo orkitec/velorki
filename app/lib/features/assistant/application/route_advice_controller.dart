@@ -7,16 +7,20 @@ import 'package:velorki_api/velorki_api.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
+import '../../planner/domain/route_waypoints.dart' show projectOnTrack;
+
 import '../../../core/db/tables/routes.dart' show RouteSource;
 import '../../../core/plus/plus_gate.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
 import '../../planner/application/planner_controller.dart';
+import '../../planner/domain/avoid_area.dart';
 import '../../planner/domain/planner_state.dart';
 import '../../planner/domain/route_poi.dart';
 import '../../planner/domain/route_profile.dart';
 import '../data/ai_consent_controller.dart';
 import '../domain/assistant_state.dart';
 import 'ai_request_settings.dart';
+import 'assistant_sheet_memory.dart';
 import 'assistant_controller.dart';
 import 'route_description_controller.dart' show routeDigestTimeout;
 import 'route_digest_service.dart';
@@ -52,6 +56,19 @@ enum RouteAdvicePhase {
   failed,
 }
 
+/// Why the fix of a finding could not be applied.
+enum FixFailure {
+  /// There is no route on the planner's map.
+  noRoute,
+
+  /// The fix does not fit the route on the map: the place is not in the
+  /// digest, or the stretch is not on the route.
+  notApplicable,
+
+  /// The planner could not route with the fix, which was taken back.
+  routingFailed,
+}
+
 /// The state of one question about the route on the map.
 @immutable
 class RouteAdviceState {
@@ -60,10 +77,14 @@ class RouteAdviceState {
     this.phase = RouteAdvicePhase.idle,
     this.question = '',
     this.route,
+    this.ends,
     this.digest,
     this.advice,
     this.applied = const <int>{},
+    this.failures = const <int, FixFailure>{},
+    this.avoids = const <int, AvoidArea>{},
     this.problem,
+    this.shown,
   });
 
   /// Where it has got to.
@@ -75,6 +96,11 @@ class RouteAdviceState {
   /// The route that was asked about, as it was on the map.
   final RouteResult? route;
 
+  /// Where the plan that was asked about starts and ends. The conversation
+  /// lasts while the planner's plan does: the fixes add stops and change the
+  /// way, never the ends, and a plan with other ends is another route.
+  final (LatLng, LatLng)? ends;
+
   /// The digest that was sent, whose place ids the answer refers to.
   final RouteDigest? digest;
 
@@ -84,12 +110,29 @@ class RouteAdviceState {
   /// The indices of the findings whose fix was applied.
   final Set<int> applied;
 
+  /// The findings whose fix could not be applied, with why.
+  final Map<int, FixFailure> failures;
+
+  /// The stretch each avoid fix keeps off, by finding, cut from [route]
+  /// when the answer came: kilometres on a route changed since (a stop
+  /// added, another bike) would name another stretch.
+  final Map<int, AvoidArea> avoids;
+
   /// Why it failed, when it did.
   final AssistantProblem? problem;
+
+  /// The place of the digest the rider asked to be shown, which the map
+  /// marks for as long as this conversation lasts, until it is added as a
+  /// stop or another place is shown.
+  final DigestPlace? shown;
 
   /// Whether a question is being worked on.
   bool get busy =>
       phase == RouteAdvicePhase.reading || phase == RouteAdvicePhase.asking;
+
+  /// Whether there is anything to start over from.
+  bool get isEmpty =>
+      phase == RouteAdvicePhase.idle && question.isEmpty && advice == null;
 
   /// The place of the digest with [id], or `null`.
   DigestPlace? placeOf(String? id) {
@@ -106,16 +149,47 @@ class RouteAdviceState {
     RouteDigest? digest,
     RouteAdvice? advice,
     Set<int>? applied,
+    Map<int, FixFailure>? failures,
+    Map<int, AvoidArea>? avoids,
     AssistantProblem? problem,
+    Object? shown = _keep,
   }) => RouteAdviceState(
     phase: phase ?? this.phase,
     question: question,
     route: route,
+    ends: ends,
     digest: digest ?? this.digest,
     advice: advice ?? this.advice,
     applied: applied ?? this.applied,
+    failures: failures ?? this.failures,
+    avoids: avoids ?? this.avoids,
     problem: problem ?? this.problem,
+    shown: identical(shown, _keep) ? this.shown : shown as DigestPlace?,
   );
+}
+
+/// [RouteAdviceState.copyWith]'s "as it was", where `null` is a value.
+const Object _keep = Object();
+
+/// The point of interest the map marks for a [DigestPlace] shown: its name
+/// and its kind's icon. Not a point of the plan: nothing is routed by it.
+RoutePoi shownPoi(DigestPlace place) => RoutePoi(
+  pos: LatLng(place.at.lat, place.at.lon),
+  name: place.name ?? '',
+  kind: poiKindOfPlace(place.kind),
+);
+
+/// Where [planner]'s plan starts and ends, or `null` without one. A round
+/// trip that came with only its start ends there, as it will once a fix
+/// anchors it to its line ([anchorWaypoints]).
+(LatLng, LatLng)? planEnds(PlannerState planner) {
+  var points = planner.waypoints;
+  final route = planner.result;
+  if (points.length < 2 && route != null && route.geometry.length >= 2) {
+    points = anchorWaypoints(points, route);
+  }
+  if (points.length < 2) return null;
+  return (points.first.pos, points.last.pos);
 }
 
 /// "This route": a question about the route on the planner's map, answered
@@ -126,10 +200,88 @@ class RouteAdviceState {
 /// route is what is asked about. The answer never changes the route by
 /// itself; each fix is applied by the rider, through the planner, as one
 /// undo step.
-@riverpod
+///
+/// Kept while the sheet is closed, so the conversation is still there when
+/// it opens again, for as long as the planner's plan is the one asked about
+/// ([RouteAdviceState.ends]); a cleared plan or one with other ends starts
+/// it afresh.
+@Riverpod(keepAlive: true)
 class RouteAdviceController extends _$RouteAdviceController {
+  /// The fix being routed: its finding, and how deep the planner's undo
+  /// stack was with it on top.
+  ({int index, int undoDepth})? _routing;
+
+  /// How deep the planner's undo stack was with each applied fix on top:
+  /// an Undo that takes the stack below it took the fix back.
+  final Map<int, int> _appliedDepth = <int, int>{};
+
   @override
-  RouteAdviceState build() => const RouteAdviceState();
+  RouteAdviceState build() {
+    ref.listen(plannerControllerProvider, (_, next) => _planChanged(next));
+    // Bought meanwhile: a "part of Velorki Plus" error is not true any more,
+    // and what was typed stays.
+    ref.listen(plusFeatureProvider(PlusFeature.aiAssistant), (_, entitled) {
+      if (entitled && state.problem?.failure == AssistantFailure.notEntitled) {
+        clearProblem();
+      }
+    });
+    return const RouteAdviceState();
+  }
+
+  void _planChanged(PlannerState plan) {
+    final asked = state.ends;
+    if (asked != null && planEnds(plan) != asked && !state.busy) {
+      // Another route: what was asked and typed about the last one goes.
+      _routing = null;
+      _appliedDepth.clear();
+      ref.read(assistantSheetMemoryProvider).question = '';
+      state = const RouteAdviceState();
+      return;
+    }
+    _takeBackUndone(plan);
+    final routing = _routing;
+    if (routing == null || plan.isRouting) return;
+    _routing = null;
+    if (!plan.route.hasError) return;
+    // The fix took the route somewhere the router could not follow: take it
+    // back, unless the rider has changed the plan since, and say so.
+    if (plan.undoStack.length == routing.undoDepth) {
+      ref.read(plannerControllerProvider.notifier).undo();
+    }
+    _appliedDepth.remove(routing.index);
+    state = state.copyWith(
+      applied: {...state.applied}..remove(routing.index),
+      failures: {...state.failures, routing.index: FixFailure.routingFailed},
+    );
+  }
+
+  /// Marks the fixes the rider took back with the planner's Undo as not
+  /// applied, so they are offered again.
+  void _takeBackUndone(PlannerState plan) {
+    final undone = [
+      for (final i in state.applied)
+        if ((_appliedDepth[i] ?? 0) > plan.undoStack.length) i,
+    ];
+    if (undone.isEmpty) return;
+    for (final i in undone) {
+      _appliedDepth.remove(i);
+    }
+    state = state.copyWith(applied: {...state.applied}..removeAll(undone));
+  }
+
+  /// Marks [place] on the map, or nothing with `null`.
+  void show(DigestPlace? place) {
+    if (state.shown == place) return;
+    state = state.copyWith(shown: place);
+  }
+
+  /// Forgets the question, the answer and its fixes.
+  void reset() {
+    if (state.busy) return;
+    _routing = null;
+    _appliedDepth.clear();
+    state = const RouteAdviceState();
+  }
 
   /// Asks [question] about the route on the planner's map.
   Future<void> ask(String question, {String? locale}) async {
@@ -137,10 +289,13 @@ class RouteAdviceController extends _$RouteAdviceController {
     if (text.isEmpty || state.busy) return;
     final planner = ref.read(plannerControllerProvider);
     final route = planner.result;
+    _routing = null;
+    _appliedDepth.clear();
     state = RouteAdviceState(
       phase: RouteAdvicePhase.reading,
       question: text,
       route: route,
+      ends: planEnds(planner),
     );
 
     if (!ref.read(plusFeatureProvider(PlusFeature.aiAssistant))) {
@@ -200,51 +355,88 @@ class RouteAdviceController extends _$RouteAdviceController {
       _fail(const AssistantProblem(AssistantFailure.relay));
       return;
     }
+    // Each avoid is cut now, from the route that was asked about.
+    final areas = <int, AvoidArea>{
+      for (final (i, finding) in advice.findings.indexed)
+        if (finding.fix case AvoidFix(:final fromKm, :final toKm))
+          i: ?AvoidArea.along(route.positions, fromKm * 1000, toKm * 1000),
+    };
     state = state.copyWith(
       phase: RouteAdvicePhase.answered,
-      advice: _withKnownPlaces(advice, digest),
+      advice: _withKnownFixes(advice, digest, areas),
+      avoids: areas,
     );
   }
 
   /// Applies the fix of finding [index] through the planner, as one undo
-  /// step, and marks it applied.
+  /// step, and marks it applied; or, when it cannot be applied, says why in
+  /// [RouteAdviceState.failures]. A fix the planner then cannot route is
+  /// taken back and marked failed too.
   ///
   /// A stop goes in where the route passes the place: at the place's
   /// distance along the route that was asked about while that route is
   /// still the one on the map, else wherever the current route comes
-  /// closest to it.
-  void apply(int index) {
+  /// closest to it. An avoid keeps off the stretch cut from the route that
+  /// was asked about ([RouteAdviceState.avoids]), however the route on the
+  /// map has changed since.
+  ///
+  /// `true` when the fix went to the planner.
+  bool apply(int index) {
     final findings = state.advice?.findings ?? const <RouteFinding>[];
-    if (index < 0 || index >= findings.length) return;
-    if (state.applied.contains(index)) return;
+    if (index < 0 || index >= findings.length) return false;
+    if (state.applied.contains(index)) return false;
     final fix = findings[index].fix;
-    if (fix == null) return;
+    if (fix == null) return false;
     final planner = ref.read(plannerControllerProvider.notifier);
     final current = ref.read(plannerControllerProvider).result;
-    if (current == null) return;
-    final unchanged = identical(current, state.route);
-    switch (fix) {
-      case AddStopFix(:final placeId):
-        final place = state.placeOf(placeId);
-        if (place == null) return;
-        planner.insertStop(
+    if (current == null) return _failed(index, FixFailure.noRoute);
+    final asked = state.route;
+    final unchanged = asked != null && sameCourse(current, asked);
+    final done = switch (fix) {
+      AddStopFix(:final placeId) => switch (state.placeOf(placeId)) {
+        null => false,
+        final place => planner.insertStop(
           LatLng(place.at.lat, place.at.lon),
           alongM: unchanged ? place.km * 1000 : null,
           name: place.name,
           poiKind: poiKindOfPlace(place.kind),
-        );
-      case AvoidFix(:final fromKm, :final toKm):
-        planner.avoidStretch(fromKm * 1000, toKm * 1000);
-      case ProfileFix(:final profile):
+        ),
+      },
+      AvoidFix(:final fromKm, :final toKm) => switch (state.avoids[index] ??
+          AvoidArea.along(current.positions, fromKm * 1000, toKm * 1000)) {
+        null => false,
+        final area => planner.avoidArea(area),
+      },
+      ProfileFix(:final profile) => () {
         planner.setProfile(RouteProfile.fromName(profile.json));
+        return true;
+      }(),
+    };
+    if (!done) return _failed(index, FixFailure.notApplicable);
+    final plan = ref.read(plannerControllerProvider);
+    if (plan.isRouting) {
+      _routing = (index: index, undoDepth: plan.undoStack.length);
     }
-    state = state.copyWith(applied: <int>{...state.applied, index});
+    _appliedDepth[index] = plan.undoStack.length;
+    // The stop's marker takes the place of the one that showed it.
+    final stop = fix is AddStopFix ? fix.placeId : null;
+    state = state.copyWith(
+      applied: <int>{...state.applied, index},
+      failures: {...state.failures}..remove(index),
+      shown: stop != null && stop == state.shown?.id ? null : state.shown,
+    );
+    return true;
+  }
+
+  bool _failed(int index, FixFailure failure) {
+    state = state.copyWith(failures: {...state.failures, index: failure});
+    return false;
   }
 
   /// Drops the error but keeps the question, for "try again".
   void clearProblem() {
     if (state.problem == null) return;
-    state = RouteAdviceState(question: state.question);
+    state = RouteAdviceState(question: state.question, ends: state.ends);
   }
 
   /// The digest of [route], or a bare one — the loop flag and the profile —
@@ -274,30 +466,53 @@ class RouteAdviceController extends _$RouteAdviceController {
       state = state.copyWith(phase: RouteAdvicePhase.failed, problem: problem);
 }
 
-/// [advice] without the fixes that name a place [digest] does not have.
+/// [advice] without the fixes that name a place [digest] does not have, or
+/// a stretch that is not on the route asked about (no entry in [areas]);
+/// and with a stop at the place a finding names when it came without a fix
+/// of its own.
 ///
-/// The relay already refuses such an answer; this keeps a relay that does
-/// not from putting a stop nowhere.
-RouteAdvice _withKnownPlaces(RouteAdvice advice, RouteDigest digest) {
+/// The relay already refuses an unknown place; this keeps a relay that does
+/// not from putting a stop nowhere, and a stretch past the route's end from
+/// offering an Avoid that could only fail. A model often names the café it
+/// found without saying it can be added: every place of the digest is a
+/// place to stop at, so the stop is offered all the same.
+RouteAdvice _withKnownFixes(
+  RouteAdvice advice,
+  RouteDigest digest,
+  Map<int, AvoidArea> areas,
+) {
   final ids = {for (final p in digest.places) p.id};
   return RouteAdvice(
     answer: advice.answer,
     findings: [
-      for (final f in advice.findings)
+      for (final (i, f) in advice.findings.indexed)
         switch (f.fix) {
-          AddStopFix(:final placeId) when !ids.contains(placeId) =>
-            RouteFinding(
-              kind: f.kind,
-              text: f.text,
-              fromKm: f.fromKm,
-              toKm: f.toKm,
-              placeId: f.placeId,
-            ),
+          AddStopFix(:final placeId) when !ids.contains(placeId) => _withoutFix(
+            f,
+          ),
+          AvoidFix() when !areas.containsKey(i) => _withoutFix(f),
+          null when ids.contains(f.placeId) => RouteFinding(
+            kind: f.kind,
+            text: f.text,
+            fromKm: f.fromKm,
+            toKm: f.toKm,
+            placeId: f.placeId,
+            fix: AddStopFix(f.placeId!),
+          ),
           _ => f,
         },
     ],
   );
 }
+
+/// [f] with nothing to apply.
+RouteFinding _withoutFix(RouteFinding f) => RouteFinding(
+  kind: f.kind,
+  text: f.text,
+  fromKm: f.fromKm,
+  toKm: f.toKm,
+  placeId: f.placeId,
+);
 
 /// The summary a question about the planner's [route] is sent with.
 ///
@@ -328,6 +543,35 @@ RouteSummary summaryOfPlan(
         .toList(growable: false),
     digest: digest,
   );
+}
+
+/// Whether [a] and [b] are the same line on the map, whatever objects they
+/// are: the planner hands out a new result for the same course (a line
+/// anchored to its ends, a step undone), and a stop's distance along the
+/// route asked about holds on either.
+///
+/// Near enough: the lengths agree within 0.2 % (5 m at least) and a sample
+/// of the points of each lies within 10 m of the other.
+bool sameCourse(RouteResult a, RouteResult b) {
+  if (identical(a, b)) return true;
+  final x = a.positions;
+  final y = b.positions;
+  if (x.length < 2 || y.length < 2) return false;
+  final cx = cumulativeDistancesMeters(x);
+  final cy = cumulativeDistancesMeters(y);
+  final slack = math.max(5, cx.last * 0.002);
+  if ((cx.last - cy.last).abs() > slack) return false;
+  bool near(List<LatLng> from, List<LatLng> onto, List<double> along) {
+    final step = math.max(1, from.length ~/ 40);
+    for (var i = 0; i < from.length; i += step) {
+      if (projectOnTrack(onto, from[i], cumulative: along).distanceM > 10) {
+        return false;
+      }
+    }
+    return projectOnTrack(onto, from.last, cumulative: along).distanceM <= 10;
+  }
+
+  return near(x, y, cy) && near(y, x, cx);
 }
 
 /// The marker a stop at a digest place of [kind] gets.

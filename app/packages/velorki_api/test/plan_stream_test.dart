@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -477,6 +478,58 @@ void main() {
         planEventFromSse(const SseEvent(name: 'done', data: '{}')),
         const DoneEvent(),
       );
+    });
+  });
+
+  group('planStream silence', () {
+    test('a stream that goes quiet is given up as unreachable', () async {
+      final quiet = StreamController<List<int>>();
+      addTearDown(quiet.close);
+      final client = RelayClient(
+        base,
+        planIdleTimeout: const Duration(milliseconds: 50),
+        client: MockClient.streaming((request, _) async {
+          quiet.add(utf8.encode(': open\n\n'));
+          return http.StreamedResponse(quiet.stream, 200, request: request);
+        }),
+      );
+      addTearDown(client.close);
+
+      await expectLater(
+        client.planStream(step: 'plan', prompt: 'x').toList(),
+        throwsA(
+          isA<RelayException>().having(
+            (e) => e.error.code,
+            'code',
+            RelayErrorCode.unavailable,
+          ),
+        ),
+      );
+    });
+
+    test('pings keep a slow answer alive', () async {
+      final slow = StreamController<List<int>>();
+      final client = RelayClient(
+        base,
+        planIdleTimeout: const Duration(milliseconds: 80),
+        client: MockClient.streaming((request, _) async {
+          unawaited(() async {
+            for (var i = 0; i < 4; i++) {
+              slow.add(utf8.encode(': ping\n\n'));
+              await Future<void>.delayed(const Duration(milliseconds: 40));
+            }
+            slow.add(utf8.encode('event: done\ndata: {}\n\n'));
+            await slow.close();
+          }());
+          return http.StreamedResponse(slow.stream, 200, request: request);
+        }),
+      );
+      addTearDown(client.close);
+
+      final events = await client
+          .planStream(step: 'plan', prompt: 'x')
+          .toList();
+      expect(events.single, isA<DoneEvent>());
     });
   });
 }

@@ -42,7 +42,7 @@ abstract interface class BatteryOptimizationGateway {
   /// Whether the app is already exempt — always `true` off Android.
   Future<bool> isIgnored();
 
-  /// Opens the system prompt.
+  /// Opens the system page where the rider exempts the app.
   Future<bool> request();
 }
 
@@ -56,9 +56,13 @@ class ForegroundTaskBatteryOptimization implements BatteryOptimizationGateway {
       defaultTargetPlatform != TargetPlatform.android ||
       await FlutterForegroundTask.isIgnoringBatteryOptimizations;
 
+  /// The settings list, not the one-tap system prompt: that prompt needs
+  /// REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, which Play restricts and a
+  /// foreground service does not qualify for, and without it the prompt
+  /// silently does nothing.
   @override
   Future<bool> request() =>
-      FlutterForegroundTask.requestIgnoreBatteryOptimization();
+      FlutterForegroundTask.openIgnoreBatteryOptimizationSettings();
 }
 
 /// Keeping the display awake while the recording screen is open.

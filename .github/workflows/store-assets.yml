@@ -2,14 +2,16 @@ name: store assets
 
 # The App Store screenshots, the watch shots and the preview videos, made by
 # app/tool/store_screenshots.sh on an iOS simulator exactly as on the Mac, and
-# on request uploaded to an App Store version. Started by hand only; see
-# docs/STORE_ASSETS.md.
+# on request uploaded to an App Store version; and the Google Play set (`android`),
+# made by the same script on an Android emulator, as an artifact only. Started
+# by hand only; see docs/STORE_ASSETS.md.
 #
 # `assets` needs no secrets and runs from any ref. `upload` runs in the
-# `release` environment, which admits only `v*` tags and waits for the
-# maintainer's approval, so an upload is dispatched from a tag. It replaces the
-# screenshots of every uploaded language on that version; the preview video
-# stays a manual upload.
+# `release` environment, which admits `v*` tags and `main` and waits for the
+# maintainer's approval. It replaces the screenshots and, with `metadata`, the
+# texts of every uploaded language on that version; the preview video stays a
+# manual upload. `assets_run_id` uploads the set an earlier run captured
+# instead of capturing again (artifacts are kept 30 days).
 on:
   workflow_dispatch:
     inputs:
@@ -17,6 +19,17 @@ on:
         description: Languages, comma-separated
         type: string
         default: en,de
+      ios:
+        description: The App Store set (iOS simulator)
+        type: boolean
+        default: true
+      # Off by default: on the runner's software renderer the map draws no
+      # labels, icons or dashed lines, so the Play set for the store is made
+      # on a Mac (docs/STORE_ASSETS.md).
+      android:
+        description: The Google Play set (map labels missing on the runner)
+        type: boolean
+        default: false
       # The runner's simulator has no GPU and drops frames of the moving map;
       # the preview for the store is recorded on a Mac (docs/STORE_ASSETS.md).
       preview:
@@ -35,6 +48,10 @@ on:
         description: App Store version to put them on, e.g. 1.0.1 (needed to upload)
         type: string
         default: ""
+      assets_run_id:
+        description: Upload the set of this earlier run instead of capturing (its run id)
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -48,6 +65,7 @@ env:
 
 jobs:
   assets:
+    if: ${{ inputs.ios && inputs.assets_run_id == '' }}
     runs-on: macos-15
     # Each language is its own capture with a simulator reboot, and the
     # preview records every language again.
@@ -63,8 +81,8 @@ jobs:
         run: |
           [ -n "$APP_VERSION" ] || { echo "::error::upload needs app_version"; exit 1; }
           case "$REF" in
-            refs/tags/v*) ;;
-            *) echo "::error::upload runs only from a v* tag, not $REF"; exit 1 ;;
+            refs/tags/v* | refs/heads/main) ;;
+            *) echo "::error::upload runs only from a v* tag or main, not $REF"; exit 1 ;;
           esac
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -128,7 +146,7 @@ jobs:
       # The derived data integration-ios.yml saves on main, under the same
       # keys; read here, never written.
       - name: Restore the Xcode derived data
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/Library/Developer/Xcode/DerivedData
           key: >-
@@ -177,20 +195,45 @@ jobs:
 
   upload:
     needs: assets
-    if: ${{ inputs.upload && startsWith(github.ref, 'refs/tags/v') }}
+    # After a capture in this run, or straight away with an earlier run's set.
+    if: >-
+      ${{ always() && inputs.ios && inputs.upload
+      && (needs.assets.result == 'success'
+      || (needs.assets.result == 'skipped' && inputs.assets_run_id != '')) }}
     # macOS for sips, which the staging script uses.
     runs-on: macos-15
     timeout-minutes: 45
     # Required reviewer: nothing reaches App Store Connect before approval.
     environment: release
+    permissions:
+      contents: read
+      # An earlier run's artifact.
+      actions: read
 
     steps:
+      - name: Check the inputs
+        env:
+          APP_VERSION: ${{ inputs.app_version }}
+          REF: ${{ github.ref }}
+          RUN_ID: ${{ inputs.assets_run_id }}
+        run: |
+          [ -n "$APP_VERSION" ] || { echo "::error::upload needs app_version"; exit 1; }
+          case "$REF" in
+            refs/tags/v* | refs/heads/main) ;;
+            *) echo "::error::upload runs only from a v* tag or main, not $REF"; exit 1 ;;
+          esac
+          if [ -n "$RUN_ID" ] && ! [[ "$RUN_ID" =~ ^[0-9]+$ ]]; then
+            echo "::error::assets_run_id must be a run id (digits), not '$RUN_ID'"; exit 1
+          fi
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: store-assets
           path: ${{ runner.temp }}/assets
+          run-id: ${{ inputs.assets_run_id || github.run_id }}
+          github-token: ${{ github.token }}
 
       - name: Stage the screenshots for deliver
         working-directory: app
@@ -225,3 +268,144 @@ jobs:
       - name: Remove the key
         if: ${{ always() }}
         run: rm -f "$RUNNER_TEMP"/AuthKey_*.p8
+
+  # The Google Play set on the emulator integration.yml runs (API 35, Pixel 6
+  # profile), with its system image step and, read only, its Gradle and AVD
+  # caches. No upload yet: the set is taken from the artifact by hand.
+  android:
+    if: ${{ inputs.android }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      API_LEVEL: "35"
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      # store_slides.py drives headless Chrome, which the image ships. Ubuntu
+      # keeps unprivileged user namespaces from AppArmor-confined programs,
+      # which Chrome's sandbox needs.
+      - name: Chrome
+        run: |
+          chrome="$(command -v google-chrome)"
+          [ -n "$chrome" ] || { echo "::error::no google-chrome on the runner"; exit 1; }
+          "$chrome" --version
+          echo "CHROME=$chrome" >> "$GITHUB_ENV"
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+
+      - name: Restore the Gradle caches
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: >-
+            gradle-itest-${{ env.API_LEVEL }}-${{
+            hashFiles('app/android/**/*.gradle*', 'app/pubspec.lock') }}
+          restore-keys: |
+            gradle-itest-${{ env.API_LEVEL }}-
+
+      - name: Prepare the app package
+        working-directory: app
+        run: |
+          flutter pub get
+          dart run build_runner build
+          flutter gen-l10n
+
+      # As in integration.yml: installed and checked here, so the emulator
+      # action finds it in place.
+      - name: Install the system image
+        id: sysimg
+        run: |
+          sdk="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          pkg="system-images;android-$API_LEVEL;google_apis;x86_64"
+          dir="$sdk/system-images/android-$API_LEVEL/google_apis/x86_64"
+          for try in 1 2 3; do
+            printf 'y\n%.0s' {1..30} \
+              | "$sdk/cmdline-tools/latest/bin/sdkmanager" --install "$pkg" || true
+            if [ -s "$dir/system.img" ] && [ -f "$dir/package.xml" ]; then
+              revision=$(sed -n 's/.*<major>\([0-9]*\)<\/major>.*/\1/p' "$dir/package.xml" | head -n 1)
+              echo "revision=${revision:-0}" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "==> $pkg did not install cleanly (try $try of 3); fetching it again"
+            rm -rf "$dir" "$sdk/.temp"
+            sleep 20
+          done
+          echo "::error::$pkg could not be installed"
+          exit 1
+
+      # integration.yml's AVD and snapshot, under its key; on a miss the
+      # emulator action creates the AVD and boots it cold.
+      - name: Restore the AVD
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ env.API_LEVEL }}-x86_64-google_apis-pixel_6-r${{ steps.sysimg.outputs.revision }}
+
+      - name: Screenshots and slides
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        env:
+          LOCALES: ${{ inputs.locales }}
+          VELORKI_STORE_START_TIMEOUT: "1500"
+        with:
+          api-level: ${{ env.API_LEVEL }}
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          working-directory: app
+          force-avd-creation: false
+          # guest: Android renders in software itself. On the runner,
+          # swiftshader_indirect is the old GLES translator, under which the
+          # map draws no labels, icons or dashed lines (everything MapLibre
+          # takes from a texture atlas), and swangle_indirect kills the
+          # emulator half a minute into the capture. -no-snapshot:
+          # integration.yml's snapshot was made under another renderer.
+          emulator-options: >-
+            -no-window -no-snapshot -no-audio -no-boot-anim
+            -gpu guest -camera-back none -camera-front none
+          disable-animations: true
+          # One line: the action runs the script line by line.
+          # The device log is kept for a failed run: the emulator is gone
+          # once this step ends.
+          script: tool/store_screenshots.sh --platform android --locales "$LOCALES" || { timeout 60 adb -s emulator-5554 logcat -d > build/logcat.txt; exit 1; }
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: store-assets-android
+          path: app/build/store_screenshots/android/slides/set
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Mirror log
+        if: failure()
+        run: cat mirror.log || true
+
+      - name: Device log
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: store-assets-android-logcat
+          path: app/build/logcat.txt
+          if-no-files-found: ignore
+          retention-days: 7

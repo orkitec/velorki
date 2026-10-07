@@ -71,6 +71,11 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <!-- Links are read by app_links; handed to the router as well
+                 they would open its "page not found" screen. -->
+            <meta-data
+              android:name="flutter_deeplinking_enabled"
+              android:value="false" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
@@ -87,6 +92,17 @@
                 <!-- The oauth host belongs to flutter_web_auth_2's
                      CallbackActivity. -->
                 <data android:scheme="velorki" android:host="share"/>
+                <!-- velorki://navigate?lat=…&lon=…[&name=…] or ?q=…: a place
+                     to ride to, from another app. -->
+                <data android:scheme="velorki" android:host="navigate"/>
+            </intent-filter>
+            <!-- A location from another app ("Open with" for geo:LAT,LON and
+                 geo:0,0?q=…): shown in the planner like a search result. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="geo"/>
             </intent-filter>
             <!-- The same share links as https (App Links):
                  https://velorki.com/s/<id>, with or without .gpx.
@@ -146,6 +162,14 @@
                 <data android:mimeType="application/octet-stream" />
                 <data android:mimeType="application/xml" />
                 <data android:mimeType="text/xml" />
+            </intent-filter>
+            <!-- A place shared as text or a link: a map app's share, an
+                 address from a messenger. The app reads a place out of it
+                 or, finding none, does nothing. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
         <!-- Health Connect links to the app from its permission screen, and

@@ -1,4 +1,4 @@
-Velorki plans bike routes, guides you along them and records your rides. It runs on OpenStreetMap data with routing made for bikes, the routing itself runs on your iPhone, and the whole app is open source.
+Velorki plans bike routes, guides you along them and records your rides. Its routing is made for bikes and runs on your iPhone, and the whole app is open source.
 
 PLANNING
 • Tap waypoints on the map and get a route for the bike you are on: touring, road, gravel, mountain bike, or the direct way.
@@ -28,11 +28,11 @@ FREE, AND VELORKI PLUS
 Everything that runs on the phone is free: planning, loops, navigation, recording, the library, offline regions, sensors, and file import and export.
 
 Velorki Plus is a subscription for the parts that need a server:
-• The assistant: describe the ride you want in a sentence and get a route.
+• The assistant: describe the ride you want in a sentence and get a route. Ask it about the route on the map, have it describe the ride, or let it add a café stop or avoid a stretch.
 • Share links: turn a route or a ride into a link anyone can open in a browser.
 • Connections to two popular route and ride platforms, to upload your rides and bring your routes in.
 
-Velorki Plus comes as a monthly and a yearly auto-renewing subscription, with a free trial. Payment is charged to your Apple Account at confirmation of purchase. The subscription renews automatically unless it is turned off at least 24 hours before the end of the current period, and it can be managed and cancelled in your Apple Account settings. Any unused part of a free trial is forfeited when a subscription is purchased.
+Velorki Plus comes as a monthly and a yearly auto-renewing subscription; the yearly one starts with a free trial. Payment is charged to your Apple Account at confirmation of purchase. The subscription renews automatically unless it is turned off at least 24 hours before the end of the current period, and it can be managed and cancelled in your Apple Account settings. Any unused part of a free trial is forfeited when a subscription is purchased.
 
 Terms of use: https://velorki.com/terms
 Privacy policy: https://velorki.com/privacy

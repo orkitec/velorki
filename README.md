@@ -7,6 +7,9 @@
 [![Crowdin](https://badges.crowdin.net/velorki/localized.svg)](https://crowdin.com/project/velorki)
 [![Licence: AGPL-3.0-only](https://img.shields.io/badge/licence-AGPL--3.0--only-blue)](LICENSE)
 [![Website: velorki.com](https://img.shields.io/badge/website-velorki.com-3f7a00)](https://velorki.com)
+[![App Store](https://img.shields.io/badge/App_Store-Velorki-0d96f6?logo=apple)](https://apps.apple.com/app/id6816790504)
+
+[![Velorki: ride where the signal ends. The planner on two phones, dark and light.](docs/images/cover.jpg)](https://velorki.com)
 
 Plan the ride, find the café, follow the turns, and do all of it where the
 signal ends. Free, open source, built on OpenStreetMap.

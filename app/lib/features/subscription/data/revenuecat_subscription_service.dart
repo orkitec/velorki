@@ -47,6 +47,12 @@ abstract interface class PurchasesApi {
 
   /// Restores whatever this store account already owns.
   Future<rc.CustomerInfo> restorePurchases();
+
+  /// Asks StoreKit whether this subscriber may still have the introductory
+  /// offer of each of [productIdentifiers]. Apple stores only.
+  Future<Map<String, rc.IntroEligibility>> checkIntroEligibility(
+    List<String> productIdentifiers,
+  );
 }
 
 /// [PurchasesApi] over the real `rc.Purchases` statics.
@@ -86,6 +92,12 @@ class SdkPurchasesApi implements PurchasesApi {
 
   @override
   Future<rc.CustomerInfo> restorePurchases() => rc.Purchases.restorePurchases();
+
+  @override
+  Future<Map<String, rc.IntroEligibility>> checkIntroEligibility(
+    List<String> productIdentifiers,
+  ) =>
+      rc.Purchases.checkTrialOrIntroductoryPriceEligibility(productIdentifiers);
 }
 
 /// [SubscriptionService] over RevenueCat's `purchases_flutter`.
@@ -103,10 +115,14 @@ class RevenueCatSubscriptionService implements SubscriptionService {
   /// the id is a random string the app made up — which is what allows
   /// [restorePurchases] to work without any account.
   ///
+  /// [platform] is the store platform as [currentStorePlatform] names it;
+  /// it decides whether introductory offers need an eligibility check.
+  ///
   /// [purchases] defaults to the real SDK; only tests pass anything else.
   RevenueCatSubscriptionService({
     required this.apiKey,
     required this.appUserId,
+    required this.platform,
     this.purchases = const SdkPurchasesApi(),
   });
 
@@ -116,6 +132,9 @@ class RevenueCatSubscriptionService implements SubscriptionService {
   /// The subscriber id, shared with the relay.
   final String appUserId;
 
+  /// The store platform this service sells on (`ios`, `android`, ...).
+  final String platform;
+
   /// The store SDK, so a test can answer for it.
   final PurchasesApi purchases;
 
@@ -123,6 +142,11 @@ class RevenueCatSubscriptionService implements SubscriptionService {
       StreamController<PlusCustomerInfo>.broadcast();
 
   PlusCustomerInfo _latest = PlusCustomerInfo.none;
+
+  /// Whether the store has said anything yet. Until it has, [_latest] is a
+  /// placeholder and [customerInfo] does not pass it on: "nothing owned" and
+  /// "not asked yet" must not look the same to the gates.
+  bool _answered = false;
   rc.CustomerInfoUpdateListener? _listener;
   bool _configured = false;
 
@@ -134,7 +158,7 @@ class RevenueCatSubscriptionService implements SubscriptionService {
 
   @override
   Stream<PlusCustomerInfo> get customerInfo async* {
-    yield _latest;
+    if (_answered) yield _latest;
     yield* _updates.stream;
   }
 
@@ -181,10 +205,19 @@ class RevenueCatSubscriptionService implements SubscriptionService {
       final offerings = await purchases.getOfferings();
       final current = offerings.current;
       if (current == null) return null;
+      final packages = current.availablePackages;
+      final eligibility = await _introEligibility(packages);
       return PlusOffering(
         id: current.identifier,
-        packages: current.availablePackages
-            .map(fromPackage)
+        packages: packages
+            .map(
+              (package) => fromPackage(
+                package,
+                introEligibility: eligibility == null
+                    ? null
+                    : eligibility[package.storeProduct.identifier] ?? _unknown,
+              ),
+            )
             .toList(growable: false),
       );
     } on PlatformException catch (e) {
@@ -195,6 +228,36 @@ class RevenueCatSubscriptionService implements SubscriptionService {
         'The store could not be asked for prices.',
         cause: e,
       );
+    }
+  }
+
+  /// Whether this subscriber may still have each package's introductory
+  /// offer, by product id; null when the store needs no check.
+  ///
+  /// StoreKit hands out a product's introductory offer whether or not this
+  /// subscriber already used one in the subscription group, so on Apple
+  /// stores RevenueCat is asked. Play Billing only returns offers the
+  /// subscriber is eligible for, so Android never asks. A product the
+  /// answer leaves out is unknown, and a check that fails answers an empty
+  /// map, so unknown for every product.
+  Future<Map<String, rc.IntroEligibilityStatus>?> _introEligibility(
+    List<rc.Package> packages,
+  ) async {
+    if (platform != 'ios' && platform != 'macos') return null;
+    final ids = [
+      for (final package in packages)
+        if (package.storeProduct.introductoryPrice != null)
+          package.storeProduct.identifier,
+    ];
+    if (ids.isEmpty) return null;
+    try {
+      final answer = await purchases.checkIntroEligibility(ids);
+      return {
+        for (final entry in answer.entries) entry.key: entry.value.status,
+      };
+    } on Object catch (e, st) {
+      _log.info('intro offer eligibility could not be checked', e, st);
+      return const <String, rc.IntroEligibilityStatus>{};
     }
   }
 
@@ -244,6 +307,7 @@ class RevenueCatSubscriptionService implements SubscriptionService {
 
   void _emit(PlusCustomerInfo info) {
     _latest = info;
+    _answered = true;
     if (!_updates.isClosed) _updates.add(info);
   }
 
@@ -294,9 +358,25 @@ PlusCustomerInfo fromCustomerInfo(rc.CustomerInfo info) {
 }
 
 /// Maps one RevenueCat package onto [PlusPackage].
-PlusPackage fromPackage(rc.Package package) {
+///
+/// [introEligibility] is what RevenueCat said about this subscriber and the
+/// package's introductory offer, or null when nobody asked (Android, where
+/// the store only returns offers the subscriber can have). The offer is kept
+/// only when the subscriber is known to be eligible: ineligible and unknown
+/// both show the plain price, as RevenueCat recommends for unknown, so the
+/// paywall never promises a trial the store will not give.
+PlusPackage fromPackage(
+  rc.Package package, {
+  rc.IntroEligibilityStatus? introEligibility,
+}) {
   final product = package.storeProduct;
-  final intro = product.introductoryPrice;
+  final intro = switch (introEligibility) {
+    null || rc.IntroEligibilityStatus.introEligibilityStatusEligible =>
+      product.introductoryPrice,
+    rc.IntroEligibilityStatus.introEligibilityStatusIneligible ||
+    rc.IntroEligibilityStatus.introEligibilityStatusUnknown ||
+    rc.IntroEligibilityStatus.introEligibilityStatusNoIntroOfferExists => null,
+  };
   return PlusPackage(
     id: package.identifier,
     title: product.title,
@@ -313,6 +393,9 @@ PlusPackage fromPackage(rc.Package package) {
     native: package,
   );
 }
+
+const rc.IntroEligibilityStatus _unknown =
+    rc.IntroEligibilityStatus.introEligibilityStatusUnknown;
 
 PlusPeriod _periodOf(rc.PackageType type) => switch (type) {
   rc.PackageType.weekly => PlusPeriod.weekly,

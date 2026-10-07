@@ -13,6 +13,7 @@ import '../features/import_export/application/incoming_import_listener.dart';
 import '../features/integrations/common/data/external_route_cache.dart';
 import '../features/integrations/common/data/oauth_flow.dart';
 import '../features/integrations/rwgps/application/rwgps_link_listener.dart';
+import '../features/planner/application/incoming_place.dart';
 import '../features/map/presentation/map_view.dart';
 import '../features/planner/presentation/planner_map_host.dart';
 import '../features/recording/application/recovery_on_launch.dart';
@@ -111,6 +112,9 @@ Future<void> bootstrap() async {
   // ...and a Ride with GPS route link shared into the app fetches that
   // route's GPX the same way.
   listenForRwgpsLinks(container);
+  // A place sent from another app (a geo: intent, velorki://navigate, a map
+  // link or text shared into the app) opens in the planner.
+  listenForIncomingLocations(container);
 
   runApp(
     UncontrolledProviderScope(container: container, child: const VelorkiApp()),

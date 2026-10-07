@@ -28,8 +28,17 @@ const int smartLoopConcurrency = 3;
 /// would only fight over it.
 const int smartLoopOnDeviceConcurrency = 1;
 
-/// Deadline for one whole loop search.
-const Duration smartLoopTimeout = Duration(seconds: 25);
+/// Deadline for one whole loop search: a safety net against a runaway search,
+/// never the limit an ordinary one runs into.
+///
+/// The search is bounded anyway — eight directions plus the planner's few
+/// retries, with the rider able to stop it while the bar fills. Measured on
+/// the on-device engine from Midtown Manhattan (`test/perf/loop_search_perf_test.dart`,
+/// an M-series Mac): 24 km takes 54 s, 80 km 97 s, the slider's 200 km
+/// 187 s. A six-year-old Android phone is up to eight times slower, so 200 km
+/// takes it about 25 minutes; the net sits above that. 25 seconds, which it
+/// used to be, ran out before a Pixel 3 XL had routed its first loop of 24 km.
+const Duration smartLoopTimeout = Duration(minutes: 30);
 
 /// How many directions one search heads off in.
 const int smartLoopDirections = 8;
@@ -55,15 +64,21 @@ List<Waypoint> waypointsForCandidate(LoopCandidate candidate) =>
 /// One search runs at a time: [search] fires BRouter's own round-trip mode off
 /// in [smartLoopDirections] directions, throws away what is not a loop (a
 /// beeline over water, the same road twice — `LoopFilter`), scores the rest
-/// and hands the best one straight to the planner. [another] walks down that ranking
-/// without touching the network and only searches again — rotated — when the
-/// list is used up.
+/// and hands the best so far to the planner as each one arrives. [another]
+/// walks down that ranking without touching the network and only searches
+/// again — rotated — when the list is used up. Once the rider has chosen a
+/// loop, by "Another" or [adopt], later arrivals only extend the ranking.
 @Riverpod(keepAlive: true)
 class SmartLoopController extends _$SmartLoopController {
   _LoopRun? _run;
   bool _disposed = false;
   bool _allowSameWayBack = false;
   double _directionOffsetDeg = 0;
+
+  /// The candidate last handed to the planner, so the same one is not
+  /// handed over twice — which would undo an edit the rider made after
+  /// taking it.
+  LoopCandidate? _shown;
 
   @override
   SmartLoopState build() {
@@ -89,6 +104,7 @@ class SmartLoopController extends _$SmartLoopController {
     if (_disposed) return;
     _allowSameWayBack = allowSameWayBack;
     _directionOffsetDeg = directionOffsetDeg;
+    _shown = null;
 
     state = SmartLoopState(request: request, running: true);
 
@@ -149,8 +165,9 @@ class SmartLoopController extends _$SmartLoopController {
       missingTiles: state.candidates.isEmpty
           ? run.missingTiles.toList()
           : const <TileName>[],
+      timedOut: run.timedOut,
     );
-    adopt();
+    _show();
   }
 
   /// Shows the next-best loop of the current search.
@@ -158,14 +175,18 @@ class SmartLoopController extends _$SmartLoopController {
   /// Nothing is routed while the ranking still holds one; once it is used up
   /// the same request is searched again with the directions rotated by
   /// [smartLoopRotationDeg], which is the cheapest way to different loops.
+  /// While the search is still running there is no searching again: it moves
+  /// on only when the ranking has a next one, and that choice stays put as
+  /// more loops arrive.
   Future<void> another() async {
     final request = state.request;
-    if (request == null || state.running) return;
+    if (request == null) return;
     if (state.index + 1 < state.candidates.length) {
-      state = state.copyWith(index: state.index + 1);
-      adopt();
+      state = state.copyWith(index: state.index + 1, pinned: true);
+      _show();
       return;
     }
+    if (state.running) return;
     await search(
       request,
       allowSameWayBack: _allowSameWayBack,
@@ -179,8 +200,8 @@ class SmartLoopController extends _$SmartLoopController {
     if (_run == null) return;
     _stopRun();
     if (_disposed) return;
-    if (state.running) state = state.copyWith(running: false);
-    adopt();
+    if (state.running) state = state.copyWith(running: false, stopped: true);
+    _show();
   }
 
   /// Forgets the last search, so reopening the sheet starts on a clean slate.
@@ -194,9 +215,28 @@ class SmartLoopController extends _$SmartLoopController {
   /// The planner shows it without routing again, so the rider can look at the
   /// elevation profile, save it to the library or edit it. Returns `false`
   /// when there is nothing to hand over.
+  ///
+  /// While the search is still running it keeps running: what it finds later
+  /// is only ranked, and never replaces this loop ([SmartLoopState.handedOver]).
   bool adopt() {
     final candidate = state.current;
     if (candidate == null) return false;
+    if (state.running) {
+      state = state.copyWith(pinned: true, handedOver: true);
+    }
+    _load(candidate);
+    return true;
+  }
+
+  /// Hands the loop on show to the planner, unless it is there already.
+  void _show() {
+    final candidate = state.current;
+    if (candidate == null || identical(candidate, _shown)) return;
+    _load(candidate);
+  }
+
+  void _load(LoopCandidate candidate) {
+    _shown = candidate;
     // What the rider is looking at, in the two numbers that say whether the
     // search did its job: the distance and how much of it is ridden twice.
     // A loop the planner marked far is it saying it spent every retry and
@@ -216,7 +256,6 @@ class SmartLoopController extends _$SmartLoopController {
             profile: RouteProfile.fromName(candidate.query.profile),
           ),
         );
-    return true;
   }
 
   void _stopRun() {
@@ -224,11 +263,17 @@ class SmartLoopController extends _$SmartLoopController {
     _run = null;
   }
 
-  /// Inserts [candidate] into the ranking, best first.
+  /// Inserts [candidate] into the ranking, best first, and shows the best so
+  /// far — or, once the rider has chosen one, keeps showing that one.
   void _add(LoopCandidate candidate) {
+    final chosen = state.pinned ? state.current : null;
     final ranked = <LoopCandidate>[...state.candidates, candidate]
       ..sort((a, b) => a.score.total.compareTo(b.score.total));
-    state = state.copyWith(candidates: ranked, index: 0);
+    final index = chosen == null
+        ? 0
+        : ranked.indexWhere((c) => identical(c, chosen));
+    state = state.copyWith(candidates: ranked, index: math.max(0, index));
+    _show();
   }
 
   static String _messageOf(Object error) =>
@@ -262,6 +307,9 @@ class _LoopRun {
 
   /// The tiles the on-device engine lacked, with no server to fall back to.
   final Set<TileName> missingTiles = <TileName>{};
+
+  /// Whether the planner's deadline cut a request short.
+  bool timedOut = false;
 
   double get progress => planned == 0 ? 1 : math.min(1, done / planned);
 
@@ -343,6 +391,9 @@ class _CountingBackend implements RoutingBackend {
       _run.lastFailure = e.toString();
       rethrow;
     } finally {
+      // The planner cancels what is still running when its deadline is up;
+      // the token says so, which is how "too slow" is told from "no loop".
+      if (cancel?.reason == LoopPlanner.timeoutReason) _run.timedOut = true;
       _run.done++;
       _run.onProgress?.call();
     }

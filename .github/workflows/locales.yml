@@ -1,0 +1,50 @@
+name: locales
+
+# By hand: the widget suite once in every language the app ships, in
+# parallel. app.yml runs English and German on every push; this is the wider
+# net before a release or after a large translation sync. The languages are
+# read from app/lib/l10n/app_*.arb, so a new one is covered without a change
+# here.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  languages:
+    runs-on: ubuntu-latest
+    outputs:
+      list: ${{ steps.list.outputs.list }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - id: list
+        run: |
+          list=$(ls app/lib/l10n/app_*.arb \
+            | sed -E 's#.*/app_(.*)\.arb#\1#' \
+            | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().split()))')
+          echo "list=$list" >> "$GITHUB_OUTPUT"
+          echo "Languages: $list"
+
+  suite:
+    needs: languages
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        locale: ${{ fromJson(needs.languages.outputs.list) }}
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: 3.47.4  # keep in sync with mise.toml and app/.fvmrc
+          cache: true
+      - run: flutter pub get
+      - run: dart run build_runner build
+      - run: flutter gen-l10n
+      - run: flutter test --dart-define=VELORKI_TEST_LOCALE=${{ matrix.locale }}

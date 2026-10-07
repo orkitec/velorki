@@ -102,23 +102,29 @@ routes to our share store.
       `ios/Runner/PrivacyInfo.xcprivacy`. The App Privacy **answers in App
       Store Connect must say the same**; the five boxes below are those
       answers.
-- [ ] **(iOS)** App Privacy answers declare **precise location** (app
-      functionality; not linked to identity; not used for tracking).
-- [ ] **(iOS)** App Privacy answers declare **purchases** (RevenueCat).
-- [ ] **(iOS)** App Privacy answers cover the RevenueCat anonymous app user id
-      as an identifier.
-- [ ] **(iOS)** App Privacy answers cover the **AI prompt text** (user content)
-      and the coarse start position sent with it.
-- [ ] **(iOS)** App Privacy answers declare **fitness** (a ride shared as a
-      link: its track, times, distance and ascent; no sensor values).
+- [x] **(iOS)** App Privacy answers declare **precise location** (app
+      functionality; not linked to identity; not used for tracking). — App Store
+      Connect, done for 1.0.
+- [x] **(iOS)** App Privacy answers declare **purchases** (RevenueCat). — App
+      Store Connect, done for 1.0.
+- [x] **(iOS)** App Privacy answers cover the RevenueCat anonymous app user id
+      as an identifier. — App Store Connect, done for 1.0.
+- [x] **(iOS)** App Privacy answers cover the **AI prompt text** (user content)
+      and the coarse start position sent with it. — App Store Connect, done for
+      1.0.
+- [x] **(iOS)** App Privacy answers declare **fitness** (a ride shared as a
+      link: its track, times, distance and ascent; no sensor values). — App
+      Store Connect, done for 1.0.
 - [ ] **(Play)** The Data safety form mirrors all of the above, including who
       the data is shared with: the routing server, Photon, OpenFreeMap/CyclOSM,
       the AI provider, RevenueCat, and Strava/RideWithGPS on user action.
-- [ ] Both forms state that no account is created and no data is used for
-      tracking or advertising.
-- [ ] The forms match `docs/PRIVACY.md` word for word on what is collected.
-- [ ] No accounts means: **no** account-deletion flow and **no** Sign in with
-      Apple requirement. Confirm the review notes say so.
+- [x] **(iOS)** The App Privacy answers state that no account is created and
+      no data is used for tracking or advertising, and match `docs/PRIVACY.md`
+      on what is collected. — App Store Connect, done for 1.0.
+- [ ] **(Play)** The Data safety form states the same and matches
+      `docs/PRIVACY.md` word for word on what is collected.
+- [x] No accounts means: **no** account-deletion flow and **no** Sign in with
+      Apple requirement. — App Review notes, App Store Connect, done for 1.0.
 - [x] **(Play)** Rides, routes and tokens are kept out of Google backup and
       out of device-to-device transfer, so "data is encrypted in transit" and
       the backup answers stay honest. — `android:allowBackup="false"` plus
@@ -138,7 +144,10 @@ routes to our share store.
 - [x] It is linked from the app: Settings → About → "Privacy policy", and from
       the paywall. — `lib/features/settings/presentation/about_section.dart`,
       `lib/core/links/velorki_urls.dart`.
-- [ ] It is linked from both store listings (the URL field in each console).
+- [x] **(iOS)** It is linked from the App Store listing. — App Store Connect,
+      done for 1.0.
+- [ ] **(Play)** It is linked from the Play listing and App content → Privacy
+      policy.
 - [x] It names the AI provider, Strava, RideWithGPS, RevenueCat, the map tile
       provider and the search provider. — `web/content/*/legal/privacy.md`; the
       assistant goes through OpenRouter, restricted to providers that neither
@@ -168,8 +177,10 @@ routes to our share store.
       `lib/features/assistant/presentation/assistant_strings.dart`, reachable
       from Settings → AI assistant → "Report AI output". It is **not** on the
       assistant sheet itself; put it there if a reviewer asks.
-- [ ] The assistant's scope is constrained to route planning, and the
-      age-rating questionnaire answers reflect that.
+- [x] **(iOS)** The assistant's scope is constrained to route planning, and the
+      age-rating questionnaire answers reflect that. — App Store Connect, done
+      for 1.0.
+- [ ] **(Play)** The content-rating (IARC) answers reflect the same scope.
 - [ ] The description step can be turned off by the user.
 - [x] AI descriptions are disabled for routes with `source == strava` (Strava's
       terms forbid AI use of their data). — `canDescribe` in
@@ -186,9 +197,14 @@ routes to our share store.
       `plusPeriodLabel`, the trial line and the auto-renewal wording).
 - [x] Links to the terms of use and the privacy policy are on the paywall. —
       `paywall_screen.dart`, from `lib/core/links/velorki_urls.dart`.
-- [ ] The 7-day free trial is configured in both stores and in RevenueCat.
-- [ ] Sandbox purchase, renewal, cancellation and restore-after-reinstall are
-      all tested on both platforms.
+- [x] The 7-day free trial is on the yearly plan only; monthly has none. —
+      App Store Connect: the yearly subscription's introductory offer; Play
+      Console: offer `free-trial` on base plan `yearly`.
+- [x] **(iOS)** Sandbox purchase tested. — on the phone, with a sandbox
+      account.
+- [ ] **(Play)** Purchase through internal testing with a licence tester,
+      and on both platforms renewal, cancellation and restore after a
+      reinstall.
 - [x] Every gated feature unlocks through in-app purchase only; there is no
       external payment link. — `lib/core/plus/plus_gate.dart` is the single
       list of gated features, and nothing in the app links to a payment page.
@@ -197,11 +213,12 @@ routes to our share store.
 
 ## Age rating
 
-- [ ] The App Store age-rating questionnaire is completed, including the
-      questions about AI assistants and user-generated content.
-- [ ] The Play content-rating questionnaire (IARC) is completed.
-- [ ] Expected outcome is 4+ / Everyone; if the answers push it higher,
-      re-check the assistant's constraints before accepting the rating.
+- [x] **(iOS)** The App Store age-rating questionnaire is completed, including
+      the questions about AI assistants and user-generated content. —
+      App Store Connect, done for 1.0.
+- [ ] **(Play)** The content-rating questionnaire (IARC) is completed.
+- [ ] **(Play)** Expected outcome is Everyone; if the answers push it
+      higher, re-check the assistant's constraints before accepting the rating.
 
 ## Attribution and licences
 
@@ -272,11 +289,12 @@ routes to our share store.
 
 ## RideWithGPS
 
-- [ ] An API key has been requested and granted through their form.
-- [ ] The OAuth redirect URI is registered and matches the app's scheme
-      (`velorki://oauth/rwgps`).
-- [ ] Their branding and attribution requirements have been reviewed and
-      followed.
+- [x] An API key has been requested and granted through their form. — the
+      RideWithGPS API client; the connection works in the app.
+- [x] The OAuth redirect URI is registered and matches the app's scheme
+      (`velorki://oauth/rwgps`). — the same API client.
+- [x] Their branding and attribution requirements have been reviewed and
+      followed. — reviewed with the API client; the connection works in the app.
 
 ## Icons, splash and store graphics
 
@@ -312,13 +330,16 @@ routes to our share store.
       for the Android 12+ splash screen. iOS: `LaunchScreen.storyboard` over the
       `LaunchBackground` colour set and the `LaunchImage` image set, both with
       an Any and a Dark appearance. No splash package is used.
-- [ ] Store icon exports are uploaded: **512 × 512** for Play, **1024 × 1024**
-      for App Store Connect, both without transparency. Generated on demand
-      from the same SVG, see `app/assets/icon/README.md`; they are not
-      committed.
-- [ ] Screenshots: at least 2 (Play, phone) and the required sizes for iPhone
-      6.9" and 6.5". The iPhone slides come out of `app/tool/store_screenshots.sh`,
-      see [STORE_ASSETS.md](STORE_ASSETS.md).
+- [x] **(iOS)** The 1024 × 1024 store icon, without transparency. — App Store
+      Connect, done for 1.0.
+- [ ] **(Play)** The 512 × 512 store icon, without transparency, is uploaded.
+      Generated on demand from the same SVG, see `app/assets/icon/README.md`;
+      it is not committed.
+- [x] **(iOS)** Screenshots for iPhone 6.9" and 6.5". — App Store Connect, done
+      for 1.0; from `app/tool/store_screenshots.sh`, see
+      [STORE_ASSETS.md](STORE_ASSETS.md).
+- [ ] **(Play)** At least 2 phone screenshots are uploaded (produced, upload by
+      hand).
 - [ ] **(Play)** Feature graphic, 1024 × 500.
 
 ## Accounts and store administration
@@ -326,69 +347,52 @@ routes to our share store.
 - [ ] Check whether the Orkitec Google Play developer account is **personal** or
       **organisation**: a personal account requires a 14-day closed test with at
       least 12 testers before production access. Plan the timeline accordingly.
-- [ ] App signing is configured (Play App Signing; iOS automatic signing with
-      the cloud-managed distribution certificate). — the Android lanes and
-      both tag workflows exist; the upload keystore and the CI secrets do not.
-      The one-time iOS setup is [RELEASE_IOS.md](RELEASE_IOS.md).
-- [x] Store listing copy exists as a first draft. —
+- [x] App signing is configured (Play App Signing; iOS automatic signing with
+      the cloud-managed distribution certificate). — Play App Signing is on in
+      the Play Console and the upload keystore is in the `release`
+      environment's secrets for `release.yml`, which also signs iOS,
+      set up per [RELEASE_IOS.md](RELEASE_IOS.md).
+- [x] Store listing copy exists. —
       `app/fastlane/metadata/android/en-US/{title,short_description,full_description}.txt`
       and `app/fastlane/metadata/ios/en-US/{name,subtitle,description,keywords}.txt`,
-      inside the character limits. **Draft**: not reviewed, prices not final,
-      and both upload lanes run with metadata upload switched off so a release
-      cannot overwrite the consoles by accident.
-- [x] Export compliance: the app uses only standard HTTPS/TLS, so the exemption
-      applies. `ITSAppUsesNonExemptEncryption = false` is set in `Info.plist`.
-- [ ] Answer the Play export declaration (US export laws) accordingly.
+      inside the character limits. Both upload lanes run with metadata upload
+      switched off so a release cannot overwrite the consoles by accident.
+- [x] **(iOS)** Export compliance: the app uses only standard HTTPS/TLS, so
+      the exemption applies. `ITSAppUsesNonExemptEncryption = false` is set in
+      `Info.plist`.
+- [ ] **(Play)** Answer the export declaration (US export laws) accordingly.
 
 ## App Review notes
 
-Write review notes covering:
+**(iOS)** The review notes cover the following. — App Store Connect, done
+for 1.0.
 
-- [ ] Why background location is needed (recording a ride with the screen off)
+- [x] Why background location is needed (recording a ride with the screen off)
       and how to reproduce it.
-- [ ] Why the `audio` background mode is needed (spoken turn cues during a
+- [x] Why the `audio` background mode is needed (spoken turn cues during a
       guided ride with the screen locked) and how to reproduce it.
-- [ ] That there are no accounts, so no demo credentials are needed.
-- [ ] How to reach the AI assistant and that it is behind a subscription, with
+- [x] That there are no accounts, so no demo credentials are needed.
+- [x] How to reach the AI assistant and that it is behind a subscription, with
       a sandbox/promo note on how the reviewer can try it.
-- [ ] Where the privacy policy and the AI consent screen are.
-- [ ] That map data is OpenStreetMap and routing is self-hosted BRouter.
+- [x] Where the privacy policy and the AI consent screen are.
+- [x] That map data is OpenStreetMap and routing is BRouter, on the phone.
 
 ## What is left, and where to do it
 
 Everything above that is still open, grouped by where the work happens.
 
-### In Xcode, on the Mac
-
-The Share Extension target
-exists and only needs one signed build to register its app group; automatic
-signing registers the App Group along with the four profiles. The rest of the Mac work is in
-[OPEN_ITEMS.md](OPEN_ITEMS.md).
-
-### In App Store Connect
-
-| What | Where |
-|---|---|
-| App Privacy answers (precise location, purchases, user id, user content, fitness) | App → App Privacy → **Get Started / Edit**, one card per data type; they must match `ios/Runner/PrivacyInfo.xcprivacy` |
-| Age rating | App → **App Information** → Age Rating → Edit; answer the AI and user-generated-content questions for a constrained planner |
-| Privacy policy URL | App → **App Information** → Privacy Policy URL, and App Privacy → Privacy Policy |
-| Terms of use (EULA) | App → **App Information** → License Agreement, or the standard EULA plus the paywall link |
-| Subscriptions and the 7-day trial | **Monetization → Subscriptions**: one group, monthly and yearly, an introductory offer of seven days free, and the same product ids in RevenueCat |
-| Export compliance | Asked per build; `ITSAppUsesNonExemptEncryption = false` answers it in advance |
-| Review notes | App → the version → **App Review Information** → Notes |
-| Screenshots | App → the version → Previews and Screenshots, 6.9" and 6.5" iPhone |
-
 ### In the Play Console
 
 | What | Where |
 |---|---|
-| Data safety | **Policy → App content → Data safety**; declare location, purchases, the RevenueCat id and the AI prompt text, all "app functionality", none for tracking or advertising, and list the recipients |
+| Store listing: copy, 512 × 512 icon, phone screenshots, feature graphic | **Grow → Store presence → Main store listing**; copy from `app/fastlane/metadata/android/en-US/` |
+| Privacy policy URL | **Policy → App content → Privacy policy**, `https://velorki.com/privacy` |
+| Data safety | **Policy → App content → Data safety**; declare location, purchases, the RevenueCat id, the AI prompt text and fitness (a shared ride), all "app functionality", none for tracking or advertising, and list the recipients |
+| Health Connect | **Policy → App content → Health apps**: the privacy policy link and `READ_HEART_RATE`, `WRITE_EXERCISE`, `WRITE_DISTANCE` explained as ride recording |
 | Sensitive permissions / background location | **Policy → App content → Sensitive app permissions**; nothing to declare while `ACCESS_BACKGROUND_LOCATION` stays out of the manifest, but the page has to be answered |
 | Location "Minimum Scope" declaration | **Policy → App content**, before November 2026 |
-| Content rating (IARC) | **Policy → App content → Content rating** |
+| Content rating (IARC) | **Policy → App content → Content rating**; answer for a constrained planner |
 | Target audience, ads, government apps, financial features | **Policy → App content**, the remaining cards; all "no" |
 | Export compliance | **Policy → App content → US export laws** |
-| Privacy policy URL | **Grow → Store presence → Store listing**, and App content → Privacy policy |
-| Service account for `supply` | Google Cloud console → service account → key, then **Users and permissions** in the Play Console with the *Release manager* role; the path goes into `PLAY_SERVICE_ACCOUNT_JSON_PATH` (see `app/fastlane/README.md`) |
-| Subscriptions and the 7-day trial | **Monetize → Products → Subscriptions**, matching the RevenueCat product ids |
-| Internal testing track and, if the account is personal, the 14-day closed test with 12 testers | **Test and release → Testing** |
+| Closed test, if the account is personal: 14 days, 12 testers | **Test and release → Testing → Closed testing** |
+| Production release | **Test and release → Production**, once the above is done; then `NEXT_PUBLIC_STORE_URL_ANDROID` on the website (see [OPEN_ITEMS.md](OPEN_ITEMS.md)) |

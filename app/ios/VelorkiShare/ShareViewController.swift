@@ -13,6 +13,12 @@
 //  sheet then sits invisibly over Files with the screen dimmed. A file is a
 //  file here, whatever it also conforms to.
 //
+//  A place shared from a map app or a messenger arrives as a web URL, as
+//  plain text, or (Apple Maps) as a vCard beside its URL. URLs and text go
+//  over as they are and the Dart side reads the place out of them; a vCard
+//  goes as its text only when nothing else came, since Apple Maps puts the
+//  same place in its URL, and is never copied as a file: it is no track.
+//
 
 import UIKit
 import UniformTypeIdentifiers
@@ -44,11 +50,51 @@ class ShareViewController: RSIShareViewController {
         let lock = NSLock()
         let group = DispatchGroup()
 
+        let isLinkAttachment = { (attachment: NSItemProvider) -> Bool in
+            !attachment.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier)
+                && attachment.hasItemConformingToTypeIdentifier(UTType.url.identifier)
+        }
+        let hasLink = attachments.contains(where: isLinkAttachment)
+
         for attachment in attachments {
+            let isVCard = attachment.hasItemConformingToTypeIdentifier(UTType.vCard.identifier)
             let isFile = attachment.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier)
-            let isLink = !isFile && attachment.hasItemConformingToTypeIdentifier(UTType.url.identifier)
+            let isLink = isLinkAttachment(attachment)
+            let isText = !isFile && !isLink
+                && attachment.hasItemConformingToTypeIdentifier(UTType.plainText.identifier)
             let isData = attachment.hasItemConformingToTypeIdentifier(UTType.data.identifier)
-            if isLink {
+            if isVCard {
+                // Apple Maps sends the place's vCard beside its URL; the URL
+                // says it all. Alone, its text may still carry a map link.
+                if hasLink { continue }
+                group.enter()
+                attachment.loadDataRepresentation(forTypeIdentifier: UTType.vCard.identifier) { data, _ in
+                    if let data, let text = String(data: data, encoding: .utf8) {
+                        lock.lock()
+                        shared.append(SharedMediaFile(path: text, type: .text))
+                        lock.unlock()
+                    }
+                    group.leave()
+                }
+            } else if isText {
+                group.enter()
+                attachment.loadItem(forTypeIdentifier: UTType.plainText.identifier) { item, _ in
+                    var text: String?
+                    if let string = item as? String {
+                        text = string
+                    } else if let string = item as? NSAttributedString {
+                        text = string.string
+                    } else if let data = item as? Data {
+                        text = String(data: data, encoding: .utf8)
+                    }
+                    if let text, !text.isEmpty {
+                        lock.lock()
+                        shared.append(SharedMediaFile(path: text, type: .text))
+                        lock.unlock()
+                    }
+                    group.leave()
+                }
+            } else if isLink {
                 group.enter()
                 attachment.loadItem(forTypeIdentifier: UTType.url.identifier) { item, _ in
                     if let url = item as? URL {

@@ -60,7 +60,10 @@ void main() {
 
     expect(h.photonAdapter.requests, hasLength(1));
     expect(h.photonAdapter.lastUri.queryParameters['q'], 'munich');
-    expect(h.photonAdapter.lastUri.queryParameters['lang'], testLocaleName);
+    expect(
+      h.photonAdapter.lastUri.queryParameters['lang'],
+      testLocale.languageCode,
+    );
     expect(find.text('Munich'), findsOneWidget);
     expect(find.text('Cafe Kosmos'), findsOneWidget);
 
@@ -273,6 +276,28 @@ void main() {
       expect(find.text(l10n.searchKindTown), findsOneWidget);
     });
 
+    testWidgets('typing on keeps the rows under a thin bar until the next '
+        'answer', (tester) async {
+      await pumpField(tester);
+      expect(find.text('Vaduz'), findsOneWidget);
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+
+      await tester.enterText(find.byType(TextField), 'muhleholz');
+      await tester.pump();
+      expect(
+        find.text('Vaduz'),
+        findsOneWidget,
+        reason: 'the last answer stays while the next one is looked for',
+      );
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pumpAndSettle();
+      expect(find.text('Vaduz'), findsNothing);
+      expect(find.text('Mühleholz'), findsWidgets);
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+    });
+
     testWidgets('a village names its town, a POI its kind', (tester) async {
       await pumpField(tester, text: 'muhleholz');
 
@@ -303,10 +328,17 @@ void main() {
     ) async {
       await pumpField(tester, text: 'stadtle 2');
 
-      expect(find.text('Städtle'), findsOneWidget);
+      expect(find.text('Städtle 2'), findsOneWidget, reason: 'the address');
       expect(
-        find.text('${l10n.searchKindStreet} \u00b7 2 \u00b7 Vaduz'),
+        find.text('${l10n.searchKindStreet} \u00b7 Vaduz'),
         findsOneWidget,
+      );
+
+      await pumpField(tester, text: '2 stadtle');
+      expect(
+        find.text('2 Städtle'),
+        findsOneWidget,
+        reason: 'the number where the rider put it',
       );
     });
 
@@ -977,7 +1009,16 @@ void _kindTable() {
 
     expect(
       localResultSubtitle(l10n, street(number: '400')),
-      '${l10n.searchKindStreet} \u00b7 400 \u00b7 Manhattan',
+      '${l10n.searchKindStreet} \u00b7 Manhattan',
+      reason: 'the number is in the title',
+    );
+    expect(
+      searchResultTitle(l10n, street(number: '400')),
+      'West 42nd Street 400',
+    );
+    expect(
+      searchResultTitle(l10n, street(number: '400'), numberFirst: true),
+      '400 West 42nd Street',
     );
     expect(
       localResultSubtitle(l10n, street(number: '410', approximate: true)),
@@ -995,8 +1036,8 @@ void _kindTable() {
           houseNumber: '7',
         ),
       ),
-      '${l10n.searchKindStreet} \u00b7 7',
-      reason: 'the separator is only put where there is something to separate',
+      l10n.searchKindStreet,
+      reason: 'the number is in the title, and nothing is left to separate',
     );
   });
 

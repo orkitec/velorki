@@ -4,17 +4,18 @@ Everything below needs a person, a Mac, a live service, or a longer test on
 the phone than has happened so far. The app runs on a Pixel 3 XL and has
 recorded real rides; planning, on-device routing, the map and recording are
 exercised there. The items here are the parts not yet covered by that.
+iOS 1.0 is on the App Store; Google Play is at internal testing.
 
 ## Servers and accounts (Steffen)
 
-- [ ] **Web + relay on the VPS**: follow [docs/DEPLOY_WEB.md](DEPLOY_WEB.md) —
-      Ubuntu 24.04, Node 22, Orkify, Caddy with a Cloudflare Origin CA
-      certificate, the Cloudflare zone on Full (strict), backups. Then the
-      `production` branch, `ORKIFY_API_KEY` (a project key from the Orkify
-      dashboard) as a secret of the `web-production` environment for
-      `web-deploy.yml` — the only secret that deploy needs — and the process
-      environment from `deploy/web/velorki-web.env.example` in the Orkify
-      dashboard (`SHARE_DB_PATH` must stay outside the release tree).
+- [ ] **Website settings**: `NEXT_PUBLIC_STORE_URL_IOS`
+      (`https://apps.apple.com/app/id6816790504`) now and
+      `NEXT_PUBLIC_STORE_URL_ANDROID` once Play is live, both read at build
+      time, so redeploy after setting them; and `ANDROID_CERT_SHA256` — the
+      Play app signing key's SHA-256 from Play Console → App integrity — so
+      `/.well-known/assetlinks.json` stops answering 404 and Android's App
+      Links verify (iOS's `apple-app-site-association` is served already).
+      Process environment in the Orkify dashboard.
 - [ ] **BRouter on the VPS**: `deploy/` (compose with Caddy + BRouter + updater,
       or the systemd units). First planet sync 1–3 h; `SEGMENT_FILTER` for a
       regional start. Only needed for routing outside downloaded tiles.
@@ -22,28 +23,16 @@ exercised there. The items here are the parts not yet covered by that.
       describes is in the app; the two comparison rides that would prove it are
       not. That file's "How to measure" is the procedure; write both numbers
       into it.
-- [ ] **Strava API application**: client id/secret into the relay;
-      "Authorization Callback Domain" = `oauth`; the developer account needs an
-      active Strava subscription; self-service up to 10 athletes, then review.
+- [ ] **Strava**: submit the API review before 10 athletes connect; keep the
+      developer account's Strava subscription active; move to
+      `api-v3.strava.com` before 2027-01-04.
 - [ ] **Head-unit sync** (Plus): send a route to Garmin, Wahoo and Hammerhead.
       None takes courses over Bluetooth from a third party; each has a cloud
       API behind a partner programme (Garmin Courses via Connect, Wahoo Cloud
       API, Hammerhead dashboard) that needs a server-side secret, so it lives
       in the relay. Garmin first. GPX export into the makers' apps works today.
-- [ ] **RideWithGPS API client**: self-service key + OAuth client id/secret.
-- [ ] **RevenueCat project**: entitlement `plus`, one offering with
-      monthly/yearly packages, a 7-day introductory offer; public SDK keys into
-      a `prod` env file (not committed), secret REST key into the relay
-      (`REVENUECAT_SECRET_KEY`; `REVENUECAT_MODE` defaults to `live`, so set
-      `stub` explicitly until then).
-- [ ] **LLM**: OpenRouter — `LLM_BASE_URL=https://openrouter.ai/api/v1`,
-      `LLM_API_KEY`, `LLM_MODEL` (a model with tool calling), both
-      `LLM_USD_PER_1K_*` prices and `LLM_DAILY_BUDGET_USD` in the relay; in the
-      OpenRouter account, exclude providers that train on or retain prompts,
-      as the privacy policy promises.
 - [ ] **velorki.com**: the `ride@velorki.com`
-      mailbox (support and security reports). (Nameservers, DNS and TLS are step 5 of
-      [DEPLOY_WEB.md](DEPLOY_WEB.md).)
+      mailbox (support and security reports).
 - [ ] **Website legal pages**: the imprint, the privacy policy and the terms
       are filled in and published (`draft: false`, effective 27 September 2026,
       provider data from the Orkify imprint). What is left is a lawyer's read of
@@ -54,13 +43,6 @@ exercised there. The items here are the parts not yet covered by that.
       neither train on nor retain them (keep those account settings on), and the log retention says
       14 days for the web server's access logs and 90 for the application log
       lines in Orkify.
-- [ ] **Crowdin**: create the project (source English, target German), request
-      the open-source plan, and add the `CROWDIN_PROJECT_ID` and
-      `CROWDIN_PERSONAL_TOKEN` secrets in the GitHub repo.
-      [docs/LOCALISATION.md](LOCALISATION.md) has the steps.
-- [ ] **GitHub secrets for release.yml**: `ANDROID_KEYSTORE_B64`,
-      `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `APP_ENV_PROD_JSON`,
-      `PLAY_SERVICE_ACCOUNT_JSON`.
 - [ ] **Geocoder**: the on-device gazetteer is done — a rider with routing
       tiles searches `<TILE>.gaz` first and only reaches Photon by tapping
       "Search online for …". The `publish-gazetteer` workflow in
@@ -79,16 +61,8 @@ exercised there. The items here are the parts not yet covered by that.
 
 ## On the Mac (Xcode)
 
-- [ ] iOS release from CI, once: follow [RELEASE_IOS.md](RELEASE_IOS.md) —
-      the App Store Connect API key, a development identity for CI and the
-      GitHub secrets. The tag workflow (`.github/workflows/ios-release.yml`)
-      is written and waits on them.
-      Development builds sign automatically with the orkitec team and run on
-      a phone; the file-open handler in `ios/Runner/AppDelegate.swift` has
-      not been tried yet.
-- [ ] Sign once with the **Share Extension**: the `VelorkiShare` target exists
-      and CI compiles it, but the App Group `group.com.orkitec.velorki` is only
-      registered in the developer portal after one signed build on the Mac.
+- [ ] The file-open handler in `ios/Runner/AppDelegate.swift` (a GPX opened
+      from Files or another app) has not been tried on a phone.
 - [ ] **Apple Watch app** (`app/ios/VelorkiWatch`): its buttons and footnotes
       are English only (the ARB cannot reach a native target; add
       `Localizable.strings` for German); no complications. A ride on the
@@ -110,12 +84,6 @@ exercised there. The items here are the parts not yet covered by that.
 - [ ] `watch_connectivity` pulls `play-services-wearable` into the APK for an
       iOS-only feature; replace it with a small iOS-only channel if an F-Droid
       listing is wanted.
-- [ ] **Associated Domains**, once: enable the capability for the app id in
-      the developer portal (the `applinks:velorki.com` entitlement is already
-      in `ios/Runner/Runner.entitlements`). The website must serve the two
-      `.well-known` files for the links to verify, which needs `APPLE_TEAM_ID`
-      and `ANDROID_CERT_SHA256` — the release keystore's SHA-256 fingerprint
-      from `keytool -list -v` — in its environment.
 - [ ] Voice cues over a Bluetooth headset: one ride with the headset paired,
       to confirm the held audio session and the silent lead-in really do stop
       cues arriving scrambled or cut short (`turn_speaker.dart`,

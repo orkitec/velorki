@@ -127,8 +127,34 @@ class SheetGeometry {
     );
   }
 
+  /// The geometry a tab's sheet has under the shell's bar or rail, for a
+  /// sheet in a route over the shell (a modal sheet on the root navigator),
+  /// whose [media] does not count the bar or the rail: so such a sheet can
+  /// rest where the tab's sheet rests.
+  factory SheetGeometry.overShell(MediaQueryData media, ShellLayout layout) {
+    final viewPadding = media.viewPadding;
+    if (!layout.sideRail) {
+      return SheetGeometry._(
+        layout: layout,
+        length: media.size.height,
+        endInset: viewPadding.bottom + floatingBarBottomGap + floatingBarHeight,
+        viewEndInset: viewPadding.bottom,
+      );
+    }
+    final left = layout.side == RailSide.left;
+    return SheetGeometry._(
+      layout: layout,
+      length: media.size.width,
+      endInset: floatingRailInset(viewPadding, layout.side),
+      viewEndInset: left ? viewPadding.left : viewPadding.right,
+    );
+  }
+
   /// The layout the sheet is in.
   final ShellLayout layout;
+
+  /// How far the sheet reaches from its end of the screen at rest, in dp.
+  double get restingDp => resting * length;
 
   /// Whether the sheet is turned sideways.
   bool get sideways => layout.sideRail;
@@ -517,6 +543,54 @@ class BesideSheet extends StatelessWidget {
           ? const EdgeInsets.only(left: beside)
           : const EdgeInsets.only(right: beside),
       child: child,
+    );
+  }
+}
+
+/// [child], a tab's sheet or the AI's card over it, slid [hidden] of
+/// the way out of view along its travel: down past the screen's bottom
+/// upright, out past the rail's edge sideways. [distance] is how far out of
+/// view is, in dp: as far as the sheet reaches now, so a card let go half
+/// way down by the rider goes on from there.
+///
+/// Only moved, never resized or barred: what the sheet leaves free is the
+/// map's all the way through, and the sheet keeps its size and place to
+/// come back to.
+class SheetSlide extends StatelessWidget {
+  /// Creates the slide.
+  const SheetSlide({
+    required this.hidden,
+    required this.distance,
+    required this.child,
+    super.key,
+  });
+
+  /// 0 in view, 1 out of view.
+  final Animation<double> hidden;
+
+  /// How far out of view is, in dp, read every frame.
+  final ValueGetter<double> distance;
+
+  /// The sheet.
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final turns = shellQuarterTurns(ShellLayout.of(context));
+    return AnimatedBuilder(
+      animation: hidden,
+      child: child,
+      builder: (context, child) {
+        final away = hidden.value * distance();
+        return Transform.translate(
+          offset: switch (turns) {
+            1 => Offset(-away, 0),
+            3 => Offset(away, 0),
+            _ => Offset(0, away),
+          },
+          child: child,
+        );
+      },
     );
   }
 }

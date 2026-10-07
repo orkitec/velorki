@@ -38,6 +38,8 @@ Die Suche wird auf dem Handy beantwortet, wo immer der Index des Gebiets herunte
 
 Sie geht online, wenn du auf **Online nach „…“ suchen** tippst, oder wenn du für das angesehene Gebiet keinen Index hast. Dann geht dein Text an Photon, zusammen mit einer groben Position, damit nahe Ergebnisse zuerst kommen.
 
+Einen kurzen Kartenlink, den du in Velorki teilst (`maps.app.goo.gl`, `maps.apple/p`, `osm.org/go`), öffnet Velorki einmal bei dem Dienst, der ihn erzeugt hat, um zu erfahren, wohin er zeigt; dieser Dienst sieht den Link und deine IP-Adresse, wie im Browser.
+
 ### Während du aufzeichnest
 
 Gar nichts verlässt das Handy. Aufnahme, Statistik, Diagramme und Splits werden alle auf dem Gerät berechnet. Dasselbe gilt für Puls, Trittfrequenz und Leistung von einer Uhr, einem Bluetooth-Sensor oder deiner Health-App: Sie werden mit der Fahrt gespeichert und, wenn du Health eingeschaltet hast, auf dem Handy selbst mit Apple Health oder Health Connect ausgetauscht.

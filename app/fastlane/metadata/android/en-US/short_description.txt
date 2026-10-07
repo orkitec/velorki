@@ -1,1 +1,1 @@
-Plan bike routes, generate loops, record rides. Open source, OpenStreetMap data.
+Plan bike routes, find loops, record rides, even offline. Free and open source.

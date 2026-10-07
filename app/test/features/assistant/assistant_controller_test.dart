@@ -14,6 +14,7 @@ import 'package:velorki/features/assistant/domain/intent_resolver.dart';
 import 'package:velorki/features/integrations/common/data/relay_client_provider.dart';
 import 'package:velorki/features/planner/application/planner_controller.dart';
 import 'package:velorki/features/planner/data/routing_backend_provider.dart';
+import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/features/smart_loop/application/smart_loop_controller.dart';
 import 'package:velorki_api/velorki_api.dart';
@@ -211,6 +212,32 @@ void main() {
       ]);
       expect(planner.isClosedLoop, isTrue);
       expect(planner.options.differentWayBack, isTrue);
+    });
+
+    test('a loop past a place is planned with the bike asked for', () async {
+      final relay = FakeRelayClient(
+        planEvents: <PlanEvent>[
+          RouteRequestEvent(
+            routeRequest(via: ['Tegernsee'], profileHint: ProfileHint.gravel),
+          ),
+          const DoneEvent(),
+        ],
+      );
+      final container = await _container(
+        relay: relay,
+        geocoder: FakeGeocoder({
+          'Tegernsee': [place('Tegernsee', 47.71, 11.75)],
+        }),
+      );
+
+      await container
+          .read(assistantControllerProvider.notifier)
+          .submit('a gravel loop past the Tegernsee', position: _here);
+
+      expect(
+        container.read(plannerControllerProvider).options.profile,
+        RouteProfile.gravel,
+      );
     });
 
     test('an ambiguous name waits for the rider, then resolves', () async {

@@ -1,0 +1,42 @@
+{
+  "01-cover": {
+    "headline": "Ride where\nthe **signal ends**",
+    "subline": "The free, open-source bike planner for **iPhone, Android and Apple Watch**. Plan, search and navigate, fully offline."
+  },
+  "02-offline": {
+    "chip": "Offline",
+    "headline": "No signal?\n**No problem.**",
+    "subline": "Download your region once. Maps, routing, search and spoken turns keep working in airplane mode."
+  },
+  "03-navigate": {
+    "chip": "Plan & navigate",
+    "headline": "Every turn,\n**spoken aloud**",
+    "subline": "Road, gravel, touring or MTB. Ask for a 60 km loop, then follow the voice. Miss a turn and Velorki gets you back on track."
+  },
+  "04-watch": {
+    "chip": "Apple Watch",
+    "headline": "Heart rate,\n**no strap needed**",
+    "subline": "Your Apple Watch streams your pulse into every ride and shows the next turn on your wrist."
+  },
+  "05-stats": {
+    "chip": "Ride stats",
+    "headline": "Every climb\n**on the record**",
+    "subline": "Elevation, speed, heart rate and splits for every ride. Export to GPX or FIT, or sync to Strava."
+  },
+  "06-plus": {
+    "chip": "Velorki Plus",
+    "headline": "AI routes.\n**Strava sync.**\nShared links.",
+    "subline": "Everything on your phone is free. The optional Plus subscription adds the online extras, with a **7-day free trial** on the yearly plan."
+  },
+  "07-built-with-ai": {
+    "chip": "Built with AI",
+    "headline": "Weeks,\n**not years**",
+    "subline": "Test first, automate everything, keep the judgement human. An AI assistant did the typing.",
+    "stats": [
+      ["17 days", "first commit to App Store"],
+      ["3,800+", "automated tests"],
+      ["3 apps", "iPhone, Android, Apple Watch"],
+      ["16", "CI workflows, fully automated"]
+    ]
+  }
+}

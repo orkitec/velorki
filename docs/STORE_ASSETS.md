@@ -23,10 +23,17 @@ app/tool/store_screenshots.sh [--locales en,de] [--themes light,dark] [--shots s
    Max, created on the first run), once per language: the simulator's
    language and region are set, the status bar reads 9:41, and
    `app/integration_test/store/store_screenshots_test.dart` takes every screen
-   the slides use, in each theme: the plan (in the dark theme also in another
-   accent), its variants, a loop, a GPX import, a ride's charts, the library, a
-   route under a status bar with no signal, and a ride under way, once with
-   the live card and once navigating with the figures bar. Everything is on
+   the slides use, in each theme: the plan, its variants, a loop, the AI card
+   with the loop it asked for, the paywall at the stores' prices (top and
+   bottom), a GPX import, a ride's charts, the library, a
+   route under a status bar with no signal (in the dark theme also in another
+   accent), and a ride under way, once with the live card and once navigating
+   with the figures bar. The AI card talks to the relay mocked in the test
+   process (`app/test/support/mock_relay.dart`), with Plus and consent
+   granted and the answer fixed in `demo_data.dart`, so nothing leaves the
+   device. The paywall's offering is a fake of the stores' (`plusOffering`
+   in `demo_data.dart`: €34.99 a year with a 7-day free trial, €3.99 a month
+   without one, priced in the language's format). Everything is on
    Madeira and computed on the device from the tile `app/tool/itest_mirror.sh`
    serves. The demo ride is laid along a route the device plans, with a speed
    from the gradient and a heart rate from the effort; the ride under way is
@@ -56,7 +63,7 @@ riding screen; `lock`, the Lock Screen with the ride's Live Activity and the
 expanded Dynamic Island, drawn after `app/ios/VelorkiLiveActivity/` with the
 figures the test saved (the simulator cannot show a Live Activity on its Lock
 Screen); `split`, the same screen light and dark, cut diagonally below the copy, the
-dark half in another accent.
+dark half in another accent (`<screen>-accent.png`, when the capture has one).
 
 watchOS keeps its own clock whatever the simulator's status bar is told, so
 the watch slide paints 9:41 over it, as the phone shows.
@@ -66,16 +73,19 @@ Copy and order live in `app/store/`:
 - `slides_en.json`: per slide an `eyebrow`, a `headline` with the accent
   phrase in `**`, and a `subline`. Other languages are `slides_<lang>.json`
   from Crowdin; a slide missing there falls back to English. A headline that
-  runs past three lines, or a subline past two, shrinks to fit.
+  runs past three lines, or a subline past two, shrinks to fit. A slide
+  showing a Plus feature says so in its copy (`ai`): both stores want paid
+  features marked.
 - `slide_set.json`: the set that is uploaded, in order, and per slide its
-  layout, the screen it shows and its style; `brand` puts the app's icon and
+  layout, the screen it shows and its style (plan, variants, navigation,
+  loops, ai, ride, offline-themes, import, lock-screen, watch); `brand` puts the app's icon and
   name above the eyebrow (slide 01 only). The preview's first caption card
   carries them too. Changing the mix is an edit
   there and `--skip-capture`.
 
 `--until plan` or `--until variants` captures only the screens up to that
-one (the test takes them in the order plan, variants, loop, import, ride,
-library, offline, live) and keeps the rest of the last capture.
+one (the test takes them in the order plan, variants, loop, ai, paywall,
+import, ride, library, offline, live) and keeps the rest of the last capture.
 
 Output, git-ignored, under `app/build/store_screenshots/`:
 
@@ -86,6 +96,75 @@ Output, git-ignored, under `app/build/store_screenshots/`:
 - `slides/<style>/<size>/<locale>/<slide>.png`, every slide in both styles
 - `slides/set/<size>/<locale>/NN-<slide>.png`, the set to upload
 - `slides/set/contact-<locale>.png`, the set side by side
+
+## Gallery
+
+```
+app/tool/store_gallery.py [--locales en]
+```
+
+Seven landscape images, 2400 × 1600, for pages that want wide pictures (a
+hackathon or press page): the slides' look turned sideways, the copy on the
+left and two phones, the phone with the watch, or a grid of figures on the
+right. The copy is `app/store/gallery_<lang>.json`, which screens each image
+shows is `GALLERY` in the script. It reads the last capture (the paywall
+shots and the watch's `store/1-riding-turn.png` included) and writes
+`app/build/store_screenshots/gallery/<locale>/NN-<name>.{png,jpg}` (JPEG at
+quality 88) and `contact.png`. The figures on `07-built-with-ai` are
+counted by hand; check them before using it again.
+The README's `docs/images/cover.jpg` is `01-cover` scaled to 1600 px wide
+(`sips -Z 1600`).
+
+## Google Play
+
+```
+app/tool/store_screenshots.sh --platform android [--locales en,de] [--themes light,dark]
+```
+
+The same test on an Android emulator, for the screens the Play set uses.
+Start one first: a Pixel 6 profile (1080 × 2400) on a `google_apis` image,
+e.g. an AVD made with `avdmanager create avd -n Velorki_Shots_Android -d
+pixel_6 -k "system-images;android-35;google_apis;arm64-v8a"` and started with
+`emulator -avd Velorki_Shots_Android -gpu swangle_indirect`. The Play set is
+made on a Mac: on a GPU-less Linux runner every software renderer either
+draws the map without labels, icons and dashed lines (everything MapLibre
+takes from a texture atlas, cf. maplibre-native #3939) or takes the emulator
+down.
+`VELORKI_STORE_EMULATOR` names its adb serial when more than one runs. Per
+language the script sets the emulator's locale (`adb root`, then a reboot
+when it changes), switches on the hole-punch cutout and gesture navigation,
+and the shutter sets SystemUI's demo mode before every shot, checked with
+`dumpsys`: 9:41, full wifi, a full battery, no notification icons, and no
+network at all for the offline shot. The demo mode's
+mobile icon is left out: on API 35 it keeps a stale "3G" and the wrong tint.
+`tool/store_shutter.py --android` answers the test through `adb shell run-as`
+(the request lies in the app's `files/itest/`) and takes the pictures with
+`adb exec-out screencap`. The mirror is reached as `10.0.2.2`. No watch, Lock
+Screen or preview.
+
+`app/tool/store_slides.py --platform android` lays the slides out at
+1242 × 2208 (9:16), the phone frame taking the capture's shape. The set is
+`app/store/slide_set_android.json` (the first eight, no Lock Screen or watch); a
+slide's `android` object in `slides_<lang>.json` overrides its copy there
+(the plan's subline names no phone). Beside the set it makes the 1024 × 500
+feature graphic (the brand line and `feature.headline` over the dark plan)
+and a 512 × 512 icon from the app icon, and fails on a PNG Play would refuse.
+
+What Play wants: 2 to 8 phone screenshots per language, PNG or JPEG without
+alpha, each side 320 to 3840 px, 9:16 portrait,
+up to 8 MB each; a 1024 × 500 feature graphic; a 512 × 512 icon.
+
+Output, git-ignored, under `app/build/store_screenshots/android/`:
+
+- `raw/<theme>/<locale>/<screen>.png`, 1080 × 2400
+- `slides/<style>/android/<locale>/<slide>.png`, every slide in both styles
+- `slides/set/<locale>/NN-<slide>.png` and `feature-graphic.png`, to upload
+- `slides/set/contact-<locale>.png` and `slides/set/icon-512.png`
+
+Uploading is by hand for now, in the Play Console under the store listing,
+per language: the set as phone screenshots in file order, the feature
+graphic and the icon. An upload from CI (fastlane `supply`) comes once the
+app has a Play account.
 
 ## Preview video
 
@@ -190,7 +269,11 @@ against it, to see which converts better.
 → Run workflow), runs `store_screenshots.sh` for the `locales` given, and with
 `preview` the preview too, on a macOS runner. The artifact `store-assets`
 holds `slides/set/` (both sizes, every language, the contact sheets),
-`watch/` and `preview/<locale>/preview.mp4` with its poster. The runner's
+`watch/` and `preview/<locale>/preview.mp4` with its poster. The `ios` and
+`android` inputs choose the sets; `android` (off by default) runs
+`--platform android` on an API 35 emulator on Ubuntu into the artifact
+`store-assets-android`, but its map has no labels (see above), so it only
+checks that the pipeline runs. The runner's
 simulator has no GPU and drops frames of the moving map (a third in the
 navigation scene), so the preview for the store is recorded on a Mac with
 `--preview`; `preview` stays off unless asked for.

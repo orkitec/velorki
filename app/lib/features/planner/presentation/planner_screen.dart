@@ -9,9 +9,12 @@ import 'package:velorki_geo/velorki_geo.dart';
 import '../../../app/router.dart';
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../assistant/application/assistant_sheet_memory.dart';
+import '../../assistant/application/route_advice_controller.dart';
 import '../../assistant/domain/intent_resolver.dart';
 import '../../assistant/presentation/assistant_sheet.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
+import '../../map/application/locate_on_open.dart';
 import '../../map/domain/map_controller.dart';
 import '../../map/presentation/device_position_request.dart';
 import '../../map/presentation/map_chrome.dart';
@@ -29,7 +32,9 @@ import '../../shared/presentation/adaptive_docking_sheet.dart';
 import '../../shared/presentation/docking_sheet.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../../shared/presentation/tab_chrome_slide.dart';
+import '../../smart_loop/application/smart_loop_controller.dart';
 import '../../smart_loop/presentation/smart_loop_sheet.dart';
+import '../application/incoming_place.dart';
 import '../application/planner_controller.dart';
 import '../application/planner_map_binding.dart';
 import '../data/route_repository.dart';
@@ -60,7 +65,7 @@ class PlannerScreen extends ConsumerStatefulWidget {
 }
 
 class _PlannerScreenState extends ConsumerState<PlannerScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   /// The shared map, while it can be driven.
   MapController? _map;
 
@@ -179,7 +184,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   double _restingSheetSize = 0.48;
 
   /// How far the sheet opens.
-  static const double _maxSheetSize = 0.9;
+  static const double _maxSheetSize = sheetMaxExtent;
 
   SheetStops get _sheetStops => SheetStops(
     collapsed: _collapsedSheetSize,
@@ -370,6 +375,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     WidgetsBinding.instance.removeObserver(this);
     _binding?.detach();
     _sheet.dispose();
+    _assistantSlide.dispose();
     if (_docked) {
       // Deferred: the tree is locked while a widget goes, and the shell
       // would rebuild for this.
@@ -561,6 +567,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       binding.onLongPress = (pos) {
         unawaited(_addPoiAt(pos));
       };
+      // What the assistant was asked to show about the route.
+      binding.shownPlace = () =>
+          switch (ref.read(routeAdviceControllerProvider).shown) {
+            null => null,
+            final place => shownPoi(place),
+          };
       _binding = binding;
     }
     binding.attach();
@@ -569,6 +581,52 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     final place = _placeToStartFrom;
     if (place != null) {
       unawaited(map.setSearchPin(place.position, label: place.name));
+    }
+    // A place another app sent while the map was not up yet.
+    _takeIncomingPlace();
+  }
+
+  /// Shows a place another app sent ([incomingPlaceProvider]) once this tab
+  /// is on screen and can: one with coordinates goes the way a tapped
+  /// search result goes, an address or a name into the search field as
+  /// typed, and a link only a browser can open gets a short message.
+  void _takeIncomingPlace() {
+    final place = ref.read(incomingPlaceProvider);
+    if (place == null || !mounted || !_active) return;
+    final search = _searchKey.currentState;
+    if (search is! SearchFieldState) return;
+    final link = place.link;
+    final position = link.position;
+    final query = link.query;
+    if (position != null) {
+      // The pin and the camera need the map; on a cold start it comes later,
+      // and the draw that follows it brings the place back here.
+      if (_map == null || !_drawing) return;
+      ref.read(incomingPlaceProvider.notifier).taken(place);
+      // The place is where the rider asked the map to go, as surely as a
+      // hand on it: the move to the rider's position that an opening of the
+      // app starts (a cold start through this very link) must not take the
+      // map back once its fix comes in.
+      ref.read(locateOnOpenProvider).touched();
+      search.select(
+        SearchResult(
+          name:
+              link.name ??
+              '${position.lat.toStringAsFixed(5)}, '
+                  '${position.lon.toStringAsFixed(5)}',
+          position: position,
+        ),
+      );
+    } else if (query != null) {
+      ref.read(incomingPlaceProvider.notifier).taken(place);
+      search.searchFor(query);
+    } else {
+      ref.read(incomingPlaceProvider.notifier).taken(place);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).placeLinkNeedsBrowser),
+        ),
+      );
     }
   }
 
@@ -661,13 +719,21 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
   /// fallback start. A loop the sheet made, closed or re-routed is fitted
   /// into the visible map once the sheet is gone: the start may have been
   /// off screen, and the sheet itself covered most of the map until now.
-  Future<void> _smartLoop() async {
+  ///
+  /// With [returnWhenDone], for a search the assistant started, the sheet
+  /// closes by itself once that search is done; answers whether it did.
+  Future<bool> _smartLoop({bool returnWhenDone = false}) async {
     final before = ref.read(plannerControllerProvider).result;
-    await showSmartLoopSheet(context, map: _map, chromeTop: _ownControlsTop);
-    if (!mounted) return;
+    final done = await showSmartLoopSheet(
+      context,
+      map: _map,
+      chromeTop: _ownControlsTop,
+      returnWhenDone: returnWhenDone,
+    );
+    if (!mounted) return false;
     final result = ref.read(plannerControllerProvider).result;
-    if (result == null || identical(result, before)) return;
-    _fitRoute(result);
+    if (result != null && !identical(result, before)) _fitRoute(result);
+    return done;
   }
 
   /// Fits [result] into the map between this tab's chrome and its sheet.
@@ -682,32 +748,139 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     );
   }
 
-  /// Opens the assistant, then shows whatever it produced.
+  /// Whether the assistant's card is over the sheet: the plan's card stays
+  /// where it was, as it was, under it, and is there again when the AI's
+  /// card goes.
+  bool _assistantOpen = false;
+
+  /// The AI's card coming over the plan's: 0 out of view, 1 in. Opening, it
+  /// slides in along the sheets' travel, in the time and curve a tab's
+  /// sheet settles in; closing, back out from wherever it is. The plan's
+  /// card does not move.
+  late final AnimationController _assistantSlide =
+      AnimationController(vsync: this, duration: tabSheetSettleDuration)
+        ..addStatusListener((_) {
+          if (mounted) setState(() {});
+        });
+  late final Animation<double> _assistantIn = CurvedAnimation(
+    parent: _assistantSlide,
+    curve: tabChromeSlideCurve,
+    reverseCurve: tabChromeSlideCurve.flipped,
+  );
+  late final Animation<double> _assistantOut = ReverseAnimation(_assistantIn);
+
+  /// Which opening of the AI's card this is: each one is a card of its own,
+  /// set up from what the assistant remembers, even one that comes back
+  /// while the last is still sliding out.
+  int _assistantSession = 0;
+
+  /// Whether the AI's card of this opening opens all the way.
+  bool _assistantFull = false;
+
+  /// How much of the screen's length the AI's card covers, as it reports.
+  double _assistantExtent = 0.5;
+
+  /// The screen's length along the sheets' travel, at the last build.
+  double _sheetLength = 0;
+
+  /// The entry that makes the system's back close the assistant's card,
+  /// while it is open.
+  LocalHistoryEntry? _assistantBack;
+
+  /// Opens the assistant in the sheet's place.
   ///
-  /// A loop with no place to ride past is already running as a loop search
-  /// when the sheet closes, so the loop sheet opens on top of it and shows
-  /// the result as it arrives. Everything else — a loop through places, a
-  /// point-to-point route — is already on the map.
-  Future<void> _ask() async {
-    final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    final intent = await showAssistantSheet(context, map: _map);
-    if (!mounted || intent == null) return;
-    if (intent is LoopIntent) {
-      if (intent.via.isEmpty) {
-        await _smartLoop();
-      } else {
-        messenger.showSnackBar(
-          SnackBar(content: Text(l10n.assistantRouteHandedOver)),
-        );
-      }
+  /// A rider known to be without Plus gets the card all the same, to look
+  /// around in, with Subscribe where Ask would be.
+  Future<void> _ask() async => _openAssistant();
+
+  void _openAssistant() {
+    if (_assistantOpen || !mounted) return;
+    // Over a plan's card pulled up past its rest the AI's card opens all
+    // the way, its next stop, so that none of the plan's card shows above
+    // it; otherwise at the plan's card's resting height.
+    final full = _sheet.isAttached && _sheet.size > _restingSheetSize + 0.005;
+    setState(() {
+      _assistantOpen = true;
+      _assistantFull = full;
+      _assistantSession++;
+    });
+    unawaited(_assistantSlide.forward());
+    // Not docked: the AI's card is up.
+    _reportDocked(false);
+    final extent = full ? _maxSheetSize : _restingSheetSize;
+    _assistantExtent = extent;
+    _onSheetExtent(extent);
+    late final LocalHistoryEntry entry;
+    entry = LocalHistoryEntry(
+      onRemove: () {
+        // Back: the entry went by itself.
+        if (!identical(_assistantBack, entry)) return;
+        _assistantBack = null;
+        _assistantClosed(null);
+      },
+    );
+    _assistantBack = entry;
+    ModalRoute.of(context)?.addLocalHistoryEntry(entry);
+  }
+
+  /// The assistant's card asked to go, with what it handed over.
+  void _closeAssistant(ResolvedIntent? intent) {
+    final entry = _assistantBack;
+    _assistantBack = null;
+    entry?.remove();
+    _assistantClosed(intent);
+  }
+
+  /// The assistant's card has gone: the plan's card is back as it was, and
+  /// whatever the assistant produced is shown.
+  ///
+  /// A loop with no place to ride past is running as a loop search, so the
+  /// loop sheet opens on it and the card comes back once it is done. Anything
+  /// else — a loop through places, a point-to-point route — is on the map.
+  void _assistantClosed(ResolvedIntent? intent) {
+    if (!_assistantOpen || !mounted) return;
+    setState(() => _assistantOpen = false);
+    unawaited(_assistantSlide.reverse());
+    if (_sheet.isAttached) _onSheetExtent(_sheet.size);
+    if (intent == null) return;
+    if (intent is LoopIntent && intent.via.isEmpty) {
+      unawaited(_loopForAssistant(intent));
       return;
     }
-    if (intent is RouteIntent) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.assistantRouteHandedOver)),
+    if (intent is LoopIntent || intent is RouteIntent) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).assistantRouteHandedOver),
+        ),
       );
     }
+  }
+
+  /// Shows the loop search the assistant started for [intent] and, once it
+  /// is done, brings the assistant back: asking about the loop when one is
+  /// on the map, saying so when none was found. A rider who closed the loop
+  /// sheet or took the search over meanwhile is left where they are.
+  Future<void> _loopForAssistant(LoopIntent intent) async {
+    // The card goes as the intent is ready, a moment before the search it
+    // starts is under way.
+    await Future<void>.value();
+    if (!mounted) return;
+    final running = ref.read(smartLoopControllerProvider).running;
+    // Done before the sheet could open: nothing to watch.
+    final done = running ? await _smartLoop(returnWhenDone: true) : true;
+    if (!mounted || !done || _assistantOpen) return;
+    final planner = ref.read(plannerControllerProvider);
+    final loop = ref.read(smartLoopControllerProvider);
+    final found = loop.current != null && canAskAboutRoute(planner);
+    if (!running && planner.result != null) _fitRoute(planner.result!);
+    ref.read(assistantSheetMemoryProvider)
+      ..loop = LoopHandover(
+        intent: intent,
+        found: found,
+        ends: found ? planEnds(planner) : null,
+      )
+      ..mode = found ? AssistantMode.thisRoute : AssistantMode.newRoute;
+    _openAssistant();
   }
 
   Future<void> _save() async {
@@ -749,6 +922,16 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     final hasBackend = ref.watch(routingBackendProvider) != null;
 
     ref.listen(sharedMapControllerProvider, (_, next) => _onMapChanged(next));
+    // A place another app sent: taken after this frame, when the search
+    // field and the tab's state are settled.
+    if (ref.watch(incomingPlaceProvider) != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _takeIncomingPlace());
+    }
+    ref.listen(routeAdviceControllerProvider.select((s) => s.shown), (_, _) {
+      if (_drawing) {
+        unawaited(_binding?.sync(ref.read(plannerControllerProvider)));
+      }
+    });
     ref.listen(plannerControllerProvider, (previous, next) {
       // Only while this tab's layers are on the map; a plan that changes
       // while the tab is away is drawn whole when it comes back.
@@ -769,6 +952,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     // its end; sideways it is the same sheet turned, coming out from the
     // rail's side over the screen's width.
     final geometry = SheetGeometry.of(context);
+    _sheetLength = geometry.length;
     final bottomInset = geometry.endInset;
     // Collapsed, only the handle strip is left beside the floating
     // navigation bar, which the padding already covers under `extendBody`:
@@ -957,58 +1141,95 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                       ),
                     ),
             ),
-            AdaptiveDockingSheet(
-              controller: _sheet,
-              // Enough for the headline, the toolbar and Save above the
-              // floating navigation bar on a 20:9 phone.
-              initialExtent: restingSheetSize,
-              collapsedExtent: collapsedSheetSize,
-              maxExtent: _maxSheetSize,
-              // One resting height, not one per state: with two in the list
-              // a pull down from the top settled on the higher one and a pull
-              // up from the handle on the lower one, a chip row apart.
-              snapSizes: _snapSizesFor(restingSheetSize),
-              gripDp: sheetGripWithTitleDp,
-              dockedRange: dockedRange,
-              docks: true,
-              dockedBottomInset: bottomInset,
-              onDocked: _reportDocked,
-              onExtent: _onSheetExtent,
-              // Its own scrolling, at any height of the sheet; the
-              // sheet moves by its handle.
-              child: Builder(
-                // Looked up from inside the shell, which hands the controller down.
-                builder: (context) => ListView(
-                  controller: SheetContentScroll.maybeOf(context),
-                  padding: EdgeInsets.fromLTRB(
-                    20,
-                    0,
-                    20,
-                    MediaQuery.paddingOf(context).bottom + 24,
-                  ),
-                  children: [
-                    _SheetHeader(state: state),
-                    const SizedBox(height: 14),
-                    // The variants right under the figures, where the sheet
-                    // grows to show them; then the actions, so Loop and Save
-                    // are visible at the sheet's resting height.
-                    if (hasVariants) ...[
-                      _AlternativeChips(state: state),
-                      const SizedBox(height: 12),
-                    ],
-                    _PlannerActions(
-                      state: state,
-                      onAlternatives: _loadAlternatives,
-                      onSmartLoop: _smartLoop,
-                      onAsk: _ask,
-                      onSave: _save,
+            // Where it is, as it is, while the AI's card is over it, but
+            // neither touched nor read out meanwhile: nothing of it is moved
+            // or pressed from under that card, and the map around them stays
+            // the map.
+            IgnorePointer(
+              ignoring: _assistantOpen,
+              child: ExcludeSemantics(
+                excluding: _assistantOpen,
+                child: AdaptiveDockingSheet(
+                  controller: _sheet,
+                  // Enough for the headline, the toolbar and Save above the
+                  // floating navigation bar on a 20:9 phone.
+                  initialExtent: restingSheetSize,
+                  collapsedExtent: collapsedSheetSize,
+                  maxExtent: _maxSheetSize,
+                  // One resting height, not one per state: with two in the list
+                  // a pull down from the top settled on the higher one and a pull
+                  // up from the handle on the lower one, a chip row apart.
+                  snapSizes: _snapSizesFor(restingSheetSize),
+                  gripDp: sheetGripWithTitleDp,
+                  dockedRange: dockedRange,
+                  docks: true,
+                  dockedBottomInset: bottomInset,
+                  onDocked: _reportDocked,
+                  // Under the AI's card, the map is fitted to that card.
+                  onExtent: (extent) {
+                    if (!_assistantOpen) _onSheetExtent(extent);
+                  },
+                  // Its own scrolling, at any height of the sheet; the
+                  // sheet moves by its handle.
+                  child: Builder(
+                    // Looked up from inside the shell, which hands the controller down.
+                    builder: (context) => ListView(
+                      controller: SheetContentScroll.maybeOf(context),
+                      padding: EdgeInsets.fromLTRB(
+                        20,
+                        0,
+                        20,
+                        MediaQuery.paddingOf(context).bottom + 24,
+                      ),
+                      children: [
+                        _SheetHeader(state: state),
+                        const SizedBox(height: 14),
+                        // The variants right under the figures, where the sheet
+                        // grows to show them; then the actions, so Loop and Save
+                        // are visible at the sheet's resting height.
+                        if (hasVariants) ...[
+                          _AlternativeChips(state: state),
+                          const SizedBox(height: 12),
+                        ],
+                        _PlannerActions(
+                          state: state,
+                          onAlternatives: _loadAlternatives,
+                          onSmartLoop: _smartLoop,
+                          onAsk: _ask,
+                          onSave: _save,
+                        ),
+                        const SizedBox(height: 16),
+                        _SheetBody(state: state),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    _SheetBody(state: state),
-                  ],
+                  ),
                 ),
               ),
             ),
+            // The AI's card, over the planner's: no barrier, so the map
+            // above it is the planner's map as ever. Kept while it slides out.
+            if (_assistantOpen || !_assistantSlide.isDismissed)
+              Positioned.fill(
+                child: SheetSlide(
+                  hidden: _assistantOut,
+                  distance: () => _assistantExtent * _sheetLength + 24,
+                  child: IgnorePointer(
+                    // On its way out it takes no more touches.
+                    ignoring: !_assistantOpen,
+                    child: AssistantSheet(
+                      key: ValueKey<int>(_assistantSession),
+                      map: _map,
+                      chromeTop: _ownControlsTop,
+                      onClose: _closeAssistant,
+                      openFull: _assistantFull,
+                      onExtent: (extent) {
+                        _assistantExtent = extent;
+                        _onSheetExtent(extent);
+                      },
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -1100,7 +1321,13 @@ class _SheetHeader extends ConsumerWidget {
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
           const SizedBox(width: 12),
-          Text(l10n.plannerRouting, style: theme.textTheme.titleMedium),
+          // The sheet's content is as narrow as 320 sideways.
+          Flexible(
+            child: Text(
+              l10n.plannerRouting,
+              style: theme.textTheme.titleMedium,
+            ),
+          ),
         ],
       );
     }
@@ -1279,6 +1506,7 @@ class _PlannerActions extends ConsumerWidget {
         LabeledIconButton(
           icon: Icons.auto_awesome_rounded,
           label: l10n.assistantAction,
+          ai: true,
           onPressed: () => unawaited(onAsk()),
         ),
     ];

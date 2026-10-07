@@ -8,7 +8,6 @@ import 'package:velorki_geo/velorki_geo.dart';
 import '../../../core/plus/plus_gate.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
 import '../../planner/application/planner_controller.dart';
-import '../../planner/domain/route_profile.dart';
 import '../../planner/domain/waypoint.dart';
 import '../../smart_loop/application/smart_loop_controller.dart';
 import '../data/ai_consent_controller.dart';
@@ -41,7 +40,16 @@ const String routeStep = 'route';
 @Riverpod(keepAlive: true)
 class AssistantController extends _$AssistantController {
   @override
-  AssistantState build() => const AssistantState();
+  AssistantState build() {
+    // Bought meanwhile: a "part of Velorki Plus" error is not true any more,
+    // and what was typed stays.
+    ref.listen(plusFeatureProvider(PlusFeature.aiAssistant), (_, entitled) {
+      if (entitled && state.problem?.failure == AssistantFailure.notEntitled) {
+        clearProblem();
+      }
+    });
+    return const AssistantState();
+  }
 
   /// Asks the model for a route and hands the answer to the planner.
   ///
@@ -207,7 +215,7 @@ class AssistantController extends _$AssistantController {
           ),
           intent: intent,
         );
-      case LoopIntent(:final request, :final via):
+      case LoopIntent(request: final loop, :final via):
         _ready(intent);
         if (via.isEmpty) {
           // Nothing to ride past, so BRouter's round-trip mode makes the loop.
@@ -215,15 +223,16 @@ class AssistantController extends _$AssistantController {
           // assistant sheet closes onto the loop sheet as soon as this
           // returns.
           unawaited(
-            ref.read(smartLoopControllerProvider.notifier).search(request),
+            ref.read(smartLoopControllerProvider.notifier).search(loop),
           );
         } else {
           // The places to ride past *are* the route; closing it is what makes
-          // it a loop, and the way home avoids the way out.
+          // it a loop, and the way home avoids the way out. The loop
+          // request's profile is the router's name for it, not the planner's.
           ref.read(plannerControllerProvider.notifier)
-            ..setProfile(RouteProfile.fromName(request.profile))
+            ..setProfile(profileFor(request.profileHint))
             ..setWaypoints(<Waypoint>[
-              Waypoint(pos: request.start),
+              Waypoint(pos: loop.start),
               for (final place in via)
                 Waypoint(pos: place.position, name: place.label),
             ])

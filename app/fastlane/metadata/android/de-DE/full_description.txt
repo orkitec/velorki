@@ -1,0 +1,41 @@
+Velorki plant Radrouten, führt dich darauf entlang und zeichnet deine Fahrten auf. Das Routing ist für Räder gemacht und läuft auf deinem Handy, und die ganze App ist Open Source.
+
+PLANEN
+• Tippe Wegpunkte auf die Karte und bekomme eine Route für das Rad, auf dem du sitzt: Tour, Rennrad, Gravel, Mountainbike oder der direkte Weg.
+• Alternativrouten, ein Höhenprofil und eine Aufstellung der Beläge, über die du fährst.
+• Rundtouren: Sag, wie weit du fahren willst und, wenn du magst, einen Ort, an dem du vorbeikommen willst, und Velorki schlägt Runden vor, die dorthin zurückführen, wo du losgefahren bist.
+• Orte suchen und Routen in deiner Bibliothek speichern.
+• Eine Region einmal herunterladen und dort ohne Verbindung planen, suchen und navigieren.
+
+NAVIGATION
+• Abbiegehinweise mit Sprachansagen, auch bei ausgeschaltetem Bildschirm.
+• Kommst du von der Route ab, entscheidest du, was passiert: ein Weg zurück, eine neue Route zum Ziel oder gar nichts.
+• Die Karte folgt dir in Fahrtrichtung, die nächste Abbiegung immer im Blick.
+
+AUFZEICHNEN
+• Zeichnet bei ausgeschaltetem Bildschirm auf und auch, wenn die App geschlossen ist, mit automatischer Pause und einer Benachrichtigung, die die laufende Fahrt zeigt.
+• Strecke, Zeit, Tempo und Anstieg während der Fahrt.
+• Puls von Bluetooth-Sensoren und aus Health Connect; Geschwindigkeits-, Trittfrequenz- und Leistungssensoren gehen auch.
+• Einer geplanten Route folgen und die Fahrt danach ansehen und bearbeiten.
+
+DATEIEN
+• GPX- und FIT-Dateien aus der Dateien-App, aus Mails, aus dem Browser oder über das Teilen-Menü öffnen.
+• Routen und Fahrten als GPX oder FIT exportieren und an Komoot, Garmin Connect, Strava oder alles andere geben, was diese Formate liest.
+
+KOSTENLOS, UND VELORKI PLUS
+Alles, was auf dem Handy läuft, ist kostenlos: Planen, Rundtouren, Navigation, Aufzeichnen, die Bibliothek, Offline-Regionen sowie Import und Export von GPX und FIT.
+
+Velorki Plus ist ein Abo für die Teile, die einen Server oder ein Konto bei einem anderen Dienst brauchen:
+• Strava: eine aufgezeichnete Fahrt hochladen, deine Strava-Routen holen.
+• Ride with GPS: Routen und Fahrten, in beide Richtungen.
+• Der Assistent: Beschreibe in einem Satz, welche Fahrt du willst, und bekomme eine Route.
+• Links teilen für Routen und Fahrten.
+
+Velorki Plus gibt es mit einer kostenlosen Testphase beim Jahresabo und verlängert sich, bis du es in Google Play kündigst. Nutzungsbedingungen: https://velorki.com/de/terms
+
+DATENSCHUTZ
+Kein Konto, keine Anmeldung. Routen, Fahrten und Einstellungen bleiben auf deinem Handy. Nichts geht an Strava oder Ride with GPS, bevor du das Konto verbindest und es ausdrücklich willst. Der Assistent fragt nach deiner Zustimmung, bevor ein Text das Gerät verlässt, und die Position, die er sendet, ist auf etwa einen Kilometer gerundet. Datenschutzerklärung: https://velorki.com/de/privacy
+
+Kartendaten © OpenStreetMap-Mitwirkende. Routing mit BRouter, Kartenkacheln von OpenFreeMap, Ortssuche mit Photon, Rad-Overlay von CyclOSM.
+
+Quellcode: https://github.com/orkitec/velorki

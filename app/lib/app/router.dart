@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +7,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../features/shared/presentation/adaptive_docking_sheet.dart';
 import '../features/shared/presentation/floating_bar.dart';
+import '../features/shared/presentation/gesture_zone_guard.dart';
 import '../features/import_export/data/track_decoder.dart';
 import '../features/import_export/domain/imported_track.dart';
 import '../features/import_export/presentation/import_preview_screen.dart';
@@ -90,6 +92,11 @@ GoRouter createRouter({String initialLocation = plannerRoute}) {
   return GoRouter(
     navigatorKey: GlobalKey<NavigatorState>(debugLabel: 'root'),
     initialLocation: initialLocation,
+    // Links are read by app_links (OAuth returns, shared routes, files), and
+    // the platforms are told not to hand them to the router. Should one get
+    // here all the same, the rider stays where they were rather than on an
+    // error page with no way back.
+    onException: (context, state, router) {},
     routes: [
       GoRoute(
         path: paywallRoute,
@@ -343,6 +350,12 @@ class HomeShell extends ConsumerWidget {
         // themselves stay in view, and the map is never faded: a native
         // view under a fade shows black.
         final fade = ShellLayoutHost.turnFadeOf(context);
+        // Where the system's swipe up from the bottom edge starts, read
+        // above the scaffold, which takes the bottom padding off its body.
+        final gestureZone = systemGestureZoneHeight(
+          MediaQuery.of(context),
+          defaultTargetPlatform,
+        );
         return Scaffold(
           // The bar floats over the content; screens read the bottom padding
           // from MediaQuery to keep their last rows above it.
@@ -351,67 +364,81 @@ class HomeShell extends ConsumerWidget {
           // screens keep their full height under the keyboard, the settings
           // screen resizes as usual.
           resizeToAvoidBottomInset: false,
-          body: Stack(
-            fit: StackFit.expand,
-            children: [
-              // The one map under the Plan, Record and Library tabs, which draw
-              // on it and are transparent over it. Never hidden and never moved
-              // in the stack: the platform view would start over and show black.
-              // The settings tab is an opaque page over it.
-              //
-              // Its bottom inset is pinned to nothing: the scaffold takes the
-              // bottom view padding off its body only while it has a bar, so
-              // with the bar hidden for a ride the map's credit and (i) would
-              // climb by the home indicator's height into the figures bar.
-              MediaQuery.removeViewPadding(
-                context: context,
-                removeBottom: true,
-                child: const SharedMapHost(key: ValueKey<String>('shared-map')),
-              ),
-              if (showColumn)
-                Positioned.fill(
-                  child: FadeTransition(
-                    opacity: fade,
-                    child: layout.sideRail
-                        ? _sidewaysControlsRow(
-                            context,
-                            layout,
-                            onWidth: ref
-                                .read(mapControlsRowWidthProvider.notifier)
-                                .set,
-                            child: controls(layout),
-                          )
-                        : SafeArea(
-                            child: AnimatedBuilder(
-                              animation: columnGlide.animation,
-                              builder: (context, child) => Padding(
-                                padding: EdgeInsets.only(
-                                  top: columnGlide.animation.value,
-                                  right: 12,
-                                ),
-                                child: Align(
-                                  alignment: Alignment.topRight,
-                                  child: child,
-                                ),
-                              ),
-                              child: controls(layout),
-                            ),
-                          ),
+          // A touch that starts in that zone moves neither the sheet nor the
+          // map: iOS hands the start of its swipe to the app before taking
+          // it over, and the sheet flung itself open. The bar upright is
+          // outside the body and above the zone; the rail and the map's
+          // chip let it through.
+          body: GestureZoneGuard(
+            zone: gestureZone,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // The one map under the Plan, Record and Library tabs, which draw
+                // on it and are transparent over it. Never hidden and never moved
+                // in the stack: the platform view would start over and show black.
+                // The settings tab is an opaque page over it.
+                //
+                // Its bottom inset is pinned to nothing: the scaffold takes the
+                // bottom view padding off its body only while it has a bar, so
+                // with the bar hidden for a ride the map's credit and (i) would
+                // climb by the home indicator's height into the figures bar.
+                MediaQuery.removeViewPadding(
+                  context: context,
+                  removeBottom: true,
+                  child: const SharedMapHost(
+                    key: ValueKey<String>('shared-map'),
                   ),
                 ),
-              // Over the column: a sheet or card pulled up covers it, and a
-              // touch beside a tab's chrome falls through to it and to the map,
-              // since the map tabs' routes put no barrier under their content.
-              _besideRail(
-                context,
-                layout,
-                railShown: !hideRail,
-                opaque: !(mapTabs.contains(shell.currentIndex) && atTabRoot),
-                child: shell,
-              ),
-              if (layout.sideRail && !hideRail)
-                Positioned.fill(child: navigation(layout.side)),
-            ],
+                if (showColumn)
+                  Positioned.fill(
+                    child: FadeTransition(
+                      opacity: fade,
+                      child: layout.sideRail
+                          ? _sidewaysControlsRow(
+                              context,
+                              layout,
+                              onWidth: ref
+                                  .read(mapControlsRowWidthProvider.notifier)
+                                  .set,
+                              child: controls(layout),
+                            )
+                          : SafeArea(
+                              child: AnimatedBuilder(
+                                animation: columnGlide.animation,
+                                builder: (context, child) => Padding(
+                                  padding: EdgeInsets.only(
+                                    top: columnGlide.animation.value,
+                                    right: 12,
+                                  ),
+                                  child: Align(
+                                    alignment: Alignment.topRight,
+                                    child: child,
+                                  ),
+                                ),
+                                child: controls(layout),
+                              ),
+                            ),
+                    ),
+                  ),
+                // Over the column: a sheet or card pulled up covers it, and a
+                // touch beside a tab's chrome falls through to it and to the map,
+                // since the map tabs' routes put no barrier under their content.
+                _besideRail(
+                  context,
+                  layout,
+                  railShown: !hideRail,
+                  opaque: !(mapTabs.contains(shell.currentIndex) && atTabRoot),
+                  child: shell,
+                ),
+                if (layout.sideRail && !hideRail)
+                  Positioned.fill(
+                    child: GestureZonePassThrough(
+                      child: navigation(layout.side),
+                    ),
+                  ),
+              ],
+            ),
           ),
           // Upright the bar floats at the bottom, hidden under the keyboard;
           // turned sideways it is a rail at the side, which the keyboard

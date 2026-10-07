@@ -24,8 +24,10 @@ abstract interface class SubscriptionService {
   /// The latest known customer info, without waiting.
   PlusCustomerInfo get latest;
 
-  /// The customer info, starting with [latest] and then every update the
-  /// store SDK reports (a purchase, a restore, an expiry, a refund).
+  /// The customer info, starting with [latest] once the store has answered
+  /// and then every update the store SDK reports (a purchase, a restore, an
+  /// expiry, a refund). Nothing comes before the store's first answer, so a
+  /// listener can tell "not known yet" from "nothing owned".
   Stream<PlusCustomerInfo> get customerInfo;
 
   /// Starts the store SDK. Called once from `bootstrap()`.
@@ -118,10 +120,12 @@ String revenueCatKeyFor(AppConfig config, {required String platform}) =>
 /// a fake and never touch a platform channel.
 final subscriptionServiceProvider = Provider<SubscriptionService>((ref) {
   final config = ref.watch(appConfigProvider);
-  final key = revenueCatKeyFor(config, platform: currentStorePlatform());
+  final platform = currentStorePlatform();
+  final key = revenueCatKeyFor(config, platform: platform);
   if (key.isEmpty) return const NoopSubscriptionService();
   final service = RevenueCatSubscriptionService(
     apiKey: key,
+    platform: platform,
     // The same id the relay authenticates against, so RevenueCat's customer
     // and the `Authorization: Bearer <app_user_id>` the app sends are one
     // and the same subscriber.
@@ -131,7 +135,8 @@ final subscriptionServiceProvider = Provider<SubscriptionService>((ref) {
   return service;
 });
 
-/// The customer info as a stream, for the paywall and the settings tile.
+/// The customer info as a stream, for the paywall, the settings tile and
+/// `plusAccessProvider`. Loading until the store has answered.
 final plusCustomerInfoProvider = StreamProvider<PlusCustomerInfo>(
   (ref) => ref.watch(subscriptionServiceProvider).customerInfo,
 );

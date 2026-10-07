@@ -9,6 +9,8 @@ library;
 
 import 'dart:math' as math;
 
+import 'package:intl/intl.dart';
+import 'package:velorki/features/subscription/domain/plus_subscription.dart';
 import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -22,6 +24,39 @@ class DemoRoute {
 
   /// Where it is routed through, start first.
   final List<LatLng> waypoints;
+}
+
+/// Velorki Plus as the stores sell it: 34.99 a year with a free week first,
+/// 3.99 a month without one, in the currency of the region the capture runs
+/// in (store_screenshots.sh: en is the United States, so "$34.99"; de is
+/// Germany, so "34,99 €").
+PlusOffering plusOffering(String locale) {
+  final money = locale == 'en'
+      ? NumberFormat.currency(locale: 'en_US', name: 'USD', symbol: r'$')
+      : NumberFormat.currency(locale: locale, name: 'EUR', symbol: '€');
+  return PlusOffering(
+    id: 'default',
+    packages: [
+      PlusPackage(
+        id: r'$rc_annual',
+        title: 'Velorki Plus',
+        priceString: money.format(34.99),
+        period: PlusPeriod.annual,
+        introOffer: PlusIntroOffer(
+          priceString: money.format(0),
+          periodUnit: 'day',
+          periodCount: 7,
+          isFree: true,
+        ),
+      ),
+      PlusPackage(
+        id: r'$rc_monthly',
+        title: 'Velorki Plus',
+        priceString: money.format(3.99),
+        period: PlusPeriod.monthly,
+      ),
+    ],
+  );
 }
 
 /// Avenida do Mar in Funchal: where the rider stands, and where the plan and
@@ -68,6 +103,31 @@ const List<LatLng> rideWaypoints = [funchal, LatLng(32.6789, -16.8448)];
 const Map<String, String> rideNames = {
   'en': 'Up to Camacha',
   'de': 'Hinauf nach Camacha',
+};
+
+/// What the rider asks the assistant for on the AI slide, per language.
+const Map<String, String> assistantPrompts = {
+  'en': 'A 40 km gravel loop with a café stop halfway',
+  'de': 'Eine 40-km-Gravel-Runde mit Café-Stopp auf halber Strecke',
+};
+
+/// What the mocked model answers [assistantPrompts] with: a loop from the
+/// rider's position up to Santo António da Serra in the hills east of
+/// Funchal, and back another way, by the coast. `propose_route` as the relay
+/// sends it; the app resolves the name with the region's gazetteer and plans
+/// the loop on the device.
+const Map<String, Object?> assistantAnswer = {
+  'distance_km': 40,
+  'loop': true,
+  'start': {'use_current': true},
+  'via': ['Santo António da Serra'],
+  'surface': 'gravel',
+  'hills': 'neutral',
+  'traffic_tolerance': 'low',
+  'stops': ['cafe'],
+  'profile_hint': 'gravel',
+  'notes': 'Up to a café in Santo António da Serra, back by the coast.',
+  'confidence': 0.9,
 };
 
 /// When the demo ride started: half past nine on the phone's clock, whatever

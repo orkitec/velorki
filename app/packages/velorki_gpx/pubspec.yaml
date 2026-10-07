@@ -11,7 +11,7 @@ dependencies:
   gpx: ^2.5.0
   velorki_geo:
     path: ../velorki_geo
-  xml: ^7.0.0
+  xml: ^7.1.0
 
 dev_dependencies:
   lints: ^6.0.0

@@ -8,12 +8,15 @@ FTS index actually answers a query, and reports the row counts. A POI may have
 a NULL name only when its kind is one of the unnamed utility kinds, and an
 unnamed row must not be in the FTS index, so the indexed count is the named
 rows plus the aliases. No two POI rows share an (osm_type, osm_id, kind). The
-optional `osm_type`/`osm_id` columns and the optional `aliases` /
-`house_numbers` tables are accepted whether or not a file has them; when a file
-does have them, every `ref_id` and `street_id` must resolve and no street may
-carry more than 40 anchors — build.py writes at most 20 today, but a file built
-before that cap still has to pass. The summary reports the real maximum. The
-positional index on `streets` is likewise optional: older files have it, files
+optional `osm_type`/`osm_id` columns and the optional `aliases`,
+`street_numbers`, `vocab` and (older files) `house_numbers` tables are accepted
+whether or not a file has them; when a file does have them, every `ref_id` and
+`street_id` must resolve, every `street_numbers` blob must decode completely,
+`vocab` must be exactly the FTS index's vocabulary, and no street may carry
+more than 40 `house_numbers` anchors. An `importance`, where a table has the
+column, is NULL or 1-255. A file whose `search_script` is `latin` indexes
+transliterated names (translit.py): the query check transliterates the name
+first, and no indexed term may hold a letter either table maps. The positional index on `streets` is likewise optional: older files have it, files
 built today do not. Used by manifest.py before it writes a gazetteer entry, and
 by the tests.
 """
@@ -23,14 +26,20 @@ from __future__ import annotations
 import argparse
 import os
 import sqlite3
+import sys
 from typing import NamedTuple
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from street_numbers import decode  # noqa: E402
+from translit import LETTERS, LETTERS_UK, SEARCH_SCRIPT, translit  # noqa: E402
 
 SCHEMA_VERSION = "1"
 
 TABLES = ("meta", "places", "streets", "pois", "search")
 
-# What a file may carry, not what build.py writes: build.py's cap is 20 today
-# and was 40 before, and a file built then is still a valid file.
+# What an older file's `house_numbers` may carry: its builder wrote at most 20
+# anchors a street, and at most 40 before that.
 MAX_ANCHORS = 40
 
 # Must match build.py's UNNAMED_KINDS: the only kinds a POI may carry with no
@@ -38,7 +47,7 @@ MAX_ANCHORS = 40
 UNNAMED_KINDS = frozenset(
     """
     drinking_water toilets bicycle_repair_station shelter bicycle_rental
-    charging_station picnic_site bicycle_parking
+    charging_station picnic_site bicycle_parking compressed_air fuel
     """.split()
 )
 
@@ -63,6 +72,9 @@ class Report(NamedTuple):
     house_numbers: int = 0
     unnamed_pois: int = 0
     max_anchors: int = 0
+    street_numbers: int = 0
+    number_points: int = 0
+    vocab: int = 0
 
     def summary(self) -> str:
         kinds = ["places", "pois"] if self.has_pois else ["places"]
@@ -72,9 +84,21 @@ class Report(NamedTuple):
             f"{os.path.basename(self.path)}  {self.tile}  "
             f"{self.places} places, {self.streets} streets, "
             f"{self.pois} pois ({self.unnamed_pois} unnamed), "
-            f"{self.aliases} aliases, {self.house_numbers} house numbers "
-            f"(max {self.max_anchors}/street), "
-            f"{self.search} indexed  {self.bytes / 1e6:.2f} MB  "
+            f"{self.aliases} aliases, "
+            + (
+                f"{self.street_numbers} numbered streets "
+                f"({self.number_points} points), "
+                if self.street_numbers
+                else ""
+            )
+            + (
+                f"{self.house_numbers} house numbers "
+                f"(max {self.max_anchors}/street), "
+                if self.house_numbers
+                else ""
+            )
+            + (f"{self.vocab} terms, " if self.vocab else "")
+            + f"{self.search} indexed  {self.bytes / 1e6:.2f} MB  "
             f"[{'+'.join(kinds)}]  built {self.built_at}  from {self.source}"
         )
 
@@ -139,11 +163,18 @@ def check(path: str) -> Report:
         )
 
         _check_osm_columns(db, path)
+        _check_importance(db, path)
         extra = _check_extra_tables(db, path)
         counts["search"] += extra["aliases"]
         counts.update(extra)
         _check_unnamed_are_not_indexed(db, path)
-        _check_query(db, path)
+        latin = meta.get("search_script") == SEARCH_SCRIPT
+        _check_query(db, path, latin)
+        # Last, so a broken index is reported as what it is, not as a stale vocab.
+        if _has_table(db, "vocab"):
+            counts["vocab"] = _check_vocab(db, path)
+        if latin:
+            _check_transliterated(db, path)
     finally:
         db.close()
 
@@ -163,6 +194,9 @@ def check(path: str) -> Report:
         house_numbers=counts["house_numbers"],
         unnamed_pois=counts["unnamed_pois"],
         max_anchors=counts["max_anchors"],
+        street_numbers=counts["street_numbers"],
+        number_points=counts["number_points"],
+        vocab=counts["vocab"],
     )
 
 
@@ -223,6 +257,41 @@ def _check_osm_columns(db: sqlite3.Connection, path: str) -> None:
             )
 
 
+def _check_importance(db: sqlite3.Connection, path: str) -> None:
+    """`importance` is optional; where a table has it, it is NULL or 1-255."""
+    for table in ("places", "pois"):
+        columns = {row[1] for row in db.execute(f"PRAGMA table_info({table})")}
+        if "importance" not in columns:
+            continue
+        bad = db.execute(
+            f"SELECT importance FROM {table} WHERE importance IS NOT NULL"
+            " AND (typeof(importance) != 'integer' OR importance NOT BETWEEN 1 AND 255)"
+            " LIMIT 1"
+        ).fetchone()
+        if bad is not None:
+            raise GazetteerError(f"{path}: {table}.importance is {bad[0]!r}")
+
+
+def _check_transliterated(db: sqlite3.Connection, path: str) -> None:
+    """A `search_script` = `latin` file indexes no letter either table maps."""
+    try:
+        db.execute(
+            "CREATE VIRTUAL TABLE temp.gaz_terms USING fts5vocab(main,'search','row')"
+        )
+    except sqlite3.Error:
+        return  # an SQLite too old for fts5vocab
+    try:
+        letters = frozenset(LETTERS) | frozenset(LETTERS_UK)
+        for (term,) in db.execute("SELECT term FROM temp.gaz_terms"):
+            if not letters.isdisjoint(term):
+                raise GazetteerError(
+                    f"{path}: search_script is {SEARCH_SCRIPT!r} but the index"
+                    f" holds {term!r}"
+                )
+    finally:
+        db.execute("DROP TABLE temp.gaz_terms")
+
+
 def _has_table(db: sqlite3.Connection, table: str) -> bool:
     return (
         db.execute(
@@ -233,13 +302,21 @@ def _has_table(db: sqlite3.Connection, table: str) -> bool:
 
 
 def _check_extra_tables(db: sqlite3.Connection, path: str) -> dict[str, int]:
-    """`aliases` and `house_numbers` are optional, but not optionally correct.
+    """The optional tables are optional, but not optionally correct.
 
-    An alias has to point at a real row of one of the three tables, an anchor at
-    a real street, and no street may carry more than MAX_ANCHORS anchors. Also
-    returns the busiest street's anchor count, for the summary line.
+    An alias has to point at a real row of one of the three tables, a
+    `street_numbers` row or an anchor at a real street, every blob must decode,
+    no street may carry more than MAX_ANCHORS anchors, and `vocab` must be the
+    FTS vocabulary. Also returns the counts for the summary line.
     """
-    counts = {"aliases": 0, "house_numbers": 0, "max_anchors": 0}
+    counts = {
+        "aliases": 0,
+        "house_numbers": 0,
+        "max_anchors": 0,
+        "street_numbers": 0,
+        "number_points": 0,
+        "vocab": 0,
+    }
 
     if _has_table(db, "aliases"):
         counts["aliases"] = db.execute("SELECT count(*) FROM aliases").fetchone()[0]
@@ -277,7 +354,59 @@ def _check_extra_tables(db: sqlite3.Connection, path: str) -> dict[str, int]:
                     f"more than {MAX_ANCHORS}"
                 )
 
+    if _has_table(db, "street_numbers"):
+        counts["street_numbers"] = db.execute(
+            "SELECT count(*) FROM street_numbers"
+        ).fetchone()[0]
+        dangling = db.execute(
+            "SELECT street_id FROM street_numbers "
+            "WHERE street_id NOT IN (SELECT id FROM streets) LIMIT 1"
+        ).fetchone()
+        if dangling is not None:
+            raise GazetteerError(
+                f"{path}: street_numbers.street_id {dangling[0]} is not a street"
+            )
+        for street_id, data in db.execute("SELECT street_id, data FROM street_numbers"):
+            if not isinstance(data, bytes):
+                raise GazetteerError(
+                    f"{path}: street_numbers of street {street_id} is not a blob"
+                )
+            try:
+                odd, even = decode(data)
+            except ValueError as error:
+                raise GazetteerError(
+                    f"{path}: street_numbers of street {street_id}: {error}"
+                ) from error
+            counts["number_points"] += len(odd) + len(even)
+
     return counts
+
+
+def _check_vocab(db: sqlite3.Connection, path: str) -> int:
+    """`vocab` holds exactly the FTS index's terms and their document counts."""
+    try:
+        db.execute(
+            "CREATE VIRTUAL TABLE temp.gaz_vocab USING fts5vocab(main,'search','row')"
+        )
+    except sqlite3.Error:
+        # An SQLite too old for fts5vocab can only count.
+        return db.execute("SELECT count(*) FROM vocab").fetchone()[0]
+    try:
+        for left, right, where in (
+            ("SELECT term, docs FROM vocab", "SELECT term, doc FROM temp.gaz_vocab", "vocab"),
+            ("SELECT term, doc FROM temp.gaz_vocab", "SELECT term, docs FROM vocab", "the FTS index"),
+        ):
+            stray = db.execute(
+                f"SELECT term FROM ({left} EXCEPT {right}) LIMIT 1"
+            ).fetchone()
+            if stray is not None:
+                raise GazetteerError(
+                    f"{path}: vocab does not match the FTS index"
+                    f" (term {stray[0]!r} as it is in {where})"
+                )
+        return db.execute("SELECT count(*) FROM vocab").fetchone()[0]
+    finally:
+        db.execute("DROP TABLE temp.gaz_vocab")
 
 
 def _check_unnamed_are_not_indexed(db: sqlite3.Connection, path: str) -> None:
@@ -307,8 +436,11 @@ def _check_unnamed_are_not_indexed(db: sqlite3.Connection, path: str) -> None:
         db.execute("DROP TABLE temp.gaz_index")
 
 
-def _check_query(db: sqlite3.Connection, path: str) -> None:
-    """Take a real name out of the tables and prove the FTS index finds it."""
+def _check_query(db: sqlite3.Connection, path: str, latin: bool = False) -> None:
+    """Take a real name out of the tables and prove the FTS index finds it.
+
+    A transliterated index is asked with the name transliterated.
+    """
     for table in ("places", "pois", "streets"):
         row = db.execute(
             f"SELECT id, name FROM {table} WHERE name IS NOT NULL LIMIT 1"
@@ -316,10 +448,11 @@ def _check_query(db: sqlite3.Connection, path: str) -> None:
         if row is None:
             continue
         rowid, name = row
+        text = translit(name) if latin else name
         # The whole name as a phrase, not a prefix of its first word: "B"* in
         # a tile the size of Mexico matches far more rows than any limit.
         phrase = " ".join(
-            f'"{token}"' for token in name.replace('"', '""').split()
+            f'"{token}"' for token in text.replace('"', '""').split()
         )
         if not phrase:
             continue

@@ -82,7 +82,8 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 300));
     if (container == null) return;
     for (var i = 0; i < 100; i++) {
-      if (!container.read(placeSearchProvider).isLoading) return;
+      final now = container.read(placeSearchProvider);
+      if (!now.isLoading && !(now.value?.searching ?? false)) return;
       await Future<void>.delayed(const Duration(milliseconds: 20));
     }
   }
@@ -105,6 +106,68 @@ void main() {
     expect(state.results.every((r) => r.source == SearchSource.local), isTrue);
     expect(adapter.requests, isEmpty, reason: 'nothing went to the network');
   });
+
+  test(
+    'the next search keeps the last results on screen until it answers',
+    () async {
+      final container = await containerFor();
+      final search = container.read(placeSearchProvider.notifier);
+
+      search.query('vad', bias: inTheTile);
+      expect(
+        container.read(placeSearchProvider).isLoading,
+        isTrue,
+        reason: 'nothing to keep yet: the list is only the bar',
+      );
+      await settle(container);
+      final first = container.read(placeSearchProvider).value!;
+      expect(first.results, isNotEmpty);
+      expect(first.searching, isFalse);
+
+      search.query('vaduz', bias: inTheTile);
+      final waiting = container.read(placeSearchProvider);
+      expect(waiting.isLoading, isFalse);
+      expect(waiting.value!.searching, isTrue);
+      expect(waiting.value!.results, first.results);
+      expect(waiting.value!.query, 'vad', reason: 'they answer the old text');
+
+      await settle(container);
+      final second = container.read(placeSearchProvider).value!;
+      expect(second.searching, isFalse);
+      expect(second.query, 'vaduz');
+
+      search.query('va', bias: inTheTile);
+      expect(
+        container.read(placeSearchProvider).value!.results,
+        isEmpty,
+        reason: 'below three characters the list empties at once',
+      );
+    },
+  );
+
+  test(
+    'pasted coordinates are the place, in either map app\'s notation',
+    () async {
+      final adapter = FakeHttpAdapter(body: photonFixture);
+      final container = await containerFor(adapter: adapter);
+      final search = container.read(placeSearchProvider.notifier);
+
+      for (final typed in <String>[
+        '40.71747105305585 -73.94839976190572',
+        '40,71747° N, 73,94840° W',
+      ]) {
+        search.query(typed, bias: outsideTheTile);
+        await settle(container);
+        final state = container.read(placeSearchProvider).value!;
+        expect(state.results, hasLength(1), reason: typed);
+        expect(state.results.single.position.lat, closeTo(40.71747, 1e-4));
+        expect(state.results.single.position.lon, closeTo(-73.94840, 1e-4));
+        expect(state.results.single.name, '40.71747, -73.94840');
+        expect(state.source, SearchSource.local);
+      }
+      expect(adapter.requests, isEmpty, reason: 'nothing to ask anyone');
+    },
+  );
 
   test('a centre outside the downloaded tile searches online', () async {
     final adapter = FakeHttpAdapter(body: photonFixture);

@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import math
 import os
+import re
 import sqlite3
 import sys
 import tempfile
@@ -38,6 +39,11 @@ from typing import Iterable, NamedTuple
 
 import osmium
 import osmium.filter as osmium_filter
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from street_numbers import thinned_blob  # noqa: E402
+from translit import SEARCH_SCRIPT, index_text  # noqa: E402
 
 SCHEMA_VERSION = 1
 
@@ -68,6 +74,11 @@ POI_AMENITIES = {
     "drinking_water": "drinking_water",
     "water_point": "drinking_water",
     "cafe": "cafe",
+    "restaurant": "restaurant",
+    "fast_food": "fast_food",
+    "ice_cream": "ice_cream",
+    "fuel": "fuel",
+    "compressed_air": "compressed_air",
     "bicycle_repair_station": "bicycle_repair_station",
     "shelter": "shelter",
     "toilets": "toilets",
@@ -80,7 +91,7 @@ POI_AMENITIES = {
 UNNAMED_KINDS = frozenset(
     """
     drinking_water toilets bicycle_repair_station shelter bicycle_rental
-    charging_station picnic_site bicycle_parking
+    charging_station picnic_site bicycle_parking compressed_air fuel
     """.split()
 )
 
@@ -109,8 +120,9 @@ WATER_NATURAL = frozenset("water bay strait lagoon".split())
 RESERVE_BOUNDARIES = frozenset("national_park protected_area".split())
 
 # The tags that carry a second name for the same object, in the order an alias
-# row is written. `name:de` and the rest of the language keys are deliberately
-# not here: on a German extract that is the primary name again on every object.
+# row is written. `name:de` and the rest of the language keys are not here: on
+# a German extract that is the primary name again on every object. Only a
+# well-known row gets those too (LANGUAGE_ALIAS_POI_IMPORTANCE).
 ALIAS_KEYS = (
     "name:en",
     "int_name",
@@ -119,6 +131,22 @@ ALIAS_KEYS = (
     "official_name",
     "short_name",
 )
+
+# A language variant of the name: `name:en`, `name:zh-Hans`, `name:sr-Latn`.
+# Not `name:etymology`, `name:prefix`, `name:left` and the rest of the
+# qualifiers, which the letter count leaves out.
+LANGUAGE_NAME_KEY = re.compile(r"^name:[a-z]{2,3}(-[A-Za-z]{2,8})?$")
+
+# Every `name:<lang>` becomes an alias of a place with any importance and of a
+# POI with at least this much, at most LANGUAGE_ALIAS_LIMIT of them a row.
+LANGUAGE_ALIAS_POI_IMPORTANCE = 10
+LANGUAGE_ALIAS_LIMIT = 80
+
+# What a `wikidata` or `wikipedia` tag adds to the language count.
+WIKI_BONUS = 5
+
+# importance is stored in one byte's range.
+MAX_IMPORTANCE = 255
 
 # Street grouping: a street with no place to hang off gets grouped by a coarse
 # grid cell instead, so two "Main Street"s in villages 40 km apart do not
@@ -209,6 +237,57 @@ def alias_names(tags, primary: str) -> tuple[str, ...]:
     return tuple(found)
 
 
+def language_names(tags, primary: str, alts: tuple[str, ...]) -> tuple[str, ...]:
+    """`alts` and then the `name:<lang>` values of a well-known object.
+
+    In tag order, semicolon-separated values one name each, dropping any name
+    that is the primary or one already there when compared lower-cased; at most
+    LANGUAGE_ALIAS_LIMIT added.
+    """
+    seen = {primary.lower()} | {alt.lower() for alt in alts}
+    found: list[str] = []
+    for key in tag_keys(tags):
+        if not LANGUAGE_NAME_KEY.match(key):
+            continue
+        for part in (tags.get(key) or "").split(";"):
+            name = clean_name(part)
+            if name is None or name.lower() in seen:
+                continue
+            seen.add(name.lower())
+            found.append(name)
+            if len(found) == LANGUAGE_ALIAS_LIMIT:
+                return alts + tuple(found)
+    return alts + tuple(found)
+
+
+def importance(tags) -> int | None:
+    """How famous an object is, without reading any language.
+
+    The number of `name:<lang>` variants it carries, plus WIKI_BONUS when it
+    has a `wikidata` or `wikipedia` tag; capped at MAX_IMPORTANCE, None at 0
+    so an ordinary row stores a NULL.
+    """
+    score = 0
+    wiki = False
+    for key in tag_keys(tags):
+        if LANGUAGE_NAME_KEY.match(key):
+            score += 1
+        elif key == "wikidata" or key == "wikipedia" or key.startswith("wikipedia:"):
+            wiki = True
+    if wiki:
+        score += WIKI_BONUS
+    return min(score, MAX_IMPORTANCE) or None
+
+
+def more_important(a: int | None, b: int | None) -> int | None:
+    """The larger of two nullable importances."""
+    if a is None:
+        return b
+    if b is None:
+        return a
+    return max(a, b)
+
+
 def leading_number(raw: str | None) -> int | None:
     """The integer an `addr:housenumber` starts with: '12a' -> 12, 'A3' -> None."""
     if not raw:
@@ -240,6 +319,7 @@ class RawPlace(NamedTuple):
     osm_type: str  # 'n', 'w' or 'r'
     osm_id: int
     alts: tuple[str, ...]
+    importance: int | None = None
 
 
 class RawStreet(NamedTuple):
@@ -258,6 +338,7 @@ class RawPoi(NamedTuple):
     osm_type: str
     osm_id: int
     alts: tuple[str, ...]
+    importance: int | None = None
 
 
 class AddressBook:
@@ -396,6 +477,8 @@ def poi_kind(tags) -> str | None:
         return "alpine_hut"
     if shop in SUPERMARKET_SHOPS:
         return "supermarket"
+    if shop == "ice_cream":
+        return "ice_cream"
     if shop == "bakery":
         return "bakery"
 
@@ -556,6 +639,9 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
                 address_street = clean_name(tags.get("addr:street"))
 
         name = clean_name(tags.get("name"))
+        # A fuel station is known by its brand ("Shell") when it has no name.
+        if name is None and tags.get("amenity") == "fuel":
+            name = clean_name(tags.get("brand"))
         place = tags.get("place")
         want_place = bool(name) and place in PLACE_KINDS
         want_street = (
@@ -605,8 +691,23 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
             osm_id = obj.id
         key = (osm_type, osm_id)
         alts = alias_names(tags, name) if name else ()
+        score = importance(tags) if want_place or kinds else None
+        # A well-known place or POI is found under every language's name too.
+        place_alts = (
+            language_names(tags, name, alts) if want_place and score is not None else alts
+        )
+        poi_alts = (
+            language_names(tags, poi_name, alts)
+            if poi_name is not None
+            and score is not None
+            and score >= LANGUAGE_ALIAS_POI_IMPORTANCE
+            else alts
+        )
 
+        # A closed way arrives as the way and as the area: the area wins, and
+        # the row keeps the higher importance of the two.
         if want_place and (is_area or key not in places):
+            seen = places.get(key)
             places[key] = RawPlace(
                 name,
                 intern(place),
@@ -620,7 +721,8 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
                 ),
                 osm_type,
                 osm_id,
-                alts,
+                place_alts,
+                more_important(score, seen.importance if seen else None),
             )
 
         # Streets come from ways only; a named highway node is a bus stop or a
@@ -636,8 +738,18 @@ def read_pbf(path: str, want_streets: bool, node_cache: str) -> Extract:
         for kind in kinds:
             poi_key = key + (kind,)
             if is_area or poi_key not in pois:
+                seen_poi = pois.get(poi_key)
                 pois[poi_key] = RawPoi(
-                    poi_name, kind, lat, lon, osm_type, osm_id, alts
+                    poi_name,
+                    kind,
+                    lat,
+                    lon,
+                    osm_type,
+                    osm_id,
+                    poi_alts,
+                    more_important(
+                        score, seen_poi.importance if seen_poi else None
+                    ),
                 )
 
     return Extract(list(places.values()), street_ways, list(pois.values()), addresses)
@@ -658,6 +770,7 @@ class PlaceRow(NamedTuple):
     admin_id: int | None
     osm_type: str | None
     osm_id: int | None
+    importance: int | None = None
 
 
 class PlaceGrid:
@@ -710,6 +823,7 @@ def resolve_places(raw: list[RawPlace], first_id: int) -> list[PlaceRow]:
             None,
             p.osm_type,
             p.osm_id,
+            p.importance,
         )
         for index, p in enumerate(raw)
     ]
@@ -864,40 +978,22 @@ class StreetNameGrid:
         return best
 
 
-def thin_anchors(entries: list[tuple[int, int, int]]) -> list[tuple[int, int, int]]:
-    """Lowest, highest and every twentieth number in between, at most MAX_ANCHORS."""
-    count = len(entries)
-    if count <= 2:
-        return entries
-    picked = sorted({0, count - 1} | set(range(ANCHOR_STEP, count - 1, ANCHOR_STEP)))
-    if len(picked) > MAX_ANCHORS:
-        inner = picked[1:-1]
-        keep = MAX_ANCHORS - 2
-        picked = (
-            [picked[0]]
-            + [inner[(index * len(inner)) // keep] for index in range(keep)]
-            + [picked[-1]]
-        )
-    return [entries[index] for index in picked]
-
-
-def house_numbers(
+def addresses_by_street(
     columns: tuple[array, array, array, array],
     names: list[str],
     streets: list[StreetRow],
-) -> list[tuple[int, int, int, int]]:
-    """`(street_id, number, lat, lon)` anchors for one tile's addresses.
+) -> dict[int, array]:
+    """The row indexes of one tile's addresses, per street id they matched.
 
-    The addresses stay in their `array` columns throughout; they are grouped by
-    the street they matched with one `array` of row indexes per street, so the
-    only Python objects ever alive are those of the single street being thinned.
+    An address belongs to the nearest street of the same name within
+    ADDRESS_RADIUS_M. The addresses stay in their `array` columns; a street
+    gets one `array` of row indexes, so no address becomes a Python object.
     """
     name_index, numbers, lats, lons = columns
-    if not numbers or not streets:
-        return []
-
-    grid = StreetNameGrid(streets)
     by_street: dict[int, array] = {}
+    if not numbers or not streets:
+        return by_street
+    grid = StreetNameGrid(streets)
     for row in range(len(numbers)):
         street = grid.nearest(
             names[name_index[row]], lats[row] / COORD_SCALE, lons[row] / COORD_SCALE
@@ -908,8 +1004,22 @@ def house_numbers(
         if bucket is None:
             bucket = by_street[street.id] = array("i")
         bucket.append(row)
+    return by_street
 
-    out: list[tuple[int, int, int, int]] = []
+
+def street_numbers(
+    columns: tuple[array, array, array, array],
+    names: list[str],
+    streets: list[StreetRow],
+) -> list[tuple[int, bytes]]:
+    """`(street_id, data)` rows of `street_numbers` for one tile's addresses.
+
+    Only the addresses of the single street being encoded are ever Python
+    objects. See street_numbers.py for the blob and the thinning.
+    """
+    _, numbers, lats, lons = columns
+    by_street = addresses_by_street(columns, names, streets)
+    out: list[tuple[int, bytes]] = []
     for street_id in sorted(by_street):
         seen: set[int] = set()
         entries: list[tuple[int, int, int]] = []
@@ -921,21 +1031,13 @@ def house_numbers(
                 continue
             seen.add(number)
             entries.append((number, lats[row], lons[row]))
-        out += [
-            (street_id, number, lat, lon)
-            for number, lat, lon in thin_anchors(entries)
-        ]
+        out.append((street_id, thinned_blob(entries, COORD_SCALE)))
     return out
 
 
 # --------------------------------------------------------------------------
 # writing one tile
 # --------------------------------------------------------------------------
-
-# Every 20th number in between: half as many anchors, still accurate to a block.
-ANCHOR_STEP = 20
-# Hard cap per street, so one long road cannot bloat a tile; ~380 numbers reach it.
-MAX_ANCHORS = 20
 
 SCHEMA = """
 CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -949,7 +1051,8 @@ CREATE TABLE places (
     population INTEGER,
     admin_id   INTEGER,
     osm_type   TEXT,
-    osm_id     INTEGER
+    osm_id     INTEGER,
+    importance INTEGER
 );
 
 CREATE TABLE streets (
@@ -965,15 +1068,19 @@ CREATE TABLE streets (
 -- `name` is nullable, but only for the unnamed utility kinds (UNNAMED_KINDS):
 -- a tap, a toilet or a bike stand is worth a row without a name because the
 -- app looks for the nearest one. Such a row is not in the FTS index.
+--
+-- importance on places and pois: the number of name:<lang> tags, plus 5 for a
+-- wikidata or wikipedia tag, at most 255; NULL at 0.
 CREATE TABLE pois (
-    id       INTEGER PRIMARY KEY,
-    name     TEXT,
-    kind     TEXT NOT NULL,
-    lat      INTEGER NOT NULL,
-    lon      INTEGER NOT NULL,
-    place_id INTEGER,
-    osm_type TEXT,
-    osm_id   INTEGER
+    id         INTEGER PRIMARY KEY,
+    name       TEXT,
+    kind       TEXT NOT NULL,
+    lat        INTEGER NOT NULL,
+    lon        INTEGER NOT NULL,
+    place_id   INTEGER,
+    osm_type   TEXT,
+    osm_id     INTEGER,
+    importance INTEGER
 );
 
 -- One id space across the three tables, so an FTS rowid names exactly one row
@@ -984,9 +1091,12 @@ CREATE TABLE pois (
 -- would be a fifth of the file. columnsize=0 drops bm25's length
 -- normalisation, which buys nothing when every document is one short name.
 -- No prefix= option: measured slower at every query length and 14 MB bigger
--- on a dense tile.
+-- on a dense tile. The text indexed is index_text(name), not the name: lower
+-- case, Cyrillic and Greek in Latin letters, a name with і, ї, є or ґ in a
+-- second, Ukrainian spelling beside the first (meta search_script = 'latin').
 -- A second name of a row above: name:en, int_name, alt_name, old_name,
--- official_name, short_name. It gets an id out of the same counter and its own
+-- official_name, short_name, and every name:<lang> of a place with importance
+-- or a POI with importance >= 10. It gets an id out of the same counter and its own
 -- FTS entry, so a hit that is not in the three tables is looked up here and
 -- resolved through ref_id to the row whose primary name is shown.
 CREATE TABLE aliases (
@@ -995,18 +1105,16 @@ CREATE TABLE aliases (
     name   TEXT NOT NULL
 );
 
--- Anchor points along a street: the lowest house number, the highest, and
--- every twentieth in between (see ANCHOR_STEP / MAX_ANCHORS above). A lookup
--- interpolates between the two anchors that bracket the number asked for.
--- WITHOUT ROWID because (street_id, number) is the whole row's key and the
--- table is nothing but that key plus a point.
-CREATE TABLE house_numbers (
-    street_id INTEGER NOT NULL,
-    number    INTEGER NOT NULL,
-    lat       INTEGER NOT NULL,
-    lon       INTEGER NOT NULL,
-    PRIMARY KEY (street_id, number)
-) WITHOUT ROWID;
+-- A street's house numbers, odd and even side, thinned to the points that
+-- keep interpolation by number within 20 m, delta-coded into one blob per
+-- street (street_numbers.py, README.md "Schema"). No row: no addresses.
+CREATE TABLE street_numbers (street_id INTEGER PRIMARY KEY, data BLOB NOT NULL);
+
+-- Every term of the FTS index with the number of rows it occurs in, written
+-- last from fts5vocab: fts5vocab walks a term's whole doclist to count it,
+-- which is slow for a common word, and the app range-scans terms for typos
+-- and prefixes.
+CREATE TABLE vocab (term TEXT PRIMARY KEY, docs INTEGER NOT NULL) WITHOUT ROWID;
 
 CREATE VIRTUAL TABLE search USING fts5(
     name,
@@ -1031,6 +1139,17 @@ CREATE INDEX idx_aliases_ref ON aliases(ref_id);
 """
 
 
+def finish_index(db: sqlite3.Connection) -> None:
+    """Optimize the FTS index, copy its vocabulary into `vocab`, VACUUM."""
+    db.execute("INSERT INTO search(search) VALUES ('optimize')")
+    db.commit()
+    db.execute("CREATE VIRTUAL TABLE temp.v USING fts5vocab(main, 'search', 'row')")
+    db.execute("INSERT INTO vocab (term, docs) SELECT term, doc FROM temp.v")
+    db.execute("DROP TABLE temp.v")
+    db.commit()
+    db.execute("VACUUM")
+
+
 class TileStats(NamedTuple):
     tile: str
     path: str
@@ -1047,9 +1166,11 @@ def write_tile(
     tile: str,
     places: list[PlaceRow],
     streets: list[StreetRow],
-    pois: list[tuple[int, str | None, str, float, float, int | None, str, int]],
+    pois: list[
+        tuple[int, str | None, str, float, float, int | None, str, int, int | None]
+    ],
     aliases: list[tuple[int, int, str]],
-    numbers: list[tuple[int, int, int, int]],
+    numbers: list[tuple[int, bytes]],
     source: str,
     has_streets: bool,
     built_at: str,
@@ -1067,7 +1188,7 @@ def write_tile(
 
     db.executemany(
         "INSERT INTO places (id, name, kind, lat, lon, population, admin_id,"
-        " osm_type, osm_id) VALUES (?,?,?,?,?,?,?,?,?)",
+        " osm_type, osm_id, importance) VALUES (?,?,?,?,?,?,?,?,?,?)",
         [
             (
                 p.id,
@@ -1079,6 +1200,7 @@ def write_tile(
                 p.admin_id,
                 p.osm_type,
                 p.osm_id,
+                p.importance,
             )
             for p in places
         ],
@@ -1091,27 +1213,25 @@ def write_tile(
         [(s.id, s.name, scaled(s.lat), scaled(s.lon), s.place_id) for s in streets],
     )
     db.executemany(
-        "INSERT INTO pois (id, name, kind, lat, lon, place_id, osm_type, osm_id)"
-        " VALUES (?,?,?,?,?,?,?,?)",
+        "INSERT INTO pois (id, name, kind, lat, lon, place_id, osm_type, osm_id,"
+        " importance) VALUES (?,?,?,?,?,?,?,?,?)",
         [
-            (pid, name, kind, scaled(lat), scaled(lon), place_id, osm_type, osm_id)
-            for pid, name, kind, lat, lon, place_id, osm_type, osm_id in pois
+            (pid, name, kind, scaled(lat), scaled(lon), place_id, osm_type, osm_id, score)
+            for pid, name, kind, lat, lon, place_id, osm_type, osm_id, score in pois
         ],
     )
 
     db.executemany("INSERT INTO aliases (id, ref_id, name) VALUES (?,?,?)", aliases)
-    db.executemany(
-        "INSERT INTO house_numbers (street_id, number, lat, lon) VALUES (?,?,?,?)",
-        numbers,
-    )
+    db.executemany("INSERT INTO street_numbers (street_id, data) VALUES (?,?)", numbers)
 
     # An unnamed utility row has nothing to match, so it stays out of the index.
+    # The index holds every name transliterated; the tables keep it as it is.
     db.executemany(
         "INSERT INTO search(rowid, name) VALUES (?,?)",
-        [(p.id, p.name) for p in places]
-        + [(s.id, s.name) for s in streets]
-        + [(row[0], row[1]) for row in pois if row[1] is not None]
-        + [(row[0], row[2]) for row in aliases],
+        [(p.id, index_text(p.name)) for p in places]
+        + [(s.id, index_text(s.name)) for s in streets]
+        + [(row[0], index_text(row[1])) for row in pois if row[1] is not None]
+        + [(row[0], index_text(row[2])) for row in aliases],
     )
 
     db.executemany(
@@ -1123,12 +1243,11 @@ def write_tile(
             ("source", source),
             ("has_streets", "1" if has_streets else "0"),
             ("has_pois", "1"),
+            ("search_script", SEARCH_SCRIPT),
         ],
     )
     db.commit()
-    db.execute("INSERT INTO search(search) VALUES ('optimize')")
-    db.commit()
-    db.execute("VACUUM")
+    finish_index(db)
     db.close()
 
     return TileStats(
@@ -1189,6 +1308,7 @@ def build_tile(
             place_of(poi.lat, poi.lon, None, grid, by_name),
             poi.osm_type,
             poi.osm_id,
+            poi.importance,
         )
         for index, poi in enumerate(raw_pois)
     ]
@@ -1207,7 +1327,7 @@ def build_tile(
             next_id += 1
 
     numbers = (
-        house_numbers(addresses.of(tile), addresses.names, streets)
+        street_numbers(addresses.of(tile), addresses.names, streets)
         if has_streets
         else []
     )
@@ -1280,7 +1400,7 @@ def main() -> int:
     for poi in extract.pois:
         tiles[tile_name(poi.lat, poi.lon)][2].append(poi)
     # A tile can hold addresses and nothing else, and then it gets no file:
-    # an anchor without a street row is worthless.
+    # house numbers without a street row are worthless.
 
     results: list[TileStats] = []
     for tile in sorted(tiles):
@@ -1304,7 +1424,7 @@ def main() -> int:
     elapsed = time.monotonic() - started
     print(
         f"\n{'tile':<12} {'places':>8} {'streets':>9} {'pois':>8} "
-        f"{'aliases':>8} {'numbers':>8} {'size':>10}"
+        f"{'aliases':>8} {'numbered':>8} {'size':>10}"
     )
     for row in results:
         print(

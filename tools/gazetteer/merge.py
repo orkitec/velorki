@@ -35,6 +35,9 @@ from typing import Any, NamedTuple
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from check import GazetteerError, check  # noqa: E402
+from street_numbers import Point, decode, encode, split, thinned_blob  # noqa: E402
+from street_numbers import POINT_SCALE  # noqa: E402
+from translit import SEARCH_SCRIPT, index_text  # noqa: E402
 
 SCHEMA_VERSION = "1"
 
@@ -59,7 +62,8 @@ CREATE TABLE places (
     population INTEGER,
     admin_id   INTEGER,
     osm_type   TEXT,
-    osm_id     INTEGER
+    osm_id     INTEGER,
+    importance INTEGER
 );
 
 CREATE TABLE streets (
@@ -73,14 +77,15 @@ CREATE TABLE streets (
 );
 
 CREATE TABLE pois (
-    id       INTEGER PRIMARY KEY,
-    name     TEXT,
-    kind     TEXT NOT NULL,
-    lat      INTEGER NOT NULL,
-    lon      INTEGER NOT NULL,
-    place_id INTEGER,
-    osm_type TEXT,
-    osm_id   INTEGER
+    id         INTEGER PRIMARY KEY,
+    name       TEXT,
+    kind       TEXT NOT NULL,
+    lat        INTEGER NOT NULL,
+    lon        INTEGER NOT NULL,
+    place_id   INTEGER,
+    osm_type   TEXT,
+    osm_id     INTEGER,
+    importance INTEGER
 );
 
 CREATE TABLE aliases (
@@ -89,13 +94,9 @@ CREATE TABLE aliases (
     name   TEXT NOT NULL
 );
 
-CREATE TABLE house_numbers (
-    street_id INTEGER NOT NULL,
-    number    INTEGER NOT NULL,
-    lat       INTEGER NOT NULL,
-    lon       INTEGER NOT NULL,
-    PRIMARY KEY (street_id, number)
-) WITHOUT ROWID;
+CREATE TABLE street_numbers (street_id INTEGER PRIMARY KEY, data BLOB NOT NULL);
+
+CREATE TABLE vocab (term TEXT PRIMARY KEY, docs INTEGER NOT NULL) WITHOUT ROWID;
 
 CREATE VIRTUAL TABLE search USING fts5(
     name,
@@ -108,10 +109,6 @@ CREATE INDEX idx_places_pos  ON places(lat, lon);
 CREATE INDEX idx_pois_pos    ON pois(lat, lon);
 CREATE INDEX idx_aliases_ref ON aliases(ref_id);
 """
-
-# The anchor cap build.py applies (its MAX_ANCHORS). A merged street holds the
-# union of its inputs' anchors, which is thinned again to stay under it.
-MAX_ANCHORS = 20
 
 # The columns every version 1 file has, in order. osm_type and osm_id are read
 # separately because files built before the addendum do not have them.
@@ -126,6 +123,10 @@ REFERENCE = {"places": "admin_id", "streets": "place_id", "pois": "place_id"}
 
 TABLES = ("places", "streets", "pois")
 
+# The tables with an `importance` column. An input built before it has none,
+# and its rows read as NULL.
+RANKED = ("places", "pois")
+
 
 class Row(NamedTuple):
     """One input row, still carrying the id and reference of its own file."""
@@ -135,6 +136,7 @@ class Row(NamedTuple):
     osm_type: str | None
     osm_id: int | None
     source_index: int  # which input file it came from
+    importance: int | None = None
 
     @property
     def id(self) -> int:
@@ -184,6 +186,19 @@ def has_osm_columns(db: sqlite3.Connection, table: str) -> bool:
     return "osm_type" in columns and "osm_id" in columns
 
 
+def has_column(db: sqlite3.Connection, table: str, column: str) -> bool:
+    return column in {row[1] for row in db.execute(f"PRAGMA table_info({table})")}
+
+
+def higher(a: int | None, b: int | None) -> int | None:
+    """The larger of two nullable importances."""
+    if a is None:
+        return b
+    if b is None:
+        return a
+    return max(a, b)
+
+
 def has_table(db: sqlite3.Connection, table: str) -> bool:
     return (
         db.execute(
@@ -198,13 +213,38 @@ class Input(NamedTuple):
 
     rows: dict[str, list[Row]]
     aliases: list[tuple[int, str]]  # (ref_id, name), in id order
-    numbers: list[tuple[int, int, int, int]]  # (street_id, number, lat, lon)
+    numbers: dict[int, list[Point]]  # street_id -> points, 1e-5 degrees
+
+
+def read_numbers(db: sqlite3.Connection) -> dict[int, list[Point]]:
+    """Every street's house-number points, odd and even side together.
+
+    A file built today has `street_numbers`; an older one has `house_numbers`
+    anchors, each of which is taken as a point. A file with neither has none.
+    """
+    numbers: dict[int, list[Point]] = {}
+    if has_table(db, "street_numbers"):
+        for street_id, data in db.execute(
+            "SELECT street_id, data FROM street_numbers ORDER BY street_id"
+        ):
+            odd, even = decode(data)
+            numbers[street_id] = odd + even
+    elif has_table(db, "house_numbers"):
+        factor = COORD_SCALE / POINT_SCALE
+        for street_id, number, lat, lon in db.execute(
+            "SELECT street_id, number, lat, lon FROM house_numbers"
+            " ORDER BY street_id, number"
+        ):
+            numbers.setdefault(street_id, []).append(
+                (number, int(round(lat / factor)), int(round(lon / factor)))
+            )
+    return numbers
 
 
 def read_file(path: str, index: int) -> tuple[dict[str, Any], Input]:
     """The meta dict and everything in one input file.
 
-    `aliases` and `house_numbers` are optional: a file built before they
+    `aliases` and the house numbers are optional: a file built before they
     existed simply contributes none.
     """
     db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
@@ -214,7 +254,12 @@ def read_file(path: str, index: int) -> tuple[dict[str, Any], Input]:
         for table in TABLES:
             base = BASE_COLUMNS[table]
             osm = has_osm_columns(db, table)
-            columns = ", ".join(base + (("osm_type", "osm_id") if osm else ()))
+            ranked = table in RANKED and has_column(db, table, "importance")
+            columns = ", ".join(
+                base
+                + (("osm_type", "osm_id") if osm else ())
+                + (("importance",) if ranked else ())
+            )
             rows[table] = [
                 Row(
                     table,
@@ -222,6 +267,7 @@ def read_file(path: str, index: int) -> tuple[dict[str, Any], Input]:
                     record[len(base)] if osm else None,
                     record[len(base) + 1] if osm else None,
                     index,
+                    record[-1] if ranked else None,
                 )
                 for record in db.execute(f"SELECT {columns} FROM {table} ORDER BY id")
             ]
@@ -233,17 +279,7 @@ def read_file(path: str, index: int) -> tuple[dict[str, Any], Input]:
             if has_table(db, "aliases")
             else []
         )
-        numbers = (
-            [
-                tuple(record)
-                for record in db.execute(
-                    "SELECT street_id, number, lat, lon FROM house_numbers"
-                    " ORDER BY street_id, number"
-                )
-            ]
-            if has_table(db, "house_numbers")
-            else []
-        )
+        numbers = read_numbers(db)
     finally:
         db.close()
     return meta, Input(rows, aliases, numbers)
@@ -286,31 +322,31 @@ def dedup_key(row: Row, place_name: str | None) -> tuple | None:
     return None
 
 
-def thin_anchors(entries: list[tuple[int, int, int]]) -> list[tuple[int, int, int]]:
-    """The union of two inputs' anchors, back under MAX_ANCHORS.
+def street_blob(contributions: list[dict[int, tuple[int, int]]]) -> bytes:
+    """One merged street's blob out of what each input knew of it.
 
-    What comes in here is already thinned — build.py's "every twentieth" ran over
-    the addresses, which merge.py never sees — so running that step again would
-    throw away nineteen anchors in twenty every time a file passed a merge, and
-    merging a file with a copy of itself would not be a no-op. Only the cap is
-    re-applied: the lowest and the highest number always survive, and the rest
-    are sampled evenly.
+    The points are the union, the first input's position winning for a number
+    both have. Where one input already holds the whole union — a street only
+    one extract saw, or two copies of one file — its points are already the
+    thinned set and are written as they are, so a merge never moves a point
+    of a single input. Only a real union of different stretches is split and
+    thinned again, with the points themselves as the truth.
     """
-    if len(entries) <= MAX_ANCHORS:
-        return entries
-    inner = entries[1:-1]
-    keep = MAX_ANCHORS - 2
-    return (
-        [entries[0]]
-        + [inner[(index * len(inner)) // keep] for index in range(keep)]
-        + [entries[-1]]
-    )
+    union: dict[int, tuple[int, int]] = {}
+    for points in contributions:
+        for number, position in points.items():
+            union.setdefault(number, position)
+    entries = [(number,) + union[number] for number in sorted(union)]
+    if any(points == union for points in contributions):
+        odd, even = split(entries)
+        return encode(odd, even)
+    return thinned_blob(entries, POINT_SCALE)
 
 
 class Merged(NamedTuple):
     rows: dict[str, list[tuple]]  # table -> final rows, ids and refs remapped
     aliases: list[tuple[int, int, str]]  # (id, ref_id, name)
-    numbers: list[tuple[int, int, int, int]]
+    numbers: list[tuple[int, bytes]]  # (street_id, data)
     rows_in: int
     rows_out: int
 
@@ -326,6 +362,8 @@ def merge_rows(files: list[Input]) -> Merged:
     remap: dict[tuple[int, int], int] = {}
     winners: dict[tuple, int] = {}  # dedup key -> new id
     kept: dict[str, list[Row]] = {table: [] for table in TABLES}
+    # dedup key -> index of its survivor in kept[table], to raise importance.
+    kept_at: dict[tuple, int] = {}
 
     next_id = 1
     rows_in = 0
@@ -343,12 +381,19 @@ def merge_rows(files: list[Input]) -> Merged:
                     else None,
                 )
                 if key is not None and key in winners:
-                    # A dropped duplicate hands its references to its survivor.
+                    # A dropped duplicate hands its references to its survivor,
+                    # and its importance when that is the higher one.
                     remap[(row.source_index, row.id)] = winners[key]
+                    position = kept_at[key]
+                    survivor = kept[table][position]
+                    kept[table][position] = survivor._replace(
+                        importance=higher(survivor.importance, row.importance)
+                    )
                     continue
                 remap[(row.source_index, row.id)] = next_id
                 if key is not None:
                     winners[key] = next_id
+                    kept_at[key] = len(kept[table])
                 kept[table].append(row._replace(values=(next_id,) + row.values[1:]))
                 next_id += 1
 
@@ -362,7 +407,11 @@ def merge_rows(files: list[Input]) -> Merged:
             values[reference_index] = (
                 remap.get((row.source_index, old)) if old is not None else None
             )
-            final.append(tuple(values) + (row.osm_type, row.osm_id))
+            final.append(
+                tuple(values)
+                + (row.osm_type, row.osm_id)
+                + ((row.importance,) if table in RANKED else ())
+            )
         out[table] = final
 
     # Aliases come after the three tables, exactly as build.py hands them out.
@@ -382,22 +431,21 @@ def merge_rows(files: list[Input]) -> Merged:
             next_id += 1
             rows_in += 1
 
-    # Two extracts see different stretches of the same street, so their anchors
-    # are the union and the thinning runs again over it.
-    per_street: dict[int, dict[int, tuple[int, int]]] = {}
+    # Two extracts see different stretches of the same street, so its points
+    # are the union of what each input had.
+    per_street: dict[int, dict[int, dict[int, tuple[int, int]]]] = {}
     for index, per_file in enumerate(files):
-        for street_id, number, lat, lon in per_file.numbers:
+        for street_id, points in per_file.numbers.items():
             new_street = remap.get((index, street_id))
             if new_street is None:
                 continue
-            per_street.setdefault(new_street, {}).setdefault(number, (lat, lon))
-    numbers: list[tuple[int, int, int, int]] = []
-    for street_id in sorted(per_street):
-        bucket = per_street[street_id]
-        entries = [(number,) + bucket[number] for number in sorted(bucket)]
-        numbers += [
-            (street_id, number, lat, lon) for number, lat, lon in thin_anchors(entries)
-        ]
+            mine = per_street.setdefault(new_street, {}).setdefault(index, {})
+            for number, lat, lon in points:
+                mine.setdefault(number, (lat, lon))
+    numbers = [
+        (street_id, street_blob(list(per_street[street_id].values())))
+        for street_id in sorted(per_street)
+    ]
 
     return Merged(out, aliases, numbers, rows_in, next_id - 1)
 
@@ -419,7 +467,11 @@ def write_tile(path: str, tile: str, merged: Merged, meta: list[tuple[str, str]]
     db.executescript(SCHEMA)
 
     for table in TABLES:
-        columns = BASE_COLUMNS[table] + ("osm_type", "osm_id")
+        columns = (
+            BASE_COLUMNS[table]
+            + ("osm_type", "osm_id")
+            + (("importance",) if table in RANKED else ())
+        )
         placeholders = ",".join("?" * len(columns))
         db.executemany(
             f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({placeholders})",
@@ -429,23 +481,29 @@ def write_tile(path: str, tile: str, merged: Merged, meta: list[tuple[str, str]]
         "INSERT INTO aliases (id, ref_id, name) VALUES (?,?,?)", merged.aliases
     )
     db.executemany(
-        "INSERT INTO house_numbers (street_id, number, lat, lon) VALUES (?,?,?,?)",
-        merged.numbers,
+        "INSERT INTO street_numbers (street_id, data) VALUES (?,?)", merged.numbers
     )
     # An unnamed utility row has nothing to match, so it stays out of the index.
+    # The index is rebuilt from the names, so it is transliterated whatever the
+    # inputs' own indexes held.
     db.executemany(
         "INSERT INTO search(rowid, name) VALUES (?,?)",
         [
-            (row[0], row[1])
+            (row[0], index_text(row[1]))
             for table in TABLES
             for row in merged.rows[table]
             if row[1] is not None
         ]
-        + [(row[0], row[2]) for row in merged.aliases],
+        + [(row[0], index_text(row[2])) for row in merged.aliases],
     )
     db.executemany("INSERT INTO meta VALUES (?,?)", meta)
     db.commit()
+    # build.py's finish_index, which this file cannot import.
     db.execute("INSERT INTO search(search) VALUES ('optimize')")
+    db.commit()
+    db.execute("CREATE VIRTUAL TABLE temp.v USING fts5vocab(main, 'search', 'row')")
+    db.execute("INSERT INTO vocab (term, docs) SELECT term, doc FROM temp.v")
+    db.execute("DROP TABLE temp.v")
     db.commit()
     db.execute("VACUUM")
     db.close()
@@ -465,6 +523,7 @@ def meta_rows(tile: str, metas: list[dict[str, Any]], built_at: str) -> list[tup
         ("source", ",".join(sources)),
         ("has_streets", "1" if any(m.get("has_streets") == "1" for m in metas) else "0"),
         ("has_pois", "1" if any(m.get("has_pois") == "1" for m in metas) else "0"),
+        ("search_script", SEARCH_SCRIPT),
     ]
 
 

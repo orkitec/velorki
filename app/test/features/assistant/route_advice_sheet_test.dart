@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:velorki/app/shell_layout.dart';
 import 'package:velorki/core/db/tables/routes.dart' show RouteSource;
 import 'package:velorki/core/permissions/location_permission.dart';
 import 'package:velorki/core/plus/plus_gate.dart';
@@ -18,8 +17,10 @@ import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
 import 'package:velorki/features/planner/presentation/planner_screen.dart';
 import 'package:velorki/features/planner/presentation/route_format.dart';
+import 'package:velorki/features/settings/data/units.dart';
 import 'package:velorki/features/shared/presentation/stat_tile.dart';
 import 'package:velorki_api/velorki_api.dart';
+import 'package:velorki_brouter/velorki_brouter.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
@@ -245,11 +246,123 @@ void main() {
     );
     expect(relay.planCalls.single.step, 'route');
     expect(relay.planCalls.single.context, isNull);
+    // Nothing else takes input meanwhile; the question stays readable.
+    final field = tester.widget<TextField>(_inSheet(find.byType(TextField)));
+    expect(field.readOnly, isTrue);
+    expect(field.controller!.text, 'Coffee?');
+    expect(
+      tester
+          .widget<SegmentedButton<AssistantMode>>(
+            _inSheet(find.byType(SegmentedButton<AssistantMode>)),
+          )
+          .onSelectionChanged,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<TextButton>(
+            _inSheet(find.widgetWithText(TextButton, l10n.assistantStartOver)),
+          )
+          .onPressed,
+      isNull,
+    );
 
     relay.emit(const RouteAdviceEvent(_advice));
     await relay.finish();
     await tester.pumpAndSettle();
     expect(_inSheet(find.text(l10n.assistantSend)), findsOneWidget);
+    expect(
+      tester.widget<TextField>(_inSheet(find.byType(TextField))).readOnly,
+      isFalse,
+    );
+    expect(
+      tester
+          .widget<ActionChip>(
+            _inSheet(
+              find.widgetWithText(ActionChip, l10n.assistantRouteExampleCheck),
+            ),
+          )
+          .onPressed,
+      isNotNull,
+    );
+  });
+
+  testWidgets('while a fix is routed, the sheet takes no input but Show', (
+    tester,
+  ) async {
+    await _openSheet(tester, relay: _answering(), route: _route());
+    await _ask(tester, l10n.assistantRouteExampleCoffee);
+
+    await tester.ensureVisible(_inSheet(find.text(l10n.assistantFixAddStop)));
+    await tester.tap(_inSheet(find.text(l10n.assistantFixAddStop)));
+    await tester.pump();
+    expect(
+      _container(tester).read(plannerControllerProvider).isRouting,
+      isTrue,
+    );
+
+    final busy = _inSheet(
+      find.widgetWithText(FilledButton, l10n.plannerRouting),
+    );
+    expect(busy, findsOneWidget);
+    expect(tester.widget<FilledButton>(busy).onPressed, isNull);
+    expect(
+      tester.widget<TextField>(_inSheet(find.byType(TextField))).readOnly,
+      isTrue,
+    );
+    expect(
+      tester
+          .widget<SegmentedButton<AssistantMode>>(
+            _inSheet(find.byType(SegmentedButton<AssistantMode>)),
+          )
+          .onSelectionChanged,
+      isNull,
+    );
+    final gravel = l10n.assistantFixProfile(
+      profileLabel(l10n, RouteProfile.gravel),
+    );
+    expect(
+      tester
+          .widget<FilledButton>(
+            _inSheet(find.widgetWithText(FilledButton, gravel)),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<ActionChip>(
+            _inSheet(
+              find.widgetWithText(ActionChip, l10n.assistantRouteExampleCheck),
+            ),
+          )
+          .onPressed,
+      isNull,
+    );
+    // Show only moves the map, so it stays.
+    expect(
+      tester
+          .widget<TextButton>(
+            _inSheet(find.widgetWithText(TextButton, l10n.assistantFindingShow))
+                .first,
+          )
+          .onPressed,
+      isNotNull,
+    );
+
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextField>(_inSheet(find.byType(TextField))).readOnly,
+      isFalse,
+    );
+    expect(
+      tester
+          .widget<FilledButton>(
+            _inSheet(find.widgetWithText(FilledButton, gravel)),
+          )
+          .onPressed,
+      isNotNull,
+    );
   });
 
   testWidgets('the answer lists its findings, with Show and Apply, and the '
@@ -269,9 +382,10 @@ void main() {
     for (final finding in _advice.findings) {
       expect(_inSheet(find.text(finding.text)), findsOneWidget);
     }
-    expect(_inSheet(find.text(l10n.assistantFindingAt('6.7 km'))), findsOne);
+    String km(double km) => formatDistance(l10n, UnitSystem.metric, km * 1000);
+    expect(_inSheet(find.text(l10n.assistantFindingAt(km(6.7)))), findsOne);
     expect(
-      _inSheet(find.text(l10n.assistantFindingBetween('2.0 km', '3.0 km'))),
+      _inSheet(find.text(l10n.assistantFindingBetween(km(2), km(3)))),
       findsOne,
     );
     expect(_inSheet(find.text(l10n.assistantFixAddStop)), findsOneWidget);
@@ -354,42 +468,54 @@ void main() {
     expect(_inSheet(find.text(l10n.assistantFixApplied)), findsNWidgets(2));
   });
 
-  testWidgets('sideways, the sheet and its answer fit', (tester) async {
-    debugShellLayoutOverride = null;
-    await _openSheet(
+  testWidgets('Add as stop shows the new stop on the map above the sheet, '
+      'which is where the rider looks for it', (tester) async {
+    final harness = await _openSheet(
       tester,
       relay: _answering(),
       route: _route(),
-      surfaceSize: const Size(874, 402),
     );
-    expect(find.byType(SegmentedButton<AssistantMode>), findsOneWidget);
-    await _ask(tester, l10n.assistantRouteExampleCheck);
+    await _ask(tester, l10n.assistantRouteExampleCoffee);
+    harness.map.movedTo = null;
 
-    expect(tester.takeException(), isNull);
-    // The heading scrolls with the answer, which gets the sheet's height.
-    expect(
-      tester.getRect(_inSheet(find.byType(ListView))).height,
-      greaterThan(250),
-    );
-    final sheet = tester.getRect(find.byType(AssistantSheet));
-    expect(sheet.bottom, lessThanOrEqualTo(402));
-    expect(sheet.top, greaterThanOrEqualTo(0));
-    // The answer scrolls inside the sheet; the button stays in view.
-    final button = tester.getRect(
-      _inSheet(find.widgetWithText(FilledButton, l10n.assistantSend)),
-    );
-    expect(button.bottom, lessThanOrEqualTo(402));
-
-    await tester.scrollUntilVisible(
-      _inSheet(find.text(l10n.assistantFixAddStop)),
-      100,
-      scrollable: _inSheet(find.byType(Scrollable)).first,
-    );
     await tester.ensureVisible(_inSheet(find.text(l10n.assistantFixAddStop)));
-    await tester.pumpAndSettle();
     await tester.tap(_inSheet(find.text(l10n.assistantFixAddStop)));
     await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-    expect(_inSheet(find.text(l10n.assistantFixApplied)), findsOneWidget);
+
+    expect(
+      _container(tester).read(plannerControllerProvider).waypoints,
+      hasLength(3),
+    );
+    // The stop lies a few metres off the line, so the line hardly changes:
+    // the camera goes to the stop, clear of the sheet.
+    expect(harness.map.movedTo, const LatLng(48.0502, 11.0501));
+    final sheetTop = tester.getRect(find.byKey(assistantSheetSurfaceKey)).top;
+    expect(harness.map.movedPadding!.bottom, greaterThan(2000 - sheetTop));
+  });
+
+  testWidgets('a stop the router cannot reach is taken back, and the '
+      'finding says so', (tester) async {
+    final harness = await _openSheet(
+      tester,
+      relay: _answering(),
+      route: _route(),
+    );
+    await _ask(tester, l10n.assistantRouteExampleCoffee);
+    harness.backend.error = const RoutingException(
+      kind: RoutingErrorKind.noRoute,
+      message: 'target island',
+    );
+
+    await tester.ensureVisible(_inSheet(find.text(l10n.assistantFixAddStop)));
+    await tester.tap(_inSheet(find.text(l10n.assistantFixAddStop)));
+    await tester.pumpAndSettle();
+
+    final plan = _container(tester).read(plannerControllerProvider);
+    expect(plan.waypoints.map((w) => w.pos), <LatLng>[_start, _end]);
+    expect(plan.result, isNotNull);
+    expect(_inSheet(find.text(l10n.assistantFixRoutingFailed)), findsOneWidget);
+    expect(_inSheet(find.text(l10n.assistantFixApplied)), findsNothing);
+    // It can be tried again.
+    expect(_inSheet(find.text(l10n.assistantFixAddStop)), findsOneWidget);
   });
 }

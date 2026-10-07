@@ -2,7 +2,10 @@
   "plan": {
     "eyebrow": "Kostenlos & quelloffen",
     "headline": "Fahr dort, wo der **Empfang endet**",
-    "subline": "Planen, routen und navigieren auf dem iPhone, auch offline."
+    "subline": "Planen, routen und navigieren auf dem iPhone, auch offline.",
+    "android": {
+      "subline": "Planen, routen und navigieren auf dem Smartphone, auch offline."
+    }
   },
   "variants": {
     "eyebrow": "Routenplanung",
@@ -19,6 +22,26 @@
     "headline": "Raus vor die Tür, **pünktlich zurück**",
     "subline": "Sag, wie weit. Velorki findet Runden ab deinem Standort."
   },
+  "ai": {
+    "eyebrow": "Velorki Plus",
+    "headline": "Beschreib es, **fahr es**",
+    "subline": "Wünsch dir eine Gravel-Runde mit Café-Stopp und bekomm die Route. Teil von Velorki Plus."
+  },
+  "ride": {
+    "eyebrow": "Fahrtstatistik",
+    "headline": "Jeder Anstieg **im Protokoll**",
+    "subline": "Höhe, Tempo, Puls und Splits für jede Fahrt."
+  },
+  "offline-themes": {
+    "eyebrow": "Offline · Hell & dunkel",
+    "headline": "Tag oder Nacht, **mit Netz oder ohne**",
+    "subline": "Region einmal laden, dann laufen Karte, Routing und Suche überall. Hell oder dunkel, deine Farbe."
+  },
+  "import": {
+    "eyebrow": "Dateien",
+    "headline": "Jede Route **kommt mit**",
+    "subline": "GPX, FIT und TCX von überall öffnen. Als GPX oder FIT exportieren."
+  },
   "lock-screen": {
     "eyebrow": "Aufzeichnung",
     "headline": "Deine Fahrt auf dem **Sperrbildschirm**",
@@ -29,24 +52,7 @@
     "headline": "Start und Stopp **am Handgelenk**",
     "subline": "Puls und Fahrt auf der Uhr, synchron mit dem iPhone."
   },
-  "ride": {
-    "eyebrow": "Fahrtstatistik",
-    "headline": "Jeder Anstieg **im Protokoll**",
-    "subline": "Höhe, Tempo, Puls und Splits für jede Fahrt."
-  },
-  "offline": {
-    "eyebrow": "Offline",
-    "headline": "Kein Netz? **Kein Problem.**",
-    "subline": "Region einmal laden. Karte, Routing und Suche laufen weiter."
-  },
-  "themes": {
-    "eyebrow": "Hell & dunkel",
-    "headline": "Frühtour oder **Nachtfahrt**",
-    "subline": "Helles und dunkles Design, mit der Akzentfarbe deiner Wahl."
-  },
-  "import": {
-    "eyebrow": "Dateien",
-    "headline": "Jede Route **kommt mit**",
-    "subline": "GPX, FIT und TCX von überall öffnen. Als GPX oder FIT exportieren."
+  "feature": {
+    "headline": "Fahr dort, wo der **Empfang endet**"
   }
 }

@@ -203,6 +203,30 @@ void main() {
     expect(find.byType(FloatingNavigationBar), findsNothing);
   });
 
+  testWidgets('a link the router has no page for leaves the rider where '
+      'they were', (tester) async {
+    await _pumpShell(tester);
+    await tester.tap(
+      find.widgetWithText(NavigationDestination, l10n.tabLibrary),
+    );
+    await tester.pumpAndSettle();
+    final library = find.byType(LibraryScreen);
+    expect(library, findsOneWidget);
+
+    // What iOS hands over when the OAuth return reaches the router.
+    await tester.binding.handlePushRoute(
+      'velorki://oauth/strava?code=0d1e&scope=read',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Page Not Found'), findsNothing);
+    expect(library, findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
+    // The library's own timers run out before the tree goes.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(seconds: 5));
+  });
+
   group('turned sideways', () {
     setUp(() => debugShellLayoutOverride = null);
 

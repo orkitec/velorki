@@ -15,7 +15,19 @@ const String testLocaleName = String.fromEnvironment(
 );
 
 /// [testLocaleName] as a [Locale], handed to every app this file builds.
-const Locale testLocale = Locale(testLocaleName);
+///
+/// Named like the arb files: `de`, `pt_BR`, `zh_Hant`.
+final Locale testLocale = _localeNamed(testLocaleName);
+
+Locale _localeNamed(String name) {
+  final parts = name.split(RegExp('[_-]'));
+  if (parts.length == 1) return Locale(parts.first);
+  final second = parts[1];
+  // A four-letter subtag is a script (Hant), anything else a region (BR).
+  return second.length == 4
+      ? Locale.fromSubtags(languageCode: parts.first, scriptCode: second)
+      : Locale(parts.first, second);
+}
 
 /// Whether the suite runs in English, the locale the string expectations are
 /// written in.

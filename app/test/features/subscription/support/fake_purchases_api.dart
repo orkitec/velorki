@@ -41,6 +41,17 @@ class FakePurchasesApi implements PurchasesApi {
   /// Thrown by [restorePurchases] when set.
   Object? restoreError;
 
+  /// What [checkIntroEligibility] answers, by product id; products not in
+  /// here are left out of the answer, as a store that cannot tell may.
+  Map<String, rc.IntroEligibilityStatus> introEligibility =
+      <String, rc.IntroEligibilityStatus>{};
+
+  /// Thrown by [checkIntroEligibility] when set.
+  Object? introEligibilityError;
+
+  /// The product ids of every eligibility check, in order.
+  final List<List<String>> introEligibilityChecks = <List<String>>[];
+
   /// Every log level that was set, in order.
   final List<rc.LogLevel> logLevels = <rc.LogLevel>[];
 
@@ -116,6 +127,22 @@ class FakePurchasesApi implements PurchasesApi {
     if (restoreError != null) throw restoreError!;
     return restoredInfo ?? customerInfo;
   }
+
+  @override
+  Future<Map<String, rc.IntroEligibility>> checkIntroEligibility(
+    List<String> productIdentifiers,
+  ) async {
+    introEligibilityChecks.add(productIdentifiers);
+    if (introEligibilityError != null) throw introEligibilityError!;
+    return {
+      for (final id in productIdentifiers)
+        if (introEligibility[id] case final status?)
+          id: rc.IntroEligibility.fromJson({
+            'status': status.index,
+            'description': status.name,
+          }),
+    };
+  }
 }
 
 /// An SDK entitlement, active by default because that is the interesting case.
@@ -164,6 +191,7 @@ rc.CustomerInfo customerInfoWith({
 /// An SDK package, monthly and without an introductory offer by default.
 rc.Package packageInfo({
   String identifier = r'$rc_monthly',
+  String productIdentifier = 'plus_monthly',
   rc.PackageType packageType = rc.PackageType.monthly,
   String title = 'Velorki Plus',
   String priceString = '€2.99',
@@ -173,7 +201,7 @@ rc.Package packageInfo({
   identifier,
   packageType,
   rc.StoreProduct(
-    'plus_monthly',
+    productIdentifier,
     'Everything Velorki can do',
     title,
     price,

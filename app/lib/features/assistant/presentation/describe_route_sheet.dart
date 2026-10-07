@@ -3,12 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/domain/saved_route.dart';
+import '../../shared/presentation/ai_mark.dart';
+import '../../subscription/application/plus_access.dart';
 import '../application/route_description_controller.dart';
 import '../data/ai_consent_controller.dart';
 import 'ai_consent_dialog.dart';
-import 'assistant_sheet.dart' show ButtonProgress;
+import 'assistant_sheet.dart' show ButtonProgress, PlusRequiredBanner;
 import 'assistant_strings.dart';
 
 /// Opens "Describe this route" for [route].
@@ -42,9 +45,18 @@ class _DescribeRouteSheetState extends ConsumerState<DescribeRouteSheet> {
   void initState() {
     super.initState();
     // The rider pressed a button called "Describe this route"; asking them to
-    // press another one inside the sheet would be theatre.
-    WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(_run()));
+    // press another one inside the sheet would be theatre. Known to be
+    // without Plus, the sheet says so instead, and writes once Plus is
+    // active.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _plusMissing) return;
+      unawaited(_run());
+    });
   }
+
+  bool get _plusMissing =>
+      ref.read(plusAccessProvider(PlusFeature.aiAssistant)) ==
+      PlusAccess.missing;
 
   Future<void> _run() async {
     final consent = ref.read(aiConsentControllerProvider);
@@ -76,6 +88,15 @@ class _DescribeRouteSheetState extends ConsumerState<DescribeRouteSheet> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final state = ref.watch(routeDescriptionControllerProvider);
+    final plusMissing =
+        ref.watch(plusAccessProvider(PlusFeature.aiAssistant)) ==
+        PlusAccess.missing;
+    // Back from the paywall subscribed: what the rider asked for.
+    ref.listen(plusAccessProvider(PlusFeature.aiAssistant), (before, now) {
+      if (before == PlusAccess.missing && now == PlusAccess.granted) {
+        unawaited(_run());
+      }
+    });
 
     return ConstrainedBox(
       constraints: BoxConstraints(
@@ -100,7 +121,10 @@ class _DescribeRouteSheetState extends ConsumerState<DescribeRouteSheet> {
               // set in the reading size rather than as a caption.
               Flexible(
                 child: SingleChildScrollView(
-                  child: Text(state.text, style: theme.textTheme.bodyLarge),
+                  // Marked as the AI's, as the assistant's answers are.
+                  child: AiAnswer(
+                    child: Text(state.text, style: theme.textTheme.bodyLarge),
+                  ),
                 ),
               ),
             ],
@@ -114,31 +138,34 @@ class _DescribeRouteSheetState extends ConsumerState<DescribeRouteSheet> {
               ),
             ],
             const SizedBox(height: 20),
-            Row(
-              children: [
-                TextButton(
-                  onPressed: state.running ? null : () => unawaited(_run()),
-                  child: Text(l10n.describeAgain),
-                ),
-                const SizedBox(width: 12),
-                // Locked while the model writes, so it is where the sheet
-                // says that it does.
-                Expanded(
-                  child: state.running
-                      ? FilledButton.icon(
-                          onPressed: null,
-                          icon: const ButtonProgress(),
-                          label: Text(l10n.describeRunning),
-                        )
-                      : FilledButton(
-                          onPressed: state.canSave
-                              ? () => unawaited(_save())
-                              : null,
-                          child: Text(l10n.describeSave),
-                        ),
-                ),
-              ],
-            ),
+            if (plusMissing)
+              const PlusRequiredBanner()
+            else
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: state.running ? null : () => unawaited(_run()),
+                    child: Text(l10n.describeAgain),
+                  ),
+                  const SizedBox(width: 12),
+                  // Locked while the model writes, so it is where the sheet
+                  // says that it does.
+                  Expanded(
+                    child: state.running
+                        ? FilledButton.icon(
+                            onPressed: null,
+                            icon: const ButtonProgress(),
+                            label: Text(l10n.describeRunning),
+                          )
+                        : FilledButton(
+                            onPressed: state.canSave
+                                ? () => unawaited(_save())
+                                : null,
+                            child: Text(l10n.describeSave),
+                          ),
+                  ),
+                ],
+              ),
           ],
         ),
       ),
@@ -149,8 +176,9 @@ class _DescribeRouteSheetState extends ConsumerState<DescribeRouteSheet> {
 /// The route detail's "Describe this route" button.
 ///
 /// Hidden for a route that came from Strava — their API terms do not allow
-/// their data to be used for AI — and for a rider without Velorki Plus the
-/// sheet says so rather than the button disappearing.
+/// their data to be used for AI. For a rider known to be without Velorki Plus
+/// the sheet opens with Subscribe where its buttons would be, and writes
+/// once they come back subscribed.
 class DescribeRouteButton extends ConsumerWidget {
   /// Creates the button for [route].
   const DescribeRouteButton({required this.route, super.key});
@@ -158,13 +186,17 @@ class DescribeRouteButton extends ConsumerWidget {
   /// The route to describe.
   final SavedRoute route;
 
+  Future<void> _open(BuildContext context, WidgetRef ref) =>
+      showDescribeRouteSheet(context, route);
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (!canDescribe(route)) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context);
     return OutlinedButton.icon(
-      onPressed: () => unawaited(showDescribeRouteSheet(context, route)),
-      icon: const Icon(Icons.auto_awesome),
+      onPressed: () => unawaited(_open(context, ref)),
+      // The AI's sparkle, in the AI's colours: the button asks the AI.
+      icon: const AiSparkle(),
       label: Text(l10n.describeAction),
     );
   }

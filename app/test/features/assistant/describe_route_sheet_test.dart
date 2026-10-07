@@ -13,6 +13,7 @@ import 'package:velorki/features/planner/domain/route_profile.dart';
 import 'package:velorki/features/planner/domain/routing_options.dart';
 import 'package:velorki/features/planner/domain/saved_route.dart';
 import 'package:velorki/features/planner/domain/waypoint.dart';
+import 'package:velorki/features/shared/presentation/ai_mark.dart';
 import 'package:velorki_api/velorki_api.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -111,6 +112,11 @@ FilledButton _saveButton(WidgetTester tester) => tester.widget<FilledButton>(
   find.widgetWithText(FilledButton, l10n.describeSave),
 );
 
+/// The sheet's "Write again" button.
+TextButton _againButton(WidgetTester tester) => tester.widget<TextButton>(
+  find.widgetWithText(TextButton, l10n.describeAgain),
+);
+
 /// The sheet's button while the model writes: locked, with the spinner.
 FilledButton _busyButton(WidgetTester tester) {
   final button = find.widgetWithText(FilledButton, l10n.describeRunning);
@@ -139,6 +145,27 @@ Future<void> _stream(
 }
 
 void main() {
+  testWidgets('the button\'s sparkle is in the AI\'s colours, not the '
+      'accent', (tester) async {
+    await pumpScreen(
+      tester,
+      _Host(_route()),
+      extraOverrides: [
+        relayClientProvider.overrideWithValue(ManualRelayClient()),
+        routeDigestServiceProvider.overrideWithValue(FakeRouteDigestService()),
+      ],
+    );
+    final sparkle = find.descendant(
+      of: find.byType(DescribeRouteButton),
+      matching: find.byType(AiSparkle),
+    );
+    expect(sparkle, findsOneWidget);
+    expect(
+      find.descendant(of: sparkle, matching: find.byType(ShaderMask)),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('the sheet opens writing and appends the text as it arrives', (
     tester,
   ) async {
@@ -157,14 +184,24 @@ void main() {
 
     expect(find.text('A gentle loop '), findsOneWidget);
     expect(find.text(l10n.describeRunning), findsOneWidget);
-    // Nothing to keep while the model is still writing.
+    // Nothing to keep while the model is still writing, and nothing to
+    // start again.
     expect(_busyButton(tester).onPressed, isNull);
+    expect(_againButton(tester).onPressed, isNull);
 
     opened.relay.emit(const TextEvent('along the Isar.'));
     await tester.pump();
 
     // Appended, not replaced.
     expect(find.text('A gentle loop along the Isar.'), findsOneWidget);
+    // Marked as the AI's, with its sparkle.
+    expect(
+      find.ancestor(
+        of: find.text('A gentle loop along the Isar.'),
+        matching: find.byType(AiAnswer),
+      ),
+      findsOneWidget,
+    );
 
     await opened.relay.finish();
     await tester.pump();
@@ -173,6 +210,7 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsNothing);
     expect(find.text('A gentle loop along the Isar.'), findsOneWidget);
     expect(_saveButton(tester).onPressed, isNotNull);
+    expect(_againButton(tester).onPressed, isNotNull);
   });
 
   testWidgets('saving writes the description to the route and says so', (

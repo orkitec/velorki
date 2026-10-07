@@ -2,9 +2,9 @@
 
 The app is signed with Xcode's automatic signing, the distribution side with
 Apple's cloud-managed certificate: no certificate repository, no manual
-profiles. `.github/workflows/ios-release.yml` does it on a runner, a Mac with
-Xcode signed into the team does it by hand. Android is in
-[`app/fastlane/README.md`](../app/fastlane/README.md).
+profiles. The `ios` job of `.github/workflows/release.yml` does it on a
+runner, beside the `android` job; a Mac with Xcode signed into the team does it
+by hand. Android is in [`app/fastlane/README.md`](../app/fastlane/README.md).
 
 Signing happens twice. `xcodebuild archive` signs with an **Apple Development**
 identity, and its private key has to be in a keychain (Apple keeps no copy, so
@@ -47,27 +47,38 @@ One upload carries four bundle ids, all under team `8Z44M8DMKK`:
    | `ASC_KEY_P8_BASE64` | `base64 -i AuthKey_<KEYID>.p8` |
    | `IOS_DEV_CERT_P12_BASE64` | `base64 -i ci-development.p12` |
    | `IOS_DEV_CERT_PASSWORD` | the `.p12` password |
-   | `APP_ENV_PROD_JSON` | `app/env/prod.json`; shared with `release.yml` |
+   | `APP_ENV_PROD_JSON` | `app/env/prod.json`; shared with the `android` job |
 
-   With any of them empty except the password, the workflow builds unsigned, prints a notice and finishes green.
+   With any of them empty except the password, the `ios` job builds unsigned, prints a notice and finishes green.
 
 ## What a tag or a dispatch does
 
-`git tag v1.2.3 && git push origin v1.2.3`, or *Actions* → *ios release* →
-*Run workflow* on a tag (`gh workflow run ios-release.yml --ref v1.2.3`). The
-`release` environment admits only `v*` tags, so a dispatch on a branch gets no
-secrets and builds unsigned; a trial run uses a tag such as `v1.0.1-rc1`.
+`git tag v1.2.3 && git push origin v1.2.3`. An existing tag is released again
+from *Actions* → *release* → *Run workflow* on `main`
+(`gh workflow run release.yml --ref main -f tag=v1.2.3`): the workflow comes
+from `main`, the code from the tag. `platforms` picks `ios` or `android` alone,
+`build_number` reuses the number the other store already has (empty computes
+one), and `dry_run` archives and signs but uploads nothing. A trial run uses a
+tag such as `v1.0.1-rc1`. Only the logins in the repository variable
+`RELEASE_ACTORS` (comma-separated) may start or re-run a release.
 
-1. The job waits for approval in the `release` environment.
-2. It writes `env/prod.json`, decodes the key into the runner's temp directory
+1. The `version` job checks that the tag's `X.Y.Z` is the pubspec's version
+   at that tag and computes the build number both platforms use:
+   `run_number + 10` (iOS builds 1 and 2 and Android version codes 1 to 4
+   came before), unless `build_number` is given.
+2. The `ios` job waits for approval in the `release` environment.
+3. It writes `env/prod.json`, decodes the key into the runner's temp directory
    and imports the development identity into a throwaway keychain.
-3. `flutter build ios --config-only` writes the Flutter configuration with
-   build number `run_number + 1` (`BUILD_NUMBER_OFFSET`; 1.0 (1) was uploaded
-   by hand). The version is the pubspec's.
-4. `xcodebuild archive` signs for development, fetching the profiles with the
+4. `fastlane ios latest_build_number` reads the newest build number on App
+   Store Connect; the job fails if its own is below it, or if the API cannot
+   be reached. If it is the same number, an earlier run uploaded it: the job
+   skips the archive and the upload and finishes green.
+5. `flutter build ios --config-only` writes the Flutter configuration with
+   that version and build number.
+6. `xcodebuild archive` signs for development, fetching the profiles with the
    API key; the export re-signs for the App Store and uploads to App Store
    Connect. Nothing is submitted for review.
-5. The key, the keychain and `env/prod.json` are deleted, also on failure.
+7. The key, the keychain and `env/prod.json` are deleted, also on failure.
 
 App Store Connect refuses a version whose train is closed: after 1.0.0 is
 released, bump `version:` in `app/pubspec.yaml` before the next upload.

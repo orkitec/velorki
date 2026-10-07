@@ -1,7 +1,7 @@
 name: velorki
 description: Plan and ride bike routes. Free, open source, built on OpenStreetMap.
 publish_to: none
-version: 1.0.1+1
+version: 1.0.2+1
 
 environment:
   sdk: ^3.13.3
@@ -22,8 +22,8 @@ dependencies:
   flutter_tts: ^4.2.5
   flutter_web_auth_2: ^5.1.0
   freezed_annotation: ^3.1.0
-  geolocator: ^14.0.3
-  go_router: ^18.0.1
+  geolocator: ^14.1.1
+  go_router: ^18.0.2
   intl: ^0.20.3
   json_annotation: ^4.12.0
   logging: ^1.3.0
@@ -36,7 +36,7 @@ dependencies:
   riverpod_annotation: ^4.0.7
   share_plus: ^13.3.0
   shared_preferences: ^2.5.5
-  sqlite3: ^3.6.0
+  sqlite3: ^3.7.0
   universal_ble: ^2.3.0
   url_launcher: ^6.3.2
   uuid: ^4.6.0
@@ -66,11 +66,15 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   freezed: ^4.0.1
+  # The in-process relay of the AI tests answers through http's MockClient
+  # and checks itself against web/openapi.yaml.
+  http: ^1.6.0
   integration_test:
     sdk: flutter
   json_serializable: ^6.14.1
   mocktail: ^1.0.5
   riverpod_generator: ^4.0.9
+  yaml: ^3.1.4
   # riverpod_lint is not a dev_dependency: since 3.1 it is an
   # analysis_server_plugin, declared under `plugins:` in analysis_options.yaml.
 
