@@ -84,7 +84,7 @@ void main() {
       ],
     );
     h.map
-      ..zoom = 11
+      ..zoom = stopsMinZoom - 1
       ..center = const LatLng(48.05, 11.05)
       ..visibleBounds = const BoundingBox(
         south: 47.9,

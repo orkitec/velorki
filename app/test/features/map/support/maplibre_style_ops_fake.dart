@@ -26,7 +26,11 @@ class RecordedStyleCall {
     this.imageBytes,
     this.cameraUpdate,
     this.cameraDuration,
+    this.filter,
   });
+
+  /// The filter an `addLayer` call limited the layer with.
+  final Object? filter;
 
   /// The member that was called, e.g. `addLayer`.
   final String name;
@@ -168,6 +172,14 @@ class RecordingStyleOps implements MapLibreStyleOps {
     return matching.isEmpty ? null : matching.last.geojson;
   }
 
+  /// The `addSource` call that created [sourceId].
+  RecordedStyleCall? addSourceOf(String sourceId) {
+    final matching = calls.where(
+      (c) => c.name == 'addSource' && c.id == sourceId,
+    );
+    return matching.isEmpty ? null : matching.last;
+  }
+
   /// Answer a write to a source that is not there the way iOS does, with a
   /// `sourceNotFound` platform error; Android keeps quiet.
   bool strictSources = false;
@@ -184,6 +196,10 @@ class RecordingStyleOps implements MapLibreStyleOps {
   /// What [renderedFeaturesNear] finds, each with a `layer` entry naming the
   /// layer that drew it.
   List<Map<String, dynamic>> renderedFeatures = <Map<String, dynamic>>[];
+
+  /// What [clusterExpansionZoom] answers, per cluster id; 0 for any other,
+  /// as the platform answers for an id it does not know.
+  final Map<int, int> clusterExpansionZooms = <int, int>{};
 
   /// Forgets the recorded calls; the sources, layers and scripts stay.
   void clearCalls() => calls.clear();
@@ -270,6 +286,7 @@ class RecordingStyleOps implements MapLibreStyleOps {
     ml.LayerProperties properties, {
     String? belowLayerId,
     bool enableInteraction = true,
+    Object? filter,
   }) async {
     layerIds.add(layerId);
     calls.add(
@@ -280,6 +297,7 @@ class RecordingStyleOps implements MapLibreStyleOps {
         belowLayerId: belowLayerId,
         enableInteraction: enableInteraction,
         properties: properties.toJson(),
+        filter: filter,
       ),
     );
   }
@@ -378,6 +396,10 @@ class RecordingStyleOps implements MapLibreStyleOps {
     for (final feature in renderedFeatures)
       if (layerIds.contains(feature['layer'])) feature,
   ];
+
+  @override
+  Future<int> clusterExpansionZoom(String sourceId, int clusterId) async =>
+      clusterExpansionZooms[clusterId] ?? 0;
 
   @override
   Future<ml.LatLngBounds> getVisibleRegion() async {

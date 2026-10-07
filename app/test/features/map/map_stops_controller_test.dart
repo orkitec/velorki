@@ -86,26 +86,52 @@ void main() {
       });
     });
 
-    test('a busy area draws only the stops nearest the middle', () {
+    test('a busy area draws every stop, nearest the middle first, and a '
+        'limit drops the far ones', () {
       fakeAsync((async) {
         final store = _FakeStore();
         final map = FakeMapController()
-          ..zoom = 15
+          ..zoom = 12
           ..center = const LatLng(48.0, 11.0)
           ..visibleBounds = _view;
         final stops = MapStopsController(find: store.find)
           ..update(shown: true, kinds: const {'cafe'})
           ..attach(map);
         async.elapse(stopsDebounce * 2);
-        // Furthest first, so the order of the answer is not what is kept.
+        // Furthest first, so the order of the answer is not what is kept;
+        // more than the limit, as several gazetteers together can answer.
         store.asks.single.answer.complete([
-          for (var i = stopsAreaShown + 40; i > 0; i--)
-            _stop('Café $i', LatLng(48.0 + i * 1e-4, 11.0), kind: 'cafe'),
+          for (var i = stopsAreaLimit + 40; i > 0; i--)
+            _stop('Café $i', LatLng(48.0 + i * 1e-5, 11.0), kind: 'cafe'),
         ]);
         async.flushMicrotasks();
-        expect(map.stops, hasLength(stopsAreaShown));
+        expect(map.stops, hasLength(stopsAreaLimit));
         expect(stops.stops.first.name, 'Café 1');
-        expect(stops.stops.last.name, 'Café $stopsAreaShown');
+        expect(stops.stops.last.name, 'Café $stopsAreaLimit');
+        stops.dispose();
+      });
+    });
+
+    test('below the zoom where stops show nothing is asked and nothing '
+        'drawn', () {
+      fakeAsync((async) {
+        final store = _FakeStore();
+        final map = FakeMapController()
+          ..zoom = stopsMinZoom - 0.5
+          ..center = const LatLng(48.0, 11.0)
+          ..visibleBounds = _view;
+        final stops = MapStopsController(find: store.find)
+          ..update(shown: true, kinds: const {'cafe'})
+          ..attach(map);
+        async.elapse(stopsDebounce * 2);
+        expect(store.asks, isEmpty);
+        expect(stops.needsZoom, isTrue);
+
+        map.zoom = stopsMinZoom;
+        map.emitCameraIdle();
+        async.elapse(stopsDebounce * 2);
+        expect(store.asks, hasLength(1));
+        expect(stops.needsZoom, isFalse);
         stops.dispose();
       });
     });
@@ -147,7 +173,8 @@ void main() {
       });
     });
 
-    test('below zoom 13 the stops go and nothing is asked', () {
+    test('zoomed out past where they show, the stops go and nothing is '
+        'asked', () {
       fakeAsync((async) {
         final store = _FakeStore();
         final map = FakeMapController()
@@ -163,7 +190,7 @@ void main() {
         async.flushMicrotasks();
         expect(map.stops, hasLength(1));
 
-        map.zoom = 12;
+        map.zoom = stopsMinZoom - 1;
         map.emitCameraIdle();
         async.elapse(stopsDebounce * 2);
 

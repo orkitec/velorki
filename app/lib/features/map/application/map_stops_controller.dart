@@ -14,15 +14,14 @@ import '../domain/stops_along_route.dart';
 part 'map_stops_controller.g.dart';
 
 /// Below this zoom the stops in the area on screen are not drawn: the box
-/// would hold a town's worth of them.
-const double stopsMinZoom = 14;
+/// would hold a region's worth of them. Above it the map gathers stops
+/// close together into counted bubbles.
+const double stopsMinZoom = 11;
 
-/// The most stops drawn in the area on screen, the ones nearest its middle:
-/// a busy old town has hundreds, and a pin over a pin helps nobody.
-const int stopsAreaShown = 60;
-
-/// The most stops one query for the area on screen asks for, per gazetteer.
-const int stopsAreaLimit = 200;
+/// The most stops one query for the area on screen asks for, per gazetteer,
+/// and the most drawn: the ones nearest the middle, so a limit drops the
+/// far ones.
+const int stopsAreaLimit = 500;
 
 /// The most stops one stretch of the route ahead asks for, per gazetteer.
 const int stopsChunkLimit = 200;
@@ -382,7 +381,7 @@ class MapStopsController extends ChangeNotifier {
           middle,
         ).compareTo(haversineMeters(b.position, middle)),
       );
-    _area = nearest.take(stopsAreaShown).toList();
+    _area = nearest.take(stopsAreaLimit).toList();
     _draw(_area);
   }
 

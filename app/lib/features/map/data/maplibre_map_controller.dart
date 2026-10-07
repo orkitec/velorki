@@ -51,6 +51,8 @@ abstract final class MapLayerIds {
   static const String stopsCircleLayer = 'velorki-stops-circle';
   static const String stopsIconLayer = 'velorki-stops-icon';
   static const String stopsLabelLayer = 'velorki-stops-label';
+  static const String stopsClusterLayer = 'velorki-stops-cluster';
+  static const String stopsClusterCountLayer = 'velorki-stops-cluster-count';
   static const String turnsSource = 'velorki-turns';
   static const String turnsLayer = 'velorki-turns-dot';
 
@@ -97,7 +99,14 @@ class MapPalette {
     this.poiFood = '#8E24AA',
     this.poiGeneric = '#78909C',
     this.routeOriginal = '#607D8B',
+    this.stopCluster = '#1565C0',
+    this.stopClusterLabel = '#FFFFFF',
   });
+
+  /// A bubble standing for several stops close together, in the accent,
+  /// and the count written on it.
+  final String stopCluster;
+  final String stopClusterLabel;
 
   /// The line a route was imported with, drawn faint under an edited one.
   final String routeOriginal;
@@ -132,7 +141,9 @@ class MapPalette {
       poiWater = '#1E88E5',
       poiFood = '#8E24AA',
       poiGeneric = '#78909C',
-      routeOriginal = '#607D8B';
+      routeOriginal = '#607D8B',
+      stopCluster = '#1565C0',
+      stopClusterLabel = '#FFFFFF';
 
   /// The palette of [theme]'s [VelorkiColors].
   factory MapPalette.fromTheme(ThemeData theme) {
@@ -168,6 +179,8 @@ class MapPalette {
       poiFood: VelorkiColors.hex(theme.colorScheme.tertiary),
       poiGeneric: VelorkiColors.hex(colors.routeAlternative),
       routeOriginal: VelorkiColors.hex(theme.colorScheme.onSurfaceVariant),
+      stopCluster: VelorkiColors.hex(colors.accent),
+      stopClusterLabel: VelorkiColors.hex(theme.colorScheme.onPrimary),
     );
   }
 
@@ -220,7 +233,9 @@ class MapPalette {
       other.waypointLabelHalo == waypointLabelHalo &&
       other.positionDot == positionDot &&
       other.positionAccuracy == positionAccuracy &&
-      other.routeOriginal == routeOriginal;
+      other.routeOriginal == routeOriginal &&
+      other.stopCluster == stopCluster &&
+      other.stopClusterLabel == stopClusterLabel;
 
   @override
   int get hashCode => Object.hash(
@@ -243,6 +258,7 @@ class MapPalette {
     positionDot,
     positionAccuracy,
     routeOriginal,
+    Object.hash(stopCluster, stopClusterLabel),
   );
 }
 
@@ -288,6 +304,20 @@ const Duration puckInterpolationDuration = Duration(milliseconds: 800);
 /// motion and cheap enough to write twelve times a second.
 const int puckInterpolationSteps = 12;
 
+/// How far apart, in logical pixels, stops are drawn as one bubble.
+const double stopsClusterRadiusPx = 50;
+
+/// The last zoom at which stops are gathered into bubbles; from the next
+/// zoom on every stop is its own pin.
+const double stopsClusterMaxZoom = 14;
+
+/// How close to a tap, in logical pixels, the bubble tapped is looked for:
+/// as wide as the widest bubble.
+const double stopsClusterHitPx = 24;
+
+/// A tap on a bubble of stops zooms in no further than this.
+const double stopsClusterTapMaxZoom = 16;
+
 /// A jump longer than this is not riding.
 ///
 /// The first fix after a tunnel, a cold start or an OS cache comes from far
@@ -318,13 +348,15 @@ abstract class MapLibreStyleOps {
   ///
   /// [belowLayerId] is what keeps the route lines under the puck, and
   /// [enableInteraction] decides whether a layer's features can be dragged —
-  /// only the waypoint circles want that.
+  /// only the waypoint circles want that. [filter] limits the layer to the
+  /// features it matches.
   Future<void> addLayer(
     String sourceId,
     String layerId,
     ml.LayerProperties properties, {
     String? belowLayerId,
     bool enableInteraction = true,
+    Object? filter,
   });
 
   /// Removes the layer [layerId]; a source can only go once nothing draws it.
@@ -371,6 +403,10 @@ abstract class MapLibreStyleOps {
     double radiusPx,
     List<String> layerIds,
   );
+
+  /// The zoom at which the cluster [clusterId] of the clustered GeoJSON
+  /// source [sourceId] splits into its children; 0 when it is not one.
+  Future<int> clusterExpansionZoom(String sourceId, int clusterId);
 
   /// The plugin's own list of feature drag listeners. It is a plain list, so
   /// the adapter registers and unregisters by adding to and removing from it
@@ -453,6 +489,7 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
     ml.LayerProperties properties, {
     String? belowLayerId,
     bool enableInteraction = true,
+    Object? filter,
   }) => tolerateMapGone(
     () => map.addLayer(
       sourceId,
@@ -460,6 +497,7 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
       properties,
       belowLayerId: belowLayerId,
       enableInteraction: enableInteraction,
+      filter: filter,
     ),
   );
 
@@ -523,6 +561,10 @@ class PluginMapLibreStyleOps implements MapLibreStyleOps {
         if (feature is Map) Map<String, dynamic>.from(feature),
     ];
   }
+
+  @override
+  Future<int> clusterExpansionZoom(String sourceId, int clusterId) =>
+      map.getClusterExpansionZoom(sourceId, clusterId);
 
   @override
   List<ml.OnFeatureDragCallback> get onFeatureDrag => map.onFeatureDrag;
@@ -709,11 +751,13 @@ class MaplibreMapControllerAdapter implements MapController {
       String sourceId,
       String layerId, {
       bool enableInteraction = false,
+      Object? filter,
     }) => _ops.addLayer(
       sourceId,
       layerId,
       layers[layerId]!,
       enableInteraction: enableInteraction,
+      filter: filter,
     );
 
     await _ops.addGeoJsonSource(
@@ -724,17 +768,44 @@ class MaplibreMapControllerAdapter implements MapController {
 
     // Stops around the map or along the route: under the puck, the route's
     // own points and its places, which all matter more than a tap nearby.
-    await _ops.addGeoJsonSource(
+    // Clustered: zoomed out over a town, stops close together are one
+    // counted bubble; from [stopsClusterMaxZoom] + 1 every stop is its own.
+    await _ops.addSource(
       MapLayerIds.stopsSource,
-      emptyFeatureCollection(),
+      ml.GeojsonSourceProperties(
+        data: emptyFeatureCollection(),
+        cluster: true,
+        clusterRadius: stopsClusterRadiusPx,
+        clusterMaxZoom: stopsClusterMaxZoom,
+      ),
     );
     await add(
       MapLayerIds.stopsSource,
       MapLayerIds.stopsCircleLayer,
       enableInteraction: true,
+      filter: MarkerLayers.isNotCluster,
     );
-    await add(MapLayerIds.stopsSource, MapLayerIds.stopsIconLayer);
-    await add(MapLayerIds.stopsSource, MapLayerIds.stopsLabelLayer);
+    await add(
+      MapLayerIds.stopsSource,
+      MapLayerIds.stopsIconLayer,
+      filter: MarkerLayers.isNotCluster,
+    );
+    await add(
+      MapLayerIds.stopsSource,
+      MapLayerIds.stopsLabelLayer,
+      filter: MarkerLayers.isNotCluster,
+    );
+    await add(
+      MapLayerIds.stopsSource,
+      MapLayerIds.stopsClusterLayer,
+      enableInteraction: true,
+      filter: MarkerLayers.isCluster,
+    );
+    await add(
+      MapLayerIds.stopsSource,
+      MapLayerIds.stopsClusterCountLayer,
+      filter: MarkerLayers.isCluster,
+    );
 
     await _ops.addGeoJsonSource(
       MapLayerIds.positionSource,
@@ -1451,6 +1522,8 @@ class MaplibreMapControllerAdapter implements MapController {
         field: 'name',
         chosenOnly: true,
       ),
+      MapLayerIds.stopsClusterLayer: markers.clusterBubble(),
+      MapLayerIds.stopsClusterCountLayer: markers.clusterLabel(),
       MapLayerIds.poisLabelLayer: markers.name(field: 'name'),
       MapLayerIds.searchPinLayer: ml.CircleLayerProperties(
         circleRadius: 9.0,
@@ -1991,6 +2064,11 @@ class MaplibreMapControllerAdapter implements MapController {
       onPoiTapped?.call(poi);
       return;
     }
+    // A bubble of stops has no id of ours: it is known by its layer.
+    if (layerId == MapLayerIds.stopsClusterLayer) {
+      unawaited(_zoomIntoStopCluster(_fromMl(coordinates)));
+      return;
+    }
     final stop = stopIndexFromFeatureId(id);
     if (stop != null) {
       onStopTapped?.call(stop);
@@ -1998,6 +2076,60 @@ class MaplibreMapControllerAdapter implements MapController {
     }
     final turn = turnIndexFromFeatureId(id);
     if (turn != null) onTurnTapped?.call(turn);
+  }
+
+  /// Zooms in on the bubble of stops tapped at [tapped]: centred on the
+  /// bubble, to the zoom where it splits, or two steps in when the map
+  /// will not say, never past [stopsClusterTapMaxZoom].
+  Future<void> _zoomIntoStopCluster(LatLng tapped) async {
+    final zoom = _ops.cameraPosition?.zoom;
+    if (zoom == null || _disposed) return;
+    var center = tapped;
+    var target = zoom + 2;
+    try {
+      final features = await _ops.renderedFeaturesNear(
+        _toMl(tapped),
+        stopsClusterHitPx,
+        const <String>[MapLayerIds.stopsClusterLayer],
+      );
+      double? nearestM;
+      int? clusterId;
+      for (final feature in features) {
+        final at = _pointOf(feature);
+        if (at == null) continue;
+        final d = haversineMeters(at, tapped);
+        if (nearestM != null && d >= nearestM) continue;
+        nearestM = d;
+        center = at;
+        final properties = feature['properties'];
+        final id = properties is Map ? properties['cluster_id'] : null;
+        clusterId = id is num ? id.toInt() : null;
+      }
+      if (clusterId != null) {
+        final split = await _ops.clusterExpansionZoom(
+          MapLayerIds.stopsSource,
+          clusterId,
+        );
+        if (split > zoom) target = split.toDouble();
+      }
+    } on Object catch (e) {
+      // The bubble is zoomed in on where it was tapped all the same.
+      debugPrint('velorki: stop cluster lookup failed: $e');
+    }
+    if (_disposed) return;
+    await moveTo(center, zoom: math.min(target, stopsClusterTapMaxZoom));
+  }
+
+  /// The position of a GeoJSON point feature, `null` for anything else.
+  static LatLng? _pointOf(Map<String, dynamic> feature) {
+    final geometry = feature['geometry'];
+    if (geometry is! Map) return null;
+    final coordinates = geometry['coordinates'];
+    if (coordinates is! List || coordinates.length < 2) return null;
+    final lng = coordinates[0];
+    final lat = coordinates[1];
+    if (lng is! num || lat is! num) return null;
+    return LatLng(lat.toDouble(), lng.toDouble());
   }
 
   Future<void> _refreshVisibleBounds() async {

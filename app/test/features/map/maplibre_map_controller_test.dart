@@ -45,6 +45,8 @@ const MapPalette _repainted = MapPalette(
   mapLabelHalo: '#BCBCBC',
   positionDot: '#CCCCCC',
   positionAccuracy: '#DDDDDD',
+  stopCluster: '#EEEEEE',
+  stopClusterLabel: '#010101',
 );
 
 final List<TrackSegment> _segments = <TrackSegment>[
@@ -113,7 +115,13 @@ void main() {
 
       expect(
         ops.calls
-            .where((c) => c.name == 'addGeoJsonSource' || c.name == 'addLayer')
+            .where(
+              (c) =>
+                  c.name == 'addGeoJsonSource' ||
+                  (c.name == 'addSource' &&
+                      c.id != MapLayerIds.cyclosmSource) ||
+                  c.name == 'addLayer',
+            )
             .map((c) => c.layerId ?? c.id)
             .toList(),
         <String>[
@@ -124,6 +132,8 @@ void main() {
           MapLayerIds.stopsCircleLayer,
           MapLayerIds.stopsIconLayer,
           MapLayerIds.stopsLabelLayer,
+          MapLayerIds.stopsClusterLayer,
+          MapLayerIds.stopsClusterCountLayer,
           MapLayerIds.positionSource,
           // The ring is the bottom of the puck, the dot the top, so a route
           // line inserted below the ring stays under the whole puck.
@@ -211,6 +221,224 @@ void main() {
 
         expect(stops, <int>[3]);
         expect(pois, isEmpty);
+      },
+    );
+
+    test('the stops source is clustered, single stops and bubbles drawn by '
+        'their own layers', () async {
+      final ops = RecordingStyleOps();
+      await _adapter(ops).attachToStyle();
+
+      final source = ops.addSourceOf(MapLayerIds.stopsSource)!.properties!;
+      expect(source['type'], 'geojson');
+      expect(source['cluster'], isTrue);
+      expect(source['clusterRadius'], stopsClusterRadiusPx);
+      expect(source['clusterMaxZoom'], 14);
+
+      const bubble = <Object>['has', 'point_count'];
+      const single = <Object>[
+        '!',
+        <Object>['has', 'point_count'],
+      ];
+      for (final layer in <String>[
+        MapLayerIds.stopsCircleLayer,
+        MapLayerIds.stopsIconLayer,
+        MapLayerIds.stopsLabelLayer,
+      ]) {
+        expect(ops.addLayerOf(layer)!.filter, single, reason: layer);
+      }
+      for (final layer in <String>[
+        MapLayerIds.stopsClusterLayer,
+        MapLayerIds.stopsClusterCountLayer,
+      ]) {
+        expect(ops.addLayerOf(layer)!.filter, bubble, reason: layer);
+      }
+      // No other layer of ours is filtered.
+      expect(
+        ops
+            .callsNamed('addLayer')
+            .where((c) => c.filter != null)
+            .map((c) => c.layerId),
+        hasLength(5),
+      );
+
+      final circle = ops.addLayerOf(MapLayerIds.stopsClusterLayer)!.properties!;
+      expect(circle['circle-color'], const MapPalette.classic().stopCluster);
+      expect(circle['circle-radius'], <Object>[
+        'step',
+        <Object>['get', 'point_count'],
+        14.0,
+        10,
+        17.0,
+        50,
+        20.0,
+      ]);
+      final count = ops
+          .addLayerOf(MapLayerIds.stopsClusterCountLayer)!
+          .properties!;
+      expect(count['text-font'], waypointLabelFont);
+      expect(count['text-color'], const MapPalette.classic().stopClusterLabel);
+      expect(count['text-field'], <Object>[
+        'case',
+        <Object>[
+          '>',
+          <Object>['get', 'point_count'],
+          99,
+        ],
+        '99+',
+        <Object>[
+          'to-string',
+          <Object>['get', 'point_count'],
+        ],
+      ]);
+    });
+
+    test('the stop bubbles follow the palette', () async {
+      final ops = RecordingStyleOps();
+      final adapter = _adapter(ops);
+      await adapter.attachToStyle();
+
+      await adapter.setPalette(_repainted);
+
+      expect(
+        ops
+            .lastPropertiesOf(MapLayerIds.stopsClusterLayer)!
+            .properties!['circle-color'],
+        '#EEEEEE',
+      );
+      expect(
+        ops
+            .lastPropertiesOf(MapLayerIds.stopsClusterLayer)!
+            .properties!['circle-stroke-color'],
+        _repainted.waypointStroke,
+      );
+      expect(
+        ops
+            .lastPropertiesOf(MapLayerIds.stopsClusterCountLayer)!
+            .properties!['text-color'],
+        '#010101',
+      );
+    });
+
+    group('a tap on a bubble of stops', () {
+      Future<(RecordingStyleOps, MaplibreMapControllerAdapter, List<int>)>
+      tapBubble({
+        required double zoom,
+        List<Map<String, dynamic>> rendered = const <Map<String, dynamic>>[],
+        Map<int, int> splits = const <int, int>{},
+      }) async {
+        final ops = RecordingStyleOps()
+          ..cameraPosition = ml.CameraPosition(
+            target: const ml.LatLng(48, 11),
+            zoom: zoom,
+          )
+          ..renderedFeatures = rendered
+          ..clusterExpansionZooms.addAll(splits);
+        final adapter = _adapter(ops);
+        await adapter.attachToStyle();
+        final stops = <int>[];
+        adapter.onStopTapped = stops.add;
+        ops.clearCalls();
+        for (final callback in List.of(ops.onFeatureTapped)) {
+          callback(
+            const Point<double>(0, 0),
+            const ml.LatLng(48.001, 11.001),
+            '7',
+            MapLayerIds.stopsClusterLayer,
+            null,
+          );
+        }
+        await pumpEventQueue();
+        return (ops, adapter, stops);
+      }
+
+      void expectMove(RecordingStyleOps ops, double lat, double lng, num z) {
+        final update = ops.lastCall('animateCamera')!.cameraUpdate! as List;
+        expect(update[0], 'newLatLngZoom');
+        final at = update[1] as List;
+        expect(at[0] as double, closeTo(lat, 1e-9));
+        expect(at[1] as double, closeTo(lng, 1e-9));
+        expect(update[2], z.toDouble());
+      }
+
+      Map<String, dynamic> bubbleAt(double lat, double lng, int id) =>
+          <String, dynamic>{
+            'layer': MapLayerIds.stopsClusterLayer,
+            'type': 'Feature',
+            'properties': <String, dynamic>{
+              'cluster': true,
+              'cluster_id': id,
+              'point_count': 12,
+            },
+            'geometry': <String, dynamic>{
+              'type': 'Point',
+              'coordinates': <double>[lng, lat],
+            },
+          };
+
+      test('zooms two steps in on it when the map does not say where it '
+          'splits, and reports no stop', () async {
+        final (ops, _, stops) = await tapBubble(zoom: 12);
+
+        expect(stops, isEmpty);
+        expectMove(ops, 48.001, 11.001, 14);
+      });
+
+      test('never further in than 16', () async {
+        final (ops, _, _) = await tapBubble(zoom: 15.2);
+
+        expect(
+          (ops.lastCall('animateCamera')!.cameraUpdate! as List<Object?>)[2],
+          stopsClusterTapMaxZoom,
+        );
+      });
+
+      test('centres on the bubble drawn nearest the tap and zooms to where '
+          'it splits', () async {
+        final (ops, _, _) = await tapBubble(
+          zoom: 11.5,
+          rendered: <Map<String, dynamic>>[
+            bubbleAt(48.05, 11.05, 3),
+            bubbleAt(48.0012, 11.0011, 7),
+          ],
+          splits: const <int, int>{7: 13, 3: 15},
+        );
+
+        expectMove(ops, 48.0012, 11.0011, 13);
+      });
+    });
+
+    test(
+      'with clustering a tap on a single stop still reports its index',
+      () async {
+        final ops = RecordingStyleOps()
+          ..cameraPosition = const ml.CameraPosition(
+            target: ml.LatLng(48, 11),
+            zoom: 15,
+          );
+        final adapter = _adapter(ops);
+        await adapter.attachToStyle();
+        await adapter.setStops(const <MapPoi>[
+          MapPoi(position: LatLng(48, 11), name: 'A', kind: MapPoiKind.water),
+          MapPoi(position: LatLng(48.1, 11), name: 'B', kind: MapPoiKind.food),
+        ]);
+        final stops = <int>[];
+        adapter.onStopTapped = stops.add;
+        ops.clearCalls();
+
+        for (final callback in List.of(ops.onFeatureTapped)) {
+          callback(
+            const Point<double>(0, 0),
+            const ml.LatLng(48.1, 11),
+            stopFeatureId(1),
+            MapLayerIds.stopsCircleLayer,
+            null,
+          );
+        }
+        await pumpEventQueue();
+
+        expect(stops, <int>[1]);
+        expect(ops.callsNamed('animateCamera'), isEmpty);
       },
     );
 
@@ -398,6 +626,7 @@ void main() {
           .toList();
       expect(interactive, <String>[
         MapLayerIds.stopsCircleLayer,
+        MapLayerIds.stopsClusterLayer,
         MapLayerIds.waypointsHitLayer,
         MapLayerIds.turnsLayer,
         MapLayerIds.poisCircleLayer,
@@ -460,7 +689,7 @@ void main() {
 
       await _adapter(ops, cyclosmTileUrl: _cyclosmTemplate).attachToStyle();
 
-      final source = ops.lastCall('addSource')!;
+      final source = ops.addSourceOf(MapLayerIds.cyclosmSource)!;
       expect(source.id, MapLayerIds.cyclosmSource);
       // MapLibre does not understand `{s}`, so the template is expanded.
       expect(source.properties!['tiles'], <String>[
@@ -478,7 +707,7 @@ void main() {
 
       await _adapter(ops).attachToStyle();
 
-      expect(ops.callsNamed('addSource'), isEmpty);
+      expect(ops.addSourceOf(MapLayerIds.cyclosmSource), isNull);
       expect(ops.layerIds, isNot(contains(MapLayerIds.cyclosmLayer)));
     });
 

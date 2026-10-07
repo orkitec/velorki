@@ -102,6 +102,59 @@ class MarkerLayers {
   static List<Object> stopGlyphScaleExpression() =>
       whenSelected(1.0, stopGlyphScale);
 
+  /// Whether a feature of a clustered source is a bubble standing for
+  /// several points, and the opposite: the stop layers draw the single
+  /// stops, the cluster layers the bubbles.
+  static const List<Object> isCluster = <Object>['has', 'point_count'];
+  static const List<Object> isNotCluster = <Object>['!', isCluster];
+
+  /// A cluster bubble's radius, stepping up with how many stops it holds.
+  static List<Object> clusterRadius() => <Object>[
+    'step',
+    <Object>['get', 'point_count'],
+    14.0,
+    10,
+    17.0,
+    50,
+    20.0,
+  ];
+
+  /// What a cluster bubble says: how many stops it holds, "99+" beyond.
+  static List<Object> clusterCount() => <Object>[
+    'case',
+    <Object>[
+      '>',
+      <Object>['get', 'point_count'],
+      99,
+    ],
+    '99+',
+    <Object>[
+      'to-string',
+      <Object>['get', 'point_count'],
+    ],
+  ];
+
+  /// The bubble of a cluster of stops, in the accent with the stop discs'
+  /// rim.
+  ml.CircleLayerProperties clusterBubble() => ml.CircleLayerProperties(
+    circleRadius: clusterRadius(),
+    circleColor: palette.stopCluster,
+    circleStrokeWidth: 1.5,
+    circleStrokeColor: palette.waypointStroke,
+  );
+
+  /// The count on a cluster's bubble. Forced, like a waypoint's number: it
+  /// is inside the bubble, where nothing else is.
+  ml.SymbolLayerProperties clusterLabel() => ml.SymbolLayerProperties(
+    textField: clusterCount(),
+    textFont: waypointLabelFont,
+    textSize: discTextPx,
+    textColor: palette.stopClusterLabel,
+    textAllowOverlap: true,
+    textIgnorePlacement: true,
+    textAnchor: 'center',
+  );
+
   /// The disc itself. [color] is the colour of what the point is; the
   /// chosen point takes the chosen colour instead. [radius] is a stop's
   /// smaller disc where given.
