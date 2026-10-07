@@ -92,14 +92,16 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      # Crowdin only downloads here; the pull request is opened below, after
+      # the translated ARB files lose the "@key" metadata Crowdin copies into
+      # them from app_en.arb (it has no setting against it, and gen-l10n
+      # reads metadata from the English template only).
       - uses: crowdin/github-action@9c23991700c0ec5256fd41089b9d9d7d540e424e # v3.3.0
         with:
           upload_sources: false
           download_translations: true
-          localization_branch_name: l10n/crowdin
-          create_pull_request: true
-          pull_request_title: "Update translations"
-          pull_request_base_branch_name: main
+          push_translations: false
+          create_pull_request: false
           # A language nobody has started yet brings no half-empty file.
           skip_untranslated_files: true
           # Proofreading is not set up; a translated string is good enough.
@@ -107,4 +109,31 @@ jobs:
         env:
           CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
           CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Strip ARB metadata from the translations
+        run: |
+          # The action runs in a container and leaves root-owned files.
+          sudo chown -R "$(id -u):$(id -g)" .
+          for f in app/lib/l10n/app_*.arb; do
+            [ "$f" = app/lib/l10n/app_en.arb ] && continue
+            jq --indent 2 'with_entries(select(.key | test("^@[^@]") | not))' "$f" > "$f.tmp"
+            mv "$f.tmp" "$f"
+          done
+      - name: Open or update the pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B l10n/crowdin
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No translation changes."
+            exit 0
+          fi
+          git commit -m "Update translations from Crowdin"
+          git push --force origin l10n/crowdin
+          if [ -z "$(gh pr list --head l10n/crowdin --state open --json number --jq '.[].number')" ]; then
+            gh pr create --base main --head l10n/crowdin \
+              --title "Update translations" \
+              --body "Translations downloaded from Crowdin."
+          fi
