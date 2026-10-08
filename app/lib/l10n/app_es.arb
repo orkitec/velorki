@@ -481,7 +481,7 @@
   "appearanceOverlayDarkDimmed": "Atenuada",
   "appearanceOverlayDarkUnchanged": "Sin cambios",
   "appearanceGlass": "Cristal",
-  "appearanceGlassHint": "Se aplica a la barra y a los controles sobre el mapa.",
+  "appearanceGlassHint": "Se aplica a la barra y a los controles sobre el mapa. Opaca en modo de ahorro de energía y en las salidas con ahorro de batería.",
   "appearanceBarSolid": "Opaca",
   "appearanceBarTransparent": "Transparente",
   "appearanceBarSubtle": "Cristal suave",

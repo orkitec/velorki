@@ -481,7 +481,7 @@
   "appearanceOverlayDarkDimmed": "Attenuato",
   "appearanceOverlayDarkUnchanged": "Invariato",
   "appearanceGlass": "Vetro",
-  "appearanceGlassHint": "Vale per la barra e i comandi sulla mappa.",
+  "appearanceGlassHint": "Vale per la barra e i comandi sulla mappa. Opaca in modalità risparmio energetico e nelle uscite con risparmio batteria.",
   "appearanceBarSolid": "Opaca",
   "appearanceBarTransparent": "Trasparente",
   "appearanceBarSubtle": "Vetro leggero",

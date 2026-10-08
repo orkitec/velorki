@@ -478,7 +478,7 @@
   "appearanceOverlayDarkDimmed": "Gedimmt",
   "appearanceOverlayDarkUnchanged": "Unverändert",
   "appearanceGlass": "Glas",
-  "appearanceGlassHint": "Gilt für die Leiste und die Bedienelemente über der Karte.",
+  "appearanceGlassHint": "Gilt für die Leiste und die Bedienelemente über der Karte. Im Stromsparmodus und bei Fahrten mit Energiesparen deckend.",
   "appearanceBarSolid": "Deckend",
   "appearanceBarTransparent": "Transparent",
   "appearanceBarSubtle": "Leichtes Glas",

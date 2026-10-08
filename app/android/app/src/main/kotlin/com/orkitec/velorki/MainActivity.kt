@@ -1,7 +1,12 @@
 package com.orkitec.velorki
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.hardware.display.DisplayManager
 import android.os.Build
+import android.os.PowerManager
 import android.os.Handler
 import android.os.Looper
 import android.view.Surface
@@ -25,6 +30,9 @@ import java.io.IOException
  * `velorki/orientation` tells Dart which side the phone's bottom edge is on
  * when it is turned sideways, where the navigation rail goes.
  *
+ * `velorki/power_save` tells Dart whether Battery Saver is on (`isOn`) and
+ * calls `changed` when it is switched; the glass turns solid then.
+ *
  * `FlutterFragmentActivity` rather than `FlutterActivity` because Health
  * Connect asks for its permissions through `registerForActivityResult`, which
  * needs a `ComponentActivity`; see the `health` package README, "Android 14".
@@ -37,6 +45,9 @@ class MainActivity : FlutterFragmentActivity() {
 
         /** Mirrored in `lib/app/shell_layout.dart`. */
         const val ORIENTATION_CHANNEL = "velorki/orientation"
+
+        /** Mirrored in `lib/core/power/system_power_save.dart`. */
+        const val POWER_SAVE_CHANNEL = "velorki/power_save"
 
         /** Refuse anything larger than this; a GPX of 32 MB is not a bike route. */
         const val MAX_BYTES = 32 * 1024 * 1024
@@ -70,11 +81,38 @@ class MainActivity : FlutterFragmentActivity() {
             getSystemService(DisplayManager::class.java)
                 .registerDisplayListener(it, Handler(Looper.getMainLooper()))
         }
+
+        val powerSave = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger, POWER_SAVE_CHANNEL,
+        )
+        powerSave.setMethodCallHandler { call, result ->
+            if (call.method == "isOn") result.success(isPowerSaveMode()) else result.notImplemented()
+        }
+        powerSaveReceiver?.let { unregisterReceiver(it) }
+        powerSaveReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                powerSave.invokeMethod("changed", isPowerSaveMode())
+            }
+        }.also {
+            val filter = IntentFilter(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(it, filter, Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                registerReceiver(it, filter)
+            }
+        }
     }
 
     private var displayListener: DisplayManager.DisplayListener? = null
 
+    private var powerSaveReceiver: BroadcastReceiver? = null
+
+    private fun isPowerSaveMode(): Boolean =
+        getSystemService(PowerManager::class.java)?.isPowerSaveMode ?: false
+
     override fun onDestroy() {
+        powerSaveReceiver?.let { unregisterReceiver(it) }
+        powerSaveReceiver = null
         displayListener?.let {
             getSystemService(DisplayManager::class.java).unregisterDisplayListener(it)
         }

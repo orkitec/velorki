@@ -22,10 +22,10 @@ import '../features/planner/presentation/planner_screen.dart';
 import '../features/recording/application/recording_controller.dart';
 import '../features/recording/application/ride_notification_updater.dart';
 import '../features/recording/presentation/recording_screen.dart';
-import '../features/settings/data/appearance_controller.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/shared/application/active_tab.dart';
 import '../features/shared/application/nav_bar_docking.dart';
+import '../features/shared/application/shown_bar_style.dart';
 import '../features/subscription/presentation/paywall_screen.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'map_tab_page.dart';
@@ -346,10 +346,9 @@ class HomeShell extends ConsumerWidget {
       ),
     );
     // How see-through the bar, the rail, the figures bar and a sheet
-    // docked into them are, and the chrome over the map.
-    final barStyle = ref.watch(
-      appearanceSettingProvider.select((appearance) => appearance.barStyle),
-    );
+    // docked into them are, and the chrome over the map; solid while
+    // power is being saved.
+    final barStyle = ref.watch(shownBarStyleProvider);
     return FloatingBarStyle(
       style: barStyle,
       child: ShellLayoutHost(

@@ -43,6 +43,10 @@ import UserNotifications
   private var audioChannel: FlutterMethodChannel?
   private var watchChannel: FlutterMethodChannel?
   private var orientationChannel: FlutterMethodChannel?
+  private var powerSaveChannel: FlutterMethodChannel?
+
+  /// Mirrored in `lib/core/power/system_power_save.dart`.
+  private static let powerSaveChannelName = "velorki/power_save"
 
   /// Watches the scene's geometry, so a turn from one landscape straight to
   /// the other, which changes no size Flutter sees, still reaches Dart.
@@ -119,6 +123,28 @@ import UserNotifications
       result(AppDelegate.bottomEdgeSide())
     }
     orientationChannel = orientation
+
+    // Low Power Mode: `isOn` answers it, `changed` reports every switch.
+    let powerSave = FlutterMethodChannel(
+      name: AppDelegate.powerSaveChannelName,
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
+    )
+    powerSave.setMethodCallHandler { call, result in
+      guard call.method == "isOn" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      result(ProcessInfo.processInfo.isLowPowerModeEnabled)
+    }
+    powerSaveChannel = powerSave
+    NotificationCenter.default.addObserver(
+      forName: Notification.Name.NSProcessInfoPowerStateDidChange,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      self?.powerSaveChannel?.invokeMethod(
+        "changed", arguments: ProcessInfo.processInfo.isLowPowerModeEnabled)
+    }
   }
 
   /// The scene the app draws in; there is only one.

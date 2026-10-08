@@ -481,7 +481,7 @@
   "appearanceOverlayDarkDimmed": "Gedimd",
   "appearanceOverlayDarkUnchanged": "Ongewijzigd",
   "appearanceGlass": "Glas",
-  "appearanceGlassHint": "Geldt voor de balk en de knoppen op de kaart.",
+  "appearanceGlassHint": "Geldt voor de balk en de knoppen op de kaart. Dekkend in de energiebesparingsmodus en bij ritten met batterijbesparing.",
   "appearanceBarSolid": "Dekkend",
   "appearanceBarTransparent": "Transparant",
   "appearanceBarSubtle": "Licht glas",

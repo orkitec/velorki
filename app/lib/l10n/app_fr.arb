@@ -481,7 +481,7 @@
   "appearanceOverlayDarkDimmed": "Atténuée",
   "appearanceOverlayDarkUnchanged": "Inchangée",
   "appearanceGlass": "Verre",
-  "appearanceGlassHint": "S’applique à la barre et aux commandes sur la carte.",
+  "appearanceGlassHint": "S’applique à la barre et aux commandes sur la carte. Opaque en mode économie d’énergie et pendant les sorties en économiseur de batterie.",
   "appearanceBarSolid": "Opaque",
   "appearanceBarTransparent": "Transparente",
   "appearanceBarSubtle": "Verre léger",
