@@ -560,8 +560,8 @@ VelorkiColors _darkColors(AccentPreset p, ColorScheme scheme) => VelorkiColors(
   // little more glass than the light theme's at each step (0.84, 0.66).
   barSolid: const Color(0xFF1B1F26),
   barTransparent: const Color(0xCC1B1F26),
-  barSubtle: const Color(0xD61B1F26),
-  barClear: const Color(0xA81B1F26),
+  barSubtle: const Color(0xAD1B1F26),
+  barClear: const Color(0x8C1B1F26),
   barRim: const Color(0x47FFFFFF),
   chartFill: p.dark.withValues(alpha: 0.18),
 );
@@ -596,8 +596,8 @@ VelorkiColors _lightColors(AccentPreset p, ColorScheme scheme) => VelorkiColors(
   // white glass hold their contrast over the night map even at 0.62.
   barSolid: const Color(0xFFFFFFFF),
   barTransparent: const Color(0xC7FFFFFF),
-  barSubtle: const Color(0xD1FFFFFF),
-  barClear: const Color(0x9EFFFFFF),
+  barSubtle: const Color(0x8CFFFFFF),
+  barClear: const Color(0x59FFFFFF),
   barRim: const Color(0xE6FFFFFF),
   chartFill: p.light.withValues(alpha: 0.14),
 );

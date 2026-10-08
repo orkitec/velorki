@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme.dart';
 import 'ai_mark.dart';
-import 'floating_bar.dart' show FloatingBarStyle, floatingBarFilter;
+import 'floating_bar.dart' show FloatingBarStyle, floatingBarFilter, glassTint;
 
 /// How big the figure of a [StatTile] is.
 enum StatSize {
@@ -303,10 +303,14 @@ class GlassPanel extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: borderRadius,
         boxShadow: const [
+          // Outside the panel only: a shadow under thin glass showed
+          // through it and made the panel darker than the bar.
           BoxShadow(
             color: Color(0x33000000),
             blurRadius: 18,
-            offset: Offset(0, 6),
+            // No offset: an outer shadow is outside its own shape, and a
+            // shifted one reached into the panel's top edge.
+            blurStyle: BlurStyle.outer,
           ),
         ],
       ),
@@ -323,7 +327,7 @@ class GlassPanel extends StatelessWidget {
           // inside paint their ink on the nearest Material and would be
           // hidden otherwise.
           child: Material(
-            color: colors.chromeFill(style),
+            color: glassTint(colors, style, chrome: true),
             shape: RoundedRectangleBorder(
               borderRadius: borderRadius,
               side: BorderSide(color: colors.glassBorder),

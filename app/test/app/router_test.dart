@@ -27,6 +27,8 @@ import 'package:velorki/features/recording/presentation/recording_screen.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
 import 'package:velorki/features/shared/application/active_tab.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
+import 'package:velorki/features/shared/presentation/floating_bar.dart'
+    show floatingBarFilter;
 import 'package:velorki/features/shared/presentation/tab_chrome_slide.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
@@ -443,14 +445,26 @@ void main() {
     expect(barShadow(), isEmpty);
 
     // One pill: the sheet's strip is the bar's width, one handle strip
-    // tall, and reaches a hair over the bar's top edge, so the seam is
-    // glass on glass.
-    final strip = find
-        .descendant(
-          of: find.byType(DockingSheetShell),
-          matching: find.byType(ClipRRect),
-        )
-        .first;
+    // tall, and in the clear glass (the default) ends on the bar's top
+    // edge exactly, one blur lying behind both.
+    final strip = find.descendant(
+      of: find.byType(DockingSheetShell),
+      matching: find.byWidgetPredicate(
+        (w) =>
+            w is ClipRRect &&
+            w.child is BackdropFilter &&
+            (w.child! as BackdropFilter).child is DecoratedBox,
+      ),
+    );
+    final pill = find.descendant(
+      of: find.byType(DockingSheetShell),
+      matching: find.byWidgetPredicate(
+        (w) =>
+            w is ClipRRect &&
+            w.child is BackdropFilter &&
+            (w.child! as BackdropFilter).child is SizedBox,
+      ),
+    );
     final barClip = find.descendant(
       of: find.byType(FloatingNavigationBar),
       matching: find.byType(ClipRRect),
@@ -463,27 +477,48 @@ void main() {
       tester.getRect(strip).right,
       closeTo(tester.getRect(barClip).right, 0.01),
     );
-    expect(
-      tester.getRect(strip).height,
-      closeTo(sheetHandleDp + sheetDockedOverlapDp, 0.01),
-    );
-    expect(
-      tester.getRect(strip).bottom - tester.getRect(barClip).top,
-      closeTo(sheetDockedOverlapDp, 0.01),
-    );
+    expect(tester.getRect(strip).height, closeTo(sheetHandleDp, 0.01));
     expect(
       tester.getRect(strip).bottom,
-      greaterThanOrEqualTo(tester.getRect(barClip).top),
+      closeTo(tester.getRect(barClip).top, 0.01),
     );
-    final seam = tester.getRect(barClip).top + sheetDockedOverlapDp;
+    final seam = tester.getRect(barClip).top;
 
-    // Nothing of the sheet paints below the seam: every box in its subtree
-    // that paints a colour, a shadow, a blur or a clip ends there. The
-    // list's own viewport clips what it holds, and a fully faded subtree
-    // paints nothing.
+    // Behind strip and bar one blur, in a pill of four equal corners from
+    // the strip's top to the bar's bottom, the bar's own blur off.
+    expect(tester.getRect(pill).top, closeTo(tester.getRect(strip).top, 0.01));
+    expect(
+      tester.getRect(pill).bottom,
+      closeTo(tester.getRect(barClip).bottom, 0.01),
+    );
+    expect(
+      tester.getRect(pill).left,
+      closeTo(tester.getRect(barClip).left, 0.01),
+    );
+    expect(
+      tester.getRect(pill).right,
+      closeTo(tester.getRect(barClip).right, 0.01),
+    );
+    expect(
+      tester.widget<ClipRRect>(pill).borderRadius,
+      const BorderRadius.all(Radius.circular(dockedPillRadius)),
+    );
+    final pillBlur = tester.widget<BackdropFilter>(
+      find.descendant(of: pill, matching: find.byType(BackdropFilter)),
+    );
+    expect(pillBlur.enabled, isTrue);
+    expect(pillBlur.filter, floatingBarFilter(BarStyle.clear));
+
+    // Nothing else of the sheet paints below the seam: every box in its
+    // subtree that paints a colour, a shadow, a blur or a clip ends there.
+    // The list's own viewport clips what it holds, and a fully faded
+    // subtree paints nothing; the pill's blur is meant to reach behind the
+    // bar.
+    final pillObject = tester.renderObject(pill);
     final offenders = <String>[];
     void visit(RenderObject object) {
       if (object is RenderViewport ||
+          identical(object, pillObject) ||
           (object is RenderOpacity && object.opacity == 0)) {
         return;
       }
@@ -518,6 +553,14 @@ void main() {
     expect(
       find.descendant(of: barClip, matching: find.byType(BackdropFilter)),
       findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<BackdropFilter>(
+            find.descendant(of: barClip, matching: find.byType(BackdropFilter)),
+          )
+          .enabled,
+      isFalse,
     );
     expect(
       find.descendant(of: barClip, matching: find.byType(NavigationBar)),

@@ -5,7 +5,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/theme.dart';
-import 'floating_bar.dart' show FloatingBarStyle;
+import 'floating_bar.dart'
+    show FloatingBarStyle, floatingBarFilter, floatingBarHeight, glassTint;
 
 /// The height of a sheet's handle strip: the drag handle with its margins.
 const double sheetHandleDp = 28;
@@ -19,11 +20,11 @@ const double sheetGripWithTitleDp = sheetHandleDp + 60;
 const double sheetDockingRangeDp = 220;
 
 /// The corner radius of the docked pill, the sheet's strip and the bar in
-/// one: rounder than the bar's own 30, since the docked pill is taller and
-/// the same radius read tighter on it. The strip is shorter than this, so
-/// its clip scales the radius to its height and the top reads as a full
-/// half-round.
-const double dockedPillRadius = 40;
+/// one: the strip's height, so its top corners keep the full radius. The
+/// pill is one rounded rectangle with four equal corners, the shape iOS
+/// clips its blur over the map to; a larger radius was scaled down on the
+/// strip but not on the blur behind it, and the border missed the glass.
+const double dockedPillRadius = sheetHandleDp;
 
 /// The [DockingSheetShell.docked] fraction from which a sheet counts as
 /// docked: the hairline under the handle appears and the bar squares its top
@@ -431,15 +432,27 @@ class _DockingSheetShellState extends State<DockingSheetShell> {
     // the seam and a round corner would leave a notch beside the bar's
     // square top.
     final lift = t < 0.4 ? 0.0 : math.pow((t - 0.4) / 0.6, 2).toDouble();
+    // Docked the bottom corners are square however near the seam the lift
+    // has come: a hair of rounding left a wedge of bare map beside the bar,
+    // plain to see once the glass is clear.
     final topRadius = BorderRadius.vertical(
       top: Radius.circular(radius),
-      bottom: Radius.circular(30 * t * (1 - lift)),
+      bottom: Radius.circular(
+        t >= sheetDockedThreshold ? 0 : 30 * t * (1 - lift),
+      ),
     );
-    final bottom = math.max(0, dockedBottomInset - sheetDockedOverlapDp) * lift;
+    // In a glass style the strip ends at the seam exactly: one blur lies
+    // behind strip and bar, and where their tints overlapped the seam showed
+    // as a darker line. Without blur a hair of overlap keeps them one piece.
+    final overlap = floatingBarFilter(FloatingBarStyle.of(context)) == null
+        ? sheetDockedOverlapDp
+        : 0.0;
+    final bottom = math.max(0, dockedBottomInset - overlap) * lift;
     // A hard clip at the seam: whatever the chrome or its layers might paint
     // below it, behind the bar, is cut, so the bar's rounded bottom stands
     // alone against the map.
-    return ClipRect(
+    final filter = floatingBarFilter(FloatingBarStyle.of(context));
+    final chrome = ClipRect(
       clipper: _AboveSeamClipper(bottom),
       child: Padding(
         padding: EdgeInsets.fromLTRB(margin, 0, margin, bottom),
@@ -455,23 +468,26 @@ class _DockingSheetShellState extends State<DockingSheetShell> {
                 ),
             ],
           ),
+          // Docked, a rectangle: over the map's native view iOS rounds all
+          // four corners of a rounded clip alike, which cut a crescent out
+          // of the strip at the seam. The strip's glass is painted in its
+          // shape instead, and the blur behind strip and bar is one pill
+          // ([_DockedPillBlur]).
           child: ClipRRect(
-            borderRadius: topRadius,
+            borderRadius: t >= sheetDockedThreshold
+                ? BorderRadius.zero
+                : topRadius,
             child: BackdropFilter(
-              // No blur, on purpose: a blur over the map's native view makes
-              // the engine composite the strip through an overlay whose
-              // square bounds showed as dark corners beside the bar's round
-              // ones. The glass colour alone reads the same; the filter
-              // stays in the tree so the list keeps its state.
               enabled: false,
-              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              filter: ImageFilter.blur(),
               child: DecoratedBox(
                 decoration: BoxDecoration(
+                  borderRadius: topRadius,
                   // Docked, the bar's own glass, in the bar's style, so
                   // the strip and the bar read as one pill.
                   color: Color.lerp(
                     theme.colorScheme.surface,
-                    colors.barFill(FloatingBarStyle.of(context)),
+                    glassTint(colors, FloatingBarStyle.of(context)),
                     t,
                   ),
                 ),
@@ -567,6 +583,24 @@ class _DockingSheetShellState extends State<DockingSheetShell> {
         ),
       ),
     );
+    // Docked over the map, one blur behind the strip and the bar: their
+    // pill is a rounded rectangle with four equal corners, the one rounded
+    // shape iOS clips a blur over the map's native view to.
+    // Always in the tree, so the sheet's content keeps its state on a dock.
+    final pill = filter != null && t >= sheetDockedThreshold && widget.docks;
+    return Stack(
+      fit: StackFit.passthrough,
+      children: [
+        Positioned(
+          left: margin,
+          right: margin,
+          top: 0,
+          bottom: math.max(0, dockedBottomInset - floatingBarHeight),
+          child: _DockedPillBlur(filter: pill ? filter : null),
+        ),
+        chrome,
+      ],
+    );
   }
 }
 
@@ -584,6 +618,24 @@ class _AboveSeamClipper extends CustomClipper<Rect> {
 
   @override
   bool shouldReclip(_AboveSeamClipper old) => old.bottom != bottom;
+}
+
+/// The one blur behind the docked strip and the bar under it.
+class _DockedPillBlur extends StatelessWidget {
+  const _DockedPillBlur({required this.filter});
+
+  /// The blur; `null` when not docked or in a style without one.
+  final ImageFilter? filter;
+
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+    borderRadius: const BorderRadius.all(Radius.circular(dockedPillRadius)),
+    child: BackdropFilter(
+      enabled: filter != null,
+      filter: filter ?? ImageFilter.blur(),
+      child: const SizedBox.expand(),
+    ),
+  );
 }
 
 /// The hairline along the top and the sides of the shell, open at the

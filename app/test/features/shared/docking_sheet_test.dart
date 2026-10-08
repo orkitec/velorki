@@ -1,28 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:velorki/app/theme.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
+import 'package:velorki/features/shared/presentation/floating_bar.dart';
 
 import '../../support/app.dart';
 
 /// A shell in a 400 x 200 box at [extent] of the screen, collapsing at 0.1
-/// with a docking range of 0.1 and 80 px of bar under it.
-Widget _shell(double extent, {bool docks = true}) => testApp(
-  home: Center(
-    child: SizedBox(
-      width: 400,
-      height: 200,
-      child: DockingSheetShell(
-        controller: ScrollController(),
-        extent: extent,
-        collapsedExtent: 0.1,
-        dockedRange: 0.1,
-        docks: docks,
-        dockedBottomInset: 80,
-        handle: const SheetHandle(),
-        child: const SizedBox.expand(),
+/// with a docking range of 0.1 and 80 px of bar under it: the bar's
+/// [floatingBarHeight] and 8 below it. Without [style] no scope, which is
+/// clear glass.
+Widget _shell(double extent, {bool docks = true, BarStyle? style}) {
+  final shell = DockingSheetShell(
+    controller: ScrollController(),
+    extent: extent,
+    collapsedExtent: 0.1,
+    dockedRange: 0.1,
+    docks: docks,
+    dockedBottomInset: 80,
+    handle: const SheetHandle(),
+    child: const SizedBox.expand(),
+  );
+  return testApp(
+    home: Center(
+      child: SizedBox(
+        width: 400,
+        height: 200,
+        child: style == null
+            ? shell
+            : FloatingBarStyle(style: style, child: shell),
       ),
     ),
-  ),
+  );
+}
+
+/// The clip the sheet's chrome (strip, list, tint) is drawn in.
+final _strip = find.byWidgetPredicate(
+  (w) =>
+      w is ClipRRect &&
+      w.child is BackdropFilter &&
+      (w.child! as BackdropFilter).child is DecoratedBox,
+);
+
+/// The one blur laid behind the docked strip and the bar under it.
+final _pill = find.byWidgetPredicate(
+  (w) =>
+      w is ClipRRect &&
+      w.child is BackdropFilter &&
+      (w.child! as BackdropFilter).child is SizedBox,
 );
 
 /// A [DraggableScrollableSheet] in a 400 x 600 box with a [DockingSheet]
@@ -278,9 +303,13 @@ void main() {
   testWidgets('the lower edge stays down until late, then lifts to the bar', (
     tester,
   ) async {
-    Future<Rect> paintedBox(double extent, {bool docks = true}) async {
-      await tester.pumpWidget(_shell(extent, docks: docks));
-      return tester.getRect(find.byType(ClipRRect));
+    Future<Rect> paintedBox(
+      double extent, {
+      bool docks = true,
+      BarStyle? style,
+    }) async {
+      await tester.pumpWidget(_shell(extent, docks: docks, style: style));
+      return tester.getRect(_strip);
     }
 
     var rect = await paintedBox(0.3);
@@ -291,23 +320,144 @@ void main() {
     expect(rect.bottom, box.bottom);
     expect(rect.left, closeTo(box.left + 16 * 0.3, 0.01));
     // At 0.4 nothing has lifted yet; at 0.6 eleven per cent, at 0.75 a
-    // third of the way: the lift eases in over the last three fifths.
+    // third of the way: the lift eases in over the last three fifths, in
+    // the clear glass to the seam exactly.
     rect = await paintedBox(0.16);
     expect(rect.bottom, box.bottom);
     rect = await paintedBox(0.14);
-    expect(rect.bottom, closeTo(box.bottom - (80 - 1) * (1 / 9), 0.01));
+    expect(rect.bottom, closeTo(box.bottom - 80 * (1 / 9), 0.01));
     rect = await paintedBox(0.125);
     expect(
       rect.bottom,
-      closeTo(box.bottom - (80 - 1) * (0.35 / 0.6) * (0.35 / 0.6), 0.01),
+      closeTo(box.bottom - 80 * (0.35 / 0.6) * (0.35 / 0.6), 0.01),
     );
-    // Docked: the bar's width, and a hair over the bar's top edge.
+    // Docked: the bar's width, ending on the bar's top edge.
     rect = await paintedBox(0.1);
     expect(rect.left, box.left + 16);
     expect(rect.right, box.right - 16);
+    expect(rect.bottom, box.bottom - 80);
+    // Without a blur the lift stops a hair over the bar's top edge, so
+    // strip and bar are glass on glass at the seam.
+    rect = await paintedBox(0.14, style: BarStyle.solid);
+    expect(rect.bottom, closeTo(box.bottom - (80 - 1) * (1 / 9), 0.01));
+    rect = await paintedBox(0.1, style: BarStyle.solid);
     expect(rect.bottom, box.bottom - 80 + sheetDockedOverlapDp);
     // No morph without a bar.
     rect = await paintedBox(0.1, docks: false);
     expect(rect, box);
+  });
+
+  testWidgets('in a glass style the strip ends at the seam, without a blur '
+      'it overlaps the bar by a hair', (tester) async {
+    for (final style in BarStyle.values) {
+      await tester.pumpWidget(_shell(0.1, style: style));
+      final box = tester.getRect(find.byType(DockingSheetShell));
+      final seam = box.bottom - 80;
+      // Over one blur a doubled tint showed the seam as a darker line.
+      final overlap = floatingBarFilter(style) == null
+          ? sheetDockedOverlapDp
+          : 0.0;
+      expect(tester.getRect(_strip).bottom, seam + overlap, reason: '$style');
+    }
+  });
+
+  testWidgets('docked, the strip clips square and paints its glass in its '
+      'own shape', (tester) async {
+    await tester.pumpWidget(_shell(0.1));
+    // A rounded clip with square bottom corners cut a crescent out of the
+    // strip over the map's native view on iOS.
+    expect(tester.widget<ClipRRect>(_strip).borderRadius, BorderRadius.zero);
+    final tint = tester.widget<DecoratedBox>(
+      find.descendant(of: _strip, matching: find.byType(DecoratedBox)).first,
+    );
+    final decoration = tint.decoration as BoxDecoration;
+    expect(
+      decoration.borderRadius,
+      const BorderRadius.vertical(top: Radius.circular(dockedPillRadius)),
+    );
+    expect(
+      decoration.color,
+      glassTint(buildLightTheme().velorki, BarStyle.clear),
+    );
+    // The strip's own blur is never on: the pill's blur is behind it.
+    expect(
+      tester
+          .widget<BackdropFilter>(
+            find.descendant(of: _strip, matching: find.byType(BackdropFilter)),
+          )
+          .enabled,
+      isFalse,
+    );
+    // Not yet docked, the clip has the strip's rounded shape.
+    await tester.pumpWidget(_shell(0.125));
+    expect(
+      tester.widget<ClipRRect>(_strip).borderRadius,
+      isNot(BorderRadius.zero),
+    );
+  });
+
+  testWidgets('one blur behind the docked strip and the bar: always in the '
+      'tree, on only docked in a glass style', (tester) async {
+    bool blurring() => tester
+        .widget<BackdropFilter>(
+          find.descendant(of: _pill, matching: find.byType(BackdropFilter)),
+        )
+        .enabled;
+    for (final style in BarStyle.values) {
+      final filter = floatingBarFilter(style);
+      for (final (extent, docks) in [
+        (0.3, true),
+        (0.125, true),
+        (0.101, true),
+        (0.1, true),
+        (0.1, false),
+      ]) {
+        await tester.pumpWidget(_shell(extent, docks: docks, style: style));
+        // In the tree whatever the state, so the content keeps its own.
+        expect(_pill, findsOneWidget);
+        final docked =
+            docks &&
+            DockingSheetShell.dockedFraction(
+                  extent: extent,
+                  collapsedExtent: 0.1,
+                  dockedRange: 0.1,
+                  docks: docks,
+                ) >=
+                sheetDockedThreshold;
+        expect(
+          blurring(),
+          docked && filter != null,
+          reason: '$style at $extent, docks: $docks',
+        );
+        if (docked && filter != null) {
+          expect(
+            tester
+                .widget<BackdropFilter>(
+                  find.descendant(
+                    of: _pill,
+                    matching: find.byType(BackdropFilter),
+                  ),
+                )
+                .filter,
+            filter,
+          );
+        }
+      }
+    }
+
+    // Docked: a rounded rectangle with four equal corners of the strip's
+    // height, the bar's width, from the strip's top to the bar's bottom.
+    await tester.pumpWidget(_shell(0.1));
+    final box = tester.getRect(find.byType(DockingSheetShell));
+    final pill = tester.getRect(_pill);
+    expect(
+      tester.widget<ClipRRect>(_pill).borderRadius,
+      const BorderRadius.all(Radius.circular(sheetHandleDp)),
+    );
+    expect(dockedPillRadius, sheetHandleDp);
+    expect(pill.left, box.left + 16);
+    expect(pill.right, box.right - 16);
+    expect(pill.top, tester.getRect(_strip).top);
+    expect(pill.bottom, box.bottom - 80 + floatingBarHeight);
   });
 }

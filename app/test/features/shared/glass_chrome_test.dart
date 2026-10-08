@@ -1,5 +1,6 @@
 import 'dart:ui' show ImageFilter;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/router.dart';
@@ -42,10 +43,52 @@ void _expectPanel(
   VelorkiColors colors,
 ) {
   final glass = _panel(tester, panel);
-  expect(glass.fill, colors.chromeFill(style));
+  expect(glass.fill, glassTint(colors, style, chrome: true));
+  if (defaultTargetPlatform != TargetPlatform.iOS) {
+    expect(glass.fill, colors.chromeFill(style));
+  }
   final filter = floatingBarFilter(style);
   expect(glass.blurred, filter != null);
   if (filter != null) expect(glass.filter, filter);
+}
+
+/// Holds every bike chip to the glass [style] promises: each its own blur
+/// over the map, in a stadium clip that is the chip's own outline.
+void _expectChipGlass(WidgetTester tester, BarStyle style) {
+  final filter = floatingBarFilter(style);
+  final chips = find.byType(ChoiceChip);
+  expect(chips, findsNWidgets(RouteProfile.values.length));
+  for (final chip in chips.evaluate()) {
+    final chipFinder = find.byWidget(chip.widget);
+    // The chip's box is what it draws, so the glass meets its outline; the
+    // row keeps the height to tap.
+    expect(
+      (chip.widget as ChoiceChip).materialTapTargetSize,
+      MaterialTapTargetSize.shrinkWrap,
+    );
+    final blur = find.ancestor(
+      of: chipFinder,
+      matching: find.byType(BackdropFilter),
+    );
+    expect(blur, findsOneWidget);
+    final backdrop = tester.widget<BackdropFilter>(blur);
+    expect(backdrop.enabled, filter != null, reason: '$style');
+    if (filter != null) expect(backdrop.filter, filter);
+    final clip = find.ancestor(of: blur, matching: find.byType(ClipRRect));
+    expect(clip, findsOneWidget);
+    // A stadium as four equal corners, the shape iOS clips a blur over the
+    // map's native view to.
+    final clipper = tester.widget<ClipRRect>(clip).clipper!;
+    final size = tester.getSize(clip);
+    expect(size, tester.getSize(chipFinder));
+    expect(
+      clipper.getClip(size),
+      RRect.fromRectAndRadius(
+        Offset.zero & size,
+        Radius.circular(size.height / 2),
+      ),
+    );
+  }
 }
 
 /// The fill an unselected bike chip at [tester] is painted with.
@@ -109,23 +152,30 @@ void main() {
       ) async {
         await _pump(tester, style: style, theme: theme);
         _expectPanel(tester, find.byType(GlassPanel), style, theme.velorki);
-        // The chips take the chrome's glass, never blurred: no shadow to
-        // hide the square corners of a blur over the map's native view; in
-        // clear glass the subtle glass's thicker fill, so a map label behind
-        // one does not compete with its text.
+        // The panel's shadow lies outside it only and is not shifted: under
+        // thin glass a shadow inside the shape would show through.
+        final shadow =
+            (tester
+                        .widget<DecoratedBox>(
+                          find
+                              .descendant(
+                                of: find.byType(GlassPanel),
+                                matching: find.byType(DecoratedBox),
+                              )
+                              .first,
+                        )
+                        .decoration
+                    as BoxDecoration)
+                .boxShadow!
+                .single;
+        expect(shadow.blurStyle, BlurStyle.outer);
+        expect(shadow.offset, Offset.zero);
+        // The chips are the same glass as the panel: its tint, its blur.
         expect(
           _chipFill(tester, RouteProfile.trekking),
-          theme.velorki.chromeFill(
-            style == BarStyle.clear ? BarStyle.subtle : style,
-          ),
+          theme.velorki.chromeFill(style),
         );
-        expect(
-          find.descendant(
-            of: find.byType(ProfileChipRow),
-            matching: find.byType(BackdropFilter),
-          ),
-          findsNothing,
-        );
+        _expectChipGlass(tester, style);
         // Nothing opaque under a chip's glass: its Material takes the
         // canvas colour.
         expect(
@@ -158,12 +208,43 @@ void main() {
     await _pump(tester);
     final colors = buildLightTheme().velorki;
     _expectPanel(tester, find.byType(GlassPanel), BarStyle.clear, colors);
-    // The chips' clear glass is the subtle glass's fill (no blur there).
     expect(
       _chipFill(tester, RouteProfile.trekking),
-      colors.chromeFill(BarStyle.subtle),
+      colors.chromeFill(BarStyle.clear),
     );
+    _expectChipGlass(tester, BarStyle.clear);
   });
+
+  testWidgets(
+    'on iOS the panel and the chips take the bar tint, thin over the blur',
+    (tester) async {
+      for (final theme in [buildLightTheme(), buildDarkTheme()]) {
+        for (final style in BarStyle.values) {
+          await _pump(tester, style: style, theme: theme);
+          // The app animates from one theme to the next.
+          await tester.pumpAndSettle();
+          final colors = theme.velorki;
+          _expectPanel(tester, find.byType(GlassPanel), style, colors);
+          // One material: the controls and the bar side by side over the
+          // map are the same tint.
+          final tint = glassTint(colors, style);
+          expect(glassTint(colors, style, chrome: true), tint);
+          expect(_panel(tester, find.byType(GlassPanel)).fill, tint);
+          expect(_chipFill(tester, RouteProfile.trekking), tint);
+          _expectChipGlass(tester, style);
+          if (style == BarStyle.clear) expect(tint.a, closeTo(0.18, 1e-3));
+          if (style == BarStyle.subtle) expect(tint.a, closeTo(0.30, 1e-3));
+          // No contrast check over a bare black or white map here: on iOS
+          // the system's own blur over the map's native view frosts the
+          // backdrop, which this thin tint is only laid on top of, so the
+          // tint alone over a pure white or black is not what the rider
+          // sees. The glass off iOS, where the tint carries the contrast on
+          // its own, is held to 4.5:1 above.
+        }
+      }
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+  );
 
   testWidgets('a system asking for more contrast gets solid chrome', (
     tester,

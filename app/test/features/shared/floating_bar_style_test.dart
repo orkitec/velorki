@@ -1,5 +1,6 @@
 import 'dart:ui' show ImageFilter;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,11 +17,19 @@ import '../../support/app.dart';
 import '../recording/support/pump.dart';
 
 /// What the glass of the one floating bar on screen is drawn with.
-({bool blurred, ImageFilter? filter, Color fill, Color? rim}) _glass(
-  WidgetTester tester,
-) {
+({
+  bool blurred,
+  ImageFilter? filter,
+  Color fill,
+  Color? rim,
+  List<BoxShadow> shadows,
+})
+_glass(WidgetTester tester) {
   final shell = find.byType(FloatingBarShell);
   expect(shell, findsOneWidget);
+  final shadowBox = tester.widget<DecoratedBox>(
+    find.descendant(of: shell, matching: find.byType(DecoratedBox)).first,
+  );
   final backdrop = tester.widget<BackdropFilter>(
     find.descendant(of: shell, matching: find.byType(BackdropFilter)),
   );
@@ -37,6 +46,7 @@ import '../recording/support/pump.dart';
     filter: backdrop.filter,
     fill: fill,
     rim: foreground is BarGlassDecoration ? foreground.rim : null,
+    shadows: (shadowBox.decoration as BoxDecoration).boxShadow ?? const [],
   );
 }
 
@@ -48,17 +58,27 @@ void _expectStyle(
   required VelorkiColors colors,
 }) {
   final glass = _glass(tester);
-  expect(glass.fill, colors.barFill(style));
+  expect(glass.fill, glassTint(colors, style));
+  // Off iOS that tint is the theme's bar glass as it is.
+  if (defaultTargetPlatform != TargetPlatform.iOS) {
+    expect(glass.fill, colors.barFill(style));
+  }
   final filter = floatingBarFilter(style);
-  // Docked the bar lies over the map in a square clip around a round
-  // shape: no blur, whatever the style, only its glass colour.
+  // Docked the bar blurs nothing of its own: the sheet lays one blur behind
+  // its strip and the bar together, and the bar paints only its tint.
   expect(glass.blurred, !docked && filter != null);
   if (filter != null) expect(glass.filter, filter);
-  expect(
-    glass.rim,
-    style == BarStyle.clear && !docked ? colors.barRim : null,
-    reason: 'the clear glass has its rim at rest only',
-  );
+  expect(glass.rim, isNull, reason: 'no style draws a rim');
+  if (docked) {
+    // Beside the seam a shadow would show as dark wedges under the strip.
+    expect(glass.shadows, isEmpty);
+  } else {
+    // Outside the bar only and not shifted: under thin glass a shadow
+    // inside the shape would show through and darken it.
+    final shadow = glass.shadows.single;
+    expect(shadow.blurStyle, BlurStyle.outer);
+    expect(shadow.offset, Offset.zero);
+  }
 }
 
 const _destinations = [
@@ -115,8 +135,8 @@ void main() {
         expect(colors.barSolid.a, 1);
         expect(colors.barTransparent.a, inInclusiveRange(0.76, 0.82));
         expect(colors.barTransparent.withValues(alpha: 1), colors.barSolid);
-        expect(colors.barSubtle.a, inInclusiveRange(0.8, 0.86));
-        expect(colors.barClear.a, inInclusiveRange(0.6, 0.68));
+        expect(colors.barSubtle.a, inInclusiveRange(0.5, 0.7));
+        expect(colors.barClear.a, inInclusiveRange(0.3, 0.56));
         // The same glass at each step, only more or less of it.
         expect(colors.barSubtle.withValues(alpha: 1), colors.barSolid);
         expect(colors.barClear.withValues(alpha: 1), colors.barSolid);
@@ -140,24 +160,82 @@ void main() {
           expect(colors.chromeFill(BarStyle.solid).a, 1);
         }
         // Clear, the most see-through: about 0.71 light, 0.74 dark.
-        expect(light.chromeFill(BarStyle.clear).a, closeTo(0.7147, 1e-3));
-        expect(dark.chromeFill(BarStyle.clear).a, closeTo(0.7441, 1e-3));
+        expect(light.chromeFill(BarStyle.clear).a, closeTo(0.5118, 1e-3));
+        expect(dark.chromeFill(BarStyle.clear).a, closeTo(0.6618, 1e-3));
       },
     );
 
-    test('solid and transparent blur nothing, subtle and clear blur, clear '
-        'harder, with a plain blur iOS applies over the map', () {
+    test('solid and transparent blur nothing, subtle blurs more than clear, '
+        'each a plain blur iOS applies over the map', () {
       expect(floatingBarFilter(BarStyle.solid), isNull);
       expect(floatingBarFilter(BarStyle.transparent), isNull);
-      final subtle = floatingBarFilter(BarStyle.subtle).toString();
-      final clear = floatingBarFilter(BarStyle.clear).toString();
-      expect(subtle, contains('blur'));
-      expect(clear, contains('blur'));
-      expect(clear, isNot(contains('compose')));
-      expect(clear, isNot(contains('matrix')));
-      expect(clear, contains('28'));
+      expect(
+        floatingBarFilter(BarStyle.subtle),
+        ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+      );
+      expect(
+        floatingBarFilter(BarStyle.clear),
+        ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+      );
+      for (final style in [BarStyle.subtle, BarStyle.clear]) {
+        final filter = floatingBarFilter(style).toString();
+        expect(filter, isNot(contains('compose')));
+        expect(filter, isNot(contains('matrix')));
+      }
+    });
+
+    test('off iOS the bar is tinted with the bar glass, the chrome with the '
+        'chrome glass', () {
+      for (final platform in [TargetPlatform.android, TargetPlatform.macOS]) {
+        debugDefaultTargetPlatformOverride = platform;
+        addTearDown(() => debugDefaultTargetPlatformOverride = null);
+        for (final colors in [light, dark]) {
+          for (final style in BarStyle.values) {
+            expect(glassTint(colors, style), colors.barFill(style));
+            expect(
+              glassTint(colors, style, chrome: true),
+              colors.chromeFill(style),
+            );
+          }
+        }
+      }
+      debugDefaultTargetPlatformOverride = null;
+    });
+
+    test('on iOS the bar and the chrome share one thin tint over the '
+        "system's own frosted blur", () {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      addTearDown(() => debugDefaultTargetPlatformOverride = null);
+      for (final colors in [light, dark]) {
+        for (final style in BarStyle.values) {
+          final bar = glassTint(colors, style);
+          expect(glassTint(colors, style, chrome: true), bar);
+          // The same glass, only less of it.
+          expect(bar.withValues(alpha: 1), colors.barSolid);
+        }
+        expect(glassTint(colors, BarStyle.clear).a, closeTo(0.18, 1e-3));
+        expect(glassTint(colors, BarStyle.subtle).a, closeTo(0.30, 1e-3));
+        // Without a blur the tint is the theme's, as elsewhere.
+        expect(glassTint(colors, BarStyle.solid), colors.barSolid);
+        expect(glassTint(colors, BarStyle.transparent), colors.barTransparent);
+      }
+      debugDefaultTargetPlatformOverride = null;
     });
   });
+
+  testWidgets('on iOS the bar at rest is the thin tint over its blur', (
+    tester,
+  ) async {
+    for (final style in [BarStyle.clear, BarStyle.subtle]) {
+      await _pumpBar(tester, style: style, docked: false);
+      final colors = buildLightTheme().velorki;
+      _expectStyle(tester, style, docked: false, colors: colors);
+      expect(
+        _glass(tester).fill.a,
+        closeTo(style == BarStyle.clear ? 0.18 : 0.30, 1e-3),
+      );
+    }
+  }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
 
   for (final style in BarStyle.values) {
     for (final docked in [false, true]) {
@@ -288,6 +366,10 @@ void main() {
               matching: find.byType(DecoratedBox),
             )
             .at(1),
+      );
+      expect(
+        (strip.decoration as BoxDecoration).color,
+        glassTint(colors, BarStyle.clear),
       );
       expect(
         (strip.decoration as BoxDecoration).color,

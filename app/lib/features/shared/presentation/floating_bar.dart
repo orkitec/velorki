@@ -1,5 +1,6 @@
 import 'dart:ui' show ImageFilter;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/shell_layout.dart';
@@ -62,6 +63,29 @@ class FloatingBarStyle extends InheritedWidget {
       oldWidget.style != style;
 }
 
+/// The tint laid over the blur in [style]: the bar's, or with [chrome] the
+/// one of the controls over the map.
+///
+/// On iOS the blur over the map's native view is the system's own, which
+/// frosts on its own; the theme's tint on top of it left little of the map
+/// to see, so there the glass styles take far less of it, and the bar and
+/// the controls take the same.
+Color glassTint(VelorkiColors colors, BarStyle style, {bool chrome = false}) {
+  if (defaultTargetPlatform != TargetPlatform.iOS) {
+    return chrome ? colors.chromeFill(style) : colors.barFill(style);
+  }
+  // On iOS the bar and the controls are one material in every style: a
+  // difference in tint side by side over the map read as two kinds.
+  final base = colors.barFill(style);
+  // The same glass for the bar and the controls: side by side over the map
+  // a difference in tint read as two kinds of glass.
+  return switch (style) {
+    BarStyle.clear => base.withValues(alpha: 0.18),
+    BarStyle.subtle => base.withValues(alpha: 0.30),
+    BarStyle.solid || BarStyle.transparent => base,
+  };
+}
+
 /// What the bar, and the chrome over the map, blur their backdrop with in
 /// [style]; `null` for none.
 ///
@@ -71,8 +95,8 @@ class FloatingBarStyle extends InheritedWidget {
 /// (it once lifted the saturation) came out barely blurred at all.
 ImageFilter? floatingBarFilter(BarStyle style) => switch (style) {
   BarStyle.solid || BarStyle.transparent => null,
-  BarStyle.subtle => ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-  BarStyle.clear => ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+  BarStyle.subtle => ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+  BarStyle.clear => ImageFilter.blur(sigmaX: 4, sigmaY: 4),
 };
 
 /// The glass pill a bar floats in at the bottom of the screen: the tab bar,
@@ -103,7 +127,7 @@ class FloatingBarShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).velorki;
     final style = FloatingBarStyle.of(context);
-    final fill = colors.barFill(style);
+    final fill = glassTint(colors, style);
     final filter = floatingBarFilter(style);
     // Docked, the bar paints its own shape — square top, round bottom —
     // and clips nothing: over the map's native view a rounded clip with
@@ -130,24 +154,22 @@ class FloatingBarShell extends StatelessWidget {
             boxShadow: docked
                 ? const []
                 : const [
+                    // Outside the bar only, as under the controls' glass.
                     BoxShadow(
                       color: Color(0x40000000),
                       blurRadius: 24,
-                      offset: Offset(0, 8),
+                      blurStyle: BlurStyle.outer,
                     ),
                   ],
           ),
+          // At rest a rounded clip with four equal corners, which iOS
+          // clips a blur over the map to. Docked, no blur of its own: the
+          // sheet blurs strip and bar as one pill, and the bar paints its
+          // glass in its shape (BarGlassDecoration).
           child: ClipRRect(
             borderRadius: radius,
             child: BackdropFilter(
-              // Over the map's native view the blur is applied by the
-              // engine to a rectangle, not to this rounded clip; at rest the
-              // shadow hides its square corners. Docked, behind the bar is
-              // the map too, and iOS draws no blur there at all, whatever
-              // the clip (tried with one of four equal corners reaching past
-              // the top): so docked, the style's glass colour alone, see-
-              // through as much as at rest but unblurred.
-              enabled: !docked && filter != null,
+              enabled: filter != null && !docked,
               filter: filter ?? ImageFilter.blur(),
               child: Container(
                 decoration: docked
@@ -164,7 +186,7 @@ class FloatingBarShell extends StatelessWidget {
                     : BarGlassDecoration(
                         color: colors.glassBorder,
                         docked: false,
-                        rim: style == BarStyle.clear ? colors.barRim : null,
+                        rim: null,
                       ),
                 child: child,
               ),
