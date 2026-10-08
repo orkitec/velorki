@@ -3,14 +3,15 @@ name: store assets
 # The App Store screenshots, the watch shots and the preview videos, made by
 # app/tool/store_screenshots.sh on an iOS simulator exactly as on the Mac, and
 # on request uploaded to an App Store version; and the Google Play set (`android`),
-# made by the same script on an Android emulator, as an artifact only. Started
-# by hand only; see docs/STORE_ASSETS.md.
+# made by the same script on an Android emulator, and on request uploaded to
+# the Play store listing. Started by hand only; see docs/STORE_ASSETS.md.
 #
-# `assets` needs no secrets and runs from any ref. `upload` runs in the
-# `release` environment, which admits `v*` tags and `main` and waits for the
-# maintainer's approval. It replaces the screenshots and, with `metadata`, the
-# texts of every uploaded language on that version; the preview video stays a
-# manual upload. `assets_run_id` uploads the set an earlier run captured
+# `assets` and `android` need no secrets and run from any ref. `upload` and
+# `android_upload` run in the `release` environment, which admits `v*` tags
+# and `main` and waits for the maintainer's approval. They replace the
+# screenshots and, with `metadata`, the texts of every uploaded language (on
+# that App Store version, on the Play listing); the preview video stays a
+# manual upload. `assets_run_id` uploads the sets an earlier run captured
 # instead of capturing again (artifacts are kept 30 days).
 on:
   workflow_dispatch:
@@ -37,15 +38,15 @@ on:
         type: boolean
         default: false
       upload:
-        description: Upload the screenshots to App Store Connect (from a v* tag)
+        description: Upload the chosen sets to App Store Connect / Google Play (from a v* tag or main)
         type: boolean
         default: false
       metadata:
-        description: Also upload the store texts (fastlane/metadata/ios)
+        description: Also upload the store texts (fastlane/metadata/ios, /android)
         type: boolean
         default: false
       app_version:
-        description: App Store version to put them on, e.g. 1.0.1 (needed to upload)
+        description: App Store version to put them on, e.g. 1.0.1 (needed to upload iOS)
         type: string
         default: ""
       assets_run_id:
@@ -271,15 +272,25 @@ jobs:
 
   # The Google Play set on the emulator integration.yml runs (API 35, Pixel 6
   # profile), with its system image step and, read only, its Gradle and AVD
-  # caches. No upload yet: the set is taken from the artifact by hand.
+  # caches.
   android:
-    if: ${{ inputs.android }}
+    if: ${{ inputs.android && inputs.assets_run_id == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
       API_LEVEL: "35"
 
     steps:
+      - name: Check the inputs
+        if: ${{ inputs.upload }}
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          case "$REF" in
+            refs/tags/v* | refs/heads/main) ;;
+            *) echo "::error::upload runs only from a v* tag or main, not $REF"; exit 1 ;;
+          esac
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Enable KVM
@@ -409,3 +420,83 @@ jobs:
           path: app/build/logcat.txt
           if-no-files-found: ignore
           retention-days: 7
+
+  android_upload:
+    needs: android
+    # After a capture in this run, or straight away with an earlier run's set.
+    if: >-
+      ${{ always() && inputs.android && inputs.upload
+      && (needs.android.result == 'success'
+      || (needs.android.result == 'skipped' && inputs.assets_run_id != '')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Required reviewer: nothing reaches Google Play before approval.
+    environment: release
+    permissions:
+      contents: read
+      # An earlier run's artifact.
+      actions: read
+
+    steps:
+      - name: Check the inputs
+        env:
+          REF: ${{ github.ref }}
+          RUN_ID: ${{ inputs.assets_run_id }}
+        run: |
+          case "$REF" in
+            refs/tags/v* | refs/heads/main) ;;
+            *) echo "::error::upload runs only from a v* tag or main, not $REF"; exit 1 ;;
+          esac
+          if [ -n "$RUN_ID" ] && ! [[ "$RUN_ID" =~ ^[0-9]+$ ]]; then
+            echo "::error::assets_run_id must be a run id (digits), not '$RUN_ID'"; exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: store-assets-android
+          path: ${{ runner.temp }}/assets
+          run-id: ${{ inputs.assets_run_id || github.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Stage the listing for supply
+        working-directory: app
+        run: tool/store_stage_supply.sh "$RUNNER_TEMP/assets" "$RUNNER_TEMP/listing"
+
+      # As in release.yml: the Ubuntu image has no Bundler on the PATH; the
+      # Gemfile pins fastlane to 2.x.
+      - name: fastlane
+        working-directory: app
+        env:
+          BUNDLE_PATH: ${{ runner.temp }}/bundle
+        run: |
+          if ! command -v bundle > /dev/null; then
+            if ! command -v ruby > /dev/null; then
+              sudo apt-get update -qq
+              sudo apt-get install -y -qq ruby-full
+            fi
+            sudo gem install bundler --no-document
+          fi
+          ruby -v
+          bundle install
+
+      # The service account release.yml uploads the builds with.
+      - name: Upload to Google Play
+        working-directory: app
+        env:
+          BUNDLE_PATH: ${{ runner.temp }}/bundle
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          UPLOAD_METADATA: ${{ inputs.metadata }}
+          FASTLANE_SKIP_UPDATE_CHECK: "1"
+          FASTLANE_OPT_OUT_USAGE: "YES"
+        run: |
+          [ -n "$PLAY_SERVICE_ACCOUNT_JSON" ] || { echo "::error::no PLAY_SERVICE_ACCOUNT_JSON secret"; exit 1; }
+          export PLAY_SERVICE_ACCOUNT_JSON_PATH="$RUNNER_TEMP/play.json"
+          echo "$PLAY_SERVICE_ACCOUNT_JSON" > "$PLAY_SERVICE_ACCOUNT_JSON_PATH"
+          export PLAY_METADATA_PATH="$RUNNER_TEMP/listing"
+          bundle exec fastlane android store_listing
+
+      - name: Remove the key
+        if: ${{ always() }}
+        run: rm -f "$RUNNER_TEMP/play.json"

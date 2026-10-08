@@ -161,10 +161,9 @@ Output, git-ignored, under `app/build/store_screenshots/android/`:
 - `slides/set/<locale>/NN-<slide>.png` and `feature-graphic.png`, to upload
 - `slides/set/contact-<locale>.png` and `slides/set/icon-512.png`
 
-Uploading is by hand for now, in the Play Console under the store listing,
-per language: the set as phone screenshots in file order, the feature
-graphic and the icon. An upload from CI (fastlane `supply`) comes once the
-app has a Play account.
+By hand, in the Play Console under the store listing, per language: the set
+as phone screenshots in file order, the feature graphic and the icon. Or from
+CI, below.
 
 ## Preview video
 
@@ -287,3 +286,19 @@ API key) replaces that version's 6.9", 6.5" and Apple Watch screenshots in
 each language uploaded, the watch getting the four `store/` shots.
 `metadata` also uploads `app/fastlane/metadata/ios`. Nothing is submitted for
 review. The preview video is uploaded by hand, from the Mac's recording.
+
+With `android` and `upload` (from a `v*` tag or `main`, no `app_version`
+needed), the `android_upload` job also waits in the `release` environment,
+then `app/tool/store_stage_supply.sh` lays `store-assets-android` out per Play
+locale and `fastlane android store_listing` (supply, with the service account
+release.yml uploads the builds with, `PLAY_SERVICE_ACCOUNT_JSON`) replaces each
+uploaded language's phone screenshots, feature graphic and icon on the store
+listing; `metadata` also uploads the title and both descriptions of every
+language in `app/fastlane/metadata/android`. No build, track or release notes
+change (the Play release notes stay with the release). The set is the
+runner's, without map labels (see above): look at the artifact before
+approving.
+
+`assets_run_id` uploads the sets an earlier run captured instead of capturing
+again: `store-assets` for iOS, `store-assets-android` for Play, so that run
+must have made each set asked for.

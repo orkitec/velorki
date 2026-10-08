@@ -13,14 +13,6 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 # Available Actions
 
-### probe_paths
-
-```sh
-[bundle exec] fastlane probe_paths
-```
-
-
-
 ----
 
 
@@ -41,6 +33,14 @@ Build a signed AAB and upload it to the Play internal testing track
 ```
 
 Write the highest version code on any Play track to LATEST_VERSION_CODE_FILE
+
+### android store_listing
+
+```sh
+[bundle exec] fastlane android store_listing
+```
+
+Upload the Play screenshots, feature graphic and icon (and with UPLOAD_METADATA=true the texts) to the store listing
 
 ### android promote_closed
 
