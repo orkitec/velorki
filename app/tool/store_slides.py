@@ -315,9 +315,22 @@ def lock_screen(activity: dict, locale: str) -> tuple[str, str]:
     a = {k: html.escape(str(v)) for k, v in activity.items()}
     ride_day = datetime.date(2026, 9, 20)
     date = ride_day.strftime("%A, %-d %B") if locale == "en" else None
-    if locale == "de":
-        days = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
-        date = f"{days[ride_day.weekday()]}, {ride_day.day}. September"
+    # The lock screen's date as iOS writes it in each language.
+    lock_dates = {
+        "de": (["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"],
+               "{day}, {d}. September"),
+        "fr": (["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"],
+               "{day} {d} septembre"),
+        "es": (["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"],
+               "{day}, {d} de septiembre"),
+        "it": (["lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"],
+               "{day} {d} settembre"),
+        "nl": (["maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag", "zondag"],
+               "{day} {d} september"),
+    }
+    if locale in lock_dates:
+        days, pattern = lock_dates[locale]
+        date = pattern.format(day=days[ride_day.weekday()], d=ride_day.day)
     heart = a.get("heartRate", "")
     turn = ""
     if a.get("turnLabel") and a.get("turnIcon"):

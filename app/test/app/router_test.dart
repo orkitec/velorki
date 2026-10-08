@@ -1344,11 +1344,11 @@ void main() {
     // attribution under it — far enough apart that one scroll per line is
     // what it takes as the list grows.
     await tester.scrollUntilVisible(
-      find.text('Version 0.1.0+1'),
+      find.text(l10n.settingsVersion('0.1.0+1')),
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('Version 0.1.0+1'), findsOneWidget);
+    expect(find.text(l10n.settingsVersion('0.1.0+1')), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text(l10n.osmAttribution),
       200,

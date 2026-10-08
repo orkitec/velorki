@@ -43,7 +43,7 @@ void main() {
 
   test('a language the app does not ship falls back to the system', () async {
     final (container, _) = await _container(<String, Object>{
-      _localeKey: 'fr-FR',
+      _localeKey: 'ja-JP',
     });
 
     expect(container.read(appLocaleProvider), isNull);

@@ -19,7 +19,7 @@ on:
       locales:
         description: Languages, comma-separated
         type: string
-        default: en,de
+        default: en,de,fr,es,it,nl
       ios:
         description: The App Store set (iOS simulator)
         type: boolean

@@ -1,0 +1,4 @@
+"NSLocationWhenInUseUsageDescription" = "Velorki toont je positie op de kaart en neemt je ritten op, tijdens een opname ook als het scherm uit staat.";
+"NSHealthShareUsageDescription" = "Velorki leest je hartslag uit de app Gezondheid om die te tonen en bij je ritten op te slaan.";
+"NSHealthUpdateUsageDescription" = "Velorki slaat je beëindigde ritten als fietstrainingen op in de app Gezondheid.";
+"NSBluetoothAlwaysUsageDescription" = "Velorki maakt via Bluetooth verbinding met je hartslagband en je snelheids-, cadans- en vermogenssensoren.";

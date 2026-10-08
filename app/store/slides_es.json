@@ -1,0 +1,58 @@
+{
+  "plan": {
+    "eyebrow": "Gratis y de código abierto",
+    "headline": "Rueda donde **acaba la cobertura**",
+    "subline": "Planifica, calcula rutas y navega en tu iPhone, incluso sin conexión.",
+    "android": {
+      "subline": "Planifica, calcula rutas y navega en tu móvil, incluso sin conexión."
+    }
+  },
+  "variants": {
+    "eyebrow": "Planificación de rutas",
+    "headline": "Rutas hechas para **tu bici**",
+    "subline": "Cicloturismo, carretera, gravel o MTB, con alternativas, altitud y superficies."
+  },
+  "navigation": {
+    "eyebrow": "Navegación",
+    "headline": "Cada giro, **en voz alta**",
+    "subline": "Si te sales de la ruta, tú eliges: volver, una ruta nueva o nada."
+  },
+  "loops": {
+    "eyebrow": "Rutas circulares",
+    "headline": "Sal de casa y **vuelve para cenar**",
+    "subline": "Di cuánto quieres rodar. Velorki encuentra rutas circulares desde donde estás."
+  },
+  "ai": {
+    "eyebrow": "Velorki Plus",
+    "headline": "Descríbela, **ruédala**",
+    "subline": "Pide una ruta de gravel con un café a mitad de camino y recibe la ruta. Parte de Velorki Plus."
+  },
+  "ride": {
+    "eyebrow": "Estadísticas",
+    "headline": "Cada subida, **registrada**",
+    "subline": "Altitud, velocidad, pulso y parciales de cada salida."
+  },
+  "offline-themes": {
+    "eyebrow": "Sin conexión · Claro y oscuro",
+    "headline": "De día o de noche, **con red o sin ella**",
+    "subline": "Descarga una región una vez y el mapa, las rutas y la búsqueda funcionan en todas partes. Claro u oscuro, en tu color."
+  },
+  "import": {
+    "eyebrow": "Archivos",
+    "headline": "Trae **cualquier ruta**",
+    "subline": "Abre GPX, FIT y TCX desde donde sea. Exporta a GPX o FIT."
+  },
+  "lock-screen": {
+    "eyebrow": "Grabación",
+    "headline": "Tu salida en la **pantalla bloqueada**",
+    "subline": "Datos en directo en la pantalla bloqueada y en la Dynamic Island."
+  },
+  "watch": {
+    "eyebrow": "Apple Watch",
+    "headline": "Empieza y para **desde la muñeca**",
+    "subline": "Pulso y salida en tu reloj, sincronizados con tu iPhone."
+  },
+  "feature": {
+    "headline": "Rueda donde **acaba la cobertura**"
+  }
+}

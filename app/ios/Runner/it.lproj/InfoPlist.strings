@@ -1,0 +1,4 @@
+"NSLocationWhenInUseUsageDescription" = "Velorki mostra la tua posizione sulla mappa e registra i tuoi giri, anche a schermo spento durante una registrazione.";
+"NSHealthShareUsageDescription" = "Velorki legge la tua frequenza cardiaca da Apple Health per mostrarla e salvarla con i tuoi giri.";
+"NSHealthUpdateUsageDescription" = "Velorki salva i tuoi giri terminati in Apple Health come allenamenti di ciclismo.";
+"NSBluetoothAlwaysUsageDescription" = "Velorki si collega via Bluetooth alla tua fascia cardio e ai sensori di velocità, cadenza e potenza.";

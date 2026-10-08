@@ -1,0 +1,58 @@
+{
+  "plan": {
+    "eyebrow": "Gratis e open source",
+    "headline": "Pedala dove **finisce il segnale**",
+    "subline": "Pianifica, calcola percorsi e naviga sull'iPhone, anche offline.",
+    "android": {
+      "subline": "Pianifica, calcola percorsi e naviga sul telefono, anche offline."
+    }
+  },
+  "variants": {
+    "eyebrow": "Pianificazione",
+    "headline": "Percorsi su misura per **la tua bici**",
+    "subline": "Trekking, corsa, gravel o MTB, con alternative, altimetria e fondo."
+  },
+  "navigation": {
+    "eyebrow": "Navigazione",
+    "headline": "Ogni svolta, **ad alta voce**",
+    "subline": "Esci dal percorso e scegli: la via del ritorno, un nuovo percorso o niente."
+  },
+  "loops": {
+    "eyebrow": "Anelli",
+    "headline": "Fuori di casa, **a cena in orario**",
+    "subline": "Di' quanto lontano. Velorki trova anelli da dove ti trovi."
+  },
+  "ai": {
+    "eyebrow": "Velorki Plus",
+    "headline": "Descrivilo, **pedalalo**",
+    "subline": "Chiedi un anello gravel con un bar a metà strada e ottieni il percorso. Parte di Velorki Plus."
+  },
+  "ride": {
+    "eyebrow": "Statistiche",
+    "headline": "Ogni salita **messa agli atti**",
+    "subline": "Altimetria, velocità, frequenza cardiaca e parziali per ogni giro."
+  },
+  "offline-themes": {
+    "eyebrow": "Offline · Chiaro e scuro",
+    "headline": "Giorno o notte, **con o senza rete**",
+    "subline": "Scarica una regione una volta, poi mappe, percorsi e ricerca funzionano ovunque. Chiaro o scuro, del tuo colore."
+  },
+  "import": {
+    "eyebrow": "File",
+    "headline": "Porta con te **ogni percorso**",
+    "subline": "Apri GPX, FIT e TCX da qualsiasi app. Esporta in GPX o FIT."
+  },
+  "lock-screen": {
+    "eyebrow": "Registrazione",
+    "headline": "Il tuo giro sulla **schermata di blocco**",
+    "subline": "Dati in diretta sulla schermata di blocco e nella Dynamic Island."
+  },
+  "watch": {
+    "eyebrow": "Apple Watch",
+    "headline": "Avvia e ferma **dal polso**",
+    "subline": "Frequenza cardiaca e giro sull'orologio, in sincronia con l'iPhone."
+  },
+  "feature": {
+    "headline": "Pedala dove **finisce il segnale**"
+  }
+}

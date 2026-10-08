@@ -268,7 +268,8 @@ void main() {
     );
     expect(
       tester.widget<TextField>(field).controller!.text,
-      startsWith('Route '),
+      // The name with the date cut out: whatever the language puts first.
+      startsWith(l10n.plannerDefaultRouteName('\u0000').split('\u0000').first),
     );
 
     await tester.enterText(field, 'Isar loop');

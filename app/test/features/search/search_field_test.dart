@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/shell_layout.dart';
 import 'package:velorki/features/search/data/gazetteer_store.dart';
+import 'package:velorki/features/search/data/photon_client.dart';
 import 'package:velorki/features/search/domain/search_result.dart';
 import 'package:velorki/features/search/presentation/search_field.dart';
 import 'package:velorki/features/shared/presentation/adaptive_docking_sheet.dart';
@@ -62,7 +63,7 @@ void main() {
     expect(h.photonAdapter.lastUri.queryParameters['q'], 'munich');
     expect(
       h.photonAdapter.lastUri.queryParameters['lang'],
-      testLocale.languageCode,
+      PhotonClient.photonLanguage(testLocale.toLanguageTag()),
     );
     expect(find.text('Munich'), findsOneWidget);
     expect(find.text('Cafe Kosmos'), findsOneWidget);

@@ -1,0 +1,48 @@
+Velorki plant fietsroutes, leidt je erlangs en neemt je ritten op. De routering is gemaakt voor fietsen en draait op je iPhone, en de hele app is open source.
+
+PLANNEN
+• Tik routepunten op de kaart en krijg een route voor de fiets waar je op zit: toerfiets, racefiets, gravel, mountainbike of de directe weg.
+• Alternatieve routes, een hoogteprofiel en een overzicht van de ondergronden waar je overheen rijdt.
+• Rondjes: zeg hoe ver je wilt fietsen en, als je wilt, één plek om langs te komen, en Velorki stelt rondritten voor die terugkomen waar je begon.
+• Zoek plaatsen en sla routes op in je bibliotheek.
+• Download een regio één keer en plan, zoek en navigeer daar zonder verbinding.
+
+NAVIGATIE
+• Afslag-voor-afslagnavigatie met gesproken aanwijzingen, ook met het scherm vergrendeld.
+• Verlaat je de route, dan kies je wat er gebeurt: een weg terug ernaartoe, een nieuwe route naar de bestemming of helemaal niets.
+• De kaart volgt je in rijrichting, met de volgende afslag altijd in beeld.
+
+OPNEMEN
+• Neemt op met het scherm uit, met auto-pauze, en toont de rit op het toegangsscherm en in het Dynamic Island.
+• Kies en orden de waarden die je tijdens het rijden ziet: afstand, snelheid, tijd, stijging, hartslag, cadans, vermogen, wat er nog over is van de route.
+• Een batterijbesparing voor lange dagen: donkere kaart, gedimd scherm en een eenvoudige pagina met de cijfers.
+• Hartslag van de Apple Watch, van Bluetooth-sensoren en uit de app Gezondheid. Snelheids-, cadans- en vermogenssensoren werken ook.
+• De Velorki-app op de Apple Watch toont de rit en start, pauzeert en beëindigt hem vanaf je pols.
+• Elke rit krijgt een pagina met de kaart, grafieken van hoogte, snelheid en hartslag, en splits.
+
+BESTANDEN
+• Open GPX-, FIT- en TCX-bestanden vanuit Bestanden, Mail, Safari of het deelmenu.
+• Exporteer routes en ritten als GPX of FIT om ze overal anders te gebruiken.
+
+GRATIS, EN VELORKI PLUS
+Alles wat op de telefoon draait, is gratis: plannen, rondjes, navigatie, opnemen, de bibliotheek, offline regio's, sensoren, en bestanden importeren en exporteren.
+
+Velorki Plus is een abonnement voor de onderdelen die een server nodig hebben:
+• De assistent: beschrijf de rit die je wilt in één zin en krijg een route. Stel vragen over de route op de kaart, laat hem de rit beschrijven, of laat hem een koffiestop toevoegen of een stuk vermijden.
+• Deellinks: maak van een route of rit een link die iedereen in een browser kan openen.
+• Koppelingen met twee populaire platforms voor routes en ritten, om je ritten te uploaden en je routes binnen te halen.
+
+Velorki Plus is er als automatisch verlengend maand- en jaarabonnement; het jaarabonnement begint met een gratis proefperiode. De betaling wordt bij het bevestigen van de aankoop via je Apple Account in rekening gebracht. Het abonnement wordt automatisch verlengd, tenzij het uiterlijk 24 uur voor het einde van de lopende periode wordt uitgezet, en het kan worden beheerd en opgezegd in de instellingen van je Apple Account. Een ongebruikt deel van een gratis proefperiode vervalt zodra een abonnement wordt gekocht.
+
+Gebruiksvoorwaarden: https://velorki.com/terms
+Privacybeleid: https://velorki.com/privacy
+
+PRIVACY
+Er is geen account en geen registratie. Routes, ritten en instellingen blijven op je iPhone. De assistent vraagt je toestemming voordat er tekst het apparaat verlaat, en de positie die hij verstuurt wordt afgerond op ongeveer een kilometer.
+
+DOORLOPEND GEBRUIK VAN GPS
+Doorlopend gebruik van GPS op de achtergrond kan de batterijduur sterk verkorten. Velorki houdt de GPS alleen aan zolang een rit wordt opgenomen of genavigeerd.
+
+Kaartgegevens © OpenStreetMap-bijdragers.
+
+Broncode: https://github.com/orkitec/velorki

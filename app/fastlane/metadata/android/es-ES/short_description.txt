@@ -1,0 +1,1 @@
+Planifica rutas en bici, crea rutas circulares y graba salidas, sin conexión.

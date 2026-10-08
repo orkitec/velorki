@@ -4303,7 +4303,7 @@
   "@mapLayersCycleMap": {
     "description": "Switch in the layers sheet that puts the cycling map overlay over the map"
   },
-  "mapLayersCycleMapSubtitle": "Cycle routes and bike infrastructure",
+  "mapLayersCycleMapSubtitle": "Cycle routes, bike lanes and bike shops, drawn by CyclOSM · needs a connection",
   "@mapLayersCycleMapSubtitle": {
     "description": "Line under the cycle map switch in the layers sheet"
   },

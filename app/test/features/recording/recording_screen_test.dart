@@ -2937,7 +2937,10 @@ void main() {
       await pumpRecordingScreen(tester, const RecordingScreen());
       await tester.pump();
 
-      final tile = find.widgetWithText(SwitchListTile, l10n.gpsPrecisionSaver);
+      final tile = find.widgetWithText(
+        SwitchListTile,
+        l10n.settingsBatterySaver,
+      );
       expect(tester.widget<SwitchListTile>(tile).value, isFalse);
 
       await tester.tap(tile);

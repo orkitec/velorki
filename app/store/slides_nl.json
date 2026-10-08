@@ -1,0 +1,58 @@
+{
+  "plan": {
+    "eyebrow": "Gratis & open source",
+    "headline": "Fiets waar het **bereik ophoudt**",
+    "subline": "Plannen, routes en navigatie op je iPhone, ook offline.",
+    "android": {
+      "subline": "Plannen, routes en navigatie op je telefoon, ook offline."
+    }
+  },
+  "variants": {
+    "eyebrow": "Routeplanning",
+    "headline": "Routes die bij **je fiets** passen",
+    "subline": "Toer, racefiets, gravel of MTB, met alternatieven, hoogte en ondergrond."
+  },
+  "navigation": {
+    "eyebrow": "Navigatie",
+    "headline": "Elke afslag **hardop**",
+    "subline": "Van de route af? Weg terug, nieuwe route of niets, jij kiest."
+  },
+  "loops": {
+    "eyebrow": "Rondjes",
+    "headline": "De deur uit, **thuis voor het eten**",
+    "subline": "Zeg hoe ver. Velorki vindt rondjes vanaf waar je staat."
+  },
+  "ai": {
+    "eyebrow": "Velorki Plus",
+    "headline": "Beschrijf het, **rij het**",
+    "subline": "Vraag om een gravelrondje met halverwege een café, en krijg de route. Onderdeel van Velorki Plus."
+  },
+  "ride": {
+    "eyebrow": "Ritstatistieken",
+    "headline": "Elke klim **vastgelegd**",
+    "subline": "Hoogte, snelheid, hartslag en splits voor elke rit."
+  },
+  "offline-themes": {
+    "eyebrow": "Offline · Licht & donker",
+    "headline": "Dag of nacht, **met of zonder bereik**",
+    "subline": "Download een regio één keer, dan werken kaarten, routering en zoeken overal. Licht of donker, elke kleur."
+  },
+  "import": {
+    "eyebrow": "Bestanden",
+    "headline": "Neem **elke route** mee",
+    "subline": "Open GPX, FIT en TCX van overal. Exporteer naar GPX of FIT."
+  },
+  "lock-screen": {
+    "eyebrow": "Opnemen",
+    "headline": "Je rit op het **toegangsscherm**",
+    "subline": "Live waarden op het toegangsscherm en in het Dynamic Island."
+  },
+  "watch": {
+    "eyebrow": "Apple Watch",
+    "headline": "Starten en stoppen **vanaf je pols**",
+    "subline": "Hartslag en de rit op je horloge, in sync met je iPhone."
+  },
+  "feature": {
+    "headline": "Fiets waar het **bereik ophoudt**"
+  }
+}

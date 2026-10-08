@@ -1,0 +1,437 @@
+{
+  "site": {
+    "name": "Velorki",
+    "tagline": "Planifica la salida, encuentra el café, sigue los giros, y todo ello donde se acaba la cobertura. Gratis, de código abierto y basado en OpenStreetMap.",
+    "description": "Velorki planifica rutas en bici, crea rutas circulares y graba tus salidas: en el teléfono, sin conexión, con datos de OpenStreetMap. Gratis y de código abierto."
+  },
+  "nav": {
+    "home": "Inicio de Velorki",
+    "features": "Funciones",
+    "docs": "Ayuda",
+    "plus": "Plus",
+    "download": "Descargar",
+    "github": "GitHub",
+    "menu": "Menú",
+    "primary": "Principal",
+    "skip": "Saltar al contenido"
+  },
+  "localeSwitcher": {
+    "label": "Idioma"
+  },
+  "theme": {
+    "label": "Tema",
+    "system": "Sistema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "cycle": "Tema: {current}. Cambiar a {next}."
+  },
+  "appearance": {
+    "legend": "Mostrar la app en",
+    "mode": "Tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "accent": "Color de acento",
+    "volt": "Volt",
+    "ember": "Brasa",
+    "glacier": "Glaciar",
+    "berry": "Baya",
+    "forest": "Bosque",
+    "noShots": "Aún no hay capturas para esta combinación",
+    "hint": "La app viene con tema claro y oscuro y cinco colores de acento. Al cambiarlos aquí cambian todas las capturas de esta página."
+  },
+  "screenshots": {
+    "missing": "Captura pendiente",
+    "look": {
+      "light": "{description} Con el tema claro de la app.",
+      "dark": "{description} Con el tema oscuro de la app."
+    },
+    "alt": {
+      "planner": "El planificador de rutas de Velorki: una ruta en bici en el mapa con puntos de paso, distancia, desnivel y el perfil de altitud en un panel sobre el mapa.",
+      "loop": "Una ruta circular generada: un recorrido de ida y vuelta dibujado en el mapa con su longitud, desnivel y tipos de superficie.",
+      "search": "Búsqueda de lugares sin conexión: una lista de cafés y fuentes de agua potable cercanos con su distancia, encontrados sin conexión.",
+      "navigation": "Navegación giro a giro: el próximo giro en un aviso sobre el mapa mientras se sigue la ruta.",
+      "recording": "Una salida en grabación: distancia, tiempo, velocidad y desnivel en cifras grandes sobre el mapa.",
+      "ride": "Una salida terminada: el track coloreado según la velocidad en el mapa, con estadísticas de altitud, velocidad y parciales.",
+      "library": "La biblioteca: rutas guardadas y salidas grabadas en una lista con su distancia y desnivel.",
+      "offline": "Descargas sin conexión: regiones de mapa y de enrutamiento en el teléfono con su tamaño y estado.",
+      "settings": "Ajustes: la sección de apariencia con el selector claro, oscuro y sistema y los cinco colores de acento."
+    }
+  },
+  "home": {
+    "meta": {
+      "title": "Velorki: planificador de rutas en bici y grabador de salidas, sin conexión y de código abierto",
+      "description": "Planifica rutas en bici, genera rutas circulares, busca lugares y sigue indicaciones habladas, todo en el teléfono y sin conexión. Gratis, de código abierto y basado en OpenStreetMap."
+    },
+    "hero": {
+      "eyebrow": "Gratis y de código abierto",
+      "title": "Pedalea donde se acaba la cobertura",
+      "lead": "Planifica la salida, encuentra el café, sigue los giros, y todo ello donde se acaba la cobertura. Gratis, de código abierto y basado en OpenStreetMap.",
+      "body": "Descarga una región una vez y toda la app funciona sin red: el mapa, el enrutamiento, la búsqueda de lugares y las indicaciones habladas. Sin cuenta, sin anuncios, sin muro de pago en la salida en sí, y sin ningún servidor de por medio salvo que tú lo pidas.",
+      "primaryCta": "Consigue Velorki",
+      "secondaryCta": "Leer la ayuda",
+      "stores": "Consigue la app",
+      "storeIos": "Descárgalo en el App Store",
+      "storeAndroid": "Disponible en Google Play",
+      "storeGithub": "Descárgalo en GitHub",
+      "storesPending": "La app aún no está publicada en las tiendas. Mientras tanto, el código fuente y las compilaciones están en GitHub."
+    },
+    "free": {
+      "title": "Todo lo que ocurre en el teléfono es gratis",
+      "body": "Planificación, rutas circulares, mapas y enrutamiento sin conexión, búsqueda, navegación, grabación, sensores y el Apple Watch, estadísticas de salidas, archivos GPX, FIT y TCX: para todo el mundo y para siempre. Los datos de enrutamiento y el índice de búsqueda se replican para ti sin coste.",
+      "items": {
+        "routing": "Enrutamiento en el teléfono",
+        "loops": "Rutas circulares",
+        "search": "Búsqueda sin conexión",
+        "maps": "Mapas sin conexión",
+        "navigation": "Giro a giro",
+        "recording": "Grabación",
+        "sensors": "Sensores y reloj",
+        "files": "GPX, FIT y TCX"
+      }
+    },
+    "features": {
+      "title": "Qué hace",
+      "lead": "Siete cosas que usarás en cada salida. Todas las capturas de abajo son de la app real.",
+      "plan": {
+        "eyebrow": "Planificación",
+        "title": "Una ruta para la bici que llevas",
+        "body": "Toca puntos de paso en el mapa y la ruta se calcula en el teléfono, sobre teselas descargadas de 5°×5°. Perfiles de trekking, carretera, gravel, MTB y directo, hasta tres alternativas, el perfil de altitud y un desglose de las superficies por las que vas a rodar.",
+        "bullets": {
+          "one": "Cinco perfiles de bici, hasta tres alternativas por ruta",
+          "two": "Perfil de altitud y estadísticas de superficie para cada opción",
+          "three": "Un servidor de enrutamiento en línea es opcional, para zonas sin teselas"
+        }
+      },
+      "loops": {
+        "eyebrow": "Rutas circulares",
+        "title": "«Una vuelta de 60 km desde aquí pasando por el lago»",
+        "body": "Di cuánto quieres pedalear y, si quieres, un lugar por el que pasar. Las propuestas se generan en el teléfono y se puntúan por longitud, desnivel, superficie y tramos repetidos, así que lo que recibes es una salida, no un rodeo.",
+        "bullets": {
+          "one": "Vueltas que regresan al punto de partida",
+          "two": "Puntuadas por longitud, desnivel, superficie y tramos repetidos",
+          "three": "Elige un lugar de paso y la ruta circular pasa por él"
+        }
+      },
+      "offline": {
+        "eyebrow": "Sin conexión",
+        "title": "El mapa, el enrutamiento y la búsqueda, sin conexión",
+        "body": "Cada tesela de enrutamiento trae un índice de búsqueda de sus localidades, calles con números de portal y puntos de interés: cafés, agua potable, aseos, estaciones de reparación, refugios, tiendas de bicis, campings, hoteles, puertos de montaña, cimas, miradores, estaciones y lugares emblemáticos. Al escribir «agua» aparecen las fuentes más cercanas por distancia, y las erratas se corrigen con el propio índice.",
+        "bullets": {
+          "one": "Zonas de mapa vectorial guardadas por región",
+          "two": "Búsqueda por categoría: cafés, agua, aseos, estaciones de reparación",
+          "three": "La búsqueda de lugares en línea está a un toque"
+        }
+      },
+      "navigate": {
+        "eyebrow": "Navegación",
+        "title": "Indicaciones habladas, en el teléfono",
+        "body": "Un aviso de giro e indicaciones habladas mientras sigues una ruta y, cuando te sales de ella, tú eliges: volver al plan guiado, una ruta nueva al destino o solo la dirección de vuelta, todo calculado en el teléfono. Modos de seguimiento con brújula o con el norte arriba. Las indicaciones se generan con los mismos datos de enrutamiento con los que se planificó la salida, así que funcionan donde no hay red. Una ruta GPX trae consigo su hoja de ruta y sus puntos de interés, y la hoja de grabación añade un perfil de altitud con la próxima subida, la hora de llegada y la lista de indicaciones como páginas que se deslizan.",
+        "bullets": {
+          "one": "Aviso de giro e indicaciones de voz, sin conexión",
+          "two": "Si te sales: guía de vuelta, una ruta nueva o solo la dirección de vuelta",
+          "three": "Hoja de ruta, puntos de interés, subida y hora de llegada en la hoja de grabación"
+        }
+      },
+      "record": {
+        "eyebrow": "Grabación",
+        "title": "Sigue grabando aunque el teléfono no lo haga",
+        "body": "La grabación funciona en segundo plano con una notificación en primer plano en Android y una actividad en vivo en iOS, y sobrevive aunque se cierre la app a la fuerza. El ahorro de batería atenúa la pantalla y reduce la precisión del GPS. La frecuencia cardiaca, la cadencia y la potencia llegan desde un Apple Watch, un sensor Bluetooth o tu app de salud, si las activas. Después, páginas de la salida con altitud, velocidad, frecuencia cardiaca, parciales a la medida de la salida, las subidas que hiciste, la superficie bajo tus ruedas según el mapa sin conexión y un track coloreado según la velocidad; si lo pides, calorías, zonas de frecuencia cardiaca y de potencia, potencia normalizada y una potencia estimada para salidas sin potenciómetro.",
+        "bullets": {
+          "one": "Grabación en segundo plano que sobrevive al cierre forzado de la app",
+          "two": "Frecuencia cardiaca, cadencia y potencia desde un reloj o un sensor Bluetooth, todo opcional",
+          "three": "Páginas de la salida con parciales, subidas, superficie y un track coloreado según la velocidad; calorías, zonas y potencia estimada si las quieres"
+        }
+      },
+      "sensors": {
+        "eyebrow": "Sensores",
+        "title": "Los sensores y tu reloj",
+        "body": "La frecuencia cardiaca, la cadencia y la potencia llegan desde un sensor Bluetooth (una banda, un sensor de velocidad y cadencia o un potenciómetro), que se empareja una vez y pasa a formar parte de cada salida: en la pantalla de grabación mientras pedaleas, y guardado con la salida después. La app Velorki del Apple Watch muestra la salida en tu muñeca y envía tu frecuencia cardiaca al teléfono; inicia, pausa y termina desde el reloj, que sigue midiendo durante tus paradas o, si lo prefieres, descansa en cada parada. Apple Health y Health Connect también pueden aportar la frecuencia cardiaca, y todo es gratis, todo opcional, y no ocurre nada hasta que activas una fuente.",
+        "bullets": {
+          "one": "Bandas de frecuencia cardiaca, sensores de velocidad y cadencia y potenciómetros por Bluetooth",
+          "two": "La app Velorki del Apple Watch: la salida en tu muñeca y su frecuencia cardiaca al teléfono",
+          "three": "Apple Health y Health Connect como fuentes, gratis y desactivadas hasta que actives una"
+        },
+        "link": "Leer la guía",
+        "panel": {
+          "heart": "Frecuencia cardiaca",
+          "cadence": "Cadencia",
+          "power": "Potencia",
+          "bpm": "bpm",
+          "rpm": "rpm",
+          "watts": "W",
+          "watchNote": "La app del reloj está en inglés en todos los idiomas."
+        }
+      },
+      "files": {
+        "eyebrow": "Archivos y servicios",
+        "title": "Tus salidas son archivos tuyos",
+        "body": "GPX, FIT y TCX se importan y exportan con el menú de compartir y «Abrir con», así que las rutas y las salidas pasan a Komoot, Garmin Connect, Strava o cualquier otra cosa que lea esos formatos. Una ruta GPX conserva su hoja de ruta y sus puntos de interés, y un enlace de Ride with GPS se abre en Velorki. Las conexiones con Strava y Ride with GPS y los enlaces compartidos son la parte Plus.",
+        "bullets": {
+          "one": "GPX, FIT y TCX de entrada y salida, desde Archivos, el correo o un navegador, con hojas de ruta y puntos de interés",
+          "two": "Una biblioteca de rutas guardadas y salidas grabadas",
+          "three": "Strava, Ride with GPS y enlaces compartidos con Plus"
+        }
+      }
+    },
+    "comparison": {
+      "eyebrow": "Gratis o Plus",
+      "title": "Gratis es todo lo que funciona en el teléfono",
+      "lead": "Velorki Plus es una pequeña suscripción solo para las partes que necesitan nuestros servidores o una cuenta de un socio. Todo lo demás es gratis, para todo el mundo y para siempre.",
+      "feature": "Función",
+      "free": "Gratis",
+      "plus": "Plus",
+      "included": "Incluido",
+      "notIncluded": "No incluido",
+      "rows": {
+        "planning": "Planificación de rutas, cinco perfiles de bici, alternativas",
+        "elevation": "Perfil de altitud y estadísticas de superficie",
+        "loops": "Rutas circulares y vueltas",
+        "offlineMaps": "Regiones de mapa y de enrutamiento sin conexión",
+        "offlineSearch": "Búsqueda de lugares y PDI sin conexión",
+        "navigation": "Giro a giro con indicaciones habladas",
+        "recording": "Grabación de salidas, estadísticas, parciales, subidas, superficie, calorías y zonas",
+        "sensors": "Frecuencia cardiaca, cadencia y potencia desde sensores, reloj y app de salud",
+        "library": "Biblioteca de rutas y salidas",
+        "files": "Importación y exportación de GPX, FIT y TCX",
+        "assistant": "El asistente: una frase se convierte en una ruta",
+        "strava": "Strava: subir salidas, importar rutas",
+        "rwgps": "Ride with GPS: rutas y recorridos en ambos sentidos",
+        "sharing": "Enlaces compartidos para rutas y salidas"
+      },
+      "note": "El código de todo ello está aquí, así que también puedes montar tu propio relay y prescindir por completo de la suscripción.",
+      "plusLink": "Velorki Plus →"
+    },
+    "openSource": {
+      "title": "Código abierto, datos abiertos",
+      "body": "Velorki es de código abierto bajo la AGPL: la app, el relay y esta web. Todo lo que dibuja, todo sobre lo que calcula rutas y todo lo que busca viene de OpenStreetMap, el mapa que cualquiera puede editar. Así, cualquiera puede leer el código, comprobar qué hace y mejorarlo.",
+      "githubLink": "Ver el código en GitHub",
+      "creditsLink": "Créditos y licencias"
+    },
+    "faq": {
+      "eyebrow": "Preguntas",
+      "title": "Preguntas frecuentes",
+      "items": {
+        "account": {
+          "q": "¿Necesito una cuenta?",
+          "a": "No. No hay cuenta ni registro, ni siquiera para Velorki Plus: la suscripción se restaura a través de la tienda en la que la compraste, sin ninguna cuenta con nosotros."
+        },
+        "offline": {
+          "q": "¿De verdad funciona sin conexión?",
+          "a": "Sí. Descarga una región una vez y el mapa, el enrutamiento, la búsqueda de lugares y las indicaciones habladas funcionan en el teléfono. Solo el asistente, las conexiones con Strava y Ride with GPS y los enlaces compartidos necesitan red, y esas son las funciones Plus."
+        },
+        "price": {
+          "q": "¿Cuánto cuesta Velorki?",
+          "a": "Todo lo que funciona en el teléfono es gratis: planificación, rutas circulares, mapas y enrutamiento sin conexión, búsqueda, navegación, grabación, frecuencia cardiaca, cadencia y potencia de tus sensores, estadísticas de salidas y archivos GPX, FIT y TCX. Velorki Plus es una suscripción para las funciones que dependen del servidor; la tienda muestra el precio actual en la app, en tu moneda."
+        },
+        "plus": {
+          "q": "¿Qué es Velorki Plus?",
+          "a": "Una pequeña suscripción para las partes que necesitan nuestros servidores o una cuenta de un socio: el asistente, la conexión con Strava, la conexión con Ride with GPS y los enlaces compartidos. Se compra, se gestiona y se cancela en el App Store o en Google Play."
+        },
+        "data": {
+          "q": "¿Qué sale de mi teléfono?",
+          "a": "Nada, salvo que tú lo pidas. Las rutas, las salidas y los ajustes se guardan en el dispositivo. El asistente pide tu consentimiento antes de que salga cualquier texto, y redondea la posición que envía a un kilómetro aproximadamente. Las teselas del mapa y la búsqueda en línea solo se descargan cuando no usas datos descargados."
+        },
+        "osm": {
+          "q": "¿De dónde vienen los datos del mapa?",
+          "a": "De OpenStreetMap, bajo la licencia ODbL. El mapa, el enrutamiento y la búsqueda de lugares funcionan con esos datos abiertos; los proyectos y las licencias que hay detrás están en la página de créditos."
+        },
+        "opensource": {
+          "q": "¿Velorki es de verdad de código abierto?",
+          "a": "Sí. La app, sus paquetes en Dart puro, el relay y esta web son AGPL-3.0-only; todo está en GitHub. El nombre, el logotipo y el icono están reservados, así que un fork tiene que cambiar de marca antes de publicarse en una tienda."
+        },
+        "selfhost": {
+          "q": "¿Puedo alojar yo mismo las partes de servidor?",
+          "a": "Sí. El relay, un servidor de enrutamiento y un servidor de teselas se pueden alojar por cuenta propia; el repositorio incluye los archivos de compose y las unidades de systemd. Un fork que apunte a su propio relay no necesita ninguna suscripción."
+        }
+      },
+      "creditsLink": "Créditos y licencias"
+    },
+    "cta": {
+      "title": "Consigue la app y sal a pedalear",
+      "body": "Gratis en ambas tiendas, y el código fuente está en GitHub. Sin cuenta, sin anuncios y sin periodo de prueba en las partes que funcionan en tu teléfono.",
+      "action": "Descargar Velorki"
+    }
+  },
+  "plus": {
+    "meta": {
+      "title": "Velorki Plus",
+      "description": "Velorki Plus es una pequeña suscripción para las partes que necesitan nuestros servidores o una cuenta de un socio: el asistente, Strava, Ride with GPS y los enlaces compartidos."
+    },
+    "eyebrow": "Suscripción",
+    "title": "Velorki Plus",
+    "lead": "Todo lo que funciona en tu teléfono es gratis. Plus paga las partes que necesitan nuestros servidores o una cuenta de un socio.",
+    "includes": "Qué incluye Plus",
+    "features": {
+      "assistant": {
+        "title": "El asistente",
+        "body": "Describe en una frase la salida que quieres («40 km, casi todo gravel, una parada en un café») y Velorki la convierte en una ruta y la planifica en tu teléfono. El modelo funciona detrás de un relay que guarda la clave; la app nunca la ve."
+      },
+      "strava": {
+        "title": "Conexión con Strava",
+        "body": "Sube una salida grabada a Strava e importa tus rutas de Strava a la biblioteca."
+      },
+      "rwgps": {
+        "title": "Conexión con Ride with GPS",
+        "body": "Rutas y recorridos en ambos sentidos, entre Ride with GPS y tu biblioteca."
+      },
+      "sharing": {
+        "title": "Enlaces compartidos",
+        "body": "Convierte una ruta o una salida en un enlace que cualquiera puede abrir en un navegador, con el mapa, las estadísticas y una descarga en GPX."
+      }
+    },
+    "freeTitle": "Qué sigue siendo gratis",
+    "freeBody": "La planificación, las rutas circulares, los mapas y el enrutamiento sin conexión, la búsqueda, la navegación giro a giro, la grabación, las estadísticas de salidas y los archivos GPX, FIT y TCX siguen siendo gratis, con o sin Plus.",
+    "priceTitle": "Cuánto cuesta",
+    "priceBody": "Consulta el precio en la app. La tienda muestra el precio mensual y anual actual en tu propia moneda, con una prueba gratuita, y aquí nunca se indica el precio para que no quede desfasado.",
+    "restoreTitle": "Restaurar una suscripción",
+    "restoreBody": "¿Ya estás suscrito? Restaura las compras en Ajustes → Velorki Plus. La restauración funciona sin cuenta: la tienda en la que compraste es el único registro.",
+    "cancelTitle": "Cancelar",
+    "cancelBody": "La suscripción se renueva automáticamente al final de cada periodo, salvo que se cancele al menos 24 horas antes. El cobro lo realiza el App Store o Google Play, donde la suscripción se puede gestionar o cancelar en cualquier momento. Una prueba gratuita que no se cancela se convierte en una suscripción de pago.",
+    "selfHostTitle": "O móntalo tú",
+    "selfHostBody": "El relay es de código abierto. Haz que una compilación apunte al tuyo y todas las funciones Plus funcionan sin suscripción.",
+    "termsLink": "Condiciones de uso",
+    "privacyLink": "Política de privacidad"
+  },
+  "download": {
+    "meta": {
+      "title": "Descargar Velorki",
+      "description": "Velorki para Android e iOS: las tiendas, el APK de GitHub Releases y las versiones mínimas del sistema."
+    },
+    "eyebrow": "Descarga",
+    "title": "Consigue Velorki",
+    "lead": "Gratis en ambas plataformas. Todo lo que funciona en el teléfono va sin cuenta y sin conexión.",
+    "requirementsTitle": "Qué necesita",
+    "android": "Android",
+    "ios": "iOS",
+    "androidRequirement": "Android {version} o posterior",
+    "iosRequirement": "iOS {version} o posterior",
+    "storage": "Unos 60 MB para la app, más lo que descargues en regiones de mapa y de enrutamiento.",
+    "apkTitle": "APK y compilaciones desde el código",
+    "apkBody": "Cada versión se etiqueta en GitHub con su APK adjunto, para quien prefiera no usar una tienda. Si la instalas así, las actualizaciones son manuales.",
+    "apkLink": "GitHub Releases",
+    "sourceTitle": "Compílala tú",
+    "sourceBody": "Toda la app está en el repositorio. `mise install` en la raíz instala Flutter, Java y Node en las versiones fijadas; el README de la app explica el resto.",
+    "sourceLink": "Código en GitHub"
+  },
+  "docs": {
+    "meta": {
+      "title": "Documentación",
+      "description": "La guía de usuario de Velorki: planificación, rutas circulares, mapas y búsqueda sin conexión, navegación, grabación, archivos, compartir y ajustes."
+    },
+    "title": "Documentación",
+    "lead": "La guía de usuario: cómo planificar, pedalear, grabar y volver a sacar tus salidas.",
+    "sidebar": "Documentación",
+    "breadcrumb": "Ayuda",
+    "breadcrumbLabel": "Ruta de navegación",
+    "home": "Inicio",
+    "prev": "Anterior",
+    "next": "Siguiente",
+    "pagination": "Página anterior y siguiente",
+    "empty": "La guía de usuario se está escribiendo. Hasta que esté lista, el README y la carpeta docs del repositorio tienen los detalles.",
+    "untranslatedTitle": "Esta página aún no está traducida",
+    "untranslatedBody": "En su lugar se muestra el texto en inglés. Las traducciones las hace la comunidad; el archivo fuente está en el repositorio.",
+    "draft": "Este texto es un borrador y aún no se ha revisado."
+  },
+  "credits": {
+    "meta": {
+      "title": "Créditos",
+      "description": "Los datos abiertos, los proyectos de código abierto y las tipografías sobre los que se construye Velorki, con sus licencias."
+    },
+    "title": "Créditos",
+    "lead": "Velorki se basa en datos abiertos y código abierto. Estos son los proyectos que hay detrás del mapa, las rutas, la búsqueda y la tipografía, con las licencias bajo las que se publican.",
+    "licenceLabel": "Licencia:",
+    "items": {
+      "osm": {
+        "title": "OpenStreetMap",
+        "body": "Datos del mapa © colaboradores de OpenStreetMap. Los datos de mapa que Velorki dibuja, sobre los que calcula rutas y en los que busca vienen de OpenStreetMap.",
+        "licence": "Open Database License (ODbL) 1.0; las teselas renderizadas bajo CC BY-SA 2.0."
+      },
+      "brouter": {
+        "title": "BRouter",
+        "body": "El motor de enrutamiento. Velorki planifica rutas en bici con BRouter e incluye sus perfiles de enrutamiento; el enrutamiento que funciona en el teléfono sigue el mismo código original. © Arndt Brenschede y colaboradores.",
+        "licence": "Licencia MIT."
+      },
+      "openfreemap": {
+        "title": "OpenFreeMap y OpenMapTiles",
+        "body": "Teselas de mapa vectorial de OpenFreeMap, creadas con OpenMapTiles a partir de datos de OpenStreetMap. OpenFreeMap sirve el estilo de mapa predeterminado y no requiere clave.",
+        "licence": "Software bajo licencia MIT, el esquema y los estilos de OpenMapTiles bajo BSD 3-Clause, las teselas bajo ODbL 1.0 y el diseño atribuido como © OpenMapTiles."
+      },
+      "cyclosm": {
+        "title": "CyclOSM",
+        "body": "La capa ciclista opcional: un estilo de mapa orientado a la bici para OpenStreetMap, servido por los servidores de teselas de la OpenStreetMap Foundation.",
+        "licence": "CC BY-SA 4.0."
+      },
+      "photon": {
+        "title": "Photon",
+        "body": "Búsqueda de lugares en línea, de komoot. Photon geocodifica los nombres de lugares que se escriben en el campo de búsqueda y los nombres que propone el asistente, y se basa en datos de OpenStreetMap. © komoot GmbH y colaboradores.",
+        "licence": "Apache License 2.0."
+      },
+      "fonts": {
+        "title": "Barlow Condensed y Manrope",
+        "body": "Las dos tipografías de la app y de esta web. Copyright 2017 The Barlow Project Authors, copyright 2018 The Manrope Project Authors.",
+        "licence": "SIL Open Font License (OFL) 1.1."
+      },
+      "maplibre": {
+        "title": "MapLibre GL",
+        "body": "El renderizador del mapa: MapLibre GL en la app y MapLibre GL JS en las páginas compartidas de esta web.",
+        "licence": "Licencia BSD 3-Clause."
+      },
+      "flutter": {
+        "title": "Flutter",
+        "body": "El framework con el que está hecha la app, junto con los paquetes de Dart que lo acompañan.",
+        "licence": "Licencia BSD 3-Clause."
+      }
+    },
+    "appNote": "La lista completa de licencias de terceros, incluido cada paquete de Dart de la app, está en la propia app, en Ajustes → Acerca de → Licencias de código abierto."
+  },
+  "legal": {
+    "privacy": {
+      "title": "Política de privacidad",
+      "description": "Qué guarda Velorki, qué sale de tu teléfono y qué no sale nunca."
+    },
+    "terms": {
+      "title": "Condiciones de uso",
+      "description": "Las condiciones para usar la app Velorki, Velorki Plus y los enlaces compartidos."
+    },
+    "imprint": {
+      "title": "Aviso legal",
+      "description": "El proveedor de velorki.com y cómo contactarnos."
+    },
+    "missing": "Este documento aún no se ha publicado. Mientras tanto, escribe a {email}.",
+    "placeholder": "El aviso legal se publicará antes del lanzamiento. Por ahora, contacto: {email}."
+  },
+  "footer": {
+    "tagline": "Un planificador de rutas en bici y grabador de salidas que funciona en tu teléfono.",
+    "product": "Producto",
+    "resources": "Recursos",
+    "legalHeading": "Información legal",
+    "security": "Seguridad: {email}",
+    "osm": "Datos del mapa © colaboradores de OpenStreetMap",
+    "credits": "Créditos",
+    "copyright": "© {year} Orkitec. App, web y relay bajo AGPL-3.0-only.",
+    "github": "GitHub",
+    "release": "Versión {release}",
+    "commit": "Commit {commit}",
+    "orkify": "Desplegado con Orkify"
+  },
+  "cookies": {
+    "label": "Sobre lo que guarda esta web",
+    "body": "velorki.com no guarda nada en tu dispositivo hasta que tú se lo pides: tu idioma, tu tema y el chat de soporte guardan un poco en tu navegador. Sin rastreo, sin publicidad, nada que consentir.",
+    "link": "Qué guarda la web",
+    "anchor": "esta-web",
+    "dismiss": "Entendido",
+    "footer": "Cookies"
+  },
+  "notFound": {
+    "title": "Fuera de ruta",
+    "body": "Esta página no existe. Puede que se haya movido o que el enlace esté mal escrito.",
+    "home": "Volver al inicio",
+    "docs": "Ir a la ayuda"
+  },
+  "errors": {
+    "title": "Algo ha salido mal",
+    "body": "No se ha podido mostrar esta página. Volver a intentarlo suele funcionar.",
+    "retry": "Reintentar",
+    "home": "Volver al inicio"
+  }
+}

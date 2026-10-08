@@ -232,11 +232,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(l10n.recordingRecoveryTitle), findsOneWidget);
-    expect(find.widgetWithText(AppBar, 'Import'), findsNothing);
+    expect(find.widgetWithText(AppBar, l10n.importTitle), findsNothing);
 
     await tester.tap(find.text(l10n.recordingRecoveryDiscard));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(AppBar, 'Import'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, l10n.importTitle), findsOneWidget);
     await unmountApp(tester);
   });
 }

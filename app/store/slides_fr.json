@@ -1,0 +1,58 @@
+{
+  "plan": {
+    "eyebrow": "Gratuit & open source",
+    "headline": "Roulez là où **le réseau s’arrête**",
+    "subline": "Planifiez et naviguez sur votre iPhone, même hors ligne.",
+    "android": {
+      "subline": "Planifiez et naviguez sur votre téléphone, même hors ligne."
+    }
+  },
+  "variants": {
+    "eyebrow": "Planification",
+    "headline": "Des itinéraires faits pour **votre vélo**",
+    "subline": "Randonnée, route, gravel ou VTT, avec variantes, dénivelé et revêtements."
+  },
+  "navigation": {
+    "eyebrow": "Navigation",
+    "headline": "Chaque virage, **annoncé à voix haute**",
+    "subline": "Hors itinéraire ? Retour, nouvel itinéraire ou rien : à vous de choisir."
+  },
+  "loops": {
+    "eyebrow": "Boucles",
+    "headline": "Partir de chez soi, **rentrer pour dîner**",
+    "subline": "Dites jusqu’où. Velorki trouve des boucles depuis là où vous êtes."
+  },
+  "ai": {
+    "eyebrow": "Velorki Plus",
+    "headline": "Décrivez-la, **roulez-la**",
+    "subline": "Demandez une boucle gravel avec un café à mi-parcours, et recevez l’itinéraire. Inclus dans Velorki Plus."
+  },
+  "ride": {
+    "eyebrow": "Statistiques",
+    "headline": "Chaque montée **enregistrée**",
+    "subline": "Altitude, vitesse, fréquence cardiaque et tronçons pour chaque sortie."
+  },
+  "offline-themes": {
+    "eyebrow": "Hors ligne · Clair & sombre",
+    "headline": "De jour comme de nuit, **avec ou sans réseau**",
+    "subline": "Téléchargez une région une fois : carte, itinéraires et recherche marchent partout. Clair ou sombre, à votre couleur."
+  },
+  "import": {
+    "eyebrow": "Fichiers",
+    "headline": "Emportez **n’importe quel itinéraire**",
+    "subline": "Ouvrez GPX, FIT et TCX de partout. Exportez en GPX ou FIT."
+  },
+  "lock-screen": {
+    "eyebrow": "Enregistrement",
+    "headline": "Votre sortie sur **l’écran verrouillé**",
+    "subline": "Données en direct sur l’écran verrouillé et dans la Dynamic Island."
+  },
+  "watch": {
+    "eyebrow": "Apple Watch",
+    "headline": "Démarrez et arrêtez **depuis le poignet**",
+    "subline": "Fréquence cardiaque et sortie sur la montre, synchronisées avec l’iPhone."
+  },
+  "feature": {
+    "headline": "Roulez là où **le réseau s’arrête**"
+  }
+}

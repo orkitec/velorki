@@ -1,6 +1,6 @@
 # Localisation
 
-English is the source language, German is the first target. Translations are
+English is the source language; German, French, Spanish, Italian and Dutch are the translations. Translations are
 written in the repository, in the commit that changes the English, by the
 coding agent; [Crowdin](https://crowdin.com) holds them so that people can
 improve them. `crowdin.yml` in the repository root says what is translated.
@@ -84,10 +84,11 @@ a language".
   languages, and `app/test/l10n/store_texts_test.dart` checks the store
   texts and slide captions of every translated locale against English.
 - A language must pass the widget suite in its own locale:
-  `flutter test --dart-define=VELORKI_TEST_LOCALE=<lang>` from `app/` pumps
-  every harness-built screen in that language, and CI runs it for German, so a
-  translation that no longer fits its layout is a failed build, not a bug
-  report.
+  `flutter test --dart-define=VELORKI_TEST_LOCALE=<lang>` from `app/` (or
+  `VELORKI_TEST_LOCALE=<lang> flutter test`) pumps every harness-built screen
+  in that language. `app.yml` runs it for German on every push and
+  `locales.yml` for every language by hand, so a translation that no longer
+  fits its layout is a failed build, not a bug report.
 
 ## Store listing texts
 

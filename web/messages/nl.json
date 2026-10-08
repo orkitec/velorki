@@ -1,0 +1,437 @@
+{
+  "site": {
+    "name": "Velorki",
+    "tagline": "Plan de rit, vind het café, volg de afslagen, en dat allemaal waar het bereik ophoudt. Gratis, open source, gebouwd op OpenStreetMap.",
+    "description": "Velorki plant fietsroutes, maakt rondjes en neemt je ritten op — op de telefoon, offline, met OpenStreetMap-gegevens. Gratis en open source."
+  },
+  "nav": {
+    "home": "Velorki-startpagina",
+    "features": "Functies",
+    "docs": "Handleiding",
+    "plus": "Plus",
+    "download": "Download",
+    "github": "GitHub",
+    "menu": "Menu",
+    "primary": "Hoofdmenu",
+    "skip": "Naar de inhoud"
+  },
+  "localeSwitcher": {
+    "label": "Taal"
+  },
+  "theme": {
+    "label": "Thema",
+    "system": "Systeem",
+    "light": "Licht",
+    "dark": "Donker",
+    "cycle": "Thema: {current}. Overschakelen naar {next}."
+  },
+  "appearance": {
+    "legend": "Toon de app in",
+    "mode": "Thema",
+    "light": "Licht",
+    "dark": "Donker",
+    "accent": "Accentkleur",
+    "volt": "Volt",
+    "ember": "Gloed",
+    "glacier": "Gletsjer",
+    "berry": "Bes",
+    "forest": "Bos",
+    "noShots": "Voor deze combinatie zijn er nog geen screenshots",
+    "hint": "De app komt in licht en donker met vijf accentkleuren. Schakel je hier om, dan wisselt elke screenshot op deze pagina mee."
+  },
+  "screenshots": {
+    "missing": "Screenshot volgt",
+    "look": {
+      "light": "{description} Getoond in het lichte thema van de app.",
+      "dark": "{description} Getoond in het donkere thema van de app."
+    },
+    "alt": {
+      "planner": "De routeplanner van Velorki: een fietsroute op de kaart met routepunten, afstand, stijging en het hoogteprofiel in een paneel boven de kaart.",
+      "loop": "Een gegenereerd rondje: een rondrit op de kaart met de lengte, het klimwerk en de mix van ondergronden.",
+      "search": "Offline zoeken naar plaatsen: een lijst met cafés en drinkwaterpunten in de buurt met hun afstand, gevonden zonder verbinding.",
+      "navigation": "Afslag-voor-afslagnavigatie: de volgende afslag in een balk boven de kaart terwijl de route wordt gevolgd.",
+      "recording": "Een rit die wordt opgenomen: afstand, tijd, snelheid en stijging in grote cijfers boven de kaart.",
+      "ride": "Een afgeronde rit: de op snelheid gekleurde track op de kaart met hoogte-, snelheids- en splitstatistieken.",
+      "library": "De bibliotheek: opgeslagen routes en opgenomen ritten als lijst met hun afstand en stijging.",
+      "offline": "Offline downloads: kaart- en routeringsregio's op de telefoon met hun grootte en status.",
+      "settings": "Instellingen: het onderdeel Weergave met de schakelaar voor licht, donker en systeem en de vijf accentkleuren."
+    }
+  },
+  "home": {
+    "meta": {
+      "title": "Velorki — fietsrouteplanner en ritrecorder, offline en open source",
+      "description": "Plan fietsroutes, genereer rondjes, zoek plaatsen en volg gesproken afslagen — allemaal op de telefoon, zonder verbinding. Gratis, open source, gebouwd op OpenStreetMap."
+    },
+    "hero": {
+      "eyebrow": "Gratis en open source",
+      "title": "Fiets waar het bereik ophoudt",
+      "lead": "Plan de rit, vind het café, volg de afslagen, en dat allemaal waar het bereik ophoudt. Gratis, open source, gebouwd op OpenStreetMap.",
+      "body": "Download een regio één keer en de hele app werkt zonder netwerk: de kaart, de routering, het zoeken naar plaatsen en de gesproken afslagen. Geen account, geen advertenties, geen betaalmuur voor de rit zelf, en geen server ertussen, tenzij je daarom vraagt.",
+      "primaryCta": "Velorki downloaden",
+      "secondaryCta": "Lees de handleiding",
+      "stores": "Download de app",
+      "storeIos": "Download in de App Store",
+      "storeAndroid": "Ontdek het op Google Play",
+      "storeGithub": "Download op GitHub",
+      "storesPending": "De app staat nog niet in de stores. De broncode en de builds staan in de tussentijd op GitHub."
+    },
+    "free": {
+      "title": "Alles op de telefoon is gratis",
+      "body": "Plannen, rondjes, offline kaarten en routering, zoeken, navigatie, opnemen, sensoren en de Apple Watch, ritstatistieken, GPX-, FIT- en TCX-bestanden — voor iedereen, voor altijd. De routeringsgegevens en de zoekindex spiegelen we gratis voor je.",
+      "items": {
+        "routing": "Routering op de telefoon",
+        "loops": "Rondjes",
+        "search": "Offline zoeken",
+        "maps": "Offline kaarten",
+        "navigation": "Afslag voor afslag",
+        "recording": "Opnemen",
+        "sensors": "Sensoren en horloge",
+        "files": "GPX, FIT en TCX"
+      }
+    },
+    "features": {
+      "title": "Wat de app doet",
+      "lead": "Zeven dingen die je bij elke rit gebruikt. Elke screenshot hieronder is de echte app.",
+      "plan": {
+        "eyebrow": "Plannen",
+        "title": "Een route voor de fiets waar je op zit",
+        "body": "Tik routepunten op de kaart en de route wordt op de telefoon berekend, op gedownloade tegels van 5°×5°. Profielen voor toer, racefiets, gravel, MTB en direct, tot drie alternatieven, het hoogteprofiel en een overzicht van de ondergronden waar je overheen rijdt.",
+        "bullets": {
+          "one": "Vijf fietsprofielen, tot drie alternatieven per route",
+          "two": "Hoogteprofiel en ondergrondstatistieken voor elke optie",
+          "three": "Een online routeringsserver is optioneel, voor gebieden zonder tegels"
+        }
+      },
+      "loops": {
+        "eyebrow": "Rondjes",
+        "title": "“Een rondje van 60 km vanaf hier langs het meer”",
+        "body": "Zeg hoe ver je wilt fietsen en, als je wilt, één plek om langs te komen. Kandidaten worden op de telefoon gegenereerd en beoordeeld op lengte, klimwerk, ondergrond en dubbel gereden wegen, zodat je een rit terugkrijgt en geen omweg.",
+        "bullets": {
+          "one": "Rondritten die terugkomen waar je begon",
+          "two": "Beoordeeld op lengte, klimwerk, ondergrond en dubbel gereden wegen",
+          "three": "Kies een plek om langs te komen en het rondje gaat erlangs"
+        }
+      },
+      "offline": {
+        "eyebrow": "Offline",
+        "title": "De kaart, de routering en het zoeken, zonder verbinding",
+        "body": "Elke routeringstegel brengt een zoekindex van zijn plaatsen mee, straten met huisnummers en interessante punten: cafés, drinkwater, toiletten, reparatiepunten, schuilhutten, fietsenwinkels, campings, hotels, bergpassen, toppen, uitzichtpunten, stations en bezienswaardigheden. Typ “water” en je krijgt de dichtstbijzijnde kraantjes op afstand, en typefouten worden uit de index zelf verbeterd.",
+        "bullets": {
+          "one": "Vectorkaartgebieden per regio opgeslagen",
+          "two": "Zoeken op categorie: cafés, water, toiletten, reparatiepunten",
+          "three": "Online zoeken naar plaatsen is één tik verwijderd"
+        }
+      },
+      "navigate": {
+        "eyebrow": "Navigatie",
+        "title": "Gesproken afslagen, op de telefoon",
+        "body": "Een afslagbalk en gesproken aanwijzingen terwijl je een route rijdt, en als je ervan afwijkt naar keuze een weg terug naar het plan, een nieuwe route naar de bestemming of alleen de richting terug, allemaal op de telefoon berekend. Volgmodus met kompas of noorden boven. De aanwijzingen komen uit dezelfde routeringsgegevens die de rit hebben gepland, dus ze werken ook waar geen netwerk is. Een GPX-route brengt zijn eigen routebeschrijving en interessante punten mee, en het opnamepaneel voegt als veegbare pagina's een hoogteprofiel met de klim voor je, de aankomsttijd en de lijst met afslagen toe.",
+        "bullets": {
+          "one": "Afslagbalk en gesproken aanwijzingen, offline",
+          "two": "Van de lijn af: teruggeleid, een nieuwe route of alleen de richting terug",
+          "three": "Routebeschrijving, interessante punten, klim en aankomsttijd op het opnamepaneel"
+        }
+      },
+      "record": {
+        "eyebrow": "Opnemen",
+        "title": "Hij blijft opnemen, ook als de telefoon dat niet doet",
+        "body": "De opname loopt op de achtergrond met een melding op de voorgrond op Android en een live-activiteit op iOS, en overleeft het als de app wordt afgesloten. Batterijbesparing dimt het scherm en maakt de GPS grover. Hartslag, cadans en vermogen komen mee van een Apple Watch, een Bluetooth-sensor of je gezondheidsapp, als je ze aanzet. Daarna ritpagina's met hoogte, snelheid, hartslag, splits op maat van de rit, de klimmen die je reed, de ondergrond onder je wielen uit de offline kaart en een op snelheid gekleurde track; op verzoek calorieën, hartslag- en vermogenszones, genormaliseerd vermogen en een geschat vermogen voor ritten zonder meter.",
+        "bullets": {
+          "one": "Opnemen op de achtergrond, ook als de app wordt afgesloten",
+          "two": "Hartslag, cadans en vermogen van een horloge of een Bluetooth-sensor, allemaal optioneel",
+          "three": "Ritpagina's met splits, klimmen, ondergrond en een op snelheid gekleurde track; calorieën, zones en geschat vermogen als je dat wilt"
+        }
+      },
+      "sensors": {
+        "eyebrow": "Sensoren",
+        "title": "Sensoren en je horloge",
+        "body": "Hartslag, cadans en vermogen komen van een Bluetooth-sensor — een borstband, een snelheids- en cadanssensor of een vermogensmeter — één keer gekoppeld en daarna deel van elke rit: op het opnamescherm terwijl je rijdt, en bewaard bij de rit daarna. De Velorki-app op je Apple Watch toont de rit om je pols en stuurt je hartslag naar de telefoon; starten, pauzeren en beëindigen kan vanaf het horloge, en het blijft meten tijdens je stops, of rust bij elke stop als je dat liever hebt. Apple Gezondheid en Health Connect kunnen ook een hartslag leveren, en het is allemaal gratis, allemaal optioneel, en er gebeurt niets tot je een bron aanzet.",
+        "bullets": {
+          "one": "Hartslagbanden, snelheids- en cadanssensoren en vermogensmeters via Bluetooth",
+          "two": "De Velorki-app op je Apple Watch: de rit om je pols, je hartslag naar de telefoon",
+          "three": "Apple Gezondheid en Health Connect als bronnen, gratis en uit tot je er een aanzet"
+        },
+        "link": "Lees de handleiding",
+        "panel": {
+          "heart": "Hartslag",
+          "cadence": "Cadans",
+          "power": "Vermogen",
+          "bpm": "bpm",
+          "rpm": "tpm",
+          "watts": "W",
+          "watchNote": "De horloge-app spreekt in elke taal Engels."
+        }
+      },
+      "files": {
+        "eyebrow": "Bestanden en diensten",
+        "title": "Je ritten zijn bestanden die van jou zijn",
+        "body": "GPX-, FIT- en TCX-import en -export via het deelmenu en ‘Openen met’, zodat routes en ritten naar Komoot, Garmin Connect, Strava of iets anders gaan dat die formaten leest. Een GPX-route houdt zijn routebeschrijving en interessante punten, en een Ride with GPS-link opent in Velorki. De koppelingen met Strava en Ride with GPS en de deellinks zijn het Plus-deel.",
+        "bullets": {
+          "one": "GPX, FIT en TCX in en uit, vanuit Bestanden, Mail of een browser, met routebeschrijvingen en interessante punten",
+          "two": "Een bibliotheek met opgeslagen routes en opgenomen ritten",
+          "three": "Strava, Ride with GPS en deellinks met Plus"
+        }
+      }
+    },
+    "comparison": {
+      "eyebrow": "Gratis of Plus",
+      "title": "Gratis is alles wat op de telefoon draait",
+      "lead": "Velorki Plus is een klein abonnement, alleen voor de onderdelen die onze servers of een partneraccount nodig hebben. Al het andere is gratis, voor iedereen, voor altijd.",
+      "feature": "Functie",
+      "free": "Gratis",
+      "plus": "Plus",
+      "included": "Inbegrepen",
+      "notIncluded": "Niet inbegrepen",
+      "rows": {
+        "planning": "Routeplanning, vijf fietsprofielen, alternatieven",
+        "elevation": "Hoogteprofiel en ondergrondstatistieken",
+        "loops": "Rondjes en rondritten",
+        "offlineMaps": "Offline kaart- en routeringsregio's",
+        "offlineSearch": "Offline zoeken naar plaatsen en POI's",
+        "navigation": "Afslag-voor-afslagnavigatie met gesproken aanwijzingen",
+        "recording": "Ritten opnemen, statistieken, splits, klimmen, ondergrond, calorieën en zones",
+        "sensors": "Hartslag, cadans en vermogen van sensoren, horloge en gezondheidsapp",
+        "library": "Bibliotheek met routes en ritten",
+        "files": "GPX-, FIT- en TCX-import en -export",
+        "assistant": "De assistent: een zin wordt een route",
+        "strava": "Strava: ritten uploaden, routes importeren",
+        "rwgps": "Ride with GPS: routes en ritten in beide richtingen",
+        "sharing": "Deellinks voor routes en ritten"
+      },
+      "note": "De code van dit alles staat hier, dus je kunt ook je eigen relay draaien en het abonnement helemaal overslaan.",
+      "plusLink": "Velorki Plus →"
+    },
+    "openSource": {
+      "title": "Open source, open data",
+      "body": "Velorki is open source onder de AGPL: de app, de relay en deze website. Alles wat de app tekent, waarop hij routeert en waarin hij zoekt, komt van OpenStreetMap, de kaart die iedereen kan bewerken. Zo kan iedereen de code lezen, controleren wat hij doet en hem verbeteren.",
+      "githubLink": "Lees de broncode op GitHub",
+      "creditsLink": "Bronvermelding en licenties"
+    },
+    "faq": {
+      "eyebrow": "Vragen",
+      "title": "Veelgestelde vragen",
+      "items": {
+        "account": {
+          "q": "Heb ik een account nodig?",
+          "a": "Nee. Er is geen account en geen registratie, zelfs niet voor Velorki Plus — een abonnement wordt hersteld via de store waarin je het hebt gekocht, zonder account bij ons."
+        },
+        "offline": {
+          "q": "Werkt het echt zonder verbinding?",
+          "a": "Ja. Download een regio één keer en de kaart, de routering, het zoeken naar plaatsen en de gesproken afslagen draaien allemaal op de telefoon. Alleen de assistent, de koppelingen met Strava en Ride with GPS en de deellinks hebben een netwerk nodig, en dat zijn de Plus-functies."
+        },
+        "price": {
+          "q": "Wat kost Velorki?",
+          "a": "Alles wat op de telefoon draait, is gratis: plannen, rondjes, offline kaarten en routering, zoeken, navigatie, opnemen, hartslag, cadans en vermogen van je sensoren, ritstatistieken en GPX-, FIT- en TCX-bestanden. Velorki Plus is een abonnement voor de functies aan de serverkant; de actuele prijs toont de store in de app, in je eigen valuta."
+        },
+        "plus": {
+          "q": "Wat is Velorki Plus?",
+          "a": "Een klein abonnement voor de onderdelen die onze servers of een partneraccount nodig hebben: de assistent, de Strava-koppeling, de Ride with GPS-koppeling en deellinks. Je koopt, beheert en annuleert het in de App Store of Google Play."
+        },
+        "data": {
+          "q": "Wat verlaat mijn telefoon?",
+          "a": "Niets, tenzij je erom vraagt. Routes, ritten en instellingen worden op het apparaat bewaard. De assistent vraagt toestemming voordat er tekst vertrekt, en rondt de positie die hij verstuurt af op ongeveer een kilometer. Kaarttegels en online zoeken worden alleen opgehaald als je geen gedownloade gegevens gebruikt."
+        },
+        "osm": {
+          "q": "Waar komen de kaartgegevens vandaan?",
+          "a": "Van OpenStreetMap, onder de ODbL. De kaart, de routering en het zoeken naar plaatsen draaien allemaal op die open data; de projecten en licenties erachter staan op de pagina met de bronvermelding."
+        },
+        "opensource": {
+          "q": "Is Velorki echt open source?",
+          "a": "Ja. De app, de pure Dart-pakketten, de relay en deze website vallen onder AGPL-3.0-only; alles staat op GitHub. De naam, het logo en het icoon zijn voorbehouden, dus een fork moet een andere naam kiezen voordat hij in een store verschijnt."
+        },
+        "selfhost": {
+          "q": "Kan ik de serveronderdelen zelf draaien?",
+          "a": "Ja. De relay, een routeringsserver en een tegelhost kun je allemaal zelf hosten; de repository bevat de compose-bestanden en de systemd-units. Een fork die naar zijn eigen relay wijst, heeft helemaal geen abonnement nodig."
+        }
+      },
+      "creditsLink": "Bronvermelding en licenties"
+    },
+    "cta": {
+      "title": "Download de app en ga fietsen",
+      "body": "Gratis in beide stores, en de broncode staat op GitHub. Geen account, geen advertenties, geen proefperiode voor de onderdelen die op je telefoon draaien.",
+      "action": "Velorki downloaden"
+    }
+  },
+  "plus": {
+    "meta": {
+      "title": "Velorki Plus",
+      "description": "Velorki Plus is een klein abonnement voor de onderdelen die onze servers of een partneraccount nodig hebben: de assistent, Strava, Ride with GPS en deellinks."
+    },
+    "eyebrow": "Abonnement",
+    "title": "Velorki Plus",
+    "lead": "Alles wat op je telefoon draait, is gratis. Plus betaalt de onderdelen die onze servers of een partneraccount nodig hebben.",
+    "includes": "Wat Plus omvat",
+    "features": {
+      "assistant": {
+        "title": "De assistent",
+        "body": "Beschrijf de rit die je wilt in één zin — “40 km, vooral gravel, een koffiestop” — en Velorki maakt er een route van en plant die op je telefoon. Het model draait achter een relay die de sleutel bewaart; de app ziet die nooit."
+      },
+      "strava": {
+        "title": "Strava-koppeling",
+        "body": "Upload een opgenomen rit naar Strava en importeer je Strava-routes in de bibliotheek."
+      },
+      "rwgps": {
+        "title": "Ride with GPS-koppeling",
+        "body": "Routes en ritten in beide richtingen, tussen Ride with GPS en je bibliotheek."
+      },
+      "sharing": {
+        "title": "Deellinks",
+        "body": "Maak van een route of rit een link die iedereen in een browser kan openen, met de kaart, de statistieken en een GPX-download."
+      }
+    },
+    "freeTitle": "Wat gratis blijft",
+    "freeBody": "Plannen, rondjes, offline kaarten en routering, zoeken, afslag-voor-afslagnavigatie, opnemen, ritstatistieken en GPX-, FIT- en TCX-bestanden blijven gratis, met of zonder Plus.",
+    "priceTitle": "Wat het kost",
+    "priceBody": "Je ziet de prijs in de app. De store toont de actuele maand- en jaarprijs in je eigen valuta, met een gratis proefperiode, en hier staat de prijs nooit, zodat hij niet kan verouderen.",
+    "restoreTitle": "Een abonnement herstellen",
+    "restoreBody": "Al geabonneerd? Herstel je aankopen onder Instellingen → Velorki Plus. Herstellen werkt zonder account: de store waarin je hebt gekocht, is het enige bewijs.",
+    "cancelTitle": "Opzeggen",
+    "cancelBody": "Het abonnement wordt aan het einde van elke periode automatisch verlengd, tenzij het uiterlijk 24 uur van tevoren wordt opgezegd. De betaling loopt via de App Store of Google Play, waar je het abonnement op elk moment kunt beheren of opzeggen. Een gratis proefperiode die niet wordt opgezegd, gaat over in een betaald abonnement.",
+    "selfHostTitle": "Of draai hem zelf",
+    "selfHostBody": "De relay is open source. Laat een build naar je eigen relay wijzen en elke Plus-functie werkt zonder abonnement.",
+    "termsLink": "Gebruiksvoorwaarden",
+    "privacyLink": "Privacybeleid"
+  },
+  "download": {
+    "meta": {
+      "title": "Velorki downloaden",
+      "description": "Velorki voor Android en iOS: de stores, de APK uit GitHub Releases en de minimale systeemversies."
+    },
+    "eyebrow": "Download",
+    "title": "Velorki downloaden",
+    "lead": "Gratis op beide platforms. Alles wat op de telefoon draait, werkt zonder account en zonder verbinding.",
+    "requirementsTitle": "Wat de app nodig heeft",
+    "android": "Android",
+    "ios": "iOS",
+    "androidRequirement": "Android {version} of nieuwer",
+    "iosRequirement": "iOS {version} of nieuwer",
+    "storage": "Ongeveer 60 MB voor de app, plus wat je aan kaart- en routeringsregio's downloadt.",
+    "apkTitle": "APK en builds uit de broncode",
+    "apkBody": "Elke release staat met een tag op GitHub met de APK erbij, voor wie liever geen store gebruikt. Updates gaan bij deze installatie met de hand.",
+    "apkLink": "GitHub Releases",
+    "sourceTitle": "Zelf bouwen",
+    "sourceBody": "De hele app staat in de repository. `mise install` in de hoofdmap installeert Flutter, Java en Node in de vastgelegde versies; de README van de app vertelt de rest.",
+    "sourceLink": "Broncode op GitHub"
+  },
+  "docs": {
+    "meta": {
+      "title": "Handleiding",
+      "description": "De handleiding van Velorki: plannen, rondjes, offline kaarten en zoeken, navigatie, opnemen, bestanden, delen en instellingen."
+    },
+    "title": "Handleiding",
+    "lead": "De handleiding: hoe je plant, rijdt, opneemt en je ritten er weer uit krijgt.",
+    "sidebar": "Handleiding",
+    "breadcrumb": "Handleiding",
+    "breadcrumbLabel": "Kruimelpad",
+    "home": "Start",
+    "prev": "Vorige",
+    "next": "Volgende",
+    "pagination": "Vorige en volgende pagina",
+    "empty": "De handleiding wordt nog geschreven. Tot die er is, staan de details in de README en de map docs van de repository.",
+    "untranslatedTitle": "Deze pagina is nog niet vertaald",
+    "untranslatedBody": "In plaats daarvan staat hier de Engelse tekst. Vertalingen komen uit de community — het bronbestand staat in de repository.",
+    "draft": "Deze tekst is een concept en is nog niet nagekeken."
+  },
+  "credits": {
+    "meta": {
+      "title": "Bronvermelding",
+      "description": "De open data, de opensourceprojecten en de lettertypen waarop Velorki is gebouwd, met hun licenties."
+    },
+    "title": "Bronvermelding",
+    "lead": "Velorki is gebouwd op open data en open source. Dit zijn de projecten achter de kaart, de routes, het zoeken en de letters, met de licenties waaronder ze zijn gepubliceerd.",
+    "licenceLabel": "Licentie:",
+    "items": {
+      "osm": {
+        "title": "OpenStreetMap",
+        "body": "Kaartgegevens © OpenStreetMap-bijdragers. De kaartgegevens die Velorki tekent, waarop het routeert en waarin het zoekt, komen van OpenStreetMap.",
+        "licence": "Open Database License (ODbL) 1.0; gerenderde tegels onder CC BY-SA 2.0."
+      },
+      "brouter": {
+        "title": "BRouter",
+        "body": "De routeringsengine. Velorki plant fietsroutes met BRouter en levert de routeringsprofielen ervan mee; de routering op de telefoon volgt dezelfde upstreambroncode. © Arndt Brenschede en bijdragers.",
+        "licence": "MIT-licentie."
+      },
+      "openfreemap": {
+        "title": "OpenFreeMap en OpenMapTiles",
+        "body": "Vectortegels van OpenFreeMap, gebouwd met OpenMapTiles uit OpenStreetMap-gegevens. OpenFreeMap levert de standaard kaartstijl en heeft geen sleutel nodig.",
+        "licence": "Software onder de MIT-licentie, het schema en de stijlen van OpenMapTiles onder BSD 3-Clause, de tegels onder ODbL 1.0, het ontwerp vermeld als © OpenMapTiles."
+      },
+      "cyclosm": {
+        "title": "CyclOSM",
+        "body": "De optionele fietslaag: een op fietsers gerichte kaartstijl voor OpenStreetMap, geleverd door de tegelservers van de OpenStreetMap Foundation.",
+        "licence": "CC BY-SA 4.0."
+      },
+      "photon": {
+        "title": "Photon",
+        "body": "Online zoeken naar plaatsen, van komoot. Photon zoekt de plaatsnamen op die in het zoekveld worden getypt en de namen die de assistent voorstelt, en is gebouwd op OpenStreetMap-gegevens. © komoot GmbH en bijdragers.",
+        "licence": "Apache License 2.0."
+      },
+      "fonts": {
+        "title": "Barlow Condensed en Manrope",
+        "body": "De twee lettertypen van de app en deze website. Copyright 2017 The Barlow Project Authors, copyright 2018 The Manrope Project Authors.",
+        "licence": "SIL Open Font License (OFL) 1.1."
+      },
+      "maplibre": {
+        "title": "MapLibre GL",
+        "body": "De kaartrenderer: MapLibre GL in de app en MapLibre GL JS op de deelpagina's van deze website.",
+        "licence": "BSD 3-Clause-licentie."
+      },
+      "flutter": {
+        "title": "Flutter",
+        "body": "Het framework waarmee de app is gebouwd, samen met de Dart-pakketten die erbij horen.",
+        "licence": "BSD 3-Clause-licentie."
+      }
+    },
+    "appNote": "De volledige lijst met licenties van derden, inclusief elk Dart-pakket in de app, staat in de app zelf, onder Instellingen → Over → Opensourcelicenties."
+  },
+  "legal": {
+    "privacy": {
+      "title": "Privacybeleid",
+      "description": "Wat Velorki bewaart, wat je telefoon verlaat en wat nooit."
+    },
+    "terms": {
+      "title": "Gebruiksvoorwaarden",
+      "description": "De voorwaarden voor het gebruik van de Velorki-app, Velorki Plus en gedeelde links."
+    },
+    "imprint": {
+      "title": "Colofon",
+      "description": "De aanbieder van velorki.com en hoe je ons bereikt."
+    },
+    "missing": "Dit document is nog niet gepubliceerd. Schrijf in de tussentijd naar {email}.",
+    "placeholder": "Het colofon wordt voor de lancering gepubliceerd. Contact voorlopig: {email}."
+  },
+  "footer": {
+    "tagline": "Een fietsrouteplanner en ritrecorder die op je telefoon draait.",
+    "product": "Product",
+    "resources": "Bronnen",
+    "legalHeading": "Juridisch",
+    "security": "Beveiliging: {email}",
+    "osm": "Kaartgegevens © OpenStreetMap-bijdragers",
+    "credits": "Bronvermelding",
+    "copyright": "© {year} Orkitec. App, website en relay onder AGPL-3.0-only.",
+    "github": "GitHub",
+    "release": "Versie {release}",
+    "commit": "Commit {commit}",
+    "orkify": "Uitgerold met Orkify"
+  },
+  "cookies": {
+    "label": "Over wat deze site bewaart",
+    "body": "velorki.com bewaart niets op je apparaat tot je erom vraagt: je taal, je thema en de supportchat bewaren een beetje in je browser. Geen tracking, geen advertenties, niets om toestemming voor te geven.",
+    "link": "Wat de site bewaart",
+    "anchor": "deze-website",
+    "dismiss": "Begrepen",
+    "footer": "Cookies"
+  },
+  "notFound": {
+    "title": "Van de route af",
+    "body": "Deze pagina bestaat niet. Misschien is hij verhuisd, of zit er een typefout in de link.",
+    "home": "Terug naar de start",
+    "docs": "Naar de handleiding"
+  },
+  "errors": {
+    "title": "Er ging iets mis",
+    "body": "Deze pagina kon niet worden weergegeven. Opnieuw proberen helpt meestal.",
+    "retry": "Opnieuw proberen",
+    "home": "Terug naar de start"
+  }
+}

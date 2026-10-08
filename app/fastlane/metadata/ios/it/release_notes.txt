@@ -1,0 +1,6 @@
+• Soste sulla mappa: acqua, bar, panetterie, bagni, stazioni di riparazione bici e altro. Da lontano si raggruppano in bolle con un numero; mentre pedali, vedi le soste lungo il percorso davanti a te e quanto dista ciascuna.
+• Tocca un luogo per la sua scheda: cos'è, quanto dista, e Percorso fin qui, Parti da qui, Aggiungi come sosta o Destinazione. Dettagli mostra orari, sito web e telefono da OpenStreetMap, e Apri in passa il luogo a un'altra app di mappe.
+• La ricerca offline trova molto di più: indirizzi con numero civico, errori di battitura e abbreviazioni, nomi in un altro alfabeto, luoghi famosi nella tua lingua, e ristoranti, gelaterie, distributori e pompe per bici.
+• Luoghi da altre app: condividi un luogo o un link di mappa con Velorki, o incolla delle coordinate nella ricerca.
+• La ricerca di anelli mostra il miglior anello finora e dice cosa sta ancora verificando.
+• Correzioni: scorrere verso l'alto per il selettore app non sposta più un pannello, girare il telefono non fa più lampeggiare il grigio, e l'indicatore di pausa sta anche sui telefoni piccoli.

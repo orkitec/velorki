@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -58,6 +60,14 @@ Future<ProviderContainer> _pump(
   return container;
 }
 
+/// The languages the app ships: one `lib/l10n/app_<lang>.arb` each.
+List<String> _shippedLanguages() => [
+  for (final f in Directory('lib/l10n').listSync().whereType<File>())
+    if (RegExp(r'^app_(\w+)\.arb$').firstMatch(f.uri.pathSegments.last)
+        case final m?)
+      m.group(1)!,
+];
+
 void main() {
   testWidgets('the row follows the system until a language is picked', (
     tester,
@@ -76,10 +86,18 @@ void main() {
     await tester.tap(find.text('Language'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(RadioListTile<Locale?>), findsNWidgets(3));
+    final shipped = _shippedLanguages();
+    expect(shipped, containsAll(['en', 'de']));
+    expect(
+      find.byType(RadioListTile<Locale?>, skipOffstage: false),
+      findsNWidgets(shipped.length + 1),
+    );
     expect(find.text('System'), findsWidgets);
-    expect(find.text('English'), findsOneWidget);
-    expect(find.text('Deutsch'), findsOneWidget);
+    for (final lang in shipped) {
+      final name = languageName(Locale(lang));
+      expect(name, isNot(lang), reason: '$lang has a native name');
+      expect(find.text(name, skipOffstage: false), findsOneWidget);
+    }
   });
 
   testWidgets('picking Deutsch translates the app and is persisted', (

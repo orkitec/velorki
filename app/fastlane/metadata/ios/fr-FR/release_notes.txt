@@ -1,0 +1,6 @@
+• Les haltes sur la carte : eau, cafés, boulangeries, toilettes, réparation vélo et plus encore. En vue éloignée, elles se regroupent en bulles avec leur nombre ; en roulant, les haltes à venir sur votre itinéraire et la distance de chacune.
+• Touchez un lieu pour voir sa fiche : ce que c’est, à quelle distance, et Itinéraire jusqu’ici, Partir d’ici, Ajouter comme étape ou Arrivée. Détails affiche les horaires, le site web et le téléphone d’OpenStreetMap, et Ouvrir dans transmet le lieu à une autre app de cartes.
+• La recherche trouve bien plus hors ligne : adresses avec numéro, fautes de frappe et abréviations, noms dans un autre alphabet, lieux connus dans votre langue, ainsi que restaurants, glaciers, stations-service et pompes à vélo.
+• Des lieux venus d’autres apps : partagez un lieu ou un lien de carte vers Velorki, ou collez des coordonnées dans la recherche.
+• La recherche de boucles montre la meilleure boucle trouvée jusqu’ici et ce qu’elle vérifie encore.
+• Corrections : balayer vers le haut pour changer d’app ne déplace plus le panneau, tourner le téléphone ne fait plus clignoter l’écran en gris, et le badge de pause tient sur les petits téléphones.

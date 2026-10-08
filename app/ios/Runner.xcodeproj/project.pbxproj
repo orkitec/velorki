@@ -165,6 +165,10 @@
 		FD28D9A3FC0CE9524E4C4F93 /* VelorkiLiveActivity.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = VelorkiLiveActivity.entitlements; sourceTree = "<group>"; };
 		B1D0C0DE0000000000000003 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		B1D0C0DE0000000000000004 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		B1D0C0DE0000000000000005 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		B1D0C0DE0000000000000006 /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		B1D0C0DE0000000000000007 /* it */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = it; path = it.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		B1D0C0DE0000000000000008 /* nl */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = nl; path = nl.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -498,6 +502,10 @@
 				en,
 				Base,
 				de,
+				fr,
+				es,
+				it,
+				nl,
 			);
 			mainGroup = 97C146E51CF9000F007C117D;
 			packageReferences = (
@@ -741,6 +749,10 @@
 			children = (
 				B1D0C0DE0000000000000003 /* en */,
 				B1D0C0DE0000000000000004 /* de */,
+				B1D0C0DE0000000000000005 /* fr */,
+				B1D0C0DE0000000000000006 /* es */,
+				B1D0C0DE0000000000000007 /* it */,
+				B1D0C0DE0000000000000008 /* nl */,
 			);
 			name = InfoPlist.strings;
 			sourceTree = "<group>";

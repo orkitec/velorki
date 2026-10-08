@@ -74,7 +74,7 @@ Velorkis Uhren-App steckt in der iPhone-App. Sie landet von selbst auf der Uhr, 
 
 - Deinen **Puls** in großen Ziffern, mit schlagendem Herz, solange die Uhr misst; zwei Striche, solange nichts gemessen wird, und den letzten Wert abgedunkelt, solange die Fahrt pausiert ist. Herz und Knöpfe tragen die Akzentfarbe, die du in der App gewählt hast.
 - Eine Zeile in Orange, wenn etwas nicht stimmt: Health-Zugriff abgelehnt, ein Training, das die Uhr nicht starten wollte, oder ein Handy, das nicht geantwortet hat.
-- Während einer Fahrt ihre Distanz, die laufende Uhr und das Tempo, und **Paused**, wenn pausiert ist. Formatiert wird alles vom Handy, es steht also in deinen Einheiten und deiner Sprache da.
+- Während einer Fahrt ihre Distanz, die laufende Uhr und das Tempo, und **Pausiert**, wenn pausiert ist. Formatiert wird alles vom Handy, es steht also in deinen Einheiten und deiner Sprache da.
 - Die nächste Abbiegung mit Symbol, Namen und Entfernung, so wie auf dem Sperrbildschirm, in Orange, solange du von der Route ab bist; sobald ein Weg zurück oder eine neue Route berechnet ist, deren Abbiegungen.
 - Ein Tippen aufs Handgelenk, wenn ein Abbiegehinweis fällig ist, und eines, wenn du die Route verlässt. Eine Uhr, die drei Abbiegungen verschlafen hat, tippt einmal statt dreimal.
 
@@ -84,17 +84,17 @@ Die eigenen Worte der Uhr, also die Knöpfe und die zwei Fußnoten, sind englisc
 
 | Knopf | Was er tut |
 |---|---|
-| **Start ride** | startet die Aufnahme auf dem Handy |
-| **Pause**, **Resume** | pausieren und weiterfahren, wie am Handy |
-| **Finish** | beendet die Aufnahme; "Finish opens the save sheet on the phone." |
-| **Stop heart rate** | beendet das Messen auf der Uhr, während die Fahrt weiterläuft |
-| **Start heart rate** | startet es wieder, oder startet es für eine Fahrt, in die die Uhren-App erst später geöffnet wurde |
+| **Fahrt starten** | startet die Aufnahme auf dem Handy |
+| **Pause**, **Fortsetzen** | pausieren und weiterfahren, wie am Handy |
+| **Beenden** | beendet die Aufnahme; "Nach „Beenden“ speicherst du die Fahrt auf dem Handy." |
+| **Pulsmessung beenden** | beendet das Messen auf der Uhr, während die Fahrt weiterläuft |
+| **Pulsmessung starten** | startet es wieder, oder startet es für eine Fahrt, in die die Uhren-App erst später geöffnet wurde |
 
-Startet eine Fahrt am Handy, öffnet sich die Uhren-App von selbst und beginnt zu messen, am Handgelenk ist also nichts zu tippen. Umgekehrt startet **Start ride** auf der Uhr die Aufnahme auf dem Handy und bringt das Handy auf seinen Tab **Aufnahme**. Ein Handy in der Tasche, mit Velorki im Hintergrund, bekommt eine Mitteilung, "Ride started from your watch", und ein Tipp darauf öffnet die App; das zählt, weil iOS einer im Hintergrund geweckten App kein GPS gibt, bis sie einmal geöffnet wurde, der Track beginnt also dann. Eine App, die du ganz weggewischt hast, kann die Uhr gar nicht wecken, das ist eine Regel von iOS; nach ein paar Versuchen sagt die Uhr "The phone did not answer. Open Velorki on the phone and try again." Eine Fahrt, die du am Handgelenk beendest, wird gespeichert wie jede andere: Die Aufnahme hört auf, und die Speichern-Übersicht wartet auf dem Handy, wenn du das nächste Mal hinsiehst.
+Startet eine Fahrt am Handy, öffnet sich die Uhren-App von selbst und beginnt zu messen, am Handgelenk ist also nichts zu tippen. Umgekehrt startet **Fahrt starten** auf der Uhr die Aufnahme auf dem Handy und bringt das Handy auf seinen Tab **Aufnahme**. Ein Handy in der Tasche, mit Velorki im Hintergrund, bekommt eine Mitteilung, "Ride started from your watch", und ein Tipp darauf öffnet die App; das zählt, weil iOS einer im Hintergrund geweckten App kein GPS gibt, bis sie einmal geöffnet wurde, der Track beginnt also dann. Eine App, die du ganz weggewischt hast, kann die Uhr gar nicht wecken, das ist eine Regel von iOS; nach ein paar Versuchen sagt die Uhr "Das Handy antwortet nicht. Öffne Velorki auf dem Handy und versuch es noch einmal." Eine Fahrt, die du am Handgelenk beendest, wird gespeichert wie jede andere: Die Aufnahme hört auf, und die Speichern-Übersicht wartet auf dem Handy, wenn du das nächste Mal hinsiehst.
 
 ### Akku am Handgelenk
 
-Stundenlang einen Puls zu messen ist es, was die Uhr ihren Tag kostet. Gemessen wird die ganze Fahrt über, Pausen eingeschlossen: Eine Uhren-App, die nicht mehr misst, legt watchOS innerhalb einer Minute schlafen, und dann hört sie nichts mehr vom Handy; wach zu bleiben ist es, was den Puls weiter kommen lässt. Solange die Fahrt pausiert ist, zeichnet das Handy keinen Puls auf. Für Fahrten mit vielen Stopps lässt **Sensor in Pausen ruhen lassen** unter dem Apple-Watch-Schalter in den Einstellungen die Uhr in jeder Pause aufhören zu messen. Der Tausch: Der Sensor ruht bei jedem Stopp, aber das Handy muss die Uhr wieder wecken, wenn du weiterfährst, der erste Puls nach jedem Stopp braucht einen Moment, und schlägt das Wecken fehl, fehlt der Puls, bis das Handy es erneut versucht. Für einen lückenlosen Puls lass ihn aus. Verstummt die Uhr mitten in der Fahrt doch einmal für eine Dreiviertelminute, startet das Handy ihre App von selbst neu. **Stop heart rate** beendet das Messen, ohne die Fahrt anzurühren. Den Rest sagt die Fußnote auf dem Bildschirm, "Low Power Mode in the watch's settings makes a long ride last." Schaltest du **Apple Watch** in den Einstellungen aus, endet eine noch laufende Sitzung ebenfalls.
+Stundenlang einen Puls zu messen ist es, was die Uhr ihren Tag kostet. Gemessen wird die ganze Fahrt über, Pausen eingeschlossen: Eine Uhren-App, die nicht mehr misst, legt watchOS innerhalb einer Minute schlafen, und dann hört sie nichts mehr vom Handy; wach zu bleiben ist es, was den Puls weiter kommen lässt. Solange die Fahrt pausiert ist, zeichnet das Handy keinen Puls auf. Für Fahrten mit vielen Stopps lässt **Sensor in Pausen ruhen lassen** unter dem Apple-Watch-Schalter in den Einstellungen die Uhr in jeder Pause aufhören zu messen. Der Tausch: Der Sensor ruht bei jedem Stopp, aber das Handy muss die Uhr wieder wecken, wenn du weiterfährst, der erste Puls nach jedem Stopp braucht einen Moment, und schlägt das Wecken fehl, fehlt der Puls, bis das Handy es erneut versucht. Für einen lückenlosen Puls lass ihn aus. Verstummt die Uhr mitten in der Fahrt doch einmal für eine Dreiviertelminute, startet das Handy ihre App von selbst neu. **Pulsmessung beenden** beendet das Messen, ohne die Fahrt anzurühren. Den Rest sagt die Fußnote auf dem Bildschirm, "Mit dem Stromsparmodus in den Einstellungen der Uhr hält der Akku auch eine lange Fahrt durch." Schaltest du **Apple Watch** in den Einstellungen aus, endet eine noch laufende Sitzung ebenfalls.
 
 ## Apple Health und Health Connect
 

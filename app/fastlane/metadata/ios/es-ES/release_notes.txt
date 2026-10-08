@@ -1,0 +1,6 @@
+• Paradas en el mapa: agua, cafeterías, panaderías, aseos, talleres de bicis y más. Con el mapa alejado se agrupan en burbujas con un número; mientras ruedas, ves las paradas que tienes por delante en la ruta y a qué distancia está cada una.
+• Toca un lugar para ver su ficha: qué es, a qué distancia está y Ruta hasta aquí, Empezar aquí, Añadir como parada o Como destino. Detalles muestra el horario, la web y el teléfono de OpenStreetMap, y Abrir en pasa el lugar a otra app de mapas.
+• La búsqueda sin conexión encuentra mucho más: direcciones con número, erratas y abreviaturas, nombres en otro alfabeto, lugares conocidos en tu idioma, y restaurantes, heladerías, gasolineras y bombas de aire.
+• Lugares de otras apps: comparte un lugar o un enlace de mapa con Velorki, o pega coordenadas en la búsqueda.
+• La búsqueda de rutas circulares muestra la mejor encontrada hasta ahora y dice qué sigue comprobando.
+• Correcciones: deslizar hacia arriba para cambiar de app ya no mueve un panel, girar el teléfono ya no muestra un destello gris y el indicador de pausa cabe en teléfonos pequeños.

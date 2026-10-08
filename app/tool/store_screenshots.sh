@@ -3,7 +3,7 @@
 # slides; with --platform android, the Google Play ones from an Android
 # emulator.
 #
-#   tool/store_screenshots.sh                          # en and de, light and dark
+#   tool/store_screenshots.sh                          # every language, light and dark
 #   tool/store_screenshots.sh --locales de --themes dark
 #   tool/store_screenshots.sh --skip-capture           # slides from the last capture
 #   tool/store_screenshots.sh --shots dark             # both slide styles show the dark app
@@ -59,7 +59,7 @@ OUT="$APP/build/store_screenshots"
 SIM_NAME="Velorki Shots 6.9"
 PORT="${VELORKI_STORE_MIRROR_PORT:-8000}"
 
-LOCALES=en,de
+LOCALES=en,de,fr,es,it,nl
 THEMES=light,dark
 SHOTS=same
 CAPTURE=1

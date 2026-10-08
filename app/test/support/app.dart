@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,13 +9,18 @@ import 'package:velorki/l10n/generated/app_localizations.dart';
 
 /// The language the widget suite runs in.
 ///
-/// `flutter test --dart-define=VELORKI_TEST_LOCALE=de` runs every
-/// harness-built screen in German, which is how a translation that no longer
-/// fits its layout fails CI.
-const String testLocaleName = String.fromEnvironment(
-  'VELORKI_TEST_LOCALE',
-  defaultValue: 'en',
-);
+/// `flutter test --dart-define=VELORKI_TEST_LOCALE=de`, or
+/// `VELORKI_TEST_LOCALE=de flutter test`, runs every harness-built screen in
+/// German, which is how a translation that no longer fits its layout fails
+/// CI. The dart-define wins when both are given.
+final String testLocaleName = _testLocaleName();
+
+String _testLocaleName() {
+  const defined = String.fromEnvironment('VELORKI_TEST_LOCALE');
+  if (defined.isNotEmpty) return defined;
+  final env = Platform.environment['VELORKI_TEST_LOCALE'] ?? '';
+  return env.isNotEmpty ? env : 'en';
+}
 
 /// [testLocaleName] as a [Locale], handed to every app this file builds.
 ///

@@ -199,7 +199,7 @@ void main() {
     await tester.tap(find.text(l10n.mapOfflineDownloadVisible));
     await _tick(tester);
 
-    expect(find.text(l10n.routingTilesStateDownloading), findsOneWidget);
+    expect(find.text(l10n.mapOfflineDownloading), findsOneWidget);
     expect(_downloadButton(tester).onPressed, isNull);
     expect(
       tester

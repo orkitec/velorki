@@ -303,7 +303,7 @@ void main() {
     await tester.tap(find.byTooltip(l10n.libraryImportFile));
     await tester.pumpAndSettle();
 
-    expect(find.widgetWithText(AppBar, 'Import'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, l10n.importTitle), findsOneWidget);
     expect(find.text(l10n.importSummary('GPX', 4)), findsOneWidget);
     await unmountApp(tester);
   });

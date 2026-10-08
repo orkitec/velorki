@@ -841,7 +841,7 @@
   "mapToggleCyclosm": "Rad-Overlay",
   "mapLayers": "Ebenen",
   "mapLayersCycleMap": "Radkarte",
-  "mapLayersCycleMapSubtitle": "Radrouten und Radinfrastruktur",
+  "mapLayersCycleMapSubtitle": "Radrouten, Radwege und Radläden, gezeichnet von CyclOSM · braucht eine Verbindung",
   "mapLayersStops": "Stopps",
   "mapStopsZoomIn": "Hineinzoomen, um Stopps zu sehen",
   "mapLayersStopsPlanHint": "Sichtbar beim Hineinzoomen · antippen, um dorthin zu planen",
