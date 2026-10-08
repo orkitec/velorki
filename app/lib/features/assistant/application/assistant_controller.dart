@@ -294,5 +294,9 @@ AssistantProblem problemFor(RelayException e) => switch (e.error.code) {
     message: e.error.message,
     retryAfterS: e.error.retryAfterS,
   ),
-  _ => AssistantProblem(AssistantFailure.relay, message: e.error.message),
+  _ => AssistantProblem(
+    AssistantFailure.relay,
+    message: e.error.message,
+    relayCode: e.error.code,
+  ),
 };

@@ -489,16 +489,16 @@ class _ResultsCardState extends State<_ResultsCard> {
                 leading: const Icon(Icons.error_outline),
                 title: Text(
                   error is SearchException &&
-                          error.message.contains('configured')
+                          error.failure == SearchFailure.unconfigured
                       ? l10n.searchUnavailable
                       : l10n.searchFailed,
                 ),
                 // The reason, so a failure is diagnosable from the screen.
                 subtitle:
                     error is SearchException &&
-                        !error.message.contains('configured')
+                        error.failure != SearchFailure.unconfigured
                     ? Text(
-                        error.message,
+                        error.describe(l10n),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       )

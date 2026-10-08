@@ -53,6 +53,7 @@ import 'ride_climbs.dart';
 import 'ride_heart_rate_zones.dart';
 import 'ride_power_zones.dart';
 import 'ride_splits.dart';
+import '../../shared/presentation/error_text.dart';
 
 /// The id of the route line the picked split or climb is drawn as on the map.
 const String rideHighlightLineId = 'ride-highlight';
@@ -432,7 +433,9 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
           );
     } on Object catch (error) {
       messenger.showSnackBar(
-        SnackBar(content: Text(l10n.rideDetailExportFailed(error.toString()))),
+        SnackBar(
+          content: Text(l10n.rideDetailExportFailed(errorText(l10n, error))),
+        ),
       );
     }
   }
@@ -568,7 +571,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen>
             hasScrollBody: false,
             child: PlaceholderBody(
               icon: Icons.error_outline,
-              message: error.toString(),
+              message: errorText(AppLocalizations.of(context), error),
             ),
           ),
           data: (saved) {

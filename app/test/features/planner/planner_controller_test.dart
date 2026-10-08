@@ -400,7 +400,14 @@ void main() {
       await tester.pump();
 
       final state = container.read(plannerControllerProvider);
-      expect(state.error, 'target island detached');
+      expect(
+        state.error,
+        isA<RoutingException>().having(
+          (e) => e.message,
+          'message',
+          'target island detached',
+        ),
+      );
       expect(state.route.hasError, isTrue);
     });
 

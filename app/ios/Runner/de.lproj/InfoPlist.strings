@@ -1,0 +1,4 @@
+"NSLocationWhenInUseUsageDescription" = "Velorki zeigt deinen Standort auf der Karte und zeichnet deine Fahrten auf, bei einer Aufzeichnung auch bei ausgeschaltetem Bildschirm.";
+"NSHealthShareUsageDescription" = "Velorki liest deinen Puls aus Apple Health, um ihn anzuzeigen und mit deinen Fahrten zu speichern.";
+"NSHealthUpdateUsageDescription" = "Velorki speichert deine beendeten Fahrten als Radfahr-Training in Apple Health.";
+"NSBluetoothAlwaysUsageDescription" = "Velorki verbindet sich über Bluetooth mit deinem Brustgurt sowie mit Geschwindigkeits-, Trittfrequenz- und Leistungssensoren.";

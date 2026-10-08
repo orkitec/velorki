@@ -43,10 +43,13 @@ fork build.
   token through `OAuthTokenSource.replaceAccessToken`.
 * Errors: an answer in the relay's own shape (`{"error": {"code": …}}`) is
   the relay speaking — `not_entitled` becomes the Plus message
-  (`relayPlusNeededMessage`), `invalid_request` "connect again",
+  (`relayPlusNeededText`), `invalid_request` "connect again",
   `upstream_error` "<service> could not be reached"; no answer at all is
-  "Velorki's server could not be reached" (`relayUnreachableMessage`),
-  because the relay, not the service, is what the phone dials. Anything else
+  "Velorki's server could not be reached" (`relayUnreachableText`),
+  because the relay, not the service, is what the phone dials. An
+  `IntegrationException` carries its text as a `LocalizedText`, so the
+  screen words it in the rider's language (`describe(l10n)`); `message` is
+  the English, for the log. Anything else
   is the service's answer, passed back unchanged, and read as before. A 401
   in the relay's words is never retried; a 401 in the service's words is
   retried once after a forced refresh.

@@ -649,7 +649,10 @@ void main() {
 
       await _make(tester);
 
-      expect(find.text(l10n.loopFailed('connection refused')), findsOneWidget);
+      expect(
+        find.text(l10n.loopFailed(l10n.routingErrorNetwork)),
+        findsOneWidget,
+      );
     });
 
     testWidgets('without a position it asks for one', (tester) async {

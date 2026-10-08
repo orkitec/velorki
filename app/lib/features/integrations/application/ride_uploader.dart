@@ -76,8 +76,8 @@ class RideUploader {
     StravaDataType dataType = StravaDataType.gpx,
     void Function(StravaUpload upload)? onProgress,
   }) async {
-    _refuseDuplicate(ride, IntegrationService.strava, 'Strava');
-    if (ride.points.isEmpty) throw _emptyRide('Strava');
+    _refuseDuplicate(ride, IntegrationService.strava);
+    if (ride.points.isEmpty) throw _emptyRide(IntegrationService.strava);
 
     final result = await strava.uploadAndWait(
       bytes: dataType == StravaDataType.fit
@@ -111,13 +111,13 @@ class RideUploader {
   /// untimed one is refused here rather than after the round trip, because
   /// Ride with GPS would only answer `time_data_missing`.
   Future<RideUpload> uploadToRwgps(Ride ride) async {
-    _refuseDuplicate(ride, IntegrationService.rwgps, 'Ride with GPS');
-    if (ride.points.isEmpty) throw _emptyRide('Ride with GPS');
+    _refuseDuplicate(ride, IntegrationService.rwgps);
+    if (ride.points.isEmpty) throw _emptyRide(IntegrationService.rwgps);
     if (!hasTimestamps(ride.points)) {
-      throw const IntegrationException(
+      throw IntegrationException(
         IntegrationFailure.rejected,
-        'Ride with GPS needs timestamps to store a ride as a trip, and this '
-        'track has none. Send it as a route instead, or export the GPX.',
+        (l10n) =>
+            l10n.integrationRideNeedsTimes(IntegrationService.rwgps.brand),
       );
     }
 
@@ -131,9 +131,11 @@ class RideUploader {
       throw IntegrationException(
         IntegrationFailure.rejected,
         task.errors.isEmpty
-            ? 'Ride with GPS created nothing from the upload.'
-            : 'Ride with GPS could not import the ride: '
-                  '${task.errors.map((e) => e.display).join('; ')}',
+            ? (l10n) => l10n.integrationCreatedNothing('Ride with GPS')
+            : (l10n) => l10n.integrationImportFailed(
+                'Ride with GPS',
+                task.errors.map((e) => e.display).join('; '),
+              ),
       );
     }
     final upload = RideUpload(
@@ -151,20 +153,21 @@ class RideUploader {
     return upload;
   }
 
-  void _refuseDuplicate(Ride ride, IntegrationService service, String label) {
+  void _refuseDuplicate(Ride ride, IntegrationService service) {
     final existing = ride.uploadFor(service.id);
     if (existing != null && existing.isDone) {
       throw IntegrationException(
         IntegrationFailure.rejected,
-        'This ride is already on $label.',
+        (l10n) => l10n.integrationAlreadyUploaded(service.brand),
       );
     }
   }
 
-  IntegrationException _emptyRide(String label) => IntegrationException(
-    IntegrationFailure.rejected,
-    'There is nothing to send to $label: this ride has no track points.',
-  );
+  IntegrationException _emptyRide(IntegrationService service) =>
+      IntegrationException(
+        IntegrationFailure.rejected,
+        (l10n) => l10n.integrationRideEmpty(service.brand),
+      );
 }
 
 /// The uploader over the app's clients.

@@ -9,9 +9,9 @@ import 'package:velorki_geo/velorki_geo.dart';
 import '../../../app/router.dart';
 import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../planner/domain/route_poi.dart';
 import '../../planner/presentation/route_format.dart';
 import '../data/share_service.dart';
-import '../../planner/domain/route_poi.dart';
 
 /// The "Share link" button on the route and ride detail screens.
 ///
@@ -80,7 +80,7 @@ class _ShareLinkButtonState extends ConsumerState<ShareLinkButton> {
       );
     } on ShareException catch (e) {
       messenger.showSnackBar(
-        SnackBar(content: Text(l10n.shareLinkFailed(e.message))),
+        SnackBar(content: Text(l10n.shareLinkFailed(e.describe(l10n)))),
       );
       return;
     } finally {

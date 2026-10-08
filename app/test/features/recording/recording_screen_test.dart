@@ -3140,7 +3140,10 @@ void main() {
     await tester.tap(find.text(l10n.recordingStart));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n.recordingFailed('service timeout')), findsOneWidget);
+    expect(
+      find.text(l10n.recordingFailed(l10n.recordingServiceFailed)),
+      findsOneWidget,
+    );
     await unmountApp(tester);
   });
 

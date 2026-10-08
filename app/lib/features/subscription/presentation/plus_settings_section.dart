@@ -16,6 +16,7 @@ import '../application/subscription_controller.dart';
 import '../data/subscription_service.dart';
 import '../domain/plus_subscription.dart';
 import 'plus_strings.dart';
+import '../../shared/presentation/error_text.dart';
 
 /// The store's own subscription page for this platform.
 ///
@@ -65,7 +66,7 @@ class PlusSettingsSection extends ConsumerWidget {
       );
     } on SubscriptionException catch (e) {
       messenger.showSnackBar(
-        SnackBar(content: Text(l10n.plusRestoreFailed(e.message))),
+        SnackBar(content: Text(l10n.plusRestoreFailed(errorText(l10n, e)))),
       );
     }
   }

@@ -277,7 +277,7 @@ void main() {
 
     expect(
       find.text(
-        l10n.describeFailed(l10n.assistantFailed('the model is unavailable')),
+        l10n.describeFailed(l10n.assistantFailed(l10n.relayUpstreamFailed)),
       ),
       findsOneWidget,
     );

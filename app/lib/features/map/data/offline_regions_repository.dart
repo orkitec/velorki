@@ -11,6 +11,8 @@ import 'package:velorki_geo/velorki_geo.dart';
 import '../../../app/app_config.dart';
 import '../../../core/db/daos/offline_regions_dao.dart';
 import '../../../core/db/database.dart';
+import '../../../core/l10n/localized_text.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 part 'offline_regions_repository.g.dart';
 
@@ -78,10 +80,18 @@ class OfflineDownloadResult {
 }
 
 /// Raised when MapLibre refuses or aborts a download.
-class OfflineDownloadException implements Exception {
-  OfflineDownloadException(this.message);
+class OfflineDownloadException implements LocalizedException {
+  OfflineDownloadException(this.message, {this.regionGone = false});
 
+  /// What went wrong, in English, for the log.
   final String message;
+
+  /// Whether the area's row went away, rather than MapLibre failing.
+  final bool regionGone;
+
+  @override
+  String describe(AppLocalizations l10n) =>
+      regionGone ? l10n.offlineRegionGone : l10n.offlineMapDownloadError;
 
   @override
   String toString() => 'OfflineDownloadException: $message';
@@ -257,6 +267,7 @@ class OfflineRegionsRepository {
     if (row == null) {
       throw OfflineDownloadException(
         'Region $id disappeared while downloading',
+        regionGone: true,
       );
     }
     return row;
@@ -273,7 +284,10 @@ class OfflineRegionsRepository {
   }) async {
     final row = await _dao.regionById(id);
     if (row == null) {
-      throw OfflineDownloadException('Region $id is not on this device');
+      throw OfflineDownloadException(
+        'Region $id is not on this device',
+        regionGone: true,
+      );
     }
     final spec = OfflineRegionSpec(
       name: row.name,

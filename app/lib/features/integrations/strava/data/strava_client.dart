@@ -112,25 +112,21 @@ class StravaClient {
     List<Duration> backoff = uploadPollBackoff,
     void Function(StravaUpload upload)? onProgress,
   }) async {
-    StravaUpload? last;
     for (final wait in backoff) {
       await sleep(wait);
       final upload = await readUpload(uploadId);
-      last = upload;
       onProgress?.call(upload);
       if (upload.succeeded) return upload;
       if (upload.failed) {
         throw IntegrationException(
           IntegrationFailure.rejected,
-          'Strava rejected the upload: ${upload.error}',
+          (l10n) => l10n.integrationUploadRejected('Strava', '${upload.error}'),
         );
       }
     }
     throw IntegrationException(
       IntegrationFailure.serviceError,
-      'Strava is still processing the upload. It will appear in Strava on '
-      'its own; the link can be opened there.'
-      '${last?.status == null ? '' : ' (${last!.status})'}',
+      (l10n) => l10n.integrationStillProcessing('Strava'),
     );
   }
 
@@ -158,7 +154,7 @@ class StravaClient {
     if (started.failed) {
       throw IntegrationException(
         IntegrationFailure.rejected,
-        'Strava rejected the upload: ${started.error}',
+        (l10n) => l10n.integrationUploadRejected('Strava', '${started.error}'),
       );
     }
     if (started.succeeded) return started;
@@ -191,9 +187,9 @@ class StravaClient {
       );
       final bytes = response.data;
       if (bytes == null || bytes.isEmpty) {
-        throw const IntegrationException(
+        throw IntegrationException(
           IntegrationFailure.serviceError,
-          'Strava returned an empty GPX file for this route.',
+          (l10n) => l10n.integrationEmptyGpx('Strava'),
         );
       }
       return Uint8List.fromList(bytes);
@@ -236,9 +232,9 @@ class StravaClient {
       final response = await dio.get<dynamic>(url, queryParameters: query);
       final data = response.data;
       if (data is List) return data;
-      throw const IntegrationException(
+      throw IntegrationException(
         IntegrationFailure.serviceError,
-        'Strava answered with something that is not a list.',
+        (l10n) => l10n.integrationUnreadableAnswer('Strava'),
       );
     } on DioException catch (e) {
       throw integrationExceptionFromDio(e, service: 'Strava');
@@ -257,9 +253,9 @@ class StravaClient {
   static Map<String, Object?> _asObject(Object? data) {
     if (data is Map<String, Object?>) return data;
     if (data is Map) return data.cast<String, Object?>();
-    throw const IntegrationException(
+    throw IntegrationException(
       IntegrationFailure.serviceError,
-      'Strava answered with something that is not a JSON object.',
+      (l10n) => l10n.integrationUnreadableAnswer('Strava'),
     );
   }
 }

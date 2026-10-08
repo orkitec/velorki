@@ -174,7 +174,10 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, l10n.plusSubscribe));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('billing unavailable'), findsOneWidget);
+      expect(
+        find.text(l10n.plusPurchaseFailed(l10n.plusErrorStore)),
+        findsOneWidget,
+      );
     });
 
     testWidgets('Restore purchases works without any login', (tester) async {
@@ -225,7 +228,10 @@ void main() {
         ),
       );
 
-      expect(find.textContaining('no connection'), findsOneWidget);
+      expect(
+        find.text(l10n.plusPricesFailed(l10n.plusErrorStore)),
+        findsOneWidget,
+      );
     });
 
     testWidgets('the terms and privacy links open', (tester) async {

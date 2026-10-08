@@ -464,12 +464,7 @@ void main() {
 
     await tester.pump(const Duration(seconds: 46));
     await tester.pumpAndSettle();
-    expect(
-      inSheet(
-        find.text(l10n.assistantFailed('The Velorki relay stopped answering.')),
-      ),
-      findsOne,
-    );
+    expect(inSheet(find.text(l10n.assistantFailed(l10n.relayBusy))), findsOne);
     expect(sheetUnlocked(tester), isTrue);
     expect(relay.cancelledStreams, 1);
 
@@ -851,9 +846,7 @@ void main() {
       expect(find.text(parts[0]), findsOne);
       expect(
         find.text(
-          l10n.describeFailed(
-            l10n.assistantFailed('The model provider failed.'),
-          ),
+          l10n.describeFailed(l10n.assistantFailed(l10n.relayUpstreamFailed)),
         ),
         findsOne,
       );

@@ -50,9 +50,9 @@ class RouteSender {
   Future<SentRoute> sendToRwgps(SavedRoute route) async {
     final points = route.geometry;
     if (points.isEmpty) {
-      throw const IntegrationException(
+      throw IntegrationException(
         IntegrationFailure.rejected,
-        'There is nothing to send: this route has no geometry.',
+        (l10n) => l10n.integrationRouteEmpty,
       );
     }
     final task = await rwgps.uploadRouteAndWait(
@@ -65,9 +65,11 @@ class RouteSender {
       throw IntegrationException(
         IntegrationFailure.rejected,
         task.errors.isEmpty
-            ? 'Ride with GPS created nothing from the upload.'
-            : 'Ride with GPS could not import the route: '
-                  '${task.errors.map((e) => e.display).join('; ')}',
+            ? (l10n) => l10n.integrationCreatedNothing('Ride with GPS')
+            : (l10n) => l10n.integrationImportFailed(
+                'Ride with GPS',
+                task.errors.map((e) => e.display).join('; '),
+              ),
       );
     }
     return SentRoute(

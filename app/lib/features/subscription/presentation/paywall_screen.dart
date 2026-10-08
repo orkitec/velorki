@@ -7,11 +7,12 @@ import '../../../app/theme.dart';
 import '../../../core/links/link_opener.dart';
 import '../../../core/plus/plus_gate.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../shared/presentation/error_text.dart';
 import '../../shared/presentation/stat_tile.dart';
+import '../application/offered_plus_features.dart';
 import '../application/subscription_controller.dart';
 import '../data/subscription_service.dart';
 import '../domain/plus_subscription.dart';
-import '../application/offered_plus_features.dart';
 import 'plus_strings.dart';
 
 /// The paywall, at `/plus`.
@@ -48,7 +49,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       messenger.showSnackBar(SnackBar(content: Text(l10n.plusPurchaseThanks)));
     } on SubscriptionException catch (e) {
       messenger.showSnackBar(
-        SnackBar(content: Text(l10n.plusPurchaseFailed(e.message))),
+        SnackBar(content: Text(l10n.plusPurchaseFailed(errorText(l10n, e)))),
       );
     }
   }
@@ -69,7 +70,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       );
     } on SubscriptionException catch (e) {
       messenger.showSnackBar(
-        SnackBar(content: Text(l10n.plusRestoreFailed(e.message))),
+        SnackBar(content: Text(l10n.plusRestoreFailed(errorText(l10n, e)))),
       );
     }
   }
@@ -331,9 +332,7 @@ class _Packages extends ConsumerWidget {
         ],
       ),
       error: (error, _) => Text(
-        l10n.plusPricesFailed(
-          error is SubscriptionException ? error.message : error.toString(),
-        ),
+        l10n.plusPricesFailed(errorText(l10n, error)),
         style: theme.textTheme.bodyMedium?.copyWith(
           color: theme.colorScheme.error,
         ),

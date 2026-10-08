@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Referenced from AndroidManifest.xml (android:localeConfig): the languages
+     in the system's per-app language picker (Android 13+). One entry per
+     lib/l10n/app_<lang>.arb; test/l10n/native_strings_test.dart holds the two
+     together. -->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en"/>
+    <locale android:name="de"/>
+</locale-config>

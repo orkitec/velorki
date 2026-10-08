@@ -8,6 +8,7 @@ import '../../../core/db/database.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../shared/presentation/byte_size.dart';
+import '../../shared/presentation/error_text.dart';
 import '../../shared/presentation/placeholder_body.dart';
 import '../data/offline_regions_repository.dart';
 import '../domain/map_controller.dart';
@@ -56,7 +57,9 @@ class OfflineRegionsScreen extends ConsumerWidget {
                     ),
               loading: () =>
                   const Center(child: CircularProgressIndicator.adaptive()),
-              error: (error, _) => Center(child: Text('$error')),
+              error: (error, _) => Center(
+                child: Text(errorText(AppLocalizations.of(context), error)),
+              ),
             ),
           ),
           _BottomBar(
@@ -93,7 +96,9 @@ class OfflineRegionsScreen extends ConsumerWidget {
       await ref.read(offlineDownloadControllerProvider.notifier).download(spec);
     } on Object catch (error) {
       messenger?.showSnackBar(
-        SnackBar(content: Text(l10n.mapOfflineDownloadFailed('$error'))),
+        SnackBar(
+          content: Text(l10n.mapOfflineDownloadFailed(errorText(l10n, error))),
+        ),
       );
     }
   }
@@ -219,7 +224,9 @@ class _RegionTile extends ConsumerWidget {
           .refresh(row.id);
     } on Object catch (error) {
       messenger?.showSnackBar(
-        SnackBar(content: Text(l10n.mapOfflineDownloadFailed('$error'))),
+        SnackBar(
+          content: Text(l10n.mapOfflineDownloadFailed(errorText(l10n, error))),
+        ),
       );
     }
   }

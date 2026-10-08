@@ -80,7 +80,7 @@ class _RideUploadMenuState extends ConsumerState<RideUploadMenu> {
     } on IntegrationException catch (e) {
       messenger.hideCurrentSnackBar();
       messenger.showSnackBar(
-        SnackBar(content: Text(l10n.rideDetailUploadFailed(e.message))),
+        SnackBar(content: Text(l10n.rideDetailUploadFailed(e.describe(l10n)))),
       );
     } finally {
       if (mounted) setState(() => _busy = null);

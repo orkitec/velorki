@@ -55,7 +55,7 @@ class FlutterWebAuthenticator implements WebAuthenticator {
       }
       throw IntegrationException(
         IntegrationFailure.serviceError,
-        'The authorisation page could not be opened: ${e.message ?? e.code}',
+        (l10n) => l10n.integrationAuthPageFailed,
         cause: e,
       );
     }
@@ -205,8 +205,8 @@ class OAuthFlow {
         return callbackOf(
           await callback.timeout(
             appToAppTimeout,
-            onTimeout: () => throw const IntegrationException.cancelled(
-              'The authorisation was not completed.',
+            onTimeout: () => throw IntegrationException.cancelled(
+              (l10n) => l10n.integrationAuthIncomplete,
             ),
           ),
         );
@@ -246,20 +246,20 @@ class OAuthFlow {
     final error = uri.queryParameters['error'];
     if (error != null && error.isNotEmpty) {
       if (error == 'access_denied') {
-        throw const IntegrationException.cancelled(
-          'Access was not granted, so nothing was connected.',
+        throw IntegrationException.cancelled(
+          (l10n) => l10n.integrationAccessDenied,
         );
       }
       throw IntegrationException(
         IntegrationFailure.serviceError,
-        'The service refused the authorisation: $error',
+        (l10n) => l10n.integrationAuthRefused(error),
       );
     }
     final code = uri.queryParameters['code'];
     if (code == null || code.isEmpty) {
-      throw const IntegrationException(
+      throw IntegrationException(
         IntegrationFailure.serviceError,
-        'The service sent no authorisation code back.',
+        (l10n) => l10n.integrationAuthNoCode,
       );
     }
     return code;

@@ -7,12 +7,13 @@ import 'package:velorki_brouter/velorki_brouter.dart';
 
 import '../../../app/app_config.dart';
 import '../../../app/theme.dart';
-import '../../../core/links/link_opener.dart';
 import '../../../core/db/database.dart';
+import '../../../core/links/link_opener.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../map/domain/map_controller.dart';
-import '../../shared/presentation/byte_size.dart';
 import '../../planner/presentation/route_format.dart';
+import '../../shared/presentation/byte_size.dart';
+import '../../shared/presentation/error_text.dart';
 import '../../shared/presentation/placeholder_body.dart';
 import '../application/tile_download_controller.dart';
 import '../data/rd5_format_support.dart';
@@ -59,7 +60,11 @@ class RoutingTilesScreen extends ConsumerWidget {
       final failure = next.failure;
       if (failure == null || failure == previous?.failure) return;
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        SnackBar(content: Text(l10n.routingTilesDownloadFailed(failure))),
+        SnackBar(
+          content: Text(
+            l10n.routingTilesDownloadFailed(failure.describe(l10n)),
+          ),
+        ),
       );
     });
 
@@ -220,7 +225,9 @@ Future<void> confirmTileDownload(
     plan = await planTileDownload(ref, wanted, refreshStale: refreshStale);
   } on Object catch (e) {
     messenger?.showSnackBar(
-      SnackBar(content: Text(l10n.routingTilesManifestFailed(_message(e)))),
+      SnackBar(
+        content: Text(l10n.routingTilesManifestFailed(errorText(l10n, e))),
+      ),
     );
     return;
   }
@@ -288,12 +295,6 @@ Future<void> confirmTileDownload(
     await ref.read(tileDownloadQueueProvider.notifier).enqueue(entries);
   }
 }
-
-/// One sentence for a mirror failure.
-String manifestFailureMessage(Object error) =>
-    error is SegmentsManifestException ? error.message : error.toString();
-
-String _message(Object error) => manifestFailureMessage(error);
 
 /// The store page of this build, or empty when none is configured. Each
 /// platform has its own listing, so its own key.
@@ -431,7 +432,7 @@ class _ManifestError extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                l10n.routingTilesManifestFailed(_message(error)),
+                l10n.routingTilesManifestFailed(errorText(l10n, error)),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onErrorContainer,
                 ),

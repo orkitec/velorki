@@ -33,6 +33,7 @@ import '../application/library_card.dart';
 import '../data/library_section.dart';
 import 'rename_route_dialog.dart';
 import 'route_detail_screen.dart';
+import '../../shared/presentation/error_text.dart';
 
 /// The Library tab: a card over the map the tabs share, holding the saved
 /// routes and the recorded rides, or the one route or ride the rider opened.
@@ -551,7 +552,7 @@ class _RoutesSection extends ConsumerWidget {
         hasScrollBody: false,
         child: PlaceholderBody(
           icon: Icons.error_outline,
-          message: error.toString(),
+          message: errorText(AppLocalizations.of(context), error),
         ),
       ),
       data: (items) => items.isEmpty

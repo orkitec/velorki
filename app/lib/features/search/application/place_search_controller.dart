@@ -288,7 +288,10 @@ class PlaceSearch extends _$PlaceSearch {
     final client = ref.read(photonClientProvider);
     if (client == null) {
       state = AsyncError<PlaceSearchState>(
-        const SearchException('no search server configured'),
+        const SearchException(
+          'no search server configured',
+          failure: SearchFailure.unconfigured,
+        ),
         StackTrace.current,
       );
       return;

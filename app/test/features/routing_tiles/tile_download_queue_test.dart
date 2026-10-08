@@ -9,6 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velorki/app/app_config.dart';
 import 'package:velorki/core/db/database.dart';
 import 'package:velorki/features/routing_tiles/application/tile_download_controller.dart';
+import 'package:velorki/features/routing_tiles/data/tile_downloader.dart'
+    show TileDownloadFailure;
 import 'package:velorki/features/routing_tiles/data/brouter_storage.dart';
 import 'package:velorki/features/routing_tiles/data/routing_tiles_repository.dart';
 import 'package:velorki/features/routing_tiles/data/segments_manifest_service.dart';
@@ -119,7 +121,8 @@ void main() {
 
     final state = container.read(tileDownloadQueueProvider);
     expect(state.finished, <TileName>[_second]);
-    expect(state.failure, contains('E10_N45.rd5'));
+    expect(state.failure?.message, contains('E10_N45.rd5'));
+    expect(state.failure?.kind, TileDownloadFailure.sizeMismatch);
 
     final repository = await container.read(
       routingTilesRepositoryProvider.future,

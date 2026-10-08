@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:velorki_api/velorki_api.dart' show RelayError, RelayErrorCode;
 
+import '../../../../l10n/generated/app_localizations.dart';
+import '../../../../core/l10n/relay_error_text.dart';
 import '../domain/integration_exception.dart';
 
 /// Waits for [delay]. Injected in tests so polling does not take 30 seconds.
@@ -12,13 +14,10 @@ typedef Sleeper = Future<void> Function(Duration delay);
 Future<void> realSleep(Duration delay) => Future<void>.delayed(delay);
 
 /// What the rider reads when the relay itself cannot be reached.
-const String relayUnreachableMessage =
-    "Velorki's server could not be reached. Check the connection and try "
-    'again.';
+String relayUnreachableText(AppLocalizations l10n) => l10n.relayUnreachable;
 
 /// What the rider reads when the relay answered that Plus has lapsed.
-const String relayPlusNeededMessage =
-    'Velorki Plus is needed to use this connection.';
+String relayPlusNeededText(AppLocalizations l10n) => l10n.integrationPlusNeeded;
 
 /// Turns whatever dio threw into an [IntegrationException] fit to show.
 ///
@@ -40,7 +39,7 @@ IntegrationException integrationExceptionFromDio(
   if (status == null) {
     return IntegrationException(
       IntegrationFailure.unreachable,
-      relayUnreachableMessage,
+      relayUnreachableText,
       cause: e,
     );
   }
@@ -52,21 +51,20 @@ IntegrationException integrationExceptionFromDio(
   return switch (status) {
     401 || 403 => IntegrationException(
       IntegrationFailure.notConnected,
-      'The $service connection is no longer valid. Connect again in '
-      'Settings → Connections.',
+      (l10n) => l10n.integrationConnectionInvalid(service),
       cause: e,
     ),
     429 => IntegrationException(
       IntegrationFailure.rateLimited,
-      '$service is rate limiting Velorki. Try again in a few minutes.',
+      (l10n) => l10n.integrationRateLimited(service),
       retryAfter: _retryAfter(e.response),
       cause: e,
     ),
     _ => IntegrationException(
       IntegrationFailure.serviceError,
       detail == null
-          ? '$service answered with an error ($status).'
-          : '$service: $detail',
+          ? (l10n) => l10n.integrationServiceStatus(service, status)
+          : (l10n) => l10n.integrationServiceSaid(service, detail),
       cause: e,
     ),
   };
@@ -80,20 +78,19 @@ IntegrationException _fromRelay(
 }) => switch (error.code) {
   RelayErrorCode.notEntitled => IntegrationException(
     IntegrationFailure.relayUnavailable,
-    relayPlusNeededMessage,
+    relayPlusNeededText,
     cause: e,
   ),
   // The stored token did not open: wrapped under a key the relay no longer
   // has, or written before tokens were wrapped at all.
   RelayErrorCode.invalidRequest => IntegrationException(
     IntegrationFailure.notConnected,
-    'The $service connection is no longer valid. Connect again in '
-    'Settings → Connections.',
+    (l10n) => l10n.integrationConnectionInvalid(service),
     cause: e,
   ),
   RelayErrorCode.rateLimited => IntegrationException(
     IntegrationFailure.rateLimited,
-    error.message,
+    (l10n) => l10n.relayTooManyRequests,
     retryAfter:
         _retryAfter(e.response) ??
         (error.retryAfterS == null
@@ -104,17 +101,17 @@ IntegrationException _fromRelay(
   // The relay is up but could not reach the service.
   RelayErrorCode.upstreamError => IntegrationException(
     IntegrationFailure.unreachable,
-    '$service could not be reached. Check the connection and try again.',
+    (l10n) => l10n.integrationServiceUnreachable(service),
     cause: e,
   ),
   RelayErrorCode.unavailable => IntegrationException(
     IntegrationFailure.relayUnavailable,
-    "Velorki's server cannot do this right now. Try again later.",
+    (l10n) => l10n.relayBusy,
     cause: e,
   ),
   _ => IntegrationException(
     IntegrationFailure.serviceError,
-    error.message,
+    (l10n) => relayErrorText(l10n, error),
     cause: e,
   ),
 };

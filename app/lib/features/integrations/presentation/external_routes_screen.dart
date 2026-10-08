@@ -34,7 +34,7 @@ class ExternalRoutesScreen extends ConsumerStatefulWidget {
 
 class _ExternalRoutesScreenState extends ConsumerState<ExternalRoutesScreen> {
   bool _loading = true;
-  String? _error;
+  IntegrationException? _error;
   List<ExternalRoute> _routes = const <ExternalRoute>[];
   DateTime? _fetchedAt;
   String? _importing;
@@ -71,7 +71,7 @@ class _ExternalRoutesScreenState extends ConsumerState<ExternalRoutesScreen> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = e.message;
+        _error = e;
       });
     }
   }
@@ -97,7 +97,9 @@ class _ExternalRoutesScreenState extends ConsumerState<ExternalRoutesScreen> {
       );
     } on IntegrationException catch (e) {
       messenger.showSnackBar(
-        SnackBar(content: Text(l10n.externalRoutesImportFailed(e.message))),
+        SnackBar(
+          content: Text(l10n.externalRoutesImportFailed(e.describe(l10n))),
+        ),
       );
     } finally {
       if (mounted) setState(() => _importing = null);
@@ -141,7 +143,7 @@ class _ExternalRoutesScreenState extends ConsumerState<ExternalRoutesScreen> {
     if (error != null) {
       return PlaceholderBody(
         icon: Icons.error_outline,
-        message: l10n.externalRoutesFailed(error),
+        message: l10n.externalRoutesFailed(error.describe(l10n)),
       );
     }
     if (_routes.isEmpty) {

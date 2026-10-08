@@ -22,14 +22,28 @@ import '../domain/saved_route.dart';
 import '../domain/route_waypoints.dart';
 import '../domain/waypoint.dart';
 import 'track_surface_service.dart';
+import '../../../core/l10n/localized_text.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 part 'planner_controller.g.dart';
 
 /// How long the planner waits after the last edit before it routes.
 const Duration plannerDebounce = Duration(milliseconds: 300);
 
-/// The message [PlannerState.error] carries when no routing server is set.
-const String noRoutingBackendError = 'no routing server configured';
+/// What [PlannerState.error] carries when there is no router at all.
+const NoRoutingBackendError noRoutingBackendError = NoRoutingBackendError();
+
+/// No routing server is set and on-device routing is not available.
+class NoRoutingBackendError implements LocalizedException {
+  /// The one instance is [noRoutingBackendError].
+  const NoRoutingBackendError();
+
+  @override
+  String describe(AppLocalizations l10n) => l10n.plannerNoRoutingServer;
+
+  @override
+  String toString() => 'no routing server configured';
+}
 
 /// Where the profile the rider picked last is kept, by [RouteProfile.name],
 /// so it is the one on the chips at the next start. Absent for the default.
@@ -939,7 +953,7 @@ class PlannerController extends _$PlannerController {
     state = state.copyWith(loadingAlternatives: true, error: null);
 
     final results = <RouteResult>[];
-    String? failure;
+    RoutingException? failure;
     final waypoints = state.waypoints;
     final unknown = List<RouteLeg?>.filled(state.planLegs.length, null);
     for (var i = 0; i <= RoutingOptions.maxAlternativeIdx; i++) {
@@ -954,7 +968,7 @@ class PlannerController extends _$PlannerController {
         results.add(PlannedRoute.join(legs));
       } on RoutingException catch (e) {
         if (e.kind == RoutingErrorKind.cancelled) return false;
-        failure ??= e.message;
+        failure ??= e;
         // A missing alternative is normal: BRouter serves fewer than four for
         // many routes. Keep the ones that worked.
         break;
@@ -1381,15 +1395,12 @@ class PlannerController extends _$PlannerController {
       }
       state = state.copyWith(
         route: AsyncError<RouteResult?>(e, st),
-        error: e.message,
+        error: e,
         routingSource: null,
       );
     } catch (e, st) {
       if (_disposed || token.isCancelled) return;
-      state = state.copyWith(
-        route: AsyncError<RouteResult?>(e, st),
-        error: e.toString(),
-      );
+      state = state.copyWith(route: AsyncError<RouteResult?>(e, st), error: e);
     } finally {
       if (identical(_pending, token)) _pending = null;
     }

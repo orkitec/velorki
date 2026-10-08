@@ -9,7 +9,13 @@
 // English at run time, but only since request.ts merges per key, and an extra
 // one is a string nobody renders - both are translator mistakes worth a red CI
 // run rather than a silent difference between the languages.
-import { readdirSync, writeFileSync, readFileSync } from 'node:fs';
+//
+// It also holds each translated message to English's ICU arguments and rich
+// text tags, and every English content page to a file in each other locale
+// (a `draft: true` page counts), so nothing English can reach a translated
+// site except the imprint, which is bilingual and falls back on purpose.
+import { existsSync, readdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { parse, TYPE } from '@formatjs/icu-messageformat-parser';
 
 const root = new URL('..', import.meta.url).pathname;
 const locales = readdirSync(`${root}messages`)
@@ -48,15 +54,173 @@ function parityProblems() {
   return problems;
 }
 
+/** Leaf path -> string value of a catalogue. */
+function leaves(value, prefix = '', into = new Map()) {
+  if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+    for (const [key, child] of Object.entries(value)) leaves(child, prefix === '' ? key : `${prefix}.${key}`, into);
+  } else {
+    into.set(prefix, value);
+  }
+  return into;
+}
+
+/** Argument names and rich-text tag names of an ICU message, branches included. */
+function icuSignature(message) {
+  const args = new Set();
+  const tags = new Set();
+  const walk = (elements) => {
+    for (const el of elements) {
+      if (el.type === TYPE.literal || el.type === TYPE.pound) continue;
+      if (el.type === TYPE.tag) {
+        tags.add(el.value);
+        walk(el.children);
+        continue;
+      }
+      args.add(el.value);
+      if (el.type === TYPE.select || el.type === TYPE.plural) {
+        for (const option of Object.values(el.options)) walk(option.value);
+      }
+    }
+  };
+  walk(parse(message));
+  return { args, tags };
+}
+
+const sorted = (set) => [...set].sort().join(', ') || '(none)';
+
+/** Translated messages whose ICU arguments or tags differ from English. */
+function placeholderProblems() {
+  const source = leaves(readCatalogue('en'));
+  const problems = [];
+  const signature = (locale, key, text) => {
+    try {
+      return icuSignature(text);
+    } catch (error) {
+      problems.push(`${locale}.json: ${key} is not valid ICU (${error.message})`);
+      return null;
+    }
+  };
+  for (const locale of locales.filter((l) => l !== 'en')) {
+    const own = leaves(readCatalogue(locale));
+    for (const [key, english] of source) {
+      if (typeof english !== 'string' || typeof own.get(key) !== 'string') continue;
+      const want = signature('en', key, english);
+      const got = signature(locale, key, own.get(key));
+      if (!want || !got) continue;
+      if (sorted(want.args) !== sorted(got.args))
+        problems.push(`${locale}.json: ${key} has arguments {${sorted(got.args)}}, English has {${sorted(want.args)}}`);
+      if (sorted(want.tags) !== sorted(got.tags))
+        problems.push(`${locale}.json: ${key} has tags <${sorted(got.tags)}>, English has <${sorted(want.tags)}>`);
+    }
+  }
+  return problems;
+}
+
+/**
+ * Messages a translation may leave exactly as the English, and why: brand,
+ * product and project names, units, licence names and words the target
+ * languages borrowed. Any other message with letters that equals the English
+ * is taken for one that was copied rather than translated. A language that
+ * does translate one of these is free to.
+ */
+const SAME_AS_ENGLISH = new Map([
+  ['site.name', 'brand'],
+  ['nav.plus', 'product name (Velorki Plus)'],
+  ['nav.download', 'borrowed word'],
+  ['nav.github', 'brand'],
+  ['theme.system', 'same word'],
+  ['appearance.volt', 'name of a colour preset'],
+  ['home.features.offline.eyebrow', 'borrowed word'],
+  ['home.features.navigate.eyebrow', 'same word'],
+  ['home.features.sensors.panel.bpm', 'unit symbol'],
+  ['home.features.sensors.panel.watts', 'unit symbol'],
+  ['home.comparison.plus', 'product name (Velorki Plus)'],
+  ['home.comparison.plusLink', 'product name (Velorki Plus)'],
+  ['plus.meta.title', 'product name (Velorki Plus)'],
+  ['plus.title', 'product name (Velorki Plus)'],
+  ['download.eyebrow', 'borrowed word'],
+  ['download.android', 'brand'],
+  ['download.ios', 'brand'],
+  ['download.apkLink', 'product name (GitHub Releases)'],
+  ['credits.items.osm.title', 'project name'],
+  ['credits.items.brouter.title', 'project name'],
+  ['credits.items.cyclosm.title', 'project name'],
+  ['credits.items.cyclosm.licence', 'licence name'],
+  ['credits.items.photon.title', 'project name'],
+  ['credits.items.photon.licence', 'licence name'],
+  ['credits.items.fonts.licence', 'licence name'],
+  ['credits.items.maplibre.title', 'project name'],
+  ['credits.items.flutter.title', 'project name'],
+  ['footer.github', 'brand'],
+  ['footer.release', 'same word'],
+  ['footer.commit', 'same word, a git term'],
+  ['cookies.footer', 'borrowed word'],
+]);
+
+/** Whether [text] has letters outside its ICU arguments. */
+const hasWords = (text) => /\p{L}/u.test(text.replace(/\{[^{}]*\}/g, ''));
+
+/** Translated messages that are still the English text. */
+function untranslatedProblems() {
+  const source = leaves(readCatalogue('en'));
+  const problems = [];
+  for (const key of SAME_AS_ENGLISH.keys()) {
+    if (!source.has(key)) problems.push(`SAME_AS_ENGLISH names ${key}, which en.json does not have`);
+  }
+  for (const locale of locales.filter((l) => l !== 'en')) {
+    for (const [key, text] of leaves(readCatalogue(locale))) {
+      if (typeof text !== 'string' || text !== source.get(key) || SAME_AS_ENGLISH.has(key)) continue;
+      if (hasWords(text)) problems.push(`${locale}.json: ${key} is identical to English`);
+    }
+  }
+  return problems;
+}
+
+/** Markdown pages under content/<locale>/, as `docs/loops.md`. */
+function contentPages(locale) {
+  const base = `${root}content/${locale}`;
+  if (!existsSync(base)) return [];
+  return readdirSync(base, { recursive: true })
+    .map((p) => p.split('\\').join('/'))
+    .filter((p) => p.endsWith('.md'))
+    .sort();
+}
+
+/**
+ * Pages exempt from the content check: the imprint is bilingual and kept out
+ * of Crowdin, so a locale without its own falls back to the English file
+ * (src/site/content.ts), which carries the German too.
+ */
+const CONTENT_EXEMPT = new Set(['legal/imprint.md']);
+
+/** English content pages that another locale has no file for. */
+function contentProblems() {
+  const problems = [];
+  const source = contentPages('en').filter((p) => !CONTENT_EXEMPT.has(p));
+  for (const locale of locales.filter((l) => l !== 'en')) {
+    for (const page of source) {
+      if (!existsSync(`${root}content/${locale}/${page}`))
+        problems.push(`content/${locale}/${page} is missing (content/en has it; a draft: true page is fine)`);
+    }
+  }
+  return problems;
+}
+
 if (process.argv.includes('--check')) {
   let failed = false;
   if (readFileSync(target, 'utf8') !== out) {
     console.error('src/i18n/locales.generated.ts is stale; run `npm run locales`');
     failed = true;
   }
-  const problems = parityProblems();
-  if (problems.length > 0) {
-    console.error(`locales: ${problems.length} key parity problem(s) against messages/en.json:`);
+  const checks = [
+    ['key parity problem(s) against messages/en.json', parityProblems()],
+    ['placeholder problem(s) against messages/en.json', placeholderProblems()],
+    ['message(s) left in English (allowlist: SAME_AS_ENGLISH)', untranslatedProblems()],
+    ['missing content page(s) against content/en', contentProblems()],
+  ];
+  for (const [what, problems] of checks) {
+    if (problems.length === 0) continue;
+    console.error(`locales: ${problems.length} ${what}:`);
     for (const problem of problems) console.error(`  - ${problem}`);
     failed = true;
   }

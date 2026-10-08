@@ -23,6 +23,7 @@ import '../../shared/presentation/stat_tile.dart';
 import '../application/smart_loop_controller.dart';
 import '../data/loop_preferences.dart';
 import '../domain/loops.dart';
+import '../../shared/presentation/error_text.dart';
 
 /// Opens the "Make a loop" sheet over the planner.
 ///
@@ -343,7 +344,7 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
           ],
         ),
         if (planner.error != null)
-          _Problem(text: l10n.loopFailed(planner.error!)),
+          _Problem(text: l10n.loopFailed(errorText(l10n, planner.error!))),
       ],
     ];
   }
@@ -473,7 +474,8 @@ class _SmartLoopSheetState extends ConsumerState<SmartLoopSheet> {
       if (state.tookTooLong) _Problem(text: l10n.loopTookTooLong),
       if (state.missingTiles.isNotEmpty && !state.running)
         MissingTilesBanner(tiles: state.missingTiles),
-      if (state.error != null) _Problem(text: l10n.loopFailed(state.error!)),
+      if (state.error != null)
+        _Problem(text: l10n.loopFailed(errorText(l10n, state.error!))),
       if (_problem != null) _Problem(text: _problem!),
     ];
   }

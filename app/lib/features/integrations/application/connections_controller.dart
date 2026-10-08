@@ -49,7 +49,7 @@ class IntegrationConnections extends Notifier<Set<IntegrationService>> {
     if (connector == null) {
       throw IntegrationException(
         IntegrationFailure.relayUnavailable,
-        'This build cannot connect ${service.id}: no relay is configured.',
+        (l10n) => l10n.integrationNoRelay,
       );
     }
     if (!_begin(service)) return;

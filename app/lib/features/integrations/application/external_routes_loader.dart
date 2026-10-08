@@ -183,5 +183,5 @@ final externalRoutesLoaderProvider =
 IntegrationException notConnectedException(IntegrationService service) =>
     IntegrationException(
       IntegrationFailure.notConnected,
-      'No ${service.id} account is connected.',
+      (l10n) => l10n.integrationNotConnected(service.brand),
     );

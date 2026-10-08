@@ -151,7 +151,7 @@ void main() {
 
     // Once in the sheet, once as the snack bar.
     expect(
-      find.text(l10n.plannerRoutingFailed('position not mapped')),
+      find.text(l10n.plannerRoutingFailed(l10n.routingErrorNoRoute)),
       findsWidgets,
     );
   });

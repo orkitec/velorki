@@ -158,7 +158,7 @@ class SmartLoopController extends _$SmartLoopController {
     } on Object catch (e) {
       if (!_disposed && identical(_run, run)) {
         _run = null;
-        state = state.copyWith(running: false, error: _messageOf(e));
+        state = state.copyWith(running: false, error: e);
       }
       return;
     }
@@ -283,9 +283,6 @@ class SmartLoopController extends _$SmartLoopController {
     state = state.copyWith(candidates: ranked, index: math.max(0, index));
     _show();
   }
-
-  static String _messageOf(Object error) =>
-      error is RoutingException ? error.message : error.toString();
 }
 
 /// The most the bar shows while a search still runs.
@@ -314,7 +311,7 @@ class _LoopRun {
   void Function()? onProgress;
 
   /// The last routing failure worth reporting, shown when nothing routed.
-  String? lastFailure;
+  Object? lastFailure;
 
   /// The tiles the on-device engine lacked, with no server to fall back to.
   final Set<TileName> missingTiles = <TileName>{};
@@ -390,7 +387,7 @@ class _CountingBackend implements RoutingBackend {
       // Only a broken server or a rejected request is worth reporting.
       if (e.kind == RoutingErrorKind.network ||
           e.kind == RoutingErrorKind.invalid) {
-        _run.lastFailure = e.message;
+        _run.lastFailure = e;
       }
       // Nor is a region that is not downloaded yet: it becomes the sheet's
       // download offer.
@@ -399,7 +396,7 @@ class _CountingBackend implements RoutingBackend {
       }
       rethrow;
     } on Object catch (e) {
-      _run.lastFailure = e.toString();
+      _run.lastFailure = e;
       rethrow;
     } finally {
       // The planner cancels what is still running when its deadline is up;

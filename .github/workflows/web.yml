@@ -35,8 +35,9 @@ jobs:
       - run: npm run typecheck
       - run: npm test
 
-      # Every messages/<locale>.json has the same keys as the English source
-      # and src/i18n/locales.generated.ts matches what is on disk.
+      # Every messages/<locale>.json has the English keys, ICU arguments and
+      # tags, every content/en page exists in each locale, and
+      # src/i18n/locales.generated.ts matches what is on disk.
       - run: npm run locales -- --check
 
       # Template placeholders in content/: a warning, not a failure. The pages

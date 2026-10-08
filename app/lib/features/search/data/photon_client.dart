@@ -1,27 +1,53 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
-
-import '../../../core/http/user_agent.dart';
-
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../../app/app_config.dart';
+import '../../../core/http/user_agent.dart';
+import '../../../core/l10n/localized_text.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../domain/search_result.dart';
 
 part 'photon_client.g.dart';
 
+/// Why an online search failed.
+enum SearchFailure {
+  /// This build has no search server.
+  unconfigured,
+
+  /// The server did not answer.
+  unreachable,
+
+  /// The server answered something that is not a result list.
+  unreadable,
+}
+
 /// A geocoder request that produced no results.
-class SearchException implements Exception {
+class SearchException implements LocalizedException {
   /// Creates a search exception.
-  const SearchException(this.message, {this.cause});
+  const SearchException(
+    this.message, {
+    this.cause,
+    this.failure = SearchFailure.unreadable,
+  });
 
   /// What went wrong, for the log.
   final String message;
 
   /// The underlying error, when there was one.
   final Object? cause;
+
+  /// What kind of failure it was.
+  final SearchFailure failure;
+
+  @override
+  String describe(AppLocalizations l10n) => switch (failure) {
+    SearchFailure.unconfigured => l10n.searchUnavailable,
+    SearchFailure.unreachable => l10n.searchErrorUnreachable,
+    SearchFailure.unreadable => l10n.searchErrorUnreadable,
+  };
 
   @override
   String toString() => 'SearchException: $message';
@@ -120,7 +146,11 @@ class PhotonClient {
       );
     } on DioException catch (e) {
       if (CancelToken.isCancel(e)) rethrow;
-      throw SearchException('cannot reach Photon at $uri', cause: e);
+      throw SearchException(
+        'cannot reach Photon at $uri',
+        cause: e,
+        failure: SearchFailure.unreachable,
+      );
     }
     final body = response.data;
     if (body == null || body.isEmpty) {

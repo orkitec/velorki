@@ -57,6 +57,7 @@ import 'save_route_dialog.dart';
 import 'surface_section.dart';
 import 'surface_stats_bar.dart';
 import 'waypoint_edit_sheet.dart';
+import '../../shared/presentation/error_text.dart';
 
 /// The Plan tab: the search and profile controls at the top and the route
 /// details in a draggable sheet at the bottom, over the map the shell
@@ -1026,9 +1027,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       // Missing tiles are shown as a banner with a download action in the
       // sheet; a snack bar the rider cannot act on would only be in the way.
       if (next.missingTiles.isNotEmpty) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.plannerRoutingFailed(error))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.plannerRoutingFailed(errorText(l10n, error))),
+        ),
+      );
       ref.read(plannerControllerProvider.notifier).clearError();
     });
 
@@ -1375,7 +1378,7 @@ class _SheetHeader extends ConsumerWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                l10n.plannerRoutingFailed(_failureMessage(failure)),
+                l10n.plannerRoutingFailed(errorText(l10n, failure)),
                 style: theme.textTheme.bodyMedium,
               ),
             ),
@@ -1463,9 +1466,6 @@ class _SheetBody extends StatelessWidget {
     );
   }
 }
-
-String _failureMessage(Object error) =>
-    error is RoutingException ? error.message : error.toString();
 
 class _AlternativeChips extends ConsumerWidget {
   const _AlternativeChips({required this.state});

@@ -56,9 +56,33 @@ a language".
   lower-cases the first letter. They must be written so that survives: never
   start one with a word that is capitalised wherever it stands, such as a
   German noun. "Am Ziel ankommen", not "Ziel erreichen".
-- `app/test/l10n/arb_test.dart` checks that every translated ARB declares its
-  own locale and carries no key English does not have. It runs in CI with the
-  rest of `flutter test`.
+- Nothing English may reach a translated screen. The checks, all generic
+  over the languages present, fail CI otherwise:
+  - `app/test/l10n/arb_test.dart`: every translated ARB declares its locale,
+    has every English key and no other, keeps each message's ICU arguments,
+    and translates every message with words in it, unless `sameAsEnglish`
+    in the test names it with a reason (brands, units, borrowed words).
+  - `app/test/l10n/hardcoded_strings_test.dart`: no literal with letters in
+    a `Text`, `TextSpan`, tooltip, label, title, snack bar, notification or
+    share text under `app/lib`, and no exception's `message` or `toString()`
+    on a screen; failures are shown with `errorText(l10n, error)`
+    (`features/shared/presentation/error_text.dart`), and code without a
+    `BuildContext` describes them with a `LocalizedText`
+    (`core/l10n/localized_text.dart`). Exceptions go in its `_allowed` list,
+    with the reason.
+  - `npm run locales -- --check` in `web/` (CI: `web.yml`): each catalogue
+    has English's keys, ICU arguments and rich-text tags, no message with
+    words is identical to English unless `SAME_AS_ENGLISH` names it, and
+    every `content/en` page has a file in each locale (a `draft: true` one
+    counts; only the bilingual imprint is exempt and falls back to English).
+- Text outside Flutter's strings is native: iOS permission prompts live in
+  `app/ios/Runner/<lang>.lproj/InfoPlist.strings` (English stays in
+  `Info.plist` as the fallback; the watch app has its own `.xcstrings`
+  catalogues), and Android has no native text beyond the brand name, only
+  `res/xml/locales_config.xml` for the per-app language picker.
+  `app/test/l10n/native_strings_test.dart` holds all of it to the ARB
+  languages, and `app/test/l10n/store_texts_test.dart` checks the store
+  texts and slide captions of every translated locale against English.
 - A language must pass the widget suite in its own locale:
   `flutter test --dart-define=VELORKI_TEST_LOCALE=<lang>` from `app/` pumps
   every harness-built screen in that language, and CI runs it for German, so a
@@ -135,7 +159,14 @@ is its unit test (`python3 -m unittest app/tool/store_text_check_test.py`).
 3. For the website, run `npm run locales` in `web/` on that branch and commit
    `src/i18n/locales.generated.ts` — the routing table is imported by client
    code and cannot read the directory itself.
-4. The app needs nothing further; `flutter gen-l10n` (`bash app/tool/gen.sh`)
+4. Native iOS/Android: add `app/ios/Runner/<lang>.lproj/InfoPlist.strings`
+   (same keys as `en.lproj`) and its file reference in the pbxproj's
+   `InfoPlist.strings` variant group, the language in `Info.plist`'s
+   `CFBundleLocalizations` and the pbxproj's `knownRegions`, a `<locale>` in
+   `res/xml/locales_config.xml`, and a `de`-style entry in the watch
+   `.xcstrings`. A `res/values-<lang>/strings.xml` too if `values/strings.xml`
+   ever exists. `native_strings_test.dart` fails until all are there.
+5. The Flutter strings need nothing further; `flutter gen-l10n` (`bash app/tool/gen.sh`)
    picks the new ARB up.
 
 ## Translators

@@ -1414,7 +1414,7 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
           .start(notificationTitle: l10n.recordingNotificationTitle);
     } on RecordingException catch (error) {
       messenger.showSnackBar(
-        SnackBar(content: Text(l10n.recordingFailed(error.message))),
+        SnackBar(content: Text(l10n.recordingFailed(error.describe(l10n)))),
       );
     }
   }

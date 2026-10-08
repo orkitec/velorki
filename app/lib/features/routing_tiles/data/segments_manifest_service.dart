@@ -9,6 +9,8 @@ import 'package:velorki_brouter/velorki_brouter.dart' hide CancelToken;
 
 import '../../../app/app_config.dart';
 import 'routing_tiles_repository.dart';
+import '../../../core/l10n/localized_text.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 part 'segments_manifest_service.g.dart';
 
@@ -22,15 +24,27 @@ part 'segments_manifest_service.g.dart';
 const String brouterDeSegmentsUrl = 'https://brouter.de/brouter/segments4';
 
 /// Raised when the segment mirror cannot be read.
-class SegmentsManifestException implements Exception {
+class SegmentsManifestException implements LocalizedException {
   /// Creates the failure.
-  const SegmentsManifestException(this.message, {this.cause});
+  const SegmentsManifestException(
+    this.message, {
+    this.cause,
+    this.unreachable = false,
+  });
 
-  /// What went wrong, in one sentence.
+  /// What went wrong, in one English sentence for the log.
   final String message;
 
   /// The underlying error, if any.
   final Object? cause;
+
+  /// Whether the mirror did not answer at all, rather than answering
+  /// something unreadable.
+  final bool unreachable;
+
+  @override
+  String describe(AppLocalizations l10n) =>
+      unreachable ? l10n.tileMirrorUnreachable : l10n.tileMirrorUnreadable;
 
   @override
   String toString() => 'SegmentsManifestException: $message';
@@ -158,6 +172,7 @@ class SegmentsManifestService {
       throw SegmentsManifestException(
         'The $what at $base could not be reached.',
         cause: e,
+        unreachable: true,
       );
     }
     try {
@@ -179,6 +194,7 @@ class SegmentsManifestService {
       throw SegmentsManifestException(
         'The tile mirror pointer at $_segmentsUrl could not be reached.',
         cause: e,
+        unreachable: true,
       );
     }
     final Object? data;
@@ -237,6 +253,7 @@ class SegmentsManifestService {
       throw SegmentsManifestException(
         'The segment listing at $baseUrl could not be reached.',
         cause: e,
+        unreachable: true,
       );
     }
     try {

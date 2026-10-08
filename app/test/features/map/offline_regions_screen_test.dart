@@ -281,7 +281,10 @@ void main() {
       find.textContaining(l10n.mapOfflineDownloadFailed('').trim()),
       findsOneWidget,
     );
-    expect(find.textContaining('no space left on device'), findsOneWidget);
+    expect(
+      find.text(l10n.mapOfflineDownloadFailed(l10n.offlineMapDownloadError)),
+      findsOneWidget,
+    );
     expect(await h.dao.allRegions(), isEmpty);
     expect(find.textContaining(l10n.mapOfflineRegionsEmpty), findsOneWidget);
     expect(_downloadButton(tester).onPressed, isNotNull);
@@ -302,10 +305,7 @@ void main() {
       ],
     );
 
-    expect(
-      find.textContaining('offline database is unreadable'),
-      findsOneWidget,
-    );
+    expect(find.text(l10n.errorUnexpected), findsOneWidget);
     expect(find.textContaining(l10n.mapOfflineRegionsEmpty), findsNothing);
     await _unmount(tester);
   });

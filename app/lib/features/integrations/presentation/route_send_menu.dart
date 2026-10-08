@@ -66,7 +66,7 @@ class _RouteSendMenuState extends ConsumerState<RouteSendMenu> {
       );
     } on IntegrationException catch (e) {
       messenger.showSnackBar(
-        SnackBar(content: Text(l10n.routeDetailSendFailed(e.message))),
+        SnackBar(content: Text(l10n.routeDetailSendFailed(e.describe(l10n)))),
       );
     } finally {
       if (mounted) setState(() => _busy = false);

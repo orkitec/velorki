@@ -288,15 +288,12 @@ void main() {
       (
         '503 unavailable, in the uniform error body',
         const RelayReply.error(unavailable),
-        (l) => l.assistantFailed('Strava is not configured on this server.'),
+        (l) => l.assistantFailed(l.relayBusy),
       ),
       (
         'an error event after the stream opened (the documented failure)',
         RelayReply.documented('failure'),
-        (l) => l.assistantFailed(
-          'The proposed route was not usable: distance_km Too small: '
-          'expected number to be >=5',
-        ),
+        (l) => l.assistantFailed(l.relayRejected),
       ),
       (
         'an upstream_error event mid-stream, after a keep-alive',
@@ -304,14 +301,12 @@ void main() {
           SseFrame.ping,
           SseFrame.error('upstream_error', 'The model provider failed.'),
         ], gap: const Duration(seconds: 1)),
-        (l) => l.assistantFailed('The model provider failed.'),
+        (l) => l.assistantFailed(l.relayUpstreamFailed),
       ),
       (
         'a 502 from a proxy in front of the relay, as HTML',
         const RelayReply.proxyError(502, '<html><body>Bad gateway</body>'),
-        (l) => l.assistantFailed(
-          'The Velorki relay answered 502: <html><body>Bad gateway</body>',
-        ),
+        (l) => l.assistantFailed(l.relayUpstreamFailed),
       ),
     ];
     for (final (name, reply, message) in cases) {
@@ -407,15 +402,7 @@ void main() {
 
       await tester.pump(const Duration(seconds: 2));
       await tester.pumpAndSettle();
-      expect(
-        _problem(
-          l10n.assistantFailed(
-            'The Velorki relay stopped '
-            'answering.',
-          ),
-        ),
-        findsOneWidget,
-      );
+      expect(_problem(l10n.assistantFailed(l10n.relayBusy)), findsOneWidget);
       expect(sheetUnlocked(tester), isTrue);
       // The app hung up, so the relay stops paying for tokens.
       expect(relay.cancelledStreams, 1);
@@ -470,7 +457,7 @@ void main() {
       await tester.pump(const Duration(seconds: 41));
       await tester.pumpAndSettle();
       expect(
-        _problem(l10n.assistantFailed(relayDeadlineMessage)),
+        _problem(l10n.assistantFailed(l10n.relayUpstreamFailed)),
         findsOneWidget,
       );
       expect(sheetUnlocked(tester), isTrue);
