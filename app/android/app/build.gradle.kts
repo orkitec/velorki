@@ -25,8 +25,16 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.orkitec.velorki"
+        // A test build beside the store's, whose Play signing a local build
+        // cannot match: with ORG_GRADLE_PROJECT_velorkiDevBuild=true it is
+        // com.orkitec.velorki.dev, "Velorki Dev". Never on CI: a CI build
+        // asking for it fails, so a release can only be the store's id.
+        val devBuild = project.findProperty("velorkiDevBuild") == "true"
+        if (devBuild && System.getenv("CI") == "true") {
+            throw GradleException("velorkiDevBuild is for local test builds only, never on CI")
+        }
+        applicationId = if (devBuild) "com.orkitec.velorki.dev" else "com.orkitec.velorki"
+        manifestPlaceholders["appLabel"] = if (devBuild) "Velorki Dev" else "Velorki"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         // Raised from Flutter's default: drift/sqlite3, MapLibre and the

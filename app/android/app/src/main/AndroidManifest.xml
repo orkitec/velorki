@@ -49,7 +49,7 @@
          allowBackup for device-to-device transfer, so @xml/data_extraction_rules
          excludes everything there as well. -->
     <application
-        android:label="Velorki"
+        android:label="${appLabel}"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"
