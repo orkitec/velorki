@@ -13,6 +13,7 @@ Future<ProviderContainer> _pump(
   WidgetTester tester, {
   Map<String, Object> initial = const <String, Object>{},
   String cyclosmTileUrl = '',
+  bool expectTextFits = true,
 }) async {
   SharedPreferences.setMockInitialValues(initial);
   final prefs = await SharedPreferences.getInstance();
@@ -33,7 +34,9 @@ Future<ProviderContainer> _pump(
     ),
   );
   await tester.pumpAndSettle();
-  expectNoClippedText(tester);
+  // The test font draws every glyph a full em wide, so a narrow screen cuts
+  // text the app's own font fits (see CLAUDE.md).
+  if (expectTextFits) expectNoClippedText(tester);
   return container;
 }
 
@@ -68,7 +71,13 @@ void main() {
       l10n.mapLookNight,
       l10n.mapLookBlack,
     ]) {
-      expect(find.widgetWithText(ChoiceChip, label), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(SegmentedButton<MapLook>),
+          matching: find.text(label),
+        ),
+        findsOneWidget,
+      );
     }
     for (final label in [
       l10n.accentVolt,
@@ -87,6 +96,42 @@ void main() {
     );
     expect(segmented.selected, {ThemeMode.system});
     semantics.dispose();
+  });
+
+  testWidgets('on a narrow phone every segment stays on one line', (
+    tester,
+  ) async {
+    tester.view.physicalSize =
+        const Size(360, 740) * tester.view.devicePixelRatio;
+    addTearDown(tester.view.resetPhysicalSize);
+    await _pump(
+      tester,
+      cyclosmTileUrl: 'https://tiles.example/{z}/{x}/{y}.png',
+      expectTextFits: false,
+    );
+    for (final look in MapLook.values) {
+      final label = tester.widget<Text>(
+        find.descendant(
+          of: find.byType(SegmentedButton<MapLook>),
+          matching: find.text(mapLookLabel(l10n, look)),
+        ),
+      );
+      expect(label.maxLines, 1);
+    }
+    // One row: every segment at the same height.
+    final tops = {
+      for (final look in MapLook.values)
+        tester
+            .getRect(
+              find.descendant(
+                of: find.byType(SegmentedButton<MapLook>),
+                matching: find.text(mapLookLabel(l10n, look)),
+              ),
+            )
+            .center
+            .dy,
+    };
+    expect(tops, hasLength(1));
   });
 
   testWidgets('tapping Dark switches the mode and stores it', (tester) async {
@@ -145,7 +190,12 @@ void main() {
     final container = await _pump(tester);
     expect(container.read(appearanceSettingProvider).mapLook, MapLook.auto);
 
-    await tester.tap(find.widgetWithText(ChoiceChip, l10n.mapLookNight));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(SegmentedButton<MapLook>),
+        matching: find.text(l10n.mapLookNight),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(container.read(appearanceSettingProvider).mapLook, MapLook.night);

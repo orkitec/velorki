@@ -32,17 +32,17 @@ class AppearanceSection extends ConsumerWidget {
               ButtonSegment(
                 value: ThemeMode.system,
                 icon: const Icon(Icons.brightness_auto_outlined),
-                label: Text(l10n.appearanceModeSystem),
+                label: _SegmentLabel(l10n.appearanceModeSystem),
               ),
               ButtonSegment(
                 value: ThemeMode.light,
                 icon: const Icon(Icons.light_mode_outlined),
-                label: Text(l10n.appearanceModeLight),
+                label: _SegmentLabel(l10n.appearanceModeLight),
               ),
               ButtonSegment(
                 value: ThemeMode.dark,
                 icon: const Icon(Icons.dark_mode_outlined),
-                label: Text(l10n.appearanceModeDark),
+                label: _SegmentLabel(l10n.appearanceModeDark),
               ),
             ],
             selected: {appearance.mode},
@@ -52,17 +52,18 @@ class AppearanceSection extends ConsumerWidget {
           const SizedBox(height: 20),
           Text(l10n.appearanceMap, style: theme.textTheme.titleSmall),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
+          SegmentedButton<MapLook>(
+            showSelectedIcon: false,
+            segments: [
               for (final look in MapLook.values)
-                ChoiceChip(
-                  label: Text(mapLookLabel(l10n, look)),
-                  selected: look == appearance.mapLook,
-                  onSelected: (_) => unawaited(controller.setMapLook(look)),
+                ButtonSegment(
+                  value: look,
+                  label: _SegmentLabel(mapLookLabel(l10n, look)),
                 ),
             ],
+            selected: {appearance.mapLook},
+            onSelectionChanged: (selection) =>
+                unawaited(controller.setMapLook(selection.single)),
           ),
           // Only a build that ships CyclOSM tiles can draw the overlay, and
           // only then is there anything to choose here.
@@ -79,7 +80,7 @@ class AppearanceSection extends ConsumerWidget {
                 for (final mode in OverlayDarkMode.values)
                   ButtonSegment(
                     value: mode,
-                    label: Text(overlayDarkLabel(l10n, mode)),
+                    label: _SegmentLabel(overlayDarkLabel(l10n, mode)),
                   ),
               ],
               selected: {appearance.overlayDark},
@@ -220,4 +221,19 @@ class _AccentSwatch extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A segment's label on one line: in a language whose word is too long for
+/// its share of the row it is set a little smaller rather than wrapped or
+/// cut off.
+class _SegmentLabel extends StatelessWidget {
+  const _SegmentLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => FittedBox(
+    fit: BoxFit.scaleDown,
+    child: Text(text, maxLines: 1, softWrap: false),
+  );
 }
