@@ -276,9 +276,21 @@ def contours(height: float = 217) -> str:
 TOPO = contours()
 
 
+def keep_hyphenated(escaped: str) -> str:
+    """Escaped text with every hyphenated word kept on one line: Chrome
+    breaks after a hyphen, which splits "Décrivez-la" or "mi-parcours"."""
+    return re.sub(r"\w+(?:-\w+)+",
+                  lambda m: f'<span style="white-space:nowrap">{m.group(0)}</span>', escaped)
+
+
+def plain(text: str) -> str:
+    """HTML for a subline or an eyebrow."""
+    return keep_hyphenated(html.escape(text))
+
+
 def rich(text: str) -> str:
     """HTML for a headline: escaped, with **phrase** as the accent."""
-    return re.sub(r"\*\*(.+?)\*\*", r"<em>\1</em>", html.escape(text))
+    return re.sub(r"\*\*(.+?)\*\*", r"<em>\1</em>", plain(text))
 
 
 def url(path: str) -> str:
@@ -382,7 +394,7 @@ def layer(style: str, text: dict, stage: str, extra_class: str = "", clip: str =
         f'<div class="layer {extra_class}" style="{variables};{clip}">'
         f'<div class="aurora"></div>{TOPO}'
         f'<div class="copy">{brand_line() if brand else ""}<div class="chip"><i></i>{html.escape(text["eyebrow"])}</div>'
-        f'<h1>{rich(text["headline"])}</h1><p class="sub">{html.escape(text["subline"])}</p></div>'
+        f'<h1>{rich(text["headline"])}</h1><p class="sub">{plain(text["subline"])}</p></div>'
         f'<div class="stage">{stage}</div></div>'
     )
 
@@ -487,11 +499,25 @@ def photograph(page_file: str, target: str, w: int, h: int, work: str,
         raise RuntimeError(f"Chrome did not write {target} within 90 s")
     finally:
         if chrome.poll() is None:
-            os.killpg(chrome.pid, signal.SIGTERM)
+            stop(chrome, signal.SIGTERM)
             try:
                 chrome.wait(timeout=10)
             except subprocess.TimeoutExpired:
-                os.killpg(chrome.pid, signal.SIGKILL)
+                stop(chrome, signal.SIGKILL)
+
+
+def stop(process: subprocess.Popen, sig: int) -> None:
+    """Sends [sig] to [process]'s group, or to the process alone where macOS
+    refuses the group (EPERM once one of Chrome's helpers is out of reach)."""
+    try:
+        os.killpg(process.pid, sig)
+    except PermissionError:
+        try:
+            process.send_signal(sig)
+        except ProcessLookupError:
+            pass
+    except ProcessLookupError:
+        pass
 
 
 def render(html_text: str, target: str, w: int, h: int, work: str) -> None:
@@ -499,7 +525,15 @@ def render(html_text: str, target: str, w: int, h: int, work: str) -> None:
     with open(page_file, "w", encoding="utf-8") as f:
         f.write(html_text)
     os.makedirs(os.path.dirname(target), exist_ok=True)
-    photograph(page_file, target, w, h, work)
+    # Now and then Chrome quits at once without a picture; a second try
+    # makes it.
+    for attempt in range(3):
+        try:
+            photograph(page_file, target, w, h, work)
+            break
+        except RuntimeError:
+            if attempt == 2:
+                raise
     print(target)
 
 

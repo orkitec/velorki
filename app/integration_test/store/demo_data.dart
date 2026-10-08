@@ -103,12 +103,20 @@ const List<LatLng> rideWaypoints = [funchal, LatLng(32.6789, -16.8448)];
 const Map<String, String> rideNames = {
   'en': 'Up to Camacha',
   'de': 'Hinauf nach Camacha',
+  'fr': 'Montée vers Camacha',
+  'es': 'Subida a Camacha',
+  'it': 'Salita a Camacha',
+  'nl': 'Omhoog naar Camacha',
 };
 
 /// What the rider asks the assistant for on the AI slide, per language.
 const Map<String, String> assistantPrompts = {
   'en': 'A 40 km gravel loop with a café stop halfway',
   'de': 'Eine 40-km-Gravel-Runde mit Café-Stopp auf halber Strecke',
+  'fr': 'Une boucle gravel de 40 km avec une pause café à mi-parcours',
+  'es': 'Una ruta circular de gravel de 40 km con parada para café a mitad',
+  'it': 'Un anello gravel di 40 km con sosta al bar a metà strada',
+  'nl': 'Een gravelrondje van 40 km met een koffiestop halverwege',
 };
 
 /// What the mocked model answers [assistantPrompts] with: a loop from the
