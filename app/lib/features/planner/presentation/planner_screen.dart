@@ -31,6 +31,7 @@ import '../../search/presentation/place_card.dart';
 import '../../search/presentation/search_field.dart';
 import '../../settings/data/units.dart';
 import '../../shared/application/active_tab.dart';
+import '../../shared/application/covering_sheets.dart';
 import '../../shared/application/nav_bar_docking.dart';
 import '../../../app/shell_layout.dart';
 import '../../shared/presentation/adaptive_docking_sheet.dart';
@@ -390,6 +391,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
         if (!mounted || !_sheet.isAttached) return;
         // The keyboard came back in the meantime.
         if (_keyboardUp && _searchFocused) return;
+        // A sheet opened over the tab meanwhile (the card of the place
+        // picked) holds the sheet down, and brings it back here itself.
+        if (ref.read(coveringSheetsProvider) > 0) return;
         final (extent, stops) = before;
         unawaited(
           _sheet.animateTo(
@@ -400,6 +404,17 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
         );
       })
       ..ensureVisualUpdate();
+  }
+
+  /// Where the sheet comes back to after a sheet opened over the tab: where
+  /// it is, or where the search took it from while it is parked for one.
+  double _sheetReturnExtent() {
+    final before = _sheetBeforeSearch;
+    if (_sheetParked && before != null) {
+      final (extent, stops) = before;
+      return mapSheetExtent(extent, from: stops, to: _sheetStops);
+    }
+    return _sheet.size;
   }
 
   @override
@@ -527,17 +542,20 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     required int count,
     required WaypointDetails initial,
     required void Function(int index, int offset) onSwap,
-  }) => showModalBottomSheet<WaypointEditResult>(
-    context: context,
-    useRootNavigator: true,
-    isScrollControlled: true,
-    useSafeArea: true,
-    showDragHandle: true,
-    builder: (context) => WaypointEditSheet(
-      index: index,
-      count: count,
-      initial: initial,
-      onSwap: onSwap,
+  }) => coverTabSheet(
+    context,
+    () => showModalBottomSheet<WaypointEditResult>(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (context) => WaypointEditSheet(
+        index: index,
+        count: count,
+        initial: initial,
+        onSwap: onSwap,
+      ),
     ),
   );
 
@@ -1237,6 +1255,11 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                   docks: true,
                   dockedBottomInset: bottomInset,
                   onDocked: _reportDocked,
+                  // Down out from behind a sheet opened over the tab, and
+                  // back where it was, or, parked under the keyboard for a
+                  // search, where the search took it from.
+                  collapseWhenCovered: active,
+                  coveredReturnExtent: _sheetReturnExtent,
                   // Under the AI's card, the map is fitted to that card.
                   onExtent: (extent) {
                     if (!_assistantOpen) _onSheetExtent(extent);

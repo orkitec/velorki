@@ -11,6 +11,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../map/data/position_provider.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../settings/data/units.dart';
+import '../../shared/application/covering_sheets.dart';
 import '../../sharing/data/share_service.dart';
 import '../data/osm_details.dart';
 import '../domain/osm_place_details.dart';
@@ -75,18 +76,21 @@ Future<PlaceAction?> showPlaceCard(
   double? offRouteM,
   LatLng? riderPosition,
   ValueChanged<double>? onCover,
-}) => showModalBottomSheet<PlaceAction>(
-  context: context,
-  useRootNavigator: true,
-  isScrollControlled: true,
-  useSafeArea: true,
-  showDragHandle: true,
-  builder: (_) => PlaceCard(
-    place: place,
-    actions: actions,
-    offRouteM: offRouteM,
-    riderPosition: riderPosition,
-    onCover: onCover,
+}) => coverTabSheet(
+  context,
+  () => showModalBottomSheet<PlaceAction>(
+    context: context,
+    useRootNavigator: true,
+    isScrollControlled: true,
+    useSafeArea: true,
+    showDragHandle: true,
+    builder: (_) => PlaceCard(
+      place: place,
+      actions: actions,
+      offRouteM: offRouteM,
+      riderPosition: riderPosition,
+      onCover: onCover,
+    ),
   ),
 );
 
@@ -279,44 +283,49 @@ class _PlaceCardState extends ConsumerState<PlaceCard> {
               ),
             ),
           )
-        : await showModalBottomSheet<PlaceOpenTarget>(
-            context: context,
-            useRootNavigator: true,
-            useSafeArea: true,
-            isScrollControlled: true,
-            builder: (sheet) => SingleChildScrollView(
-              padding: EdgeInsets.only(
-                top: 20,
-                bottom: 8 + MediaQuery.paddingOf(sheet).bottom,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-                    child: Text(
-                      l10n.placeCardOpenInTitle,
-                      style: Theme.of(sheet).textTheme.titleMedium,
-                    ),
-                  ),
-                  for (final target in targets)
-                    ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 24,
+        // Over the card, which keeps the tab's sheet down: counted all the
+        // same, so the count stays true whichever closes first.
+        : await coverTabSheet(
+            context,
+            () => showModalBottomSheet<PlaceOpenTarget>(
+              context: context,
+              useRootNavigator: true,
+              useSafeArea: true,
+              isScrollControlled: true,
+              builder: (sheet) => SingleChildScrollView(
+                padding: EdgeInsets.only(
+                  top: 20,
+                  bottom: 8 + MediaQuery.paddingOf(sheet).bottom,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                      child: Text(
+                        l10n.placeCardOpenInTitle,
+                        style: Theme.of(sheet).textTheme.titleMedium,
                       ),
-                      leading: Icon(_targetIcon(target)),
-                      title: Text(_targetLabel(l10n, target)),
-                      onTap: () => Navigator.of(sheet).pop(target),
                     ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                    child: TextButton(
-                      onPressed: () => Navigator.of(sheet).pop(),
-                      child: Text(l10n.commonCancel),
+                    for (final target in targets)
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                        ),
+                        leading: Icon(_targetIcon(target)),
+                        title: Text(_targetLabel(l10n, target)),
+                        onTap: () => Navigator.of(sheet).pop(target),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                      child: TextButton(
+                        onPressed: () => Navigator.of(sheet).pop(),
+                        child: Text(l10n.commonCancel),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           );

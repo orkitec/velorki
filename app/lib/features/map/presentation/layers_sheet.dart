@@ -10,6 +10,7 @@ import '../../search/presentation/search_field.dart'
     show poiKindIcon, gazetteerPoiKindLabel;
 import '../../search/presentation/search_settings_screen.dart'
     show searchGroupLabel;
+import '../../shared/application/covering_sheets.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../data/map_preferences.dart';
 import 'map_chrome.dart';
@@ -36,13 +37,16 @@ List<String> stopKindsOf(AppLocalizations l10n, SearchGroup group) => <String>[
 Future<void> showLayersSheet(
   BuildContext context, {
   MapStopsOffer offer = MapStopsOffer.none,
-}) => showModalBottomSheet<void>(
-  context: context,
-  useRootNavigator: true,
-  isScrollControlled: true,
-  useSafeArea: true,
-  showDragHandle: true,
-  builder: (_) => LayersSheet(offer: offer),
+}) => coverTabSheet(
+  context,
+  () => showModalBottomSheet<void>(
+    context: context,
+    useRootNavigator: true,
+    isScrollControlled: true,
+    useSafeArea: true,
+    showDragHandle: true,
+    builder: (_) => LayersSheet(offer: offer),
+  ),
 );
 
 /// What the map shows over its base: the cycle map overlay, and on the

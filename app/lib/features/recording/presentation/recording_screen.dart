@@ -2015,6 +2015,15 @@ class _RecordingScreenState extends ConsumerState<RecordingScreen> {
                   // bar, not the navigation bar, which is away.
                   onDocked: state.isRecording ? null : _reportDocked,
                   onExtent: _onSheetExtent,
+                  // Down out from behind a sheet opened over the tab. The
+                  // live sheet goes no lower than where it starts folding
+                  // into the figures bar (a hair above, against rounding):
+                  // below that the bar would fade in under the modal sheet,
+                  // and take the sheet's place.
+                  collapseWhenCovered: active,
+                  coveredExtent: state.isRecording
+                      ? collapsed + dockedRange + 0.001
+                      : collapsed,
                   child: state.isRecording
                       ? _LivePanel(
                           state: state,

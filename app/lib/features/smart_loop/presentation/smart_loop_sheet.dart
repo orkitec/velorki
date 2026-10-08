@@ -19,6 +19,7 @@ import '../../planner/presentation/profile_chip_row.dart';
 import '../../planner/presentation/route_format.dart';
 import '../../routing_tiles/presentation/missing_tiles_banner.dart';
 import '../../settings/data/units.dart';
+import '../../shared/application/covering_sheets.dart';
 import '../../shared/presentation/stat_tile.dart';
 import '../application/smart_loop_controller.dart';
 import '../data/loop_preferences.dart';
@@ -47,17 +48,20 @@ Future<bool> showSmartLoopSheet(
   if (!container.read(smartLoopControllerProvider).running) {
     container.read(smartLoopControllerProvider.notifier).reset();
   }
-  final done = await showModalBottomSheet<bool>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    // The shell's floating navigation bar belongs to the branch navigator, so
-    // a sheet opened there would sit under it.
-    useRootNavigator: true,
-    builder: (context) => SmartLoopSheet(
-      map: map,
-      chromeTop: chromeTop,
-      returnWhenDone: returnWhenDone,
+  final done = await coverTabSheet(
+    context,
+    () => showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      // The shell's floating navigation bar belongs to the branch navigator,
+      // so a sheet opened there would sit under it.
+      useRootNavigator: true,
+      builder: (context) => SmartLoopSheet(
+        map: map,
+        chromeTop: chromeTop,
+        returnWhenDone: returnWhenDone,
+      ),
     ),
   );
   // A loop taken with "Done" while the search ran leaves it running, to
