@@ -29,7 +29,7 @@
     "ai": "^7.0.123",
     "gray-matter": "^4.0.3",
     "maplibre-gl": "^6.11.2",
-    "next": "^16.3.7",
+    "next": "^16.3.8",
     "next-intl": "^4.14.8",
     "pino": "^10.3.1",
     "react": "^19.3.0",
@@ -53,12 +53,17 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "eslint": "^9.39.5",
-    "eslint-config-next": "^16.3.7",
+    "eslint-config-next": "^16.3.8",
     "postcss": "^8.5.28",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.71.0",
     "vitest": "^5.0.3",
     "yaml": "^2.9.1"
+  },
+  "overrides": {
+    "js-yaml@3": {
+      "argparse": "^2.0.1"
+    }
   }
 }
