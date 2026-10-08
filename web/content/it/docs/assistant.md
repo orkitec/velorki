@@ -1,10 +1,10 @@
 ---
 title: Assistente
 description: Descrivi in una frase il giro che vuoi e Velorki lo trasforma in un percorso, con il tuo consenso, al più una posizione arrotondata e senza cronologia inviata.
-order: 12
+order: 13
 ---
 
-L'assistente trasforma una frase come "un anello gravel di circa 80 km con una sosta al bar" in un percorso nel pianificatore. È l'unica parte di Velorki che invia a un server quello che hai scritto, quindi chiede prima il tuo consenso e ti dice esattamente cosa parte.
+L'assistente trasforma una frase come "un anello gravel di circa 80 km su strade tranquille" in un percorso nel pianificatore. È l'unica parte di Velorki che invia a un server quello che hai scritto, quindi chiede prima il tuo consenso e ti dice esattamente cosa parte.
 
 L'assistente fa parte di [Velorki Plus](./velorki-plus).
 
@@ -39,8 +39,10 @@ Puoi cambiare idea in qualsiasi momento in **Opzioni → Assistente IA → Cosa 
 Scrivi una frase e tocca **Chiedi**. Tre esempi sono lì da toccare:
 
 - **Un anello pianeggiante di 30 km da qui**
-- **60 km fino a Friburgo su strade tranquille**
-- **Un anello gravel di circa 80 km con una sosta al bar**
+- **Un anello di 50 km su strade tranquille**
+- **Un anello gravel di circa 80 km**
+
+Appena scrivi, i chip sotto **Aggiungi** offrono i desideri su cui agisce il pianificatore: **piatto**, **collinare**, **su sterrato**, **su strade tranquille** e **ritorno alla partenza**, ciascuno finché non è già detto.
 
 Altre cose che funzionano bene: una distanza e una direzione, un luogo da cui passare, un fondo, quanta salita vuoi, una partenza che non è dove sei.
 

@@ -1,7 +1,7 @@
 ---
 title: Offline maps and routing
 description: Download the map you look at and the routing data your routes are computed from, so planning, search and navigation keep working with no signal.
-order: 5
+order: 6
 ---
 
 Two separate downloads make Velorki work without a connection: the **map**, which is what you see, and the **routing data**, which is what routes and offline search are computed from. Download both for the area you ride in before a ride that leaves the signal behind.
@@ -16,7 +16,7 @@ Two separate downloads make Velorki work without a connection: the **map**, whic
 | Size | tens of megabytes for a city | often 125 to 250 MB per tile |
 | Without it | grey tiles where the map has not been cached | no routing and no offline search in that area |
 
-The routing data also carries the place index, so a downloaded area searches offline too. That is why the routing tiles screen says "A downloaded region also works for place search without a signal." The same downloaded region is what gives a recorded ride its surface breakdown, see [the library](./library).
+The routing data also carries the place index, so a downloaded area searches offline too and shows its [stops on the map](./stops-on-the-map). That is why the routing tiles screen says "A downloaded region also works for place search without a signal." The same downloaded region is what gives a recorded ride its surface breakdown, see [the library](./library).
 
 ## Download an area
 

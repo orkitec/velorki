@@ -1,7 +1,7 @@
 ---
 title: Fehlerbehebung
 description: "Lösungen für die häufigen Probleme: keine Position, keine Route, das Kachel-Banner, eine stumme Stimme unter iOS, hängende Downloads und tote Links."
-order: 17
+order: 18
 ---
 
 Was am häufigsten schiefgeht, und was jeweils dagegen hilft. Steht dein Problem nicht hier, sagt der letzte Abschnitt, wie du es meldest.
@@ -84,7 +84,7 @@ Wird eine Datei als falsche Art importiert, stell **Speichern als** auf dem Impo
 
 ## Die Aufnahme hat von selbst aufgehört
 
-Antworte unter Android auf **Im Hintergrund weiter aufzeichnen** mit **Erlauben** und erteile die Berechtigung für Mitteilungen; beides ist es, was das System davon abhält, die Aufnahme zu beenden, während das Handy schläft. Auf beiden Plattformen wird der Track fortlaufend geschrieben, wurde die App also beendet, bekommst du beim nächsten Start **Nicht beendete Fahrt** mit **Fortsetzen**, **Beenden** und **Verwerfen**. Siehe [Fahrt aufzeichnen](./recording-a-ride).
+Antworte unter Android auf **Im Hintergrund weiter aufzeichnen** mit **Einstellungen öffnen**, erlaube Velorki dort uneingeschränkte Akkunutzung und erteile die Berechtigung für Mitteilungen; beides ist es, was das System davon abhält, die Aufnahme zu beenden, während das Handy schläft. Auf beiden Plattformen wird der Track fortlaufend geschrieben, wurde die App also beendet, bekommst du beim nächsten Start **Nicht beendete Fahrt** mit **Fortsetzen**, **Beenden** und **Verwerfen**. Siehe [Fahrt aufzeichnen](./recording-a-ride).
 
 ## Ein Bluetooth-Sensor wird nicht gefunden
 

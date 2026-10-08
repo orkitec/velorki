@@ -1,7 +1,7 @@
 ---
 title: Problemen oplossen
 description: "Oplossingen voor de gewone problemen: geen positie, geen route, de banner over ontbrekende tegels, een stille stem op iOS, vastgelopen downloads en links die niet openen."
-order: 17
+order: 18
 ---
 
 Wat het vaakst misgaat, en wat je er telkens aan doet. Staat je probleem er niet bij, dan zegt de laatste sectie hoe je het meldt.

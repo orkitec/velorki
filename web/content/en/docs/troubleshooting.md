@@ -1,7 +1,7 @@
 ---
 title: Troubleshooting
 description: "Fixes for the common problems: no position, no route, the missing tiles banner, a silent voice on iOS, stuck downloads and links that will not open."
-order: 17
+order: 18
 ---
 
 The things that go wrong most often, and what to do about each. If your problem is not here, the last section says how to report it.
@@ -84,7 +84,7 @@ If a file imports as the wrong kind, switch **SAVE AS** between **Route** and **
 
 ## The recording stopped by itself
 
-On Android, answer **Allow** to **Keep recording in the background** and grant the notification permission; both are what stop the system killing the recording while the phone sleeps. On either platform, the track is written continuously, so if the app was killed you get **Unfinished ride** on the next launch, with **Resume**, **Finish** and **Discard**. See [recording a ride](./recording-a-ride).
+On Android, answer **Open settings** to **Keep recording in the background**, allow Velorki unrestricted battery use there, and grant the notification permission; both are what stop the system killing the recording while the phone sleeps. On either platform, the track is written continuously, so if the app was killed you get **Unfinished ride** on the next launch, with **Resume**, **Finish** and **Discard**. See [recording a ride](./recording-a-ride).
 
 ## A Bluetooth sensor is not found
 

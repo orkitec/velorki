@@ -50,7 +50,7 @@ Asked the first time you start a ride. The recording runs inside a notification 
 
 ### Battery optimisation (Android)
 
-Asked once, ever, the first time you start a ride: **Keep recording in the background**: "Android may stop the recording while the phone sleeps. Letting Velorki ignore battery optimisation keeps the track complete. You are asked only once." Answer **Allow** or **Not now**; it is never asked again.
+Asked once, ever, the first time you start a ride: **Keep recording in the background**: "Android may stop the recording while the phone sleeps. In the battery settings that open, pick Velorki and allow unrestricted battery use (on some phones: not optimised), and the track stays complete. You are asked only once." Answer **Open settings** or **Not now**; it is never asked again.
 
 ### Files
 
@@ -67,7 +67,7 @@ The bar at the bottom has four tabs.
 | **Plan** | The map, the place search, the route planner, smart loops and the assistant. |
 | **Record** | Starting, pausing and finishing a ride, the live figures, and your recent rides. |
 | **Library** | Everything you saved: **Routes** and **Rides**, with import and export. |
-| **Settings** | Appearance and units, navigation and recording options, offline data, search, connections, subscription and the legal pages. |
+| **Settings** | Appearance, units and language, navigation and recording options, offline data, search, connections, subscription and the legal pages. |
 
 The bar floats over the content, so lists scroll underneath it.
 
@@ -83,10 +83,11 @@ Until you choose, Velorki follows the phone's country: imperial only where the c
 
 ## Where things are
 
-- **The map controls** sit in a column on the right of the map: show my position, the cycling overlay, offline data, zoom in and zoom out. While a ride is recording a compass button joins them, which swaps between **North up** and **Map turns with you**.
+- **The map controls** sit in a column on the right of the map: **Show my position**, **Layers** (the cycle map and [stops on the map](./stops-on-the-map)), **Offline data** (not on a small screen such as an iPhone SE), **Zoom in** and **Zoom out**. On the Record tab a compass button joins them, which swaps between **North up** and **Map turns with you**.
 - **The search field** is at the top of the Plan tab.
 - **The bike profile** (Touring, Road, Gravel, MTB, Direct) is the row of chips under the search field.
 - **The route sheet** is the panel at the bottom of the Plan tab. Drag it up for the elevation profile and the surface breakdown, down to see more map.
+- **A sheet over the map**, such as Layers, a place's card, a point's sheet or the loop sheet, sends the tab's card down to its lowest height while it is open; it comes back up when the sheet closes.
 
 ## Related
 

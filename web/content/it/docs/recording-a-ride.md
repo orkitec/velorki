@@ -1,7 +1,7 @@
 ---
 title: Registrare un giro
 description: Avvia, metti in pausa e termina un giro, continua a registrare con lo schermo spento, risparmia batteria e recupera un giro dopo una chiusura forzata.
-order: 7
+order: 8
 ---
 
 La scheda Registra traccia il tuo giro e lo salva nella libreria quando termini. Continua a registrare con lo schermo spento e con l'app in background, e sopravvive alla chiusura o alla terminazione forzata dell'app.
@@ -10,7 +10,7 @@ La registrazione è gratuita e funziona anche senza alcuna connessione.
 
 ## Avvia, pausa, termina
 
-1. Apri la scheda **Registra**. Il pannello dice **Pronto a partire** e "La traccia viene scritta sul telefono mentre pedali, anche con lo schermo spento."
+1. Apri la scheda **Registra**. Il pannello dice **Pronto a partire**, con un breve suggerimento sotto.
 2. Sotto **Segui un percorso** scegli cosa segue il giro: **Nessun percorso**, **Il percorso nella scheda Pianifica** (offerto finché ce n'è uno) oppure uno dei tuoi percorsi salvati. Un percorso attiva la guida descritta in [navigazione svolta per svolta](./navigation). Finché non scegli, la scheda propone il percorso da cui arrivi: il percorso di cui avevi la scheda aperta nella Libreria, o il piano nella scheda Pianifica; la tua scelta vale poi fino al riavvio dell'app.
 3. Tocca **Inizia giro**.
 4. Durante il giro il pannello mostra un'etichetta di stato, il cronometro e i numeri: **Distanza**, **Velocità**, **Media**, poi **Dislivello**, **Discesa**, **In movimento**. Mentre segui un percorso si aggiunge una riga **Rimanenti** e **Arrivo**: la distanza ancora da pedalare e quando arriverai alla tua velocità media finora, due trattini finché il giro non ha una media.
@@ -43,7 +43,7 @@ Il primo giro fa comparire fino a tre richieste, descritte per intero in [primi 
 
 - **Posizione**, con prima la spiegazione di Velorki.
 - **Notifiche** su Android, perché la registrazione vive in una di esse. Rifiuta e Velorki avverte "Senza il permesso per le notifiche Android interrompe la registrazione quando esci dall'app."
-- **Ottimizzazione della batteria** su Android, una volta sola: "Android potrebbe interrompere la registrazione mentre il telefono dorme. Lasciare che Velorki ignori l'ottimizzazione della batteria mantiene la traccia completa. Te lo chiediamo una sola volta."
+- **Ottimizzazione della batteria** su Android, una volta sola: **Apri impostazioni** porta alle impostazioni della batteria, dove scegli Velorki e consenti l'uso della batteria senza limitazioni.
 
 ## Schermo spento, app chiusa
 

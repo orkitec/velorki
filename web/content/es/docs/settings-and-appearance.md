@@ -1,7 +1,7 @@
 ---
 title: Ajustes y apariencia
-description: Todos los ajustes de Velorki, del tema, el acento y las unidades a la navegación, la grabación, los sensores, la búsqueda, los datos sin conexión, las conexiones y las URL de los servidores.
-order: 14
+description: Todos los ajustes de Velorki, del tema, el acento, las unidades y el idioma a la navegación, la grabación, los sensores, la búsqueda, los datos sin conexión, las conexiones y las URL de los servidores.
+order: 15
 ---
 
 La pestaña Ajustes es una única página que se desplaza, con una sección por tema. Esta página la recorre de arriba abajo, para que encuentres el interruptor que buscas y sepas qué hace.
@@ -10,13 +10,17 @@ La pestaña Ajustes es una única página que se desplaza, con una sección por 
 
 **Tema**: **Sistema**, **Claro** u **Oscuro**. Sistema sigue al teléfono.
 
-**Mapa**: cómo se dibuja el propio mapa, con independencia del tema de la app: **Según el tema**, **Claro**, **Noche** o **Negro**. **Negro** es el adecuado para una salida a oscuras con la pantalla atenuada, y es el que fuerza en cualquier caso el ahorro de batería.
+**Mapa**: cómo se dibuja el propio mapa, con independencia del tema de la app, un segmento cada uno: **Según el tema**, **Claro**, **Noche** o **Negro**. **Negro** es el adecuado para una salida a oscuras con la pantalla atenuada, y es el que fuerza en cualquier caso el ahorro de batería.
 
-**Capa ciclista en mapas oscuros**: qué hacer con la capa de CyclOSM cuando el mapa de debajo es oscuro: **Invertida**, **Atenuada** o **Sin cambios**. La capa está dibujada para un fondo claro, así que en un mapa nocturno necesita ayuda. Esta fila solo aparece en versiones que incluyen la capa.
+**Capa ciclista en mapas oscuros**: qué hacer con el mapa ciclista de **Capas** cuando el mapa de debajo es oscuro: **Invertida**, **Atenuada** o **Sin cambios**. La capa está dibujada para un fondo claro, así que en un mapa nocturno necesita ayuda. Esta fila solo aparece en versiones que incluyen la capa.
 
-**Color de acento**: cuatro colores predefinidos: **Volt**, **Brasa**, **Glaciar** y **Baya**. El acento colorea los botones, los gráficos y la línea de la ruta en el mapa.
+**Cristal**: cuánto del mapa se ve a través de la barra de pestañas y de los controles sobre el mapa: **Opaca**, **Transparente**, **Cristal suave** o **Cristal claro**, el valor por defecto.
+
+**Color de acento**: cinco colores predefinidos: **Volt**, **Brasa**, **Glaciar**, **Baya** y **Bosque**. El acento colorea los botones, los gráficos y la línea de la ruta en el mapa.
 
 **Unidades**: **Métrico** o **Imperial**, que usan todas las cifras, deslizadores, ejes de gráficos, avisos de giro e indicaciones habladas de la app. Hasta que elijas, Velorki sigue el país del teléfono.
+
+**Idioma**: **Sistema**, English, Deutsch, Español, Français, Italiano o Nederlands, cada uno en su propio idioma. **Sistema** sigue los idiomas del teléfono en el orden fijado allí, y recurre al inglés. En Android 13 y posteriores, los ajustes del propio teléfono también pueden fijar un idioma solo para Velorki (Ajustes → Aplicaciones → Velorki → Idioma), que **Sistema** entonces sigue. Las indicaciones habladas siguen la misma elección.
 
 ## Navegación
 

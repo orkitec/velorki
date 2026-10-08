@@ -1,7 +1,7 @@
 ---
 title: Capteurs et montre
 description: "Fréquence cardiaque, cadence et puissance depuis un capteur Bluetooth, une Apple Watch ou l'app santé du téléphone : réglez-les une fois, elles sont conservées avec chaque sortie."
-order: 16
+order: 17
 ---
 
 Velorki peut afficher votre fréquence cardiaque, votre cadence de pédalage et votre puissance pendant l'enregistrement, puis conserver les trois avec la sortie. Les mesures viennent d'un capteur Bluetooth, d'une Apple Watch ou de l'app santé du téléphone ; tout est gratuit et tourne sur le téléphone.

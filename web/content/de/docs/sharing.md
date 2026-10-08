@@ -1,7 +1,7 @@
 ---
 title: Teilen
 description: Aus einer Route oder Fahrt einen Link machen, den jeder im Browser öffnen kann, sehen was die Seite zeigt und dass der Link nach einem Jahr abläuft.
-order: 10
+order: 11
 ---
 
 Ein Teilen-Link macht aus einer deiner Routen oder Fahrten eine Webseite, die jeder öffnen kann, mit Karte, Zahlen und GPX-Download. Nimm ihn, um eine Fahrt an eine Freundin zu schicken, eine Route in einem Forum zu posten oder eine Route ohne Datei auf ein anderes Handy zu bringen.

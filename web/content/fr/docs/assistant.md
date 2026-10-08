@@ -1,10 +1,10 @@
 ---
 title: Assistant
 description: "Décrivez la sortie que vous voulez en une phrase et Velorki en fait un itinéraire, avec votre consentement, une position arrondie au plus, et aucun historique d'itinéraires envoyé."
-order: 12
+order: 13
 ---
 
-L'assistant transforme une phrase comme « une boucle gravel d'environ 80 km avec une pause café » en itinéraire dans le planificateur. C'est la seule partie de Velorki qui envoie ce que vous avez tapé à un serveur : il demande donc d'abord votre consentement et vous dit exactement ce qui part.
+L'assistant transforme une phrase comme« une boucle gravel d’environ 80 km sur routes calmes » en itinéraire dans le planificateur. C'est la seule partie de Velorki qui envoie ce que vous avez tapé à un serveur : il demande donc d'abord votre consentement et vous dit exactement ce qui part.
 
 L'assistant fait partie de [Velorki Plus](./velorki-plus).
 
@@ -39,8 +39,10 @@ Changez d'avis à tout moment sous **Réglages → Assistant IA → Ce qui est e
 Tapez une phrase et touchez **Demander**. Trois exemples sont là à toucher :
 
 - **Une boucle plate de 30 km d’ici**
-- **60 km jusqu'à Fribourg par des routes calmes**
-- **Une boucle gravel d'environ 80 km avec une pause café**
+- **Une boucle de 50 km sur routes calmes**
+- **Une boucle gravel d’environ 80 km**
+
+Dès que vous tapez, des pastilles sous **Ajouter** proposent les souhaits que le planificateur prend en compte : **plat**, **vallonné**, **sur gravier**, **sur routes calmes** et **retour au départ**, chacune jusqu’à ce qu’elle soit dite.
 
 Autres choses qui marchent bien : une distance et une direction, un endroit où passer, un revêtement, la quantité de dénivelé voulue, un départ qui n'est pas là où vous êtes.
 

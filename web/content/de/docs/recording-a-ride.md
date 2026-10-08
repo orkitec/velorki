@@ -1,7 +1,7 @@
 ---
 title: Fahrt aufzeichnen
 description: Eine Fahrt starten, pausieren und beenden, mit ausgeschaltetem Bildschirm weiter aufzeichnen, Akku sparen und eine Fahrt nach einem Absturz zurückholen.
-order: 7
+order: 8
 ---
 
 Der Tab Aufnahme zeichnet deine Fahrt auf und speichert sie am Ende in der Bibliothek. Er zeichnet mit ausgeschaltetem Bildschirm und mit der App im Hintergrund weiter, und er übersteht es, wenn die App geschlossen oder beendet wird.
@@ -10,7 +10,7 @@ Die Aufnahme ist kostenlos und funktioniert ganz ohne Verbindung.
 
 ## Starten, pausieren, beenden
 
-1. Öffne den Tab **Aufnahme**. Dort steht **Bereit zur Fahrt** und "Der Track wird während der Fahrt auf dem Handy gespeichert, auch bei ausgeschaltetem Bildschirm."
+1. Öffne den Tab **Aufnahme**. Dort steht **Bereit zur Fahrt**, mit einem kurzen Tipp darunter.
 2. Wähle unter **Einer Route folgen**, wem die Fahrt folgt: **Keine Route**, **Die Route im Tab Planen** (angeboten, solange es eine gibt) oder einer deiner gespeicherten Routen. Eine Route schaltet die Führung aus [Navigation mit Abbiegehinweisen](./navigation) ein. Bis du wählst, schlägt der Tab die Route vor, von der du kommst: die Route, deren Karte du in der Bibliothek offen hattest, oder den Plan im Tab Planen; deine eigene Wahl gilt dann bis zum Neustart der App.
 3. Tippe auf **Fahrt starten**.
 4. Während der Fahrt zeigt die Übersicht eine Zustandsplakette, die laufende Uhr und die Zahlen: **Distanz**, **Tempo**, **Ø**, dann **Anstieg**, **Abstieg**, **Fahrzeit**. Solange du einer Route folgst, kommt eine Zeile **Übrig** und **Ankunft** dazu: die noch zu fahrende Distanz und wann du bei deinem bisherigen Schnitt ankommst, zwei Striche, bis die Fahrt einen Schnitt hat.
@@ -43,7 +43,7 @@ Die erste Fahrt löst bis zu drei Abfragen aus, ausführlich beschrieben unter [
 
 - **Standort**, mit Velorkis eigener Erklärung vorweg.
 - **Mitteilungen** unter Android, weil die Aufnahme in einer davon lebt. Lehnst du ab, warnt Velorki: "Ohne Benachrichtigungsberechtigung stoppt Android die Aufnahme, sobald du die App verlässt."
-- **Akku-Optimierung** unter Android, ein einziges Mal: "Android kann die Aufnahme stoppen, während das Handy schläft. Darf Velorki die Akku-Optimierung ignorieren, bleibt der Track vollständig. Die Frage kommt nur einmal."
+- **Akku-Optimierung** unter Android, ein einziges Mal: **Einstellungen öffnen** führt in die Akku-Einstellungen, wo du Velorki wählst und uneingeschränkte Akkunutzung erlaubst.
 
 ## Bildschirm aus, App geschlossen
 

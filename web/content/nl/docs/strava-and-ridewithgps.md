@@ -1,7 +1,7 @@
 ---
 title: Strava en Ride with GPS
 description: Koppel je Strava- of Ride with GPS-account om opgenomen ritten te uploaden en routes te importeren, en lees waarom een route naar Strava sturen een bestand is.
-order: 11
+order: 12
 ---
 
 Velorki kan namens jou met Strava en met Ride with GPS praten: een rit uploaden die je hebt opgenomen, en je routes uit die accounts in je bibliotheek halen. Een van beide diensten koppelen hoort bij [Velorki Plus](./velorki-plus); GPX-, FIT- en TCX-bestanden blijven gratis en doen hetzelfde met de hand.

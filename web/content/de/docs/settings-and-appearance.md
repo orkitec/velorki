@@ -1,7 +1,7 @@
 ---
 title: Einstellungen und Darstellung
-description: Jede Einstellung in Velorki, von Design, Akzent und Einheiten über Navigation, Aufnahme, Sensoren und Suche bis zu Offline-Daten, Verbindungen und Server-URLs.
-order: 14
+description: Jede Einstellung in Velorki, von Design, Akzent, Einheiten und Sprache über Navigation, Aufnahme, Sensoren und Suche bis zu Offline-Daten, Verbindungen und Server-URLs.
+order: 15
 ---
 
 Der Tab Einstellungen ist eine einzige scrollende Seite mit einem Abschnitt je Thema. Diese Seite geht ihn von oben nach unten durch, damit du den gesuchten Schalter findest und weißt, was er tut.
@@ -10,13 +10,17 @@ Der Tab Einstellungen ist eine einzige scrollende Seite mit einem Abschnitt je T
 
 **Design**: **System**, **Hell** oder **Dunkel**. System folgt dem Handy.
 
-**Karte**: wie die Karte selbst gezeichnet wird, unabhängig vom Design der App: **Folgt dem Design**, **Hell**, **Nacht** oder **Schwarz**. **Schwarz** ist das für eine Fahrt im Dunkeln mit gedimmtem Display, und Energiesparen erzwingt es ohnehin.
+**Karte**: wie die Karte selbst gezeichnet wird, unabhängig vom Design der App, je ein Segment: **Automatisch**, **Hell**, **Nacht** oder **Schwarz**. **Schwarz** ist das für eine Fahrt im Dunkeln mit gedimmtem Display, und Energiesparen erzwingt es ohnehin.
 
-**Rad-Overlay auf dunklen Karten**: was mit dem CyclOSM-Overlay geschehen soll, wenn die Karte darunter dunkel ist: **Invertiert**, **Gedimmt** oder **Unverändert**. Das Overlay ist für einen hellen Untergrund gezeichnet, auf einer Nachtkarte braucht es also Hilfe. Diese Zeile erscheint nur in Builds, die das Overlay mitbringen.
+**Rad-Overlay auf dunklen Karten**: was mit der Radkarte aus **Ebenen** geschehen soll, wenn die Karte darunter dunkel ist: **Invertiert**, **Gedimmt** oder **Unverändert**. Das Overlay ist für einen hellen Untergrund gezeichnet, auf einer Nachtkarte braucht es also Hilfe. Diese Zeile erscheint nur in Builds, die das Overlay mitbringen.
 
-**Akzent**: vier Farbvoreinstellungen: **Volt**, **Glut**, **Gletscher** und **Beere**. Der Akzent färbt die Schaltflächen, die Diagramme und die Routenlinie auf der Karte.
+**Glas**: wie viel von der Karte durch die Tab-Leiste und die Bedienelemente über der Karte scheint: **Deckend**, **Transparent**, **Leichtes Glas** oder **Klares Glas**, die Voreinstellung.
+
+**Akzent**: fünf Farbvoreinstellungen: **Volt**, **Glut**, **Gletscher**, **Beere** und **Wald**. Der Akzent färbt die Schaltflächen, die Diagramme und die Routenlinie auf der Karte.
 
 **Einheiten**: **Metrisch** oder **Imperial**, verwendet von jeder Zahl, jedem Schieberegler, jeder Diagrammachse, dem Abbiegeband und jeder Sprachansage in der App. Bis du wählst, folgt Velorki dem Land des Handys.
+
+**Sprache**: **System**, English, Deutsch, Español, Français, Italiano oder Nederlands, jede in ihrer eigenen Sprache benannt. **System** folgt den Sprachen des Handys in der dort eingestellten Reihenfolge und weicht auf Englisch aus. Ab Android 13 kann auch das Handy selbst eine Sprache nur für Velorki festlegen (Einstellungen → Apps → Velorki → Sprache), der **System** dann folgt. Die gesprochenen Abbiegehinweise folgen derselben Wahl.
 
 ## Navigation
 

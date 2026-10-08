@@ -35,7 +35,9 @@ If the planner is empty, or holds a single point, the sheet asks for a distance 
 
 ## While it searches
 
-Velorki sends the request out in eight directions and gives itself 25 seconds. A progress bar counts the finished requests, and **Stop** on the right ends the search early while keeping whatever has already been found.
+Velorki sends the request out in eight directions and routes each one on the phone, which takes from seconds to a minute or more, depending on the distance and the phone. A progress bar moves as directions finish, with a line under it: "Trying 8 directions · 3 checked so far".
+
+The best loop so far is on the map as soon as there is one, with its summary, **Another** and **Done** beside the bar, while the line says the search goes on for a quieter, smoother loop. When it ends, the line says how many loops the one shown was chosen from, "Best of 6 loops". **Stop** ends the search early and keeps what was found; **Done** keeps the loop on show and lets the search finish in the background without replacing it.
 
 ## Choosing among the candidates
 
@@ -49,12 +51,13 @@ If the slider or the bike profile changes after a search, the result is stale an
 
 ## Asking for a loop past a particular place
 
-The loop sheet has no field for a place to ride past, and no hill or surface preference. Those come from the [assistant](./assistant): a sentence like "A gravel loop of about 80 km with a café stop" or "a hilly 60 km loop from here past the lake" becomes a request with a via point and preferences attached, and the loop generator does the work. The assistant is part of Velorki Plus; the loop sheet itself is free.
+The loop sheet has no field for a place to ride past, and no hill or surface preference. Those come from the [assistant](./assistant): a sentence like "a hilly 60 km loop from here past the lake" becomes a request with a via point and preferences attached, and the loop generator does the work. The assistant is part of Velorki Plus; the loop sheet itself is free.
 
 ## When it finds nothing
 
 - **"No loop found here, try another distance."** Some places, an island or a dead-end valley, simply have no road network for a circle of that length. Move the distance up or down by a good margin, or start somewhere else.
 - **"Turn on location or tap the map to set a start."** No start point could be worked out. Allow location, or tap the map first.
+- **"Finding a loop took too long on this phone. Try a shorter distance."** The search gave up after 30 minutes.
 - **"Loop search failed:"** with a reason means the routing itself failed. Check [troubleshooting](./troubleshooting).
 
 Closing the sheet cancels a running search but keeps what it had already found.

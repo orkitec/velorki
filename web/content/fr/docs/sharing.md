@@ -1,7 +1,7 @@
 ---
 title: Partage
 description: Transformez un itinéraire ou une sortie en lien que tout le monde peut ouvrir dans un navigateur, voyez ce que montre la page et sachez que le lien expire au bout d’un an.
-order: 10
+order: 11
 ---
 
 Un lien de partage transforme l’un de vos itinéraires ou l’une de vos sorties en page web que tout le monde peut ouvrir, avec une carte, les chiffres et un téléchargement GPX. Servez-vous-en pour envoyer une sortie à un ami, publier un itinéraire sur un forum, ou transférer un itinéraire sur un autre téléphone sans fichier.

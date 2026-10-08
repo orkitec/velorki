@@ -1,7 +1,7 @@
 ---
 title: Importer et exporter
 description: "Ouvrir des fichiers GPX, FIT et TCX depuis n’importe où sur le téléphone, les enregistrer comme itinéraires ou sorties, et exporter les vôtres vers Komoot, Garmin ou tout autre outil."
-order: 9
+order: 10
 ---
 
 Velorki lit et écrit des fichiers GPX, FIT et TCX, et c’est ainsi que les itinéraires et les sorties circulent entre lui et le reste du monde. Tout cela est gratuit, sans compte ni connexion, et fonctionne avec Komoot, Garmin Connect, Strava, un compteur de vélo ou un simple fichier sur le téléphone.
@@ -24,7 +24,7 @@ Velorki détermine ce qu’est le fichier en lisant ses premiers octets, sans se
 
 ## Un lieu depuis une autre appli
 
-Velorki accepte aussi un lieu isolé où aller à vélo, et l’ouvre dans l’onglet **Planifier** comme s’ouvre un résultat de recherche : épinglé sur la carte, sur sa fiche avec **Itinéraire jusqu’ici** et **Partir d’ici**.
+Velorki accepte aussi un lieu isolé où aller à vélo, et l’ouvre dans l’onglet **Planifier** comme s’ouvre un résultat de recherche : épinglé sur la carte, sur sa [fiche du lieu](./search#la-fiche-du-lieu).
 
 - **Feuille de partage.** Partagez un lieu depuis Google Maps, Plans d’Apple, OpenStreetMap, un navigateur ou une messagerie et choisissez Velorki. Un lien de carte, des coordonnées comme `52.5200, 13.4050` ou `52°31'12"N 13°24'18"E`, ou une adresse fonctionnent tous ; une adresse va dans le champ de recherche, qui la trouve.
 - **Ouvrir avec** (Android). Un lieu qu’une autre appli ouvre (un lien `geo:`) propose Velorki dans le sélecteur.

@@ -1,7 +1,7 @@
 ---
 title: Confidentialité sur le téléphone
 description: "En termes de cycliste : ce qui reste sur votre téléphone, ce qui en sort, quand et vers qui. Il n’y a pas de compte et rien n’est téléversé sans que vous le demandiez."
-order: 15
+order: 16
 ---
 
 Velorki n’a pas de compte : il n’y a donc rien à quoi se connecter et rien sur vous sur un serveur. Cette page est la version en langage clair de ce que cela signifie en pratique ; la [politique de confidentialité](/privacy) est la version formelle.
@@ -24,7 +24,7 @@ Sur Android, Velorki est volontairement exclu de la sauvegarde cloud de Google e
 
 ### Quand vous regardez la carte
 
-Les tuiles de carte sont récupérées auprès d’OpenFreeMap, et de CyclOSM si vous activez la couche vélo. Demander une tuile indique au serveur de tuiles quel carré du monde vous regardez, et fait intervenir votre adresse IP, comme toute requête. Une zone que vous avez téléchargée est servie depuis le téléphone et ne demande rien.
+Les tuiles de carte sont récupérées auprès d’OpenFreeMap, et de CyclOSM si vous activez **Carte vélo** sous **Calques**. Demander une tuile indique au serveur de tuiles quel carré du monde vous regardez, et fait intervenir votre adresse IP, comme toute requête. Une zone que vous avez téléchargée est servie depuis le téléphone et ne demande rien.
 
 ### Quand vous planifiez
 
@@ -37,6 +37,8 @@ Le routage s’effectue sur votre téléphone partout où vous avez les tuiles d
 La recherche est traitée sur le téléphone partout où l’index de la zone est téléchargé, et rien de ce que vous tapez ne quitte l’appareil.
 
 Elle passe en ligne lorsque vous touchez **Rechercher « … » en ligne**, ou lorsque vous n’avez pas d’index pour la zone que vous regardez. Ce que vous avez tapé est alors envoyé à Photon, avec une position approximative pour que les résultats proches arrivent en premier.
+
+Les [haltes sur la carte](./stops-on-the-map) sont lues dans l’index sur le téléphone et ne demandent rien.
 
 Toucher **Détails** sur la fiche d’un lieu récupère ses détails (horaires d’ouverture, site web, etc.) auprès d’OpenStreetMap.
 

@@ -1,7 +1,7 @@
 ---
 title: Privacy sul telefono
 description: "In parole semplici: cosa resta sul tuo telefono, cosa lo lascia, quando e verso chi. Non c'è nessun account e nulla viene caricato se non lo chiedi."
-order: 15
+order: 16
 ---
 
 Velorki non ha account, quindi non c'è nulla a cui accedere e nulla su di te su un server. Questa pagina è la versione in parole semplici di cosa significa in pratica; l'[informativa sulla privacy](/privacy) è quella formale.
@@ -24,7 +24,7 @@ Su Android, Velorki è deliberatamente escluso dal backup cloud di Google e dal 
 
 ### Mentre guardi la mappa
 
-I riquadri della mappa vengono scaricati da OpenFreeMap, e da CyclOSM se attivi il livello ciclistico. Chiedere un riquadro dice al server dei riquadri quale quadrato del mondo stai guardando, e comporta il tuo indirizzo IP, come ogni richiesta. Un'area che hai scaricato viene servita dal telefono e non chiede nulla.
+I riquadri della mappa vengono scaricati da OpenFreeMap, e da CyclOSM se attivi **Mappa ciclabile** sotto **Livelli**. Chiedere un riquadro dice al server dei riquadri quale quadrato del mondo stai guardando, e comporta il tuo indirizzo IP, come ogni richiesta. Un'area che hai scaricato viene servita dal telefono e non chiede nulla.
 
 ### Mentre pianifichi
 
@@ -37,6 +37,8 @@ Il calcolo del percorso avviene sul tuo telefono ovunque tu abbia i riquadri. Pe
 La ricerca riceve risposta sul telefono ovunque l'indice dell'area sia scaricato, e nulla di quello che scrivi lascia il dispositivo.
 
 Va online quando tocchi **Cerca online "…"**, o quando non hai un indice per l'area che stai guardando. Allora quello che hai scritto va a Photon, insieme a una posizione approssimativa perché i risultati vicini vengano prima.
+
+Le [soste sulla mappa](./stops-on-the-map) sono lette dall'indice sul telefono e non chiedono nulla.
 
 Toccare **Dettagli** sulla scheda di un luogo recupera i suoi dettagli (orari di apertura, sito web e simili) da OpenStreetMap.
 

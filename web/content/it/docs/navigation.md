@@ -1,7 +1,7 @@
 ---
 title: Navigazione svolta per svolta
 description: Segui un percorso mentre registri, con un banner di svolta e indicazioni vocali, e scopri cosa fa Velorki quando lasci il percorso.
-order: 6
+order: 7
 ---
 
 Velorki ti guida lungo un percorso mentre un giro è in registrazione: un banner sopra la mappa mostra la prossima svolta, e una voce la dice ad alta voce. Attiva gli interruttori della navigazione, scegli un percorso da seguire nel tab Registra e avvia il giro.
@@ -90,6 +90,7 @@ Tutte le distanze sopra crescono con la qualità del tuo segnale GPS, più o men
 - **Mostra la mia posizione** riprende a seguirti dopo che hai spostato la mappa, al consueto zoom a livello di strada.
 - Mentre sei sul percorso il segnaposto della posizione è disegnato sul percorso e orientato lungo di esso, invece di vagare con il segnale.
 - Anche i punti del percorso sono sulla mappa: la partenza, la destinazione con la sua bandierina, ogni sosta con un nome o un tipo, e i luoghi accanto al percorso. Un punto che dà solo forma alla linea è omesso. Le soste che hai superato sbiadiscono, e restano sbiadite se torni indietro. Dopo un nuovo percorso alla destinazione, i segnaposto sono ancora quelli del tuo percorso.
+- Con **Soste** attivo sotto **Livelli**, sulla mappa ci sono le soste accanto al percorso davanti a te, e una riga elenca la prossima di ogni tipo con la sua distanza; vedi [soste sulla mappa](./stops-on-the-map#lungo-il-percorso-davanti-a-te).
 
 ## Vedi anche
 

@@ -1,7 +1,7 @@
 ---
 title: Cartes hors ligne et routage
 description: Téléchargez la carte que vous regardez et les données de routage qui servent à calculer vos itinéraires, pour que la planification, la recherche et la navigation fonctionnent sans réseau.
-order: 5
+order: 6
 ---
 
 Deux téléchargements distincts permettent à Velorki de fonctionner sans connexion : la **carte**, ce que vous voyez, et les **données de routage**, à partir desquelles sont calculés les itinéraires et la recherche hors ligne. Téléchargez les deux pour la zone où vous roulez avant une sortie qui quitte la couverture réseau.
@@ -16,7 +16,7 @@ Deux téléchargements distincts permettent à Velorki de fonctionner sans conne
 | Taille | quelques dizaines de mégaoctets pour une ville | souvent de 125 à 250 Mo par tuile |
 | Sans elles | des tuiles grises là où la carte n’est pas en cache | ni routage ni recherche hors ligne dans cette zone |
 
-Les données de routage contiennent aussi l’index des lieux : une zone téléchargée permet donc aussi de rechercher hors ligne. C’est pourquoi l’écran des tuiles de routage indique « Une région téléchargée permet aussi de rechercher des lieux sans réseau. » La même région téléchargée permet également d’obtenir la répartition des revêtements d’une sortie enregistrée, voir [la bibliothèque](./library).
+Les données de routage contiennent aussi l’index des lieux : une zone téléchargée permet donc aussi de rechercher hors ligne et affiche ses [haltes sur la carte](./stops-on-the-map). C’est pourquoi l’écran des tuiles de routage indique « Une région téléchargée permet aussi de rechercher des lieux sans réseau. » La même région téléchargée permet également d’obtenir la répartition des revêtements d’une sortie enregistrée, voir [la bibliothèque](./library).
 
 ## Télécharger une zone
 

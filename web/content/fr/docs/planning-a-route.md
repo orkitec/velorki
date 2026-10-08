@@ -13,12 +13,12 @@ L’onglet Planifier transforme des touchers sur la carte en itinéraire à vél
 3. **Touchez à nouveau** pour le point suivant. Chaque toucher ajoute un point à la fin de l’itinéraire, et le dernier, l’arrivée, porte un drapeau. Pour placer plutôt un point au milieu, **touchez la ligne de l’itinéraire** à l’endroit voulu : le point se pose sur la ligne à cet endroit, et vous pouvez le faire glisser comme n’importe quel autre.
 4. Velorki attend un instant après votre dernière modification, puis calcule. Pendant ce temps, la feuille affiche un indicateur de chargement et **Calcul de l’itinéraire…** ; puis les chiffres apparaissent.
 
-Vous pouvez aussi partir d’un lieu plutôt que d’un toucher. Saisissez dans le champ de recherche en haut et choisissez un résultat, ou touchez une halte sur la carte ; tant que le plan est vide, la fiche du lieu propose :
+Vous pouvez aussi partir d’un lieu plutôt que d’un toucher. Saisissez dans le champ de recherche en haut et choisissez un résultat, ou touchez une [halte sur la carte](./stops-on-the-map) ; tant que le plan est vide, la [fiche du lieu](./search#la-fiche-du-lieu) propose :
 
 - **Itinéraire jusqu’ici** part de votre position jusqu’au lieu.
 - **Partir d’ici** fait du lieu le premier point de l’itinéraire.
 
-Une fois qu’un itinéraire est en cours de planification, la fiche propose **Ajouter comme étape**, qui insère le lieu dans l’itinéraire à l’endroit où il se trouve sur le trajet, et **Arrivée**, qui l’ajoute à la fin. Voir [recherche](./search) pour ce que le champ de recherche peut trouver.
+Avec un départ seulement, elle propose **Arrivée**. Une fois qu’un itinéraire est en cours de planification, la fiche propose **Ajouter comme étape**, qui insère le lieu dans l’itinéraire à l’endroit où il se trouve sur le trajet, et **Arrivée**, qui l’ajoute à la fin. Voir [recherche](./search) pour ce que le champ de recherche peut trouver.
 
 ## Marquer un lieu à côté de l’itinéraire
 

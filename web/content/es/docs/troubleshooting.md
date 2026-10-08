@@ -1,7 +1,7 @@
 ---
 title: Solución de problemas
 description: "Soluciones para los problemas habituales: sin posición, sin ruta, el aviso de teselas que faltan, una voz muda en iOS, descargas atascadas y enlaces que no se abren."
-order: 17
+order: 18
 ---
 
 Lo que falla más a menudo y qué hacer en cada caso. Si tu problema no está aquí, la última sección explica cómo informar de él.
@@ -84,7 +84,7 @@ Si un archivo se importa con el tipo equivocado, cambia **GUARDAR COMO** entre *
 
 ## La grabación se detuvo sola
 
-En Android, responde **Permitir** a **Seguir grabando en segundo plano** y concede el permiso de notificaciones; las dos cosas son lo que impide que el sistema mate la grabación mientras el teléfono está en reposo. En ambas plataformas el track se escribe continuamente, así que si la app se mató te aparece **Salida sin terminar** en el siguiente inicio, con **Reanudar**, **Terminar** y **Descartar**. Consulta [grabar una salida](./recording-a-ride).
+En Android, responde **Abrir ajustes** a **Seguir grabando en segundo plano**, permite ahí a Velorki el uso de batería sin restricciones y concede el permiso de notificaciones; las dos cosas son lo que impide que el sistema mate la grabación mientras el teléfono está en reposo. En ambas plataformas el track se escribe continuamente, así que si la app se mató te aparece **Salida sin terminar** en el siguiente inicio, con **Reanudar**, **Terminar** y **Descartar**. Consulta [grabar una salida](./recording-a-ride).
 
 ## No se encuentra un sensor Bluetooth
 

@@ -1,7 +1,7 @@
 ---
 title: Dépannage
 description: "Solutions aux problèmes courants : pas de position, pas d’itinéraire, la bannière de tuiles manquantes, une voix muette sur iOS, des téléchargements bloqués et des liens qui ne s’ouvrent pas."
-order: 17
+order: 18
 ---
 
 Les problèmes les plus fréquents, et que faire pour chacun. Si le vôtre n’y figure pas, la dernière section explique comment le signaler.
@@ -84,7 +84,7 @@ Si un fichier s’importe sous le mauvais type, basculez **ENREGISTRER COMME** e
 
 ## L’enregistrement s’est arrêté tout seul
 
-Sur Android, répondez **Autoriser** à **Continuer l’enregistrement en arrière-plan** et accordez l’autorisation de notification ; ce sont elles qui empêchent le système de tuer l’enregistrement pendant que le téléphone est en veille. Sur les deux plateformes, la trace est écrite en continu : si l’app a été tuée, vous voyez **Sortie non terminée** au lancement suivant, avec **Reprendre**, **Terminer** et **Supprimer**. Voir [enregistrer une sortie](./recording-a-ride).
+Sur Android, répondez **Ouvrir les réglages** à **Continuer l’enregistrement en arrière-plan**, autorisez-y Velorki à utiliser la batterie sans restriction et accordez l’autorisation de notification ; ce sont elles qui empêchent le système de tuer l’enregistrement pendant que le téléphone est en veille. Sur les deux plateformes, la trace est écrite en continu : si l’app a été tuée, vous voyez **Sortie non terminée** au lancement suivant, avec **Reprendre**, **Terminer** et **Supprimer**. Voir [enregistrer une sortie](./recording-a-ride).
 
 ## Un capteur Bluetooth est introuvable
 

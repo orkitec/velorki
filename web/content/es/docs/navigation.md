@@ -1,7 +1,7 @@
 ---
 title: Navegación paso a paso
 description: Sigue una ruta mientras grabas, con un banner de giros y avisos de voz, y mira qué hace Velorki cuando te sales de la ruta.
-order: 6
+order: 7
 ---
 
 Velorki te guía por una ruta mientras grabas una salida: un banner sobre el mapa muestra el siguiente giro y una voz lo dice en alto. Activa los interruptores de navegación, elige una ruta que seguir en la pestaña Grabar y empieza la salida.
@@ -90,6 +90,7 @@ Todas las distancias anteriores crecen cuanto peor es tu posición GPS, aproxima
 - **Mostrar mi posición** vuelve a seguirte después de haber movido el mapa, con el zoom habitual a nivel de calle.
 - Mientras estás en la ruta, el marcador de posición se dibuja sobre la ruta y orientado a lo largo de ella, en lugar de ir dando bandazos con la posición.
 - Los propios puntos de la ruta también están en el mapa: el inicio, el destino con su bandera, cada parada que tiene nombre o tipo, y los lugares junto a la ruta. Un punto que solo da forma a la línea no aparece. Las paradas por las que ya has pasado se atenúan, y siguen atenuadas si vuelves atrás. Tras una nueva ruta al destino, los marcadores siguen siendo los de tu ruta.
+- Con **Paradas** activado en **Capas**, las paradas junto a la ruta por delante están en el mapa, y una línea enumera la siguiente de cada tipo con su distancia; consulta [paradas en el mapa](./stops-on-the-map#a-lo-largo-de-la-ruta).
 
 ## Relacionado
 

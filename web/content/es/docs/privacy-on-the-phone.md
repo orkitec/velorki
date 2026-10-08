@@ -1,7 +1,7 @@
 ---
 title: Privacidad en el teléfono
 description: "En palabras de ciclista: qué se queda en tu teléfono, qué sale de él, cuándo y hacia quién. No hay cuenta y no se sube nada si no lo pides."
-order: 15
+order: 16
 ---
 
 Velorki no tiene cuenta, así que no hay nada en lo que iniciar sesión ni nada sobre ti en un servidor. Esta página es la versión en lenguaje claro de lo que eso significa en la práctica; la [política de privacidad](/privacy) es la formal.
@@ -24,7 +24,7 @@ En Android, Velorki queda excluida a propósito de la copia de seguridad en la n
 
 ### Mientras miras el mapa
 
-Las teselas del mapa se piden a OpenFreeMap, y a CyclOSM si activas la capa ciclista. Pedir una tesela le dice al servidor qué cuadrado del mundo estás mirando e incluye tu dirección IP, como cualquier petición. Una zona que has descargado se sirve desde el teléfono y no pide nada.
+Las teselas del mapa se piden a OpenFreeMap, y a CyclOSM si activas **Mapa ciclista** en **Capas**. Pedir una tesela le dice al servidor qué cuadrado del mundo estás mirando e incluye tu dirección IP, como cualquier petición. Una zona que has descargado se sirve desde el teléfono y no pide nada.
 
 ### Mientras planificas
 
@@ -37,6 +37,8 @@ El cálculo de rutas se hace en tu teléfono allí donde tengas las teselas de r
 La búsqueda se responde en el teléfono allí donde esté descargado el índice de la zona, y nada de lo que escribes sale del dispositivo.
 
 Se hace en línea cuando tocas **Buscar «…» en línea**, o cuando no tienes índice para la zona que estás mirando. Entonces lo que escribiste va a Photon, junto con una posición aproximada para que los resultados cercanos salgan primero.
+
+Las [paradas en el mapa](./stops-on-the-map) se leen del índice del teléfono y no piden nada.
 
 Tocar **Detalles** en la ficha de un lugar descarga sus detalles (horario, sitio web y similares) de OpenStreetMap.
 

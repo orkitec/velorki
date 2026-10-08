@@ -1,7 +1,7 @@
 ---
 title: Offline kaarten en routering
 description: Download de kaart die je ziet en de routeringsgegevens waaruit je routes worden berekend, zodat plannen, zoeken en navigeren zonder bereik blijven werken.
-order: 5
+order: 6
 ---
 
 Twee aparte downloads laten Velorki werken zonder verbinding: de **kaart**, die je ziet, en de **routeringsgegevens**, waaruit routes en offline zoeken worden berekend. Download beide voor het gebied waar je rijdt, voor een rit die het bereik achter zich laat.
@@ -16,7 +16,7 @@ Twee aparte downloads laten Velorki werken zonder verbinding: de **kaart**, die 
 | Grootte | tientallen megabytes voor een stad | vaak 125 tot 250 MB per tegel |
 | Zonder | grijze tegels waar de kaart niet in de cache staat | geen routering en geen offline zoeken in dat gebied |
 
-De routeringsgegevens bevatten ook de plaatsindex, dus een gedownload gebied kun je ook offline doorzoeken. Daarom zegt het scherm met routeringstegels "Met een gedownloade regio werkt ook het zoeken naar plaatsen zonder bereik." Dezelfde gedownloade regio geeft een opgenomen rit zijn verdeling naar ondergrond, zie [de bibliotheek](./library).
+De routeringsgegevens bevatten ook de plaatsindex, dus een gedownload gebied kun je ook offline doorzoeken en toont het zijn [stopplekken op de kaart](./stops-on-the-map). Daarom zegt het scherm met routeringstegels "Met een gedownloade regio werkt ook het zoeken naar plaatsen zonder bereik." Dezelfde gedownloade regio geeft een opgenomen rit zijn verdeling naar ondergrond, zie [de bibliotheek](./library).
 
 ## Een gebied downloaden
 

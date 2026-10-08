@@ -1,10 +1,10 @@
 ---
 title: Asistente
 description: Describe en una frase la salida que quieres y Velorki la convierte en una ruta, con tu consentimiento, como mucho una posición aproximada y sin enviar tu historial de rutas.
-order: 12
+order: 13
 ---
 
-El asistente convierte una frase como "una ruta circular de gravel de unos 80 km con parada en un café" en una ruta en el planificador. Es la única parte de Velorki que envía lo que escribes a un servidor, así que primero te pide tu consentimiento y te dice exactamente qué se envía.
+El asistente convierte una frase como "una ruta circular de gravel de unos 80 km por carreteras tranquilas" en una ruta en el planificador. Es la única parte de Velorki que envía lo que escribes a un servidor, así que primero te pide tu consentimiento y te dice exactamente qué se envía.
 
 El asistente forma parte de [Velorki Plus](./velorki-plus).
 
@@ -39,8 +39,10 @@ Puedes cambiar de opinión en cualquier momento en **Ajustes → Asistente de IA
 Escribe una frase y toca **Preguntar**. Hay tres ejemplos para tocar:
 
 - **Una ruta circular llana de 30 km desde aquí**
-- **60 km hasta Friburgo por carreteras tranquilas**
-- **Una ruta circular de gravel de unos 80 km con parada en un café**
+- **Una ruta circular de 50 km por carreteras tranquilas**
+- **Una ruta circular de gravel de unos 80 km**
+
+Al escribir, unos chips bajo **Añadir** ofrecen los deseos que el planificador entiende: **llana**, **con desnivel**, **por pistas**, **por carreteras tranquilas** y **de vuelta al inicio**, cada uno hasta que ya se ha dicho.
 
 Otras cosas que funcionan bien: una distancia y una dirección, un lugar por el que pasar, un tipo de superficie, cuánto desnivel quieres, un inicio que no sea donde estás.
 

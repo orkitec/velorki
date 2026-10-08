@@ -1,7 +1,7 @@
 ---
 title: Impostazioni e aspetto
-description: Ogni impostazione di Velorki, da tema, accento e unità a navigazione, registrazione, sensori, ricerca, dati offline, connessioni e URL dei server.
-order: 14
+description: Ogni impostazione di Velorki, da tema, accento, unità e lingua a navigazione, registrazione, sensori, ricerca, dati offline, connessioni e URL dei server.
+order: 15
 ---
 
 Il tab Opzioni è un'unica pagina scorrevole con una sezione per argomento. Questa pagina la percorre dall'alto in basso, così trovi l'interruttore che cerchi e sai cosa fa.
@@ -10,13 +10,17 @@ Il tab Opzioni è un'unica pagina scorrevole con una sezione per argomento. Ques
 
 **Tema**: **Sistema**, **Chiaro** o **Scuro**. Sistema segue il telefono.
 
-**Mappa**: come viene disegnata la mappa stessa, indipendentemente dal tema dell'app: **Segue il tema**, **Chiara**, **Notte** o **Nera**. **Nera** è quella per un giro al buio con lo schermo attenuato, ed è quella che il risparmio batteria impone comunque.
+**Mappa**: come viene disegnata la mappa stessa, indipendentemente dal tema dell'app, un segmento ciascuna: **Segue il tema**, **Chiara**, **Notte** o **Nera**. **Nera** è quella per un giro al buio con lo schermo attenuato, ed è quella che il risparmio batteria impone comunque.
 
-**Livello ciclabile su mappe scure**: cosa fare del livello CyclOSM quando la mappa sotto è scura: **Invertito**, **Attenuato** o **Invariato**. Il livello è disegnato per uno sfondo chiaro, quindi su una mappa notturna ha bisogno di aiuto. Questa riga compare solo nelle build che includono il livello.
+**Livello ciclabile su mappe scure**: cosa fare della mappa ciclabile di **Livelli** quando la mappa sotto è scura: **Invertito**, **Attenuato** o **Invariato**. Il livello è disegnato per uno sfondo chiaro, quindi su una mappa notturna ha bisogno di aiuto. Questa riga compare solo nelle build che includono il livello.
 
-**Accento**: quattro combinazioni di colore: **Volt**, **Brace**, **Ghiacciaio** e **Lampone**. L'accento colora i pulsanti, i grafici e la linea del percorso sulla mappa.
+**Vetro**: quanta mappa si vede attraverso la barra delle schede e i comandi sulla mappa: **Opaca**, **Trasparente**, **Vetro leggero** o **Vetro chiaro**, quella predefinita.
+
+**Accento**: cinque combinazioni di colore: **Volt**, **Brace**, **Ghiacciaio**, **Lampone** e **Foresta**. L'accento colora i pulsanti, i grafici e la linea del percorso sulla mappa.
 
 **Unità**: **Metrico** o **Imperiale**, usate da ogni cifra, cursore, asse dei grafici, banner di svolta e indicazione vocale dell'app. Finché non scegli, Velorki segue il paese del telefono.
+
+**Lingua**: **Sistema**, English, Deutsch, Español, Français, Italiano o Nederlands, ciascuna nella propria lingua. **Sistema** segue le lingue del telefono nell'ordine impostato lì, e ripiega sull'inglese. Da Android 13 le impostazioni del telefono possono anche fissare una lingua per la sola Velorki (Impostazioni → App → Velorki → Lingua), che **Sistema** allora segue. Anche le svolte a voce seguono la stessa scelta.
 
 ## Navigazione
 

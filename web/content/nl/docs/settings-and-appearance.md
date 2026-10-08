@@ -1,7 +1,7 @@
 ---
 title: Instellingen en weergave
-description: Elke instelling in Velorki, van thema, accentkleur en eenheden tot navigatie, opname, sensoren, zoeken, offline gegevens, koppelingen en de server-URL's.
-order: 14
+description: Elke instelling in Velorki, van thema, accentkleur, eenheden en taal tot navigatie, opname, sensoren, zoeken, offline gegevens, koppelingen en de server-URL's.
+order: 15
 ---
 
 Het tabblad Instellingen is één scrollende pagina met een sectie per onderwerp. Deze pagina loopt hem van boven naar beneden door, zodat je de schakelaar vindt die je zoekt en weet wat hij doet.
@@ -10,13 +10,17 @@ Het tabblad Instellingen is één scrollende pagina met een sectie per onderwerp
 
 **Thema**: **Systeem**, **Licht** of **Donker**. Systeem volgt de telefoon.
 
-**Kaart**: hoe de kaart zelf wordt getekend, los van het thema van de app: **Volgt thema**, **Licht**, **Nacht** of **Zwart**. **Zwart** is die voor een rit in het donker met het scherm gedimd, en het is wat batterijbesparing toch al afdwingt.
+**Kaart**: hoe de kaart zelf wordt getekend, los van het thema van de app, **Volgt thema**, **Licht**, **Nacht** of **Zwart**, elk een segment. **Zwart** is die voor een rit in het donker met het scherm gedimd, en het is wat batterijbesparing toch al afdwingt.
 
-**Fietslaag op donkere kaarten**: wat er met de CyclOSM-laag gebeurt als de kaart eronder donker is: **Omgekeerd**, **Gedimd** of **Ongewijzigd**. De laag is getekend voor een lichte achtergrond, dus op een nachtkaart heeft hij hulp nodig. Deze rij verschijnt alleen in builds die de laag meeleveren.
+**Fietslaag op donkere kaarten**: wat er met de fietskaart uit **Kaartlagen** gebeurt als de kaart eronder donker is: **Omgekeerd**, **Gedimd** of **Ongewijzigd**. De laag is getekend voor een lichte achtergrond, dus op een nachtkaart heeft hij hulp nodig. Deze rij verschijnt alleen in builds die de laag meeleveren.
 
-**Accentkleur**: vier kleurvoorinstellingen: **Volt**, **Gloed**, **Gletsjer** en **Bes**. De accentkleur kleurt de knoppen, de grafieken en de routelijn op de kaart.
+**Glas**: hoeveel van de kaart doorschijnt door de tabbalk en de knoppen over de kaart: **Dekkend**, **Transparant**, **Licht glas** of **Helder glas**, de standaard.
+
+**Accentkleur**: vijf kleurvoorinstellingen: **Volt**, **Gloed**, **Gletsjer**, **Bes** en **Bos**. De accentkleur kleurt de knoppen, de grafieken en de routelijn op de kaart.
 
 **Eenheden**: **Metrisch** of **Imperiaal**, gebruikt door elke waarde, schuifregelaar, grafiekas, afslagbanner en gesproken aanwijzing in de app. Tot je kiest, volgt Velorki het land van de telefoon.
+
+**Taal**: **Systeem**, English, Deutsch, Español, Français, Italiano of Nederlands, elk in zijn eigen taal. **Systeem** volgt de talen van de telefoon in de volgorde die daar is ingesteld, en valt terug op Engels. Op Android 13 en nieuwer kunnen de eigen instellingen van de telefoon ook een taal voor Velorki alleen instellen (Instellingen → Apps → Velorki → Taal), die **Systeem** dan volgt. De gesproken afslagen volgen dezelfde keuze.
 
 ## Navigatie
 

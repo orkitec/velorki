@@ -1,7 +1,7 @@
 ---
 title: Condivisione
 description: Trasforma un percorso o un giro in un link che chiunque può aprire in un browser, scopri cosa mostra la pagina e sappi che il link scade dopo un anno.
-order: 10
+order: 11
 ---
 
 Un link di condivisione trasforma uno dei tuoi percorsi o giri in una pagina web che chiunque può aprire, con una mappa, i dati e il download del GPX. Usalo per mandare un giro a un amico, per pubblicare un percorso in un forum, o per portare un percorso su un altro telefono senza un file.

@@ -1,10 +1,10 @@
 ---
 title: Assistent
 description: Beschrijf in één zin de rit die je wilt en Velorki maakt er een route van, met je toestemming, hooguit een afgeronde positie en zonder routegeschiedenis te versturen.
-order: 12
+order: 13
 ---
 
-De assistent maakt van een zin als "een gravelrondje van zo'n 80 km met een koffiestop" een route in de planner. Het is het enige deel van Velorki dat wat je typte naar een server stuurt, dus vraagt het eerst om je toestemming en vertelt het je precies wat er meegaat.
+De assistent maakt van een zin als "een gravelrondje van zo'n 80 km over rustige wegen" een route in de planner. Het is het enige deel van Velorki dat wat je typte naar een server stuurt, dus vraagt het eerst om je toestemming en vertelt het je precies wat er meegaat.
 
 De assistent hoort bij [Velorki Plus](./velorki-plus).
 
@@ -39,8 +39,10 @@ Je kunt je bedenken wanneer je wilt onder **Instellingen → AI-assistent → Wa
 Typ een zin en tik op **Vragen**. Er staan drie voorbeelden klaar om op te tikken:
 
 - **Een vlak rondje van 30 km vanaf hier**
-- **60 km naar Freiburg over rustige wegen**
-- **Een gravelrondje van zo'n 80 km met een koffiestop**
+- **Een rondje van 50 km over rustige wegen**
+- **Een gravelrondje van zo'n 80 km**
+
+Zodra je typt, bieden chips onder **Toevoegen** de wensen waar de planner iets mee doet: **vlak**, **heuvelachtig**, **over gravel**, **over rustige wegen** en **terug naar de start**, elk tot het gezegd is.
 
 Andere dingen die goed werken: een afstand en een richting, een plaats om langs te rijden, een ondergrond, hoeveel klimmen je wilt, een start die niet is waar je bent.
 

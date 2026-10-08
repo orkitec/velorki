@@ -13,12 +13,12 @@ La pestaña Planificar convierte toques en el mapa en una ruta en bici, calculad
 3. **Vuelve a tocar** para el siguiente punto. Cada toque añade un punto al final de la ruta, y el último, el destino, lleva una bandera. Para poner un punto en medio, **toca la línea de la ruta** donde debe ir: el punto cae ahí sobre la línea, y puedes arrastrarlo como cualquier otro.
 4. Velorki espera un momento tras tu última edición y luego calcula la ruta. Mientras trabaja, el panel muestra un indicador de carga y **Calculando ruta…**; después aparecen las cifras.
 
-También puedes empezar desde un lugar en lugar de un toque. Escribe en el campo de búsqueda de arriba y elige un resultado, o toca una parada en el mapa; mientras la planificación sigue vacía, la tarjeta del lugar ofrece:
+También puedes empezar desde un lugar en lugar de un toque. Escribe en el campo de búsqueda de arriba y elige un resultado, o toca una [parada en el mapa](./stops-on-the-map); mientras la planificación sigue vacía, la [ficha del lugar](./search#la-ficha-de-un-lugar) ofrece:
 
 - **Ruta hasta aquí** va desde donde estás hasta el lugar.
 - **Empezar aquí** hace del lugar el primer punto de la ruta.
 
-Una vez que se está planificando una ruta, la tarjeta ofrece **Añadir como parada**, que mete el lugar en la ruta donde queda de camino, y **Como destino**, que lo añade al final. Consulta [búsqueda](./search) para saber qué puede encontrar el campo de búsqueda.
+Con solo un inicio, ofrece **Como destino**. Una vez que se está planificando una ruta, la tarjeta ofrece **Añadir como parada**, que mete el lugar en la ruta donde queda de camino, y **Como destino**, que lo añade al final. Consulta [búsqueda](./search) para saber qué puede encontrar el campo de búsqueda.
 
 ## Marcar un lugar junto a la ruta
 

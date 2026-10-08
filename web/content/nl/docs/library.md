@@ -1,7 +1,7 @@
 ---
 title: Bibliotheek
 description: Waar je opgeslagen routes en opgenomen ritten staan, wat de kaart van een route of rit toont, en hoe je ze een andere naam geeft of verwijdert.
-order: 8
+order: 9
 ---
 
 Het tabblad Bibliotheek bevat alles wat je hebt bewaard: de routes die je hebt gepland en de ritten die je hebt opgenomen. Het is een kaart boven de landkaart, net als de tabbladen Plannen en Opnemen: de inhoud scrolt op elke hoogte, en de greep bovenaan verschuift hem; als er niets te scrollen is, verschuift de hele kaart. Trek hem omhoog voor meer ruimte, trek hem helemaal naar beneden en de kaart klapt in tot in de navigatiebalk, zodat de landkaart overblijft. Hier open je een route opnieuw, lees je de grafieken en splits van een rit, en haal je bestanden binnen en zet je ze naar buiten.

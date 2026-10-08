@@ -1,7 +1,7 @@
 ---
 title: Navigation guidée
 description: "Suivez un itinéraire pendant l’enregistrement, avec une bannière de virage et des indications vocales, et découvrez ce que fait Velorki quand vous quittez l’itinéraire."
-order: 6
+order: 7
 ---
 
 Velorki vous guide le long d’un itinéraire pendant l’enregistrement d’une sortie : une bannière au-dessus de la carte montre le prochain virage, et une voix l’annonce à haute voix. Activez les interrupteurs de navigation, choisissez un itinéraire à suivre dans l’onglet Rouler, puis démarrez la sortie.
@@ -90,6 +90,7 @@ Toutes les distances ci-dessus augmentent avec la mauvaise qualité de votre sig
 - **Afficher ma position** reprend le suivi après que vous avez déplacé la carte, au zoom habituel au niveau de la rue.
 - Tant que vous êtes sur l’itinéraire, le marqueur de position est dessiné sur l’itinéraire et orienté le long de celui-ci, plutôt que de flotter au gré du signal.
 - Les points de l’itinéraire lui-même sont aussi sur la carte : le départ, l’arrivée avec son drapeau, chaque étape qui a un nom ou un type, et les lieux à côté de l’itinéraire. Un point qui ne fait que façonner la ligne est omis. Les étapes que vous avez dépassées s’estompent, et elles restent estompées si vous revenez en arrière. Après un nouvel itinéraire vers l’arrivée, les marqueurs sont toujours ceux de votre itinéraire.
+- Avec **Haltes** activé sous **Calques**, les haltes à côté de l’itinéraire à venir sont sur la carte, et une ligne liste la prochaine de chaque type avec sa distance ; voir [haltes sur la carte](./stops-on-the-map#le-long-de-litinéraire-à-venir).
 
 ## Voir aussi
 

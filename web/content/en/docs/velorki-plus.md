@@ -1,7 +1,7 @@
 ---
 title: Velorki Plus
 description: Everything that runs on your phone is free. Plus is a small subscription for the four features that need our servers or a partner account.
-order: 13
+order: 14
 ---
 
 Velorki Plus is an optional subscription that pays for the parts of Velorki that cannot run on your phone alone. Everything else, which is almost all of the app, is free for everyone, with or without it.

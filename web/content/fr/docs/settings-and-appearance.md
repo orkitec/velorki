@@ -1,7 +1,7 @@
 ---
 title: Réglages et apparence
-description: "Tous les réglages de Velorki, du thème, de l'accent et des unités à la navigation, l'enregistrement, les capteurs, la recherche, les données hors ligne, les connexions et les URL de serveur."
-order: 14
+description: "Tous les réglages de Velorki, du thème, de l'accent, des unités et de la langue à la navigation, l'enregistrement, les capteurs, la recherche, les données hors ligne, les connexions et les URL de serveur."
+order: 15
 ---
 
 L'onglet Réglages est une page défilante avec une section par sujet. Cette page la parcourt de haut en bas, pour que vous trouviez le réglage que vous cherchez et sachiez ce qu'il fait.
@@ -10,13 +10,17 @@ L'onglet Réglages est une page défilante avec une section par sujet. Cette pag
 
 **Thème** : **Système**, **Clair** ou **Sombre**. Système suit le téléphone.
 
-**Carte** : la façon dont la carte elle-même est dessinée, indépendamment du thème de l'app : **Suit le thème**, **Clair**, **Nuit** ou **Noir**. **Noir** est celui des sorties de nuit avec l'écran atténué, et c'est de toute façon celui qu'impose l'économie de batterie.
+**Carte** : la façon dont la carte elle-même est dessinée, indépendamment du thème de l'app, un segment chacune : **Suit le thème**, **Clair**, **Nuit** ou **Noir**. **Noir** est celui des sorties de nuit avec l'écran atténué, et c'est de toute façon celui qu'impose l'économie de batterie.
 
-**Surcouche vélo sur cartes sombres** : ce qu'il faut faire de la surcouche CyclOSM quand la carte dessous est sombre : **Inversée**, **Atténuée** ou **Inchangée**. La surcouche est dessinée pour un fond clair, il a donc besoin d'aide sur une carte de nuit. Cette ligne n'apparaît que dans les versions qui embarquent la surcouche.
+**Surcouche vélo sur cartes sombres** : ce qu'il faut faire de la carte vélo de **Calques** quand la carte dessous est sombre : **Inversée**, **Atténuée** ou **Inchangée**. La surcouche est dessinée pour un fond clair, il a donc besoin d'aide sur une carte de nuit. Cette ligne n'apparaît que dans les versions qui embarquent la surcouche.
 
-**Couleur** : quatre couleurs d'accent prédéfinies : **Volt**, **Braise**, **Glace** et **Baie**. La couleur d'accent colore les boutons, les graphiques et la ligne d'itinéraire sur la carte.
+**Verre** : la part de la carte qui transparaît à travers la barre d’onglets et les commandes sur la carte : **Opaque**, **Transparente**, **Verre léger** ou **Verre clair**, le réglage par défaut.
+
+**Couleur** : cinq couleurs d'accent prédéfinies : **Volt**, **Braise**, **Glace**, **Baie** et **Forêt**. La couleur d'accent colore les boutons, les graphiques et la ligne d'itinéraire sur la carte.
 
 **Unités** : **Métrique** ou **Impérial**, utilisées pour chaque chiffre, curseur, axe de graphique, bandeau de virage et indication vocale de l'app. Tant que vous n'avez pas choisi, Velorki suit le pays du téléphone.
+
+**Langue** : **Système**, English, Deutsch, Español, Français, Italiano ou Nederlands, chacune dans sa propre langue. **Système** suit les langues du téléphone dans l’ordre réglé là-bas, et se rabat sur l’anglais. Sur Android 13 et plus récent, les réglages du téléphone peuvent aussi fixer une langue pour Velorki seul (Paramètres → Applications → Velorki → Langue), que **Système** suit alors. Les indications vocales suivent le même choix.
 
 ## Navigation
 

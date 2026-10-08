@@ -1,7 +1,7 @@
 ---
 title: Privacy op de telefoon
 description: "In fietsertaal: wat er op je telefoon blijft, wat hem verlaat, wanneer en naar wie. Er is geen account en er wordt niets geüpload tenzij je erom vraagt."
-order: 15
+order: 16
 ---
 
 Velorki heeft geen account, dus er is niets om op in te loggen en niets over jou op een server. Deze pagina is de versie in gewone taal van wat dat in de praktijk betekent; het [privacybeleid](/privacy) is de formele.
@@ -24,7 +24,7 @@ Op Android is Velorki bewust uitgesloten van de cloudback-up van Google en van o
 
 ### Terwijl je naar de kaart kijkt
 
-Kaarttegels worden opgehaald bij OpenFreeMap, en bij CyclOSM als je de fietslaag aanzet. Een tegel opvragen vertelt de tegelserver naar welk vierkant van de wereld je kijkt, en daarbij hoort je IP-adres, zoals bij elk verzoek. Een gebied dat je hebt gedownload, komt van de telefoon en vraagt nergens om.
+Kaarttegels worden opgehaald bij OpenFreeMap, en bij CyclOSM als je **Fietskaart** aanzet onder **Kaartlagen**. Een tegel opvragen vertelt de tegelserver naar welk vierkant van de wereld je kijkt, en daarbij hoort je IP-adres, zoals bij elk verzoek. Een gebied dat je hebt gedownload, komt van de telefoon en vraagt nergens om.
 
 ### Terwijl je plant
 
@@ -37,6 +37,8 @@ Routering gebeurt op je telefoon overal waar je de routeringstegels hebt. Voor e
 Zoeken wordt beantwoord op de telefoon overal waar de index van het gebied is gedownload, en niets wat je typt verlaat het apparaat.
 
 Het gaat online als je op **Online zoeken naar "…"** tikt, of als je geen index hebt voor het gebied waar je naar kijkt. Dan gaat wat je typte naar Photon, samen met een globale positie zodat resultaten in de buurt bovenaan komen.
+
+[Stopplekken op de kaart](./stops-on-the-map) worden gelezen uit de index op de telefoon en vragen nergens om.
 
 Een tik op **Details** op de kaart van een plaats haalt de details ervan (openingstijden, website en dergelijke) op bij OpenStreetMap.
 

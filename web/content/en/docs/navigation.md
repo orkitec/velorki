@@ -1,7 +1,7 @@
 ---
 title: Turn-by-turn navigation
 description: Follow a route while you record, with a turn banner and spoken cues, and see what Velorki does when you leave the route.
-order: 6
+order: 7
 ---
 
 Velorki guides you along a route while a ride is recording: a banner over the map shows the next turn, and a voice says it out loud. Turn on the navigation switches, pick a route to follow on the Record tab, and start the ride.
@@ -90,6 +90,7 @@ All of the distances above grow with how bad your GPS fix is, roughly doubling w
 - **Show my position** picks the following up again after you have panned the map, at the usual street-level zoom.
 - While you are on the route the position marker is drawn on the route and pointed along it, rather than wandering with the fix.
 - The route's own points are on the map too: the start, the destination with its flag, every stop that has a name or a type, and the places beside the route. A point that only shapes the line is left out. The stops you have ridden past fade, and they stay faded if you go back. After a new route to the destination, the markers are still your route's.
+- With **Stops** on under **Layers**, the stops beside the route ahead are on the map, and a line lists the next of each kind with its distance; see [stops on the map](./stops-on-the-map#along-the-route-ahead).
 
 ## Related
 

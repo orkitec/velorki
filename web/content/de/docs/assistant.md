@@ -1,10 +1,10 @@
 ---
 title: Assistent
 description: Die gewünschte Fahrt in einem Satz beschreiben und Velorki macht eine Route daraus, mit deiner Zustimmung, höchstens grober Position und ohne Routenhistorie.
-order: 12
+order: 13
 ---
 
-Der Assistent macht aus einem Satz wie "eine Gravel-Runde von etwa 80 km mit Café-Stopp" eine Route im Planer. Er ist der einzige Teil von Velorki, der dein Geschriebenes an einen Server schickt, deshalb fragt er zuerst nach deiner Zustimmung und sagt genau, was mitgeht.
+Der Assistent macht aus einem Satz wie "eine Gravel-Runde von etwa 80 km auf ruhigen Straßen" eine Route im Planer. Er ist der einzige Teil von Velorki, der dein Geschriebenes an einen Server schickt, deshalb fragt er zuerst nach deiner Zustimmung und sagt genau, was mitgeht.
 
 Der Assistent gehört zu [Velorki Plus](./velorki-plus).
 
@@ -39,8 +39,10 @@ Du kannst es jederzeit unter **Einstellungen → KI-Assistent → Was gesendet w
 Tippe einen Satz ein und tippe auf **Fragen**. Drei Beispiele stehen zum Antippen bereit:
 
 - **Eine flache 30-km-Runde von hier**
-- **60 km nach Freiburg auf ruhigen Straßen**
-- **Eine Gravel-Runde von etwa 80 km mit Café-Stopp**
+- **Eine 50-km-Runde auf ruhigen Straßen**
+- **Eine Gravel-Runde von etwa 80 km**
+
+Sobald du tippst, bieten Chips unter **Ergänzen** die Wünsche an, nach denen der Planer sich richtet: **flach**, **hügelig**, **auf Schotter**, **auf ruhigen Straßen** und **zurück zum Start**, jeweils bis sie im Satz stehen.
 
 Was ebenfalls gut funktioniert: eine Distanz und eine Richtung, ein Ort zum Vorbeifahren, ein Belag, wie viele Höhenmeter du willst, ein Start, der nicht dein Standort ist.
 

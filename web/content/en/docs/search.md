@@ -10,17 +10,26 @@ The search field at the top of the Plan tab finds towns, streets, house numbers 
 
 1. Open the **Plan** tab and tap the field at the top, hinted **Search for a place**.
 2. Type at least three characters. Results appear in a card under the field as you type.
-3. Tap a result.
+3. Tap a result. The map moves to the place, pins it and opens its card.
 
-A card comes up with the place's name, what it is, how far it is from you and, with a route, how far off the route. The map moves to the place and pins it. What the card offers depends on the plan:
+Coordinates typed or pasted into the field, `40.71747, -73.94840` or `40,71747° N, 73,94840° W` as map apps copy them, are the place itself: one result at that spot, with nothing looked up and nothing sent. A place shared from another app opens the same way, see [import and export](./import-and-export#a-place-from-another-app).
+
+## The place card
+
+A search result, a [stop on the map](./stops-on-the-map) or a place shared from another app opens a card with the place's name, what it is, its town, how far it is from you and, with a route, how far off the route. Nothing changes until you pick an action, which depends on the plan:
 
 - **Nothing planned yet**: **Route here** rides from where you are to the place; **Start here** makes it the first point of the route.
 - **Only a start**: **Destination** makes it the end of the route.
 - **A route**: **Add as a stop** puts it into the route where it lies along the way; **Destination** adds it at the end.
 
-Under these, **Details** fetches the place's opening hours (with whether it is open now), website, phone number and the like from OpenStreetMap, only when you tap it; it is missing for streets and places without an OpenStreetMap id. **Open in…** shows the place in another map app or on openstreetmap.org, or shares it.
+On the Record tab the card only tells, with no actions.
 
-Closing the card (the **X**, a swipe down or a tap on the map) changes nothing and clears the search. A stop tapped on the map opens the same card.
+Under them:
+
+- **Details** fetches the place from OpenStreetMap, only when you tap it: opening hours with whether it is open now, website, phone number, cuisine, wheelchair access, outdoor seating and its Wikipedia article, as far as they are mapped. Details are kept on the phone for a week, so the place shows them at once the next time. The button is missing for streets and for places without an OpenStreetMap id.
+- **Open in…** shows the place in Apple Maps, in Google Maps when it is installed (iPhone), in a map app you pick (Android) or on OpenStreetMap in the browser, or hands it to **Share…**.
+
+Closing the card (the **X**, a swipe down or a tap on the map) changes nothing and clears the search.
 
 ## Offline or online
 
@@ -43,9 +52,11 @@ That row stays visible while you scroll the list, and it is shown under an error
 
 - **Places**: cities, towns, villages, hamlets, suburbs, neighbourhoods, localities and islands.
 - **Streets**, with house numbers.
-- **Points of interest**, each with its own icon and label: Cafe, Drinking water, Toilets, Bike repair station, Bike shop, Bike rental, Bike parking, E-bike charging, Shelter, Campsite, Hotel, Hostel, Mountain hut, Supermarket, Bakery, Pharmacy, Picnic site, Station, Ferry terminal, Airport, Viewpoint, Peak, Mountain pass, Park, Beach, Water, Nature reserve, Attraction, Museum, Historic site, Place of worship, Hospital, University, Sports venue, Shopping centre, Tower, Lighthouse, Building.
+- **Points of interest**, each with its own icon and label: Cafe, Restaurant, Fast food, Ice cream, Petrol station, Air pump, Drinking water, Toilets, Bike repair station, Bike shop, Bike rental, Bike parking, E-bike charging, Shelter, Campsite, Hotel, Hostel, Mountain hut, Supermarket, Bakery, Pharmacy, Picnic site, Station, Ferry terminal, Airport, Viewpoint, Peak, Mountain pass, Park, Beach, Water, Nature reserve, Attraction, Museum, Historic site, Place of worship, Hospital, University, Sports venue, Shopping centre, Tower, Lighthouse, Building.
 
-Offline rows show the kind, the distance, the house number and the town under the name, in that order, as far as each is known: "Drinking water · 350 m", "Street · 400 · Manhattan". A tap, a toilet, a shelter or a bike stand with no name of its own is listed under its kind instead.
+- **Well-known places in your language**: "Parigi" finds Paris, and a famous landmark comes before its namesakes.
+
+Offline rows show the kind, the distance and the town under the name, as far as each is known: "Drinking water · 350 m", "Street · Manhattan". A tap, a toilet, a shelter or a bike stand with no name of its own is listed under its kind instead.
 
 ## Searching by kind
 
@@ -57,13 +68,13 @@ A search by kind ignores the group switches described below.
 
 ## House numbers
 
-Put the number at the start or the end: "Hauptstrasse 12", "400 W 42nd". Velorki takes the number off, matches the street, and answers at the number's own position along it.
+Type the number where your country puts it: "Hauptstrasse 12", "400 W 42nd", "Via Roma 12/A", "Budapest, Fő utca 12". Velorki finds the street and answers at the number's own position along it; the row is the address as you typed it, "400 West 42nd Street". A town before the street with a comma, or after it, says which place's street you mean. A postcode is left out, and a number that belongs to a street's name, "Route 66", stays part of the name.
 
-Where the index holds that exact number, the position is exact. Where the number falls between two it knows, Velorki interpolates and marks the row **≈ 400** so you can see it is an estimate. A number in the middle of a query is treated as part of the name, and so is an ordinal such as "42nd".
+Where the number falls between two the index knows, Velorki estimates its position and the row says **≈ 400** so you can see it is a guess.
 
-## Typos
+## Typos, short forms and other alphabets
 
-If a query matches nothing at all, Velorki takes the words it does not recognise, finds the likeliest words in the index that are one or two letters away, and runs the search again. The card then says **Showing results for "…"** above the list, with what it actually searched for.
+Offline search forgives a letter or two wrong, a word written together or apart, and short forms such as "St" or "Str.". Names in Cyrillic or Greek can be typed in Latin letters, "aleksandar nevski" or "Nafplio". When nothing answers well, Velorki tries the likeliest words from the index instead and the card says **Showing results for "…"** above the list, with what it actually searched for.
 
 ## Ordering the groups
 
@@ -85,6 +96,7 @@ There is no save button; changes take effect on your next keystroke. A group tha
 
 ## Related
 
+- [Stops on the map](./stops-on-the-map)
 - [Offline maps and routing](./offline-maps-and-routing)
 - [Planning a route](./planning-a-route)
 - [Settings and appearance](./settings-and-appearance)

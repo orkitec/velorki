@@ -35,7 +35,9 @@ Is de planner leeg, of staat er één punt in, dan vraagt het paneel in plaats d
 
 ## Tijdens het zoeken
 
-Velorki stuurt het verzoek in acht richtingen uit en geeft zichzelf 25 seconden. Een voortgangsbalk telt de afgeronde verzoeken, en **Stoppen** rechts beëindigt het zoeken vroeg en houdt wat al gevonden is.
+Velorki stuurt het verzoek in acht richtingen uit en routeert elke richting op de telefoon, wat van seconden tot een minuut of meer duurt, afhankelijk van de afstand en de telefoon. Een voortgangsbalk beweegt mee terwijl richtingen klaarkomen, met een regel eronder: "8 richtingen proberen · 3 al gecontroleerd".
+
+Het beste rondje tot nu toe staat op de kaart zodra er een is, met zijn samenvatting, **Een ander** en **Klaar** naast de balk, terwijl de regel zegt dat het zoeken doorgaat naar een rustiger, soepeler rondje. Als het eindigt, zegt de regel uit hoeveel rondjes het getoonde is gekozen, "Beste van 6 rondjes". **Stoppen** beëindigt het zoeken vroeg en houdt wat gevonden is; **Klaar** houdt het getoonde rondje en laat het zoeken op de achtergrond afmaken zonder het te vervangen.
 
 ## Kiezen tussen de kandidaten
 
@@ -49,12 +51,13 @@ Veranderen de schuifregelaar of het fietsprofiel na een zoekopdracht, dan is het
 
 ## Een rondje langs een bepaalde plek vragen
 
-Het rondjespaneel heeft geen veld voor een plek om langs te rijden, en geen voorkeur voor heuvels of ondergrond. Die komen van de [assistent](./assistant): een zin als "Een gravelrondje van zo'n 80 km met een koffiestop" of "een heuvelachtig rondje van 60 km vanaf hier langs het meer" wordt een verzoek met een via-punt en voorkeuren erbij, en de rondjesgenerator doet het werk. De assistent hoort bij Velorki Plus; het rondjespaneel zelf is gratis.
+Het rondjespaneel heeft geen veld voor een plek om langs te rijden, en geen voorkeur voor heuvels of ondergrond. Die komen van de [assistent](./assistant): een zin als "een heuvelachtig rondje van 60 km vanaf hier langs het meer" wordt een verzoek met een via-punt en voorkeuren erbij, en de rondjesgenerator doet het werk. De assistent hoort bij Velorki Plus; het rondjespaneel zelf is gratis.
 
 ## Als er niets wordt gevonden
 
 - **"Hier geen rondje gevonden, probeer een andere afstand."** Sommige plekken, een eiland of een doodlopend dal, hebben gewoon geen wegennet voor een cirkel van die lengte. Verander de afstand flink omhoog of omlaag, of begin ergens anders.
 - **"Zet je locatie aan of tik op de kaart om een start te kiezen."** Er kon geen startpunt worden bepaald. Sta je locatie toe, of tik eerst op de kaart.
+- **"Een rondje zoeken duurde op deze telefoon te lang. Probeer een kortere afstand."** Het zoeken gaf het op na 30 minuten.
 - **"Rondje zoeken mislukt:"** met een reden betekent dat de routering zelf is mislukt. Kijk bij [problemen oplossen](./troubleshooting).
 
 Het paneel sluiten breekt een lopende zoekopdracht af, maar houdt wat al gevonden was.

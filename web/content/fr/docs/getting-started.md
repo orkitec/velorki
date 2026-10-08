@@ -50,7 +50,7 @@ Demandées la première fois que vous démarrez une sortie. L’enregistrement s
 
 ### Optimisation de la batterie (Android)
 
-Demandée une seule fois, la première fois que vous démarrez une sortie : **Continuer l’enregistrement en arrière-plan** : « Android peut arrêter l’enregistrement pendant la veille du téléphone. Si Velorki ignore l’optimisation de la batterie, la trace reste complète. Cette question ne vous est posée qu’une fois. » Répondez **Ouvrir les réglages** ou **Plus tard** ; elle n’est plus jamais reposée.
+Demandée une seule fois, la première fois que vous démarrez une sortie : **Continuer l’enregistrement en arrière-plan** :« Android peut arrêter l’enregistrement pendant la mise en veille du téléphone. Dans les réglages de batterie qui s’ouvrent, choisissez Velorki et autorisez une utilisation sans restriction de la batterie (sur certains téléphones : non optimisée), et la trace restera complète. La question n’est posée qu’une fois. » Répondez **Ouvrir les réglages** ou **Plus tard** ; elle n’est plus jamais reposée.
 
 ### Fichiers
 
@@ -67,7 +67,7 @@ La barre en bas comporte quatre onglets.
 | **Planifier** | La carte, la recherche de lieux, le planificateur d’itinéraires, les boucles intelligentes et l’assistant. |
 | **Rouler** | Démarrer, mettre en pause et terminer une sortie, les chiffres en direct et vos sorties récentes. |
 | **Bibliothèque** | Tout ce que vous avez enregistré : **Itinéraires** et **Sorties**, avec import et export. |
-| **Réglages** | Apparence et unités, options de navigation et d’enregistrement, données hors ligne, recherche, connexions, abonnement et pages légales. |
+| **Réglages** | Apparence, unités et langue, options de navigation et d’enregistrement, données hors ligne, recherche, connexions, abonnement et pages légales. |
 
 La barre flotte au-dessus du contenu, si bien que les listes défilent dessous.
 
@@ -83,10 +83,11 @@ Tant que vous n’avez pas choisi, Velorki suit le pays du téléphone : impé
 
 ## Où trouver quoi
 
-- **Les commandes de la carte** forment une colonne à droite de la carte : afficher ma position, la superposition cyclable, les données hors ligne, zoom avant et zoom arrière. Pendant l’enregistrement d’une sortie, un bouton boussole s’y ajoute et bascule entre **Nord en haut** et **La carte tourne avec vous**.
+- **Les commandes de la carte** forment une colonne à droite de la carte : **Afficher ma position**, **Calques** (la carte vélo et les [haltes sur la carte](./stops-on-the-map)), **Données hors ligne** (absentes sur un petit écran comme celui d’un iPhone SE), **Zoom avant** et **Zoom arrière**. Dans l’onglet Rouler, un bouton boussole s’y ajoute et bascule entre **Nord en haut** et **La carte tourne avec vous**.
 - **Le champ de recherche** se trouve en haut de l’onglet Planifier.
 - **Le profil de vélo** (Rando, Route, Gravel, VTT, Direct) est la rangée de pastilles sous le champ de recherche.
 - **La feuille d’itinéraire** est le panneau en bas de l’onglet Planifier. Tirez-la vers le haut pour le profil altimétrique et la répartition des revêtements, vers le bas pour voir plus de carte.
+- **Une feuille par-dessus la carte**, comme Calques, la fiche d’un lieu, la feuille d’un point ou la feuille de boucle, fait descendre la fiche de l’onglet à sa hauteur minimale tant qu’elle est ouverte ; elle remonte quand la feuille se ferme.
 
 ## Voir aussi
 

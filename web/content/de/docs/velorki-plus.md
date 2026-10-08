@@ -1,7 +1,7 @@
 ---
 title: Velorki Plus
 description: Alles, was auf dem Handy läuft, ist kostenlos. Plus ist ein kleines Abo für die vier Funktionen, die unsere Server oder ein Partnerkonto brauchen.
-order: 13
+order: 14
 ---
 
 Velorki Plus ist ein freiwilliges Abo, das die Teile von Velorki bezahlt, die nicht allein auf deinem Handy laufen können. Alles andere, also fast die ganze App, ist für alle kostenlos, mit oder ohne Plus.

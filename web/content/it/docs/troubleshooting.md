@@ -1,7 +1,7 @@
 ---
 title: Risoluzione dei problemi
 description: "Soluzioni ai problemi più comuni: nessuna posizione, nessun percorso, il banner dei riquadri, una voce muta su iOS, download bloccati e link che non si aprono."
-order: 17
+order: 18
 ---
 
 Le cose che vanno storte più spesso, e cosa fare in ogni caso. Se il tuo problema non è qui, l'ultima sezione dice come segnalarlo.
@@ -84,7 +84,7 @@ Se un file viene importato come il tipo sbagliato, cambia **SALVA COME** tra **P
 
 ## La registrazione si è fermata da sola
 
-Su Android, rispondi **Consenti** a **Continua a registrare in background** e concedi il permesso per le notifiche; sono entrambe le cose che impediscono al sistema di uccidere la registrazione mentre il telefono dorme. Su entrambe le piattaforme la traccia viene scritta in continuazione, quindi se l'app è stata chiusa trovi **Giro non terminato** al prossimo avvio, con **Riprendi**, **Termina** e **Scarta**. Vedi [registrare un giro](./recording-a-ride).
+Su Android, rispondi **Apri impostazioni** a **Continua a registrare in background**, consenti lì a Velorki l'uso della batteria senza limitazioni e concedi il permesso per le notifiche; sono entrambe le cose che impediscono al sistema di uccidere la registrazione mentre il telefono dorme. Su entrambe le piattaforme la traccia viene scritta in continuazione, quindi se l'app è stata chiusa trovi **Giro non terminato** al prossimo avvio, con **Riprendi**, **Termina** e **Scarta**. Vedi [registrare un giro](./recording-a-ride).
 
 ## Un sensore Bluetooth non viene trovato
 

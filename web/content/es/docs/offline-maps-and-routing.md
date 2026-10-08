@@ -1,7 +1,7 @@
 ---
 title: Mapas y enrutamiento sin conexión
 description: Descarga el mapa que ves y los datos de rutas con los que se calculan tus rutas, para que la planificación, la búsqueda y la navegación sigan funcionando sin cobertura.
-order: 5
+order: 6
 ---
 
 Dos descargas separadas hacen que Velorki funcione sin conexión: el **mapa**, que es lo que ves, y los **datos de rutas**, que es con lo que se calculan las rutas y la búsqueda sin conexión. Descarga los dos para la zona por la que sales antes de una salida en la que vayas a quedarte sin cobertura.
@@ -16,7 +16,7 @@ Dos descargas separadas hacen que Velorki funcione sin conexión: el **mapa**, q
 | Tamaño | decenas de megabytes para una ciudad | a menudo de 125 a 250 MB por tesela |
 | Sin él | teselas grises donde el mapa no está en caché | sin enrutamiento ni búsqueda sin conexión en esa zona |
 
-Los datos de rutas también incluyen el índice de lugares, así que en una zona descargada también se puede buscar sin conexión. Por eso la pantalla de teselas de rutas dice "Una región descargada también sirve para buscar lugares sin cobertura." Esa misma región descargada es la que da a una salida grabada su desglose de superficies, consulta [la biblioteca](./library).
+Los datos de rutas también incluyen el índice de lugares, así que en una zona descargada también se puede buscar sin conexión y se ven sus [paradas en el mapa](./stops-on-the-map). Por eso la pantalla de teselas de rutas dice "Una región descargada también sirve para buscar lugares sin cobertura." Esa misma región descargada es la que da a una salida grabada su desglose de superficies, consulta [la biblioteca](./library).
 
 ## Descargar una zona
 

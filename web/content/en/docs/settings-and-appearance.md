@@ -1,7 +1,7 @@
 ---
 title: Settings and appearance
-description: Every setting in Velorki, from theme, accent and units to navigation, recording, sensors, search, offline data, connections and the server URLs.
-order: 14
+description: Every setting in Velorki, from theme, accent, units and language to navigation, recording, sensors, search, offline data, connections and the server URLs.
+order: 15
 ---
 
 The Settings tab is one scrolling page with a section per subject. This page walks it from top to bottom, so you can find the switch you are after and know what it does.
@@ -10,13 +10,17 @@ The Settings tab is one scrolling page with a section per subject. This page wal
 
 **Theme**: **System**, **Light** or **Dark**. System follows the phone.
 
-**Map**: how the map itself is drawn, independently of the app's theme: **Follows theme**, **Light**, **Night** or **Black**. **Black** is the one for a dark ride with the display dimmed, and it is what battery saver forces anyway.
+**Map**: how the map itself is drawn, independently of the app's theme, one segment each: **Follows theme**, **Light**, **Night** or **Black**. **Black** is the one for a dark ride with the display dimmed, and it is what battery saver forces anyway.
 
-**Cycling overlay on dark maps**: what to do with the CyclOSM overlay when the map underneath is dark: **Inverted**, **Dimmed** or **Unchanged**. The overlay is drawn for a light background, so on a night map it needs help. This row only appears in builds that ship the overlay.
+**Cycling overlay on dark maps**: what to do with the cycle map from **Layers** when the map underneath is dark: **Inverted**, **Dimmed** or **Unchanged**. The overlay is drawn for a light background, so on a night map it needs help. This row only appears in builds that ship the overlay.
 
-**Accent**: four colour presets: **Volt**, **Ember**, **Glacier** and **Berry**. The accent colours the buttons, the charts and the route line on the map.
+**Glass**: how much of the map shows through the tab bar and the controls over the map: **Solid**, **Transparent**, **Subtle glass** or **Clear glass**, the default.
+
+**Accent**: five colour presets: **Volt**, **Ember**, **Glacier**, **Berry** and **Forest**. The accent colours the buttons, the charts and the route line on the map.
 
 **Units**: **Metric** or **Imperial**, used by every figure, slider, chart axis, turn banner and spoken cue in the app. Until you choose, Velorki follows the phone's country.
+
+**Language**: **System**, English, Deutsch, Español, Français, Italiano or Nederlands, each named in its own language. **System** follows the phone's languages in the order set there, and falls back to English. On Android 13 and newer the phone's own settings can also set a language for Velorki alone (Settings → Apps → Velorki → Language), which **System** then follows. The spoken turns follow the same choice.
 
 ## Navigation
 

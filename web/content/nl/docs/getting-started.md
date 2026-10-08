@@ -50,7 +50,7 @@ Gevraagd de eerste keer dat je een rit start. De opname draait in een melding di
 
 ### Batterijoptimalisatie (Android)
 
-Eén keer gevraagd, en nooit meer, de eerste keer dat je een rit start: **Op de achtergrond blijven opnemen**: "Android kan de opname stoppen terwijl de telefoon slaapt. Als Velorki de batterijoptimalisatie mag negeren, blijft de track compleet. Dit wordt maar één keer gevraagd." Antwoord **Toestaan** of **Niet nu**; het wordt nooit meer gevraagd.
+Eén keer gevraagd, en nooit meer, de eerste keer dat je een rit start: **Op de achtergrond blijven opnemen**: "Android kan de opname stoppen terwijl de telefoon slaapt. Kies in de batterij-instellingen die opengaan Velorki en sta onbeperkt batterijgebruik toe (op sommige telefoons: niet geoptimaliseerd), dan blijft de track compleet. Dit wordt maar één keer gevraagd." Antwoord **Instellingen openen** of **Niet nu**; het wordt nooit meer gevraagd.
 
 ### Bestanden
 
@@ -67,7 +67,7 @@ De balk onderaan heeft vier tabbladen.
 | **Plannen** | De kaart, het zoeken naar plaatsen, de routeplanner, slimme rondjes en de assistent. |
 | **Opnemen** | Een rit starten, pauzeren en beëindigen, de live waarden en je recente ritten. |
 | **Bibliotheek** | Alles wat je hebt opgeslagen: **Routes** en **Ritten**, met importeren en exporteren. |
-| **Instellingen** | Weergave en eenheden, opties voor navigatie en opname, offline gegevens, zoeken, koppelingen, abonnement en de juridische pagina's. |
+| **Instellingen** | Weergave, eenheden en taal, opties voor navigatie en opname, offline gegevens, zoeken, koppelingen, abonnement en de juridische pagina's. |
 
 De balk zweeft boven de inhoud, dus lijsten scrollen eronderdoor.
 
@@ -83,10 +83,11 @@ Tot je kiest, volgt Velorki het land van de telefoon: imperiaal alleen waar het 
 
 ## Waar alles zit
 
-- **De kaartknoppen** staan in een kolom rechts op de kaart: mijn positie tonen, de fietslaag, offline gegevens, inzoomen en uitzoomen. Terwijl een rit wordt opgenomen, komt er een kompasknop bij, die wisselt tussen **Noorden boven** en **Kaart draait mee**.
+- **De kaartknoppen** staan in een kolom rechts op de kaart: **Mijn positie tonen**, **Kaartlagen** (de fietskaart en [stopplekken op de kaart](./stops-on-the-map)), **Offline gegevens** (niet op een klein scherm zoals een iPhone SE), **Inzoomen** en **Uitzoomen**. Op het tabblad Opnemen komt er een kompasknop bij, die wisselt tussen **Noorden boven** en **Kaart draait mee**.
 - **Het zoekveld** staat bovenaan het tabblad Plannen.
 - **Het fietsprofiel** (Toer, Racefiets, Gravel, MTB, Direct) is de rij knoppen onder het zoekveld.
 - **Het routepaneel** is het paneel onderaan het tabblad Plannen. Sleep het omhoog voor het hoogteprofiel en de verdeling van de ondergrond, omlaag om meer kaart te zien.
+- **Een paneel over de kaart**, zoals Kaartlagen, de kaart van een plek, het paneel van een punt of het rondjespaneel, zet de kaart van het tabblad op de laagste hoogte zolang het open is; hij komt weer omhoog als het paneel sluit.
 
 ## Zie ook
 

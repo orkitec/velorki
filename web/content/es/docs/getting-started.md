@@ -50,7 +50,7 @@ Se piden la primera vez que empiezas una salida. La grabación funciona dentro d
 
 ### Optimización de batería (Android)
 
-Se pide una sola vez, la primera vez que empiezas una salida: **Seguir grabando en segundo plano**: "Android puede detener la grabación mientras el teléfono está en reposo. Si permites que Velorki ignore la optimización de batería, el track queda completo. Solo se te pregunta una vez." Responde **Permitir** o **Ahora no**; no se vuelve a preguntar.
+Se pide una sola vez, la primera vez que empiezas una salida: **Seguir grabando en segundo plano**: "Android puede detener la grabación mientras el teléfono está en reposo. En los ajustes de batería que se abren, elige Velorki y permite el uso de batería sin restricciones (en algunos teléfonos: no optimizar), y el track quedará completo. Solo se te pregunta una vez." Responde **Abrir ajustes** o **Ahora no**; no se vuelve a preguntar.
 
 ### Archivos
 
@@ -67,7 +67,7 @@ La barra de abajo tiene cuatro pestañas.
 | **Planificar** | El mapa, la búsqueda de lugares, el planificador de rutas, las rutas circulares inteligentes y el asistente. |
 | **Grabar** | Empezar, pausar y terminar una salida, las cifras en directo y tus salidas recientes. |
 | **Biblioteca** | Todo lo que has guardado: **Rutas** y **Salidas**, con importación y exportación. |
-| **Ajustes** | Apariencia y unidades, opciones de navegación y grabación, datos sin conexión, búsqueda, conexiones, suscripción y las páginas legales. |
+| **Ajustes** | Apariencia, unidades e idioma, opciones de navegación y grabación, datos sin conexión, búsqueda, conexiones, suscripción y las páginas legales. |
 
 La barra flota sobre el contenido, así que las listas se desplazan por debajo.
 
@@ -83,10 +83,11 @@ Hasta que elijas, Velorki sigue el país del teléfono: imperial solo donde el p
 
 ## Dónde está cada cosa
 
-- **Los controles del mapa** están en una columna a la derecha del mapa: mostrar mi posición, la capa ciclista, datos sin conexión, acercar y alejar. Mientras se graba una salida se les suma un botón de brújula, que alterna entre **Norte arriba** y **El mapa gira contigo**.
+- **Los controles del mapa** están en una columna a la derecha del mapa: **Mostrar mi posición**, **Capas** (el mapa ciclista y las [paradas en el mapa](./stops-on-the-map)), **Datos sin conexión** (no en una pantalla pequeña como la de un iPhone SE), **Acercar** y **Alejar**. En la pestaña Grabar se les suma un botón de brújula, que alterna entre **Norte arriba** y **El mapa gira contigo**.
 - **El campo de búsqueda** está arriba en la pestaña Planificar.
 - **El perfil de bici** (Trekking, Carretera, Gravel, MTB, Directo) es la fila de chips bajo el campo de búsqueda.
 - **El panel de ruta** es el panel de la parte inferior de la pestaña Planificar. Arrástralo hacia arriba para ver el perfil de altitud y el desglose de superficies, hacia abajo para ver más mapa.
+- **Un panel sobre el mapa**, como Capas, la ficha de un lugar, la hoja de un punto o el panel de rutas circulares, baja la tarjeta de la pestaña a su altura mínima mientras está abierto; vuelve a subir cuando el panel se cierra.
 
 ## Relacionado
 

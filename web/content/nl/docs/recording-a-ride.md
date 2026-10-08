@@ -1,7 +1,7 @@
 ---
 title: Een rit opnemen
 description: Een rit starten, pauzeren en beëindigen, blijven opnemen met het scherm uit, batterij sparen en een rit terugkrijgen nadat de app werd afgesloten.
-order: 7
+order: 8
 ---
 
 Het tabblad Opnemen legt je rit vast en slaat hem op in de bibliotheek als je klaar bent. Het blijft opnemen met het scherm uit en met de app op de achtergrond, en het overleeft het sluiten of geforceerd stoppen van de app.
@@ -10,7 +10,7 @@ Opnemen is gratis en werkt helemaal zonder verbinding.
 
 ## Starten, pauzeren, beëindigen
 
-1. Open het tabblad **Opnemen**. Het paneel zegt **Klaar om te rijden** en "De track wordt tijdens het rijden op de telefoon opgeslagen, ook met het scherm uit."
+1. Open het tabblad **Opnemen**. Het paneel zegt **Klaar om te rijden**, met een korte tip eronder.
 2. Kies onder **Een route volgen** wat de rit volgt: **Geen route**, **De route op het tabblad Plannen** (zolang er een is) of een van je opgeslagen routes. Een route zet de begeleiding aan die beschreven staat in [navigatie met afslagaanwijzingen](./navigation). Zolang je niets kiest, stelt het tabblad de route voor waar je vandaan kwam: de route waarvan je de kaart open had in de Bibliotheek, of het plan op het tabblad Plannen; je eigen keuze blijft daarna staan tot de app opnieuw start.
 3. Tik op **Rit starten**.
 4. Tijdens het rijden toont het paneel een statuslabel, de verstreken tijd en de waarden: **Afstand**, **Snelheid**, **Gem.**, dan **Stijging**, **Daling**, **Rijtijd**. Volg je een route, dan komt er een rij **Resterend** en **Aankomst** bij: de afstand die je nog moet rijden en wanneer je aankomt met je gemiddelde snelheid tot nu toe, twee streepjes zolang de rit nog geen gemiddelde heeft.
@@ -43,7 +43,7 @@ De eerste rit leidt tot maximaal drie vragen, volledig beschreven in [aan de sla
 
 - **Locatie**, eerst met Velorki's eigen uitleg.
 - **Meldingen** op Android, omdat de opname in een melding leeft. Weiger je, dan waarschuwt Velorki "Zonder toestemming voor meldingen stopt Android de opname zodra je de app verlaat."
-- **Batterijoptimalisatie** op Android, maar één keer ooit: "Android kan de opname stoppen terwijl de telefoon slaapt. Laat Velorki de batterijoptimalisatie negeren, dan blijft de track compleet. Dit wordt maar één keer gevraagd."
+- **Batterijoptimalisatie** op Android, maar één keer ooit: **Instellingen openen** brengt je naar de batterij-instellingen, waar je Velorki kiest en onbeperkt batterijgebruik toestaat.
 
 ## Scherm uit, app gesloten
 

@@ -1,7 +1,7 @@
 ---
 title: Enregistrer une sortie
 description: "Démarrer, mettre en pause et terminer une sortie, la garder en enregistrement écran éteint, économiser la batterie et retrouver une sortie après la fermeture de l’appli."
-order: 7
+order: 8
 ---
 
 L’onglet Rouler suit votre sortie et la sauvegarde dans la bibliothèque quand vous la terminez. Il continue d’enregistrer écran éteint et appli en arrière-plan, et il résiste à la fermeture ou à l’arrêt forcé de l’appli.
@@ -10,7 +10,7 @@ L’enregistrement est gratuit et fonctionne sans aucune connexion.
 
 ## Démarrer, mettre en pause, terminer
 
-1. Ouvrez l’onglet **Rouler**. La feuille affiche **Prêt à rouler** et « La trace est écrite sur le téléphone pendant que vous roulez, même écran éteint. »
+1. Ouvrez l’onglet **Rouler**. La feuille affiche **Prêt à rouler**, avec un court conseil dessous.
 2. Sous **Itinéraire suivi**, choisissez ce que la sortie suit : **Aucun**, **L’itinéraire de l’onglet Planifier** (proposé tant qu’il y en a un) ou l’un de vos itinéraires enregistrés. Un itinéraire active le guidage décrit dans [la navigation guidée](./navigation). Tant que vous n’avez rien choisi, l’onglet propose l’itinéraire d’où vous venez : celui dont la fiche était ouverte dans la bibliothèque, ou le plan de l’onglet Planifier ; votre choix est ensuite conservé jusqu’au redémarrage de l’appli.
 3. Touchez **Démarrer**.
 4. Pendant la sortie, la feuille affiche une pastille d’état, le chronomètre et les chiffres : **Distance**, **Vitesse**, **Moy.**, puis **Montée**, **Descente**, **En mouvement**. Quand vous suivez un itinéraire, une ligne **Reste** et **Arrivée** s’y ajoute : la distance qu’il reste à parcourir et l’heure d’arrivée à votre vitesse moyenne jusqu’ici, deux tirets tant que la sortie n’a pas de moyenne.
@@ -43,7 +43,7 @@ La première sortie déclenche jusqu’à trois demandes, décrites en détail d
 
 - **Position**, avec d’abord l’explication propre à Velorki.
 - **Notifications** sur Android, parce que l’enregistrement vit dans l’une d’elles. Si vous refusez, Velorki avertit : « Sans l’autorisation des notifications, Android arrête l’enregistrement dès que vous quittez l’app. »
-- **Optimisation de la batterie** sur Android, une seule fois : « Android peut arrêter l’enregistrement quand le téléphone se met en veille. Si vous laissez Velorki ignorer l’optimisation de la batterie, la trace reste complète. Cette question ne vous est posée qu’une fois. »
+- **Optimisation de la batterie** sur Android, une seule fois :**Ouvrir les réglages** vous mène aux réglages de batterie, où vous choisissez Velorki et autorisez une utilisation sans restriction de la batterie.
 
 ## Écran éteint, appli fermée
 

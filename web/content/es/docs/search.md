@@ -10,17 +10,26 @@ El campo de búsqueda en la parte superior de la pestaña Planificar encuentra p
 
 1. Abre la pestaña **Planificar** y toca el campo de arriba, con el texto **Busca un lugar**.
 2. Escribe al menos tres caracteres. Los resultados aparecen en una ficha bajo el campo mientras escribes.
-3. Toca un resultado.
+3. Toca un resultado. El mapa se mueve hasta el lugar, lo marca y abre su ficha.
 
-Aparece una ficha con el nombre del lugar, qué es, a qué distancia está de ti y, con una ruta, a qué distancia de la ruta. El mapa se mueve hasta el lugar y lo marca. Lo que ofrece la ficha depende del plan:
+Las coordenadas escritas o pegadas en el campo, `40.71747, -73.94840` o `40,71747° N, 73,94840° O` como las copian las apps de mapas, son el propio lugar: un resultado en ese punto, sin buscar nada y sin enviar nada. Un lugar compartido desde otra app se abre igual, consulta [importar y exportar](./import-and-export#un-lugar-desde-otra-app).
+
+## La ficha de un lugar
+
+Un resultado de búsqueda, una [parada en el mapa](./stops-on-the-map) o un lugar compartido desde otra app abre una ficha con el nombre del lugar, qué es, su población, a qué distancia está de ti y, con una ruta, a qué distancia de la ruta. No cambia nada hasta que eliges una acción, que depende del plan:
 
 - **Aún no hay nada planificado**: **Ruta hasta aquí** va desde donde estás hasta el lugar; **Empezar aquí** lo convierte en el primer punto de la ruta.
 - **Solo hay un inicio**: **Como destino** lo convierte en el final de la ruta.
 - **Hay una ruta**: **Añadir como parada** lo mete en la ruta donde queda de camino; **Como destino** lo añade al final.
 
-Debajo, **Detalles** descarga de OpenStreetMap el horario del lugar (con si está abierto ahora), el sitio web, el teléfono y similares, solo cuando lo tocas; no aparece para calles ni para lugares sin identificador de OpenStreetMap. **Abrir en…** muestra el lugar en otra app de mapas o en openstreetmap.org, o lo comparte.
+En la pestaña Grabar la ficha solo informa, sin acciones.
 
-Cerrar la ficha (la **X**, deslizar hacia abajo o tocar el mapa) no cambia nada y borra la búsqueda. Una parada que tocas en el mapa abre la misma ficha.
+Debajo:
+
+- **Detalles** descarga el lugar de OpenStreetMap, solo cuando lo tocas: horario con si está abierto ahora, sitio web, teléfono, tipo de cocina, acceso en silla de ruedas, terraza y su artículo de Wikipedia, en la medida en que estén cartografiados. Los detalles se guardan una semana en el teléfono, así que la próxima vez el lugar los muestra al instante. El botón no aparece para calles ni para lugares sin identificador de OpenStreetMap.
+- **Abrir en…** muestra el lugar en Apple Maps, en Google Maps cuando está instalada (iPhone), en una app de mapas que elijas (Android) o en OpenStreetMap en el navegador, o lo pasa a **Compartir…**.
+
+Cerrar la ficha (la **X**, deslizar hacia abajo o tocar el mapa) no cambia nada y borra la búsqueda.
 
 ## Sin conexión o en línea
 
@@ -43,9 +52,10 @@ Esa fila sigue visible mientras desplazas la lista, y también aparece bajo un m
 
 - **Lugares**: ciudades, pueblos, aldeas, caseríos, barrios, vecindarios, parajes e islas.
 - **Calles**, con números de portal.
-- **Puntos de interés**, cada uno con su icono y su etiqueta: Cafetería, Agua potable, Aseos, Estación de reparación de bicis, Tienda de bicis, Alquiler de bicis, Aparcabicis, Carga de e-bikes, Refugio, Camping, Hotel, Hostel, Refugio de montaña, Supermercado, Panadería, Farmacia, Zona de pícnic, Estación, Terminal de ferri, Aeropuerto, Mirador, Cima, Puerto de montaña, Parque, Playa, Agua, Reserva natural, Atracción, Museo, Lugar histórico, Lugar de culto, Hospital, Universidad, Instalación deportiva, Centro comercial, Torre, Faro, Edificio.
+- **Puntos de interés**, cada uno con su icono y su etiqueta: Cafetería, Restaurante, Comida rápida, Heladería, Gasolinera, Bomba de aire, Agua potable, Aseos, Estación de reparación de bicis, Tienda de bicis, Alquiler de bicis, Aparcabicis, Carga de e-bikes, Refugio, Camping, Hotel, Hostel, Refugio de montaña, Supermercado, Panadería, Farmacia, Zona de pícnic, Estación, Terminal de ferri, Aeropuerto, Mirador, Cima, Puerto de montaña, Parque, Playa, Agua, Reserva natural, Atracción, Museo, Lugar histórico, Lugar de culto, Hospital, Universidad, Instalación deportiva, Centro comercial, Torre, Faro, Edificio.
+- **Lugares conocidos en tu idioma**: «Parigi» encuentra París, y un monumento famoso va antes que sus homónimos.
 
-Las filas sin conexión muestran bajo el nombre el tipo, la distancia, el número de portal y la población, en ese orden, en la medida en que se conocen: «Agua potable · 350 m», «Calle · 400 · Manhattan». Una fuente, un aseo, un refugio o un aparcabicis sin nombre propio aparece con el nombre de su tipo.
+Las filas sin conexión muestran bajo el nombre el tipo, la distancia y la población, en la medida en que se conocen: «Agua potable · 350 m», «Calle · Manhattan». Una fuente, un aseo, un refugio o un aparcabicis sin nombre propio aparece con el nombre de su tipo.
 
 ## Buscar por tipo
 
@@ -57,13 +67,13 @@ Una búsqueda por tipo no tiene en cuenta los interruptores de grupo descritos m
 
 ## Números de portal
 
-Pon el número al principio o al final: «Calle Mayor 12», «400 W 42nd». Velorki quita el número, encuentra la calle y responde en la posición de ese número a lo largo de ella.
+Escribe el número donde lo pone tu país: «Calle Mayor 12», «400 W 42nd», «Via Roma 12/A», «Budapest, Fő utca 12». Velorki encuentra la calle y responde en la posición de ese número a lo largo de ella; la fila es la dirección como la escribiste, «400 West 42nd Street». Una población antes de la calle, con coma, o después, dice de qué lugar es la calle. Un código postal se ignora, y un número que forma parte del nombre de una calle, «Route 66», sigue siendo parte del nombre.
 
-Donde el índice tiene ese número exacto, la posición es exacta. Donde el número cae entre dos que conoce, Velorki interpola y marca la fila **≈ 400** para que veas que es una estimación. Un número en mitad de la consulta se trata como parte del nombre, igual que un ordinal como «42nd».
+Donde el número cae entre dos que conoce el índice, Velorki estima su posición y la fila dice **≈ 400** para que veas que es una suposición.
 
-## Erratas
+## Erratas, formas cortas y otros alfabetos
 
-Si una consulta no coincide con nada, Velorki toma las palabras que no reconoce, busca en el índice las palabras más probables a una o dos letras de distancia y vuelve a lanzar la búsqueda. La ficha dice entonces **Resultados para «…»** sobre la lista, con lo que realmente buscó.
+La búsqueda sin conexión perdona una o dos letras mal, una palabra escrita junta o separada, y formas cortas como «St» o «Str.». Los nombres en cirílico o griego se pueden escribir con letras latinas, «aleksandar nevski» o «Nafplio». Cuando nada responde bien, Velorki prueba en su lugar las palabras más probables del índice y la ficha dice **Resultados para «…»** sobre la lista, con lo que realmente buscó.
 
 ## Ordenar los grupos
 
@@ -85,6 +95,7 @@ No hay botón de guardar; los cambios se aplican con la siguiente tecla que puls
 
 ## Relacionado
 
+- [Paradas en el mapa](./stops-on-the-map)
 - [Mapas y rutas sin conexión](./offline-maps-and-routing)
 - [Planificar una ruta](./planning-a-route)
 - [Ajustes y apariencia](./settings-and-appearance)

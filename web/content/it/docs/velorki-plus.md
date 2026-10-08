@@ -1,7 +1,7 @@
 ---
 title: Velorki Plus
 description: Tutto quello che gira sul telefono è gratis. Plus è un piccolo abbonamento per le quattro funzioni che richiedono i nostri server o l'account di un partner.
-order: 13
+order: 14
 ---
 
 Velorki Plus è un abbonamento facoltativo che paga le parti di Velorki che non possono girare solo sul tuo telefono. Tutto il resto, cioè quasi tutta l'app, è gratis per tutti, con o senza Plus.

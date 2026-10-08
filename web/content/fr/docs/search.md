@@ -10,17 +10,26 @@ Le champ de recherche en haut de l’onglet Planifier trouve des villes, des rue
 
 1. Ouvrez l’onglet **Planifier** et touchez le champ en haut, qui affiche **Rechercher un lieu**.
 2. Saisissez au moins trois caractères. Les résultats apparaissent dans une fiche sous le champ à mesure que vous tapez.
-3. Touchez un résultat.
+3. Touchez un résultat. La carte se déplace vers le lieu, l’épingle et ouvre sa fiche.
 
-Une fiche s’affiche avec le nom du lieu, sa nature, sa distance par rapport à vous et, avec un itinéraire, sa distance par rapport à l’itinéraire. La carte se déplace vers le lieu et l’épingle. Ce que la fiche propose dépend du plan :
+Des coordonnées saisies ou collées dans le champ, `40.71747, -73.94840` ou `40,71747° N, 73,94840° W` comme les copient les apps de cartes, sont le lieu lui-même : un seul résultat à cet endroit, sans rien chercher ni rien envoyer. Un lieu partagé depuis une autre app s’ouvre de la même façon, voir [importer et exporter](./import-and-export#un-lieu-depuis-une-autre-appli).
+
+## La fiche du lieu
+
+Un résultat de recherche, une [halte sur la carte](./stops-on-the-map) ou un lieu partagé depuis une autre app ouvre une fiche avec le nom du lieu, sa nature, sa ville, sa distance par rapport à vous et, avec un itinéraire, sa distance par rapport à l’itinéraire. Rien ne change tant que vous ne choisissez pas une action, qui dépend du plan :
 
 - **Rien de planifié** : **Itinéraire jusqu’ici** part de votre position jusqu’au lieu ; **Partir d’ici** en fait le premier point de l’itinéraire.
 - **Un départ seulement** : **Arrivée** en fait la fin de l’itinéraire.
 - **Un itinéraire** : **Ajouter comme étape** l’insère dans l’itinéraire à l’endroit où il se trouve sur le trajet ; **Arrivée** l’ajoute à la fin.
 
-En dessous, **Détails** récupère auprès d’OpenStreetMap les horaires d’ouverture du lieu (avec l’indication s’il est ouvert maintenant), son site web, son numéro de téléphone et le reste, uniquement lorsque vous le touchez ; il est absent pour les rues et les lieux sans identifiant OpenStreetMap. **Ouvrir dans…** montre le lieu dans une autre app de cartes ou sur openstreetmap.org, ou le partage.
+Dans l’onglet Rouler, la fiche ne fait qu’informer, sans actions.
 
-Fermer la fiche (le **X**, un balayage vers le bas ou un toucher sur la carte) ne change rien et efface la recherche. Une halte touchée sur la carte ouvre la même fiche.
+En dessous :
+
+- **Détails** récupère le lieu auprès d’OpenStreetMap, uniquement lorsque vous le touchez : horaires d’ouverture avec l’indication s’il est ouvert maintenant, site web, numéro de téléphone, cuisine, accès en fauteuil roulant, places en terrasse et article Wikipédia, pour autant qu’ils soient renseignés. Les détails sont gardés une semaine sur le téléphone : le lieu les affiche aussitôt la fois suivante. Le bouton est absent pour les rues et les lieux sans identifiant OpenStreetMap.
+- **Ouvrir dans…** montre le lieu dans Apple Plans, dans Google Maps s’il est installé (iPhone), dans une app de cartes de votre choix (Android) ou sur OpenStreetMap dans le navigateur, ou le remet à **Partager…**.
+
+Fermer la fiche (le **X**, un balayage vers le bas ou un toucher sur la carte) ne change rien et efface la recherche.
 
 ## Hors ligne ou en ligne
 
@@ -43,9 +52,10 @@ Cette ligne reste visible pendant que vous faites défiler la liste, et elle s�
 
 - **Lieux** : villes, bourgs, villages, hameaux, faubourgs, quartiers, lieux-dits et îles.
 - **Rues**, avec numéros.
-- **Points d’intérêt**, chacun avec sa propre icône et son libellé : Café, Eau potable, Toilettes, Station de réparation vélo, Magasin de vélos, Location de vélos, Parking vélos, Recharge VAE, Abri, Camping, Hôtel, Auberge de jeunesse, Refuge, Supermarché, Boulangerie, Pharmacie, Aire de pique-nique, Gare, Terminal de ferry, Aéroport, Point de vue, Sommet, Col, Parc, Plage, Plan d’eau, Réserve naturelle, Curiosité, Musée, Site historique, Lieu de culte, Hôpital, Université, Équipement sportif, Centre commercial, Tour, Phare, Bâtiment.
+- **Points d’intérêt**, chacun avec sa propre icône et son libellé : Café, Restaurant, Restauration rapide, Glacier, Station-service, Pompe à vélo, Eau potable, Toilettes, Station de réparation vélo, Magasin de vélos, Location de vélos, Parking vélos, Recharge VAE, Abri, Camping, Hôtel, Auberge de jeunesse, Refuge, Supermarché, Boulangerie, Pharmacie, Aire de pique-nique, Gare, Terminal de ferry, Aéroport, Point de vue, Sommet, Col, Parc, Plage, Plan d’eau, Réserve naturelle, Curiosité, Musée, Site historique, Lieu de culte, Hôpital, Université, Équipement sportif, Centre commercial, Tour, Phare, Bâtiment.
+- **Lieux connus dans votre langue** : « Parigi » trouve Paris, et un monument célèbre passe avant ses homonymes.
 
-Hors ligne, les lignes affichent sous le nom le type, la distance, le numéro de rue et la ville, dans cet ordre, pour autant que chacun soit connu : « Eau potable · 350 m », « Rue · 400 · Manhattan ». Un robinet, des toilettes, un abri ou un support à vélos sans nom propre figure sous son type.
+Hors ligne, les lignes affichent sous le nom le type, la distance et la ville, pour autant que chacun soit connu : « Eau potable · 350 m », « Rue · Manhattan ». Un robinet, des toilettes, un abri ou un support à vélos sans nom propre figure sous son type.
 
 ## Chercher par type
 
@@ -57,13 +67,13 @@ Une recherche par type ignore les interrupteurs de groupes décrits plus bas.
 
 ## Numéros de rue
 
-Mettez le numéro au début ou à la fin : « Hauptstrasse 12 », « 400 W 42nd ». Velorki retire le numéro, fait correspondre la rue et répond à la position propre du numéro le long de celle-ci.
+Saisissez le numéro là où votre pays le met : « Hauptstrasse 12 », « 400 W 42nd », « Via Roma 12/A », « Budapest, Fő utca 12 ». Velorki trouve la rue et répond à la position propre du numéro le long de celle-ci ; la ligne est l’adresse telle que vous l’avez saisie, « 400 West 42nd Street ». Une ville avant la rue, avec une virgule, ou après elle indique de quel lieu vous voulez la rue. Un code postal est ignoré, et un numéro qui fait partie du nom d’une rue, « Route 66 », reste dans le nom.
 
-Lorsque l’index contient ce numéro exact, la position est exacte. Lorsque le numéro tombe entre deux numéros connus, Velorki interpole et marque la ligne **≈ 400** pour que vous voyiez qu’il s’agit d’une estimation. Un nombre au milieu d’une requête est traité comme faisant partie du nom, de même qu’un ordinal comme « 42nd ».
+Lorsque le numéro tombe entre deux numéros que l’index connaît, Velorki estime sa position et la ligne indique **≈ 400** pour que vous voyiez qu’il s’agit d’une estimation.
 
-## Fautes de frappe
+## Fautes de frappe, formes abrégées et autres alphabets
 
-Si une requête ne donne absolument rien, Velorki prend les mots qu’il ne reconnaît pas, trouve dans l’index les mots les plus probables à une ou deux lettres de distance, puis relance la recherche. La fiche affiche alors **Résultats pour « … »** au-dessus de la liste, avec ce qui a réellement été cherché.
+La recherche hors ligne pardonne une lettre ou deux fausses, un mot écrit en un seul ou en plusieurs, et les formes abrégées comme « St » ou « Str. ». Les noms en cyrillique ou en grec peuvent être saisis en lettres latines, « aleksandar nevski » ou « Nafplio ». Quand rien ne répond bien, Velorki essaie à la place les mots les plus probables de l’index et la fiche affiche **Résultats pour « … »** au-dessus de la liste, avec ce qui a réellement été cherché.
 
 ## Ordonner les groupes
 
@@ -85,6 +95,7 @@ Il n’y a pas de bouton d’enregistrement ; les changements prennent effet �
 
 ## Voir aussi
 
+- [Haltes sur la carte](./stops-on-the-map)
 - [Cartes et routage hors ligne](./offline-maps-and-routing)
 - [Planifier un itinéraire](./planning-a-route)
 - [Réglages et apparence](./settings-and-appearance)

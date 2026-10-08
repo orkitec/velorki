@@ -35,7 +35,9 @@ Si el planificador está vacío, o tiene un solo punto, el panel pide en su luga
 
 ## Mientras busca
 
-Velorki lanza la petición en ocho direcciones y se da 25 segundos. Una barra de progreso cuenta las peticiones terminadas, y **Detener**, a la derecha, termina la búsqueda antes de tiempo conservando lo que ya haya encontrado.
+Velorki lanza la petición en ocho direcciones y calcula cada una en el teléfono, lo que tarda de segundos a un minuto o más, según la distancia y el teléfono. Una barra de progreso avanza a medida que terminan las direcciones, con una línea debajo: "Probando 8 direcciones · 3 comprobadas".
+
+La mejor ruta circular hasta el momento está en el mapa en cuanto hay una, con su resumen, **Otra** y **Listo** junto a la barra, mientras la línea dice que la búsqueda sigue en busca de una ruta más tranquila y suave. Al terminar, la línea dice entre cuántas se eligió la que se ve, "La mejor de 6 rutas circulares". **Detener** termina la búsqueda antes de tiempo y conserva lo encontrado; **Listo** deja la ruta circular a la vista y deja que la búsqueda termine en segundo plano sin sustituirla.
 
 ## Elegir entre las propuestas
 
@@ -49,12 +51,13 @@ Si el control deslizante o el perfil de bici cambian después de una búsqueda, 
 
 ## Pedir una ruta circular que pase por un lugar concreto
 
-El panel de rutas circulares no tiene un campo para un lugar por el que pasar, ni preferencias de desnivel o de superficie. Eso viene del [asistente](./assistant): una frase como "Una ruta circular de gravel de unos 80 km con parada en un café" o "una ruta circular con cuestas de 60 km desde aquí pasando por el lago" se convierte en una petición con un punto de paso y preferencias, y el generador de rutas circulares hace el trabajo. El asistente forma parte de Velorki Plus; el panel de rutas circulares en sí es gratis.
+El panel de rutas circulares no tiene un campo para un lugar por el que pasar, ni preferencias de desnivel o de superficie. Eso viene del [asistente](./assistant): una frase como "una ruta circular con cuestas de 60 km desde aquí pasando por el lago" se convierte en una petición con un punto de paso y preferencias, y el generador de rutas circulares hace el trabajo. El asistente forma parte de Velorki Plus; el panel de rutas circulares en sí es gratis.
 
 ## Cuando no encuentra nada
 
 - **"No se encontró ninguna ruta circular aquí; prueba otra distancia."** Algunos lugares, una isla o un valle sin salida, simplemente no tienen red de carreteras para un círculo de esa longitud. Sube o baja bastante la distancia, o empieza en otro sitio.
 - **"Activa la ubicación o toca el mapa para fijar el inicio."** No se pudo determinar un punto de inicio. Permite la ubicación o toca antes el mapa.
+- **"Buscar una ruta circular tardó demasiado en este teléfono. Prueba una distancia más corta."** La búsqueda se rindió tras 30 minutos.
 - **"Falló la búsqueda de ruta circular:"** con un motivo significa que ha fallado el propio enrutamiento. Consulta [solución de problemas](./troubleshooting).
 
 Cerrar el panel cancela una búsqueda en curso, pero conserva lo que ya había encontrado.

@@ -1,7 +1,7 @@
 ---
 title: Recording a ride
 description: Start, pause and finish a ride, keep it recording with the screen off, save battery, and get a ride back after the app was killed.
-order: 7
+order: 8
 ---
 
 The Record tab tracks your ride and saves it to the library when you finish. It keeps recording with the screen off and with the app in the background, and it survives the app being closed or killed.
@@ -10,7 +10,7 @@ Recording is free and works with no connection at all.
 
 ## Start, pause, finish
 
-1. Open the **Record** tab. The sheet says **Ready to ride** and "The track is written to the phone while you ride, even with the screen off."
+1. Open the **Record** tab. The sheet says **Ready to ride**, with a short tip under it.
 2. Under **Follow a route** choose what the ride follows: **No route**, **The route on the Plan tab** (offered while there is one) or one of your saved routes. A route turns on the guidance described in [turn-by-turn navigation](./navigation). Until you choose, the tab proposes the route you came from: the route whose card you had open in the Library, or the plan on the Plan tab; your own pick then holds until the app is restarted.
 3. Tap **Start ride**.
 4. While riding the sheet shows a status pill, the elapsed clock, and the figures: **Distance**, **Speed**, **Avg**, then **Ascent**, **Descent**, **Moving**. While you follow a route a row **Left** and **Arrival** joins them: the distance still to ride and when you will arrive at your average speed so far, two dashes until the ride has an average.
@@ -43,7 +43,7 @@ The first ride triggers up to three prompts, described in full in [getting start
 
 - **Location**, with Velorki's own explanation first.
 - **Notifications** on Android, because the recording lives in one. Refuse and Velorki warns "Without the notification permission Android stops the recording when you leave the app."
-- **Battery optimisation** on Android, once ever: "Android may stop the recording while the phone sleeps. Letting Velorki ignore battery optimisation keeps the track complete. You are asked only once."
+- **Battery optimisation** on Android, once ever: **Open settings** takes you to the battery settings, where you pick Velorki and allow unrestricted battery use.
 
 ## Screen off, app closed
 

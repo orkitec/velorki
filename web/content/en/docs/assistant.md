@@ -1,10 +1,10 @@
 ---
 title: Assistant
 description: Describe the ride you want in a sentence and Velorki turns it into a route, with your consent, a rounded position at most, and no route history sent.
-order: 12
+order: 13
 ---
 
-The assistant turns a sentence like "a gravel loop of about 80 km with a café stop" into a route on the planner. It is the one part of Velorki that sends what you typed to a server, so it asks for your consent first and tells you exactly what goes.
+The assistant turns a sentence like "a gravel loop of about 80 km on quiet roads" into a route on the planner. It is the one part of Velorki that sends what you typed to a server, so it asks for your consent first and tells you exactly what goes.
 
 The assistant is part of [Velorki Plus](./velorki-plus).
 
@@ -39,8 +39,10 @@ Change your mind at any time under **Settings → AI assistant → What is sent*
 Type a sentence and tap **Ask**. Three examples are there to tap:
 
 - **A flat 30 km loop from here**
-- **60 km to Freiburg on quiet roads**
-- **A gravel loop of about 80 km with a café stop**
+- **A 50 km loop on quiet roads**
+- **A gravel loop of about 80 km**
+
+Once you type, chips under **Add** offer the wishes the planner acts on: **flat**, **hilly**, **on gravel**, **on quiet roads** and **back to the start**, each until it is said.
 
 Other things that work well: a distance and a direction, a place to ride past, a surface, how much climbing you want, a start that is not where you are.
 

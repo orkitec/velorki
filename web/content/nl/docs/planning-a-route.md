@@ -13,12 +13,12 @@ Het tabblad Plannen maakt van tikken op de kaart een fietsroute, berekend op je 
 3. **Tik nog eens** voor het volgende punt. Elke tik voegt een punt toe aan het einde van de route, en het laatste, de bestemming, draagt een vlag. Wil je een punt juist in het midden, **tik dan op de routelijn** waar het moet komen: het punt komt daar op de lijn, en je kunt het verslepen zoals elk ander.
 4. Velorki wacht even na je laatste wijziging en berekent dan de route. Terwijl het rekent, toont het paneel een draaiend wieltje en **Route berekenen…**; daarna verschijnen de cijfers.
 
-Je kunt ook vanaf een plek beginnen in plaats van een tik. Typ in het zoekveld bovenaan en kies een resultaat, of tik op een stopplek op de kaart; zolang het plan nog leeg is, biedt de kaart van de plek:
+Je kunt ook vanaf een plek beginnen in plaats van een tik. Typ in het zoekveld bovenaan en kies een resultaat, of tik op een [stopplek op de kaart](./stops-on-the-map); zolang het plan nog leeg is, biedt de [kaart van de plek](./search#de-plaatskaart):
 
 - **Route hierheen** rijdt van waar je bent naar de plek.
 - **Hier starten** maakt de plek het eerste punt van de route.
 
-Zodra er een route wordt gepland, biedt de kaart **Als tussenstop**, dat de plek in de route invoegt waar hij onderweg ligt, en **Als bestemming**, dat hem aan het einde toevoegt. Zie [zoeken](./search) voor wat het zoekveld kan vinden.
+Met alleen een start biedt de kaart **Als bestemming**. Zodra er een route wordt gepland, biedt de kaart **Als tussenstop**, dat de plek in de route invoegt waar hij onderweg ligt, en **Als bestemming**, dat hem aan het einde toevoegt. Zie [zoeken](./search) voor wat het zoekveld kan vinden.
 
 ## Een plek naast de route markeren
 

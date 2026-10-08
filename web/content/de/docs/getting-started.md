@@ -50,7 +50,7 @@ Wird gefragt, sobald du zum ersten Mal eine Fahrt startest. Die Aufnahme läuft 
 
 ### Akku-Optimierung (Android)
 
-Wird ein einziges Mal gefragt, beim ersten Start einer Fahrt: **Im Hintergrund weiter aufzeichnen**: "Android kann die Aufnahme stoppen, während das Handy schläft. Darf Velorki die Akku-Optimierung ignorieren, bleibt der Track vollständig. Die Frage kommt nur einmal." Antworte **Erlauben** oder **Jetzt nicht**; gefragt wird nie wieder.
+Wird ein einziges Mal gefragt, beim ersten Start einer Fahrt: **Im Hintergrund weiter aufzeichnen**: "Android kann die Aufnahme stoppen, während das Handy schläft. Wähl in den Akku-Einstellungen, die sich öffnen, Velorki und erlaube uneingeschränkte Akkunutzung (auf manchen Handys: nicht optimiert), dann bleibt der Track vollständig. Die Frage kommt nur einmal." Antworte **Einstellungen öffnen** oder **Jetzt nicht**; gefragt wird nie wieder.
 
 ### Dateien
 
@@ -67,7 +67,7 @@ Die Leiste am unteren Rand hat vier Tabs.
 | **Planen** | Die Karte, die Ortssuche, der Routenplaner, smarte Runden und der Assistent. |
 | **Aufnahme** | Fahrt starten, pausieren und beenden, die Zahlen währenddessen und deine letzten Fahrten. |
 | **Bibliothek** | Alles Gespeicherte: **Routen** und **Fahrten**, mit Import und Export. |
-| **Einstellungen** | Darstellung und Einheiten, Navigation und Aufnahme, Offline-Daten, Suche, Verbindungen, Abo und die Rechtstexte. |
+| **Einstellungen** | Darstellung, Einheiten und Sprache, Navigation und Aufnahme, Offline-Daten, Suche, Verbindungen, Abo und die Rechtstexte. |
 
 Die Leiste schwebt über dem Inhalt, Listen scrollen also darunter hindurch.
 
@@ -83,10 +83,11 @@ Bis du wählst, folgt Velorki dem Land des Handys: imperial nur dort, wo das Lan
 
 ## Wo was liegt
 
-- **Die Kartenbedienung** sitzt in einer Spalte rechts neben der Karte: meine Position anzeigen, das Rad-Overlay, Offline-Daten, hinein- und herauszoomen. Während einer Aufnahme kommt eine Kompass-Schaltfläche dazu, die zwischen **Norden oben** und **Karte dreht mit** wechselt.
+- **Die Kartenbedienung** sitzt in einer Spalte rechts neben der Karte: **Meine Position anzeigen**, **Ebenen** (die Radkarte und [Stopps auf der Karte](./stops-on-the-map)), **Offline-Daten** (nicht auf einem kleinen Bildschirm wie dem iPhone SE), **Hineinzoomen** und **Herauszoomen**. Im Tab Aufnahme kommt eine Kompass-Schaltfläche dazu, die zwischen **Norden oben** und **Karte dreht mit** wechselt.
 - **Das Suchfeld** steht oben im Tab Planen.
 - **Das Radprofil** (Trekking, Rennrad, Gravel, MTB, Direkt) ist die Reihe von Chips unter dem Suchfeld.
 - **Die Routenübersicht** ist das Feld am unteren Rand des Tabs Planen. Zieh es nach oben für Höhenprofil und Belagsverteilung, nach unten für mehr Karte.
+- **Ein Fenster über der Karte**, etwa Ebenen, die Ortskarte, das Fenster eines Punkts oder das Rundenfenster, schickt die Karte des Tabs auf ihre niedrigste Höhe, solange es offen ist; beim Schließen kommt sie wieder hoch.
 
 ## Weiterlesen
 

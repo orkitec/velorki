@@ -1,7 +1,7 @@
 ---
 title: Mappe offline e calcolo del percorso
 description: Scarica la mappa che guardi e i dati da cui vengono calcolati i percorsi, così pianificazione, ricerca e navigazione funzionano anche senza segnale.
-order: 5
+order: 6
 ---
 
 Due download separati fanno funzionare Velorki senza connessione: la **mappa**, che è quello che vedi, e i **dati di routing**, da cui vengono calcolati i percorsi e la ricerca offline. Scarica entrambi per la zona in cui pedali prima di un giro che si lascia il segnale alle spalle.
@@ -16,7 +16,7 @@ Due download separati fanno funzionare Velorki senza connessione: la **mappa**, 
 | Dimensione | decine di megabyte per una città | spesso da 125 a 250 MB per riquadro |
 | Senza | riquadri grigi dove la mappa non è stata memorizzata | nessun calcolo del percorso e nessuna ricerca offline in quella zona |
 
-I dati di routing contengono anche l'indice dei luoghi, quindi una zona scaricata permette anche la ricerca offline. Per questo la schermata dei riquadri di routing dice "Una regione scaricata permette anche la ricerca dei luoghi senza segnale." La stessa regione scaricata è quella che dà a un giro registrato la ripartizione del fondo, vedi [la libreria](./library).
+I dati di routing contengono anche l'indice dei luoghi, quindi una zona scaricata permette anche la ricerca offline e mostra le sue [soste sulla mappa](./stops-on-the-map). Per questo la schermata dei riquadri di routing dice "Una regione scaricata permette anche la ricerca dei luoghi senza segnale." La stessa regione scaricata è quella che dà a un giro registrato la ripartizione del fondo, vedi [la libreria](./library).
 
 ## Scaricare una zona
 

@@ -50,7 +50,7 @@ Chiesto la prima volta che avvii un giro. La registrazione gira dentro una notif
 
 ### Ottimizzazione della batteria (Android)
 
-Chiesto una volta sola, la prima volta che avvii un giro: **Continua a registrare in background**: "Android potrebbe interrompere la registrazione mentre il telefono dorme. Lasciare che Velorki ignori l'ottimizzazione della batteria mantiene la traccia completa. Te lo chiediamo una sola volta." Rispondi **Consenti** o **Non ora**; non viene chiesto mai più.
+Chiesto una volta sola, la prima volta che avvii un giro: **Continua a registrare in background**: "Android potrebbe interrompere la registrazione mentre il telefono dorme. Nelle impostazioni della batteria che si aprono, scegli Velorki e consenti l'uso della batteria senza limitazioni (su alcuni telefoni: non ottimizzata), così la traccia resta completa. Te lo chiediamo una sola volta." Rispondi **Apri impostazioni** o **Non ora**; non viene chiesto mai più.
 
 ### File
 
@@ -67,7 +67,7 @@ La barra in basso ha quattro schede.
 | **Pianifica** | La mappa, la ricerca dei luoghi, il pianificatore di percorsi, gli anelli intelligenti e l'assistente. |
 | **Registra** | Avviare, mettere in pausa e terminare un giro, i numeri in tempo reale e i tuoi giri recenti. |
 | **Libreria** | Tutto ciò che hai salvato: **Percorsi** e **Giri**, con importazione ed esportazione. |
-| **Opzioni** | Aspetto e unità, opzioni di navigazione e registrazione, dati offline, ricerca, connessioni, abbonamento e le pagine legali. |
+| **Opzioni** | Aspetto, unità e lingua, opzioni di navigazione e registrazione, dati offline, ricerca, connessioni, abbonamento e le pagine legali. |
 
 La barra galleggia sopra il contenuto, così gli elenchi scorrono sotto di essa.
 
@@ -83,10 +83,11 @@ Finché non scegli, Velorki segue il paese del telefono: imperiale solo dove il 
 
 ## Dove si trovano le cose
 
-- **I controlli della mappa** stanno in una colonna a destra della mappa: mostra la mia posizione, il livello ciclistico, i dati offline, ingrandisci e riduci. Mentre un giro è in registrazione si aggiunge un pulsante bussola, che alterna tra **Nord in alto** e **La mappa gira con te**.
+- **I controlli della mappa** stanno in una colonna a destra della mappa: **Mostra la mia posizione**, **Livelli** (la mappa ciclabile e le [soste sulla mappa](./stops-on-the-map)), **Dati offline** (non su uno schermo piccolo come un iPhone SE), **Ingrandisci** e **Riduci**. Nella scheda Registra si aggiunge un pulsante bussola, che alterna tra **Nord in alto** e **La mappa gira con te**.
 - **Il campo di ricerca** è in alto nella scheda Pianifica.
 - **Il profilo bici** (Trekking, Corsa, Gravel, MTB, Diretto) è la fila di chip sotto il campo di ricerca.
 - **Il pannello del percorso** è il riquadro in basso nella scheda Pianifica. Trascinalo verso l'alto per l'altimetria e la ripartizione del fondo, verso il basso per vedere più mappa.
+- **Un foglio sopra la mappa**, come Livelli, la scheda di un luogo, il foglio di un punto o quello degli anelli, porta la scheda del tab alla sua altezza minima finché è aperto; risale quando il foglio si chiude.
 
 ## Vedi anche
 

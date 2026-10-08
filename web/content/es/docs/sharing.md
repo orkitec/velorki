@@ -1,7 +1,7 @@
 ---
 title: Compartir
 description: Convierte una ruta o una salida en un enlace que cualquiera puede abrir en un navegador, mira lo que muestra la página y ten en cuenta que el enlace caduca al cabo de un año.
-order: 10
+order: 11
 ---
 
 Un enlace para compartir convierte una de tus rutas o salidas en una página web que cualquiera puede abrir, con un mapa, las cifras y una descarga en GPX. Úsalo para mandarle una salida a un amigo, publicar una ruta en un foro o pasar una ruta a otro teléfono sin archivo.

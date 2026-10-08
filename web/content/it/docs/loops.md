@@ -35,7 +35,9 @@ Se il pianificatore è vuoto, o contiene un solo punto, la finestra chiede invec
 
 ## Mentre cerca
 
-Velorki manda la richiesta in otto direzioni e si dà 25 secondi. Una barra di avanzamento conta le richieste completate, e **Ferma** a destra termina la ricerca in anticipo tenendo quello che è già stato trovato.
+Velorki manda la richiesta in otto direzioni e calcola ognuna sul telefono, il che richiede da pochi secondi a un minuto o più, secondo la distanza e il telefono. Una barra di avanzamento avanza man mano che le direzioni finiscono, con una riga sotto: "Provo 8 direzioni · 3 già verificate".
+
+Il miglior anello finora è sulla mappa appena ce n'è uno, con il suo riepilogo, **Un altro** e **Fatto** accanto alla barra, mentre la riga dice che la ricerca continua per un anello più tranquillo e più scorrevole. Alla fine la riga dice tra quanti anelli è stato scelto quello mostrato, "Il migliore di 6 anelli". **Ferma** termina la ricerca in anticipo e tiene quello che è stato trovato; **Fatto** lascia in mostra l'anello e fa finire la ricerca in background senza sostituirlo.
 
 ## Scegliere tra i candidati
 
@@ -49,12 +51,13 @@ Se il cursore o il profilo bici cambiano dopo una ricerca, il risultato è super
 
 ## Chiedere un anello che passi per un posto preciso
 
-La finestra degli anelli non ha un campo per un posto da cui passare, e nessuna preferenza su colline o fondo. Quelle arrivano dall'[assistente](./assistant): una frase come "Un anello gravel di circa 80 km con una sosta al bar" o "un anello collinare di 60 km da qui passando per il lago" diventa una richiesta con un punto intermedio e le preferenze allegate, e il generatore di anelli fa il lavoro. L'assistente fa parte di Velorki Plus; la finestra degli anelli in sé è gratis.
+La finestra degli anelli non ha un campo per un posto da cui passare, e nessuna preferenza su colline o fondo. Quelle arrivano dall'[assistente](./assistant): una frase come "un anello collinare di 60 km da qui passando per il lago" diventa una richiesta con un punto intermedio e le preferenze allegate, e il generatore di anelli fa il lavoro. L'assistente fa parte di Velorki Plus; la finestra degli anelli in sé è gratis.
 
 ## Quando non trova nulla
 
 - **"Nessun anello trovato qui, prova un'altra distanza."** Alcuni posti, un'isola o una valle senza uscita, semplicemente non hanno una rete stradale per un cerchio di quella lunghezza. Sposta la distanza su o giù di un buon margine, o parti da un altro posto.
 - **"Attiva la posizione o tocca la mappa per impostare la partenza."** Non è stato possibile determinare un punto di partenza. Consenti la posizione, o tocca prima la mappa.
+- **"La ricerca dell'anello ha richiesto troppo tempo su questo telefono. Prova una distanza più breve."** La ricerca si è arresa dopo 30 minuti.
 - **"Ricerca dell'anello non riuscita:"** con un motivo significa che il calcolo del percorso stesso è fallito. Vedi [risoluzione dei problemi](./troubleshooting).
 
 Chiudere la finestra annulla una ricerca in corso ma tiene quello che aveva già trovato.

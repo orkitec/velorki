@@ -1,7 +1,7 @@
 ---
 title: Navigation mit Abbiegehinweisen
 description: Einer Route während der Aufnahme folgen, mit Abbiegeband und Sprachansagen, und sehen, was Velorki tut, wenn du die Route verlässt.
-order: 6
+order: 7
 ---
 
 Velorki führt dich während einer laufenden Aufnahme an einer Route entlang: Ein Band über der Karte zeigt die nächste Abbiegung, und eine Stimme sagt sie an. Schalte die Navigation ein, wähle im Tab Aufnahme eine Route zum Folgen und starte die Fahrt.
@@ -90,6 +90,7 @@ Alle genannten Entfernungen wachsen mit, je schlechter dein GPS-Empfang ist, ung
 - **Meine Position anzeigen** nimmt das Folgen wieder auf, nachdem du die Karte verschoben hast, im gewohnten Zoom auf Straßenebene.
 - Solange du auf der Route bist, wird die Positionsmarkierung auf der Route gezeichnet und daran ausgerichtet, statt mit dem Empfang umherzuwandern.
 - Auch die Punkte der Route stehen auf der Karte: der Start, das Ziel mit seiner Flagge, jeder Stopp mit Namen oder Art und die Orte neben der Route. Ein Punkt, der nur die Linie formt, fehlt. Stopps, an denen du vorbei bist, werden blass und bleiben es, auch wenn du zurückfährst. Nach einer neuen Route zum Ziel sind es weiter die Punkte deiner Route.
+- Ist **Stopps** unter **Ebenen** an, stehen die Stopps neben der Route voraus auf der Karte, und eine Zeile nennt den nächsten jeder Art mit seiner Entfernung; siehe [Stopps auf der Karte](./stops-on-the-map#entlang-der-route-voraus).
 
 ## Weiterlesen
 

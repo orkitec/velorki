@@ -13,12 +13,12 @@ La scheda Pianifica trasforma i tocchi sulla mappa in un percorso in bici, calco
 3. **Tocca di nuovo** per il punto successivo. Ogni tocco aggiunge un punto alla fine del percorso, e l'ultimo, la destinazione, porta una bandierina. Per inserire invece un punto nel mezzo, **tocca la linea del percorso** dove deve andare: il punto si posa lì sulla linea, e puoi trascinarlo come qualsiasi altro.
 4. Velorki aspetta un momento dopo la tua ultima modifica e poi calcola. Mentre lavora il pannello mostra una rotellina e **Calcolo del percorso…**; poi compaiono i numeri.
 
-Puoi anche partire da un luogo invece che da un tocco. Scrivi nel campo di ricerca in alto e scegli un risultato, oppure tocca una sosta sulla mappa; finché il piano è ancora vuoto, la scheda del luogo offre:
+Puoi anche partire da un luogo invece che da un tocco. Scrivi nel campo di ricerca in alto e scegli un risultato, oppure tocca una [sosta sulla mappa](./stops-on-the-map); finché il piano è ancora vuoto, la [scheda del luogo](./search#la-scheda-del-luogo) offre:
 
 - **Percorso fin qui** porta da dove sei fino al luogo.
 - **Parti da qui** rende il luogo il primo punto del percorso.
 
-Quando un percorso è già in pianificazione, la scheda offre **Aggiungi come sosta**, che inserisce il luogo nel percorso nel punto in cui si trova lungo la strada, e **Destinazione**, che lo aggiunge alla fine. Vedi [ricerca](./search) per ciò che il campo di ricerca sa trovare.
+Con la sola partenza offre **Destinazione**. Quando un percorso è già in pianificazione, la scheda offre **Aggiungi come sosta**, che inserisce il luogo nel percorso nel punto in cui si trova lungo la strada, e **Destinazione**, che lo aggiunge alla fine. Vedi [ricerca](./search) per ciò che il campo di ricerca sa trovare.
 
 ## Segna un luogo accanto al percorso
 

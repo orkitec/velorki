@@ -1,7 +1,7 @@
 ---
 title: Datenschutz auf dem Handy
 description: "Klartext für Radfahrende: Was auf deinem Handy bleibt, was es verlässt, wann und an wen. Es gibt kein Konto, und nichts geht ungefragt hoch."
-order: 15
+order: 16
 ---
 
 Velorki hat kein Konto, es gibt also nichts, wo man sich anmeldet, und nichts über dich auf einem Server. Diese Seite ist die Fassung in Klartext, was das in der Praxis heißt; die [Datenschutzerklärung](/privacy) ist die förmliche.
@@ -24,7 +24,7 @@ Unter Android ist Velorki bewusst aus Googles Cloud-Sicherung und aus der Übert
 
 ### Während du auf die Karte schaust
 
-Kartenkacheln werden von OpenFreeMap geholt, und von CyclOSM, wenn du das Rad-Overlay einschaltest. Eine Kachel anzufragen verrät dem Kachelserver, welches Quadrat der Welt du gerade ansiehst, und umfasst deine IP-Adresse, wie jede Anfrage. Ein heruntergeladenes Gebiet kommt vom Handy und fragt nach nichts.
+Kartenkacheln werden von OpenFreeMap geholt, und von CyclOSM, wenn du unter **Ebenen** die **Radkarte** einschaltest. Eine Kachel anzufragen verrät dem Kachelserver, welches Quadrat der Welt du gerade ansiehst, und umfasst deine IP-Adresse, wie jede Anfrage. Ein heruntergeladenes Gebiet kommt vom Handy und fragt nach nichts.
 
 ### Während du planst
 
@@ -37,6 +37,8 @@ Das Routing läuft auf deinem Handy, wo immer du die Routing-Kacheln hast. Für 
 Die Suche wird auf dem Handy beantwortet, wo immer der Index des Gebiets heruntergeladen ist, und nichts von dem, was du tippst, verlässt das Gerät.
 
 Sie geht online, wenn du auf **Online nach „…“ suchen** tippst, oder wenn du für das angesehene Gebiet keinen Index hast. Dann geht dein Text an Photon, zusammen mit einer groben Position, damit nahe Ergebnisse zuerst kommen.
+
+[Stopps auf der Karte](./stops-on-the-map) werden aus dem Index auf dem Handy gelesen und fragen nach nichts.
 
 Tippst du auf der Ortskarte auf **Details**, holt Velorki seine Details (Öffnungszeiten, Website und Ähnliches) von OpenStreetMap.
 

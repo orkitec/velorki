@@ -1,7 +1,7 @@
 ---
 title: Grabar una salida
 description: Empieza, pausa y termina una salida, sigue grabando con la pantalla apagada, ahorra batería y recupera una salida después de que se cerrara la app.
-order: 7
+order: 8
 ---
 
 La pestaña Grabar registra tu salida y la guarda en la biblioteca cuando terminas. Sigue grabando con la pantalla apagada y con la app en segundo plano, y aguanta que la app se cierre o se mate.
@@ -10,7 +10,7 @@ Grabar es gratis y funciona sin ninguna conexión.
 
 ## Empezar, pausar, terminar
 
-1. Abre la pestaña **Grabar**. El panel dice **Listo para rodar** y «El track se guarda en el teléfono mientras pedaleas, incluso con la pantalla apagada.»
+1. Abre la pestaña **Grabar**. El panel dice **Listo para rodar**, con un breve consejo debajo.
 2. En **Seguir una ruta** elige qué sigue la salida: **Sin ruta**, **La ruta de la pestaña Planificar** (se ofrece mientras haya una) o una de tus rutas guardadas. Una ruta activa la guía descrita en [navegación paso a paso](./navigation). Hasta que elijas, la pestaña propone la ruta de la que vienes: la ruta cuya ficha tenías abierta en la Biblioteca, o el plan de la pestaña Planificar; tu propia elección se mantiene después hasta que se reinicie la app.
 3. Toca **Iniciar salida**.
 4. Durante la salida, el panel muestra una etiqueta de estado, el cronómetro y las cifras: **Distancia**, **Velocidad**, **Media**, y luego **Subida**, **Bajada**, **En movimiento**. Mientras sigues una ruta se añade una fila **Restante** y **Llegada**: la distancia que aún queda y cuándo llegarás a tu velocidad media hasta ahora, dos guiones hasta que la salida tenga una media.
@@ -43,7 +43,7 @@ La primera salida provoca hasta tres solicitudes, descritas en detalle en [prime
 
 - **Ubicación**, con la explicación de Velorki primero.
 - **Notificaciones** en Android, porque la grabación vive en una. Si la rechazas, Velorki avisa: «Sin el permiso de notificaciones, Android detiene la grabación cuando sales de la app.»
-- **Optimización de batería** en Android, una sola vez: «Android puede detener la grabación mientras el teléfono está en reposo. Dejar que Velorki ignore la optimización de batería mantiene el track completo. Solo se te pregunta una vez.»
+- **Optimización de batería** en Android, una sola vez: **Abrir ajustes** te lleva a los ajustes de batería, donde eliges Velorki y permites el uso de batería sin restricciones.
 
 ## Pantalla apagada, app cerrada
 

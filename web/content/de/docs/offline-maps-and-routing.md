@@ -1,7 +1,7 @@
 ---
 title: Offline-Karten und Routing
 description: Lade die Karte, die du siehst, und die Routing-Daten, aus denen Routen entstehen, damit Planen, Suche und Navigation auch ohne Empfang laufen.
-order: 5
+order: 6
 ---
 
 Zwei getrennte Downloads machen Velorki ohne Verbindung nutzbar: die **Karte**, die du siehst, und die **Routing-Daten**, aus denen Routen und die Offline-Suche berechnet werden. Lade beides für dein Fahrgebiet herunter, bevor du dorthin fährst, wo der Empfang aufhört.
@@ -16,7 +16,7 @@ Zwei getrennte Downloads machen Velorki ohne Verbindung nutzbar: die **Karte**, 
 | Größe | einige zehn Megabyte für eine Stadt | oft 125 bis 250 MB pro Kachel |
 | Ohne sie | graue Flächen dort, wo die Karte nicht zwischengespeichert ist | kein Routing und keine Offline-Suche in diesem Gebiet |
 
-Die Routing-Daten tragen auch den Ortsindex, ein heruntergeladenes Gebiet sucht also ebenfalls offline. Deshalb steht auf dem Bildschirm mit den Routing-Kacheln "Eine heruntergeladene Region bringt auch die Ortssuche ohne Empfang." Dieselbe heruntergeladene Region gibt einer aufgezeichneten Fahrt auch ihren Belag, siehe [die Bibliothek](./library).
+Die Routing-Daten tragen auch den Ortsindex, ein heruntergeladenes Gebiet sucht also ebenfalls offline und zeigt seine [Stopps auf der Karte](./stops-on-the-map). Deshalb steht auf dem Bildschirm mit den Routing-Kacheln "Eine heruntergeladene Region bringt auch die Ortssuche ohne Empfang." Dieselbe heruntergeladene Region gibt einer aufgezeichneten Fahrt auch ihren Belag, siehe [die Bibliothek](./library).
 
 ## Ein Gebiet herunterladen
 

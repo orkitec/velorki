@@ -35,7 +35,9 @@ Ist der Planer leer oder enthält er nur einen Punkt, fragt das Fenster stattdes
 
 ## Während der Suche
 
-Velorki schickt die Anfrage in acht Richtungen hinaus und gibt sich 25 Sekunden. Ein Fortschrittsbalken zählt die fertigen Anfragen, und **Stopp** rechts beendet die Suche früher und behält, was bis dahin gefunden wurde.
+Velorki schickt die Anfrage in acht Richtungen hinaus und berechnet jede auf dem Handy, was je nach Distanz und Handy von Sekunden bis zu einer Minute oder mehr dauert. Ein Fortschrittsbalken rückt vor, wenn Richtungen fertig sind, mit einer Zeile darunter: "8 Richtungen werden probiert · 3 schon geprüft".
+
+Die beste Runde bisher steht auf der Karte, sobald es eine gibt, mit ihrer Zusammenfassung, **Andere** und **Fertig** neben dem Balken, während die Zeile sagt, dass die Suche nach einer ruhigeren, glatteren Runde weitergeht. Ist sie zu Ende, sagt die Zeile, aus wie vielen Runden die gezeigte gewählt wurde, "Die beste von 6 Runden". **Stopp** beendet die Suche früher und behält, was gefunden wurde; **Fertig** lässt die Runde stehen und die Suche im Hintergrund auslaufen, ohne sie zu ersetzen.
 
 ## Unter den Vorschlägen wählen
 
@@ -49,12 +51,13 @@ Jeder Vorschlag, den du ansiehst, ist eine echte Route im Planer: schwenk darum 
 
 ## Eine Runde über einen bestimmten Ort
 
-Das Rundenfenster hat kein Feld für einen Ort, an dem du vorbeifahren willst, und keine Vorliebe für Berge oder Belag. Das kommt vom [Assistenten](./assistant): Ein Satz wie "Eine Gravel-Runde von etwa 80 km mit Café-Stopp" oder "eine hügelige 60-km-Runde von hier am See vorbei" wird zu einer Anfrage mit Zwischenpunkt und Vorlieben, und den Rest erledigt der Rundengenerator. Der Assistent gehört zu Velorki Plus; das Rundenfenster selbst ist kostenlos.
+Das Rundenfenster hat kein Feld für einen Ort, an dem du vorbeifahren willst, und keine Vorliebe für Berge oder Belag. Das kommt vom [Assistenten](./assistant): Ein Satz wie "eine hügelige 60-km-Runde von hier am See vorbei" wird zu einer Anfrage mit Zwischenpunkt und Vorlieben, und den Rest erledigt der Rundengenerator. Der Assistent gehört zu Velorki Plus; das Rundenfenster selbst ist kostenlos.
 
 ## Wenn nichts gefunden wird
 
 - **"Hier keine Runde gefunden, andere Distanz versuchen."** Manche Gegenden, eine Insel oder ein Sackgassental, haben schlicht kein Wegenetz für einen Rundkurs dieser Länge. Setz die Distanz deutlich herauf oder herunter, oder starte woanders.
 - **"Standort einschalten oder Karte antippen, um den Start zu setzen."** Es ließ sich kein Startpunkt ermitteln. Erlaube den Standort, oder tippe zuerst auf die Karte.
+- **"Die Rundensuche hat auf diesem Gerät zu lange gedauert. Kürzere Distanz versuchen."** Die Suche hat nach 30 Minuten aufgegeben.
 - **"Rundensuche fehlgeschlagen:"** mit einem Grund heißt, dass das Routing selbst fehlgeschlagen ist. Siehe [Fehlerbehebung](./troubleshooting).
 
 Das Schließen des Fensters bricht eine laufende Suche ab, behält aber, was schon gefunden wurde.

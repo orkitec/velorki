@@ -13,12 +13,12 @@ The Plan tab turns taps on the map into a bike route, computed on your phone whe
 3. **Tap again** for the next point. Every tap appends a point to the end of the route, and the last one, the destination, wears a flag. To put a point in the middle instead, **tap the route line** where it should go: the point lands on the line there, and you can drag it like any other.
 4. Velorki waits a moment after your last edit and then routes. While it works the sheet shows a spinner and **Routing…**; then the figures appear.
 
-You can also start from a place instead of a tap. Type into the search field at the top and pick a result, or tap a stop on the map; while the plan is still empty the place's card offers:
+You can also start from a place instead of a tap. Type into the search field at the top and pick a result, or tap a [stop on the map](./stops-on-the-map); while the plan is still empty the [place's card](./search#the-place-card) offers:
 
 - **Route here** rides from where you are to the place.
 - **Start here** makes the place the first point of the route.
 
-Once a route is being planned, the card offers **Add as a stop**, which puts the place into the route where it lies along the way, and **Destination**, which adds it at the end. See [search](./search) for what the search field can find.
+With only a start, it offers **Destination**. Once a route is being planned, the card offers **Add as a stop**, which puts the place into the route where it lies along the way, and **Destination**, which adds it at the end. See [search](./search) for what the search field can find.
 
 ## Mark a place beside the route
 
