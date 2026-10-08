@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../shared/presentation/floating_bar.dart' show FloatingBarStyle;
 import '../domain/route_profile.dart';
 import 'route_format.dart';
 
@@ -14,11 +15,14 @@ import 'route_format.dart';
 /// fifth rather than ending in an ellipsis: German "Trekking" and "Rennrad"
 /// do not fit at 360 dp otherwise.
 ///
-/// Over the map ([glass]) the chips are chrome, so they are opaque glass
-/// whatever the chip theme says; on a sheet, which is a surface already, the
-/// chip theme's fills are left alone. The label colour is set here in both
-/// cases, from the same scheme as the fill: a label style without one kept
-/// the text theme's own colour, white in the dark theme, on the accent.
+/// Over the map ([glass]) the chips are chrome, so they are the
+/// [FloatingBarStyle]'s glass in [VelorkiColors.chromeFill] whatever the chip
+/// theme says, but unblurred: a chip has no shadow to hide the square
+/// corners the engine blurs over the map's native view. On a sheet, which is
+/// a surface already, the chip theme's fills are left alone. The label
+/// colour is set here in both cases, from the same scheme as the fill: a
+/// label style without one kept the text theme's own colour, white in the
+/// dark theme, on the accent.
 class ProfileChipRow extends StatelessWidget {
   /// Creates the row.
   const ProfileChipRow({
@@ -34,7 +38,7 @@ class ProfileChipRow extends StatelessWidget {
   /// Called with the profile the rider tapped.
   final ValueChanged<RouteProfile> onSelected;
 
-  /// Whether the row floats over the map and needs opaque chips.
+  /// Whether the row floats over the map and takes the chrome's glass.
   final bool glass;
 
   @override
@@ -43,7 +47,16 @@ class ProfileChipRow extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final profiles = RouteProfile.values;
-    return SizedBox(
+    // The chips have no blur (no shadow to hide the square corners a blur
+    // over the map would show), so in clear glass a map label behind one
+    // competed with its text: they keep the subtle glass's thicker fill.
+    final style = FloatingBarStyle.of(context);
+    final fill = glass
+        ? theme.velorki.chromeFill(
+            style == BarStyle.clear ? BarStyle.subtle : style,
+          )
+        : null;
+    final row = SizedBox(
       height: 44,
       child: Row(
         children: [
@@ -73,8 +86,15 @@ class ProfileChipRow extends StatelessWidget {
                   visualDensity: VisualDensity.compact,
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   labelPadding: EdgeInsets.zero,
-                  backgroundColor: glass ? theme.velorki.glass : null,
-                  selectedColor: glass ? scheme.primary : null,
+                  // Material 3 chips read `color` before the background
+                  // and selected colours, and the chip theme sets it.
+                  color: fill == null
+                      ? null
+                      : WidgetStateProperty.resolveWith(
+                          (states) => states.contains(WidgetState.selected)
+                              ? scheme.primary
+                              : fill,
+                        ),
                   side: glass
                       ? BorderSide(
                           color: profile == selected
@@ -94,6 +114,13 @@ class ProfileChipRow extends StatelessWidget {
             ),
         ],
       ),
+    );
+    if (!glass) return row;
+    // A chip's own Material is filled with the canvas colour under its
+    // fill: over the map that would make the glass opaque again.
+    return Theme(
+      data: theme.copyWith(canvasColor: Colors.transparent),
+      child: row,
     );
   }
 }

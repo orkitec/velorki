@@ -346,7 +346,7 @@ class HomeShell extends ConsumerWidget {
       ),
     );
     // How see-through the bar, the rail, the figures bar and a sheet
-    // docked into them are.
+    // docked into them are, and the chrome over the map.
     final barStyle = ref.watch(
       appearanceSettingProvider.select((appearance) => appearance.barStyle),
     );

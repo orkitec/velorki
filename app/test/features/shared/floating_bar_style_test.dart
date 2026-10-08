@@ -126,23 +126,36 @@ void main() {
       expect(dark.barClear.a, greaterThan(light.barClear.a));
     });
 
-    test('solid blurs nothing, subtle blurs, clear blurs and saturates', () {
+    test(
+      'the chrome over the map lets through a quarter less than the bar',
+      () {
+        for (final colors in [light, dark]) {
+          for (final style in BarStyle.values) {
+            final bar = colors.barFill(style);
+            final chrome = colors.chromeFill(style);
+            // The same glass, only less see-through.
+            expect(chrome.withValues(alpha: 1), bar.withValues(alpha: 1));
+            expect(1 - chrome.a, closeTo(0.75 * (1 - bar.a), 1e-6));
+          }
+          expect(colors.chromeFill(BarStyle.solid).a, 1);
+        }
+        // Clear, the most see-through: about 0.71 light, 0.74 dark.
+        expect(light.chromeFill(BarStyle.clear).a, closeTo(0.7147, 1e-3));
+        expect(dark.chromeFill(BarStyle.clear).a, closeTo(0.7441, 1e-3));
+      },
+    );
+
+    test('solid and transparent blur nothing, subtle and clear blur, clear '
+        'harder, with a plain blur iOS applies over the map', () {
       expect(floatingBarFilter(BarStyle.solid), isNull);
       expect(floatingBarFilter(BarStyle.transparent), isNull);
-      expect(floatingBarFilter(BarStyle.subtle).toString(), contains('blur'));
+      final subtle = floatingBarFilter(BarStyle.subtle).toString();
       final clear = floatingBarFilter(BarStyle.clear).toString();
-      expect(clear, contains('compose'));
+      expect(subtle, contains('blur'));
       expect(clear, contains('blur'));
-      expect(clear, contains('matrix'));
-    });
-
-    test('the saturation matrix keeps a grey grey', () {
-      final m = saturationMatrix(clearBarSaturation);
-      for (var row = 0; row < 3; row++) {
-        final sum = m[row * 5] + m[row * 5 + 1] + m[row * 5 + 2];
-        expect(sum, closeTo(1, 1e-9));
-      }
-      expect(m[0], greaterThan(1), reason: 'red lifted on a red pixel');
+      expect(clear, isNot(contains('compose')));
+      expect(clear, isNot(contains('matrix')));
+      expect(clear, contains('28'));
     });
   });
 
@@ -209,7 +222,7 @@ void main() {
     );
   });
 
-  testWidgets('without a scope the bar is subtle glass', (tester) async {
+  testWidgets('without a scope the bar is clear glass', (tester) async {
     await tester.pumpWidget(
       testApp(
         home: Scaffold(
@@ -226,7 +239,7 @@ void main() {
     );
     _expectStyle(
       tester,
-      BarStyle.subtle,
+      BarStyle.clear,
       docked: false,
       colors: buildLightTheme().velorki,
     );

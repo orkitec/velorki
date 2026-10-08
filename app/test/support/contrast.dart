@@ -48,10 +48,18 @@ Color fillBehind(WidgetTester tester, Finder label) {
   };
 }
 
-/// Asserts that the text at [label] reads against what it is painted on.
-void expectReadable(WidgetTester tester, Finder label, {String? reason}) {
+/// Asserts that the text at [label] reads against what it is painted on;
+/// a translucent fill is blended [over] what shows through it, a map's
+/// darkest or lightest, as glass floating over the map is.
+void expectReadable(
+  WidgetTester tester,
+  Finder label, {
+  String? reason,
+  Color? over,
+}) {
   final text = textColorOf(tester, label);
-  final fill = fillBehind(tester, label);
+  final painted = fillBehind(tester, label);
+  final fill = over == null ? painted : Color.alphaBlend(painted, over);
   expect(text.a, 1.0, reason: 'translucent text at $label');
   expect(fill.a, 1.0, reason: 'translucent fill at $label');
   expect(

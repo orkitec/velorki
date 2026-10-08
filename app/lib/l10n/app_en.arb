@@ -2483,9 +2483,13 @@
   "@appearanceOverlayDarkUnchanged": {
     "description": "Cycling overlay option: drawn as it comes, bright on a dark map"
   },
-  "appearanceBarStyle": "Bar style",
-  "@appearanceBarStyle": {
-    "description": "Label above the choice of how see-through the floating tab bar at the bottom of the screen is, in Settings → Appearance"
+  "appearanceGlass": "Glass",
+  "@appearanceGlass": {
+    "description": "Label above the choice of how see-through the floating tab bar and the controls floating over the map are (solid, transparent, subtle glass, clear glass), in Settings → Appearance"
+  },
+  "appearanceGlassHint": "Applies to the bar and the controls over the map.",
+  "@appearanceGlassHint": {
+    "description": "Small text under the Glass choice in Settings → Appearance: the choice changes the tab bar and the buttons, search field and chips floating over the map"
   },
   "appearanceBarSolid": "Solid",
   "@appearanceBarSolid": {

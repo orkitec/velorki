@@ -61,7 +61,7 @@ class Appearance {
     this.accent = AccentPreset.volt,
     this.mapLook = MapLook.auto,
     this.overlayDark = OverlayDarkMode.inverted,
-    this.barStyle = BarStyle.subtle,
+    this.barStyle = BarStyle.clear,
   });
 
   /// Light, dark or whatever the system says.
@@ -76,7 +76,7 @@ class Appearance {
   /// How the cycling overlay is treated on the dark map styles.
   final OverlayDarkMode overlayDark;
 
-  /// How see-through the floating bar is.
+  /// How see-through the floating bar and the chrome over the map are.
   final BarStyle barStyle;
 
   /// A copy with the given fields replaced.
@@ -170,10 +170,11 @@ class AppearanceSetting extends _$AppearanceSetting {
     state = state.copyWith(overlayDark: mode);
   }
 
-  /// Picks how see-through the floating bar is.
+  /// Picks how see-through the floating bar and the chrome over the map
+  /// are.
   Future<void> setBarStyle(BarStyle style) async {
     final prefs = ref.read(sharedPreferencesProvider);
-    if (style == BarStyle.subtle) {
+    if (style == BarStyle.clear) {
       await prefs.remove(_prefsBarStyle);
     } else {
       await prefs.setString(_prefsBarStyle, style.name);

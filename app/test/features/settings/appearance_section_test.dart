@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -166,6 +167,25 @@ void main() {
       expect(drawn.left, greaterThanOrEqualTo(segment.left - 0.5));
       expect(drawn.right, lessThanOrEqualTo(segment.right + 0.5));
     }
+    // The choice's title on one line, its hint wrapping inside the section.
+    final section = tester.getRect(find.byType(AppearanceSection));
+    final title = tester.renderObject<RenderParagraph>(
+      find.text(l10n.appearanceGlass),
+    );
+    expect(title.size.width, lessThanOrEqualTo(section.width - 40));
+    expect(
+      title.size.height,
+      lessThan(title.text.style!.fontSize! * 2),
+      reason: '"${l10n.appearanceGlass}" on one line',
+    );
+    final hint = find.text(l10n.appearanceGlassHint);
+    final hintRect = tester.getRect(hint);
+    expect(hintRect.left, greaterThanOrEqualTo(section.left + 20 - 0.5));
+    expect(hintRect.right, lessThanOrEqualTo(section.right - 20 + 0.5));
+    expect(
+      tester.renderObject<RenderParagraph>(hint).didExceedMaxLines,
+      isFalse,
+    );
   });
 
   testWidgets('tapping Dark switches the mode and stores it', (tester) async {
@@ -295,7 +315,7 @@ void main() {
     );
   });
 
-  testWidgets('choosing Clear glass switches the bar and stores it', (
+  testWidgets('choosing Subtle glass switches the glass and stores it', (
     tester,
   ) async {
     final container = await _pump(tester);
@@ -303,15 +323,16 @@ void main() {
         tester.widget<SegmentedButton<BarStyle>>(
           find.byType(SegmentedButton<BarStyle>),
         );
-    expect(find.text(l10n.appearanceBarStyle), findsOneWidget);
-    expect(segmented().selected, {BarStyle.subtle});
+    expect(find.text(l10n.appearanceGlass), findsOneWidget);
+    expect(find.text(l10n.appearanceGlassHint), findsOneWidget);
+    expect(segmented().selected, {BarStyle.clear});
 
-    await tester.ensureVisible(find.text(l10n.appearanceBarClear));
-    await tester.tap(find.text(l10n.appearanceBarClear));
+    await tester.ensureVisible(find.text(l10n.appearanceBarSubtle));
+    await tester.tap(find.text(l10n.appearanceBarSubtle));
     await tester.pumpAndSettle();
 
-    expect(container.read(appearanceSettingProvider).barStyle, BarStyle.clear);
-    expect(segmented().selected, {BarStyle.clear});
+    expect(container.read(appearanceSettingProvider).barStyle, BarStyle.subtle);
+    expect(segmented().selected, {BarStyle.subtle});
   });
 
   testWidgets('the stored bar style is the one shown', (tester) async {

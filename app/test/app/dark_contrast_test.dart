@@ -90,7 +90,15 @@ void main() {
         for (final profile in RouteProfile.values) {
           final labels = find.text(profileLabel(l10n, profile));
           expect(labels, findsNWidgets(2));
-          expectReadable(tester, labels.first, reason: '$name glass chip');
+          // Glass over the map: over its darkest and its lightest.
+          for (final map in [Colors.black, Colors.white]) {
+            expectReadable(
+              tester,
+              labels.first,
+              over: map,
+              reason: '$name glass chip over $map',
+            );
+          }
           expectReadable(tester, labels.last, reason: '$name sheet chip');
         }
         expectReadable(tester, find.text('chosen'), reason: '$name chip');

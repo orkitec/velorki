@@ -201,26 +201,26 @@ void main() {
     );
   });
 
-  test('the bar is subtle glass to begin with', () async {
+  test('the glass is clear to begin with', () async {
     final (container, _) = await _container();
 
-    expect(container.read(appearanceSettingProvider).barStyle, BarStyle.subtle);
+    expect(container.read(appearanceSettingProvider).barStyle, BarStyle.clear);
   });
 
-  test('setBarStyle persists the choice and subtle clears it', () async {
+  test('setBarStyle persists the choice and clear clears it', () async {
     final (container, prefs) = await _container();
     final notifier = container.read(appearanceSettingProvider.notifier);
 
-    await notifier.setBarStyle(BarStyle.clear);
-    expect(prefs.getString(_barKey), 'clear');
-    expect(container.read(appearanceSettingProvider).barStyle, BarStyle.clear);
+    await notifier.setBarStyle(BarStyle.subtle);
+    expect(prefs.getString(_barKey), 'subtle');
+    expect(container.read(appearanceSettingProvider).barStyle, BarStyle.subtle);
     // The rest is left alone.
     expect(
       container.read(appearanceSettingProvider),
-      const Appearance(barStyle: BarStyle.clear),
+      const Appearance(barStyle: BarStyle.subtle),
     );
 
-    await notifier.setBarStyle(BarStyle.subtle);
+    await notifier.setBarStyle(BarStyle.clear);
     expect(prefs.containsKey(_barKey), isFalse);
     expect(container.read(appearanceSettingProvider), const Appearance());
   });
@@ -231,11 +231,11 @@ void main() {
     expect(container.read(appearanceSettingProvider).barStyle, BarStyle.solid);
   });
 
-  test('an unknown stored bar style falls back to subtle', () async {
+  test('an unknown stored bar style falls back to clear', () async {
     final (container, _) = await _container(<String, Object>{
       _barKey: 'frosted',
     });
 
-    expect(container.read(appearanceSettingProvider).barStyle, BarStyle.subtle);
+    expect(container.read(appearanceSettingProvider).barStyle, BarStyle.clear);
   });
 }

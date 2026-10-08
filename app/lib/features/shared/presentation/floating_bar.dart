@@ -30,7 +30,9 @@ double floatingRailInset(EdgeInsets viewPadding, RailSide side) =>
 
 /// The [BarStyle] the floating bars under it take: the shell's, from the
 /// rider's choice in Settings → Appearance. The tab sheets read it too, so
-/// a sheet docked into the bar is the same glass as the bar.
+/// a sheet docked into the bar is the same glass as the bar, and so does
+/// the chrome over the map (`GlassPanel`, the bike chips), in
+/// [VelorkiColors.chromeFill].
 class FloatingBarStyle extends InheritedWidget {
   /// Hands [style] down to [child].
   const FloatingBarStyle({
@@ -43,7 +45,7 @@ class FloatingBarStyle extends InheritedWidget {
   final BarStyle style;
 
   /// The style a bar at [context] is drawn in: the nearest scope's,
-  /// [BarStyle.subtle] without one, and [BarStyle.solid] whenever the
+  /// [BarStyle.clear] without one, and [BarStyle.solid] whenever the
   /// system asks for more contrast, whatever was picked.
   static BarStyle of(BuildContext context) {
     if (MediaQuery.maybeHighContrastOf(context) ?? false) {
@@ -52,7 +54,7 @@ class FloatingBarStyle extends InheritedWidget {
     return context
             .dependOnInheritedWidgetOfExactType<FloatingBarStyle>()
             ?.style ??
-        BarStyle.subtle;
+        BarStyle.clear;
   }
 
   @override
@@ -60,35 +62,18 @@ class FloatingBarStyle extends InheritedWidget {
       oldWidget.style != style;
 }
 
-/// How much [BarStyle.clear] lifts the colours behind the bar.
-const double clearBarSaturation = 1.7;
-
-/// What the bar blurs its backdrop with in [style]; `null` for none.
+/// What the bar, and the chrome over the map, blur their backdrop with in
+/// [style]; `null` for none.
 ///
-/// [BarStyle.clear] blurs harder than [BarStyle.subtle] and lifts the
-/// saturation of what is behind, so the map shows through as colour rather
-/// than as a grey haze.
+/// [BarStyle.clear] blurs harder than [BarStyle.subtle]; it is clearer for
+/// its thinner glass, not a weaker blur. A blur only: over the map's native
+/// view iOS applies a plain blur, and a blur composed with a colour filter
+/// (it once lifted the saturation) came out barely blurred at all.
 ImageFilter? floatingBarFilter(BarStyle style) => switch (style) {
   BarStyle.solid || BarStyle.transparent => null,
   BarStyle.subtle => ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-  BarStyle.clear => ImageFilter.compose(
-    outer: ColorFilter.matrix(saturationMatrix(clearBarSaturation)),
-    inner: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
-  ),
+  BarStyle.clear => ImageFilter.blur(sigmaX: 28, sigmaY: 28),
 };
-
-/// The colour matrix that scales saturation by [s], about the Rec. 709
-/// luminance, so a grey stays the same grey.
-List<double> saturationMatrix(double s) {
-  const r = 0.2126, g = 0.7152, b = 0.0722;
-  final k = 1 - s;
-  return <double>[
-    r * k + s, g * k, b * k, 0, 0, //
-    r * k, g * k + s, b * k, 0, 0, //
-    r * k, g * k, b * k + s, 0, 0, //
-    0, 0, 0, 1, 0,
-  ];
-}
 
 /// The glass pill a bar floats in at the bottom of the screen: the tab bar,
 /// and the figures bar Record's sheet folds into during a ride, so the two

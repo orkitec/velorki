@@ -89,7 +89,8 @@ enum AccentPreset {
   );
 }
 
-/// How see-through the floating bar is, picked under Settings → Appearance.
+/// How see-through the floating bar and the chrome over the map are, picked
+/// under Settings → Appearance as Glass.
 enum BarStyle {
   /// Not see-through: the glass colour at full opacity, no blur.
   solid,
@@ -97,17 +98,22 @@ enum BarStyle {
   /// See-through, no blur: the map and the card show through as they are.
   transparent,
 
-  /// Slightly see-through with a soft blur: the default.
+  /// Slightly see-through with a soft blur.
   subtle,
 
   /// Clearly see-through, a stronger blur that lifts the colours behind,
-  /// and a light rim along the top edge.
+  /// and a light rim along the bar's top edge: the default.
   clear;
 
-  /// The style named [name], or [subtle] when the name is unknown.
+  /// The style named [name], or [clear] when the name is unknown.
   static BarStyle fromName(String? name) =>
-      BarStyle.values.firstWhere((s) => s.name == name, orElse: () => subtle);
+      BarStyle.values.firstWhere((s) => s.name == name, orElse: () => clear);
 }
+
+/// How much of the bar's see-through the chrome over the map keeps: the
+/// search field, the chips and the control column are read at a glance
+/// over a busy map, so they let through a quarter less than the bar.
+const double chromeClarity = 0.75;
 
 /// Velorki's own colours, next to the Material scheme: the map layers, the
 /// glass surfaces floating over the map, and the semantic colours.
@@ -134,7 +140,6 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
     required this.position,
     required this.success,
     required this.warning,
-    required this.glass,
     required this.glassBorder,
     required this.barSolid,
     required this.barTransparent,
@@ -211,9 +216,6 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
   /// Stale, degraded, needs attention.
   final Color warning;
 
-  /// Translucent surface of the panels floating over the map.
-  final Color glass;
-
   /// Hairline around a glass panel.
   final Color glassBorder;
 
@@ -240,6 +242,14 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
     BarStyle.subtle => barSubtle,
     BarStyle.clear => barClear,
   };
+
+  /// The fill of the chrome floating over the map in [style]: the bar's
+  /// glass, a quarter less see-through ([chromeClarity]); solid stays
+  /// opaque.
+  Color chromeFill(BarStyle style) {
+    final bar = barFill(style);
+    return bar.withValues(alpha: 1 - chromeClarity * (1 - bar.a));
+  }
 
   /// Area fill under the elevation profile.
   final Color chartFill;
@@ -271,7 +281,6 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
     Color? position,
     Color? success,
     Color? warning,
-    Color? glass,
     Color? glassBorder,
     Color? barSolid,
     Color? barTransparent,
@@ -299,7 +308,6 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
     position: position ?? this.position,
     success: success ?? this.success,
     warning: warning ?? this.warning,
-    glass: glass ?? this.glass,
     glassBorder: glassBorder ?? this.glassBorder,
     barSolid: barSolid ?? this.barSolid,
     barTransparent: barTransparent ?? this.barTransparent,
@@ -339,7 +347,6 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
       position: mix(position, other.position),
       success: mix(success, other.success),
       warning: mix(warning, other.warning),
-      glass: mix(glass, other.glass),
       glassBorder: mix(glassBorder, other.glassBorder),
       barSolid: mix(barSolid, other.barSolid),
       barTransparent: mix(barTransparent, other.barTransparent),
@@ -546,7 +553,6 @@ VelorkiColors _darkColors(AccentPreset p, ColorScheme scheme) => VelorkiColors(
   position: const Color(0xFF4DA3FF),
   success: const Color(0xFF3DDC84),
   warning: const Color(0xFFF0B84A),
-  glass: const Color(0xEB1B1F26),
   glassBorder: const Color(0x2EFFFFFF),
   // The bar's glass, from opaque to clear. Its labels are light here, and
   // light labels lose contrast faster over a light map seen through dark
@@ -585,7 +591,6 @@ VelorkiColors _lightColors(AccentPreset p, ColorScheme scheme) => VelorkiColors(
   position: const Color(0xFF1E7CE6),
   success: const Color(0xFF1FA85F),
   warning: const Color(0xFFC77800),
-  glass: const Color(0xF0FFFFFF),
   glassBorder: const Color(0x1F000000),
   // The bar's glass, from opaque to clear (0.82, 0.62): dark labels on
   // white glass hold their contrast over the night map even at 0.62.

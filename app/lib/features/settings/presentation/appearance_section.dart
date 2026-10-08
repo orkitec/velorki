@@ -90,7 +90,7 @@ class AppearanceSection extends ConsumerWidget {
             ),
           ],
           const SizedBox(height: 20),
-          Text(l10n.appearanceBarStyle, style: theme.textTheme.titleSmall),
+          Text(l10n.appearanceGlass, style: theme.textTheme.titleSmall),
           const SizedBox(height: 10),
           SegmentedButton<BarStyle>(
             showSelectedIcon: false,
@@ -105,6 +105,8 @@ class AppearanceSection extends ConsumerWidget {
             onSelectionChanged: (selection) =>
                 unawaited(controller.setBarStyle(selection.single)),
           ),
+          const SizedBox(height: 8),
+          Text(l10n.appearanceGlassHint, style: theme.textTheme.bodySmall),
           const SizedBox(height: 20),
           Text(l10n.appearanceAccent, style: theme.textTheme.titleSmall),
           const SizedBox(height: 10),

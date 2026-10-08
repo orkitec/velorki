@@ -1,7 +1,10 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 
 import '../../../app/theme.dart';
 import 'ai_mark.dart';
+import 'floating_bar.dart' show FloatingBarStyle, floatingBarFilter;
 
 /// How big the figure of a [StatTile] is.
 enum StatSize {
@@ -269,8 +272,9 @@ class LabeledIconButton extends StatelessWidget {
   }
 }
 
-/// A panel with a translucent surface and a hairline, for controls floating
-/// over the map.
+/// A panel of glass with a hairline, for controls floating over the map:
+/// the [FloatingBarStyle]'s glass in [VelorkiColors.chromeFill], a quarter
+/// less see-through than the bar, blurred as the bar is.
 class GlassPanel extends StatelessWidget {
   /// Creates the panel.
   const GlassPanel({
@@ -292,11 +296,12 @@ class GlassPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).velorki;
-    // The colour lives on a Material, not a DecoratedBox: ListTiles inside
-    // paint their ink on the nearest Material and would be hidden otherwise.
+    final style = FloatingBarStyle.of(context);
+    final filter = floatingBarFilter(style);
+    final borderRadius = BorderRadius.circular(radius);
     return DecoratedBox(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
+        borderRadius: borderRadius,
         boxShadow: const [
           BoxShadow(
             color: Color(0x33000000),
@@ -305,14 +310,28 @@ class GlassPanel extends StatelessWidget {
           ),
         ],
       ),
-      child: Material(
-        color: colors.glass,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(radius),
-          side: BorderSide(color: colors.glassBorder),
+      child: ClipRRect(
+        borderRadius: borderRadius,
+        // Over the map's native view the engine blurs a rectangle, not this
+        // rounded clip; as under the bar at rest, the shadow around the
+        // panel hides its square corners. The filter stays in the tree
+        // whatever the style, so the content keeps its state on a change.
+        child: BackdropFilter(
+          enabled: filter != null,
+          filter: filter ?? ImageFilter.blur(),
+          // The colour lives on a Material, not a DecoratedBox: ListTiles
+          // inside paint their ink on the nearest Material and would be
+          // hidden otherwise.
+          child: Material(
+            color: colors.chromeFill(style),
+            shape: RoundedRectangleBorder(
+              borderRadius: borderRadius,
+              side: BorderSide(color: colors.glassBorder),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Padding(padding: padding, child: child),
+          ),
         ),
-        clipBehavior: Clip.antiAlias,
-        child: Padding(padding: padding, child: child),
       ),
     );
   }
