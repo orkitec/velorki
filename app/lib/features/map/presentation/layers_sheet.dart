@@ -105,8 +105,11 @@ class LayersSheet extends ConsumerWidget {
             // with the switch, as dependent settings do; what was picked is
             // kept for the next time.
             AnimatedSize(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOutCubic,
+              // Unfolding a screenful of choices wants a moment; folding
+              // them away may be quicker.
+              duration: const Duration(milliseconds: 350),
+              reverseDuration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOutCubic,
               alignment: Alignment.topCenter,
               child: !stops.shown
                   ? const SizedBox(width: double.infinity)
