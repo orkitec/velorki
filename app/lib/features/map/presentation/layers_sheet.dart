@@ -97,74 +97,100 @@ class LayersSheet extends ConsumerWidget {
               value: stops.shown,
               onChanged: (value) => unawaited(preferences.setShown(value)),
             ),
-            if (guided)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
-                child: SegmentedButton<bool>(
-                  segments: [
-                    ButtonSegment<bool>(
-                      value: true,
-                      icon: const Icon(Icons.route),
-                      label: Text(l10n.mapLayersAlongRoute),
-                    ),
-                    ButtonSegment<bool>(
-                      value: false,
-                      icon: const Icon(Icons.crop_free),
-                      label: Text(l10n.mapLayersInArea),
-                    ),
-                  ],
-                  selected: <bool>{stops.alongRoute},
-                  showSelectedIcon: false,
-                  onSelectionChanged: (value) =>
-                      unawaited(preferences.setAlongRoute(value.first)),
-                ),
-              ),
-            // Still there to pick while the stops are off, but plainly not
-            // on the map.
-            AnimatedOpacity(
-              opacity: stops.shown ? 1 : 0.45,
-              duration: const Duration(milliseconds: 150),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (final group in stopGroups)
-                    if (stopKindsOf(l10n, group) case final kinds
-                        when kinds.isNotEmpty) ...[
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                        child: SectionCaption(searchGroupLabel(l10n, group)),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            for (final kind in kinds)
-                              FilterChip(
-                                // A selected chip is the accent colour:
-                                // its icon goes with the label on it, not
-                                // with Material's default for the state.
-                                avatar: Icon(
-                                  poiKindIcon(kind),
-                                  size: 18,
-                                  color: stops.kinds.contains(kind)
-                                      ? Theme.of(context).colorScheme.onPrimary
-                                      : null,
+            // The choices that only mean something with stops on fold away
+            // with the switch, as dependent settings do; what was picked is
+            // kept for the next time.
+            AnimatedSize(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.topCenter,
+              child: !stops.shown
+                  ? const SizedBox(width: double.infinity)
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (guided)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
+                            child: SegmentedButton<bool>(
+                              segments: [
+                                ButtonSegment<bool>(
+                                  value: true,
+                                  icon: const Icon(Icons.route),
+                                  label: Text(l10n.mapLayersAlongRoute),
                                 ),
-                                label: Text(gazetteerPoiKindLabel(l10n, kind)!),
-                                showCheckmark: false,
-                                selected: stops.kinds.contains(kind),
-                                onSelected: (value) => unawaited(
-                                  preferences.setKind(kind, shown: value),
+                                ButtonSegment<bool>(
+                                  value: false,
+                                  icon: const Icon(Icons.crop_free),
+                                  label: Text(l10n.mapLayersInArea),
                                 ),
+                              ],
+                              selected: <bool>{stops.alongRoute},
+                              showSelectedIcon: false,
+                              onSelectionChanged: (value) => unawaited(
+                                preferences.setAlongRoute(value.first),
                               ),
+                            ),
+                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            for (final group in stopGroups)
+                              if (stopKindsOf(l10n, group) case final kinds
+                                  when kinds.isNotEmpty) ...[
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    20,
+                                    16,
+                                    20,
+                                    8,
+                                  ),
+                                  child: SectionCaption(
+                                    searchGroupLabel(l10n, group),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  child: Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      for (final kind in kinds)
+                                        FilterChip(
+                                          // A selected chip is the accent colour:
+                                          // its icon goes with the label on it, not
+                                          // with Material's default for the state.
+                                          avatar: Icon(
+                                            poiKindIcon(kind),
+                                            size: 18,
+                                            color: stops.kinds.contains(kind)
+                                                ? Theme.of(context)
+                                                      .colorScheme
+                                                      .onPrimary
+                                                : null,
+                                          ),
+                                          label: Text(
+                                            gazetteerPoiKindLabel(l10n, kind)!,
+                                          ),
+                                          showCheckmark: false,
+                                          selected: stops.kinds.contains(kind),
+                                          onSelected: (value) => unawaited(
+                                            preferences.setKind(
+                                              kind,
+                                              shown: value,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                           ],
                         ),
-                      ),
-                    ],
-                ],
-              ),
+                      ],
+                    ),
             ),
           ],
         ],

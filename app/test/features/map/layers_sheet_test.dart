@@ -41,8 +41,11 @@ Future<SharedPreferences> _pump(
   WidgetTester tester, {
   MapStopsOffer offer = MapStopsOffer.plan,
   List<Override> overrides = const <Override>[],
+  bool stopsShown = false,
 }) async {
-  SharedPreferences.setMockInitialValues(const <String, Object>{});
+  SharedPreferences.setMockInitialValues(<String, Object>{
+    if (stopsShown) 'map.stops.shown': true,
+  });
   final prefs = await SharedPreferences.getInstance();
   await tester.pumpWidget(
     ProviderScope(
@@ -141,7 +144,8 @@ void main() {
       testWidgets('fits on Plan at $label', (tester) async {
         debugShellLayoutOverride = null;
         await _screen(tester, size);
-        await _pump(tester);
+        // On, so the sheet is at its tallest.
+        await _pump(tester, stopsShown: true);
         await _openSheet(tester);
 
         expect(find.text(l10n.mapLayers), findsWidgets);
@@ -173,6 +177,7 @@ void main() {
           tester,
           offer: MapStopsOffer.ride,
           overrides: [activeGuidedRouteProvider.overrideWithValue(_route)],
+          stopsShown: true,
         );
         await _openSheet(tester);
 
@@ -284,14 +289,24 @@ void main() {
       expect(prefs.getBool('map.stops.alongRoute'), isFalse);
     });
 
-    testWidgets('the kinds stay to pick while the stops are off', (
-      tester,
-    ) async {
+    testWidgets('with the stops off their choices fold away, and come back '
+        'as they were', (tester) async {
       await _screen(tester, const Size(411, 914));
-      final prefs = await _pump(tester);
+      final prefs = await _pump(
+        tester,
+        offer: MapStopsOffer.ride,
+        overrides: [activeGuidedRouteProvider.overrideWithValue(_route)],
+      );
       await _openSheet(tester);
       expect(prefs.getBool('map.stops.shown'), isNull);
+      // Off: no kinds and no choice of where to show them.
+      expect(find.byType(FilterChip), findsNothing);
+      expect(find.text(l10n.mapLayersInArea), findsNothing);
 
+      await tester.tap(_switch(l10n.mapLayersStops));
+      await tester.pumpAndSettle();
+      expect(find.byType(FilterChip), findsWidgets);
+      expect(find.text(l10n.mapLayersInArea), findsOneWidget);
       final toilets = find.widgetWithText(
         FilterChip,
         gazetteerPoiKindLabel(l10n, 'toilets')!,
@@ -301,10 +316,18 @@ void main() {
       await tester.tap(toilets);
       await tester.pumpAndSettle();
 
+      // Off and on again: the pick is kept.
+      await tester.ensureVisible(_switch(l10n.mapLayersStops));
+      await tester.tap(_switch(l10n.mapLayersStops));
+      await tester.pumpAndSettle();
+      expect(find.byType(FilterChip), findsNothing);
+      await tester.tap(_switch(l10n.mapLayersStops));
+      await tester.pumpAndSettle();
       expect(
         prefs.getStringList('map.stops.kinds'),
         isNot(contains('toilets')),
       );
+      expect(tester.widget<FilterChip>(toilets).selected, isFalse);
     });
   });
 
