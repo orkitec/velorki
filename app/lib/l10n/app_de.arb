@@ -1066,5 +1066,14 @@
   "searchErrorUnreadable": "Der Suchserver hat eine Antwort geschickt, die Velorki nicht lesen kann.",
   "recordingServiceFailed": "Der Hintergrunddienst ist nicht gestartet.",
   "offlineRegionGone": "Dieses Kartengebiet ist nicht mehr auf dem Gerät.",
-  "offlineMapDownloadError": "Verbindung und freien Speicher prüfen, dann erneut versuchen."
+  "offlineMapDownloadError": "Verbindung und freien Speicher prüfen, dann erneut versuchen.",
+  "settingsShowPerformance": "Leistung anzeigen",
+  "settingsShowPerformanceHint": "Bildrate, Bildzeiten und Speicher in einer Ecke des Bildschirms",
+  "perfFps": "FPS",
+  "perfUi": "UI",
+  "perfRaster": "Raster",
+  "perfJank": "Ruckler",
+  "perfMemory": "RAM",
+  "perfFrameTimes": "{average}/{worst} ms",
+  "perfMegabytes": "{value} MB"
 }

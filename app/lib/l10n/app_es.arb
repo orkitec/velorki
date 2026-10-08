@@ -1066,5 +1066,14 @@
   "searchErrorUnreadable": "El servidor de búsqueda envió una respuesta que Velorki no puede leer.",
   "recordingServiceFailed": "El servicio en segundo plano no se inició.",
   "offlineRegionGone": "Esta zona de mapa ya no está en el dispositivo.",
-  "offlineMapDownloadError": "Comprueba la conexión y el espacio libre, e inténtalo de nuevo."
+  "offlineMapDownloadError": "Comprueba la conexión y el espacio libre, e inténtalo de nuevo.",
+  "settingsShowPerformance": "Mostrar rendimiento",
+  "settingsShowPerformanceHint": "Fotogramas por segundo, tiempos de fotograma y memoria en una esquina de la pantalla",
+  "perfFps": "FPS",
+  "perfUi": "UI",
+  "perfRaster": "Raster",
+  "perfJank": "Tirones",
+  "perfMemory": "RAM",
+  "perfFrameTimes": "{average}/{worst} ms",
+  "perfMegabytes": "{value} MB"
 }

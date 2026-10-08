@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/links/link_opener.dart';
 import '../../../core/links/velorki_urls.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../performance/data/show_performance_setting.dart';
 import '../data/package_info_provider.dart';
 
 /// Settings → About: version, attribution, licences and the legal links.
@@ -89,6 +90,14 @@ class AboutSection extends ConsumerWidget {
           subtitle: Text(l10n.settingsReportProblemSubtitle),
           trailing: const Icon(Icons.open_in_new, size: 18),
           onTap: () => unawaited(_open(context, ref, velorkiIssuesUrl)),
+        ),
+        SwitchListTile(
+          secondary: const Icon(Icons.speed_outlined),
+          value: ref.watch(showPerformanceProvider),
+          title: Text(l10n.settingsShowPerformance),
+          subtitle: Text(l10n.settingsShowPerformanceHint),
+          onChanged: (value) =>
+              unawaited(ref.read(showPerformanceProvider.notifier).set(value)),
         ),
       ],
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../features/performance/presentation/performance_hud.dart';
 import '../features/recording/data/battery_saver.dart';
 import '../features/settings/data/appearance_controller.dart';
 import '../features/settings/data/language_controller.dart';
@@ -35,8 +36,10 @@ class VelorkiApp extends ConsumerWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
-      // Modal sheets sit above the shell's own guard.
-      builder: gestureZoneAppBuilder,
+      // Modal sheets sit above the shell's own guard; the performance box,
+      // when it is on, above everything.
+      builder: (context, child) =>
+          PerformanceHudLayer(child: gestureZoneAppBuilder(context, child)),
       routerConfig: ref.watch(routerProvider),
     );
   }

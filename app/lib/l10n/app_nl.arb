@@ -1066,5 +1066,14 @@
   "searchErrorUnreadable": "De zoekserver stuurde een antwoord dat Velorki niet kon lezen.",
   "recordingServiceFailed": "De achtergronddienst is niet gestart.",
   "offlineRegionGone": "Dit kaartgebied staat niet meer op het apparaat.",
-  "offlineMapDownloadError": "Controleer de verbinding en de vrije ruimte en probeer het dan opnieuw."
+  "offlineMapDownloadError": "Controleer de verbinding en de vrije ruimte en probeer het dan opnieuw.",
+  "settingsShowPerformance": "Prestaties tonen",
+  "settingsShowPerformanceHint": "Beeldsnelheid, beeldtijden en geheugen in een hoek van het scherm",
+  "perfFps": "FPS",
+  "perfUi": "UI",
+  "perfRaster": "Raster",
+  "perfJank": "Haperingen",
+  "perfMemory": "RAM",
+  "perfFrameTimes": "{average}/{worst} ms",
+  "perfMegabytes": "{value} MB"
 }

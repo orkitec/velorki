@@ -190,6 +190,12 @@ const Map<String, String> sameAsEnglish = <String, String>{
   'settingsRiderMaxHeartRateUnit': 'unit symbol',
   'settingsRiderThresholdPowerUnit': 'unit symbol',
   'rideClimbVam': 'unit symbol',
+  'perfFrameTimes': 'unit symbol',
+  'perfMegabytes': 'unit symbol',
+  'perfFps': 'abbreviation (frames per second)',
+  'perfUi': 'abbreviation (the UI thread)',
+  'perfRaster': "the engine's name for the drawing thread",
+  'perfMemory': 'abbreviation (RAM)',
   'rideHeartRateZoneLabel': 'Z for zone, the training abbreviation',
   'ridePowerZoneTopLabel': 'Z for zone, the training abbreviation',
   // Words the target languages use as they are.
