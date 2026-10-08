@@ -10,6 +10,7 @@ const String _prefsThemeMode = 'appearance.mode';
 const String _prefsAccent = 'appearance.accent';
 const String _prefsMapLook = 'appearance.map';
 const String _prefsOverlayDark = 'appearance.overlay_dark';
+const String _prefsBarStyle = 'appearance.bar';
 
 /// Which map style is drawn, independently of the app theme.
 enum MapLook {
@@ -60,6 +61,7 @@ class Appearance {
     this.accent = AccentPreset.volt,
     this.mapLook = MapLook.auto,
     this.overlayDark = OverlayDarkMode.inverted,
+    this.barStyle = BarStyle.subtle,
   });
 
   /// Light, dark or whatever the system says.
@@ -74,17 +76,22 @@ class Appearance {
   /// How the cycling overlay is treated on the dark map styles.
   final OverlayDarkMode overlayDark;
 
+  /// How see-through the floating bar is.
+  final BarStyle barStyle;
+
   /// A copy with the given fields replaced.
   Appearance copyWith({
     ThemeMode? mode,
     AccentPreset? accent,
     MapLook? mapLook,
     OverlayDarkMode? overlayDark,
+    BarStyle? barStyle,
   }) => Appearance(
     mode: mode ?? this.mode,
     accent: accent ?? this.accent,
     mapLook: mapLook ?? this.mapLook,
     overlayDark: overlayDark ?? this.overlayDark,
+    barStyle: barStyle ?? this.barStyle,
   );
 
   @override
@@ -93,10 +100,11 @@ class Appearance {
       other.mode == mode &&
       other.accent == accent &&
       other.mapLook == mapLook &&
-      other.overlayDark == overlayDark;
+      other.overlayDark == overlayDark &&
+      other.barStyle == barStyle;
 
   @override
-  int get hashCode => Object.hash(mode, accent, mapLook, overlayDark);
+  int get hashCode => Object.hash(mode, accent, mapLook, overlayDark, barStyle);
 }
 
 /// Settings → Appearance, persisted in shared_preferences.
@@ -114,6 +122,7 @@ class AppearanceSetting extends _$AppearanceSetting {
       accent: AccentPreset.fromName(prefs.getString(_prefsAccent)),
       mapLook: MapLook.fromName(prefs.getString(_prefsMapLook)),
       overlayDark: OverlayDarkMode.fromName(prefs.getString(_prefsOverlayDark)),
+      barStyle: BarStyle.fromName(prefs.getString(_prefsBarStyle)),
     );
   }
 
@@ -159,5 +168,16 @@ class AppearanceSetting extends _$AppearanceSetting {
       await prefs.setString(_prefsOverlayDark, mode.name);
     }
     state = state.copyWith(overlayDark: mode);
+  }
+
+  /// Picks how see-through the floating bar is.
+  Future<void> setBarStyle(BarStyle style) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    if (style == BarStyle.subtle) {
+      await prefs.remove(_prefsBarStyle);
+    } else {
+      await prefs.setString(_prefsBarStyle, style.name);
+    }
+    state = state.copyWith(barStyle: style);
   }
 }

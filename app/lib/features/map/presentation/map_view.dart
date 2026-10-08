@@ -142,7 +142,9 @@ class MapView extends ConsumerStatefulWidget {
 
   /// Inset of the attribution chip from the bottom edge of the view, on top
   /// of the system's own inset there (the home indicator). It sits centred,
-  /// under the floating navigation bar, at the same spot on every tab.
+  /// under the floating navigation bar, at the same spot on every tab; on a
+  /// phone with no gesture zone there, above the bar
+  /// ([MapChromeInsets.attributionFloor]).
   final EdgeInsets attributionPadding;
 
   @override
@@ -315,7 +317,8 @@ class _MapViewState extends ConsumerState<MapView> {
     final chrome = MapChromeInsets.maybeOf(context);
     final chromeTop = chrome?.controlsTop;
     // The bottom of the view, whatever an owner removed from the padding:
-    // the chip and the (i) button sit in the band under the bar.
+    // the chip and the (i) button sit in the band under the bar, or where
+    // the owner's chrome puts them when that band is too low.
     // Turned sideways the map beside the rail and the sheet is narrow.
     final sideways =
         (chrome?.attributionInsets ?? EdgeInsets.zero) != EdgeInsets.zero;

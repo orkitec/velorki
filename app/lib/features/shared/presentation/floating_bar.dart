@@ -28,6 +28,68 @@ double floatingRailInset(EdgeInsets viewPadding, RailSide side) =>
     floatingBarBottomGap +
     floatingRailWidth;
 
+/// The [BarStyle] the floating bars under it take: the shell's, from the
+/// rider's choice in Settings → Appearance. The tab sheets read it too, so
+/// a sheet docked into the bar is the same glass as the bar.
+class FloatingBarStyle extends InheritedWidget {
+  /// Hands [style] down to [child].
+  const FloatingBarStyle({
+    required this.style,
+    required super.child,
+    super.key,
+  });
+
+  /// The rider's choice.
+  final BarStyle style;
+
+  /// The style a bar at [context] is drawn in: the nearest scope's,
+  /// [BarStyle.subtle] without one, and [BarStyle.solid] whenever the
+  /// system asks for more contrast, whatever was picked.
+  static BarStyle of(BuildContext context) {
+    if (MediaQuery.maybeHighContrastOf(context) ?? false) {
+      return BarStyle.solid;
+    }
+    return context
+            .dependOnInheritedWidgetOfExactType<FloatingBarStyle>()
+            ?.style ??
+        BarStyle.subtle;
+  }
+
+  @override
+  bool updateShouldNotify(FloatingBarStyle oldWidget) =>
+      oldWidget.style != style;
+}
+
+/// How much [BarStyle.clear] lifts the colours behind the bar.
+const double clearBarSaturation = 1.7;
+
+/// What the bar blurs its backdrop with in [style]; `null` for none.
+///
+/// [BarStyle.clear] blurs harder than [BarStyle.subtle] and lifts the
+/// saturation of what is behind, so the map shows through as colour rather
+/// than as a grey haze.
+ImageFilter? floatingBarFilter(BarStyle style) => switch (style) {
+  BarStyle.solid || BarStyle.transparent => null,
+  BarStyle.subtle => ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+  BarStyle.clear => ImageFilter.compose(
+    outer: ColorFilter.matrix(saturationMatrix(clearBarSaturation)),
+    inner: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+  ),
+};
+
+/// The colour matrix that scales saturation by [s], about the Rec. 709
+/// luminance, so a grey stays the same grey.
+List<double> saturationMatrix(double s) {
+  const r = 0.2126, g = 0.7152, b = 0.0722;
+  final k = 1 - s;
+  return <double>[
+    r * k + s, g * k, b * k, 0, 0, //
+    r * k, g * k + s, b * k, 0, 0, //
+    r * k, g * k, b * k + s, 0, 0, //
+    0, 0, 0, 1, 0,
+  ];
+}
+
 /// The glass pill a bar floats in at the bottom of the screen: the tab bar,
 /// and the figures bar Record's sheet folds into during a ride, so the two
 /// sit in exactly the same place with exactly the same shape.
@@ -36,7 +98,8 @@ double floatingRailInset(EdgeInsets viewPadding, RailSide side) =>
 /// safe area, corners of 30 and a shadow at rest. [docked], a sheet's strip
 /// rests on its top edge: the top goes square and open, the seam being the
 /// strip's own hairline, and the shadow and blur go (see below). [child] is
-/// [floatingBarHeight] tall.
+/// [floatingBarHeight] tall. How see-through the glass is follows
+/// [FloatingBarStyle].
 ///
 /// On a phone turned sideways the shell is built inside a
 /// `QuarterTurnedFrame`, so the same pill stands as a rail on the side the
@@ -54,6 +117,9 @@ class FloatingBarShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).velorki;
+    final style = FloatingBarStyle.of(context);
+    final fill = colors.barFill(style);
+    final filter = floatingBarFilter(style);
     // Docked, the bar paints its own shape — square top, round bottom —
     // and clips nothing: over the map's native view a rounded clip with
     // straight top corners is not applied, and the glass came out square at
@@ -91,24 +157,30 @@ class FloatingBarShell extends StatelessWidget {
             child: BackdropFilter(
               // Over the map's native view the blur is applied by the
               // engine to a rectangle, not to this rounded clip; at rest the
-              // shadow hides its square corners, docked there is no shadow
-              // and they showed as half circles beside the round ones. So
-              // docked, the glass colour alone.
-              enabled: !docked,
-              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              // shadow hides its square corners. Docked, behind the bar is
+              // the map too, and iOS draws no blur there at all, whatever
+              // the clip (tried with one of four equal corners reaching past
+              // the top): so docked, the style's glass colour alone, see-
+              // through as much as at rest but unblurred.
+              enabled: !docked && filter != null,
+              filter: filter ?? ImageFilter.blur(),
               child: Container(
                 decoration: docked
-                    ? _BarBorder(
+                    ? BarGlassDecoration(
                         color: colors.glassBorder,
                         docked: true,
-                        fill: colors.glass,
+                        fill: fill,
                       )
-                    : BoxDecoration(color: colors.glass),
+                    : BoxDecoration(color: fill),
                 // Painted rather than a Border: a rounded border cannot
                 // leave one side out, and docked the top edge is the seam.
                 foregroundDecoration: docked
                     ? null
-                    : _BarBorder(color: colors.glassBorder, docked: false),
+                    : BarGlassDecoration(
+                        color: colors.glassBorder,
+                        docked: false,
+                        rim: style == BarStyle.clear ? colors.barRim : null,
+                      ),
                 child: child,
               ),
             ),
@@ -120,26 +192,39 @@ class FloatingBarShell extends StatelessWidget {
 }
 
 /// The hairline around the bar's pill; docked, it is open at the top, where
-/// the sheet's strip continues it.
-class _BarBorder extends Decoration {
-  const _BarBorder({required this.color, required this.docked, this.fill});
+/// the sheet's strip continues it, and fills the docked shape with the glass.
+class BarGlassDecoration extends Decoration {
+  /// Creates the decoration.
+  const BarGlassDecoration({
+    required this.color,
+    required this.docked,
+    this.fill,
+    this.rim,
+  });
+
+  /// The light rim along the top edge at rest, fading out by the middle;
+  /// `null` for none.
+  final Color? rim;
 
   /// The glass to fill the docked shape with, under the hairline; `null`
   /// paints the hairline alone.
   final Color? fill;
 
+  /// The hairline's colour.
   final Color color;
+
+  /// Whether the bar is docked: square top, open at the seam.
   final bool docked;
 
   @override
   BoxPainter createBoxPainter([VoidCallback? onChanged]) =>
-      _BarBorderPainter(this);
+      _BarGlassPainter(this);
 }
 
-class _BarBorderPainter extends BoxPainter {
-  _BarBorderPainter(this.border);
+class _BarGlassPainter extends BoxPainter {
+  _BarGlassPainter(this.border);
 
-  final _BarBorder border;
+  final BarGlassDecoration border;
 
   @override
   void paint(Canvas canvas, Offset offset, ImageConfiguration configuration) {
@@ -151,10 +236,23 @@ class _BarBorderPainter extends BoxPainter {
     // Half a pixel in, so the stroke lies inside the clip.
     final rect = (offset & size).deflate(0.5);
     if (!border.docked) {
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(rect, const Radius.circular(29.5)),
-        paint,
-      );
+      final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(29.5));
+      canvas.drawRRect(rrect, paint);
+      final rim = border.rim;
+      if (rim != null) {
+        canvas.drawRRect(
+          rrect,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1
+            ..shader = LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: <Color>[rim, rim.withValues(alpha: 0)],
+              stops: const <double>[0, 0.5],
+            ).createShader(rect),
+        );
+      }
       return;
     }
     final fill = border.fill;

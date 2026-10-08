@@ -2483,6 +2483,26 @@
   "@appearanceOverlayDarkUnchanged": {
     "description": "Cycling overlay option: drawn as it comes, bright on a dark map"
   },
+  "appearanceBarStyle": "Bar style",
+  "@appearanceBarStyle": {
+    "description": "Label above the choice of how see-through the floating tab bar at the bottom of the screen is, in Settings → Appearance"
+  },
+  "appearanceBarSolid": "Solid",
+  "@appearanceBarSolid": {
+    "description": "Bar style option: the tab bar is not see-through"
+  },
+  "appearanceBarTransparent": "Transparent",
+  "@appearanceBarTransparent": {
+    "description": "Bar style setting: the tab bar is see-through without any blur"
+  },
+  "appearanceBarSubtle": "Subtle glass",
+  "@appearanceBarSubtle": {
+    "description": "Bar style option (default): the tab bar is slightly see-through, like frosted glass"
+  },
+  "appearanceBarClear": "Clear glass",
+  "@appearanceBarClear": {
+    "description": "Bar style option: the tab bar is clearly see-through, like clear glass"
+  },
   "accentVolt": "Volt",
   "@accentVolt": {
     "description": "Accent colour name: electric lime green"

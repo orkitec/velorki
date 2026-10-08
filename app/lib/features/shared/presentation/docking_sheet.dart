@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/theme.dart';
+import 'floating_bar.dart' show FloatingBarStyle;
 
 /// The height of a sheet's handle strip: the drag handle with its margins.
 const double sheetHandleDp = 28;
@@ -466,7 +467,13 @@ class _DockingSheetShellState extends State<DockingSheetShell> {
               filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: Color.lerp(theme.colorScheme.surface, colors.glass, t),
+                  // Docked, the bar's own glass, in the bar's style, so
+                  // the strip and the bar read as one pill.
+                  color: Color.lerp(
+                    theme.colorScheme.surface,
+                    colors.barFill(FloatingBarStyle.of(context)),
+                    t,
+                  ),
                 ),
                 child: CustomPaint(
                   foregroundPainter: _ShellBorderPainter(

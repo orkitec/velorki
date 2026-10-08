@@ -8,7 +8,8 @@ import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../data/appearance_controller.dart';
 
-/// Settings → Appearance: light/dark/system and the accent colour.
+/// Settings → Appearance: light/dark/system, the map, the bar's glass and
+/// the accent colour.
 class AppearanceSection extends ConsumerWidget {
   /// Creates the section.
   const AppearanceSection({super.key});
@@ -89,6 +90,22 @@ class AppearanceSection extends ConsumerWidget {
             ),
           ],
           const SizedBox(height: 20),
+          Text(l10n.appearanceBarStyle, style: theme.textTheme.titleSmall),
+          const SizedBox(height: 10),
+          SegmentedButton<BarStyle>(
+            showSelectedIcon: false,
+            segments: [
+              for (final style in BarStyle.values)
+                ButtonSegment(
+                  value: style,
+                  label: _SegmentLabel(barStyleLabel(l10n, style)),
+                ),
+            ],
+            selected: {appearance.barStyle},
+            onSelectionChanged: (selection) =>
+                unawaited(controller.setBarStyle(selection.single)),
+          ),
+          const SizedBox(height: 20),
           Text(l10n.appearanceAccent, style: theme.textTheme.titleSmall),
           const SizedBox(height: 10),
           Row(
@@ -128,6 +145,14 @@ String overlayDarkLabel(AppLocalizations l10n, OverlayDarkMode mode) =>
       OverlayDarkMode.dimmed => l10n.appearanceOverlayDarkDimmed,
       OverlayDarkMode.unchanged => l10n.appearanceOverlayDarkUnchanged,
     };
+
+/// The localised name of a bar style.
+String barStyleLabel(AppLocalizations l10n, BarStyle style) => switch (style) {
+  BarStyle.solid => l10n.appearanceBarSolid,
+  BarStyle.transparent => l10n.appearanceBarTransparent,
+  BarStyle.subtle => l10n.appearanceBarSubtle,
+  BarStyle.clear => l10n.appearanceBarClear,
+};
 
 /// The localised name of an accent preset.
 String accentLabel(AppLocalizations l10n, AccentPreset preset) =>

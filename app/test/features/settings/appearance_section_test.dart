@@ -132,6 +132,40 @@ void main() {
             .dy,
     };
     expect(tops, hasLength(1));
+    for (final style in BarStyle.values) {
+      final label = find.descendant(
+        of: find.byType(SegmentedButton<BarStyle>),
+        matching: find.text(barStyleLabel(l10n, style)),
+      );
+      expect(tester.widget<Text>(label).maxLines, 1);
+      expect(tester.widget<Text>(label).softWrap, isFalse);
+    }
+    final barTops = {
+      for (final style in BarStyle.values)
+        tester
+            .getRect(
+              find.descendant(
+                of: find.byType(SegmentedButton<BarStyle>),
+                matching: find.text(barStyleLabel(l10n, style)),
+              ),
+            )
+            .center
+            .dy,
+    };
+    expect(barTops, hasLength(1));
+    // Each label within its own segment: shrunk to fit, never spilling.
+    for (final style in BarStyle.values) {
+      final label = find.descendant(
+        of: find.byType(SegmentedButton<BarStyle>),
+        matching: find.text(barStyleLabel(l10n, style)),
+      );
+      final segment = tester.getRect(
+        find.ancestor(of: label, matching: find.byType(FittedBox)).first,
+      );
+      final drawn = tester.getRect(label);
+      expect(drawn.left, greaterThanOrEqualTo(segment.left - 0.5));
+      expect(drawn.right, lessThanOrEqualTo(segment.right + 0.5));
+    }
   });
 
   testWidgets('tapping Dark switches the mode and stores it', (tester) async {
@@ -258,6 +292,38 @@ void main() {
           )
           .selected,
       {OverlayDarkMode.unchanged},
+    );
+  });
+
+  testWidgets('choosing Clear glass switches the bar and stores it', (
+    tester,
+  ) async {
+    final container = await _pump(tester);
+    SegmentedButton<BarStyle> segmented() =>
+        tester.widget<SegmentedButton<BarStyle>>(
+          find.byType(SegmentedButton<BarStyle>),
+        );
+    expect(find.text(l10n.appearanceBarStyle), findsOneWidget);
+    expect(segmented().selected, {BarStyle.subtle});
+
+    await tester.ensureVisible(find.text(l10n.appearanceBarClear));
+    await tester.tap(find.text(l10n.appearanceBarClear));
+    await tester.pumpAndSettle();
+
+    expect(container.read(appearanceSettingProvider).barStyle, BarStyle.clear);
+    expect(segmented().selected, {BarStyle.clear});
+  });
+
+  testWidgets('the stored bar style is the one shown', (tester) async {
+    await _pump(tester, initial: <String, Object>{'appearance.bar': 'solid'});
+
+    expect(
+      tester
+          .widget<SegmentedButton<BarStyle>>(
+            find.byType(SegmentedButton<BarStyle>),
+          )
+          .selected,
+      {BarStyle.solid},
     );
   });
 }

@@ -89,6 +89,26 @@ enum AccentPreset {
   );
 }
 
+/// How see-through the floating bar is, picked under Settings → Appearance.
+enum BarStyle {
+  /// Not see-through: the glass colour at full opacity, no blur.
+  solid,
+
+  /// See-through, no blur: the map and the card show through as they are.
+  transparent,
+
+  /// Slightly see-through with a soft blur: the default.
+  subtle,
+
+  /// Clearly see-through, a stronger blur that lifts the colours behind,
+  /// and a light rim along the top edge.
+  clear;
+
+  /// The style named [name], or [subtle] when the name is unknown.
+  static BarStyle fromName(String? name) =>
+      BarStyle.values.firstWhere((s) => s.name == name, orElse: () => subtle);
+}
+
 /// Velorki's own colours, next to the Material scheme: the map layers, the
 /// glass surfaces floating over the map, and the semantic colours.
 @immutable
@@ -116,6 +136,11 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
     required this.warning,
     required this.glass,
     required this.glassBorder,
+    required this.barSolid,
+    required this.barTransparent,
+    required this.barSubtle,
+    required this.barClear,
+    required this.barRim,
     required this.chartFill,
   });
 
@@ -192,6 +217,30 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
   /// Hairline around a glass panel.
   final Color glassBorder;
 
+  /// The floating bar's fill in [BarStyle.solid]: the glass, opaque.
+  final Color barSolid;
+
+  /// The floating bar's fill in [BarStyle.transparent].
+  final Color barTransparent;
+
+  /// The floating bar's fill in [BarStyle.subtle].
+  final Color barSubtle;
+
+  /// The floating bar's fill in [BarStyle.clear].
+  final Color barClear;
+
+  /// The light rim along the top edge of the bar in [BarStyle.clear], where
+  /// it fades out towards the middle.
+  final Color barRim;
+
+  /// The floating bar's fill in [style].
+  Color barFill(BarStyle style) => switch (style) {
+    BarStyle.solid => barSolid,
+    BarStyle.transparent => barTransparent,
+    BarStyle.subtle => barSubtle,
+    BarStyle.clear => barClear,
+  };
+
   /// Area fill under the elevation profile.
   final Color chartFill;
 
@@ -224,6 +273,11 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
     Color? warning,
     Color? glass,
     Color? glassBorder,
+    Color? barSolid,
+    Color? barTransparent,
+    Color? barSubtle,
+    Color? barClear,
+    Color? barRim,
     Color? chartFill,
   }) => VelorkiColors(
     accent: accent ?? this.accent,
@@ -247,6 +301,11 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
     warning: warning ?? this.warning,
     glass: glass ?? this.glass,
     glassBorder: glassBorder ?? this.glassBorder,
+    barSolid: barSolid ?? this.barSolid,
+    barTransparent: barTransparent ?? this.barTransparent,
+    barSubtle: barSubtle ?? this.barSubtle,
+    barClear: barClear ?? this.barClear,
+    barRim: barRim ?? this.barRim,
     chartFill: chartFill ?? this.chartFill,
   );
 
@@ -282,6 +341,11 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
       warning: mix(warning, other.warning),
       glass: mix(glass, other.glass),
       glassBorder: mix(glassBorder, other.glassBorder),
+      barSolid: mix(barSolid, other.barSolid),
+      barTransparent: mix(barTransparent, other.barTransparent),
+      barSubtle: mix(barSubtle, other.barSubtle),
+      barClear: mix(barClear, other.barClear),
+      barRim: mix(barRim, other.barRim),
       chartFill: mix(chartFill, other.chartFill),
     );
   }
@@ -484,6 +548,15 @@ VelorkiColors _darkColors(AccentPreset p, ColorScheme scheme) => VelorkiColors(
   warning: const Color(0xFFF0B84A),
   glass: const Color(0xEB1B1F26),
   glassBorder: const Color(0x2EFFFFFF),
+  // The bar's glass, from opaque to clear. Its labels are light here, and
+  // light labels lose contrast faster over a light map seen through dark
+  // glass than dark labels over a dark map through white glass: so a
+  // little more glass than the light theme's at each step (0.84, 0.66).
+  barSolid: const Color(0xFF1B1F26),
+  barTransparent: const Color(0xCC1B1F26),
+  barSubtle: const Color(0xD61B1F26),
+  barClear: const Color(0xA81B1F26),
+  barRim: const Color(0x47FFFFFF),
   chartFill: p.dark.withValues(alpha: 0.18),
 );
 
@@ -514,6 +587,13 @@ VelorkiColors _lightColors(AccentPreset p, ColorScheme scheme) => VelorkiColors(
   warning: const Color(0xFFC77800),
   glass: const Color(0xF0FFFFFF),
   glassBorder: const Color(0x1F000000),
+  // The bar's glass, from opaque to clear (0.82, 0.62): dark labels on
+  // white glass hold their contrast over the night map even at 0.62.
+  barSolid: const Color(0xFFFFFFFF),
+  barTransparent: const Color(0xC7FFFFFF),
+  barSubtle: const Color(0xD1FFFFFF),
+  barClear: const Color(0x9EFFFFFF),
+  barRim: const Color(0xE6FFFFFF),
   chartFill: p.light.withValues(alpha: 0.14),
 );
 

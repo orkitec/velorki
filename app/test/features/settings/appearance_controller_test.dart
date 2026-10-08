@@ -10,6 +10,7 @@ const String _modeKey = 'appearance.mode';
 const String _accentKey = 'appearance.accent';
 const String _mapKey = 'appearance.map';
 const String _overlayDarkKey = 'appearance.overlay_dark';
+const String _barKey = 'appearance.bar';
 
 Future<(ProviderContainer, SharedPreferences)> _container([
   Map<String, Object> initial = const <String, Object>{},
@@ -198,5 +199,43 @@ void main() {
       container.read(appearanceSettingProvider).overlayDark,
       OverlayDarkMode.inverted,
     );
+  });
+
+  test('the bar is subtle glass to begin with', () async {
+    final (container, _) = await _container();
+
+    expect(container.read(appearanceSettingProvider).barStyle, BarStyle.subtle);
+  });
+
+  test('setBarStyle persists the choice and subtle clears it', () async {
+    final (container, prefs) = await _container();
+    final notifier = container.read(appearanceSettingProvider.notifier);
+
+    await notifier.setBarStyle(BarStyle.clear);
+    expect(prefs.getString(_barKey), 'clear');
+    expect(container.read(appearanceSettingProvider).barStyle, BarStyle.clear);
+    // The rest is left alone.
+    expect(
+      container.read(appearanceSettingProvider),
+      const Appearance(barStyle: BarStyle.clear),
+    );
+
+    await notifier.setBarStyle(BarStyle.subtle);
+    expect(prefs.containsKey(_barKey), isFalse);
+    expect(container.read(appearanceSettingProvider), const Appearance());
+  });
+
+  test('what was stored for the bar comes back', () async {
+    final (container, _) = await _container(<String, Object>{_barKey: 'solid'});
+
+    expect(container.read(appearanceSettingProvider).barStyle, BarStyle.solid);
+  });
+
+  test('an unknown stored bar style falls back to subtle', () async {
+    final (container, _) = await _container(<String, Object>{
+      _barKey: 'frosted',
+    });
+
+    expect(container.read(appearanceSettingProvider).barStyle, BarStyle.subtle);
   });
 }

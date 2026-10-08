@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -12,6 +13,7 @@ import '../../shared/presentation/adaptive_docking_sheet.dart';
 import '../application/locate_on_open.dart';
 import '../data/map_preferences.dart';
 import '../domain/map_controller.dart';
+import 'map_attribution.dart' show shellAttributionFloor;
 import 'map_chrome.dart';
 import 'puck_ownership.dart';
 
@@ -142,6 +144,14 @@ class _SharedMapHostState extends ConsumerState<SharedMapHost>
       layout,
       docked: docked,
     );
+    // Read for the dependency: this map's own media has the bottom inset
+    // taken off, so the zone is measured on the screen's.
+    MediaQuery.systemGestureInsetsOf(context);
+    final attributionFloor = shellAttributionFloor(
+      MediaQueryData.fromView(View.of(context)),
+      layout,
+      defaultTargetPlatform,
+    );
     final attributionInsets = !layout.sideRail
         ? EdgeInsets.zero
         : layout.side == RailSide.left
@@ -150,6 +160,7 @@ class _SharedMapHostState extends ConsumerState<SharedMapHost>
     return MapChromeInsets(
       hoistedControls: true,
       attributionInsets: attributionInsets,
+      attributionFloor: attributionFloor,
       child: PuckOwnership(
         owned: ref.watch(recorderOwnsPuckProvider),
         // Any touch on the map itself — a pan, a pinch, a tap — is the

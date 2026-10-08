@@ -33,6 +33,7 @@ class MapChromeInsets extends InheritedWidget {
     this.onToggleRoute,
     this.visiblePadding,
     this.attributionInsets = EdgeInsets.zero,
+    this.attributionFloor,
     this.stopsOffer = MapStopsOffer.none,
   });
 
@@ -43,6 +44,13 @@ class MapChromeInsets extends InheritedWidget {
   /// the (i) button stay on the map beside it: the rail and the side panel
   /// of a phone turned sideways. Nothing upright.
   final EdgeInsets attributionInsets;
+
+  /// How far above the map's bottom edge the attribution chip and the (i)
+  /// button stand, their gap not included; `null` for the band under the
+  /// floating bar, the view's bottom padding. The shell's map raises them
+  /// above the bar on a phone with no gesture zone under it, where the bar
+  /// reaches down to the screen's edge and would cover them.
+  final double? attributionFloor;
 
   /// What covers the map's edges right now, for the locate button's move:
   /// the tab's chrome, the sheet where it is, the column. The shell reads
@@ -112,5 +120,6 @@ class MapChromeInsets extends InheritedWidget {
       oldWidget.onToggleRoute != onToggleRoute ||
       oldWidget.visiblePadding != visiblePadding ||
       oldWidget.attributionInsets != attributionInsets ||
+      oldWidget.attributionFloor != attributionFloor ||
       oldWidget.stopsOffer != stopsOffer;
 }

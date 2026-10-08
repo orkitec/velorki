@@ -219,6 +219,7 @@ const Map<String, String> sameAsEnglish = <String, String>{
   'rideSplitColumn': 'cycling term, borrowed',
   'rideHighlightSplit': 'cycling term, borrowed',
   'appearanceModeSystem': 'same word',
+  'appearanceBarTransparent': 'same word in German',
   'languageSystem': 'same word',
   'unitsImperial': 'same word',
   'offlineTitle': 'same word',
