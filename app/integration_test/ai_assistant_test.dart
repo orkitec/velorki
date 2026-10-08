@@ -751,9 +751,7 @@ void main() {
     final retry = _inSheet(find.text(l10n.assistantRetry));
     await waitForWidget(tester, retry, timeout: _idle * 4);
     expect(
-      _inSheet(
-        find.text(l10n.assistantFailed('The Velorki relay stopped answering.')),
-      ),
+      _inSheet(find.text(l10n.assistantFailed(l10n.relayBusy))),
       findsOneWidget,
     );
     expect(relay.cancelledStreams, 1);
