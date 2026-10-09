@@ -93,20 +93,30 @@ class StopsDownloadChip extends StatelessWidget {
                     color: theme.colorScheme.primary,
                   ),
                   const SizedBox(width: 8),
+                  // The action beside the message where there is room, on
+                  // a line of its own under it where there is not: a long
+                  // word such as "Herunterladen" beside it squeezed the
+                  // message into a column of letters.
                   Flexible(
-                    child: Text(
-                      message ?? l10n.mapStopsNotDownloaded,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: theme.colorScheme.onSurface,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    l10n.mapStopsDownload,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w700,
+                    child: Wrap(
+                      spacing: 12,
+                      runSpacing: 2,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          message ?? l10n.mapStopsNotDownloaded,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            color: theme.colorScheme.onSurface,
+                          ),
+                        ),
+                        Text(
+                          l10n.mapStopsDownload,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

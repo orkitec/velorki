@@ -21,10 +21,12 @@ Die Routing-Daten tragen auch den Ortsindex, ein heruntergeladenes Gebiet sucht 
 ## Ein Gebiet herunterladen
 
 1. Verschiebe im Tab **Planen** die Karte so, dass das gewünschte Gebiet den Bildschirm ausfüllt. Zoom nicht weiter heraus als nötig: Der Kartendownload folgt genau dem, was auf dem Bildschirm zu sehen ist.
-2. Tippe in der Spalte rechts neben der Karte auf **Offline-Daten**. Auf einem kleinen Bildschirm wie dem iPhone SE hat die Spalte dafür keinen Platz: Tippe dort unten in den Ergebnissen des Suchfelds auf **Gebiet herunterladen, um offline zu suchen** oder auf die Download-Schaltfläche unter einer Route, der Kacheln fehlen, und verwalte, was du hast, unter **Einstellungen → Offline-Daten**.
+2. Tippe in der Spalte rechts neben der Karte auf **Offline-Daten**. Auf einem kleinen Bildschirm wie dem iPhone SE hat die Spalte dafür keinen Platz: Tippe dort im Hinweis oben in den Suchergebnissen oder im Chip über der Karte auf **Herunterladen** oder auf die Download-Schaltfläche unter einer Route, der Kacheln fehlen, und verwalte, was du hast, unter **Einstellungen → Offline-Daten**.
 3. Lies die beiden Karten und tippe unten auf **Sichtbares Gebiet herunterladen**.
 4. Der Dialog **Sichtbares Gebiet herunterladen** listet auf, was du gleich holst: "Karte des sichtbaren Gebiets · Größe erst nach dem Download bekannt" für die Karte, dann eine Zeile je Routing-Kachel mit ihrer Größe, zum Beispiel `E5_N45 · 187 MB`, oder "Routing-Daten für dieses Gebiet sind schon auf dem Gerät".
 5. Tippe auf **Herunterladen**.
+
+Ab Zoom 11 zeigt ein Chip über der Karte **Dieses Gebiet ist nicht heruntergeladen** mit **Herunterladen**, sobald die Mitte der Karte im Tab Planen über einem nicht heruntergeladenen Gebiet liegt. Ein Tipp irgendwo auf den Chip öffnet den Offline-Bildschirm für das sichtbare Gebiet. Bei eingeschalteten [Stopps](./stops-on-the-map) steht stattdessen "Keine Stopps hier – Gebiet nicht heruntergeladen", bei eingeschalteter Radkarte "Keine Radkarte hier – Gebiet nicht heruntergeladen". Der Chip verschwindet, sobald das Gebiet heruntergeladen ist.
 
 Beide Downloads laufen, solange die App offen ist. Die Karten zeigen **Karte wird heruntergeladen…** und **E5_N45 wird heruntergeladen…** mit Fortschrittsbalken.
 

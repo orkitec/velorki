@@ -678,7 +678,7 @@
   "@searchAreaNotDownloaded": {
     "description": "Title of the notice at the top of the search results when the area under the map centre has no offline data, so the results came from the online search"
   },
-  "searchAreaNotDownloadedHint": "Results come from the online search. Download it for fast offline search, stops and routing.",
+  "searchAreaNotDownloadedHint": "Download it to search, plan routes and see stops and the cycle map here without a connection.",
   "@searchAreaNotDownloadedHint": {
     "description": "Line under the title of the not-downloaded notice in the search results"
   },

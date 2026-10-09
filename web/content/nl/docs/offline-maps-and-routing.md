@@ -21,10 +21,12 @@ De routeringsgegevens bevatten ook de plaatsindex, dus een gedownload gebied kun
 ## Een gebied downloaden
 
 1. Schuif de kaart op het tabblad **Plannen** zo dat het gebied dat je wilt het scherm vult. Zoom niet verder uit dan nodig: de kaartdownload volgt precies wat er op het scherm staat.
-2. Tik op de knop **Offline gegevens** in de kolom rechts van de kaart. Op een klein scherm zoals een iPhone SE is er in de kolom geen ruimte voor: tik daar op **Download dit gebied om offline te zoeken** onderaan de resultaten van het zoekveld, of op de downloadknop onder een route die tegels nodig heeft, en beheer wat je hebt onder **Instellingen → Offline gegevens**.
+2. Tik op de knop **Offline gegevens** in de kolom rechts van de kaart. Op een klein scherm zoals een iPhone SE is er in de kolom geen ruimte voor: tik daar op **Downloaden** in de melding bovenaan de zoekresultaten of in de chip op de kaart, of op de downloadknop onder een route die tegels nodig heeft, en beheer wat je hebt onder **Instellingen → Offline gegevens**.
 3. Lees de twee kaarten en tik dan onderaan op **Zichtbaar gebied downloaden**.
 4. Het venster **Zichtbaar gebied downloaden** toont wat je gaat ophalen: "Kaart van het zichtbare gebied · grootte pas bekend na het downloaden" voor de kaart, dan één regel per routeringstegel met zijn grootte, bijvoorbeeld `E5_N45 · 187 MB`, of "Routeringsgegevens voor dit gebied staan al op het apparaat".
 5. Tik op **Downloaden**.
+
+Vanaf zoom 11 toont een chip op de kaart **Dit gebied is niet gedownload** met **Downloaden**, zodra het midden van de kaart op het tabblad Plannen boven een niet-gedownload gebied ligt. Een tik ergens op de chip opent het offlinescherm voor het zichtbare gebied. Met [stopplekken](./stops-on-the-map) aan staat er in plaats daarvan "Geen stopplekken hier – gebied niet gedownload", met de fietskaart aan "Geen fietskaart hier – gebied niet gedownload". Hij verdwijnt zodra het gebied is gedownload.
 
 Beide downloads lopen zolang de app open is. De kaarten tonen **Kaart downloaden…** en **E5_N45 downloaden…** met voortgangsbalken.
 

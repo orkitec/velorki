@@ -554,16 +554,17 @@ class _ResultsCardState extends State<_ResultsCard> {
     final online = state.source == SearchSource.local && state.canSearchOnline;
     final offline =
         state.source == SearchSource.online && state.offlineAvailableHere;
-    final notice = state.source == SearchSource.online
-        ? _notice(context)
-        : null;
+    // Over an area that is not downloaded the notice says so whatever the
+    // results came from.
+    final notice = _notice(context);
     final header = <Widget>[
       if (notice != null) ...[
         notice,
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 2),
-          child: SectionCaption(l10n.searchOnlineResults),
-        ),
+        if (state.source == SearchSource.online)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 2),
+            child: SectionCaption(l10n.searchOnlineResults),
+          ),
       ],
     ];
     final items = state.results;
@@ -672,8 +673,8 @@ class _ResultsCardState extends State<_ResultsCard> {
 }
 
 /// The card at the top of the result list while the area under the map
-/// centre has no gazetteer: the results come from the online search, and
-/// the area can be downloaded to search it on the device.
+/// centre has no gazetteer: whatever the results come from, the area can be
+/// downloaded to search it on the device.
 class _AreaNotDownloadedNotice extends StatelessWidget {
   const _AreaNotDownloadedNotice({required this.onDownload});
 

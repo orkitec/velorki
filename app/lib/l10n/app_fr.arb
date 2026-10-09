@@ -129,7 +129,7 @@
   "searchOnlineFor": "Rechercher « {query} » en ligne",
   "searchShowOffline": "Afficher les résultats hors ligne",
   "searchAreaNotDownloaded": "Cette zone n’est pas téléchargée",
-  "searchAreaNotDownloadedHint": "Les résultats viennent de la recherche en ligne. Téléchargez-la pour une recherche hors ligne rapide, les haltes et le routage.",
+  "searchAreaNotDownloadedHint": "Téléchargez-la pour chercher, calculer des itinéraires et voir les haltes et la carte vélo ici sans connexion.",
   "searchAreaDownload": "Télécharger",
   "searchOnlineResults": "Résultats en ligne",
   "searchKindCity": "Ville",

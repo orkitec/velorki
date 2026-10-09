@@ -21,10 +21,12 @@ I dati di routing contengono anche l'indice dei luoghi, quindi una zona scaricat
 ## Scaricare una zona
 
 1. Nella scheda **Pianifica**, sposta la mappa in modo che la zona che vuoi riempia lo schermo. Non allontanare lo zoom più del necessario: il download della mappa segue esattamente quello che c'è sullo schermo.
-2. Tocca il pulsante **Dati offline** nella colonna a destra della mappa. Su uno schermo piccolo come quello di un iPhone SE la colonna non ha spazio per esso: lì tocca **Scarica quest'area per cercare offline** in fondo ai risultati del campo di ricerca, o il pulsante di download sotto un percorso a cui servono riquadri, e gestisci quello che hai in **Opzioni → Dati offline**.
+2. Tocca il pulsante **Dati offline** nella colonna a destra della mappa. Su uno schermo piccolo come quello di un iPhone SE la colonna non ha spazio per esso: lì tocca **Scarica** nell'avviso in cima ai risultati di ricerca o nel chip sulla mappa, o il pulsante di download sotto un percorso a cui servono riquadri, e gestisci quello che hai in **Opzioni → Dati offline**.
 3. Leggi i due pannelli, poi tocca **Scarica l'area visibile** in fondo.
 4. La finestra **Scarica l'area visibile** elenca quello che stai per scaricare: "Mappa dell'area visibile · dimensione nota dopo il download" per la mappa, poi una riga per riquadro di routing con la sua dimensione, per esempio `E5_N45 · 187 MB`, oppure "I dati di routing per quest'area sono già sul dispositivo".
 5. Tocca **Scarica**.
+
+Dallo zoom 11, ogni volta che il centro della mappa nella scheda Pianifica è su un'area non scaricata, un chip sulla mappa dice **Quest'area non è scaricata** con **Scarica**. Un tocco in un punto qualsiasi del chip apre la schermata offline per l'area visibile. Con le [soste](./stops-on-the-map) attive dice "Nessuna sosta qui – area non scaricata", con la mappa ciclabile "Nessuna mappa ciclabile qui – area non scaricata". Scompare quando l'area è scaricata.
 
 Entrambi i download avvengono mentre l'app è aperta. I pannelli mostrano **Download della mappa…** e **Download di E5_N45…** con barre di avanzamento.
 

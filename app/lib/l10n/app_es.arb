@@ -129,7 +129,7 @@
   "searchOnlineFor": "Buscar «{query}» en línea",
   "searchShowOffline": "Mostrar resultados sin conexión",
   "searchAreaNotDownloaded": "Esta zona no está descargada",
-  "searchAreaNotDownloadedHint": "Los resultados vienen de la búsqueda en línea. Descárgala para tener búsqueda rápida sin conexión, paradas y rutas.",
+  "searchAreaNotDownloadedHint": "Descárgala para buscar, trazar rutas y ver paradas y el mapa ciclista aquí sin conexión.",
   "searchAreaDownload": "Descargar",
   "searchOnlineResults": "Resultados en línea",
   "searchKindCity": "Ciudad",

@@ -302,6 +302,44 @@ void main() {
     expect(find.text(l10n.mapStopsZoomIn), findsOneWidget);
   });
 
+  testWidgets('Plan: with no layer on, an area not downloaded is said too, '
+      'and goes once it is', (tester) async {
+    final harness = PlannerHarness();
+    harness.stopsCoverage.covered = (_) => false;
+    final h = await pumpScreen(
+      tester,
+      const PlannerScreen(),
+      harness: harness,
+      surfaceSize: const Size(360, 780),
+    );
+    h.map
+      ..zoom = 13
+      ..center = const LatLng(48.05, 11.05)
+      ..visibleBounds = const BoundingBox(
+        south: 48.0,
+        west: 11.0,
+        north: 48.1,
+        east: 11.1,
+      );
+    for (final listener in [...h.map.cameraIdleListeners]) {
+      listener();
+    }
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.searchAreaNotDownloaded), findsOneWidget);
+    expect(find.text(l10n.mapStopsNotDownloaded), findsNothing);
+    expectNoClippedText(tester);
+
+    // The whole chip opens the download.
+    await tester.tap(find.text(l10n.searchAreaNotDownloaded));
+    await tester.pumpAndSettle();
+    expect(find.byType(OfflineScreen), findsOneWidget);
+    await tapBack(tester);
+
+    harness.stopsCoverage.changed((_) => true);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.searchAreaNotDownloaded), findsNothing);
+  });
+
   testWidgets('Record: along a route with nothing ahead downloaded, the chip '
       'stands where the stops ahead would, and opens the download', (
     tester,

@@ -21,10 +21,12 @@ The routing data also carries the place index, so a downloaded area searches off
 ## Download an area
 
 1. On the **Plan** tab, move the map so the area you want fills the screen. Do not zoom out further than you need: the map download follows exactly what is on screen.
-2. Tap the **Offline data** button in the column on the right of the map. On a small screen such as an iPhone SE the column has no room for it: there, tap **Download this area to search offline** at the bottom of the search field's results, or the download button under a route that needs tiles, and manage what you have under **Settings → Offline data**.
+2. Tap the **Offline data** button in the column on the right of the map. On a small screen such as an iPhone SE the column has no room for it: there, tap **Download** in the notice at the top of the search results, or in the chip over the map, or the download button under a route that needs tiles, and manage what you have under **Settings → Offline data**.
 3. Read the two cards, then tap **Download the visible area** at the bottom.
 4. The dialog **Download the visible area** lists what you are about to fetch: "Map of the visible area · size known once downloaded" for the map, then one line per routing tile with its size, for example `E5_N45 · 187 MB`, or "Routing data for this area is already on the device".
 5. Tap **Download**.
+
+From zoom 11, whenever the middle of the Plan map is over an area that is not downloaded, a chip over the map says **This area isn't downloaded** with **Download**. A tap anywhere on the chip opens the offline screen for the visible area. With [stops](./stops-on-the-map) on it says "No stops here — area not downloaded" instead, with the cycle map on "No cycle map here — area not downloaded". It goes once the area is downloaded.
 
 Both downloads run while the app is open. The cards show **Downloading the map…** and **Downloading E5_N45…** with progress bars.
 

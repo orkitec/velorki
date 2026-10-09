@@ -21,10 +21,12 @@ Los datos de rutas también incluyen el índice de lugares, así que en una zona
 ## Descargar una zona
 
 1. En la pestaña **Planificar**, mueve el mapa para que la zona que quieres llene la pantalla. No alejes más de lo necesario: la descarga del mapa sigue exactamente lo que hay en pantalla.
-2. Toca el botón **Datos sin conexión** en la columna de la derecha del mapa. En una pantalla pequeña como la de un iPhone SE la columna no tiene sitio para él: ahí, toca **Descarga esta zona para buscar sin conexión** al final de los resultados del campo de búsqueda, o el botón de descarga bajo una ruta que necesite teselas, y gestiona lo que tienes en **Ajustes → Datos sin conexión**.
+2. Toca el botón **Datos sin conexión** en la columna de la derecha del mapa. En una pantalla pequeña como la de un iPhone SE la columna no tiene sitio para él: ahí, toca **Descargar** en el aviso al principio de los resultados de búsqueda o en la etiqueta sobre el mapa, o el botón de descarga bajo una ruta que necesite teselas, y gestiona lo que tienes en **Ajustes → Datos sin conexión**.
 3. Lee las dos tarjetas y toca **Descargar la zona visible** abajo.
 4. El diálogo **Descargar la zona visible** enumera lo que vas a descargar: "Mapa de la zona visible · tamaño conocido tras la descarga" para el mapa, y luego una línea por tesela de rutas con su tamaño, por ejemplo `E5_N45 · 187 MB`, o "Los datos de rutas de esta zona ya están en el dispositivo".
 5. Toca **Descargar**.
+
+A partir del zoom 11, siempre que el centro del mapa de la pestaña Planificar esté sobre una zona sin descargar, una etiqueta sobre el mapa dice **Esta zona no está descargada** con **Descargar**. Un toque en cualquier punto de la etiqueta abre la pantalla sin conexión para la zona visible. Con las [paradas](./stops-on-the-map) activadas dice «No hay paradas aquí – zona no descargada», con el mapa ciclista «No hay mapa ciclista aquí – zona no descargada». Desaparece cuando la zona está descargada.
 
 Las dos descargas se hacen mientras la app está abierta. Las tarjetas muestran **Descargando el mapa…** y **Descargando E5_N45…** con barras de progreso.
 

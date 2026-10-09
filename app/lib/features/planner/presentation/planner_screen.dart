@@ -14,6 +14,7 @@ import '../../assistant/application/route_advice_controller.dart';
 import '../../assistant/domain/intent_resolver.dart';
 import '../../assistant/presentation/assistant_sheet.dart';
 import '../../integrations/common/data/relay_client_provider.dart';
+import '../../map/application/area_download_hint.dart';
 import '../../map/application/cycle_map_binding.dart';
 import '../../map/application/locate_on_open.dart';
 import '../../map/application/map_stops_controller.dart';
@@ -319,8 +320,13 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
             )
           : null,
     )..onStopTapped = _onStopTapped;
+    _areaHint = AreaDownloadHint(ref.read(mapStopsCoverageProvider));
     _updateMapUse();
   }
+
+  /// Whether the map is over an area that is not downloaded, whatever
+  /// layers are on.
+  late final AreaDownloadHint _areaHint;
 
   /// The stops in the area on screen, from the Layers sheet.
   late final MapStopsController _stops;
@@ -425,6 +431,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     WidgetsBinding.instance.removeObserver(this);
     _binding?.detach();
     _stops.dispose();
+    _areaHint.dispose();
     _sheet.dispose();
     _assistantSlide.dispose();
     if (_docked) {
@@ -569,6 +576,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     _binding?.detach();
     _binding = null;
     _stops.detach(clear: false);
+    _areaHint.detach();
     _drawing = false;
     _map = map;
     _updateMapUse();
@@ -588,6 +596,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
       if (!_drawing) return;
       _drawing = false;
       _stops.detach();
+      _areaHint.detach();
       final binding = _binding;
       if (binding == null) return;
       binding.detach();
@@ -634,6 +643,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     binding.attach();
     unawaited(binding.sync(ref.read(plannerControllerProvider)));
     _stops.attach(map);
+    _areaHint.attach(map);
     // A place whose card is open is still pinned.
     final place = _shownPlace;
     if (place != null) {
@@ -1149,15 +1159,17 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
     );
     // What the chrome shows under its first rows, now and then.
     final below = <Widget>[
-      // Stops on, but none to show: the area is not downloaded, or the map
-      // is too far out. The download first, since zooming in would show
-      // nothing either.
-      // The cycle map on over an area with no tiles says so too, after
-      // the stops: one chip, the same download.
+      // The area is not downloaded, or stops are on and the map is too far
+      // out for them. The download first, since zooming in would show
+      // nothing either; said for the stops or the cycle map where those
+      // are on, for the area where neither is.
       ListenableBuilder(
-        listenable: _stops,
+        listenable: Listenable.merge(<Listenable>[_stops, _areaHint]),
         builder: (context, _) =>
-            _stops.needsDownload || cycleMapNeedsDownload || _stops.needsZoom
+            _stops.needsDownload ||
+                cycleMapNeedsDownload ||
+                _areaHint.needed ||
+                _stops.needsZoom
             ? Padding(
                 // Clear of the map's control column at the side: a long
                 // message wraps rather than run over its top button.
@@ -1174,6 +1186,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen>
                           onDownload: _openOfflineData,
                           message: AppLocalizations.of(context)
                               .mapCycleMapNotDownloaded,
+                        )
+                      : _areaHint.needed
+                      ? StopsDownloadChip(
+                          onDownload: _openOfflineData,
+                          message: AppLocalizations.of(context)
+                              .searchAreaNotDownloaded,
                         )
                       : StopsZoomChip(
                           onZoomIn: () => unawaited(_stops.zoomIn()),

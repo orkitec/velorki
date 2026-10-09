@@ -129,7 +129,7 @@
   "searchOnlineFor": "Online nach „{query}“ suchen",
   "searchShowOffline": "Offline-Ergebnisse anzeigen",
   "searchAreaNotDownloaded": "Dieses Gebiet ist nicht heruntergeladen",
-  "searchAreaNotDownloadedHint": "Die Ergebnisse kommen aus der Online-Suche. Lade es herunter für schnelle Offline-Suche, Stopps und Routing.",
+  "searchAreaNotDownloadedHint": "Lade es herunter, um hier ohne Verbindung zu suchen, Routen zu planen und Stopps und die Radkarte zu sehen.",
   "searchAreaDownload": "Herunterladen",
   "searchOnlineResults": "Online-Ergebnisse",
   "searchKindCity": "Stadt",

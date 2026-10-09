@@ -129,7 +129,7 @@
   "searchOnlineFor": "Online zoeken naar “{query}”",
   "searchShowOffline": "Offline resultaten tonen",
   "searchAreaNotDownloaded": "Dit gebied is niet gedownload",
-  "searchAreaNotDownloadedHint": "De resultaten komen van de online zoekfunctie. Download het voor snel offline zoeken, stopplekken en routering.",
+  "searchAreaNotDownloadedHint": "Download het om hier zonder verbinding te zoeken, routes te plannen en stopplekken en de fietskaart te zien.",
   "searchAreaDownload": "Downloaden",
   "searchOnlineResults": "Online resultaten",
   "searchKindCity": "Stad",

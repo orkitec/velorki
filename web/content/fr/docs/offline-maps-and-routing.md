@@ -21,10 +21,12 @@ Les données de routage contiennent aussi l’index des lieux : une zone tél�
 ## Télécharger une zone
 
 1. Dans l’onglet **Planifier**, déplacez la carte pour que la zone voulue remplisse l’écran. Ne dézoomez pas plus que nécessaire : le téléchargement de la carte suit exactement ce qui est affiché.
-2. Touchez le bouton **Données hors ligne** dans la colonne à droite de la carte. Sur un petit écran comme celui de l’iPhone SE, la colonne n’a pas la place de l’afficher : touchez alors **Téléchargez cette zone pour chercher hors ligne** en bas des résultats du champ de recherche, ou le bouton de téléchargement sous un itinéraire qui a besoin de tuiles, et gérez ce que vous avez dans **Réglages → Données hors ligne**.
+2. Touchez le bouton **Données hors ligne** dans la colonne à droite de la carte. Sur un petit écran comme celui de l’iPhone SE, la colonne n’a pas la place de l’afficher : touchez alors **Télécharger** dans l’avis en haut des résultats de recherche ou dans la pastille sur la carte, ou le bouton de téléchargement sous un itinéraire qui a besoin de tuiles, et gérez ce que vous avez dans **Réglages → Données hors ligne**.
 3. Lisez les deux cartes, puis touchez **Télécharger la zone visible** en bas.
 4. La boîte de dialogue **Télécharger la zone visible** liste ce que vous allez récupérer : « Carte de la zone visible · taille connue après le téléchargement » pour la carte, puis une ligne par tuile de routage avec sa taille, par exemple `E5_N45 · 187 Mo`, ou « Les données de routage de cette zone sont déjà sur l’appareil ».
 5. Touchez **Télécharger**.
+
+À partir du zoom 11, dès que le centre de la carte de l’onglet Planifier se trouve sur une zone non téléchargée, une pastille sur la carte affiche **Cette zone n’est pas téléchargée** avec **Télécharger**. Un toucher n’importe où sur la pastille ouvre l’écran hors ligne pour la zone visible. Avec les [haltes](./stops-on-the-map) affichées, elle dit « Pas de haltes ici – zone non téléchargée », avec la carte vélo « Pas de carte vélo ici – zone non téléchargée ». Elle disparaît une fois la zone téléchargée.
 
 Les deux téléchargements se déroulent tant que l’app est ouverte. Les cartes affichent **Téléchargement de la carte…** et **Téléchargement de E5_N45…** avec des barres de progression.
 
