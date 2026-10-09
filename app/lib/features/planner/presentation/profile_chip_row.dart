@@ -19,7 +19,7 @@ import 'route_format.dart';
 /// do not fit at 360 dp otherwise.
 ///
 /// Over the map ([glass]) the chips are chrome, so they are the
-/// [FloatingBarStyle]'s glass in [VelorkiColors.chromeFill] whatever the chip
+/// [FloatingBarStyle]'s glass in [glassTint] whatever the chip
 /// theme says, but unblurred: a chip has no shadow to hide the square
 /// corners the engine blurs over the map's native view. On a sheet, which is
 /// a surface already, the chip theme's fills are left alone. The label
@@ -54,7 +54,7 @@ class ProfileChipRow extends StatelessWidget {
     // them: the same tint, and the same blur in their own stadium, a rounded
     // shape with equal corners that iOS clips a blur over the map to.
     final style = FloatingBarStyle.of(context);
-    final fill = glass ? glassTint(theme.velorki, style, chrome: true) : null;
+    final fill = glass ? glassTint(theme.velorki, style) : null;
     final filter = glass ? floatingBarFilter(style) : null;
     final row = SizedBox(
       height: 44,
@@ -142,7 +142,7 @@ class _ChipGlass extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ClipRRect(
     clipper: const _StadiumClipper(),
-    child: BackdropFilter(
+    child: BackdropFilter.grouped(
       enabled: filter != null,
       filter: filter ?? ImageFilter.blur(),
       child: child,

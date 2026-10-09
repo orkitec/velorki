@@ -109,8 +109,8 @@ void main() {
 
     expect(light.colorScheme.surface, isNot(dark.colorScheme.surface));
     expect(
-      light.velorki.chromeFill(BarStyle.clear),
-      isNot(dark.velorki.chromeFill(BarStyle.clear)),
+      light.velorki.barFill(BarStyle.clear),
+      isNot(dark.velorki.barFill(BarStyle.clear)),
     );
     // The route changes shade with the map style.
     expect(light.velorki.routeMain, isNot(dark.velorki.routeMain));

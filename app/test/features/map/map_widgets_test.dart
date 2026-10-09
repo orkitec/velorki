@@ -23,9 +23,6 @@ import 'package:velorki_geo/velorki_geo.dart';
 
 import '../../support/app.dart';
 
-/// The address the OpenStreetMap licence link points at.
-const String _osmUrl = 'https://www.openstreetmap.org/copyright';
-
 Future<Widget> _wrap(
   Widget child, {
   bool cyclosm = false,
@@ -163,23 +160,31 @@ void main() {
       expect(find.textContaining(l10n.mapAttributionCyclosm), findsOneWidget);
     });
 
-    testWidgets('opens the licence dialog with the source URLs', (
+    testWidgets('is text only: a tap goes through to what lies under it', (
       tester,
     ) async {
-      await tester.pumpWidget(await _wrap(const MapAttributionChip()));
+      var taps = 0;
+      await tester.pumpWidget(
+        await _wrap(
+          Stack(
+            children: [
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => taps++,
+                ),
+              ),
+              const Center(child: MapAttributionChip()),
+            ],
+          ),
+        ),
+      );
 
       await tester.tap(find.byType(MapAttributionChip));
       await tester.pumpAndSettle();
-
-      expect(find.text(l10n.mapAttributionTitle), findsWidgets);
-      expect(find.text(_osmUrl), findsOneWidget);
-      expect(find.text('https://openfreemap.org/'), findsOneWidget);
-      // Not active, so it is not listed.
-      expect(find.text('https://www.cyclosm.org/'), findsNothing);
-
-      await tester.tap(find.text(l10n.mapAttributionClose));
-      await tester.pumpAndSettle();
-      expect(find.text(_osmUrl), findsNothing);
+      expect(taps, 1, reason: 'the map under the chip gets the tap');
+      expect(find.byType(Dialog), findsNothing);
+      expect(find.textContaining(l10n.osmAttribution), findsOneWidget);
     });
   });
 

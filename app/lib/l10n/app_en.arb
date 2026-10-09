@@ -4283,25 +4283,13 @@
   "@settingsKeepScreenOnHint": {
     "description": "Explanation under the keep-screen-on switch in Settings, Recording"
   },
-  "mapAttributionTitle": "Map data and tiles",
-  "@mapAttributionTitle": {
-    "description": "Title of the map attribution chip and of the dialog it opens"
-  },
-  "mapAttributionBody": "Map data from OpenStreetMap, available under the Open Database Licence. Vector tiles by OpenFreeMap; the optional cycling overlay is rendered by CyclOSM on OpenStreetMap Foundation tile servers.",
-  "@mapAttributionBody": {
-    "description": "The full attribution notice in the dialog. The licence and the project names are kept as they are."
-  },
   "mapAttributionOpenFreeMap": "OpenFreeMap",
   "@mapAttributionOpenFreeMap": {
-    "description": "The tile provider, in the attribution line and as a link. A project name: keep it."
+    "description": "The tile provider, in the attribution line on the map. A project name: keep it."
   },
   "mapAttributionCyclosm": "CyclOSM",
   "@mapAttributionCyclosm": {
-    "description": "The cycling overlay renderer, in the attribution line and as a link. A project name: keep it."
-  },
-  "mapAttributionClose": "Close",
-  "@mapAttributionClose": {
-    "description": "Button that closes the map attribution dialog"
+    "description": "The cycling overlay renderer, in the attribution line on the map. A project name: keep it."
   },
   "mapLocateMe": "Show my position",
   "@mapLocateMe": {

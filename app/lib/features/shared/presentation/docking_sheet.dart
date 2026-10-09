@@ -477,7 +477,7 @@ class _DockingSheetShellState extends State<DockingSheetShell> {
             borderRadius: t >= sheetDockedThreshold
                 ? BorderRadius.zero
                 : topRadius,
-            child: BackdropFilter(
+            child: BackdropFilter.grouped(
               enabled: false,
               filter: ImageFilter.blur(),
               child: DecoratedBox(
@@ -630,7 +630,7 @@ class _DockedPillBlur extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ClipRRect(
     borderRadius: const BorderRadius.all(Radius.circular(dockedPillRadius)),
-    child: BackdropFilter(
+    child: BackdropFilter.grouped(
       enabled: filter != null,
       filter: filter ?? ImageFilter.blur(),
       child: const SizedBox.expand(),

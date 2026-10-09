@@ -26,8 +26,7 @@ double systemGestureZoneHeight(MediaQueryData media, TargetPlatform platform) {
 /// anything in it: a sheet the system's swipe up would otherwise fling
 /// open, the map it would pan. Such a touch reaches nothing in [child]
 /// unless what it lands on is wrapped in a [GestureZonePassThrough] (the
-/// rail where it reaches into the zone, the map's attribution chip), which
-/// then gets it as usual. Nothing is drawn, and touches above the zone are
+/// rail where it reaches into the zone), which then gets it as usual. Nothing is drawn, and touches above the zone are
 /// left alone.
 class GestureZoneGuard extends SingleChildRenderObjectWidget {
   /// Creates the guard.

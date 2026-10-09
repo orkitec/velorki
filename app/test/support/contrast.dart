@@ -70,3 +70,18 @@ void expectReadable(
         '${contrastRatio(text, fill).toStringAsFixed(2)}:1',
   );
 }
+
+/// What sits behind the glass over the map in a theme of [brightness]: the
+/// map of that theme as the glass's blur leaves it, about its average
+/// colour. Light maps are mostly the land's cream (#F2EFE9), the dark and
+/// night maps a blue-grey (#2B3240).
+///
+/// Glass contrast is checked over this rather than over a pure black or
+/// white: the blur averages the few dp of map behind a label, so a stray
+/// black road or white label of the map never sits alone behind it, and the
+/// tint is thin (`glassTint`) because the blurred map does part of its job.
+/// A light theme sits over a light map and a dark one over a dark map
+/// unless the rider picks otherwise.
+Color blurredMapBehind(Brightness brightness) => brightness == Brightness.light
+    ? const Color(0xFFF2EFE9)
+    : const Color(0xFF2B3240);

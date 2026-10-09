@@ -375,8 +375,7 @@ class HomeShell extends ConsumerWidget {
             // A touch that starts in that zone moves neither the sheet nor the
             // map: iOS hands the start of its swipe to the app before taking
             // it over, and the sheet flung itself open. The bar upright is
-            // outside the body and above the zone; the rail and the map's
-            // chip let it through.
+            // outside the body and above the zone; the rail lets it through.
             body: GestureZoneGuard(
               zone: gestureZone,
               child: Stack(

@@ -1,6 +1,5 @@
 import 'dart:ui' show ImageFilter;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:velorki/app/router.dart';
@@ -17,25 +16,29 @@ import '../../support/contrast.dart';
 import '../recording/support/pump.dart';
 
 /// What the [panel]'s glass is drawn with.
-({bool blurred, ImageFilter? filter, Color fill}) _panel(
+({bool blurred, bool grouped, ImageFilter? filter, Color fill}) _panel(
   WidgetTester tester,
   Finder panel,
 ) {
-  final backdrop = tester.widget<BackdropFilter>(
-    find.descendant(of: panel, matching: find.byType(BackdropFilter)),
+  final blur = find.descendant(
+    of: panel,
+    matching: find.byType(BackdropFilter),
   );
+  final backdrop = tester.widget<BackdropFilter>(blur);
   final material = tester.widget<Material>(
     find.descendant(of: panel, matching: find.byType(Material)).first,
   );
   return (
     blurred: backdrop.enabled,
+    grouped: isGroupedBlur(tester, blur),
     filter: backdrop.filter,
     fill: material.color!,
   );
 }
 
 /// Holds the glass panel [panel] to what [style] promises the chrome over
-/// the map: the bar's glass a quarter less see-through, blurred as the bar.
+/// the map: the bar's own tint, blurred as the bar, in the app's one
+/// backdrop group.
 void _expectPanel(
   WidgetTester tester,
   Finder panel,
@@ -43,13 +46,11 @@ void _expectPanel(
   VelorkiColors colors,
 ) {
   final glass = _panel(tester, panel);
-  expect(glass.fill, glassTint(colors, style, chrome: true));
-  if (defaultTargetPlatform != TargetPlatform.iOS) {
-    expect(glass.fill, colors.chromeFill(style));
-  }
+  expect(glass.fill, glassTint(colors, style));
   final filter = floatingBarFilter(style);
   expect(glass.blurred, filter != null);
   if (filter != null) expect(glass.filter, filter);
+  expect(glass.grouped, isTrue, reason: 'one backdrop read for the chrome');
 }
 
 /// Holds every bike chip to the glass [style] promises: each its own blur
@@ -74,6 +75,7 @@ void _expectChipGlass(WidgetTester tester, BarStyle style) {
     final backdrop = tester.widget<BackdropFilter>(blur);
     expect(backdrop.enabled, filter != null, reason: '$style');
     if (filter != null) expect(backdrop.filter, filter);
+    expect(isGroupedBlur(tester, blur), isTrue, reason: '$style');
     final clip = find.ancestor(of: blur, matching: find.byType(ClipRRect));
     expect(clip, findsOneWidget);
     // A stadium as four equal corners, the shape iOS clips a blur over the
@@ -173,7 +175,7 @@ void main() {
         // The chips are the same glass as the panel: its tint, its blur.
         expect(
           _chipFill(tester, RouteProfile.trekking),
-          theme.velorki.chromeFill(style),
+          glassTint(theme.velorki, style),
         );
         _expectChipGlass(tester, style);
         // Nothing opaque under a chip's glass: its Material takes the
@@ -182,24 +184,25 @@ void main() {
           Theme.of(tester.element(find.byType(ChoiceChip).first)).canvasColor,
           Colors.transparent,
         );
-        // Readable over the darkest and the lightest map.
-        for (final map in [Colors.black, Colors.white]) {
-          for (final profile in RouteProfile.values) {
-            expectReadable(
-              tester,
-              find.text(profileLabel(l10n, profile)),
-              over: map,
-              reason: '$name ${style.name} chip ${profile.name} over $map',
-            );
-          }
-          final label = find.text('over the map');
-          final fill = Color.alphaBlend(theme.velorki.chromeFill(style), map);
-          expect(
-            contrastRatio(textColorOf(tester, label), fill),
-            greaterThanOrEqualTo(4.5),
-            reason: '$name ${style.name} panel over $map',
+        // Readable over the theme's map as the blur leaves it, not over a
+        // pure black or white: the blur averages the map behind the glass,
+        // which is what the thin tint is laid on (see [blurredMapBehind]).
+        final map = blurredMapBehind(theme.brightness);
+        for (final profile in RouteProfile.values) {
+          expectReadable(
+            tester,
+            find.text(profileLabel(l10n, profile)),
+            over: map,
+            reason: '$name ${style.name} chip ${profile.name}',
           );
         }
+        final label = find.text('over the map');
+        final fill = Color.alphaBlend(glassTint(theme.velorki, style), map);
+        expect(
+          contrastRatio(textColorOf(tester, label), fill),
+          greaterThanOrEqualTo(4.5),
+          reason: '$name ${style.name} panel over the blurred map',
+        );
       });
     }
   }
@@ -210,7 +213,7 @@ void main() {
     _expectPanel(tester, find.byType(GlassPanel), BarStyle.clear, colors);
     expect(
       _chipFill(tester, RouteProfile.trekking),
-      colors.chromeFill(BarStyle.clear),
+      glassTint(colors, BarStyle.clear),
     );
     _expectChipGlass(tester, BarStyle.clear);
   });
@@ -228,18 +231,30 @@ void main() {
           // One material: the controls and the bar side by side over the
           // map are the same tint.
           final tint = glassTint(colors, style);
-          expect(glassTint(colors, style, chrome: true), tint);
           expect(_panel(tester, find.byType(GlassPanel)).fill, tint);
           expect(_chipFill(tester, RouteProfile.trekking), tint);
           _expectChipGlass(tester, style);
           if (style == BarStyle.clear) expect(tint.a, closeTo(0.18, 1e-3));
           if (style == BarStyle.subtle) expect(tint.a, closeTo(0.30, 1e-3));
-          // No contrast check over a bare black or white map here: on iOS
-          // the system's own blur over the map's native view frosts the
-          // backdrop, which this thin tint is only laid on top of, so the
-          // tint alone over a pure white or black is not what the rider
-          // sees. The glass off iOS, where the tint carries the contrast on
-          // its own, is held to 4.5:1 above.
+          // Readable over the theme's blurred map with the thinner tint
+          // too; the system's frost on top of the blur only adds to it.
+          final map = blurredMapBehind(theme.brightness);
+          for (final profile in RouteProfile.values) {
+            expectReadable(
+              tester,
+              find.text(profileLabel(l10n, profile)),
+              over: map,
+              reason: '${theme.brightness.name} ${style.name} chip on iOS',
+            );
+          }
+          expect(
+            contrastRatio(
+              textColorOf(tester, find.text('over the map')),
+              Color.alphaBlend(tint, map),
+            ),
+            greaterThanOrEqualTo(4.5),
+            reason: '${theme.brightness.name} ${style.name} panel on iOS',
+          );
         }
       }
     },
@@ -256,7 +271,9 @@ void main() {
   });
 
   testWidgets('on the Plan tab the search field and the chips follow the '
-      'stored style, the bar keeps its own glass', (tester) async {
+      'stored style, the bar the same tint in a blur of its own', (
+    tester,
+  ) async {
     const size = Size(402, 874);
     tester.view
       ..devicePixelRatio = 3
@@ -286,20 +303,24 @@ void main() {
     // Trekking is the profile that is on; another is the chip's glass.
     expect(
       _chipFill(tester, RouteProfile.mtb),
-      colors.chromeFill(BarStyle.subtle),
+      glassTint(colors, BarStyle.subtle),
     );
-    // The bar itself is the bar's glass, a quarter more see-through.
+    // The bar is the same tint, but blurs on its own: at rest it lies over
+    // the tab's card, painted after the group reads the map.
+    final shell = find.byType(FloatingBarShell);
     final bar = tester.widget<Container>(
-      find
-          .descendant(
-            of: find.byType(FloatingBarShell),
-            matching: find.byType(Container),
-          )
-          .first,
+      find.descendant(of: shell, matching: find.byType(Container)).first,
     );
     expect(
       (bar.decoration! as BoxDecoration).color,
-      colors.barFill(BarStyle.subtle),
+      glassTint(colors, BarStyle.subtle),
+    );
+    expect(
+      isGroupedBlur(
+        tester,
+        find.descendant(of: shell, matching: find.byType(BackdropFilter)),
+      ),
+      isFalse,
     );
     await unmountApp(tester);
   });

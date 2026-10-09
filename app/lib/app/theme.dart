@@ -110,11 +110,6 @@ enum BarStyle {
       BarStyle.values.firstWhere((s) => s.name == name, orElse: () => clear);
 }
 
-/// How much of the bar's see-through the chrome over the map keeps: the
-/// search field, the chips and the control column are read at a glance
-/// over a busy map, so they let through a quarter less than the bar.
-const double chromeClarity = 0.75;
-
 /// Velorki's own colours, next to the Material scheme: the map layers, the
 /// glass surfaces floating over the map, and the semantic colours.
 @immutable
@@ -242,14 +237,6 @@ class VelorkiColors extends ThemeExtension<VelorkiColors> {
     BarStyle.subtle => barSubtle,
     BarStyle.clear => barClear,
   };
-
-  /// The fill of the chrome floating over the map in [style]: the bar's
-  /// glass, a quarter less see-through ([chromeClarity]); solid stays
-  /// opaque.
-  Color chromeFill(BarStyle style) {
-    final bar = barFill(style);
-    return bar.withValues(alpha: 1 - chromeClarity * (1 - bar.a));
-  }
 
   /// Area fill under the elevation profile.
   final Color chartFill;

@@ -16,7 +16,6 @@ import '../data/map_preferences.dart';
 import '../data/maplibre_map_controller.dart';
 import '../data/position_provider.dart';
 import '../domain/map_controller.dart';
-import '../../shared/presentation/gesture_zone_guard.dart';
 import 'map_attribution.dart';
 import 'map_chrome.dart';
 import 'puck_ownership.dart';
@@ -143,7 +142,7 @@ class MapView extends ConsumerStatefulWidget {
   /// Inset of the attribution chip from the bottom edge of the view, on top
   /// of the system's own inset there (the home indicator). It sits centred,
   /// under the floating navigation bar, at the same spot on every tab; on a
-  /// phone with no gesture zone there, above the bar
+  /// phone with no gesture zone there, on the safe area's edge
   /// ([MapChromeInsets.attributionFloor]).
   final EdgeInsets attributionPadding;
 
@@ -317,8 +316,8 @@ class _MapViewState extends ConsumerState<MapView> {
     final chrome = MapChromeInsets.maybeOf(context);
     final chromeTop = chrome?.controlsTop;
     // The bottom of the view, whatever an owner removed from the padding:
-    // the chip and the (i) button sit in the band under the bar, or where
-    // the owner's chrome puts them when that band is too low.
+    // the chip and the (i) button sit in the band under the bar, or, where
+    // the safe area is not that band, where the owner's chrome puts them.
     // Turned sideways the map beside the rail and the sheet is narrow.
     final sideways =
         (chrome?.attributionInsets ?? EdgeInsets.zero) != EdgeInsets.zero;
@@ -427,11 +426,8 @@ class _MapViewState extends ConsumerState<MapView> {
                     widget.attributionPadding.right +
                     (chrome?.attributionInsets.right ?? 0),
                 bottom: attributionBottom,
-                // Tapped in the band under the bar, which is the system's
-                // gesture zone the shell otherwise keeps to itself.
-                child: const Center(
-                  child: GestureZonePassThrough(child: MapAttributionChip()),
-                ),
+                // Text only, it takes no touch: one on it reaches the map.
+                child: const Center(child: MapAttributionChip()),
               ),
           ],
         );

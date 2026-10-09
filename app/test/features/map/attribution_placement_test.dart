@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart' show HitTestResult;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,7 +8,6 @@ import 'package:velorki/features/map/presentation/map_attribution.dart';
 import 'package:velorki/features/recording/domain/recording_snapshot.dart';
 import 'package:velorki/features/shared/presentation/docking_sheet.dart';
 import 'package:velorki/features/shared/presentation/floating_bar.dart';
-import 'package:velorki/features/shared/presentation/gesture_zone_guard.dart';
 
 import '../../support/app.dart';
 import '../planner/support/pump.dart' show TestMapView;
@@ -25,9 +25,7 @@ RecordingHarness _harness() {
           left: 0,
           right: 0,
           bottom: mapAttributionBottom(context),
-          child: const Center(
-            child: GestureZonePassThrough(child: MapAttributionChip()),
-          ),
+          child: const Center(child: MapAttributionChip()),
         ),
       ),
     ],
@@ -139,12 +137,15 @@ void main() {
   for (final MapEntry(key: platform, value: phones) in _phones.entries) {
     for (final phone in phones) {
       testWidgets('${platform.name}, ${phone.name}: the credit is in view '
-          'and opens its notice, with the sheet docked', (tester) async {
+          'and takes no touch, with the sheet docked and during a ride', (
+        tester,
+      ) async {
         const size = Size(390, 844);
         _shape(tester, size, phone);
+        final h = _harness();
         await pumpRecordingApp(
           tester,
-          harness: _harness(),
+          harness: h,
           initialLocation: plannerRoute,
           surfaceSize: size,
           expectTextFits: false,
@@ -164,6 +165,21 @@ void main() {
               )
               .first,
         );
+        // Nothing of the chip takes a touch: a tap on it opens nothing.
+        final hit = HitTestResult();
+        tester.binding.hitTestInView(hit, chip.center, tester.view.viewId);
+        final chipObjects = {
+          tester.renderObject(find.byType(MapAttributionChip)),
+          for (final e
+              in find
+                  .descendant(
+                    of: find.byType(MapAttributionChip),
+                    matching: find.byWidgetPredicate((_) => true),
+                  )
+                  .evaluate())
+            e.renderObject,
+        };
+        expect(hit.path.where((e) => chipObjects.contains(e.target)), isEmpty);
         if (phone.zone > 0) {
           expect(
             chip.bottom,
@@ -171,26 +187,72 @@ void main() {
             reason: 'in the band under the bar',
           );
           expect(chip.bottom, greaterThan(size.height - phone.zone));
-        } else {
-          // The bar reaches down to the edge: the credit goes above it and
-          // above the strip of the sheet docked on it.
-          final glassTop =
-              size.height -
-              phone.bottom -
-              floatingBarBottomGap -
-              floatingBarHeight;
           expect(bar.bottom, size.height - phone.bottom - floatingBarBottomGap);
-          expect(chip.bottom, glassTop - sheetHandleDp - 6);
+        } else {
+          // No zone: the bar stands a band higher, and the credit sits in
+          // that band under it, on the safe area's edge.
           expect(
-            chip.bottom,
-            lessThanOrEqualTo(
-              tester.getRect(find.byType(DockingSheetShell)).top,
-            ),
+            bar.bottom,
+            size.height -
+                phone.bottom -
+                floatingBarBottomGap -
+                attributionBandHeight,
           );
+          expect(chip.bottom, size.height - phone.bottom - 6);
+          // Clear of the bar's glass (the test font sets the credit on two
+          // lines at this width, so it is not measured against the bar's
+          // bottom: on a phone it is one line of about 21 dp).
+          expect(chip.bottom, greaterThan(bar.bottom));
+          // Under it, the map: a tap there is the map's.
+          final map = tester.renderObject(find.byType(TestMapView));
+          expect(hit.path.any((e) => identical(e.target, map)), isTrue);
         }
-        await tester.tap(find.byType(MapAttributionChip));
+        // The sheet's strip still meets the bar's top edge exactly.
+        final strip = find.descendant(
+          of: find.byType(DockingSheetShell),
+          matching: find.byWidgetPredicate(
+            (w) =>
+                w is ClipRRect &&
+                w.child is BackdropFilter &&
+                (w.child! as BackdropFilter).child is DecoratedBox,
+          ),
+        );
+        expect(tester.getRect(strip).bottom, closeTo(bar.top, 0.01));
+        await tester.tapAt(chip.center);
         await tester.pumpAndSettle();
-        expect(find.byType(AlertDialog), findsOneWidget);
+        expect(find.byType(Dialog), findsNothing);
+
+        // During a ride the figures bar takes the tab bar's place exactly,
+        // and the credit stays where it was.
+        await tester.tap(find.text(l10n.tabRecord));
+        await tester.pumpAndSettle();
+        await emitSnapshot(
+          tester,
+          h,
+          RecordingSnapshot(
+            rideId: 'ride-1',
+            status: RecordingStatus.active,
+            startedAt: DateTime.utc(2026, 9, 12, 10),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byType(FloatingNavigationBar), findsNothing);
+        // Pulled down, the live sheet docks into its figures bar.
+        await tester.dragFrom(
+          tester.getCenter(find.byType(SheetHandle)),
+          const Offset(0, 1500),
+        );
+        await tester.pumpAndSettle();
+        final figures = tester.getRect(
+          find
+              .descendant(
+                of: find.byType(FloatingBarShell),
+                matching: find.byType(Container),
+              )
+              .first,
+        );
+        expect(figures, bar);
+        expect(tester.getRect(find.byType(MapAttributionChip)), chip);
         await unmountApp(tester);
       }, variant: TargetPlatformVariant.only(platform));
     }

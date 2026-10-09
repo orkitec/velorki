@@ -19,6 +19,7 @@ import '../recording/support/pump.dart';
 /// What the glass of the one floating bar on screen is drawn with.
 ({
   bool blurred,
+  bool grouped,
   ImageFilter? filter,
   Color fill,
   Color? rim,
@@ -30,9 +31,11 @@ _glass(WidgetTester tester) {
   final shadowBox = tester.widget<DecoratedBox>(
     find.descendant(of: shell, matching: find.byType(DecoratedBox)).first,
   );
-  final backdrop = tester.widget<BackdropFilter>(
-    find.descendant(of: shell, matching: find.byType(BackdropFilter)),
+  final blur = find.descendant(
+    of: shell,
+    matching: find.byType(BackdropFilter),
   );
+  final backdrop = tester.widget<BackdropFilter>(blur);
   final glass = tester.widget<Container>(
     find.descendant(of: shell, matching: find.byType(Container)).first,
   );
@@ -43,6 +46,7 @@ _glass(WidgetTester tester) {
   final foreground = glass.foregroundDecoration;
   return (
     blurred: backdrop.enabled,
+    grouped: isGroupedBlur(tester, blur),
     filter: backdrop.filter,
     fill: fill,
     rim: foreground is BarGlassDecoration ? foreground.rim : null,
@@ -59,10 +63,9 @@ void _expectStyle(
 }) {
   final glass = _glass(tester);
   expect(glass.fill, glassTint(colors, style));
-  // Off iOS that tint is the theme's bar glass as it is.
-  if (defaultTargetPlatform != TargetPlatform.iOS) {
-    expect(glass.fill, colors.barFill(style));
-  }
+  // Out of the app's backdrop group: at rest the bar lies over the tab's
+  // card, which is painted after the group reads the map.
+  expect(glass.grouped, isFalse);
   final filter = floatingBarFilter(style);
   // Docked the bar blurs nothing of its own: the sheet lays one blur behind
   // its strip and the bar together, and the bar paints only its tint.
@@ -146,25 +149,6 @@ void main() {
       expect(dark.barClear.a, greaterThan(light.barClear.a));
     });
 
-    test(
-      'the chrome over the map lets through a quarter less than the bar',
-      () {
-        for (final colors in [light, dark]) {
-          for (final style in BarStyle.values) {
-            final bar = colors.barFill(style);
-            final chrome = colors.chromeFill(style);
-            // The same glass, only less see-through.
-            expect(chrome.withValues(alpha: 1), bar.withValues(alpha: 1));
-            expect(1 - chrome.a, closeTo(0.75 * (1 - bar.a), 1e-6));
-          }
-          expect(colors.chromeFill(BarStyle.solid).a, 1);
-        }
-        // Clear, the most see-through: about 0.71 light, 0.74 dark.
-        expect(light.chromeFill(BarStyle.clear).a, closeTo(0.5118, 1e-3));
-        expect(dark.chromeFill(BarStyle.clear).a, closeTo(0.6618, 1e-3));
-      },
-    );
-
     test('solid and transparent blur nothing, subtle blurs more than clear, '
         'each a plain blur iOS applies over the map', () {
       expect(floatingBarFilter(BarStyle.solid), isNull);
@@ -184,43 +168,37 @@ void main() {
       }
     });
 
-    test('off iOS the bar is tinted with the bar glass, the chrome with the '
-        'chrome glass', () {
-      for (final platform in [TargetPlatform.android, TargetPlatform.macOS]) {
+    // The bar and the controls take this one tint on every platform; on
+    // iOS the system's blur frosts the map first, so the thinnest there.
+    for (final (platform, clear, subtle) in [
+      (TargetPlatform.iOS, 0.18, 0.30),
+      (TargetPlatform.android, 0.24, 0.36),
+      (TargetPlatform.macOS, 0.24, 0.36),
+    ]) {
+      test('on ${platform.name} the glass styles are a thin tint of the bar '
+          'glass, $clear clear and $subtle subtle', () {
         debugDefaultTargetPlatformOverride = platform;
         addTearDown(() => debugDefaultTargetPlatformOverride = null);
         for (final colors in [light, dark]) {
           for (final style in BarStyle.values) {
-            expect(glassTint(colors, style), colors.barFill(style));
+            // The same glass, only less of it.
             expect(
-              glassTint(colors, style, chrome: true),
-              colors.chromeFill(style),
+              glassTint(colors, style).withValues(alpha: 1),
+              colors.barSolid,
             );
           }
+          expect(glassTint(colors, BarStyle.clear).a, closeTo(clear, 1e-3));
+          expect(glassTint(colors, BarStyle.subtle).a, closeTo(subtle, 1e-3));
+          // Without a blur the tint is the theme's.
+          expect(glassTint(colors, BarStyle.solid), colors.barSolid);
+          expect(
+            glassTint(colors, BarStyle.transparent),
+            colors.barTransparent,
+          );
         }
-      }
-      debugDefaultTargetPlatformOverride = null;
-    });
-
-    test('on iOS the bar and the chrome share one thin tint over the '
-        "system's own frosted blur", () {
-      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
-      addTearDown(() => debugDefaultTargetPlatformOverride = null);
-      for (final colors in [light, dark]) {
-        for (final style in BarStyle.values) {
-          final bar = glassTint(colors, style);
-          expect(glassTint(colors, style, chrome: true), bar);
-          // The same glass, only less of it.
-          expect(bar.withValues(alpha: 1), colors.barSolid);
-        }
-        expect(glassTint(colors, BarStyle.clear).a, closeTo(0.18, 1e-3));
-        expect(glassTint(colors, BarStyle.subtle).a, closeTo(0.30, 1e-3));
-        // Without a blur the tint is the theme's, as elsewhere.
-        expect(glassTint(colors, BarStyle.solid), colors.barSolid);
-        expect(glassTint(colors, BarStyle.transparent), colors.barTransparent);
-      }
-      debugDefaultTargetPlatformOverride = null;
-    });
+        debugDefaultTargetPlatformOverride = null;
+      });
+    }
   });
 
   testWidgets('on iOS the bar at rest is the thin tint over its blur', (
@@ -370,10 +348,6 @@ void main() {
       expect(
         (strip.decoration as BoxDecoration).color,
         glassTint(colors, BarStyle.clear),
-      );
-      expect(
-        (strip.decoration as BoxDecoration).color,
-        colors.barFill(BarStyle.clear),
       );
       await unmountApp(tester);
     });

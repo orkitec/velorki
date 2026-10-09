@@ -54,6 +54,17 @@ Object? englishOnly(String why) => isEnglishTestLocale
     ? false
     : 'English-only ($why); VELORKI_TEST_LOCALE=$testLocaleName';
 
+/// The app's own builder (`VelorkiApp`) without the performance box: one
+/// backdrop group for the glass over the map, and the gesture zone's guard.
+Widget _appBuilder(BuildContext context, Widget? child) =>
+    BackdropGroup(child: gestureZoneAppBuilder(context, child));
+
+/// Whether the [BackdropFilter] found by [blur] shares the app's backdrop
+/// group (`BackdropFilter.grouped`) rather than reading the backdrop on
+/// its own.
+bool isGroupedBlur(WidgetTester tester, Finder blur) =>
+    tester.renderObject<RenderBackdropFilter>(blur).backdropKey != null;
+
 /// A localised [MaterialApp] showing [home], in the locale under test.
 MaterialApp testApp({required Widget home, ThemeData? theme, Locale? locale}) =>
     MaterialApp(
@@ -61,7 +72,7 @@ MaterialApp testApp({required Widget home, ThemeData? theme, Locale? locale}) =>
       locale: locale ?? testLocale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      builder: gestureZoneAppBuilder,
+      builder: _appBuilder,
       home: home,
     );
 
@@ -76,7 +87,7 @@ MaterialApp testRouterApp({
   locale: locale ?? testLocale,
   localizationsDelegates: AppLocalizations.localizationsDelegates,
   supportedLocales: AppLocalizations.supportedLocales,
-  builder: gestureZoneAppBuilder,
+  builder: _appBuilder,
   routerConfig: routerConfig,
 );
 

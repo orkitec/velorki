@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -105,6 +106,7 @@ class SheetGeometry {
     required this.length,
     required this.endInset,
     required this.viewEndInset,
+    required this.barGap,
   });
 
   /// The geometry for the screen at [context]: a tab's, whose padding counts
@@ -120,6 +122,7 @@ class SheetGeometry {
         length: size.height,
         endInset: padding.bottom,
         viewEndInset: viewPadding.bottom,
+        barGap: floatingBarBottomGapOf(context),
       );
     }
     final left = layout.side == RailSide.left;
@@ -128,6 +131,7 @@ class SheetGeometry {
       length: size.width,
       endInset: left ? padding.left : padding.right,
       viewEndInset: left ? viewPadding.left : viewPadding.right,
+      barGap: floatingBarBottomGap,
     );
   }
 
@@ -138,11 +142,13 @@ class SheetGeometry {
   factory SheetGeometry.overShell(MediaQueryData media, ShellLayout layout) {
     final viewPadding = media.viewPadding;
     if (!layout.sideRail) {
+      final gap = floatingBarBottomGapFor(media, defaultTargetPlatform);
       return SheetGeometry._(
         layout: layout,
         length: media.size.height,
-        endInset: viewPadding.bottom + floatingBarBottomGap + floatingBarHeight,
+        endInset: viewPadding.bottom + gap + floatingBarHeight,
         viewEndInset: viewPadding.bottom,
+        barGap: gap,
       );
     }
     final left = layout.side == RailSide.left;
@@ -151,6 +157,7 @@ class SheetGeometry {
       length: media.size.width,
       endInset: floatingRailInset(viewPadding, layout.side),
       viewEndInset: left ? viewPadding.left : viewPadding.right,
+      barGap: floatingBarBottomGap,
     );
   }
 
@@ -173,10 +180,13 @@ class SheetGeometry {
   /// The safe area alone at the sheet's end, without bar or rail.
   final double viewEndInset;
 
+  /// The air between the safe area and the bar or the rail
+  /// ([floatingBarBottomGapFor] upright).
+  final double barGap;
+
   /// What the bar covers while a ride hides the navigation and the figures
   /// bar takes its place: the same shape.
-  double get figuresBarInset =>
-      viewEndInset + floatingBarBottomGap + floatingBarHeight;
+  double get figuresBarInset => viewEndInset + barGap + floatingBarHeight;
 
   /// [dp] above the sheet's end inset as a fraction of [length].
   double fraction(double dp) =>

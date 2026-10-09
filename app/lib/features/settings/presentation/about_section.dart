@@ -64,6 +64,8 @@ class AboutSection extends ConsumerWidget {
         ListTile(
           leading: const Icon(Icons.map_outlined),
           title: Text(l10n.osmAttribution),
+          trailing: const Icon(Icons.open_in_new, size: 18),
+          onTap: () => unawaited(_open(context, ref, osmCopyrightUrl)),
         ),
         ListTile(
           leading: const Icon(Icons.article_outlined),

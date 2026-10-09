@@ -273,8 +273,8 @@ class LabeledIconButton extends StatelessWidget {
 }
 
 /// A panel of glass with a hairline, for controls floating over the map:
-/// the [FloatingBarStyle]'s glass in [VelorkiColors.chromeFill], a quarter
-/// less see-through than the bar, blurred as the bar is.
+/// the [FloatingBarStyle]'s glass in [glassTint], the bar's own tint,
+/// blurred as the bar is.
 class GlassPanel extends StatelessWidget {
   /// Creates the panel.
   const GlassPanel({
@@ -320,14 +320,14 @@ class GlassPanel extends StatelessWidget {
         // rounded clip; as under the bar at rest, the shadow around the
         // panel hides its square corners. The filter stays in the tree
         // whatever the style, so the content keeps its state on a change.
-        child: BackdropFilter(
+        child: BackdropFilter.grouped(
           enabled: filter != null,
           filter: filter ?? ImageFilter.blur(),
           // The colour lives on a Material, not a DecoratedBox: ListTiles
           // inside paint their ink on the nearest Material and would be
           // hidden otherwise.
           child: Material(
-            color: glassTint(colors, style, chrome: true),
+            color: glassTint(colors, style),
             shape: RoundedRectangleBorder(
               borderRadius: borderRadius,
               side: BorderSide(color: colors.glassBorder),

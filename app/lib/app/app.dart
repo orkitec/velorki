@@ -37,9 +37,15 @@ class VelorkiApp extends ConsumerWidget {
       ],
       supportedLocales: AppLocalizations.supportedLocales,
       // Modal sheets sit above the shell's own guard; the performance box,
-      // when it is on, above everything.
-      builder: (context, child) =>
-          PerformanceHudLayer(child: gestureZoneAppBuilder(context, child)),
+      // when it is on, above everything. One backdrop group for the app:
+      // the glass over the map (bar, search, column, chips) is the same blur
+      // and never overlaps, so the engine reads the backdrop once for all of
+      // it instead of once per piece.
+      builder: (context, child) => BackdropGroup(
+        child: PerformanceHudLayer(
+          child: gestureZoneAppBuilder(context, child),
+        ),
+      ),
       routerConfig: ref.watch(routerProvider),
     );
   }

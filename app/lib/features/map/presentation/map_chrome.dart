@@ -47,9 +47,10 @@ class MapChromeInsets extends InheritedWidget {
 
   /// How far above the map's bottom edge the attribution chip and the (i)
   /// button stand, their gap not included; `null` for the band under the
-  /// floating bar, the view's bottom padding. The shell's map raises them
-  /// above the bar on a phone with no gesture zone under it, where the bar
-  /// reaches down to the screen's edge and would cover them.
+  /// floating bar, the view's bottom padding. The shell's map, whose view
+  /// padding is taken off, puts them on the safe area's edge on a phone with
+  /// no gesture zone at the bottom, under the raised bar
+  /// (`shellAttributionFloor`).
   final double? attributionFloor;
 
   /// What covers the map's edges right now, for the locate button's move:

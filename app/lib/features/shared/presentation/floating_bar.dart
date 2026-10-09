@@ -6,13 +6,49 @@ import 'package:flutter/material.dart';
 import '../../../app/shell_layout.dart';
 import '../../../app/theme.dart';
 import 'docking_sheet.dart' show dockedPillRadius;
+import 'gesture_zone_guard.dart';
 
 /// The height of the floating bar's glass: the tab bar's, and the figures
 /// bar's that takes its place during a ride.
 const double floatingBarHeight = 72;
 
-/// The air under the floating bar, above the safe area.
+/// The air under the floating bar, above the safe area, where the system's
+/// gesture zone is: the map's attribution chip sits in that zone under the
+/// bar. Turned sideways, the air beside the rail.
 const double floatingBarBottomGap = 12;
+
+/// How much higher the bar stands upright on a phone with no gesture zone at
+/// the bottom (an iPhone with a home button, Android's three-button
+/// navigation): a band under it for the map's attribution chip, which would
+/// otherwise have nowhere under the bar to go. The chip is about 21 dp tall
+/// and stands 6 above the safe area; this leaves some air above it.
+const double attributionBandHeight = 26;
+
+/// The air under the upright floating bar on the screen [media] describes
+/// (the screen's own metrics: its safe area and gesture insets), above the
+/// safe area: [floatingBarBottomGap], and [attributionBandHeight] more
+/// where there is no system gesture zone at the bottom. The one source for
+/// everything that stands on the bar or measures it: the tab bar, the
+/// figures bar, the sheets docked into them and the map's attribution.
+double floatingBarBottomGapFor(MediaQueryData media, TargetPlatform platform) =>
+    floatingBarBottomGap +
+    (barRaisedForAttribution(media, platform) ? attributionBandHeight : 0);
+
+/// Whether the upright bar stands [attributionBandHeight] higher on the
+/// screen [media] describes, with the map's attribution chip under it on
+/// the safe area's edge: where the system has no gesture zone at the bottom.
+bool barRaisedForAttribution(MediaQueryData media, TargetPlatform platform) =>
+    systemGestureZoneHeight(media, platform) == 0;
+
+/// [floatingBarBottomGapFor] the screen at [context], upright, depending on
+/// its safe area and gesture insets only.
+double floatingBarBottomGapOf(BuildContext context) => floatingBarBottomGapFor(
+  MediaQueryData(
+    viewPadding: MediaQuery.viewPaddingOf(context),
+    systemGestureInsets: MediaQuery.systemGestureInsetsOf(context),
+  ),
+  defaultTargetPlatform,
+);
 
 /// The side margin of the floating bar.
 const double floatingBarSideMargin = 16;
@@ -32,8 +68,7 @@ double floatingRailInset(EdgeInsets viewPadding, RailSide side) =>
 /// The [BarStyle] the floating bars under it take: the shell's, from the
 /// rider's choice in Settings → Appearance. The tab sheets read it too, so
 /// a sheet docked into the bar is the same glass as the bar, and so does
-/// the chrome over the map (`GlassPanel`, the bike chips), in
-/// [VelorkiColors.chromeFill].
+/// the chrome over the map (`GlassPanel`, the bike chips), in [glassTint].
 class FloatingBarStyle extends InheritedWidget {
   /// Hands [style] down to [child].
   const FloatingBarStyle({
@@ -63,25 +98,19 @@ class FloatingBarStyle extends InheritedWidget {
       oldWidget.style != style;
 }
 
-/// The tint laid over the blur in [style]: the bar's, or with [chrome] the
-/// one of the controls over the map.
-///
-/// On iOS the blur over the map's native view is the system's own, which
-/// frosts on its own; the theme's tint on top of it left little of the map
-/// to see, so there the glass styles take far less of it, and the bar and
-/// the controls take the same.
-Color glassTint(VelorkiColors colors, BarStyle style, {bool chrome = false}) {
-  if (defaultTargetPlatform != TargetPlatform.iOS) {
-    return chrome ? colors.chromeFill(style) : colors.barFill(style);
-  }
-  // On iOS the bar and the controls are one material in every style: a
-  // difference in tint side by side over the map read as two kinds.
+/// The tint laid over the blur in [style], for the bar and the controls over
+/// the map alike: the glass styles take a fraction of the theme's bar fill,
+/// solid and transparent all of it.
+Color glassTint(VelorkiColors colors, BarStyle style) {
+  // The bar and the controls are one material in every style: a difference
+  // in tint side by side over the map read as two kinds of glass. On iOS the
+  // system's own blur frosts the map first, so its tint is the thinnest;
+  // elsewhere the engine's plain blur has no frost, so a touch more.
   final base = colors.barFill(style);
-  // The same glass for the bar and the controls: side by side over the map
-  // a difference in tint read as two kinds of glass.
+  final ios = defaultTargetPlatform == TargetPlatform.iOS;
   return switch (style) {
-    BarStyle.clear => base.withValues(alpha: 0.18),
-    BarStyle.subtle => base.withValues(alpha: 0.30),
+    BarStyle.clear => base.withValues(alpha: ios ? 0.18 : 0.24),
+    BarStyle.subtle => base.withValues(alpha: ios ? 0.30 : 0.36),
     BarStyle.solid || BarStyle.transparent => base,
   };
 }
@@ -103,8 +132,8 @@ ImageFilter? floatingBarFilter(BarStyle style) => switch (style) {
 /// and the figures bar Record's sheet folds into during a ride, so the two
 /// sit in exactly the same place with exactly the same shape.
 ///
-/// [floatingBarSideMargin] from the sides, [floatingBarBottomGap] above the
-/// safe area, corners of 30 and a shadow at rest. [docked], a sheet's strip
+/// [floatingBarSideMargin] from the sides, [floatingBarBottomGapFor] above
+/// the safe area, corners of 30 and a shadow at rest. [docked], a sheet's strip
 /// rests on its top edge: the top goes square and open, the seam being the
 /// strip's own hairline, and the shadow and blur go (see below). [child] is
 /// [floatingBarHeight] tall. How see-through the glass is follows
@@ -135,12 +164,16 @@ class FloatingBarShell extends StatelessWidget {
     // the bottom with its round border drawn inside. A rect clip and a
     // painted shape need no such favour from the compositor.
     final radius = docked ? BorderRadius.zero : BorderRadius.circular(30);
+    // Turned sideways the shell is the rail, its air the plain gap.
+    final gap = ShellLayout.of(context).sideRail
+        ? floatingBarBottomGap
+        : floatingBarBottomGapOf(context);
     return Padding(
       padding: EdgeInsets.fromLTRB(
         floatingBarSideMargin,
         0,
         floatingBarSideMargin,
-        MediaQuery.viewPaddingOf(context).bottom + floatingBarBottomGap,
+        MediaQuery.viewPaddingOf(context).bottom + gap,
       ),
       // Docked there is no shadow to keep off the sheet, but the clip stays
       // in the tree either way so the bar keeps its state.
@@ -166,6 +199,9 @@ class FloatingBarShell extends StatelessWidget {
           // clips a blur over the map to. Docked, no blur of its own: the
           // sheet blurs strip and bar as one pill, and the bar paints its
           // glass in its shape (BarGlassDecoration).
+          // Not in the app's backdrop group: at rest the bar lies over the
+          // tab's card, which is painted after the group reads the map, so a
+          // shared backdrop showed the map through the card.
           child: ClipRRect(
             borderRadius: radius,
             child: BackdropFilter(
